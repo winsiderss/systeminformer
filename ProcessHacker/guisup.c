@@ -1,10 +1,54 @@
 #include <phgui.h>
 
+HWND PhCreateListViewControl(
+    HWND ParentHandle,
+    INT_PTR Id
+    )
+{
+    return CreateWindow(
+        WC_LISTVIEW,
+        L"",
+        WS_CHILD | LVS_REPORT | WS_VISIBLE,
+        0,
+        0,
+        3,
+        3,
+        ParentHandle,
+        (HMENU)Id,
+        PhInstanceHandle,
+        NULL
+        );
+}
+
+INT PhAddListViewColumn(
+    HWND ListViewHandle,
+    INT Index,
+    INT DisplayIndex,
+    INT SubItemIndex,
+    INT Format,
+    INT Width,
+    PWSTR Text
+    )
+{
+    LVCOLUMN column;
+
+    column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
+    column.fmt = Format;
+    column.cx = Width;
+    column.pszText = Text;
+    column.iSubItem = SubItemIndex;
+    column.iOrder = DisplayIndex;
+
+    return ListView_InsertColumn(ListViewHandle, Index, &column);
+}
+
 HWND PhCreateTabControl(
     HWND ParentHandle
     )
 {
-    return CreateWindow(
+    HWND tabControlHandle;
+
+    tabControlHandle = CreateWindow(
         WC_TABCONTROL,
         L"",
         WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
@@ -17,6 +61,13 @@ HWND PhCreateTabControl(
         PhInstanceHandle,
         NULL
         );
+
+    if (tabControlHandle)
+    {
+        SendMessage(tabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+    }
+
+    return tabControlHandle;
 }
 
 INT PhAddTabControlTab(
