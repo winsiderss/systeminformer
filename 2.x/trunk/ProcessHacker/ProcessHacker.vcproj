@@ -362,6 +362,10 @@
 				RelativePath=".\ntimport.c"
 				>
 			</File>
+			<File
+				RelativePath=".\support.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -402,6 +406,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phbase.h"
 				>
 			</File>
 			<File

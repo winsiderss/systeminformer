@@ -1,7 +1,7 @@
 #ifndef NTBASIC_H
 #define NTBASIC_H
 
-#include <ph.h>
+#include <phbase.h>
 
 // Basic types
 

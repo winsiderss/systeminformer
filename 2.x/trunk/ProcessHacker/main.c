@@ -1,6 +1,7 @@
 #define MAIN_PRIVATE
 #include <phgui.h>
 
+HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
 
@@ -12,15 +13,48 @@ INT WINAPI WinMain(
     )
 {
     PhInstanceHandle = hInstance;
+
+    PhHeapHandle = HeapCreate(0, 0, 0);
+
+    if (!PhHeapHandle)
+        return 1;
+
     PhRegisterWindowClass();
     PhInitializeCommonControls();
 
-    if (!PhInitializeMainWindow(nCmdShow))
+    if (!PhInitializeImports())
+        return 1;
+
+    if (!PhMainWndInitialization(nCmdShow))
     {
+        PhShowError(NULL, L"Unable to initialize the main window.");
         return 1;
     }
 
     return PhMainMessageLoop();
+}
+
+INT PhMainMessageLoop()
+{
+    BOOL result;
+    MSG message;
+    HACCEL acceleratorTable;
+
+    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            return 1;
+
+        if (!TranslateAccelerator(message.hwnd, acceleratorTable, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+    }
+
+    return (INT)message.wParam;
 }
 
 VOID PhInitializeCommonControls()
@@ -28,7 +62,12 @@ VOID PhInitializeCommonControls()
     INITCOMMONCONTROLSEX icex;
 
     icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-    icex.dwICC = ICC_LISTVIEW_CLASSES;
+    icex.dwICC =
+        ICC_LINK_CLASS |
+        ICC_LISTVIEW_CLASSES |
+        ICC_PROGRESS_CLASS |
+        ICC_TAB_CLASSES
+        ;
 
     InitCommonControlsEx(&icex);
 }
