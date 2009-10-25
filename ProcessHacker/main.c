@@ -5,10 +5,10 @@ HINSTANCE PhInstanceHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
 
 INT WINAPI WinMain(
-    HINSTANCE hInstance,
-    HINSTANCE hPrevInstance,
-    LPSTR lpCmdLine,
-    INT nCmdShow
+    __in HINSTANCE hInstance,
+    __in HINSTANCE hPrevInstance,
+    __in LPSTR lpCmdLine,
+    __in INT nCmdShow
     )
 {
     PhInstanceHandle = hInstance;

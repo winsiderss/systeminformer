@@ -358,12 +358,48 @@
 				RelativePath=".\mainwnd.c"
 				>
 			</File>
+			<File
+				RelativePath=".\ntimport.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\include\ntbasic.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntexapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntimport.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntldr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntobapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntpebteb.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntpsapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntrtl.h"
+				>
+			</File>
 			<File
 				RelativePath=".\include\ph.h"
 				>

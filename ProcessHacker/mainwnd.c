@@ -2,7 +2,9 @@
 
 HWND PhMainWindowHandle;
 
-BOOLEAN PhInitializeMainWindow(INT showCommand)
+BOOLEAN PhInitializeMainWindow(
+    __in INT showCommand
+    )
 {
     PhMainWindowHandle = CreateWindow(
         PhWindowClassName,
@@ -52,10 +54,10 @@ INT PhMainMessageLoop()
 }
 
 LRESULT CALLBACK PhMainWndProc(      
-    HWND hWnd,
-    UINT uMsg,
-    WPARAM wParam,
-    LPARAM lParam
+    __in HWND hWnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
     )
 {
     switch (uMsg)

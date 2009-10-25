@@ -10,4 +10,6 @@
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 
+#include <ntimport.h>
+
 #endif
