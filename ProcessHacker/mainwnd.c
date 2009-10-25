@@ -103,6 +103,24 @@ LRESULT CALLBACK PhMainWndProc(
     return 0;
 }
 
+BOOLEAN ProcessEnumCallback(PSYSTEM_PROCESS_INFORMATION Process)
+{
+    PWSTR buffer;
+
+    // LEAK
+    buffer = PhAllocate(Process->ImageName.Length + sizeof(WCHAR));
+    memcpy(buffer, Process->ImageName.Buffer, Process->ImageName.Length);
+    buffer[Process->ImageName.Length / sizeof(WCHAR)] = 0;
+
+    PhAddListViewItem(
+        ProcessListViewHandle,
+        MAXINT,
+        buffer
+        );
+
+    return FALSE;
+}
+
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -111,11 +129,11 @@ VOID PhMainWndOnCreate()
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
 
     ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
-    ListView_SetExtendedListViewStyleEx(ProcessListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+    ListView_SetExtendedListViewStyleEx(ProcessListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
     ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
-    ListView_SetExtendedListViewStyleEx(ServiceListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+    ListView_SetExtendedListViewStyleEx(ServiceListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
-    ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+    ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
 
     PhAddListViewColumn(
         ProcessListViewHandle,
@@ -144,12 +162,13 @@ VOID PhMainWndOnCreate()
         100,
         L"Process Name"
         );
+
+    PhEnumProcesses(ProcessEnumCallback, NULL);
 }
 
 VOID PhMainWndOnLayout()
 {
     RECT rect;
-    INT selectedIndex;
 
     // Resize the tab control.
     GetClientRect(PhMainWndHandle, &rect);

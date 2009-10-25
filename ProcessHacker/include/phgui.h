@@ -65,6 +65,12 @@ INT PhAddListViewColumn(
     PWSTR Text
     );
 
+INT PhAddListViewItem(
+    HWND ListViewHandle,
+    INT Index,
+    PWSTR Text
+    );
+
 // Tab Controls
 
 HWND PhCreateTabControl(

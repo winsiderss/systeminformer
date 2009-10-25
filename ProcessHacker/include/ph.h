@@ -4,6 +4,17 @@
 #include <phbase.h>
 #include <stdarg.h>
 
+// process
+
+typedef BOOLEAN (*PPH_ENUM_PROCESSES_CALLBACK)(
+    __in PSYSTEM_PROCESS_INFORMATION Process
+    );
+
+NTSTATUS PhEnumProcesses(
+    __in PPH_ENUM_PROCESSES_CALLBACK Callback,
+    __out_opt PBOOLEAN Found
+    );
+
 // support
 
 PVOID PhAllocate(

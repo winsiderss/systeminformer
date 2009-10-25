@@ -363,6 +363,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\process.c"
+				>
+			</File>
+			<File
 				RelativePath=".\support.c"
 				>
 			</File>
