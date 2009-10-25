@@ -37,7 +37,15 @@ VOID FORCEINLINE PhSetControlPosition(
     INT Bottom
     )
 {
-    SetWindowPos(Handle, NULL, Left, Top, Right, Bottom, SWP_NOZORDER | SWP_NOREDRAW);
+    SetWindowPos(
+        Handle,
+        NULL,
+        Left,
+        Top,
+        Right - Left,
+        Bottom - Top,
+        SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOZORDER
+        );
 }
 
 // List Views

@@ -8,7 +8,7 @@ HWND PhCreateListViewControl(
     return CreateWindow(
         WC_LISTVIEW,
         L"",
-        WS_CHILD | LVS_REPORT | WS_VISIBLE,
+        WS_CHILD | LVS_REPORT | WS_VISIBLE | WS_BORDER,
         0,
         0,
         3,
