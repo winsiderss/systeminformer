@@ -1,6 +1,7 @@
 #define MAIN_PRIVATE
 #include <phgui.h>
 
+HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
@@ -72,12 +73,48 @@ VOID PhInitializeCommonControls()
     InitCommonControlsEx(&icex);
 }
 
+VOID PhInitializeFont(
+    __in HWND hWnd
+    )
+{
+    if (!(PhApplicationFont = CreateFont(
+        -MulDiv(8, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72),
+        0,
+        0,
+        0,
+        FW_NORMAL,
+        FALSE,
+        FALSE,
+        FALSE,
+        ANSI_CHARSET,
+        OUT_DEFAULT_PRECIS,
+        CLIP_DEFAULT_PRECIS,
+        DEFAULT_QUALITY,
+        DEFAULT_PITCH,
+        L"Tahoma"
+        )))
+    {
+        NONCLIENTMETRICS metrics;
+
+        metrics.cbSize = sizeof(NONCLIENTMETRICS);
+
+        if (SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0))
+        {
+            PhApplicationFont = CreateFontIndirect(&metrics.lfMessageFont);
+        }
+        else
+        {
+            PhApplicationFont = NULL;
+        }
+    }
+}
+
 ATOM PhRegisterWindowClass()
 {
     WNDCLASSEX wcex;
 
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
+    wcex.style = 0;
     wcex.lpfnWndProc = PhMainWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;

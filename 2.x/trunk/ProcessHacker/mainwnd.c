@@ -1,7 +1,21 @@
 #include <phgui.h>
 
+VOID PhMainWndOnCreate();
+VOID PhMainWndOnLayout();
+VOID PhMainWndTabControlOnLayout();
+VOID PhMainWndTabControlOnNotify(
+    __in LPNMHDR Header
+    );
+VOID PhMainWndTabControlOnSelectionChanged();
+
 HWND PhMainWndHandle;
 static HWND TabControlHandle;
+static INT ProcessesTabIndex;
+static INT ServicesTabIndex;
+static INT NetworkTabIndex;
+static HWND ProcessListViewHandle;
+static HWND ServiceListViewHandle;
+static HWND NetworkListViewHandle;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -24,8 +38,16 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
+    PhInitializeFont(PhMainWndHandle);
+
+    // Initialize child controls.
     PhMainWndOnCreate();
+
+    PhMainWndTabControlOnSelectionChanged();
+
+    // Perform a layout.
     PhMainWndOnLayout();
+
     ShowWindow(PhMainWndHandle, ShowCommand);
 
     return TRUE;
@@ -39,7 +61,12 @@ LRESULT CALLBACK PhMainWndProc(
     )
 {
     switch (uMsg)
-    {
+    { 
+    case WM_DESTROY:
+        {
+            PostQuitMessage(0);
+        }
+        break;
     case WM_COMMAND:
         {
             INT id = LOWORD(wParam);
@@ -59,9 +86,14 @@ LRESULT CALLBACK PhMainWndProc(
     case WM_SIZE:
         PhMainWndOnLayout();
         break;
-    case WM_DESTROY:
+    case WM_NOTIFY:
         {
-            PostQuitMessage(0);
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            if (header->hwndFrom == TabControlHandle)
+            {
+                PhMainWndTabControlOnNotify(header);
+            }
         }
         break;
     default:
@@ -74,15 +106,100 @@ LRESULT CALLBACK PhMainWndProc(
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
-    PhAddTabControlTab(TabControlHandle, 0, L"Processes");
-    PhAddTabControlTab(TabControlHandle, 1, L"Services");
-    PhAddTabControlTab(TabControlHandle, 2, L"Network");
+    ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
+    ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
+    NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
+
+    ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
+    ListView_SetExtendedListViewStyleEx(ProcessListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+    ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
+    ListView_SetExtendedListViewStyleEx(ServiceListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+    NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
+    ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_DOUBLEBUFFER, LVS_EX_DOUBLEBUFFER);
+
+    PhAddListViewColumn(
+        ProcessListViewHandle,
+        0,
+        0,
+        0,
+        LVCFMT_LEFT,
+        100,
+        L"Name"
+        );
+    PhAddListViewColumn(
+        ServiceListViewHandle,
+        0,
+        0,
+        0,
+        LVCFMT_LEFT,
+        100,
+        L"Name"
+        );
+    PhAddListViewColumn(
+        NetworkListViewHandle,
+        0,
+        0,
+        0,
+        LVCFMT_LEFT,
+        100,
+        L"Process Name"
+        );
 }
 
 VOID PhMainWndOnLayout()
 {
     RECT rect;
+    INT selectedIndex;
+
+    // Resize the tab control.
+    GetClientRect(PhMainWndHandle, &rect);
+    PhSetControlPosition(TabControlHandle, rect.left, rect.top, rect.right, rect.bottom);
+
+    PhMainWndTabControlOnLayout();
+}
+
+VOID PhMainWndTabControlOnLayout()
+{
+    RECT rect;
+    INT selectedIndex;
 
     GetClientRect(PhMainWndHandle, &rect);
-    PhSetControlPosition(TabControlHandle, 0, 0, rect.right, rect.bottom);
+    TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
+
+    selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+    if (selectedIndex == ProcessesTabIndex)
+    {
+        PhSetControlPosition(ProcessListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+    }
+    else if (selectedIndex == ServicesTabIndex)
+    {
+        PhSetControlPosition(ServiceListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+    }
+    else if (selectedIndex == NetworkTabIndex)
+    {
+        PhSetControlPosition(NetworkListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+    }
+}
+
+VOID PhMainWndTabControlOnNotify(
+    __in LPNMHDR Header
+    )
+{
+    if (Header->code == TCN_SELCHANGE)
+    {
+        PhMainWndTabControlOnSelectionChanged();
+    }
+}
+
+VOID PhMainWndTabControlOnSelectionChanged()
+{
+    INT selectedIndex;
+
+    selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+    ShowWindow(ProcessListViewHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
+    ShowWindow(ServiceListViewHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
+    ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
+
+    PhMainWndTabControlOnLayout();
 }

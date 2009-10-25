@@ -19,6 +19,7 @@
 
 #ifndef MAIN_PRIVATE
 
+extern HFONT PhApplicationFont;
 extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
 extern PWSTR PhWindowClassName;

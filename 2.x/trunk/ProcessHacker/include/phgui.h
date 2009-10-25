@@ -19,6 +19,10 @@ INT PhMainMessageLoop();
 
 VOID PhInitializeCommonControls();
 
+VOID PhInitializeFont(
+    __in HWND hWnd
+    );
+
 ATOM PhRegisterWindowClass();
 
 // guisup
@@ -33,8 +37,25 @@ VOID FORCEINLINE PhSetControlPosition(
     INT Bottom
     )
 {
-    SetWindowPos(Handle, NULL, Left, Top, Right, Bottom, SWP_NOZORDER);
+    SetWindowPos(Handle, NULL, Left, Top, Right, Bottom, SWP_NOZORDER | SWP_NOREDRAW);
 }
+
+// List Views
+
+HWND PhCreateListViewControl(
+    HWND ParentHandle,
+    INT_PTR Id
+    );
+
+INT PhAddListViewColumn(
+    HWND ListViewHandle,
+    INT Index,
+    INT DisplayIndex,
+    INT SubItemIndex,
+    INT Format,
+    INT Width,
+    PWSTR Text
+    );
 
 // Tab Controls
 
@@ -60,9 +81,5 @@ LRESULT CALLBACK PhMainWndProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
-
-VOID PhMainWndOnCreate();
-
-VOID PhMainWndOnLayout();
 
 #endif

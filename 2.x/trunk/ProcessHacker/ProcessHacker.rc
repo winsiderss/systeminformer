@@ -70,7 +70,7 @@ BEGIN
     MENUITEM "&View",                       ID_VIEW
     MENUITEM "&Tools",                      ID_TOOLS
     MENUITEM "&Users",                      ID_USERS
-    MENUITEM "H&elp",                       ID_HELP40005
+    MENUITEM "H&elp",                       ID_HELP
 END
 
 #endif    // English (Australia) resources
