@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHacker\ProcessHacker.vcproj", "{0271DD27-6707-4290-8DFE-285702B7115D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Debug|x64.ActiveCfg = Debug|x64
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Debug|x64.Build.0 = Debug|x64
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|Win32.ActiveCfg = Release|Win32
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|Win32.Build.0 = Release|Win32
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|x64.ActiveCfg = Release|x64
+		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
