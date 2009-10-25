@@ -1,21 +1,21 @@
 #include <phgui.h>
 #include <wchar.h>
 
-PVOID FORCEINLINE PhAllocate(
+PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
     return HeapAlloc(PhHeapHandle, 0, Size);
 }
 
-VOID FORCEINLINE PhFree(
+VOID PhFree(
     __in PVOID Memory
     )
 {
     HeapFree(PhHeapHandle, 0, Memory);
 }
 
-PVOID FORCEINLINE PhReAlloc(
+PVOID PhReAlloc(
     __in PVOID Memory,
     __in SIZE_T Size
     )

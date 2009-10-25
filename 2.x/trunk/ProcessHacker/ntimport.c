@@ -39,4 +39,6 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSuspendThread);
     InitProcReq("ntdll.dll", NtTerminateProcess);
     InitProcReq("ntdll.dll", NtTerminateThread);
+
+    return TRUE;
 }
