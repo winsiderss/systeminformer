@@ -1,14 +1,15 @@
 #include <phgui.h>
 
-HWND PhMainWindowHandle;
+HWND PhMainWndHandle;
+static HWND TabControlHandle;
 
-BOOLEAN PhInitializeMainWindow(
-    __in INT showCommand
+BOOLEAN PhMainWndInitialization(
+    __in INT ShowCommand
     )
 {
-    PhMainWindowHandle = CreateWindow(
+    PhMainWndHandle = CreateWindow(
         PhWindowClassName,
-        L"Process Hacker",
+        PH_APP_NAME,
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT,
         0,
@@ -20,37 +21,14 @@ BOOLEAN PhInitializeMainWindow(
         NULL
         );
 
-    if (!PhMainWindowHandle)
-    {
+    if (!PhMainWndHandle)
         return FALSE;
-    }
 
-    ShowWindow(PhMainWindowHandle, showCommand);
+    PhMainWndOnCreate();
+    PhMainWndOnLayout();
+    ShowWindow(PhMainWndHandle, ShowCommand);
 
     return TRUE;
-}
-
-INT PhMainMessageLoop()
-{
-    BOOL result;
-    MSG message;
-    HACCEL acceleratorTable;
-
-    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
-
-    while (result = GetMessage(&message, NULL, 0, 0))
-    {
-        if (result == -1)
-            return 1;
-
-        if (!TranslateAccelerator(message.hwnd, acceleratorTable, &message))
-        {
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-    }
-
-    return (INT)message.wParam;
 }
 
 LRESULT CALLBACK PhMainWndProc(      
@@ -79,9 +57,7 @@ LRESULT CALLBACK PhMainWndProc(
     case WM_PAINT:
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     case WM_SIZE:
-        {
-
-        }
+        PhMainWndOnLayout();
         break;
     case WM_DESTROY:
         {
@@ -93,4 +69,20 @@ LRESULT CALLBACK PhMainWndProc(
     }
 
     return 0;
+}
+
+VOID PhMainWndOnCreate()
+{
+    TabControlHandle = PhCreateTabControl(PhMainWndHandle);
+    PhAddTabControlTab(TabControlHandle, 0, L"Processes");
+    PhAddTabControlTab(TabControlHandle, 1, L"Services");
+    PhAddTabControlTab(TabControlHandle, 2, L"Network");
+}
+
+VOID PhMainWndOnLayout()
+{
+    RECT rect;
+
+    GetClientRect(PhMainWndHandle, &rect);
+    PhSetControlPosition(TabControlHandle, 0, 0, rect.right, rect.bottom);
 }
