@@ -367,6 +367,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ref.c"
+				>
+			</File>
+			<File
 				RelativePath=".\support.c"
 				>
 			</File>
@@ -418,6 +422,14 @@
 			</File>
 			<File
 				RelativePath=".\include\phgui.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ref.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\refp.h"
 				>
 			</File>
 			<File

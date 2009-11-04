@@ -2,9 +2,19 @@
 #define PH_H
 
 #include <phbase.h>
+#include <ref.h>
 #include <stdarg.h>
 
 // process
+
+#ifndef PROCESS_PRIVATE
+extern PPH_OBJECT_TYPE PhProcessType;
+#endif
+
+typedef struct _PH_PROCESS
+{
+	HANDLE ProcessId;
+} PH_PROCESS, *PPH_PROCESS;
 
 typedef BOOLEAN (*PPH_ENUM_PROCESSES_CALLBACK)(
     __in PSYSTEM_PROCESS_INFORMATION Process
@@ -16,6 +26,8 @@ NTSTATUS PhEnumProcesses(
     );
 
 // support
+
+#define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
 PVOID PhAllocate(
     __in SIZE_T Size

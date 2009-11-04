@@ -82,9 +82,17 @@ LRESULT CALLBACK PhMainWndProc(
         }
         break;
     case WM_PAINT:
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		{
+			HDC hdc;
+			PAINTSTRUCT paintStruct;
+
+			hdc = BeginPaint(hWnd, &paintStruct);
+			EndPaint(hWnd, &paintStruct);
+		}
+		break;
     case WM_SIZE:
         PhMainWndOnLayout();
+		InvalidateRect(hWnd, NULL, TRUE);
         break;
     case WM_NOTIFY:
         {
