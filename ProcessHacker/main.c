@@ -26,6 +26,8 @@ INT WINAPI WinMain(
     if (!PhInitializeImports())
         return 1;
 
+	PhInitializeObjects();
+
     if (!PhMainWndInitialization(nCmdShow))
     {
         PhShowError(NULL, L"Unable to initialize the main window.");
@@ -107,6 +109,11 @@ VOID PhInitializeFont(
             PhApplicationFont = NULL;
         }
     }
+}
+
+VOID PhInitializeObjects()
+{
+	PhInitializeRef();
 }
 
 ATOM PhRegisterWindowClass()

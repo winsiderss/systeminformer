@@ -1,4 +1,7 @@
+#define PROCESS_PRIVATE
 #include <ph.h>
+
+PPH_OBJECT_TYPE PhProcessType;
 
 NTSTATUS PhEnumProcesses(
     __in PPH_ENUM_PROCESSES_CALLBACK Callback,
