@@ -5,14 +5,14 @@ PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
-    return HeapAlloc(PhHeapHandle, 0, Size);
+    return RtlAllocateHeap(PhHeapHandle, 0, Size);
 }
 
 VOID PhFree(
     __in PVOID Memory
     )
 {
-    HeapFree(PhHeapHandle, 0, Memory);
+    RtlFreeHeap(PhHeapHandle, 0, Memory);
 }
 
 PVOID PhReAlloc(
@@ -20,7 +20,7 @@ PVOID PhReAlloc(
     __in SIZE_T Size
     )
 {
-    return HeapReAlloc(PhHeapHandle, 0, Memory, Size);
+    return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 }
 
 INT PhShowMessage(

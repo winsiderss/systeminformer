@@ -3,6 +3,15 @@
 
 #include <ntldr.h>
 
+// Heaps
+
+#define RtlCreateHeap HeapCreate
+#define RtlDestroyHeap HeapDestroy
+
+#define RtlAllocateHeap HeapAlloc
+#define RtlFreeHeap HeapFree
+#define RtlReAllocateHeap HeapReAlloc
+
 // Linked lists
 
 VOID FORCEINLINE InitializeListHead(

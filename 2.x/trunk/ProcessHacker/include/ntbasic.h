@@ -5,6 +5,11 @@
 
 // Basic types
 
+typedef struct _QUAD
+{
+	double DoNotUseThisField;
+} QUAD, *PQUAD, UQUAD, *PUQUAD;
+
 typedef PVOID *PPVOID;
 
 typedef ULONG LOGICAL;
