@@ -347,6 +347,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\basesup.c"
+				>
+			</File>
+			<File
 				RelativePath=".\guisup.c"
 				>
 			</File>
@@ -410,6 +414,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ntrtl.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntwin.h"
 				>
 			</File>
 			<File

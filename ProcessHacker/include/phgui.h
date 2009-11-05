@@ -23,7 +23,7 @@ VOID PhInitializeFont(
     __in HWND hWnd
     );
 
-VOID PhInitializeObjects();
+BOOLEAN PhInitializeSystem();
 
 ATOM PhRegisterWindowClass();
 
@@ -70,7 +70,8 @@ INT PhAddListViewColumn(
 INT PhAddListViewItem(
     HWND ListViewHandle,
     INT Index,
-    PWSTR Text
+    PWSTR Text,
+    PVOID Param
     );
 
 // Tab Controls

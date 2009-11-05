@@ -82,17 +82,17 @@ LRESULT CALLBACK PhMainWndProc(
         }
         break;
     case WM_PAINT:
-		{
-			HDC hdc;
-			PAINTSTRUCT paintStruct;
+        {
+            HDC hdc;
+            PAINTSTRUCT paintStruct;
 
-			hdc = BeginPaint(hWnd, &paintStruct);
-			EndPaint(hWnd, &paintStruct);
-		}
-		break;
+            hdc = BeginPaint(hWnd, &paintStruct);
+            EndPaint(hWnd, &paintStruct);
+        }
+        break;
     case WM_SIZE:
         PhMainWndOnLayout();
-		InvalidateRect(hWnd, NULL, TRUE);
+        InvalidateRect(hWnd, NULL, TRUE);
         break;
     case WM_NOTIFY:
         {
@@ -111,22 +111,35 @@ LRESULT CALLBACK PhMainWndProc(
     return 0;
 }
 
-BOOLEAN ProcessEnumCallback(PSYSTEM_PROCESS_INFORMATION Process)
+VOID EnumerateProcesses()
 {
-    PWSTR buffer;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
 
-    // LEAK
-    buffer = PhAllocate(Process->ImageName.Length + sizeof(WCHAR));
-    memcpy(buffer, Process->ImageName.Buffer, Process->ImageName.Length);
-    buffer[Process->ImageName.Length / sizeof(WCHAR)] = 0;
+    if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+        return;
 
-    PhAddListViewItem(
-        ProcessListViewHandle,
-        MAXINT,
-        buffer
-        );
+    process = PH_FIRST_PROCESS(processes);
 
-    return FALSE;
+    do
+    {
+        PPH_PROCESS_ITEM processItem;
+
+        if (process->UniqueProcessId == (HANDLE)0)
+            RtlInitUnicodeString(&process->ImageName, L"System Idle Process");
+
+        processItem = PhCreateProcessItem(process->UniqueProcessId);
+        processItem->ProcessName = PhCreateStringEx(process->ImageName.Buffer, process->ImageName.Length);
+
+        PhAddListViewItem(
+            ProcessListViewHandle,
+            MAXINT,
+            processItem->ProcessName->Buffer,
+            processItem
+            );
+    } while (process = PH_NEXT_PROCESS(process));
+
+    PhFree(processes);
 }
 
 VOID PhMainWndOnCreate()
@@ -171,7 +184,7 @@ VOID PhMainWndOnCreate()
         L"Process Name"
         );
 
-    PhEnumProcesses(ProcessEnumCallback, NULL);
+    EnumerateProcesses();
 }
 
 VOID PhMainWndOnLayout()
