@@ -118,7 +118,7 @@ VOID FORCEINLINE RtlInitUnicodeString(
     __in PWSTR SourceString
     )
 {
-    DestinationString->MaximumLength = DestinationString->Length = wcslen(SourceString);
+    DestinationString->MaximumLength = DestinationString->Length = wcslen(SourceString) * sizeof(WCHAR);
     DestinationString->Buffer = SourceString;
 }
 
