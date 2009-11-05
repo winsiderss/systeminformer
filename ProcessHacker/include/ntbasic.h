@@ -1,13 +1,13 @@
 #ifndef NTBASIC_H
 #define NTBASIC_H
 
-#include <phbase.h>
+#include <ntwin.h>
 
 // Basic types
 
 typedef struct _QUAD
 {
-	double DoNotUseThisField;
+    double DoNotUseThisField;
 } QUAD, *PQUAD, UQUAD, *PUQUAD;
 
 typedef PVOID *PPVOID;

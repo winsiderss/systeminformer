@@ -1,28 +1,6 @@
 #include <phgui.h>
 #include <wchar.h>
 
-PVOID PhAllocate(
-    __in SIZE_T Size
-    )
-{
-    return RtlAllocateHeap(PhHeapHandle, 0, Size);
-}
-
-VOID PhFree(
-    __in PVOID Memory
-    )
-{
-    RtlFreeHeap(PhHeapHandle, 0, Memory);
-}
-
-PVOID PhReAlloc(
-    __in PVOID Memory,
-    __in SIZE_T Size
-    )
-{
-    return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
-}
-
 INT PhShowMessage(
     __in HWND hWnd,
     __in ULONG Type,

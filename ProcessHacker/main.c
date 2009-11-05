@@ -26,7 +26,8 @@ INT WINAPI WinMain(
     if (!PhInitializeImports())
         return 1;
 
-	PhInitializeObjects();
+    if (!PhInitializeSystem())
+        return 1;
 
     if (!PhMainWndInitialization(nCmdShow))
     {
@@ -111,9 +112,16 @@ VOID PhInitializeFont(
     }
 }
 
-VOID PhInitializeObjects()
+BOOLEAN PhInitializeSystem()
 {
-	PhInitializeRef();
+    if (!NT_SUCCESS(PhInitializeRef()))
+        return FALSE;
+    if (!PhInitializeBase())
+        return FALSE;
+    if (!PhInitializeProcessItem())
+        return FALSE;
+
+    return TRUE;
 }
 
 ATOM PhRegisterWindowClass()
@@ -131,7 +139,7 @@ ATOM PhRegisterWindowClass()
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
     wcex.lpszClassName = PhWindowClassName;
-	wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
+    wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
 
     return RegisterClassEx(&wcex);
 }

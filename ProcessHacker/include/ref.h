@@ -23,7 +23,7 @@
 #ifndef REF_H
 #define REF_H
 
-#include <ph.h>
+#include <phbase.h>
 
 /* Object flags */
 #define PHOBJ_RAISE_ON_FAIL 0x00000001

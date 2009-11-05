@@ -332,7 +332,7 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     __in SIZE_T ObjectSize
     )
 {
-	return PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
+    return PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
 }
 
 /* PhpDeferDeleteObject
@@ -409,7 +409,7 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
         }
     }
 
-	return STATUS_SUCCESS;
+    return STATUS_SUCCESS;
 }
 
 /* PhpFreeObject
