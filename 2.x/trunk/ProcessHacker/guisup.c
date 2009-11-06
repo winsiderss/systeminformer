@@ -60,6 +60,23 @@ INT PhAddListViewItem(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
+VOID PhSetListViewSubItem(
+    HWND ListViewHandle,
+    INT Index,
+    INT SubItemIndex,
+    PWSTR Text
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_TEXT;
+    item.iItem = Index;
+    item.iSubItem = SubItemIndex;
+    item.pszText = Text;
+
+    ListView_SetItem(ListViewHandle, &item);
+}
+
 HWND PhCreateTabControl(
     HWND ParentHandle
     )

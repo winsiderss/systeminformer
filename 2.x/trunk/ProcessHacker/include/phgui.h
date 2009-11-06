@@ -74,6 +74,13 @@ INT PhAddListViewItem(
     PVOID Param
     );
 
+VOID PhSetListViewSubItem(
+    HWND ListViewHandle,
+    INT Index,
+    INT SubItemIndex,
+    PWSTR Text
+    );
+
 // Tab Controls
 
 HWND PhCreateTabControl(
