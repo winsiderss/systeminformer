@@ -14,6 +14,9 @@
 
 #define PH_APP_NAME (L"Process Hacker")
 
+#define PH_INT_STR_LEN 10
+#define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
+
 #ifndef MAIN_PRIVATE
 
 extern HFONT PhApplicationFont;

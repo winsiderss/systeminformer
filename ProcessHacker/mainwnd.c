@@ -1,4 +1,5 @@
 #include <phgui.h>
+#include <wchar.h>
 
 VOID PhMainWndOnCreate();
 VOID PhMainWndOnLayout();
@@ -124,19 +125,22 @@ VOID EnumerateProcesses()
     do
     {
         PPH_PROCESS_ITEM processItem;
+        INT lvItemIndex;
 
         if (process->UniqueProcessId == (HANDLE)0)
             RtlInitUnicodeString(&process->ImageName, L"System Idle Process");
 
         processItem = PhCreateProcessItem(process->UniqueProcessId);
         processItem->ProcessName = PhCreateStringEx(process->ImageName.Buffer, process->ImageName.Length);
+        _snwprintf(processItem->ProcessIdString, PH_INT_STR_LEN, L"%d", processItem->ProcessId);
 
-        PhAddListViewItem(
+        lvItemIndex = PhAddListViewItem(
             ProcessListViewHandle,
             MAXINT,
             processItem->ProcessName->Buffer,
             processItem
             );
+        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, processItem->ProcessIdString);
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
@@ -156,15 +160,8 @@ VOID PhMainWndOnCreate()
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
 
-    PhAddListViewColumn(
-        ProcessListViewHandle,
-        0,
-        0,
-        0,
-        LVCFMT_LEFT,
-        100,
-        L"Name"
-        );
+    PhAddListViewColumn(ProcessListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
+    PhAddListViewColumn(ProcessListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"PID");
     PhAddListViewColumn(
         ServiceListViewHandle,
         0,

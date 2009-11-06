@@ -39,6 +39,10 @@ typedef struct _PH_PROCESS_ITEM
     ULONG IsPosix : 1;
     ULONG IsWow64 : 1;
 
+    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
+    WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
+    WCHAR SessionIdString[PH_INT_STR_LEN_1];
+
     FLOAT CpuUsage; // from 0 to 1
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
