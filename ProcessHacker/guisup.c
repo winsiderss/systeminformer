@@ -55,7 +55,7 @@ INT PhAddListViewItem(
     item.iItem = Index;
     item.iSubItem = 0;
     item.pszText = Text;
-    item.lParam = Param;
+    item.lParam = (LPARAM)Param;
 
     return ListView_InsertItem(ListViewHandle, &item);
 }
