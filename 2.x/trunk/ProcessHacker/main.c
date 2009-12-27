@@ -121,6 +121,9 @@ BOOLEAN PhInitializeSystem()
     if (!PhInitializeProcessItem())
         return FALSE;
 
+    PhInitializeDosDeviceNames();
+    PhRefreshDosDeviceNames();
+
     return TRUE;
 }
 

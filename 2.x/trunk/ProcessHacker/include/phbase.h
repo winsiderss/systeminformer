@@ -83,7 +83,16 @@ extern PPH_OBJECT_TYPE PhStringType;
 
 typedef struct _PH_STRING
 {
-    UNICODE_STRING us;
+    union
+    {
+        UNICODE_STRING us;
+        struct
+        {
+            USHORT Length;
+            USHORT MaximumLength;
+            PWSTR Pointer;
+        };
+    };
     WCHAR Buffer[1];
 } PH_STRING, *PPH_STRING;
 
@@ -92,8 +101,44 @@ PPH_STRING PhCreateString(
     );
 
 PPH_STRING PhCreateStringEx(
-    __in PWSTR Buffer,
+    __in_opt PWSTR Buffer,
     __in SIZE_T Length
+    );
+
+PWSTR FORCEINLINE PhGetString(
+    __in_opt PPH_STRING String
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return NULL;
+}
+
+// list
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhListType;
+#endif
+
+typedef struct _PH_LIST
+{
+    ULONG Count;
+    ULONG AllocatedCount;
+    PPVOID Items;
+} PH_LIST, *PPH_LIST;
+
+PPH_LIST PhCreateList(
+    __in ULONG InitialCapacity
+    );
+
+VOID PhAddListItem(
+    __in PPH_LIST List,
+    __in PVOID Item
+    );
+
+VOID PhClearList(
+    __inout PPH_LIST List
     );
 
 #endif
