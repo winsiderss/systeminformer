@@ -46,19 +46,23 @@ typedef struct _PH_PROCESS_ITEM
     FLOAT CpuUsage; // from 0 to 1
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
+typedef enum _PH_PEB_OFFSET
+{
+    PhpoCurrentDirectory,
+    PhpoDllPath,
+    PhpoImagePathName,
+    PhpoCommandLine,
+    PhpoWindowTitle,
+    PhpoDesktopName,
+    PhpoShellInfo,
+    PhpoRuntimeData
+} PH_PEB_OFFSET;
+
 BOOLEAN PhInitializeProcessItem();
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
     );
-
-#define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
-#define PH_NEXT_PROCESS(Process) ( \
-    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
-    (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
-    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) : \
-    NULL \
-    )
 
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
@@ -76,6 +80,41 @@ NTSTATUS PhOpenProcessToken(
     __out PHANDLE TokenHandle,
     __in ACCESS_MASK DesiredAccess,
     __in HANDLE ProcessHandle
+    );
+
+NTSTATUS PhReadVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead
+    );
+
+NTSTATUS PhWriteVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesWritten
+    );
+
+NTSTATUS PhGetProcessBasicInformation(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetProcessImageFileName(
+    __in HANDLE ProcessHandle,
+    __out PPH_STRING *FileName
+    );
+
+#define PhGetProcessCommandLine(ProcessHandle, String) \
+    PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
+
+NTSTATUS PhGetProcessPebString(
+    __in HANDLE ProcessHandle,
+    __in PH_PEB_OFFSET Offset,
+    __out PPH_STRING *String
     );
 
 NTSTATUS PhGetTokenUser(
@@ -96,6 +135,14 @@ BOOLEAN PhLookupSid(
     __out_opt PPH_STRING *DomainName,
     __out_opt PSID_NAME_USE NameUse
     );
+
+#define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
+#define PH_NEXT_PROCESS(Process) ( \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
+    (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
+    ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset) : \
+    NULL \
+    )
 
 NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
