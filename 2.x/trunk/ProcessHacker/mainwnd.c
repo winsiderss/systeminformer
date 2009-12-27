@@ -163,6 +163,7 @@ VOID EnumerateProcesses()
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, processItem->ProcessIdString);
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(processItem->UserName));
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(processItem->FileName));
+        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(processItem->CommandLine));
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
@@ -180,18 +181,11 @@ VOID FillProcessInfo(
     if (!NT_SUCCESS(status))
         return;
 
-    {
-        
-    }
-
     // Process information
     {
         PPH_STRING fileName;
 
-        status = PhGetProcessImageFileName(
-            processHandle,
-            &fileName
-            );
+        status = PhGetProcessImageFileName(processHandle, &fileName);
 
         if (NT_SUCCESS(status))
         {
@@ -202,6 +196,31 @@ VOID FillProcessInfo(
 
             PhDereferenceObject(fileName);
             PhDereferenceObject(newFileName);
+        }
+    }
+
+    {
+        HANDLE processHandle2;
+
+        status = PhOpenProcess(
+            &processHandle2,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ProcessItem->ProcessId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PPH_STRING commandLine;
+
+            status = PhGetProcessCommandLine(processHandle2, &commandLine);
+
+            if (NT_SUCCESS(status))
+            {
+                PhSwapReference(&ProcessItem->CommandLine, commandLine);
+                PhDereferenceObject(commandLine);
+            }
+
+            CloseHandle(processHandle2);
         }
     }
 
@@ -269,6 +288,7 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ProcessListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"PID");
     PhAddListViewColumn(ProcessListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"User Name");
     PhAddListViewColumn(ProcessListViewHandle, 3, 3, 3, LVCFMT_LEFT, 300, L"File Name");
+    PhAddListViewColumn(ProcessListViewHandle, 4, 4, 4, LVCFMT_LEFT, 300, L"Command Line");
     PhAddListViewColumn(
         ServiceListViewHandle,
         0,

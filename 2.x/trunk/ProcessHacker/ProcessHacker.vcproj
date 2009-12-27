@@ -401,6 +401,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntmmapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntobapi.h"
 				>
 			</File>

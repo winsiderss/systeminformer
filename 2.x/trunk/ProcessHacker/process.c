@@ -104,6 +104,40 @@ NTSTATUS PhOpenProcessToken(
         );
 }
 
+NTSTATUS PhReadVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead
+    )
+{
+    return NtReadVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        Buffer,
+        BufferSize,
+        NumberOfBytesRead
+        );
+}
+
+NTSTATUS PhWriteVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesWritten
+    )
+{
+    return NtWriteVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        Buffer,
+        BufferSize,
+        NumberOfBytesWritten
+        );
+}
+
 NTSTATUS PhQueryProcessVariableSize(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -154,6 +188,20 @@ NTSTATUS PhQueryProcessVariableSize(
     return status;
 }
 
+NTSTATUS PhGetProcessBasicInformation(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        BasicInformation,
+        sizeof(PROCESS_BASIC_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhGetProcessImageFileName(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *FileName
@@ -174,6 +222,93 @@ NTSTATUS PhGetProcessImageFileName(
 
     fileName = (PUNICODE_STRING)buffer;
     *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
+
+    return status;
+}
+
+NTSTATUS PhGetProcessPebString(
+    __in HANDLE ProcessHandle,
+    __in PH_PEB_OFFSET Offset,
+    __out PPH_STRING *String
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+    ULONG offset;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PVOID address;
+    UNICODE_STRING unicodeString;
+
+    switch (Offset)
+    {
+    case PhpoCurrentDirectory:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, CurrentDirectory);
+        break;
+    case PhpoDllPath:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, DllPath);
+        break;
+    case PhpoImagePathName:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, ImagePathName);
+        break;
+    case PhpoCommandLine:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, CommandLine);
+        break;
+    case PhpoWindowTitle:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, WindowTitle);
+        break;
+    case PhpoDesktopName:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, DesktopInfo);
+        break;
+    case PhpoShellInfo:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, ShellInfo);
+        break;
+    case PhpoRuntimeData:
+        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, RuntimeData);
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER_2;
+    }
+
+    // Get the PEB address.
+    if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+        return status;
+
+    // Read the address of the process parameters.
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+        &address,
+        sizeof(PVOID),
+        NULL
+        )))
+        return status;
+
+    // Read the string structure.
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(address, offset),
+        &unicodeString,
+        sizeof(UNICODE_STRING),
+        NULL
+        )))
+        return status;
+
+    string = PhCreateStringEx(NULL, unicodeString.Length);
+
+    // Read the string contents.
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        unicodeString.Buffer,
+        string->Buffer,
+        string->Length,
+        NULL
+        )))
+    {
+        PhDereferenceObject(string);
+        return status;
+    }
+
+    *String = string;
 
     return status;
 }
@@ -432,7 +567,7 @@ PPH_STRING PhGetFileName(
                 if (wcsnicmp(FileName->Buffer, prefix, prefixLength) == 0)
                 {
                     newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
-                    newFileName->Buffer[0] = 'A' + i;
+                    newFileName->Buffer[0] = (WCHAR)('A' + i);
                     newFileName->Buffer[1] = ':';
                     memcpy(&newFileName->Buffer[2], &FileName->Buffer[prefixLength], FileName->Length - prefixLength * 2);
 

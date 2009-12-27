@@ -26,6 +26,8 @@ extern PWSTR PhWindowClassName;
 
 #endif
 
+#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
+
 // basesup
 
 struct _PH_OBJECT_TYPE;
@@ -80,6 +82,8 @@ VOID FORCEINLINE PhReleaseMutex(
 #ifndef BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhStringType;
 #endif
+
+#define PH_STRING_MAXLEN MAXUINT16
 
 typedef struct _PH_STRING
 {
