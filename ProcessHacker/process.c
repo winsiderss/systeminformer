@@ -222,6 +222,7 @@ NTSTATUS PhGetProcessImageFileName(
 
     fileName = (PUNICODE_STRING)buffer;
     *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
+    PhFree(buffer);
 
     return status;
 }
