@@ -48,6 +48,8 @@ VOID PhpProcessItemDeleteProcedure(
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
+    if (processItem->FileName) PhDereferenceObject(processItem->FileName);
+    if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 }
 
