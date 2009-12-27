@@ -60,8 +60,53 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     NULL \
     )
 
+NTSTATUS PhOpenProcess(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ProcessId
+    );
+
+NTSTATUS PhOpenThread(
+    __out PHANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ThreadId
+    );
+
+NTSTATUS PhOpenProcessToken(
+    __out PHANDLE TokenHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ProcessHandle
+    );
+
+NTSTATUS PhGetTokenUser(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_USER *User
+    );
+
+BOOLEAN PhSetTokenPrivilege(
+    __in HANDLE TokenHandle,
+    __in_opt PWSTR PrivilegeName,
+    __in_opt PLUID PrivilegeLuid,
+    __in ULONG Attributes
+    );
+
+BOOLEAN PhLookupSid(
+    __in PSID Sid,
+    __out_opt PPH_STRING *Name,
+    __out_opt PPH_STRING *DomainName,
+    __out_opt PSID_NAME_USE NameUse
+    );
+
 NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
+    );
+
+VOID PhInitializeDosDeviceNames();
+
+VOID PhRefreshDosDeviceNames();
+
+PPH_STRING PhGetFileName(
+    __in PPH_STRING FileName
     );
 
 // support
@@ -82,6 +127,8 @@ INT PhShowMessage_V(
     __in va_list ArgPtr
     );
 
-#define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__) 
+#define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+
+PPH_STRING PhGetSystemDirectory(); 
 
 #endif

@@ -417,6 +417,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntseapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntwin.h"
 				>
 			</File>
