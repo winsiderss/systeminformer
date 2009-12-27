@@ -32,3 +32,36 @@ INT PhShowMessage_V(
 
     return MessageBox(hWnd, message, PH_APP_NAME, Type);
 }
+
+PPH_STRING PhGetSystemDirectory()
+{
+    PPH_STRING systemDirectory;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 0x40;
+    buffer = PhAllocate(bufferSize * 2);
+
+    returnLength = GetSystemDirectory(buffer, bufferSize);
+
+    if (returnLength > bufferSize)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize * 2);
+
+        returnLength = GetSystemDirectory(buffer, bufferSize);
+    }
+
+    if (returnLength == 0)
+    {
+        PhFree(buffer);
+        return NULL;
+    }
+
+    systemDirectory = PhCreateString(buffer);
+    PhFree(buffer);
+
+    return systemDirectory;
+}

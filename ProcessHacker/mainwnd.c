@@ -9,6 +9,10 @@ VOID PhMainWndTabControlOnNotify(
     );
 VOID PhMainWndTabControlOnSelectionChanged();
 
+VOID FillProcessInfo(
+    __inout PPH_PROCESS_ITEM ProcessItem
+    );
+
 HWND PhMainWndHandle;
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -22,6 +26,21 @@ BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
 {
+    // Enable debug privilege if possible.
+    {
+        HANDLE tokenHandle;
+
+        if (NT_SUCCESS(PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_ADJUST_PRIVILEGES,
+            NtCurrentProcess()
+            )))
+        {
+            PhSetTokenPrivilege(tokenHandle, L"SeDebugPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            CloseHandle(tokenHandle);
+        }
+    }
+
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
         PH_APP_NAME,
@@ -133,6 +152,7 @@ VOID EnumerateProcesses()
         processItem = PhCreateProcessItem(process->UniqueProcessId);
         processItem->ProcessName = PhCreateStringEx(process->ImageName.Buffer, process->ImageName.Length);
         _snwprintf(processItem->ProcessIdString, PH_INT_STR_LEN, L"%d", processItem->ProcessId);
+        FillProcessInfo(processItem);
 
         lvItemIndex = PhAddListViewItem(
             ProcessListViewHandle,
@@ -141,9 +161,94 @@ VOID EnumerateProcesses()
             processItem
             );
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, processItem->ProcessIdString);
+        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(processItem->UserName));
+        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(processItem->FileName));
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
+}
+
+VOID FillProcessInfo(
+    __inout PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    status = PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    {
+        
+    }
+
+    // Process information
+    {
+        PPH_STRING fileName;
+
+        status = PhGetProcessImageFileName(
+            processHandle,
+            &fileName
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PPH_STRING newFileName;
+            
+            newFileName = PhGetFileName(fileName);
+            PhSwapReference(&ProcessItem->FileName, newFileName);
+
+            PhDereferenceObject(fileName);
+            PhDereferenceObject(newFileName);
+        }
+    }
+
+    // Token-related information
+    {
+        HANDLE tokenHandle;
+
+        status = PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            // User name
+            {
+                PTOKEN_USER user;
+
+                status = PhGetTokenUser(tokenHandle, &user);
+
+                if (NT_SUCCESS(status))
+                {
+                    PPH_STRING userName;
+                    PPH_STRING domainName;
+
+                    if (PhLookupSid(user->User.Sid, &userName, &domainName, NULL))
+                    {
+                        PPH_STRING fullName;
+
+                        fullName = PhCreateStringEx(NULL, domainName->Length + 2 + userName->Length);
+                        memcpy(fullName->Buffer, domainName->Buffer, domainName->Length);
+                        fullName->Buffer[domainName->Length / 2] = '\\';
+                        memcpy(&fullName->Buffer[domainName->Length / 2 + 1], userName->Buffer, userName->Length);
+
+                        PhSwapReference(&ProcessItem->UserName, fullName);
+
+                        PhDereferenceObject(userName);
+                        PhDereferenceObject(domainName);
+                        PhDereferenceObject(fullName);
+                    }
+
+                    PhFree(user);
+                }
+            }
+
+            CloseHandle(tokenHandle);
+        }
+    }
+
+    CloseHandle(processHandle);
 }
 
 VOID PhMainWndOnCreate()
@@ -162,6 +267,8 @@ VOID PhMainWndOnCreate()
 
     PhAddListViewColumn(ProcessListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ProcessListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"PID");
+    PhAddListViewColumn(ProcessListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"User Name");
+    PhAddListViewColumn(ProcessListViewHandle, 3, 3, 3, LVCFMT_LEFT, 300, L"File Name");
     PhAddListViewColumn(
         ServiceListViewHandle,
         0,

@@ -5,6 +5,7 @@
 #include <ntexapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>
+#include <ntseapi.h>
 #include <ntrtl.h>
 
 #ifdef NTIMPORT_PRIVATE
@@ -22,9 +23,11 @@ EXT _NtDuplicateObject NtDuplicateObject EQNULL;
 EXT _NtGetNextProcess NtGetNextProcess EQNULL;
 EXT _NtGetNextThread NtGetNextThread EQNULL;
 EXT _NtOpenProcess NtOpenProcess EQNULL;
+EXT _NtOpenProcessToken NtOpenProcessToken EQNULL;
 EXT _NtOpenThread NtOpenThread EQNULL;
 EXT _NtQueryInformationProcess NtQueryInformationProcess EQNULL;
 EXT _NtQueryInformationThread NtQueryInformationThread EQNULL;
+EXT _NtQueryInformationToken NtQueryInformationToken EQNULL;
 EXT _NtQueryObject NtQueryObject EQNULL;
 EXT _NtQuerySystemInformation NtQuerySystemInformation EQNULL;
 EXT _NtQueueApcThread NtQueueApcThread EQNULL;
@@ -32,6 +35,7 @@ EXT _NtResumeProcess NtResumeProcess EQNULL;
 EXT _NtResumeThread NtResumeThread EQNULL; 
 EXT _NtSetInformationProcess NtSetInformationProcess EQNULL;
 EXT _NtSetInformationThread NtSetInformationThread EQNULL;
+EXT _NtSetInformationToken NtSetInformationToken EQNULL;
 EXT _NtSuspendProcess NtSuspendProcess EQNULL;
 EXT _NtSuspendThread NtSuspendThread EQNULL;
 EXT _NtTerminateProcess NtTerminateProcess EQNULL;
