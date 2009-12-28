@@ -164,8 +164,14 @@ VOID PhpFillProcessItem(
     NTSTATUS status;
     HANDLE processHandle;
 
+    ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->ProcessName = PhCreateStringEx(Process->ImageName.Buffer, Process->ImageName.Length);
+    ProcessItem->SessionId = Process->SessionId;
+    ProcessItem->CreateTime = Process->CreateTime;
+
     _snwprintf(ProcessItem->ProcessIdString, PH_INT_STR_LEN, L"%d", ProcessItem->ProcessId);
+    _snwprintf(ProcessItem->ParentProcessIdString, PH_INT_STR_LEN, L"%d", ProcessItem->ParentProcessId);
+    _snwprintf(ProcessItem->SessionIdString, PH_INT_STR_LEN, L"%d", ProcessItem->SessionId);
 
     status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
 
