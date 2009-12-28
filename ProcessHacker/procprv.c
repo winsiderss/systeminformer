@@ -147,8 +147,6 @@ VOID PhpRemoveProcessItem(
 
     lookupProcessItem.ProcessId = ProcessId;
 
-    PhAcquireFastLockExclusive(&PhProcessHashtableLock);
-
     processItemPtr = PhGetHashtableEntry(PhProcessHashtable, &lookupProcessItemPtr);
 
     if (processItemPtr)
@@ -156,8 +154,6 @@ VOID PhpRemoveProcessItem(
         PhRemoveHashtableEntry(PhProcessHashtable, &lookupProcessItemPtr);
         PhDereferenceObject(*processItemPtr);
     }
-
-    PhReleaseFastLockExclusive(&PhProcessHashtableLock);
 }
 
 VOID PhpFillProcessItem(
