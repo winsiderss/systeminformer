@@ -1,57 +1,6 @@
-#define PROCESS_PRIVATE
 #include <ph.h>
 
-VOID PhpProcessItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    );
-
-PPH_OBJECT_TYPE PhProcessItemType;
-
-PWSTR PhDosDeviceNames[26];
-
-BOOLEAN PhInitializeProcessItem()
-{
-    return NT_SUCCESS(PhCreateObjectType(
-        &PhProcessItemType,
-        0,
-        PhpProcessItemDeleteProcedure
-        ));
-}
-
-PPH_PROCESS_ITEM PhCreateProcessItem(
-    __in HANDLE ProcessId
-    )
-{
-    PPH_PROCESS_ITEM processItem;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &processItem,
-        sizeof(PH_PROCESS_ITEM),
-        0,
-        PhProcessItemType,
-        0
-        )))
-        return NULL;
-
-    memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
-    processItem->ProcessId = ProcessId;
-
-    return processItem;
-}
-
-VOID PhpProcessItemDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    )
-{
-    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
-
-    if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
-    if (processItem->FileName) PhDereferenceObject(processItem->FileName);
-    if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
-    if (processItem->UserName) PhDereferenceObject(processItem->UserName);
-}
+static PWSTR PhDosDeviceNames[26];
 
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
@@ -140,52 +89,40 @@ NTSTATUS PhWriteVirtualMemory(
         );
 }
 
-NTSTATUS PhQueryProcessVariableSize(
+NTSTATUS PhpQueryProcessVariableSize(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
     __out PPVOID Buffer
     )
 {
     NTSTATUS status;
-    ULONG bufferSize = 0;
-    PVOID buffer = NULL;
+    PVOID buffer;
+    ULONG returnLength;
 
-    while (TRUE)
+    NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessInformationClass,
+        NULL,
+        0,
+        &returnLength
+        );
+    buffer = PhAllocate(returnLength);
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessInformationClass,
+        buffer,
+        returnLength,
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
     {
-        status = NtQueryInformationProcess(
-            ProcessHandle,
-            ProcessInformationClass,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-
-        if (
-            status == STATUS_BUFFER_OVERFLOW ||
-            status == STATUS_BUFFER_TOO_SMALL ||
-            status == STATUS_INFO_LENGTH_MISMATCH
-            )
-        {
-            if (buffer)
-                PhFree(buffer);
-
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            break;
-        }
+        *Buffer = buffer;
     }
-
-    if (!NT_SUCCESS(status))
+    else
     {
-        if (buffer)
-            PhFree(buffer);
-
-        return status;
+        PhFree(buffer);
     }
-
-    *Buffer = buffer;
 
     return status;
 }
@@ -213,7 +150,7 @@ NTSTATUS PhGetProcessImageFileName(
     PVOID buffer;
     PUNICODE_STRING fileName;
 
-    status = PhQueryProcessVariableSize(
+    status = PhpQueryProcessVariableSize(
         ProcessHandle,
         ProcessImageFileName,
         &buffer
@@ -316,37 +253,104 @@ NTSTATUS PhGetProcessPebString(
     return status;
 }
 
-NTSTATUS PhGetTokenUser(
+NTSTATUS PhpQueryTokenVariableSize(
     __in HANDLE TokenHandle,
-    __out PTOKEN_USER *User
+    __in TOKEN_INFORMATION_CLASS TokenInformationClass,
+    __out PPVOID Buffer
     )
 {
     NTSTATUS status;
-    PTOKEN_USER user;
+    PVOID buffer;
     ULONG returnLength;
 
-    status = NtQueryInformationToken(
+    NtQueryInformationToken(
         TokenHandle,
-        TokenUser,
+        TokenInformationClass,
         NULL,
         0,
         &returnLength
         );
-    user = PhAllocate(returnLength);
+    buffer = PhAllocate(returnLength);
     status = NtQueryInformationToken(
         TokenHandle,
-        TokenUser,
-        user,
+        TokenInformationClass,
+        buffer,
         returnLength,
         &returnLength
         );
 
     if (NT_SUCCESS(status))
-        *User = user;
+    {
+        *Buffer = buffer;
+    }
     else
-        PhFree(user);
+    {
+        PhFree(buffer);
+    }
 
     return status;
+}
+
+NTSTATUS PhGetTokenUser(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_USER *User
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenUser,
+        User
+        );
+}
+
+NTSTATUS PhGetTokenElevationType(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_ELEVATION_TYPE ElevationType
+    )
+{
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenElevationType,
+        ElevationType,
+        sizeof(TOKEN_ELEVATION_TYPE),
+        NULL
+        );
+}
+
+NTSTATUS PhGetTokenIsElevated(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN Elevated
+    )
+{
+    NTSTATUS status;
+    TOKEN_ELEVATION elevation;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenElevation,
+        &elevation,
+        sizeof(TOKEN_ELEVATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Elevated = !!elevation.TokenIsElevated;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTokenPrivileges(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_PRIVILEGES *Privileges
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenPrivileges,
+        Privileges
+        );
 }
 
 BOOLEAN PhSetTokenPrivilege(
@@ -367,8 +371,7 @@ BOOLEAN PhSetTokenPrivilege(
     }
     else if (PrivilegeName)
     {
-        if (!LookupPrivilegeValue(
-            NULL,
+        if (!PhLookupPrivilegeValue(
             PrivilegeName,
             &privileges.Privileges[0].Luid
             ))
@@ -393,6 +396,75 @@ BOOLEAN PhSetTokenPrivilege(
         return FALSE;
 
     return TRUE;
+}
+
+BOOLEAN PhLookupPrivilegeName(
+    __in PLUID PrivilegeValue,
+    __out PPH_STRING *PrivilegeName
+    )
+{
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = 0x10;
+    buffer = PhAllocate(bufferSize * 2);
+
+    if (!LookupPrivilegeName(NULL, PrivilegeValue, buffer, &bufferSize))
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize * 2);
+
+        if (!LookupPrivilegeName(NULL, PrivilegeValue, buffer, &bufferSize))
+        {
+            PhFree(buffer);
+            return FALSE;
+        }
+    }
+
+    *PrivilegeName = PhCreateString(buffer);
+
+    return TRUE;
+}
+
+BOOLEAN PhLookupPrivilegeDisplayName(
+    __in PWSTR PrivilegeName,
+    __out PPH_STRING *PrivilegeDisplayName
+    )
+{
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG languageId;
+
+    bufferSize = 0x40;
+    buffer = PhAllocate(bufferSize * 2);
+
+    if (!LookupPrivilegeDisplayName(NULL, PrivilegeName, buffer, &bufferSize, &languageId))
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize * 2);
+
+        if (!LookupPrivilegeDisplayName(NULL, PrivilegeName, buffer, &bufferSize, &languageId))
+        {
+            PhFree(buffer);
+            return FALSE;
+        }
+    }
+
+    *PrivilegeDisplayName = PhCreateString(buffer);
+
+    return TRUE;
+}
+
+BOOLEAN PhLookupPrivilegeValue(
+    __in PWSTR PrivilegeName,
+    __out PLUID PrivilegeValue
+    )
+{
+    return !!LookupPrivilegeValue(
+        NULL,
+        PrivilegeName,
+        PrivilegeValue
+        );
 }
 
 BOOLEAN PhLookupSid(

@@ -136,6 +136,7 @@ VOID PhAcquireFastLockExclusive(
         }
 
         i++;
+        YieldProcessor();
     }
 }
 
@@ -195,6 +196,9 @@ VOID PhAcquireFastLockShared(
                 continue;
             }
         }
+
+        i++;
+        YieldProcessor();
     }
 }
 
@@ -239,6 +243,8 @@ VOID PhReleaseFastLockExclusive(
                 break;
             }
         }
+
+        YieldProcessor();
     }
 }
 
@@ -284,6 +290,8 @@ VOID PhReleaseFastLockShared(
                 ) == value)
                 break;
         }
+
+        YieldProcessor();
     }
 }
 

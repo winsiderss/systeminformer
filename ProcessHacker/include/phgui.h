@@ -27,6 +27,8 @@ BOOLEAN PhInitializeSystem();
 
 ATOM PhRegisterWindowClass();
 
+VOID PhInitializeWindowsVersion();
+
 // guisup
 
 // Controls
@@ -94,6 +96,10 @@ INT PhAddTabControlTab(
     );
 
 // mainwnd
+
+#define WM_PH_PROCESS_ADDED (WM_APP + 101)
+#define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
+#define WM_PH_PROCESS_REMOVED (WM_APP + 103)
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand

@@ -6,46 +6,6 @@
 
 // process
 
-#ifndef PROCESS_PRIVATE
-extern PPH_OBJECT_TYPE PhProcessItemType;
-#endif
-
-typedef struct _PH_PROCESS_ITEM
-{
-    HANDLE ProcessId;
-    HANDLE ParentProcessId;
-    PPH_STRING ProcessName;
-    ULONG SessionId;
-
-    HICON SmallIcon;
-    HICON LargeIcon;
-
-    PPH_STRING FileName;
-    PPH_STRING CommandLine;
-
-    LARGE_INTEGER CreateTime;
-
-    PPH_STRING UserName;
-    ULONG IntegrityLevel;
-    PPH_STRING IntegrityString;
-
-    ULONG HasParent : 1;
-    ULONG IsBeingDebugged : 1;
-    ULONG IsDotNet : 1;
-    ULONG IsElevated : 1;
-    ULONG IsInJob : 1;
-    ULONG IsInSignificantJob : 1;
-    ULONG IsPacked : 1;
-    ULONG IsPosix : 1;
-    ULONG IsWow64 : 1;
-
-    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
-    WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
-    WCHAR SessionIdString[PH_INT_STR_LEN_1];
-
-    FLOAT CpuUsage; // from 0 to 1
-} PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
-
 typedef enum _PH_PEB_OFFSET
 {
     PhpoCurrentDirectory,
@@ -57,12 +17,6 @@ typedef enum _PH_PEB_OFFSET
     PhpoShellInfo,
     PhpoRuntimeData
 } PH_PEB_OFFSET;
-
-BOOLEAN PhInitializeProcessItem();
-
-PPH_PROCESS_ITEM PhCreateProcessItem(
-    __in HANDLE ProcessId
-    );
 
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
@@ -122,11 +76,36 @@ NTSTATUS PhGetTokenUser(
     __out PTOKEN_USER *User
     );
 
+NTSTATUS PhGetTokenElevationType(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_ELEVATION_TYPE ElevationType
+    );
+
+NTSTATUS PhGetTokenIsElevated(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN Elevated
+    );
+
 BOOLEAN PhSetTokenPrivilege(
     __in HANDLE TokenHandle,
     __in_opt PWSTR PrivilegeName,
     __in_opt PLUID PrivilegeLuid,
     __in ULONG Attributes
+    );
+
+BOOLEAN PhLookupPrivilegeName(
+    __in PLUID PrivilegeValue,
+    __out PPH_STRING *PrivilegeName
+    );
+
+BOOLEAN PhLookupPrivilegeDisplayName(
+    __in PWSTR PrivilegeName,
+    __out PPH_STRING *PrivilegeDisplayName
+    );
+
+BOOLEAN PhLookupPrivilegeValue(
+    __in PWSTR PrivilegeName,
+    __out PLUID PrivilegeValue
     );
 
 BOOLEAN PhLookupSid(
@@ -154,6 +133,119 @@ VOID PhRefreshDosDeviceNames();
 
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
+    );
+
+// procprv
+
+#ifndef PROCPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhProcessItemType;
+
+extern PH_CALLBACK PhProcessAddedEvent;
+extern PH_CALLBACK PhProcessModifiedEvent;
+extern PH_CALLBACK PhProcessRemovedEvent;
+#endif
+
+typedef struct _PH_PROCESS_ITEM
+{
+    HANDLE ProcessId;
+    HANDLE ParentProcessId;
+    PPH_STRING ProcessName;
+    ULONG SessionId;
+
+    HICON SmallIcon;
+    HICON LargeIcon;
+
+    PPH_STRING FileName;
+    PPH_STRING CommandLine;
+
+    LARGE_INTEGER CreateTime;
+
+    PPH_STRING UserName;
+    ULONG IntegrityLevel;
+    PPH_STRING IntegrityString;
+
+    ULONG HasParent : 1;
+    ULONG IsBeingDebugged : 1;
+    ULONG IsDotNet : 1;
+    ULONG IsElevated : 1;
+    ULONG IsInJob : 1;
+    ULONG IsInSignificantJob : 1;
+    ULONG IsPacked : 1;
+    ULONG IsPosix : 1;
+    ULONG IsWow64 : 1;
+
+    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
+    WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
+    WCHAR SessionIdString[PH_INT_STR_LEN_1];
+
+    FLOAT CpuUsage; // from 0 to 1
+} PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
+
+BOOLEAN PhInitializeProcessProvider();
+
+BOOLEAN PhInitializeProcessItem();
+
+PPH_PROCESS_ITEM PhCreateProcessItem(
+    __in HANDLE ProcessId
+    );
+
+PPH_PROCESS_ITEM PhReferenceProcessItem(
+    __in HANDLE ProcessId
+    );
+
+VOID PhUpdateProcesses();
+
+VOID NTAPI PhProcessProviderUpdate(
+    __in PVOID Parameter,
+    __in PVOID Context
+    );
+
+// provider
+
+typedef enum _PH_PROVIDER_THREAD_STATE
+{
+    ProviderThreadRunning,
+    ProviderThreadStopped,
+    ProviderThreadStopping
+} PH_PROVIDER_THREAD_STATE;
+
+typedef struct _PH_PROVIDER_THREAD
+{
+    HANDLE ThreadHandle;
+    HANDLE TimerHandle;
+    ULONG Interval;
+    PH_CALLBACK RunEvent;
+    PH_FAST_LOCK RunEventLock;
+    PH_PROVIDER_THREAD_STATE State;
+} PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
+
+VOID PhInitializeProviderThread(
+    __out PPH_PROVIDER_THREAD ProviderThread,
+    __in ULONG Interval
+    );
+
+VOID PhStartProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
+VOID PhStopProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
+VOID PhSetProviderThreadInterval(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __in ULONG Interval
+    );
+
+VOID PhRegisterProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __in PPH_CALLBACK_FUNCTION Function,
+    __out PPH_CALLBACK_REGISTRATION Registration
+    );
+
+VOID PhUnregisterProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __inout PPH_CALLBACK_REGISTRATION Registration
     );
 
 // support
