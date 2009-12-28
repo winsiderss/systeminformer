@@ -5,6 +5,13 @@ HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
+ULONG WindowsVersion;
+
+ACCESS_MASK ProcessQueryAccess;
+ACCESS_MASK ProcessAllAccess;
+ACCESS_MASK ThreadQueryAccess;
+ACCESS_MASK ThreadSetAccess;
+ACCESS_MASK ThreadAllAccess;
 
 INT WINAPI WinMain(
     __in HINSTANCE hInstance,
@@ -20,6 +27,7 @@ INT WINAPI WinMain(
     if (!PhHeapHandle)
         return 1;
 
+    PhInitializeWindowsVersion();
     PhRegisterWindowClass();
     PhInitializeCommonControls();
 
@@ -116,9 +124,10 @@ BOOLEAN PhInitializeSystem()
 {
     if (!NT_SUCCESS(PhInitializeRef()))
         return FALSE;
+    PhFastLockInitialization();
     if (!PhInitializeBase())
         return FALSE;
-    if (!PhInitializeProcessItem())
+    if (!PhInitializeProcessProvider())
         return FALSE;
 
     PhInitializeDosDeviceNames();
@@ -145,4 +154,62 @@ ATOM PhRegisterWindowClass()
     wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
 
     return RegisterClassEx(&wcex);
+}
+
+VOID PhInitializeWindowsVersion()
+{
+    OSVERSIONINFOEX version;
+    ULONG majorVersion;
+    ULONG minorVersion;
+
+    version.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    GetVersionEx((POSVERSIONINFO)&version);
+    majorVersion = version.dwMajorVersion;
+    minorVersion = version.dwMinorVersion;
+
+    if (majorVersion == 5 && minorVersion < 1 || majorVersion < 5)
+    {
+        WindowsVersion = WINDOWS_ANCIENT;
+    }
+    /* Windows XP */
+    else if (majorVersion == 5 && minorVersion == 1)
+    {
+        WindowsVersion = WINDOWS_XP;
+    }
+    /* Windows Server 2003 */
+    else if (majorVersion == 5 && minorVersion == 2)
+    {
+        WindowsVersion = WINDOWS_SERVER_2003;
+    }
+    /* Windows Vista, Windows Server 2008 */
+    else if (majorVersion == 6 && minorVersion == 0)
+    {
+        WindowsVersion = WINDOWS_VISTA;
+    }
+    /* Windows 7, Windows Server 2008 R2 */
+    else if (majorVersion == 6 && minorVersion == 1)
+    {
+        WindowsVersion = WINDOWS_7;
+    }
+    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
+    {
+        WindowsVersion = WINDOWS_NEW;
+    }
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
+        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
+        ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
+        ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
+        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
+    }
+    else
+    {
+        ProcessQueryAccess = PROCESS_QUERY_INFORMATION;
+        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
+        ThreadQueryAccess = THREAD_QUERY_INFORMATION;
+        ThreadSetAccess = THREAD_SET_INFORMATION;
+        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
+    }
 }

@@ -2,12 +2,12 @@
 #include <phbase.h>
 #include "math.h"
 
-VOID PhpListDeleteProcedure(
+VOID NTAPI PhpListDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
     );
 
-VOID PhpHashtableDeleteProcedure(
+VOID NTAPI PhpHashtableDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
     );
@@ -162,6 +162,22 @@ VOID PhClearList(
     )
 {
     List->Count = 0;
+}
+
+ULONG PhIndexOfListItem(
+    __in PPH_LIST List,
+    __in PVOID Item
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < List->Count; i++)
+    {
+        if (List->Items[i] == Item)
+            return i;
+    }
+
+    return -1;
 }
 
 ULONG PhpGetPrimeNumber(
@@ -367,9 +383,11 @@ BOOLEAN PhEnumHashtable(
     __inout PULONG EnumerationKey
     )
 {
-    for (; *EnumerationKey < Hashtable->NextEntry; (*EnumerationKey)++)
+    for (; *EnumerationKey < Hashtable->NextEntry; )
     {
         PPH_HASHTABLE_ENTRY entry = PH_HASHTABLE_GET_ENTRY(Hashtable, *EnumerationKey);
+
+        (*EnumerationKey)++;
 
         if (entry->HashCode != -1)
         {
@@ -397,7 +415,7 @@ PVOID PhGetHashtableEntry(
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
-        if (entry->HashCode == hashCode && Hashtable->CompareFunction(entry, Entry))
+        if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
         {
             return &entry->Body;
         }
@@ -425,7 +443,7 @@ BOOLEAN PhRemoveHashtableEntry(
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
-        if (entry->HashCode == hashCode && Hashtable->CompareFunction(entry, Entry))
+        if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
         {
             // Unlink the entry from the bucket.
             if (previousIndex == -1)
@@ -453,4 +471,118 @@ BOOLEAN PhRemoveHashtableEntry(
     }
 
     return FALSE;
+}
+
+VOID PhInitializeCallback(
+    __out PPH_CALLBACK Callback
+    )
+{
+    InitializeListHead(&Callback->ListHead);
+}
+
+VOID PhRegisterCallback(
+    __inout PPH_CALLBACK Callback,
+    __in PPH_CALLBACK_FUNCTION Function,
+    __in PVOID Context,
+    __out PPH_CALLBACK_REGISTRATION Registration
+    )
+{
+    InsertTailList(&Callback->ListHead, &Registration->ListEntry);
+    Registration->Function = Function;
+    Registration->Context = Context;
+
+    Callback->Count++;
+}
+
+VOID PhUnregisterCallback(
+    __inout PPH_CALLBACK Callback,
+    __inout PPH_CALLBACK_REGISTRATION Registration
+    )
+{
+    RemoveEntryList(&Registration->ListEntry);
+    Callback->Count--;
+}
+
+VOID PhInvokeCallback(
+    __in PPH_CALLBACK Callback,
+    __in PVOID Parameter
+    )
+{
+    PLIST_ENTRY listEntry;
+
+    for (
+        listEntry = Callback->ListHead.Flink;
+        listEntry != &Callback->ListHead;
+        listEntry = listEntry->Flink
+        )
+    {
+        PPH_CALLBACK_REGISTRATION registration;
+        
+        registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
+        registration->Function(
+            Parameter,
+            registration->Context
+            );
+    }
+}
+
+VOID PhCreateCallbackList(
+    __in PPH_CALLBACK Callback,
+    __out PPH_CALLBACK_LIST CallbackList
+    )
+{
+    PLIST_ENTRY listEntry;
+    ULONG i;
+
+    CallbackList->Count = Callback->Count;
+    CallbackList->FunctionList = PhAllocate(
+        sizeof(PPH_CALLBACK_FUNCTION) * Callback->Count
+        );
+    CallbackList->ContextList = PhAllocate(
+        sizeof(PVOID) * Callback->Count
+        );
+
+    i = 0;
+
+    for (
+        listEntry = Callback->ListHead.Flink;
+        listEntry != &Callback->ListHead;
+        listEntry = listEntry->Flink
+        )
+    {
+        PPH_CALLBACK_REGISTRATION registration;
+        
+        registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
+        CallbackList->FunctionList[i] = registration->Function;
+        CallbackList->ContextList[i] = registration->Context;
+        i++;
+    }
+}
+
+VOID PhDeleteCallbackList(
+    __inout PPH_CALLBACK_LIST CallbackList
+    )
+{
+    PhFree(CallbackList->FunctionList);
+    PhFree(CallbackList->ContextList);
+}
+
+VOID PhInvokeCallbackList(
+    __in PPH_CALLBACK_LIST CallbackList,
+    __in PVOID Parameter
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < CallbackList->Count; i++)
+    {
+        PPH_CALLBACK_FUNCTION function;
+
+        function = CallbackList->FunctionList[i];
+
+        function(
+            Parameter,
+            CallbackList->ContextList[i]
+            );
+    }
 }

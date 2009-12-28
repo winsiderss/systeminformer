@@ -14,7 +14,7 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationToken)(
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
     __out_bcount(TokenInformationLength) PVOID TokenInformation,
     __in ULONG TokenInformationLength,
-    __out_opt PULONG ReturnLength
+    __out PULONG ReturnLength
     );
 
 typedef NTSTATUS (NTAPI *_NtSetInformationToken)(
