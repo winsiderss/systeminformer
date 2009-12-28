@@ -8,6 +8,7 @@
 #include <ntwin.h>
 #include <ntimport.h>
 #include <ref.h>
+#include <fastlock.h>
 
 // We don't care about "deprecation".
 #pragma warning(disable: 4996)
@@ -23,10 +24,27 @@ extern HFONT PhApplicationFont;
 extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
 extern PWSTR PhWindowClassName;
+extern ULONG WindowsVersion;
+
+extern ACCESS_MASK ProcessQueryAccess;
+extern ACCESS_MASK ProcessAllAccess;
+extern ACCESS_MASK ThreadQueryAccess;
+extern ACCESS_MASK ThreadSetAccess;
+extern ACCESS_MASK ThreadAllAccess;
 
 #endif
 
+#define WINDOWS_ANCIENT 0
+#define WINDOWS_XP 51
+#define WINDOWS_SERVER_2003 52
+#define WINDOWS_VISTA 60
+#define WINDOWS_7 61
+#define WINDOWS_NEW MAXLONG
+
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
+
+#define PH_TIMEOUT_TO_MS ((LONGLONG)1 * 10 * 1000)
+#define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
 
 // basesup
 
@@ -145,6 +163,11 @@ VOID PhClearList(
     __inout PPH_LIST List
     );
 
+ULONG PhIndexOfListItem(
+    __in PPH_LIST List,
+    __in PVOID Item
+    );
+
 // hashtable
 
 #ifndef BASESUP_PRIVATE
@@ -206,6 +229,14 @@ typedef struct _PH_HASHTABLE
     ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / \
     PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
 
+PPH_HASHTABLE PhCreateHashtable(
+    __in ULONG EntrySize,
+    __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
+    __in PPH_HASHTABLE_HASH_FUNCTION HashFunction,
+    __in_opt PPH_HASHTABLE_DELETE_FUNCTION DeleteFunction,
+    __in ULONG InitialCapacity
+    );
+
 PVOID PhAddHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
@@ -229,6 +260,68 @@ PVOID PhGetHashtableEntry(
 BOOLEAN PhRemoveHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
+    );
+
+// callback
+
+typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
+    __in PVOID Parameter,
+    __in PVOID Context
+    );
+
+typedef struct _PH_CALLBACK_REGISTRATION
+{
+    LIST_ENTRY ListEntry;
+    PPH_CALLBACK_FUNCTION Function;
+    PVOID Context;
+} PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
+
+typedef struct _PH_CALLBACK
+{
+    LIST_ENTRY ListHead;
+    ULONG Count;
+} PH_CALLBACK, *PPH_CALLBACK;
+
+typedef struct _PH_CALLBACK_LIST
+{
+    ULONG Count;
+    PPH_CALLBACK_FUNCTION *FunctionList;
+    PPVOID ContextList;
+} PH_CALLBACK_LIST, *PPH_CALLBACK_LIST;
+
+VOID PhInitializeCallback(
+    __out PPH_CALLBACK Callback
+    );
+
+VOID PhRegisterCallback(
+    __inout PPH_CALLBACK Callback,
+    __in PPH_CALLBACK_FUNCTION Function,
+    __in PVOID Context,
+    __out PPH_CALLBACK_REGISTRATION Registration
+    );
+
+VOID PhUnregisterCallback(
+    __inout PPH_CALLBACK Callback,
+    __inout PPH_CALLBACK_REGISTRATION Registration
+    );
+
+VOID PhInvokeCallback(
+    __in PPH_CALLBACK Callback,
+    __in PVOID Parameter
+    );
+
+VOID PhCreateCallbackList(
+    __in PPH_CALLBACK Callback,
+    __out PPH_CALLBACK_LIST CallbackList
+    );
+
+VOID PhDeleteCallbackList(
+    __inout PPH_CALLBACK_LIST CallbackList
+    );
+
+VOID PhInvokeCallbackList(
+    __in PPH_CALLBACK_LIST CallbackList,
+    __in PVOID Parameter
     );
 
 #endif

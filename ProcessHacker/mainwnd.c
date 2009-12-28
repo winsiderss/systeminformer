@@ -9,8 +9,8 @@ VOID PhMainWndTabControlOnNotify(
     );
 VOID PhMainWndTabControlOnSelectionChanged();
 
-VOID FillProcessInfo(
-    __inout PPH_PROCESS_ITEM ProcessItem
+VOID PhMainWndOnProcessAdded(
+    __in PPH_PROCESS_ITEM ProcessItem
     );
 
 HWND PhMainWndHandle;
@@ -21,6 +21,11 @@ static INT NetworkTabIndex;
 static HWND ProcessListViewHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
+
+static PH_PROVIDER_THREAD PrimaryProviderThread;
+
+static PH_CALLBACK_REGISTRATION ProcessProviderRegistration;
+static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -40,6 +45,10 @@ BOOLEAN PhMainWndInitialization(
             CloseHandle(tokenHandle);
         }
     }
+
+    // Initialize the providers.
+    PhInitializeProviderThread(&PrimaryProviderThread, 1000);
+    PhRegisterProvider(&PrimaryProviderThread, PhProcessProviderUpdate, &ProcessProviderRegistration);
 
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
@@ -67,6 +76,8 @@ BOOLEAN PhMainWndInitialization(
 
     // Perform a layout.
     PhMainWndOnLayout();
+
+    PhStartProviderThread(&PrimaryProviderThread);
 
     ShowWindow(PhMainWndHandle, ShowCommand);
 
@@ -124,6 +135,14 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
+    case WM_PH_PROCESS_ADDED:
+        {
+            PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
+
+            PhMainWndOnProcessAdded(processItem);
+            PhDereferenceObject(processItem);
+        }
+        break;
     default:
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
@@ -131,143 +150,17 @@ LRESULT CALLBACK PhMainWndProc(
     return 0;
 }
 
-VOID EnumerateProcesses()
-{
-    PVOID processes;
-    PSYSTEM_PROCESS_INFORMATION process;
-
-    if (!NT_SUCCESS(PhEnumProcesses(&processes)))
-        return;
-
-    process = PH_FIRST_PROCESS(processes);
-
-    do
-    {
-        PPH_PROCESS_ITEM processItem;
-        INT lvItemIndex;
-
-        if (process->UniqueProcessId == (HANDLE)0)
-            RtlInitUnicodeString(&process->ImageName, L"System Idle Process");
-
-        processItem = PhCreateProcessItem(process->UniqueProcessId);
-        processItem->ProcessName = PhCreateStringEx(process->ImageName.Buffer, process->ImageName.Length);
-        _snwprintf(processItem->ProcessIdString, PH_INT_STR_LEN, L"%d", processItem->ProcessId);
-        FillProcessInfo(processItem);
-
-        lvItemIndex = PhAddListViewItem(
-            ProcessListViewHandle,
-            MAXINT,
-            processItem->ProcessName->Buffer,
-            processItem
-            );
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, processItem->ProcessIdString);
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(processItem->UserName));
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(processItem->FileName));
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(processItem->CommandLine));
-    } while (process = PH_NEXT_PROCESS(process));
-
-    PhFree(processes);
-}
-
-VOID FillProcessInfo(
-    __inout PPH_PROCESS_ITEM ProcessItem
+VOID NTAPI ProcessAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
     )
 {
-    NTSTATUS status;
-    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
-    status = PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId);
-
-    if (!NT_SUCCESS(status))
-        return;
-
-    // Process information
-    {
-        PPH_STRING fileName;
-
-        status = PhGetProcessImageFileName(processHandle, &fileName);
-
-        if (NT_SUCCESS(status))
-        {
-            PPH_STRING newFileName;
-            
-            newFileName = PhGetFileName(fileName);
-            PhSwapReference(&ProcessItem->FileName, newFileName);
-
-            PhDereferenceObject(fileName);
-            PhDereferenceObject(newFileName);
-        }
-    }
-
-    {
-        HANDLE processHandle2;
-
-        status = PhOpenProcess(
-            &processHandle2,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            ProcessItem->ProcessId
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            PPH_STRING commandLine;
-
-            status = PhGetProcessCommandLine(processHandle2, &commandLine);
-
-            if (NT_SUCCESS(status))
-            {
-                PhSwapReference(&ProcessItem->CommandLine, commandLine);
-                PhDereferenceObject(commandLine);
-            }
-
-            CloseHandle(processHandle2);
-        }
-    }
-
-    // Token-related information
-    {
-        HANDLE tokenHandle;
-
-        status = PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle);
-
-        if (NT_SUCCESS(status))
-        {
-            // User name
-            {
-                PTOKEN_USER user;
-
-                status = PhGetTokenUser(tokenHandle, &user);
-
-                if (NT_SUCCESS(status))
-                {
-                    PPH_STRING userName;
-                    PPH_STRING domainName;
-
-                    if (PhLookupSid(user->User.Sid, &userName, &domainName, NULL))
-                    {
-                        PPH_STRING fullName;
-
-                        fullName = PhCreateStringEx(NULL, domainName->Length + 2 + userName->Length);
-                        memcpy(fullName->Buffer, domainName->Buffer, domainName->Length);
-                        fullName->Buffer[domainName->Length / 2] = '\\';
-                        memcpy(&fullName->Buffer[domainName->Length / 2 + 1], userName->Buffer, userName->Length);
-
-                        PhSwapReference(&ProcessItem->UserName, fullName);
-
-                        PhDereferenceObject(userName);
-                        PhDereferenceObject(domainName);
-                        PhDereferenceObject(fullName);
-                    }
-
-                    PhFree(user);
-                }
-            }
-
-            CloseHandle(tokenHandle);
-        }
-    }
-
-    CloseHandle(processHandle);
+    // Reference the process item so it doesn't get deleted before 
+    // we handle the event in the main thread.
+    PhReferenceObject(processItem);
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_ADDED, 0, (LPARAM)processItem);
 }
 
 VOID PhMainWndOnCreate()
@@ -308,7 +201,12 @@ VOID PhMainWndOnCreate()
         L"Process Name"
         );
 
-    EnumerateProcesses();
+    PhRegisterCallback(
+        &PhProcessAddedEvent,
+        ProcessAddedHandler,
+        NULL,
+        &ProcessAddedRegistration
+        );
 }
 
 VOID PhMainWndOnLayout()
@@ -366,4 +264,22 @@ VOID PhMainWndTabControlOnSelectionChanged()
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
 
     PhMainWndTabControlOnLayout();
+}
+
+VOID PhMainWndOnProcessAdded(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhAddListViewItem(
+        ProcessListViewHandle,
+        MAXINT,
+        ProcessItem->ProcessName->Buffer,
+        ProcessItem
+        );
+    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, ProcessItem->ProcessIdString);
+    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(ProcessItem->UserName));
+    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(ProcessItem->FileName));
+    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
 }
