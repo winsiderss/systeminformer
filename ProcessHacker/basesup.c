@@ -348,8 +348,41 @@ PVOID PhAddHashtableEntry(
     return &entry->Body;
 }
 
+VOID PhClearHashtable(
+    __inout PPH_HASHTABLE Hashtable
+    )
+{
+    if (Hashtable->Count > 0)
+    {
+        memset(Hashtable->Buckets, 0xff, sizeof(ULONG) * Hashtable->AllocatedBuckets);
+        Hashtable->Count = 0;
+        Hashtable->FreeEntry = -1;
+        Hashtable->NextEntry = 0;
+    }
+}
+
+BOOLEAN PhEnumHashtable(
+    __in PPH_HASHTABLE Hashtable,
+    __out PPVOID Entry,
+    __inout PULONG EnumerationKey
+    )
+{
+    for (; *EnumerationKey < Hashtable->NextEntry; (*EnumerationKey)++)
+    {
+        PPH_HASHTABLE_ENTRY entry = PH_HASHTABLE_GET_ENTRY(Hashtable, *EnumerationKey);
+
+        if (entry->HashCode != -1)
+        {
+            *Entry = &entry->Body;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 PVOID PhGetHashtableEntry(
-    __inout PPH_HASHTABLE Hashtable,
+    __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     )
 {

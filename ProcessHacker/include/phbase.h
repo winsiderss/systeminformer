@@ -211,8 +211,18 @@ PVOID PhAddHashtableEntry(
     __in PVOID Entry
     );
 
+VOID PhClearHashtable(
+    __inout PPH_HASHTABLE Hashtable
+    );
+
+BOOLEAN PhEnumHashtable(
+    __in PPH_HASHTABLE Hashtable,
+    __out PPVOID Entry,
+    __inout PULONG EnumerationKey
+    );
+
 PVOID PhGetHashtableEntry(
-    __inout PPH_HASHTABLE Hashtable,
+    __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
 
