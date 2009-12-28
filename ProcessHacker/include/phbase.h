@@ -145,4 +145,80 @@ VOID PhClearList(
     __inout PPH_LIST List
     );
 
+// hashtable
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhHashtableType;
+#endif
+
+typedef struct _PH_HASHTABLE_ENTRY
+{
+    /* Hash code of the entry. -1 if entry is unused. */
+    ULONG HashCode;
+    /* Either the index of the next entry in the bucket, 
+     * the index of the next free entry, or -1 for invalid.
+     */
+    ULONG Next;
+    QUAD Body;
+} PH_HASHTABLE_ENTRY, *PPH_HASHTABLE_ENTRY;
+
+typedef BOOLEAN (NTAPI *PPH_HASHTABLE_COMPARE_FUNCTION)(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    );
+
+typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
+    __in PVOID Entry
+    );
+
+typedef VOID (NTAPI *PPH_HASHTABLE_DELETE_FUNCTION)(
+    __in PVOID Entry
+    );
+
+typedef struct _PH_HASHTABLE
+{
+    /* Size of user data in each entry. */
+    ULONG EntrySize;
+    PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction;
+    PPH_HASHTABLE_HASH_FUNCTION HashFunction;
+    PPH_HASHTABLE_DELETE_FUNCTION DeleteFunction;
+
+    ULONG AllocatedBuckets;
+    PULONG Buckets;
+    ULONG AllocatedEntries;
+    PVOID Entries;
+
+    /* Number of entries in the hashtable. */
+    ULONG Count;
+    /* Index into entry array for free list. */
+    ULONG FreeEntry;
+    /* Index of next usable index into entry array, a.k.a the 
+     * count of entries that were ever allocated.
+     */
+    ULONG NextEntry;
+} PH_HASHTABLE, *PPH_HASHTABLE;
+
+#define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (sizeof(PH_HASHTABLE_ENTRY) + (InnerSize))
+#define PH_HASHTABLE_GET_ENTRY(Hashtable, Index) \
+    ((PPH_HASHTABLE_ENTRY)PTR_ADD_OFFSET((Hashtable)->Entries, \
+    PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize) * (Index)))
+#define PH_HASHTABLE_GET_ENTRY_INDEX(Hashtable, Entry) \
+    ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / \
+    PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
+
+PVOID PhAddHashtableEntry(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry
+    );
+
+PVOID PhGetHashtableEntry(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry
+    );
+
+BOOLEAN PhRemoveHashtableEntry(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry
+    );
+
 #endif
