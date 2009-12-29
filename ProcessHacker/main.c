@@ -1,6 +1,9 @@
 #define MAIN_PRIVATE
 #include <phgui.h>
+#include <kph.h>
 
+PPH_STRING PhApplicationDirectory;
+PPH_STRING PhApplicationFileName;
 HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
@@ -37,6 +40,11 @@ INT WINAPI WinMain(
 
     if (!PhInitializeSystem())
         return 1;
+
+    {
+        PhApplicationFileName = PhGetApplicationFileName();
+        PhApplicationDirectory = PhGetApplicationDirectory();
+    }
 
     PhInitializeKph();
 
@@ -125,8 +133,20 @@ VOID PhInitializeFont(
 
 VOID PhInitializeKph()
 {
+    static WCHAR kprocesshacker[] = L"kprocesshacker.sys";
+    PPH_STRING kprocesshackerFileName;
+
     PhKphHandle = NULL;
-    KphConnect2(&PhKphHandle, L"KProcessHacker", L"kprocesshacker.sys");
+
+    // KProcessHacker doesn't support 64-bit systems.
+#ifdef _M_IX86
+
+    // Append kprocesshacker.sys to the application directory.
+    kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, kprocesshacker);
+
+    KphConnect2(&PhKphHandle, L"KProcessHacker", kprocesshackerFileName->Buffer);
+    PhDereferenceObject(kprocesshackerFileName);
+#endif
 }
 
 BOOLEAN PhInitializeSystem()

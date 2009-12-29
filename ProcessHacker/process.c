@@ -1,4 +1,5 @@
 #include <ph.h>
+#include <kph.h>
 
 static PWSTR PhDosDeviceNames[26];
 
@@ -43,15 +44,27 @@ NTSTATUS PhOpenThread(
     OBJECT_ATTRIBUTES objectAttributes = { 0 };
     CLIENT_ID clientId;
 
-    clientId.UniqueProcess = NULL;
-    clientId.UniqueThread = ThreadId;
+    if (PhKphHandle)
+    {
+        return KphOpenThread(
+            PhKphHandle,
+            ThreadHandle,
+            ThreadId,
+            DesiredAccess
+            );
+    }
+    else
+    {
+        clientId.UniqueProcess = NULL;
+        clientId.UniqueThread = ThreadId;
 
-    return NtOpenThread(
-        ThreadHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
+        return NtOpenThread(
+            ThreadHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &clientId
+            );
+    }
 }
 
 NTSTATUS PhOpenProcessToken(
@@ -60,11 +73,23 @@ NTSTATUS PhOpenProcessToken(
     __in HANDLE ProcessHandle
     )
 {
-    return NtOpenProcessToken(
-        ProcessHandle,
-        DesiredAccess,
-        TokenHandle
-        );
+    if (PhKphHandle)
+    {
+        return KphOpenProcessToken(
+            PhKphHandle,
+            TokenHandle,
+            ProcessHandle,
+            DesiredAccess
+            );
+    }
+    else
+    {
+        return NtOpenProcessToken(
+            ProcessHandle,
+            DesiredAccess,
+            TokenHandle
+            );
+    }
 }
 
 NTSTATUS PhReadVirtualMemory(
@@ -75,6 +100,10 @@ NTSTATUS PhReadVirtualMemory(
     __out_opt PSIZE_T NumberOfBytesRead
     )
 {
+    // KphReadVirtualMemory is much slower than 
+    // NtReadVirtualMemory, so we'll stick to 
+    // the using the original system call.
+
     return NtReadVirtualMemory(
         ProcessHandle,
         BaseAddress,

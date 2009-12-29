@@ -186,7 +186,7 @@ NTSTATUS KphpDeviceIoControl(
         );
 
     if (NT_SUCCESS(status) && ReturnLength)
-        *ReturnLength = ioStatusBlock.Information;
+        *ReturnLength = (ULONG)ioStatusBlock.Information;
 
     return status;
 }
