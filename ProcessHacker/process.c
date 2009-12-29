@@ -11,15 +11,27 @@ NTSTATUS PhOpenProcess(
     OBJECT_ATTRIBUTES objectAttributes = { 0 };
     CLIENT_ID clientId;
 
-    clientId.UniqueProcess = ProcessId;
-    clientId.UniqueThread = NULL;
+    if (PhKphHandle)
+    {
+        return KphOpenProcess(
+            PhKphHandle,
+            ProcessHandle,
+            ProcessId,
+            DesiredAccess
+            );
+    }
+    else
+    {
+        clientId.UniqueProcess = ProcessId;
+        clientId.UniqueThread = NULL;
 
-    return NtOpenProcess(
-        ProcessHandle,
-        DesiredAccess,
-        &objectAttributes,
-        &clientId
-        );
+        return NtOpenProcess(
+            ProcessHandle,
+            DesiredAccess,
+            &objectAttributes,
+            &clientId
+            );
+    }
 }
 
 NTSTATUS PhOpenThread(

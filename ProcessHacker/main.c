@@ -4,6 +4,7 @@
 HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
+HANDLE PhKphHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
 
@@ -36,6 +37,8 @@ INT WINAPI WinMain(
 
     if (!PhInitializeSystem())
         return 1;
+
+    PhInitializeKph();
 
     if (!PhMainWndInitialization(nCmdShow))
     {
@@ -118,6 +121,12 @@ VOID PhInitializeFont(
             PhApplicationFont = NULL;
         }
     }
+}
+
+VOID PhInitializeKph()
+{
+    PhKphHandle = NULL;
+    KphConnect2(&PhKphHandle, L"KProcessHacker", L"kprocesshacker.sys");
 }
 
 BOOLEAN PhInitializeSystem()

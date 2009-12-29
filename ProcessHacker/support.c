@@ -23,7 +23,7 @@ INT PhShowMessage_V(
     )
 {
     INT result;
-    WCHAR message[PH_MAX_MESSAGE_SIZE];
+    WCHAR message[PH_MAX_MESSAGE_SIZE + 1];
 
     result = _vsnwprintf(message, PH_MAX_MESSAGE_SIZE, Format, ArgPtr);
 
@@ -61,6 +61,10 @@ PVOID PhGetFileVersionInfo(
 
             return NULL;
         }
+    }
+    else
+    {
+        return NULL;
     }
 
     return versionInfo;
@@ -108,7 +112,7 @@ PPH_STRING PhGetFileVersionInfoString2(
     __in PWSTR StringName
     )
 {
-    WCHAR subBlock[64];
+    WCHAR subBlock[65];
 
     _snwprintf(subBlock, 64, L"\\StringFileInfo\\%08X\\%s", LangCodePage, StringName);
 

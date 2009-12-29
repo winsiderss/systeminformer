@@ -23,6 +23,8 @@ VOID PhInitializeFont(
     __in HWND hWnd
     );
 
+VOID PhInitializeKph();
+
 BOOLEAN PhInitializeSystem();
 
 ATOM PhRegisterWindowClass();

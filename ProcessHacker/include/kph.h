@@ -127,7 +127,14 @@ typedef struct _DRIVER_SERVICE_KEY_NAME_INFORMATION
 NTSTATUS KphInit();
 
 NTSTATUS KphConnect(
-    __out PHANDLE KphHandle
+    __out PHANDLE KphHandle,
+    __in_opt PWSTR DeviceName
+    );
+
+NTSTATUS KphConnect2(
+    __out PHANDLE KphHandle,
+    __in PWSTR DeviceName,
+    __in PWSTR FileName
     );
 
 NTSTATUS KphDisconnect(

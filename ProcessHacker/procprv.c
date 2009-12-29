@@ -317,8 +317,12 @@ VOID PhpProcessQueryStage1(
             ProcessQueryAccess | PROCESS_VM_READ,
             processId
             );
-        PhGetProcessIsPosix(processHandle, &Data->IsPosix);
-        CloseHandle(processHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            PhGetProcessIsPosix(processHandle, &Data->IsPosix);
+            CloseHandle(processHandle);
+        }
     }
 }
 
@@ -642,9 +646,9 @@ VOID PhUpdateProcesses()
                 {
                     PH_PROCESS_QUERY_S1_DATA data;
 
+                    memset(&data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
                     data.Header.Stage = 1;
                     data.Header.ProcessItem = processItem;
-                    memset(&data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
                     PhpProcessQueryStage1(&data);
                     PhpFillProcessItemStage1(&data);
                 }
