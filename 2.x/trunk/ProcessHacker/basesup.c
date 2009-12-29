@@ -473,11 +473,82 @@ BOOLEAN PhRemoveHashtableEntry(
     return FALSE;
 }
 
+ULONG PhHashBytes(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    )
+{
+    // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
+    ULONG hash;
+    ULONG tmp;
+    ULONG rem;
+
+    if (!Length || !Bytes)
+        return 0;
+
+    hash = Length;
+    rem = Length & 3;
+    Length >>= 2;
+
+    for (; Length > 0; Length--)
+    {
+        hash += *(PUSHORT)Bytes;
+        tmp = (*(PUSHORT)(Bytes + 2) << 11) ^ hash;
+        hash = (hash << 16) ^ tmp;
+        Bytes += 4;
+        hash += hash >> 11;
+    }
+
+    switch (rem)
+    {
+    case 3:
+        hash += *(PUSHORT)Bytes;
+        hash ^= hash << 16;
+        hash ^= Bytes[2] << 18;
+        hash += hash >> 11;
+        break;
+    case 2:
+        hash += *(PUSHORT)Bytes;
+        hash ^= hash << 11;
+        hash += hash >> 17;
+        break;
+    case 1:
+        hash += *Bytes;
+        hash ^= hash << 10;
+        hash += hash >> 1;
+        break;
+    }
+
+    hash ^= hash << 3;
+    hash += hash >> 5;
+    hash ^= hash << 4;
+    hash += hash >> 17;
+    hash ^= hash << 25;
+    hash += hash >> 6;
+
+    return hash;
+}
+
+ULONG PhHashString(
+    __in PWSTR String
+    )
+{
+    return PhHashBytes((PCHAR)String, wcslen(String) * sizeof(WCHAR));
+}
+
 VOID PhInitializeCallback(
     __out PPH_CALLBACK Callback
     )
 {
     InitializeListHead(&Callback->ListHead);
+    PhInitializeFastLock(&Callback->ListLock);
+}
+
+VOID PhDeleteCallback(
+    __inout PPH_CALLBACK Callback
+    )
+{
+    PhDeleteFastLock(&Callback->ListLock);
 }
 
 VOID PhRegisterCallback(
@@ -487,11 +558,13 @@ VOID PhRegisterCallback(
     __out PPH_CALLBACK_REGISTRATION Registration
     )
 {
-    InsertTailList(&Callback->ListHead, &Registration->ListEntry);
     Registration->Function = Function;
     Registration->Context = Context;
+    Registration->Unregistering = FALSE;
 
-    Callback->Count++;
+    PhAcquireFastLockExclusive(&Callback->ListLock);
+    InsertTailList(&Callback->ListHead, &Registration->ListEntry);
+    PhReleaseFastLockExclusive(&Callback->ListLock);
 }
 
 VOID PhUnregisterCallback(
@@ -499,8 +572,11 @@ VOID PhUnregisterCallback(
     __inout PPH_CALLBACK_REGISTRATION Registration
     )
 {
+    Registration->Unregistering = TRUE;
+
+    PhAcquireFastLockExclusive(&Callback->ListLock);
     RemoveEntryList(&Registration->ListEntry);
-    Callback->Count--;
+    PhReleaseFastLockExclusive(&Callback->ListLock);
 }
 
 VOID PhInvokeCallback(
@@ -510,79 +586,27 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
-    for (
-        listEntry = Callback->ListHead.Flink;
-        listEntry != &Callback->ListHead;
-        listEntry = listEntry->Flink
-        )
+    PhAcquireFastLockShared(&Callback->ListLock);
+
+    listEntry = Callback->ListHead.Flink;
+
+    while (listEntry != &Callback->ListHead)
     {
         PPH_CALLBACK_REGISTRATION registration;
-        
+
         registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
+        listEntry = listEntry->Flink;
+
+        if (registration->Unregistering)
+            continue;
+
+        PhReleaseFastLockShared(&Callback->ListLock);
         registration->Function(
             Parameter,
             registration->Context
             );
+        PhAcquireFastLockShared(&Callback->ListLock);
     }
-}
 
-VOID PhCreateCallbackList(
-    __in PPH_CALLBACK Callback,
-    __out PPH_CALLBACK_LIST CallbackList
-    )
-{
-    PLIST_ENTRY listEntry;
-    ULONG i;
-
-    CallbackList->Count = Callback->Count;
-    CallbackList->FunctionList = PhAllocate(
-        sizeof(PPH_CALLBACK_FUNCTION) * Callback->Count
-        );
-    CallbackList->ContextList = PhAllocate(
-        sizeof(PVOID) * Callback->Count
-        );
-
-    i = 0;
-
-    for (
-        listEntry = Callback->ListHead.Flink;
-        listEntry != &Callback->ListHead;
-        listEntry = listEntry->Flink
-        )
-    {
-        PPH_CALLBACK_REGISTRATION registration;
-        
-        registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
-        CallbackList->FunctionList[i] = registration->Function;
-        CallbackList->ContextList[i] = registration->Context;
-        i++;
-    }
-}
-
-VOID PhDeleteCallbackList(
-    __inout PPH_CALLBACK_LIST CallbackList
-    )
-{
-    PhFree(CallbackList->FunctionList);
-    PhFree(CallbackList->ContextList);
-}
-
-VOID PhInvokeCallbackList(
-    __in PPH_CALLBACK_LIST CallbackList,
-    __in PVOID Parameter
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < CallbackList->Count; i++)
-    {
-        PPH_CALLBACK_FUNCTION function;
-
-        function = CallbackList->FunctionList[i];
-
-        function(
-            Parameter,
-            CallbackList->ContextList[i]
-            );
-    }
+    PhReleaseFastLockShared(&Callback->ListLock);
 }

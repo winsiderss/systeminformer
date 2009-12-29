@@ -1,7 +1,7 @@
 #ifndef FASTLOCK_H
 #define FASTLOCK_H
 
-#include <phbase.h>
+#include <base.h>
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 

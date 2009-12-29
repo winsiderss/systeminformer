@@ -1,22 +1,11 @@
 #ifndef PHBASE_H
 #define PHBASE_H
 
-#ifndef UNICODE
-#define UNICODE
-#endif
-
-#include <ntwin.h>
 #include <ntimport.h>
 #include <ref.h>
 #include <fastlock.h>
 
-// We don't care about "deprecation".
-#pragma warning(disable: 4996)
-
 #define PH_APP_NAME (L"Process Hacker")
-
-#define PH_INT_STR_LEN 10
-#define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
 #ifndef MAIN_PRIVATE
 
@@ -41,17 +30,10 @@ extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_7 61
 #define WINDOWS_NEW MAXLONG
 
-#define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
-
-#define PH_TIMEOUT_TO_MS ((LONGLONG)1 * 10 * 1000)
-#define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
-
 // basesup
 
 struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
-
-#define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
 BOOLEAN PhInitializeBase();
 
@@ -262,6 +244,15 @@ BOOLEAN PhRemoveHashtableEntry(
     __in PVOID Entry
     );
 
+ULONG PhHashBytes(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    );
+
+ULONG PhHashString(
+    __in PWSTR String
+    );
+
 // callback
 
 typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
@@ -274,23 +265,21 @@ typedef struct _PH_CALLBACK_REGISTRATION
     LIST_ENTRY ListEntry;
     PPH_CALLBACK_FUNCTION Function;
     PVOID Context;
+    BOOLEAN Unregistering;
 } PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
 
 typedef struct _PH_CALLBACK
 {
     LIST_ENTRY ListHead;
-    ULONG Count;
+    PH_FAST_LOCK ListLock;
 } PH_CALLBACK, *PPH_CALLBACK;
-
-typedef struct _PH_CALLBACK_LIST
-{
-    ULONG Count;
-    PPH_CALLBACK_FUNCTION *FunctionList;
-    PPVOID ContextList;
-} PH_CALLBACK_LIST, *PPH_CALLBACK_LIST;
 
 VOID PhInitializeCallback(
     __out PPH_CALLBACK Callback
+    );
+
+VOID PhDeleteCallback(
+    __inout PPH_CALLBACK Callback
     );
 
 VOID PhRegisterCallback(
@@ -307,20 +296,6 @@ VOID PhUnregisterCallback(
 
 VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
-    __in PVOID Parameter
-    );
-
-VOID PhCreateCallbackList(
-    __in PPH_CALLBACK Callback,
-    __out PPH_CALLBACK_LIST CallbackList
-    );
-
-VOID PhDeleteCallbackList(
-    __inout PPH_CALLBACK_LIST CallbackList
-    );
-
-VOID PhInvokeCallbackList(
-    __in PPH_CALLBACK_LIST CallbackList,
     __in PVOID Parameter
     );
 
