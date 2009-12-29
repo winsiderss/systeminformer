@@ -162,6 +162,86 @@ PWSTR FORCEINLINE PhGetString(
         return NULL;
 }
 
+BOOLEAN FORCEINLINE PhStringEquals(
+    __in PPH_STRING String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1->Buffer, String2) == 0;
+    else
+        return wcsicmp(String1->Buffer, String2) == 0;
+}
+
+BOOLEAN FORCEINLINE PhStringStartsWith(
+    __in PPH_STRING String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcsncmp(String1->Buffer, String2, wcslen(String2)) == 0;
+    else
+        return wcsnicmp(String1->Buffer, String2, wcslen(String2)) == 0;
+}
+
+BOOLEAN FORCEINLINE PhStringEndsWith(
+    __in PPH_STRING String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    SIZE_T length = wcslen(String2);
+
+    if (length * sizeof(WCHAR) > String1->Length)
+        return FALSE;
+
+    if (!IgnoreCase)
+        return wcsncmp(&String1->Buffer[String1->Length / sizeof(WCHAR) - length], String2, length) == 0;
+    else
+        return wcsnicmp(&String1->Buffer[String1->Length / sizeof(WCHAR) - length], String2, length) == 0;
+}
+
+ULONG FORCEINLINE PhStringIndexOfChar(
+    __in PPH_STRING String1,
+    __in WCHAR Char
+    )
+{
+    PWSTR location;
+
+    location = wcschr(String1->Buffer, Char);
+
+    if (location)
+        return (ULONG)(location - String1->Buffer);
+    else
+        return -1;
+}
+
+ULONG FORCEINLINE PhStringIndexOfString(
+    __in PPH_STRING String1,
+    __in PWSTR String2
+    )
+{
+    PWSTR location;
+
+    location = wcsstr(String1->Buffer, String2);
+
+    if (location)
+        return (ULONG)(location - String1->Buffer);
+    else
+        return -1;
+}
+
+PPH_STRING FORCEINLINE PhSubstring(
+    __in PPH_STRING String,
+    __in ULONG StartIndex,
+    __in ULONG Count
+    )
+{
+    return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
+}
+
 // list
 
 #ifndef BASESUP_PRIVATE

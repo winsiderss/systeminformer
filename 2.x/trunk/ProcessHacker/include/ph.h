@@ -18,6 +18,16 @@ typedef enum _PH_PEB_OFFSET
     PhpoRuntimeData
 } PH_PEB_OFFSET;
 
+typedef enum _PH_INTEGRITY
+{
+    PiUntrusted = 0,
+    PiLow = 1,
+    PiMedium = 2,
+    PiHigh = 3,
+    PiSystem = 4,
+    PiInstaller = 5
+} PH_INTEGRITY, *PPH_INTEGRITY;
+
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -71,6 +81,16 @@ NTSTATUS PhGetProcessPebString(
     __out PPH_STRING *String
     );
 
+NTSTATUS PhGetProcessIsWow64(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsWow64
+    );
+
+NTSTATUS PhGetProcessIsPosix(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsPosix
+    );
+
 NTSTATUS PhGetTokenUser(
     __in HANDLE TokenHandle,
     __out PTOKEN_USER *User
@@ -86,11 +106,27 @@ NTSTATUS PhGetTokenIsElevated(
     __out PBOOLEAN Elevated
     );
 
+NTSTATUS PhGetTokenGroups(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_GROUPS *Groups
+    );
+
+NTSTATUS PhGetTokenPrivileges(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_PRIVILEGES *Privileges
+    );
+
 BOOLEAN PhSetTokenPrivilege(
     __in HANDLE TokenHandle,
     __in_opt PWSTR PrivilegeName,
     __in_opt PLUID PrivilegeLuid,
     __in ULONG Attributes
+    );
+
+NTSTATUS PhGetTokenIntegrityLevel(
+    __in HANDLE TokenHandle,
+    __out_opt PPH_INTEGRITY IntegrityLevel, 
+    __out_opt PPH_STRING *IntegrityString
     );
 
 BOOLEAN PhLookupPrivilegeName(
@@ -153,6 +189,9 @@ typedef struct _PH_IMAGE_VERSION_INFO
     PPH_STRING ProductName;
 } PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
 
+#define PH_INTEGRITY_STR_LEN 10
+#define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
+
 typedef struct _PH_PROCESS_ITEM
 {
     HANDLE ProcessId;
@@ -170,8 +209,7 @@ typedef struct _PH_PROCESS_ITEM
     LARGE_INTEGER CreateTime;
 
     PPH_STRING UserName;
-    ULONG IntegrityLevel;
-    PPH_STRING IntegrityString;
+    PH_INTEGRITY IntegrityLevel;
 
     PPH_STRING JobName;
 
@@ -190,6 +228,7 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdString[PH_INT_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
     WCHAR SessionIdString[PH_INT_STR_LEN_1];
+    WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
 
     FLOAT CpuUsage; // from 0 to 1
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
