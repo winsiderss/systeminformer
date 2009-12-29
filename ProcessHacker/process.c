@@ -253,6 +253,60 @@ NTSTATUS PhGetProcessPebString(
     return status;
 }
 
+NTSTATUS PhGetProcessIsWow64(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsWow64
+    )
+{
+    NTSTATUS status;
+    PVOID wow64;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessWow64Information,
+        &wow64,
+        sizeof(PVOID),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsWow64 = !!wow64;
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetProcessIsPosix(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsPosix
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    ULONG imageSubsystem;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageSubsystem)),
+        &imageSubsystem,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsPosix = imageSubsystem == IMAGE_SUBSYSTEM_POSIX_CUI;
+    }
+
+    return status;
+}
+
 NTSTATUS PhpQueryTokenVariableSize(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
@@ -341,6 +395,18 @@ NTSTATUS PhGetTokenIsElevated(
     return status;
 }
 
+NTSTATUS PhGetTokenGroups(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_GROUPS *Groups
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenGroups,
+        Groups
+        );
+}
+
 NTSTATUS PhGetTokenPrivileges(
     __in HANDLE TokenHandle,
     __out PTOKEN_PRIVILEGES *Privileges
@@ -396,6 +462,92 @@ BOOLEAN PhSetTokenPrivilege(
         return FALSE;
 
     return TRUE;
+}
+
+NTSTATUS PhGetTokenIntegrityLevel(
+    __in HANDLE TokenHandle,
+    __out_opt PPH_INTEGRITY IntegrityLevel, 
+    __out_opt PPH_STRING *IntegrityString
+    )
+{
+    NTSTATUS status;
+    PTOKEN_GROUPS groups;
+    ULONG i;
+    PPH_STRING sidName = NULL;
+    PH_INTEGRITY integrityLevel;
+    PPH_STRING integrityString;
+
+    status = PhGetTokenGroups(TokenHandle, &groups);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Look for an integrity SID.
+    for (i = 0; i < groups->GroupCount; i++)
+    {
+        if (groups->Groups[i].Attributes & SE_GROUP_INTEGRITY_ENABLED)
+        {
+            PhLookupSid(groups->Groups[i].Sid, &sidName, NULL, NULL);
+            break;
+        }
+    }
+
+    PhFree(groups);
+
+    // Did we get the SID name successfully?
+    if (!sidName)
+        return STATUS_UNSUCCESSFUL;
+
+    // Look for " Mandatory Level".
+    i = PhStringIndexOfString(sidName, L" Mandatory Level");
+
+    if (i == -1)
+    {
+        PhDereferenceObject(sidName);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    // Get the string before the suffix.
+    integrityString = PhSubstring(sidName, 0, i);
+    PhDereferenceObject(sidName);
+
+    // Compute the integer integrity level.
+    if (PhStringEquals(integrityString, L"Untrusted", FALSE))
+        integrityLevel = PiUntrusted;
+    else if (PhStringEquals(integrityString, L"Low", FALSE))
+        integrityLevel = PiLow;
+    else if (PhStringEquals(integrityString, L"Medium", FALSE))
+        integrityLevel = PiMedium;
+    else if (PhStringEquals(integrityString, L"High", FALSE))
+        integrityLevel = PiHigh;
+    else if (PhStringEquals(integrityString, L"System", FALSE))
+        integrityLevel = PiSystem;
+    else if (PhStringEquals(integrityString, L"Installer", FALSE))
+        integrityLevel = PiInstaller;
+    else
+        integrityLevel = -1;
+
+    if (integrityLevel == -1)
+    {
+        PhDereferenceObject(integrityString);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (IntegrityLevel)
+    {
+        *IntegrityLevel = integrityLevel;
+    }
+
+    if (IntegrityString)
+    {
+        *IntegrityString = integrityString;
+    }
+    else
+    {
+        PhDereferenceObject(integrityString);
+    }
+
+    return status;
 }
 
 BOOLEAN PhLookupPrivilegeName(
@@ -606,13 +758,13 @@ PPH_STRING PhGetFileName(
     newFileName = FileName;
 
     // "\??\" refers to \GLOBAL??. Just remove it.
-    if (wcsncmp(FileName->Buffer, L"\\??\\", 4) == 0)
+    if (PhStringStartsWith(FileName, L"\\??\\", FALSE))
     {
         newFileName = PhCreateStringEx(NULL, FileName->Length - 8);
         memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 8);
     }
     // "\SystemRoot" means "C:\Windows".
-    else if (wcsnicmp(FileName->Buffer, L"\\SystemRoot", 11) == 0)
+    else if (PhStringStartsWith(FileName, L"\\SystemRoot", TRUE))
     {
         PPH_STRING systemDirectory = PhGetSystemDirectory();
 
@@ -639,7 +791,7 @@ PPH_STRING PhGetFileName(
 
             if (prefixLength > 0)
             {
-                if (wcsnicmp(FileName->Buffer, prefix, prefixLength) == 0)
+                if (PhStringStartsWith(FileName, prefix, TRUE))
                 {
                     newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
                     newFileName->Buffer[0] = (WCHAR)('A' + i);
