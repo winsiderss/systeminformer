@@ -6,6 +6,7 @@
 #endif
 
 #include <ntwin.h>
+#include <intrin.h>
 
 // We don't care about "deprecation".
 #pragma warning(disable: 4996)
@@ -21,5 +22,20 @@
 #define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
+
+#ifdef _M_IX86
+PVOID FORCEINLINE _InterlockedCompareExchangePointer(
+    __inout PVOID volatile *Destination,
+    __in PVOID Exchange,
+    __in PVOID Comparand
+    )
+{
+    return (PVOID)_InterlockedCompareExchange(
+        (PLONG_PTR)Destination,
+        (LONG_PTR)Exchange,
+        (LONG_PTR)Comparand
+        );
+}
+#endif
 
 #endif

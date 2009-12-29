@@ -323,4 +323,6 @@ VOID PhMainWndOnProcessRemoved(
         ProcessListViewHandle,
         PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem)
         );
+    // Remove the reference we added in PhMainWndOnProcessAdded.
+    PhDereferenceObject(ProcessItem);
 }

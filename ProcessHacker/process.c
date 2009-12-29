@@ -635,7 +635,7 @@ PPH_STRING PhGetFileName(
         for (i = 0; i < 26; i++)
         {
             PWSTR prefix = PhDosDeviceNames[i];
-            ULONG prefixLength = wcslen(prefix);
+            ULONG prefixLength = (ULONG)wcslen(prefix);
 
             if (prefixLength > 0)
             {

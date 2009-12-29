@@ -76,7 +76,7 @@ VOID FORCEINLINE PhpEnsureEventCreated(
 
     handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
 
-    if (InterlockedCompareExchangePointer(
+    if (_InterlockedCompareExchangePointer(
         Handle,
         handle,
         NULL
@@ -99,7 +99,7 @@ VOID PhAcquireFastLockExclusive(
 
         if (!(value & (PH_LOCK_OWNED | PH_LOCK_EXCLUSIVE_WAKING)))
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_OWNED,
                 value
@@ -110,7 +110,7 @@ VOID PhAcquireFastLockExclusive(
         {
             PhpEnsureEventCreated(&FastLock->ExclusiveWakeEvent);
 
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_EXCLUSIVE_WAITERS_INC,
                 value
@@ -125,7 +125,7 @@ VOID PhAcquireFastLockExclusive(
                 do
                 {
                     value = FastLock->Value;
-                } while (InterlockedCompareExchange(
+                } while (_InterlockedCompareExchange(
                     &FastLock->Value,
                     value + PH_LOCK_OWNED - PH_LOCK_EXCLUSIVE_WAKING,
                     value
@@ -157,7 +157,7 @@ VOID PhAcquireFastLockShared(
             PH_LOCK_EXCLUSIVE_MASK
             )))
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_OWNED + PH_LOCK_SHARED_OWNERS_INC,
                 value
@@ -170,7 +170,7 @@ VOID PhAcquireFastLockShared(
             !(value & PH_LOCK_EXCLUSIVE_MASK)
             )
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_SHARED_OWNERS_INC,
                 value
@@ -181,7 +181,7 @@ VOID PhAcquireFastLockShared(
         {
             PhpEnsureEventCreated(&FastLock->SharedWakeEvent);
 
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_SHARED_WAITERS_INC,
                 value
@@ -214,7 +214,7 @@ VOID PhReleaseFastLockExclusive(
 
         if ((value >> PH_LOCK_EXCLUSIVE_WAITERS_SHIFT) & PH_LOCK_EXCLUSIVE_WAITERS_MASK)
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value - PH_LOCK_OWNED + PH_LOCK_EXCLUSIVE_WAKING - PH_LOCK_EXCLUSIVE_WAITERS_INC,
                 value
@@ -231,7 +231,7 @@ VOID PhReleaseFastLockExclusive(
 
             sharedWaiters = (value >> PH_LOCK_SHARED_WAITERS_SHIFT) & PH_LOCK_SHARED_WAITERS_MASK;
 
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value & ~(PH_LOCK_OWNED | (PH_LOCK_SHARED_WAITERS_MASK << PH_LOCK_SHARED_WAITERS_SHIFT)),
                 value
@@ -260,7 +260,7 @@ VOID PhReleaseFastLockShared(
 
         if (((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK) > 1)
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value - PH_LOCK_SHARED_OWNERS_INC,
                 value
@@ -269,7 +269,7 @@ VOID PhReleaseFastLockShared(
         }
         else if ((value >> PH_LOCK_EXCLUSIVE_WAITERS_SHIFT) & PH_LOCK_EXCLUSIVE_WAITERS_MASK)
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value - PH_LOCK_OWNED + PH_LOCK_EXCLUSIVE_WAKING -
                 PH_LOCK_SHARED_OWNERS_INC - PH_LOCK_EXCLUSIVE_WAITERS_INC,
@@ -283,7 +283,7 @@ VOID PhReleaseFastLockShared(
         }
         else
         {
-            if (InterlockedCompareExchange(
+            if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value - PH_LOCK_OWNED - PH_LOCK_SHARED_OWNERS_INC,
                 value
@@ -306,7 +306,7 @@ BOOLEAN PhTryAcquireFastLockExclusive(
     if (value & (PH_LOCK_OWNED | PH_LOCK_EXCLUSIVE_WAKING))
         return FALSE;
 
-    return InterlockedCompareExchange(
+    return _InterlockedCompareExchange(
         &FastLock->Value,
         value + PH_LOCK_OWNED,
         value
@@ -326,7 +326,7 @@ BOOLEAN PhTryAcquireFastLockShared(
 
     if (!(value & PH_LOCK_OWNED))
     {
-        return InterlockedCompareExchange(
+        return _InterlockedCompareExchange(
             &FastLock->Value,
             value + PH_LOCK_OWNED + PH_LOCK_SHARED_OWNERS_INC,
             value
@@ -334,7 +334,7 @@ BOOLEAN PhTryAcquireFastLockShared(
     }
     else if ((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK)
     {
-        return InterlockedCompareExchange(
+        return _InterlockedCompareExchange(
             &FastLock->Value,
             value + PH_LOCK_SHARED_OWNERS_INC,
             value
