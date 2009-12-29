@@ -22,10 +22,16 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtAlertThread);
     InitProcReq("ntdll.dll", NtAllocateVirtualMemory);
     InitProcReq("ntdll.dll", NtClose);
+    InitProcReq("ntdll.dll", NtCreateFile);
+    InitProcReq("ntdll.dll", NtDeleteFile);
+    InitProcReq("ntdll.dll", NtDeviceIoControlFile);
     InitProcReq("ntdll.dll", NtDuplicateObject);
     InitProcReq("ntdll.dll", NtFreeVirtualMemory);
+    InitProcReq("ntdll.dll", NtFsControlFile);
     InitProc("ntdll.dll", NtGetNextProcess);
     InitProc("ntdll.dll", NtGetNextThread);
+    InitProcReq("ntdll.dll", NtLoadDriver);
+    InitProcReq("ntdll.dll", NtOpenFile);
     InitProcReq("ntdll.dll", NtOpenProcess);
     InitProcReq("ntdll.dll", NtOpenProcessToken);
     InitProcReq("ntdll.dll", NtOpenThread);
@@ -38,6 +44,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtQuerySystemInformation);
     InitProcReq("ntdll.dll", NtQueryVirtualMemory);
     InitProcReq("ntdll.dll", NtQueueApcThread);
+    InitProcReq("ntdll.dll", NtReadFile);
     InitProcReq("ntdll.dll", NtReadVirtualMemory);
     InitProcReq("ntdll.dll", NtResumeProcess);
     InitProcReq("ntdll.dll", NtResumeThread);
@@ -48,6 +55,8 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSuspendThread);
     InitProcReq("ntdll.dll", NtTerminateProcess);
     InitProcReq("ntdll.dll", NtTerminateThread);
+    InitProcReq("ntdll.dll", NtUnloadDriver);
+    InitProcReq("ntdll.dll", NtWriteFile);
     InitProcReq("ntdll.dll", NtWriteVirtualMemory);
 
     return TRUE;
