@@ -55,44 +55,55 @@ VOID FORCEINLINE PhSetControlPosition(
 // List Views
 
 HWND PhCreateListViewControl(
-    HWND ParentHandle,
-    INT_PTR Id
+    __in HWND ParentHandle,
+    __in INT_PTR Id
     );
 
 INT PhAddListViewColumn(
-    HWND ListViewHandle,
-    INT Index,
-    INT DisplayIndex,
-    INT SubItemIndex,
-    INT Format,
-    INT Width,
-    PWSTR Text
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT DisplayIndex,
+    __in INT SubItemIndex,
+    __in INT Format,
+    __in INT Width,
+    __in PWSTR Text
     );
 
 INT PhAddListViewItem(
-    HWND ListViewHandle,
-    INT Index,
-    PWSTR Text,
-    PVOID Param
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in PWSTR Text,
+    __in PVOID Param
+    );
+
+INT PhFindListViewItemByParam(
+    __in HWND ListViewHandle,
+    __in INT StartIndex,
+    __in PVOID Param
+    );
+
+VOID PhRemoveListViewItem(
+    __in HWND ListViewHandle,
+    __in INT Index
     );
 
 VOID PhSetListViewSubItem(
-    HWND ListViewHandle,
-    INT Index,
-    INT SubItemIndex,
-    PWSTR Text
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT SubItemIndex,
+    __in PWSTR Text
     );
 
 // Tab Controls
 
 HWND PhCreateTabControl(
-    HWND ParentWindowHandle
+    __in HWND ParentHandle
     );
 
 INT PhAddTabControlTab(
-    HWND TabControlHandle,
-    INT Index,
-    PWSTR Text
+    __in HWND TabControlHandle,
+    __in INT Index,
+    __in PWSTR Text
     );
 
 // mainwnd

@@ -42,6 +42,8 @@ BOOLEAN PhInitializeProcessProvider()
     PhInitializeCallback(&PhProcessAddedEvent);
     PhInitializeCallback(&PhProcessModifiedEvent);
     PhInitializeCallback(&PhProcessRemovedEvent);
+
+    return TRUE;
 }
 
 BOOLEAN PhInitializeProcessItem()
