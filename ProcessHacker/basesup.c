@@ -533,7 +533,7 @@ ULONG PhHashString(
     __in PWSTR String
     )
 {
-    return PhHashBytes((PCHAR)String, wcslen(String) * sizeof(WCHAR));
+    return PhHashBytes((PCHAR)String, (ULONG)wcslen(String) * sizeof(WCHAR));
 }
 
 VOID PhInitializeCallback(
