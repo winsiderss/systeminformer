@@ -1,4 +1,5 @@
 #include <kph.h>
+#include <wchar.h>
 
 typedef struct _KPH_ZWQUERYOBJECT_BUFFER
 {
@@ -19,14 +20,19 @@ NTSTATUS KphpDeviceIoControl(
     );
 
 NTSTATUS KphConnect(
-    __out PHANDLE KphHandle
+    __out PHANDLE KphHandle,
+    __in_opt PWSTR DeviceName
     )
 {
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
 
-    RtlInitUnicodeString(&objectName, KPH_DEVICE_NAME);
+    if (DeviceName)
+        RtlInitUnicodeString(&objectName, DeviceName);
+    else
+        RtlInitUnicodeString(&objectName, KPH_DEVICE_NAME);
+
     InitializeObjectAttributes(
         &objectAttributes,
         &objectName,
@@ -43,6 +49,104 @@ NTSTATUS KphConnect(
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
+}
+
+NTSTATUS KphConnect2(
+    __out PHANDLE KphHandle,
+    __in PWSTR DeviceName,
+    __in PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    WCHAR fullDeviceName[MAX_PATH + 1];
+    SC_HANDLE scmHandle;
+    SC_HANDLE serviceHandle;
+    BOOLEAN started = FALSE;
+    BOOLEAN created = FALSE;
+
+    _snwprintf(fullDeviceName, MAX_PATH, L"\\Device\\%s", DeviceName);
+
+    // Try to open the device.
+    status = KphConnect(KphHandle, fullDeviceName);
+
+    if (NT_SUCCESS(status))
+        return status;
+
+    if (
+        status != STATUS_NO_SUCH_DEVICE &&
+        status != STATUS_NO_SUCH_FILE &&
+        status != STATUS_OBJECT_NAME_NOT_FOUND
+        )
+        return status;
+
+    // Load the driver, and try again.
+
+    // Try to start the service, if it exists.
+
+    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+
+    if (scmHandle)
+    {
+        serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_START);
+
+        if (serviceHandle)
+        {
+            if (StartService(serviceHandle, 0, NULL))
+                started = TRUE;
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        CloseServiceHandle(scmHandle);
+    }
+
+    if (!started)
+    {
+        // Try to create the service.
+
+        scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
+
+        if (scmHandle)
+        {
+            serviceHandle = CreateService(
+                scmHandle,
+                DeviceName,
+                DeviceName,
+                SERVICE_ALL_ACCESS,
+                SERVICE_KERNEL_DRIVER,
+                SERVICE_DEMAND_START,
+                SERVICE_ERROR_IGNORE,
+                FileName,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                L""
+                );
+
+            if (serviceHandle)
+            {
+                created = TRUE;
+                StartService(serviceHandle, 0, NULL);
+            }
+
+            CloseServiceHandle(scmHandle);
+        }
+    }
+
+    // Try to open the device again.
+    status = KphConnect(KphHandle, fullDeviceName);
+
+    if (created)
+    {
+        // "Delete" the service. Since we (may) have a handle to 
+        // the device, the SCM will delete the service automatically 
+        // when it is stopped (upon reboot).
+        DeleteService(serviceHandle);
+        CloseServiceHandle(serviceHandle);
+    }
+
+    return status;
 }
 
 NTSTATUS KphDisconnect(
