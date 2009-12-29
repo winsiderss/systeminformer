@@ -7,6 +7,11 @@ VOID NTAPI PhpListDeleteProcedure(
     __in ULONG Flags
     );
 
+VOID NTAPI PhpQueueDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    );
+
 VOID NTAPI PhpHashtableDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -14,6 +19,7 @@ VOID NTAPI PhpHashtableDeleteProcedure(
 
 PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhListType;
+PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 
 static ULONG PhpPrimeNumbers[] =
@@ -45,11 +51,20 @@ BOOLEAN PhInitializeBase()
         return FALSE;
 
     if (!NT_SUCCESS(PhCreateObjectType(
+        &PhQueueType,
+        0,
+        PhpQueueDeleteProcedure
+        )))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateObjectType(
         &PhHashtableType,
         0,
         PhpHashtableDeleteProcedure
         )))
         return FALSE;
+
+    PhWorkQueueInitialization();
 
     return TRUE;
 }
@@ -58,7 +73,14 @@ PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
-    return RtlAllocateHeap(PhHeapHandle, 0, Size);
+    PVOID memory;
+
+    memory = RtlAllocateHeap(PhHeapHandle, 0, Size);
+
+    if (!memory)
+        PhRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+
+    return memory;
 }
 
 VOID PhFree(
@@ -74,6 +96,138 @@ PVOID PhReAlloc(
     )
 {
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
+}
+
+VOID PhInitializeEvent(
+    __out PPH_EVENT Event
+    )
+{
+    Event->Value = PH_EVENT_REFCOUNT_INC;
+    Event->EventHandle = NULL;
+}
+
+VOID FORCEINLINE PhpDereferenceEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    ULONG value;
+
+    value = _InterlockedExchangeAdd(&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
+
+    // See if the reference count has become 0.
+    if ((value >> PH_EVENT_REFCOUNT_SHIFT) == 0)
+    {
+        if (Event->EventHandle)
+        {
+            CloseHandle(Event->EventHandle);
+            Event->EventHandle = NULL;
+        }
+    }
+}
+
+VOID FORCEINLINE PhpReferenceEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    _InterlockedExchangeAdd(&Event->Value, PH_EVENT_REFCOUNT_INC);
+}
+
+VOID PhSetEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    ULONG value;
+    HANDLE eventHandle;
+
+    // Try to set the bit.
+    do
+    {
+        value = Event->Value;
+
+        // Has the event already been set?
+        if (value & PH_EVENT_SET)
+            return;
+    } while (_InterlockedCompareExchange(
+        &Event->Value,
+        value + PH_EVENT_SET,
+        value
+        ) != value);
+
+    // Do an up-to-date read.
+    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
+
+    if (eventHandle)
+    {
+        SetEvent(eventHandle);
+    }
+
+    PhpDereferenceEvent(Event);
+}
+
+BOOLEAN PhWaitForEvent(
+    __inout PPH_EVENT Event,
+    __in ULONG Timeout
+    )
+{
+    BOOLEAN result;
+    ULONG value;
+    HANDLE eventHandle;
+
+    value = Event->Value;
+
+    // Shortcut: if the event is set, return immediately.
+    if (value & PH_EVENT_SET)
+        return TRUE;
+
+    // Shortcut: if the timeout is 0, return immediately 
+    // if the event isn't set.
+    if (Timeout == 0)
+        return FALSE;
+
+    // Prevent the event from being invalidated.
+    PhpReferenceEvent(Event);
+
+    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
+
+    // Don't bother creating an event if we already have one.
+    if (!eventHandle)
+    {
+        eventHandle = CreateEvent(NULL, TRUE, FALSE, NULL);
+
+        // Try to set the event handle to our event.
+        if (_InterlockedCompareExchangePointer(
+            &Event->EventHandle,
+            eventHandle,
+            NULL
+            ) != NULL)
+        {
+            // Someone else set the event before we did.
+            CloseHandle(eventHandle);
+        }
+    }
+
+    // Essential: check the event one last time to see if 
+    // it is set.
+    if (!(*(volatile ULONG *)(&Event->Value) & PH_EVENT_SET))
+    {
+        result = WaitForSingleObject(Event->EventHandle, Timeout) == WAIT_OBJECT_0;
+    }
+    else
+    {
+        result = TRUE;
+    }
+
+    PhpDereferenceEvent(Event);
+
+    return result;
+}
+
+VOID PhResetEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    if (!PhTestEvent(Event))
+        Event->Value = PH_EVENT_REFCOUNT_INC;
 }
 
 PPH_STRING PhCreateString(
@@ -148,6 +302,7 @@ VOID PhAddListItem(
     __in PVOID Item
     )
 {
+    // See if we need to resize the list.
     if (List->Count == List->AllocatedCount)
     {
         List->AllocatedCount *= 2;
@@ -178,6 +333,106 @@ ULONG PhIndexOfListItem(
     }
 
     return -1;
+}
+
+PPH_QUEUE PhCreateQueue(
+    __in ULONG InitialCapacity
+    )
+{
+    PPH_QUEUE queue;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &queue,
+        sizeof(PH_QUEUE),
+        0,
+        PhQueueType,
+        0
+        )))
+        return NULL;
+
+    queue->Count = 0;
+    queue->AllocatedCount = InitialCapacity;
+    queue->Items = PhAllocate(queue->AllocatedCount * sizeof(PVOID));
+    queue->Head = 0;
+    queue->Tail = 0;
+
+    return queue;
+}
+
+VOID NTAPI PhpQueueDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    )
+{
+    PPH_QUEUE queue = (PPH_QUEUE)Object;
+
+    PhFree(queue->Items);
+}
+
+VOID PhEnqueueQueueItem(
+    __inout PPH_QUEUE Queue,
+    __in PVOID Item
+    )
+{
+    // See if we need to resize the queue.
+    if (Queue->Count == Queue->AllocatedCount)
+    {
+        ULONG oldAllocatedCount = Queue->AllocatedCount;
+        PPVOID oldItems = Queue->Items;
+
+        Queue->AllocatedCount *= 2;
+        Queue->Items = PhAllocate(Queue->AllocatedCount * sizeof(PVOID));
+
+        // Copy the old items over if necessary.
+        if (Queue->Count > 0)
+        {
+            if (Queue->Head < Queue->Tail)
+            {
+                memcpy(Queue->Items, &oldItems[Queue->Head], Queue->Count * sizeof(PVOID));
+            }
+            else
+            {
+                memcpy(Queue->Items, &oldItems[Queue->Head], (oldAllocatedCount - Queue->Head) * sizeof(PVOID));
+                memcpy(&Queue->Items[oldAllocatedCount - Queue->Head], oldItems, Queue->Tail * sizeof(PVOID));
+            }
+        }
+
+        PhFree(oldItems);
+        Queue->Head = 0;
+        Queue->Tail = Queue->Count;
+    }
+
+    Queue->Items[Queue->Tail] = Item;
+    Queue->Tail = (Queue->Tail + 1) % Queue->AllocatedCount;
+    Queue->Count++;
+}
+
+BOOLEAN PhDequeueQueueItem(
+    __inout PPH_QUEUE Queue,
+    __out PPVOID Item
+    )
+{
+    if (Queue->Count == 0)
+        return FALSE;
+
+    *Item = Queue->Items[Queue->Head];
+    Queue->Head = (Queue->Head + 1) % Queue->AllocatedCount;
+    Queue->Count--;
+
+    return TRUE;
+}
+
+BOOLEAN PhPeekQueueItem(
+    __in PPH_QUEUE Queue,
+    __out PPVOID Item
+    )
+{
+    if (Queue->Count == 0)
+        return FALSE;
+
+    *Item = Queue->Items[Queue->Head];
+
+    return TRUE;
 }
 
 ULONG PhpGetPrimeNumber(

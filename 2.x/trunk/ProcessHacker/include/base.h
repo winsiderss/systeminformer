@@ -8,7 +8,11 @@
 #include <ntwin.h>
 #include <intrin.h>
 
-// We don't care about "deprecation".
+// nonstandard extension used : nameless struct/union
+#pragma warning(disable: 4201)
+// nonstandard extension used : bit field types other than int
+#pragma warning(disable: 4214)
+// 'function': was declared deprecated
 #pragma warning(disable: 4996)
 
 #define PH_INT_STR_LEN 10
@@ -24,6 +28,7 @@
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
 #ifdef _M_IX86
+
 PVOID FORCEINLINE _InterlockedCompareExchangePointer(
     __inout PVOID volatile *Destination,
     __in PVOID Exchange,
@@ -36,6 +41,18 @@ PVOID FORCEINLINE _InterlockedCompareExchangePointer(
         (LONG_PTR)Comparand
         );
 }
+
+PVOID FORCEINLINE _InterlockedExchangePointer(
+    __inout PVOID volatile *Destination,
+    __in PVOID Exchange
+    )
+{
+    return (PVOID)_InterlockedExchange(
+        (PLONG_PTR)Destination,
+        (LONG_PTR)Exchange
+        );
+}
+
 #endif
 
 #endif
