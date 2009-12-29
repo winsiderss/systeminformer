@@ -390,6 +390,10 @@
 				RelativePath=".\support.c"
 				>
 			</File>
+			<File
+				RelativePath=".\workqueue.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

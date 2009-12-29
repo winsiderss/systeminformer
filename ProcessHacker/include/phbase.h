@@ -63,6 +63,13 @@ VOID FORCEINLINE PhInitializeMutex(
     InitializeCriticalSection(Mutex);
 }
 
+VOID FORCEINLINE PhDeleteMutex(
+    __inout PPH_MUTEX Mutex
+    )
+{
+    DeleteCriticalSection(Mutex);
+}
+
 VOID FORCEINLINE PhAcquireMutex(
     __inout PPH_MUTEX Mutex
     )
@@ -75,6 +82,42 @@ VOID FORCEINLINE PhReleaseMutex(
     )
 {
     LeaveCriticalSection(Mutex);
+}
+
+// event
+
+#define PH_EVENT_SET 0x1
+#define PH_EVENT_REFCOUNT_SHIFT 1
+#define PH_EVENT_REFCOUNT_INC 0x2
+
+typedef struct _PH_EVENT
+{
+    ULONG Value;
+    HANDLE EventHandle;
+} PH_EVENT, *PPH_EVENT;
+
+VOID PhInitializeEvent(
+    __out PPH_EVENT Event
+    );
+
+VOID PhSetEvent(
+    __inout PPH_EVENT Event
+    );
+
+BOOLEAN PhWaitForEvent(
+    __inout PPH_EVENT Event,
+    __in ULONG Timeout
+    );
+
+VOID PhResetEvent(
+    __inout PPH_EVENT Event
+    );
+
+BOOLEAN FORCEINLINE PhTestEvent(
+    __in PPH_EVENT Event
+    )
+{
+    return !!(Event->Value & PH_EVENT_SET);
 }
 
 // string
@@ -148,6 +191,40 @@ VOID PhClearList(
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item
+    );
+
+// queue
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhQueueType;
+#endif
+
+typedef struct _PH_QUEUE
+{
+    ULONG Count;
+    ULONG AllocatedCount;
+    PPVOID Items;
+    ULONG Head;
+    ULONG Tail;
+} PH_QUEUE, *PPH_QUEUE;
+
+PPH_QUEUE PhCreateQueue(
+    __in ULONG InitialCapacity
+    );
+
+VOID PhEnqueueQueueItem(
+    __inout PPH_QUEUE Queue,
+    __in PVOID Item
+    );
+
+BOOLEAN PhDequeueQueueItem(
+    __inout PPH_QUEUE Queue,
+    __out PPVOID Item
+    );
+
+BOOLEAN PhPeekQueueItem(
+    __in PPH_QUEUE Queue,
+    __out PPVOID Item
     );
 
 // hashtable
@@ -297,6 +374,47 @@ VOID PhUnregisterCallback(
 VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
     __in PVOID Parameter
+    );
+
+// workqueue
+
+typedef struct _PH_WORK_QUEUE
+{
+    PPH_QUEUE Queue;
+    PH_MUTEX QueueLock;
+
+    ULONG MaximumThreads;
+    ULONG MinimumThreads;
+    ULONG NoWorkTimeout;
+
+    PH_MUTEX StateLock;
+    HANDLE SemaphoreHandle;
+    ULONG CurrentThreads;
+    ULONG BusyThreads;
+} PH_WORK_QUEUE, *PPH_WORK_QUEUE;
+
+VOID PhWorkQueueInitialization();
+
+VOID PhInitializeWorkQueue(
+    __out PPH_WORK_QUEUE WorkQueue,
+    __in ULONG MinimumThreads,
+    __in ULONG MaximumThreads,
+    __in ULONG NoWorkTimeout
+    );
+
+VOID PhDeleteWorkQueue(
+    __inout PPH_WORK_QUEUE WorkQueue
+    );
+
+VOID PhQueueWorkQueueItem(
+    __inout PPH_WORK_QUEUE WorkQueue,
+    __in PTHREAD_START_ROUTINE Function,
+    __in PVOID Context
+    );
+
+VOID PhQueueGlobalWorkQueueItem(
+    __in PTHREAD_START_ROUTINE Function,
+    __in PVOID Context
     );
 
 #endif
