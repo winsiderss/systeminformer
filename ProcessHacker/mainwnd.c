@@ -1,6 +1,10 @@
 #include <phgui.h>
 #include <wchar.h>
 
+typedef BOOL (WINAPI *_FileIconInit)(
+    BOOL RestoreCache
+    );
+
 VOID PhMainWndOnCreate();
 VOID PhMainWndOnLayout();
 VOID PhMainWndTabControlOnLayout();
@@ -48,6 +52,24 @@ BOOLEAN PhMainWndInitialization(
         {
             PhSetTokenPrivilege(tokenHandle, L"SeDebugPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             CloseHandle(tokenHandle);
+        }
+    }
+
+    // Initialize the system image lists.
+    {
+        HMODULE shell32;
+        _FileIconInit fileIconInit;
+
+        shell32 = LoadLibrary(L"shell32.dll");
+
+        if (shell32)
+        {
+            fileIconInit = (_FileIconInit)GetProcAddress(shell32, (PSTR)660);
+
+            if (fileIconInit)
+                fileIconInit(TRUE);
+
+            FreeLibrary(shell32);
         }
     }
 

@@ -2,6 +2,45 @@
 #include <ph.h>
 #include <wchar.h>
 
+typedef struct _PH_PROCESS_QUERY_DATA
+{
+    ULONG Stage;
+    PPH_PROCESS_ITEM ProcessItem;
+} PH_PROCESS_QUERY_DATA, *PPH_PROCESS_QUERY_DATA;
+
+typedef struct _PH_PROCESS_QUERY_S1_DATA
+{
+    PH_PROCESS_QUERY_DATA Header;
+
+    HICON SmallIcon;
+    HICON LargeIcon;
+    PH_IMAGE_VERSION_INFO VersionInfo;
+
+    ULONG IntegrityLevel;
+    PPH_STRING IntegrityString;
+
+    PPH_STRING JobName;
+    BOOLEAN IsInJob;
+    BOOLEAN IsInSignificantJob;
+
+    BOOLEAN IsPosix;
+    BOOLEAN IsWow64;
+} PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
+
+typedef struct _PH_PROCESS_QUERY_S2_DATA
+{
+    PH_PROCESS_QUERY_DATA Header;
+
+    BOOLEAN IsDotNet;
+
+    ULONG VerifyResult;
+    PPH_STRING VerifySignerName;
+
+    BOOLEAN IsPacked;
+    ULONG ImportFunctions;
+    ULONG ImportModules;
+} PH_PROCESS_QUERY_S2_DATA, *PPH_PROCESS_QUERY_S2_DATA;
+
 VOID NTAPI PhpProcessItemDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -21,6 +60,9 @@ PPH_OBJECT_TYPE PhProcessItemType;
 PPH_HASHTABLE PhProcessHashtable;
 PH_FAST_LOCK PhProcessHashtableLock;
 
+PPH_QUEUE PhProcessQueryDataQueue;
+PH_MUTEX PhProcessQueryDataQueueLock;
+
 PH_CALLBACK PhProcessAddedEvent;
 PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
@@ -38,6 +80,9 @@ BOOLEAN PhInitializeProcessProvider()
         40
         );
     PhInitializeFastLock(&PhProcessHashtableLock);
+
+    PhProcessQueryDataQueue = PhCreateQueue(40);
+    PhInitializeMutex(&PhProcessQueryDataQueueLock);
 
     PhInitializeCallback(&PhProcessAddedEvent);
     PhInitializeCallback(&PhProcessModifiedEvent);
@@ -86,6 +131,8 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
+    if (processItem->SmallIcon) DestroyIcon(processItem->SmallIcon);
+    if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 }
 
@@ -156,6 +203,130 @@ VOID PhpRemoveProcessItem(
         PhRemoveHashtableEntry(PhProcessHashtable, &lookupProcessItemPtr);
         PhDereferenceObject(*processItemPtr);
     }
+}
+
+VOID PhpProcessQueryStage1(
+    __inout PPH_PROCESS_QUERY_S1_DATA Data
+    )
+{
+    PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
+    HANDLE processId = processItem->ProcessId;
+
+    // Small icon, large icon.
+    if (processItem->FileName)
+    {
+        SHFILEINFO fileInfo;
+
+        if (SHGetFileInfo(
+            processItem->FileName->Buffer,
+            0,
+            &fileInfo,
+            sizeof(SHFILEINFO),
+            SHGFI_ICON | SHGFI_SMALLICON
+            ))
+            processItem->SmallIcon = fileInfo.hIcon;
+
+        if (SHGetFileInfo(
+            processItem->FileName->Buffer,
+            0,
+            &fileInfo,
+            sizeof(SHFILEINFO),
+            SHGFI_ICON | SHGFI_LARGEICON
+            ))
+            processItem->LargeIcon = fileInfo.hIcon;
+    }
+}
+
+VOID PhpProcessQueryStage2(
+    __inout PPH_PROCESS_QUERY_S2_DATA Data
+    )
+{
+    PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
+    HANDLE processId = processItem->ProcessId;
+
+}
+
+NTSTATUS PhpProcessQueryStage1Worker(
+    __in PVOID Parameter
+    )
+{
+    PPH_PROCESS_QUERY_S1_DATA data;
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    data = PhAllocate(sizeof(PH_PROCESS_QUERY_S1_DATA));
+    memset(data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
+    data->Header.Stage = 1;
+    data->Header.ProcessItem = processItem;
+
+    PhpProcessQueryStage1(data);
+
+    PhAcquireMutex(&PhProcessQueryDataQueueLock);
+    PhEnqueueQueueItem(PhProcessQueryDataQueue, data);
+    PhReleaseMutex(&PhProcessQueryDataQueueLock);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhpProcessQueryStage2Worker(
+    __in PVOID Parameter
+    )
+{
+    PPH_PROCESS_QUERY_S2_DATA data;
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    data = PhAllocate(sizeof(PH_PROCESS_QUERY_S2_DATA));
+    memset(data, 0, sizeof(PH_PROCESS_QUERY_S2_DATA));
+    data->Header.Stage = 2;
+    data->Header.ProcessItem = processItem;
+
+    PhpProcessQueryStage2(data);
+
+    PhAcquireMutex(&PhProcessQueryDataQueueLock);
+    PhEnqueueQueueItem(PhProcessQueryDataQueue, data);
+    PhReleaseMutex(&PhProcessQueryDataQueueLock);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpQueueProcessQueryStage1(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhReferenceObject(ProcessItem);
+    PhQueueGlobalWorkQueueItem(PhpProcessQueryStage1Worker, ProcessItem);
+}
+
+VOID PhpQueueProcessQueryStage2(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhReferenceObject(ProcessItem);
+    PhQueueGlobalWorkQueueItem(PhpProcessQueryStage2Worker, ProcessItem);
+}
+
+VOID PhpFillProcessItemStage1(
+    __in PPH_PROCESS_QUERY_S1_DATA Data
+    )
+{
+    PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
+
+    processItem->SmallIcon = Data->SmallIcon;
+    processItem->LargeIcon = Data->LargeIcon;
+    memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    processItem->IntegrityLevel = Data->IntegrityLevel;
+    processItem->IntegrityString = Data->IntegrityString;
+    processItem->JobName = Data->JobName;
+    processItem->IsInJob = Data->IsInJob;
+    processItem->IsInSignificantJob = Data->IsInSignificantJob;
+    processItem->IsPosix = Data->IsPosix;
+    processItem->IsWow64 = Data->IsWow64;
+}
+
+VOID PhpFillProcessItemStage2(
+    __in PPH_PROCESS_QUERY_S2_DATA Data
+    )
+{
+    
 }
 
 VOID PhpFillProcessItem(
@@ -271,6 +442,8 @@ VOID PhpFillProcessItem(
 
 VOID PhUpdateProcesses()
 {
+    static ULONG runCount = 0;
+
     // Note about locking:
     // Since this is the only function that is allowed to 
     // modify the process hashtable, locking is not needed 
@@ -327,6 +500,35 @@ VOID PhUpdateProcesses()
         PhDereferenceObject(pidsToRemove);
     }
 
+    // Go through the queued process query data.
+    {
+        PPH_PROCESS_QUERY_DATA data;
+
+        PhAcquireMutex(&PhProcessQueryDataQueueLock);
+
+        while (PhDequeueQueueItem(PhProcessQueryDataQueue, &data))
+        {
+            PhReleaseMutex(&PhProcessQueryDataQueueLock);
+
+            if (data->Stage == 1)
+            {
+                PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
+                data->ProcessItem->JustProcessed = TRUE;
+            }
+            else if (data->Stage == 2)
+            {
+                PhpFillProcessItemStage2((PPH_PROCESS_QUERY_S2_DATA)data);
+                data->ProcessItem->JustProcessed = TRUE;
+            }
+
+            PhDereferenceObject(data->ProcessItem);
+            PhFree(data);
+            PhAcquireMutex(&PhProcessQueryDataQueueLock);
+        }
+
+        PhReleaseMutex(&PhProcessQueryDataQueueLock);
+    }
+
     // Look for new processes and update existing ones.
     {
         process = PH_FIRST_PROCESS(processes);
@@ -343,6 +545,26 @@ VOID PhUpdateProcesses()
                 processItem = PhCreateProcessItem(process->UniqueProcessId);
                 PhpFillProcessItem(processItem, process);
 
+                // If this is the first run of the provider, queue the 
+                // process query tasks. Otherwise, perform stage 1 
+                // processing now and queue stage 2 processing.
+                if (runCount > 0)
+                {
+                    PH_PROCESS_QUERY_S1_DATA data;
+
+                    data.Header.Stage = 1;
+                    data.Header.ProcessItem = processItem;
+                    memset(&data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
+                    PhpProcessQueryStage1(&data);
+                    PhpFillProcessItemStage1(&data);
+                }
+                else
+                {
+                    PhpQueueProcessQueryStage1(processItem);
+                }
+
+                PhpQueueProcessQueryStage2(processItem);
+
                 // Add the process item to the hashtable.
                 PhAcquireFastLockExclusive(&PhProcessHashtableLock);
                 PhAddHashtableEntry(PhProcessHashtable, &processItem);
@@ -357,7 +579,12 @@ VOID PhUpdateProcesses()
             }
             else
             {
-                // Nothing for now.
+                if (processItem->JustProcessed)
+                {
+                    PhInvokeCallback(&PhProcessModifiedEvent, processItem);
+                    processItem->JustProcessed = FALSE;
+                }
+
                 PhDereferenceObject(processItem);
             }
         } while (process = PH_NEXT_PROCESS(process));
@@ -365,6 +592,8 @@ VOID PhUpdateProcesses()
 
     PhDereferenceObject(pids);
     PhFree(processes);
+
+    runCount++;
 }
 
 VOID NTAPI PhProcessProviderUpdate(

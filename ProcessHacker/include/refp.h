@@ -90,7 +90,7 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
             return FALSE;
         
         /* Try to increment the reference count. */
-        if (InterlockedCompareExchange(
+        if (_InterlockedCompareExchange(
             RefCount,
             refCount + 1,
             refCount

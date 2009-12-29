@@ -145,6 +145,14 @@ extern PH_CALLBACK PhProcessModifiedEvent;
 extern PH_CALLBACK PhProcessRemovedEvent;
 #endif
 
+typedef struct _PH_IMAGE_VERSION_INFO
+{
+    PPH_STRING CompanyName;
+    PPH_STRING FileDescription;
+    PPH_STRING FileVersion;
+    PPH_STRING ProductName;
+} PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
+
 typedef struct _PH_PROCESS_ITEM
 {
     HANDLE ProcessId;
@@ -152,11 +160,12 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING ProcessName;
     ULONG SessionId;
 
-    HICON SmallIcon;
-    HICON LargeIcon;
-
     PPH_STRING FileName;
     PPH_STRING CommandLine;
+
+    HICON SmallIcon;
+    HICON LargeIcon;
+    PH_IMAGE_VERSION_INFO VersionInfo;
 
     LARGE_INTEGER CreateTime;
 
@@ -164,15 +173,19 @@ typedef struct _PH_PROCESS_ITEM
     ULONG IntegrityLevel;
     PPH_STRING IntegrityString;
 
-    ULONG HasParent : 1;
-    ULONG IsBeingDebugged : 1;
-    ULONG IsDotNet : 1;
-    ULONG IsElevated : 1;
-    ULONG IsInJob : 1;
-    ULONG IsInSignificantJob : 1;
-    ULONG IsPacked : 1;
-    ULONG IsPosix : 1;
-    ULONG IsWow64 : 1;
+    PPH_STRING JobName;
+
+    BOOLEAN HasParent : 1;
+    BOOLEAN IsBeingDebugged : 1;
+    BOOLEAN IsDotNet : 1;
+    BOOLEAN IsElevated : 1;
+    BOOLEAN IsInJob : 1;
+    BOOLEAN IsInSignificantJob : 1;
+    BOOLEAN IsPacked : 1;
+    BOOLEAN IsPosix : 1;
+    BOOLEAN IsWow64 : 1;
+
+    BOOLEAN JustProcessed;
 
     WCHAR ProcessIdString[PH_INT_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];

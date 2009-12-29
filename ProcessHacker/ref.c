@@ -104,7 +104,7 @@ NTSTATUS PhCreateObject(
     /* Object type statistics. */
     if (ObjectType)
     {
-        InterlockedIncrement(&ObjectType->NumberOfObjects);
+        _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
     }
     
     /* Initialize the object header. */
@@ -216,7 +216,7 @@ LONG PhDereferenceObjectEx(
     objectHeader = PhObjectToObjectHeader(Object);
     
     /* Decrease the reference count. */
-    oldRefCount = InterlockedExchangeAdd(&objectHeader->RefCount, -RefCount);
+    oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, -RefCount);
     
     /* Free the object if it has 0 references. */
     if (oldRefCount - RefCount == 0)
@@ -260,7 +260,7 @@ VOID PhReferenceObject(
     
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increment the reference count. */
-    InterlockedIncrement(&objectHeader->RefCount);
+    _InterlockedIncrement(&objectHeader->RefCount);
 }
 
 /* PhReferenceObjectEx
@@ -286,7 +286,7 @@ LONG PhReferenceObjectEx(
     
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increase the reference count. */
-    oldRefCount = InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
+    oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
     
     return oldRefCount + RefCount;
 }
@@ -354,7 +354,7 @@ VOID PhpDeferDeleteObject(
         ObjectHeader->NextToFree = nextToFree;
         
         /* Attempt to set the global next-to-free variable. */
-        if (InterlockedCompareExchangePointer(
+        if (_InterlockedCompareExchangePointer(
             &PhObjectNextToFree,
             ObjectHeader,
             nextToFree
@@ -374,7 +374,7 @@ VOID PhpDeferDeleteObject(
      */
     if (!nextToFree)
     {
-        QueueUserWorkItem(PhpDeferDeleteObjectRoutine, NULL, 0);
+        PhQueueGlobalWorkQueueItem(PhpDeferDeleteObjectRoutine, NULL);
     }
 }
 
@@ -393,8 +393,8 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
         /* Get the next object to free while replacing the global variable with 
          * what we needed to free next.
          */
-        objectHeader = InterlockedExchangePointer(&PhObjectNextToFree, objectHeader);
-        
+        objectHeader = _InterlockedExchangePointer(&PhObjectNextToFree, objectHeader);
+
         /* If we have an object to free, free it and move on to the 
          * next object. Otherwise, stop.
          */
@@ -424,7 +424,7 @@ VOID PhpFreeObject(
     )
 {
     /* Object type statistics. */
-    InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
+    _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
     
     /* Call the delete procedure if we have one. */
     if (ObjectHeader->Type->DeleteProcedure)
