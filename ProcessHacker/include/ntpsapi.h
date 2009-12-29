@@ -196,6 +196,8 @@ typedef NTSTATUS (NTAPI *_NtTerminateProcess)(
 
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
 #define ZwCurrentProcess() NtCurrentProcess()
+#define NtCurrentThread() ((HANDLE)(LONG_PTR)-2)
+#define ZwCurrentThread() NtCurrentThread()
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
 
 typedef NTSTATUS (NTAPI *_NtQueryInformationProcess)(

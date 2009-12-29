@@ -19,6 +19,8 @@
 #define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
+#define REBASE_ADDRESS(Pointer, OldBase, NewBase) \
+    ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(OldBase) + (ULONG_PTR)(NewBase)))
 
 #define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
 
