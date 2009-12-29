@@ -349,6 +349,15 @@ PPH_STRING PhGetFileVersionInfoString2(
     __in PWSTR StringName
     );
 
-PPH_STRING PhGetSystemDirectory(); 
+PPH_STRING PhGetFullPath(
+    __in PWSTR FileName,
+    __out_opt PULONG IndexOfFileName
+    );
+
+PPH_STRING PhGetSystemDirectory();
+
+PPH_STRING PhGetApplicationFileName();
+
+PPH_STRING PhGetApplicationDirectory();
 
 #endif

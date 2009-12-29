@@ -265,6 +265,56 @@ PPH_STRING PhCreateStringEx(
     return string;
 }
 
+PPH_STRING PhConcatStrings(
+    __in ULONG Count,
+    ...
+    )
+{
+    va_list argptr;
+    ULONG i;
+    SIZE_T totalLength = 0;
+    SIZE_T stringLength;
+    PWSTR arg;
+    PPH_STRING string;
+
+    // Compute the total length, in bytes, of the strings.
+
+    va_start(argptr, Count);
+
+    for (i = 0; i < Count; i++)
+    {
+        arg = va_arg(argptr, PWSTR);
+        totalLength += wcslen(arg) * sizeof(WCHAR);
+    }
+
+    va_end(argptr);
+
+    // Create the string.
+
+    string = PhCreateStringEx(NULL, totalLength);
+    totalLength = 0;
+
+    // Append the strings one by one.
+
+    va_start(argptr, Count);
+
+    for (i = 0; i < Count; i++)
+    {
+        arg = va_arg(argptr, PWSTR);
+        stringLength = wcslen(arg) * sizeof(WCHAR);
+        memcpy(
+            &string->Buffer[totalLength / sizeof(WCHAR)],
+            arg,
+            stringLength
+            );
+        totalLength += stringLength;
+    }
+
+    va_end(argptr);
+
+    return string;
+}
+
 PPH_LIST PhCreateList(
     __in ULONG InitialCapacity
     )

@@ -9,6 +9,11 @@
 
 #ifndef MAIN_PRIVATE
 
+struct _PH_STRING;
+typedef struct _PH_STRING *PPH_STRING;
+
+extern PPH_STRING PhApplicationDirectory;
+extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
 extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
@@ -153,6 +158,11 @@ PPH_STRING PhCreateStringEx(
     __in SIZE_T Length
     );
 
+PPH_STRING PhConcatStrings(
+    __in ULONG Count,
+    ...
+    );
+
 PWSTR FORCEINLINE PhGetString(
     __in_opt PPH_STRING String
     )
@@ -161,6 +171,32 @@ PWSTR FORCEINLINE PhGetString(
         return String->Buffer;
     else
         return NULL;
+}
+
+PPH_STRING FORCEINLINE PhConcatStrings2(
+    __in PWSTR String1,
+    __in PWSTR String2
+    )
+{
+    PPH_STRING string;
+    SIZE_T length1;
+    SIZE_T length2;
+
+    length1 = wcslen(String1) * sizeof(WCHAR);
+    length2 = wcslen(String2) * sizeof(WCHAR);
+    string = PhCreateStringEx(NULL, length1 + length2);
+    memcpy(
+        string->Buffer,
+        String1,
+        length1
+        );
+    memcpy(
+        &string->Buffer[length1 / sizeof(WCHAR)],
+        String2,
+        length2
+        );
+
+    return string;
 }
 
 BOOLEAN FORCEINLINE PhStringEquals(

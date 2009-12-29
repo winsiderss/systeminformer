@@ -119,6 +119,49 @@ PPH_STRING PhGetFileVersionInfoString2(
     return PhGetFileVersionInfoString(VersionInfo, subBlock);
 }
 
+PPH_STRING PhGetFullPath(
+    __in PWSTR FileName,
+    __out_opt PULONG IndexOfFileName
+    )
+{
+    PPH_STRING fullPath;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+    PWSTR filePart;
+
+    bufferSize = 0x80;
+    buffer = PhAllocate(bufferSize * 2);
+
+    returnLength = GetFullPathName(FileName, bufferSize, buffer, &filePart);
+
+    if (returnLength > bufferSize)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize * 2);
+
+        returnLength = GetFullPathName(FileName, bufferSize, buffer, &filePart);
+    }
+
+    if (returnLength == 0)
+    {
+        PhFree(buffer);
+        return NULL;
+    }
+
+    fullPath = PhCreateString(buffer);
+
+    if (IndexOfFileName)
+    {
+        *IndexOfFileName = (ULONG)(filePart - (PWSTR)buffer);
+    }
+
+    PhFree(buffer);
+
+    return fullPath;
+}
+
 PPH_STRING PhGetSystemDirectory()
 {
     PPH_STRING systemDirectory;
@@ -150,4 +193,67 @@ PPH_STRING PhGetSystemDirectory()
     PhFree(buffer);
 
     return systemDirectory;
+}
+
+PPH_STRING PhpGetApplicationFileName(
+    __out_opt PULONG IndexOfFileName
+    )
+{
+    PPH_STRING fileName;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 0x40;
+    buffer = PhAllocate(bufferSize * 2);
+
+    while (TRUE)
+    {
+        returnLength = GetModuleFileName(GetModuleHandle(NULL), buffer, bufferSize);
+
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        {
+            PhFree(buffer);
+            bufferSize *= 2;
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (returnLength == 0)
+    {
+        PhFree(buffer);
+        return NULL;
+    }
+
+    fileName = PhGetFullPath((PWSTR)buffer, IndexOfFileName);
+    PhFree(buffer);
+
+    return fileName;
+}
+
+PPH_STRING PhGetApplicationFileName()
+{
+    return PhpGetApplicationFileName(NULL);
+}
+
+PPH_STRING PhGetApplicationDirectory()
+{
+    PPH_STRING fileName;
+    ULONG indexOfFileName;
+    PPH_STRING path = NULL;
+
+    fileName = PhpGetApplicationFileName(&indexOfFileName);
+
+    if (fileName)
+    {
+        // Remove the file name from the path.
+        path = PhSubstring(fileName, 0, indexOfFileName);
+        PhDereferenceObject(fileName);
+    }
+
+    return path;
 }
