@@ -359,6 +359,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\kph.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>
@@ -409,6 +413,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\kph.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntbasic.h"
 				>
 			</File>
@@ -418,6 +426,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ntimport.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntioapi.h"
 				>
 			</File>
 			<File
