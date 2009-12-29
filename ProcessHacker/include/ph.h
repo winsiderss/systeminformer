@@ -215,13 +215,16 @@ typedef struct _PH_PROVIDER_THREAD
     HANDLE TimerHandle;
     ULONG Interval;
     PH_CALLBACK RunEvent;
-    PH_FAST_LOCK RunEventLock;
     PH_PROVIDER_THREAD_STATE State;
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
 
 VOID PhInitializeProviderThread(
     __out PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
+    );
+
+VOID PhDeleteProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
 VOID PhStartProviderThread(

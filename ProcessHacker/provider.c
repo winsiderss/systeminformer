@@ -9,8 +9,14 @@ VOID PhInitializeProviderThread(
     ProviderThread->TimerHandle = NULL;
     ProviderThread->Interval = Interval;
     PhInitializeCallback(&ProviderThread->RunEvent);
-    PhInitializeFastLock(&ProviderThread->RunEventLock);
     ProviderThread->State = ProviderThreadStopped;
+}
+
+VOID PhDeleteProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    )
+{
+    PhDeleteCallback(&ProviderThread->RunEvent);
 }
 
 NTSTATUS NTAPI PhpProviderThreadStart(
@@ -21,17 +27,11 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
     while (providerThread->State != ProviderThreadStopping)
     {
-        PH_CALLBACK_LIST CallbackList;
-
-        PhAcquireFastLockShared(&providerThread->RunEventLock);
-        PhCreateCallbackList(&providerThread->RunEvent, &CallbackList);
-        PhReleaseFastLockShared(&providerThread->RunEventLock);
-
-        PhInvokeCallbackList(&CallbackList, NULL);
-        PhDeleteCallbackList(&CallbackList);
-
+        PhInvokeCallback(&providerThread->RunEvent, NULL);
         WaitForSingleObject(providerThread->TimerHandle, INFINITE);
     }
+
+    return STATUS_SUCCESS;
 }
 
 VOID PhStartProviderThread(
@@ -108,9 +108,7 @@ VOID PhRegisterProvider(
     __out PPH_CALLBACK_REGISTRATION Registration
     )
 {
-    PhAcquireFastLockExclusive(&ProviderThread->RunEventLock);
     PhRegisterCallback(&ProviderThread->RunEvent, Function, NULL, Registration);
-    PhReleaseFastLockExclusive(&ProviderThread->RunEventLock);
 }
 
 VOID PhUnregisterProvider(
@@ -118,7 +116,5 @@ VOID PhUnregisterProvider(
     __inout PPH_CALLBACK_REGISTRATION Registration
     )
 {
-    PhAcquireFastLockExclusive(&ProviderThread->RunEventLock);
     PhUnregisterCallback(&ProviderThread->RunEvent, Registration);
-    PhReleaseFastLockExclusive(&ProviderThread->RunEventLock);
 }

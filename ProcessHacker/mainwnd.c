@@ -13,6 +13,10 @@ VOID PhMainWndOnProcessAdded(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhMainWndOnProcessRemoved(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 HWND PhMainWndHandle;
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -26,6 +30,7 @@ static PH_PROVIDER_THREAD PrimaryProviderThread;
 
 static PH_CALLBACK_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -143,6 +148,11 @@ LRESULT CALLBACK PhMainWndProc(
             PhDereferenceObject(processItem);
         }
         break;
+    case WM_PH_PROCESS_REMOVED:
+        {
+            PhMainWndOnProcessRemoved((PPH_PROCESS_ITEM)lParam);
+        }
+        break;
     default:
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
@@ -161,6 +171,18 @@ VOID NTAPI ProcessAddedHandler(
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_ADDED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI ProcessRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    // We already have a reference to the process item, so we don't need to 
+    // reference it here.
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
 }
 
 VOID PhMainWndOnCreate()
@@ -206,6 +228,12 @@ VOID PhMainWndOnCreate()
         ProcessAddedHandler,
         NULL,
         &ProcessAddedRegistration
+        );
+    PhRegisterCallback(
+        &PhProcessRemovedEvent,
+        ProcessRemovedHandler,
+        NULL,
+        &ProcessRemovedRegistration
         );
 }
 
@@ -272,6 +300,9 @@ VOID PhMainWndOnProcessAdded(
 {
     INT lvItemIndex;
 
+    // Add a reference for the pointer being stored in the list view item.
+    PhReferenceObject(ProcessItem);
+
     lvItemIndex = PhAddListViewItem(
         ProcessListViewHandle,
         MAXINT,
@@ -282,4 +313,14 @@ VOID PhMainWndOnProcessAdded(
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(ProcessItem->UserName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(ProcessItem->FileName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
+}
+
+VOID PhMainWndOnProcessRemoved(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhRemoveListViewItem(
+        ProcessListViewHandle,
+        PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem)
+        );
 }

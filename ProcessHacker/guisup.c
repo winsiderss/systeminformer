@@ -1,8 +1,8 @@
 #include <phgui.h>
 
 HWND PhCreateListViewControl(
-    HWND ParentHandle,
-    INT_PTR Id
+    __in HWND ParentHandle,
+    __in INT_PTR Id
     )
 {
     return CreateWindow(
@@ -21,13 +21,13 @@ HWND PhCreateListViewControl(
 }
 
 INT PhAddListViewColumn(
-    HWND ListViewHandle,
-    INT Index,
-    INT DisplayIndex,
-    INT SubItemIndex,
-    INT Format,
-    INT Width,
-    PWSTR Text
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT DisplayIndex,
+    __in INT SubItemIndex,
+    __in INT Format,
+    __in INT Width,
+    __in PWSTR Text
     )
 {
     LVCOLUMN column;
@@ -43,10 +43,10 @@ INT PhAddListViewColumn(
 }
 
 INT PhAddListViewItem(
-    HWND ListViewHandle,
-    INT Index,
-    PWSTR Text,
-    PVOID Param
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in PWSTR Text,
+    __in PVOID Param
     )
 {
     LVITEM item;
@@ -60,11 +60,33 @@ INT PhAddListViewItem(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
+INT PhFindListViewItemByParam(
+    __in HWND ListViewHandle,
+    __in INT StartIndex,
+    __in PVOID Param
+    )
+{
+    LVFINDINFO findInfo;
+
+    findInfo.flags = LVFI_PARAM;
+    findInfo.lParam = (LPARAM)Param;
+
+    return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
+}
+
+VOID PhRemoveListViewItem(
+    __in HWND ListViewHandle,
+    __in INT Index
+    )
+{
+    ListView_DeleteItem(ListViewHandle, Index);
+}
+
 VOID PhSetListViewSubItem(
-    HWND ListViewHandle,
-    INT Index,
-    INT SubItemIndex,
-    PWSTR Text
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT SubItemIndex,
+    __in PWSTR Text
     )
 {
     LVITEM item;
@@ -78,7 +100,7 @@ VOID PhSetListViewSubItem(
 }
 
 HWND PhCreateTabControl(
-    HWND ParentHandle
+    __in HWND ParentHandle
     )
 {
     HWND tabControlHandle;
@@ -106,9 +128,9 @@ HWND PhCreateTabControl(
 }
 
 INT PhAddTabControlTab(
-    HWND TabControlHandle,
-    INT Index,
-    PWSTR Text
+    __in HWND TabControlHandle,
+    __in INT Index,
+    __in PWSTR Text
     )
 {
     TCITEM item;
