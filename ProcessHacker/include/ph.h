@@ -196,7 +196,14 @@ typedef struct _PH_PROCESS_ITEM
 
 BOOLEAN PhInitializeProcessProvider();
 
-BOOLEAN PhInitializeProcessItem();
+BOOLEAN PhInitializeImageVersionInfo(
+    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    __in PWSTR FileName
+    );
+
+VOID PhDeleteImageVersionInfo(
+    __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
+    );
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
@@ -283,6 +290,25 @@ INT PhShowMessage_V(
     );
 
 #define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+
+PVOID PhGetFileVersionInfo(
+    __in PWSTR FileName
+    );
+
+ULONG PhGetFileVersionInfoLangCodePage(
+    __in PVOID VersionInfo
+    );
+
+PPH_STRING PhGetFileVersionInfoString(
+    __in PVOID VersionInfo,
+    __in PWSTR SubBlock
+    );
+
+PPH_STRING PhGetFileVersionInfoString2(
+    __in PVOID VersionInfo,
+    __in ULONG LangCodePage,
+    __in PWSTR StringName
+    );
 
 PPH_STRING PhGetSystemDirectory(); 
 

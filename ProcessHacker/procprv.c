@@ -69,7 +69,11 @@ PH_CALLBACK PhProcessRemovedEvent;
 
 BOOLEAN PhInitializeProcessProvider()
 {
-    if (!PhInitializeProcessItem())
+    if (!NT_SUCCESS(PhCreateObjectType(
+        &PhProcessItemType,
+        0,
+        PhpProcessItemDeleteProcedure
+        )))
         return FALSE;
 
     PhProcessHashtable = PhCreateHashtable(
@@ -91,13 +95,39 @@ BOOLEAN PhInitializeProcessProvider()
     return TRUE;
 }
 
-BOOLEAN PhInitializeProcessItem()
+BOOLEAN PhInitializeImageVersionInfo(
+    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    __in PWSTR FileName
+    )
 {
-    return NT_SUCCESS(PhCreateObjectType(
-        &PhProcessItemType,
-        0,
-        PhpProcessItemDeleteProcedure
-        ));
+    PVOID versionInfo;
+    ULONG langCodePage;
+
+    versionInfo = PhGetFileVersionInfo(FileName);
+
+    if (!versionInfo)
+        return FALSE;
+
+    langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
+
+    ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"CompanyName");
+    ImageVersionInfo->FileDescription = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileDescription");
+    ImageVersionInfo->FileVersion = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileVersion");
+    ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"ProductName");
+
+    PhFree(versionInfo);
+
+    return TRUE;
+}
+
+VOID PhDeleteImageVersionInfo(
+    __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
+    )
+{
+    if (ImageVersionInfo->CompanyName) PhDereferenceObject(ImageVersionInfo->CompanyName);
+    if (ImageVersionInfo->FileDescription) PhDereferenceObject(ImageVersionInfo->FileDescription);
+    if (ImageVersionInfo->FileVersion) PhDereferenceObject(ImageVersionInfo->FileVersion);
+    if (ImageVersionInfo->ProductName) PhDereferenceObject(ImageVersionInfo->ProductName);
 }
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
@@ -133,6 +163,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->CommandLine) PhDereferenceObject(processItem->CommandLine);
     if (processItem->SmallIcon) DestroyIcon(processItem->SmallIcon);
     if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
+    PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
 }
 
@@ -212,28 +243,33 @@ VOID PhpProcessQueryStage1(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
-    // Small icon, large icon.
     if (processItem->FileName)
     {
-        SHFILEINFO fileInfo;
+        // Small icon, large icon.
+        {
+            SHFILEINFO fileInfo;
 
-        if (SHGetFileInfo(
-            processItem->FileName->Buffer,
-            0,
-            &fileInfo,
-            sizeof(SHFILEINFO),
-            SHGFI_ICON | SHGFI_SMALLICON
-            ))
-            processItem->SmallIcon = fileInfo.hIcon;
+            if (SHGetFileInfo(
+                processItem->FileName->Buffer,
+                0,
+                &fileInfo,
+                sizeof(SHFILEINFO),
+                SHGFI_ICON | SHGFI_SMALLICON
+                ))
+                processItem->SmallIcon = fileInfo.hIcon;
 
-        if (SHGetFileInfo(
-            processItem->FileName->Buffer,
-            0,
-            &fileInfo,
-            sizeof(SHFILEINFO),
-            SHGFI_ICON | SHGFI_LARGEICON
-            ))
-            processItem->LargeIcon = fileInfo.hIcon;
+            if (SHGetFileInfo(
+                processItem->FileName->Buffer,
+                0,
+                &fileInfo,
+                sizeof(SHFILEINFO),
+                SHGFI_ICON | SHGFI_LARGEICON
+                ))
+                processItem->LargeIcon = fileInfo.hIcon;
+        }
+
+        // Version info.
+        PhInitializeImageVersionInfo(&processItem->VersionInfo, processItem->FileName->Buffer);
     }
 }
 
