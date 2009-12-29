@@ -16,7 +16,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     HICON LargeIcon;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    ULONG IntegrityLevel;
+    PH_INTEGRITY IntegrityLevel;
     PPH_STRING IntegrityString;
 
     PPH_STRING JobName;
@@ -240,6 +240,7 @@ VOID PhpProcessQueryStage1(
     __inout PPH_PROCESS_QUERY_S1_DATA Data
     )
 {
+    NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
@@ -256,7 +257,7 @@ VOID PhpProcessQueryStage1(
                 sizeof(SHFILEINFO),
                 SHGFI_ICON | SHGFI_SMALLICON
                 ))
-                processItem->SmallIcon = fileInfo.hIcon;
+                Data->SmallIcon = fileInfo.hIcon;
 
             if (SHGetFileInfo(
                 processItem->FileName->Buffer,
@@ -265,11 +266,59 @@ VOID PhpProcessQueryStage1(
                 sizeof(SHFILEINFO),
                 SHGFI_ICON | SHGFI_LARGEICON
                 ))
-                processItem->LargeIcon = fileInfo.hIcon;
+                Data->LargeIcon = fileInfo.hIcon;
         }
 
         // Version info.
-        PhInitializeImageVersionInfo(&processItem->VersionInfo, processItem->FileName->Buffer);
+        PhInitializeImageVersionInfo(&Data->VersionInfo, processItem->FileName->Buffer);
+    }
+
+    {
+        HANDLE processHandle;
+
+        status = PhOpenProcess(&processHandle, ProcessQueryAccess, processId);
+
+        if (NT_SUCCESS(status))
+        {
+            // Integrity
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                HANDLE tokenHandle;
+
+                status = PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle);
+
+                if (NT_SUCCESS(status))
+                {
+                    PhGetTokenIntegrityLevel(
+                        tokenHandle,
+                        &Data->IntegrityLevel,
+                        &Data->IntegrityString
+                        );
+
+                    CloseHandle(tokenHandle);
+                }
+            }
+
+#ifdef _M_X64
+            // WOW64
+            PhGetProcessIsWow64(processHandle, &Data->IsWow64);
+#endif
+
+            CloseHandle(processHandle);
+        }
+    }
+
+    // Posix
+    {
+        HANDLE processHandle;
+
+        status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess | PROCESS_VM_READ,
+            processId
+            );
+        PhGetProcessIsPosix(processHandle, &Data->IsPosix);
+        CloseHandle(processHandle);
     }
 }
 
@@ -350,12 +399,17 @@ VOID PhpFillProcessItemStage1(
     processItem->LargeIcon = Data->LargeIcon;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     processItem->IntegrityLevel = Data->IntegrityLevel;
-    processItem->IntegrityString = Data->IntegrityString;
     processItem->JobName = Data->JobName;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
+
+    if (Data->IntegrityString)
+    {
+        wcsncpy(processItem->IntegrityString, Data->IntegrityString->Buffer, PH_INTEGRITY_STR_LEN);
+        PhDereferenceObject(Data->IntegrityString);
+    }
 }
 
 VOID PhpFillProcessItemStage2(
