@@ -442,6 +442,11 @@ typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
     __in PVOID Entry
     );
 
+// Enables collection of statistics
+#define PH_HASHTABLE_ENABLE_STATS
+// Enables 2^32-1 possible hash codes instead of only 2^31
+#define PH_HASHTABLE_ENABLE_FULL_HASH
+
 typedef struct _PH_HASHTABLE
 {
     /* Size of user data in each entry. */
@@ -462,6 +467,10 @@ typedef struct _PH_HASHTABLE
      * count of entries that were ever allocated.
      */
     ULONG NextEntry;
+
+#ifdef PH_HASHTABLE_ENABLE_STATS
+    ULONG TotalCollisions;
+#endif
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
 #define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (sizeof(PH_HASHTABLE_ENTRY) + (InnerSize))
@@ -508,6 +517,20 @@ ULONG PhHashBytes(
     __in PUCHAR Bytes,
     __in ULONG Length
     );
+
+ULONG PhHashBytesSdbm(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    );
+
+ULONG FORCEINLINE PhHashInt32(
+    __in ULONG Value
+    )
+{
+    // Java style.
+    Value ^= (Value >> 20) ^ (Value >> 12);
+    return Value ^ (Value >> 7) ^ (Value >> 4);
+}
 
 // callback
 

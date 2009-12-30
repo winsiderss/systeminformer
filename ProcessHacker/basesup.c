@@ -600,6 +600,10 @@ PPH_HASHTABLE PhCreateHashtable(
     hashtable->FreeEntry = -1;
     hashtable->NextEntry = 0;
 
+#ifdef PH_HASHTABLE_ENABLE_STATS
+    hashtable->TotalCollisions = 0;
+#endif
+
     return hashtable;
 }
 
@@ -612,6 +616,20 @@ VOID PhpHashtableDeleteProcedure(
 
     PhFree(hashtable->Buckets);
     PhFree(hashtable->Entries);
+}
+
+ULONG FORCEINLINE PhpValidateHash(
+    __in ULONG Hash
+    )
+{
+#ifdef PH_HASHTABLE_ENABLE_FULL_HASH
+    if (Hash != -1)
+        return Hash;
+    else
+        return 0;
+#else
+    return Hash & MAXLONG;
+#endif
 }
 
 VOID PhpResizeHashtable(
@@ -665,7 +683,7 @@ PVOID PhAddHashtableEntry(
     if (PhGetHashtableEntry(Hashtable, Entry))
         return NULL;
 
-    hashCode = Hashtable->HashFunction(Entry) & MAXLONG;
+    hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     index = hashCode % Hashtable->AllocatedBuckets;
 
     // Use a free entry if possible.
@@ -698,6 +716,11 @@ PVOID PhAddHashtableEntry(
     memcpy(&entry->Body, Entry, Hashtable->EntrySize);
 
     Hashtable->Count++;
+
+#ifdef PH_HASHTABLE_ENABLE_STATS
+    if (entry->Next != -1)
+        Hashtable->TotalCollisions++;
+#endif
 
     return &entry->Body;
 }
@@ -746,7 +769,7 @@ PVOID PhGetHashtableEntry(
     ULONG i;
     PPH_HASHTABLE_ENTRY entry;
 
-    hashCode = Hashtable->HashFunction(Entry) & MAXLONG;
+    hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     i = Hashtable->Buckets[hashCode % Hashtable->AllocatedBuckets];
 
     for (; i != -1; i = entry->Next)
@@ -773,7 +796,7 @@ BOOLEAN PhRemoveHashtableEntry(
     ULONG previousIndex;
     PPH_HASHTABLE_ENTRY entry;
 
-    hashCode = Hashtable->HashFunction(Entry) & MAXLONG;
+    hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     index = hashCode % Hashtable->AllocatedBuckets;
     previousIndex = -1;
 
@@ -860,6 +883,23 @@ ULONG PhHashBytes(
     hash += hash >> 17;
     hash ^= hash << 25;
     hash += hash >> 6;
+
+    return hash;
+}
+
+ULONG PhHashBytesSdbm(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    )
+{
+    ULONG hash = Length;
+    PUCHAR endByte = Bytes + Length;
+
+    while (Bytes != endByte)
+    {
+        hash = *Bytes + (hash << 6) + (hash << 16) - hash;
+        Bytes++;
+    }
 
     return hash;
 }

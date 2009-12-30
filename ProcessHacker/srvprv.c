@@ -122,7 +122,7 @@ ULONG PhpServiceHashtableHashFunction(
     _wcslwr(lowerName);
 
     // Hash the string.
-    return PhHashBytes((PUCHAR)lowerName, serviceItem->Name->Length);
+    return PhHashBytesSdbm((PUCHAR)lowerName, serviceItem->Name->Length);
 }
 
 PPH_SERVICE_ITEM PhReferenceServiceItem(
