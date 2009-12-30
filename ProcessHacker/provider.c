@@ -75,8 +75,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
         PhReleaseMutex(&providerThread->Mutex);
 
         // Perform an alertable wait so we can be woken up by 
-        // a provider boost or someone telling us to terminate.
-        WaitForSingleObject(providerThread->TimerHandle, INFINITE);
+        // someone telling us to terminate.
+        WaitForSingleObjectEx(providerThread->TimerHandle, INFINITE, TRUE);
     }
 
     return STATUS_SUCCESS;
@@ -127,6 +127,13 @@ VOID PhStopProviderThread(
     ProviderThread->State = ProviderThreadStopped;
 }
 
+VOID PhRunProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    )
+{
+    NtAlertThread(ProviderThread->ThreadHandle);
+}
+
 VOID PhSetProviderThreadInterval(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
@@ -165,9 +172,6 @@ VOID PhBoostProvider(
     RemoveEntryList(&Registration->ListEntry);
     InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
     PhReleaseMutex(&ProviderThread->Mutex);
-
-    // Wake up the thread.
-    NtAlertThread(ProviderThread->ThreadHandle);
 }
 
 VOID PhSetProviderEnabled(
