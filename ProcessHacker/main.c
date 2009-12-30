@@ -133,19 +133,19 @@ VOID PhInitializeFont(
 
 VOID PhInitializeKph()
 {
-    static WCHAR kprocesshacker[] = L"kprocesshacker.sys";
-    PPH_STRING kprocesshackerFileName;
-
-    PhKphHandle = NULL;
-
     // KProcessHacker doesn't support 64-bit systems.
 #ifdef _M_IX86
+    static WCHAR kprocesshacker[] = L"kprocesshacker.sys";
+    PPH_STRING kprocesshackerFileName;
 
     // Append kprocesshacker.sys to the application directory.
     kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, kprocesshacker);
 
+    PhKphHandle = NULL;
     KphConnect2(&PhKphHandle, L"KProcessHacker", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);
+#else
+    PhKphHandle = NULL;
 #endif
 }
 
