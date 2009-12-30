@@ -435,18 +435,40 @@ VOID PhpFillProcessItem(
 
     // Process information
     {
-        PPH_STRING fileName;
+        // If we're dealing with System (PID 4), we need to get the 
+        // kernel file name. Otherwise, get the image file name.
 
-        status = PhGetProcessImageFileName(processHandle, &fileName);
-
-        if (NT_SUCCESS(status))
+        if (ProcessItem->ProcessId != SYSTEM_PROCESS_ID)
         {
-            PPH_STRING newFileName;
+            PPH_STRING fileName;
 
-            newFileName = PhGetFileName(fileName);
-            ProcessItem->FileName = newFileName;
+            status = PhGetProcessImageFileName(processHandle, &fileName);
 
-            PhDereferenceObject(fileName);
+            if (NT_SUCCESS(status))
+            {
+                PPH_STRING newFileName;
+
+                newFileName = PhGetFileName(fileName);
+                ProcessItem->FileName = newFileName;
+
+                PhDereferenceObject(fileName);
+            }
+        }
+        else
+        {
+            PPH_STRING fileName;
+
+            fileName = PhGetKernelFileName();
+
+            if (fileName)
+            {
+                PPH_STRING newFileName;
+
+                newFileName = PhGetFileName(fileName);
+                ProcessItem->FileName = newFileName;
+
+                PhDereferenceObject(fileName);
+            }
         }
     }
 

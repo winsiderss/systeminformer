@@ -158,6 +158,15 @@ PPH_STRING PhCreateStringEx(
     __in SIZE_T Length
     );
 
+PPH_STRING PhCreateStringFromMultiByte(
+    __in PCHAR Buffer
+    );
+
+PPH_STRING PhCreateStringFromMultiByteEx(
+    __in PCHAR Buffer,
+    __in SIZE_T Length
+    );
+
 PPH_STRING PhConcatStrings(
     __in ULONG Count,
     ...

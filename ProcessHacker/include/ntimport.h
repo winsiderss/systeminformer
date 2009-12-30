@@ -59,6 +59,11 @@ EXT _NtUnloadDriver NtUnloadDriver EQNULL;
 EXT _NtWaitForSingleObject NtWaitForSingleObject EQNULL;
 EXT _NtWriteFile NtWriteFile EQNULL;
 EXT _NtWriteVirtualMemory NtWriteVirtualMemory EQNULL;
+EXT _RtlCreateQueryDebugBuffer RtlCreateQueryDebugBuffer EQNULL;
+EXT _RtlDestroyQueryDebugBuffer RtlDestroyQueryDebugBuffer EQNULL;
+EXT _RtlMultiByteToUnicodeN RtlMultiByteToUnicodeN EQNULL;
+EXT _RtlMultiByteToUnicodeSize RtlMultiByteToUnicodeSize EQNULL;
+EXT _RtlQueryProcessDebugInformation RtlQueryProcessDebugInformation EQNULL;
 
 BOOLEAN PhInitializeImports();
 
