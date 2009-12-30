@@ -179,7 +179,7 @@ ULONG PhpProcessHashtableHashFunction(
     __in PVOID Entry
     )
 {
-    return (ULONG)(*(PPH_PROCESS_ITEM *)Entry)->ProcessId;
+    return (ULONG)(*(PPH_PROCESS_ITEM *)Entry)->ProcessId / 4;
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItem(
