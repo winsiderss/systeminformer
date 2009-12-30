@@ -274,11 +274,6 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 
 VOID PhUpdateProcesses();
 
-VOID NTAPI PhProcessProviderUpdate(
-    __in PVOID Parameter,
-    __in PVOID Context
-    );
-
 // srvprv
 
 #ifndef SRVPRV_PRIVATE
@@ -325,11 +320,6 @@ PVOID PhEnumerateServices(
     );
 
 VOID PhUpdateServices();
-
-VOID NTAPI PhServiceProviderUpdate(
-    __in PVOID Parameter,
-    __in PVOID Context
-    );
 
 // provider
 
