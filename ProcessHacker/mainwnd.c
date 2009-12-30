@@ -303,6 +303,7 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ProcessListViewHandle, 4, 4, 4, LVCFMT_LEFT, 300, L"Command Line");
     PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
+    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"PID");
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
 
     PhRegisterCallback(
@@ -444,13 +445,17 @@ VOID PhMainWndOnServiceAdded(
         ServiceItem
         );
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceItem->ProcessIdString);
 }
 
 VOID PhMainWndOnServiceModified(
     __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
     )
 {
+    INT lvItemIndex;
 
+    lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceModifiedData->Service);
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceModifiedData->Service->ProcessIdString);
 }
 
 VOID PhMainWndOnServiceRemoved(

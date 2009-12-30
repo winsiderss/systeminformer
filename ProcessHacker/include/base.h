@@ -7,6 +7,7 @@
 
 #include <ntwin.h>
 #include <intrin.h>
+#include <wchar.h>
 
 // nonstandard extension used : nameless struct/union
 #pragma warning(disable: 4201)
@@ -14,9 +15,6 @@
 #pragma warning(disable: 4214)
 // 'function': was declared deprecated
 #pragma warning(disable: 4996)
-
-#define PH_INT_STR_LEN 10
-#define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define REBASE_ADDRESS(Pointer, OldBase, NewBase) \
@@ -28,6 +26,17 @@
 #define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
+
+#define PH_INT_STR_LEN 10
+#define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
+
+VOID FORCEINLINE PhPrintInteger(
+    __out PWSTR Destination,
+    __in ULONG Integer
+    )
+{
+    _snwprintf(Destination, PH_INT_STR_LEN, L"%d", Integer);
+}
 
 #ifdef _M_IX86
 
