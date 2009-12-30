@@ -6,6 +6,9 @@
 
 // process
 
+#define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
+#define SYSTEM_PROCESS_ID ((HANDLE)4)
+
 typedef enum _PH_PEB_OFFSET
 {
     PhpoCurrentDirectory,
@@ -169,6 +172,12 @@ NTSTATUS PhDuplicateObject(
     __in ACCESS_MASK DesiredAccess,
     __in ULONG HandleAttributes,
     __in ULONG Options
+    );
+
+PPH_STRING PhGetKernelFileName();
+
+NTSTATUS PhEnumKernelModules(
+    __out PRTL_PROCESS_MODULES *Modules
     );
 
 #define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))

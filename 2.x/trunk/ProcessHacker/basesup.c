@@ -265,6 +265,53 @@ PPH_STRING PhCreateStringEx(
     return string;
 }
 
+PPH_STRING PhCreateStringFromMultiByte(
+    __in PCHAR Buffer
+    )
+{
+    return PhCreateStringFromMultiByteEx(
+        Buffer,
+        strlen(Buffer)
+        );
+}
+
+PPH_STRING PhCreateStringFromMultiByteEx(
+    __in PCHAR Buffer,
+    __in SIZE_T Length
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+    ULONG unicodeBytes;
+
+    status = RtlMultiByteToUnicodeSize(
+        &unicodeBytes,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    string = PhCreateStringEx(NULL, unicodeBytes);
+
+    status = RtlMultiByteToUnicodeN(
+        string->Buffer,
+        string->Length,
+        NULL,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+
+    return string;
+}
+
 PPH_STRING PhConcatStrings(
     __in ULONG Count,
     ...
