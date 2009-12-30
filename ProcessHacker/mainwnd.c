@@ -80,7 +80,9 @@ BOOLEAN PhMainWndInitialization(
     // Initialize the providers.
     PhInitializeProviderThread(&PrimaryProviderThread, 1000);
     PhRegisterProvider(&PrimaryProviderThread, PhUpdateProcesses, &ProcessProviderRegistration);
+    PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
     PhRegisterProvider(&PrimaryProviderThread, PhUpdateServices, &ServiceProviderRegistration);
+    PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
 
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
