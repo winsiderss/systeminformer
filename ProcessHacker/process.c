@@ -786,6 +786,62 @@ NTSTATUS PhDuplicateObject(
     }
 }
 
+NTSTATUS PhEnumKernelModules(
+    __out PRTL_PROCESS_MODULES *Modules
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    static ULONG bufferSize = 2048;
+
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformation,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformation(
+            SystemModuleInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *Modules = buffer;
+
+    return status;
+}
+
+PPH_STRING PhGetKernelFileName()
+{
+    PRTL_PROCESS_MODULES modules;
+    PPH_STRING fileName = NULL;
+
+    if (!NT_SUCCESS(PhEnumKernelModules(&modules)))
+        return NULL;
+
+    if (modules->NumberOfModules >= 1)
+    {
+        fileName = PhCreateStringFromMultiByte(modules->Modules[0].FullPathName);
+    }
+
+    PhFree(modules);
+
+    return fileName;
+}
+
 NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     )
@@ -825,7 +881,7 @@ NTSTATUS PhEnumProcesses(
 
     *Processes = buffer;
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 VOID PhInitializeDosDeviceNames()

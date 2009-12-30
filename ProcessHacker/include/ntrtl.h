@@ -122,6 +122,20 @@ VOID FORCEINLINE RtlInitUnicodeString(
     DestinationString->Buffer = SourceString;
 }
 
+typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeN)(
+    __out PWSTR UnicodeString,
+    __in ULONG MaxBytesInUnicodeString,
+    __out_opt PULONG BytesInUnicodeString,
+    __in PSTR MultiByteString,
+    __in ULONG BytesInMultiByteString
+    );
+
+typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeSize)(
+    __out PULONG BytesInUnicodeString,
+    __in PSTR MultiByteString,
+    __in ULONG BytesInMultiByteString
+    );
+
 // Processes
 
 #define DOS_MAX_COMPONENT_LENGTH 255
