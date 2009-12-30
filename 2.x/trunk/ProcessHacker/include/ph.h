@@ -174,6 +174,17 @@ NTSTATUS PhDuplicateObject(
     __in ULONG Options
     );
 
+#define PH_ENUM_PROCESS_MODULES_ITERS 0x800
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
+    __in PLDR_DATA_TABLE_ENTRY Module
+    );
+
+NTSTATUS PhEnumProcessModules(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback
+    );
+
 PPH_STRING PhGetKernelFileName();
 
 NTSTATUS PhEnumKernelModules(
