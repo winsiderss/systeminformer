@@ -906,6 +906,14 @@ PPH_STRING PhGetFileName(
                 }
             }
         }
+
+        if (newFileName == FileName)
+        {
+            // We didn't find a match, so just return the 
+            // supplied file name. Note that we need to add 
+            // a reference.
+            PhReferenceObject(newFileName);
+        }
     }
 
     return newFileName;

@@ -21,6 +21,18 @@ VOID PhMainWndOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhMainWndOnServiceAdded(
+    __in PPH_SERVICE_ITEM ServiceItem
+    );
+
+VOID PhMainWndOnServiceModified(
+    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    );
+
+VOID PhMainWndOnServiceRemoved(
+    __in PPH_SERVICE_ITEM ServiceItem
+    );
+
 HWND PhMainWndHandle;
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -38,6 +50,7 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
+static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
 BOOLEAN PhMainWndInitialization(
@@ -79,9 +92,9 @@ BOOLEAN PhMainWndInitialization(
 
     // Initialize the providers.
     PhInitializeProviderThread(&PrimaryProviderThread, 1000);
-    PhRegisterProvider(&PrimaryProviderThread, PhUpdateProcesses, &ProcessProviderRegistration);
+    PhRegisterProvider(&PrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
     PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
-    PhRegisterProvider(&PrimaryProviderThread, PhUpdateServices, &ServiceProviderRegistration);
+    PhRegisterProvider(&PrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
 
     PhMainWndHandle = CreateWindow(
@@ -182,6 +195,27 @@ LRESULT CALLBACK PhMainWndProc(
             PhMainWndOnProcessRemoved((PPH_PROCESS_ITEM)lParam);
         }
         break;
+    case WM_PH_SERVICE_ADDED:
+        {
+            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
+
+            PhMainWndOnServiceAdded(serviceItem);
+            PhDereferenceObject(serviceItem);
+        }
+        break;
+    case WM_PH_SERVICE_MODIFIED:
+        {
+            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
+
+            PhMainWndOnServiceModified(serviceModifiedData);
+            PhFree(serviceModifiedData);
+        }
+        break;
+    case WM_PH_SERVICE_REMOVED:
+        {
+            PhMainWndOnServiceRemoved((PPH_SERVICE_ITEM)lParam);
+        }
+        break;
     default:
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
@@ -214,6 +248,40 @@ VOID NTAPI ProcessRemovedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
 }
 
+VOID NTAPI ServiceAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
+
+    PhReferenceObject(serviceItem);
+    PostMessage(PhMainWndHandle, WM_PH_SERVICE_ADDED, 0, (LPARAM)serviceItem);
+}
+
+VOID NTAPI ServiceModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
+    PPH_SERVICE_MODIFIED_DATA copy;
+
+    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+
+    PostMessage(PhMainWndHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
+}
+
+VOID NTAPI ServiceRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_SERVICE_REMOVED, 0, (LPARAM)serviceItem);
+}
+
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -233,24 +301,9 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ProcessListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"User Name");
     PhAddListViewColumn(ProcessListViewHandle, 3, 3, 3, LVCFMT_LEFT, 300, L"File Name");
     PhAddListViewColumn(ProcessListViewHandle, 4, 4, 4, LVCFMT_LEFT, 300, L"Command Line");
-    PhAddListViewColumn(
-        ServiceListViewHandle,
-        0,
-        0,
-        0,
-        LVCFMT_LEFT,
-        100,
-        L"Name"
-        );
-    PhAddListViewColumn(
-        NetworkListViewHandle,
-        0,
-        0,
-        0,
-        LVCFMT_LEFT,
-        100,
-        L"Process Name"
-        );
+    PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
+    PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
+    PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
 
     PhRegisterCallback(
         &PhProcessAddedEvent,
@@ -263,6 +316,25 @@ VOID PhMainWndOnCreate()
         ProcessRemovedHandler,
         NULL,
         &ProcessRemovedRegistration
+        );
+
+    PhRegisterCallback(
+        &PhServiceAddedEvent,
+        ServiceAddedHandler,
+        NULL,
+        &ServiceAddedRegistration
+        );
+    PhRegisterCallback(
+        &PhServiceModifiedEvent,
+        ServiceModifiedHandler,
+        NULL,
+        &ServiceModifiedRegistration
+        );
+    PhRegisterCallback(
+        &PhServiceRemovedEvent,
+        ServiceRemovedHandler,
+        NULL,
+        &ServiceRemovedRegistration
         );
 }
 
@@ -354,4 +426,41 @@ VOID PhMainWndOnProcessRemoved(
         );
     // Remove the reference we added in PhMainWndOnProcessAdded.
     PhDereferenceObject(ProcessItem);
+}
+
+VOID PhMainWndOnServiceAdded(
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    INT lvItemIndex;
+
+    // Add a reference for the pointer being stored in the list view item.
+    PhReferenceObject(ServiceItem);
+
+    lvItemIndex = PhAddListViewItem(
+        ServiceListViewHandle,
+        MAXINT,
+        ServiceItem->Name->Buffer,
+        ServiceItem
+        );
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
+}
+
+VOID PhMainWndOnServiceModified(
+    __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
+    )
+{
+
+}
+
+VOID PhMainWndOnServiceRemoved(
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    PhRemoveListViewItem(
+        ServiceListViewHandle,
+        PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceItem)
+        );
+    // Remove the reference we added in PhMainWndOnServiceAdded.
+    PhDereferenceObject(ServiceItem);
 }
