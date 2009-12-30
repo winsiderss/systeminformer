@@ -338,6 +338,7 @@ typedef struct _PH_PROVIDER_REGISTRATION
     PPH_PROVIDER_FUNCTION Function;
     BOOLEAN Enabled;
     BOOLEAN Unregistering;
+    BOOLEAN Boosting;
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
 typedef struct _PH_PROVIDER_THREAD
@@ -349,6 +350,7 @@ typedef struct _PH_PROVIDER_THREAD
 
     PH_MUTEX Mutex;
     LIST_ENTRY ListHead;
+    ULONG BoostCount;
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
 
 VOID PhInitializeProviderThread(
@@ -365,10 +367,6 @@ VOID PhStartProviderThread(
     );
 
 VOID PhStopProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
-    );
-
-VOID PhRunProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
