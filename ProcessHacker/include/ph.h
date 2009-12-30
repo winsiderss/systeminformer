@@ -81,6 +81,11 @@ NTSTATUS PhGetProcessPebString(
     __out PPH_STRING *String
     );
 
+NTSTATUS PhGetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __out PULONG ExecuteFlags
+    );
+
 NTSTATUS PhGetProcessIsWow64(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsWow64
@@ -89,6 +94,11 @@ NTSTATUS PhGetProcessIsWow64(
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
+    );
+
+NTSTATUS PhSetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __in ULONG ExecuteFlags
     );
 
 NTSTATUS PhGetTokenUser(
@@ -149,6 +159,16 @@ BOOLEAN PhLookupSid(
     __out_opt PPH_STRING *Name,
     __out_opt PPH_STRING *DomainName,
     __out_opt PSID_NAME_USE NameUse
+    );
+
+NTSTATUS PhDuplicateObject(
+    __in HANDLE SourceProcessHandle,
+    __in HANDLE SourceHandle,
+    __in_opt HANDLE TargetProcessHandle,
+    __out_opt PHANDLE TargetHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Options
     );
 
 #define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
@@ -259,6 +279,58 @@ VOID NTAPI PhProcessProviderUpdate(
     __in PVOID Context
     );
 
+// srvprv
+
+#ifndef SRVPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhServiceItemType;
+
+extern PH_CALLBACK PhServiceAddedEvent;
+extern PH_CALLBACK PhServiceModifiedEvent;
+extern PH_CALLBACK PhServiceRemovedEvent;
+#endif
+
+typedef struct _PH_SERVICE_ITEM
+{
+    PPH_STRING Name;
+    PPH_STRING DisplayName;
+
+    // State
+    ULONG Type;
+    ULONG State;
+    ULONG ControlsAccepted;
+    ULONG ProcessId;
+
+    // Config
+    ULONG StartType;
+    ULONG ErrorControl;
+} PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
+
+typedef struct _PH_SERVICE_MODIFIED_DATA
+{
+    PPH_SERVICE_ITEM Service;
+    PH_SERVICE_ITEM OldService;
+} PH_SERVICE_MODIFIED_DATA, *PPH_SERVICE_MODIFIED_DATA;
+
+BOOLEAN PhInitializeServiceProvider();
+
+PPH_SERVICE_ITEM PhReferenceServiceItem(
+    __in PWSTR Name
+    );
+
+PVOID PhEnumerateServices(
+    __in SC_HANDLE ScManagerHandle,
+    __in_opt ULONG Type,
+    __in_opt ULONG State,
+    __out PULONG Count
+    );
+
+VOID PhUpdateServices();
+
+VOID NTAPI PhServiceProviderUpdate(
+    __in PVOID Parameter,
+    __in PVOID Context
+    );
+
 // provider
 
 typedef enum _PH_PROVIDER_THREAD_STATE
@@ -268,13 +340,24 @@ typedef enum _PH_PROVIDER_THREAD_STATE
     ProviderThreadStopping
 } PH_PROVIDER_THREAD_STATE;
 
+typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)();
+
+typedef struct _PH_PROVIDER_REGISTRATION
+{
+    LIST_ENTRY ListEntry;
+    PPH_PROVIDER_FUNCTION Function;
+    BOOLEAN Unregistering;
+} PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
+
 typedef struct _PH_PROVIDER_THREAD
 {
     HANDLE ThreadHandle;
     HANDLE TimerHandle;
     ULONG Interval;
-    PH_CALLBACK RunEvent;
     PH_PROVIDER_THREAD_STATE State;
+
+    PH_MUTEX Mutex;
+    LIST_ENTRY ListHead;
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
 
 VOID PhInitializeProviderThread(
@@ -299,15 +382,20 @@ VOID PhSetProviderThreadInterval(
     __in ULONG Interval
     );
 
+VOID PhBoostProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __inout PPH_PROVIDER_REGISTRATION Registration
+    );
+
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in PPH_CALLBACK_FUNCTION Function,
-    __out PPH_CALLBACK_REGISTRATION Registration
+    __in PPH_PROVIDER_FUNCTION Function,
+    __out PPH_PROVIDER_REGISTRATION Registration
     );
 
 VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
-    __inout PPH_CALLBACK_REGISTRATION Registration
+    __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
 // support

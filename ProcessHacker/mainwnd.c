@@ -32,9 +32,13 @@ static HWND NetworkListViewHandle;
 
 static PH_PROVIDER_THREAD PrimaryProviderThread;
 
-static PH_CALLBACK_REGISTRATION ProcessProviderRegistration;
+static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
+
+static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
+static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
+static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -75,7 +79,8 @@ BOOLEAN PhMainWndInitialization(
 
     // Initialize the providers.
     PhInitializeProviderThread(&PrimaryProviderThread, 1000);
-    PhRegisterProvider(&PrimaryProviderThread, PhProcessProviderUpdate, &ProcessProviderRegistration);
+    PhRegisterProvider(&PrimaryProviderThread, PhUpdateProcesses, &ProcessProviderRegistration);
+    PhRegisterProvider(&PrimaryProviderThread, PhUpdateServices, &ServiceProviderRegistration);
 
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
