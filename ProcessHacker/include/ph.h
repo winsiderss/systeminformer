@@ -336,6 +336,7 @@ typedef struct _PH_PROVIDER_REGISTRATION
 {
     LIST_ENTRY ListEntry;
     PPH_PROVIDER_FUNCTION Function;
+    BOOLEAN Enabled;
     BOOLEAN Unregistering;
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
 
@@ -375,6 +376,11 @@ VOID PhSetProviderThreadInterval(
 VOID PhBoostProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
+    );
+
+VOID PhSetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration,
+    __in BOOLEAN Enabled
     );
 
 VOID PhRegisterProvider(

@@ -59,7 +59,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             // Add the provider to the temp list.
             InsertTailList(&tempListHead, listEntry);
 
-            if (registration->Unregistering)
+            if (!registration->Enabled || registration->Unregistering)
                 continue;
 
             PhReleaseMutex(&providerThread->Mutex);
@@ -170,6 +170,14 @@ VOID PhBoostProvider(
     NtAlertThread(ProviderThread->ThreadHandle);
 }
 
+VOID PhSetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration,
+    __in BOOLEAN Enabled
+    )
+{
+    Registration->Enabled = Enabled;
+}
+
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
@@ -177,6 +185,7 @@ VOID PhRegisterProvider(
     )
 {
     Registration->Function = Function;
+    Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
 
     PhAcquireMutex(&ProviderThread->Mutex);
