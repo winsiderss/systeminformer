@@ -8,15 +8,17 @@ VOID PhInitializeProviderThread(
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
     ProviderThread->Interval = Interval;
-    PhInitializeCallback(&ProviderThread->RunEvent);
     ProviderThread->State = ProviderThreadStopped;
+
+    PhInitializeMutex(&ProviderThread->Mutex);
+    InitializeListHead(&ProviderThread->ListHead);
 }
 
 VOID PhDeleteProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     )
 {
-    PhDeleteCallback(&ProviderThread->RunEvent);
+    PhDeleteMutex(&ProviderThread->Mutex);
 }
 
 NTSTATUS NTAPI PhpProviderThreadStart(
@@ -24,10 +26,56 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     )
 {
     PPH_PROVIDER_THREAD providerThread = (PPH_PROVIDER_THREAD)Parameter;
+    PLIST_ENTRY listEntry;
+    PPH_PROVIDER_REGISTRATION registration;
+    LIST_ENTRY tempListHead;
 
     while (providerThread->State != ProviderThreadStopping)
     {
-        PhInvokeCallback(&providerThread->RunEvent, NULL);
+        // Keep removing and executing providers from the list 
+        // until there are no more. Each removed provider will 
+        // be placed on the temporary list.
+        // After this is done, all providers on the temporary 
+        // list will be re-added to the list again.
+        //
+        // The key to this working safely with the other functions 
+        // (boost, register, unregister) is that at all times 
+        // when the mutex is not acquired every single provider 
+        // must be in a list (main list or the temp list).
+
+        InitializeListHead(&tempListHead);
+
+        PhAcquireMutex(&providerThread->Mutex);
+
+        // Main loop.
+
+        while (
+            (listEntry = RemoveHeadList(&providerThread->ListHead)) !=
+            &providerThread->ListHead
+            )
+        {
+            registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
+
+            // Add the provider to the temp list.
+            InsertTailList(&tempListHead, listEntry);
+
+            if (registration->Unregistering)
+                continue;
+
+            PhReleaseMutex(&providerThread->Mutex);
+            registration->Function();
+            PhAcquireMutex(&providerThread->Mutex);
+        }
+
+        // Re-add the items in the temp list to the main list.
+
+        while ((listEntry = RemoveHeadList(&tempListHead)) != &tempListHead)
+            InsertTailList(&providerThread->ListHead, listEntry);
+
+        PhReleaseMutex(&providerThread->Mutex);
+
+        // Perform an alertable wait so we can be woken up by 
+        // a provider boost or someone telling us to terminate.
         WaitForSingleObject(providerThread->TimerHandle, INFINITE);
     }
 
@@ -68,6 +116,7 @@ VOID PhStopProviderThread(
     // Signal to the thread that we are shutting down, and 
     // wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
+    NtAlertThread(ProviderThread->ThreadHandle); // wake it up
     WaitForSingleObject(ProviderThread->ThreadHandle, INFINITE);
 
     // Free resources.
@@ -89,7 +138,7 @@ VOID PhSetProviderThreadInterval(
     {
         LARGE_INTEGER interval;
 
-        interval.QuadPart = Interval * PH_TIMEOUT_TO_MS;
+        interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_TO_MS;
 
         SetWaitableTimer(
             ProviderThread->TimerHandle,
@@ -102,19 +151,55 @@ VOID PhSetProviderThreadInterval(
     }
 }
 
-VOID PhRegisterProvider(
+VOID PhBoostProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in PPH_CALLBACK_FUNCTION Function,
-    __out PPH_CALLBACK_REGISTRATION Registration
+    __inout PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    PhRegisterCallback(&ProviderThread->RunEvent, Function, NULL, Registration);
+    if (Registration->Unregistering)
+        return;
+
+    // Simply move to the provider to the front of the list. 
+    // This works even if the provider is currently in the temp list.
+    PhAcquireMutex(&ProviderThread->Mutex);
+    RemoveEntryList(&Registration->ListEntry);
+    InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
+    PhReleaseMutex(&ProviderThread->Mutex);
+
+    // Wake up the thread.
+    NtAlertThread(ProviderThread->ThreadHandle);
+}
+
+VOID PhRegisterProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __in PPH_PROVIDER_FUNCTION Function,
+    __out PPH_PROVIDER_REGISTRATION Registration
+    )
+{
+    Registration->Function = Function;
+    Registration->Unregistering = FALSE;
+
+    PhAcquireMutex(&ProviderThread->Mutex);
+    InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
+    PhReleaseMutex(&ProviderThread->Mutex);
 }
 
 VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
-    __inout PPH_CALLBACK_REGISTRATION Registration
+    __inout PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    PhUnregisterCallback(&ProviderThread->RunEvent, Registration);
+    Registration->Unregistering = TRUE;
+
+    // There are two possibilities for removal:
+    // 1. The provider is removed while the thread is 
+    //    not in the main loop. This is the normal case.
+    // 2. The provider is removed while the thread is 
+    //    in the main loop. In that case the provider 
+    //    will be removed from the temp list and so 
+    //    it won't be re-added to the main list.
+
+    PhAcquireMutex(&ProviderThread->Mutex);
+    RemoveEntryList(&Registration->ListEntry);
+    PhReleaseMutex(&ProviderThread->Mutex);
 }

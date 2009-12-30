@@ -80,7 +80,6 @@ BOOLEAN PhInitializeProcessProvider()
         sizeof(PPH_PROCESS_ITEM),
         PhpProcessHashtableCompareFunction,
         PhpProcessHashtableHashFunction,
-        NULL,
         40
         );
     PhInitializeFastLock(&PhProcessHashtableLock);
@@ -193,6 +192,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     PPH_PROCESS_ITEM *processItemPtr;
     PPH_PROCESS_ITEM processItem;
 
+    // Construct a temporary process item for the lookup.
     lookupProcessItem.ProcessId = ProcessId;
 
     PhAcquireFastLockShared(&PhProcessHashtableLock);
@@ -582,14 +582,18 @@ VOID PhUpdateProcesses()
             }
         }
 
-        PhAcquireFastLockExclusive(&PhProcessHashtableLock);
-
-        for (i = 0; i < pidsToRemove->Count; i++)
+        // Lock only if we have something to do.
+        if (pidsToRemove->Count > 0)
         {
-            PhpRemoveProcessItem(pidsToRemove->Items[i]);
-        }
+            PhAcquireFastLockExclusive(&PhProcessHashtableLock);
 
-        PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+            for (i = 0; i < pidsToRemove->Count; i++)
+            {
+                PhpRemoveProcessItem(pidsToRemove->Items[i]);
+            }
+
+            PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+        }
 
         PhDereferenceObject(pidsToRemove);
     }
@@ -688,12 +692,4 @@ VOID PhUpdateProcesses()
     PhFree(processes);
 
     runCount++;
-}
-
-VOID NTAPI PhProcessProviderUpdate(
-    __in PVOID Parameter,
-    __in PVOID Context
-    )
-{
-    PhUpdateProcesses();
 }

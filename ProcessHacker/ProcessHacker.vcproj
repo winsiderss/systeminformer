@@ -391,6 +391,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\srvprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\support.c"
 				>
 			</File>

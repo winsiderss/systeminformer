@@ -201,6 +201,18 @@ PPH_STRING FORCEINLINE PhConcatStrings2(
 
 BOOLEAN FORCEINLINE PhStringEquals(
     __in PPH_STRING String1,
+    __in PPH_STRING String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1->Buffer, String2->Buffer) == 0;
+    else
+        return wcsicmp(String1->Buffer, String2->Buffer) == 0;
+}
+
+BOOLEAN FORCEINLINE PhStringEquals2(
+    __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
     )
@@ -212,6 +224,18 @@ BOOLEAN FORCEINLINE PhStringEquals(
 }
 
 BOOLEAN FORCEINLINE PhStringStartsWith(
+    __in PPH_STRING String1,
+    __in PPH_STRING String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcsncmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+    else
+        return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+}
+
+BOOLEAN FORCEINLINE PhStringStartsWith2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -225,6 +249,33 @@ BOOLEAN FORCEINLINE PhStringStartsWith(
 
 BOOLEAN FORCEINLINE PhStringEndsWith(
     __in PPH_STRING String1,
+    __in PPH_STRING String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (String2->Length > String1->Length)
+        return FALSE;
+
+    if (!IgnoreCase)
+    {
+        return wcsncmp(
+            &String1->Buffer[(String1->Length - String2->Length) / sizeof(WCHAR)],
+            String2->Buffer,
+            String2->Length / sizeof(WCHAR)
+            ) == 0;
+    }
+    else
+    {
+        return wcsnicmp(
+            &String1->Buffer[(String1->Length - String2->Length) / sizeof(WCHAR)],
+            String2->Buffer,
+            String2->Length / sizeof(WCHAR)
+            ) == 0;
+    }
+}
+
+BOOLEAN FORCEINLINE PhStringEndsWith2(
+    __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
     )
@@ -235,9 +286,21 @@ BOOLEAN FORCEINLINE PhStringEndsWith(
         return FALSE;
 
     if (!IgnoreCase)
-        return wcsncmp(&String1->Buffer[String1->Length / sizeof(WCHAR) - length], String2, length) == 0;
+    {
+        return wcsncmp(
+            &String1->Buffer[String1->Length / sizeof(WCHAR) - length],
+            String2,
+            length
+            ) == 0;
+    }
     else
-        return wcsnicmp(&String1->Buffer[String1->Length / sizeof(WCHAR) - length], String2, length) == 0;
+    {
+        return wcsnicmp(
+            &String1->Buffer[String1->Length / sizeof(WCHAR) - length],
+            String2,
+            length
+            ) == 0;
+    }
 }
 
 ULONG FORCEINLINE PhStringIndexOfChar(
@@ -370,17 +433,12 @@ typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
     __in PVOID Entry
     );
 
-typedef VOID (NTAPI *PPH_HASHTABLE_DELETE_FUNCTION)(
-    __in PVOID Entry
-    );
-
 typedef struct _PH_HASHTABLE
 {
     /* Size of user data in each entry. */
     ULONG EntrySize;
     PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction;
     PPH_HASHTABLE_HASH_FUNCTION HashFunction;
-    PPH_HASHTABLE_DELETE_FUNCTION DeleteFunction;
 
     ULONG AllocatedBuckets;
     PULONG Buckets;
@@ -409,7 +467,6 @@ PPH_HASHTABLE PhCreateHashtable(
     __in ULONG EntrySize,
     __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
     __in PPH_HASHTABLE_HASH_FUNCTION HashFunction,
-    __in_opt PPH_HASHTABLE_DELETE_FUNCTION DeleteFunction,
     __in ULONG InitialCapacity
     );
 
@@ -441,10 +498,6 @@ BOOLEAN PhRemoveHashtableEntry(
 ULONG PhHashBytes(
     __in PUCHAR Bytes,
     __in ULONG Length
-    );
-
-ULONG PhHashString(
-    __in PWSTR String
     );
 
 // callback
@@ -492,6 +545,17 @@ VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
     __in PVOID Parameter
     );
+
+VOID FORCEINLINE PhInvokeCallbackRegistration(
+    __in PPH_CALLBACK_REGISTRATION Registration,
+    __in PVOID Parameter
+    )
+{
+    Registration->Function(
+        Parameter,
+        Registration->Context
+        );
+}
 
 // workqueue
 

@@ -521,7 +521,6 @@ PPH_HASHTABLE PhCreateHashtable(
     __in ULONG EntrySize,
     __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
     __in PPH_HASHTABLE_HASH_FUNCTION HashFunction,
-    __in_opt PPH_HASHTABLE_DELETE_FUNCTION DeleteFunction,
     __in ULONG InitialCapacity
     )
 {
@@ -539,7 +538,6 @@ PPH_HASHTABLE PhCreateHashtable(
     hashtable->EntrySize = EntrySize;
     hashtable->CompareFunction = CompareFunction;
     hashtable->HashFunction = HashFunction;
-    hashtable->DeleteFunction = DeleteFunction;
 
     // Allocate the buckets.
     hashtable->AllocatedBuckets = PhpGetPrimeNumber(InitialCapacity);
@@ -564,18 +562,6 @@ VOID PhpHashtableDeleteProcedure(
     )
 {
     PPH_HASHTABLE hashtable = (PPH_HASHTABLE)Object;
-    ULONG i;
-
-    if (hashtable->DeleteFunction)
-    {
-        for (i = 0; i < hashtable->NextEntry; i++)
-        {
-            PPH_HASHTABLE_ENTRY entry = PH_HASHTABLE_GET_ENTRY(hashtable, i);
-
-            if (entry->HashCode != -1)
-                hashtable->DeleteFunction(&entry->Body);
-        }
-    }
 
     PhFree(hashtable->Buckets);
     PhFree(hashtable->Entries);
@@ -766,9 +752,6 @@ BOOLEAN PhRemoveHashtableEntry(
 
             Hashtable->Count--;
 
-            if (Hashtable->DeleteFunction)
-                Hashtable->DeleteFunction(&entry->Body);
-
             return TRUE;
         }
 
@@ -832,13 +815,6 @@ ULONG PhHashBytes(
     hash += hash >> 6;
 
     return hash;
-}
-
-ULONG PhHashString(
-    __in PWSTR String
-    )
-{
-    return PhHashBytes((PCHAR)String, (ULONG)wcslen(String) * sizeof(WCHAR));
 }
 
 VOID PhInitializeCallback(
