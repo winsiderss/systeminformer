@@ -1,6 +1,5 @@
 #define PROCPRV_PRIVATE
 #include <ph.h>
-#include <wchar.h>
 
 typedef struct _PH_PROCESS_QUERY_DATA
 {
@@ -425,9 +424,9 @@ VOID PhpFillProcessItem(
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
 
-    _snwprintf(ProcessItem->ProcessIdString, PH_INT_STR_LEN, L"%d", ProcessItem->ProcessId);
-    _snwprintf(ProcessItem->ParentProcessIdString, PH_INT_STR_LEN, L"%d", ProcessItem->ParentProcessId);
-    _snwprintf(ProcessItem->SessionIdString, PH_INT_STR_LEN, L"%d", ProcessItem->SessionId);
+    PhPrintInteger(ProcessItem->ProcessIdString, (ULONG)ProcessItem->ProcessId);
+    PhPrintInteger(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
+    PhPrintInteger(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
 

@@ -300,6 +300,8 @@ typedef struct _PH_SERVICE_ITEM
     // Config
     ULONG StartType;
     ULONG ErrorControl;
+
+    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
 
 typedef struct _PH_SERVICE_MODIFIED_DATA

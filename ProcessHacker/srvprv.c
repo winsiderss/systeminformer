@@ -73,6 +73,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->ProcessId = Information->ServiceStatusProcess.dwProcessId;
+        PhPrintInteger(serviceItem->ProcessIdString, serviceItem->ProcessId);
     }
 
     return serviceItem;
@@ -106,6 +107,9 @@ ULONG PhpServiceHashtableHashFunction(
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
     WCHAR lowerName[257];
+
+    // Service names are case-insensitive, so we'll lowercase 
+    // the given service name and then hash it.
 
     // Check the length. Should never be above 256, but we have 
     // to make sure.
@@ -386,6 +390,7 @@ VOID PhServiceProviderUpdate(
                 serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
                 serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
                 serviceItem->ProcessId = services[i].ServiceStatusProcess.dwProcessId;
+                PhPrintInteger(serviceItem->ProcessIdString, serviceItem->ProcessId);
 
                 // Raise the service modified event.
                 PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
