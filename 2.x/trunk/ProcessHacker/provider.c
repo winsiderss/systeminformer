@@ -98,7 +98,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             }
 
             PhReleaseMutex(&providerThread->Mutex);
-            registration->Function();
+            registration->Function(registration->Context);
             PhAcquireMutex(&providerThread->Mutex);
         }
 
@@ -225,10 +225,12 @@ VOID PhSetProviderEnabled(
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
+    __in PVOID Context,
     __out PPH_PROVIDER_REGISTRATION Registration
     )
 {
     Registration->Function = Function;
+    Registration->Context = Context;
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
     Registration->Boosting = FALSE;

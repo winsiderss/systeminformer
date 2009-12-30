@@ -158,6 +158,8 @@ BOOLEAN PhInitializeSystem()
         return FALSE;
     if (!PhInitializeProcessProvider())
         return FALSE;
+    if (!PhInitializeServiceProvider())
+        return FALSE;
 
     PhInitializeDosDeviceNames();
     PhRefreshDosDeviceNames();

@@ -114,6 +114,10 @@ INT PhAddTabControlTab(
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
 #define WM_PH_PROCESS_REMOVED (WM_APP + 103)
 
+#define WM_PH_SERVICE_ADDED (WM_APP + 104)
+#define WM_PH_SERVICE_MODIFIED (WM_APP + 105)
+#define WM_PH_SERVICE_REMOVED (WM_APP + 106)
+
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     );
