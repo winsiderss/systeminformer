@@ -272,7 +272,9 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     __in HANDLE ProcessId
     );
 
-VOID PhUpdateProcesses();
+VOID PhProcessProviderUpdate(
+    __in PVOID Context
+    );
 
 // srvprv
 
@@ -312,14 +314,20 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     __in PWSTR Name
     );
 
-PVOID PhEnumerateServices(
+PVOID PhEnumServices(
     __in SC_HANDLE ScManagerHandle,
     __in_opt ULONG Type,
     __in_opt ULONG State,
     __out PULONG Count
     );
 
-VOID PhUpdateServices();
+PVOID PhQueryServiceConfig(
+    __in SC_HANDLE ServiceHandle
+    );
+
+VOID PhServiceProviderUpdate(
+    __in PVOID Context
+    );
 
 // provider
 
@@ -330,12 +338,15 @@ typedef enum _PH_PROVIDER_THREAD_STATE
     ProviderThreadStopping
 } PH_PROVIDER_THREAD_STATE;
 
-typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)();
+typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
+    __in PVOID Context
+    );
 
 typedef struct _PH_PROVIDER_REGISTRATION
 {
     LIST_ENTRY ListEntry;
     PPH_PROVIDER_FUNCTION Function;
+    PVOID Context;
     BOOLEAN Enabled;
     BOOLEAN Unregistering;
     BOOLEAN Boosting;
@@ -388,6 +399,7 @@ VOID PhSetProviderEnabled(
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
+    __in PVOID Context,
     __out PPH_PROVIDER_REGISTRATION Registration
     );
 
@@ -445,5 +457,18 @@ PPH_STRING PhGetSystemDirectory();
 PPH_STRING PhGetApplicationFileName();
 
 PPH_STRING PhGetApplicationDirectory();
+
+PVOID FORCEINLINE PhAllocateCopy(
+    __in PVOID Data,
+    __in ULONG Size
+    )
+{
+    PVOID copy;
+
+    copy = PhAllocate(Size);
+    memcpy(copy, Data, Size);
+
+    return copy;
+}
 
 #endif

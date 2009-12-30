@@ -48,6 +48,36 @@ BOOLEAN PhInitializeServiceProvider()
     return TRUE;
 }
 
+PPH_SERVICE_ITEM PhCreateServiceItem(
+    __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
+    )
+{
+    PPH_SERVICE_ITEM serviceItem;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &serviceItem,
+        sizeof(PH_SERVICE_ITEM),
+        0,
+        PhServiceItemType,
+        0
+        )))
+        return NULL;
+
+    memset(serviceItem, 0, sizeof(PH_SERVICE_ITEM));
+
+    if (Information)
+    {
+        serviceItem->Name = PhCreateString(Information->lpServiceName);
+        serviceItem->DisplayName = PhCreateString(Information->lpDisplayName);
+        serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
+        serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
+        serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
+        serviceItem->ProcessId = Information->ServiceStatusProcess.dwProcessId;
+    }
+
+    return serviceItem;
+}
+
 VOID PhpServiceItemDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -128,27 +158,14 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
 }
 
 VOID PhpRemoveServiceItem(
-    __in PWSTR Name
+    __in PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PH_SERVICE_ITEM lookupServiceItem;
-    PPH_SERVICE_ITEM lookupServiceItemPtr = &lookupServiceItem;
-    PPH_SERVICE_ITEM *serviceItemPtr;
-
-    lookupServiceItem.Name = PhCreateString(Name);
-
-    serviceItemPtr = PhGetHashtableEntry(PhServiceHashtable, &lookupServiceItemPtr);
-
-    if (serviceItemPtr)
-    {
-        PhRemoveHashtableEntry(PhServiceHashtable, &lookupServiceItemPtr);
-        PhDereferenceObject(*serviceItemPtr);
-    }
-
-    PhDereferenceObject(lookupServiceItem.Name);
+    PhRemoveHashtableEntry(PhServiceHashtable, &ServiceItem);
+    PhDereferenceObject(ServiceItem);
 }
 
-PVOID PhEnumerateServices(
+PVOID PhEnumServices(
     __in SC_HANDLE ScManagerHandle,
     __in_opt ULONG Type,
     __in_opt ULONG State,
@@ -210,7 +227,175 @@ PVOID PhEnumerateServices(
     return buffer;
 }
 
-VOID PhUpdateServices()
+PVOID PhQueryServiceConfig(
+    __in SC_HANDLE ServiceHandle
+    )
 {
-    
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+
+    buffer = PhAllocate(bufferSize);
+
+    if (!QueryServiceConfig(ServiceHandle, buffer, bufferSize, &bufferSize))
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        if (!QueryServiceConfig(ServiceHandle, buffer, bufferSize, &bufferSize))
+        {
+            PhFree(buffer);
+            return NULL;
+        }
+    }
+
+    return buffer;
+}
+
+VOID PhServiceProviderUpdate(
+    __in PVOID Context
+    )
+{
+    static SC_HANDLE scManagerHandle = NULL;
+    static ULONG runCount = 0;
+
+    LPENUM_SERVICE_STATUS_PROCESS services;
+    ULONG numberOfServices;
+    ULONG i;
+
+    if (scManagerHandle == NULL)
+    {
+        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
+    }
+
+    services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices);
+
+    if (!services)
+        return;
+
+    // Look for dead services.
+    {
+        PPH_LIST servicesToRemove = NULL;
+        ULONG enumerationKey = 0;
+        PPH_SERVICE_ITEM *serviceItem;
+
+        while (PhEnumHashtable(PhServiceHashtable, (PPVOID)&serviceItem, &enumerationKey))
+        {
+            BOOLEAN found = FALSE;
+
+            // Check if the service still exists.
+            for (i = 0; i < numberOfServices; i++)
+            {
+                if (PhStringEquals2((*serviceItem)->Name, services[i].lpServiceName, TRUE))
+                {
+                    found = TRUE;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                // Raise the service removed event.
+                PhInvokeCallback(&PhServiceRemovedEvent, *serviceItem);
+
+                if (!servicesToRemove)
+                    servicesToRemove = PhCreateList(2);
+
+                PhAddListItem(servicesToRemove, *serviceItem);
+            }
+        }
+
+        if (servicesToRemove)
+        {
+            PhAcquireFastLockExclusive(&PhServiceHashtableLock);
+
+            for (i = 0; i < servicesToRemove->Count; i++)
+            {
+                PhpRemoveServiceItem((PPH_SERVICE_ITEM)servicesToRemove->Items[i]);
+            }
+
+            PhReleaseFastLockExclusive(&PhServiceHashtableLock);
+            PhDereferenceObject(servicesToRemove);
+        }
+    }
+
+    // Look for new services and update existing ones.
+    for (i = 0; i < numberOfServices; i++)
+    {
+        PPH_SERVICE_ITEM serviceItem;
+
+        serviceItem = PhReferenceServiceItem(services[i].lpServiceName);
+
+        if (!serviceItem)
+        {
+            // Create the service item and fill in basic information.
+            serviceItem = PhCreateServiceItem(&services[i]);
+
+            {
+                SC_HANDLE serviceHandle;
+
+                serviceHandle = OpenService(scManagerHandle, serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
+
+                if (serviceHandle)
+                {
+                    LPQUERY_SERVICE_CONFIG config;
+
+                    config = PhQueryServiceConfig(serviceHandle);
+
+                    if (config)
+                    {
+                        serviceItem->StartType = config->dwStartType;
+                        serviceItem->ErrorControl = config->dwErrorControl;
+
+                        PhFree(config);
+                    }
+
+                    CloseServiceHandle(serviceHandle);
+                }
+            }
+
+            // Add the service item to the hashtable.
+            PhAcquireFastLockExclusive(&PhServiceHashtableLock);
+            PhAddHashtableEntry(PhServiceHashtable, &serviceItem);
+            PhReleaseFastLockExclusive(&PhServiceHashtableLock);
+
+            // Raise the service added event.
+            PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
+        }
+        else
+        {
+            if (
+                serviceItem->Type != services[i].ServiceStatusProcess.dwServiceType || 
+                serviceItem->State != services[i].ServiceStatusProcess.dwCurrentState ||
+                serviceItem->ControlsAccepted != services[i].ServiceStatusProcess.dwControlsAccepted ||
+                serviceItem->ProcessId != services[i].ServiceStatusProcess.dwProcessId
+                )
+            {
+                PH_SERVICE_MODIFIED_DATA serviceModifiedData;
+
+                // The service has been "modified".
+
+                serviceModifiedData.Service = serviceItem;
+                memset(&serviceModifiedData.OldService, 0, sizeof(PH_SERVICE_ITEM));
+                serviceModifiedData.OldService.Type = serviceItem->Type;
+                serviceModifiedData.OldService.State = serviceItem->State;
+                serviceModifiedData.OldService.ControlsAccepted = serviceItem->ControlsAccepted;
+                serviceModifiedData.OldService.ProcessId = serviceItem->ProcessId;
+
+                // Update the service item.
+                serviceItem->Type = services[i].ServiceStatusProcess.dwServiceType;
+                serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
+                serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
+                serviceItem->ProcessId = services[i].ServiceStatusProcess.dwProcessId;
+
+                // Raise the service modified event.
+                PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
+            }
+
+            PhDereferenceObject(serviceItem);
+        }
+    }
+
+    PhFree(services);
+
+    runCount++;
 }

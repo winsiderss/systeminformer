@@ -218,22 +218,11 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 }
 
 VOID PhpRemoveProcessItem(
-    __in HANDLE ProcessId
+    __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PH_PROCESS_ITEM lookupProcessItem;
-    PPH_PROCESS_ITEM lookupProcessItemPtr = &lookupProcessItem;
-    PPH_PROCESS_ITEM *processItemPtr;
-
-    lookupProcessItem.ProcessId = ProcessId;
-
-    processItemPtr = PhGetHashtableEntry(PhProcessHashtable, &lookupProcessItemPtr);
-
-    if (processItemPtr)
-    {
-        PhRemoveHashtableEntry(PhProcessHashtable, &lookupProcessItemPtr);
-        PhDereferenceObject(*processItemPtr);
-    }
+    PhRemoveHashtableEntry(PhProcessHashtable, &ProcessItem);
+    PhDereferenceObject(ProcessItem);
 }
 
 VOID PhpProcessQueryStage1(
@@ -454,12 +443,11 @@ VOID PhpFillProcessItem(
         if (NT_SUCCESS(status))
         {
             PPH_STRING newFileName;
-            
+
             newFileName = PhGetFileName(fileName);
-            PhSwapReference(&ProcessItem->FileName, newFileName);
+            ProcessItem->FileName = newFileName;
 
             PhDereferenceObject(fileName);
-            PhDereferenceObject(newFileName);
         }
     }
 
@@ -480,8 +468,7 @@ VOID PhpFillProcessItem(
 
             if (NT_SUCCESS(status))
             {
-                PhSwapReference(&ProcessItem->CommandLine, commandLine);
-                PhDereferenceObject(commandLine);
+                ProcessItem->CommandLine = commandLine;
             }
 
             CloseHandle(processHandle2);
@@ -516,11 +503,10 @@ VOID PhpFillProcessItem(
                         fullName->Buffer[domainName->Length / 2] = '\\';
                         memcpy(&fullName->Buffer[domainName->Length / 2 + 1], userName->Buffer, userName->Length);
 
-                        PhSwapReference(&ProcessItem->UserName, fullName);
+                        ProcessItem->UserName = fullName;
 
                         PhDereferenceObject(userName);
                         PhDereferenceObject(domainName);
-                        PhDereferenceObject(fullName);
                     }
 
                     PhFree(user);
@@ -534,7 +520,9 @@ VOID PhpFillProcessItem(
     CloseHandle(processHandle);
 }
 
-VOID PhUpdateProcesses()
+VOID PhProcessProviderUpdate(
+    __in PVOID Context
+    )
 {
     static ULONG runCount = 0;
 
@@ -564,12 +552,10 @@ VOID PhUpdateProcesses()
 
     // Look for dead processes.
     {
-        PPH_LIST pidsToRemove;
+        PPH_LIST processesToRemove = NULL;
         ULONG enumerationKey = 0;
         PPH_PROCESS_ITEM *processItem;
         ULONG i;
-
-        pidsToRemove = PhCreateList(1);
 
         while (PhEnumHashtable(PhProcessHashtable, (PPVOID)&processItem, &enumerationKey))
         {
@@ -578,24 +564,27 @@ VOID PhUpdateProcesses()
             {
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
-                PhAddListItem(pidsToRemove, (*processItem)->ProcessId);
+
+                if (!processesToRemove)
+                    processesToRemove = PhCreateList(2);
+
+                PhAddListItem(processesToRemove, *processItem);
             }
         }
 
         // Lock only if we have something to do.
-        if (pidsToRemove->Count > 0)
+        if (processesToRemove)
         {
             PhAcquireFastLockExclusive(&PhProcessHashtableLock);
 
-            for (i = 0; i < pidsToRemove->Count; i++)
+            for (i = 0; i < processesToRemove->Count; i++)
             {
-                PhpRemoveProcessItem(pidsToRemove->Items[i]);
+                PhpRemoveProcessItem((PPH_PROCESS_ITEM)processesToRemove->Items[i]);
             }
 
             PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+            PhDereferenceObject(processesToRemove);
         }
-
-        PhDereferenceObject(pidsToRemove);
     }
 
     // Go through the queued process query data.
@@ -628,65 +617,63 @@ VOID PhUpdateProcesses()
     }
 
     // Look for new processes and update existing ones.
+    process = PH_FIRST_PROCESS(processes);
+
+    do
     {
-        process = PH_FIRST_PROCESS(processes);
+        PPH_PROCESS_ITEM processItem;
 
-        do
+        processItem = PhReferenceProcessItem(process->UniqueProcessId);
+
+        if (!processItem)
         {
-            PPH_PROCESS_ITEM processItem;
+            // Create the process item and fill in basic information.
+            processItem = PhCreateProcessItem(process->UniqueProcessId);
+            PhpFillProcessItem(processItem, process);
 
-            processItem = PhReferenceProcessItem(process->UniqueProcessId);
-
-            if (!processItem)
+            // If this is the first run of the provider, queue the 
+            // process query tasks. Otherwise, perform stage 1 
+            // processing now and queue stage 2 processing.
+            if (runCount > 0)
             {
-                // Create the process item and fill in basic information.
-                processItem = PhCreateProcessItem(process->UniqueProcessId);
-                PhpFillProcessItem(processItem, process);
+                PH_PROCESS_QUERY_S1_DATA data;
 
-                // If this is the first run of the provider, queue the 
-                // process query tasks. Otherwise, perform stage 1 
-                // processing now and queue stage 2 processing.
-                if (runCount > 0)
-                {
-                    PH_PROCESS_QUERY_S1_DATA data;
-
-                    memset(&data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
-                    data.Header.Stage = 1;
-                    data.Header.ProcessItem = processItem;
-                    PhpProcessQueryStage1(&data);
-                    PhpFillProcessItemStage1(&data);
-                }
-                else
-                {
-                    PhpQueueProcessQueryStage1(processItem);
-                }
-
-                PhpQueueProcessQueryStage2(processItem);
-
-                // Add the process item to the hashtable.
-                PhAcquireFastLockExclusive(&PhProcessHashtableLock);
-                PhAddHashtableEntry(PhProcessHashtable, &processItem);
-                PhReleaseFastLockExclusive(&PhProcessHashtableLock);
-
-                // Raise the process added event.
-                PhInvokeCallback(&PhProcessAddedEvent, processItem);
-
-                // (Add a reference for the process item being in the hashtable.)
-                // Instead of referencing then dereferencing we simply don't 
-                // do anything.
+                memset(&data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
+                data.Header.Stage = 1;
+                data.Header.ProcessItem = processItem;
+                PhpProcessQueryStage1(&data);
+                PhpFillProcessItemStage1(&data);
             }
             else
             {
-                if (processItem->JustProcessed)
-                {
-                    PhInvokeCallback(&PhProcessModifiedEvent, processItem);
-                    processItem->JustProcessed = FALSE;
-                }
-
-                PhDereferenceObject(processItem);
+                PhpQueueProcessQueryStage1(processItem);
             }
-        } while (process = PH_NEXT_PROCESS(process));
-    }
+
+            PhpQueueProcessQueryStage2(processItem);
+
+            // Add the process item to the hashtable.
+            PhAcquireFastLockExclusive(&PhProcessHashtableLock);
+            PhAddHashtableEntry(PhProcessHashtable, &processItem);
+            PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+
+            // Raise the process added event.
+            PhInvokeCallback(&PhProcessAddedEvent, processItem);
+
+            // (Add a reference for the process item being in the hashtable.)
+            // Instead of referencing then dereferencing we simply don't 
+            // do anything.
+        }
+        else
+        {
+            if (processItem->JustProcessed)
+            {
+                PhInvokeCallback(&PhProcessModifiedEvent, processItem);
+                processItem->JustProcessed = FALSE;
+            }
+
+            PhDereferenceObject(processItem);
+        }
+    } while (process = PH_NEXT_PROCESS(process));
 
     PhDereferenceObject(pids);
     PhFree(processes);
