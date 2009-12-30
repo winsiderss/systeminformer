@@ -368,6 +368,10 @@ VOID PhStopProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
+VOID PhRunProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
 VOID PhSetProviderThreadInterval(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
