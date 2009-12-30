@@ -56,6 +56,7 @@ EXT _NtSuspendThread NtSuspendThread EQNULL;
 EXT _NtTerminateProcess NtTerminateProcess EQNULL;
 EXT _NtTerminateThread NtTerminateThread EQNULL;
 EXT _NtUnloadDriver NtUnloadDriver EQNULL;
+EXT _NtWaitForSingleObject NtWaitForSingleObject EQNULL;
 EXT _NtWriteFile NtWriteFile EQNULL;
 EXT _NtWriteVirtualMemory NtWriteVirtualMemory EQNULL;
 

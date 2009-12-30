@@ -294,6 +294,20 @@ NTSTATUS PhGetProcessPebString(
     return status;
 }
 
+NTSTATUS PhGetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __out PULONG ExecuteFlags
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessExecuteFlags,
+        ExecuteFlags,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
 NTSTATUS PhGetProcessIsWow64(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsWow64
@@ -346,6 +360,18 @@ NTSTATUS PhGetProcessIsPosix(
     }
 
     return status;
+}
+
+NTSTATUS PhSetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __in ULONG ExecuteFlags
+    )
+{
+    return KphSetExecuteOptions(
+        PhKphHandle,
+        ProcessHandle,
+        ExecuteFlags
+        );
 }
 
 NTSTATUS PhpQueryTokenVariableSize(
@@ -553,17 +579,17 @@ NTSTATUS PhGetTokenIntegrityLevel(
     PhDereferenceObject(sidName);
 
     // Compute the integer integrity level.
-    if (PhStringEquals(integrityString, L"Untrusted", FALSE))
+    if (PhStringEquals2(integrityString, L"Untrusted", FALSE))
         integrityLevel = PiUntrusted;
-    else if (PhStringEquals(integrityString, L"Low", FALSE))
+    else if (PhStringEquals2(integrityString, L"Low", FALSE))
         integrityLevel = PiLow;
-    else if (PhStringEquals(integrityString, L"Medium", FALSE))
+    else if (PhStringEquals2(integrityString, L"Medium", FALSE))
         integrityLevel = PiMedium;
-    else if (PhStringEquals(integrityString, L"High", FALSE))
+    else if (PhStringEquals2(integrityString, L"High", FALSE))
         integrityLevel = PiHigh;
-    else if (PhStringEquals(integrityString, L"System", FALSE))
+    else if (PhStringEquals2(integrityString, L"System", FALSE))
         integrityLevel = PiSystem;
-    else if (PhStringEquals(integrityString, L"Installer", FALSE))
+    else if (PhStringEquals2(integrityString, L"Installer", FALSE))
         integrityLevel = PiInstaller;
     else
         integrityLevel = -1;
@@ -723,13 +749,50 @@ BOOLEAN PhLookupSid(
     return TRUE;
 }
 
+NTSTATUS PhDuplicateObject(
+    __in HANDLE SourceProcessHandle,
+    __in HANDLE SourceHandle,
+    __in_opt HANDLE TargetProcessHandle,
+    __out_opt PHANDLE TargetHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Options
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphDuplicateObject(
+            PhKphHandle,
+            SourceProcessHandle,
+            SourceHandle,
+            TargetProcessHandle,
+            TargetHandle,
+            DesiredAccess,
+            HandleAttributes,
+            Options
+            );
+    }
+    else
+    {
+        return NtDuplicateObject(
+            SourceProcessHandle,
+            SourceHandle,
+            TargetProcessHandle,
+            TargetHandle,
+            DesiredAccess,
+            HandleAttributes,
+            Options
+            );
+    }
+}
+
 NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     )
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 2048;
+    static ULONG bufferSize = 2048; // keep the last successful buffer size between calls
 
     buffer = PhAllocate(bufferSize);
 
@@ -799,13 +862,13 @@ PPH_STRING PhGetFileName(
     newFileName = FileName;
 
     // "\??\" refers to \GLOBAL??. Just remove it.
-    if (PhStringStartsWith(FileName, L"\\??\\", FALSE))
+    if (PhStringStartsWith2(FileName, L"\\??\\", FALSE))
     {
         newFileName = PhCreateStringEx(NULL, FileName->Length - 8);
         memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 8);
     }
     // "\SystemRoot" means "C:\Windows".
-    else if (PhStringStartsWith(FileName, L"\\SystemRoot", TRUE))
+    else if (PhStringStartsWith2(FileName, L"\\SystemRoot", TRUE))
     {
         PPH_STRING systemDirectory = PhGetSystemDirectory();
 
@@ -832,7 +895,7 @@ PPH_STRING PhGetFileName(
 
             if (prefixLength > 0)
             {
-                if (PhStringStartsWith(FileName, prefix, TRUE))
+                if (PhStringStartsWith2(FileName, prefix, TRUE))
                 {
                     newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
                     newFileName->Buffer[0] = (WCHAR)('A' + i);

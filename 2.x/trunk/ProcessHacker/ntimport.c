@@ -56,6 +56,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtTerminateProcess);
     InitProcReq("ntdll.dll", NtTerminateThread);
     InitProcReq("ntdll.dll", NtUnloadDriver);
+    InitProcReq("ntdll.dll", NtWaitForSingleObject);
     InitProcReq("ntdll.dll", NtWriteFile);
     InitProcReq("ntdll.dll", NtWriteVirtualMemory);
 
