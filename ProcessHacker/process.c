@@ -786,6 +786,136 @@ NTSTATUS PhDuplicateObject(
     }
 }
 
+NTSTATUS PhEnumProcessModules(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PVOID ldr;
+    PEB_LDR_DATA pebLdrData;
+    PLIST_ENTRY startLink;
+    PLIST_ENTRY currentLink;
+    LDR_DATA_TABLE_ENTRY currentEntry;
+    ULONG i;
+
+    // Get the PEB address.
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Read the address of the loader data.
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, Ldr)),
+        &ldr,
+        sizeof(PVOID),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Read the loader data.
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        ldr,
+        &pebLdrData,
+        sizeof(PEB_LDR_DATA),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!pebLdrData.Initialized)
+        return STATUS_UNSUCCESSFUL;
+
+    // Traverse the linked list (in load order).
+    // We can't seem to traverse it like a normal linked 
+    // list because there are multiple list heads.
+
+    i = 0;
+    startLink = pebLdrData.InLoadOrderModuleList.Flink;
+    currentLink = startLink;
+
+    while (
+        currentLink != NULL &&
+        i <= PH_ENUM_PROCESS_MODULES_ITERS
+        )
+    {
+        PWSTR baseDllNameBuffer;
+        PWSTR fullDllNameBuffer;
+        BOOLEAN cont;
+
+        if (i > 0 && currentLink == startLink)
+            break;
+
+        status = PhReadVirtualMemory(
+            ProcessHandle,
+            CONTAINING_RECORD(currentLink, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks),
+            &currentEntry,
+            sizeof(LDR_DATA_TABLE_ENTRY),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        // Make sure the entry is valid.
+        if (currentEntry.DllBase)
+        {
+            // Read the base DLL name string and add a null terminator.
+
+            baseDllNameBuffer = PhAllocate(currentEntry.BaseDllName.Length + 2);
+
+            if (NT_SUCCESS(PhReadVirtualMemory(
+                ProcessHandle,
+                currentEntry.BaseDllName.Buffer,
+                baseDllNameBuffer,
+                currentEntry.BaseDllName.Length,
+                NULL
+                )))
+            {
+                baseDllNameBuffer[currentEntry.BaseDllName.Length / 2] = 0;
+                currentEntry.BaseDllName.Buffer = baseDllNameBuffer;
+            }
+
+            // Read the full DLL name string and add a null terminator.
+
+            fullDllNameBuffer = PhAllocate(currentEntry.FullDllName.Length + 2);
+
+            if (NT_SUCCESS(PhReadVirtualMemory(
+                ProcessHandle,
+                currentEntry.FullDllName.Buffer,
+                fullDllNameBuffer,
+                currentEntry.FullDllName.Length,
+                NULL
+                )))
+            {
+                fullDllNameBuffer[currentEntry.FullDllName.Length / 2] = 0;
+                currentEntry.FullDllName.Buffer = fullDllNameBuffer;
+            }
+
+            // Execute the callback.
+            cont = Callback(&currentEntry);
+
+            PhFree(baseDllNameBuffer);
+            PhFree(fullDllNameBuffer);
+
+            if (!cont)
+                break;
+        }
+
+        currentLink = currentEntry.InLoadOrderLinks.Flink;
+        i++;
+    }
+
+    return status;
+}
+
 NTSTATUS PhEnumKernelModules(
     __out PRTL_PROCESS_MODULES *Modules
     )
