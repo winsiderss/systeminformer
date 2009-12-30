@@ -12,6 +12,7 @@ VOID PhInitializeProviderThread(
 
     PhInitializeMutex(&ProviderThread->Mutex);
     InitializeListHead(&ProviderThread->ListHead);
+    ProviderThread->BoostCount = 0;
 }
 
 VOID PhDeleteProviderThread(
@@ -26,6 +27,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     )
 {
     PPH_PROVIDER_THREAD providerThread = (PPH_PROVIDER_THREAD)Parameter;
+    NTSTATUS status = STATUS_SUCCESS;
     PLIST_ENTRY listEntry;
     PPH_PROVIDER_REGISTRATION registration;
     LIST_ENTRY tempListHead;
@@ -49,18 +51,51 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Main loop.
 
-        while (
-            (listEntry = RemoveHeadList(&providerThread->ListHead)) !=
-            &providerThread->ListHead
-            )
+        while (TRUE)
         {
+            if (status == STATUS_ALERTED)
+            {
+                // Check if we have any more providers to boost.
+                if (providerThread->BoostCount == 0)
+                    break;
+            }
+
+            listEntry = RemoveHeadList(&providerThread->ListHead);
+
+            if (listEntry == &providerThread->ListHead)
+                break;
+
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
             // Add the provider to the temp list.
             InsertTailList(&tempListHead, listEntry);
 
-            if (!registration->Enabled || registration->Unregistering)
-                continue;
+            if (status != STATUS_ALERTED)
+            {
+                if (!registration->Enabled || registration->Unregistering)
+                    continue;
+            }
+            else
+            {
+                // If we're boosting providers, we don't care if they 
+                // are enabled or not. However, we have to make sure 
+                // any providers which are being unregistered get a 
+                // chance to fix the boost count.
+
+                if (registration->Unregistering)
+                {
+                    PhReleaseMutex(&providerThread->Mutex);
+                    PhAcquireMutex(&providerThread->Mutex);
+
+                    continue;
+                }
+            }
+
+            if (status == STATUS_ALERTED)
+            {
+                registration->Boosting = FALSE;
+                providerThread->BoostCount--;
+            }
 
             PhReleaseMutex(&providerThread->Mutex);
             registration->Function();
@@ -76,7 +111,11 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Perform an alertable wait so we can be woken up by 
         // someone telling us to terminate.
-        WaitForSingleObjectEx(providerThread->TimerHandle, INFINITE, TRUE);
+        status = NtWaitForSingleObject(
+            providerThread->TimerHandle,
+            TRUE,
+            NULL
+            );
     }
 
     return STATUS_SUCCESS;
@@ -127,13 +166,6 @@ VOID PhStopProviderThread(
     ProviderThread->State = ProviderThreadStopped;
 }
 
-VOID PhRunProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
-    )
-{
-    NtAlertThread(ProviderThread->ThreadHandle);
-}
-
 VOID PhSetProviderThreadInterval(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
@@ -169,9 +201,17 @@ VOID PhBoostProvider(
     // Simply move to the provider to the front of the list. 
     // This works even if the provider is currently in the temp list.
     PhAcquireMutex(&ProviderThread->Mutex);
+
     RemoveEntryList(&Registration->ListEntry);
     InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
+
+    Registration->Boosting = TRUE;
+    ProviderThread->BoostCount++;
+
     PhReleaseMutex(&ProviderThread->Mutex);
+
+    // Wake up the thread.
+    NtAlertThread(&ProviderThread->ThreadHandle);
 }
 
 VOID PhSetProviderEnabled(
@@ -191,6 +231,7 @@ VOID PhRegisterProvider(
     Registration->Function = Function;
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
+    Registration->Boosting = FALSE;
 
     PhAcquireMutex(&ProviderThread->Mutex);
     InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
@@ -213,6 +254,12 @@ VOID PhUnregisterProvider(
     //    it won't be re-added to the main list.
 
     PhAcquireMutex(&ProviderThread->Mutex);
+
     RemoveEntryList(&Registration->ListEntry);
+
+    // Fix the boost count.
+    if (Registration->Boosting)
+        ProviderThread->BoostCount--;
+
     PhReleaseMutex(&ProviderThread->Mutex);
 }
