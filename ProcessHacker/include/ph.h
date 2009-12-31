@@ -269,6 +269,7 @@ typedef struct _PH_PROCESS_ITEM
     BOOLEAN IsWow64 : 1;
 
     BOOLEAN JustProcessed;
+    PH_EVENT Stage1Event;
 
     WCHAR ProcessIdString[PH_INT_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];

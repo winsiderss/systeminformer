@@ -118,8 +118,7 @@ INT PhAddTabControlTab(
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,
-    __in LPCWSTR menu,
-    __in INT subMenuPosition,
+    __in HMENU menu,
     __in POINT point
     );
 
@@ -173,10 +172,9 @@ typedef struct _PH_PROCESS_PROPCONTEXT
 
 typedef struct _PH_PROCESS_PROPPAGECONTEXT
 {
-    PROPSHEETPAGE PropSheetPage;
-    HPROPSHEETPAGE PropSheetPageHandle;
     PPH_PROCESS_PROPCONTEXT PropContext;
     PVOID Context;
+    PROPSHEETPAGE PropSheetPage;
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
 
 BOOLEAN PhProcessPropInitialization();

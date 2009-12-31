@@ -175,22 +175,14 @@ INT PhAddTabControlTab(
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,
-    __in LPCWSTR menu,
-    __in INT subMenuPosition,
+    __in HMENU menu,
     __in POINT point
     )
 {
-    HMENU menuHandle;
-
     ClientToScreen(subHwnd, &point);
 
-    menuHandle = LoadMenu(PhInstanceHandle, menu);
-
-    if (!menuHandle)
-        return;
-
     TrackPopupMenu(
-        GetSubMenu(menuHandle, subMenuPosition),
+        menu,
         TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
         point.x,
         point.y,
@@ -198,5 +190,4 @@ VOID PhShowContextMenu(
         hwnd,
         NULL
         );
-    DestroyMenu(menuHandle);
 }

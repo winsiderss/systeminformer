@@ -498,7 +498,7 @@ VOID PhStringBuilderAppend2(
     PhStringBuilderAppendEx(
         StringBuilder,
         String,
-        wcslen(String) * sizeof(WCHAR)
+        (ULONG)wcslen(String) * sizeof(WCHAR)
         );
 }
 
@@ -552,7 +552,7 @@ VOID PhStringBuilderInsert2(
         StringBuilder,
         Index,
         String,
-        wcslen(String) * sizeof(WCHAR)
+        (ULONG)wcslen(String) * sizeof(WCHAR)
         );
 }
 
