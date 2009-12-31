@@ -953,24 +953,19 @@ NTSTATUS PhEnumProcessModules(
         return STATUS_UNSUCCESSFUL;
 
     // Traverse the linked list (in load order).
-    // We can't seem to traverse it like a normal linked 
-    // list because there are multiple list heads.
 
     i = 0;
-    startLink = pebLdrData.InLoadOrderModuleList.Flink;
-    currentLink = startLink;
+    startLink = PTR_ADD_OFFSET(ldr, FIELD_OFFSET(PEB_LDR_DATA, InLoadOrderModuleList));
+    currentLink = pebLdrData.InLoadOrderModuleList.Flink;
 
     while (
-        currentLink != NULL &&
+        currentLink != startLink &&
         i <= PH_ENUM_PROCESS_MODULES_ITERS
         )
     {
         PWSTR baseDllNameBuffer;
         PWSTR fullDllNameBuffer;
         BOOLEAN cont;
-
-        if (i > 0 && currentLink == startLink)
-            break;
 
         status = PhReadVirtualMemory(
             ProcessHandle,
