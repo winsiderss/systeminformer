@@ -22,7 +22,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsInJob;
     BOOLEAN IsInSignificantJob;
 
-    BOOLEAN IsPosix;
     BOOLEAN IsWow64;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
@@ -295,23 +294,6 @@ VOID PhpProcessQueryStage1(
             CloseHandle(processHandle);
         }
     }
-
-    // Posix
-    {
-        HANDLE processHandle;
-
-        status = PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess | PROCESS_VM_READ,
-            processId
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            PhGetProcessIsPosix(processHandle, &Data->IsPosix);
-            CloseHandle(processHandle);
-        }
-    }
 }
 
 VOID PhpProcessQueryStage2(
@@ -394,7 +376,6 @@ VOID PhpFillProcessItemStage1(
     processItem->JobName = Data->JobName;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
-    processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
 
     if (Data->IntegrityString)
@@ -483,9 +464,31 @@ VOID PhpFillProcessItem(
 
         if (NT_SUCCESS(status))
         {
+            BOOLEAN isPosix;
             PPH_STRING commandLine;
+            ULONG i;
 
-            status = PhGetProcessCommandLine(processHandle2, &commandLine);
+            status = PhGetProcessIsPosix(processHandle2, &isPosix);
+            ProcessItem->IsPosix = isPosix;
+
+            if (!isPosix)
+            {
+                status = PhGetProcessCommandLine(processHandle2, &commandLine);
+
+                // Some command lines (e.g. from taskeng.exe) have nulls in them. 
+                // Since Windows can't display them, we'll replace them with 
+                // spaces.
+                for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                {
+                    if (commandLine->Buffer[i] == 0)
+                        commandLine->Buffer[i] = ' ';
+                }
+            }
+            else
+            {
+                // Get the POSIX command line.
+                status = PhGetProcessPosixCommandLine(processHandle2, &commandLine);
+            }
 
             if (NT_SUCCESS(status))
             {

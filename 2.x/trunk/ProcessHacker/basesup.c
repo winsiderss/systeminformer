@@ -2,6 +2,11 @@
 #include <phbase.h>
 #include "math.h"
 
+VOID NTAPI PhpStringBuilderDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    );
+
 VOID NTAPI PhpListDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -18,6 +23,7 @@ VOID NTAPI PhpHashtableDeleteProcedure(
     );
 
 PPH_OBJECT_TYPE PhStringType;
+PPH_OBJECT_TYPE PhStringBuilderType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
@@ -40,6 +46,13 @@ BOOLEAN PhInitializeBase()
         &PhStringType,
         0,
         NULL
+        )))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateObjectType(
+        &PhStringBuilderType,
+        0,
+        PhpStringBuilderDeleteProcedure
         )))
         return FALSE;
 
@@ -360,6 +373,238 @@ PPH_STRING PhConcatStrings(
     va_end(argptr);
 
     return string;
+}
+
+PPH_STRING_BUILDER PhCreateStringBuilder(
+    __in ULONG InitialCapacity
+    )
+{
+    PPH_STRING_BUILDER stringBuilder;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &stringBuilder,
+        sizeof(PPH_STRING_BUILDER),
+        0,
+        PhStringBuilderType,
+        0
+        )))
+        return NULL;
+
+    stringBuilder->AllocatedLength = InitialCapacity;
+
+    // Allocate a PH_STRING for the string builder. 
+    // We will dereference it and allocate a new one 
+    // when we need to resize the string.
+
+    stringBuilder->String = PhCreateStringEx(
+        NULL,
+        stringBuilder->AllocatedLength
+        );
+
+    // We will keep modifying the Length field of the 
+    // string so:
+    // 1. We know how much of the string is used, and 
+    // 2. The user can simply get a reference to the 
+    //    string and use it as-is.
+
+    stringBuilder->String->Length = 0;
+
+    // Write the null terminator.
+    stringBuilder->String->Buffer[0] = 0;
+
+    return stringBuilder;
+}
+
+VOID NTAPI PhpStringBuilderDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    )
+{
+    PPH_STRING_BUILDER stringBuilder = (PPH_STRING_BUILDER)Object;
+
+    PhDereferenceObject(stringBuilder->String);
+}
+
+VOID PhpResizeStringBuilder(
+    __in PPH_STRING_BUILDER StringBuilder,
+    __in ULONG NewCapacity
+    )
+{
+    PPH_STRING newString;
+
+    // Double the string size. If that still isn't 
+    // enough room, just use the new length.
+
+    StringBuilder->AllocatedLength *= 2;
+
+    if (StringBuilder->AllocatedLength < NewCapacity)
+        StringBuilder->AllocatedLength = NewCapacity;
+
+    // Allocate a new string.
+    newString = PhCreateStringEx(NULL, StringBuilder->AllocatedLength);
+
+    // Copy the old string to the new string.
+    memcpy(
+        newString->Buffer,
+        StringBuilder->String->Buffer,
+        StringBuilder->String->Length
+        );
+
+    // Copy the old string length.
+    newString->Length = StringBuilder->String->Length;
+
+    // Dereference the old string and replace it with 
+    // the new string.
+    PhDereferenceObject(StringBuilder->String);
+    StringBuilder->String = newString;
+}
+
+VOID FORCEINLINE PhpWriteStringBuilderNullTerminator(
+    __in PPH_STRING_BUILDER StringBuilder
+    )
+{
+    StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = 0;
+}
+
+PPH_STRING PhReferenceStringBuilderString(
+    __in PPH_STRING_BUILDER StringBuilder
+    )
+{
+    PPH_STRING string;
+
+    string = StringBuilder->String;
+    PhReferenceObject(string);
+
+    return string;
+}
+
+VOID PhStringBuilderAppend(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PPH_STRING String
+    )
+{
+    PhStringBuilderAppendEx(
+        StringBuilder,
+        String->Buffer,
+        String->Length
+        );
+}
+
+VOID PhStringBuilderAppend2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR String
+    )
+{
+    PhStringBuilderAppendEx(
+        StringBuilder,
+        String,
+        wcslen(String) * sizeof(WCHAR)
+        );
+}
+
+VOID PhStringBuilderAppendEx(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR String,
+    __in ULONG Length
+    )
+{
+    if (Length == 0)
+        return;
+
+    // See if we need to re-allocate the string.
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + Length)
+    {
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + Length);
+    }
+
+    // Copy the string, add the length, then write the null terminator.
+
+    memcpy(
+        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+        String,
+        Length
+        );
+    StringBuilder->String->Length += (USHORT)Length;
+    PhpWriteStringBuilderNullTerminator(StringBuilder);
+}
+
+VOID PhStringBuilderInsert(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PPH_STRING String
+    )
+{
+    PhStringBuilderInsertEx(
+        StringBuilder,
+        Index,
+        String->Buffer,
+        String->Length
+        );
+}
+
+VOID PhStringBuilderInsert2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PWSTR String
+    )
+{
+    PhStringBuilderInsertEx(
+        StringBuilder,
+        Index,
+        String,
+        wcslen(String) * sizeof(WCHAR)
+        );
+}
+
+VOID PhStringBuilderInsertEx(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PWSTR String,
+    __in ULONG Length
+    )
+{
+    if (Length == 0)
+        return;
+
+    // See if we need to re-allocate the string.
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + Length)
+    {
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + Length);
+    }
+
+    // Create some space for the string.
+    memmove(
+        &StringBuilder->String->Buffer[Index + Length / sizeof(WCHAR)],
+        &StringBuilder->String->Buffer[Index],
+        Length
+        );
+
+    // Copy the new string.
+    memcpy(
+        &StringBuilder->String->Buffer[Index],
+        String,
+        Length
+        );
+
+    PhpWriteStringBuilderNullTerminator(StringBuilder);
+}
+
+VOID PhStringBuilderRemove(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG StartIndex,
+    __in ULONG Length
+    )
+{
+    // Overwrite the removed part with the part 
+    // behind it.
+
+    memcpy(
+        &StringBuilder->String->Buffer[StartIndex],
+        &StringBuilder->String->Buffer[StartIndex + Length],
+        StringBuilder->String->Length - (Length + StartIndex) * sizeof(WCHAR)
+        );
+    StringBuilder->String->Length -= (USHORT)(Length * sizeof(WCHAR));
+    PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
 PPH_LIST PhCreateList(

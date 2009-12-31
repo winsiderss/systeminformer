@@ -99,6 +99,11 @@ NTSTATUS PhGetProcessIsPosix(
     __out PBOOLEAN IsPosix
     );
 
+NTSTATUS PhGetProcessPosixCommandLine(
+    __in HANDLE ProcessHandle,
+    __out PPH_STRING *CommandLine
+    );
+
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
