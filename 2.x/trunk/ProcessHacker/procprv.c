@@ -479,17 +479,20 @@ VOID PhpFillProcessItem(
             status = PhGetProcessIsPosix(processHandle2, &isPosix);
             ProcessItem->IsPosix = isPosix;
 
-            if (!isPosix)
+            if (!NT_SUCCESS(status) || !isPosix)
             {
                 status = PhGetProcessCommandLine(processHandle2, &commandLine);
 
-                // Some command lines (e.g. from taskeng.exe) have nulls in them. 
-                // Since Windows can't display them, we'll replace them with 
-                // spaces.
-                for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                if (NT_SUCCESS(status))
                 {
-                    if (commandLine->Buffer[i] == 0)
-                        commandLine->Buffer[i] = ' ';
+                    // Some command lines (e.g. from taskeng.exe) have nulls in them. 
+                    // Since Windows can't display them, we'll replace them with 
+                    // spaces.
+                    for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                    {
+                        if (commandLine->Buffer[i] == 0)
+                            commandLine->Buffer[i] = ' ';
+                    }
                 }
             }
             else

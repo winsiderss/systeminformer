@@ -5,6 +5,7 @@
 #include <ph.h>
 #include <commctrl.h>
 #include "resource.h"
+#include "prsht.h"
 
 // main
 
@@ -33,9 +34,7 @@ VOID PhInitializeWindowsVersion();
 
 // guisup
 
-// Controls
-
-VOID FORCEINLINE PhSetControlPosition(
+FORCEINLINE VOID PhSetControlPosition(
     HWND Handle,
     INT Left,
     INT Top,
@@ -53,8 +52,6 @@ VOID FORCEINLINE PhSetControlPosition(
         SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOZORDER
         );
 }
-
-// List Views
 
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
@@ -78,10 +75,22 @@ INT PhAddListViewItem(
     __in PVOID Param
     );
 
+INT PhFindListViewItemByFlags(
+    __in HWND ListViewHandle,
+    __in INT StartIndex,
+    __in ULONG Flags
+    );
+
 INT PhFindListViewItemByParam(
     __in HWND ListViewHandle,
     __in INT StartIndex,
     __in PVOID Param
+    );
+
+LOGICAL PhGetListViewItemParam(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __out PPVOID Param
     );
 
 VOID PhRemoveListViewItem(
@@ -96,8 +105,6 @@ VOID PhSetListViewSubItem(
     __in PWSTR Text
     );
 
-// Tab Controls
-
 HWND PhCreateTabControl(
     __in HWND ParentHandle
     );
@@ -106,6 +113,14 @@ INT PhAddTabControlTab(
     __in HWND TabControlHandle,
     __in INT Index,
     __in PWSTR Text
+    );
+
+VOID PhShowContextMenu(
+    __in HWND hwnd,
+    __in HWND subHwnd,
+    __in LPCWSTR menu,
+    __in INT subMenuPosition,
+    __in POINT point
     );
 
 // mainwnd
@@ -127,6 +142,63 @@ LRESULT CALLBACK PhMainWndProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+// procprp
+
+#define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
+
+typedef struct _DLGTEMPLATEEX
+{
+    WORD dlgVer;
+    WORD signature;
+    DWORD helpID;
+    DWORD exStyle;
+    DWORD style;
+    WORD cDlgItems;
+    short x;
+    short y;
+    short cx;
+    short cy;
+} DLGTEMPLATEEX, *PDLGTEMPLATEEX;
+
+typedef struct _PH_PROCESS_PROPCONTEXT
+{
+    PPH_PROCESS_ITEM ProcessItem;
+    HANDLE WindowHandle;
+    PH_EVENT CreatedEvent;
+    PROPSHEETHEADER PropSheetHeader;
+    HPROPSHEETPAGE *PropSheetPages;
+} PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
+
+typedef struct _PH_PROCESS_PROPPAGECONTEXT
+{
+    PROPSHEETPAGE PropSheetPage;
+    HPROPSHEETPAGE PropSheetPageHandle;
+    PPH_PROCESS_PROPCONTEXT PropContext;
+    PVOID Context;
+} PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
+
+BOOLEAN PhProcessPropInitialization();
+
+PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+BOOLEAN PhAddProcessPropPage(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    );
+
+PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
+    __in LPCWSTR Template,
+    __in DLGPROC DlgProc,
+    __in PVOID Context
+    );
+
+BOOLEAN PhShowProcessProperties(
+    __in PPH_PROCESS_PROPCONTEXT Context
     );
 
 #endif

@@ -208,6 +208,7 @@ LONG PhDereferenceObjectEx(
 {
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
+    LONG newRefCount;
     
     /* Make sure we're not subtracting a negative reference count. */
     if (RefCount < 0)
@@ -217,9 +218,10 @@ LONG PhDereferenceObjectEx(
     
     /* Decrease the reference count. */
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, -RefCount);
+    newRefCount = oldRefCount - RefCount;
     
     /* Free the object if it has 0 references. */
-    if (oldRefCount - RefCount == 0)
+    if (newRefCount == 0)
     {
         if (DeferDelete)
         {
@@ -231,8 +233,12 @@ LONG PhDereferenceObjectEx(
             PhpFreeObject(objectHeader);
         }
     }
+    else if (newRefCount < 0)
+    {
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
+    }
     
-    return oldRefCount - RefCount;
+    return newRefCount;
 }
 
 /* PhGetObjectType

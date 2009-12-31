@@ -485,7 +485,7 @@ PPH_STRING PhGetApplicationFileName();
 
 PPH_STRING PhGetApplicationDirectory();
 
-PVOID FORCEINLINE PhAllocateCopy(
+FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
     __in ULONG Size
     )
