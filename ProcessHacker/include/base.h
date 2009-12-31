@@ -30,7 +30,7 @@
 #define PH_INT_STR_LEN 10
 #define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
-VOID FORCEINLINE PhPrintInteger(
+FORCEINLINE VOID PhPrintInteger(
     __out PWSTR Destination,
     __in ULONG Integer
     )
@@ -40,7 +40,7 @@ VOID FORCEINLINE PhPrintInteger(
 
 #ifdef _M_IX86
 
-PVOID FORCEINLINE _InterlockedCompareExchangePointer(
+FORCEINLINE PVOID _InterlockedCompareExchangePointer(
     __inout PVOID volatile *Destination,
     __in PVOID Exchange,
     __in PVOID Comparand
@@ -53,7 +53,7 @@ PVOID FORCEINLINE _InterlockedCompareExchangePointer(
         );
 }
 
-PVOID FORCEINLINE _InterlockedExchangePointer(
+FORCEINLINE PVOID _InterlockedExchangePointer(
     __inout PVOID volatile *Destination,
     __in PVOID Exchange
     )

@@ -101,7 +101,7 @@ BOOLEAN PhReferenceObjectSafe(
     __in PVOID Object
     );
 
-VOID FORCEINLINE PhSwapReference(
+FORCEINLINE VOID PhSwapReference(
     __inout PPVOID ObjectReference,
     __in PVOID NewObject
     )

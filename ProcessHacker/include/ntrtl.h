@@ -14,7 +14,7 @@
 
 // Linked lists
 
-VOID FORCEINLINE InitializeListHead(
+FORCEINLINE VOID InitializeListHead(
     __in PLIST_ENTRY ListHead
     )
 {
@@ -23,7 +23,7 @@ VOID FORCEINLINE InitializeListHead(
 
 #define IsListEmpty(ListHead) ((ListHead)->Flink == (ListHead))
 
-BOOLEAN FORCEINLINE RemoveEntryList(
+FORCEINLINE BOOLEAN RemoveEntryList(
     __in PLIST_ENTRY Entry
     )
 {
@@ -38,7 +38,7 @@ BOOLEAN FORCEINLINE RemoveEntryList(
     return (BOOLEAN)(Flink == Blink);
 }
 
-PLIST_ENTRY FORCEINLINE RemoveHeadList(
+FORCEINLINE PLIST_ENTRY RemoveHeadList(
     __in PLIST_ENTRY ListHead
     )
 {
@@ -53,7 +53,7 @@ PLIST_ENTRY FORCEINLINE RemoveHeadList(
     return Entry;
 }
 
-PLIST_ENTRY FORCEINLINE RemoveTailList(
+FORCEINLINE PLIST_ENTRY RemoveTailList(
     __in PLIST_ENTRY ListHead
     )
 {
@@ -68,7 +68,7 @@ PLIST_ENTRY FORCEINLINE RemoveTailList(
     return Entry;
 }
 
-VOID FORCEINLINE InsertTailList(
+FORCEINLINE VOID InsertTailList(
     __in PLIST_ENTRY ListHead,
     __in PLIST_ENTRY Entry
     )
@@ -82,7 +82,7 @@ VOID FORCEINLINE InsertTailList(
     ListHead->Blink = Entry;
 }
 
-VOID FORCEINLINE InsertHeadList(
+FORCEINLINE VOID InsertHeadList(
     __in PLIST_ENTRY ListHead,
     __in PLIST_ENTRY Entry
     )
@@ -113,7 +113,7 @@ VOID FORCEINLINE InsertHeadList(
 
 // Strings
 
-VOID FORCEINLINE RtlInitUnicodeString(
+FORCEINLINE VOID RtlInitUnicodeString(
     __out PUNICODE_STRING DestinationString,
     __in PWSTR SourceString
     )

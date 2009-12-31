@@ -119,7 +119,7 @@ VOID PhInitializeEvent(
     Event->EventHandle = NULL;
 }
 
-VOID FORCEINLINE PhpDereferenceEvent(
+FORCEINLINE VOID PhpDereferenceEvent(
     __inout PPH_EVENT Event
     )
 {
@@ -138,7 +138,7 @@ VOID FORCEINLINE PhpDereferenceEvent(
     }
 }
 
-VOID FORCEINLINE PhpReferenceEvent(
+FORCEINLINE VOID PhpReferenceEvent(
     __inout PPH_EVENT Event
     )
 {
@@ -459,7 +459,7 @@ VOID PhpResizeStringBuilder(
     StringBuilder->String = newString;
 }
 
-VOID FORCEINLINE PhpWriteStringBuilderNullTerminator(
+FORCEINLINE VOID PhpWriteStringBuilderNullTerminator(
     __in PPH_STRING_BUILDER StringBuilder
     )
 {
@@ -863,7 +863,7 @@ VOID PhpHashtableDeleteProcedure(
     PhFree(hashtable->Entries);
 }
 
-ULONG FORCEINLINE PhpValidateHash(
+FORCEINLINE ULONG PhpValidateHash(
     __in ULONG Hash
     )
 {

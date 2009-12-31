@@ -50,7 +50,7 @@ VOID PhDeleteWorkQueue(
     CloseHandle(WorkQueue->SemaphoreHandle);
 }
 
-VOID FORCEINLINE PhpInitializeWorkQueueItem(
+FORCEINLINE VOID PhpInitializeWorkQueueItem(
     __out PPH_WORK_QUEUE_ITEM WorkQueueItem,
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
@@ -60,7 +60,7 @@ VOID FORCEINLINE PhpInitializeWorkQueueItem(
     WorkQueueItem->Context = Context;
 }
 
-VOID FORCEINLINE PhpExecuteWorkQueueItem(
+FORCEINLINE VOID PhpExecuteWorkQueueItem(
     __inout PPH_WORK_QUEUE_ITEM WorkQueueItem
     )
 {

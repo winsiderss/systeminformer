@@ -67,6 +67,10 @@ BEGIN
     BEGIN
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
+    POPUP "&Process"
+    BEGIN
+        MENUITEM "Properties",                  ID_PROCESS_PROPERTIES
+    END
     MENUITEM "&View",                       ID_VIEW
     MENUITEM "&Tools",                      ID_TOOLS
     MENUITEM "&Users",                      ID_USERS
@@ -111,6 +115,40 @@ BEGIN
         VALUE "Translation", 0xc09, 1200
     END
 END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_PROCGENERAL DIALOGEX 0, 0, 257, 240
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "General"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Static",IDC_PROCGENERAL_NAME,7,7,19,8
+    PUSHBUTTON      "Terminate",IDC_PROCGENERAL_TERMINATE,200,7,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_PROCGENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 250
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 233
+    END
+END
+#endif    // APSTUDIO_INVOKED
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

@@ -12,6 +12,9 @@ VOID PhMainWndTabControlOnNotify(
     __in LPNMHDR Header
     );
 VOID PhMainWndTabControlOnSelectionChanged();
+VOID PhMainWndProcessListViewOnNotify(
+    __in LPNMHDR Header
+    );
 
 VOID PhMainWndOnProcessAdded(
     __in PPH_PROCESS_ITEM ProcessItem
@@ -154,6 +157,40 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case ID_PROCESS_PROPERTIES:
+                {
+                    INT index;
+                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_PROPCONTEXT propContext;
+
+                    index = PhFindListViewItemByFlags(
+                        ProcessListViewHandle,
+                        -1,
+                        LVNI_FOCUSED
+                        );
+
+                    if (index != -1)
+                    {
+                        if (PhGetListViewItemParam(
+                            ProcessListViewHandle,
+                            index,
+                            &processItem
+                            ))
+                        {
+                            propContext = PhCreateProcessPropContext(
+                                PhMainWndHandle,
+                                processItem
+                                );
+
+                            if (propContext)
+                            {
+                                PhShowProcessProperties(propContext);
+                                PhDereferenceObject(propContext);
+                            }
+                        }
+                    }
+                }
+                break;
             default:
                 return DefWindowProc(hWnd, uMsg, wParam, lParam);
             }
@@ -169,8 +206,13 @@ LRESULT CALLBACK PhMainWndProc(
         }
         break;
     case WM_SIZE:
-        PhMainWndOnLayout();
-        InvalidateRect(hWnd, NULL, TRUE);
+        {
+            if (wParam != SIZE_MINIMIZED)
+            {
+                PhMainWndOnLayout();
+                InvalidateRect(hWnd, NULL, TRUE);
+            }
+        }
         break;
     case WM_NOTIFY:
         {
@@ -179,6 +221,10 @@ LRESULT CALLBACK PhMainWndProc(
             if (header->hwndFrom == TabControlHandle)
             {
                 PhMainWndTabControlOnNotify(header);
+            }
+            else if (header->hwndFrom == ProcessListViewHandle)
+            {
+                PhMainWndProcessListViewOnNotify(header);
             }
         }
         break;
@@ -394,6 +440,27 @@ VOID PhMainWndTabControlOnSelectionChanged()
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
 
     PhMainWndTabControlOnLayout();
+}
+
+VOID PhMainWndProcessListViewOnNotify(
+    __in LPNMHDR Header
+    )
+{
+    if (Header->code == NM_RCLICK)
+    {
+        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
+
+        if (itemActivate->iItem != -1)
+        {
+            PhShowContextMenu(
+                PhMainWndHandle,
+                ProcessListViewHandle,
+                MAKEINTRESOURCE(IDR_MAINWND),
+                1,
+                itemActivate->ptAction
+                );
+        }
+    }
 }
 
 VOID PhMainWndOnProcessAdded(
