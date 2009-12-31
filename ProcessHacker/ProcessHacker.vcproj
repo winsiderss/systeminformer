@@ -403,6 +403,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\verify.c"
+				>
+			</File>
+			<File
 				RelativePath=".\workqueue.c"
 				>
 			</File>
@@ -494,6 +498,10 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\verifyp.h"
 				>
 			</File>
 		</Filter>

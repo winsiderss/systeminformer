@@ -1,3 +1,25 @@
+/*
+ * Process Hacker - 
+ *   process provider
+ * 
+ * Copyright (C) 2009-2010 wj32
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #define PROCPRV_PRIVATE
 #include <ph.h>
 
@@ -31,7 +53,7 @@ typedef struct _PH_PROCESS_QUERY_S2_DATA
 
     BOOLEAN IsDotNet;
 
-    ULONG VerifyResult;
+    VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
 
     BOOLEAN IsPacked;
@@ -163,6 +185,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
+    if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
 }
 
 BOOLEAN PhpProcessHashtableCompareFunction(
@@ -304,6 +327,13 @@ VOID PhpProcessQueryStage2(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
+    if (processItem->FileName)
+    {
+        processItem->VerifyResult = PhVerifyFile(
+            processItem->FileName->Buffer,
+            &processItem->VerifySignerName
+            );
+    }
 }
 
 NTSTATUS PhpProcessQueryStage1Worker(
@@ -390,7 +420,14 @@ VOID PhpFillProcessItemStage2(
     __in PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
-    
+    PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
+
+    processItem->IsDotNet = Data->IsDotNet;
+    processItem->VerifyResult = Data->VerifyResult;
+    processItem->VerifySignerName = Data->VerifySignerName;
+    processItem->IsPacked = Data->IsPacked;
+    processItem->ImportFunctions = Data->ImportFunctions;
+    processItem->ImportModules = Data->ImportModules;
 }
 
 VOID PhpFillProcessItem(

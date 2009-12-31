@@ -216,6 +216,105 @@ PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
     );
 
+// verify
+
+typedef enum _VERIFY_RESULT
+{
+    VrUnknown = 0,
+    VrNoSignature,
+    VrTrusted,
+    VrExpired,
+    VrRevoked,
+    VrDistrust,
+    VrSecuritySettings
+} VERIFY_RESULT, *PVERIFY_RESULT;
+
+VOID PhVerifyInitialization();
+
+VERIFY_RESULT PhVerifyFile(
+    __in PWSTR FileName,
+    __out_opt PPH_STRING *SignerName
+    );
+
+// provider
+
+typedef enum _PH_PROVIDER_THREAD_STATE
+{
+    ProviderThreadRunning,
+    ProviderThreadStopped,
+    ProviderThreadStopping
+} PH_PROVIDER_THREAD_STATE;
+
+typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
+    __in PVOID Context
+    );
+
+typedef struct _PH_PROVIDER_REGISTRATION
+{
+    LIST_ENTRY ListEntry;
+    PPH_PROVIDER_FUNCTION Function;
+    PVOID Context;
+    BOOLEAN Enabled;
+    BOOLEAN Unregistering;
+    BOOLEAN Boosting;
+} PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
+
+typedef struct _PH_PROVIDER_THREAD
+{
+    HANDLE ThreadHandle;
+    HANDLE TimerHandle;
+    ULONG Interval;
+    PH_PROVIDER_THREAD_STATE State;
+
+    PH_MUTEX Mutex;
+    LIST_ENTRY ListHead;
+    ULONG BoostCount;
+} PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
+
+VOID PhInitializeProviderThread(
+    __out PPH_PROVIDER_THREAD ProviderThread,
+    __in ULONG Interval
+    );
+
+VOID PhDeleteProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
+VOID PhStartProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
+VOID PhStopProviderThread(
+    __inout PPH_PROVIDER_THREAD ProviderThread
+    );
+
+VOID PhSetProviderThreadInterval(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __in ULONG Interval
+    );
+
+VOID PhBoostProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __inout PPH_PROVIDER_REGISTRATION Registration
+    );
+
+VOID PhSetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration,
+    __in BOOLEAN Enabled
+    );
+
+VOID PhRegisterProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __in PPH_PROVIDER_FUNCTION Function,
+    __in PVOID Context,
+    __out PPH_PROVIDER_REGISTRATION Registration
+    );
+
+VOID PhUnregisterProvider(
+    __inout PPH_PROVIDER_THREAD ProviderThread,
+    __inout PPH_PROVIDER_REGISTRATION Registration
+    );
+
 // procprv
 
 #ifndef PROCPRV_PRIVATE
@@ -257,6 +356,12 @@ typedef struct _PH_PROCESS_ITEM
     PH_INTEGRITY IntegrityLevel;
 
     PPH_STRING JobName;
+
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
+
+    ULONG ImportFunctions;
+    ULONG ImportModules;
 
     BOOLEAN HasParent : 1;
     BOOLEAN IsBeingDebugged : 1;
@@ -355,85 +460,6 @@ PVOID PhQueryServiceConfig(
 
 VOID PhServiceProviderUpdate(
     __in PVOID Context
-    );
-
-// provider
-
-typedef enum _PH_PROVIDER_THREAD_STATE
-{
-    ProviderThreadRunning,
-    ProviderThreadStopped,
-    ProviderThreadStopping
-} PH_PROVIDER_THREAD_STATE;
-
-typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
-    __in PVOID Context
-    );
-
-typedef struct _PH_PROVIDER_REGISTRATION
-{
-    LIST_ENTRY ListEntry;
-    PPH_PROVIDER_FUNCTION Function;
-    PVOID Context;
-    BOOLEAN Enabled;
-    BOOLEAN Unregistering;
-    BOOLEAN Boosting;
-} PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
-
-typedef struct _PH_PROVIDER_THREAD
-{
-    HANDLE ThreadHandle;
-    HANDLE TimerHandle;
-    ULONG Interval;
-    PH_PROVIDER_THREAD_STATE State;
-
-    PH_MUTEX Mutex;
-    LIST_ENTRY ListHead;
-    ULONG BoostCount;
-} PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
-
-VOID PhInitializeProviderThread(
-    __out PPH_PROVIDER_THREAD ProviderThread,
-    __in ULONG Interval
-    );
-
-VOID PhDeleteProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
-    );
-
-VOID PhStartProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
-    );
-
-VOID PhStopProviderThread(
-    __inout PPH_PROVIDER_THREAD ProviderThread
-    );
-
-VOID PhSetProviderThreadInterval(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in ULONG Interval
-    );
-
-VOID PhBoostProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __inout PPH_PROVIDER_REGISTRATION Registration
-    );
-
-VOID PhSetProviderEnabled(
-    __in PPH_PROVIDER_REGISTRATION Registration,
-    __in BOOLEAN Enabled
-    );
-
-VOID PhRegisterProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __in PPH_PROVIDER_FUNCTION Function,
-    __in PVOID Context,
-    __out PPH_PROVIDER_REGISTRATION Registration
-    );
-
-VOID PhUnregisterProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
-    __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
 // support
