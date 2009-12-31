@@ -143,6 +143,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
         return NULL;
 
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
+    PhInitializeEvent(&processItem->Stage1Event);
     processItem->ProcessId = ProcessId;
 
     return processItem;
@@ -635,6 +636,7 @@ VOID PhProcessProviderUpdate(
             if (data->Stage == 1)
             {
                 PhpFillProcessItemStage1((PPH_PROCESS_QUERY_S1_DATA)data);
+                PhSetEvent(&data->ProcessItem->Stage1Event);
                 data->ProcessItem->JustProcessed = TRUE;
             }
             else if (data->Stage == 2)
@@ -678,6 +680,7 @@ VOID PhProcessProviderUpdate(
                 data.Header.ProcessItem = processItem;
                 PhpProcessQueryStage1(&data);
                 PhpFillProcessItemStage1(&data);
+                PhSetEvent(&processItem->Stage1Event);
             }
             else
             {

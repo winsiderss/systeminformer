@@ -16,7 +16,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
     __in ULONG Flags
     );
 
-INT CALLBACK PhpStandardPropSheetPageProc(
+INT CALLBACK PhpStandardPropPageProc(
     __in HWND hwnd,
     __in UINT uMsg,
     __in LPPROPSHEETPAGE ppsp
@@ -187,17 +187,19 @@ BOOLEAN PhAddProcessPropPage(
     __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
+    HPROPSHEETPAGE propSheetPageHandle;
+
     if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
         return FALSE;
 
-    PropPageContext->PropSheetPageHandle = CreatePropertySheetPage(
+    propSheetPageHandle = CreatePropertySheetPage(
         &PropPageContext->PropSheetPage
         );
     PropPageContext->PropContext = PropContext;
     PhReferenceObject(PropContext);
 
     PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
-        PropPageContext->PropSheetPageHandle;
+        propSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;
@@ -227,7 +229,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;
     propPageContext->PropSheetPage.lParam = (LPARAM)propPageContext;
-    propPageContext->PropSheetPage.pfnCallback = PhpStandardPropSheetPageProc;
+    propPageContext->PropSheetPage.pfnCallback = PhpStandardPropPageProc;
 
     propPageContext->Context = Context;
 
@@ -245,7 +247,7 @@ VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
         PhDereferenceObject(propPageContext->PropContext);
 }
 
-INT CALLBACK PhpStandardPropSheetPageProc(
+INT CALLBACK PhpStandardPropPageProc(
     __in HWND hwnd,
     __in UINT uMsg,
     __in LPPROPSHEETPAGE ppsp
@@ -270,8 +272,61 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in LPARAM lParam
     )
 {
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        // Save the context.
+        SetProp(hwndDlg, L"PropPageContext", (HANDLE)lParam);
+    }
+
+    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PropPageContext");
+
+    if (!propSheetPage)
+        return FALSE;
+
+    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+    processItem = propPageContext->PropContext->ProcessItem;
+
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            SendMessage(GetDlgItem(hwndDlg, IDC_PROCGENERAL_ICON), STM_SETICON,
+                (WPARAM)processItem->LargeIcon, 0);
+            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_NAME,
+                processItem->VersionInfo.FileDescription->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                processItem->VersionInfo.CompanyName->Buffer); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            RemoveProp(hwndDlg, L"PropPageContext");
+        }
+        break;
+    case WM_COMMAND:
+        {
+            INT id = LOWORD(wParam);
+
+            switch (id)
+            {
+            case IDC_PROCGENERAL_TERMINATE:
+                {
+                    if (PhShowMessage(hwndDlg, MB_ICONWARNING | MB_YESNO,
+                        L"Are you sure you want to terminate %s?",
+                        processItem->ProcessName->Buffer
+                        ) == IDYES)
+                    {
+                        
+                    }
+                }
+                break;
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -282,21 +337,21 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     )
 {
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
+        PPH_PROCESS_PROPPAGECONTEXT generalPage;
     HWND hwnd;
     BOOL result;
     MSG msg;
 
-    {
-        PPH_PROCESS_PROPPAGECONTEXT generalPage;
+    // Wait for stage 1 to be processed.
+    PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
 
-        generalPage = PhCreateProcessPropPageContext(
-            MAKEINTRESOURCE(IDD_PROCGENERAL),
-            PhpProcessGeneralDlgProc,
-            NULL
-            );
-        PhAddProcessPropPage(PropContext, generalPage);
-        PhDereferenceObject(generalPage);
-    }
+    generalPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCGENERAL),
+        PhpProcessGeneralDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, generalPage);
+    PhDereferenceObject(generalPage);
 
     hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
 
