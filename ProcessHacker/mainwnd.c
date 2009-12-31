@@ -16,6 +16,10 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     );
 
+VOID PhpShowProcessProperties(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 VOID PhMainWndOnProcessAdded(
     __in PPH_PROCESS_ITEM ProcessItem
     );
@@ -161,7 +165,6 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     INT index;
                     PPH_PROCESS_ITEM processItem;
-                    PPH_PROCESS_PROPCONTEXT propContext;
 
                     index = PhFindListViewItemByFlags(
                         ProcessListViewHandle,
@@ -177,16 +180,7 @@ LRESULT CALLBACK PhMainWndProc(
                             &processItem
                             ))
                         {
-                            propContext = PhCreateProcessPropContext(
-                                PhMainWndHandle,
-                                processItem
-                                );
-
-                            if (propContext)
-                            {
-                                PhShowProcessProperties(propContext);
-                                PhDereferenceObject(propContext);
-                            }
+                            PhpShowProcessProperties(processItem);
                         }
                     }
                 }
@@ -267,6 +261,24 @@ LRESULT CALLBACK PhMainWndProc(
     }
 
     return 0;
+}
+
+VOID PhpShowProcessProperties(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_PROCESS_PROPCONTEXT propContext;
+
+    propContext = PhCreateProcessPropContext(
+        PhMainWndHandle,
+        ProcessItem
+        );
+
+    if (propContext)
+    {
+        PhShowProcessProperties(propContext);
+        PhDereferenceObject(propContext);
+    }
 }
 
 VOID NTAPI ProcessAddedHandler(
@@ -446,19 +458,43 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     )
 {
-    if (Header->code == NM_RCLICK)
+    if (Header->code == NM_DBLCLK)
     {
         LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
 
         if (itemActivate->iItem != -1)
         {
+            PPH_PROCESS_ITEM processItem;
+
+            if (PhGetListViewItemParam(
+                ProcessListViewHandle,
+                itemActivate->iItem,
+                &processItem
+                ))
+            {
+                PhpShowProcessProperties(processItem);
+            }
+        }
+    }
+    else if (Header->code == NM_RCLICK)
+    {
+        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
+
+        if (itemActivate->iItem != -1)
+        {
+            HMENU menu;
+            HMENU subMenu;
+
+            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+            subMenu = GetSubMenu(menu, 1);
+
             PhShowContextMenu(
                 PhMainWndHandle,
                 ProcessListViewHandle,
-                MAKEINTRESOURCE(IDR_MAINWND),
-                1,
+                subMenu,
                 itemActivate->ptAction
                 );
+            DestroyMenu(menu);
         }
     }
 }
