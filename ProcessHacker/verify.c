@@ -98,7 +98,7 @@ PPH_STRING PhpGetCertNameString(
 {
     PPH_STRING string;
     PVOID buffer;
-    ULONG bufferSize = 0x80;
+    ULONG bufferSize = 0x100;
     ULONG returnLength;
 
     buffer = PhAllocate(bufferSize * 2);
@@ -132,6 +132,59 @@ PPH_STRING PhpGetCertNameString(
     return string;
 }
 
+PPH_STRING PhpGetX500Value(
+    __in PPH_STRING String,
+    __in PWSTR KeyName
+    )
+{
+    WCHAR keyNamePlusEquals[10];
+    ULONG keyNameLength;
+    ULONG startIndex;
+    ULONG endIndex;
+
+    keyNameLength = wcslen(KeyName);
+    wcsncpy(keyNamePlusEquals, KeyName, 8);
+    keyNamePlusEquals[keyNameLength] = '=';
+    keyNamePlusEquals[keyNameLength + 1] = 0;
+
+    // Find "Key=".
+    startIndex = PhStringIndexOfString(String, 0, keyNamePlusEquals);
+
+    if (startIndex == -1)
+        return NULL;
+
+    startIndex += keyNameLength + 1;
+
+    if (startIndex * sizeof(WCHAR) >= String->Length)
+        return NULL;
+
+    // Is the value quoted?
+    if (String->Buffer[startIndex] == '"')
+    {
+        startIndex++;
+
+        if (startIndex * sizeof(WCHAR) >= String->Length)
+            return NULL;
+
+        endIndex = PhStringIndexOfChar(String, startIndex, '"');
+
+        // It's an error if we didn't find the matching quotation mark.
+        if (endIndex == -1)
+            return NULL;
+    }
+    else
+    {
+        endIndex = PhStringIndexOfChar(String, startIndex, ',');
+
+        // If we didn't find a comma, it means the key/value pair is 
+        // the last one in the string.
+        if (endIndex == -1)
+            endIndex = String->Length / sizeof(WCHAR);
+    }
+
+    return PhSubstring(String, startIndex, endIndex - startIndex);
+}
+
 PPH_STRING PhpGetSignerNameFromStateData(
     __in HANDLE StateData
     )
@@ -142,6 +195,7 @@ PPH_STRING PhpGetSignerNameFromStateData(
     PCCERT_CONTEXT certContext;
     PCERT_INFO certInfo;
     PPH_STRING name;
+    PPH_STRING value;
 
     // 1. State data -> provider data.
 
@@ -185,9 +239,14 @@ PPH_STRING PhpGetSignerNameFromStateData(
 
     // 7. Subject X.500 string -> CN or OU value
 
-    // TODO
+    value = PhpGetX500Value(name, L"CN");
 
-    return name;
+    if (!value)
+        value = PhpGetX500Value(name, L"OU");
+
+    PhDereferenceObject(name);
+
+    return value;
 }
 
 VERIFY_RESULT PhpVerifyFileBasic(

@@ -314,12 +314,13 @@ FORCEINLINE BOOLEAN PhStringEndsWith2(
 
 FORCEINLINE ULONG PhStringIndexOfChar(
     __in PPH_STRING String1,
+    __in ULONG StartIndex,
     __in WCHAR Char
     )
 {
     PWSTR location;
 
-    location = wcschr(String1->Buffer, Char);
+    location = wcschr(&String1->Buffer[StartIndex], Char);
 
     if (location)
         return (ULONG)(location - String1->Buffer);
@@ -329,12 +330,13 @@ FORCEINLINE ULONG PhStringIndexOfChar(
 
 FORCEINLINE ULONG PhStringIndexOfString(
     __in PPH_STRING String1,
+    __in ULONG StartIndex,
     __in PWSTR String2
     )
 {
     PWSTR location;
 
-    location = wcsstr(String1->Buffer, String2);
+    location = wcsstr(&String1->Buffer[StartIndex], String2);
 
     if (location)
         return (ULONG)(location - String1->Buffer);

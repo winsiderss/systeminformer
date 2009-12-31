@@ -23,6 +23,14 @@
 #define PROCPRV_PRIVATE
 #include <ph.h>
 
+VOID PhpQueueProcessQueryStage1(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhpQueueProcessQueryStage2(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 typedef struct _PH_PROCESS_QUERY_DATA
 {
     ULONG Stage;
@@ -318,6 +326,8 @@ VOID PhpProcessQueryStage1(
             CloseHandle(processHandle);
         }
     }
+
+    PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpProcessQueryStage2(
@@ -329,9 +339,9 @@ VOID PhpProcessQueryStage2(
 
     if (processItem->FileName)
     {
-        processItem->VerifyResult = PhVerifyFile(
+        Data->VerifyResult = PhVerifyFile(
             processItem->FileName->Buffer,
-            &processItem->VerifySignerName
+            &Data->VerifySignerName
             );
     }
 }
@@ -382,6 +392,8 @@ VOID PhpQueueProcessQueryStage1(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
+    // Ref: dereferenced when the provider update function removes the item from 
+    // the queue.
     PhReferenceObject(ProcessItem);
     PhQueueGlobalWorkQueueItem(PhpProcessQueryStage1Worker, ProcessItem);
 }
@@ -724,8 +736,6 @@ VOID PhProcessProviderUpdate(
                 PhpQueueProcessQueryStage1(processItem);
             }
 
-            PhpQueueProcessQueryStage2(processItem);
-
             // Add the process item to the hashtable.
             PhAcquireFastLockExclusive(&PhProcessHashtableLock);
             PhAddHashtableEntry(PhProcessHashtable, &processItem);
@@ -734,9 +744,10 @@ VOID PhProcessProviderUpdate(
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
 
-            // (Add a reference for the process item being in the hashtable.)
+            // (Ref: for the process item being in the hashtable.)
             // Instead of referencing then dereferencing we simply don't 
             // do anything.
+            // Dereferenced in PhpRemoveProcessItem.
         }
         else
         {
