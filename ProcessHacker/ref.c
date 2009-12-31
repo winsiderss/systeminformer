@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   internal object manager
  * 
- * Copyright (C) 2009 wj32
+ * Copyright (C) 2009-2010 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -21,6 +21,8 @@
  */
 
 #include <refp.h>
+
+// This code was ported from KProcessHacker.
 
 /* The object type type. */
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
