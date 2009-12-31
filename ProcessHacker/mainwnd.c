@@ -46,6 +46,10 @@ VOID PhMainWndOnProcessAdded(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhMainWndOnProcessModified(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 VOID PhMainWndOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     );
@@ -75,6 +79,7 @@ static PH_PROVIDER_THREAD PrimaryProviderThread;
 
 static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
@@ -252,6 +257,11 @@ LRESULT CALLBACK PhMainWndProc(
             PhDereferenceObject(processItem);
         }
         break;
+    case WM_PH_PROCESS_MODIFIED:
+        {
+            PhMainWndOnProcessModified((PPH_PROCESS_ITEM)lParam);
+        }
+        break;
     case WM_PH_PROCESS_REMOVED:
         {
             PhMainWndOnProcessRemoved((PPH_PROCESS_ITEM)lParam);
@@ -314,6 +324,16 @@ VOID NTAPI ProcessAddedHandler(
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_ADDED, 0, (LPARAM)processItem);
+}
+
+VOID NTAPI ProcessModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
 }
 
 VOID NTAPI ProcessRemovedHandler(
@@ -381,6 +401,7 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ProcessListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"User Name");
     PhAddListViewColumn(ProcessListViewHandle, 3, 3, 3, LVCFMT_LEFT, 300, L"File Name");
     PhAddListViewColumn(ProcessListViewHandle, 4, 4, 4, LVCFMT_LEFT, 300, L"Command Line");
+    PhAddListViewColumn(ProcessListViewHandle, 5, 5, 5, LVCFMT_LEFT, 140, L"Verified Signer");
     PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
     PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"PID");
@@ -391,6 +412,12 @@ VOID PhMainWndOnCreate()
         ProcessAddedHandler,
         NULL,
         &ProcessAddedRegistration
+        );
+    PhRegisterCallback(
+        &PhProcessModifiedEvent,
+        ProcessModifiedHandler,
+        NULL,
+        &ProcessModifiedRegistration
         );
     PhRegisterCallback(
         &PhProcessRemovedEvent,
@@ -540,6 +567,20 @@ VOID PhMainWndOnProcessAdded(
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(ProcessItem->UserName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(ProcessItem->FileName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
+}
+
+VOID PhMainWndOnProcessModified(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem);
+
+    if (lvItemIndex != -1)
+    {
+        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 5, PhGetString(ProcessItem->VerifySignerName));
+    }
 }
 
 VOID PhMainWndOnProcessRemoved(

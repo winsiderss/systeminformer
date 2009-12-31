@@ -707,7 +707,7 @@ NTSTATUS PhGetTokenIntegrityLevel(
         return STATUS_UNSUCCESSFUL;
 
     // Look for " Mandatory Level".
-    i = PhStringIndexOfString(sidName, L" Mandatory Level");
+    i = PhStringIndexOfString(sidName, 0, L" Mandatory Level");
 
     if (i == -1)
     {
