@@ -401,9 +401,17 @@ VOID PhpFillProcessItem(
     HANDLE processHandle;
 
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
-    ProcessItem->ProcessName = PhCreateStringEx(Process->ImageName.Buffer, Process->ImageName.Length);
     ProcessItem->SessionId = Process->SessionId;
     ProcessItem->CreateTime = Process->CreateTime;
+
+    if (ProcessItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
+    {
+        ProcessItem->ProcessName = PhCreateStringEx(Process->ImageName.Buffer, Process->ImageName.Length);
+    }
+    else
+    {
+        ProcessItem->ProcessName = PhCreateString(L"System Idle Process");
+    }
 
     PhPrintInteger(ProcessItem->ProcessIdString, (ULONG)ProcessItem->ProcessId);
     PhPrintInteger(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
