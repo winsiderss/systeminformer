@@ -217,7 +217,7 @@ NTSTATUS PhGetProcessPebString(
     PPH_STRING string;
     ULONG offset;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PVOID address;
+    PVOID processParameters;
     UNICODE_STRING unicodeString;
 
     switch (Offset)
@@ -258,7 +258,7 @@ NTSTATUS PhGetProcessPebString(
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
-        &address,
+        &processParameters,
         sizeof(PVOID),
         NULL
         )))
@@ -267,7 +267,7 @@ NTSTATUS PhGetProcessPebString(
     // Read the string structure.
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
-        PTR_ADD_OFFSET(address, offset),
+        PTR_ADD_OFFSET(processParameters, offset),
         &unicodeString,
         sizeof(UNICODE_STRING),
         NULL
@@ -360,6 +360,125 @@ NTSTATUS PhGetProcessIsPosix(
     }
 
     return status;
+}
+
+NTSTATUS PhGetProcessPosixCommandLine(
+    __in HANDLE ProcessHandle,
+    __out PPH_STRING *CommandLine
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PVOID processParameters;
+    UNICODE_STRING commandLine;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+        &processParameters,
+        sizeof(PVOID),
+        NULL
+        )))
+        return status;
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, CommandLine)),
+        &commandLine,
+        sizeof(UNICODE_STRING),
+        NULL
+        )))
+        return status;
+
+    // See ProcessHandle.cs from PH 1.x for how POSIX command lines work.
+    {
+        PVOID pointer = NULL;
+        PVOID firstPointer = NULL;
+        PVOID lastPointer = NULL;
+        BOOLEAN zeroReached = FALSE;
+        ULONG i;
+        ULONG commandLineChunkSize;
+        PCHAR commandLineChunk;
+
+        i = 0;
+
+        // Read the first command line pointer + the first environment pointer.
+
+        while (i < sizeof(PVOID) * 100) // reasonable limit
+        {
+            PhReadVirtualMemory(
+                ProcessHandle,
+                PTR_ADD_OFFSET(commandLine.Buffer, i),
+                &pointer,
+                sizeof(PVOID),
+                NULL
+                );
+
+            if (pointer && !firstPointer)
+                firstPointer = pointer;
+            if (zeroReached)
+                lastPointer = pointer;
+
+            i += sizeof(PVOID);
+
+            if (zeroReached)
+                break;
+            else if (!pointer)
+                zeroReached = TRUE;
+
+            pointer = NULL;
+        }
+
+        commandLineChunkSize = (ULONG)((PBYTE)lastPointer - (PBYTE)firstPointer);
+
+        // Set a limit on how much we're going to read.
+        if (commandLineChunkSize > 0x1000)
+            return STATUS_UNSUCCESSFUL;
+
+        commandLineChunk = PhAllocate(commandLineChunkSize);
+
+        // Read the chunk.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            firstPointer,
+            commandLineChunk,
+            commandLineChunkSize,
+            NULL
+            )))
+        {
+            PhFree(commandLineChunk);
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        // Replace the nulls in the chunk with spaces.
+        for (i = 0; i < commandLineChunkSize; i++)
+        {
+            if (commandLineChunk[i] == 0)
+            {
+                commandLineChunk[i] = ' ';
+
+                // Trim the last null/space.
+                if (i == commandLineChunkSize - 1)
+                {
+                    commandLineChunkSize--;
+                    break;
+                }
+            }
+        }
+
+        *CommandLine = PhCreateStringFromMultiByteEx(
+            commandLineChunk,
+            commandLineChunkSize
+            );
+        PhFree(commandLineChunk);
+
+        return status;
+    }
 }
 
 NTSTATUS PhSetProcessExecuteFlags(

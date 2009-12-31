@@ -351,6 +351,71 @@ PPH_STRING FORCEINLINE PhSubstring(
     return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
 }
 
+// stringbuilder
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhStringBuilderType;
+#endif
+
+typedef struct _PH_STRING_BUILDER
+{
+    // Allocated length of the string.
+    ULONG AllocatedLength;
+    // String will be allocated for AllocatedLength, 
+    // but we will modify the Length field to be the 
+    // correct length.
+    PPH_STRING String;
+} PH_STRING_BUILDER, *PPH_STRING_BUILDER;
+
+PPH_STRING_BUILDER PhCreateStringBuilder(
+    __in ULONG InitialCapacity
+    );
+
+PPH_STRING PhReferenceStringBuilderString(
+    __in PPH_STRING_BUILDER StringBuilder
+    );
+
+VOID PhStringBuilderAppend(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PPH_STRING String
+    );
+
+VOID PhStringBuilderAppend2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR String
+    );
+
+VOID PhStringBuilderAppendEx(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR String,
+    __in ULONG Length
+    );
+
+VOID PhStringBuilderInsert(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PPH_STRING String
+    );
+
+VOID PhStringBuilderInsert2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PWSTR String
+    );
+
+VOID PhStringBuilderInsertEx(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG Index,
+    __in PWSTR String,
+    __in ULONG Length
+    );
+
+VOID PhStringBuilderRemove(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in ULONG StartIndex,
+    __in ULONG Length
+    );
+
 // list
 
 #ifndef BASESUP_PRIVATE
