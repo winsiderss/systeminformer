@@ -379,6 +379,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\procprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\procprv.c"
 				>
 			</File>

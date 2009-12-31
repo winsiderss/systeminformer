@@ -65,7 +65,7 @@ VOID PhDeleteFastLock(
     }
 }
 
-VOID FORCEINLINE PhpEnsureEventCreated(
+FORCEINLINE VOID PhpEnsureEventCreated(
     __inout PHANDLE Handle
     )
 {

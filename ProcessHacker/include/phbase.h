@@ -62,28 +62,28 @@ PVOID PhReAlloc(
 
 typedef RTL_CRITICAL_SECTION PH_MUTEX, *PPH_MUTEX;
 
-VOID FORCEINLINE PhInitializeMutex(
+FORCEINLINE VOID PhInitializeMutex(
     __out PPH_MUTEX Mutex
     )
 {
     InitializeCriticalSection(Mutex);
 }
 
-VOID FORCEINLINE PhDeleteMutex(
+FORCEINLINE VOID PhDeleteMutex(
     __inout PPH_MUTEX Mutex
     )
 {
     DeleteCriticalSection(Mutex);
 }
 
-VOID FORCEINLINE PhAcquireMutex(
+FORCEINLINE VOID PhAcquireMutex(
     __inout PPH_MUTEX Mutex
     )
 {
     EnterCriticalSection(Mutex);
 }
 
-VOID FORCEINLINE PhReleaseMutex(
+FORCEINLINE VOID PhReleaseMutex(
     __inout PPH_MUTEX Mutex
     )
 {
@@ -119,7 +119,7 @@ VOID PhResetEvent(
     __inout PPH_EVENT Event
     );
 
-BOOLEAN FORCEINLINE PhTestEvent(
+FORCEINLINE BOOLEAN PhTestEvent(
     __in PPH_EVENT Event
     )
 {
@@ -172,7 +172,7 @@ PPH_STRING PhConcatStrings(
     ...
     );
 
-PWSTR FORCEINLINE PhGetString(
+FORCEINLINE PWSTR PhGetString(
     __in_opt PPH_STRING String
     )
 {
@@ -182,7 +182,7 @@ PWSTR FORCEINLINE PhGetString(
         return NULL;
 }
 
-PPH_STRING FORCEINLINE PhConcatStrings2(
+FORCEINLINE PPH_STRING PhConcatStrings2(
     __in PWSTR String1,
     __in PWSTR String2
     )
@@ -208,7 +208,7 @@ PPH_STRING FORCEINLINE PhConcatStrings2(
     return string;
 }
 
-BOOLEAN FORCEINLINE PhStringEquals(
+FORCEINLINE BOOLEAN PhStringEquals(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -220,7 +220,7 @@ BOOLEAN FORCEINLINE PhStringEquals(
         return wcsicmp(String1->Buffer, String2->Buffer) == 0;
 }
 
-BOOLEAN FORCEINLINE PhStringEquals2(
+FORCEINLINE BOOLEAN PhStringEquals2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -232,7 +232,7 @@ BOOLEAN FORCEINLINE PhStringEquals2(
         return wcsicmp(String1->Buffer, String2) == 0;
 }
 
-BOOLEAN FORCEINLINE PhStringStartsWith(
+FORCEINLINE BOOLEAN PhStringStartsWith(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -244,7 +244,7 @@ BOOLEAN FORCEINLINE PhStringStartsWith(
         return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
 }
 
-BOOLEAN FORCEINLINE PhStringStartsWith2(
+FORCEINLINE BOOLEAN PhStringStartsWith2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -256,7 +256,7 @@ BOOLEAN FORCEINLINE PhStringStartsWith2(
         return wcsnicmp(String1->Buffer, String2, wcslen(String2)) == 0;
 }
 
-BOOLEAN FORCEINLINE PhStringEndsWith(
+FORCEINLINE BOOLEAN PhStringEndsWith(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -283,7 +283,7 @@ BOOLEAN FORCEINLINE PhStringEndsWith(
     }
 }
 
-BOOLEAN FORCEINLINE PhStringEndsWith2(
+FORCEINLINE BOOLEAN PhStringEndsWith2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -312,7 +312,7 @@ BOOLEAN FORCEINLINE PhStringEndsWith2(
     }
 }
 
-ULONG FORCEINLINE PhStringIndexOfChar(
+FORCEINLINE ULONG PhStringIndexOfChar(
     __in PPH_STRING String1,
     __in WCHAR Char
     )
@@ -327,7 +327,7 @@ ULONG FORCEINLINE PhStringIndexOfChar(
         return -1;
 }
 
-ULONG FORCEINLINE PhStringIndexOfString(
+FORCEINLINE ULONG PhStringIndexOfString(
     __in PPH_STRING String1,
     __in PWSTR String2
     )
@@ -342,7 +342,7 @@ ULONG FORCEINLINE PhStringIndexOfString(
         return -1;
 }
 
-PPH_STRING FORCEINLINE PhSubstring(
+FORCEINLINE PPH_STRING PhSubstring(
     __in PPH_STRING String,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -588,7 +588,7 @@ ULONG PhHashBytesSdbm(
     __in ULONG Length
     );
 
-ULONG FORCEINLINE PhHashInt32(
+FORCEINLINE ULONG PhHashInt32(
     __in ULONG Value
     )
 {
@@ -643,7 +643,7 @@ VOID PhInvokeCallback(
     __in PVOID Parameter
     );
 
-VOID FORCEINLINE PhInvokeCallbackRegistration(
+FORCEINLINE VOID PhInvokeCallbackRegistration(
     __in PPH_CALLBACK_REGISTRATION Registration,
     __in PVOID Parameter
     )

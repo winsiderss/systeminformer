@@ -60,6 +60,15 @@ INT PhAddListViewItem(
     return ListView_InsertItem(ListViewHandle, &item);
 }
 
+INT PhFindListViewItemByFlags(
+    __in HWND ListViewHandle,
+    __in INT StartIndex,
+    __in ULONG Flags
+    )
+{
+    return ListView_GetNextItem(ListViewHandle, StartIndex, Flags);
+}
+
 INT PhFindListViewItemByParam(
     __in HWND ListViewHandle,
     __in INT StartIndex,
@@ -72,6 +81,28 @@ INT PhFindListViewItemByParam(
     findInfo.lParam = (LPARAM)Param;
 
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
+}
+
+LOGICAL PhGetListViewItemParam(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __out PPVOID Param
+    )
+{
+    LOGICAL result;
+    LVITEM item;
+
+    item.mask = LVIF_PARAM;
+    item.iItem = Index;
+
+    result = ListView_GetItem(ListViewHandle, &item);
+
+    if (!result)
+        return result;
+
+    *Param = (PVOID)item.lParam;
+
+    return result;
 }
 
 VOID PhRemoveListViewItem(
@@ -139,4 +170,33 @@ INT PhAddTabControlTab(
     item.pszText = Text;
 
     return TabCtrl_InsertItem(TabControlHandle, Index, &item);
+}
+
+VOID PhShowContextMenu(
+    __in HWND hwnd,
+    __in HWND subHwnd,
+    __in LPCWSTR menu,
+    __in INT subMenuPosition,
+    __in POINT point
+    )
+{
+    HMENU menuHandle;
+
+    ClientToScreen(subHwnd, &point);
+
+    menuHandle = LoadMenu(PhInstanceHandle, menu);
+
+    if (!menuHandle)
+        return;
+
+    TrackPopupMenu(
+        GetSubMenu(menuHandle, subMenuPosition),
+        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
+        point.x,
+        point.y,
+        0,
+        hwnd,
+        NULL
+        );
+    DestroyMenu(menuHandle);
 }
