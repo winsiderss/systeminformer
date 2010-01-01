@@ -40,25 +40,6 @@ typedef HRESULT (* _SetWindowTheme)(
     __in LPCWSTR pszSubIdList
     );
 
-FORCEINLINE VOID PhSetControlPosition(
-    __in HWND Handle,
-    __in INT Left,
-    __in INT Top,
-    __in INT Right,
-    __in INT Bottom
-    )
-{
-    SetWindowPos(
-        Handle,
-        NULL,
-        Left,
-        Top,
-        Right - Left,
-        Bottom - Top,
-        SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOZORDER
-        );
-}
-
 VOID PhGuiSupportInitialization();
 
 VOID PhSetControlTheme(

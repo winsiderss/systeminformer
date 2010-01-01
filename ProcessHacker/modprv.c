@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define MODPRV_PRIVATE
 #include <ph.h>
 
 VOID NTAPI PhpModuleProviderDeleteProcedure(

@@ -164,11 +164,11 @@ PPH_STRING PhCreateStringEx(
     __in SIZE_T Length
     );
 
-PPH_STRING PhCreateStringFromMultiByte(
+PPH_STRING PhCreateStringFromAnsi(
     __in PCHAR Buffer
     );
 
-PPH_STRING PhCreateStringFromMultiByteEx(
+PPH_STRING PhCreateStringFromAnsiEx(
     __in PCHAR Buffer,
     __in SIZE_T Length
     );
@@ -359,6 +359,45 @@ FORCEINLINE PPH_STRING PhSubstring(
     return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
 }
 
+// ansi string
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhAnsiStringType;
+#endif
+
+typedef struct _PH_ANSI_STRING
+{
+    union
+    {
+        ANSI_STRING as;
+        struct
+        {
+            USHORT Length;
+            USHORT MaximumLength;
+            PSTR Pointer;
+        };
+    };
+    CHAR Buffer[1];
+} PH_ANSI_STRING, *PPH_ANSI_STRING;
+
+PPH_ANSI_STRING PhCreateAnsiString(
+    __in PSTR Buffer
+    );
+
+PPH_ANSI_STRING PhCreateAnsiStringEx(
+    __in_opt PSTR Buffer,
+    __in SIZE_T Length
+    );
+
+PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
+    __in PWSTR Buffer
+    );
+
+PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
 // stringbuilder
 
 #ifndef BASESUP_PRIVATE
@@ -453,6 +492,29 @@ VOID PhClearList(
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item
+    );
+
+VOID PhRemoveListItem(
+    __in PPH_LIST List,
+    __in ULONG Index
+    );
+
+VOID PhRemoveListItems(
+    __in PPH_LIST List,
+    __in ULONG StartIndex,
+    __in ULONG Count
+    );
+
+typedef INT (NTAPI *PPH_LIST_COMPARE_FUNCTION)(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    );
+
+VOID PhSortList(
+    __in PPH_LIST List,
+    __in PPH_LIST_COMPARE_FUNCTION CompareFunction,
+    __in PVOID Context
     );
 
 // queue
