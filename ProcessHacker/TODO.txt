@@ -1,0 +1,30 @@
+* Resizing
+* Save settings
+* Process tree
+* Column re-ordering
+* Column chooser
+
+* Service properties
+* Network provider
+
+* Process properties:
+	* Complete the General tab
+	* Module provider
+		* WOW64 modules
+		* Kernel modules in list for System
+	* Thread provider
+	* Memory provider
+	* Handles provider
+	* Environment
+	* Job
+
+* Statistics collection
+* Graph controls
+* System information window
+* Hidden processes
+* Complete main menu items
+
+* Process menu items
+* Other menu items
+
+* Dump/view process information
