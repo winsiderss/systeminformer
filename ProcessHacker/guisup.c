@@ -28,7 +28,7 @@ VOID PhGuiSupportInitialization()
 {
     LoadLibrary(L"uxtheme.dll");
 
-    SetWindowTheme_I = (_SetWindowTheme)GetProcAddress(GetModuleHandle(L"uxtheme.dll"), "SetWindowTheme");
+    SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
 }
 
 VOID PhSetControlTheme(
@@ -182,7 +182,7 @@ HWND PhCreateTabControl(
     tabControlHandle = CreateWindow(
         WC_TABCONTROL,
         L"",
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
+        WS_CHILD | WS_VISIBLE,
         0,
         0,
         3,

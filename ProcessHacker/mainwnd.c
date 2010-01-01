@@ -218,21 +218,11 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
-    case WM_PAINT:
-        {
-            HDC hdc;
-            PAINTSTRUCT paintStruct;
-
-            hdc = BeginPaint(hWnd, &paintStruct);
-            EndPaint(hWnd, &paintStruct);
-        }
-        break;
     case WM_SIZE:
         {
             if (wParam != SIZE_MINIMIZED)
             {
                 PhMainWndOnLayout();
-                InvalidateRect(hWnd, NULL, TRUE);
             }
         }
         break;
@@ -457,7 +447,8 @@ VOID PhMainWndOnLayout()
 
     // Resize the tab control.
     GetClientRect(PhMainWndHandle, &rect);
-    PhSetControlPosition(TabControlHandle, rect.left, rect.top, rect.right, rect.bottom);
+    MoveWindow(TabControlHandle, rect.left, rect.top,
+        rect.right - rect.left, rect.bottom - rect.top, TRUE);
 
     PhMainWndTabControlOnLayout();
 }
@@ -474,15 +465,18 @@ VOID PhMainWndTabControlOnLayout()
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        PhSetControlPosition(ProcessListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+        MoveWindow(ProcessListViewHandle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top, TRUE);
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        PhSetControlPosition(ServiceListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+        MoveWindow(ServiceListViewHandle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top, TRUE);
     }
     else if (selectedIndex == NetworkTabIndex)
     {
-        PhSetControlPosition(NetworkListViewHandle, rect.left, rect.top, rect.right, rect.bottom);
+        MoveWindow(NetworkListViewHandle, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top, TRUE);
     }
 }
 

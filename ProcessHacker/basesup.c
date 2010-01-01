@@ -45,6 +45,7 @@ VOID NTAPI PhpHashtableDeleteProcedure(
     );
 
 PPH_OBJECT_TYPE PhStringType;
+PPH_OBJECT_TYPE PhAnsiStringType;
 PPH_OBJECT_TYPE PhStringBuilderType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhQueueType;
@@ -66,6 +67,13 @@ BOOLEAN PhInitializeBase()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringType,
+        0,
+        NULL
+        )))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateObjectType(
+        &PhAnsiStringType,
         0,
         NULL
         )))
@@ -300,17 +308,17 @@ PPH_STRING PhCreateStringEx(
     return string;
 }
 
-PPH_STRING PhCreateStringFromMultiByte(
+PPH_STRING PhCreateStringFromAnsi(
     __in PCHAR Buffer
     )
 {
-    return PhCreateStringFromMultiByteEx(
+    return PhCreateStringFromAnsiEx(
         Buffer,
         strlen(Buffer)
         );
 }
 
-PPH_STRING PhCreateStringFromMultiByteEx(
+PPH_STRING PhCreateStringFromAnsiEx(
     __in PCHAR Buffer,
     __in SIZE_T Length
     )
@@ -393,6 +401,88 @@ PPH_STRING PhConcatStrings(
     }
 
     va_end(argptr);
+
+    return string;
+}
+
+PPH_ANSI_STRING PhCreateAnsiString(
+    __in PSTR Buffer
+    )
+{
+    return PhCreateAnsiStringEx(Buffer, strlen(Buffer));
+}
+
+PPH_ANSI_STRING PhCreateAnsiStringEx(
+    __in_opt PSTR Buffer,
+    __in SIZE_T Length
+    )
+{
+    PPH_ANSI_STRING string;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &string,
+        FIELD_OFFSET(PH_ANSI_STRING, Buffer) + Length + sizeof(CHAR), // null terminator
+        0,
+        PhAnsiStringType,
+        0
+        )))
+        return NULL;
+
+    string->as.MaximumLength = string->as.Length = (USHORT)Length;
+    string->as.Buffer = string->Buffer;
+    string->Buffer[Length] = 0;
+
+    if (Buffer)
+    {
+        memcpy(string->Buffer, Buffer, Length);
+    }
+
+    return string;
+}
+
+PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
+    __in PWSTR Buffer
+    )
+{
+    return PhCreateAnsiStringFromUnicodeEx(
+        Buffer,
+        wcslen(Buffer) * sizeof(WCHAR)
+        );
+}
+
+PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    )
+{
+    NTSTATUS status;
+    PPH_ANSI_STRING string;
+    ULONG ansiBytes;
+
+    status = RtlUnicodeToMultiByteSize(
+        &ansiBytes,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    string = PhCreateAnsiStringEx(NULL, ansiBytes);
+
+    status = RtlUnicodeToMultiByteN(
+        string->Buffer,
+        string->Length,
+        NULL,
+        Buffer,
+        (ULONG)Length
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
 
     return string;
 }
@@ -697,6 +787,71 @@ ULONG PhIndexOfListItem(
     }
 
     return -1;
+}
+
+VOID PhRemoveListItem(
+    __in PPH_LIST List,
+    __in ULONG Index
+    )
+{
+    PhRemoveListItems(List, Index, 1);
+}
+
+VOID PhRemoveListItems(
+    __in PPH_LIST List,
+    __in ULONG StartIndex,
+    __in ULONG Count
+    )
+{
+    // Shift the items after the items forward.
+    memmove(
+        &List->Items[StartIndex],
+        &List->Items[StartIndex + Count],
+        List->Count - StartIndex - Count
+        );
+
+    List->Count -= Count;
+}
+
+typedef struct _PH_LIST_QSORT_CONTEXT
+{
+    PPH_LIST_COMPARE_FUNCTION CompareFunction;
+    PVOID Context;
+} PH_LIST_QSORT_CONTEXT, *PPH_LIST_QSORT_CONTEXT;
+
+static int __cdecl PhpListQSortCompare(
+    __in void *context,
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_LIST_QSORT_CONTEXT qsortContext = (PPH_LIST_QSORT_CONTEXT)context;
+
+    return qsortContext->CompareFunction(
+        *(PPVOID)elem1,
+        *(PPVOID)elem2,
+        qsortContext->Context
+        );
+}
+
+VOID PhSortList(
+    __in PPH_LIST List,
+    __in PPH_LIST_COMPARE_FUNCTION CompareFunction,
+    __in PVOID Context
+    )
+{
+    PH_LIST_QSORT_CONTEXT qsortContext;
+
+    qsortContext.CompareFunction = CompareFunction;
+    qsortContext.Context = Context;
+
+    qsort_s(
+        List->Items,
+        List->Count,
+        sizeof(PVOID),
+        PhpListQSortCompare,
+        &qsortContext
+        );
 }
 
 PPH_QUEUE PhCreateQueue(

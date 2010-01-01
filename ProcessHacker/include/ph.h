@@ -467,6 +467,7 @@ VOID PhServiceProviderUpdate(
 // modprv
 
 #ifndef MODPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhModuleProviderType;
 extern PPH_OBJECT_TYPE PhModuleItemType;
 #endif
 
@@ -513,6 +514,34 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
 
 VOID PhModuleProviderUpdate(
     __in PVOID Object
+    );
+
+// symprv
+
+#ifndef SYMPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhSymbolProviderType;
+#endif
+
+typedef struct _PH_SYMBOL_PROVIDER
+{
+    PPH_LIST ModulesList;
+    HANDLE ProcessHandle;
+    BOOLEAN IsRealHandle;
+} PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
+
+BOOLEAN PhSymbolProviderInitialization();
+
+VOID PhSymbolProviderDynamicImport();
+
+PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
+    __in HANDLE ProcessId
+    );
+
+BOOLEAN PhSymbolProviderLoadModule(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in PWSTR FileName,
+    __in ULONG64 BaseAddress,
+    __in ULONG Size
     );
 
 // support

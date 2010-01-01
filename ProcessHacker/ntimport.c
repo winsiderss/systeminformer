@@ -86,6 +86,8 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", RtlMultiByteToUnicodeN);
     InitProcReq("ntdll.dll", RtlMultiByteToUnicodeSize);
     InitProcReq("ntdll.dll", RtlQueryProcessDebugInformation);
+    InitProcReq("ntdll.dll", RtlUnicodeToMultiByteN);
+    InitProcReq("ntdll.dll", RtlUnicodeToMultiByteSize);
 
     return TRUE;
 }

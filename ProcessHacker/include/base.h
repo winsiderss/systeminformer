@@ -33,6 +33,14 @@
 #define PH_PTR_STR_LEN 24
 #define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
 
+FORCEINLINE PVOID PhGetProcAddress(
+    __in PWSTR LibraryName,
+    __in PSTR ProcName
+    )
+{
+    return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
+}
+
 FORCEINLINE VOID PhPrintInteger(
     __out PWSTR Destination,
     __in ULONG Integer
@@ -46,7 +54,7 @@ FORCEINLINE VOID PhPrintPointer(
     __in PVOID Pointer
     )
 {
-    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%p", Pointer);
+    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%Ix", Pointer);
 }
 
 #ifdef _M_IX86

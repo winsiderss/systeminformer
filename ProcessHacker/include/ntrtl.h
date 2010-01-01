@@ -136,6 +136,20 @@ typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeSize)(
     __in ULONG BytesInMultiByteString
     );
 
+typedef NTSTATUS (NTAPI *_RtlUnicodeToMultiByteN)(
+    __out PSTR MultiByteString,
+    __in ULONG MaxBytesInMultiByteString,
+    __out_opt PULONG BytesInMultiByteString,
+    __in PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+typedef NTSTATUS (NTAPI *_RtlUnicodeToMultiByteSize)(
+    __out PULONG BytesInMultiByteString,
+    __in PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
 // Processes
 
 #define DOS_MAX_COMPONENT_LENGTH 255
