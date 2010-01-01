@@ -929,7 +929,8 @@ NTSTATUS PhDuplicateObject(
 
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context
     )
 {
     NTSTATUS status;
@@ -1036,7 +1037,7 @@ NTSTATUS PhEnumProcessModules(
             }
 
             // Execute the callback.
-            cont = Callback(&currentEntry);
+            cont = Callback(&currentEntry, Context);
 
             PhFree(baseDllNameBuffer);
             PhFree(fullDllNameBuffer);

@@ -278,7 +278,7 @@ PVOID PhQueryServiceConfig(
 }
 
 VOID PhServiceProviderUpdate(
-    __in PVOID Context
+    __in PVOID Object
     )
 {
     static SC_HANDLE scManagerHandle = NULL;

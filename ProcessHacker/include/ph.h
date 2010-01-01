@@ -182,12 +182,14 @@ NTSTATUS PhDuplicateObject(
 #define PH_ENUM_PROCESS_MODULES_ITERS 0x800
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
-    __in PLDR_DATA_TABLE_ENTRY Module
+    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in PVOID Context
     );
 
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context
     );
 
 PPH_STRING PhGetKernelFileName();
@@ -246,14 +248,14 @@ typedef enum _PH_PROVIDER_THREAD_STATE
 } PH_PROVIDER_THREAD_STATE;
 
 typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
-    __in PVOID Context
+    __in PVOID Object
     );
 
 typedef struct _PH_PROVIDER_REGISTRATION
 {
     LIST_ENTRY ListEntry;
     PPH_PROVIDER_FUNCTION Function;
-    PVOID Context;
+    PVOID Object;
     BOOLEAN Enabled;
     BOOLEAN Unregistering;
     BOOLEAN Boosting;
@@ -306,7 +308,7 @@ VOID PhSetProviderEnabled(
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
-    __in PVOID Context,
+    __in PVOID Object,
     __out PPH_PROVIDER_REGISTRATION Registration
     );
 
@@ -404,7 +406,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     );
 
 VOID PhProcessProviderUpdate(
-    __in PVOID Context
+    __in PVOID Object
     );
 
 // srvprv
@@ -459,7 +461,58 @@ PVOID PhQueryServiceConfig(
     );
 
 VOID PhServiceProviderUpdate(
-    __in PVOID Context
+    __in PVOID Object
+    );
+
+// modprv
+
+#ifndef MODPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhModuleItemType;
+#endif
+
+typedef struct _PH_MODULE_ITEM
+{
+    PVOID BaseAddress;
+    ULONG Size;
+    ULONG Flags;
+    PPH_STRING Name;
+    PPH_STRING FileName;
+    PH_IMAGE_VERSION_INFO VersionInfo;
+
+    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
+} PH_MODULE_ITEM, *PPH_MODULE_ITEM;
+
+typedef struct _PH_MODULE_PROVIDER
+{
+    PPH_HASHTABLE ModuleHashtable;
+    PH_FAST_LOCK ModuleHashtableLock;
+    PH_CALLBACK ModuleAddedEvent;
+    PH_CALLBACK ModuleRemovedEvent;
+    ULONG RunCount;
+
+    HANDLE ProcessId;
+    HANDLE ProcessHandle;
+} PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
+
+BOOLEAN PhInitializeModuleProvider();
+
+PPH_MODULE_PROVIDER PhCreateModuleProvider(
+    __in HANDLE ProcessId
+    );
+
+PPH_MODULE_ITEM PhCreateModuleItem();
+
+VOID PhDereferenceAllModuleItems(
+    __in PPH_MODULE_PROVIDER ModuleProvider
+    );
+
+PPH_MODULE_ITEM PhReferenceModuleItem(
+    __in PPH_MODULE_PROVIDER ModuleProvider,
+    __in PVOID BaseAddress
+    );
+
+VOID PhModuleProviderUpdate(
+    __in PVOID Object
     );
 
 // support

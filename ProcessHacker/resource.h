@@ -5,13 +5,15 @@
 #define IDI_PROCESSHACKER               101
 #define IDR_MAINWND                     102
 #define IDD_PROCGENERAL                 103
+#define IDD_PROCMODULES                 104
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_PROCGENERAL_ICON            1005
 #define IDC_PROCGENERAL_FILE            1006
 #define IDC_PROCGENERAL_PROCESS         1007
 #define IDC_PROCGENERAL_NAME            1008
-#define IDC_PROCGENERAL_NAME2           1009
 #define IDC_PROCGENERAL_COMPANYNAME     1009
+#define IDC_LIST1                       1009
+#define IDC_PROCMODULES_LIST            1009
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -25,9 +27,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        104
+#define _APS_NEXT_RESOURCE_VALUE        105
 #define _APS_NEXT_COMMAND_VALUE         40007
-#define _APS_NEXT_CONTROL_VALUE         1009
+#define _APS_NEXT_CONTROL_VALUE         1010
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

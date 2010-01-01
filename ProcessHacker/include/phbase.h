@@ -12,6 +12,9 @@
 struct _PH_STRING;
 typedef struct _PH_STRING *PPH_STRING;
 
+struct _PH_PROVIDER_THREAD;
+typedef struct _PH_PROVIDER_THREAD PH_PROVIDER_THREAD;
+
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
@@ -20,6 +23,9 @@ extern HINSTANCE PhInstanceHandle;
 extern HANDLE PhKphHandle;
 extern PWSTR PhWindowClassName;
 extern ULONG WindowsVersion;
+
+extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
+extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 
 extern ACCESS_MASK ProcessQueryAccess;
 extern ACCESS_MASK ProcessAllAccess;
@@ -597,6 +603,22 @@ FORCEINLINE ULONG PhHashInt32(
     // Java style.
     Value ^= (Value >> 20) ^ (Value >> 12);
     return Value ^ (Value >> 7) ^ (Value >> 4);
+}
+
+FORCEINLINE ULONG PhHashInt64(
+    __in ULONGLONG Value
+    )
+{
+    // http://www.concentric.net/~Ttwang/tech/inthash.htm
+
+    Value = ~Value + (Value << 18);
+    Value ^= Value >> 31;
+    Value *= 21;
+    Value ^= Value >> 11;
+    Value += Value << 6;
+    Value ^= Value >> 22;
+
+    return (ULONG)Value;
 }
 
 // callback

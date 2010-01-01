@@ -30,12 +30,23 @@
 #define PH_INT_STR_LEN 10
 #define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
+#define PH_PTR_STR_LEN 24
+#define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
+
 FORCEINLINE VOID PhPrintInteger(
     __out PWSTR Destination,
     __in ULONG Integer
     )
 {
     _snwprintf(Destination, PH_INT_STR_LEN, L"%d", Integer);
+}
+
+FORCEINLINE VOID PhPrintPointer(
+    __out PWSTR Destination,
+    __in PVOID Pointer
+    )
+{
+    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%p", Pointer);
 }
 
 #ifdef _M_IX86

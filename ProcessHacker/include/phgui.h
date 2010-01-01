@@ -34,12 +34,18 @@ VOID PhInitializeWindowsVersion();
 
 // guisup
 
+typedef HRESULT (* _SetWindowTheme)(
+    __in HWND hwnd,
+    __in LPCWSTR pszSubAppName,
+    __in LPCWSTR pszSubIdList
+    );
+
 FORCEINLINE VOID PhSetControlPosition(
-    HWND Handle,
-    INT Left,
-    INT Top,
-    INT Right,
-    INT Bottom
+    __in HWND Handle,
+    __in INT Left,
+    __in INT Top,
+    __in INT Right,
+    __in INT Bottom
     )
 {
     SetWindowPos(
@@ -52,6 +58,13 @@ FORCEINLINE VOID PhSetControlPosition(
         SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOZORDER
         );
 }
+
+VOID PhGuiSupportInitialization();
+
+VOID PhSetControlTheme(
+    __in HWND Handle,
+    __in PWSTR Theme
+    );
 
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
