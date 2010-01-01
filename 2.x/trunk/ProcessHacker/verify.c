@@ -142,7 +142,7 @@ PPH_STRING PhpGetX500Value(
     ULONG startIndex;
     ULONG endIndex;
 
-    keyNameLength = wcslen(KeyName);
+    keyNameLength = (ULONG)wcslen(KeyName);
     wcsncpy(keyNamePlusEquals, KeyName, 8);
     keyNamePlusEquals[keyNameLength] = '=';
     keyNamePlusEquals[keyNameLength + 1] = 0;
