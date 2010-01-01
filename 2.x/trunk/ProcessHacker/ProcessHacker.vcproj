@@ -407,6 +407,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\symprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\verify.c"
 				>
 			</File>
@@ -506,6 +510,10 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\symprvp.h"
 				>
 			</File>
 			<File

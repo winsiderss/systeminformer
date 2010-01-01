@@ -34,39 +34,31 @@ _WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
 _WinVerifyTrust WinVerifyTrust_I;
 _CertNameToStr CertNameToStr_I;
 
-FORCEINLINE PVOID PhpGetProcAddress(
-    __in PWSTR LibraryName,
-    __in PSTR ProcName
-    )
-{
-    return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
-}
-
 VOID PhVerifyInitialization()
 {
     LoadLibrary(L"wintrust.dll");
     LoadLibrary(L"crypt32.dll");
 
     CryptCATAdminCalcHashFromFileHandle = 
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATAdminCalcHashFromFileHandle");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATAdminCalcHashFromFileHandle");
     CryptCATAdminAcquireContext = 
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATAdminAcquireContext");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATAdminAcquireContext");
     CryptCATAdminEnumCatalogFromHash =
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATAdminEnumCatalogFromHash");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATAdminEnumCatalogFromHash");
     CryptCATCatalogInfoFromContext =
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATCatalogInfoFromContext");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATCatalogInfoFromContext");
     CryptCATAdminReleaseCatalogContext =
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATAdminReleaseCatalogContext");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATAdminReleaseCatalogContext");
     CryptCATAdminReleaseContext =
-        PhpGetProcAddress(L"wintrust.dll", "CryptCATAdminReleaseContext");
+        PhGetProcAddress(L"wintrust.dll", "CryptCATAdminReleaseContext");
     WTHelperProvDataFromStateData_I =
-        PhpGetProcAddress(L"wintrust.dll", "WTHelperProvDataFromStateData");
+        PhGetProcAddress(L"wintrust.dll", "WTHelperProvDataFromStateData");
     WTHelperGetProvSignerFromChain_I =
-        PhpGetProcAddress(L"wintrust.dll", "WTHelperGetProvSignerFromChain");
+        PhGetProcAddress(L"wintrust.dll", "WTHelperGetProvSignerFromChain");
     WinVerifyTrust_I =
-        PhpGetProcAddress(L"wintrust.dll", "WinVerifyTrust");
+        PhGetProcAddress(L"wintrust.dll", "WinVerifyTrust");
     CertNameToStr_I =
-        PhpGetProcAddress(L"crypt32.dll", "CertNameToStrW");
+        PhGetProcAddress(L"crypt32.dll", "CertNameToStrW");
 }
 
 VERIFY_RESULT PhpStatusToVerifyResult(

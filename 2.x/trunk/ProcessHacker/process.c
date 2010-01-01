@@ -493,7 +493,7 @@ NTSTATUS PhGetProcessPosixCommandLine(
             }
         }
 
-        *CommandLine = PhCreateStringFromMultiByteEx(
+        *CommandLine = PhCreateStringFromAnsiEx(
             commandLineChunk,
             commandLineChunkSize
             );
@@ -1101,7 +1101,7 @@ PPH_STRING PhGetKernelFileName()
 
     if (modules->NumberOfModules >= 1)
     {
-        fileName = PhCreateStringFromMultiByte(modules->Modules[0].FullPathName);
+        fileName = PhCreateStringFromAnsi(modules->Modules[0].FullPathName);
     }
 
     PhFree(modules);

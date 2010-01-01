@@ -203,6 +203,7 @@ ATOM PhRegisterWindowClass()
 {
     WNDCLASSEX wcex;
 
+    memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = 0;
     wcex.lpfnWndProc = PhMainWndProc;
@@ -211,7 +212,7 @@ ATOM PhRegisterWindowClass()
     wcex.hInstance = PhInstanceHandle;
     wcex.hIcon = LoadIcon(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER));
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    //wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = MAKEINTRESOURCE(IDR_MAINWND);
     wcex.lpszClassName = PhWindowClassName;
     wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);

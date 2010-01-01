@@ -64,6 +64,8 @@ EXT _RtlDestroyQueryDebugBuffer RtlDestroyQueryDebugBuffer EQNULL;
 EXT _RtlMultiByteToUnicodeN RtlMultiByteToUnicodeN EQNULL;
 EXT _RtlMultiByteToUnicodeSize RtlMultiByteToUnicodeSize EQNULL;
 EXT _RtlQueryProcessDebugInformation RtlQueryProcessDebugInformation EQNULL;
+EXT _RtlUnicodeToMultiByteN RtlUnicodeToMultiByteN EQNULL;
+EXT _RtlUnicodeToMultiByteSize RtlUnicodeToMultiByteSize EQNULL;
 
 BOOLEAN PhInitializeImports();
 
