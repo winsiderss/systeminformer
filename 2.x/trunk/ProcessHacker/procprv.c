@@ -606,7 +606,7 @@ VOID PhpFillProcessItem(
 }
 
 VOID PhProcessProviderUpdate(
-    __in PVOID Context
+    __in PVOID Object
     )
 {
     static ULONG runCount = 0;

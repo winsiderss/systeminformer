@@ -33,6 +33,9 @@ HANDLE PhKphHandle;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
 
+PH_PROVIDER_THREAD PhPrimaryProviderThread;
+PH_PROVIDER_THREAD PhSecondaryProviderThread;
+
 ACCESS_MASK ProcessQueryAccess;
 ACCESS_MASK ProcessAllAccess;
 ACCESS_MASK ThreadQueryAccess;
@@ -69,6 +72,8 @@ INT WINAPI WinMain(
     }
 
     PhInitializeKph();
+
+    PhGuiSupportInitialization();
 
     if (!PhMainWndInitialization(nCmdShow))
     {
@@ -182,6 +187,8 @@ BOOLEAN PhInitializeSystem()
     if (!PhInitializeProcessProvider())
         return FALSE;
     if (!PhInitializeServiceProvider())
+        return FALSE;
+    if (!PhInitializeModuleProvider())
         return FALSE;
     if (!PhProcessPropInitialization())
         return FALSE;
