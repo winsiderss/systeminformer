@@ -371,6 +371,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\modprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntimport.c"
 				>
 			</File>
@@ -486,6 +490,10 @@
 			</File>
 			<File
 				RelativePath=".\include\phgui.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\procprpp.h"
 				>
 			</File>
 			<File

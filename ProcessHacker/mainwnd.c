@@ -75,8 +75,6 @@ static HWND ProcessListViewHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
 
-static PH_PROVIDER_THREAD PrimaryProviderThread;
-
 static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
@@ -125,10 +123,12 @@ BOOLEAN PhMainWndInitialization(
     }
 
     // Initialize the providers.
-    PhInitializeProviderThread(&PrimaryProviderThread, 1000);
-    PhRegisterProvider(&PrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
+    PhInitializeProviderThread(&PhPrimaryProviderThread, 1000);
+    PhInitializeProviderThread(&PhSecondaryProviderThread, 1000);
+
+    PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
     PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
-    PhRegisterProvider(&PrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
+    PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
 
     PhMainWndHandle = CreateWindow(
@@ -158,7 +158,8 @@ BOOLEAN PhMainWndInitialization(
     // Perform a layout.
     PhMainWndOnLayout();
 
-    PhStartProviderThread(&PrimaryProviderThread);
+    PhStartProviderThread(&PhPrimaryProviderThread);
+    PhStartProviderThread(&PhSecondaryProviderThread);
 
     ShowWindow(PhMainWndHandle, ShowCommand);
 
@@ -196,7 +197,7 @@ LRESULT CALLBACK PhMainWndProc(
                     index = PhFindListViewItemByFlags(
                         ProcessListViewHandle,
                         -1,
-                        LVNI_FOCUSED
+                        LVNI_SELECTED
                         );
 
                     if (index != -1)
@@ -313,7 +314,7 @@ VOID PhpShowProcessProperties(
     }
 }
 
-VOID NTAPI ProcessAddedHandler(
+static VOID NTAPI ProcessAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -326,7 +327,7 @@ VOID NTAPI ProcessAddedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_ADDED, 0, (LPARAM)processItem);
 }
 
-VOID NTAPI ProcessModifiedHandler(
+static VOID NTAPI ProcessModifiedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -336,7 +337,7 @@ VOID NTAPI ProcessModifiedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_MODIFIED, 0, (LPARAM)processItem);
 }
 
-VOID NTAPI ProcessRemovedHandler(
+static VOID NTAPI ProcessRemovedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -348,7 +349,7 @@ VOID NTAPI ProcessRemovedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
 }
 
-VOID NTAPI ServiceAddedHandler(
+static VOID NTAPI ServiceAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -359,7 +360,7 @@ VOID NTAPI ServiceAddedHandler(
     PostMessage(PhMainWndHandle, WM_PH_SERVICE_ADDED, 0, (LPARAM)serviceItem);
 }
 
-VOID NTAPI ServiceModifiedHandler(
+static VOID NTAPI ServiceModifiedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -372,7 +373,7 @@ VOID NTAPI ServiceModifiedHandler(
     PostMessage(PhMainWndHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
 }
 
-VOID NTAPI ServiceRemovedHandler(
+static VOID NTAPI ServiceRemovedHandler(
     __in PVOID Parameter,
     __in PVOID Context
     )
@@ -395,6 +396,10 @@ VOID PhMainWndOnCreate()
     ListView_SetExtendedListViewStyleEx(ServiceListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+
+    PhSetControlTheme(ProcessListViewHandle, L"explorer");
+    PhSetControlTheme(ServiceListViewHandle, L"explorer");
+    PhSetControlTheme(NetworkListViewHandle, L"explorer");
 
     PhAddListViewColumn(ProcessListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ProcessListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"PID");

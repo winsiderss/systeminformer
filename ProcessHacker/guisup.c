@@ -22,6 +22,27 @@
 
 #include <phgui.h>
 
+_SetWindowTheme SetWindowTheme_I;
+
+VOID PhGuiSupportInitialization()
+{
+    LoadLibrary(L"uxtheme.dll");
+
+    SetWindowTheme_I = (_SetWindowTheme)GetProcAddress(GetModuleHandle(L"uxtheme.dll"), "SetWindowTheme");
+}
+
+VOID PhSetControlTheme(
+    __in HWND Handle,
+    __in PWSTR Theme
+    )
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        if (SetWindowTheme_I)
+            SetWindowTheme_I(Handle, Theme, NULL);
+    }
+}
+
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
     __in INT_PTR Id

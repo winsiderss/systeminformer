@@ -21,35 +21,7 @@
  */
 
 #include <phgui.h>
-
-VOID NTAPI PhpProcessPropContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    );
-
-INT CALLBACK PhpPropSheetProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in LPARAM lParam
-    );
-
-VOID NTAPI PhpProcessPropPageContextDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    );
-
-INT CALLBACK PhpStandardPropPageProc(
-    __in HWND hwnd,
-    __in UINT uMsg,
-    __in LPPROPSHEETPAGE ppsp
-    );
-
-INT_PTR CALLBACK PhpProcessGeneralDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
+#include <procprpp.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
@@ -287,16 +259,17 @@ INT CALLBACK PhpStandardPropPageProc(
     return 1;
 }
 
-INT_PTR CALLBACK PhpProcessGeneralDlgProc(
+BOOLEAN PhpPropPageDlgProcHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+    __in LPARAM lParam,
+    __out LPPROPSHEETPAGE *PropSheetPage,
+    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    __out PPH_PROCESS_ITEM *ProcessItem
     )
 {
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
-    PPH_PROCESS_ITEM processItem;
 
     if (uMsg == WM_INITDIALOG)
     {
@@ -309,8 +282,27 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     if (!propSheetPage)
         return FALSE;
 
-    propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
-    processItem = propPageContext->PropContext->ProcessItem;
+    *PropSheetPage = propSheetPage;
+    *PropPageContext = propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam;
+    *ProcessItem = propPageContext->PropContext->ProcessItem;
+
+    return TRUE;
+}
+
+INT_PTR CALLBACK PhpProcessGeneralDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+        return FALSE;
 
     switch (uMsg)
     {
@@ -354,12 +346,160 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     return FALSE;
 }
 
+static VOID NTAPI ModuleAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    // Parameter contains a pointer to the added module item.
+    PhReferenceObject(Parameter);
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_ADDED, 0, (LPARAM)Parameter);
+}
+
+static VOID NTAPI ModuleRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
+}
+
+INT_PTR CALLBACK PhpProcessModulesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+    PPH_MODULES_CONTEXT modulesContext;
+    HANDLE lvHandle;
+
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+    {
+        modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            // Lots of boilerplate code...
+
+            modulesContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_MODULES_CONTEXT));
+
+            modulesContext->Provider = PhCreateModuleProvider(
+                processItem->ProcessId
+                );
+            PhRegisterProvider(
+                &PhSecondaryProviderThread,
+                PhModuleProviderUpdate,
+                modulesContext->Provider,
+                &modulesContext->ProviderRegistration
+                );
+            PhRegisterCallback(
+                &modulesContext->Provider->ModuleAddedEvent,
+                ModuleAddedHandler,
+                modulesContext,
+                &modulesContext->AddedEventRegistration
+                );
+            PhRegisterCallback(
+                &modulesContext->Provider->ModuleRemovedEvent,
+                ModuleRemovedHandler,
+                modulesContext,
+                &modulesContext->RemovedEventRegistration
+                );
+            PhSetProviderEnabled(
+                &modulesContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &modulesContext->ProviderRegistration
+                );
+            modulesContext->WindowHandle = hwndDlg;
+
+            // Initialize the list.
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"File Name"); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterCallback(
+                &modulesContext->Provider->ModuleAddedEvent,
+                &modulesContext->AddedEventRegistration
+                );
+            PhUnregisterCallback(
+                &modulesContext->Provider->ModuleRemovedEvent,
+                &modulesContext->RemovedEventRegistration
+                );
+            PhUnregisterProvider(
+                &PhSecondaryProviderThread,
+                &modulesContext->ProviderRegistration
+                );
+
+            PhDereferenceAllModuleItems(modulesContext->Provider);
+
+            PhDereferenceObject(modulesContext->Provider);
+            PhFree(modulesContext);
+        }
+        break;
+    case WM_PH_MODULE_ADDED:
+        {
+            INT lvItemIndex;
+            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
+
+            lvItemIndex = PhAddListViewItem(
+                lvHandle,
+                MAXINT,
+                moduleItem->Name->Buffer,
+                moduleItem
+                );
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->FileName));
+        }
+        break;
+    case WM_PH_MODULE_REMOVED:
+        {
+            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
+
+            PhRemoveListViewItem(
+                lvHandle,
+                PhFindListViewItemByParam(lvHandle, -1, moduleItem)
+                );
+            PhDereferenceObject(moduleItem);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
 {
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
-        PPH_PROCESS_PROPPAGECONTEXT generalPage;
+    PPH_PROCESS_PROPPAGECONTEXT newPage;
     HWND hwnd;
     BOOL result;
     MSG msg;
@@ -367,18 +507,34 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Wait for stage 1 to be processed.
     PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
 
-    generalPage = PhCreateProcessPropPageContext(
+    // Add the pages...
+
+    // General
+    newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCGENERAL),
         PhpProcessGeneralDlgProc,
         NULL
         );
-    PhAddProcessPropPage(PropContext, generalPage);
-    PhDereferenceObject(generalPage);
+    PhAddProcessPropPage(PropContext, newPage);
+    PhDereferenceObject(newPage);
+
+    // Modules
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCMODULES),
+        PhpProcessModulesDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+    PhDereferenceObject(newPage);
+
+    // Create the property sheet
 
     hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
 
     PropContext->WindowHandle = hwnd;
     PhSetEvent(&PropContext->CreatedEvent);
+
+    // Main event loop
 
     while (result = GetMessage(&msg, NULL, 0, 0))
     {

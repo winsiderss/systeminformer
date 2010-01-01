@@ -52,6 +52,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     NTSTATUS status = STATUS_SUCCESS;
     PLIST_ENTRY listEntry;
     PPH_PROVIDER_REGISTRATION registration;
+    PVOID object;
     LIST_ENTRY tempListHead;
 
     while (providerThread->State != ProviderThreadStopping)
@@ -119,9 +120,17 @@ NTSTATUS NTAPI PhpProviderThreadStart(
                 providerThread->BoostCount--;
             }
 
+            object = registration->Object;
+
+            if (object)
+                PhReferenceObject(object);
+
             PhReleaseMutex(&providerThread->Mutex);
-            registration->Function(registration->Context);
+            registration->Function(registration->Object);
             PhAcquireMutex(&providerThread->Mutex);
+
+            if (object)
+                PhDereferenceObject(object);
         }
 
         // Re-add the items in the temp list to the main list.
@@ -233,7 +242,7 @@ VOID PhBoostProvider(
     PhReleaseMutex(&ProviderThread->Mutex);
 
     // Wake up the thread.
-    NtAlertThread(&ProviderThread->ThreadHandle);
+    NtAlertThread(ProviderThread->ThreadHandle);
 }
 
 VOID PhSetProviderEnabled(
@@ -247,15 +256,18 @@ VOID PhSetProviderEnabled(
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
-    __in PVOID Context,
+    __in PVOID Object,
     __out PPH_PROVIDER_REGISTRATION Registration
     )
 {
     Registration->Function = Function;
-    Registration->Context = Context;
+    Registration->Object = Object;
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
     Registration->Boosting = FALSE;
+
+    if (Object)
+        PhReferenceObject(Object);
 
     PhAcquireMutex(&ProviderThread->Mutex);
     InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
@@ -284,6 +296,11 @@ VOID PhUnregisterProvider(
     // Fix the boost count.
     if (Registration->Boosting)
         ProviderThread->BoostCount--;
+
+    // The user-supplied object must be dereferenced 
+    // while the mutex is held.
+    if (Registration->Object)
+        PhDereferenceObject(Registration->Object);
 
     PhReleaseMutex(&ProviderThread->Mutex);
 }
