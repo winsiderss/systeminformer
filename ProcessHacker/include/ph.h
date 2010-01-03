@@ -317,6 +317,42 @@ VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
+// symprv
+
+#ifndef SYMPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhSymbolProviderType;
+#endif
+
+typedef struct _PH_SYMBOL_PROVIDER
+{
+    PPH_LIST ModulesList;
+    HANDLE ProcessHandle;
+    BOOLEAN IsRealHandle;
+} PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
+
+typedef enum _PH_SYMBOL_RESOLVE_LEVEL
+{
+    PhsrlFunction,
+    PhsrlModule,
+    PhsrlAddress,
+    PhsrlInvalid
+} PH_SYMBOL_RESOLVE_LEVEL, *PPH_SYMBOL_RESOLVE_LEVEL;
+
+BOOLEAN PhSymbolProviderInitialization();
+
+VOID PhSymbolProviderDynamicImport();
+
+PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
+    __in HANDLE ProcessId
+    );
+
+BOOLEAN PhSymbolProviderLoadModule(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in PWSTR FileName,
+    __in ULONG64 BaseAddress,
+    __in ULONG Size
+    );
+
 // procprv
 
 #ifndef PROCPRV_PRIVATE
@@ -516,33 +552,51 @@ VOID PhModuleProviderUpdate(
     __in PVOID Object
     );
 
-// symprv
+// thrdprv
 
-#ifndef SYMPRV_PRIVATE
-extern PPH_OBJECT_TYPE PhSymbolProviderType;
+#ifndef THRDPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhThreadProviderType;
+extern PPH_OBJECT_TYPE PhThreadItemType;
 #endif
 
-typedef struct _PH_SYMBOL_PROVIDER
+#define PH_PRIORITY_STR_LEN 14
+#define PH_PRIORITY_STR_LEN_1 (PH_PRIORITY_STR_LEN + 1)
+
+typedef struct _PH_THREAD_ITEM
 {
-    PPH_LIST ModulesList;
+    HANDLE ThreadId;
+
+    ULONG64 ContextSwitches;
+    ULONG64 ContextSwitchesDelta;
+    ULONG64 Cycles;
+    ULONG64 CyclesDelta;
+    LONG Priority;
+    ULONG64 StartAddress;
+    PPH_STRING StartAddressString;
+    PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
+    KWAIT_REASON WaitReason;
+
+    BOOLEAN IsGuiThread;
+    BOOLEAN JustResolved;
+
+    WCHAR ThreadIdString[PH_INT_STR_LEN_1];
+    WCHAR ContextSwitchesDeltaString[PH_LONG_STR_LEN_1];
+    WCHAR CyclesDeltaString[PH_LONG_STR_LEN_1];
+    WCHAR PriorityString[PH_PRIORITY_STR_LEN_1];
+} PH_THREAD_ITEM, *PPH_THREAD_ITEM;
+
+typedef struct _PH_THREAD_PROVIDER
+{
+    PPH_HASHTABLE ThreadHashtable;
+    PH_FAST_LOCK ThreadHashtableLock;
+    PH_CALLBACK ThreadAddedEvent;
+    PH_CALLBACK ThreadModifiedEvent;
+    PH_CALLBACK ThreadRemovedEvent;
+    ULONG RunCount;
+
+    HANDLE ProcessId;
     HANDLE ProcessHandle;
-    BOOLEAN IsRealHandle;
-} PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
-
-BOOLEAN PhSymbolProviderInitialization();
-
-VOID PhSymbolProviderDynamicImport();
-
-PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
-    __in HANDLE ProcessId
-    );
-
-BOOLEAN PhSymbolProviderLoadModule(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR FileName,
-    __in ULONG64 BaseAddress,
-    __in ULONG Size
-    );
+} PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
 // support
 

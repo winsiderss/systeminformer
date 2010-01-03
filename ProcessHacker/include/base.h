@@ -30,6 +30,9 @@
 #define PH_INT_STR_LEN 10
 #define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
+#define PH_LONG_STR_LEN 40
+#define PH_LONG_STR_LEN_1 (PH_LONG_STR_LEN + 1)
+
 #define PH_PTR_STR_LEN 24
 #define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
 
@@ -47,6 +50,22 @@ FORCEINLINE VOID PhPrintInteger(
     )
 {
     _snwprintf(Destination, PH_INT_STR_LEN, L"%d", Integer);
+}
+
+FORCEINLINE VOID PhPrintLong64(
+    __out PWSTR Destination,
+    __in LONG64 Long64
+    )
+{
+    _snwprintf(Destination, PH_LONG_STR_LEN, L"%I64d", Long64);
+}
+
+FORCEINLINE VOID PhPrintULong64(
+    __out PWSTR Destination,
+    __in ULONG64 ULong64
+    )
+{
+    _snwprintf(Destination, PH_LONG_STR_LEN, L"%I64u", ULong64);
 }
 
 FORCEINLINE VOID PhPrintPointer(
