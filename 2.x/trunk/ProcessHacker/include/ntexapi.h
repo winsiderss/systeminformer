@@ -294,6 +294,48 @@ typedef struct _SYSTEM_SESSION_PROCESS_INFORMATION
     PVOID Buffer;
 } SYSTEM_SESSION_PROCESS_INFORMATION, *PSYSTEM_SESSION_PROCESS_INFORMATION;
 
+typedef enum _KWAIT_REASON
+{
+    Executive = 0,
+    FreePage = 1,
+    PageIn = 2,
+    PoolAllocation = 3,
+    DelayExecution = 4,
+    Suspended = 5,
+    UserRequest = 6,
+    WrExecutive = 7,
+    WrFreePage = 8,
+    WrPageIn = 9,
+    WrPoolAllocation = 10,
+    WrDelayExecution = 11,
+    WrSuspended = 12,
+    WrUserRequest = 13,
+    WrEventPair = 14,
+    WrQueue = 15,
+    WrLpcReceive = 16,
+    WrLpcReply = 17,
+    WrVirtualMemory = 18,
+    WrPageOut = 19,
+    WrRendezvous = 20,
+    Spare2 = 21,
+    Spare3 = 22,
+    Spare4 = 23,
+    Spare5 = 24,
+    WrCalloutStack = 25,
+    WrKernel = 26,
+    WrResource = 27,
+    WrPushLock = 28,
+    WrMutex = 29,
+    WrQuantumEnd = 30,
+    WrDispatchInt = 31,
+    WrPreempted = 32,
+    WrYieldExecution = 33,
+    WrFastMutex = 34,
+    WrGuardedMutex = 35,
+    WrRundown = 36,
+    MaximumWaitReason = 37
+} KWAIT_REASON, *PKWAIT_REASON;
+
 typedef struct _SYSTEM_THREAD_INFORMATION
 {
     LARGE_INTEGER KernelTime;
@@ -306,7 +348,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
     LONG BasePriority;
     ULONG ContextSwitches;
     ULONG ThreadState;
-    ULONG WaitReason;
+    KWAIT_REASON WaitReason;
 } SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
 
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
