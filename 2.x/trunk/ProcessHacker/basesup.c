@@ -734,6 +734,10 @@ PPH_LIST PhCreateList(
         )))
         return NULL;
 
+    // Initial capacity of 0 is not allowed.
+    if (InitialCapacity == 0)
+        InitialCapacity = 1;
+
     list->Count = 0;
     list->AllocatedCount = InitialCapacity;
     list->Items = PhAllocate(list->AllocatedCount * sizeof(PVOID));
@@ -868,6 +872,10 @@ PPH_QUEUE PhCreateQueue(
         0
         )))
         return NULL;
+
+    // Initial capacity of 0 is not allowed.
+    if (InitialCapacity == 0)
+        InitialCapacity = 1;
 
     queue->Count = 0;
     queue->AllocatedCount = InitialCapacity;
