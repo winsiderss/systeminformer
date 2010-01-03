@@ -411,6 +411,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\thrdprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\verify.c"
 				>
 			</File>
