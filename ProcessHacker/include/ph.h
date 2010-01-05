@@ -104,6 +104,12 @@ NTSTATUS PhGetProcessPosixCommandLine(
     __out PPH_STRING *CommandLine
     );
 
+NTSTATUS PhGetProcessMappedFileName(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out PPH_STRING *FileName
+    );
+
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
@@ -210,12 +216,42 @@ NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     );
 
+PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
+    __in PVOID Processes,
+    __in HANDLE ProcessId
+    );
+
 VOID PhInitializeDosDeviceNames();
 
 VOID PhRefreshDosDeviceNames();
 
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
+    );
+
+typedef struct _PH_MODULE_INFO
+{
+    PVOID BaseAddress;
+    ULONG Size;
+    PVOID EntryPoint;
+    ULONG Flags;
+    PPH_STRING Name;
+    PPH_STRING FileName;
+} PH_MODULE_INFO, *PPH_MODULE_INFO;
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
+    __in PPH_MODULE_INFO Module,
+    __in PVOID Context
+    );
+
+#define PH_ENUM_GENERIC_MAPPED_FILES 0x1
+
+NTSTATUS PhEnumGenericModules(
+    __in HANDLE ProcessId,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in PVOID Context
     );
 
 // verify
@@ -539,13 +575,13 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
 PPH_MODULE_ITEM PhCreateModuleItem();
 
-VOID PhDereferenceAllModuleItems(
-    __in PPH_MODULE_PROVIDER ModuleProvider
-    );
-
 PPH_MODULE_ITEM PhReferenceModuleItem(
     __in PPH_MODULE_PROVIDER ModuleProvider,
     __in PVOID BaseAddress
+    );
+
+VOID PhDereferenceAllModuleItems(
+    __in PPH_MODULE_PROVIDER ModuleProvider
     );
 
 VOID PhModuleProviderUpdate(
@@ -576,6 +612,8 @@ typedef struct _PH_THREAD_ITEM
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
     KWAIT_REASON WaitReason;
 
+    HANDLE ThreadHandle;
+
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
 
@@ -596,7 +634,31 @@ typedef struct _PH_THREAD_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
+
+BOOLEAN PhInitializeThreadProvider();
+
+PPH_THREAD_PROVIDER PhCreateThreadProvider(
+    __in HANDLE ProcessId
+    );
+
+PPH_THREAD_ITEM PhCreateThreadItem(
+    __in HANDLE ThreadId
+    );
+
+PPH_THREAD_ITEM PhReferenceThreadItem(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in HANDLE ThreadId
+    );
+
+VOID PhDereferenceAllThreadItems(
+    __in PPH_THREAD_PROVIDER ThreadProvider
+    );
+
+VOID PhThreadProviderUpdate(
+    __in PVOID Object
+    );
 
 // support
 
@@ -639,6 +701,11 @@ PPH_STRING PhGetFileVersionInfoString2(
 
 PPH_STRING PhGetFullPath(
     __in PWSTR FileName,
+    __out_opt PULONG IndexOfFileName
+    );
+
+PPH_STRING PhGetDosFullPath(
+    __in PPH_STRING FileName,
     __out_opt PULONG IndexOfFileName
     );
 

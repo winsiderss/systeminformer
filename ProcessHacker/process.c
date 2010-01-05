@@ -503,6 +503,62 @@ NTSTATUS PhGetProcessPosixCommandLine(
     }
 }
 
+NTSTATUS PhGetProcessMappedFileName(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    SIZE_T bufferSize;
+    SIZE_T returnLength;
+    PUNICODE_STRING unicodeString;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        BaseAddress,
+        MemoryMappedFilenameInformation,
+        buffer,
+        bufferSize,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryVirtualMemory(
+            ProcessHandle,
+            BaseAddress,
+            MemoryMappedFilenameInformation,
+            buffer,
+            bufferSize,
+            &returnLength
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    unicodeString = (PUNICODE_STRING)buffer;
+    *FileName = PhCreateStringEx(
+        unicodeString->Buffer,
+        unicodeString->Length
+        );
+    PhFree(buffer);
+
+    return status;
+}
+
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
@@ -1151,6 +1207,24 @@ NTSTATUS PhEnumProcesses(
     return status;
 }
 
+PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
+    __in PVOID Processes,
+    __in HANDLE ProcessId
+    )
+{
+    PSYSTEM_PROCESS_INFORMATION process;
+
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        if (process->UniqueProcessId == ProcessId)
+            return process;
+    } while (process = PH_NEXT_PROCESS(process));
+
+    return NULL;
+}
+
 VOID PhInitializeDosDeviceNames()
 {
     ULONG i;
@@ -1197,9 +1271,9 @@ PPH_STRING PhGetFileName(
 
         if (systemDirectory)
         {
-            ULONG indexOfLastBackslash = (ULONG)(wcsrchr(systemDirectory->Buffer, '\\') - systemDirectory->Buffer);
+            ULONG indexOfLastBackslash = PhStringLastIndexOfChar(systemDirectory, 0, '\\');
 
-            newFileName = PhCreateStringEx(NULL, indexOfLastBackslash * 2 + FileName->Length - 11);
+            newFileName = PhCreateStringEx(NULL, indexOfLastBackslash * 2 + FileName->Length - 22);
             memcpy(newFileName->Buffer, systemDirectory->Buffer, indexOfLastBackslash * 2);
             memcpy(&newFileName->Buffer[indexOfLastBackslash], &FileName->Buffer[11], FileName->Length - 22);
 
@@ -1232,12 +1306,333 @@ PPH_STRING PhGetFileName(
 
         if (newFileName == FileName)
         {
-            // We didn't find a match, so just return the 
-            // supplied file name. Note that we need to add 
-            // a reference.
-            PhReferenceObject(newFileName);
+            // We didn't find a match. If the file name starts with 
+            // a backslash, prepend the system drive.
+            if (newFileName->Buffer[0] == '\\')
+            {
+                PPH_STRING systemDirectory = PhGetSystemDirectory();
+
+                newFileName = PhCreateStringEx(NULL, FileName->Length + 4);
+                newFileName->Buffer[0] = systemDirectory->Buffer[0];
+                newFileName->Buffer[1] = ':';
+                memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
+
+                PhDereferenceObject(systemDirectory);
+            }
+            else
+            {
+                // Just return the supplied file name. Note that we need 
+                // to add a reference.
+                PhReferenceObject(newFileName);
+            }
         }
     }
 
     return newFileName;
+}
+
+typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
+{
+    PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
+    PVOID Context;
+    PPH_LIST BaseAddressList;
+} ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
+
+static BOOLEAN EnumGenericProcessModulesCallback(
+    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in PVOID Context
+    )
+{
+    PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
+    PH_MODULE_INFO moduleInfo;
+    PPH_STRING fileName;
+    BOOLEAN cont;
+
+    context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
+
+    // Check if we have a duplicate base address.
+    if (PhIndexOfListItem(context->BaseAddressList, Module->DllBase) != -1)
+    {
+        return TRUE;
+    }
+    else
+    {
+        PhAddListItem(context->BaseAddressList, Module->DllBase);
+    }
+
+    fileName = PhCreateStringEx(
+        Module->FullDllName.Buffer,
+        Module->FullDllName.Length
+        );
+
+    moduleInfo.BaseAddress = Module->DllBase;
+    moduleInfo.Size = Module->SizeOfImage;
+    moduleInfo.EntryPoint = Module->EntryPoint;
+    moduleInfo.Flags = Module->Flags;
+    moduleInfo.Name = PhCreateStringEx(
+        Module->BaseDllName.Buffer,
+        Module->BaseDllName.Length
+        );
+    moduleInfo.FileName = PhGetFileName(fileName);
+
+    PhDereferenceObject(fileName);
+
+    cont = context->Callback(&moduleInfo, context->Context);
+
+    PhDereferenceObject(moduleInfo.Name);
+    PhDereferenceObject(moduleInfo.FileName);
+
+    return cont;
+}
+
+VOID PhpRtlModulesToGenericModules(
+    __in PRTL_PROCESS_MODULES Modules,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in PVOID Context,
+    __in PPH_LIST BaseAddressList
+    )
+{
+    PRTL_PROCESS_MODULE_INFORMATION module;
+    ULONG i;
+    PH_MODULE_INFO moduleInfo;
+    BOOLEAN cont;
+
+    for (i = 0; i < Modules->NumberOfModules; i++)
+    {
+        PPH_STRING fileName;
+
+        module = &Modules->Modules[i];
+
+        // Check if we have a duplicate base address.
+        if (PhIndexOfListItem(BaseAddressList, module->ImageBase) != -1)
+        {
+            return TRUE;
+        }
+        else
+        {
+            PhAddListItem(BaseAddressList, module->ImageBase);
+        }
+
+        fileName = PhCreateStringFromAnsi(module->FullPathName);
+
+        moduleInfo.BaseAddress = module->ImageBase;
+        moduleInfo.Size = module->ImageSize;
+        moduleInfo.EntryPoint = NULL;
+        moduleInfo.Flags = module->Flags;
+        moduleInfo.Name = PhCreateStringFromAnsi(&module->FullPathName[module->OffsetToFileName]);
+        moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+
+        PhDereferenceObject(fileName);
+
+        cont = Callback(&moduleInfo, Context);
+
+        PhDereferenceObject(moduleInfo.Name);
+        PhDereferenceObject(moduleInfo.FileName);
+
+        if (!cont)
+            break;
+    }
+}
+
+VOID PhpEnumGenericMappedFiles(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in PVOID Context,
+    __in PPH_LIST BaseAddressList
+    )
+{
+    PVOID baseAddress;
+    MEMORY_BASIC_INFORMATION basicInfo;
+
+    baseAddress = (PVOID)0;
+
+    while (VirtualQueryEx(
+        ProcessHandle,
+        baseAddress,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION)
+        ))
+    {
+        if (basicInfo.Type == MEM_MAPPED)
+        {
+            PPH_STRING fileName;
+            PPH_STRING newFileName;
+            ULONG indexOfFileName;
+            PH_MODULE_INFO moduleInfo;
+            BOOLEAN cont;
+
+            // Check if we have a duplicate base address.
+            if (PhIndexOfListItem(BaseAddressList, baseAddress) != -1)
+            {
+                goto ContinueLoop;
+            }
+            else
+            {
+                PhAddListItem(BaseAddressList, baseAddress);
+            }
+
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(
+                ProcessHandle,
+                baseAddress,
+                &fileName
+                )))
+                goto ContinueLoop;
+
+            // Get the DOS file name and then get the base name.
+
+            newFileName = PhGetDosFullPath(fileName, &indexOfFileName);
+            PhDereferenceObject(fileName);
+
+            if (!newFileName)
+                goto ContinueLoop;
+
+            moduleInfo.BaseAddress = baseAddress;
+            moduleInfo.Size = basicInfo.RegionSize;
+            moduleInfo.EntryPoint = NULL;
+            moduleInfo.Flags = 0;
+            moduleInfo.FileName = newFileName;
+            moduleInfo.Name = PhSubstring(
+                newFileName,
+                indexOfFileName,
+                newFileName->Length / 2 - indexOfFileName
+                );
+
+            cont = Callback(&moduleInfo, Context);
+
+            PhDereferenceObject(moduleInfo.FileName);
+            PhDereferenceObject(moduleInfo.Name);
+
+            if (!cont)
+                break;
+        }
+
+ContinueLoop:
+        baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+    }
+}
+
+NTSTATUS PhEnumGenericModules(
+    __in HANDLE ProcessId,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PPH_LIST baseAddressList;
+
+    baseAddressList = PhCreateList(20);
+
+    if (ProcessId == SYSTEM_PROCESS_ID)
+    {
+        // Kernel modules
+
+        PRTL_PROCESS_MODULES modules;
+
+        if (!NT_SUCCESS(status = PhEnumKernelModules(&modules)))
+        {
+            goto CleanupExit;
+        }
+
+        PhpRtlModulesToGenericModules(
+            modules,
+            Callback,
+            Context,
+            baseAddressList
+            );
+
+        PhFree(modules);
+    }
+    else
+    {
+        // 32-bit process modules
+
+        BOOLEAN opened = FALSE;
+        ENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
+
+        if (!ProcessHandle)
+        {
+            if (!NT_SUCCESS(status = PhOpenProcess(
+                &ProcessHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                ProcessId
+                )))
+            {
+                if (!NT_SUCCESS(status = PhOpenProcess(
+                    &ProcessHandle,
+                    ProcessQueryAccess | PROCESS_VM_READ,
+                    ProcessId
+                    )))
+                {
+                    goto CleanupExit;
+                }
+            }
+
+            opened = TRUE;
+        }
+
+        context.Callback = Callback;
+        context.Context = Context;
+        context.BaseAddressList = baseAddressList;
+
+        status = PhEnumProcessModules(
+            ProcessHandle,
+            EnumGenericProcessModulesCallback,
+            &context
+            );
+
+        // Mapped files
+
+        if (Flags & PH_ENUM_GENERIC_MAPPED_FILES)
+        {
+            PhpEnumGenericMappedFiles(
+                ProcessHandle,
+                Callback,
+                Context,
+                baseAddressList
+                );
+        }
+
+        if (opened)
+            CloseHandle(ProcessHandle);
+
+        if (!NT_SUCCESS(status))
+        {
+            goto CleanupExit;
+        }
+
+#ifndef _M_X64
+        // 64-bit process modules
+        {
+            PRTL_DEBUG_INFORMATION debugBuffer;
+
+            debugBuffer = RtlCreateQueryDebugBuffer(0, TRUE);
+
+            if (debugBuffer)
+            {
+                if (NT_SUCCESS(RtlQueryProcessDebugInformation(
+                    ProcessId,
+                    RTL_QUERY_PROCESS_MODULES32,
+                    debugBuffer
+                    )))
+                {
+                    PhpRtlModulesToGenericModules(
+                        debugBuffer->Modules,
+                        Callback,
+                        Context,
+                        baseAddressList
+                        );
+                }
+
+                RtlDestroyQueryDebugBuffer(debugBuffer);
+            }
+        }
+#endif
+    }
+
+CleanupExit:
+    PhDereferenceObject(baseAddressList);
+
+    return status;
 }

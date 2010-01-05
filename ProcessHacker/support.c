@@ -184,6 +184,21 @@ PPH_STRING PhGetFullPath(
     return fullPath;
 }
 
+PPH_STRING PhGetDosFullPath(
+    __in PPH_STRING FileName,
+    __out_opt PULONG IndexOfFileName
+    )
+{
+    PPH_STRING fileName;
+    PPH_STRING newFileName;
+
+    fileName = PhGetFileName(FileName);
+    newFileName = PhGetFullPath(fileName->Buffer, IndexOfFileName);
+    PhDereferenceObject(fileName);
+
+    return newFileName;
+}
+
 PPH_STRING PhGetSystemDirectory()
 {
     PPH_STRING systemDirectory;

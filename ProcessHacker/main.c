@@ -184,11 +184,15 @@ BOOLEAN PhInitializeSystem()
     if (!PhInitializeBase())
         return FALSE;
     PhVerifyInitialization();
+    if (!PhSymbolProviderInitialization())
+        return FALSE;
     if (!PhInitializeProcessProvider())
         return FALSE;
     if (!PhInitializeServiceProvider())
         return FALSE;
     if (!PhInitializeModuleProvider())
+        return FALSE;
+    if (!PhInitializeThreadProvider())
         return FALSE;
     if (!PhProcessPropInitialization())
         return FALSE;
