@@ -131,9 +131,12 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         }
     }
 
-    PhAcquireMutex(&PhSymMutex);
-    SymInitialize_I(symbolProvider->ProcessHandle, NULL, FALSE);
-    PhReleaseMutex(&PhSymMutex);
+    if (SymInitialize_I)
+    {
+        PhAcquireMutex(&PhSymMutex);
+        SymInitialize_I(symbolProvider->ProcessHandle, NULL, FALSE);
+        PhReleaseMutex(&PhSymMutex);
+    }
 
     return symbolProvider;
 }
@@ -146,9 +149,12 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
     ULONG i;
 
-    PhAcquireMutex(&PhSymMutex);
-    SymCleanup_I(symbolProvider->ProcessHandle);
-    PhReleaseMutex(&PhSymMutex);
+    if (SymCleanup_I)
+    {
+        PhAcquireMutex(&PhSymMutex);
+        SymCleanup_I(symbolProvider->ProcessHandle);
+        PhReleaseMutex(&PhSymMutex);
+    }
 
     for (i = 0; i < symbolProvider->ModulesList->Count; i++)
     {

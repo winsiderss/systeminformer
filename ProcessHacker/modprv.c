@@ -248,21 +248,15 @@ VOID PhpRemoveModuleItem(
 }
 
 static BOOLEAN NTAPI EnumModulesCallback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in PPH_MODULE_INFO Module,
     __in PVOID Context
     )
 {
-    PLDR_DATA_TABLE_ENTRY copy;
+    PPH_MODULE_INFO copy;
 
-    copy = PhAllocateCopy(Module, sizeof(LDR_DATA_TABLE_ENTRY));
-    copy->BaseDllName.Buffer = PhAllocateCopy(
-        Module->BaseDllName.Buffer,
-        Module->BaseDllName.Length
-        );
-    copy->FullDllName.Buffer = PhAllocateCopy(
-        Module->FullDllName.Buffer,
-        Module->FullDllName.Length
-        );
+    copy = PhAllocateCopy(Module, sizeof(PH_MODULE_INFO));
+    PhReferenceObject(copy->Name);
+    PhReferenceObject(copy->FileName);
 
     PhAddListItem((PPH_LIST)Context, copy);
 
@@ -284,8 +278,10 @@ VOID PhModuleProviderUpdate(
 
     modules = PhCreateList(20);
 
-    PhEnumProcessModules(
+    PhEnumGenericModules(
+        moduleProvider->ProcessId,
         moduleProvider->ProcessHandle,
+        PH_ENUM_GENERIC_MAPPED_FILES,
         EnumModulesCallback,
         modules
         );
@@ -303,9 +299,9 @@ VOID PhModuleProviderUpdate(
             // Check if the module still exists.
             for (i = 0; i < modules->Count; i++)
             {
-                PLDR_DATA_TABLE_ENTRY module = modules->Items[i];
+                PPH_MODULE_INFO module = modules->Items[i];
 
-                if ((*moduleItem)->BaseAddress == module->DllBase)
+                if ((*moduleItem)->BaseAddress == module->BaseAddress)
                 {
                     found = TRUE;
                     break;
@@ -344,33 +340,24 @@ VOID PhModuleProviderUpdate(
     // Look for new modules.
     for (i = 0; i < modules->Count; i++)
     {
-        PLDR_DATA_TABLE_ENTRY module = modules->Items[i];
+        PPH_MODULE_INFO module = modules->Items[i];
         PPH_MODULE_ITEM moduleItem;
 
-        moduleItem = PhReferenceModuleItem(moduleProvider, module->DllBase);
+        moduleItem = PhReferenceModuleItem(moduleProvider, module->BaseAddress);
 
         if (!moduleItem)
         {
-            PPH_STRING fileName;
-
             moduleItem = PhCreateModuleItem();
 
-            moduleItem->BaseAddress = module->DllBase;
+            moduleItem->BaseAddress = module->BaseAddress;
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
-            moduleItem->Size = module->SizeOfImage;
+            moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
 
-            moduleItem->Name = PhCreateStringEx(
-                module->BaseDllName.Buffer,
-                module->BaseDllName.Length
-                );
-
-            fileName = PhCreateStringEx(
-                module->FullDllName.Buffer,
-                module->FullDllName.Length
-                );
-            moduleItem->FileName = PhGetFileName(fileName);
-            PhDereferenceObject(fileName);
+            moduleItem->Name = module->Name;
+            PhReferenceObject(moduleItem->Name);
+            moduleItem->FileName = module->FileName;
+            PhReferenceObject(moduleItem->FileName);
 
             PhInitializeImageVersionInfo(
                 &moduleItem->VersionInfo,
@@ -395,10 +382,10 @@ VOID PhModuleProviderUpdate(
 
     for (i = 0; i < modules->Count; i++)
     {
-        PLDR_DATA_TABLE_ENTRY module = modules->Items[i];
+        PPH_MODULE_INFO module = modules->Items[i];
 
-        PhFree(module->BaseDllName.Buffer);
-        PhFree(module->FullDllName.Buffer);
+        PhDereferenceObject(module->Name);
+        PhDereferenceObject(module->FileName);
         PhFree(module);
     }
 

@@ -494,6 +494,162 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     return FALSE;
 }
 
+static VOID NTAPI ThreadAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    // Parameter contains a pointer to the added thread item.
+    PhReferenceObject(Parameter);
+    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_ADDED, 0, (LPARAM)Parameter);
+}
+
+static VOID NTAPI ThreadRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_REMOVED, 0, (LPARAM)Parameter);
+}
+
+INT_PTR CALLBACK PhpProcessThreadsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+    PPH_THREADS_CONTEXT threadsContext;
+    HANDLE lvHandle;
+
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+    {
+        threadsContext = (PPH_THREADS_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_PROCTHREADS_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            threadsContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_THREADS_CONTEXT));
+
+            threadsContext->Provider = PhCreateThreadProvider(
+                processItem->ProcessId
+                );
+            PhRegisterProvider(
+                &PhSecondaryProviderThread,
+                PhThreadProviderUpdate,
+                threadsContext->Provider,
+                &threadsContext->ProviderRegistration
+                );
+            PhRegisterCallback(
+                &threadsContext->Provider->ThreadAddedEvent,
+                ThreadAddedHandler,
+                threadsContext,
+                &threadsContext->AddedEventRegistration
+                );
+            PhRegisterCallback(
+                &threadsContext->Provider->ThreadModifiedEvent,
+                ThreadRemovedHandler,
+                threadsContext,
+                &threadsContext->ModifiedEventRegistration
+                );
+            PhRegisterCallback(
+                &threadsContext->Provider->ThreadRemovedEvent,
+                ThreadRemovedHandler,
+                threadsContext,
+                &threadsContext->RemovedEventRegistration
+                );
+            PhSetProviderEnabled(
+                &threadsContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &threadsContext->ProviderRegistration
+                );
+            threadsContext->WindowHandle = hwndDlg;
+
+            // Initialize the list.
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"TID");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Start Address"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"Priority"); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterCallback(
+                &threadsContext->Provider->ThreadAddedEvent,
+                &threadsContext->AddedEventRegistration
+                );
+            PhUnregisterCallback(
+                &threadsContext->Provider->ThreadModifiedEvent,
+                &threadsContext->ModifiedEventRegistration
+                );
+            PhUnregisterCallback(
+                &threadsContext->Provider->ThreadRemovedEvent,
+                &threadsContext->RemovedEventRegistration
+                );
+            PhUnregisterProvider(
+                &PhSecondaryProviderThread,
+                &threadsContext->ProviderRegistration
+                );
+
+            PhDereferenceAllThreadItems(threadsContext->Provider);
+
+            PhDereferenceObject(threadsContext->Provider);
+            PhFree(threadsContext);
+        }
+        break;
+    case WM_PH_THREAD_ADDED:
+        {
+            INT lvItemIndex;
+            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
+
+            lvItemIndex = PhAddListViewItem(
+                lvHandle,
+                MAXINT,
+                threadItem->ThreadIdString,
+                threadItem
+                );
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->StartAddressString));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"Priority Here");
+        }
+        break;
+    case WM_PH_THREAD_REMOVED:
+        {
+            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
+
+            PhRemoveListViewItem(
+                lvHandle,
+                PhFindListViewItemByParam(lvHandle, -1, threadItem)
+                );
+            PhDereferenceObject(threadItem);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
@@ -522,6 +678,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCMODULES),
         PhpProcessModulesDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+    PhDereferenceObject(newPage);
+
+    // Threads
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCTHREADS),
+        PhpProcessThreadsDlgProc,
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);

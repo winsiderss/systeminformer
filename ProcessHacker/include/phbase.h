@@ -350,6 +350,22 @@ FORCEINLINE ULONG PhStringIndexOfString(
         return -1;
 }
 
+FORCEINLINE ULONG PhStringLastIndexOfChar(
+    __in PPH_STRING String1,
+    __in ULONG StartIndex,
+    __in WCHAR Char
+    )
+{
+    PWSTR location;
+
+    location = wcsrchr(&String1->Buffer[StartIndex], Char);
+
+    if (location)
+        return (ULONG)(location - String1->Buffer);
+    else
+        return -1;
+}
+
 FORCEINLINE PPH_STRING PhSubstring(
     __in PPH_STRING String,
     __in ULONG StartIndex,

@@ -175,6 +175,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
     processItem->ProcessId = ProcessId;
+    PhPrintInteger(processItem->ProcessIdString, (ULONG)ProcessId);
 
     return processItem;
 }
@@ -463,7 +464,6 @@ VOID PhpFillProcessItem(
         ProcessItem->ProcessName = PhCreateString(L"System Idle Process");
     }
 
-    PhPrintInteger(ProcessItem->ProcessIdString, (ULONG)ProcessItem->ProcessId);
     PhPrintInteger(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
     PhPrintInteger(ProcessItem->SessionIdString, ProcessItem->SessionId);
 

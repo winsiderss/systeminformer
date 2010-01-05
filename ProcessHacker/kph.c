@@ -865,6 +865,42 @@ NTSTATUS KphSetContextThread(
         );
 }
 
+NTSTATUS KphGetThreadWin32Thread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __out PPVOID Win32Thread
+    )
+{
+    NTSTATUS status;
+    struct
+    {
+        HANDLE ThreadHandle;
+    } args;
+    struct
+    {
+        PVOID Win32Thread;
+    } ret;
+
+    args.ThreadHandle = ThreadHandle;
+
+    status = KphpDeviceIoControl(
+        KphHandle,
+        KPH_GETTHREADWIN32THREAD,
+        &args,
+        sizeof(args),
+        &ret,
+        sizeof(ret),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Win32Thread = ret.Win32Thread;
+    }
+
+    return status;
+}
+
 NTSTATUS KphDuplicateObject(
     __in HANDLE KphHandle,
     __in HANDLE SourceProcessHandle,
