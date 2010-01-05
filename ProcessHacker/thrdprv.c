@@ -372,8 +372,8 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     )
 {
     ULONG64 modBase;
-    PPH_STRING fileName;
-    PPH_STRING baseName;
+    PPH_STRING fileName = NULL;
+    PPH_STRING baseName = NULL;
     PPH_STRING symbol;
 
     modBase = PhGetModuleFromAddress(
@@ -522,7 +522,7 @@ VOID PhThreadProviderUpdate(
 
         if (!threadItem)
         {
-            PVOID startAddress;
+            PVOID startAddress = NULL;
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
 
