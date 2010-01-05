@@ -49,6 +49,16 @@ NTSTATUS PhOpenProcessToken(
     __in HANDLE ProcessHandle
     );
 
+NTSTATUS PhTerminateProcess(
+    __in HANDLE ProcessHandle,
+    __in NTSTATUS ExitStatus
+    );
+
+NTSTATUS PhTerminateThread(
+    __in HANDLE ThreadHandle,
+    __in NTSTATUS ExitStatus
+    );
+
 NTSTATUS PhReadVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -683,6 +693,21 @@ VOID PhThreadProviderUpdate(
 
 // support
 
+PPH_STRING PhGetMessage(
+    __in HANDLE DllHandle,
+    __in ULONG MessageTableId,
+    __in ULONG MessageLanguageId,
+    __in ULONG MessageId
+    );
+
+PPH_STRING PhGetNtMessage(
+    __in NTSTATUS Status
+    );
+
+PPH_STRING PhGetWin32Message(
+    __in ULONG Result
+    );
+
 #define PH_MAX_MESSAGE_SIZE 400
 
 INT PhShowMessage(
@@ -700,6 +725,13 @@ INT PhShowMessage_V(
     );
 
 #define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+
+VOID PhShowStatus(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    );
 
 PVOID PhGetFileVersionInfo(
     __in PWSTR FileName
