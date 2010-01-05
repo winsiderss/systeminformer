@@ -28,10 +28,10 @@
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
-#define PH_INT_STR_LEN 10
+#define PH_INT_STR_LEN 12
 #define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
 
-#define PH_LONG_STR_LEN 40
+#define PH_LONG_STR_LEN 50
 #define PH_LONG_STR_LEN_1 (PH_LONG_STR_LEN + 1)
 
 #define PH_PTR_STR_LEN 24
