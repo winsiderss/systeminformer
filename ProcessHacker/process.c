@@ -114,6 +114,50 @@ NTSTATUS PhOpenProcessToken(
     }
 }
 
+NTSTATUS PhTerminateProcess(
+    __in HANDLE ProcessHandle,
+    __in NTSTATUS ExitStatus
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphTerminateProcess(
+            PhKphHandle,
+            ProcessHandle,
+            ExitStatus
+            );
+    }
+    else
+    {
+        return NtTerminateProcess(
+            ProcessHandle,
+            ExitStatus
+            );
+    }
+}
+
+NTSTATUS PhTerminateThread(
+    __in HANDLE ThreadHandle,
+    __in NTSTATUS ExitStatus
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphTerminateThread(
+            PhKphHandle,
+            ThreadHandle,
+            ExitStatus
+            );
+    }
+    else
+    {
+        return NtTerminateThread(
+            ThreadHandle,
+            ExitStatus
+            );
+    }
+}
+
 NTSTATUS PhReadVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,

@@ -25,7 +25,7 @@ typedef BOOL (WINAPI *_SymFromAddr)(
     __in HANDLE hProcess,
     __in DWORD64 Address,
     __out_opt PDWORD64 Displacement,
-    __inout PSYMBOL_INFO Symbol
+    __inout PSYMBOL_INFOW Symbol
     );
 
 typedef DWORD64 (WINAPI *_SymLoadModule64)(

@@ -334,7 +334,31 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         processItem->ProcessName->Buffer
                         ) == IDYES)
                     {
-                        
+                        NTSTATUS status;
+                        HANDLE processHandle;
+
+                        if (NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_TERMINATE,
+                            processItem->ProcessId
+                            )))
+                        {
+                            status = PhTerminateProcess(
+                                processHandle,
+                                STATUS_SUCCESS
+                                );
+                            CloseHandle(processHandle);
+                        }
+
+                        if (!NT_SUCCESS(status))
+                        {
+                            PhShowStatus(
+                                hwndDlg,
+                                L"Unable to terminate the process",
+                                status,
+                                0
+                                );
+                        }
                     }
                 }
                 break;

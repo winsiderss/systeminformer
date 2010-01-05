@@ -329,4 +329,20 @@ typedef NTSTATUS (NTAPI *_RtlQueryProcessDebugInformation)(
 #define RTL_QUERY_PROCESS_MODULES32 0x00000040
 #define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000
 
+// Messages
+
+typedef NTSTATUS (NTAPI *_RtlFindMessage)(
+    __in PVOID DllHandle,
+    __in ULONG MessageTableId,
+    __in ULONG MessageLanguageId,
+    __in ULONG MessageId,
+    __out PMESSAGE_RESOURCE_ENTRY *MessageEntry
+    );
+
+// Errors
+
+typedef ULONG (NTAPI *_RtlNtStatusToDosError)(
+    __in NTSTATUS Status
+    );
+
 #endif
