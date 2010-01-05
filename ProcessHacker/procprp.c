@@ -506,6 +506,16 @@ static VOID NTAPI ThreadAddedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_ADDED, 0, (LPARAM)Parameter);
 }
 
+static VOID NTAPI ThreadModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_MODIFIED, 0, (LPARAM)Parameter);
+}
+
 static VOID NTAPI ThreadRemovedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -565,7 +575,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 );
             PhRegisterCallback(
                 &threadsContext->Provider->ThreadModifiedEvent,
-                ThreadRemovedHandler,
+                ThreadModifiedHandler,
                 threadsContext,
                 &threadsContext->ModifiedEventRegistration
                 );
@@ -632,6 +642,19 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->StartAddressString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"Priority Here");
+        }
+        break;
+    case WM_PH_THREAD_MODIFIED:
+        {
+            INT lvItemIndex;
+            PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
+
+            lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, threadItem);
+
+            if (lvItemIndex != -1)
+            {
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->StartAddressString));
+            }
         }
         break;
     case WM_PH_THREAD_REMOVED:

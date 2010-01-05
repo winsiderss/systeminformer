@@ -1406,7 +1406,7 @@ VOID PhpRtlModulesToGenericModules(
         // Check if we have a duplicate base address.
         if (PhIndexOfListItem(BaseAddressList, module->ImageBase) != -1)
         {
-            return TRUE;
+            continue;
         }
         else
         {
@@ -1457,7 +1457,6 @@ VOID PhpEnumGenericMappedFiles(
         {
             PPH_STRING fileName;
             PPH_STRING newFileName;
-            ULONG indexOfFileName;
             PH_MODULE_INFO moduleInfo;
             BOOLEAN cont;
 
@@ -1480,22 +1479,15 @@ VOID PhpEnumGenericMappedFiles(
 
             // Get the DOS file name and then get the base name.
 
-            newFileName = PhGetDosFullPath(fileName, &indexOfFileName);
+            newFileName = PhGetFileName(fileName);
             PhDereferenceObject(fileName);
-
-            if (!newFileName)
-                goto ContinueLoop;
 
             moduleInfo.BaseAddress = baseAddress;
             moduleInfo.Size = basicInfo.RegionSize;
             moduleInfo.EntryPoint = NULL;
             moduleInfo.Flags = 0;
             moduleInfo.FileName = newFileName;
-            moduleInfo.Name = PhSubstring(
-                newFileName,
-                indexOfFileName,
-                newFileName->Length / 2 - indexOfFileName
-                );
+            moduleInfo.Name = PhGetBaseName(newFileName);
 
             cont = Callback(&moduleInfo, Context);
 

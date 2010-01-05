@@ -184,19 +184,19 @@ PPH_STRING PhGetFullPath(
     return fullPath;
 }
 
-PPH_STRING PhGetDosFullPath(
-    __in PPH_STRING FileName,
-    __out_opt PULONG IndexOfFileName
+PPH_STRING PhGetBaseName(
+    __in PPH_STRING FileName
     )
 {
-    PPH_STRING fileName;
-    PPH_STRING newFileName;
+    ULONG lastIndexOfBackslash;
 
-    fileName = PhGetFileName(FileName);
-    newFileName = PhGetFullPath(fileName->Buffer, IndexOfFileName);
-    PhDereferenceObject(fileName);
+    lastIndexOfBackslash = PhStringLastIndexOfChar(FileName, 0, '\\');
 
-    return newFileName;
+    return PhSubstring(
+        FileName,
+        lastIndexOfBackslash + 1,
+        FileName->Length / 2 - lastIndexOfBackslash - 1
+        );
 }
 
 PPH_STRING PhGetSystemDirectory()

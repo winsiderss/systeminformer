@@ -359,9 +359,12 @@ VOID PhUnregisterProvider(
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 #endif
 
+#define PH_MAX_SYMBOL_NAME_LEN 128
+
 typedef struct _PH_SYMBOL_PROVIDER
 {
     PPH_LIST ModulesList;
+    PH_FAST_LOCK ModulesListLock;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
@@ -380,6 +383,21 @@ VOID PhSymbolProviderDynamicImport();
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     __in HANDLE ProcessId
+    );
+
+ULONG64 PhGetModuleFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out_opt PPH_STRING *FileName
+    );
+
+PPH_STRING PhGetSymbolFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out_opt PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    __out_opt PPH_STRING *FileName,
+    __out_opt PPH_STRING *SymbolName,
+    __out_opt PULONG64 Displacement
     );
 
 BOOLEAN PhSymbolProviderLoadModule(
@@ -635,6 +653,9 @@ typedef struct _PH_THREAD_PROVIDER
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
+    PH_EVENT SymbolsLoadedEvent;
+    PPH_QUEUE QueryQueue;
+    PH_MUTEX QueryQueueLock;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
 BOOLEAN PhInitializeThreadProvider();
@@ -704,9 +725,8 @@ PPH_STRING PhGetFullPath(
     __out_opt PULONG IndexOfFileName
     );
 
-PPH_STRING PhGetDosFullPath(
-    __in PPH_STRING FileName,
-    __out_opt PULONG IndexOfFileName
+PPH_STRING PhGetBaseName(
+    __in PPH_STRING FileName
     );
 
 PPH_STRING PhGetSystemDirectory();
