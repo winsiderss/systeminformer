@@ -24,9 +24,21 @@
 #include <ph.h>
 #include <kph.h>
 
+typedef struct _PH_THREAD_QUERY_DATA
+{
+    PPH_THREAD_PROVIDER ThreadProvider;
+    PPH_THREAD_ITEM ThreadItem;
+    PPH_STRING StartAddressString;
+    PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
+} PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
+
 VOID NTAPI PhpThreadProviderDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
+    );
+
+NTSTATUS PhpThreadProviderLoadSymbols(
+    __in PVOID Parameter
     );
 
 VOID NTAPI PhpThreadItemDeleteProcedure(
@@ -46,6 +58,8 @@ ULONG NTAPI PhpThreadHashtableHashFunction(
 PPH_OBJECT_TYPE PhThreadProviderType;
 PPH_OBJECT_TYPE PhThreadItemType;
 
+PH_WORK_QUEUE PhThreadProviderWorkQueue;
+
 BOOLEAN PhInitializeThreadProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
@@ -61,6 +75,8 @@ BOOLEAN PhInitializeThreadProvider()
         PhpThreadItemDeleteProcedure
         )))
         return FALSE;
+
+    PhInitializeWorkQueue(&PhThreadProviderWorkQueue, 0, 1, 1000);
 
     return TRUE;
 }
@@ -101,6 +117,21 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
             threadProvider->ProcessHandle = threadProvider->SymbolProvider->ProcessHandle;
     }
 
+    PhInitializeEvent(&threadProvider->SymbolsLoadedEvent);
+    threadProvider->QueryQueue = PhCreateQueue(1);
+    PhInitializeMutex(&threadProvider->QueryQueueLock);
+
+    // Begin loading symbols for the process' modules.
+    if (threadProvider->SymbolProvider->IsRealHandle)
+    {
+        PhReferenceObject(threadProvider);
+        PhQueueWorkQueueItem(
+            &PhThreadProviderWorkQueue,
+            PhpThreadProviderLoadSymbols,
+            threadProvider
+            );
+    }
+
     return threadProvider;
 }
 
@@ -121,9 +152,62 @@ VOID PhpThreadProviderDeleteProcedure(
     PhDeleteCallback(&threadProvider->ThreadModifiedEvent);
     PhDeleteCallback(&threadProvider->ThreadRemovedEvent);
 
+    // Destroy all queue items.
+    {
+        PPH_THREAD_QUERY_DATA data;
+
+        while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
+        {
+            PhDereferenceObject(data->StartAddressString);
+            PhDereferenceObject(data->ThreadItem);
+            PhFree(data);
+        }
+    }
+
+    PhDereferenceObject(threadProvider->QueryQueue);
+    PhDeleteMutex(&threadProvider->QueryQueueLock);
+
     // We don't close the process handle because it is owned by 
     // the symbol provider.
     if (threadProvider->SymbolProvider) PhDereferenceObject(threadProvider->SymbolProvider);
+}
+
+static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
+    __in PPH_MODULE_INFO Module,
+    __in PVOID Context
+    )
+{
+    PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Context;
+
+    PhSymbolProviderLoadModule(
+        symbolProvider,
+        Module->FileName->Buffer,
+        (ULONG64)Module->BaseAddress,
+        Module->Size
+        );
+
+    return TRUE;
+}
+
+NTSTATUS PhpThreadProviderLoadSymbols(
+    __in PVOID Parameter
+    )
+{
+    PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Parameter;
+
+    PhEnumGenericModules(
+        threadProvider->ProcessId,
+        threadProvider->SymbolProvider->ProcessHandle,
+        0,
+        LoadSymbolsEnumGenericModulesCallback,
+        threadProvider->SymbolProvider
+        );
+
+    PhSetEvent(&threadProvider->SymbolsLoadedEvent);
+
+    PhDereferenceObject(threadProvider);
+
+    return STATUS_SUCCESS;
 }
 
 PPH_THREAD_ITEM PhCreateThreadItem(
@@ -236,6 +320,99 @@ VOID PhpRemoveThreadItem(
     PhDereferenceObject(ThreadItem);
 }
 
+NTSTATUS PhpThreadQueryWorker(
+    __in PVOID Parameter
+    )
+{
+    PPH_THREAD_QUERY_DATA data = (PPH_THREAD_QUERY_DATA)Parameter;
+
+    // We can't resolve the start address until symbols have 
+    // been loaded.
+    PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, INFINITE);
+
+    data->StartAddressString = PhGetSymbolFromAddress(
+        data->ThreadProvider->SymbolProvider,
+        data->ThreadItem->StartAddress,
+        &data->StartAddressResolveLevel,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    PhAcquireMutex(&data->ThreadProvider->QueryQueueLock);
+    PhEnqueueQueueItem(data->ThreadProvider->QueryQueue, data);
+    PhReleaseMutex(&data->ThreadProvider->QueryQueueLock);
+
+    PhDereferenceObject(data->ThreadProvider);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpQueueThreadQuery(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in PPH_THREAD_ITEM ThreadItem
+    )
+{
+    PPH_THREAD_QUERY_DATA data;
+
+    data = PhAllocate(sizeof(PH_THREAD_QUERY_DATA));
+    memset(data, 0, sizeof(PH_THREAD_QUERY_DATA));
+    data->ThreadProvider = ThreadProvider;
+    data->ThreadItem = ThreadItem;
+
+    PhReferenceObject(ThreadProvider);
+    PhReferenceObject(ThreadItem);
+    PhQueueGlobalWorkQueueItem(PhpThreadQueryWorker, data);
+}
+
+PPH_STRING PhpGetThreadBasicStartAddress(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in ULONG64 Address,
+    __out PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel
+    )
+{
+    ULONG64 modBase;
+    PPH_STRING fileName;
+    PPH_STRING baseName;
+    PPH_STRING symbol;
+
+    modBase = PhGetModuleFromAddress(
+        ThreadProvider->SymbolProvider,
+        Address,
+        &fileName
+        );
+
+    if (fileName == NULL)
+    {
+        *ResolveLevel = PhsrlAddress;
+
+        symbol = PhCreateStringEx(0, PH_PTR_STR_LEN);
+        PhPrintPointer(symbol->Buffer, (PVOID)Address);
+    }
+    else
+    {
+        WCHAR displacementString[PH_PTR_STR_LEN_1];
+
+        baseName = PhGetBaseName(fileName);
+        *ResolveLevel = PhsrlModule;
+
+        PhPrintPointer(displacementString, (PVOID)(Address - modBase));
+        symbol = PhConcatStrings(
+            3,
+            baseName->Buffer,
+            L"+",
+            displacementString
+            );
+    }
+
+    if (fileName)
+        PhDereferenceObject(fileName);
+    if (baseName)
+        PhDereferenceObject(baseName);
+
+    return symbol;
+}
+
 VOID PhThreadProviderUpdate(
     __in PVOID Object
     )
@@ -309,6 +486,32 @@ VOID PhThreadProviderUpdate(
         }
     }
 
+    // Go through the queued thread query data.
+    {
+        PPH_THREAD_QUERY_DATA data;
+
+        PhAcquireMutex(&threadProvider->QueryQueueLock);
+
+        while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
+        {
+            PhReleaseMutex(&threadProvider->QueryQueueLock);
+
+            if (data->StartAddressResolveLevel == PhsrlFunction)
+            {
+                PhSwapReference(&data->ThreadItem->StartAddressString, data->StartAddressString);
+                data->ThreadItem->StartAddressResolveLevel = data->StartAddressResolveLevel;
+            }
+
+            data->ThreadItem->JustResolved = TRUE;
+
+            PhDereferenceObject(data->ThreadItem);
+            PhFree(data);
+            PhAcquireMutex(&threadProvider->QueryQueueLock);
+        }
+
+        PhReleaseMutex(&threadProvider->QueryQueueLock);
+    }
+
     // Look for new threads.
     for (i = 0; i < numberOfThreads; i++)
     {
@@ -371,8 +574,26 @@ VOID PhThreadProviderUpdate(
 
             threadItem->StartAddress = (ULONG64)startAddress;
 
-            threadItem->StartAddressString = PhCreateStringEx(NULL, 20);
-            PhPrintPointer(threadItem->StartAddressString->Buffer, startAddress);
+            if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
+            {
+                threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
+                    threadProvider,
+                    threadItem->StartAddress,
+                    &threadItem->StartAddressResolveLevel
+                    );
+            }
+
+            if (!threadItem->StartAddressString)
+            {
+                threadItem->StartAddressResolveLevel = PhsrlAddress;
+                threadItem->StartAddressString = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+                PhPrintPointer(
+                    threadItem->StartAddressString->Buffer,
+                    (PVOID)threadItem->StartAddress
+                    );
+            }
+
+            PhpQueueThreadQuery(threadProvider, threadItem);
 
             // Is it a GUI thread?
 
@@ -400,6 +621,48 @@ VOID PhThreadProviderUpdate(
         }
         else
         {
+            BOOLEAN modified = FALSE;
+
+            if (threadItem->JustResolved)
+                modified = TRUE;
+
+            // If the resolve level is only at address, it probably 
+            // means symbols weren't loaded the last time we 
+            // tried to get the start address. Try again.
+            if (threadItem->StartAddressResolveLevel == PhsrlAddress)
+            {
+                if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
+                {
+                    threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
+                        threadProvider,
+                        threadItem->StartAddress,
+                        &threadItem->StartAddressResolveLevel
+                        );
+
+                    modified = TRUE;
+                }
+
+                // If we couldn't resolve the start address to a 
+                // module+offset, use the StartAddress instead 
+                // of the Win32StartAddress and try again.
+                if (threadItem->JustResolved)
+                {
+                    if (threadItem->StartAddress != (ULONG64)thread->StartAddress)
+                    {
+                        threadItem->StartAddress = (ULONG64)thread->StartAddress;
+                        PhpQueueThreadQuery(threadProvider, threadItem);
+                    }
+                }
+            }
+
+            threadItem->JustResolved = FALSE;
+
+            if (modified)
+            {
+                // Raise the thread modified event.
+                PhInvokeCallback(&threadProvider->ThreadModifiedEvent, threadItem);
+            }
+
             PhDereferenceObject(threadItem);
         }
     }
