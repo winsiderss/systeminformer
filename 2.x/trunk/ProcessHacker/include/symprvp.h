@@ -37,6 +37,8 @@ typedef DWORD64 (WINAPI *_SymLoadModule64)(
     __in DWORD SizeOfDll
     );
 
+typedef DWORD (WINAPI *_SymGetOptions)();
+
 typedef DWORD (WINAPI *_SymSetOptions)(
     __in DWORD SymOptions
     );

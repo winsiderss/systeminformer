@@ -27,6 +27,7 @@ _SymCleanup SymCleanup_I;
 _SymEnumSymbols SymEnumSymbols_I;
 _SymFromAddr SymFromAddr_I;
 _SymLoadModule64 SymLoadModule64_I;
+_SymGetOptions SymGetOptions_I;
 _SymSetOptions SymSetOptions_I;
 _SymGetSearchPath SymGetSearchPath_I;
 _SymSetSearchPath SymSetSearchPath_I;
@@ -60,6 +61,7 @@ VOID PhSymbolProviderDynamicImport()
     SymEnumSymbols_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW");
     SymFromAddr_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW");
     SymLoadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymLoadModule64");
+    SymGetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymGetOptions");
     SymSetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymSetOptions");
     SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW");
     SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW");
@@ -67,6 +69,9 @@ VOID PhSymbolProviderDynamicImport()
     StackWalk64_I = PhGetProcAddress(L"dbghelp.dll", "StackWalk64");
     SymbolServerGetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerGetOptions");
     SymbolServerSetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerSetOptions");
+
+    if (SymGetOptions_I && SymSetOptions_I)
+        SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS);
 }
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
@@ -85,6 +90,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         return NULL;
 
     symbolProvider->ModulesList = PhCreateList(10);
+    PhInitializeFastLock(&symbolProvider->ModulesListLock);
     symbolProvider->IsRealHandle = TRUE;
 
     // Try to open the process with many different access masks. 
@@ -163,6 +169,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     }
 
     PhDereferenceObject(symbolProvider->ModulesList);
+    PhDeleteFastLock(&symbolProvider->ModulesListLock);
     if (symbolProvider->IsRealHandle) CloseHandle(symbolProvider->ProcessHandle);
 }
 
@@ -192,6 +199,226 @@ static INT PhpSymbolModuleCompareFunction(
         return 0;
 }
 
+ULONG64 PhGetModuleFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out_opt PPH_STRING *FileName
+    )
+{
+    ULONG i;
+
+    PhAcquireFastLockShared(&SymbolProvider->ModulesListLock);
+
+    for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
+    {
+        PPH_SYMBOL_MODULE module;
+
+        module = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
+
+        if (Address >= module->BaseAddress)
+        {
+            ULONG64 baseAddress = module->BaseAddress;
+
+            if (FileName)
+            {
+                *FileName = module->FileName;
+                PhReferenceObject(module->FileName);
+            }
+
+            PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+
+            return baseAddress;
+        }
+    }
+
+    PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+
+    return 0;
+}
+
+PPH_STRING PhGetSymbolFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out_opt PPH_SYMBOL_RESOLVE_LEVEL ResolveLevel,
+    __out_opt PPH_STRING *FileName,
+    __out_opt PPH_STRING *SymbolName,
+    __out_opt PULONG64 Displacement
+    )
+{
+    PSYMBOL_INFOW symbolInfo;
+    BOOL result;
+    PPH_STRING symbol = NULL;
+    PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
+    ULONG64 displacement;
+    PPH_STRING modFileName = NULL;
+    PPH_STRING modBaseName = NULL;
+    ULONG64 modBase;
+    PPH_STRING symbolName = NULL;
+
+    if (Address == 0)
+    {
+        if (ResolveLevel) *ResolveLevel = PhsrlInvalid;
+        if (FileName) *FileName = NULL;
+        if (SymbolName) *SymbolName = NULL;
+        if (Displacement) *Displacement = 0;
+
+        return NULL;
+    }
+
+    symbolInfo = PhAllocate(sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN * 2);
+    memset(symbolInfo, 0, sizeof(SYMBOL_INFO));
+    symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
+    symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+
+    // Get the symbol name.
+
+    PhAcquireMutex(&PhSymMutex);
+    result = SymFromAddr_I(
+        SymbolProvider->ProcessHandle,
+        Address,
+        &displacement,
+        symbolInfo
+        );
+    PhReleaseMutex(&PhSymMutex);
+
+    if (!result)
+    {
+        resolveLevel = PhsrlAddress;
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+        PhPrintPointer(symbol->Buffer, (PVOID)Address);
+        goto CleanupExit;
+    }
+
+    // Find the module name.
+
+    if (symbolInfo->ModBase == 0)
+    {
+        modBase = PhGetModuleFromAddress(
+            SymbolProvider,
+            Address,
+            &modFileName
+            );
+    }
+    else
+    {
+        ULONG i;
+
+        modBase = symbolInfo->ModBase;
+
+        PhAcquireFastLockShared(&SymbolProvider->ModulesListLock);
+
+        for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
+        {
+            PPH_SYMBOL_MODULE module;
+
+            module = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
+
+            if (module->BaseAddress == modBase)
+            {
+                modFileName = module->FileName;
+                PhReferenceObject(modFileName);
+
+                break;
+            }
+        }
+
+        PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+    }
+
+    // If we don't have a module name, return an address.
+    if (!modFileName)
+    {
+        resolveLevel = PhsrlAddress;
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+        PhPrintPointer(symbol->Buffer, (PVOID)Address);
+
+        goto CleanupExit;
+    }
+
+    modBaseName = PhGetBaseName(modFileName);
+
+    // If we have a module name but not a symbol name, 
+    // return the module plus an offset: module+offset.
+
+    if (symbolInfo->NameLen == 0)
+    {
+        WCHAR displacementString[PH_PTR_STR_LEN_1];
+
+        resolveLevel = PhsrlModule;
+
+        PhPrintPointer(displacementString, (PVOID)(Address - modBase));
+        symbol = PhConcatStrings(
+            3,
+            modBaseName->Buffer,
+            L"+",
+            displacementString
+            );
+
+        goto CleanupExit;
+    }
+
+    // If we have everything, return the full symbol 
+    // name: module!symbol+offset.
+
+    symbolName = PhCreateStringEx(
+        symbolInfo->Name,
+        symbolInfo->NameLen * 2
+        );
+
+    resolveLevel = PhsrlFunction;
+
+    if (displacement == 0)
+    {
+        symbol = PhConcatStrings(
+            3,
+            modBaseName->Buffer,
+            L"!",
+            symbolName->Buffer
+            );
+    }
+    else
+    {
+        WCHAR displacementString[PH_PTR_STR_LEN_1];
+
+        PhPrintPointer(displacementString, (PVOID)displacement);
+        symbol = PhConcatStrings(
+            5,
+            modBaseName->Buffer,
+            L"!",
+            symbolName->Buffer,
+            L"+",
+            displacementString
+            );
+    }
+
+CleanupExit:
+
+    if (ResolveLevel)
+        *ResolveLevel = resolveLevel;
+    if (FileName)
+        *FileName = modFileName;
+    if (SymbolName)
+    {
+        *SymbolName = symbolName;
+
+        if (symbolName)
+            PhReferenceObject(symbolName);
+    }
+    if (Displacement)
+        *Displacement = displacement;
+
+    if (modFileName)
+        PhDereferenceObject(modFileName);
+    if (modBaseName)
+        PhDereferenceObject(modBaseName);
+    if (symbolName)
+        PhDereferenceObject(symbolName);
+
+    PhFree(symbolInfo);
+
+    return symbol;
+}
+
 BOOLEAN PhSymbolProviderLoadModule(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR FileName,
@@ -201,6 +428,9 @@ BOOLEAN PhSymbolProviderLoadModule(
 {
     PPH_ANSI_STRING fileName;
     ULONG64 baseAddress;
+
+    if (!SymLoadModule64_I)
+        return FALSE;
 
     fileName = PhCreateAnsiStringFromUnicode(FileName);
 
@@ -217,12 +447,14 @@ BOOLEAN PhSymbolProviderLoadModule(
         Size
         );
     PhReleaseMutex(&PhSymMutex);
-    PhFree(fileName);
+    PhDereferenceObject(fileName);
 
     if (!baseAddress)
     {
         if (GetLastError() != ERROR_SUCCESS)
             return FALSE;
+        else
+            return TRUE;
     }
 
     // Add the module to the list.
@@ -233,8 +465,10 @@ BOOLEAN PhSymbolProviderLoadModule(
         symbolModule->BaseAddress = BaseAddress;
         symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
 
+        PhAcquireFastLockExclusive(&SymbolProvider->ModulesListLock);
         PhAddListItem(SymbolProvider->ModulesList, symbolModule);
         PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
+        PhReleaseFastLockExclusive(&SymbolProvider->ModulesListLock);
     }
 
     return TRUE;
