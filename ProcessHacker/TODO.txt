@@ -4,15 +4,13 @@
 * Column re-ordering
 * Column chooser
 
+* Highlighting (normal & difference)
+
 * Service properties
 * Network provider
 
 * Process properties:
 	* Complete the General tab
-	* Module provider
-		* WOW64 modules
-		* Kernel modules in list for System
-	* Thread provider
 	* Memory provider
 	* Handles provider
 	* Environment
