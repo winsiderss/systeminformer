@@ -23,6 +23,105 @@
 #include <phgui.h>
 #include <wchar.h>
 
+PPH_STRING PhGetMessage(
+    __in HANDLE DllHandle,
+    __in ULONG MessageTableId,
+    __in ULONG MessageLanguageId,
+    __in ULONG MessageId
+    )
+{
+    NTSTATUS status;
+    PMESSAGE_RESOURCE_ENTRY messageEntry;
+
+    status = RtlFindMessage(
+        DllHandle,
+        MessageTableId,
+        MessageLanguageId,
+        MessageId,
+        &messageEntry
+        );
+
+    // Try using the system LANGID.
+    if (!NT_SUCCESS(status))
+    {
+        status = RtlFindMessage(
+            DllHandle,
+            MessageTableId,
+            GetSystemDefaultLangID(),
+            MessageId,
+            &messageEntry
+            );
+    }
+
+    // Try using U.S. English.
+    if (!NT_SUCCESS(status))
+    {
+        status = RtlFindMessage(
+            DllHandle,
+            MessageTableId,
+            MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US),
+            MessageId,
+            &messageEntry
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
+    {
+        return PhCreateStringEx((PWSTR)messageEntry->Text, messageEntry->Length);
+    }
+    else
+    {
+        return PhCreateStringFromAnsiEx((PSTR)messageEntry->Text, messageEntry->Length);
+    }
+}
+
+PPH_STRING PhGetNtMessage(
+    __in NTSTATUS Status
+    )
+{
+    PPH_STRING message;
+
+    message = PhGetMessage(GetModuleHandle(L"ntdll.dll"), 0xb, GetUserDefaultLangID(), (ULONG)Status);
+
+    if (!message)
+        return NULL;
+    if (message->Length == 0)
+        return message;
+
+    // Fix those messages which are formatted like:
+    // {Asdf}\r\nAsdf asdf asdf...
+    if (message->Buffer[0] == '{')
+    {
+        ULONG indexOfNewLine = PhStringIndexOfChar(message, 0, '\n');
+
+        if (indexOfNewLine != -1)
+        {
+            PPH_STRING newMessage;
+
+            newMessage = PhSubstring(
+                message,
+                indexOfNewLine + 1,
+                message->Length / 2 - indexOfNewLine - 1
+                );
+            PhDereferenceObject(message);
+
+            message = newMessage;
+        }
+    }
+
+    return message;
+}
+
+PPH_STRING PhGetWin32Message(
+    __in ULONG Result
+    )
+{
+    return PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
+}
+
 INT PhShowMessage(
     __in HWND hWnd,
     __in ULONG Type,
@@ -53,6 +152,61 @@ INT PhShowMessage_V(
         return -1;
 
     return MessageBox(hWnd, message, PH_APP_NAME, Type);
+}
+
+VOID PhShowStatus(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    if (!Win32Result)
+    {
+        // In some cases we want the simple Win32 messages.
+        if (
+            Status != STATUS_ACCESS_DENIED &&
+            Status != STATUS_ACCESS_VIOLATION
+            )
+        {
+            statusMessage = PhGetNtMessage(Status);
+        }
+        else
+        {
+            statusMessage = PhGetWin32Message(RtlNtStatusToDosError(Status));
+        }
+    }
+    else
+    {
+        statusMessage = PhGetWin32Message(Win32Result);
+    }
+
+    if (!statusMessage)
+    {
+        if (Message)
+        {
+            PhShowError(hWnd, L"%s.", Message);
+        }
+        else
+        {
+            PhShowError(hWnd, L"Unable to perform the operation.");
+        }
+
+        return;
+    }
+
+    if (Message)
+    {
+        PhShowError(hWnd, L"%s: %s", Message, statusMessage->Buffer);
+    }
+    else
+    {
+        PhShowError(hWnd, L"%s", statusMessage->Buffer);
+    }
+
+    PhDereferenceObject(statusMessage);
 }
 
 PVOID PhGetFileVersionInfo(
