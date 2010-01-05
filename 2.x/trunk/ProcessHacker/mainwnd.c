@@ -122,6 +122,20 @@ BOOLEAN PhMainWndInitialization(
         }
     }
 
+    // Temporary: initialize dbghelp.
+    {
+        if (LoadLibrary(L"C:\\Program Files\\Debugging Tools for Windows (x86)\\dbghelp.dll"))
+        {
+            LoadLibrary(L"C:\\Program Files\\Debugging Tools for Windows (x86)\\symsrv.dll");
+        }
+        else
+        {
+            LoadLibrary(L"dbghelp.dll");
+        }
+
+        PhSymbolProviderDynamicImport();
+    }
+
     // Initialize the providers.
     PhInitializeProviderThread(&PhPrimaryProviderThread, 1000);
     PhInitializeProviderThread(&PhSecondaryProviderThread, 1000);

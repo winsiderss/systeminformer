@@ -273,6 +273,12 @@ NTSTATUS KphSetContextThread(
     __in PCONTEXT ThreadContext
     );
 
+NTSTATUS KphGetThreadWin32Thread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __out PPVOID Win32Thread
+    );
+
 NTSTATUS KphDuplicateObject(
     __in HANDLE KphHandle,
     __in HANDLE SourceProcessHandle,
