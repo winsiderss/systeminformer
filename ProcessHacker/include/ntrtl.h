@@ -277,6 +277,22 @@ typedef struct _RTL_PROCESS_HEAPS
     RTL_HEAP_INFORMATION Heaps[1];
 } RTL_PROCESS_HEAPS, *PRTL_PROCESS_HEAPS;
 
+// LUIDs
+
+FORCEINLINE LUID RtlConvertLongToLuid(
+    __in LONG Long
+    )
+{
+    LUID tempLuid;
+    LARGE_INTEGER tempLi;
+
+    tempLi.QuadPart = Long;
+    tempLuid.LowPart = tempLi.LowPart;
+    tempLuid.HighPart = tempLi.HighPart;
+
+    return tempLuid;
+}
+
 // Debugging
 
 typedef struct RTL_PROCESS_BACKTRACES *PRTL_PROCESS_BACKTRACES;

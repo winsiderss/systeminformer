@@ -37,6 +37,9 @@
 #define PH_PTR_STR_LEN 24
 #define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
 
+#define STR_EQUAL(Str1, Str2) (strcmp(Str1, Str2) == 0)
+#define WSTR_EQUAL(Str1, Str2) (wcscmp(Str1, Str2) == 0)
+
 FORCEINLINE PVOID PhGetProcAddress(
     __in PWSTR LibraryName,
     __in PSTR ProcName

@@ -106,8 +106,8 @@ typedef struct _PROCESS_BASIC_INFORMATION
     PPEB PebBaseAddress;
     ULONG_PTR AffinityMask;
     KPRIORITY BasePriority;
-    ULONG_PTR UniqueProcessId;
-    ULONG_PTR InheritedFromUniqueProcessId;
+    HANDLE UniqueProcessId;
+    HANDLE InheritedFromUniqueProcessId;
 } PROCESS_BASIC_INFORMATION;
 typedef PROCESS_BASIC_INFORMATION *PPROCESS_BASIC_INFORMATION;
 
