@@ -16,6 +16,8 @@
 	* Environment
 	* Job
 
+* Better object names for TmEn, TmRm, TmTm, TmTx
+
 * Statistics collection
 * Graph controls
 * System information window
