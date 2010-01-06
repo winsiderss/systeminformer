@@ -148,9 +148,9 @@ VOID PhpHandleItemDeleteProcedure(
 {
     PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)Object;
 
-    if (handleItem->TypeName) CloseHandle(handleItem->TypeName);
-    if (handleItem->ObjectName) CloseHandle(handleItem->ObjectName);
-    if (handleItem->BestObjectName) CloseHandle(handleItem->BestObjectName);
+    if (handleItem->TypeName) PhDereferenceObject(handleItem->TypeName);
+    if (handleItem->ObjectName) PhDereferenceObject(handleItem->ObjectName);
+    if (handleItem->BestObjectName) PhDereferenceObject(handleItem->BestObjectName);
 }
 
 BOOLEAN PhpHandleHashtableCompareFunction(
