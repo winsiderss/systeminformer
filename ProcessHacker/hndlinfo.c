@@ -256,13 +256,12 @@ NTSTATUS PhpGetObjectName(
             );
     }
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        return status;
+        *ObjectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
     }
 
-    *ObjectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
+    PhFree(buffer);
 
     return status;
 }
