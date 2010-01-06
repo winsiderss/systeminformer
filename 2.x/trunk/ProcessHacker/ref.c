@@ -169,11 +169,22 @@ NTSTATUS PhCreateObjectType(
  * 
  * Return value: TRUE if the object was freed, otherwise FALSE.
  */
-BOOLEAN PhDereferenceObject(
+VOID PhDereferenceObject(
     __in PVOID Object
     )
 {
-    return PhDereferenceObjectEx(Object, 1, FALSE) == 0;
+    PPH_OBJECT_HEADER objectHeader;
+    LONG newRefCount;
+    
+    objectHeader = PhObjectToObjectHeader(Object);
+    /* Decrement the reference count. */
+    newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
+    
+    /* Free the object if it has 0 references. */
+    if (newRefCount == 0)
+    {
+        PhpFreeObject(objectHeader);
+    }
 }
 
 /* PhDereferenceObjectDeferDelete
