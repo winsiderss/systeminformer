@@ -22,8 +22,10 @@
 
 #include <ph.h>
 #include <kph.h>
+#include <sddl.h>
 
-static PWSTR PhDosDeviceNames[26];
+PWSTR PhDosDeviceNames[26];
+PH_FAST_LOCK PhDosDeviceNamesLock;
 
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
@@ -615,6 +617,20 @@ NTSTATUS PhSetProcessExecuteFlags(
         );
 }
 
+NTSTATUS PhGetThreadBasicInformation(
+    __in HANDLE ThreadHandle,
+    __out PTHREAD_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadBasicInformation,
+        BasicInformation,
+        sizeof(THREAD_BASIC_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhpQueryTokenVariableSize(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
@@ -701,6 +717,20 @@ NTSTATUS PhGetTokenIsElevated(
     }
 
     return status;
+}
+
+NTSTATUS PhGetTokenStatistics(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_STATISTICS Statistics
+    )
+{
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenStatistics,
+        Statistics,
+        sizeof(TOKEN_STATISTICS),
+        NULL
+        );
 }
 
 NTSTATUS PhGetTokenGroups(
@@ -990,6 +1020,49 @@ BOOLEAN PhLookupSid(
     return TRUE;
 }
 
+PPH_STRING PhGetSidFullName(
+    __in PSID Sid
+    )
+{
+    PPH_STRING fullName;
+    PPH_STRING name;
+    PPH_STRING domainName;
+
+    if (!PhLookupSid(Sid, &name, &domainName, NULL))
+        return NULL;
+
+    if (domainName->Length != 0)
+    {
+        fullName = PhConcatStrings(3, domainName->Buffer, L"\\", name->Buffer);
+    }
+    else
+    {
+        fullName = name;
+        PhReferenceObject(name);
+    }
+
+    PhDereferenceObject(name);
+    PhDereferenceObject(domainName);
+
+    return fullName;
+}
+
+PPH_STRING PhConvertSidToStringSid(
+    __in PSID Sid
+    )
+{
+    PWSTR stringSid;
+    PPH_STRING string;
+
+    if (!ConvertSidToStringSid(Sid, &stringSid))
+        return NULL;
+
+    string = PhCreateString(stringSid);
+    LocalFree(stringSid);
+
+    return string;
+}
+
 NTSTATUS PhDuplicateObject(
     __in HANDLE SourceProcessHandle,
     __in HANDLE SourceHandle,
@@ -1221,18 +1294,12 @@ NTSTATUS PhEnumProcesses(
 
     while (TRUE)
     {
-        if (!buffer)
-            return STATUS_INSUFFICIENT_RESOURCES;
-
         status = NtQuerySystemInformation(
             SystemProcessInformation,
             buffer,
             bufferSize,
             &bufferSize
             );
-
-        if (NT_SUCCESS(status))
-            break;
 
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
         {
@@ -1241,9 +1308,14 @@ NTSTATUS PhEnumProcesses(
         }
         else
         {
-            PhFree(buffer);
-            return status;
+            break;
         }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
     }
 
     *Processes = buffer;
@@ -1269,12 +1341,53 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     return NULL;
 }
 
+NTSTATUS PhEnumHandles(
+    __out PSYSTEM_HANDLE_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    static ULONG bufferSize = 0x1000;
+
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQuerySystemInformation(
+        SystemHandleInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to over 
+        // 16 MB.
+        if (bufferSize > 16 * 1024 * 1024)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Handles = (PSYSTEM_HANDLE_INFORMATION)buffer;
+
+    return status;
+}
+
 VOID PhInitializeDosDeviceNames()
 {
     ULONG i;
 
     for (i = 0; i < 26; i++)
         PhDosDeviceNames[i] = PhAllocate(64 * sizeof(WCHAR));
+
+    PhInitializeFastLock(&PhDosDeviceNamesLock);
 }
 
 VOID PhRefreshDosDeviceNames()
@@ -1289,8 +1402,12 @@ VOID PhRefreshDosDeviceNames()
     {
         deviceName[0] = (WCHAR)('A' + i);
 
+        PhAcquireFastLockExclusive(&PhDosDeviceNamesLock);
+
         if (!QueryDosDevice(deviceName, PhDosDeviceNames[i], 64))
             PhDosDeviceNames[i][0] = 0;
+
+        PhReleaseFastLockExclusive(&PhDosDeviceNamesLock);
     }
 }
 
@@ -1331,20 +1448,32 @@ PPH_STRING PhGetFileName(
 
         for (i = 0; i < 26; i++)
         {
-            PWSTR prefix = PhDosDeviceNames[i];
-            ULONG prefixLength = (ULONG)wcslen(prefix);
+            PWSTR prefix;
+            ULONG prefixLength;
+            BOOLEAN isPrefix = FALSE;
+
+            PhAcquireFastLockShared(&PhDosDeviceNamesLock);
+
+            prefix = PhDosDeviceNames[i];
+            prefixLength = (ULONG)wcslen(prefix);
 
             if (prefixLength > 0)
-            {
-                if (PhStringStartsWith2(FileName, prefix, TRUE))
-                {
-                    newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
-                    newFileName->Buffer[0] = (WCHAR)('A' + i);
-                    newFileName->Buffer[1] = ':';
-                    memcpy(&newFileName->Buffer[2], &FileName->Buffer[prefixLength], FileName->Length - prefixLength * 2);
+                isPrefix = PhStringStartsWith2(FileName, prefix, TRUE);
 
-                    break;
-                }
+            PhReleaseFastLockShared(&PhDosDeviceNamesLock);
+
+            if (isPrefix)
+            {
+                newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
+                newFileName->Buffer[0] = (WCHAR)('A' + i);
+                newFileName->Buffer[1] = ':';
+                memcpy(
+                    &newFileName->Buffer[2],
+                    &FileName->Buffer[prefixLength],
+                    FileName->Length - prefixLength * 2
+                    );
+
+                break;
             }
         }
 

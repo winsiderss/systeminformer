@@ -359,6 +359,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hndlinfo.c"
+				>
+			</File>
+			<File
 				RelativePath=".\kph.c"
 				>
 			</File>

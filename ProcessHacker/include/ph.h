@@ -125,6 +125,11 @@ NTSTATUS PhSetProcessExecuteFlags(
     __in ULONG ExecuteFlags
     );
 
+NTSTATUS PhGetThreadBasicInformation(
+    __in HANDLE ThreadHandle,
+    __out PTHREAD_BASIC_INFORMATION BasicInformation
+    );
+
 NTSTATUS PhGetTokenUser(
     __in HANDLE TokenHandle,
     __out PTOKEN_USER *User
@@ -138,6 +143,11 @@ NTSTATUS PhGetTokenElevationType(
 NTSTATUS PhGetTokenIsElevated(
     __in HANDLE TokenHandle,
     __out PBOOLEAN Elevated
+    );
+
+NTSTATUS PhGetTokenStatistics(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_STATISTICS Statistics
     );
 
 NTSTATUS PhGetTokenGroups(
@@ -183,6 +193,14 @@ BOOLEAN PhLookupSid(
     __out_opt PPH_STRING *Name,
     __out_opt PPH_STRING *DomainName,
     __out_opt PSID_NAME_USE NameUse
+    );
+
+PPH_STRING PhGetSidFullName(
+    __in PSID Sid
+    );
+
+PPH_STRING PhConvertSidToStringSid(
+    __in PSID Sid
     );
 
 NTSTATUS PhDuplicateObject(
@@ -231,6 +249,10 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     __in HANDLE ProcessId
     );
 
+NTSTATUS PhEnumHandles(
+    __out PSYSTEM_HANDLE_INFORMATION *Handles
+    );
+
 VOID PhInitializeDosDeviceNames();
 
 VOID PhRefreshDosDeviceNames();
@@ -262,6 +284,34 @@ NTSTATUS PhEnumGenericModules(
     __in ULONG Flags,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in PVOID Context
+    );
+
+// hndlinfo
+
+VOID PhHandleInfoInitialization();
+
+NTSTATUS PhQueryObjectNameHack(
+    __in HANDLE Handle,
+    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
+    __in ULONG ObjectNameInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+PPH_STRING PhFormatNativeKeyName(
+    __in PPH_STRING Name
+    );
+
+PPH_STRING PhGetClientIdName(
+    __in PCLIENT_ID ClientId
+    );
+
+NTSTATUS PhGetHandleInformation(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in ULONG ObjectTypeNumber,
+    __out_opt PPH_STRING *TypeName,
+    __out_opt PPH_STRING *ObjectName,
+    __out_opt PPH_STRING *BestObjectName
     );
 
 // verify
