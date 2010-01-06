@@ -363,6 +363,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hndlprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\kph.c"
 				>
 			</File>

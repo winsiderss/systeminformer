@@ -92,7 +92,7 @@ NTSTATUS PhpGetObjectTypeName(
     __out PPH_STRING *TypeName
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING typeName = NULL;
 
     // If the cache contains the object type name, use it. Otherwise, 
@@ -134,7 +134,7 @@ NTSTATUS PhpGetObjectTypeName(
                 );
         }
 
-        if (!NT_SUCCESS(status))
+        if (returnLength == 0)
             return status;
 
         buffer = PhAllocate(returnLength);
@@ -228,7 +228,7 @@ NTSTATUS PhpGetObjectName(
             );
     }
 
-    if (!NT_SUCCESS(status))
+    if (returnLength == 0)
         return status;
 
     buffer = PhAllocate(returnLength);
@@ -501,7 +501,7 @@ NTSTATUS PhpGetBestObjectName(
                 WCHAR authIdString[PH_INT_STR_LEN_1];
 
                 _snwprintf(authIdString, PH_INT_STR_LEN, L"%x", statistics.AuthenticationId.LowPart);
-                bestObjectName = PhConcatStrings(3, fullName, L": 0x", authIdString);
+                bestObjectName = PhConcatStrings(3, fullName->Buffer, L": 0x", authIdString);
 
                 PhDereferenceObject(fullName);
             }

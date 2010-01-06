@@ -194,6 +194,9 @@ BOOLEAN PhInitializeSystem()
         return FALSE;
     if (!PhInitializeThreadProvider())
         return FALSE;
+    PhHandleInfoInitialization();
+    if (!PhInitializeHandleProvider())
+        return FALSE;
     if (!PhProcessPropInitialization())
         return FALSE;
 
