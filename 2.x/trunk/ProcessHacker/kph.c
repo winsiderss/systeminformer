@@ -728,6 +728,9 @@ NTSTATUS KphGetHandleObjectName(
         HANDLE Handle;
     } args;
 
+    args.ProcessHandle = ProcessHandle;
+    args.Handle = Handle;
+
     if (Buffer && BufferLength >= sizeof(UNICODE_STRING))
     {
         status = KphpDeviceIoControl(
@@ -739,6 +742,8 @@ NTSTATUS KphGetHandleObjectName(
             BufferLength,
             &returnLength
             );
+
+        Buffer->Buffer = (PWSTR)PTR_ADD_OFFSET(Buffer, sizeof(UNICODE_STRING));
 
         if (ReturnLength)
         {
