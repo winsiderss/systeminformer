@@ -1485,8 +1485,8 @@ PPH_STRING PhGetFileName(
         if (newFileName == FileName)
         {
             // We didn't find a match. If the file name starts with 
-            // a backslash, prepend the system drive.
-            if (newFileName->Buffer[0] == '\\')
+            // certain prefixes, prepend the system drive.
+            if (PhStringStartsWith2(newFileName, L"\\Windows", TRUE))
             {
                 PPH_STRING systemDirectory = PhGetSystemDirectory();
 

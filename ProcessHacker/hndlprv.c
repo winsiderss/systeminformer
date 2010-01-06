@@ -339,6 +339,13 @@ VOID PhHandleProviderUpdate(
                 &handleItem->BestObjectName
                 );
 
+            // We need at least a type name to continue.
+            if (!handleItem->TypeName)
+            {
+                PhDereferenceObject(handleItem);
+                continue;
+            }
+
             // Add the handle item to the hashtable.
             PhAcquireFastLockExclusive(&handleProvider->HandleHashtableLock);
             PhAddHashtableEntry(handleProvider->HandleHashtable, &handleItem);
