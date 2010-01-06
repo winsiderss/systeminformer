@@ -91,6 +91,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     PhInitializeCallback(&moduleProvider->ModuleRemovedEvent);
 
     moduleProvider->ProcessId = ProcessId;
+    moduleProvider->ProcessHandle = NULL;
 
     // It doesn't matter if we can't get a process handle.
 

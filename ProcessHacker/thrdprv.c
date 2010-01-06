@@ -512,7 +512,7 @@ VOID PhThreadProviderUpdate(
         PhReleaseMutex(&threadProvider->QueryQueueLock);
     }
 
-    // Look for new threads.
+    // Look for new threads and update existing ones.
     for (i = 0; i < numberOfThreads; i++)
     {
         PSYSTEM_THREAD_INFORMATION thread = &threads[i];
