@@ -269,7 +269,7 @@ VOID PhResetEvent(
     __inout PPH_EVENT Event
     )
 {
-    if (!PhTestEvent(Event))
+    if (PhTestEvent(Event))
         Event->Value = PH_EVENT_REFCOUNT_INC;
 }
 
