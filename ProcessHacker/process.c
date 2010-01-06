@@ -1416,6 +1416,48 @@ VOID PhRefreshDosDeviceNames()
     }
 }
 
+PPH_STRING PhResolveDevicePrefix(
+    __in PPH_STRING Name
+    )
+{
+    ULONG i;
+    PPH_STRING newName = NULL;
+
+    // Go through the DOS devices and try to find a matching prefix.
+    for (i = 0; i < 26; i++)
+    {
+        PWSTR prefix;
+        ULONG prefixLength;
+        BOOLEAN isPrefix = FALSE;
+
+        PhAcquireFastLockShared(&PhDosDeviceNamesLock);
+
+        prefix = PhDosDeviceNames[i];
+        prefixLength = (ULONG)wcslen(prefix);
+
+        if (prefixLength > 0)
+            isPrefix = PhStringStartsWith2(Name, prefix, TRUE);
+
+        PhReleaseFastLockShared(&PhDosDeviceNamesLock);
+
+        if (isPrefix)
+        {
+            newName = PhCreateStringEx(NULL, 4 + Name->Length - prefixLength * 2);
+            newName->Buffer[0] = (WCHAR)('A' + i);
+            newName->Buffer[1] = ':';
+            memcpy(
+                &newName->Buffer[2],
+                &Name->Buffer[prefixLength],
+                Name->Length - prefixLength * 2
+                );
+
+            break;
+        }
+    }
+
+    return newName;
+}
+
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
     )
@@ -1446,46 +1488,20 @@ PPH_STRING PhGetFileName(
             PhDereferenceObject(systemDirectory);
         }
     }
-    // Go through the DOS devices and try to find a matching prefix.
     else
     {
-        ULONG i;
+        PPH_STRING resolvedName;
 
-        for (i = 0; i < 26; i++)
+        resolvedName = PhResolveDevicePrefix(FileName);
+
+        if (resolvedName)
         {
-            PWSTR prefix;
-            ULONG prefixLength;
-            BOOLEAN isPrefix = FALSE;
-
-            PhAcquireFastLockShared(&PhDosDeviceNamesLock);
-
-            prefix = PhDosDeviceNames[i];
-            prefixLength = (ULONG)wcslen(prefix);
-
-            if (prefixLength > 0)
-                isPrefix = PhStringStartsWith2(FileName, prefix, TRUE);
-
-            PhReleaseFastLockShared(&PhDosDeviceNamesLock);
-
-            if (isPrefix)
-            {
-                newFileName = PhCreateStringEx(NULL, 4 + FileName->Length - prefixLength * 2);
-                newFileName->Buffer[0] = (WCHAR)('A' + i);
-                newFileName->Buffer[1] = ':';
-                memcpy(
-                    &newFileName->Buffer[2],
-                    &FileName->Buffer[prefixLength],
-                    FileName->Length - prefixLength * 2
-                    );
-
-                break;
-            }
+            newFileName = resolvedName;
         }
-
-        if (newFileName == FileName)
+        else
         {
-            // We didn't find a match. If the file name starts with 
-            // certain prefixes, prepend the system drive.
+            // We didn't find a match.
+            // If the file name starts with a backslash, prepend the system drive.
             if (PhStringStartsWith2(newFileName, L"\\Windows", TRUE))
             {
                 PPH_STRING systemDirectory = PhGetSystemDirectory();

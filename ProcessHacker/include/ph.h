@@ -257,6 +257,10 @@ VOID PhInitializeDosDeviceNames();
 
 VOID PhRefreshDosDeviceNames();
 
+PPH_STRING PhResolveDevicePrefix(
+    __in PPH_STRING Name
+    );
+
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
     );

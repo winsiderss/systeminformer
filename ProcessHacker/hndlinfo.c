@@ -374,7 +374,13 @@ NTSTATUS PhpGetBestObjectName(
     if (PhStringEquals2(TypeName, L"File", TRUE))
     {
         // Convert the file name to a DOS file name.
-        bestObjectName = PhGetFileName(ObjectName);
+        bestObjectName = PhResolveDevicePrefix(ObjectName);
+
+        if (!bestObjectName)
+        {
+            bestObjectName = ObjectName;
+            PhReferenceObject(ObjectName);
+        }
     }
     else if (PhStringEquals2(TypeName, L"Key", TRUE))
     {
