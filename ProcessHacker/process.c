@@ -686,12 +686,14 @@ NTSTATUS PhGetTokenElevationType(
     __out PTOKEN_ELEVATION_TYPE ElevationType
     )
 {
+    ULONG returnLength;
+
     return NtQueryInformationToken(
         TokenHandle,
         TokenElevationType,
         ElevationType,
         sizeof(TOKEN_ELEVATION_TYPE),
-        NULL
+        &returnLength
         );
 }
 
@@ -702,13 +704,14 @@ NTSTATUS PhGetTokenIsElevated(
 {
     NTSTATUS status;
     TOKEN_ELEVATION elevation;
+    ULONG returnLength;
 
     status = NtQueryInformationToken(
         TokenHandle,
         TokenElevation,
         &elevation,
         sizeof(TOKEN_ELEVATION),
-        NULL
+        &returnLength
         );
 
     if (NT_SUCCESS(status))
@@ -724,12 +727,14 @@ NTSTATUS PhGetTokenStatistics(
     __out PTOKEN_STATISTICS Statistics
     )
 {
+    ULONG returnLength;
+
     return NtQueryInformationToken(
         TokenHandle,
         TokenStatistics,
         Statistics,
         sizeof(TOKEN_STATISTICS),
-        NULL
+        &returnLength
         );
 }
 

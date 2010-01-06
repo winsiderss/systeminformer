@@ -290,13 +290,6 @@ NTSTATUS PhEnumGenericModules(
 
 VOID PhHandleInfoInitialization();
 
-NTSTATUS PhQueryObjectNameHack(
-    __in HANDLE Handle,
-    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
-    __in ULONG ObjectNameInformationLength,
-    __out_opt PULONG ReturnLength
-    );
-
 PPH_STRING PhFormatNativeKeyName(
     __in PPH_STRING Name
     );
@@ -312,6 +305,13 @@ NTSTATUS PhGetHandleInformation(
     __out_opt PPH_STRING *TypeName,
     __out_opt PPH_STRING *ObjectName,
     __out_opt PPH_STRING *BestObjectName
+    );
+
+NTSTATUS PhQueryObjectNameHack(
+    __in HANDLE Handle,
+    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
+    __in ULONG ObjectNameInformationLength,
+    __out_opt PULONG ReturnLength
     );
 
 // verify
@@ -738,6 +738,61 @@ VOID PhDereferenceAllThreadItems(
     );
 
 VOID PhThreadProviderUpdate(
+    __in PVOID Object
+    );
+
+// hndlprv
+
+#ifndef HNDLPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhHandleProviderType;
+extern PPH_OBJECT_TYPE PhHandleItemType;
+#endif
+
+typedef struct _PH_HANDLE_ITEM
+{
+    HANDLE Handle;
+    PVOID Object;
+    ULONG Attributes;
+    ACCESS_MASK GrantedAccess;
+
+    PPH_STRING TypeName;
+    PPH_STRING ObjectName;
+    PPH_STRING BestObjectName;
+
+    WCHAR HandleString[PH_PTR_STR_LEN_1];
+} PH_HANDLE_ITEM, *PPH_HANDLE_ITEM;
+
+typedef struct _PH_HANDLE_PROVIDER
+{
+    PPH_HASHTABLE HandleHashtable;
+    PH_FAST_LOCK HandleHashtableLock;
+    PH_CALLBACK HandleAddedEvent;
+    PH_CALLBACK HandleModifiedEvent;
+    PH_CALLBACK HandleRemovedEvent;
+    ULONG RunCount;
+
+    HANDLE ProcessId;
+    HANDLE ProcessHandle;
+} PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
+
+BOOLEAN PhInitializeHandleProvider();
+
+PPH_HANDLE_PROVIDER PhCreateHandleProvider(
+    __in HANDLE ProcessId
+    );
+
+PPH_HANDLE_ITEM PhCreateHandleItem();
+
+PPH_HANDLE_ITEM PhReferenceHandleItem(
+    __in PPH_HANDLE_PROVIDER HandleProvider,
+    __in HANDLE Handle
+    );
+
+VOID PhDereferenceAllHandleItems(
+    __in PPH_HANDLE_PROVIDER HandleProvider
+    );
+
+VOID PhHandleProviderUpdate(
     __in PVOID Object
     );
 

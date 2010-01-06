@@ -697,6 +697,185 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     return FALSE;
 }
 
+static VOID NTAPI HandleAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    // Parameter contains a pointer to the added handle item.
+    PhReferenceObject(Parameter);
+    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_ADDED, 0, (LPARAM)Parameter);
+}
+
+static VOID NTAPI HandleModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_MODIFIED, 0, (LPARAM)Parameter);
+}
+
+static VOID NTAPI HandleRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_REMOVED, 0, (LPARAM)Parameter);
+}
+
+INT_PTR CALLBACK PhpProcessHandlesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+    PPH_HANDLES_CONTEXT handlesContext;
+    HANDLE lvHandle;
+
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+    {
+        handlesContext = (PPH_HANDLES_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_PROCHANDLES_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            handlesContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_HANDLES_CONTEXT));
+
+            handlesContext->Provider = PhCreateHandleProvider(
+                processItem->ProcessId
+                );
+            PhRegisterProvider(
+                &PhSecondaryProviderThread,
+                PhHandleProviderUpdate,
+                handlesContext->Provider,
+                &handlesContext->ProviderRegistration
+                );
+            PhRegisterCallback(
+                &handlesContext->Provider->HandleAddedEvent,
+                HandleAddedHandler,
+                handlesContext,
+                &handlesContext->AddedEventRegistration
+                );
+            PhRegisterCallback(
+                &handlesContext->Provider->HandleModifiedEvent,
+                HandleModifiedHandler,
+                handlesContext,
+                &handlesContext->ModifiedEventRegistration
+                );
+            PhRegisterCallback(
+                &handlesContext->Provider->HandleRemovedEvent,
+                HandleRemovedHandler,
+                handlesContext,
+                &handlesContext->RemovedEventRegistration
+                );
+            PhSetProviderEnabled(
+                &handlesContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &handlesContext->ProviderRegistration
+                );
+            handlesContext->WindowHandle = hwndDlg;
+
+            // Initialize the list.
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle"); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterCallback(
+                &handlesContext->Provider->HandleAddedEvent,
+                &handlesContext->AddedEventRegistration
+                );
+            PhUnregisterCallback(
+                &handlesContext->Provider->HandleModifiedEvent,
+                &handlesContext->ModifiedEventRegistration
+                );
+            PhUnregisterCallback(
+                &handlesContext->Provider->HandleRemovedEvent,
+                &handlesContext->RemovedEventRegistration
+                );
+            PhUnregisterProvider(
+                &PhSecondaryProviderThread,
+                &handlesContext->ProviderRegistration
+                );
+
+            PhDereferenceAllHandleItems(handlesContext->Provider);
+
+            PhDereferenceObject(handlesContext->Provider);
+            PhFree(handlesContext);
+        }
+        break;
+    case WM_PH_HANDLE_ADDED:
+        {
+            INT lvItemIndex;
+            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+
+            lvItemIndex = PhAddListViewItem(
+                lvHandle,
+                MAXINT,
+                PhGetString(handleItem->TypeName),
+                handleItem
+                );
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
+        }
+        break;
+    case WM_PH_HANDLE_MODIFIED:
+        {
+            INT lvItemIndex;
+            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+
+            lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, handleItem);
+
+            if (lvItemIndex != -1)
+            {
+                // TODO when highlighting is implemented
+            }
+        }
+        break;
+    case WM_PH_HANDLE_REMOVED:
+        {
+            PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+
+            PhRemoveListViewItem(
+                lvHandle,
+                PhFindListViewItemByParam(lvHandle, -1, handleItem)
+                );
+            PhDereferenceObject(handleItem);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
@@ -734,6 +913,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCTHREADS),
         PhpProcessThreadsDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+    PhDereferenceObject(newPage);
+
+    // Handles
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCHANDLES),
+        PhpProcessHandlesDlgProc,
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
