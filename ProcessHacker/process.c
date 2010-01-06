@@ -1677,7 +1677,7 @@ VOID PhpEnumGenericMappedFiles(
             PhDereferenceObject(fileName);
 
             moduleInfo.BaseAddress = baseAddress;
-            moduleInfo.Size = basicInfo.RegionSize;
+            moduleInfo.Size = (ULONG)basicInfo.RegionSize;
             moduleInfo.EntryPoint = NULL;
             moduleInfo.Flags = 0;
             moduleInfo.FileName = newFileName;
