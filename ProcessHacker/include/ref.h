@@ -70,7 +70,7 @@ NTSTATUS PhCreateObjectType(
     __in PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
 
-BOOLEAN PhDereferenceObject(
+VOID PhDereferenceObject(
     __in PVOID Object
     );
 
