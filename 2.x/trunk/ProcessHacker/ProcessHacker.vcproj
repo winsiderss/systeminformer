@@ -441,6 +441,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\dltmgr.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\fastlock.h"
 				>
 			</File>

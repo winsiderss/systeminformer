@@ -30,6 +30,7 @@ HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
+SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
 
@@ -63,13 +64,19 @@ INT WINAPI WinMain(
     if (!PhInitializeImports())
         return 1;
 
+    PhInitializeSystemInformation();
+
+    if (!NT_SUCCESS(PhInitializeRef()))
+        return 1;
+    PhFastLockInitialization();
+    if (!PhInitializeBase())
+        return 1;
+
     if (!PhInitializeSystem())
         return 1;
 
-    {
-        PhApplicationFileName = PhGetApplicationFileName();
-        PhApplicationDirectory = PhGetApplicationDirectory();
-    }
+    PhApplicationFileName = PhGetApplicationFileName();
+    PhApplicationDirectory = PhGetApplicationDirectory();
 
     PhInitializeKph();
 
@@ -178,11 +185,6 @@ VOID PhInitializeKph()
 
 BOOLEAN PhInitializeSystem()
 {
-    if (!NT_SUCCESS(PhInitializeRef()))
-        return FALSE;
-    PhFastLockInitialization();
-    if (!PhInitializeBase())
-        return FALSE;
     PhVerifyInitialization();
     if (!PhSymbolProviderInitialization())
         return FALSE;
@@ -204,6 +206,31 @@ BOOLEAN PhInitializeSystem()
     PhRefreshDosDeviceNames();
 
     return TRUE;
+}
+
+VOID PhInitializeSystemInformation()
+{
+    ULONG returnLength;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemBasicInformation,
+        &PhSystemBasicInformation,
+        sizeof(SYSTEM_BASIC_INFORMATION),
+        &returnLength
+        )))
+    {
+        SYSTEM_INFO systemInfo;
+
+        GetSystemInfo(&systemInfo);
+
+        PhSystemBasicInformation.Reserved = systemInfo.dwOemId;
+        PhSystemBasicInformation.PageSize = systemInfo.dwPageSize;
+        PhSystemBasicInformation.MinimumUserModeAddress = (ULONG_PTR)systemInfo.lpMinimumApplicationAddress;
+        PhSystemBasicInformation.MaximumUserModeAddress = (ULONG_PTR)systemInfo.lpMaximumApplicationAddress;
+        PhSystemBasicInformation.ActiveProcessorsAffinityMask = systemInfo.dwActiveProcessorMask;
+        PhSystemBasicInformation.NumberOfProcessors = (CCHAR)systemInfo.dwNumberOfProcessors;
+        PhSystemBasicInformation.AllocationGranularity = systemInfo.dwAllocationGranularity;
+    }
 }
 
 ATOM PhRegisterWindowClass()

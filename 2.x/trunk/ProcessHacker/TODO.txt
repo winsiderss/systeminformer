@@ -12,7 +12,6 @@
 * Process properties:
 	* Complete the General tab
 	* Memory provider
-	* Handles provider
 	* Environment
 	* Job
 
