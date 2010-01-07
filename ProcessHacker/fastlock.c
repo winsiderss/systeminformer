@@ -21,6 +21,9 @@
  */
 
 #include <fastlock.h>
+#include <ntimport.h>
+
+extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 //
@@ -51,11 +54,7 @@ static ULONG PhLockSpinCount;
 
 VOID PhFastLockInitialization()
 {
-    SYSTEM_INFO info;
-
-    GetSystemInfo(&info);
-
-    if (info.dwNumberOfProcessors > 1)
+    if (PhSystemBasicInformation.NumberOfProcessors > 1)
         PhLockSpinCount = 4000;
     else
         PhLockSpinCount = 0;

@@ -83,6 +83,10 @@ ULONG NTAPI PhpProcessHashtableHashFunction(
     __in PVOID Entry
     );
 
+VOID PhpUpdatePerfInformation();
+
+VOID PhpUpdateCpuInformation();
+
 PPH_OBJECT_TYPE PhProcessItemType;
 
 PPH_HASHTABLE PhProcessHashtable;
@@ -94,6 +98,17 @@ PH_MUTEX PhProcessQueryDataQueueLock;
 PH_CALLBACK PhProcessAddedEvent;
 PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
+
+SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
+PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
+SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
+
+SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
+SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+
+static PH_UINT64_DELTA PhCpuKernelDelta;
+static PH_UINT64_DELTA PhCpuUserDelta;
+static PH_UINT64_DELTA PhCpuOtherDelta;
 
 BOOLEAN PhInitializeProcessProvider()
 {
@@ -118,6 +133,32 @@ BOOLEAN PhInitializeProcessProvider()
     PhInitializeCallback(&PhProcessAddedEvent);
     PhInitializeCallback(&PhProcessModifiedEvent);
     PhInitializeCallback(&PhProcessRemovedEvent);
+
+    RtlInitUnicodeString(
+        &PhDpcsProcessInformation.ImageName,
+        L"DPCs"
+        );
+    PhDpcsProcessInformation.UniqueProcessId = DPCS_PROCESS_ID;
+    PhDpcsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+
+    RtlInitUnicodeString(
+        &PhInterruptsProcessInformation.ImageName,
+        L"Interrupts"
+        );
+    PhInterruptsProcessInformation.UniqueProcessId = INTERRUPTS_PROCESS_ID;
+    PhInterruptsProcessInformation.InheritedFromUniqueProcessId = SYSTEM_IDLE_PROCESS_ID;
+
+    PhCpuInformation = PhAllocate(
+        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
+        PhSystemBasicInformation.NumberOfProcessors
+        );
+
+    PhInitializeDelta(&PhCpuKernelDelta);
+    PhInitializeDelta(&PhCpuUserDelta);
+    PhInitializeDelta(&PhCpuOtherDelta);
+
+    PhpUpdatePerfInformation();
+    PhpUpdateCpuInformation();
 
     return TRUE;
 }
@@ -605,6 +646,62 @@ VOID PhpFillProcessItem(
     CloseHandle(processHandle);
 }
 
+VOID PhpUpdatePerfInformation()
+{
+    ULONG returnLength;
+
+    NtQuerySystemInformation(
+        SystemPerformanceInformation,
+        &PhPerfInformation,
+        sizeof(SYSTEM_PERFORMANCE_INFORMATION),
+        &returnLength
+        );
+}
+
+VOID PhpUpdateCpuInformation()
+{
+    ULONG returnLength;
+    ULONG i;
+
+    NtQuerySystemInformation(
+        SystemProcessorPerformanceInformation,
+        PhCpuInformation,
+        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
+        PhSystemBasicInformation.NumberOfProcessors,
+        &returnLength
+        );
+
+    // Zero the CPU totals.
+    memset(&PhCpuTotals, 0, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION));
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION cpuInfo =
+            &PhCpuInformation[i];
+
+        // KernelTime includes kernel + idle + DPC + interrupt time.
+        cpuInfo->KernelTime.QuadPart -=
+            cpuInfo->IdleTime.QuadPart +
+            cpuInfo->DpcTime.QuadPart +
+            cpuInfo->InterruptTime.QuadPart;
+
+        PhCpuTotals.DpcTime.QuadPart += cpuInfo->DpcTime.QuadPart;
+        PhCpuTotals.IdleTime.QuadPart += cpuInfo->IdleTime.QuadPart;
+        PhCpuTotals.InterruptCount += cpuInfo->InterruptCount;
+        PhCpuTotals.InterruptTime.QuadPart += cpuInfo->InterruptTime.QuadPart;
+        PhCpuTotals.KernelTime.QuadPart += cpuInfo->KernelTime.QuadPart;
+        PhCpuTotals.UserTime.QuadPart += cpuInfo->UserTime.QuadPart;
+    }
+
+    PhUpdateDelta(&PhCpuKernelDelta, PhCpuTotals.KernelTime.QuadPart);
+    PhUpdateDelta(&PhCpuUserDelta, PhCpuTotals.UserTime.QuadPart);
+    PhUpdateDelta(&PhCpuOtherDelta,
+        PhCpuTotals.IdleTime.QuadPart +
+        PhCpuTotals.DpcTime.QuadPart +
+        PhCpuTotals.InterruptTime.QuadPart
+        );
+}
+
 VOID PhProcessProviderUpdate(
     __in PVOID Object
     )
@@ -621,6 +718,23 @@ VOID PhProcessProviderUpdate(
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_LIST pids;
 
+    ULONG64 sysTotalTime;
+
+    // Pre-update tasks
+
+    if (runCount % 2 == 0)
+        PhRefreshDosDeviceNames();
+
+    PhpUpdatePerfInformation();
+    PhpUpdateCpuInformation();
+
+    sysTotalTime =
+        PhCpuKernelDelta.Delta +
+        PhCpuUserDelta.Delta +
+        PhCpuOtherDelta.Delta;
+
+    // Get the process list.
+
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
 
@@ -632,8 +746,20 @@ VOID PhProcessProviderUpdate(
 
     do
     {
+        if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID)
+        {
+            process->KernelTime = PhCpuTotals.IdleTime;
+        }
+
         PhAddListItem(pids, process->UniqueProcessId);
     } while (process = PH_NEXT_PROCESS(process));
+
+    // Add the fake processes to the PID list.
+    PhAddListItem(pids, DPCS_PROCESS_ID);
+    PhAddListItem(pids, INTERRUPTS_PROCESS_ID);
+
+    PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
+    PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
 
     // Look for dead processes.
     {
@@ -705,7 +831,7 @@ VOID PhProcessProviderUpdate(
     // Look for new processes and update existing ones.
     process = PH_FIRST_PROCESS(processes);
 
-    do
+    while (process)
     {
         PPH_PROCESS_ITEM processItem;
 
@@ -716,6 +842,33 @@ VOID PhProcessProviderUpdate(
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
+
+            // Check if process actually has a parent.
+            {
+                PSYSTEM_PROCESS_INFORMATION parentProcess;
+
+                processItem->HasParent = TRUE;
+                parentProcess = PhFindProcessInformation(processes, processItem->ParentProcessId);
+
+                if (!parentProcess || processItem->ParentProcessId == processItem->ProcessId)
+                {
+                    processItem->HasParent = FALSE;
+                }
+                else if (parentProcess)
+                {
+                    // Check the parent's creation time to see if it is 
+                    // actually the parent.
+                    if (parentProcess->CreateTime.QuadPart > processItem->CreateTime.QuadPart)
+                        processItem->HasParent = FALSE;
+                }
+            }
+
+            // Initialize the deltas.
+            PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
+            PhUpdateDelta(&processItem->CpuUserDelta, process->UserTime.QuadPart);
+            PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
             // If this is the first run of the provider, queue the 
             // process query tasks. Otherwise, perform stage 1 
@@ -751,15 +904,62 @@ VOID PhProcessProviderUpdate(
         }
         else
         {
+            BOOLEAN modified = FALSE;
+            FLOAT newCpuUsage;
+
+            // Update the deltas.
+            PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
+            PhUpdateDelta(&processItem->CpuUserDelta, process->UserTime.QuadPart);
+            PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
+
+            newCpuUsage = (FLOAT)(
+                processItem->CpuKernelDelta.Delta +
+                processItem->CpuUserDelta.Delta
+                ) / sysTotalTime;
+
             if (processItem->JustProcessed)
             {
-                PhInvokeCallback(&PhProcessModifiedEvent, processItem);
                 processItem->JustProcessed = FALSE;
+                modified = TRUE;
+            }
+
+            if (processItem->CpuUsage != newCpuUsage)
+            {
+                processItem->CpuUsage = newCpuUsage;
+                modified = TRUE;
+
+                _snwprintf(processItem->CpuUsageString, PH_INT_STR_LEN,
+                    L"%.2f", (DOUBLE)newCpuUsage * 100);
+            }
+
+            if (modified)
+            {
+                PhInvokeCallback(&PhProcessModifiedEvent, processItem);
             }
 
             PhDereferenceObject(processItem);
         }
-    } while (process = PH_NEXT_PROCESS(process));
+
+        // Trick ourselves into thinking that DPCs and Interrupts 
+        // are on the list.
+        if (process == &PhInterruptsProcessInformation)
+        {
+            process = NULL;
+        }
+        else if (process == &PhDpcsProcessInformation)
+        {
+            process = &PhInterruptsProcessInformation;
+        }
+        else
+        {
+            process = PH_NEXT_PROCESS(process);
+
+            if (process == NULL)
+                process = &PhDpcsProcessInformation;
+        }
+    }
 
     PhDereferenceObject(pids);
     PhFree(processes);
