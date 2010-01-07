@@ -549,6 +549,146 @@ NTSTATUS PhGetProcessPosixCommandLine(
     }
 }
 
+NTSTATUS PhGetProcessEnvironmentVariables(
+    __in HANDLE ProcessHandle,
+    __out PPH_ENVIRONMENT_VARIABLE *Variables,
+    __out PULONG NumberOfVariables
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PVOID processParameters;
+    PVOID environment;
+    ULONG environmentLength;
+    PWSTR buffer;
+    PPH_LIST pairsList;
+    ULONG i;
+    PPH_ENVIRONMENT_VARIABLE variables;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+        &processParameters,
+        sizeof(PVOID),
+        NULL
+        )))
+        return status;
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
+        &environment,
+        sizeof(PVOID),
+        NULL
+        )))
+        return status;
+
+    {
+        MEMORY_BASIC_INFORMATION mbi;
+
+        if (!VirtualQueryEx(
+            ProcessHandle,
+            environment,
+            &mbi,
+            sizeof(MEMORY_BASIC_INFORMATION)
+            ))
+            return STATUS_UNSUCCESSFUL;
+
+        environmentLength = (ULONG)(mbi.RegionSize -
+            ((ULONG_PTR)environment - (ULONG_PTR)mbi.BaseAddress));
+    }
+
+    // Read in the entire region of memory.
+
+    buffer = PhAllocate(environmentLength);
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        environment,
+        buffer,
+        environmentLength,
+        NULL
+        )))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    // Create a list of pairs.
+
+    pairsList = PhCreateList(20);
+    i = 0;
+    environmentLength /= 2;
+
+    while (TRUE)
+    {
+        ULONG oldIndex;
+
+        // Go through the buffer and stop when we reach 
+        // the end of the pair string.
+
+        oldIndex = i;
+
+        while (i < environmentLength && buffer[i] != 0)
+            i++;
+
+        // Check if the environment block has ended 
+        // (the last string is zero-length) or if we 
+        // overran the buffer.
+        if (i == oldIndex || i >= environmentLength)
+            break;
+
+        // Save a pointer to the current pair string.
+        PhAddListItem(pairsList, &buffer[oldIndex]);
+        i++; // skip the null terminator
+    }
+
+    // Create the output array.
+
+    variables = PhAllocate(sizeof(PH_ENVIRONMENT_VARIABLE) * pairsList->Count);
+
+    for (i = 0; i < pairsList->Count; i++)
+    {
+        PWSTR pairPointer;
+        PWSTR valuePointer;
+
+        pairPointer = (PWSTR)pairsList->Items[i];
+        valuePointer = wcschr(pairPointer, '=');
+
+        variables[i].Name = PhCreateStringEx(pairPointer, (valuePointer - pairPointer) * 2);
+        variables[i].Value = PhCreateString(valuePointer + 1);
+    }
+
+    *Variables = variables;
+    *NumberOfVariables = pairsList->Count;
+
+    PhDereferenceObject(pairsList);
+    PhFree(buffer);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhFreeProcessEnvironmentVariables(
+    __in PPH_ENVIRONMENT_VARIABLE Variables,
+    __in ULONG NumberOfVariables
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < NumberOfVariables; i++)
+    {
+        PhDereferenceObject(Variables[i].Name);
+        PhDereferenceObject(Variables[i].Value);
+    }
+
+    PhFree(Variables);
+}
+
 NTSTATUS PhGetProcessMappedFileName(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
