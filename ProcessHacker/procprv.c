@@ -930,8 +930,15 @@ VOID PhProcessProviderUpdate(
                 processItem->CpuUsage = newCpuUsage;
                 modified = TRUE;
 
-                _snwprintf(processItem->CpuUsageString, PH_INT_STR_LEN,
-                    L"%.2f", (DOUBLE)newCpuUsage * 100);
+                if ((newCpuUsage * 100) >= 0.01)
+                {
+                    _snwprintf(processItem->CpuUsageString, PH_INT_STR_LEN,
+                        L"%.2f", (DOUBLE)newCpuUsage * 100);
+                }
+                else
+                {
+                    processItem->CpuUsageString[0] = 0;
+                }
             }
 
             if (modified)
