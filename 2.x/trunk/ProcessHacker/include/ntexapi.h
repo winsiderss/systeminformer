@@ -403,4 +403,117 @@ typedef NTSTATUS (NTAPI *_NtQuerySystemInformation)(
     __out_opt PULONG ReturnLength
     );
 
+// Kernel-user shared data
+
+#define NX_SUPPORT_POLICY_ALWAYSOFF 0
+#define NX_SUPPORT_POLICY_ALWAYSON 1
+#define NX_SUPPORT_POLICY_OPTIN 2
+#define NX_SUPPORT_POLICY_OPTOUT 3
+
+typedef struct _KUSER_SHARED_DATA
+{
+    ULONG TickCountLowDeprecated;
+    ULONG TickCountMultiplier;
+
+    volatile KSYSTEM_TIME InterruptTime;
+    volatile KSYSTEM_TIME SystemTime;
+    volatile KSYSTEM_TIME TimeZoneBias;
+
+    USHORT ImageNumberLow;
+    USHORT ImageNumberHigh;
+
+    WCHAR NtSystemRoot[260];
+
+    ULONG MaxStackTraceDepth;
+
+    ULONG CryptoExponent;
+
+    ULONG TimeZoneId;
+    ULONG LargePageMinimum;
+    ULONG Reserved2[7];
+
+    ULONG NtProductType;
+    BOOLEAN ProductTypeIsValid;
+
+    ULONG NtMajorVersion;
+    ULONG NtMinorVersion;
+
+    BOOLEAN ProcessorFeatures[64];
+
+    ULONG Reserved1;
+    ULONG Reserved3;
+
+    volatile ULONG TimeSlip;
+
+    ULONG AlternativeArchitecture;
+
+    LARGE_INTEGER SystemExpirationDate;
+
+    ULONG SuiteMask;
+
+    BOOLEAN KdDebuggerEnabled;
+
+    UCHAR NXSupportPolicy;
+
+    volatile ULONG ActiveConsoleId;
+
+    volatile ULONG DismountCount;
+
+    ULONG ComPlusPackage;
+
+    ULONG LastSystemRITEventTickCount;
+
+    ULONG NumberOfPhysicalPages;
+
+    ULONG TraceLogging;
+
+    ULONGLONG TestRetInstruction;
+    ULONG SystemCall;
+    ULONG SystemCallReturn;
+    ULONGLONG SystemCallPad[3];
+
+    union
+    {
+        volatile KSYSTEM_TIME TickCount;
+        volatile ULONG64 TickCountQuad;
+    };
+
+    ULONG Cookie;
+
+    ULONG Wow64SharedInformation[16];
+} KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
+
+#ifdef _M_IX86
+#define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
+#endif
+
+#ifdef _M_IX64
+#define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
+#endif
+
+FORCEINLINE ULONGLONG NtGetTickCount64()
+{
+    ULARGE_INTEGER tickCount;
+
+#ifdef _M_IX64
+
+    tickCount.QuadPart = USER_SHARED_DATA->TickCountQuad;
+
+#else
+
+    while (TRUE)
+    {
+        tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
+        tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
+
+        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
+            break;
+    }
+
+#endif
+
+    return (UInt32x32To64(tickCount.LowPart, USER_SHARED_DATA->TickCountMultiplier) >> 24) +
+        (UInt32x32To64(tickCount.HighPart, USER_SHARED_DATA->TickCountMultiplier) << 8);
+}
+
 #endif
