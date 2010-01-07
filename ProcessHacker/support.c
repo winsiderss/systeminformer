@@ -386,6 +386,11 @@ PPH_STRING PhGetSystemDirectory()
     return systemDirectory;
 }
 
+PPH_STRING PhGetSystemRoot()
+{
+    return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
+}
+
 PPH_STRING PhpGetApplicationFileName(
     __out_opt PULONG IndexOfFileName
     )

@@ -900,6 +900,8 @@ PPH_STRING PhGetBaseName(
 
 PPH_STRING PhGetSystemDirectory();
 
+PPH_STRING PhGetSystemRoot();
+
 PPH_STRING PhGetApplicationFileName();
 
 PPH_STRING PhGetApplicationDirectory();
