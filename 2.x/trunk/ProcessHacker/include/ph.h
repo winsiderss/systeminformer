@@ -32,6 +32,12 @@ typedef enum _PH_INTEGRITY
     PiInstaller = 5
 } PH_INTEGRITY, *PPH_INTEGRITY;
 
+typedef struct _PH_ENVIRONMENT_VARIABLE
+{
+    PPH_STRING Name;
+    PPH_STRING Value;
+} PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
+
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -113,6 +119,17 @@ NTSTATUS PhGetProcessIsPosix(
 NTSTATUS PhGetProcessPosixCommandLine(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *CommandLine
+    );
+
+NTSTATUS PhGetProcessEnvironmentVariables(
+    __in HANDLE ProcessHandle,
+    __out PPH_ENVIRONMENT_VARIABLE *Variables,
+    __out PULONG NumberOfVariables
+    );
+
+VOID PhFreeProcessEnvironmentVariables(
+    __in PPH_ENVIRONMENT_VARIABLE Variables,
+    __in ULONG NumberOfVariables
     );
 
 NTSTATUS PhGetProcessMappedFileName(

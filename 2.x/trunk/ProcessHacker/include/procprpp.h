@@ -30,13 +30,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK PhpProcessModulesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    );
-
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -44,22 +37,30 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     __in LPARAM lParam
     );
 
-#define WM_PH_MODULE_ADDED (WM_APP + 201)
-#define WM_PH_MODULE_REMOVED (WM_APP + 202)
+INT_PTR CALLBACK PhpProcessModulesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
 
-typedef struct _PH_MODULES_CONTEXT
-{
-    PPH_MODULE_PROVIDER Provider;
-    PH_PROVIDER_REGISTRATION ProviderRegistration;
-    PH_CALLBACK_REGISTRATION AddedEventRegistration;
-    PH_CALLBACK_REGISTRATION RemovedEventRegistration;
+INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
 
-    HWND WindowHandle;
-} PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
+INT_PTR CALLBACK PhpProcessHandlesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
 
-#define WM_PH_THREAD_ADDED (WM_APP + 211)
-#define WM_PH_THREAD_MODIFIED (WM_APP + 212)
-#define WM_PH_THREAD_REMOVED (WM_APP + 213)
+#define WM_PH_THREAD_ADDED (WM_APP + 201)
+#define WM_PH_THREAD_MODIFIED (WM_APP + 202)
+#define WM_PH_THREAD_REMOVED (WM_APP + 203)
 
 typedef struct _PH_THREADS_CONTEXT
 {
@@ -71,6 +72,19 @@ typedef struct _PH_THREADS_CONTEXT
 
     HWND WindowHandle;
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
+
+#define WM_PH_MODULE_ADDED (WM_APP + 211)
+#define WM_PH_MODULE_REMOVED (WM_APP + 212)
+
+typedef struct _PH_MODULES_CONTEXT
+{
+    PPH_MODULE_PROVIDER Provider;
+    PH_PROVIDER_REGISTRATION ProviderRegistration;
+    PH_CALLBACK_REGISTRATION AddedEventRegistration;
+    PH_CALLBACK_REGISTRATION RemovedEventRegistration;
+
+    HWND WindowHandle;
+} PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
 #define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
