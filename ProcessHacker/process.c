@@ -27,6 +27,13 @@
 PWSTR PhDosDeviceNames[26];
 PH_FAST_LOCK PhDosDeviceNamesLock;
 
+/**
+ * Opens a process.
+ *
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param DesiredAccess The desired access to the process.
+ * \param ProcessId The ID of the process.
+ */
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -59,6 +66,13 @@ NTSTATUS PhOpenProcess(
     }
 }
 
+/**
+ * Opens a thread.
+ *
+ * \param ThreadHandle A variable which receives a handle to the thread.
+ * \param DesiredAccess The desired access to the thread.
+ * \param ThreadId The ID of the thread.
+ */
 NTSTATUS PhOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -91,6 +105,13 @@ NTSTATUS PhOpenThread(
     }
 }
 
+/**
+ * Opens a process token.
+ *
+ * \param TokenHandle A variable which receives a handle to the token.
+ * \param DesiredAccess The desired access to the token.
+ * \param ProcessHandle A handle to a process.
+ */
 NTSTATUS PhOpenProcessToken(
     __out PHANDLE TokenHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -116,6 +137,13 @@ NTSTATUS PhOpenProcessToken(
     }
 }
 
+/**
+ * Terminates a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ExitStatus A status value that indicates why the 
+ * process is being terminated.
+ */
 NTSTATUS PhTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus
@@ -138,6 +166,13 @@ NTSTATUS PhTerminateProcess(
     }
 }
 
+/**
+ * Terminates a thread.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ExitStatus A status value that indicates why the 
+ * thread is being terminated.
+ */
 NTSTATUS PhTerminateThread(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
@@ -160,6 +195,16 @@ NTSTATUS PhTerminateThread(
     }
 }
 
+/**
+ * Copies memory from another process into the current process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param BaseAddress The address from which memory is to be copied.
+ * \param Buffer A buffer which receives the copied memory.
+ * \param BufferSize The number of bytes to copy.
+ * \param NumberOfBytesRead A variable which receives the number 
+ * of bytes copied to the buffer.
+ */
 NTSTATUS PhReadVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -181,6 +226,16 @@ NTSTATUS PhReadVirtualMemory(
         );
 }
 
+/**
+ * Copies memory from the current process into another process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param BaseAddress The address to which memory is to be copied.
+ * \param Buffer A buffer which contains the memory to copy.
+ * \param BufferSize The number of bytes to copy.
+ * \param NumberOfBytesWritten A variable which receives the number 
+ * of bytes copied from the buffer.
+ */
 NTSTATUS PhWriteVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -198,6 +253,16 @@ NTSTATUS PhWriteVirtualMemory(
         );
 }
 
+/**
+ * Queries variable-sized information for a process.
+ * The function allocates a buffer to contain the information.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessInformationClass The information class to retrieve.
+ * \param Buffer A variable which receives a pointer to a buffer 
+ * containing the information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ */
 NTSTATUS PhpQueryProcessVariableSize(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
