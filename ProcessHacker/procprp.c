@@ -289,6 +289,13 @@ BOOLEAN PhpPropPageDlgProcHeader(
     return TRUE;
 }
 
+VOID PhpPropPageDlgProcDestroy(
+    __in HWND hwndDlg
+    )
+{
+    RemoveProp(hwndDlg, L"PropPageContext");
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -318,7 +325,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"PropPageContext");
+            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_COMMAND:
@@ -370,154 +377,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     return FALSE;
 }
 
-static VOID NTAPI ModuleAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
-    )
-{
-    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    // Parameter contains a pointer to the added module item.
-    PhReferenceObject(Parameter);
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_ADDED, 0, (LPARAM)Parameter);
-}
-
-static VOID NTAPI ModuleRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
-    )
-{
-    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
-
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
-}
-
-INT_PTR CALLBACK PhpProcessModulesDlgProc(
-    __in HWND hwndDlg,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
-    )
-{
-    LPPROPSHEETPAGE propSheetPage;
-    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
-    PPH_PROCESS_ITEM processItem;
-    PPH_MODULES_CONTEXT modulesContext;
-    HANDLE lvHandle;
-
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
-        &propSheetPage, &propPageContext, &processItem))
-    {
-        modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
-    }
-    else
-    {
-        return FALSE;
-    }
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST);
-
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        {
-            // Lots of boilerplate code...
-
-            modulesContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_MODULES_CONTEXT));
-
-            modulesContext->Provider = PhCreateModuleProvider(
-                processItem->ProcessId
-                );
-            PhRegisterProvider(
-                &PhSecondaryProviderThread,
-                PhModuleProviderUpdate,
-                modulesContext->Provider,
-                &modulesContext->ProviderRegistration
-                );
-            PhRegisterCallback(
-                &modulesContext->Provider->ModuleAddedEvent,
-                ModuleAddedHandler,
-                modulesContext,
-                &modulesContext->AddedEventRegistration
-                );
-            PhRegisterCallback(
-                &modulesContext->Provider->ModuleRemovedEvent,
-                ModuleRemovedHandler,
-                modulesContext,
-                &modulesContext->RemovedEventRegistration
-                );
-            PhSetProviderEnabled(
-                &modulesContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &modulesContext->ProviderRegistration
-                );
-            modulesContext->WindowHandle = hwndDlg;
-
-            // Initialize the list.
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"File Name"); 
-        }
-        break;
-    case WM_DESTROY:
-        {
-            PhUnregisterCallback(
-                &modulesContext->Provider->ModuleAddedEvent,
-                &modulesContext->AddedEventRegistration
-                );
-            PhUnregisterCallback(
-                &modulesContext->Provider->ModuleRemovedEvent,
-                &modulesContext->RemovedEventRegistration
-                );
-            PhUnregisterProvider(
-                &PhSecondaryProviderThread,
-                &modulesContext->ProviderRegistration
-                );
-
-            PhDereferenceAllModuleItems(modulesContext->Provider);
-
-            PhDereferenceObject(modulesContext->Provider);
-            PhFree(modulesContext);
-        }
-        break;
-    case WM_PH_MODULE_ADDED:
-        {
-            INT lvItemIndex;
-            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
-
-            lvItemIndex = PhAddListViewItem(
-                lvHandle,
-                MAXINT,
-                moduleItem->Name->Buffer,
-                moduleItem
-                );
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->FileName));
-        }
-        break;
-    case WM_PH_MODULE_REMOVED:
-        {
-            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
-
-            PhRemoveListViewItem(
-                lvHandle,
-                PhFindListViewItemByParam(lvHandle, -1, moduleItem)
-                );
-            PhDereferenceObject(moduleItem);
-        }
-        break;
-    }
-
-    return FALSE;
-}
-
 static VOID NTAPI ThreadAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -561,7 +420,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_THREADS_CONTEXT threadsContext;
-    HANDLE lvHandle;
+    HWND lvHandle;
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
@@ -651,6 +510,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             PhDereferenceObject(threadsContext->Provider);
             PhFree(threadsContext);
+
+            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_PH_THREAD_ADDED:
@@ -690,6 +551,228 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 PhFindListViewItemByParam(lvHandle, -1, threadItem)
                 );
             PhDereferenceObject(threadItem);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static VOID NTAPI ModuleAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    // Parameter contains a pointer to the added module item.
+    PhReferenceObject(Parameter);
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_ADDED, 0, (LPARAM)Parameter);
+}
+
+static VOID NTAPI ModuleRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
+}
+
+INT_PTR CALLBACK PhpProcessModulesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+    PPH_MODULES_CONTEXT modulesContext;
+    HWND lvHandle;
+
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+    {
+        modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            // Lots of boilerplate code...
+
+            modulesContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_MODULES_CONTEXT));
+
+            modulesContext->Provider = PhCreateModuleProvider(
+                processItem->ProcessId
+                );
+            PhRegisterProvider(
+                &PhSecondaryProviderThread,
+                PhModuleProviderUpdate,
+                modulesContext->Provider,
+                &modulesContext->ProviderRegistration
+                );
+            PhRegisterCallback(
+                &modulesContext->Provider->ModuleAddedEvent,
+                ModuleAddedHandler,
+                modulesContext,
+                &modulesContext->AddedEventRegistration
+                );
+            PhRegisterCallback(
+                &modulesContext->Provider->ModuleRemovedEvent,
+                ModuleRemovedHandler,
+                modulesContext,
+                &modulesContext->RemovedEventRegistration
+                );
+            PhSetProviderEnabled(
+                &modulesContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &modulesContext->ProviderRegistration
+                );
+            modulesContext->WindowHandle = hwndDlg;
+
+            // Initialize the list.
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"File Name"); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterCallback(
+                &modulesContext->Provider->ModuleAddedEvent,
+                &modulesContext->AddedEventRegistration
+                );
+            PhUnregisterCallback(
+                &modulesContext->Provider->ModuleRemovedEvent,
+                &modulesContext->RemovedEventRegistration
+                );
+            PhUnregisterProvider(
+                &PhSecondaryProviderThread,
+                &modulesContext->ProviderRegistration
+                );
+
+            PhDereferenceAllModuleItems(modulesContext->Provider);
+
+            PhDereferenceObject(modulesContext->Provider);
+            PhFree(modulesContext);
+
+            PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_PH_MODULE_ADDED:
+        {
+            INT lvItemIndex;
+            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
+
+            lvItemIndex = PhAddListViewItem(
+                lvHandle,
+                MAXINT,
+                moduleItem->Name->Buffer,
+                moduleItem
+                );
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->FileName));
+        }
+        break;
+    case WM_PH_MODULE_REMOVED:
+        {
+            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
+
+            PhRemoveListViewItem(
+                lvHandle,
+                PhFindListViewItemByParam(lvHandle, -1, moduleItem)
+                );
+            PhDereferenceObject(moduleItem);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HANDLE processHandle;
+            PPH_ENVIRONMENT_VARIABLE variables;
+            ULONG numberOfVariables;
+            ULONG i;
+            HWND lvHandle = GetDlgItem(hwndDlg, IDC_PROCENVIRONMENT_LIST);
+
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                processItem->ProcessId
+                )))
+            {
+                if (NT_SUCCESS(PhGetProcessEnvironmentVariables(
+                    processHandle,
+                    &variables,
+                    &numberOfVariables
+                    )))
+                {
+                    for (i = 0; i < numberOfVariables; i++)
+                    {
+                        INT lvItemIndex;
+
+                        // Don't display pairs with no name.
+                        if (variables[i].Name->Length == 0)
+                            continue;
+
+                        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, PhGetString(variables[i].Name), NULL);
+                        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(variables[i].Value));
+                    }
+
+                    PhFreeProcessEnvironmentVariables(variables, numberOfVariables);
+                }
+
+                CloseHandle(processHandle);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     }
@@ -740,7 +823,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_HANDLES_CONTEXT handlesContext;
-    HANDLE lvHandle;
+    HWND lvHandle;
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
@@ -830,6 +913,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhDereferenceObject(handlesContext->Provider);
             PhFree(handlesContext);
+
+            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     case WM_PH_HANDLE_ADDED:
@@ -900,6 +985,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
 
+    // Threads
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCTHREADS),
+        PhpProcessThreadsDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+    PhDereferenceObject(newPage);
+
     // Modules
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCMODULES),
@@ -909,10 +1003,10 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
 
-    // Threads
+    // Environment
     newPage = PhCreateProcessPropPageContext(
-        MAKEINTRESOURCE(IDD_PROCTHREADS),
-        PhpProcessThreadsDlgProc,
+        MAKEINTRESOURCE(IDD_PROCENVIRONMENT),
+        PhpProcessEnvironmentDlgProc,
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);

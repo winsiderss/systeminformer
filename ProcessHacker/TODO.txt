@@ -12,7 +12,6 @@
 * Process properties:
 	* Complete the General tab
 	* Memory provider
-	* Environment
 	* Job
 
 * Better object names for TmEn, TmRm, TmTm, TmTx
@@ -25,5 +24,7 @@
 
 * Process menu items
 * Other menu items
+
+* Copy menu
 
 * Dump/view process information
