@@ -487,7 +487,7 @@ typedef struct _KUSER_SHARED_DATA
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 #endif
 
-#ifdef _M_IX64
+#ifdef _M_X64
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
 #endif
 
@@ -495,7 +495,7 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
 {
     ULARGE_INTEGER tickCount;
 
-#ifdef _M_IX64
+#ifdef _M_X64
 
     tickCount.QuadPart = USER_SHARED_DATA->TickCountQuad;
 
