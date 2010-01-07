@@ -28,6 +28,8 @@ VOID PhInitializeKph();
 
 BOOLEAN PhInitializeSystem();
 
+VOID PhInitializeSystemInformation();
+
 ATOM PhRegisterWindowClass();
 
 VOID PhInitializeWindowsVersion();

@@ -3,6 +3,7 @@
 
 #include <phbase.h>
 #include <stdarg.h>
+#include <dltmgr.h>
 
 // process
 
@@ -489,6 +490,9 @@ typedef struct _PH_IMAGE_VERSION_INFO
     PPH_STRING ProductName;
 } PH_IMAGE_VERSION_INFO, *PPH_IMAGE_VERSION_INFO;
 
+#define DPCS_PROCESS_ID ((HANDLE)-2)
+#define INTERRUPTS_PROCESS_ID ((HANDLE)-3)
+
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
 
@@ -536,8 +540,15 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
     WCHAR SessionIdString[PH_INT_STR_LEN_1];
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
+    WCHAR CpuUsageString[PH_INT_STR_LEN_1];
 
     FLOAT CpuUsage; // from 0 to 1
+
+    PH_UINT64_DELTA CpuKernelDelta;
+    PH_UINT64_DELTA CpuUserDelta;
+    PH_UINT64_DELTA IoReadDelta;
+    PH_UINT64_DELTA IoWriteDelta;
+    PH_UINT64_DELTA IoOtherDelta;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhInitializeProcessProvider();

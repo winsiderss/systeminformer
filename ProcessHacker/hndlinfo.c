@@ -553,18 +553,27 @@ NTSTATUS PhGetHandleInformation(
     // Duplicate the handle if we're not using KPH.
     if (!PhKphHandle)
     {
-        status = NtDuplicateObject(
-            ProcessHandle,
-            Handle,
-            NtCurrentProcess(),
-            &dupHandle,
-            0,
-            0,
-            0
-            );
+        // However, we obviously don't need to duplicate it 
+        // if the handle is in the current process.
+        if (ProcessHandle != NtCurrentProcess())
+        {
+            status = NtDuplicateObject(
+                ProcessHandle,
+                Handle,
+                NtCurrentProcess(),
+                &dupHandle,
+                0,
+                0,
+                0
+                );
 
-        if (!NT_SUCCESS(status))
-            return status;
+            if (!NT_SUCCESS(status))
+                return status;
+        }
+        else
+        {
+            dupHandle = Handle;
+        }
     }
 
     // Get the type name.
@@ -693,7 +702,7 @@ CleanupExit:
         PhReferenceObject(bestObjectName);
     }
 
-    if (dupHandle)
+    if (dupHandle && ProcessHandle != NtCurrentProcess())
         CloseHandle(dupHandle);
     if (typeName)
         PhDereferenceObject(typeName);
