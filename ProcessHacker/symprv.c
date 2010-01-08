@@ -306,7 +306,7 @@ PPH_STRING PhGetSymbolFromAddress(
     if (!result)
     {
         resolveLevel = PhsrlAddress;
-        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
         goto CleanupExit;
     }
@@ -351,7 +351,7 @@ PPH_STRING PhGetSymbolFromAddress(
     if (!modFileName)
     {
         resolveLevel = PhsrlAddress;
-        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
 
         goto CleanupExit;
