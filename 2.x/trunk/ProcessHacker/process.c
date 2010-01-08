@@ -140,7 +140,8 @@ NTSTATUS PhOpenProcessToken(
 /**
  * Terminates a process.
  *
- * \param ProcessHandle A handle to a process.
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_TERMINATE access.
  * \param ExitStatus A status value that indicates why the 
  * process is being terminated.
  */
@@ -169,7 +170,8 @@ NTSTATUS PhTerminateProcess(
 /**
  * Terminates a thread.
  *
- * \param ThreadHandle A handle to a thread.
+ * \param ThreadHandle A handle to a thread. The handle must 
+ * have THREAD_TERMINATE access.
  * \param ExitStatus A status value that indicates why the 
  * thread is being terminated.
  */
@@ -198,7 +200,8 @@ NTSTATUS PhTerminateThread(
 /**
  * Copies memory from another process into the current process.
  *
- * \param ProcessHandle A handle to a process.
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_VM_READ access.
  * \param BaseAddress The address from which memory is to be copied.
  * \param Buffer A buffer which receives the copied memory.
  * \param BufferSize The number of bytes to copy.
@@ -229,7 +232,8 @@ NTSTATUS PhReadVirtualMemory(
 /**
  * Copies memory from the current process into another process.
  *
- * \param ProcessHandle A handle to a process.
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_VM_WRITE access.
  * \param BaseAddress The address to which memory is to be copied.
  * \param Buffer A buffer which contains the memory to copy.
  * \param BufferSize The number of bytes to copy.
@@ -257,7 +261,8 @@ NTSTATUS PhWriteVirtualMemory(
  * Queries variable-sized information for a process.
  * The function allocates a buffer to contain the information.
  *
- * \param ProcessHandle A handle to a process.
+ * \param ProcessHandle A handle to a process. The access required 
+ * depends on the information class specified.
  * \param ProcessInformationClass The information class to retrieve.
  * \param Buffer A variable which receives a pointer to a buffer 
  * containing the information. You must free the buffer using 
@@ -301,6 +306,13 @@ NTSTATUS PhpQueryProcessVariableSize(
     return status;
 }
 
+/**
+ * Gets basic information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have 
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param BasicInformation A variable which receives the information.
+ */
 NTSTATUS PhGetProcessBasicInformation(
     __in HANDLE ProcessHandle,
     __out PPROCESS_BASIC_INFORMATION BasicInformation
@@ -315,6 +327,15 @@ NTSTATUS PhGetProcessBasicInformation(
         );
 }
 
+/**
+ * Gets the file name of the process' image.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param FileName A variable which receives a pointer to a 
+ * string containing the file name. You must free the string 
+ * using PhDereferenceObject() when you no longer need it.
+ */
 NTSTATUS PhGetProcessImageFileName(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *FileName
@@ -340,6 +361,20 @@ NTSTATUS PhGetProcessImageFileName(
     return status;
 }
 
+/**
+ * Gets a string stored in a process' parameters structure.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param Offset The string to retrieve.
+ * \param String A variable which receives a pointer to the 
+ * requested string. You must free the string using 
+ * PhDereferenceObject() when you no longer need it.
+ *
+ * \retval STATUS_INVALID_PARAMETER_2 An invalid value was 
+ * specified in the Offset parameter.
+ */
 NTSTATUS PhGetProcessPebString(
     __in HANDLE ProcessHandle,
     __in PH_PEB_OFFSET Offset,
@@ -427,6 +462,14 @@ NTSTATUS PhGetProcessPebString(
     return status;
 }
 
+/**
+ * Gets a process' no-execute status.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION access.
+ * \param ExecuteFlags A variable which receives the 
+ * no-execute flags.
+ */
 NTSTATUS PhGetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __out PULONG ExecuteFlags
@@ -441,6 +484,18 @@ NTSTATUS PhGetProcessExecuteFlags(
         );
 }
 
+/**
+ * Gets whether a process is running under 32-bit 
+ * emulation.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IsWow64 A variable which receives a boolean 
+ * indicating whether the process is 32-bit.
+ *
+ * \remarks Do not use this function under a 32-bit 
+ * environment.
+ */
 NTSTATUS PhGetProcessIsWow64(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsWow64
@@ -465,6 +520,17 @@ NTSTATUS PhGetProcessIsWow64(
     return status;
 }
 
+/**
+ * Gets whether the process is running under the POSIX 
+ * subsystem.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION and 
+ * PROCESS_VM_READ access.
+ * \param IsPosix A variable which receives a boolean 
+ * indicating whether the process is running under the 
+ * POSIX subsystem.
+ */
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
@@ -495,6 +561,24 @@ NTSTATUS PhGetProcessIsPosix(
     return status;
 }
 
+/**
+ * Gets the POSIX command line of a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION and 
+ * PROCESS_VM_READ access.
+ * \param CommandLine A variable which receives a pointer 
+ * to a string containing the POSIX command line. You must 
+ * free the string using PhDereferenceObject() when you no 
+ * longer need it.
+ *
+ * \retval STATUS_UNSUCCESSFUL The command line of the 
+ * process could not be retrieved because it is too large.
+ *
+ * \remarks Do not use this function on a non-POSIX process. 
+ * Use the PhGetProcessIsPosix() function to determine 
+ * whether a process is running under the POSIX subsystem.
+ */
 NTSTATUS PhGetProcessPosixCommandLine(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *CommandLine
@@ -585,7 +669,7 @@ NTSTATUS PhGetProcessPosixCommandLine(
             )))
         {
             PhFree(commandLineChunk);
-            return STATUS_UNSUCCESSFUL;
+            return status;
         }
 
         // Replace the nulls in the chunk with spaces.
@@ -614,6 +698,21 @@ NTSTATUS PhGetProcessPosixCommandLine(
     }
 }
 
+/**
+ * Gets a process' environment variables.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param Variables A variable which will receive a pointer 
+ * to an array of \ref PH_ENVIRONMENT_VARIABLE structures, one 
+ * for each variable. You must free the array using 
+ * PhFreeProcessEnvironmentVariables() when you no longer 
+ * need it.
+ * \param NumberOfVariables A variable which will receive 
+ * the number of environment variables returned in the 
+ * array.
+ */
 NTSTATUS PhGetProcessEnvironmentVariables(
     __in HANDLE ProcessHandle,
     __out PPH_ENVIRONMENT_VARIABLE *Variables,
@@ -738,6 +837,15 @@ NTSTATUS PhGetProcessEnvironmentVariables(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Frees an array of environment variables returned 
+ * by PhGetProcessEnvironmentVariables().
+ *
+ * \param Variables A pointer to an array of 
+ * environment variables.
+ * \param NumberOfVariables The number of environment 
+ * variables in the array.
+ */
 VOID PhFreeProcessEnvironmentVariables(
     __in PPH_ENVIRONMENT_VARIABLE Variables,
     __in ULONG NumberOfVariables
@@ -754,6 +862,17 @@ VOID PhFreeProcessEnvironmentVariables(
     PhFree(Variables);
 }
 
+/**
+ * Gets the file name of a mapped section.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION access.
+ * \param BaseAddress The base address of the section view.
+ * \param FileName A variable which receives a pointer to 
+ * a string containing the file name of the section. You 
+ * must free the string using PhDereferenceObject() when 
+ * you no longer need it.
+ */
 NTSTATUS PhGetProcessMappedFileName(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -810,6 +929,15 @@ NTSTATUS PhGetProcessMappedFileName(
     return status;
 }
 
+/**
+ * Sets a process' no-execute status.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ExecuteFlags The new no-execute flags.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
@@ -822,6 +950,13 @@ NTSTATUS PhSetProcessExecuteFlags(
         );
 }
 
+/**
+ * Gets basic information for a thread.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have 
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param BasicInformation A variable which receives the information.
+ */
 NTSTATUS PhGetThreadBasicInformation(
     __in HANDLE ThreadHandle,
     __out PTHREAD_BASIC_INFORMATION BasicInformation
@@ -836,6 +971,17 @@ NTSTATUS PhGetThreadBasicInformation(
         );
 }
 
+/**
+ * Queries variable-sized information for a token.
+ * The function allocates a buffer to contain the information.
+ *
+ * \param TokenHandle A handle to a token. The access required 
+ * depends on the information class specified.
+ * \param TokenInformationClass The information class to retrieve.
+ * \param Buffer A variable which receives a pointer to a buffer 
+ * containing the information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ */
 NTSTATUS PhpQueryTokenVariableSize(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
@@ -874,6 +1020,16 @@ NTSTATUS PhpQueryTokenVariableSize(
     return status;
 }
 
+/**
+ * Gets a token's user.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param User A variable which receives a pointer to 
+ * a structure containing the token's user. You must 
+ * free the structure using PhFree() when you no longer 
+ * need it.
+ */
 NTSTATUS PhGetTokenUser(
     __in HANDLE TokenHandle,
     __out PTOKEN_USER *User
@@ -886,6 +1042,14 @@ NTSTATUS PhGetTokenUser(
         );
 }
 
+/**
+ * Gets a token's elevation type.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param ElevationType A variable which receives the 
+ * elevation type.
+ */
 NTSTATUS PhGetTokenElevationType(
     __in HANDLE TokenHandle,
     __out PTOKEN_ELEVATION_TYPE ElevationType
@@ -902,6 +1066,14 @@ NTSTATUS PhGetTokenElevationType(
         );
 }
 
+/**
+ * Gets whether a token is elevated.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param Elevated A variable which receives a 
+ * boolean indicating whether the token is elevated.
+ */
 NTSTATUS PhGetTokenIsElevated(
     __in HANDLE TokenHandle,
     __out PBOOLEAN Elevated
@@ -927,6 +1099,14 @@ NTSTATUS PhGetTokenIsElevated(
     return status;
 }
 
+/**
+ * Gets a token's statistics.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param Statistics A variable which receives the 
+ * token's statistics.
+ */
 NTSTATUS PhGetTokenStatistics(
     __in HANDLE TokenHandle,
     __out PTOKEN_STATISTICS Statistics
@@ -943,6 +1123,16 @@ NTSTATUS PhGetTokenStatistics(
         );
 }
 
+/**
+ * Gets a token's groups.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param Groups A variable which receives a pointer to 
+ * a structure containing the token's groups. You must 
+ * free the structure using PhFree() when you no longer 
+ * need it.
+ */
 NTSTATUS PhGetTokenGroups(
     __in HANDLE TokenHandle,
     __out PTOKEN_GROUPS *Groups
@@ -955,6 +1145,16 @@ NTSTATUS PhGetTokenGroups(
         );
 }
 
+/**
+ * Gets a token's privileges.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param Privileges A variable which receives a pointer to 
+ * a structure containing the token's privileges. You must 
+ * free the structure using PhFree() when you no longer 
+ * need it.
+ */
 NTSTATUS PhGetTokenPrivileges(
     __in HANDLE TokenHandle,
     __out PTOKEN_PRIVILEGES *Privileges
@@ -967,6 +1167,19 @@ NTSTATUS PhGetTokenPrivileges(
         );
 }
 
+/**
+ * Modifies a token privilege.
+ *
+ * \param TokenHandle A handle to a token. The handle
+ * must have TOKEN_ADJUST_PRIVILEGES access.
+ * \param PrivilegeName The name of the privilege to 
+ * modify. If this parameter is NULL, you must specify 
+ * a LUID in the \a PrivilegeLuid parameter.
+ * \param PrivilegeLuid The LUID of the privilege to 
+ * modify. If this parameter is NULL, you must specify 
+ * a name in the \a PrivilegeName parameter.
+ * \param Attributes The new attributes of the privilege.
+ */
 BOOLEAN PhSetTokenPrivilege(
     __in HANDLE TokenHandle,
     __in_opt PWSTR PrivilegeName,
@@ -1012,6 +1225,18 @@ BOOLEAN PhSetTokenPrivilege(
     return TRUE;
 }
 
+/**
+ * Gets a token's integrity level.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param IntegrityLevel A variable which receives 
+ * the integrity level of the token.
+ * \param IntegrityString A variable which receives a 
+ * pointer to a string containing a string representation 
+ * of the integrity level. You must free the string 
+ * using PhDereferenceObject() when you no longer need it.
+ */
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
     __out_opt PPH_INTEGRITY IntegrityLevel, 
@@ -1098,6 +1323,15 @@ NTSTATUS PhGetTokenIntegrityLevel(
     return status;
 }
 
+/**
+ * Gets the name of a privilege from its LUID.
+ *
+ * \param PrivilegeValue The LUID of a privilege.
+ * \param PrivilegeName A variable which receives 
+ * a pointer to a string containing the privilege 
+ * name. You must free the string using 
+ * PhDereferenceObject() when you no longer need it.
+ */
 BOOLEAN PhLookupPrivilegeName(
     __in PLUID PrivilegeValue,
     __out PPH_STRING *PrivilegeName
@@ -1126,6 +1360,15 @@ BOOLEAN PhLookupPrivilegeName(
     return TRUE;
 }
 
+/**
+ * Gets the display name of a privilege from its name.
+ *
+ * \param PrivilegeName The name of a privilege.
+ * \param PrivilegeDisplayName A variable which receives 
+ * a pointer to a string containing the privilege's 
+ * display name. You must free the string using 
+ * PhDereferenceObject() when you no longer need it.
+ */
 BOOLEAN PhLookupPrivilegeDisplayName(
     __in PWSTR PrivilegeName,
     __out PPH_STRING *PrivilegeDisplayName
@@ -1155,6 +1398,13 @@ BOOLEAN PhLookupPrivilegeDisplayName(
     return TRUE;
 }
 
+/**
+ * Gets the LUID of a privilege from its name.
+ *
+ * \param PrivilegeName The name of a privilege.
+ * \param PrivilegeValue A variable which receives 
+ * the LUID of the privilege.
+ */
 BOOLEAN PhLookupPrivilegeValue(
     __in PWSTR PrivilegeName,
     __out PLUID PrivilegeValue
@@ -1167,6 +1417,21 @@ BOOLEAN PhLookupPrivilegeValue(
         );
 }
 
+/**
+ * Gets information about a SID.
+ *
+ * \param Sid A SID to query.
+ * \param Name A variable which receives a pointer 
+ * to a string containing the SID's name. You must 
+ * free the string using PhDereferenceObject() when 
+ * you no longer need it.
+ * \param DomainName A variable which receives a pointer 
+ * to a string containing the SID's domain name. You must 
+ * free the string using PhDereferenceObject() when 
+ * you no longer need it.
+ * \param NameUse A variable which receives the 
+ * SID's usage.
+ */
 BOOLEAN PhLookupSid(
     __in PSID Sid,
     __out_opt PPH_STRING *Name,
@@ -1230,6 +1495,18 @@ BOOLEAN PhLookupSid(
     return TRUE;
 }
 
+/**
+ * Gets the name of a SID.
+ *
+ * \param Sid A SID to query.
+ *
+ * \return A pointer to a string containing 
+ * the name of the SID in the following 
+ * format: domain\\name. You must free the string 
+ * using PhDereferenceObject() when you no longer 
+ * need it. If an error occurs, the function 
+ * returns NULL.
+ */
 PPH_STRING PhGetSidFullName(
     __in PSID Sid
     )
@@ -1257,6 +1534,17 @@ PPH_STRING PhGetSidFullName(
     return fullName;
 }
 
+/**
+ * Gets a SDDL string representation of a SID.
+ *
+ * \param Sid A SID to query.
+ *
+ * \return A pointer to a string containing the 
+ * SDDL representation of the SID. You must 
+ * free the string using PhDereferenceObject() 
+ * when you no longer need it. If an error occurs, 
+ * the function returns NULL.
+ */
 PPH_STRING PhConvertSidToStringSid(
     __in PSID Sid
     )
@@ -1273,6 +1561,29 @@ PPH_STRING PhConvertSidToStringSid(
     return string;
 }
 
+/**
+ * Duplicates a handle.
+ *
+ * \param SourceProcessHandle A handle to the source 
+ * process. The handle must have PROCESS_DUP_HANDLE 
+ * access.
+ * \param SourceHandle The handle to duplicate from 
+ * the source process.
+ * \param TargetProcessHandle A handle to the target 
+ * process. If DUPLICATE_CLOSE_SOURCE is specified 
+ * in the \a Options parameter, this parameter can be 
+ * NULL.
+ * \param TargetHandle A variable which receives 
+ * the new handle in the target process. If 
+ * DUPLICATE_CLOSE_SOURCE is specified in the \a Options 
+ * parameter, this parameter can be NULL.
+ * \param DesiredAccess The desired access to the 
+ * object referenced by the source handle.
+ * \param HandleAttributes The attributes to apply 
+ * to the new handle.
+ * \param Options The options to use when duplicating 
+ * the handle.
+ */
 NTSTATUS PhDuplicateObject(
     __in HANDLE SourceProcessHandle,
     __in HANDLE SourceHandle,
@@ -1310,6 +1621,17 @@ NTSTATUS PhDuplicateObject(
     }
 }
 
+/**
+ * Enumerates the modules loaded by a process.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION 
+ * and PROCESS_VM_READ access.
+ * \param Callback A callback function which is 
+ * executed for each process module.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ */
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
@@ -1436,6 +1758,14 @@ NTSTATUS PhEnumProcessModules(
     return status;
 }
 
+/**
+ * Enumerates the modules loaded by the kernel.
+ *
+ * \param Modules A variable which receives a pointer 
+ * to a structure containing information about 
+ * the kernel modules. You must free the structure 
+ * using PhFree() when you no longer need it.
+ */
 NTSTATUS PhEnumKernelModules(
     __out PRTL_PROCESS_MODULES *Modules
     )
@@ -1474,6 +1804,14 @@ NTSTATUS PhEnumKernelModules(
     return status;
 }
 
+/**
+ * Gets the file name of the kernel image.
+ *
+ * \return A pointer to a string containing the 
+ * kernel image file name. You must free the string 
+ * using PhDereferenceObject() when you no longer 
+ * need it.
+ */
 PPH_STRING PhGetKernelFileName()
 {
     PRTL_PROCESS_MODULES modules;
@@ -1492,6 +1830,18 @@ PPH_STRING PhGetKernelFileName()
     return fileName;
 }
 
+/**
+ * Enumerates the running processes.
+ *
+ * \param Processes A variable which receives a 
+ * pointer to a buffer containing process 
+ * information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ *
+ * \remarks You can use the \ref PH_FIRST_PROCESS 
+ * and \ref PH_NEXT_PROCESS macros to process the 
+ * information contained in the buffer.
+ */
 NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     )
@@ -1533,6 +1883,18 @@ NTSTATUS PhEnumProcesses(
     return status;
 }
 
+/**
+ * Finds the process information structure for a 
+ * specific process.
+ *
+ * \param Processes A pointer to a buffer returned 
+ * by PhEnumProcesses().
+ * \param ProcessId The ID of the process.
+ *
+ * \return A pointer to the process information 
+ * structure for the specified process, or NULL if 
+ * the structure could not be found.
+ */
 PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     __in PVOID Processes,
     __in HANDLE ProcessId
@@ -1551,6 +1913,18 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     return NULL;
 }
 
+/**
+ * Enumerates all open handles.
+ *
+ * \param Handles A variable which receives a pointer 
+ * to a structure containing information about all 
+ * opened handles. You must free the structure using 
+ * PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The 
+ * handle information returned by the kernel is too 
+ * large.
+ */
 NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
     )
@@ -1590,6 +1964,9 @@ NTSTATUS PhEnumHandles(
     return status;
 }
 
+/**
+ * Initializes the DOS device names module.
+ */
 VOID PhInitializeDosDeviceNames()
 {
     ULONG i;
@@ -1600,6 +1977,9 @@ VOID PhInitializeDosDeviceNames()
     PhInitializeFastLock(&PhDosDeviceNamesLock);
 }
 
+/**
+ * Refreshes the DOS device names array.
+ */
 VOID PhRefreshDosDeviceNames()
 {
     WCHAR deviceName[3];
@@ -1621,6 +2001,15 @@ VOID PhRefreshDosDeviceNames()
     }
 }
 
+/**
+ * Resolves a NT path into a DOS path.
+ *
+ * \param Name A string containing the path to resolve.
+ *
+ * \return A pointer to a string containing the DOS 
+ * path. You must free the string using PhDereferenceObject() 
+ * when you no longer need it.
+ */
 PPH_STRING PhResolveDevicePrefix(
     __in PPH_STRING Name
     )
@@ -1663,6 +2052,15 @@ PPH_STRING PhResolveDevicePrefix(
     return newName;
 }
 
+/**
+ * Converts a file name into DOS format.
+ *
+ * \param FileName A string containing a file name.
+ *
+ * \return A pointer to a string containing the DOS 
+ * file name. You must free the string using 
+ * PhDereferenceObject() when you no longer need it.
+ */
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
     )
@@ -1902,6 +2300,22 @@ ContinueLoop:
     }
 }
 
+/**
+ * Enumerates the modules loaded by a process.
+ *
+ * \param ProcessId The ID of a process. If 
+ * \ref SYSTEM_PROCESS_ID is specified the function 
+ * enumerates the kernel modules.
+ * \param ProcessHandle A handle to the process.
+ * \param Flags Flags controlling the information 
+ * to retrieve.
+ * \li \c PH_ENUM_GENERIC_MAPPED_FILES Enumerate mapped 
+ * files.
+ * \param Callback A callback function which is executed 
+ * for each module.
+ * \param Context A user-defined value to pass 
+ * to the callback function.
+ */
 NTSTATUS PhEnumGenericModules(
     __in HANDLE ProcessId,
     __in_opt HANDLE ProcessHandle,
