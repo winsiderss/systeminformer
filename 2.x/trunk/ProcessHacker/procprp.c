@@ -318,9 +318,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_PROCGENERAL_ICON), STM_SETICON,
                 (WPARAM)processItem->LargeIcon, 0);
             SetDlgItemText(hwndDlg, IDC_PROCGENERAL_NAME,
-                processItem->VersionInfo.FileDescription->Buffer);
+                PhGetString(processItem->VersionInfo.FileDescription));
             SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
-                processItem->VersionInfo.CompanyName->Buffer); 
+                PhGetString(processItem->VersionInfo.CompanyName)); 
         }
         break;
     case WM_DESTROY:
