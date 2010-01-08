@@ -386,7 +386,7 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     {
         *ResolveLevel = PhsrlAddress;
 
-        symbol = PhCreateStringEx(0, PH_PTR_STR_LEN);
+        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
     }
     else
@@ -586,7 +586,7 @@ VOID PhThreadProviderUpdate(
             if (!threadItem->StartAddressString)
             {
                 threadItem->StartAddressResolveLevel = PhsrlAddress;
-                threadItem->StartAddressString = PhCreateStringEx(NULL, PH_PTR_STR_LEN);
+                threadItem->StartAddressString = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
                 PhPrintPointer(
                     threadItem->StartAddressString->Buffer,
                     (PVOID)threadItem->StartAddress
@@ -633,10 +633,17 @@ VOID PhThreadProviderUpdate(
             {
                 if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
                 {
-                    threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
+                    PPH_STRING newStartAddressString;
+
+                    newStartAddressString = PhpGetThreadBasicStartAddress(
                         threadProvider,
                         threadItem->StartAddress,
                         &threadItem->StartAddressResolveLevel
+                        );
+
+                    PhSwapReference(
+                        &threadItem->StartAddressString,
+                        newStartAddressString
                         );
 
                     modified = TRUE;
