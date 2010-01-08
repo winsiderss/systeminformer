@@ -7,9 +7,12 @@
 
 // process
 
+/** The PID of the idle process. */
 #define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
+/** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
 
+/** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {
     PhpoCurrentDirectory,
@@ -22,6 +25,7 @@ typedef enum _PH_PEB_OFFSET
     PhpoRuntimeData
 } PH_PEB_OFFSET;
 
+/** Specifies a token integrity level. */
 typedef enum _PH_INTEGRITY
 {
     PiUntrusted = 0,
@@ -32,9 +36,12 @@ typedef enum _PH_INTEGRITY
     PiInstaller = 5
 } PH_INTEGRITY, *PPH_INTEGRITY;
 
+/** Contains information about an environment variable. */
 typedef struct _PH_ENVIRONMENT_VARIABLE
 {
+    /** A string containing the variable name. */
     PPH_STRING Name;
+    /** A string containing the variable value. */
     PPH_STRING Value;
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
@@ -92,6 +99,16 @@ NTSTATUS PhGetProcessImageFileName(
     __out PPH_STRING *FileName
     );
 
+/**
+ * Gets a process' command line.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_QUERY_LIMITED_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param String A variable which receives a pointer to a 
+ * string containing the command line. You must free the string 
+ * using PhDereferenceObject() when you no longer need it.
+ */
 #define PhGetProcessCommandLine(ProcessHandle, String) \
     PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
 
@@ -233,6 +250,18 @@ NTSTATUS PhDuplicateObject(
 
 #define PH_ENUM_PROCESS_MODULES_ITERS 0x800
 
+/**
+ * A callback function passed to PhEnumProcessModules() 
+ * and called for each process module.
+ *
+ * \param Module A structure providing information about 
+ * the module.
+ * \param Context A user-defined value passed to 
+ * PhEnumProcessModules().
+ *
+ * \return TRUE to continue the enumeration, FALSE to 
+ * stop.
+ */
 typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
     __in PLDR_DATA_TABLE_ENTRY Module,
     __in PVOID Context
@@ -250,7 +279,25 @@ NTSTATUS PhEnumKernelModules(
     __out PRTL_PROCESS_MODULES *Modules
     );
 
+/**
+ * Gets a pointer to the first process information 
+ * structure in a buffer returned by PhEnumProcesses().
+ *
+ * \param Processes A pointer to a buffer returned 
+ * by PhEnumProcesses().
+ */
 #define PH_FIRST_PROCESS(Processes) ((PSYSTEM_PROCESS_INFORMATION)(Processes))
+
+/**
+ * Gets a pointer to the process information structure 
+ * after a given structure.
+ *
+ * \param Process A pointer to a process information 
+ * structure.
+ *
+ * \return A pointer to the next process information 
+ * structure, or NULL if there are no more.
+ */
 #define PH_NEXT_PROCESS(Process) ( \
     ((PSYSTEM_PROCESS_INFORMATION)(Process))->NextEntryOffset ? \
     (PSYSTEM_PROCESS_INFORMATION)((PCHAR)(Process) + \
@@ -293,6 +340,18 @@ typedef struct _PH_MODULE_INFO
     PPH_STRING FileName;
 } PH_MODULE_INFO, *PPH_MODULE_INFO;
 
+/**
+ * A callback function passed to PhEnumGenericModules() 
+ * and called for each process module.
+ *
+ * \param Module A structure providing information about 
+ * the module.
+ * \param Context A user-defined value passed to 
+ * PhEnumGenericModules().
+ *
+ * \return TRUE to continue the enumeration, FALSE to 
+ * stop.
+ */
 typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
     __in PPH_MODULE_INFO Module,
     __in PVOID Context
