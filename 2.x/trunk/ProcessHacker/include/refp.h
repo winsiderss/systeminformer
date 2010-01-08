@@ -26,8 +26,31 @@
 #define REF_PRIVATE
 #include <ref.h>
 
+/**
+ * Gets a pointer to the object header for an object.
+ *
+ * \param Object A pointer to an object.
+ *
+ * \return A pointer to the object header of the object.
+ */
 #define PhObjectToObjectHeader(Object) ((PPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)(Object), PH_OBJECT_HEADER, Body))
+
+/**
+ * Gets a pointer to an object from an object header.
+ *
+ * \param ObjectHeader A pointer to an object header.
+ *
+ * \return A pointer to an object.
+ */
 #define PhObjectHeaderToObject(ObjectHeader) (&((PPH_OBJECT_HEADER)(ObjectHeader))->Body)
+
+/**
+ * Calculates the total size to allocate for an object.
+ *
+ * \param Size The size of the object to allocate.
+ *
+ * \return The new size, including space for the object header.
+ */
 #define PhpAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
 typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
@@ -35,39 +58,41 @@ typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
 typedef struct _PH_OBJECT_HEADER
 {
-    /* The reference count of the object. */
+    /** The reference count of the object. */
     LONG RefCount;
-    /* The flags that were used to create the object. */
+    /** The flags that were used to create the object. */
     ULONG Flags;
     union
     {
-        /* The size of the object, excluding the header. */
+        /** The size of the object, excluding the header. */
         SIZE_T Size;
-        /* A pointer to the object header of the next object to free. */
+        /** A pointer to the object header of the next object to free. */
         PPH_OBJECT_HEADER NextToFree;
     };
-    /* The type of the object. */
+    /** The type of the object. */
     PPH_OBJECT_TYPE Type;
     
-    /* The body of the object. For use by the KphObject(Header)ToObject(Header) macros. */
+    /** The body of the object. For use by the \ref PhObjectToObjectHeader 
+     * and \ref PhObjectHeaderToObject macros. */
     QUAD Body;
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
 
 typedef struct _PH_OBJECT_TYPE
 {
-    /* The flags that were used to create the object type. */
+    /** The flags that were used to create the object type. */
     ULONG Flags;
-    /* An optional procedure called when objects of this type are freed. */
+    /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
     
-    /* The total number of objects of this type that are alive. */
+    /** The total number of objects of this type that are alive. */
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
-/* PhpInterlockedIncrementSafe
- * 
+/** 
  * Increments a reference count, but will never increment 
  * from 0 to 1.
+ *
+ * \param RefCount A pointer to a reference count.
  */
 FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
     __inout PLONG RefCount

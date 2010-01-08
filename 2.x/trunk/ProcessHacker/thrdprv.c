@@ -388,6 +388,7 @@ PPH_STRING PhpGetThreadBasicStartAddress(
 
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
+        PhTrimStringToNullTerminator(symbol);
     }
     else
     {
@@ -591,6 +592,7 @@ VOID PhThreadProviderUpdate(
                     threadItem->StartAddressString->Buffer,
                     (PVOID)threadItem->StartAddress
                     );
+                PhTrimStringToNullTerminator(threadItem->StartAddressString);
             }
 
             PhpQueueThreadQuery(threadProvider, threadItem);

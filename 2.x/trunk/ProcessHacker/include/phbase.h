@@ -69,6 +69,11 @@ PVOID PhReAlloc(
 
 typedef RTL_CRITICAL_SECTION PH_MUTEX, *PPH_MUTEX;
 
+/**
+ * Initializes a mutex object.
+ *
+ * \param Mutex A pointer to a mutex object.
+ */
 FORCEINLINE VOID PhInitializeMutex(
     __out PPH_MUTEX Mutex
     )
@@ -76,6 +81,11 @@ FORCEINLINE VOID PhInitializeMutex(
     InitializeCriticalSection(Mutex);
 }
 
+/**
+ * Frees resources used by a mutex object.
+ *
+ * \param Mutex A pointer to a mutex object.
+ */
 FORCEINLINE VOID PhDeleteMutex(
     __inout PPH_MUTEX Mutex
     )
@@ -83,6 +93,11 @@ FORCEINLINE VOID PhDeleteMutex(
     DeleteCriticalSection(Mutex);
 }
 
+/**
+ * Acquires a mutex.
+ *
+ * \param Mutex A pointer to a mutex object.
+ */
 FORCEINLINE VOID PhAcquireMutex(
     __inout PPH_MUTEX Mutex
     )
@@ -90,6 +105,11 @@ FORCEINLINE VOID PhAcquireMutex(
     EnterCriticalSection(Mutex);
 }
 
+/**
+ * Releases a mutex.
+ *
+ * \param Mutex A pointer to a mutex object.
+ */
 FORCEINLINE VOID PhReleaseMutex(
     __inout PPH_MUTEX Mutex
     )
@@ -103,6 +123,14 @@ FORCEINLINE VOID PhReleaseMutex(
 #define PH_EVENT_REFCOUNT_SHIFT 1
 #define PH_EVENT_REFCOUNT_INC 0x2
 
+/**
+ * A fast event object.
+ *
+ * \remarks
+ * This event object does not use a kernel event object 
+ * until necessary, and frees the object automatically 
+ * when it is no longer needed.
+ */
 typedef struct _PH_EVENT
 {
     ULONG Value;
@@ -126,6 +154,14 @@ VOID PhResetEvent(
     __inout PPH_EVENT Event
     );
 
+/**
+ * Determines whether an event object is set.
+ *
+ * \param Event A pointer to an event object.
+ *
+ * \return TRUE if the event object is set, 
+ * otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhTestEvent(
     __in PPH_EVENT Event
     )
@@ -141,18 +177,26 @@ extern PPH_OBJECT_TYPE PhStringType;
 
 #define PH_STRING_MAXLEN MAXUINT16
 
+/**
+ * A Unicode string object.
+ */
 typedef struct _PH_STRING
 {
     union
     {
+        /** An embedded UNICODE_STRING structure. */
         UNICODE_STRING us;
         struct
         {
+            /** The length, in bytes, of the string. */
             USHORT Length;
+            /** Unused and always equal to \ref Length. */
             USHORT MaximumLength;
+            /** Unused and always a pointer to \ref Buffer. */
             PWSTR Pointer;
         };
     };
+    /** The buffer containing the contents of the string. */
     WCHAR Buffer[1];
 } PH_STRING, *PPH_STRING;
 
@@ -179,6 +223,16 @@ PPH_STRING PhConcatStrings(
     ...
     );
 
+/**
+ * Retrieves a pointer to a string object's buffer 
+ * or returns NULL.
+ *
+ * \param String A pointer to a string object.
+ *
+ * \return A pointer to the string object's buffer 
+ * if the supplied pointer is non-NULL, otherwise 
+ * NULL.
+ */
 FORCEINLINE PWSTR PhGetString(
     __in_opt PPH_STRING String
     )
@@ -189,6 +243,12 @@ FORCEINLINE PWSTR PhGetString(
         return NULL;
 }
 
+/**
+ * Concatenates two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ */
 FORCEINLINE PPH_STRING PhConcatStrings2(
     __in PWSTR String1,
     __in PWSTR String2
@@ -215,6 +275,13 @@ FORCEINLINE PPH_STRING PhConcatStrings2(
     return string;
 }
 
+/**
+ * Determines whether two strings are equal.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
 FORCEINLINE BOOLEAN PhStringEquals(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
@@ -227,6 +294,13 @@ FORCEINLINE BOOLEAN PhStringEquals(
         return wcsicmp(String1->Buffer, String2->Buffer) == 0;
 }
 
+/**
+ * Determines whether two strings are equal.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
 FORCEINLINE BOOLEAN PhStringEquals2(
     __in PPH_STRING String1,
     __in PWSTR String2,
@@ -239,6 +313,16 @@ FORCEINLINE BOOLEAN PhStringEquals2(
         return wcsicmp(String1->Buffer, String2) == 0;
 }
 
+/**
+ * Determines whether a string starts with another.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ *
+ * \return TRUE if \a String1 starts with \a String2, 
+ * otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhStringStartsWith(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
@@ -251,6 +335,16 @@ FORCEINLINE BOOLEAN PhStringStartsWith(
         return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
 }
 
+/**
+ * Determines whether a string starts with another.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ *
+ * \return TRUE if \a String1 starts with \a String2, 
+ * otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhStringStartsWith2(
     __in PPH_STRING String1,
     __in PWSTR String2,
@@ -263,6 +357,16 @@ FORCEINLINE BOOLEAN PhStringStartsWith2(
         return wcsnicmp(String1->Buffer, String2, wcslen(String2)) == 0;
 }
 
+/**
+ * Determines whether a string ends with another.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ *
+ * \return TRUE if \a String1 ends with \a String2, 
+ * otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhStringEndsWith(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
@@ -290,6 +394,16 @@ FORCEINLINE BOOLEAN PhStringEndsWith(
     }
 }
 
+/**
+ * Determines whether a string ends with another.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ *
+ * \return TRUE if \a String1 ends with \a String2, 
+ * otherwise FALSE.
+ */
 FORCEINLINE BOOLEAN PhStringEndsWith2(
     __in PPH_STRING String1,
     __in PWSTR String2,
@@ -319,22 +433,42 @@ FORCEINLINE BOOLEAN PhStringEndsWith2(
     }
 }
 
+/**
+ * Locates a character in a string.
+ *
+ * \param String The string to search.
+ * \param StartIndex The index, in characters, to start searching at.
+ * \param Char The character to search for.
+ *
+ * \return The index, in characters, of the first occurrence of 
+ * \a Char in \a String after \a StartIndex.
+ */
 FORCEINLINE ULONG PhStringIndexOfChar(
-    __in PPH_STRING String1,
+    __in PPH_STRING String,
     __in ULONG StartIndex,
     __in WCHAR Char
     )
 {
     PWSTR location;
 
-    location = wcschr(&String1->Buffer[StartIndex], Char);
+    location = wcschr(&String->Buffer[StartIndex], Char);
 
     if (location)
-        return (ULONG)(location - String1->Buffer);
+        return (ULONG)(location - String->Buffer);
     else
         return -1;
 }
 
+/**
+ * Locates a string in a string.
+ *
+ * \param String1 The string to search.
+ * \param StartIndex The index, in characters, to start searching at.
+ * \param String2 The string to search for.
+ *
+ * \return The index, in characters, of the first occurrence of 
+ * \a String2 in \a String1 after \a StartIndex.
+ */
 FORCEINLINE ULONG PhStringIndexOfString(
     __in PPH_STRING String1,
     __in ULONG StartIndex,
@@ -351,22 +485,39 @@ FORCEINLINE ULONG PhStringIndexOfString(
         return -1;
 }
 
+/**
+ * Locates a character in a string, backwards.
+ *
+ * \param String The string to search.
+ * \param StartIndex The index, in characters, to start searching at.
+ * \param Char The character to search for.
+ *
+ * \return The index, in characters, of the last occurrence of 
+ * \a Char in \a String after \a StartIndex.
+ */
 FORCEINLINE ULONG PhStringLastIndexOfChar(
-    __in PPH_STRING String1,
+    __in PPH_STRING String,
     __in ULONG StartIndex,
     __in WCHAR Char
     )
 {
     PWSTR location;
 
-    location = wcsrchr(&String1->Buffer[StartIndex], Char);
+    location = wcsrchr(&String->Buffer[StartIndex], Char);
 
     if (location)
-        return (ULONG)(location - String1->Buffer);
+        return (ULONG)(location - String->Buffer);
     else
         return -1;
 }
 
+/**
+ * Creates a substring of a string.
+ *
+ * \param String The original string.
+ * \param StartIndex The start index, in characters.
+ * \param Count The number of characters to use.
+ */
 FORCEINLINE PPH_STRING PhSubstring(
     __in PPH_STRING String,
     __in ULONG StartIndex,
@@ -374,6 +525,23 @@ FORCEINLINE PPH_STRING PhSubstring(
     )
 {
     return PhCreateStringEx(&String->Buffer[StartIndex], Count * sizeof(WCHAR));
+}
+
+/**
+ * Updates a string object's length with 
+ * its true length as determined by an 
+ * embedded null terminator.
+ *
+ * \param String The string to modify.
+ *
+ * \remarks Use this function after modifying a string 
+ * object's buffer manually.
+ */
+FORCEINLINE VOID PhTrimStringToNullTerminator(
+    __inout PPH_STRING String
+    )
+{
+    String->Length = String->MaximumLength = wcslen(String->Buffer) * sizeof(WCHAR);
 }
 
 // ansi string
