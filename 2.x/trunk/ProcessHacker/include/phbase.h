@@ -441,7 +441,8 @@ FORCEINLINE BOOLEAN PhStringEndsWith2(
  * \param Char The character to search for.
  *
  * \return The index, in characters, of the first occurrence of 
- * \a Char in \a String after \a StartIndex.
+ * \a Char in \a String after \a StartIndex. If \a Char was not 
+ * found, -1 is returned.
  */
 FORCEINLINE ULONG PhStringIndexOfChar(
     __in PPH_STRING String,
@@ -467,7 +468,8 @@ FORCEINLINE ULONG PhStringIndexOfChar(
  * \param String2 The string to search for.
  *
  * \return The index, in characters, of the first occurrence of 
- * \a String2 in \a String1 after \a StartIndex.
+ * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 
+ * found, -1 is returned.
  */
 FORCEINLINE ULONG PhStringIndexOfString(
     __in PPH_STRING String1,
@@ -493,7 +495,8 @@ FORCEINLINE ULONG PhStringIndexOfString(
  * \param Char The character to search for.
  *
  * \return The index, in characters, of the last occurrence of 
- * \a Char in \a String after \a StartIndex.
+ * \a Char in \a String after \a StartIndex. If \a Char was not 
+ * found, -1 is returned.
  */
 FORCEINLINE ULONG PhStringLastIndexOfChar(
     __in PPH_STRING String,
@@ -550,18 +553,26 @@ FORCEINLINE VOID PhTrimStringToNullTerminator(
 extern PPH_OBJECT_TYPE PhAnsiStringType;
 #endif
 
+/**
+ * An ANSI string structure.
+ */
 typedef struct _PH_ANSI_STRING
 {
     union
     {
+        /** An embedded ANSI_STRING structure. */
         ANSI_STRING as;
         struct
         {
+            /** The length, in bytes, of the string. */
             USHORT Length;
+            /** Unused and always equal to \ref Length. */
             USHORT MaximumLength;
+            /** Unused and always a pointer to \ref Buffer. */
             PSTR Pointer;
         };
     };
+    /** The buffer containing the contents of the string. */
     CHAR Buffer[1];
 } PH_ANSI_STRING, *PPH_ANSI_STRING;
 
@@ -589,13 +600,22 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 extern PPH_OBJECT_TYPE PhStringBuilderType;
 #endif
 
+/**
+ * A string builder structure.
+ * The string builder object allows you to easily
+ * construct complex strings without allocating 
+ * a great number of strings in the process.
+ */
 typedef struct _PH_STRING_BUILDER
 {
-    // Allocated length of the string.
+    /** Allocated length of the string. */
     ULONG AllocatedLength;
-    // String will be allocated for AllocatedLength, 
-    // but we will modify the Length field to be the 
-    // correct length.
+    /**
+     * The constructed string.
+     * \a String will be allocated for \a AllocatedLength, 
+     * but we will modify the \a Length field to be the 
+     * correct length.
+     */
     PPH_STRING String;
 } PH_STRING_BUILDER, *PPH_STRING_BUILDER;
 
@@ -654,10 +674,18 @@ VOID PhStringBuilderRemove(
 extern PPH_OBJECT_TYPE PhListType;
 #endif
 
+/**
+ * A list structure.
+ * Storage is automatically allocated for new 
+ * elements.
+ */
 typedef struct _PH_LIST
 {
+    /** The number of items in the list. */
     ULONG Count;
+    /** The number of items for which storage is allocated. */
     ULONG AllocatedCount;
+    /** The array of list items. */
     PPVOID Items;
 } PH_LIST, *PPH_LIST;
 
@@ -690,6 +718,19 @@ VOID PhRemoveListItems(
     __in ULONG Count
     );
 
+/**
+ * A comparison function passed to PhSortList().
+ *
+ * \param Item1 The first item.
+ * \param Item2 The second item.
+ * \param Context A user-defined value passed 
+ * to PhSortList().
+ *
+ * \return
+ * \li A positive value if \a Item1 > \a Item2,
+ * \li A negative value if \a Item1 < \a Item2, and
+ * \li 0 if \a Item1 = \a Item2.
+ */
 typedef INT (NTAPI *PPH_LIST_COMPARE_FUNCTION)(
     __in PVOID Item1,
     __in PVOID Item2,
@@ -708,12 +749,22 @@ VOID PhSortList(
 extern PPH_OBJECT_TYPE PhQueueType;
 #endif
 
+/**
+ * A queue structure.
+ * Storage is automatically allocated for new 
+ * elements.
+ */
 typedef struct _PH_QUEUE
 {
+    /** The number of items in the queue. */
     ULONG Count;
+    /** The number of items for which storage is allocated. */
     ULONG AllocatedCount;
+    /** The array of queue items. */
     PPVOID Items;
+    /** The index of the first slot in the queue. */
     ULONG Head;
+    /** The index of the last available slot in the queue. */
     ULONG Tail;
 } PH_QUEUE, *PPH_QUEUE;
 
@@ -744,20 +795,44 @@ extern PPH_OBJECT_TYPE PhHashtableType;
 
 typedef struct _PH_HASHTABLE_ENTRY
 {
-    /* Hash code of the entry. -1 if entry is unused. */
+    /** Hash code of the entry. -1 if entry is unused. */
     ULONG HashCode;
-    /* Either the index of the next entry in the bucket, 
+    /** Either the index of the next entry in the bucket, 
      * the index of the next free entry, or -1 for invalid.
      */
     ULONG Next;
+    /** The beginning of user data. */
     QUAD Body;
 } PH_HASHTABLE_ENTRY, *PPH_HASHTABLE_ENTRY;
 
+/**
+ * A comparison function used by a hashtable.
+ *
+ * \param Entry1 The first entry.
+ * \param Entry2 The second entry.
+ *
+ * \return TRUE if the entries are equal, otherwise 
+ * FALSE.
+ */
 typedef BOOLEAN (NTAPI *PPH_HASHTABLE_COMPARE_FUNCTION)(
     __in PVOID Entry1,
     __in PVOID Entry2
     );
 
+/**
+ * A hash function used by a hashtable.
+ *
+ * \param Entry The entry.
+ *
+ * \return A hash code for the entry.
+ *
+ * \remarks
+ * \li Two entries which are considered to be equal 
+ * by the comparison function must be given the same 
+ * hash code.
+ * \li Two different entries do not have to be given 
+ * different hash codes.
+ */
 typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
     __in PVOID Entry
     );
@@ -767,28 +842,40 @@ typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
 // Enables 2^32-1 possible hash codes instead of only 2^31
 #define PH_HASHTABLE_ENABLE_FULL_HASH
 
+/**
+ * A hashtable structure.
+ */
 typedef struct _PH_HASHTABLE
 {
-    /* Size of user data in each entry. */
+    /** Size of user data in each entry. */
     ULONG EntrySize;
+    /** The comparison function. */
     PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction;
+    /** The hash function. */
     PPH_HASHTABLE_HASH_FUNCTION HashFunction;
 
+    /** The number of allocated buckets. */
     ULONG AllocatedBuckets;
+    /** The bucket array. */
     PULONG Buckets;
+    /** The number of allocated entries. */
     ULONG AllocatedEntries;
+    /** The entry array. */
     PVOID Entries;
 
-    /* Number of entries in the hashtable. */
+    /** Number of entries in the hashtable. */
     ULONG Count;
-    /* Index into entry array for free list. */
+    /** Index into entry array for free list. */
     ULONG FreeEntry;
-    /* Index of next usable index into entry array, a.k.a the 
+    /** Index of next usable index into entry array, a.k.a. the 
      * count of entries that were ever allocated.
      */
     ULONG NextEntry;
 
 #ifdef PH_HASHTABLE_ENABLE_STATS
+    /** The number of buckets which refer to more 
+     * than one entry.
+     */
     ULONG TotalCollisions;
 #endif
 } PH_HASHTABLE, *PPH_HASHTABLE;
@@ -870,22 +957,47 @@ FORCEINLINE ULONG PhHashInt64(
 
 // callback
 
+/**
+ * A callback function.
+ *
+ * \param Parameter A value given to all callback 
+ * functions being notified.
+ * \param Context A user-defined value passed 
+ * to PhRegisterCallback().
+ */
 typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
     __in PVOID Parameter,
     __in PVOID Context
     );
 
+/**
+ * A callback registration structure.
+ */
 typedef struct _PH_CALLBACK_REGISTRATION
 {
+    /** The list entry in the callbacks list. */
     LIST_ENTRY ListEntry;
+    /** The callback function. */
     PPH_CALLBACK_FUNCTION Function;
+    /** A user-defined value to be passed to the 
+     * callback function. */
     PVOID Context;
+    /** Whether the registration structure is being 
+     * removed. */
     BOOLEAN Unregistering;
 } PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
 
+/**
+ * A callback structure.
+ * The callback object allows multiple callback 
+ * functions to be registered and notified in a 
+ * thread-safe way.
+ */
 typedef struct _PH_CALLBACK
 {
+    /** The list of registered callbacks. */
     LIST_ENTRY ListHead;
+    /** A lock protecting the callbacks list. */
     PH_FAST_LOCK ListLock;
 } PH_CALLBACK, *PPH_CALLBACK;
 

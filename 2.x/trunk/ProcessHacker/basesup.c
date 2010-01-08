@@ -218,6 +218,9 @@ FORCEINLINE VOID PhpReferenceEvent(
  * Any threads waiting on the event will be released.
  *
  * \param Event A pointer to an event object.
+ *
+ * \remarks This function is thread-safe with regards to
+ * calls to PhSetEvent() and PhWaitForEvent().
  */
 VOID PhSetEvent(
     __inout PPH_EVENT Event
@@ -259,6 +262,9 @@ VOID PhSetEvent(
  *
  * \return TRUE if the event object was set before the 
  * timeout period expired, otherwise FALSE.
+ *
+ * \remarks This function is thread-safe with regards to
+ * calls to PhSetEvent() and PhWaitForEvent().
  */
 BOOLEAN PhWaitForEvent(
     __inout PPH_EVENT Event,
@@ -604,6 +610,12 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
     return string;
 }
 
+/**
+ * Creates a string builder object.
+ *
+ * \param InitialCapacity The number of bytes to allocate 
+ * initially.
+ */
 PPH_STRING_BUILDER PhCreateStringBuilder(
     __in ULONG InitialCapacity
     )
@@ -695,6 +707,20 @@ FORCEINLINE VOID PhpWriteStringBuilderNullTerminator(
     StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = 0;
 }
 
+/**
+ * Obtains a reference to the string constructed 
+ * by a string builder object.
+ *
+ * \param StringBuilder A string builder object.
+ *
+ * \return A pointer to a string. You must free 
+ * the string using PhDereferenceObject() when 
+ * you no longer need it.
+ *
+ * \remarks Do not modify the string builder 
+ * object after you have referenced the string. 
+ * Otherwise, the string may change unexpectedly.
+ */
 PPH_STRING PhReferenceStringBuilderString(
     __in PPH_STRING_BUILDER StringBuilder
     )
@@ -707,6 +733,13 @@ PPH_STRING PhReferenceStringBuilderString(
     return string;
 }
 
+/**
+ * Appends a string to the end of a string builder 
+ * string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param String The string to append.
+ */
 VOID PhStringBuilderAppend(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PPH_STRING String
@@ -719,6 +752,13 @@ VOID PhStringBuilderAppend(
         );
 }
 
+/**
+ * Appends a string to the end of a string builder 
+ * string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param String The string to append.
+ */
 VOID PhStringBuilderAppend2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String
@@ -731,6 +771,14 @@ VOID PhStringBuilderAppend2(
         );
 }
 
+/**
+ * Appends a string to the end of a string builder 
+ * string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param String The string to append.
+ * \param Length The number of bytes to append.
+ */
 VOID PhStringBuilderAppendEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String,
@@ -757,6 +805,14 @@ VOID PhStringBuilderAppendEx(
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
+/**
+ * Inserts a string into a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param String The string to insert.
+ */
 VOID PhStringBuilderInsert(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
@@ -771,6 +827,14 @@ VOID PhStringBuilderInsert(
         );
 }
 
+/**
+ * Inserts a string into a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param String The string to insert.
+ */
 VOID PhStringBuilderInsert2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
@@ -785,6 +849,15 @@ VOID PhStringBuilderInsert2(
         );
 }
 
+/**
+ * Inserts a string into a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param String The string to insert.
+ * \param Length The number of bytes to insert.
+ */
 VOID PhStringBuilderInsertEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
@@ -818,6 +891,14 @@ VOID PhStringBuilderInsertEx(
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
+/**
+ * Removes characters from a string builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param StartIndex The index, in characters, at 
+ * which to begin removing characters.
+ * \param Length The number of characters to remove.
+ */
 VOID PhStringBuilderRemove(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
@@ -836,6 +917,12 @@ VOID PhStringBuilderRemove(
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
+/**
+ * Creates a list object.
+ *
+ * \param InitialCapacity The number of elements to 
+ * allocate storage for initially.
+ */
 PPH_LIST PhCreateList(
     __in ULONG InitialCapacity
     )
@@ -872,6 +959,12 @@ VOID PhpListDeleteProcedure(
     PhFree(list->Items);
 }
 
+/**
+ * Adds an item to a list.
+ *
+ * \param List A list object.
+ * \param Item The item to add.
+ */
 VOID PhAddListItem(
     __inout PPH_LIST List,
     __in PVOID Item
@@ -887,6 +980,11 @@ VOID PhAddListItem(
     List->Items[List->Count++] = Item;
 }
 
+/**
+ * Clears a list.
+ *
+ * \param List A list object.
+ */
 VOID PhClearList(
     __inout PPH_LIST List
     )
@@ -894,6 +992,15 @@ VOID PhClearList(
     List->Count = 0;
 }
 
+/**
+ * Locates an item in a list.
+ *
+ * \param List A list object.
+ * \param Item The item to search for.
+ *
+ * \return The index of the item. If the 
+ * item was not found, -1 is returned.
+ */
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item
@@ -910,6 +1017,12 @@ ULONG PhIndexOfListItem(
     return -1;
 }
 
+/**
+ * Removes an item from a list.
+ *
+ * \param List A list object.
+ * \param Index The index of the item.
+ */
 VOID PhRemoveListItem(
     __in PPH_LIST List,
     __in ULONG Index
@@ -918,6 +1031,14 @@ VOID PhRemoveListItem(
     PhRemoveListItems(List, Index, 1);
 }
 
+/**
+ * Removes items from a list.
+ *
+ * \param List A list object.
+ * \param StartIndex The index at which to begin 
+ * removing items.
+ * \param Count The number of items to remove.
+ */
 VOID PhRemoveListItems(
     __in PPH_LIST List,
     __in ULONG StartIndex,
@@ -955,6 +1076,15 @@ static int __cdecl PhpListQSortCompare(
         );
 }
 
+/**
+ * Sorts a list.
+ *
+ * \param List A list object.
+ * \param CompareFunction A comparison function to 
+ * compare two list items.
+ * \param Context A user-defined value to pass to the 
+ * comparison function.
+ */
 VOID PhSortList(
     __in PPH_LIST List,
     __in PPH_LIST_COMPARE_FUNCTION CompareFunction,
@@ -975,6 +1105,12 @@ VOID PhSortList(
         );
 }
 
+/**
+ * Creates a queue object.
+ *
+ * \param InitialCapacity The number of elements to 
+ * allocate storage for initially.
+ */
 PPH_QUEUE PhCreateQueue(
     __in ULONG InitialCapacity
     )
@@ -1013,6 +1149,12 @@ VOID NTAPI PhpQueueDeleteProcedure(
     PhFree(queue->Items);
 }
 
+/**
+ * Enqueues an item to a queue.
+ *
+ * \param Queue A queue object.
+ * \param Item The item to enqueue.
+ */
 VOID PhEnqueueQueueItem(
     __inout PPH_QUEUE Queue,
     __in PVOID Item
@@ -1051,6 +1193,16 @@ VOID PhEnqueueQueueItem(
     Queue->Count++;
 }
 
+/**
+ * Dequeues an item from a queue.
+ *
+ * \param Queue A queue object.
+ * \param Item A variable which receives the 
+ * dequeued item.
+ *
+ * \return TRUE if an item was dequeued,
+ * FALSE if the queue was empty.
+ */
 BOOLEAN PhDequeueQueueItem(
     __inout PPH_QUEUE Queue,
     __out PPVOID Item
@@ -1066,6 +1218,17 @@ BOOLEAN PhDequeueQueueItem(
     return TRUE;
 }
 
+/**
+ * Retrieves an item from the front of a queue
+ * without removing it.
+ *
+ * \param Queue A queue object.
+ * \param Item A variable which receives the 
+ * item.
+ *
+ * \return TRUE if an item was retrieved,
+ * FALSE if the queue was empty.
+ */
 BOOLEAN PhPeekQueueItem(
     __in PPH_QUEUE Queue,
     __out PPVOID Item
@@ -1111,6 +1274,18 @@ ULONG PhpGetPrimeNumber(
     return Minimum;
 }
 
+/**
+ * Creates a hashtable object.
+ *
+ * \param EntrySize The size of each hashtable entry, 
+ * in bytes.
+ * \param CompareFunction A comparison function that 
+ * is executed to compare two hashtable entries.
+ * \param HashFunction A hash function that is executed 
+ * to generate a hash code for a hashtable entry.
+ * \param InitialCapacity The number of entries to 
+ * allocate storage for initially.
+ */
 PPH_HASHTABLE PhCreateHashtable(
     __in ULONG EntrySize,
     __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
@@ -1216,6 +1391,17 @@ VOID PhpResizeHashtable(
     }
 }
 
+/**
+ * Adds an entry to a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry The entry to add.
+ *
+ * \return A pointer to the entry as stored in
+ * the hashtable. This pointer is valid until 
+ * the hashtable is modified. If the hashtable 
+ * already contained an equal entry, NULL is returned.
+ */
 PVOID PhAddHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
@@ -1272,6 +1458,11 @@ PVOID PhAddHashtableEntry(
     return &entry->Body;
 }
 
+/**
+ * Clears a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ */
 VOID PhClearHashtable(
     __inout PPH_HASHTABLE Hashtable
     )
@@ -1285,6 +1476,27 @@ VOID PhClearHashtable(
     }
 }
 
+/**
+ * Enumerates the entries in a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry A variable which receives a pointer 
+ * to the hashtable entry. The pointer is valid 
+ * until the hashtable is modified.
+ * \param EnumerationKey A variable which is 
+ * initialized to 0 before first calling this 
+ * function.
+ *
+ * \return TRUE if an entry pointer was stored 
+ * in \a Entry, FALSE if there are no more entries.
+ *
+ * \remarks Do not modify the hashtable while 
+ * the hashtable is being enumerated (between calls 
+ * to this function). Otherwise, the function may 
+ * behave unexpectedly. You may reset the 
+ * \a EnumerationKey variable to 0 if you wish to 
+ * restart the enumeration.
+ */
 BOOLEAN PhEnumHashtable(
     __in PPH_HASHTABLE Hashtable,
     __out PPVOID Entry,
@@ -1307,6 +1519,23 @@ BOOLEAN PhEnumHashtable(
     return FALSE;
 }
 
+/**
+ * Locates an entry in a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry An entry representing the 
+ * entry to find.
+ *
+ * \return A pointer to the entry as stored in
+ * the hashtable. This pointer is valid until 
+ * the hashtable is modified. If the entry 
+ * could not be found, NULL is returned.
+ *
+ * \remarks The entry specified in \a Entry 
+ * can be a partial entry that is filled in enough
+ * so that the comparison and hash functions can 
+ * work with them.
+ */
 PVOID PhGetHashtableEntry(
     __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
@@ -1332,6 +1561,20 @@ PVOID PhGetHashtableEntry(
     return NULL;
 }
 
+/**
+ * Removes an entry from a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry The entry to remove.
+ *
+ * \return TRUE if the entry was removed, 
+ * FALSE if the entry could not be found.
+ *
+ * \remarks The entry specified in \a Entry 
+ * can be an actual entry pointer returned 
+ * by PhGetHashtableEntry, or a partial 
+ * entry.
+ */
 BOOLEAN PhRemoveHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
@@ -1378,6 +1621,12 @@ BOOLEAN PhRemoveHashtableEntry(
     return FALSE;
 }
 
+/**
+ * Generates a hash code for a sequence of bytes.
+ *
+ * \param Bytes A pointer to a byte array.
+ * \param Length The number of bytes to hash.
+ */
 ULONG PhHashBytes(
     __in PUCHAR Bytes,
     __in ULONG Length
@@ -1434,6 +1683,12 @@ ULONG PhHashBytes(
     return hash;
 }
 
+/**
+ * Generates a hash code for a sequence of bytes.
+ *
+ * \param Bytes A pointer to a byte array.
+ * \param Length The number of bytes to hash.
+ */
 ULONG PhHashBytesSdbm(
     __in PUCHAR Bytes,
     __in ULONG Length
@@ -1451,6 +1706,11 @@ ULONG PhHashBytesSdbm(
     return hash;
 }
 
+/**
+ * Initializes a callback object.
+ *
+ * \param Callback A pointer to a callback object.
+ */
 VOID PhInitializeCallback(
     __out PPH_CALLBACK Callback
     )
@@ -1459,6 +1719,11 @@ VOID PhInitializeCallback(
     PhInitializeFastLock(&Callback->ListLock);
 }
 
+/**
+ * Frees resources used by a callback object.
+ *
+ * \param Callback A pointer to a callback object.
+ */
 VOID PhDeleteCallback(
     __inout PPH_CALLBACK Callback
     )
@@ -1466,6 +1731,19 @@ VOID PhDeleteCallback(
     PhDeleteFastLock(&Callback->ListLock);
 }
 
+/**
+ * Registers a callback function to be notified.
+ *
+ * \param Callback A pointer to a callback object.
+ * \param Function The callback function.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ * \param Registration A variable which receives 
+ * registration information for the callback. Do not 
+ * modify the contents of this structure and do not
+ * free the storage for this structure until you have 
+ * unregistered the callback.
+ */
 VOID PhRegisterCallback(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
@@ -1482,6 +1760,13 @@ VOID PhRegisterCallback(
     PhReleaseFastLockExclusive(&Callback->ListLock);
 }
 
+/**
+ * Unregisters a callback function.
+ *
+ * \param Callback A pointer to a callback object.
+ * \param Registration The structure returned by 
+ * PhRegisterCallback().
+ */
 VOID PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,
     __inout PPH_CALLBACK_REGISTRATION Registration
@@ -1494,6 +1779,13 @@ VOID PhUnregisterCallback(
     PhReleaseFastLockExclusive(&Callback->ListLock);
 }
 
+/**
+ * Notifies all registered callback functions.
+ *
+ * \param Callback A pointer to a callback object.
+ * \param Parameter A value to pass to all callback 
+ * functions.
+ */
 VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
     __in PVOID Parameter
