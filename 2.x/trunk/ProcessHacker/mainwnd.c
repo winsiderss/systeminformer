@@ -234,9 +234,21 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_SIZE:
         {
+            SHORT s = GetKeyState(VK_LBUTTON);
             if (wParam != SIZE_MINIMIZED)
             {
-                PhMainWndOnLayout();
+                if (s&0x8000) // window is being dragged
+                {
+                    // This may cause some black areas while increasing size.
+                    // Need to work on it.
+                    LockWindowUpdate(TabControlHandle);
+                    PhMainWndOnLayout();
+                }
+                else
+                {
+                    LockWindowUpdate(NULL);
+                    PhMainWndOnLayout();
+                }
             }
         }
         break;
