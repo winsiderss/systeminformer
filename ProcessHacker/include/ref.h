@@ -67,7 +67,7 @@ NTSTATUS PhCreateObject(
 NTSTATUS PhCreateObjectType(
     __out PPH_OBJECT_TYPE *ObjectType,
     __in ULONG Flags,
-    __in PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
 
 VOID PhDereferenceObject(

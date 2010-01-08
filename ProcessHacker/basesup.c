@@ -63,6 +63,9 @@ static ULONG PhpPrimeNumbers[] =
     0x3f928f, 0x4c4987, 0x5b8b6f, 0x6dda89
 };
 
+/**
+ * Initializes the base support module.
+ */
 BOOLEAN PhInitializeBase()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
@@ -112,6 +115,18 @@ BOOLEAN PhInitializeBase()
     return TRUE;
 }
 
+/**
+ * Allocates a block of memory.
+ *
+ * \param Size The number of bytes to allocate.
+ *
+ * \return A pointer to the allocated block of 
+ * memory.
+ *
+ * \remarks If the function fails to allocate 
+ * the block of memory, it raises a 
+ * STATUS_INSUFFICIENT_RESOURCES exception.
+ */
 PVOID PhAllocate(
     __in SIZE_T Size
     )
@@ -126,6 +141,12 @@ PVOID PhAllocate(
     return memory;
 }
 
+/**
+ * Frees a block of memory allocated with 
+ * PhAllocate().
+ *
+ * \param Memory A pointer to a block of memory.
+ */
 VOID PhFree(
     __in PVOID Memory
     )
@@ -133,6 +154,18 @@ VOID PhFree(
     RtlFreeHeap(PhHeapHandle, 0, Memory);
 }
 
+/**
+ * Re-allocates a block of memory originally 
+ * allocated with PhAllocate().
+ *
+ * \param Memory A pointer to a block of memory.
+ * \param Size The new size of the memory block, 
+ * in bytes.
+ *
+ * \return A pointer to the new block of memory. 
+ * The existing contents of the memory block are 
+ * copied to the new block.
+ */
 PVOID PhReAlloc(
     __in PVOID Memory,
     __in SIZE_T Size
@@ -141,6 +174,11 @@ PVOID PhReAlloc(
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 }
 
+/**
+ * Initializes an event object.
+ *
+ * \param Event A pointer to an event object.
+ */
 VOID PhInitializeEvent(
     __out PPH_EVENT Event
     )
@@ -175,6 +213,12 @@ FORCEINLINE VOID PhpReferenceEvent(
     _InterlockedExchangeAdd(&Event->Value, PH_EVENT_REFCOUNT_INC);
 }
 
+/**
+ * Sets an event object.
+ * Any threads waiting on the event will be released.
+ *
+ * \param Event A pointer to an event object.
+ */
 VOID PhSetEvent(
     __inout PPH_EVENT Event
     )
@@ -207,6 +251,15 @@ VOID PhSetEvent(
     PhpDereferenceEvent(Event);
 }
 
+/**
+ * Waits for an event object to be set.
+ *
+ * \param Event A pointer to an event object.
+ * \param Timeout The timeout period, in milliseconds.
+ *
+ * \return TRUE if the event object was set before the 
+ * timeout period expired, otherwise FALSE.
+ */
 BOOLEAN PhWaitForEvent(
     __inout PPH_EVENT Event,
     __in ULONG Timeout
@@ -265,6 +318,15 @@ BOOLEAN PhWaitForEvent(
     return result;
 }
 
+/**
+ * Resets an event's state.
+ *
+ * \param Event A pointer to an event object.
+ *
+ * \remarks This function is not thread-safe.
+ * Make sure no other threads are using the 
+ * event when you call this function.
+ */
 VOID PhResetEvent(
     __inout PPH_EVENT Event
     )
@@ -273,6 +335,12 @@ VOID PhResetEvent(
         Event->Value = PH_EVENT_REFCOUNT_INC;
 }
 
+/**
+ * Creates a string object from an existing 
+ * null-terminated string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ */
 PPH_STRING PhCreateString(
     __in PWSTR Buffer
     )
@@ -280,6 +348,12 @@ PPH_STRING PhCreateString(
     return PhCreateStringEx(Buffer, wcslen(Buffer) * sizeof(WCHAR));
 }
 
+/**
+ * Creates a string object using a specified length.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ * \param Length The length, in bytes, of the string.
+ */
 PPH_STRING PhCreateStringEx(
     __in_opt PWSTR Buffer,
     __in SIZE_T Length
@@ -308,6 +382,12 @@ PPH_STRING PhCreateStringEx(
     return string;
 }
 
+/**
+ * Creates a string object from an existing
+ * null-terminated ANSI string.
+ *
+ * \param Buffer A null-terminated ANSI string.
+ */
 PPH_STRING PhCreateStringFromAnsi(
     __in PCHAR Buffer
     )
@@ -318,6 +398,13 @@ PPH_STRING PhCreateStringFromAnsi(
         );
 }
 
+/**
+ * Creates a string object from an existing
+ * null-terminated ANSI string.
+ *
+ * \param Buffer A null-terminated ANSI string.
+ * \param Length The number of bytes to use.
+ */
 PPH_STRING PhCreateStringFromAnsiEx(
     __in PCHAR Buffer,
     __in SIZE_T Length
@@ -355,6 +442,11 @@ PPH_STRING PhCreateStringFromAnsiEx(
     return string;
 }
 
+/**
+ * Concatenates multiple strings.
+ *
+ * \param Count The number of strings to concatenate.
+ */
 PPH_STRING PhConcatStrings(
     __in ULONG Count,
     ...
@@ -405,6 +497,12 @@ PPH_STRING PhConcatStrings(
     return string;
 }
 
+/**
+ * Creates an ANSI string object from an existing 
+ * null-terminated string.
+ *
+ * \param Buffer A null-terminated ANSI string.
+ */
 PPH_ANSI_STRING PhCreateAnsiString(
     __in PSTR Buffer
     )
@@ -412,6 +510,12 @@ PPH_ANSI_STRING PhCreateAnsiString(
     return PhCreateAnsiStringEx(Buffer, strlen(Buffer));
 }
 
+/**
+ * Creates an ANSI string object using a specified length.
+ *
+ * \param Buffer A null-terminated ANSI string.
+ * \param Length The length, in bytes, of the string.
+ */
 PPH_ANSI_STRING PhCreateAnsiStringEx(
     __in_opt PSTR Buffer,
     __in SIZE_T Length
@@ -440,6 +544,12 @@ PPH_ANSI_STRING PhCreateAnsiStringEx(
     return string;
 }
 
+/**
+ * Creates an ANSI string object from an existing
+ * null-terminated Unicode string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ */
 PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
     __in PWSTR Buffer
     )
@@ -450,6 +560,13 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
         );
 }
 
+/**
+ * Creates an ANSI string object from an existing
+ * null-terminated Unicode string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ * \param Length The number of bytes to use.
+ */
 PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
     __in PWSTR Buffer,
     __in SIZE_T Length
