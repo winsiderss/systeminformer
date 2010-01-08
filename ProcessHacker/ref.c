@@ -24,17 +24,16 @@
 
 // This code was ported from KProcessHacker.
 
-/* The object type type. */
+/** The type object type. */
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
 
-/* Whether the object manager is destroying all objects. */
+/** Whether the object manager is destroying all objects. */
 BOOLEAN PhObjectDeinitializing = FALSE;
-/* The next object to delete. */
+/** The next object to delete. */
 PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
-/* PhInitializeRef
- * 
- * Initializes the PH object manager.
+/**
+ * Initializes the object manager module.
  */
 NTSTATUS PhInitializeRef()
 {
@@ -57,18 +56,17 @@ NTSTATUS PhInitializeRef()
     return status;
 }
 
-/* PhCreateObject
- * 
+/**
  * Allocates a object.
  * 
- * Object: A variable which receives a pointer to the newly allocated object.
- * ObjectSize: The size of the object.
- * Flags: A combination of flags specifying how the object is to be allocated.
- *   * PHOBJ_RAISE_ON_FAIL: An exception will be raised if the object could 
- *     not be allocated.
- * ObjectType: The type of the object.
- * AdditionalReferences: The number of references to add to the object. The 
- * object will have a reference count of 1 + AdditionalReferences.
+ * \param Object A variable which receives a pointer to the newly allocated object.
+ * \param ObjectSize The size of the object.
+ * \param Flags A combination of flags specifying how the object is to be allocated.
+ * \li \c PHOBJ_RAISE_ON_FAIL An exception will be raised if the object cannot be 
+ * allocated.
+ * \param ObjectType The type of the object.
+ * \param AdditionalReferences The number of references to add to the object. The 
+ * object will initially have a reference count of 1 + AdditionalReferences.
  */
 NTSTATUS PhCreateObject(
     __out PVOID *Object,
@@ -121,14 +119,24 @@ NTSTATUS PhCreateObject(
     return STATUS_SUCCESS;
 }
 
-/* PhCreateObjectType
- * 
+/**
  * Creates an object type.
+ *
+ * \param ObjectType A variable which receives a pointer to the newly 
+ * created object type.
+ * \param Flags A combination of flags affecting the behaviour of the 
+ * object type.
+ * \param DeleteProcedure A callback function that is executed when 
+ * an object of this type is about to be freed (i.e. when its 
+ * reference count is 0).
+ *
+ * \remarks Do not reference or dereference the object type once it 
+ * is created.
  */
 NTSTATUS PhCreateObjectType(
     __out PPH_OBJECT_TYPE *ObjectType,
     __in ULONG Flags,
-    __in PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -160,14 +168,13 @@ NTSTATUS PhCreateObjectType(
     return status;
 }
 
-/* PhDereferenceObject
+/**
+ * Dereferences the specified object.
+ * The object will be freed if its reference count reaches 0.
  * 
- * Dereferences the specified object. The object will be freed if 
- * its reference count reaches 0.
+ * \param Object A pointer to the object to dereference.
  * 
- * Object: A pointer to the object to dereference.
- * 
- * Return value: TRUE if the object was freed, otherwise FALSE.
+ * \return TRUE if the object was freed, otherwise FALSE.
  */
 VOID PhDereferenceObject(
     __in PVOID Object
@@ -187,14 +194,14 @@ VOID PhDereferenceObject(
     }
 }
 
-/* PhDereferenceObjectDeferDelete
+/**
+ * Dereferences the specified object.
+ * The object will be freed in a worker thread if its reference count 
+ * reaches 0.
  * 
- * Dereferences the specified object. The object will be freed in 
- * a worker thread if its reference count reaches 0.
+ * \param Object A pointer to the object to dereference.
  * 
- * Object: A pointer to the object to dereference.
- * 
- * Return value: TRUE if the object was freed, otherwise FALSE.
+ * \return TRUE if the object was freed, otherwise FALSE.
  */
 BOOLEAN PhDereferenceObjectDeferDelete(
     __in PVOID Object
@@ -203,15 +210,15 @@ BOOLEAN PhDereferenceObjectDeferDelete(
     return PhDereferenceObjectEx(Object, 1, TRUE) == 0;
 }
 
-/* PhDereferenceObjectEx
+/**
+ * Dereferences the specified object.
+ * The object will be freed if its reference count reaches 0.
  * 
- * Dereferences the specified object. The object will be freed if 
- * its reference count reaches 0.
+ * \param Object A pointer to the object to dereference.
+ * \param RefCount The number of references to remove.
+ * \param DeferDelete Whether to defer deletion of the object.
  * 
- * Object: A pointer to the object to dereference.
- * RefCount: The number of references to remove.
- * 
- * Return value: The new reference count of the object.
+ * \return The new reference count of the object.
  */
 LONG PhDereferenceObjectEx(
     __in PVOID Object,
@@ -254,9 +261,12 @@ LONG PhDereferenceObjectEx(
     return newRefCount;
 }
 
-/* PhGetObjectType
- * 
+/** 
  * Gets an object's type.
+ *
+ * \param Object A pointer to an object.
+ *
+ * \return A pointer to a type object.
  */
 PPH_OBJECT_TYPE PhGetObjectType(
     __in PVOID Object
@@ -265,11 +275,10 @@ PPH_OBJECT_TYPE PhGetObjectType(
     return PhObjectToObjectHeader(Object)->Type;
 }
 
-/* PhReferenceObject
- * 
+/**
  * References the specified object.
  * 
- * Object: A pointer to the object to reference.
+ * \param Object A pointer to the object to reference.
  */
 VOID PhReferenceObject(
     __in PVOID Object
@@ -282,14 +291,13 @@ VOID PhReferenceObject(
     _InterlockedIncrement(&objectHeader->RefCount);
 }
 
-/* PhReferenceObjectEx
- * 
+/** 
  * References the specified object.
  * 
- * Object: A pointer to the object to reference.
- * RefCount: The number of references to add.
+ * \param Object A pointer to the object to reference.
+ * \param RefCount The number of references to add.
  * 
- * Return value: The new reference count of the object.
+ * \return The new reference count of the object.
  */
 LONG PhReferenceObjectEx(
     __in PVOID Object,
@@ -310,17 +318,16 @@ LONG PhReferenceObjectEx(
     return oldRefCount + RefCount;
 }
 
-/* PhReferenceObjectSafe
- * 
+/**
  * Attempts to reference an object and fails if it is being 
  * destroyed.
  * 
- * Object: The object to reference if it is not being deleted.
+ * \param Object The object to reference if it is not being deleted.
  * 
- * Return value: TRUE if the object was referenced, FALSE if 
+ * \return TRUE if the object was referenced, FALSE if 
  * it was being deleted and was not referenced.
  * 
- * Remarks:
+ * \remarks
  * This function is useful if a reference to an object is 
  * held, protected by a mutex, and the delete procedure of 
  * the object's type attempts to acquire the mutex. If this 
@@ -341,11 +348,10 @@ BOOLEAN PhReferenceObjectSafe(
     return result;
 }
 
-/* PhpAllocateObject
- * 
+/**
  * Allocates storage for an object.
  * 
- * ObjectSize: The size of the object, excluding the header.
+ * \param ObjectSize The size of the object, excluding the header.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
     __in SIZE_T ObjectSize
@@ -354,9 +360,11 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     return PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
 }
 
-/* PhpDeferDeleteObject
- * 
+/**
  * Queues an object for deletion.
+ *
+ * \param ObjectHeader A pointer to the object header of the object 
+ * to delete.
  */
 VOID PhpDeferDeleteObject(
     __in PPH_OBJECT_HEADER ObjectHeader
@@ -397,8 +405,7 @@ VOID PhpDeferDeleteObject(
     }
 }
 
-/* PhpDeferDeleteObjectRoutine
- * 
+/** 
  * Removes and frees objects from the to-free list.
  */
 NTSTATUS PhpDeferDeleteObjectRoutine(
@@ -431,12 +438,11 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
     return STATUS_SUCCESS;
 }
 
-/* PhpFreeObject
- * 
+/**
  * Calls the delete procedure for an object and frees its 
  * allocated storage.
  * 
- * ObjectHeader: A pointer to the object header of an allocated object.
+ * \param ObjectHeader A pointer to the object header of an allocated object.
  */
 VOID PhpFreeObject(
     __in PPH_OBJECT_HEADER ObjectHeader

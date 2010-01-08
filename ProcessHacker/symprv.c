@@ -308,6 +308,7 @@ PPH_STRING PhGetSymbolFromAddress(
         resolveLevel = PhsrlAddress;
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
+        PhTrimStringToNullTerminator(symbol);
         goto CleanupExit;
     }
 
@@ -353,6 +354,7 @@ PPH_STRING PhGetSymbolFromAddress(
         resolveLevel = PhsrlAddress;
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
+        PhTrimStringToNullTerminator(symbol);
 
         goto CleanupExit;
     }
