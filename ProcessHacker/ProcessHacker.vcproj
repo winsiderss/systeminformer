@@ -383,6 +383,42 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mxml\mxml-attr.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-entity.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-file.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-index.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-node.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-private.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-search.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-set.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-string.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntimport.c"
 				>
 			</File>
@@ -441,6 +477,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mxml\config.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\dltmgr.h"
 				>
 			</File>
@@ -450,6 +490,14 @@
 			</File>
 			<File
 				RelativePath=".\include\kph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-private.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml.h"
 				>
 			</File>
 			<File
