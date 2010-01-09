@@ -122,7 +122,13 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhInitializeMutex(&threadProvider->QueryQueueLock);
 
     // Begin loading symbols for the process' modules.
-    if (threadProvider->SymbolProvider->IsRealHandle)
+    // We don't need a process handle if we're dealing with 
+    // System or System Idle Process.
+    if (
+        threadProvider->SymbolProvider->IsRealHandle ||
+        threadProvider->ProcessId == SYSTEM_PROCESS_ID ||
+        threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID
+        )
     {
         PhReferenceObject(threadProvider);
         PhQueueWorkQueueItem(
@@ -130,6 +136,11 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
             PhpThreadProviderLoadSymbols,
             threadProvider
             );
+    }
+    else
+    {
+        // No symbols to load.
+        PhSetEvent(&threadProvider->SymbolsLoadedEvent);
     }
 
     return threadProvider;
@@ -195,13 +206,47 @@ NTSTATUS PhpThreadProviderLoadSymbols(
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Parameter;
 
-    PhEnumGenericModules(
-        threadProvider->ProcessId,
-        threadProvider->SymbolProvider->ProcessHandle,
-        0,
-        LoadSymbolsEnumGenericModulesCallback,
-        threadProvider->SymbolProvider
-        );
+    if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
+    {
+        PhEnumGenericModules(
+            threadProvider->ProcessId,
+            threadProvider->SymbolProvider->ProcessHandle,
+            0,
+            LoadSymbolsEnumGenericModulesCallback,
+            threadProvider->SymbolProvider
+            );
+    }
+    else
+    {
+        // System Idle Process has one thread for each CPU,
+        // each having a start address at KiIdleLoop. We 
+        // need to load symbols for the kernel.
+
+        PRTL_PROCESS_MODULES kernelModules;
+
+        if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+        {
+            if (kernelModules->NumberOfModules > 0)
+            {
+                PPH_STRING fileName;
+                PPH_STRING newFileName;
+
+                fileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
+                newFileName = PhGetFileName(fileName);
+                PhDereferenceObject(fileName);
+
+                PhSymbolProviderLoadModule(
+                    threadProvider->SymbolProvider,
+                    newFileName->Buffer,
+                    (ULONG64)kernelModules->Modules[0].ImageBase,
+                    kernelModules->Modules[0].ImageSize
+                    );
+                PhDereferenceObject(newFileName);
+            }
+
+            PhFree(kernelModules);
+        }
+    }
 
     PhSetEvent(&threadProvider->SymbolsLoadedEvent);
 
@@ -435,6 +480,17 @@ VOID PhThreadProviderUpdate(
 
     threads = process->Threads;
     numberOfThreads = process->NumberOfThreads;
+
+    // System Idle Process has one thread per CPU. 
+    // They all have a TID of 0, but we can't have 
+    // multiple TIDs, so we'll assign unique TIDs.
+    if (threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+    {
+        for (i = 0; i < numberOfThreads; i++)
+        {
+            threads[i].ClientId.UniqueThread = (HANDLE)i;
+        }
+    }
 
     // Look for dead threads.
     {
