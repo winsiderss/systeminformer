@@ -2060,6 +2060,11 @@ PPH_STRING PhResolveDevicePrefix(
  * \return A pointer to a string containing the DOS 
  * file name. You must free the string using 
  * PhDereferenceObject() when you no longer need it.
+ *
+ * \remarks This function may convert NT object 
+ * name paths to invalid ones. If the path to be 
+ * converted is not necessarily a file name, use 
+ * PhResolveDevicePrefix().
  */
 PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
