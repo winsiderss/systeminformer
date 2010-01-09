@@ -15,6 +15,7 @@
 	* Job
 
 * Better object names for TmEn, TmRm, TmTm, TmTx
+* Fix threads for System Idle Process
 
 * Statistics collection
 * Graph controls
