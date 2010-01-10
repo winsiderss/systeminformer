@@ -544,7 +544,7 @@ FORCEINLINE VOID PhTrimStringToNullTerminator(
     __inout PPH_STRING String
     )
 {
-    String->Length = String->MaximumLength = wcslen(String->Buffer) * sizeof(WCHAR);
+    String->Length = String->MaximumLength = (USHORT)(wcslen(String->Buffer) * sizeof(WCHAR));
 }
 
 // ansi string
