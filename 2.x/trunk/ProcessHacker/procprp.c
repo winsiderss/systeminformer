@@ -514,6 +514,21 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
+                break;
+            case PSN_KILLACTIVE:
+                PhSetProviderEnabled(&threadsContext->ProviderRegistration, FALSE);
+                break;
+            }
+        }
+        break;
     case WM_PH_THREAD_ADDED:
         {
             INT lvItemIndex;
@@ -675,6 +690,21 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhFree(modulesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                PhSetProviderEnabled(&modulesContext->ProviderRegistration, TRUE);
+                break;
+            case PSN_KILLACTIVE:
+                PhSetProviderEnabled(&modulesContext->ProviderRegistration, FALSE);
+                break;
+            }
         }
         break;
     case WM_PH_MODULE_ADDED:
@@ -915,6 +945,21 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhFree(handlesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                PhSetProviderEnabled(&handlesContext->ProviderRegistration, TRUE);
+                break;
+            case PSN_KILLACTIVE:
+                PhSetProviderEnabled(&handlesContext->ProviderRegistration, FALSE);
+                break;
+            }
         }
         break;
     case WM_PH_HANDLE_ADDED:
