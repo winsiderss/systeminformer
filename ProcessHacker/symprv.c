@@ -366,17 +366,9 @@ PPH_STRING PhGetSymbolFromAddress(
 
     if (symbolInfo->NameLen == 0)
     {
-        WCHAR displacementString[PH_PTR_STR_LEN_1];
-
         resolveLevel = PhsrlModule;
 
-        PhPrintPointer(displacementString, (PVOID)(Address - modBase));
-        symbol = PhConcatStrings(
-            3,
-            modBaseName->Buffer,
-            L"+",
-            displacementString
-            );
+        symbol = PhPrintfString(L"%s+0x%Ix", modBaseName->Buffer, (PVOID)(Address - modBase));
 
         goto CleanupExit;
     }
@@ -402,17 +394,7 @@ PPH_STRING PhGetSymbolFromAddress(
     }
     else
     {
-        WCHAR displacementString[PH_PTR_STR_LEN_1];
-
-        PhPrintPointer(displacementString, (PVOID)displacement);
-        symbol = PhConcatStrings(
-            5,
-            modBaseName->Buffer,
-            L"!",
-            symbolName->Buffer,
-            L"+",
-            displacementString
-            );
+        symbol = PhPrintfString(L"%s!%s+0x%Ix", modBaseName->Buffer, symbolName->Buffer, (PVOID)displacement);
     }
 
 CleanupExit:
