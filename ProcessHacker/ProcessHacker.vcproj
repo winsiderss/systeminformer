@@ -430,12 +430,40 @@
 				RelativePath=".\workqueue.c"
 				>
 			</File>
+			<File
+				RelativePath=".\expat\xmlparse.c"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmlrole.c"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmltok.c"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmltok_impl.c"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmltok_ns.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\expat\ascii.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\asciitab.h"
+				>
+			</File>
 			<File
 				RelativePath=".\include\base.h"
 				>
@@ -445,11 +473,35 @@
 				>
 			</File>
 			<File
+				RelativePath=".\expat\expat.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\expat_external.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\fastlock.h"
 				>
 			</File>
 			<File
+				RelativePath=".\expat\iasciitab.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\internal.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\kph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\latin1tab.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\nametab.h"
 				>
 			</File>
 			<File
@@ -533,7 +585,27 @@
 				>
 			</File>
 			<File
+				RelativePath=".\expat\utf8tab.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\verifyp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\winconfig.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmlrole.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmltok.h"
+				>
+			</File>
+			<File
+				RelativePath=".\expat\xmltok_impl.h"
 				>
 			</File>
 		</Filter>
