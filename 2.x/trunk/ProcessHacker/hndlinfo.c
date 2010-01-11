@@ -318,8 +318,6 @@ PPH_STRING PhGetClientIdName(
     PPH_STRING name;
     PPH_STRING processName = NULL;
     PPH_PROCESS_ITEM processItem;
-    WCHAR processIdString[PH_INT_STR_LEN_1];
-    WCHAR threadIdString[PH_INT_STR_LEN_1];
 
     processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
@@ -330,29 +328,25 @@ PPH_STRING PhGetClientIdName(
         PhDereferenceObject(processItem);
     }
 
-    PhPrintInteger(processIdString, (ULONG)ClientId->UniqueProcess);
-
     if (ClientId->UniqueThread)
     {
-        PhPrintInteger(threadIdString, (ULONG)ClientId->UniqueThread);
-
         if (processName)
         {
-            name = PhConcatStrings(5, processName->Buffer, L" (", processIdString,
-                L"): ", threadIdString);
+            name = PhPrintfString(L"%s (%u): %u", processName->Buffer,
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
         else
         {
-            name = PhConcatStrings(4, L"Non-existent process (", processIdString,
-                L"): ", threadIdString);
+            name = PhPrintfString(L"Non-existent process (%u): %u",
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
     }
     else
     {
         if (processName)
-            name = PhConcatStrings(4, processName->Buffer, L" (", processIdString, L")");
+            name = PhPrintfString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
         else
-            name = PhConcatStrings(3, L"Non-existent process (", processIdString, L")");
+            name = PhPrintfString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
     }
 
     PhDereferenceObject(processName);
@@ -503,11 +497,7 @@ NTSTATUS PhpGetBestObjectName(
 
             if (fullName)
             {
-                WCHAR authIdString[PH_INT_STR_LEN_1];
-
-                _snwprintf(authIdString, PH_INT_STR_LEN, L"%x", statistics.AuthenticationId.LowPart);
-                bestObjectName = PhConcatStrings(3, fullName->Buffer, L": 0x", authIdString);
-
+                bestObjectName = PhPrintfString(L"%s: %x", fullName->Buffer, statistics.AuthenticationId.LowPart);
                 PhDereferenceObject(fullName);
             }
 

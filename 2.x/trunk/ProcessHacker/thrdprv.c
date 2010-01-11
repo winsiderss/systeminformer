@@ -437,18 +437,10 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     }
     else
     {
-        WCHAR displacementString[PH_PTR_STR_LEN_1];
-
         baseName = PhGetBaseName(fileName);
         *ResolveLevel = PhsrlModule;
 
-        PhPrintPointer(displacementString, (PVOID)(Address - modBase));
-        symbol = PhConcatStrings(
-            3,
-            baseName->Buffer,
-            L"+",
-            displacementString
-            );
+        symbol = PhPrintfString(L"%s+0x%Ix", baseName->Buffer, (PVOID)(Address - modBase));
     }
 
     if (fileName)

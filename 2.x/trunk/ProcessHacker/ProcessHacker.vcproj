@@ -351,6 +351,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\basesupa.c"
+				>
+			</File>
+			<File
 				RelativePath=".\fastlock.c"
 				>
 			</File>
