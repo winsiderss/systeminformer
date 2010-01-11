@@ -132,4 +132,13 @@ VOID PhDrainAutoPool(
     __in PPH_AUTO_POOL AutoPool
     );
 
+/**
+ * Calls PhaDereferenceObject() and returns the given object.
+ *
+ * \param Object A pointer to an object.
+ *
+ * \return The value of \a Object.
+ */
+#define PHA_DEREFERENCE(Object) (PhaDereferenceObject(Object), (Object))
+
 #endif

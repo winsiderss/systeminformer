@@ -459,6 +459,24 @@ PPH_STRING PhConcatStrings(
     )
 {
     va_list argptr;
+
+    va_start(argptr, Count);
+
+    return PhConcatStrings_V(Count, argptr);
+}
+
+/**
+ * Concatenates multiple strings.
+ *
+ * \param Count The number of strings to concatenate.
+ * \param ArgPtr A pointer to an array of strings.
+ */
+PPH_STRING PhConcatStrings_V(
+    __in ULONG Count,
+    __in va_list ArgPtr
+    )
+{
+    va_list argptr;
     ULONG i;
     SIZE_T totalLength = 0;
     SIZE_T stringLength;
@@ -467,15 +485,13 @@ PPH_STRING PhConcatStrings(
 
     // Compute the total length, in bytes, of the strings.
 
-    va_start(argptr, Count);
+    argptr = ArgPtr;
 
     for (i = 0; i < Count; i++)
     {
         arg = va_arg(argptr, PWSTR);
         totalLength += wcslen(arg) * sizeof(WCHAR);
     }
-
-    va_end(argptr);
 
     // Create the string.
 
@@ -484,7 +500,7 @@ PPH_STRING PhConcatStrings(
 
     // Append the strings one by one.
 
-    va_start(argptr, Count);
+    argptr = ArgPtr;
 
     for (i = 0; i < Count; i++)
     {
@@ -498,7 +514,47 @@ PPH_STRING PhConcatStrings(
         totalLength += stringLength;
     }
 
-    va_end(argptr);
+    return string;
+}
+
+/**
+ * Creates a string using format specifiers.
+ *
+ * \param Format The format-control string.
+ */
+PPH_STRING PhPrintfString(
+    __in PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return PhPrintfString_V(Format, argptr);
+}
+
+/**
+ * Creates a string using format specifiers.
+ *
+ * \param Format The format-control string.
+ * \param ArgPtr A pointer to the list of arguments.
+ */
+PPH_STRING PhPrintfString_V(
+    __in PWSTR Format,
+    __in va_list ArgPtr
+    )
+{
+    PPH_STRING string;
+    INT length;
+
+    length = _vscwprintf(Format, ArgPtr);
+
+    if (length == -1)
+        return NULL;
+
+    string = PhCreateStringEx(NULL, length * sizeof(WCHAR));
+    _vsnwprintf(string->Buffer, length, Format, ArgPtr);
 
     return string;
 }

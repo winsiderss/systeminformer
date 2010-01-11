@@ -223,6 +223,21 @@ PPH_STRING PhConcatStrings(
     ...
     );
 
+PPH_STRING PhConcatStrings_V(
+    __in ULONG Count,
+    __in va_list ArgPtr
+    );
+
+PPH_STRING PhPrintfString(
+    __in PWSTR Format,
+    ...
+    );
+
+PPH_STRING PhPrintfString_V(
+    __in PWSTR Format,
+    __in va_list ArgPtr
+    );
+
 /**
  * Retrieves a pointer to a string object's buffer 
  * or returns NULL.
@@ -241,6 +256,18 @@ FORCEINLINE PWSTR PhGetString(
         return String->Buffer;
     else
         return NULL;
+}
+
+/**
+ * Duplicates a string.
+ *
+ * \param String A string to duplicate.
+ */
+FORCEINLINE PPH_STRING PhDuplicateString(
+    __in PPH_STRING String
+    )
+{
+    return PhCreateStringEx(String->Buffer, String->Length);
 }
 
 /**
@@ -276,6 +303,44 @@ FORCEINLINE PPH_STRING PhConcatStrings2(
 }
 
 /**
+ * Compares two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
+FORCEINLINE INT PhStringCompare(
+    __in PPH_STRING String1,
+    __in PPH_STRING String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1->Buffer, String2->Buffer);
+    else
+        return wcsicmp(String1->Buffer, String2->Buffer);
+}
+
+/**
+ * Compares two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
+FORCEINLINE INT PhStringCompare2(
+    __in PPH_STRING String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1->Buffer, String2);
+    else
+        return wcsicmp(String1->Buffer, String2);
+}
+
+/**
  * Determines whether two strings are equal.
  *
  * \param String1 The first string.
@@ -288,10 +353,7 @@ FORCEINLINE BOOLEAN PhStringEquals(
     __in BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcscmp(String1->Buffer, String2->Buffer) == 0;
-    else
-        return wcsicmp(String1->Buffer, String2->Buffer) == 0;
+    return PhStringCompare(String1, String2, IgnoreCase) == 0;
 }
 
 /**
@@ -307,10 +369,7 @@ FORCEINLINE BOOLEAN PhStringEquals2(
     __in BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcscmp(String1->Buffer, String2) == 0;
-    else
-        return wcsicmp(String1->Buffer, String2) == 0;
+    return PhStringCompare2(String1, String2, IgnoreCase) == 0;
 }
 
 /**
@@ -512,6 +571,30 @@ FORCEINLINE ULONG PhStringLastIndexOfChar(
         return (ULONG)(location - String->Buffer);
     else
         return -1;
+}
+
+/**
+ * Converts a string to lowercase in-place.
+ *
+ * \param String The string to convert.
+ */
+FORCEINLINE VOID PhLowerString(
+    __inout PPH_STRING String
+    )
+{
+    _wcslwr(String->Buffer);
+}
+
+/**
+ * Converts a string to uppercase in-place.
+ *
+ * \param String The string to convert.
+ */
+FORCEINLINE VOID PhUpperString(
+    __inout PPH_STRING String
+    )
+{
+    _wcsupr(String->Buffer);
 }
 
 /**
@@ -1036,6 +1119,40 @@ FORCEINLINE VOID PhInvokeCallbackRegistration(
         Registration->Context
         );
 }
+
+// basesupa
+
+PPH_STRING PhaCreateString(
+    __in PWSTR Buffer
+    );
+
+PPH_STRING PhaCreateStringEx(
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
+PPH_STRING PhaDuplicateString(
+    __in PPH_STRING String
+    );
+
+PPH_STRING PhaConcatStrings(
+    __in ULONG Count,
+    ...
+    );
+
+PPH_STRING PhaLowerString(
+    __in PPH_STRING String
+    );
+
+PPH_STRING PhaUpperString(
+    __in PPH_STRING String
+    );
+
+PPH_STRING PhaSubstring(
+    __in PPH_STRING String,
+    __in ULONG StartIndex,
+    __in ULONG Count
+    );
 
 // workqueue
 
