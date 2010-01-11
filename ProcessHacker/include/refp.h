@@ -56,6 +56,11 @@
 typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
+/**
+ * The object header contains object manager information 
+ * including the reference count of an object and its 
+ * type.
+ */
 typedef struct _PH_OBJECT_HEADER
 {
     /** The reference count of the object. */
@@ -77,6 +82,10 @@ typedef struct _PH_OBJECT_HEADER
     QUAD Body;
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
 
+/**
+ * An object type specifies a kind of object and 
+ * its delete procedure.
+ */
 typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
@@ -146,5 +155,32 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
 VOID PhpFreeObject(
     __in PPH_OBJECT_HEADER ObjectHeader
     );
+
+/** The size of the static array in an auto-release pool. */
+#define PH_AUTO_POOL_STATIC_SIZE 128
+/** The maximum size of the dynamic array for it to be 
+ * kept after the auto-release pool is drained. */
+#define PH_AUTO_POOL_DYNAMIC_BIG_SIZE 256
+
+/**
+ * An auto-dereference pool can be used for 
+ * semi-automatic reference counting. Batches of 
+ * objects are dereferenced at a certain time.
+ *
+ * This object is not thread-safe and cannot 
+ * be used across thread boundaries. Always 
+ * store them as local variables.
+ */
+typedef struct _PH_AUTO_POOL
+{
+    ULONG StaticCount;
+    PVOID StaticObjects[PH_AUTO_POOL_STATIC_SIZE];
+
+    ULONG DynamicCount;
+    ULONG DynamicAllocated;
+    PPVOID DynamicObjects;
+
+    PPH_AUTO_POOL NextPool;
+} PH_AUTO_POOL, *PPH_AUTO_POOL;
 
 #endif

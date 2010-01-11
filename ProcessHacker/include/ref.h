@@ -50,6 +50,9 @@ typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
 struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
+struct _PH_AUTO_POOL;
+typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
+
 #ifndef REF_PRIVATE
 extern PPH_OBJECT_TYPE PhObjectTypeObject;
 #endif
@@ -114,5 +117,19 @@ FORCEINLINE VOID PhSwapReference(
     if (oldObject) PhDereferenceObject(oldObject);
     if (NewObject) PhReferenceObject(NewObject);
 }
+
+PPH_AUTO_POOL PhCreateAutoPool();
+
+VOID PhFreeAutoPool(
+    __inout PPH_AUTO_POOL AutoPool
+    );
+
+VOID PhaDereferenceObject(
+    __in PVOID Object
+    );
+
+VOID PhDrainAutoPool(
+    __in PPH_AUTO_POOL AutoPool
+    );
 
 #endif
