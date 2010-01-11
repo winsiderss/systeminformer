@@ -20,9 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <refp.h>
+// This code was initially ported from KProcessHacker.
 
-// This code was ported from KProcessHacker.
+#include <refp.h>
 
 /** The type object type. */
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
@@ -32,6 +32,8 @@ BOOLEAN PhObjectDeinitializing = FALSE;
 /** The next object to delete. */
 PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
+static ULONG PhpAutoPoolTlsIndex;
+
 /**
  * Initializes the object manager module.
  */
@@ -39,7 +41,7 @@ NTSTATUS PhInitializeRef()
 {
     NTSTATUS status = STATUS_SUCCESS;
     
-    /* Create the fundamental object type. */
+    // Create the fundamental object type.
     status = PhCreateObjectType(
         &PhObjectTypeObject,
         0,
@@ -49,9 +51,15 @@ NTSTATUS PhInitializeRef()
     if (!NT_SUCCESS(status))
         return status;
     
-    /* Now that the fundamental object type exists, fix it up. */
+    // Now that the fundamental object type exists, fix it up.
     PhObjectToObjectHeader(PhObjectTypeObject)->Type = PhObjectTypeObject;
     PhObjectTypeObject->NumberOfObjects = 1;
+
+    // Reserve a slot for the auto pool.
+    PhpAutoPoolTlsIndex = TlsAlloc();
+
+    if (PhpAutoPoolTlsIndex == TLS_OUT_OF_INDEXES)
+        return STATUS_INSUFFICIENT_RESOURCES;
     
     return status;
 }
@@ -461,4 +469,165 @@ VOID PhpFreeObject(
     }
     
     PhFree(ObjectHeader);
+}
+
+/**
+ * Gets the current auto-dereference pool for the 
+ * current thread.
+ */
+FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool()
+{
+    return (PPH_AUTO_POOL)TlsGetValue(PhpAutoPoolTlsIndex);
+}
+
+/**
+ * Sets the current auto-dereference pool for the 
+ * current thread.
+ */
+FORCEINLINE VOID PhpSetCurrentAutoPool(
+    __in PPH_AUTO_POOL AutoPool
+    )
+{
+    if (!TlsSetValue(PhpAutoPoolTlsIndex, AutoPool))
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+}
+
+/**
+ * Creates an auto-dereference pool and sets it 
+ * as the current pool for the current thread.
+ *
+ * \return A pointer to an auto-dereference pool.
+ * You must free the pool using PhFreeAutoPool() 
+ * when you no longer need it. Always store the 
+ * pointer in a local variable, and do not share 
+ * the pointer with any other functions.
+ */
+PPH_AUTO_POOL PhCreateAutoPool()
+{
+    PPH_AUTO_POOL autoPool;
+
+    autoPool = (PPH_AUTO_POOL)PhAllocate(sizeof(PH_AUTO_POOL));
+
+    autoPool->StaticCount = 0;
+    autoPool->DynamicCount = 0;
+    autoPool->DynamicAllocated = 0;
+    autoPool->DynamicObjects = NULL;
+
+    // Add the pool to the stack.
+    autoPool->NextPool = PhpGetCurrentAutoPool();
+    PhpSetCurrentAutoPool(autoPool);
+
+    return autoPool;
+}
+
+/**
+ * Frees an auto-dereference pool.
+ * The function will dereference any objects 
+ * currently in the pool.
+ *
+ * \param AutoPool The auto-dereference pool to free.
+ */
+VOID PhFreeAutoPool(
+    __inout PPH_AUTO_POOL AutoPool
+    )
+{
+    PhDrainAutoPool(AutoPool);
+
+    // Remove the pool from the stack.
+    PhpSetCurrentAutoPool(AutoPool->NextPool);
+
+    // Free the dynamic array if it hasn't been freed yet.
+    if (AutoPool->DynamicObjects)
+        PhFree(AutoPool->DynamicObjects);
+
+    // Free the pool.
+    PhFree(AutoPool);
+}
+
+/**
+ * Adds an object to the current auto-dereference 
+ * pool for the current thread.
+ * If the current thread does not have an auto-dereference 
+ * pool, the function raises an exception.
+ *
+ * \param Object A pointer to an object. The object 
+ * will be dereferenced when the current auto-dereference 
+ * pool is drained or freed.
+ */
+VOID PhaDereferenceObject(
+    __in PVOID Object
+    )
+{
+    PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
+
+    // If we don't have an auto-dereference pool, 
+    // we don't want to leak the object (unlike what 
+    // Apple does with NSAutoreleasePool).
+    if (!autoPool)
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
+
+    // See if we can use the static array.
+    if (autoPool->StaticCount < PH_AUTO_POOL_STATIC_SIZE)
+    {
+        autoPool->StaticObjects[autoPool->StaticCount++] = Object;
+        return;
+    }
+
+    // Use the dynamic array.
+
+    // Allocate the array if we haven't already.
+    if (!autoPool->DynamicObjects)
+    {
+        autoPool->DynamicAllocated = 64;
+        autoPool->DynamicObjects = PhAllocate(
+            sizeof(PVOID) * autoPool->DynamicAllocated
+            );
+    }
+
+    // See if we need to resize the array.
+    if (autoPool->DynamicCount == autoPool->DynamicAllocated)
+    {
+        autoPool->DynamicAllocated *= 2;
+        autoPool->DynamicObjects = PhReAlloc(
+            autoPool->DynamicObjects,
+            sizeof(PVOID) * autoPool->DynamicAllocated
+            );
+    }
+
+    autoPool->DynamicObjects[autoPool->DynamicCount++] = Object;
+}
+
+/**
+ * Dereferences and removes all objects in an
+ * auto-release pool.
+ *
+ * \param AutoPool The auto-release pool to drain.
+ */
+VOID PhDrainAutoPool(
+    __in PPH_AUTO_POOL AutoPool
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AutoPool->StaticCount; i++)
+        PhDereferenceObject(AutoPool->StaticObjects[i]);
+
+    AutoPool->StaticCount = 0;
+
+    if (AutoPool->DynamicObjects)
+    {
+        for (i = 0; i < AutoPool->DynamicCount; i++)
+        {
+            PhDereferenceObject(AutoPool->DynamicObjects[i]);
+        }
+
+        AutoPool->DynamicCount = 0;
+
+        if (AutoPool->DynamicAllocated > PH_AUTO_POOL_DYNAMIC_BIG_SIZE)
+        {
+            AutoPool->DynamicAllocated = 0;
+            PhFree(AutoPool->DynamicObjects);
+            AutoPool->DynamicObjects = NULL;
+        }
+    }
 }
