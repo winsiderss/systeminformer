@@ -22,6 +22,7 @@ extern HFONT PhApplicationFont;
 extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
 extern HANDLE PhKphHandle;
+extern ULONG PhKphFeatures;
 extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern PWSTR PhWindowClassName;
 extern ULONG WindowsVersion;

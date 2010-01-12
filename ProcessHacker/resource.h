@@ -18,7 +18,6 @@
 #define IDC_PROCMODULES_LIST            1009
 #define IDC_PROCTHREADS_LIST            1010
 #define IDC_PROCHANDLES_LIST            1011
-#define IDC_LIST1                       1012
 #define IDC_PROCENVIRONMENT_LIST        1012
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -28,13 +27,16 @@
 #define ID_TOOLS                        40003
 #define ID_VIEW                         40004
 #define ID_PROCESS_PROPERTIES           40006
+#define ID_PROCESS_TERMINATE            40007
+#define ID_PROCESS_SUSPEND              40008
+#define ID_PROCESS_RESUME               40009
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        108
-#define _APS_NEXT_COMMAND_VALUE         40007
+#define _APS_NEXT_COMMAND_VALUE         40010
 #define _APS_NEXT_CONTROL_VALUE         1013
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
