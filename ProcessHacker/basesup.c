@@ -522,7 +522,7 @@ PPH_STRING PhConcatStrings_V(
  *
  * \param Format The format-control string.
  */
-PPH_STRING PhPrintfString(
+PPH_STRING PhFormatString(
     __in PWSTR Format,
     ...
     )
@@ -531,7 +531,7 @@ PPH_STRING PhPrintfString(
 
     va_start(argptr, Format);
 
-    return PhPrintfString_V(Format, argptr);
+    return PhFormatString_V(Format, argptr);
 }
 
 /**
@@ -540,7 +540,7 @@ PPH_STRING PhPrintfString(
  * \param Format The format-control string.
  * \param ArgPtr A pointer to the list of arguments.
  */
-PPH_STRING PhPrintfString_V(
+PPH_STRING PhFormatString_V(
     __in PWSTR Format,
     __in va_list ArgPtr
     )

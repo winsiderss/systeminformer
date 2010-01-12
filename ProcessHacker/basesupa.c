@@ -65,7 +65,7 @@ PPH_STRING PhaPrintfString(
 
     va_start(argptr, Format);
 
-    return PHA_DEREFERENCE(PhPrintfString_V(Format, argptr));
+    return PHA_DEREFERENCE(PhFormatString_V(Format, argptr));
 }
 
 PPH_STRING PhaLowerString(

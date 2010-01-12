@@ -368,7 +368,7 @@ PPH_STRING PhGetSymbolFromAddress(
     {
         resolveLevel = PhsrlModule;
 
-        symbol = PhPrintfString(L"%s+0x%Ix", modBaseName->Buffer, (PVOID)(Address - modBase));
+        symbol = PhFormatString(L"%s+0x%Ix", modBaseName->Buffer, (PVOID)(Address - modBase));
 
         goto CleanupExit;
     }
@@ -394,7 +394,7 @@ PPH_STRING PhGetSymbolFromAddress(
     }
     else
     {
-        symbol = PhPrintfString(L"%s!%s+0x%Ix", modBaseName->Buffer, symbolName->Buffer, (PVOID)displacement);
+        symbol = PhFormatString(L"%s!%s+0x%Ix", modBaseName->Buffer, symbolName->Buffer, (PVOID)displacement);
     }
 
 CleanupExit:
