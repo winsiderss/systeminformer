@@ -332,21 +332,21 @@ PPH_STRING PhGetClientIdName(
     {
         if (processName)
         {
-            name = PhPrintfString(L"%s (%u): %u", processName->Buffer,
+            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
                 (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
         else
         {
-            name = PhPrintfString(L"Non-existent process (%u): %u",
+            name = PhFormatString(L"Non-existent process (%u): %u",
                 (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
     }
     else
     {
         if (processName)
-            name = PhPrintfString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
+            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
         else
-            name = PhPrintfString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
+            name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
     }
 
     if (processName)
@@ -498,7 +498,7 @@ NTSTATUS PhpGetBestObjectName(
 
             if (fullName)
             {
-                bestObjectName = PhPrintfString(L"%s: 0x%x", fullName->Buffer, statistics.AuthenticationId.LowPart);
+                bestObjectName = PhFormatString(L"%s: 0x%x", fullName->Buffer, statistics.AuthenticationId.LowPart);
                 PhDereferenceObject(fullName);
             }
 

@@ -228,12 +228,12 @@ PPH_STRING PhConcatStrings_V(
     __in va_list ArgPtr
     );
 
-PPH_STRING PhPrintfString(
+PPH_STRING PhFormatString(
     __in PWSTR Format,
     ...
     );
 
-PPH_STRING PhPrintfString_V(
+PPH_STRING PhFormatString_V(
     __in PWSTR Format,
     __in va_list ArgPtr
     );

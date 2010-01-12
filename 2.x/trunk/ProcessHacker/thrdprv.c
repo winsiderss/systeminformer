@@ -440,7 +440,7 @@ PPH_STRING PhpGetThreadBasicStartAddress(
         baseName = PhGetBaseName(fileName);
         *ResolveLevel = PhsrlModule;
 
-        symbol = PhPrintfString(L"%s+0x%Ix", baseName->Buffer, (PVOID)(Address - modBase));
+        symbol = PhFormatString(L"%s+0x%Ix", baseName->Buffer, (PVOID)(Address - modBase));
     }
 
     if (fileName)
