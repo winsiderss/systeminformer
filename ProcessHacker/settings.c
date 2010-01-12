@@ -155,13 +155,13 @@ static PPH_STRING PhpSettingToString(
         }
     case IntegerSettingType:
         {
-            return PhPrintfString(L"%u", (ULONG)Value);
+            return PhFormatString(L"%u", (ULONG)Value);
         }
     case IntegerPairSettingType:
         {
             PPH_INTEGER_PAIR integerPair = (PPH_INTEGER_PAIR)Value;
 
-            return PhPrintfString(L"%u,%u", integerPair->X, integerPair->Y);
+            return PhFormatString(L"%u,%u", integerPair->X, integerPair->Y);
         }
     }
 }
