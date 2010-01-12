@@ -387,6 +387,42 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mxml\mxml-attr.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-entity.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-file.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-index.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-node.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-private.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-search.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-set.c"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-string.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntimport.c"
 				>
 			</File>
@@ -408,6 +444,10 @@
 			</File>
 			<File
 				RelativePath=".\ref.c"
+				>
+			</File>
+			<File
+				RelativePath=".\settings.c"
 				>
 			</File>
 			<File
@@ -434,26 +474,6 @@
 				RelativePath=".\workqueue.c"
 				>
 			</File>
-			<File
-				RelativePath=".\expat\xmlparse.c"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmlrole.c"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmltok.c"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmltok_impl.c"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmltok_ns.c"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -461,15 +481,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\expat\ascii.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\asciitab.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\config.h"
 				>
 			</File>
 			<File
@@ -477,23 +493,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\expat\expat.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\expat_external.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\fastlock.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\iasciitab.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\internal.h"
 				>
 			</File>
 			<File
@@ -501,11 +501,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\expat\latin1tab.h"
+				RelativePath=".\mxml\mxml-private.h"
 				>
 			</File>
 			<File
-				RelativePath=".\expat\nametab.h"
+				RelativePath=".\mxml\mxml.h"
 				>
 			</File>
 			<File
@@ -589,27 +589,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\expat\utf8tab.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\verifyp.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\winconfig.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmlrole.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmltok.h"
-				>
-			</File>
-			<File
-				RelativePath=".\expat\xmltok_impl.h"
 				>
 			</File>
 		</Filter>
