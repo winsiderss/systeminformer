@@ -27,7 +27,23 @@ typedef struct _PH_SETTING
 
 VOID PhSettingsInitialization();
 
+ULONG PhGetIntegerSetting(
+    __in PWSTR Name
+    );
+
+PH_INTEGER_PAIR PhGetIntegerPairSetting(
+    __in PWSTR Name
+    );
+
+PPH_STRING PhGetStringSetting(
+    __in PWSTR Name
+    );
+
 BOOLEAN PhLoadSettings(
+    __in PWSTR FileName
+    );
+
+BOOLEAN PhSaveSettings(
     __in PWSTR FileName
     );
 

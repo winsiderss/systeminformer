@@ -1,4 +1,5 @@
 #include <settings.h>
+#include <shlobj.h>
 #include "mxml/mxml.h"
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
@@ -70,6 +71,9 @@ VOID PhSettingsInitialization()
 
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
+    PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
+    PhpAddStringSetting(L"DbgHelpSearchPath", L"");
+    PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
@@ -164,6 +168,8 @@ static PPH_STRING PhpSettingToString(
             return PhFormatString(L"%u,%u", integerPair->X, integerPair->Y);
         }
     }
+
+    return PhCreateString(L"");
 }
 
 static BOOLEAN PhpSettingFromString(
@@ -210,6 +216,8 @@ static BOOLEAN PhpSettingFromString(
             }
         }
     }
+
+    return FALSE;
 }
 
 static VOID PhpFreeSettingValue(
@@ -276,6 +284,95 @@ static PPH_STRING PhpJoinXmlTextNodes(
     PhDereferenceObject(stringBuilder);
 
     return string;
+}
+
+ULONG PhGetIntegerSetting(
+    __in PWSTR Name
+    )
+{
+    PPH_SETTING setting;
+    PPH_STRING settingName;
+    ULONG value;
+
+    settingName = PhCreateString(Name);
+
+    PhAcquireFastLockShared(&PhSettingsLock);
+
+    setting = PhpLookupSetting(settingName);
+
+    if (setting)
+    {
+        value = (ULONG)setting->Value;
+    }
+
+    PhReleaseFastLockShared(&PhSettingsLock);
+
+    PhDereferenceObject(settingName);
+
+    return value;
+}
+
+PH_INTEGER_PAIR PhGetIntegerPairSetting(
+    __in PWSTR Name
+    )
+{
+    PPH_SETTING setting;
+    PPH_STRING settingName;
+    PH_INTEGER_PAIR value;
+
+    settingName = PhCreateString(Name);
+
+    PhAcquireFastLockShared(&PhSettingsLock);
+
+    setting = PhpLookupSetting(settingName);
+
+    if (setting)
+    {
+        if (setting->Value)
+            value = *(PPH_INTEGER_PAIR)setting->Value;
+        else
+            memset(&value, 0, sizeof(PH_INTEGER_PAIR));
+    }
+
+    PhReleaseFastLockShared(&PhSettingsLock);
+
+    PhDereferenceObject(settingName);
+
+    return value;
+}
+
+PPH_STRING PhGetStringSetting(
+    __in PWSTR Name
+    )
+{
+    PPH_SETTING setting;
+    PPH_STRING settingName;
+    PPH_STRING value;
+
+    settingName = PhCreateString(Name);
+
+    PhAcquireFastLockShared(&PhSettingsLock);
+
+    setting = PhpLookupSetting(settingName);
+
+    if (setting)
+    {
+        if (setting->Value)
+        {
+            value = (PPH_STRING)setting->Value;
+            PhReferenceObject(value);
+        }
+        else
+        {
+            value = PhCreateString(L"");
+        }
+    }
+
+    PhReleaseFastLockShared(&PhSettingsLock);
+
+    PhDereferenceObject(settingName);
+
+    return value;
 }
 
 BOOLEAN PhLoadSettings(
@@ -361,6 +458,82 @@ BOOLEAN PhLoadSettings(
     }
 
     mxmlDelete(topNode);
+
+    return TRUE;
+}
+
+BOOLEAN PhSaveSettings(
+    __in PWSTR FileName
+    )
+{
+    FILE *settingsFile;
+    mxml_node_t *topNode;
+    ULONG enumerationKey = 0;
+    PPH_SETTING setting;
+
+    topNode = mxmlNewElement(MXML_NO_PARENT, "settings");
+
+    PhAcquireFastLockShared(&PhSettingsLock);
+
+    while (PhEnumHashtable(PhSettingsHashtable, &setting, &enumerationKey))
+    {
+        mxml_node_t *settingNode;
+        mxml_node_t *textNode;
+        PPH_ANSI_STRING settingName;
+        PPH_STRING settingValue;
+        PPH_ANSI_STRING settingValueAnsi;
+
+        // Create the setting element.
+
+        settingNode = mxmlNewElement(topNode, "setting");
+
+        settingName = PhCreateAnsiStringFromUnicode(setting->Name->Buffer);
+        mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
+        PhDereferenceObject(settingName);
+
+        // Set the value.
+
+        settingValue = PhpSettingToString(setting->Type, setting->Value);
+        settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(settingValue->Buffer, settingValue->Length);
+        PhDereferenceObject(settingValue);
+
+        textNode = mxmlNewText(settingNode, FALSE, settingValueAnsi->Buffer);
+        PhDereferenceObject(settingValueAnsi);
+    }
+
+    PhReleaseFastLockShared(&PhSettingsLock);
+
+    // Create the directory if it does not exist.
+    {
+        PPH_STRING fullPath;
+        ULONG indexOfFileName;
+
+        fullPath = PhGetFullPath(FileName, &indexOfFileName);
+
+        if (fullPath)
+        {
+            PPH_STRING directoryName;
+
+            directoryName = PhSubstring(fullPath, 0, indexOfFileName);
+
+            SHCreateDirectoryEx(NULL, directoryName->Buffer, NULL);
+
+            PhDereferenceObject(directoryName);
+            PhDereferenceObject(fullPath);
+        }
+    }
+
+    settingsFile = _wfopen(FileName, L"w");
+
+    if (!settingsFile)
+    {
+        mxmlDelete(topNode);
+        return FALSE;
+    }
+
+    mxmlSaveFile(topNode, settingsFile, MXML_NO_CALLBACK);
+    mxmlDelete(topNode);
+    fclose(settingsFile);
 
     return TRUE;
 }

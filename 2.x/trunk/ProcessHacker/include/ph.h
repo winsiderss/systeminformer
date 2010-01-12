@@ -962,9 +962,19 @@ PPH_STRING PhGetSystemDirectory();
 
 PPH_STRING PhGetSystemRoot();
 
+PPH_STRING PhGetApplicationModuleFileName(
+    __in HMODULE ModuleHandle,
+    __out_opt PULONG IndexOfFileName
+    );
+
 PPH_STRING PhGetApplicationFileName();
 
 PPH_STRING PhGetApplicationDirectory();
+
+PPH_STRING PhGetKnownLocation(
+    __in ULONG Folder,
+    __in_opt PWSTR AppendPath
+    );
 
 FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
