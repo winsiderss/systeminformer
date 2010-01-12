@@ -21,7 +21,6 @@
  */
 
 #include <phgui.h>
-#include <wchar.h>
 
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
@@ -391,7 +390,8 @@ PPH_STRING PhGetSystemRoot()
     return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
 }
 
-PPH_STRING PhpGetApplicationFileName(
+PPH_STRING PhGetApplicationModuleFileName(
+    __in HMODULE ModuleHandle,
     __out_opt PULONG IndexOfFileName
     )
 {
@@ -405,7 +405,7 @@ PPH_STRING PhpGetApplicationFileName(
 
     while (TRUE)
     {
-        returnLength = GetModuleFileName(GetModuleHandle(NULL), buffer, bufferSize);
+        returnLength = GetModuleFileName(ModuleHandle, buffer, bufferSize);
 
         if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
         {
@@ -433,7 +433,7 @@ PPH_STRING PhpGetApplicationFileName(
 
 PPH_STRING PhGetApplicationFileName()
 {
-    return PhpGetApplicationFileName(NULL);
+    return PhGetApplicationModuleFileName(GetModuleHandle(NULL), NULL);
 }
 
 PPH_STRING PhGetApplicationDirectory()
@@ -442,7 +442,7 @@ PPH_STRING PhGetApplicationDirectory()
     ULONG indexOfFileName;
     PPH_STRING path = NULL;
 
-    fileName = PhpGetApplicationFileName(&indexOfFileName);
+    fileName = PhGetApplicationModuleFileName(GetModuleHandle(NULL), &indexOfFileName);
 
     if (fileName)
     {
@@ -452,4 +452,32 @@ PPH_STRING PhGetApplicationDirectory()
     }
 
     return path;
+}
+
+PPH_STRING PhGetKnownLocation(
+    __in ULONG Folder,
+    __in_opt PWSTR AppendPath
+    )
+{
+    WCHAR folderPath[MAX_PATH];
+
+    if (SHGetFolderPath(
+        NULL,
+        Folder,
+        NULL,
+        SHGFP_TYPE_CURRENT,
+        folderPath
+        ) != E_INVALIDARG)
+    {
+        if (AppendPath)
+        {
+            return PhConcatStrings2(folderPath, AppendPath);
+        }
+        else
+        {
+            return PhCreateString(folderPath);
+        }
+    }
+
+    return NULL;
 }

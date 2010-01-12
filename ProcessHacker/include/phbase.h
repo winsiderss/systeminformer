@@ -1,6 +1,7 @@
 #ifndef PHBASE_H
 #define PHBASE_H
 
+#include <base.h>
 #include <ntimport.h>
 #include <ref.h>
 #include <fastlock.h>

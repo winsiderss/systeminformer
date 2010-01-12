@@ -21,7 +21,7 @@
  */
 
 #include <phgui.h>
-#include <wchar.h>
+#include <settings.h>
 
 typedef BOOL (WINAPI *_FileIconInit)(
     BOOL RestoreCache
@@ -85,6 +85,8 @@ static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
+PPH_STRING PhSettingsFileName;
+
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
@@ -122,16 +124,51 @@ BOOLEAN PhMainWndInitialization(
         }
     }
 
-    // Temporary: initialize dbghelp.
+    // Load settings.
     {
-        if (LoadLibrary(L"C:\\Program Files\\Debugging Tools for Windows (x86)\\dbghelp.dll"))
+        PhSettingsInitialization();
+
+        PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+
+        if (PhSettingsFileName)
+            PhLoadSettings(PhSettingsFileName->Buffer);
+    }
+
+    // Initialize dbghelp.
+    {
+        PPH_STRING dbghelpPath;
+        HMODULE dbghelpModule;
+
+        dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
+
+        if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
         {
-            LoadLibrary(L"C:\\Program Files\\Debugging Tools for Windows (x86)\\symsrv.dll");
+            PPH_STRING fullDbghelpPath;
+            ULONG indexOfFileName;
+            PPH_STRING dbghelpFolder;
+            PPH_STRING symsrvPath;
+
+            fullDbghelpPath = PhGetApplicationModuleFileName(dbghelpModule, &indexOfFileName);
+
+            if (fullDbghelpPath)
+            {
+                dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
+
+                symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
+
+                LoadLibrary(symsrvPath->Buffer);
+
+                PhDereferenceObject(symsrvPath);
+                PhDereferenceObject(dbghelpFolder);
+                PhDereferenceObject(fullDbghelpPath);
+            }
         }
         else
         {
             LoadLibrary(L"dbghelp.dll");
         }
+
+        PhDereferenceObject(dbghelpPath);
 
         PhSymbolProviderDynamicImport();
     }
@@ -191,6 +228,9 @@ LRESULT CALLBACK PhMainWndProc(
     { 
     case WM_DESTROY:
         {
+            if (PhSettingsFileName)
+                PhSaveSettings(PhSettingsFileName->Buffer);
+
             PostQuitMessage(0);
         }
         break;
