@@ -349,7 +349,8 @@ PPH_STRING PhGetClientIdName(
             name = PhPrintfString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
     }
 
-    PhDereferenceObject(processName);
+    if (processName)
+        PhDereferenceObject(processName);
 
     return name;
 }
