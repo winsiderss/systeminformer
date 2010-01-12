@@ -167,6 +167,34 @@ NTSTATUS PhTerminateProcess(
     }
 }
 
+NTSTATUS PhSuspendProcess(
+    __in HANDLE ProcessHandle
+    )
+{
+    if (PhKphHandle && WindowsVersion >= WINDOWS_VISTA)
+    {
+        return KphSuspendProcess(PhKphHandle, ProcessHandle);
+    }
+    else
+    {
+        return NtSuspendProcess(ProcessHandle);
+    }
+}
+
+NTSTATUS PhResumeProcess(
+    __in HANDLE ProcessHandle
+    )
+{
+    if (PhKphHandle && WindowsVersion >= WINDOWS_VISTA)
+    {
+        return KphResumeProcess(PhKphHandle, ProcessHandle);
+    }
+    else
+    {
+        return NtResumeProcess(ProcessHandle);
+    }
+}
+
 /**
  * Terminates a thread.
  *

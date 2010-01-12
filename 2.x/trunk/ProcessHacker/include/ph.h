@@ -68,6 +68,14 @@ NTSTATUS PhTerminateProcess(
     __in NTSTATUS ExitStatus
     );
 
+NTSTATUS PhSuspendProcess(
+    __in HANDLE ProcessHandle
+    );
+
+NTSTATUS PhResumeProcess(
+    __in HANDLE ProcessHandle
+    );
+
 NTSTATUS PhTerminateThread(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
