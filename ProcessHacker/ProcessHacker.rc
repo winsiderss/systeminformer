@@ -69,6 +69,10 @@ BEGIN
     END
     POPUP "&Process"
     BEGIN
+        MENUITEM "T&erminate",                  ID_PROCESS_TERMINATE
+        MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
+        MENUITEM "Resume",                      ID_PROCESS_RESUME
+        MENUITEM SEPARATOR
         MENUITEM "Properties",                  ID_PROCESS_PROPERTIES
     END
     MENUITEM "&View",                       ID_VIEW

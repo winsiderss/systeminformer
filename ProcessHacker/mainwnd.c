@@ -38,6 +38,8 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     );
 
+PPH_PROCESS_ITEM PhpGetSelectedProcess();
+
 VOID PhpShowProcessProperties(
     __in PPH_PROCESS_ITEM ProcessItem
     );
@@ -243,28 +245,86 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 DestroyWindow(hWnd);
                 break;
-            case ID_PROCESS_PROPERTIES:
+            case ID_PROCESS_TERMINATE:
                 {
-                    INT index;
-                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
 
-                    index = PhFindListViewItemByFlags(
-                        ProcessListViewHandle,
-                        -1,
-                        LVNI_SELECTED
-                        );
-
-                    if (index != -1)
+                    if (processItem)
                     {
-                        if (PhGetListViewItemParam(
-                            ProcessListViewHandle,
-                            index,
-                            &processItem
-                            ))
+                        NTSTATUS status;
+                        HANDLE processHandle;
+
+                        if (PhShowMessage(hWnd, MB_ICONWARNING | MB_YESNO,
+                            L"Are you sure you want to terminate %s?",
+                            processItem->ProcessName->Buffer) == IDYES)
                         {
-                            PhpShowProcessProperties(processItem);
+                            if (NT_SUCCESS(status = PhOpenProcess(
+                                &processHandle,
+                                PROCESS_TERMINATE,
+                                processItem->ProcessId
+                                )))
+                            {
+                                status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                            }
+
+                            if (!NT_SUCCESS(status))
+                                PhShowStatus(hWnd, L"Unable to terminate the process", status, 0);
                         }
                     }
+                }
+                break;
+            case ID_PROCESS_SUSPEND:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        NTSTATUS status;
+                        HANDLE processHandle;
+
+                        if (NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_SUSPEND_RESUME,
+                            processItem->ProcessId
+                            )))
+                        {
+                            status = PhSuspendProcess(processHandle);
+                        }
+
+                        if (!NT_SUCCESS(status))
+                            PhShowStatus(hWnd, L"Unable to suspend the process", status, 0);
+                    }
+                }
+                break;
+            case ID_PROCESS_RESUME:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        NTSTATUS status;
+                        HANDLE processHandle;
+
+                        if (NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_SUSPEND_RESUME,
+                            processItem->ProcessId
+                            )))
+                        {
+                            status = PhResumeProcess(processHandle);
+                        }
+
+                        if (!NT_SUCCESS(status))
+                            PhShowStatus(hWnd, L"Unable to resume the process", status, 0);
+                    }
+                }
+                break;
+            case ID_PROCESS_PROPERTIES:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                        PhpShowProcessProperties(processItem);
                 }
                 break;
             default:
@@ -350,6 +410,32 @@ LRESULT CALLBACK PhMainWndProc(
     }
 
     return 0;
+}
+
+PPH_PROCESS_ITEM PhpGetSelectedProcess()
+{
+    INT index;
+    PPH_PROCESS_ITEM processItem;
+
+    index = PhFindListViewItemByFlags(
+        ProcessListViewHandle,
+        -1,
+        LVNI_SELECTED
+        );
+
+    if (index != -1)
+    {
+        if (PhGetListViewItemParam(
+            ProcessListViewHandle,
+            index,
+            &processItem
+            ))
+        {
+            return processItem;
+        }
+    }
+
+    return NULL;
 }
 
 VOID PhpShowProcessProperties(

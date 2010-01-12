@@ -30,6 +30,7 @@ HFONT PhApplicationFont;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
+ULONG PhKphFeatures;
 SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
@@ -181,6 +182,11 @@ VOID PhInitializeKph()
 #else
     PhKphHandle = NULL;
 #endif
+
+    if (PhKphHandle)
+    {
+        KphGetFeatures(PhKphHandle, &PhKphFeatures);
+    }
 }
 
 BOOLEAN PhInitializeSystem()
