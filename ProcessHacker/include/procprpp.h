@@ -89,6 +89,7 @@ typedef struct _PH_MODULES_CONTEXT
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
 #define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
 #define WM_PH_HANDLE_REMOVED (WM_APP + 223)
+#define WM_PH_HANDLES_UPDATED (WM_APP + 224)
 
 typedef struct _PH_HANDLES_CONTEXT
 {
@@ -97,6 +98,7 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION AddedEventRegistration;
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
+    PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;

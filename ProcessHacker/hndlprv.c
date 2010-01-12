@@ -90,6 +90,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     PhInitializeCallback(&handleProvider->HandleAddedEvent);
     PhInitializeCallback(&handleProvider->HandleModifiedEvent);
     PhInitializeCallback(&handleProvider->HandleRemovedEvent);
+    PhInitializeCallback(&handleProvider->UpdatedEvent);
 
     handleProvider->ProcessId = ProcessId;
     handleProvider->ProcessHandle = NULL;
@@ -375,4 +376,6 @@ VOID PhHandleProviderUpdate(
     }
 
     PhFree(handleInfo);
+
+    PhInvokeCallback(&handleProvider->UpdatedEvent, NULL);
 }
