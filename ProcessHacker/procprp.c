@@ -842,6 +842,16 @@ static VOID NTAPI HandleRemovedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_REMOVED, 0, (LPARAM)Parameter);
 }
 
+static VOID NTAPI HandlesUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
+
+    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, 0, 0);
+}
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -901,6 +911,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext,
                 &handlesContext->RemovedEventRegistration
                 );
+            PhRegisterCallback(
+                &handlesContext->Provider->UpdatedEvent,
+                HandlesUpdatedHandler,
+                handlesContext,
+                &handlesContext->UpdatedEventRegistration
+                );
             PhSetProviderEnabled(
                 &handlesContext->ProviderRegistration,
                 TRUE
@@ -933,6 +949,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhUnregisterCallback(
                 &handlesContext->Provider->HandleRemovedEvent,
                 &handlesContext->RemovedEventRegistration
+                );
+            PhUnregisterCallback(
+                &handlesContext->Provider->UpdatedEvent,
+                &handlesContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(
                 &PhSecondaryProviderThread,
@@ -967,6 +987,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             INT lvItemIndex;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
+            // Disable redraw. It will be re-enabled later.
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
@@ -994,11 +1017,20 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         {
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, handleItem)
                 );
             PhDereferenceObject(handleItem);
+        }
+        break;
+    case WM_PH_HANDLES_UPDATED:
+        {
+            // Enable redraw.
+            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
+            InvalidateRect(lvHandle, NULL, FALSE);
         }
         break;
     }
