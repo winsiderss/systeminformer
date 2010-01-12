@@ -4,6 +4,7 @@
 #include <phbase.h>
 #include <ph.h>
 #include <commctrl.h>
+#include <shlobj.h>
 #include "resource.h"
 #include "prsht.h"
 
