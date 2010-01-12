@@ -497,7 +497,7 @@ NTSTATUS PhpGetBestObjectName(
 
             if (fullName)
             {
-                bestObjectName = PhPrintfString(L"%s: %x", fullName->Buffer, statistics.AuthenticationId.LowPart);
+                bestObjectName = PhPrintfString(L"%s: 0x%x", fullName->Buffer, statistics.AuthenticationId.LowPart);
                 PhDereferenceObject(fullName);
             }
 

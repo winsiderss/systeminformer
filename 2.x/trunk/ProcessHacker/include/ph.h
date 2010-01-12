@@ -860,6 +860,7 @@ typedef struct _PH_HANDLE_PROVIDER
     PH_CALLBACK HandleAddedEvent;
     PH_CALLBACK HandleModifiedEvent;
     PH_CALLBACK HandleRemovedEvent;
+    PH_CALLBACK UpdatedEvent;
     ULONG RunCount;
 
     HANDLE ProcessId;
