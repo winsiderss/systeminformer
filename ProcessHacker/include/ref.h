@@ -135,10 +135,19 @@ VOID PhDrainAutoPool(
 /**
  * Calls PhaDereferenceObject() and returns the given object.
  *
- * \param Object A pointer to an object.
+ * \param Object A pointer to an object. The value can be 
+ * null; in that case no action is performed.
  *
  * \return The value of \a Object.
  */
-#define PHA_DEREFERENCE(Object) (PhaDereferenceObject(Object), (Object))
+FORCEINLINE PVOID PHA_DEREFERENCE(
+    __in PVOID Object
+    )
+{
+    if (Object)
+        PhaDereferenceObject(Object);
+
+    return Object;
+}
 
 #endif

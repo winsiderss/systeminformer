@@ -56,6 +56,14 @@ PPH_STRING PhaConcatStrings(
     return PHA_DEREFERENCE(PhConcatStrings_V(Count, argptr));
 }
 
+PPH_STRING PhaConcatStrings2(
+    __in PWSTR String1,
+    __in PWSTR String2
+    )
+{
+    return PHA_DEREFERENCE(PhConcatStrings2(String1, String2));
+}
+
 PPH_STRING PhaPrintfString(
     __in PWSTR Format,
     ...
