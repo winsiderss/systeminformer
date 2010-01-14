@@ -1142,6 +1142,11 @@ PPH_STRING PhaConcatStrings(
     ...
     );
 
+PPH_STRING PhaConcatStrings2(
+    __in PWSTR String1,
+    __in PWSTR String2
+    );
+
 PPH_STRING PhaLowerString(
     __in PPH_STRING String
     );
