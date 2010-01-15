@@ -300,22 +300,18 @@ PPH_STRING PhGetSymbolFromAddress(
     // Get the symbol name.
 
     PhAcquireMutex(&PhSymMutex);
-    result = SymFromAddr_I(
+    // Note that we don't care whether this call 
+    // succeeds or not, based on the assumption that 
+    // it will not write to the symbolInfo structure 
+    // if it fails. We've already zeroed the structure, 
+    // so we can deal with it.
+    SymFromAddr_I(
         SymbolProvider->ProcessHandle,
         Address,
         &displacement,
         symbolInfo
         );
     PhReleaseMutex(&PhSymMutex);
-
-    if (!result)
-    {
-        resolveLevel = PhsrlAddress;
-        symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
-        PhPrintPointer(symbol->Buffer, (PVOID)Address);
-        PhTrimStringToNullTerminator(symbol);
-        goto CleanupExit;
-    }
 
     // Find the module name.
 
@@ -460,26 +456,47 @@ BOOLEAN PhSymbolProviderLoadModule(
     PhReleaseMutex(&PhSymMutex);
     PhDereferenceObject(fileName);
 
+    // Add the module to the list, even if we couldn't load 
+    // symbols for the module. 
+    {
+        ULONG i;
+        PPH_SYMBOL_MODULE symbolModule = NULL;
+
+        PhAcquireFastLockExclusive(&SymbolProvider->ModulesListLock);
+
+        for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
+        {
+            PPH_SYMBOL_MODULE item;
+
+            item = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
+
+            // Check for duplicates.
+            if (item->BaseAddress == BaseAddress)
+            {
+                symbolModule = item;
+                break;
+            }
+        }
+
+        if (!symbolModule)
+        {
+            symbolModule = PhAllocate(sizeof(PH_SYMBOL_MODULE));
+            symbolModule->BaseAddress = BaseAddress;
+            symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
+
+            PhAddListItem(SymbolProvider->ModulesList, symbolModule);
+            PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
+        }
+
+        PhReleaseFastLockExclusive(&SymbolProvider->ModulesListLock);
+    }
+
     if (!baseAddress)
     {
         if (GetLastError() != ERROR_SUCCESS)
             return FALSE;
         else
             return TRUE;
-    }
-
-    // Add the module to the list.
-    {
-        PPH_SYMBOL_MODULE symbolModule;
-
-        symbolModule = PhAllocate(sizeof(PH_SYMBOL_MODULE));
-        symbolModule->BaseAddress = BaseAddress;
-        symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
-
-        PhAcquireFastLockExclusive(&SymbolProvider->ModulesListLock);
-        PhAddListItem(SymbolProvider->ModulesList, symbolModule);
-        PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
-        PhReleaseFastLockExclusive(&SymbolProvider->ModulesListLock);
     }
 
     return TRUE;
