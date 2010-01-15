@@ -31,7 +31,7 @@ typedef struct _PEB_LDR_DATA
 
 typedef enum _PROCESS_INFORMATION_CLASS
 {
-    ProcessBasicInformation,
+    ProcessBasicInformation, // 0
     ProcessQuotaLimits,
     ProcessIoCounters,
     ProcessVmCounters,
@@ -41,7 +41,7 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessDebugPort,
     ProcessExceptionPort,
     ProcessAccessToken,
-    ProcessLdtInformation,
+    ProcessLdtInformation, // 10
     ProcessLdtSize,
     ProcessDefaultHardErrorMode,
     ProcessIoPortHandlers,
@@ -51,7 +51,7 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessEnableAlignmentFaultFixup,
     ProcessPriorityClass,
     ProcessWx86Information,
-    ProcessHandleCount,
+    ProcessHandleCount, // 20
     ProcessAffinityMask,
     ProcessPriorityBoost,
     ProcessDeviceMap,
@@ -61,7 +61,7 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessImageFileName,
     ProcessLUIDDeviceMapsEnabled,
     ProcessBreakOnTermination,
-    ProcessDebugObjectHandle,
+    ProcessDebugObjectHandle, // 30
     ProcessDebugFlags,
     ProcessHandleTracing,
     ProcessIoPriority,
@@ -69,6 +69,19 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessResourceManagement,
     ProcessCookie,
     ProcessImageInformation,
+    ProcessCycleTime,
+    ProcessPagePriority,
+    ProcessInstrumentationCallback, // 40
+    ProcessThreadStackAllocation,
+    ProcessWorkingSetWatchEx,
+    ProcessImageFileNameWin32,
+    ProcessImageFileMapping,
+    ProcessAffinityUpdateMode,
+    ProcessMemoryAllocationMode,
+    ProcessGroupInformation,
+    ProcessTokenVirtualizationEnabled,
+    ProcessConsoleHostProcess,
+    ProcessWindowInformation, // 50
     MaxProcessInfoClass
 } PROCESS_INFORMATION_CLASS;
 
@@ -82,9 +95,9 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadImpersonationToken,
     ThreadDescriptorTableEntry,
     ThreadEnableAlignmentFaultFixup,
-    ThreadEventPair_Reusable,
+    ThreadEventPair,
     ThreadQuerySetWin32StartAddress,
-    ThreadZeroTlsCell,
+    ThreadZeroTlsCell, // 10
     ThreadPerformanceCount,
     ThreadAmILastThread,
     ThreadIdealProcessor,
@@ -94,7 +107,20 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadHideFromDebugger,
     ThreadBreakOnTermination,
     ThreadSwitchLegacyState,
-    ThreadIsTerminated,
+    ThreadIsTerminated, // 20
+    ThreadLastSystemCall,
+    ThreadIoPriority,
+    ThreadCycleTime,
+    ThreadPagePriority,
+    ThreadActualBasePriority,
+    ThreadTebInformation,
+    ThreadCSwitchMon,
+    ThreadCSwitchPmu,
+    ThreadWow64Context,
+    ThreadGroupInformation, // 30
+    ThreadUmsInformation,
+    ThreadCounterProfiling,
+    ThreadIdealProcessorEx,
     MaxThreadInfoClass
 } THREAD_INFORMATION_CLASS;
 

@@ -272,7 +272,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
 
     memset(threadItem, 0, sizeof(PH_THREAD_ITEM));
     threadItem->ThreadId = ThreadId;
-    PhPrintInteger(threadItem->ThreadIdString, (ULONG)ThreadId);
+    PhPrintUInt32(threadItem->ThreadIdString, (ULONG)ThreadId);
 
     return threadItem;
 }
@@ -575,7 +575,7 @@ VOID PhThreadProviderUpdate(
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
 
-            threadItem->ContextSwitches = thread->ContextSwitches;
+            PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->Priority = thread->Priority;
             threadItem->WaitReason = thread->WaitReason;
 
@@ -591,6 +591,20 @@ VOID PhThreadProviderUpdate(
                     ThreadQueryAccess,
                     threadItem->ThreadId
                     );
+            }
+
+            // Get the cycle count.
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                ULONG64 cycles;
+
+                if (NT_SUCCESS(PhGetThreadCycleTime(
+                    threadItem->ThreadHandle,
+                    &cycles
+                    )))
+                {
+                    PhUpdateDelta(&threadItem->CyclesDelta, cycles);
+                }
             }
 
             // Try to get the start address.
@@ -708,6 +722,77 @@ VOID PhThreadProviderUpdate(
                     {
                         threadItem->StartAddress = (ULONG64)thread->StartAddress;
                         PhpQueueThreadQuery(threadProvider, threadItem);
+                    }
+                }
+            }
+
+            // Update the context switch count.
+            {
+                ULONG oldDelta;
+
+                oldDelta = threadItem->ContextSwitchesDelta.Delta;
+                PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
+
+                if (threadItem->ContextSwitchesDelta.Delta != oldDelta)
+                {
+                    WCHAR deltaString[PH_INT32_STR_LEN_1];
+
+                    if (threadItem->ContextSwitchesDelta.Delta != 0)
+                    {
+                        PhPrintUInt32(deltaString, threadItem->ContextSwitchesDelta.Delta);
+                        PhSwapReference(
+                            &threadItem->ContextSwitchesDeltaString,
+                            PhFormatDecimal(deltaString, 0, TRUE)
+                            );
+                    }
+                    else
+                    {
+                        PhSwapReference(
+                            &threadItem->ContextSwitchesDeltaString,
+                            PhCreateString(L"")
+                            );
+                    }
+
+                    modified = TRUE;
+                }
+            }
+
+            // Update the cycle count.
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                ULONG64 cycles;
+                ULONG64 oldDelta;
+
+                oldDelta = threadItem->CyclesDelta.Delta;
+
+                if (NT_SUCCESS(PhGetThreadCycleTime(
+                    threadItem->ThreadHandle,
+                    &cycles
+                    )))
+                {
+                    PhUpdateDelta(&threadItem->CyclesDelta, cycles);
+
+                    if (threadItem->CyclesDelta.Delta != oldDelta)
+                    {
+                        WCHAR deltaString[PH_INT64_STR_LEN_1];
+
+                        if (threadItem->CyclesDelta.Delta != 0)
+                        {
+                            PhPrintUInt64(deltaString, threadItem->CyclesDelta.Delta);
+                            PhSwapReference(
+                                &threadItem->CyclesDeltaString,
+                                PhFormatDecimal(deltaString, 0, TRUE)
+                                );
+                        }
+                        else
+                        {
+                            PhSwapReference(
+                                &threadItem->CyclesDeltaString,
+                                PhCreateString(L"")
+                                );
+                        }
+
+                        modified = TRUE;
                     }
                 }
             }

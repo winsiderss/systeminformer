@@ -28,11 +28,11 @@
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
-#define PH_INT_STR_LEN 12
-#define PH_INT_STR_LEN_1 (PH_INT_STR_LEN + 1)
+#define PH_INT32_STR_LEN 12
+#define PH_INT32_STR_LEN_1 (PH_INT32_STR_LEN + 1)
 
-#define PH_LONG_STR_LEN 50
-#define PH_LONG_STR_LEN_1 (PH_LONG_STR_LEN + 1)
+#define PH_INT64_STR_LEN 50
+#define PH_INT64_STR_LEN_1 (PH_INT64_STR_LEN + 1)
 
 #define PH_PTR_STR_LEN 24
 #define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
@@ -48,28 +48,36 @@ FORCEINLINE PVOID PhGetProcAddress(
     return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
 }
 
-FORCEINLINE VOID PhPrintInteger(
+FORCEINLINE VOID PhPrintInt32(
     __out PWSTR Destination,
-    __in ULONG Integer
+    __in LONG Int32
     )
 {
-    _snwprintf(Destination, PH_INT_STR_LEN, L"%d", Integer);
+    _snwprintf(Destination, PH_INT32_STR_LEN, L"%d", Int32);
 }
 
-FORCEINLINE VOID PhPrintLong64(
+FORCEINLINE VOID PhPrintUInt32(
     __out PWSTR Destination,
-    __in LONG64 Long64
+    __in ULONG UInt32
     )
 {
-    _snwprintf(Destination, PH_LONG_STR_LEN, L"%I64d", Long64);
+    _snwprintf(Destination, PH_INT32_STR_LEN, L"%u", UInt32);
 }
 
-FORCEINLINE VOID PhPrintULong64(
+FORCEINLINE VOID PhPrintInt64(
     __out PWSTR Destination,
-    __in ULONG64 ULong64
+    __in LONG64 Int64
     )
 {
-    _snwprintf(Destination, PH_LONG_STR_LEN, L"%I64u", ULong64);
+    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64d", Int64);
+}
+
+FORCEINLINE VOID PhPrintUInt64(
+    __out PWSTR Destination,
+    __in ULONG64 UInt64
+    )
+{
+    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64u", UInt64);
 }
 
 FORCEINLINE VOID PhPrintPointer(
