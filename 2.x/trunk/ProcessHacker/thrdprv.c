@@ -762,17 +762,23 @@ VOID PhThreadProviderUpdate(
 
                     modified = TRUE;
                 }
+            }
 
-                // If we couldn't resolve the start address to a 
-                // module+offset, use the StartAddress instead 
-                // of the Win32StartAddress and try again.
-                if (threadItem->JustResolved)
+            // If we couldn't resolve the start address to a 
+            // module+offset, use the StartAddress instead 
+            // of the Win32StartAddress and try again.
+            // Note that we check the resolve level again 
+            // because we may have changed it in the previous 
+            // block.
+            if (
+                threadItem->JustResolved &&
+                threadItem->StartAddressResolveLevel == PhsrlAddress
+                )
+            {
+                if (threadItem->StartAddress != (ULONG64)thread->StartAddress)
                 {
-                    if (threadItem->StartAddress != (ULONG64)thread->StartAddress)
-                    {
-                        threadItem->StartAddress = (ULONG64)thread->StartAddress;
-                        PhpQueueThreadQuery(threadProvider, threadItem);
-                    }
+                    threadItem->StartAddress = (ULONG64)thread->StartAddress;
+                    PhpQueueThreadQuery(threadProvider, threadItem);
                 }
             }
 
