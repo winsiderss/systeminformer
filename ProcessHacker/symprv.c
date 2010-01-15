@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define SYMPRV_PRIVATE
 #include <ph.h>
 #include <symprvp.h>
 
@@ -54,6 +55,8 @@ _SymSetOptions SymSetOptions_I;
 _SymGetSearchPath SymGetSearchPath_I;
 _SymSetSearchPath SymSetSearchPath_I;
 _SymUnloadModule64 SymUnloadModule64_I;
+_SymFunctionTableAccess64 SymFunctionTableAccess64_I;
+_SymGetModuleBase64 SymGetModuleBase64_I;
 _StackWalk64 StackWalk64_I;
 _SymbolServerGetOptions SymbolServerGetOptions;
 _SymbolServerSetOptions SymbolServerSetOptions;
@@ -88,6 +91,8 @@ VOID PhSymbolProviderDynamicImport()
     SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW");
     SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW");
     SymUnloadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymUnloadModule64");
+    SymFunctionTableAccess64_I = PhGetProcAddress(L"dbghelp.dll", "SymFunctionTableAccess64");
+    SymGetModuleBase64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetModuleBase64");
     StackWalk64_I = PhGetProcAddress(L"dbghelp.dll", "StackWalk64");
     SymbolServerGetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerGetOptions");
     SymbolServerSetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerSetOptions");
@@ -478,4 +483,40 @@ BOOLEAN PhSymbolProviderLoadModule(
     }
 
     return TRUE;
+}
+
+BOOLEAN PhStackWalk(
+    __in ULONG MachineType,
+    __in HANDLE ProcessHandle,
+    __in HANDLE ThreadHandle,
+    __inout STACKFRAME64 *StackFrame,
+    __inout PVOID ContextRecord,
+    __in_opt PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
+    __in_opt PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
+    __in_opt PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
+    __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
+    )
+{
+    BOOLEAN result;
+
+    if (!FunctionTableAccessRoutine)
+        FunctionTableAccessRoutine = SymFunctionTableAccess64_I;
+    if (!GetModuleBaseRoutine)
+        GetModuleBaseRoutine = SymGetModuleBase64_I;
+
+    PhAcquireMutex(&PhSymMutex);
+    result = StackWalk64_I(
+        MachineType,
+        ProcessHandle,
+        ThreadHandle,
+        StackFrame,
+        ContextRecord,
+        ReadMemoryRoutine,
+        FunctionTableAccessRoutine,
+        GetModuleBaseRoutine,
+        TranslateAddress
+        );
+    PhReleaseMutex(&PhSymMutex);
+
+    return result;
 }

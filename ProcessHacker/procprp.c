@@ -521,6 +521,33 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             switch (header->code)
             {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMITEMACTIVATE item = (LPNMITEMACTIVATE)header;
+
+                        if (item->iItem != -1)
+                        {
+                            PPH_THREAD_ITEM threadItem;
+
+                            if (PhGetListViewItemParam(
+                                lvHandle,
+                                item->iItem,
+                                &threadItem
+                                ))
+                            {
+                                PhShowThreadStackDialog(
+                                    hwndDlg,
+                                    threadsContext->Provider->ProcessId,
+                                    threadItem->ThreadId,
+                                    threadsContext->Provider->SymbolProvider
+                                    );
+                            }
+                        }
+                    }
+                }
+                break;
             case PSN_SETACTIVE:
                 PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
                 break;

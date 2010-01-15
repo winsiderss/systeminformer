@@ -59,6 +59,16 @@ typedef BOOL (WINAPI *_SymUnloadModule64)(
     __in DWORD64 BaseOfDll
     );
 
+typedef PVOID (WINAPI *_SymFunctionTableAccess64)(
+    __in HANDLE hProcess,
+    __in DWORD64 AddrBase
+    );
+
+typedef DWORD64 (WINAPI *_SymGetModuleBase64)(
+    __in HANDLE hProcess,
+    __in DWORD64 dwAddr
+    );
+
 typedef BOOL (WINAPI *_StackWalk64)(
     __in DWORD MachineType,
     __in HANDLE hProcess,
@@ -76,6 +86,18 @@ typedef UINT_PTR (CALLBACK *_SymbolServerGetOptions)();
 typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     __in UINT_PTR options,
     __in ULONG64 data
+    );
+
+BOOLEAN PhStackWalk(
+    __in ULONG MachineType,
+    __in HANDLE ProcessHandle,
+    __in HANDLE ThreadHandle,
+    __inout STACKFRAME64 *StackFrame,
+    __inout PVOID ContextRecord,
+    __in_opt PREAD_PROCESS_MEMORY_ROUTINE64 ReadMemoryRoutine,
+    __in_opt PFUNCTION_TABLE_ACCESS_ROUTINE64 FunctionTableAccessRoutine,
+    __in_opt PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
+    __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     );
 
 #endif
