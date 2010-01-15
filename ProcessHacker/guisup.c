@@ -215,6 +215,31 @@ INT PhAddTabControlTab(
     return TabCtrl_InsertItem(TabControlHandle, Index, &item);
 }
 
+PPH_STRING PhGetWindowText(
+    __in HWND hwnd
+    )
+{
+    PPH_STRING string; 
+    ULONG length;
+
+    length = GetWindowTextLength(hwnd);
+
+    if (length == 0)
+        return PhCreateString(L"");
+
+    string = PhCreateStringEx(NULL, length * 2);
+
+    if (GetWindowText(hwnd, string->Buffer, string->Length / 2 + 1))
+    {
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+}
+
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,
