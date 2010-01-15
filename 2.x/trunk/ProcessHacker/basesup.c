@@ -680,7 +680,7 @@ PPH_STRING_BUILDER PhCreateStringBuilder(
 
     if (!NT_SUCCESS(PhCreateObject(
         &stringBuilder,
-        sizeof(PPH_STRING_BUILDER),
+        sizeof(PH_STRING_BUILDER),
         0,
         PhStringBuilderType,
         0

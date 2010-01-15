@@ -273,7 +273,6 @@ PPH_STRING PhGetSymbolFromAddress(
     )
 {
     PSYMBOL_INFOW symbolInfo;
-    BOOL result;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
     ULONG64 displacement;
