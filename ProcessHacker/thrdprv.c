@@ -508,8 +508,12 @@ VOID PhThreadProviderUpdate(
 
     if (!process)
     {
+        // The process doesn't exist anymore. Pretend it does but 
+        // has no threads.
         PhFree(processes);
-        return;
+        processes = PhAllocate(sizeof(SYSTEM_PROCESS_INFORMATION));
+        process = (PSYSTEM_PROCESS_INFORMATION)processes;
+        process->NumberOfThreads = 0;
     }
 
     threads = process->Threads;
