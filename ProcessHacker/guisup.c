@@ -182,7 +182,7 @@ HWND PhCreateTabControl(
     tabControlHandle = CreateWindow(
         WC_TABCONTROL,
         L"",
-        WS_CHILD | WS_VISIBLE,
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
         0,
         0,
         3,
