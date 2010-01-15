@@ -122,26 +122,12 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhInitializeMutex(&threadProvider->QueryQueueLock);
 
     // Begin loading symbols for the process' modules.
-    // We don't need a process handle if we're dealing with 
-    // System or System Idle Process.
-    if (
-        threadProvider->SymbolProvider->IsRealHandle ||
-        threadProvider->ProcessId == SYSTEM_PROCESS_ID ||
-        threadProvider->ProcessId == SYSTEM_IDLE_PROCESS_ID
-        )
-    {
-        PhReferenceObject(threadProvider);
-        PhQueueWorkQueueItem(
-            &PhThreadProviderWorkQueue,
-            PhpThreadProviderLoadSymbols,
-            threadProvider
-            );
-    }
-    else
-    {
-        // No symbols to load.
-        PhSetEvent(&threadProvider->SymbolsLoadedEvent);
-    }
+    PhReferenceObject(threadProvider);
+    PhQueueWorkQueueItem(
+        &PhThreadProviderWorkQueue,
+        PhpThreadProviderLoadSymbols,
+        threadProvider
+        );
 
     return threadProvider;
 }
@@ -231,7 +217,10 @@ NTSTATUS PhpThreadProviderLoadSymbols(
 
     if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
-        if (threadProvider->SymbolProvider->IsRealHandle)
+        if (
+            threadProvider->SymbolProvider->IsRealHandle ||
+            threadProvider->ProcessId == SYSTEM_PROCESS_ID
+            )
         {
             PhEnumGenericModules(
                 threadProvider->ProcessId,

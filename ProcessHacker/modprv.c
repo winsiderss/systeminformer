@@ -273,8 +273,9 @@ VOID PhModuleProviderUpdate(
     ULONG i;
 
     // If we didn't get a handle when we created the provider, 
-    // abort.
-    if (!moduleProvider->ProcessHandle)
+    // abort (unless this is the System process - in that case 
+    // we don't need a handle).
+    if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
         return;
 
     modules = PhCreateList(20);
