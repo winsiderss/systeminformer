@@ -27,11 +27,37 @@ VOID PhShowThreadStackDialog(
     __in PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
+    NTSTATUS status;
     THREAD_STACK_CONTEXT threadStackContext;
+    HANDLE threadHandle = NULL;
 
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.SymbolProvider = SymbolProvider;
+
+    if (!NT_SUCCESS(status = PhOpenThread(
+        &threadHandle,
+        THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+        ThreadId
+        )))
+    {
+        if (PhKphHandle)
+        {
+            status = PhOpenThread(
+                &threadHandle,
+                ThreadQueryAccess,
+                ThreadId
+                );
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(ParentWindowHandle, L"Unable to open the thread", status, 0);
+        return;
+    }
+
+    threadStackContext.ThreadHandle = threadHandle;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -40,6 +66,9 @@ VOID PhShowThreadStackDialog(
         PhpThreadStackDlgProc,
         (LPARAM)&threadStackContext
         );
+
+    if (threadStackContext.ThreadHandle)
+        CloseHandle(threadStackContext.ThreadHandle);
 }
 
 static INT_PTR CALLBACK PhpThreadStackDlgProc(      
@@ -61,35 +90,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_THRDSTACK_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
-
-            {
-                NTSTATUS status;
-                HANDLE threadHandle = NULL;
-
-                if (!NT_SUCCESS(status = PhOpenThread(
-                    &threadHandle,
-                    THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
-                    threadStackContext->ThreadId
-                    )))
-                {
-                    if (PhKphHandle)
-                    {
-                        status = PhOpenThread(
-                            &threadHandle,
-                            ThreadQueryAccess,
-                            threadStackContext->ThreadId
-                            );
-                    }
-                }
-
-                if (!NT_SUCCESS(status))
-                {
-                    PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
-                    EndDialog(hwndDlg, 0);
-                }
-
-                threadStackContext->ThreadHandle = threadHandle;
-            }
 
             threadStackContext->ListViewHandle = lvHandle;
 
