@@ -2795,12 +2795,7 @@ NTSTATUS PhEnumGenericModules(
         if (opened)
             CloseHandle(ProcessHandle);
 
-        if (!NT_SUCCESS(status))
-        {
-            goto CleanupExit;
-        }
-
-#ifndef _M_X64
+#ifdef _M_X64
         // 64-bit process modules
         {
             PRTL_DEBUG_INFORMATION debugBuffer;
