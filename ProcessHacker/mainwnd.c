@@ -28,8 +28,8 @@ typedef BOOL (WINAPI *_FileIconInit)(
     );
 
 VOID PhMainWndOnCreate();
-VOID PhMainWndOnLayout();
-VOID PhMainWndTabControlOnLayout();
+VOID PhMainWndOnLayout(HDWP deferHandle);
+VOID PhMainWndTabControlOnLayout(HDWP deferHandle);
 VOID PhMainWndTabControlOnNotify(
     __in LPNMHDR Header
     );
@@ -187,7 +187,7 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
         PH_APP_NAME,
-        WS_OVERLAPPEDWINDOW,
+        WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT,
         0,
         CW_USEDEFAULT,
@@ -209,11 +209,12 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndTabControlOnSelectionChanged();
 
     // Perform a layout.
-    PhMainWndOnLayout();
+    SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 
     PhStartProviderThread(&PhPrimaryProviderThread);
     PhStartProviderThread(&PhSecondaryProviderThread);
 
+    UpdateWindow(PhMainWndHandle);
     ShowWindow(PhMainWndHandle, ShowCommand);
 
     return TRUE;
@@ -334,22 +335,9 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_SIZE:
         {
-            SHORT s = GetKeyState(VK_LBUTTON);
-            if (wParam != SIZE_MINIMIZED)
-            {
-                if (s&0x8000) // window is being dragged
-                {
-                    // This may cause some black areas while increasing size.
-                    // Need to work on it.
-                    LockWindowUpdate(TabControlHandle);
-                    PhMainWndOnLayout();
-                }
-                else
-                {
-                    LockWindowUpdate(NULL);
-                    PhMainWndOnLayout();
-                }
-            }
+            HDWP deferHandle = BeginDeferWindowPos(2);
+            PhMainWndOnLayout(deferHandle);
+            EndDeferWindowPos(deferHandle);
         }
         break;
     case WM_NOTIFY:
@@ -528,16 +516,20 @@ static VOID NTAPI ServiceRemovedHandler(
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
+    BringWindowToTop(TabControlHandle);
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
 
     ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
     ListView_SetExtendedListViewStyleEx(ProcessListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+    BringWindowToTop(ProcessListViewHandle);
     ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
     ListView_SetExtendedListViewStyleEx(ServiceListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+    BringWindowToTop(ServiceListViewHandle);
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     ListView_SetExtendedListViewStyleEx(NetworkListViewHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+    BringWindowToTop(NetworkListViewHandle);
 
     PhSetControlTheme(ProcessListViewHandle, L"explorer");
     PhSetControlTheme(ServiceListViewHandle, L"explorer");
@@ -594,19 +586,20 @@ VOID PhMainWndOnCreate()
         );
 }
 
-VOID PhMainWndOnLayout()
+VOID PhMainWndOnLayout(HDWP deferHandle)
 {
     RECT rect;
 
     // Resize the tab control.
     GetClientRect(PhMainWndHandle, &rect);
-    MoveWindow(TabControlHandle, rect.left, rect.top,
-        rect.right - rect.left, rect.bottom - rect.top, TRUE);
+    DeferWindowPos(deferHandle, TabControlHandle, NULL,
+        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+        SWP_NOACTIVATE | SWP_NOZORDER);
 
-    PhMainWndTabControlOnLayout();
+    PhMainWndTabControlOnLayout(deferHandle);
 }
 
-VOID PhMainWndTabControlOnLayout()
+VOID PhMainWndTabControlOnLayout(HDWP deferHandle)
 {
     RECT rect;
     INT selectedIndex;
@@ -618,18 +611,21 @@ VOID PhMainWndTabControlOnLayout()
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        MoveWindow(ProcessListViewHandle, rect.left, rect.top,
-            rect.right - rect.left, rect.bottom - rect.top, TRUE);
+        DeferWindowPos(deferHandle, ProcessListViewHandle, NULL, 
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        MoveWindow(ServiceListViewHandle, rect.left, rect.top,
-            rect.right - rect.left, rect.bottom - rect.top, TRUE);
+        DeferWindowPos(deferHandle, ServiceListViewHandle, NULL,
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == NetworkTabIndex)
     {
-        MoveWindow(NetworkListViewHandle, rect.left, rect.top,
-            rect.right - rect.left, rect.bottom - rect.top, TRUE);
+        DeferWindowPos(deferHandle, NetworkListViewHandle, NULL,
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER);
     }
 }
 
@@ -648,11 +644,16 @@ VOID PhMainWndTabControlOnSelectionChanged()
     INT selectedIndex;
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+    {
+        HDWP deferHandle = BeginDeferWindowPos(1);
+        PhMainWndTabControlOnLayout(deferHandle);
+        EndDeferWindowPos(deferHandle);
+    }
+
     ShowWindow(ProcessListViewHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(ServiceListViewHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
-
-    PhMainWndTabControlOnLayout();
 }
 
 VOID PhMainWndProcessListViewOnNotify(
