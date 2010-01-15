@@ -45,6 +45,17 @@ typedef struct _PH_ENVIRONMENT_VARIABLE
     PPH_STRING Value;
 } PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
 
+/** Contains information about a thread stack frame. */
+typedef struct _PH_THREAD_STACK_FRAME
+{
+    PVOID PcAddress;
+    PVOID ReturnAddress;
+    PVOID FrameAddress;
+    PVOID StackAddress;
+    PVOID BStoreAddress;
+    PVOID Params[4];
+} PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
+
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -79,6 +90,16 @@ NTSTATUS PhResumeProcess(
 NTSTATUS PhTerminateThread(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
+    );
+
+NTSTATUS PhGetThreadContext(
+    __in HANDLE ThreadHandle,
+    __inout PCONTEXT Context
+    );
+
+NTSTATUS PhSetThreadContext(
+    __in HANDLE ThreadHandle,
+    __in PCONTEXT Context
     );
 
 NTSTATUS PhReadVirtualMemory(
@@ -181,6 +202,35 @@ NTSTATUS PhGetThreadBasicInformation(
 NTSTATUS PhGetThreadCycleTime(
     __in HANDLE ThreadHandle,
     __out PULONG64 CycleTime
+    );
+
+#define PH_WALK_I386_STACK 0x1
+#define PH_WALK_AMD64_STACK 0x2
+#define PH_WALK_KERNEL_STACK 0x10
+
+/**
+ * A callback function passed to PhWalkThreadStack() 
+ * and called for each stack frame.
+ *
+ * \param StackFrame A structure providing information about 
+ * the stack frame.
+ * \param Context A user-defined value passed to 
+ * PhWalkThreadStack().
+ *
+ * \return TRUE to continue the stack walk, FALSE to 
+ * stop.
+ */
+typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
+    __in PPH_THREAD_STACK_FRAME StackFrame,
+    __in PVOID Context
+    );
+
+NTSTATUS PhWalkThreadStack(
+    __in HANDLE ThreadHandle,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
+    __in PVOID Context
     );
 
 NTSTATUS PhGetTokenUser(
