@@ -200,6 +200,29 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     return TRUE;
 }
 
+static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
+    __in PPH_MODULE_INFO Module,
+    __in PVOID Context
+    )
+{
+    PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Context;
+
+    if (
+        PhStringEquals2(Module->Name, L"ntdll.dll", TRUE) ||
+        PhStringEquals2(Module->Name, L"kernel32.dll", TRUE)
+        )
+    {
+        PhSymbolProviderLoadModule(
+            symbolProvider,
+            Module->FileName->Buffer,
+            (ULONG64)Module->BaseAddress,
+            Module->Size
+            );
+    }
+
+    return TRUE;
+}
+
 NTSTATUS PhpThreadProviderLoadSymbols(
     __in PVOID Parameter
     )
@@ -208,13 +231,40 @@ NTSTATUS PhpThreadProviderLoadSymbols(
 
     if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
-        PhEnumGenericModules(
-            threadProvider->ProcessId,
-            threadProvider->SymbolProvider->ProcessHandle,
-            0,
-            LoadSymbolsEnumGenericModulesCallback,
-            threadProvider->SymbolProvider
-            );
+        if (threadProvider->SymbolProvider->IsRealHandle)
+        {
+            PhEnumGenericModules(
+                threadProvider->ProcessId,
+                threadProvider->SymbolProvider->ProcessHandle,
+                0,
+                LoadSymbolsEnumGenericModulesCallback,
+                threadProvider->SymbolProvider
+                );
+        }
+        else
+        {
+            // We can't enumerate the process modules. Load 
+            // symbols for ntdll.dll and kernel32.dll.
+            PhEnumGenericModules(
+                NtCurrentProcessId(),
+                NtCurrentProcess(),
+                0,
+                LoadBasicSymbolsEnumGenericModulesCallback,
+                threadProvider->SymbolProvider
+                );
+        }
+
+        // Load kernel module symbols as well.
+        if (threadProvider->ProcessId != SYSTEM_PROCESS_ID)
+        {
+            PhEnumGenericModules(
+                SYSTEM_PROCESS_ID,
+                NULL,
+                0,
+                LoadSymbolsEnumGenericModulesCallback,
+                threadProvider->SymbolProvider
+                );
+        }
     }
     else
     {
