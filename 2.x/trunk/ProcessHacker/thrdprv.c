@@ -507,7 +507,10 @@ VOID PhThreadProviderUpdate(
     process = PhFindProcessInformation(processes, threadProvider->ProcessId);
 
     if (!process)
+    {
+        PhFree(processes);
         return;
+    }
 
     threads = process->Threads;
     numberOfThreads = process->NumberOfThreads;
