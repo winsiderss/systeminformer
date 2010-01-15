@@ -112,6 +112,10 @@ INT PhAddTabControlTab(
     __in PWSTR Text
     );
 
+PPH_STRING PhGetWindowText(
+    __in HWND hwnd
+    );
+
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,
