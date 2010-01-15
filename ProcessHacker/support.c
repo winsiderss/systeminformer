@@ -208,6 +208,69 @@ VOID PhShowStatus(
     PhDereferenceObject(statusMessage);
 }
 
+PPH_STRING PhFormatDecimal(
+    __in PWSTR Value,
+    __in ULONG FractionalDigits,
+    __in BOOLEAN GroupDigits
+    )
+{
+    PPH_STRING string = NULL;
+    NUMBERFMT format;
+    ULONG bufferSize;
+    PVOID buffer;
+    WCHAR decimalSeparator[4];
+    WCHAR thousandSeparator[4];
+
+    format.NumDigits = FractionalDigits;
+    format.LeadingZero = 0;
+    format.Grouping = GroupDigits ? 3 : 0;
+    format.lpDecimalSep = decimalSeparator;
+    format.lpThousandSep = thousandSeparator;
+    format.NegativeOrder = 1;
+
+    if (!GetLocaleInfo(
+        LOCALE_USER_DEFAULT,
+        LOCALE_SDECIMAL,
+        decimalSeparator,
+        4
+        ))
+        return NULL;
+
+    if (!GetLocaleInfo(
+        LOCALE_USER_DEFAULT,
+        LOCALE_STHOUSAND,
+        thousandSeparator,
+        4
+        ))
+        return NULL;
+
+    bufferSize = GetNumberFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Value,
+        &format,
+        NULL,
+        0
+        );
+    buffer = PhAllocate(bufferSize * 2);
+
+    if (GetNumberFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Value,
+        &format,
+        buffer,
+        bufferSize
+        ))
+    {
+        string = PhCreateString(buffer);
+    }
+
+    PhFree(buffer);
+
+    return string;
+}
+
 PVOID PhGetFileVersionInfo(
     __in PWSTR FileName
     )

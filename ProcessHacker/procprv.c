@@ -216,7 +216,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
     processItem->ProcessId = ProcessId;
-    PhPrintInteger(processItem->ProcessIdString, (ULONG)ProcessId);
+    PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
 
     return processItem;
 }
@@ -505,8 +505,8 @@ VOID PhpFillProcessItem(
         ProcessItem->ProcessName = PhCreateString(L"System Idle Process");
     }
 
-    PhPrintInteger(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
-    PhPrintInteger(ProcessItem->SessionIdString, ProcessItem->SessionId);
+    PhPrintUInt32(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
+    PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
     status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
 
@@ -932,7 +932,7 @@ VOID PhProcessProviderUpdate(
 
                 if ((newCpuUsage * 100) >= 0.01)
                 {
-                    _snwprintf(processItem->CpuUsageString, PH_INT_STR_LEN,
+                    _snwprintf(processItem->CpuUsageString, PH_INT32_STR_LEN,
                         L"%.2f", (DOUBLE)newCpuUsage * 100);
                 }
                 else

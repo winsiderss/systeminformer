@@ -95,7 +95,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->ProcessId = Information->ServiceStatusProcess.dwProcessId;
-        PhPrintInteger(serviceItem->ProcessIdString, serviceItem->ProcessId);
+        PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
     }
 
     return serviceItem;
@@ -412,7 +412,7 @@ VOID PhServiceProviderUpdate(
                 serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
                 serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
                 serviceItem->ProcessId = services[i].ServiceStatusProcess.dwProcessId;
-                PhPrintInteger(serviceItem->ProcessIdString, serviceItem->ProcessId);
+                PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
 
                 // Raise the service modified event.
                 PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);

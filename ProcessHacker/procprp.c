@@ -482,9 +482,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             ListView_SetExtendedListViewStyleEx(lvHandle,
                 LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
             PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 80, L"TID");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Start Address"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 120, L"Priority"); 
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"TID");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Cycles Delta"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Start Address"); 
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Priority"); 
         }
         break;
     case WM_DESTROY:
@@ -540,8 +541,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadItem->ThreadIdString,
                 threadItem
                 );
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->StartAddressString));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, L"Priority Here");
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"Priority Here");
         }
         break;
     case WM_PH_THREAD_MODIFIED:
@@ -553,7 +554,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             if (lvItemIndex != -1)
             {
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->StartAddressString));
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->CyclesDeltaString));
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
             }
         }
         break;
