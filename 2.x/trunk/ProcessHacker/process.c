@@ -590,6 +590,38 @@ NTSTATUS PhGetProcessIsPosix(
 }
 
 /**
+ * Gets a process' cycle count.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have 
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param CycleTime A variable which receives the 64-bit cycle 
+ * time.
+ */
+NTSTATUS PhGetProcessCycleTime(
+    __in HANDLE ProcessHandle,
+    __out PULONG64 CycleTime
+    )
+{
+    NTSTATUS status;
+    UOCTA cycleTime;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessCycleTime,
+        &cycleTime,
+        sizeof(UOCTA),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *CycleTime = cycleTime.LowPart;
+
+    return status;
+}
+
+/**
  * Gets the POSIX command line of a process.
  *
  * \param ProcessHandle A handle to a process. The handle 
@@ -997,6 +1029,38 @@ NTSTATUS PhGetThreadBasicInformation(
         sizeof(THREAD_BASIC_INFORMATION),
         NULL
         );
+}
+
+/**
+ * Gets a thread's cycle count.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must have 
+ * THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param CycleTime A variable which receives the 64-bit cycle 
+ * time.
+ */
+NTSTATUS PhGetThreadCycleTime(
+    __in HANDLE ThreadHandle,
+    __out PULONG64 CycleTime
+    )
+{
+    NTSTATUS status;
+    UOCTA cycleTime;
+
+    status = NtQueryInformationThread(
+        ThreadHandle,
+        ThreadCycleTime,
+        &cycleTime,
+        sizeof(UOCTA),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *CycleTime = cycleTime.LowPart;
+
+    return status;
 }
 
 /**

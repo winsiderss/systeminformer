@@ -141,6 +141,11 @@ NTSTATUS PhGetProcessIsPosix(
     __out PBOOLEAN IsPosix
     );
 
+NTSTATUS PhGetProcessCycleTime(
+    __in HANDLE ProcessHandle,
+    __out PULONG64 CycleTime
+    );
+
 NTSTATUS PhGetProcessPosixCommandLine(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *CommandLine
@@ -171,6 +176,11 @@ NTSTATUS PhSetProcessExecuteFlags(
 NTSTATUS PhGetThreadBasicInformation(
     __in HANDLE ThreadHandle,
     __out PTHREAD_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetThreadCycleTime(
+    __in HANDLE ThreadHandle,
+    __out PULONG64 CycleTime
     );
 
 NTSTATUS PhGetTokenUser(
@@ -620,11 +630,11 @@ typedef struct _PH_PROCESS_ITEM
     BOOLEAN JustProcessed;
     PH_EVENT Stage1Event;
 
-    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
-    WCHAR ParentProcessIdString[PH_INT_STR_LEN_1];
-    WCHAR SessionIdString[PH_INT_STR_LEN_1];
+    WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
+    WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
+    WCHAR SessionIdString[PH_INT32_STR_LEN_1];
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
-    WCHAR CpuUsageString[PH_INT_STR_LEN_1];
+    WCHAR CpuUsageString[PH_INT32_STR_LEN_1];
 
     FLOAT CpuUsage; // from 0 to 1
 
@@ -683,7 +693,7 @@ typedef struct _PH_SERVICE_ITEM
     ULONG StartType;
     ULONG ErrorControl;
 
-    WCHAR ProcessIdString[PH_INT_STR_LEN_1];
+    WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
 
 typedef struct _PH_SERVICE_MODIFIED_DATA
@@ -779,10 +789,10 @@ typedef struct _PH_THREAD_ITEM
 {
     HANDLE ThreadId;
 
-    ULONG64 ContextSwitches;
-    ULONG64 ContextSwitchesDelta;
-    ULONG64 Cycles;
-    ULONG64 CyclesDelta;
+    PH_UINT32_DELTA ContextSwitchesDelta;
+    PPH_STRING ContextSwitchesDeltaString;
+    PH_UINT64_DELTA CyclesDelta;
+    PPH_STRING CyclesDeltaString;
     LONG Priority;
     ULONG64 StartAddress;
     PPH_STRING StartAddressString;
@@ -794,9 +804,7 @@ typedef struct _PH_THREAD_ITEM
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
 
-    WCHAR ThreadIdString[PH_INT_STR_LEN_1];
-    WCHAR ContextSwitchesDeltaString[PH_LONG_STR_LEN_1];
-    WCHAR CyclesDeltaString[PH_LONG_STR_LEN_1];
+    WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
     WCHAR PriorityString[PH_PRIORITY_STR_LEN_1];
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
@@ -936,6 +944,12 @@ VOID PhShowStatus(
     __in_opt PWSTR Message,
     __in NTSTATUS Status,
     __in_opt ULONG Win32Result
+    );
+
+PPH_STRING PhFormatDecimal(
+    __in PWSTR Value,
+    __in ULONG FractionalDigits,
+    __in BOOLEAN GroupDigits
     );
 
 PVOID PhGetFileVersionInfo(
