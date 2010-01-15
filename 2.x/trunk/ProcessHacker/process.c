@@ -22,6 +22,7 @@
 
 #include <ph.h>
 #include <kph.h>
+#include <symprvp.h>
 #include <sddl.h>
 
 PWSTR PhDosDeviceNames[26];
@@ -222,6 +223,36 @@ NTSTATUS PhTerminateThread(
             ThreadHandle,
             ExitStatus
             );
+    }
+}
+
+NTSTATUS PhGetThreadContext(
+    __in HANDLE ThreadHandle,
+    __inout PCONTEXT Context
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphGetContextThread(PhKphHandle, ThreadHandle, Context);
+    }
+    else
+    {
+        return NtGetContextThread(ThreadHandle, Context);
+    }
+}
+
+NTSTATUS PhSetThreadContext(
+    __in HANDLE ThreadHandle,
+    __in PCONTEXT Context
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphSetContextThread(PhKphHandle, ThreadHandle, Context);
+    }
+    else
+    {
+        return NtSetContextThread(ThreadHandle, Context);
     }
 }
 
@@ -1059,6 +1090,271 @@ NTSTATUS PhGetThreadCycleTime(
         return status;
 
     *CycleTime = cycleTime.LowPart;
+
+    return status;
+}
+
+/**
+ * Converts a STACKFRAME64 structure to a 
+ * PH_THREAD_STACK_FRAME structure.
+ *
+ * \param StackFrame64 A pointer to the STACKFRAME64 structure
+ * to convert.
+ * \param ThreadStackFrame A pointer to the resulting 
+ * PH_THREAD_STACK_FRAME structure.
+ */
+VOID PhpConvertStackFrame(
+    __in STACKFRAME64 *StackFrame64,
+    __out PPH_THREAD_STACK_FRAME ThreadStackFrame
+    )
+{
+    ULONG i;
+
+    ThreadStackFrame->PcAddress = (PVOID)StackFrame64->AddrPC.Offset;
+    ThreadStackFrame->ReturnAddress = (PVOID)StackFrame64->AddrReturn.Offset;
+    ThreadStackFrame->FrameAddress = (PVOID)StackFrame64->AddrFrame.Offset;
+    ThreadStackFrame->StackAddress = (PVOID)StackFrame64->AddrStack.Offset;
+    ThreadStackFrame->BStoreAddress = (PVOID)StackFrame64->AddrBStore.Offset;
+
+    for (i = 0; i < 4; i++)
+        ThreadStackFrame->Params[i] = (PVOID)StackFrame64->Params[i];
+}
+
+/**
+ * Walks a thread's stack.
+ *
+ * \param ThreadHandle A handle to a thread. The handle 
+ * must have THREAD_GET_CONTEXT and THREAD_SUSPEND_RESUME 
+ * access. The handle can have any access for kernel stack 
+ * walking.
+ * \param ProcessHandle A handle to the thread's parent 
+ * process. The handle must have PROCESS_QUERY_INFORMATION 
+ * and PROCESS_VM_READ access. If a symbol provider is 
+ * being used, pass its process handle.
+ * \param Flags A combination of flags.
+ * \li \c PH_WALK_I386_STACK Walks the x86 stack. On AMD64 
+ * systems this flag walks the WOW64 stack.
+ * \li \c PH_WALK_AMD64_STACK Walks the AMD64 stack. On x86 
+ * systems this flag is ignored.
+ * \li \c PH_WALK_KERNEL_STACK Walks the kernel stack. This 
+ * flag is ignored if there is no active KProcessHacker
+ * connection.
+ * \param Callback A callback function which is executed 
+ * for each stack frame.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ */
+NTSTATUS PhWalkThreadStack(
+    __in HANDLE ThreadHandle,
+    __in_opt HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    BOOLEAN suspended = FALSE;
+    BOOLEAN processOpened = FALSE;
+
+    // Open a handle to the process if we weren't given one.
+    if (!ProcessHandle)
+    {
+        if (PhKphHandle)
+        {
+            if (!NT_SUCCESS(status = KphOpenThreadProcess(
+                PhKphHandle,
+                &ProcessHandle,
+                ThreadHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+                )))
+                return status;
+        }
+        else
+        {
+            THREAD_BASIC_INFORMATION basicInfo;
+
+            if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
+                ThreadHandle,
+                &basicInfo
+                )))
+                return status;
+
+            if (!NT_SUCCESS(status = PhOpenProcess(
+                &ProcessHandle,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                basicInfo.ClientId.UniqueProcess
+                )))
+                return status;
+        }
+
+        processOpened = TRUE;
+    }
+
+    // Suspend the thread to avoid inaccurate results.
+    if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
+        suspended = TRUE;
+
+    // Kernel stack walk.
+    if ((Flags & PH_WALK_KERNEL_STACK) && PhKphHandle)
+    {
+        PVOID stack[62 - 1]; // 62 limit for XP and Server 2003.
+        ULONG capturedFrames;
+        ULONG i;
+
+        if (NT_SUCCESS(KphCaptureStackBackTraceThread(
+            PhKphHandle,
+            ThreadHandle,
+            1,
+            sizeof(stack) / sizeof(PVOID),
+            stack,
+            &capturedFrames,
+            NULL
+            )))
+        {
+            PH_THREAD_STACK_FRAME threadStackFrame;
+
+            memset(&threadStackFrame, 0, sizeof(PH_THREAD_STACK_FRAME));
+
+            for (i = 0; i < capturedFrames; i++)
+            {
+                threadStackFrame.PcAddress = stack[i];
+
+                if (!Callback(&threadStackFrame, Context))
+                {
+                    goto ResumeExit;
+                }
+            }
+        }
+    }
+
+#ifdef _M_X64
+    if (Flags & PH_WALK_AMD64_STACK)
+    {
+        STACKFRAME64 stackFrame;
+        PH_THREAD_STACK_FRAME threadStackFrame;
+        CONTEXT context;
+
+        context.ContextFlags = CONTEXT_ALL;
+
+        if (!NT_SUCCESS(status = PhGetThreadContext(
+            ThreadHandle,
+            &context
+            )))
+            goto SkipAmd64Stack;
+
+        memset(&stackFrame, 0, sizeof(STACKFRAME64));
+        stackFrame.AddrPC.Mode = AddrModeFlat;
+        stackFrame.AddrPC.Offset = context.Rip;
+        stackFrame.AddrStack.Mode = AddrModeFlat;
+        stackFrame.AddrStack.Offset = context.Rsp;
+        stackFrame.AddrFrame.Mode = AddrModeFlat;
+        stackFrame.AddrFrame.Offset = context.Rbp;
+
+        while (TRUE)
+        {
+            if (!PhStackWalk(
+                IMAGE_FILE_MACHINE_AMD64,
+                ProcessHandle,
+                ThreadHandle,
+                &stackFrame,
+                &context,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+                ))
+                break;
+
+            // If we have an invalid instruction pointer, break.
+            if (!stackFrame.AddrPC.Offset)
+                break;
+
+            // Convert the stack frame and execute the callback.
+
+            PhpConvertStackFrame(&stackFrame, &threadStackFrame);
+
+            if (!Callback(&threadStackFrame, Context))
+                goto ResumeExit;
+        }
+    }
+
+SkipAmd64Stack:
+#endif
+
+    // x86/WOW64 stack walk.
+    if (Flags & PH_WALK_I386_STACK)
+    {
+        STACKFRAME64 stackFrame;
+        PH_THREAD_STACK_FRAME threadStackFrame;
+#ifndef _M_X64
+        CONTEXT context;
+
+        context.ContextFlags = CONTEXT_ALL;
+
+        if (!NT_SUCCESS(status = PhGetThreadContext(
+            ThreadHandle,
+            &context
+            )))
+            goto SkipI386Stack;
+#else
+        WOW64_CONTEXT context;
+
+        context.ContextFlags = WOW64_CONTEXT_ALL;
+
+        if (!NT_SUCCESS(status = NtQueryInformationThread(
+            ThreadHandle,
+            ThreadWow64Context,
+            &context,
+            sizeof(WOW64_CONTEXT),
+            NULL
+            )))
+            goto SkipI386Stack;
+#endif
+
+        memset(&stackFrame, 0, sizeof(STACKFRAME64));
+        stackFrame.AddrPC.Mode = AddrModeFlat;
+        stackFrame.AddrPC.Offset = context.Eip;
+        stackFrame.AddrStack.Mode = AddrModeFlat;
+        stackFrame.AddrStack.Offset = context.Esp;
+        stackFrame.AddrFrame.Mode = AddrModeFlat;
+        stackFrame.AddrFrame.Offset = context.Ebp;
+
+        while (TRUE)
+        {
+            if (!PhStackWalk(
+                IMAGE_FILE_MACHINE_I386,
+                ProcessHandle,
+                ThreadHandle,
+                &stackFrame,
+                &context,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+                ))
+                break;
+
+            // If we have an invalid instruction pointer, break.
+            if (!stackFrame.AddrPC.Offset)
+                break;
+
+            // Convert the stack frame and execute the callback.
+
+            PhpConvertStackFrame(&stackFrame, &threadStackFrame);
+
+            if (!Callback(&threadStackFrame, Context))
+                goto ResumeExit;
+        }
+    }
+
+SkipI386Stack:
+
+ResumeExit:
+    if (suspended)
+        NtResumeThread(ThreadHandle, NULL);
+
+    if (processOpened)
+        CloseHandle(ProcessHandle);
 
     return status;
 }

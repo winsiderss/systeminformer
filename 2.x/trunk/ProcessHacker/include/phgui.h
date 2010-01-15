@@ -200,4 +200,13 @@ BOOLEAN PhShowProcessProperties(
     __in PPH_PROCESS_PROPCONTEXT Context
     );
 
+// thrdstk
+
+VOID PhShowThreadStackDialog(
+    __in HWND ParentWindowHandle,
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 #endif

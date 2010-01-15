@@ -467,6 +467,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\thrdstk.c"
+				>
+			</File>
+			<File
 				RelativePath=".\verify.c"
 				>
 			</File>
