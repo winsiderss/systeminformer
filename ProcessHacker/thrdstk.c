@@ -120,6 +120,16 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             }
         }
         break;
+    case WM_SYSCOMMAND:
+        {
+            switch (wParam)
+            {
+            case SC_CLOSE:
+                EndDialog(hwndDlg, IDCLOSE);
+                break;
+            }
+        }
+        break;
     }
 
     return FALSE;
