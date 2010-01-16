@@ -38,6 +38,8 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     );
 
+VOID PhpSaveWindowState();
+
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
 VOID PhpShowProcessProperties(
@@ -91,6 +93,9 @@ BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
 {
+    PH_INTEGER_PAIR windowPosition;
+    PH_INTEGER_PAIR windowSize;
+
     // Enable debug privilege if possible.
     {
         HANDLE tokenHandle;
@@ -172,14 +177,17 @@ BOOLEAN PhMainWndInitialization(
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
 
+    windowPosition = PhGetIntegerPairSetting(L"MainWindowPosition");
+    windowSize = PhGetIntegerPairSetting(L"MainWindowSize");
+
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
         PH_APP_NAME,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-        CW_USEDEFAULT,
-        0,
-        CW_USEDEFAULT,
-        0,
+        windowPosition.X,
+        windowPosition.Y,
+        windowSize.X,
+        windowSize.Y,
         NULL,
         NULL,
         PhInstanceHandle,
@@ -203,7 +211,15 @@ BOOLEAN PhMainWndInitialization(
     PhStartProviderThread(&PhSecondaryProviderThread);
 
     UpdateWindow(PhMainWndHandle);
-    ShowWindow(PhMainWndHandle, ShowCommand);
+
+    if (PhGetIntegerSetting(L"MainWindowState") == SW_MAXIMIZE)
+    {
+        ShowWindow(PhMainWndHandle, SW_SHOWMAXIMIZED);
+    }
+    else
+    {
+        ShowWindow(PhMainWndHandle, ShowCommand);
+    }
 
     return TRUE;
 }
@@ -219,6 +235,22 @@ LRESULT CALLBACK PhMainWndProc(
     { 
     case WM_DESTROY:
         {
+            WINDOWPLACEMENT placement = { sizeof(placement) };
+            PH_INTEGER_PAIR windowPosition;
+            PH_INTEGER_PAIR windowSize;
+
+            GetWindowPlacement(hWnd, &placement);
+
+            windowPosition.X = placement.rcNormalPosition.left;
+            windowPosition.Y = placement.rcNormalPosition.top;
+            windowSize.X = placement.rcNormalPosition.right - placement.rcNormalPosition.left;
+            windowSize.Y = placement.rcNormalPosition.bottom - placement.rcNormalPosition.top;
+
+            PhSetIntegerPairSetting(L"MainWindowPosition", windowPosition);
+            PhSetIntegerPairSetting(L"MainWindowSize", windowSize);
+
+            PhpSaveWindowState();
+
             if (PhSettingsFileName)
                 PhSaveSettings(PhSettingsFileName->Buffer);
 
@@ -320,11 +352,23 @@ LRESULT CALLBACK PhMainWndProc(
                         PhpShowProcessProperties(processItem);
                 }
                 break;
-            default:
-                return DefWindowProc(hWnd, uMsg, wParam, lParam);
             }
         }
         break;
+    case WM_SYSCOMMAND:
+        {
+            switch (wParam)
+            {
+            case SC_MINIMIZE:
+                {
+                    // Save the current window state because we 
+                    // may not have a chance to later.
+                    PhpSaveWindowState();
+                }
+                break;
+            }
+        }
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     case WM_SIZE:
         {
             if (!IsIconic(hWnd))
@@ -403,6 +447,18 @@ LRESULT CALLBACK PhMainWndProc(
     }
 
     return 0;
+}
+
+VOID PhpSaveWindowState()
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+
+    GetWindowPlacement(PhMainWndHandle, &placement);
+
+    if (placement.showCmd == SW_NORMAL)
+        PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
+    else if (placement.showCmd == SW_MAXIMIZE)
+        PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
 }
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
