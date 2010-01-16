@@ -523,7 +523,9 @@ PPH_AUTO_POOL PhCreateAutoPool()
 /**
  * Frees an auto-dereference pool.
  * The function will dereference any objects 
- * currently in the pool.
+ * currently in the pool. If a pool other than 
+ * the current pool is passed to the function, 
+ * an exception is raised.
  *
  * \param AutoPool The auto-dereference pool to free.
  */
@@ -532,6 +534,9 @@ VOID PhFreeAutoPool(
     )
 {
     PhDrainAutoPool(AutoPool);
+
+    if (PhpGetCurrentAutoPool() != AutoPool)
+        PhRaiseStatus(STATUS_UNSUCCESSFUL);
 
     // Remove the pool from the stack.
     PhpSetCurrentAutoPool(AutoPool->NextPool);
