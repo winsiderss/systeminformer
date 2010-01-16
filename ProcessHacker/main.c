@@ -44,6 +44,8 @@ ACCESS_MASK ThreadQueryAccess;
 ACCESS_MASK ThreadSetAccess;
 ACCESS_MASK ThreadAllAccess;
 
+static PPH_AUTO_POOL BaseAutoPool;
+
 INT WINAPI WinMain(
     __in HINSTANCE hInstance,
     __in HINSTANCE hPrevInstance,
@@ -81,6 +83,8 @@ INT WINAPI WinMain(
 
     PhInitializeKph();
 
+    BaseAutoPool = PhCreateAutoPool();
+
     PhGuiSupportInitialization();
 
     if (!PhMainWndInitialization(nCmdShow))
@@ -88,6 +92,8 @@ INT WINAPI WinMain(
         PhShowError(NULL, L"Unable to initialize the main window.");
         return 1;
     }
+
+    PhDrainAutoPool(BaseAutoPool);
 
     return PhMainMessageLoop();
 }
@@ -110,6 +116,8 @@ INT PhMainMessageLoop()
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
+
+        PhDrainAutoPool(BaseAutoPool);
     }
 
     return (INT)message.wParam;
