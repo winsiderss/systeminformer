@@ -996,6 +996,14 @@ VOID PhShowStatus(
     __in_opt ULONG Win32Result
     );
 
+BOOLEAN PhShowConfirmMessage(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PWSTR Object,
+    __in_opt PWSTR Message,
+    __in BOOLEAN Warning
+    );
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,

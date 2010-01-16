@@ -43,6 +43,17 @@ typedef HRESULT (* _SetWindowTheme)(
     __in LPCWSTR pszSubIdList
     );
 
+typedef HRESULT (* _TaskDialogIndirect)(      
+    __in const TASKDIALOGCONFIG *pTaskConfig,
+    __in int *pnButton,
+    __in int *pnRadioButton,
+    __in BOOL *pfVerificationFlagChecked
+    );
+
+#ifndef GUISUP_PRIVATE
+extern _TaskDialogIndirect TaskDialogIndirect_I;
+#endif
+
 VOID PhGuiSupportInitialization();
 
 VOID PhSetControlTheme(
