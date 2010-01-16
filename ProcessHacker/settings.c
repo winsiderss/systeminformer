@@ -49,7 +49,7 @@ static VOID PhpFreeSettingValue(
     );
 
 static PVOID PhpLookupSetting(
-    __in PPH_STRING Name
+    __in PWSTR Name
     );
 
 static PPH_STRING PhpJoinXmlTextNodes(
@@ -71,6 +71,7 @@ VOID PhSettingsInitialization()
 
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
+    PhpAddIntegerSetting(L"AllowMultipleInstances", L"0");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
@@ -84,7 +85,7 @@ BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
     PPH_SETTING setting2 = (PPH_SETTING)Entry2;
 
-    return PhStringEquals(setting1->Name, setting2->Name, FALSE);
+    return WSTR_EQUAL(setting1->Name, setting2->Name);
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
@@ -93,7 +94,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashBytesSdbm((PBYTE)setting->Name->Buffer, setting->Name->Length);
+    return PhHashBytesSdbm((PBYTE)setting->Name, wcslen(setting->Name) * 2);
 }
 
 static VOID PhpAddStringSetting(
@@ -132,7 +133,7 @@ static VOID PhpAddSetting(
     PH_SETTING setting;
 
     setting.Type = Type;
-    setting.Name = PhCreateString(Name);
+    setting.Name = Name;
     setting.DefaultValue = PhCreateString(DefaultValue);
     setting.Value = NULL;
 
@@ -239,7 +240,7 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    __in PPH_STRING Name
+    __in PWSTR Name
     )
 {
     PH_SETTING lookupSetting;
@@ -291,14 +292,11 @@ ULONG PhGetIntegerSetting(
     )
 {
     PPH_SETTING setting;
-    PPH_STRING settingName;
     ULONG value;
-
-    settingName = PhCreateString(Name);
 
     PhAcquireFastLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(settingName);
+    setting = PhpLookupSetting(Name);
 
     if (setting)
     {
@@ -307,7 +305,8 @@ ULONG PhGetIntegerSetting(
 
     PhReleaseFastLockShared(&PhSettingsLock);
 
-    PhDereferenceObject(settingName);
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
 
     return value;
 }
@@ -317,14 +316,11 @@ PH_INTEGER_PAIR PhGetIntegerPairSetting(
     )
 {
     PPH_SETTING setting;
-    PPH_STRING settingName;
     PH_INTEGER_PAIR value;
-
-    settingName = PhCreateString(Name);
 
     PhAcquireFastLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(settingName);
+    setting = PhpLookupSetting(Name);
 
     if (setting)
     {
@@ -336,7 +332,8 @@ PH_INTEGER_PAIR PhGetIntegerPairSetting(
 
     PhReleaseFastLockShared(&PhSettingsLock);
 
-    PhDereferenceObject(settingName);
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
 
     return value;
 }
@@ -346,14 +343,11 @@ PPH_STRING PhGetStringSetting(
     )
 {
     PPH_SETTING setting;
-    PPH_STRING settingName;
     PPH_STRING value;
-
-    settingName = PhCreateString(Name);
 
     PhAcquireFastLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(settingName);
+    setting = PhpLookupSetting(Name);
 
     if (setting)
     {
@@ -370,7 +364,8 @@ PPH_STRING PhGetStringSetting(
 
     PhReleaseFastLockShared(&PhSettingsLock);
 
-    PhDereferenceObject(settingName);
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
 
     return value;
 }
@@ -426,7 +421,7 @@ BOOLEAN PhLoadSettings(
             {
                 PPH_SETTING setting;
 
-                setting = PhpLookupSetting(settingName);
+                setting = PhpLookupSetting(settingName->Buffer);
 
                 if (setting)
                 {
@@ -487,7 +482,7 @@ BOOLEAN PhSaveSettings(
 
         settingNode = mxmlNewElement(topNode, "setting");
 
-        settingName = PhCreateAnsiStringFromUnicode(setting->Name->Buffer);
+        settingName = PhCreateAnsiStringFromUnicode(setting->Name);
         mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
         PhDereferenceObject(settingName);
 
