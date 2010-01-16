@@ -10,12 +10,6 @@ typedef enum _PH_SETTING_TYPE
     IntegerPairSettingType
 } PH_SETTING_TYPE, PPH_SETTING_TYPE;
 
-typedef struct _PH_INTEGER_PAIR
-{
-    LONG X;
-    LONG Y;
-} PH_INTEGER_PAIR, *PPH_INTEGER_PAIR;
-
 typedef struct _PH_SETTING
 {
     PH_SETTING_TYPE Type;

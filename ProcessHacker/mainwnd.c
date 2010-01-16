@@ -93,8 +93,7 @@ BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
 {
-    PH_INTEGER_PAIR windowPosition;
-    PH_INTEGER_PAIR windowSize;
+    PH_RECTANGLE windowRectangle;
 
     // Enable debug privilege if possible.
     {
@@ -177,17 +176,17 @@ BOOLEAN PhMainWndInitialization(
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
 
-    windowPosition = PhGetIntegerPairSetting(L"MainWindowPosition");
-    windowSize = PhGetIntegerPairSetting(L"MainWindowSize");
+    windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
+    windowRectangle.Size = PhGetIntegerPairSetting(L"MainWindowSize");
 
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
         PH_APP_NAME,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-        windowPosition.X,
-        windowPosition.Y,
-        windowSize.X,
-        windowSize.Y,
+        windowRectangle.Left,
+        windowRectangle.Top,
+        windowRectangle.Width,
+        windowRectangle.Height,
         NULL,
         NULL,
         PhInstanceHandle,
@@ -196,6 +195,14 @@ BOOLEAN PhMainWndInitialization(
 
     if (!PhMainWndHandle)
         return FALSE;
+
+    // Choose a more appropriate rectangle for the window.
+    PhAdjustRectangleToWorkingArea(
+        PhMainWndHandle,
+        &windowRectangle
+        );
+    MoveWindow(PhMainWndHandle, windowRectangle.Left, windowRectangle.Top,
+        windowRectangle.Width, windowRectangle.Height, FALSE);
 
     PhInitializeFont(PhMainWndHandle);
 
