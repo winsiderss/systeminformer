@@ -19,7 +19,7 @@ typedef struct _PH_INTEGER_PAIR
 typedef struct _PH_SETTING
 {
     PH_SETTING_TYPE Type;
-    PPH_STRING Name;
+    PWSTR Name;
     PPH_STRING DefaultValue;
 
     PVOID Value;
