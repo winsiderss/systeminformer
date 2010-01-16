@@ -19,6 +19,8 @@ INT WINAPI WinMain(
 
 INT PhMainMessageLoop();
 
+VOID PhActivatePreviousInstance();
+
 VOID PhInitializeCommonControls();
 
 VOID PhInitializeFont(
@@ -135,6 +137,9 @@ VOID PhShowContextMenu(
     );
 
 // mainwnd
+
+#define WM_PH_ACTIVATE (WM_APP + 99)
+#define PH_ACTIVATE_REPLY 0x1119
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)

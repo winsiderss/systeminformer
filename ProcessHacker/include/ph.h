@@ -1067,6 +1067,15 @@ PPH_STRING PhGetKnownLocation(
     __in_opt PWSTR AppendPath
     );
 
+BOOLEAN PhStartProcess(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters,
+    __in ULONG ShowWindowType,
+    __in BOOLEAN StartAsAdmin,
+    __in_opt ULONG Timeout
+    );
+
 FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
     __in ULONG Size
