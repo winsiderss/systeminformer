@@ -39,6 +39,21 @@ PPH_STRING PhGetStringSetting(
     __in PWSTR Name
     );
 
+VOID PhSetIntegerSetting(
+    __in PWSTR Name,
+    __in ULONG Value
+    );
+
+VOID PhSetIntegerPairSetting(
+    __in PWSTR Name,
+    __in PH_INTEGER_PAIR Value
+    );
+
+VOID PhSetStringSetting(
+    __in PWSTR Name,
+    __in PWSTR Value
+    );
+
 BOOLEAN PhLoadSettings(
     __in PWSTR FileName
     );

@@ -593,6 +593,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\settingsp.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\symprvp.h"
 				>
 			</File>
