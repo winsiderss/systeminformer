@@ -1,60 +1,5 @@
 #include <settings.h>
-#include <shlobj.h>
-#include "mxml/mxml.h"
-
-BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    );
-
-ULONG NTAPI PhpSettingsHashtableHashFunction(
-    __in PVOID Entry
-    );
-
-static VOID PhpAddStringSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
-static VOID PhpAddIntegerSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
-static VOID PhpAddIntegerPairSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
-static VOID PhpAddSetting(
-    __in PH_SETTING_TYPE Type,
-    __in PWSTR Name,
-    __in PVOID DefaultValue
-    );
-
-static PPH_STRING PhpSettingToString(
-    __in PH_SETTING_TYPE Type,
-    __in PVOID Value
-    );
-
-static BOOLEAN PhpSettingFromString(
-    __in PH_SETTING_TYPE Type,
-    __in PPH_STRING String,
-    __out PPVOID Value
-    );
-
-static VOID PhpFreeSettingValue(
-    __in PH_SETTING_TYPE Type,
-    __in PVOID Value
-    );
-
-static PVOID PhpLookupSetting(
-    __in PWSTR Name
-    );
-
-static PPH_STRING PhpJoinXmlTextNodes(
-    __in mxml_node_t *node
-    );
+#include <settingsp.h>
 
 PPH_HASHTABLE PhSettingsHashtable;
 PH_FAST_LOCK PhSettingsLock;
@@ -71,6 +16,7 @@ VOID PhSettingsInitialization()
 
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
+    PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"AllowMultipleInstances", L"0");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
@@ -380,6 +326,74 @@ PPH_STRING PhGetStringSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 
     return value;
+}
+
+VOID PhSetIntegerSetting(
+    __in PWSTR Name,
+    __in ULONG Value
+    )
+{
+    PPH_SETTING setting;
+
+    PhAcquireFastLockExclusive(&PhSettingsLock);
+
+    setting = PhpLookupSetting(Name);
+
+    if (setting && setting->Type == IntegerSettingType)
+    {
+        setting->Value = (PVOID)Value;
+    }
+
+    PhReleaseFastLockExclusive(&PhSettingsLock);
+
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
+}
+
+VOID PhSetIntegerPairSetting(
+    __in PWSTR Name,
+    __in PH_INTEGER_PAIR Value
+    )
+{
+    PPH_SETTING setting;
+
+    PhAcquireFastLockExclusive(&PhSettingsLock);
+
+    setting = PhpLookupSetting(Name);
+
+    if (setting && setting->Type == IntegerPairSettingType)
+    {
+        PhpFreeSettingValue(IntegerPairSettingType, setting->Value);
+        setting->Value = PhAllocateCopy(&Value, sizeof(PH_INTEGER_PAIR));
+    }
+
+    PhReleaseFastLockExclusive(&PhSettingsLock);
+
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
+}
+
+VOID PhSetStringSetting(
+    __in PWSTR Name,
+    __in PWSTR Value
+    )
+{
+    PPH_SETTING setting;
+
+    PhAcquireFastLockExclusive(&PhSettingsLock);
+
+    setting = PhpLookupSetting(Name);
+
+    if (setting && setting->Type == StringSettingType)
+    {
+        PhpFreeSettingValue(StringSettingType, setting->Value);
+        setting->Value = PhCreateString(Value);
+    }
+
+    PhReleaseFastLockExclusive(&PhSettingsLock);
+
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
 BOOLEAN PhLoadSettings(
