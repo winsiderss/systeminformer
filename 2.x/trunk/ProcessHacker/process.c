@@ -168,6 +168,12 @@ NTSTATUS PhTerminateProcess(
     }
 }
 
+/**
+ * Suspends a process' threads.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_SUSPEND_RESUME access.
+ */
 NTSTATUS PhSuspendProcess(
     __in HANDLE ProcessHandle
     )
@@ -182,6 +188,12 @@ NTSTATUS PhSuspendProcess(
     }
 }
 
+/**
+ * Resumes a process' threads.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_SUSPEND_RESUME access.
+ */
 NTSTATUS PhResumeProcess(
     __in HANDLE ProcessHandle
     )
@@ -226,6 +238,14 @@ NTSTATUS PhTerminateThread(
     }
 }
 
+/**
+ * Gets the processor context of a thread.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must 
+ * have THREAD_GET_CONTEXT access.
+ * \param Context A variable which receives the context 
+ * structure.
+ */
 NTSTATUS PhGetThreadContext(
     __in HANDLE ThreadHandle,
     __inout PCONTEXT Context
@@ -241,6 +261,13 @@ NTSTATUS PhGetThreadContext(
     }
 }
 
+/**
+ * Sets the processor context of a thread.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must 
+ * have THREAD_SET_CONTEXT access.
+ * \param Context The new context structure.
+ */
 NTSTATUS PhSetThreadContext(
     __in HANDLE ThreadHandle,
     __in PCONTEXT Context
