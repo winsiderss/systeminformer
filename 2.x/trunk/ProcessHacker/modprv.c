@@ -162,6 +162,7 @@ VOID PhpModuleItemDeleteProcedure(
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
+    if (moduleItem->SizeString) PhDereferenceObject(moduleItem->SizeString);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
@@ -360,6 +361,8 @@ VOID PhModuleProviderUpdate(
             PhReferenceObject(moduleItem->Name);
             moduleItem->FileName = module->FileName;
             PhReferenceObject(moduleItem->FileName);
+
+            moduleItem->SizeString = PhFormatSize(moduleItem->Size);
 
             PhInitializeImageVersionInfo(
                 &moduleItem->VersionInfo,
