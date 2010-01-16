@@ -963,6 +963,72 @@ VOID PhHandleProviderUpdate(
 extern ULONG PhMaxSizeUnit;
 #endif
 
+typedef struct _PH_INTEGER_PAIR
+{
+    LONG X;
+    LONG Y;
+} PH_INTEGER_PAIR, *PPH_INTEGER_PAIR;
+
+typedef struct _PH_RECTANGLE
+{
+    union
+    {
+        PH_INTEGER_PAIR Position;
+        struct
+        {
+            LONG Left;
+            LONG Top;
+        };
+    };
+    union
+    {
+        PH_INTEGER_PAIR Size;
+        struct
+        {
+            LONG Width;
+            LONG Height;
+        };
+    };
+} PH_RECTANGLE, *PPH_RECTANGLE;
+
+FORCEINLINE PH_RECTANGLE PhRectToRectangle(
+    __in RECT Rect
+    )
+{
+    PH_RECTANGLE rectangle;
+
+    rectangle.Left = Rect.left;
+    rectangle.Top = Rect.top;
+    rectangle.Width = Rect.right - Rect.left;
+    rectangle.Height = Rect.bottom - Rect.top;
+
+    return rectangle;
+}
+
+FORCEINLINE RECT PhRectangleToRect(
+    __in PH_RECTANGLE Rectangle
+    )
+{
+    RECT rect;
+
+    rect.left = Rectangle.Left;
+    rect.top = Rectangle.Top;
+    rect.right = Rectangle.Left + Rectangle.Width;
+    rect.top = Rectangle.Top + Rectangle.Height;
+
+    return rect;
+}
+
+VOID PhAdjustRectangleToBounds(
+    __in PPH_RECTANGLE Rectangle,
+    __in PPH_RECTANGLE Bounds
+    );
+
+VOID PhAdjustRectangleToWorkingArea(
+    __in HWND hWnd,
+    __in PPH_RECTANGLE Rectangle
+    );
+
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
     __in ULONG MessageTableId,
