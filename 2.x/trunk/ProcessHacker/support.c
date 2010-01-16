@@ -690,3 +690,38 @@ PPH_STRING PhGetKnownLocation(
 
     return NULL;
 }
+
+BOOLEAN PhStartProcess(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters,
+    __in ULONG ShowWindowType,
+    __in BOOLEAN StartAsAdmin,
+    __in_opt ULONG Timeout
+    )
+{
+    SHELLEXECUTEINFO info = { sizeof(info) };
+
+    info.lpFile = FileName;
+    info.lpParameters = Parameters;
+    info.fMask = SEE_MASK_NOCLOSEPROCESS;
+    info.nShow = ShowWindowType;
+    info.hwnd = hWnd;
+
+    if (StartAsAdmin)
+        info.lpVerb = L"runas";
+
+    if (ShellExecuteEx(&info))
+    {
+        if (Timeout)
+            WaitForSingleObject(info.hProcess, Timeout);
+
+        CloseHandle(info.hProcess);
+
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}

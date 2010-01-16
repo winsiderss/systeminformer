@@ -339,9 +339,12 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_SIZE:
         {
-            HDWP deferHandle = BeginDeferWindowPos(2);
-            PhMainWndOnLayout(deferHandle);
-            EndDeferWindowPos(deferHandle);
+            if (!IsIconic(hWnd))
+            {
+                HDWP deferHandle = BeginDeferWindowPos(2);
+                PhMainWndOnLayout(deferHandle);
+                EndDeferWindowPos(deferHandle);
+            }
         }
         break;
     case WM_NOTIFY:
@@ -356,6 +359,16 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 PhMainWndProcessListViewOnNotify(header);
             }
+        }
+        break;
+    case WM_PH_ACTIVATE:
+        {
+            if (IsIconic(hWnd))
+            {
+                ShowWindow(hWnd, SW_RESTORE);
+            }
+
+            return PH_ACTIVATE_REPLY;
         }
         break;
     case WM_PH_PROCESS_ADDED:
