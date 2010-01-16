@@ -1559,7 +1559,7 @@ BOOLEAN PhEnumHashtable(
     __inout PULONG EnumerationKey
     )
 {
-    for (; *EnumerationKey < Hashtable->NextEntry; )
+    while (*EnumerationKey < Hashtable->NextEntry)
     {
         PPH_HASHTABLE_ENTRY entry = PH_HASHTABLE_GET_ENTRY(Hashtable, *EnumerationKey);
 
