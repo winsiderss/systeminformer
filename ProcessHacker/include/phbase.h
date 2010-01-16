@@ -1123,6 +1123,44 @@ FORCEINLINE VOID PhInvokeCallbackRegistration(
         );
 }
 
+// callbacksync
+
+typedef struct _PH_CALLBACK_SYNC
+{
+    PH_CALLBACK Callback;
+    ULONG Target;
+    PVOID Parameter;
+    ULONG Value;
+} PH_CALLBACK_SYNC, *PPH_CALLBACK_SYNC;
+
+FORCEINLINE VOID PhInitializeCallbackSync(
+    __out PPH_CALLBACK_SYNC CallbackSync,
+    __in ULONG Target,
+    __in PVOID Parameter
+    )
+{
+    PhInitializeCallback(&CallbackSync->Callback);
+    CallbackSync->Target = Target;
+    CallbackSync->Parameter = Parameter;
+    CallbackSync->Value = 0;
+}
+
+FORCEINLINE VOID PhIncrementCallbackSync(
+    __in PPH_CALLBACK_SYNC CallbackSync
+    )
+{
+    if ((ULONG)_InterlockedIncrement(&CallbackSync->Value) == CallbackSync->Target)
+        PhInvokeCallback(&CallbackSync->Callback, CallbackSync->Parameter); 
+}
+
+FORCEINLINE VOID PhIncrementMultipleCallbackSync(
+    __in PPH_CALLBACK_SYNC CallbackSync
+    )
+{
+    if ((ULONG)_InterlockedIncrement(&CallbackSync->Value) >= CallbackSync->Target)
+        PhInvokeCallback(&CallbackSync->Callback, CallbackSync->Parameter); 
+}
+
 // basesupa
 
 PPH_STRING PhaCreateString(
