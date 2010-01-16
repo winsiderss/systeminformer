@@ -26,6 +26,41 @@
 WCHAR *PhSizeUnitNames[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
 
+VOID PhAdjustRectangleToBounds(
+    __in PPH_RECTANGLE Rectangle,
+    __in PPH_RECTANGLE Bounds
+    )
+{
+    if (Rectangle->Left + Rectangle->Width > Bounds->Left + Bounds->Width)
+        Rectangle->Left = Bounds->Left + Bounds->Width - Rectangle->Width;
+    if (Rectangle->Top + Rectangle->Height > Bounds->Top + Bounds->Height)
+        Rectangle->Top = Bounds->Top + Bounds->Height - Rectangle->Height;
+
+    if (Rectangle->Left < Bounds->Left)
+        Rectangle->Left = Bounds->Left;
+    if (Rectangle->Top < Bounds->Top)
+        Rectangle->Top = Bounds->Top;
+}
+
+VOID PhAdjustRectangleToWorkingArea(
+    __in HWND hWnd,
+    __in PPH_RECTANGLE Rectangle
+    )
+{
+    MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+
+    if (GetMonitorInfo(
+        MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST),
+        &monitorInfo
+        ))
+    {
+        PH_RECTANGLE bounds;
+
+        bounds = PhRectToRectangle(monitorInfo.rcWork);
+        PhAdjustRectangleToBounds(Rectangle, &bounds);
+    }
+}
+
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
     __in ULONG MessageTableId,
