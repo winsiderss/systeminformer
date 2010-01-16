@@ -325,6 +325,8 @@ VOID PhpThreadItemDeleteProcedure(
 
     if (threadItem->ThreadHandle) CloseHandle(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
+    if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);
+    if (threadItem->CyclesDeltaString) PhDereferenceObject(threadItem->CyclesDeltaString);
 }
 
 BOOLEAN PhpThreadHashtableCompareFunction(

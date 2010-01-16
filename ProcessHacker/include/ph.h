@@ -789,6 +789,8 @@ typedef struct _PH_MODULE_ITEM
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
+    PPH_STRING SizeString;
+
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
@@ -840,9 +842,7 @@ typedef struct _PH_THREAD_ITEM
     HANDLE ThreadId;
 
     PH_UINT32_DELTA ContextSwitchesDelta;
-    PPH_STRING ContextSwitchesDeltaString;
     PH_UINT64_DELTA CyclesDelta;
-    PPH_STRING CyclesDeltaString;
     LONG Priority;
     ULONG64 StartAddress;
     PPH_STRING StartAddressString;
@@ -853,6 +853,9 @@ typedef struct _PH_THREAD_ITEM
 
     BOOLEAN IsGuiThread;
     BOOLEAN JustResolved;
+
+    PPH_STRING ContextSwitchesDeltaString;
+    PPH_STRING CyclesDeltaString;
 
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
     WCHAR PriorityString[PH_PRIORITY_STR_LEN_1];
@@ -956,6 +959,10 @@ VOID PhHandleProviderUpdate(
 
 // support
 
+#ifndef SUPPORT_PRIVATE
+extern ULONG PhMaxSizeUnit;
+#endif
+
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
     __in ULONG MessageTableId,
@@ -1008,6 +1015,10 @@ PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
     __in BOOLEAN GroupDigits
+    );
+
+PPH_STRING PhFormatSize(
+    __in ULONG64 Size
     );
 
 PVOID PhGetFileVersionInfo(
