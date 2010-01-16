@@ -760,3 +760,124 @@ BOOLEAN PhStartProcess(
         return FALSE;
     }
 }
+
+OPENFILENAME *PhpCreateOpenFileName(
+    __in ULONG Type                                
+    )
+{
+    OPENFILENAME *ofn;
+
+    ofn = PhAllocate(sizeof(OPENFILENAME) + sizeof(ULONG));
+    memset(ofn, 0, sizeof(OPENFILENAME));
+    *(PULONG)PTR_ADD_OFFSET(ofn, sizeof(OPENFILENAME)) = Type;
+
+    ofn->lStructSize = sizeof(OPENFILENAME);
+
+    return ofn;
+}
+
+VOID PhpFreeOpenFileName(
+    __in OPENFILENAME *OpenFileName
+    )
+{
+    if (OpenFileName->lpstrFilter) PhFree((PVOID)OpenFileName->lpstrFilter);
+
+    PhFree(OpenFileName);
+}
+
+PVOID PhCreateOpenFileDialog()
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        IFileDialog *fileDialog;
+
+        if (SUCCEEDED(CoCreateInstance(
+            &CLSID_FileOpenDialog,
+            NULL,
+            CLSCTX_INPROC_SERVER,
+            &IID_IFileDialog,
+            &fileDialog
+            )))
+        {
+            return fileDialog;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+    else
+    {
+        return PhpCreateOpenFileName(1); 
+    }
+}
+
+PVOID PhCreateSaveFileDialog()
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        IFileDialog *fileDialog;
+
+        if (SUCCEEDED(CoCreateInstance(
+            &CLSID_FileSaveDialog,
+            NULL,
+            CLSCTX_INPROC_SERVER,
+            &IID_IFileDialog,
+            &fileDialog
+            )))
+        {
+            return fileDialog;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+    else
+    {
+        return PhpCreateOpenFileName(2); 
+    }
+}
+
+BOOLEAN PhShowFileDialog(
+    __in HWND hWnd,
+    __in PVOID FileDialog
+    )
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        return SUCCEEDED(IFileDialog_Show((IFileDialog *)FileDialog, hWnd));
+    }
+    else
+    {
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+
+        ofn->hwndOwner = hWnd;
+
+        // Determine whether the structure represents 
+        // a open or save dialog and call the appropriate 
+        // function.
+        if (*(PULONG)PTR_ADD_OFFSET(FileDialog, sizeof(OPENFILENAME)) == 1)
+        {
+            return GetOpenFileName(ofn);
+        }
+        else
+        {
+            return GetSaveFileName(ofn);
+        }
+    }
+}
+
+VOID PhFreeFileDialog(
+    __in PVOID FileDialog
+    )
+{
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        IFileDialog_Release((IFileDialog *)FileDialog);
+    }
+    else
+    {
+        PhpFreeOpenFileName((OPENFILENAME *)FileDialog);
+    }
+}
