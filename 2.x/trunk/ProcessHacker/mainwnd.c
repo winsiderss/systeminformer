@@ -87,8 +87,6 @@ static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
-PPH_STRING PhSettingsFileName;
-
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
@@ -124,16 +122,6 @@ BOOLEAN PhMainWndInitialization(
 
             FreeLibrary(shell32);
         }
-    }
-
-    // Load settings.
-    {
-        PhSettingsInitialization();
-
-        PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
-
-        if (PhSettingsFileName)
-            PhLoadSettings(PhSettingsFileName->Buffer);
     }
 
     // Initialize dbghelp.

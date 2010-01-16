@@ -23,6 +23,7 @@
 #define MAIN_PRIVATE
 #include <phgui.h>
 #include <kph.h>
+#include <settings.h>
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
@@ -31,6 +32,7 @@ HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
 ULONG PhKphFeatures;
+PPH_STRING PhSettingsFileName;
 SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
@@ -64,8 +66,6 @@ INT WINAPI WinMain(
     PhRegisterWindowClass();
     PhInitializeCommonControls();
 
-    PhActivatePreviousInstance();
-
     if (!PhInitializeImports())
         return 1;
 
@@ -82,6 +82,20 @@ INT WINAPI WinMain(
 
     PhApplicationFileName = PhGetApplicationFileName();
     PhApplicationDirectory = PhGetApplicationDirectory();
+
+    // Load settings.
+    {
+        PhSettingsInitialization();
+
+        PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+
+        if (PhSettingsFileName)
+            PhLoadSettings(PhSettingsFileName->Buffer);
+    }
+
+    // Activate a previous instance if required.
+    if (!PhGetIntegerSetting(L"AllowMultipleInstances"))
+        PhActivatePreviousInstance();
 
     PhInitializeKph();
 

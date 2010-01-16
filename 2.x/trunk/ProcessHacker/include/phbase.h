@@ -23,6 +23,7 @@ extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
 extern HANDLE PhKphHandle;
 extern ULONG PhKphFeatures;
+extern PPH_STRING PhSettingsFileName;
 extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern PWSTR PhWindowClassName;
 extern ULONG WindowsVersion;
