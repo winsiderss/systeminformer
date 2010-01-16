@@ -64,6 +64,8 @@ INT WINAPI WinMain(
     PhRegisterWindowClass();
     PhInitializeCommonControls();
 
+    PhActivatePreviousInstance();
+
     if (!PhInitializeImports())
         return 1;
 
@@ -121,6 +123,26 @@ INT PhMainMessageLoop()
     }
 
     return (INT)message.wParam;
+}
+
+VOID PhActivatePreviousInstance()
+{
+    HWND hwnd;
+
+    hwnd = FindWindow(PhWindowClassName, NULL);
+
+    if (hwnd)
+    {
+        ULONG_PTR result;
+
+        SendMessageTimeout(hwnd, WM_PH_ACTIVATE, 0, 0, SMTO_BLOCK, 5000, &result);
+
+        if (result == PH_ACTIVATE_REPLY)
+        {
+            SetForegroundWindow(hwnd);
+            ExitProcess(0);
+        }
+    }
 }
 
 VOID PhInitializeCommonControls()
