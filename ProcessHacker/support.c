@@ -20,7 +20,11 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define SUPPORT_PRIVATE
 #include <phgui.h>
+
+WCHAR *PhSizeUnitNames[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
+ULONG PhMaxSizeUnit = MAXULONG32;
 
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
@@ -341,6 +345,76 @@ PPH_STRING PhFormatDecimal(
     PhFree(buffer);
 
     return string;
+}
+
+PPH_STRING PhFormatSize(
+    __in ULONG64 Size
+    )
+{
+    ULONG i = 0;
+    DOUBLE s = (DOUBLE)Size;
+
+    if (Size == 0)
+        return PhCreateString(L"0");
+
+    while (
+        s > 1024 &&
+        i < sizeof(PhSizeUnitNames) / sizeof(PWSTR) &&
+        i < PhMaxSizeUnit
+        )
+    {
+        s /= 1024;
+        i++;
+    }
+
+    {
+        PPH_STRING numberString;
+        PPH_STRING formattedString;
+        PPH_STRING processedString;
+        PPH_STRING outputString;
+
+        numberString = PhFormatString(L"%f", s);
+        formattedString = PhFormatDecimal(numberString->Buffer, 2, TRUE);
+        PhDereferenceObject(numberString);
+
+        if (!formattedString)
+        {
+            return PhFormatString(L"%.2g %s", s, PhSizeUnitNames[i]);
+        }
+
+        if (
+            PhStringEndsWith2(formattedString, L"00", FALSE) &&
+            formattedString->Length >= 6
+            )
+        {
+            // Remove the last three characters.
+            processedString = PhSubstring(
+                formattedString,
+                0,
+                formattedString->Length / 2 - 3
+                );
+            PhDereferenceObject(formattedString);
+        }
+        else if (PhStringEndsWith2(formattedString, L"0", FALSE))
+        {
+            // Remove the last character.
+            processedString = PhSubstring(
+                formattedString,
+                0,
+                formattedString->Length / 2 - 1
+                );
+            PhDereferenceObject(formattedString);
+        }
+        else
+        {
+            processedString = formattedString;
+        }
+
+        outputString = PhConcatStrings(3, processedString->Buffer, L" ", PhSizeUnitNames[i]);
+        PhDereferenceObject(processedString);
+
+        return outputString;
+    }
 }
 
 PVOID PhGetFileVersionInfo(

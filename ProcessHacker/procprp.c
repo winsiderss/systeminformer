@@ -695,7 +695,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"File Name"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"File Name"); 
         }
         break;
     case WM_DESTROY:
@@ -748,7 +749,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 moduleItem
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->FileName));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->SizeString));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->FileName));
         }
         break;
     case WM_PH_MODULE_REMOVED:
