@@ -1142,6 +1142,19 @@ BOOLEAN PhStartProcess(
     __in_opt ULONG Timeout
     );
 
+PVOID PhCreateOpenFileDialog();
+
+PVOID PhCreateSaveFileDialog();
+
+BOOLEAN PhShowFileDialog(
+    __in HWND hWnd,
+    __in PVOID FileDialog
+    );
+
+VOID PhFreeFileDialog(
+    __in PVOID FileDialog
+    );
+
 FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
     __in ULONG Size

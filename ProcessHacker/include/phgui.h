@@ -4,9 +4,10 @@
 #include <phbase.h>
 #include <ph.h>
 #include <commctrl.h>
+#define COBJMACROS
 #include <shlobj.h>
+#include <prsht.h>
 #include "resource.h"
-#include "prsht.h"
 
 // main
 
