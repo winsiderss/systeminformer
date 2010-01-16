@@ -255,9 +255,13 @@ LRESULT CALLBACK PhMainWndProc(
                         NTSTATUS status;
                         HANDLE processHandle;
 
-                        if (PhShowMessage(hWnd, MB_ICONWARNING | MB_YESNO,
-                            L"Are you sure you want to terminate %s?",
-                            processItem->ProcessName->Buffer) == IDYES)
+                        if (PhShowConfirmMessage(
+                            hWnd,
+                            L"terminate",
+                            processItem->ProcessName->Buffer,
+                            L"Terminating a process will cause unsaved data to be lost.",
+                            FALSE
+                            ))
                         {
                             if (NT_SUCCESS(status = PhOpenProcess(
                                 &processHandle,

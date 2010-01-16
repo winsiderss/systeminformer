@@ -1073,6 +1073,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 {
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
     PPH_PROCESS_PROPPAGECONTEXT newPage;
+    PPH_AUTO_POOL autoPool;
     HWND hwnd;
     BOOL result;
     MSG msg;
@@ -1127,6 +1128,8 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
 
+    autoPool = PhCreateAutoPool();
+
     // Create the property sheet
 
     hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
@@ -1147,6 +1150,8 @@ NTSTATUS PhpProcessPropertiesThreadStart(
             DispatchMessage(&msg);
         }
 
+        PhDrainAutoPool(autoPool);
+
         // Destroy the window when necessary.
         if (!PropSheet_GetCurrentPageHwnd(hwnd))
         {
@@ -1156,6 +1161,8 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     }
 
     PhDereferenceObject(PropContext);
+
+    PhFreeAutoPool(autoPool);
 
     return STATUS_SUCCESS;
 }

@@ -208,6 +208,78 @@ VOID PhShowStatus(
     PhDereferenceObject(statusMessage);
 }
 
+BOOLEAN PhShowConfirmMessage(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PWSTR Object,
+    __in_opt PWSTR Message,
+    __in BOOLEAN Warning
+    )
+{
+    PPH_STRING verb;
+    PPH_STRING verbCaps;
+    PPH_STRING action;
+
+    // Make sure the verb is all lowercase.
+    verb = PhaLowerString(PhaCreateString(Verb));
+
+    // "terminate" -> "Terminate"
+    verbCaps = PhaDuplicateString(verb);
+    if (verbCaps->Length > 0) verbCaps->Buffer[0] = towupper(verbCaps->Buffer[0]);
+
+    // "terminate", "the process" -> "terminate the process"
+    action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
+
+    if (TaskDialogIndirect_I)
+    {
+        TASKDIALOGCONFIG config = { sizeof(config) };
+        TASKDIALOG_BUTTON buttons[2];
+        INT button;
+
+        config.hwndParent = hWnd;
+        config.hInstance = PhInstanceHandle;
+        config.dwFlags = TDF_USE_HICON_MAIN;
+        config.pszWindowTitle = L"Process Hacker";
+        config.pszMainIcon = Warning ? MAKEINTRESOURCE(TD_WARNING_ICON) : NULL;
+        config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
+
+        if (Message)
+            config.pszContent = PhaConcatStrings2(Message, L" Are you sure you want to continue?")->Buffer;
+
+        buttons[0].nButtonID = IDYES;
+        buttons[0].pszButtonText = verbCaps->Buffer;
+        buttons[1].nButtonID = IDNO;
+        buttons[1].pszButtonText = L"Cancel";
+
+        config.cButtons = 2;
+        config.pButtons = buttons;
+        config.nDefaultButton = IDNO;
+
+        if (TaskDialogIndirect(
+            &config,
+            &button,
+            NULL,
+            NULL
+            ) == S_OK)
+        {
+            return button == IDYES;
+        }
+        else
+        {
+            return FALSE;
+        }
+    }
+    else
+    {
+        return PhShowMessage(
+            hWnd,
+            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
+            L"Are you sure you want to %s?",
+            action->Buffer
+            ) == IDYES;
+    }
+}
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
