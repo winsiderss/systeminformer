@@ -298,9 +298,13 @@ ULONG PhGetIntegerSetting(
 
     setting = PhpLookupSetting(Name);
 
-    if (setting)
+    if (setting && setting->Type == IntegerSettingType)
     {
         value = (ULONG)setting->Value;
+    }
+    else
+    {
+        setting = NULL;
     }
 
     PhReleaseFastLockShared(&PhSettingsLock);
@@ -322,12 +326,16 @@ PH_INTEGER_PAIR PhGetIntegerPairSetting(
 
     setting = PhpLookupSetting(Name);
 
-    if (setting)
+    if (setting && setting->Type == IntegerPairSettingType)
     {
         if (setting->Value)
             value = *(PPH_INTEGER_PAIR)setting->Value;
         else
             memset(&value, 0, sizeof(PH_INTEGER_PAIR));
+    }
+    else
+    {
+        setting = NULL;
     }
 
     PhReleaseFastLockShared(&PhSettingsLock);
@@ -349,7 +357,7 @@ PPH_STRING PhGetStringSetting(
 
     setting = PhpLookupSetting(Name);
 
-    if (setting)
+    if (setting && setting->Type == StringSettingType)
     {
         if (setting->Value)
         {
@@ -360,6 +368,10 @@ PPH_STRING PhGetStringSetting(
         {
             value = PhCreateString(L"");
         }
+    }
+    else
+    {
+        setting = NULL;
     }
 
     PhReleaseFastLockShared(&PhSettingsLock);
