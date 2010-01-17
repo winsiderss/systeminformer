@@ -206,6 +206,10 @@ BOOLEAN PhMainWndInitialization(
 
     PhInitializeFont(PhMainWndHandle);
 
+    // Allow WM_PH_ACTIVATE to pass through UIPI.
+    if (WINDOWS_HAS_UAC)
+        ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
+
     // Initialize child controls.
     PhMainWndOnCreate();
 

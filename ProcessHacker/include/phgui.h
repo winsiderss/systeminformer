@@ -40,13 +40,18 @@ VOID PhInitializeWindowsVersion();
 
 // guisup
 
-typedef HRESULT (* _SetWindowTheme)(
+typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(
+    __in UINT message,
+    __in DWORD dwFlag
+    );
+
+typedef HRESULT (WINAPI *_SetWindowTheme)(
     __in HWND hwnd,
     __in LPCWSTR pszSubAppName,
     __in LPCWSTR pszSubIdList
     );
 
-typedef HRESULT (* _TaskDialogIndirect)(      
+typedef HRESULT (WINAPI *_TaskDialogIndirect)(      
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
     __in int *pnRadioButton,
@@ -54,6 +59,7 @@ typedef HRESULT (* _TaskDialogIndirect)(
     );
 
 #ifndef GUISUP_PRIVATE
+extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
 
