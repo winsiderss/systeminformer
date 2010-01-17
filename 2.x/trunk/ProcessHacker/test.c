@@ -50,7 +50,7 @@ INT_PTR CALLBACK PhpTestResizingDlgProc(
         break;
     case WM_SIZING:
         {
-            PhRectMinimumSize((PRECT)lParam, 400, 250);
+            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 250);
         }
         break;
     }
