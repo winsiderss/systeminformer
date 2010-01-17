@@ -84,6 +84,8 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         {
             PTHREAD_STACK_CONTEXT threadStackContext;
             HWND lvHandle;
+            PPH_LAYOUT_MANAGER layoutManager;
+            PPH_LAYOUT_ITEM windowItem;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
@@ -93,12 +95,30 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             threadStackContext->ListViewHandle = lvHandle;
 
+            layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
+            PhInitializeLayoutManager(layoutManager);
+            SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
+
+            windowItem = PhAddLayoutItem(layoutManager, hwndDlg, NULL, 0);
+            PhAddLayoutItem(layoutManager, lvHandle, windowItem,
+                PH_ANCHOR_ALL);
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_REFRESH),
+                windowItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDCLOSE),
+                windowItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
             PhpRefreshThreadStack(threadStackContext);
         }
         break;
     case WM_DESTROY:
         {
+            PPH_LAYOUT_MANAGER layoutManager;
+
+            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
+            PhDeleteLayoutManager(layoutManager);
+
             RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, L"LayoutManager");
         }
         break;
     case WM_COMMAND:
@@ -128,6 +148,19 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 EndDialog(hwndDlg, IDCLOSE);
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PPH_LAYOUT_MANAGER layoutManager;
+
+            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
+            PhLayoutManagerLayout(layoutManager);
+        }
+        break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, 250, 350);
         }
         break;
     }
