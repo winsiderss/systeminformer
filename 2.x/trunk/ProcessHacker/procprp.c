@@ -130,14 +130,18 @@ INT CALLBACK PhpPropSheetProc(
             }
         }
         break;
-    case PSCB_BUTTONPRESSED:
-        {
-
-        }
-        break;
     case PSCB_INITIALIZED:
         {
+            WNDPROC oldWndProc;
+            PPH_LAYOUT_MANAGER layoutManager;
 
+            oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
+            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
+            SetProp(hwndDlg, L"OldWndProc", (HANDLE)oldWndProc);
+
+            layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
+            PhInitializeLayoutManager(layoutManager, hwndDlg);
+            SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
         }
         break;
     }
@@ -156,18 +160,42 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            PPH_LAYOUT_MANAGER layoutManager;
+
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            RemoveProp(hwnd, L"OldWndProc");
+
+            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
+            PhDeleteLayoutManager(layoutManager);
+            PhFree(layoutManager);
+            RemoveProp(hwnd, L"LayoutManager");
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            PPH_LAYOUT_MANAGER layoutManager;
+
+            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
+
+            PhAddLayoutItem(layoutManager, PropSheet_GetTabControl(hwnd),
+                NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwnd, IDCANCEL),
+                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            // Hide the OK button.
+            ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+            // Set the Cancel button's text to "Close".
+            SetDlgItemText(hwnd, IDCANCEL, L"Close");
+        }
+        break;
     case WM_SIZE:
         {
-            if (wParam != SIZE_MINIMIZED)
+            if (!IsIconic(hwnd))
             {
-                RECT rect;
-
-                GetClientRect(hwnd, &rect);
-
-                if (rect.right - rect.left != 0)
-                {
-                    
-                }
+                PhLayoutManagerLayout((PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager"));
+                SendMessage(PropSheet_GetCurrentPageHwnd(hwnd), WM_SIZE, wParam, lParam);
             }
         }
         break;
@@ -296,6 +324,22 @@ VOID PhpPropPageDlgProcDestroy(
     RemoveProp(hwndDlg, L"PropPageContext");
 }
 
+PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
+    __in HWND hwnd,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor
+    )
+{
+    HWND parent;
+    PPH_LAYOUT_MANAGER layoutManager;
+
+    parent = GetParent(hwnd);
+    layoutManager = (PPH_LAYOUT_MANAGER)GetProp(parent, L"LayoutManager");
+
+    return PhAddLayoutItem(layoutManager, Handle, ParentItem, Anchor);
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -326,6 +370,23 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     case WM_DESTROY:
         {
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            PPH_LAYOUT_ITEM dialogItem;
+
+            dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+            PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_FILE),
+                dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_NAME),
+                dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_COMPANYNAME),
+                dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_TERMINATE),
+                dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
+            PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_PROCESS),
+                dialogItem, PH_ANCHOR_ALL);
         }
         break;
     case WM_COMMAND:

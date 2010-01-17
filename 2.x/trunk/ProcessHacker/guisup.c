@@ -267,12 +267,19 @@ VOID PhShowContextMenu(
 }
 
 VOID PhInitializeLayoutManager(
-    __out PPH_LAYOUT_MANAGER Manager
+    __out PPH_LAYOUT_MANAGER Manager,
+    __in HWND RootWindowHandle
     )
 {
     Manager->List = PhCreateList(4);
     Manager->LayoutNumber = 0;
-    Manager->DeferHandle = NULL;
+
+    Manager->RootItem.Handle = RootWindowHandle;
+    GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
+    Manager->RootItem.ParentItem = NULL;
+    Manager->RootItem.LayoutNumber = 0;
+    Manager->RootItem.NumberOfChildren = 0;
+    Manager->RootItem.DeferHandle = NULL;
 }
 
 VOID PhDeleteLayoutManager(
@@ -305,24 +312,24 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
 {
     PPH_LAYOUT_ITEM item;
 
+    if (!ParentItem)
+        ParentItem = &Manager->RootItem;
+
     item = PhAllocate(sizeof(PH_LAYOUT_ITEM));
     item->Handle = Handle;
     item->ParentItem = ParentItem;
     item->LayoutNumber = Manager->LayoutNumber;
+    item->NumberOfChildren = 0;
+    item->DeferHandle = NULL;
     item->Anchor = Anchor;
 
-    if (item->ParentItem)
-    {
-        GetWindowRect(Handle, &item->Rect);
-        MapWindowPoints(NULL, item->ParentItem->Handle, (POINT *)&item->Rect, 2);
+    item->ParentItem->NumberOfChildren++;
 
-        item->Margin = item->Rect;
-        PhpConvertRect(&item->Margin, &item->ParentItem->Rect);
-    }
-    else
-    {
-        GetClientRect(Handle, &item->Rect);
-    }
+    GetWindowRect(Handle, &item->Rect);
+    MapWindowPoints(NULL, item->ParentItem->Handle, (POINT *)&item->Rect, 2);
+
+    item->Margin = item->Rect;
+    PhpConvertRect(&item->Margin, &item->ParentItem->Rect);
 
     item->OrigRect = item->Rect;
 
@@ -336,78 +343,80 @@ VOID PhpLayoutItemLayout(
     __inout PPH_LAYOUT_ITEM Item
     )
 {
+    RECT rect;
+
+    if (Item->NumberOfChildren > 0 && !Item->DeferHandle)
+        Item->DeferHandle = BeginDeferWindowPos(Item->NumberOfChildren);
+
     if (Item->LayoutNumber == Manager->LayoutNumber)
         return;
 
-    if (Item->ParentItem)
+    // If this is the root item we must stop here.
+    if (!Item->ParentItem)
+        return;
+
+    PhpLayoutItemLayout(Manager, Item->ParentItem);
+
+    GetWindowRect(Item->Handle, &Item->Rect);
+    MapWindowPoints(NULL, Item->ParentItem->Handle, (POINT *)&Item->Rect, 2);
+
+    // Convert right/bottom into margins to make the calculations 
+    // easier.
+    rect = Item->Rect;
+    PhpConvertRect(&rect, &Item->ParentItem->Rect);
+
+    if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
     {
-        RECT rect;
-
-        GetWindowRect(Item->Handle, &Item->Rect);
-        MapWindowPoints(NULL, Item->ParentItem->Handle, (POINT *)&Item->Rect, 2);
-
-        PhpLayoutItemLayout(Manager, Item->ParentItem);
-
-        // Convert right/bottom into margins to make the calculations 
-        // easier.
-        rect = Item->Rect;
-        PhpConvertRect(&rect, &Item->ParentItem->Rect);
-
-        if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
-        {
-            // TODO
-            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
-        }
-        else if (Item->Anchor & PH_ANCHOR_RIGHT)
-        {
-            if (Item->Anchor & PH_ANCHOR_LEFT)
-            {
-                rect.left = Item->Margin.left;
-                rect.right = Item->Margin.right;
-            }
-            else
-            {
-                ULONG diff = Item->Margin.right - rect.right;
-
-                rect.left -= diff;
-                rect.right += diff;
-            }
-        }
-
-        if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
-        {
-            // TODO
-            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
-        }
-        else if (Item->Anchor & PH_ANCHOR_BOTTOM)
-        {
-            if (Item->Anchor & PH_ANCHOR_TOP)
-            {
-                rect.top = Item->Margin.top;
-                rect.bottom = Item->Margin.bottom;
-            }
-            else
-            {
-                ULONG diff = Item->Margin.bottom - rect.bottom;
-
-                rect.top -= diff;
-                rect.bottom += diff;
-            }
-        }
-
-        // Convert the right/bottom back into co-ordinates.
-        PhpConvertRect(&rect, &Item->ParentItem->Rect);
-        Item->Rect = rect;
-
-        DeferWindowPos(Manager->DeferHandle, Item->Handle,
-            NULL, rect.left, rect.top,
-            rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
+        // TODO
+        PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
     }
-    else
+    else if (Item->Anchor & PH_ANCHOR_RIGHT)
     {
-        GetClientRect(Item->Handle, &Item->Rect);
+        if (Item->Anchor & PH_ANCHOR_LEFT)
+        {
+            rect.left = Item->Margin.left;
+            rect.right = Item->Margin.right;
+        }
+        else
+        {
+            ULONG diff = Item->Margin.right - rect.right;
+
+            rect.left -= diff;
+            rect.right += diff;
+        }
     }
+
+    if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
+    {
+        // TODO
+        PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+    }
+    else if (Item->Anchor & PH_ANCHOR_BOTTOM)
+    {
+        if (Item->Anchor & PH_ANCHOR_TOP)
+        {
+            rect.top = Item->Margin.top;
+            rect.bottom = Item->Margin.bottom;
+        }
+        else
+        {
+            ULONG diff = Item->Margin.bottom - rect.bottom;
+
+            rect.top -= diff;
+            rect.bottom += diff;
+        }
+    }
+
+    // Convert the right/bottom back into co-ordinates.
+    PhpConvertRect(&rect, &Item->ParentItem->Rect);
+    Item->Rect = rect;
+
+    Item->ParentItem->DeferHandle = DeferWindowPos(
+        Item->ParentItem->DeferHandle, Item->Handle,
+        NULL, rect.left, rect.top,
+        rect.right - rect.left, rect.bottom - rect.top,
+        SWP_NOACTIVATE | SWP_NOZORDER
+        );
 
     Item->LayoutNumber = Manager->LayoutNumber;
 }
@@ -419,7 +428,8 @@ VOID PhLayoutManagerLayout(
     ULONG i;
 
     Manager->LayoutNumber++;
-    Manager->DeferHandle = BeginDeferWindowPos(Manager->List->Count);
+
+    GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
 
     for (i = 0; i < Manager->List->Count; i++)
     {
@@ -428,6 +438,20 @@ VOID PhLayoutManagerLayout(
         PhpLayoutItemLayout(Manager, item);
     }
 
-    EndDeferWindowPos(Manager->DeferHandle);
-    Manager->DeferHandle = NULL;
+    for (i = 0; i < Manager->List->Count; i++)
+    {
+        PPH_LAYOUT_ITEM item = (PPH_LAYOUT_ITEM)Manager->List->Items[i];
+
+        if (item->DeferHandle)
+        {
+            EndDeferWindowPos(item->DeferHandle);
+            item->DeferHandle = NULL;
+        }
+    }
+
+    if (Manager->RootItem.DeferHandle)
+    {
+        EndDeferWindowPos(Manager->RootItem.DeferHandle);
+        Manager->RootItem.DeferHandle = NULL;
+    }
 }

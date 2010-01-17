@@ -1,6 +1,13 @@
 #ifndef PROCPRPP_H
 #define PROCPRPP_H
 
+LRESULT CALLBACK PhpPropSheetWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
