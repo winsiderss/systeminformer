@@ -217,6 +217,15 @@ BOOLEAN PhShowProcessProperties(
     __in PPH_PROCESS_PROPCONTEXT Context
     );
 
+// secedit
+
+VOID PhSecurityEditorInitialization();
+
+VOID PhEditSecurity(
+    __in HWND hWnd,
+    __in PWSTR ObjectName
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(

@@ -447,6 +447,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\secedit.c"
+				>
+			</File>
+			<File
 				RelativePath=".\settings.c"
 				>
 			</File>
@@ -586,6 +590,10 @@
 			</File>
 			<File
 				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\seceditp.h"
 				>
 			</File>
 			<File
