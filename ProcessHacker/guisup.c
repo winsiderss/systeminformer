@@ -23,6 +23,7 @@
 #define GUISUP_PRIVATE
 #include <phgui.h>
 
+_ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _SetWindowTheme SetWindowTheme_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
@@ -30,6 +31,8 @@ VOID PhGuiSupportInitialization()
 {
     LoadLibrary(L"uxtheme.dll");
 
+    if (WINDOWS_HAS_UAC)
+        ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
