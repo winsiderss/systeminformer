@@ -102,6 +102,7 @@ INT WINAPI WinMain(
     BaseAutoPool = PhCreateAutoPool();
 
     PhGuiSupportInitialization();
+    PhSecurityEditorInitialization();
 
     if (!PhMainWndInitialization(nCmdShow))
     {
