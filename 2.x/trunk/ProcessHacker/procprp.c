@@ -199,6 +199,11 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             }
         }
         break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 500);
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
