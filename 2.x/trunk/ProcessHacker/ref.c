@@ -32,6 +32,9 @@ BOOLEAN PhObjectDeinitializing = FALSE;
 /** The next object to delete. */
 PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
+/** The allocated memory object type. */
+PPH_OBJECT_TYPE PhAllocType = NULL;
+
 static ULONG PhpAutoPoolTlsIndex;
 
 /**
@@ -54,6 +57,16 @@ NTSTATUS PhInitializeRef()
     // Now that the fundamental object type exists, fix it up.
     PhObjectToObjectHeader(PhObjectTypeObject)->Type = PhObjectTypeObject;
     PhObjectTypeObject->NumberOfObjects = 1;
+
+    // Create the allocated memory object type.
+    status = PhCreateObjectType(
+        &PhAllocType,
+        0,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     // Reserve a slot for the auto pool.
     PhpAutoPoolTlsIndex = TlsAlloc();
@@ -469,6 +482,27 @@ VOID PhpFreeObject(
     }
     
     PhFree(ObjectHeader);
+}
+
+/**
+ * Creates a reference-counted memory block.
+ *
+ * \param Alloc A variable which receives a pointer to the 
+ * memory block.
+ * \param Size The number of bytes to allocate.
+ */
+NTSTATUS PhCreateAlloc(
+    __out PVOID *Alloc,
+    __in SIZE_T Size
+    )
+{
+    return PhCreateObject(
+        Alloc,
+        Size,
+        0,
+        PhAllocType,
+        0
+        );
 }
 
 /**

@@ -344,7 +344,7 @@ VOID PhInitializeWindowsVersion()
         WindowsVersion = WINDOWS_NEW;
     }
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_LIMITED_ACCESS)
     {
         ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
         ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;

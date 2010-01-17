@@ -270,6 +270,36 @@ LRESULT CALLBACK PhMainWndProc(
 
             switch (id)
             {
+            case ID_HACKER_SAVE:
+                {
+                    PVOID saveFileDialog = PhCreateSaveFileDialog();
+                    PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+
+                    PhSetFileDialogFilter(saveFileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    if (PhShowFileDialog(hWnd, saveFileDialog))
+                    {
+                        PPH_STRING fileName;
+
+                        fileName = PhGetFileDialogFileName(saveFileDialog);
+
+                        PhShowMessage(
+                            hWnd,
+                            MB_ICONINFORMATION,
+                            L"You selected:\n\n%s",
+                            fileName->Buffer
+                            );
+
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(saveFileDialog);
+                }
+                break;
             case ID_HACKER_EXIT:
                 DestroyWindow(hWnd);
                 break;

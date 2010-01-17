@@ -55,6 +55,7 @@ typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
 
 #ifndef REF_PRIVATE
 extern PPH_OBJECT_TYPE PhObjectTypeObject;
+extern PPH_OBJECT_TYPE PhAllocType;
 #endif
 
 NTSTATUS PhInitializeRef();
@@ -117,6 +118,11 @@ FORCEINLINE VOID PhSwapReference(
     if (oldObject) PhDereferenceObject(oldObject);
     if (NewObject) PhReferenceObject(NewObject);
 }
+
+NTSTATUS PhCreateAlloc(
+    __out PVOID *Alloc,
+    __in SIZE_T Size
+    );
 
 PPH_AUTO_POOL PhCreateAutoPool();
 

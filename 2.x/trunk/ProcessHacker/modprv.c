@@ -102,7 +102,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         ProcessId
         )))
     {
-        if (WindowsVersion >= WINDOWS_VISTA)
+        if (WINDOWS_HAS_LIMITED_ACCESS)
         {
             // Try to get a handle with query limited information + vm read access.
             PhOpenProcess(

@@ -642,7 +642,7 @@ VOID PhThreadProviderUpdate(
             }
 
             // Get the cycle count.
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WINDOWS_HAS_THREAD_CYCLES)
             {
                 ULONG64 cycles;
 
@@ -812,7 +812,7 @@ VOID PhThreadProviderUpdate(
             }
 
             // Update the cycle count.
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WINDOWS_HAS_THREAD_CYCLES)
             {
                 ULONG64 cycles;
                 ULONG64 oldDelta;
