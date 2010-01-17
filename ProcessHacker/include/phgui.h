@@ -181,6 +181,36 @@ VOID PhLayoutManagerLayout(
     __inout PPH_LAYOUT_MANAGER Manager
     );
 
+FORCEINLINE VOID PhResizingMinimumSize(
+    __inout PRECT Rect,
+    __in WPARAM Edge,
+    __in LONG MinimumWidth,
+    __in LONG MinimumHeight
+    )
+{
+    if (Edge == WMSZ_BOTTOMRIGHT || Edge == WMSZ_RIGHT || Edge == WMSZ_TOPRIGHT)
+    {
+        if (Rect->right - Rect->left < MinimumWidth)
+            Rect->right = Rect->left + MinimumWidth;
+    }
+    else if (Edge == WMSZ_BOTTOMLEFT || Edge == WMSZ_LEFT || Edge == WMSZ_TOPLEFT)
+    {
+        if (Rect->right - Rect->left < MinimumWidth)
+            Rect->left = Rect->right - MinimumWidth;
+    }
+
+    if (Edge == WMSZ_BOTTOMRIGHT || Edge == WMSZ_BOTTOM || Edge == WMSZ_BOTTOMLEFT)
+    {
+        if (Rect->bottom - Rect->top < MinimumHeight)
+            Rect->bottom = Rect->top + MinimumHeight;
+    }
+    else if (Edge == WMSZ_TOPRIGHT || Edge == WMSZ_TOP || Edge == WMSZ_TOPLEFT)
+    {
+        if (Rect->bottom - Rect->top < MinimumHeight)
+            Rect->top = Rect->bottom - MinimumHeight;
+    }
+}
+
 // test 
 
 VOID TestResizing();
