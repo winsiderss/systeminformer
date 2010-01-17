@@ -40,7 +40,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashBytesSdbm((PBYTE)setting->Name, wcslen(setting->Name) * 2);
+    return PhHashBytesSdbm((PBYTE)setting->Name, (ULONG)wcslen(setting->Name) * 2);
 }
 
 static VOID PhpAddStringSetting(
