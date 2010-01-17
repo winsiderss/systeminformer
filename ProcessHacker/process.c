@@ -178,7 +178,7 @@ NTSTATUS PhSuspendProcess(
     __in HANDLE ProcessHandle
     )
 {
-    if (PhKphHandle && WindowsVersion >= WINDOWS_VISTA)
+    if (PhKphHandle && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
     {
         return KphSuspendProcess(PhKphHandle, ProcessHandle);
     }
@@ -198,7 +198,7 @@ NTSTATUS PhResumeProcess(
     __in HANDLE ProcessHandle
     )
 {
-    if (PhKphHandle && WindowsVersion >= WINDOWS_VISTA)
+    if (PhKphHandle && WINDOWS_HAS_PSSUSPENDRESUMEPROCESS)
     {
         return KphResumeProcess(PhKphHandle, ProcessHandle);
     }

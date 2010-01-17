@@ -1146,13 +1146,34 @@ PVOID PhCreateOpenFileDialog();
 
 PVOID PhCreateSaveFileDialog();
 
+VOID PhFreeFileDialog(
+    __in PVOID FileDialog
+    );
+
 BOOLEAN PhShowFileDialog(
     __in HWND hWnd,
     __in PVOID FileDialog
     );
 
-VOID PhFreeFileDialog(
+typedef struct _PH_FILETYPE_FILTER
+{
+    PWSTR Name;
+    PWSTR Filter;
+} PH_FILETYPE_FILTER, *PPH_FILETYPE_FILTER;
+
+VOID PhSetFileDialogFilter(
+    __in PVOID FileDialog,
+    __in PPH_FILETYPE_FILTER Filters,
+    __in ULONG NumberOfFilters
+    );
+
+PPH_STRING PhGetFileDialogFileName(
     __in PVOID FileDialog
+    );
+
+VOID PhSetFileDialogFileName(
+    __in PVOID FileDialog,
+    __in PWSTR FileName
     );
 
 FORCEINLINE PVOID PhAllocateCopy(

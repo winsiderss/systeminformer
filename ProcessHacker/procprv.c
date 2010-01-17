@@ -342,7 +342,7 @@ VOID PhpProcessQueryStage1(
         if (NT_SUCCESS(status))
         {
             // Integrity
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WINDOWS_HAS_UAC)
             {
                 HANDLE tokenHandle;
 

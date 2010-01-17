@@ -46,6 +46,12 @@ extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_7 61
 #define WINDOWS_NEW MAXLONG
 
+#define WINDOWS_HAS_IFILEDIALOG (WindowsVersion >= WINDOWS_VISTA)
+#define WINDOWS_HAS_LIMITED_ACCESS (WindowsVersion >= WINDOWS_VISTA)
+#define WINDOWS_HAS_PSSUSPENDRESUMEPROCESS (WindowsVersion >= WINDOWS_VISTA)
+#define WINDOWS_HAS_THREAD_CYCLES (WindowsVersion >= WINDOWS_VISTA)
+#define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
+
 // basesup
 
 struct _PH_OBJECT_TYPE;
