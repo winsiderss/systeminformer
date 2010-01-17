@@ -137,6 +137,54 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+#define PH_ANCHOR_LEFT 0x1
+#define PH_ANCHOR_TOP 0x2
+#define PH_ANCHOR_RIGHT 0x4
+#define PH_ANCHOR_BOTTOM 0x8
+#define PH_ANCHOR_ALL 0xf
+
+typedef struct _PH_LAYOUT_ITEM
+{
+    HWND Handle;
+    struct _PH_LAYOUT_ITEM *ParentItem;
+    ULONG LayoutNumber;
+
+    RECT Rect;
+    RECT OrigRect;
+    RECT Margin;
+    ULONG Anchor;
+} PH_LAYOUT_ITEM, *PPH_LAYOUT_ITEM;
+
+typedef struct _PH_LAYOUT_MANAGER
+{
+    PPH_LIST List;
+    ULONG LayoutNumber;
+    HDWP DeferHandle;
+} PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
+
+VOID PhInitializeLayoutManager(
+    __out PPH_LAYOUT_MANAGER Manager
+    );
+
+VOID PhDeleteLayoutManager(
+    __inout PPH_LAYOUT_MANAGER Manager
+    );
+
+PPH_LAYOUT_ITEM PhAddLayoutItem(
+    __inout PPH_LAYOUT_MANAGER Manager,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor
+    );
+
+VOID PhLayoutManagerLayout(
+    __inout PPH_LAYOUT_MANAGER Manager
+    );
+
+// test 
+
+VOID TestResizing();
+
 // mainwnd
 
 #define WM_PH_ACTIVATE (WM_APP + 99)

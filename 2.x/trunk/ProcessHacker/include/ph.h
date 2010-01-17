@@ -1019,6 +1019,18 @@ FORCEINLINE RECT PhRectangleToRect(
     return rect;
 }
 
+FORCEINLINE VOID PhRectMinimumSize(
+    __inout PRECT Rect,
+    __in LONG MinimumWidth,
+    __in LONG MinimumHeight
+    )
+{
+    if (Rect->right - Rect->left < MinimumWidth)
+        Rect->right = Rect->left + MinimumWidth;
+    if (Rect->bottom - Rect->top < MinimumHeight)
+        Rect->bottom = Rect->top + MinimumHeight;
+}
+
 VOID PhAdjustRectangleToBounds(
     __in PPH_RECTANGLE Rectangle,
     __in PPH_RECTANGLE Bounds
