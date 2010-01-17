@@ -467,6 +467,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\test.c"
+				>
+			</File>
+			<File
 				RelativePath=".\thrdprv.c"
 				>
 			</File>

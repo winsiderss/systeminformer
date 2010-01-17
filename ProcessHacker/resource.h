@@ -10,6 +10,8 @@
 #define IDD_PROCHANDLES                 106
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
+#define IDD_DIALOG1                     109
+#define IDD_TEST                        109
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_PROCGENERAL_ICON            1005
 #define IDC_PROCGENERAL_FILE            1006
@@ -39,9 +41,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        109
+#define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1016
+#define _APS_NEXT_CONTROL_VALUE         1018
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
