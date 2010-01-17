@@ -761,8 +761,53 @@ BOOLEAN PhStartProcess(
     }
 }
 
+UINT_PTR CALLBACK PhpOpenFileNameHookProc(
+    __in HWND hdlg,
+    __in UINT uiMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uiMsg)
+    {
+    case WM_NOTIFY:
+        {
+            LPOFNOTIFY header = (LPOFNOTIFY)lParam;
+
+            if (header->hdr.code == CDN_FILEOK)
+            {
+                ULONG returnLength;
+
+                returnLength = CommDlg_OpenSave_GetFilePath(
+                    header->hdr.hwndFrom,
+                    header->lpOFN->lpstrFile,
+                    header->lpOFN->nMaxFile
+                    );
+
+                if (returnLength > header->lpOFN->nMaxFile)
+                {
+                    PhFree(header->lpOFN->lpstrFile);
+                    header->lpOFN->nMaxFile = returnLength;
+                    header->lpOFN->lpstrFile = PhAllocate(header->lpOFN->nMaxFile * 2);
+
+                    returnLength = CommDlg_OpenSave_GetFilePath(
+                        header->hdr.hwndFrom,
+                        header->lpOFN->lpstrFile,
+                        header->lpOFN->nMaxFile
+                        );
+                }
+
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 OPENFILENAME *PhpCreateOpenFileName(
-    __in ULONG Type                                
+    __in ULONG Type
     )
 {
     OPENFILENAME *ofn;
@@ -772,6 +817,13 @@ OPENFILENAME *PhpCreateOpenFileName(
     *(PULONG)PTR_ADD_OFFSET(ofn, sizeof(OPENFILENAME)) = Type;
 
     ofn->lStructSize = sizeof(OPENFILENAME);
+    ofn->nMaxFile = 0x100;
+    ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
+    ofn->lpstrFileTitle = NULL;
+    ofn->Flags = OFN_ENABLEHOOK | OFN_EXPLORER;
+    ofn->lpfnHook = PhpOpenFileNameHookProc;
+
+    ofn->lpstrFile[0] = 0;
 
     return ofn;
 }
@@ -781,13 +833,14 @@ VOID PhpFreeOpenFileName(
     )
 {
     if (OpenFileName->lpstrFilter) PhFree((PVOID)OpenFileName->lpstrFilter);
+    if (OpenFileName->lpstrFile) PhFree((PVOID)OpenFileName->lpstrFile);
 
     PhFree(OpenFileName);
 }
 
 PVOID PhCreateOpenFileDialog()
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
 
@@ -814,7 +867,7 @@ PVOID PhCreateOpenFileDialog()
 
 PVOID PhCreateSaveFileDialog()
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
 
@@ -839,12 +892,26 @@ PVOID PhCreateSaveFileDialog()
     }
 }
 
+VOID PhFreeFileDialog(
+    __in PVOID FileDialog
+    )
+{
+    if (WINDOWS_HAS_IFILEDIALOG)
+    {
+        IFileDialog_Release((IFileDialog *)FileDialog);
+    }
+    else
+    {
+        PhpFreeOpenFileName((OPENFILENAME *)FileDialog);
+    }
+}
+
 BOOLEAN PhShowFileDialog(
     __in HWND hWnd,
     __in PVOID FileDialog
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_IFILEDIALOG)
     {
         return SUCCEEDED(IFileDialog_Show((IFileDialog *)FileDialog, hWnd));
     }
@@ -868,16 +935,103 @@ BOOLEAN PhShowFileDialog(
     }
 }
 
-VOID PhFreeFileDialog(
-    __in PVOID FileDialog
+VOID PhSetFileDialogFilter(
+    __in PVOID FileDialog,
+    __in PPH_FILETYPE_FILTER Filters,
+    __in ULONG NumberOfFilters
     )
 {
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_IFILEDIALOG)
     {
-        IFileDialog_Release((IFileDialog *)FileDialog);
+        IFileDialog_SetFileTypes(
+            (IFileDialog *)FileDialog,
+            NumberOfFilters,
+            (COMDLG_FILTERSPEC *)Filters
+            );
     }
     else
     {
-        PhpFreeOpenFileName((OPENFILENAME *)FileDialog);
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        PPH_STRING_BUILDER filterBuilder;
+        PPH_STRING filterString;
+        ULONG i;
+
+        filterBuilder = PhCreateStringBuilder(10);
+
+        for (i = 0; i < NumberOfFilters; i++)
+        {
+            PhStringBuilderAppend2(filterBuilder, Filters[i].Name);
+            PhStringBuilderAppendEx(filterBuilder, L"\0", 2);
+            PhStringBuilderAppend2(filterBuilder, Filters[i].Filter);
+            PhStringBuilderAppendEx(filterBuilder, L"\0", 2);
+        }
+
+        filterString = PhReferenceStringBuilderString(filterBuilder);
+        PhDereferenceObject(filterBuilder);
+
+        if (ofn->lpstrFilter)
+            PhFree((PVOID)ofn->lpstrFilter);
+
+        ofn->lpstrFilter = PhAllocateCopy(filterString->Buffer, filterString->Length + 2);
+        PhDereferenceObject(filterString);
+    }
+}
+
+PPH_STRING PhGetFileDialogFileName(
+    __in PVOID FileDialog
+    )
+{
+    if (WINDOWS_HAS_IFILEDIALOG)
+    {
+        IShellItem *result;
+        PPH_STRING fileName = NULL;
+
+        if (SUCCEEDED(IFileDialog_GetResult((IFileDialog *)FileDialog, &result)))
+        {
+            PWSTR name;
+
+            if (SUCCEEDED(IShellItem_GetDisplayName(result, SIGDN_FILESYSPATH, &name)))
+            {
+                fileName = PhCreateString(name);
+                CoTaskMemFree(name);
+            }
+
+            IShellItem_Release(result);
+        }
+
+        if (!fileName)
+        {
+            PWSTR name;
+
+            if (SUCCEEDED(IFileDialog_GetFileName((IFileDialog *)FileDialog, &name)))
+            {
+                fileName = PhCreateString(name);
+                CoTaskMemFree(name);
+            }
+        }
+
+        return fileName;
+    }
+    else
+    {
+        return PhCreateString(((OPENFILENAME *)FileDialog)->lpstrFile);
+    }
+}
+
+VOID PhSetFileDialogFileName(
+    __in PVOID FileDialog,
+    __in PWSTR FileName
+    )
+{
+    if (WINDOWS_HAS_IFILEDIALOG)
+    {
+        IFileDialog_SetFileName((IFileDialog *)FileDialog, FileName);
+    }
+    else
+    {
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+
+        PhFree((PVOID)ofn->lpstrFile);
+        ofn->lpstrFile = PhAllocateCopy(FileName, (wcslen(FileName) + 1) * 2);
     }
 }

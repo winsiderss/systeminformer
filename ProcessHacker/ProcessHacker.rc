@@ -65,6 +65,8 @@ IDR_MAINWND MENU
 BEGIN
     POPUP "&Hacker"
     BEGIN
+        MENUITEM "Save...",                     ID_HACKER_SAVE
+        MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
     POPUP "&Process"
