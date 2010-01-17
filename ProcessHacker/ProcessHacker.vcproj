@@ -46,7 +46,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="DEBUG"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -124,7 +124,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="include"
-				PreprocessorDefinitions="WIN64;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="DEBUG"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -464,10 +464,6 @@
 			</File>
 			<File
 				RelativePath=".\symprv.c"
-				>
-			</File>
-			<File
-				RelativePath=".\test.c"
 				>
 			</File>
 			<File

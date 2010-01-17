@@ -154,6 +154,8 @@ typedef struct _PH_LAYOUT_ITEM
     HWND Handle;
     struct _PH_LAYOUT_ITEM *ParentItem;
     ULONG LayoutNumber;
+    ULONG NumberOfChildren;
+    HDWP DeferHandle;
 
     RECT Rect;
     RECT OrigRect;
@@ -164,12 +166,14 @@ typedef struct _PH_LAYOUT_ITEM
 typedef struct _PH_LAYOUT_MANAGER
 {
     PPH_LIST List;
+    PH_LAYOUT_ITEM RootItem;
+
     ULONG LayoutNumber;
-    HDWP DeferHandle;
 } PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
 
 VOID PhInitializeLayoutManager(
-    __out PPH_LAYOUT_MANAGER Manager
+    __out PPH_LAYOUT_MANAGER Manager,
+    __in HWND RootWindowHandle
     );
 
 VOID PhDeleteLayoutManager(
@@ -216,10 +220,6 @@ FORCEINLINE VOID PhResizingMinimumSize(
             Rect->top = Rect->bottom - MinimumHeight;
     }
 }
-
-// test 
-
-VOID TestResizing();
 
 // mainwnd
 

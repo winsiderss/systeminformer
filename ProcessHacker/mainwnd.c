@@ -28,8 +28,8 @@ typedef BOOL (WINAPI *_FileIconInit)(
     );
 
 VOID PhMainWndOnCreate();
-VOID PhMainWndOnLayout(HDWP deferHandle);
-VOID PhMainWndTabControlOnLayout(HDWP deferHandle);
+VOID PhMainWndOnLayout(HDWP *deferHandle);
+VOID PhMainWndTabControlOnLayout(HDWP *deferHandle);
 VOID PhMainWndTabControlOnNotify(
     __in LPNMHDR Header
     );
@@ -415,7 +415,7 @@ LRESULT CALLBACK PhMainWndProc(
             if (!IsIconic(hWnd))
             {
                 HDWP deferHandle = BeginDeferWindowPos(2);
-                PhMainWndOnLayout(deferHandle);
+                PhMainWndOnLayout(&deferHandle);
                 EndDeferWindowPos(deferHandle);
             }
         }
@@ -688,20 +688,20 @@ VOID PhMainWndOnCreate()
         );
 }
 
-VOID PhMainWndOnLayout(HDWP deferHandle)
+VOID PhMainWndOnLayout(HDWP *deferHandle)
 {
     RECT rect;
 
     // Resize the tab control.
     GetClientRect(PhMainWndHandle, &rect);
-    DeferWindowPos(deferHandle, TabControlHandle, NULL,
+    *deferHandle = DeferWindowPos(*deferHandle, TabControlHandle, NULL,
         rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
         SWP_NOACTIVATE | SWP_NOZORDER);
 
     PhMainWndTabControlOnLayout(deferHandle);
 }
 
-VOID PhMainWndTabControlOnLayout(HDWP deferHandle)
+VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
 {
     RECT rect;
     INT selectedIndex;
@@ -713,19 +713,19 @@ VOID PhMainWndTabControlOnLayout(HDWP deferHandle)
 
     if (selectedIndex == ProcessesTabIndex)
     {
-        DeferWindowPos(deferHandle, ProcessListViewHandle, NULL, 
+        *deferHandle = DeferWindowPos(*deferHandle, ProcessListViewHandle, NULL, 
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        DeferWindowPos(deferHandle, ServiceListViewHandle, NULL,
+        *deferHandle = DeferWindowPos(*deferHandle, ServiceListViewHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
     else if (selectedIndex == NetworkTabIndex)
     {
-        DeferWindowPos(deferHandle, NetworkListViewHandle, NULL,
+        *deferHandle = DeferWindowPos(*deferHandle, NetworkListViewHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
@@ -749,7 +749,7 @@ VOID PhMainWndTabControlOnSelectionChanged()
 
     {
         HDWP deferHandle = BeginDeferWindowPos(1);
-        PhMainWndTabControlOnLayout(deferHandle);
+        PhMainWndTabControlOnLayout(&deferHandle);
         EndDeferWindowPos(deferHandle);
     }
 
