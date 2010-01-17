@@ -85,7 +85,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PTHREAD_STACK_CONTEXT threadStackContext;
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
-            PPH_LAYOUT_ITEM windowItem;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
@@ -96,16 +95,15 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             threadStackContext->ListViewHandle = lvHandle;
 
             layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
-            PhInitializeLayoutManager(layoutManager);
+            PhInitializeLayoutManager(layoutManager, hwndDlg);
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
 
-            windowItem = PhAddLayoutItem(layoutManager, hwndDlg, NULL, 0);
-            PhAddLayoutItem(layoutManager, lvHandle, windowItem,
+            PhAddLayoutItem(layoutManager, lvHandle, NULL,
                 PH_ANCHOR_ALL);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_REFRESH),
-                windowItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDCLOSE),
-                windowItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhpRefreshThreadStack(threadStackContext);
         }
@@ -116,6 +114,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
+            PhFree(layoutManager);
 
             RemoveProp(hwndDlg, L"Context");
             RemoveProp(hwndDlg, L"LayoutManager");
