@@ -334,6 +334,35 @@ VOID PhpProcessQueryStage1(
         PhInitializeImageVersionInfo(&Data->VersionInfo, processItem->FileName->Buffer);
     }
 
+    // Use the default EXE icon if we didn't get the file's icon.
+    {
+        SHFILEINFO fileInfo;
+
+        if (!Data->SmallIcon)
+        {
+            if (SHGetFileInfo(
+                L".exe",
+                FILE_ATTRIBUTE_NORMAL,
+                &fileInfo,
+                sizeof(SHFILEINFO),
+                SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES
+                ))
+                Data->SmallIcon = fileInfo.hIcon;
+        }
+
+        if (!Data->LargeIcon)
+        {
+            if (SHGetFileInfo(
+                L".exe",
+                FILE_ATTRIBUTE_NORMAL,
+                &fileInfo,
+                sizeof(SHFILEINFO),
+                SHGFI_ICON | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES
+                ))
+                Data->LargeIcon = fileInfo.hIcon;
+        }
+    }
+
     {
         HANDLE processHandle;
 
