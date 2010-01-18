@@ -42,6 +42,11 @@ VOID PhpSaveWindowState();
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
+VOID PhpGetSelectedProcesses(
+    __out PPH_PROCESS_ITEM **Processes,
+    __out PULONG NumberOfProcesses
+    );
+
 VOID PhpShowProcessProperties(
     __in PPH_PROCESS_ITEM ProcessItem
     );
@@ -309,80 +314,32 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_PROCESS_TERMINATE:
                 {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+                    PPH_PROCESS_ITEM *processes;
+                    ULONG numberOfProcesses;
 
-                    if (processItem)
-                    {
-                        NTSTATUS status;
-                        HANDLE processHandle;
-
-                        if (PhShowConfirmMessage(
-                            hWnd,
-                            L"terminate",
-                            processItem->ProcessName->Buffer,
-                            L"Terminating a process will cause unsaved data to be lost.",
-                            FALSE
-                            ))
-                        {
-                            if (NT_SUCCESS(status = PhOpenProcess(
-                                &processHandle,
-                                PROCESS_TERMINATE,
-                                processItem->ProcessId
-                                )))
-                            {
-                                status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
-                            }
-
-                            if (!NT_SUCCESS(status))
-                                PhShowStatus(hWnd, L"Unable to terminate the process", status, 0);
-                        }
-                    }
+                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhUiTerminateProcesses(hWnd, processes, numberOfProcesses);
+                    PhFree(processes);
                 }
                 break;
             case ID_PROCESS_SUSPEND:
                 {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+                    PPH_PROCESS_ITEM *processes;
+                    ULONG numberOfProcesses;
 
-                    if (processItem)
-                    {
-                        NTSTATUS status;
-                        HANDLE processHandle;
-
-                        if (NT_SUCCESS(status = PhOpenProcess(
-                            &processHandle,
-                            PROCESS_SUSPEND_RESUME,
-                            processItem->ProcessId
-                            )))
-                        {
-                            status = PhSuspendProcess(processHandle);
-                        }
-
-                        if (!NT_SUCCESS(status))
-                            PhShowStatus(hWnd, L"Unable to suspend the process", status, 0);
-                    }
+                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhUiSuspendProcesses(hWnd, processes, numberOfProcesses);
+                    PhFree(processes);
                 }
                 break;
             case ID_PROCESS_RESUME:
                 {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+                    PPH_PROCESS_ITEM *processes;
+                    ULONG numberOfProcesses;
 
-                    if (processItem)
-                    {
-                        NTSTATUS status;
-                        HANDLE processHandle;
-
-                        if (NT_SUCCESS(status = PhOpenProcess(
-                            &processHandle,
-                            PROCESS_SUSPEND_RESUME,
-                            processItem->ProcessId
-                            )))
-                        {
-                            status = PhResumeProcess(processHandle);
-                        }
-
-                        if (!NT_SUCCESS(status))
-                            PhShowStatus(hWnd, L"Unable to resume the process", status, 0);
-                    }
+                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhUiResumeProcesses(hWnd, processes, numberOfProcesses);
+                    PhFree(processes);
                 }
                 break;
             case ID_PROCESS_PROPERTIES:
@@ -526,6 +483,38 @@ PPH_PROCESS_ITEM PhpGetSelectedProcess()
     }
 
     return NULL;
+}
+
+VOID PhpGetSelectedProcesses(
+    __out PPH_PROCESS_ITEM **Processes,
+    __out PULONG NumberOfProcesses
+    )
+{
+    PPH_LIST list;
+    ULONG index;
+    PPH_PROCESS_ITEM processItem;
+
+    list = PhCreateList(2);
+    index = -1;
+
+    while ((index = PhFindListViewItemByFlags(
+        ProcessListViewHandle,
+        index,
+        LVNI_SELECTED
+        )) != -1)
+    {
+        if (PhGetListViewItemParam(
+            ProcessListViewHandle,
+            index,
+            &processItem
+            ))
+        {
+            PhAddListItem(list, processItem);
+        }
+    }
+
+    *Processes = PhAllocateCopy(list->Items, sizeof(PPH_PROCESS_ITEM) * list->Count);
+    *NumberOfProcesses = list->Count;
 }
 
 VOID PhpShowProcessProperties(

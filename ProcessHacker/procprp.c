@@ -459,37 +459,11 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
             case IDC_TERMINATE:
                 {
-                    if (PhShowMessage(hwndDlg, MB_ICONWARNING | MB_YESNO,
-                        L"Are you sure you want to terminate %s?",
-                        processItem->ProcessName->Buffer
-                        ) == IDYES)
-                    {
-                        NTSTATUS status;
-                        HANDLE processHandle;
-
-                        if (NT_SUCCESS(status = PhOpenProcess(
-                            &processHandle,
-                            PROCESS_TERMINATE,
-                            processItem->ProcessId
-                            )))
-                        {
-                            status = PhTerminateProcess(
-                                processHandle,
-                                STATUS_SUCCESS
-                                );
-                            CloseHandle(processHandle);
-                        }
-
-                        if (!NT_SUCCESS(status))
-                        {
-                            PhShowStatus(
-                                hwndDlg,
-                                L"Unable to terminate the process",
-                                status,
-                                0
-                                );
-                        }
-                    }
+                    PhUiTerminateProcesses(
+                        hwndDlg,
+                        &processItem,
+                        1
+                        );
                 }
                 break;
             case IDC_PERMISSIONS:

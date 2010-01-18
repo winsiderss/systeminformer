@@ -1192,6 +1192,11 @@ PPH_STRING PhaConcatStrings2(
     __in PWSTR String2
     );
 
+PPH_STRING PhaFormatString(
+    __in PWSTR Format,
+    ...
+    );
+
 PPH_STRING PhaLowerString(
     __in PPH_STRING String
     );
