@@ -23,11 +23,16 @@
 #define IDC_PROCGENERAL_COMPANYNAME     1009
 #define IDC_PROCMODULES_LIST            1009
 #define IDC_PROCTHREADS_LIST            1010
+#define IDC_PROCGENERAL_VERSION         1010
 #define IDC_PROCHANDLES_LIST            1011
 #define IDC_PROCENVIRONMENT_LIST        1012
 #define IDC_THRDSTACK_LIST              1013
 #define IDC_REFRESH                     1015
 #define IDC_PERMISSIONS                 1018
+#define IDC_PROCGENERAL_FILENAME        1020
+#define IDC_PROCGENERAL_FILENAME2       1021
+#define IDC_PROCGENERAL_CMDLINE         1021
+#define IDC_PROCGENERAL_CURDIR          1022
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -106,7 +111,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40070
-#define _APS_NEXT_CONTROL_VALUE         1019
+#define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

@@ -423,6 +423,16 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
 }
 
+PWSTR PhpGetStringOrNa(
+    __in PPH_STRING String
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return L"N/A";
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -444,10 +454,52 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
         {
             SendMessage(GetDlgItem(hwndDlg, IDC_PROCGENERAL_ICON), STM_SETICON,
                 (WPARAM)processItem->LargeIcon, 0);
+
             SetDlgItemText(hwndDlg, IDC_PROCGENERAL_NAME,
-                PhGetString(processItem->VersionInfo.FileDescription));
-            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
-                PhGetString(processItem->VersionInfo.CompanyName)); 
+                PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
+            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_VERSION,
+                PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
+            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_FILENAME,
+                PhpGetStringOrNa(processItem->FileName));
+            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_CMDLINE,
+                PhpGetStringOrNa(processItem->CommandLine));
+
+            if (processItem->VerifySignerName)
+            {
+                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                    PhaConcatStrings2(L"(Verified) ", processItem->VerifySignerName->Buffer)->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                    PhpGetStringOrNa(processItem->VersionInfo.CompanyName));
+            }
+
+            {
+                HANDLE processHandle;
+                PPH_STRING curdir = NULL;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    ProcessQueryAccess | PROCESS_VM_READ,
+                    processItem->ProcessId
+                    )))
+                {
+                    PhGetProcessPebString(
+                        processHandle,
+                        PhpoCurrentDirectory,
+                        &curdir
+                        );
+
+                    CloseHandle(processHandle);
+                }
+
+                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_CURDIR,
+                    PhpGetStringOrNa(curdir));
+
+                if (curdir)
+                    PhDereferenceObject(curdir);
+            }
         }
         break;
     case WM_DESTROY:
