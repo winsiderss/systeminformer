@@ -1498,6 +1498,8 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     BOOL result;
     MSG msg;
 
+    PhBaseThreadInitialization();
+
     // Wait for stage 1 to be processed.
     PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
 

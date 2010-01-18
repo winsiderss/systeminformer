@@ -118,7 +118,10 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
     __out PVOID *Object
     )
 {
-    if (IsEqualIID(Riid, &IID_ISecurityInformation))
+    if (
+        IsEqualIID(Riid, &IID_IUnknown) ||
+        IsEqualIID(Riid, &IID_ISecurityInformation)
+        )
     {
         PhSecurityInformation_AddRef(This);
         *Object = This;

@@ -116,11 +116,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 {
     PPH_WORK_QUEUE workQueue = (PPH_WORK_QUEUE)Parameter;
 
-    // Begin worker thread initialization
-
-    CoInitializeEx(NULL, COINIT_MULTITHREADED);
-
-    // End worker thread initialization
+    PhBaseThreadInitialization();
 
     while (TRUE)
     {
