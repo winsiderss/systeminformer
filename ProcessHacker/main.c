@@ -175,12 +175,14 @@ VOID PhInitializeCommonControls()
     InitCommonControlsEx(&icex);
 }
 
-VOID PhInitializeFont(
-    __in HWND hWnd
+HFONT PhpCreateFont(
+    __in HWND hWnd,
+    __in PWSTR Name,
+    __in ULONG Size
     )
 {
-    if (!(PhApplicationFont = CreateFont(
-        -MulDiv(8, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72),
+    return CreateFont(
+        -MulDiv(Size, GetDeviceCaps(GetDC(hWnd), LOGPIXELSY), 72),
         0,
         0,
         0,
@@ -193,8 +195,18 @@ VOID PhInitializeFont(
         CLIP_DEFAULT_PRECIS,
         DEFAULT_QUALITY,
         DEFAULT_PITCH,
-        L"Tahoma"
-        )))
+        Name
+        );
+}
+
+VOID PhInitializeFont(
+    __in HWND hWnd
+    )
+{
+    if (
+        !(PhApplicationFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8)) &&
+        !(PhApplicationFont = PhpCreateFont(hWnd, L"Tahoma", 8))
+        )
     {
         NONCLIENTMETRICS metrics;
 
