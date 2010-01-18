@@ -74,13 +74,111 @@ BEGIN
         MENUITEM "T&erminate",                  ID_PROCESS_TERMINATE
         MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
         MENUITEM "Resume",                      ID_PROCESS_RESUME
+        MENUITEM "Restart",                     ID_PROCESS_RESTART
+        MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
+        MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
+        MENUITEM "Affinity",                    ID_PROCESS_AFFINITY
+        MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
+        MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
+        POPUP "Miscellaneous"
+        BEGIN
+            MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
+            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
+            POPUP "I/O Priority"
+            BEGIN
+                MENUITEM "0",                           ID_I_0
+                MENUITEM "1",                           ID_I_1
+                MENUITEM "2",                           ID_I_2
+                MENUITEM "3",                           ID_I_3
+            END
+        END
+        POPUP "Priority"
+        BEGIN
+            MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
+            MENUITEM "High",                        ID_PRIORITY_HIGH
+            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL40050
+            MENUITEM "Normal",                      ID_PRIORITY_NORMAL40051
+            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL40052
+            MENUITEM "Idle",                        ID_PRIORITY_IDLE40053
+        END
+        POPUP "Window"
+        BEGIN
+            MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
+            MENUITEM "Restore",                     ID_WINDOW_RESTORE
+            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
+            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
+            MENUITEM SEPARATOR
+            MENUITEM "Close",                       ID_WINDOW_CLOSE
+        END
         MENUITEM "Properties",                  ID_PROCESS_PROPERTIES
+        MENUITEM SEPARATOR
+        MENUITEM "Search Online",               ID_PROCESS_SEARCHONLINE
     END
     MENUITEM "&View",                       ID_VIEW
     MENUITEM "&Tools",                      ID_TOOLS
     MENUITEM "&Users",                      ID_USERS
     MENUITEM "H&elp",                       ID_HELP
+END
+
+IDR_THREAD MENU 
+BEGIN
+    POPUP "Thread"
+    BEGIN
+        MENUITEM "T&erminate",                  ID_THREAD_TERMINATE
+        MENUITEM "Force Terminate",             ID_THREAD_FORCETERMINATE
+        MENUITEM "Suspend",                     ID_THREAD_SUSPEND
+        MENUITEM "Resume",                      ID_THREAD_RESUME
+        MENUITEM SEPARATOR
+        MENUITEM "Permissions",                 ID_THREAD_PERMISSIONS
+        MENUITEM "Token",                       ID_THREAD_TOKEN
+        POPUP "Analyze"
+        BEGIN
+            MENUITEM "Wait",                        ID_ANALYZE_WAIT
+        END
+        POPUP "Priority"
+        BEGIN
+            MENUITEM "Time Critical",               ID_PRIORITY_TIMECRITICAL
+            MENUITEM "Highest",                     ID_PRIORITY_HIGHEST
+            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL
+            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
+            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
+            MENUITEM "Lowest",                      ID_PRIORITY_LOWEST
+            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+        END
+        POPUP "I/O Priority"
+        BEGIN
+            MENUITEM "0",                           ID_I_0
+            MENUITEM "1",                           ID_I_1
+            MENUITEM "2",                           ID_I_2
+            MENUITEM "3",                           ID_I_3
+        END
+    END
+END
+
+IDR_HANDLE MENU 
+BEGIN
+    POPUP "Handle"
+    BEGIN
+        MENUITEM "Close",                       ID_HANDLE_CLOSE
+        MENUITEM "Protected",                   ID_HANDLE_PROTECTED
+        MENUITEM "Inherit",                     ID_HANDLE_INHERIT
+        MENUITEM SEPARATOR
+        MENUITEM "Prope&rties",                 ID_HANDLE_PROPERTIES
+    END
+END
+
+IDR_MODULE MENU 
+BEGIN
+    POPUP "Module"
+    BEGIN
+        MENUITEM "Get Function Address...",     ID_MODULE_GETFUNCTIONADDRESS
+        MENUITEM "Unload",                      ID_MODULE_UNLOAD
+        MENUITEM SEPARATOR
+        MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
+        MENUITEM "Properties",                  ID_MODULE_PROPERTIES
+    END
 END
 
 

@@ -205,6 +205,7 @@ BOOLEAN PhUiTerminateProcesses(
             )))
         {
             status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+            CloseHandle(processHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -250,6 +251,7 @@ BOOLEAN PhUiSuspendProcesses(
             )))
         {
             status = PhSuspendProcess(processHandle);
+            CloseHandle(processHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -295,6 +297,7 @@ BOOLEAN PhUiResumeProcesses(
             )))
         {
             status = PhResumeProcess(processHandle);
+            CloseHandle(processHandle);
         }
 
         if (!NT_SUCCESS(status))

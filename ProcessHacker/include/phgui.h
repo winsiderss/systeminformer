@@ -143,6 +143,12 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+VOID PhGetSelectedListViewItemParams(
+    __in HWND hWnd,
+    __out PVOID **Items,
+    __out PULONG NumberOfItems
+    );
+
 #define PH_ANCHOR_LEFT 0x1
 #define PH_ANCHOR_TOP 0x2
 #define PH_ANCHOR_RIGHT 0x4

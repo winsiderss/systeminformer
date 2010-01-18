@@ -492,6 +492,31 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
+PWSTR PhpGetPriorityWin32String(
+    __in LONG PriorityWin32
+    )
+{
+    switch (PriorityWin32)
+    {
+    case THREAD_PRIORITY_TIME_CRITICAL:
+        return L"Time Critical";
+    case THREAD_PRIORITY_HIGHEST:
+        return L"Highest";
+    case THREAD_PRIORITY_ABOVE_NORMAL:
+        return L"Above Normal";
+    case THREAD_PRIORITY_NORMAL:
+        return L"Normal";
+    case THREAD_PRIORITY_BELOW_NORMAL:
+        return L"Below Normal";
+    case THREAD_PRIORITY_LOWEST:
+        return L"Lowest";
+    case THREAD_PRIORITY_IDLE:
+        return L"Idle";
+    default:
+        return L"";
+    }
+}
+
 VOID PhThreadProviderUpdate(
     __in PVOID Object
     )
@@ -685,6 +710,10 @@ VOID PhThreadProviderUpdate(
 
             threadItem->StartAddress = (ULONG64)startAddress;
 
+            // Get the Win32 priority.
+            threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
+            threadItem->PriorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+
             if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
             {
                 threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
@@ -848,6 +877,19 @@ VOID PhThreadProviderUpdate(
 
                         modified = TRUE;
                     }
+                }
+            }
+
+            // Update the Win32 priority.
+            {
+                LONG oldPriorityWin32 = threadItem->PriorityWin32;
+
+                threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
+
+                if (threadItem->PriorityWin32 != oldPriorityWin32)
+                {
+                    threadItem->PriorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+                    modified = TRUE;
                 }
             }
 
