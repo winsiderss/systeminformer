@@ -4,6 +4,7 @@
 //
 #define IDI_PROCESSHACKER               101
 #define IDR_MAINWND                     102
+#define IDR_MAINWND_ACCEL               102
 #define IDD_PROCGENERAL                 103
 #define IDD_PROCMODULES                 104
 #define IDD_PROCTHREADS                 105
@@ -30,7 +31,6 @@
 #define IDC_REFRESH                     1015
 #define IDC_PERMISSIONS                 1018
 #define IDC_PROCGENERAL_FILENAME        1020
-#define IDC_PROCGENERAL_FILENAME2       1021
 #define IDC_PROCGENERAL_CMDLINE         1021
 #define IDC_PROCGENERAL_CURDIR          1022
 #define ID_MAINWND_PROCESSLV            2001
@@ -104,13 +104,14 @@
 #define ID_MODULE_OPENCONTAININGFOLDER  40067
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
+#define ID_ACCELERATOR40073             40073
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        113
-#define _APS_NEXT_COMMAND_VALUE         40070
+#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_COMMAND_VALUE         40075
 #define _APS_NEXT_CONTROL_VALUE         1021
 #define _APS_NEXT_SYMED_VALUE           104
 #endif

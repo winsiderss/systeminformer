@@ -65,7 +65,7 @@ IDR_MAINWND MENU
 BEGIN
     POPUP "&Hacker"
     BEGIN
-        MENUITEM "Save...",                     ID_HACKER_SAVE
+        MENUITEM "Save...\aCtrl+S",             ID_HACKER_SAVE
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
@@ -349,6 +349,18 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINWND_ACCEL ACCELERATORS 
+BEGIN
+    "S",            ID_HACKER_SAVE,         VIRTKEY, CONTROL, NOINVERT
+    "M",            ID_PROCESS_SEARCHONLINE, VIRTKEY, CONTROL, NOINVERT
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
