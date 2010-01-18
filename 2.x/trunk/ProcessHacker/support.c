@@ -808,6 +808,25 @@ BOOLEAN PhStartProcess(
     }
 }
 
+VOID PhShellExecute(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters
+    )
+{
+    SHELLEXECUTEINFO info = { sizeof(info) };
+
+    info.lpFile = FileName;
+    info.lpParameters = Parameters;
+    info.nShow = SW_SHOW;
+    info.hwnd = hWnd;
+
+    if (!ShellExecuteEx(&info))
+    {
+        PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+    }
+}
+
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
     __in HWND hdlg,
     __in UINT uiMsg,

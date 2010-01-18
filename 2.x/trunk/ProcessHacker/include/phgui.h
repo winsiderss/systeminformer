@@ -242,6 +242,10 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // mainwnd
 
+#ifndef MAINWND_PRIVATE
+extern HWND PhMainWndHandle;
+#endif
+
 #define WM_PH_ACTIVATE (WM_APP + 99)
 #define PH_ACTIVATE_REPLY 0x1119
 

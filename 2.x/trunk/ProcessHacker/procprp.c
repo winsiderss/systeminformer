@@ -1515,7 +1515,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PPH_AUTO_POOL autoPool;
     HWND hwnd;
     BOOL result;
-    MSG msg;
+    MSG message;
 
     PhBaseThreadInitialization();
 
@@ -1586,15 +1586,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
     // Main event loop
 
-    while (result = GetMessage(&msg, NULL, 0, 0))
+    while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
             return STATUS_UNSUCCESSFUL;
 
-        if (!PropSheet_IsDialogMessage(hwnd, &msg))
+        if (!PropSheet_IsDialogMessage(hwnd, &message))
         {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
+            TranslateMessage(&message);
+            DispatchMessage(&message);
         }
 
         PhDrainAutoPool(autoPool);

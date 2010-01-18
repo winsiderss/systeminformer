@@ -22,6 +22,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
+    PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=%s");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
     PhpAddStringSetting(L"ProcPropPage", L"General");

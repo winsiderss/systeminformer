@@ -127,10 +127,21 @@ INT PhMainMessageLoop()
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
+        BOOLEAN processed = FALSE;
+
         if (result == -1)
             return 1;
 
-        if (!TranslateAccelerator(message.hwnd, acceleratorTable, &message))
+        if (
+            message.hwnd == PhMainWndHandle ||
+            IsChild(PhMainWndHandle, message.hwnd)
+            )
+        {
+            if (TranslateAccelerator(PhMainWndHandle, acceleratorTable, &message))
+                processed = TRUE;
+        }
+
+        if (!processed)
         {
             TranslateMessage(&message);
             DispatchMessage(&message);
