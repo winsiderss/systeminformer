@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <dltmgr.h>
 
-// process
+// native
 
 /** The PID of the idle process. */
 #define SYSTEM_IDLE_PROCESS_ID ((HANDLE)0)
@@ -72,6 +72,18 @@ NTSTATUS PhOpenProcessToken(
     __out PHANDLE TokenHandle,
     __in ACCESS_MASK DesiredAccess,
     __in HANDLE ProcessHandle
+    );
+
+NTSTATUS PhGetObjectSecurity(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    );
+
+NTSTATUS PhSetObjectSecurity(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 NTSTATUS PhTerminateProcess(

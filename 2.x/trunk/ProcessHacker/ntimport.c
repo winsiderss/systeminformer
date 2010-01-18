@@ -64,6 +64,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtQueryInformationToken);
     InitProcReq("ntdll.dll", NtQueryObject);
     InitProcReq("ntdll.dll", NtQuerySection);
+    InitProcReq("ntdll.dll", NtQuerySecurityObject);
     InitProcReq("ntdll.dll", NtQuerySystemInformation);
     InitProcReq("ntdll.dll", NtQueryVirtualMemory);
     InitProcReq("ntdll.dll", NtQueueApcThread);
@@ -75,6 +76,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSetInformationProcess);
     InitProcReq("ntdll.dll", NtSetInformationThread);
     InitProcReq("ntdll.dll", NtSetInformationToken);
+    InitProcReq("ntdll.dll", NtSetSecurityObject);
     InitProcReq("ntdll.dll", NtSuspendProcess);
     InitProcReq("ntdll.dll", NtSuspendThread);
     InitProcReq("ntdll.dll", NtTerminateProcess);

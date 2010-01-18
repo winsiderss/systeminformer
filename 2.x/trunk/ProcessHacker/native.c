@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   process support functions
+ *   native support functions
  * 
  * Copyright (C) 2009-2010 wj32
  * 
@@ -136,6 +136,65 @@ NTSTATUS PhOpenProcessToken(
             TokenHandle
             );
     }
+}
+
+NTSTATUS PhGetObjectSecurity(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    )
+{
+    NTSTATUS status;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySecurityObject(
+        Handle,
+        SecurityInformation,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySecurityObject(
+            Handle,
+            SecurityInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *SecurityDescriptor = (PSECURITY_DESCRIPTOR)buffer;
+
+    return status;
+}
+
+NTSTATUS PhSetObjectSecurity(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    return NtSetSecurityObject(
+        Handle,
+        SecurityInformation,
+        SecurityDescriptor
+        );
 }
 
 /**
