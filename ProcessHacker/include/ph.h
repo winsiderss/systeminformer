@@ -1019,14 +1019,38 @@ FORCEINLINE RECT PhRectangleToRect(
     return rect;
 }
 
+FORCEINLINE VOID PhConvertRect(
+    __inout PRECT Rect,
+    __in PRECT ParentRect
+    )
+{
+    Rect->right = ParentRect->right - ParentRect->left - Rect->right;
+    Rect->bottom = ParentRect->bottom - ParentRect->top - Rect->bottom;
+}
+
+FORCEINLINE RECT PhMapRect(
+    __in RECT InnerRect,
+    __in RECT OuterRect
+    )
+{
+    RECT rect;
+
+    rect.left = InnerRect.left - OuterRect.left;
+    rect.top = InnerRect.top - OuterRect.top;
+    rect.right = InnerRect.right - OuterRect.left;
+    rect.bottom = InnerRect.bottom - OuterRect.top;
+
+    return rect;
+}
+
 VOID PhAdjustRectangleToBounds(
-    __in PPH_RECTANGLE Rectangle,
+    __inout PPH_RECTANGLE Rectangle,
     __in PPH_RECTANGLE Bounds
     );
 
 VOID PhAdjustRectangleToWorkingArea(
     __in HWND hWnd,
-    __in PPH_RECTANGLE Rectangle
+    __inout PPH_RECTANGLE Rectangle
     );
 
 PPH_STRING PhGetMessage(
