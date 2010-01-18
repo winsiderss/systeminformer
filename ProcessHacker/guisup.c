@@ -266,6 +266,39 @@ VOID PhShowContextMenu(
         );
 }
 
+VOID PhGetSelectedListViewItemParams(
+    __in HWND hWnd,
+    __out PVOID **Items,
+    __out PULONG NumberOfItems
+    )
+{
+    PPH_LIST list;
+    ULONG index;
+    PVOID param;
+
+    list = PhCreateList(2);
+    index = -1;
+
+    while ((index = PhFindListViewItemByFlags(
+        hWnd,
+        index,
+        LVNI_SELECTED
+        )) != -1)
+    {
+        if (PhGetListViewItemParam(
+            hWnd,
+            index,
+            &param
+            ))
+        {
+            PhAddListItem(list, param);
+        }
+    }
+
+    *Items = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfItems = list->Count;
+}
+
 VOID PhInitializeLayoutManager(
     __out PPH_LAYOUT_MANAGER Manager,
     __in HWND RootWindowHandle
