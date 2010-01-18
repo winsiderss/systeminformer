@@ -104,6 +104,8 @@ INT WINAPI WinMain(
     PhGuiSupportInitialization();
     PhSecurityEditorInitialization();
 
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
     if (!PhMainWndInitialization(nCmdShow))
     {
         PhShowError(NULL, L"Unable to initialize the main window.");

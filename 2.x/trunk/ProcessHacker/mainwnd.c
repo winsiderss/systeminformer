@@ -127,7 +127,7 @@ BOOLEAN PhMainWndInitialization(
             fileIconInit = (_FileIconInit)GetProcAddress(shell32, (PSTR)660);
 
             if (fileIconInit)
-                fileIconInit(TRUE);
+                fileIconInit(FALSE);
 
             FreeLibrary(shell32);
         }
