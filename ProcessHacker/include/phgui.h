@@ -143,6 +143,11 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+VOID PhEnableAllMenuItems(
+    __in HMENU Menu,
+    __in BOOLEAN Enable
+    );
+
 VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,
