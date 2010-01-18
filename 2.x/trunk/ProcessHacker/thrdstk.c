@@ -31,6 +31,20 @@ VOID PhShowThreadStackDialog(
     THREAD_STACK_CONTEXT threadStackContext;
     HANDLE threadHandle = NULL;
 
+    // We don't want stupid users screwing up the program 
+    // by stack walking the current thread or something.
+    if (ProcessId == NtCurrentProcessId())
+    {
+        if (!PhShowConfirmMessage(
+            ParentWindowHandle,
+            L"inspect",
+            L"Process Hacker's threads",
+            L"Viewing call stacks of Process Hacker's threads may lead to instability.",
+            TRUE
+            ))
+            return;
+    }
+
     threadStackContext.ProcessId = ProcessId;
     threadStackContext.ThreadId = ThreadId;
     threadStackContext.SymbolProvider = SymbolProvider;
