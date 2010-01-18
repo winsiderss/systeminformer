@@ -123,7 +123,7 @@ INT PhMainMessageLoop()
     MSG message;
     HACCEL acceleratorTable;
 
-    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+    acceleratorTable = LoadAccelerators(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {

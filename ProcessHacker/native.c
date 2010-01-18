@@ -2246,7 +2246,7 @@ NTSTATUS PhEnumKernelModules(
 {
     NTSTATUS status;
     PVOID buffer;
-    static ULONG bufferSize = 2048;
+    ULONG bufferSize = 2048;
 
     buffer = PhAllocate(bufferSize);
 
@@ -2322,7 +2322,7 @@ NTSTATUS PhEnumProcesses(
 {
     NTSTATUS status;
     PVOID buffer;
-    static ULONG bufferSize = 2048; // keep the last successful buffer size between calls
+    ULONG bufferSize = 2048;
 
     buffer = PhAllocate(bufferSize);
 
@@ -2405,7 +2405,7 @@ NTSTATUS PhEnumHandles(
 {
     NTSTATUS status;
     PVOID buffer;
-    static ULONG bufferSize = 0x1000;
+    ULONG bufferSize = 0x1000;
 
     buffer = PhAllocate(bufferSize);
 

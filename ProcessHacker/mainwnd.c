@@ -724,45 +724,54 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     )
 {
-    if (Header->code == NM_DBLCLK)
+    switch (Header->code)
     {
-        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
-
-        if (itemActivate->iItem != -1)
+    case NM_DBLCLK:
         {
-            PPH_PROCESS_ITEM processItem;
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+        }
+        break;
+    case NM_RCLICK:
+        {
+            LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
 
-            if (PhGetListViewItemParam(
-                ProcessListViewHandle,
-                itemActivate->iItem,
-                &processItem
-                ))
+            if (itemActivate->iItem != -1)
             {
-                PhpShowProcessProperties(processItem);
+                HMENU menu;
+                HMENU subMenu;
+
+                menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
+                subMenu = GetSubMenu(menu, 1);
+
+                SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
+                PhShowContextMenu(
+                    PhMainWndHandle,
+                    ProcessListViewHandle,
+                    subMenu,
+                    itemActivate->ptAction
+                    );
+                DestroyMenu(menu);
             }
         }
-    }
-    else if (Header->code == NM_RCLICK)
-    {
-        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
-
-        if (itemActivate->iItem != -1)
+        break;
+    case LVN_KEYDOWN:
         {
-            HMENU menu;
-            HMENU subMenu;
+            LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)Header;
 
-            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
-            subMenu = GetSubMenu(menu, 1);
-
-            SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
-            PhShowContextMenu(
-                PhMainWndHandle,
-                ProcessListViewHandle,
-                subMenu,
-                itemActivate->ptAction
-                );
-            DestroyMenu(menu);
+            switch (keyDown->wVKey)
+            {
+            case VK_DELETE:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
+                break;
+            case VK_SHIFT | VK_DELETE:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
+                break;
+            case VK_RETURN:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+                break;
+            }
         }
+        break;
     }
 }
 
