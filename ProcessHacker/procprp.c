@@ -520,6 +520,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_COMPANYNAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_VERSION),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_FILENAME),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_CMDLINE),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_CURDIR),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
