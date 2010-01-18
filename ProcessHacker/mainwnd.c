@@ -128,8 +128,6 @@ BOOLEAN PhMainWndInitialization(
 
             if (fileIconInit)
                 fileIconInit(FALSE);
-
-            FreeLibrary(shell32);
         }
     }
 
