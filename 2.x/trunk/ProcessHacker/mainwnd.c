@@ -490,31 +490,11 @@ VOID PhpGetSelectedProcesses(
     __out PULONG NumberOfProcesses
     )
 {
-    PPH_LIST list;
-    ULONG index;
-    PPH_PROCESS_ITEM processItem;
-
-    list = PhCreateList(2);
-    index = -1;
-
-    while ((index = PhFindListViewItemByFlags(
+    PhGetSelectedListViewItemParams(
         ProcessListViewHandle,
-        index,
-        LVNI_SELECTED
-        )) != -1)
-    {
-        if (PhGetListViewItemParam(
-            ProcessListViewHandle,
-            index,
-            &processItem
-            ))
-        {
-            PhAddListItem(list, processItem);
-        }
-    }
-
-    *Processes = PhAllocateCopy(list->Items, sizeof(PPH_PROCESS_ITEM) * list->Count);
-    *NumberOfProcesses = list->Count;
+        Processes,
+        NumberOfProcesses
+        );
 }
 
 VOID PhpShowProcessProperties(
@@ -781,6 +761,7 @@ VOID PhMainWndProcessListViewOnNotify(
             menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MAINWND));
             subMenu = GetSubMenu(menu, 1);
 
+            SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
             PhShowContextMenu(
                 PhMainWndHandle,
                 ProcessListViewHandle,

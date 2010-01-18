@@ -658,6 +658,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             switch (header->code)
             {
+            case PSN_SETACTIVE:
+                PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
+                break;
+            case PSN_KILLACTIVE:
+                PhSetProviderEnabled(&threadsContext->ProviderRegistration, FALSE);
+                break;
             case NM_DBLCLK:
                 {
                     if (header->hwndFrom == lvHandle)
@@ -685,11 +691,30 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
-            case PSN_SETACTIVE:
-                PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
-                break;
-            case PSN_KILLACTIVE:
-                PhSetProviderEnabled(&threadsContext->ProviderRegistration, FALSE);
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+
+                        if (itemActivate->iItem != -1)
+                        {
+                            HMENU menu;
+                            HMENU subMenu;
+
+                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_THREAD));
+                            subMenu = GetSubMenu(menu, 0);
+
+                            PhShowContextMenu(
+                                hwndDlg,
+                                lvHandle,
+                                subMenu,
+                                itemActivate->ptAction
+                                );
+                            DestroyMenu(menu);
+                        }
+                    }
+                }
                 break;
             }
         }
@@ -706,7 +731,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadItem
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, L"Priority Here");
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, threadItem->PriorityWin32String);
         }
         break;
     case WM_PH_THREAD_MODIFIED:
@@ -720,6 +745,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->CyclesDeltaString));
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, threadItem->PriorityWin32String);
             }
         }
         break;
@@ -887,6 +913,31 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetProviderEnabled(&modulesContext->ProviderRegistration, FALSE);
                 break;
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+
+                        if (itemActivate->iItem != -1)
+                        {
+                            HMENU menu;
+                            HMENU subMenu;
+
+                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE));
+                            subMenu = GetSubMenu(menu, 0);
+
+                            PhShowContextMenu(
+                                hwndDlg,
+                                lvHandle,
+                                subMenu,
+                                itemActivate->ptAction
+                                );
+                            DestroyMenu(menu);
+                        }
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1052,6 +1103,8 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, 0, 0);
 }
 
+
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1183,6 +1236,70 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case ID_HANDLE_CLOSE:
+                {
+                    NTSTATUS status;
+                    HANDLE processHandle;
+
+                    if (NT_SUCCESS(status = PhOpenProcess(
+                        &processHandle,
+                        PROCESS_DUP_HANDLE,
+                        processItem->ProcessId
+                        )))
+                    {
+                        PPH_HANDLE_ITEM *selectedItems;
+                        ULONG numberOfItems;
+                        ULONG i;
+
+                        PhGetSelectedListViewItemParams(
+                            lvHandle,
+                            &selectedItems,
+                            &numberOfItems
+                            );
+
+                        for (i = 0; i < numberOfItems; i++)
+                        {
+                            status = PhDuplicateObject(
+                                processHandle,
+                                selectedItems[i]->Handle,
+                                NULL,
+                                NULL,
+                                0,
+                                0,
+                                DUPLICATE_CLOSE_SOURCE
+                                );
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                if (!PhShowContinueStatus(
+                                    hwndDlg,
+                                    PhaFormatString(
+                                    L"Unable to close the handle \"%s\" (0x%Ix)",
+                                    PhGetString(selectedItems[i]->BestObjectName),
+                                    selectedItems[i]->Handle
+                                    )->Buffer,
+                                    status,
+                                    0
+                                    ))
+                                    break;
+                            }
+                        }
+
+                        CloseHandle(processHandle);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -1194,6 +1311,32 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 break;
             case PSN_KILLACTIVE:
                 PhSetProviderEnabled(&handlesContext->ProviderRegistration, FALSE);
+                break;
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+
+                        if (itemActivate->iItem != -1)
+                        {
+                            HMENU menu;
+                            HMENU subMenu;
+
+                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE));
+                            subMenu = GetSubMenu(menu, 0);
+
+                            SetMenuDefaultItem(subMenu, ID_HANDLE_PROPERTIES, FALSE);
+                            PhShowContextMenu(
+                                hwndDlg,
+                                lvHandle,
+                                subMenu,
+                                itemActivate->ptAction
+                                );
+                            DestroyMenu(menu);
+                        }
+                    }
+                }
                 break;
             }
         }

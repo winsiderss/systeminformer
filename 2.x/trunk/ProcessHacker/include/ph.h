@@ -846,9 +846,6 @@ extern PPH_OBJECT_TYPE PhThreadProviderType;
 extern PPH_OBJECT_TYPE PhThreadItemType;
 #endif
 
-#define PH_PRIORITY_STR_LEN 14
-#define PH_PRIORITY_STR_LEN_1 (PH_PRIORITY_STR_LEN + 1)
-
 typedef struct _PH_THREAD_ITEM
 {
     HANDLE ThreadId;
@@ -860,6 +857,7 @@ typedef struct _PH_THREAD_ITEM
     PPH_STRING StartAddressString;
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
     KWAIT_REASON WaitReason;
+    LONG PriorityWin32;
 
     HANDLE ThreadHandle;
 
@@ -870,7 +868,7 @@ typedef struct _PH_THREAD_ITEM
     PPH_STRING CyclesDeltaString;
 
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
-    WCHAR PriorityString[PH_PRIORITY_STR_LEN_1];
+    PWSTR PriorityWin32String;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
 typedef struct _PH_THREAD_PROVIDER
