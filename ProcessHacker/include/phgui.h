@@ -312,11 +312,68 @@ BOOLEAN PhShowProcessProperties(
 
 // secedit
 
+typedef NTSTATUS (NTAPI *PPH_GET_OBJECT_SECURITY)(
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+typedef NTSTATUS (NTAPI *PPH_SET_OBJECT_SECURITY)(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+typedef struct _PH_ACCESS_ENTRY
+{
+    PWSTR Name;
+    ACCESS_MASK Access;
+    BOOLEAN General;
+    BOOLEAN Specific;
+} PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
+
 VOID PhSecurityEditorInitialization();
 
 VOID PhEditSecurity(
     __in HWND hWnd,
-    __in PWSTR ObjectName
+    __in PWSTR ObjectName,
+    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    __in PVOID Context,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
+    );
+
+typedef NTSTATUS (NTAPI *PPH_OPEN_OBJECT)(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    );
+
+typedef struct _PH_STD_OBJECT_SECURITY
+{
+    PPH_OPEN_OBJECT OpenObject;
+    PVOID Context;
+} PH_STD_OBJECT_SECURITY, *PPH_STD_OBJECT_SECURITY;
+
+NTSTATUS PhStdGetObjectSecurity(
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+NTSTATUS PhStdSetObjectSecurity(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+// secdata
+
+BOOLEAN PhGetAccessEntries(
+    __in PWSTR Type,
+    __out PPH_ACCESS_ENTRY *AccessEntries,
+    __out PULONG NumberOfAccessEntries
     );
 
 // thrdstk

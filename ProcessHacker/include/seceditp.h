@@ -10,10 +10,20 @@ typedef struct
     ULONG RefCount;
 
     PPH_STRING ObjectName;
+    PPH_GET_OBJECT_SECURITY GetObjectSecurity;
+    PPH_SET_OBJECT_SECURITY SetObjectSecurity;
+    PVOID Context;
+    PSI_ACCESS AccessEntries;
+    ULONG NumberOfAccessEntries;
 } PhSecurityInformation;
 
 ISecurityInformation *PhSecurityInformation_Create(
-    __in PWSTR ObjectName
+    __in PWSTR ObjectName,
+    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    __in PVOID Context,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_QueryInterface(
@@ -61,7 +71,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_MapGeneric(
     __in ISecurityInformation *This,
     __in const GUID *ObjectType,
     __in PUCHAR AceFlags,
-    __in PACCESS_MASK Mask
+    __inout PACCESS_MASK Mask
     );
 
 HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetInheritTypes(

@@ -384,6 +384,15 @@ VOID PhpDoPropPageLayout(
     PhLayoutManagerLayout(layoutManager);
 }
 
+NTSTATUS PhpProcessGeneralOpenProcess(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -429,7 +438,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_COMPANYNAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_TERMINATE),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_PROCESS),
                     dialogItem, PH_ANCHOR_ALL);
@@ -446,7 +457,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (id)
             {
-            case IDC_PROCGENERAL_TERMINATE:
+            case IDC_TERMINATE:
                 {
                     if (PhShowMessage(hwndDlg, MB_ICONWARNING | MB_YESNO,
                         L"Are you sure you want to terminate %s?",
@@ -478,6 +489,30 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                                 0
                                 );
                         }
+                    }
+                }
+                break;
+            case IDC_PERMISSIONS:
+                {
+                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    stdObjectSecurity.OpenObject = PhpProcessGeneralOpenProcess;
+                    stdObjectSecurity.Context = processItem->ProcessId;
+
+                    if (PhGetAccessEntries(L"Process", &accessEntries, &numberOfAccessEntries))
+                    {
+                        PhEditSecurity(
+                            hwndDlg,
+                            processItem->ProcessName->Buffer,
+                            PhStdGetObjectSecurity,
+                            PhStdSetObjectSecurity,
+                            &stdObjectSecurity,
+                            accessEntries,
+                            numberOfAccessEntries
+                            );
+                        PhFree(accessEntries);
                     }
                 }
                 break;

@@ -12,6 +12,7 @@
 #define IDD_THRDSTACK                   108
 #define IDD_DIALOG1                     109
 #define IDC_PROCGENERAL_TERMINATE       1003
+#define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
 #define IDC_PROCGENERAL_FILE            1006
 #define IDC_PROCGENERAL_PROCESS         1007
@@ -23,6 +24,8 @@
 #define IDC_PROCENVIRONMENT_LIST        1012
 #define IDC_THRDSTACK_LIST              1013
 #define IDC_REFRESH                     1015
+#define IDC_BUTTON1                     1018
+#define IDC_PERMISSIONS                 1018
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -42,7 +45,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40011
-#define _APS_NEXT_CONTROL_VALUE         1018
+#define _APS_NEXT_CONTROL_VALUE         1019
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

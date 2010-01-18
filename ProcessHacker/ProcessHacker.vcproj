@@ -423,11 +423,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ntimport.c"
+				RelativePath=".\native.c"
 				>
 			</File>
 			<File
-				RelativePath=".\process.c"
+				RelativePath=".\ntimport.c"
 				>
 			</File>
 			<File
@@ -444,6 +444,10 @@
 			</File>
 			<File
 				RelativePath=".\ref.c"
+				>
+			</File>
+			<File
+				RelativePath=".\secdata.c"
 				>
 			</File>
 			<File
