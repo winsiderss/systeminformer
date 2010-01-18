@@ -116,6 +116,16 @@ BOOLEAN PhInitializeBase()
 }
 
 /**
+ * Initializes the base support functions for 
+ * the current thread.
+ * In practice this is used for common thread initialization.
+ */
+VOID PhBaseThreadInitialization()
+{
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+}
+
+/**
  * Allocates a block of memory.
  *
  * \param Size The number of bytes to allocate.

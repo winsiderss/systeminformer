@@ -59,6 +59,8 @@ typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
 BOOLEAN PhInitializeBase();
 
+VOID PhBaseThreadInitialization();
+
 // heap
 
 PVOID PhAllocate(
