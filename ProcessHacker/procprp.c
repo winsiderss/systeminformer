@@ -850,6 +850,22 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -962,6 +978,22 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     case WM_DESTROY:
         {
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCENVIRONMENT_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
         }
         break;
     }
@@ -1124,6 +1156,22 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhFree(handlesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCHANDLES_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
         }
         break;
     case WM_NOTIFY:
