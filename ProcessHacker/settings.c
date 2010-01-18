@@ -24,6 +24,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
+    PhpAddStringSetting(L"ProcPropPage", L"General");
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(

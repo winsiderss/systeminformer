@@ -176,12 +176,30 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             {
                 WINDOWPLACEMENT placement = { sizeof(placement) };
                 PH_RECTANGLE windowRectangle;
+                HWND tabControl;
+                TCITEM tabItem;
+                WCHAR text[32];
+
+                // Save the window position and size.
 
                 GetWindowPlacement(hwnd, &placement);
                 windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
 
                 PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
                 PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+
+                // Save the selected tab.
+
+                tabControl = PropSheet_GetTabControl(hwnd);
+
+                tabItem.mask = TCIF_TEXT;
+                tabItem.pszText = text;
+                tabItem.cchTextMax = sizeof(text) / 2 - 1;
+
+                if (TabCtrl_GetItem(tabControl, TabCtrl_GetCurSel(tabControl), &tabItem))
+                {
+                    PhSetStringSetting(L"ProcPropPage", text);
+                }
             }
         }
         break;
@@ -1493,6 +1511,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 {
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
     PPH_PROCESS_PROPPAGECONTEXT newPage;
+    PPH_STRING startPage;
     PPH_AUTO_POOL autoPool;
     HWND hwnd;
     BOOL result;
@@ -1554,7 +1573,13 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
     // Create the property sheet
 
+    startPage = PhGetStringSetting(L"ProcPropPage");
+    PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
+    PropContext->PropSheetHeader.pStartPage = startPage->Buffer;
+
     hwnd = (HWND)PropertySheet(&PropContext->PropSheetHeader);
+
+    PhDereferenceObject(startPage);
 
     PropContext->WindowHandle = hwnd;
     PhSetEvent(&PropContext->CreatedEvent);
