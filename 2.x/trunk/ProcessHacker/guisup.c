@@ -276,6 +276,7 @@ VOID PhInitializeLayoutManager(
 
     Manager->RootItem.Handle = RootWindowHandle;
     GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
+    Manager->RootItem.OrigRect = Manager->RootItem.Rect;
     Manager->RootItem.ParentItem = NULL;
     Manager->RootItem.LayoutNumber = 0;
     Manager->RootItem.NumberOfChildren = 0;
@@ -294,20 +295,36 @@ VOID PhDeleteLayoutManager(
     PhDereferenceObject(Manager->List);
 }
 
-VOID PhpConvertRect(
-    __inout PRECT Rect,
-    __in PRECT ParentRect
-    )
-{
-    Rect->right = ParentRect->right - ParentRect->left - Rect->right;
-    Rect->bottom = ParentRect->bottom - ParentRect->top - Rect->bottom;
-}
-
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
     __in PPH_LAYOUT_ITEM ParentItem,
     __in ULONG Anchor
+    )
+{
+    PPH_LAYOUT_ITEM layoutItem;
+    RECT dummy = { 0 };
+
+    layoutItem = PhAddLayoutItemEx(
+        Manager,
+        Handle,
+        ParentItem,
+        Anchor,
+        dummy
+        );
+
+    layoutItem->Margin = layoutItem->Rect;
+    PhConvertRect(&layoutItem->Margin, &layoutItem->ParentItem->Rect);
+
+    return layoutItem;
+}
+
+PPH_LAYOUT_ITEM PhAddLayoutItemEx(
+    __inout PPH_LAYOUT_MANAGER Manager,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor,
+    __in RECT Margin
     )
 {
     PPH_LAYOUT_ITEM item;
@@ -328,8 +345,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
     GetWindowRect(Handle, &item->Rect);
     MapWindowPoints(NULL, item->ParentItem->Handle, (POINT *)&item->Rect, 2);
 
-    item->Margin = item->Rect;
-    PhpConvertRect(&item->Margin, &item->ParentItem->Rect);
+    item->Margin = Margin;
 
     item->OrigRect = item->Rect;
 
@@ -363,7 +379,7 @@ VOID PhpLayoutItemLayout(
     // Convert right/bottom into margins to make the calculations 
     // easier.
     rect = Item->Rect;
-    PhpConvertRect(&rect, &Item->ParentItem->Rect);
+    PhConvertRect(&rect, &Item->ParentItem->Rect);
 
     if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
     {
@@ -408,7 +424,7 @@ VOID PhpLayoutItemLayout(
     }
 
     // Convert the right/bottom back into co-ordinates.
-    PhpConvertRect(&rect, &Item->ParentItem->Rect);
+    PhConvertRect(&rect, &Item->ParentItem->Rect);
     Item->Rect = rect;
 
     Item->ParentItem->DeferHandle = DeferWindowPos(

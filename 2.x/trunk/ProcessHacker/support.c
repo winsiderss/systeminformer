@@ -27,7 +27,7 @@ WCHAR *PhSizeUnitNames[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
 
 VOID PhAdjustRectangleToBounds(
-    __in PPH_RECTANGLE Rectangle,
+    __inout PPH_RECTANGLE Rectangle,
     __in PPH_RECTANGLE Bounds
     )
 {
@@ -44,7 +44,7 @@ VOID PhAdjustRectangleToBounds(
 
 VOID PhAdjustRectangleToWorkingArea(
     __in HWND hWnd,
-    __in PPH_RECTANGLE Rectangle
+    __inout PPH_RECTANGLE Rectangle
     )
 {
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };

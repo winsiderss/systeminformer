@@ -187,6 +187,14 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
     __in ULONG Anchor
     );
 
+PPH_LAYOUT_ITEM PhAddLayoutItemEx(
+    __inout PPH_LAYOUT_MANAGER Manager,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor,
+    __in RECT Margin
+    );
+
 VOID PhLayoutManagerLayout(
     __inout PPH_LAYOUT_MANAGER Manager
     );
@@ -277,6 +285,7 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
     PPH_PROCESS_PROPCONTEXT PropContext;
     PVOID Context;
     PROPSHEETPAGE PropSheetPage;
+    BOOLEAN LayoutInitialized;
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
 
 BOOLEAN PhProcessPropInitialization();

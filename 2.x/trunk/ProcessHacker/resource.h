@@ -11,7 +11,6 @@
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
 #define IDD_DIALOG1                     109
-#define IDD_TEST                        109
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_PROCGENERAL_ICON            1005
 #define IDC_PROCGENERAL_FILE            1006
