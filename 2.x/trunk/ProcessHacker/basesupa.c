@@ -64,7 +64,7 @@ PPH_STRING PhaConcatStrings2(
     return PHA_DEREFERENCE(PhConcatStrings2(String1, String2));
 }
 
-PPH_STRING PhaPrintfString(
+PPH_STRING PhaFormatString(
     __in PWSTR Format,
     ...
     )
