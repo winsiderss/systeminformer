@@ -55,6 +55,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     PVOID object;
     LIST_ENTRY tempListHead;
 
+    PhBaseThreadInitialization();
+
     while (providerThread->State != ProviderThreadStopping)
     {
         // Keep removing and executing providers from the list 

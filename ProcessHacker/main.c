@@ -77,6 +77,8 @@ INT WINAPI WinMain(
     if (!PhInitializeBase())
         return 1;
 
+    PhBaseThreadInitialization();
+
     if (!PhInitializeSystem())
         return 1;
 
@@ -103,8 +105,6 @@ INT WINAPI WinMain(
 
     PhGuiSupportInitialization();
     PhSecurityEditorInitialization();
-
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     if (!PhMainWndInitialization(nCmdShow))
     {
