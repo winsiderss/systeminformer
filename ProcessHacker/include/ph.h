@@ -1183,6 +1183,12 @@ BOOLEAN PhStartProcess(
     __in_opt ULONG Timeout
     );
 
+VOID PhShellExecute(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters
+    );
+
 PVOID PhCreateOpenFileDialog();
 
 PVOID PhCreateSaveFileDialog();

@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define MAINWND_PRIVATE
 #include <phgui.h>
 #include <settings.h>
 
@@ -389,6 +390,35 @@ LRESULT CALLBACK PhMainWndProc(
                     if (IsWindow(SelectedProcessWindowHandle))
                     {
                         PostMessage(SelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+                    }
+                }
+                break;
+            case ID_PROCESS_SEARCHONLINE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PPH_STRING searchEngine = PHA_DEREFERENCE(PhGetStringSetting(L"SearchEngine"));
+                        ULONG indexOfReplacement = PhStringIndexOfString(searchEngine, 0, L"%s");
+
+                        if (indexOfReplacement != -1)
+                        {
+                            PPH_STRING newString;
+
+                            // Replace "%s" with the process name.
+                            newString = PhaConcatStrings(
+                                3,
+                                PhaSubstring(searchEngine, 0, indexOfReplacement)->Buffer,
+                                processItem->ProcessName->Buffer,
+                                PhaSubstring(
+                                searchEngine,
+                                indexOfReplacement + 2,
+                                searchEngine->Length / 2 - indexOfReplacement - 2
+                                )->Buffer
+                                );
+                            PhShellExecute(hWnd, newString->Buffer, NULL);
+                        }
                     }
                 }
                 break;
