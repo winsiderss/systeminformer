@@ -22,6 +22,7 @@
 
 #include <phgui.h>
 #include <procprpp.h>
+#include <settings.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
@@ -171,6 +172,17 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
             RemoveProp(hwnd, L"LayoutManager");
+
+            {
+                WINDOWPLACEMENT placement = { sizeof(placement) };
+                PH_RECTANGLE windowRectangle;
+
+                GetWindowPlacement(hwnd, &placement);
+                windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
+
+                PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+                PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+            }
         }
         break;
     case WM_SHOWWINDOW:
@@ -191,6 +203,24 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
             // Set the Cancel button's text to "Close".
             SetDlgItemText(hwnd, IDCANCEL, L"Close");
+
+            {
+                PH_RECTANGLE windowRectangle;
+
+                windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
+                windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
+                PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
+
+                MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
+                    windowRectangle.Width, windowRectangle.Height, FALSE);
+
+                // Implement cascading by saving an offsetted rectangle.
+                windowRectangle.Left += 20;
+                windowRectangle.Top += 20;
+
+                PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+                PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+            }
         }
         break;
     case WM_SIZE:
