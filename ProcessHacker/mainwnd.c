@@ -94,6 +94,8 @@ static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
+static HWND SelectedProcessWindowHandle;
+
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     )
@@ -341,6 +343,53 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                         PhpShowProcessProperties(processItem);
+                }
+                break;
+            case ID_WINDOW_BRINGTOFRONT:
+                {
+                    if (IsWindow(SelectedProcessWindowHandle))
+                    {
+                        WINDOWPLACEMENT placement = { sizeof(placement) };
+
+                        GetWindowPlacement(SelectedProcessWindowHandle, &placement);
+
+                        if (placement.showCmd == SW_MINIMIZE)
+                            ShowWindow(SelectedProcessWindowHandle, SW_RESTORE);
+                        else
+                            SetForegroundWindow(SelectedProcessWindowHandle);
+                    }
+                }
+                break;
+            case ID_WINDOW_RESTORE:
+                {
+                    if (IsWindow(SelectedProcessWindowHandle))
+                    {
+                        ShowWindow(SelectedProcessWindowHandle, SW_RESTORE);
+                    }
+                }
+                break;
+            case ID_WINDOW_MINIMIZE:
+                {
+                    if (IsWindow(SelectedProcessWindowHandle))
+                    {
+                        ShowWindow(SelectedProcessWindowHandle, SW_MINIMIZE);
+                    }
+                }
+                break;
+            case ID_WINDOW_MAXIMIZE:
+                {
+                    if (IsWindow(SelectedProcessWindowHandle))
+                    {
+                        ShowWindow(SelectedProcessWindowHandle, SW_MAXIMIZE);
+                    }
+                }
+                break;
+            case ID_WINDOW_CLOSE:
+                {
+                    if (IsWindow(SelectedProcessWindowHandle))
+                    {
+                        PostMessage(SelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+                    }
                 }
                 break;
             }
@@ -720,6 +769,70 @@ VOID PhMainWndTabControlOnSelectionChanged()
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
 }
 
+BOOL CALLBACK PhpEnumProcessWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    ULONG processId;
+
+    if (!IsWindowVisible(hwnd))
+        return TRUE;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (processId == (ULONG)lParam)
+    {
+        SelectedProcessWindowHandle = hwnd;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID PhpInitializeProcessMenu(
+    __in HMENU Menu,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    )
+{
+#define WINDOW_MENU_INDEX 13
+
+    // Window menu
+    if (NumberOfProcesses == 1)
+    {
+        WINDOWPLACEMENT placement = { sizeof(placement) };
+
+        // Get a handle to the process' top-level window (if any).
+        SelectedProcessWindowHandle = NULL;
+        EnumWindows(PhpEnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
+
+        if (SelectedProcessWindowHandle)
+        {
+            EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_ENABLED | MF_BYPOSITION);
+        }
+        else
+        {
+            EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
+        }
+
+        GetWindowPlacement(SelectedProcessWindowHandle, &placement);
+
+        PhEnableAllMenuItems(GetSubMenu(Menu, WINDOW_MENU_INDEX), TRUE);
+
+        if (placement.showCmd == SW_MINIMIZE)
+            EnableMenuItem(Menu, ID_WINDOW_MINIMIZE, MF_DISABLED | MF_GRAYED);
+        else if (placement.showCmd == SW_MAXIMIZE)
+            EnableMenuItem(Menu, ID_WINDOW_MAXIMIZE, MF_DISABLED | MF_GRAYED);
+        else if (placement.showCmd == SW_NORMAL)
+            EnableMenuItem(Menu, ID_WINDOW_RESTORE, MF_DISABLED | MF_GRAYED);
+    }
+    else
+    {
+        EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
+    }
+}
+
 VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     )
@@ -734,8 +847,12 @@ VOID PhMainWndProcessListViewOnNotify(
     case NM_RCLICK:
         {
             LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
 
-            if (itemActivate->iItem != -1)
+            PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+
+            if (numberOfProcesses > 0)
             {
                 HMENU menu;
                 HMENU subMenu;
@@ -744,6 +861,8 @@ VOID PhMainWndProcessListViewOnNotify(
                 subMenu = GetSubMenu(menu, 1);
 
                 SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
+                PhpInitializeProcessMenu(subMenu, processes, numberOfProcesses);
+
                 PhShowContextMenu(
                     PhMainWndHandle,
                     ProcessListViewHandle,
@@ -752,6 +871,8 @@ VOID PhMainWndProcessListViewOnNotify(
                     );
                 DestroyMenu(menu);
             }
+
+            PhFree(processes);
         }
         break;
     case LVN_KEYDOWN:
