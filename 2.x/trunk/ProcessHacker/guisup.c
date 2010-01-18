@@ -266,6 +266,30 @@ VOID PhShowContextMenu(
         );
 }
 
+VOID PhEnableAllMenuItems(
+    __in HMENU Menu,
+    __in BOOLEAN Enable
+    )
+{
+    ULONG i;
+    ULONG count = GetMenuItemCount(Menu);
+
+    if (Enable)
+    {
+        for (i = 0; i < count; i++)
+        {
+            EnableMenuItem(Menu, i, MF_ENABLED | MF_BYPOSITION);
+        }
+    }
+    else
+    {
+        for (i = 0; i < count; i++)
+        {
+            EnableMenuItem(Menu, i, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
+        }
+    }
+}
+
 VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,
