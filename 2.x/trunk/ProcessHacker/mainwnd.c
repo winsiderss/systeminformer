@@ -252,18 +252,13 @@ LRESULT CALLBACK PhMainWndProc(
     case WM_DESTROY:
         {
             WINDOWPLACEMENT placement = { sizeof(placement) };
-            PH_INTEGER_PAIR windowPosition;
-            PH_INTEGER_PAIR windowSize;
+            PH_RECTANGLE windowRectangle;
 
             GetWindowPlacement(hWnd, &placement);
+            windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
 
-            windowPosition.X = placement.rcNormalPosition.left;
-            windowPosition.Y = placement.rcNormalPosition.top;
-            windowSize.X = placement.rcNormalPosition.right - placement.rcNormalPosition.left;
-            windowSize.Y = placement.rcNormalPosition.bottom - placement.rcNormalPosition.top;
-
-            PhSetIntegerPairSetting(L"MainWindowPosition", windowPosition);
-            PhSetIntegerPairSetting(L"MainWindowSize", windowSize);
+            PhSetIntegerPairSetting(L"MainWindowPosition", windowRectangle.Position);
+            PhSetIntegerPairSetting(L"MainWindowSize", windowRectangle.Size);
 
             PhpSaveWindowState();
 
