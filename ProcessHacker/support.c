@@ -192,6 +192,32 @@ INT PhShowMessage_V(
     return MessageBox(hWnd, message, PH_APP_NAME, Type);
 }
 
+PPH_STRING PhpGetStatusMessage(
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    if (!Win32Result)
+    {
+        // In some cases we want the simple Win32 messages.
+        if (
+            Status != STATUS_ACCESS_DENIED &&
+            Status != STATUS_ACCESS_VIOLATION
+            )
+        {
+            return PhGetNtMessage(Status);
+        }
+        else
+        {
+            return PhGetWin32Message(RtlNtStatusToDosError(Status));
+        }
+    }
+    else
+    {
+        return PhGetWin32Message(Win32Result);
+    }
+}
+
 VOID PhShowStatus(
     __in HWND hWnd,
     __in_opt PWSTR Message,
@@ -201,25 +227,7 @@ VOID PhShowStatus(
 {
     PPH_STRING statusMessage;
 
-    if (!Win32Result)
-    {
-        // In some cases we want the simple Win32 messages.
-        if (
-            Status != STATUS_ACCESS_DENIED &&
-            Status != STATUS_ACCESS_VIOLATION
-            )
-        {
-            statusMessage = PhGetNtMessage(Status);
-        }
-        else
-        {
-            statusMessage = PhGetWin32Message(RtlNtStatusToDosError(Status));
-        }
-    }
-    else
-    {
-        statusMessage = PhGetWin32Message(Win32Result);
-    }
+    statusMessage = PhpGetStatusMessage(Status, Win32Result);
 
     if (!statusMessage)
     {
@@ -245,6 +253,46 @@ VOID PhShowStatus(
     }
 
     PhDereferenceObject(statusMessage);
+}
+
+BOOLEAN PhShowContinueStatus(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+    INT result;
+
+    statusMessage = PhpGetStatusMessage(Status, Win32Result);
+
+    if (!statusMessage)
+    {
+        if (Message)
+        {
+            result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s.", Message);
+        }
+        else
+        {
+            result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"Unable to perform the operation.");
+        }
+
+        return result == IDOK;
+    }
+
+    if (Message)
+    {
+        result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s: %s", Message, statusMessage->Buffer);
+    }
+    else
+    {
+        result = PhShowMessage(hWnd, MB_ICONERROR | MB_OKCANCEL, L"%s", statusMessage->Buffer);
+    }
+
+    PhDereferenceObject(statusMessage);
+
+    return result == IDOK;
 }
 
 BOOLEAN PhShowConfirmMessage(
@@ -277,9 +325,8 @@ BOOLEAN PhShowConfirmMessage(
 
         config.hwndParent = hWnd;
         config.hInstance = PhInstanceHandle;
-        config.dwFlags = TDF_USE_HICON_MAIN;
         config.pszWindowTitle = L"Process Hacker";
-        config.pszMainIcon = Warning ? MAKEINTRESOURCE(TD_WARNING_ICON) : NULL;
+        config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
         config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
 
         if (Message)

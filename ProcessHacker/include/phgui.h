@@ -376,6 +376,26 @@ BOOLEAN PhGetAccessEntries(
     __out PULONG NumberOfAccessEntries
     );
 
+// actions
+
+BOOLEAN PhUiTerminateProcesses(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    );
+
+BOOLEAN PhUiSuspendProcesses(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    );
+
+BOOLEAN PhUiResumeProcesses(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(

@@ -1105,6 +1105,13 @@ VOID PhShowStatus(
     __in_opt ULONG Win32Result
     );
 
+BOOLEAN PhShowContinueStatus(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    );
+
 BOOLEAN PhShowConfirmMessage(
     __in HWND hWnd,
     __in PWSTR Verb,
