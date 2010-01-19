@@ -33,7 +33,7 @@ static BOOLEAN PhpIsDangerousProcess(
     if (!NT_SUCCESS(status))
         return FALSE;
 
-    PHA_DEREFERENCE(fileName);
+    PhaDereferenceObject(fileName);
     fileName = PHA_DEREFERENCE(PhGetFileName(fileName));
 
     systemDirectory = PHA_DEREFERENCE(PhGetSystemDirectory());
@@ -310,4 +310,231 @@ BOOLEAN PhUiResumeProcesses(
     }
 
     return success;
+}
+
+BOOLEAN PhUiRestartProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    ULONG win32Result = 0;
+    BOOLEAN cont = FALSE;
+    HANDLE processHandle = NULL;
+    BOOLEAN isPosix;
+    PPH_STRING commandLine;
+    PPH_STRING currentDirectory;
+    STARTUPINFO startupInfo;
+    PROCESS_INFORMATION processInformation;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"restart",
+            Process->ProcessName->Buffer,
+            L"The process will be restarted with the same command line and " 
+            L"working directory, but if it is running under a different user it " 
+            L"will be restarted under the current user.",
+            TRUE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    // Open the process and get the command line and current directory.
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess | PROCESS_VM_READ,
+        Process->ProcessId
+        )))
+        goto ErrorExit;
+
+    if (!NT_SUCCESS(status = PhGetProcessIsPosix(processHandle, &isPosix)))
+        goto ErrorExit;
+
+    if (isPosix)
+    {
+        PhShowError(hWnd, L"POSIX processes cannot be restarted.");
+        goto ErrorExit;
+    }
+
+    if (!NT_SUCCESS(status = PhGetProcessCommandLine(
+        processHandle,
+        &commandLine
+        )))
+        goto ErrorExit;
+
+    PhaDereferenceObject(commandLine);
+
+    if (!NT_SUCCESS(status = PhGetProcessPebString(
+        processHandle,
+        PhpoCurrentDirectory,
+        &currentDirectory
+        )))
+        goto ErrorExit;
+
+    PhaDereferenceObject(currentDirectory);
+
+    CloseHandle(processHandle);
+    processHandle = NULL;
+
+    // Open the process and terminate it.
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_TERMINATE,
+        Process->ProcessId
+        )))
+        goto ErrorExit;
+
+    if (!NT_SUCCESS(status = PhTerminateProcess(
+        processHandle,
+        STATUS_SUCCESS
+        )))
+        goto ErrorExit;
+
+    CloseHandle(processHandle);
+    processHandle = NULL;
+
+    // Start the process.
+
+    memset(&startupInfo, 0, sizeof(STARTUPINFO));
+    startupInfo.cb = sizeof(STARTUPINFO);
+
+    if (!CreateProcess(
+        NULL,
+        commandLine->Buffer,
+        NULL,
+        NULL,
+        FALSE,
+        0,
+        NULL,
+        currentDirectory->Buffer,
+        &startupInfo,
+        &processInformation
+        ))
+    {
+        win32Result = GetLastError();
+        goto ErrorExit;
+    }
+
+    CloseHandle(processInformation.hProcess);
+    CloseHandle(processInformation.hThread);
+
+ErrorExit:
+    if (processHandle)
+        CloseHandle(processHandle);
+
+    if (!NT_SUCCESS(status) || win32Result)
+    {
+        PhpShowErrorProcess(hWnd, L"restart", Process, status, win32Result);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhUiReduceWorkingSetProcesses(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfProcesses; i++)
+    {
+        NTSTATUS status;
+        ULONG win32Result = 0;
+        HANDLE processHandle;
+
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SET_QUOTA,
+            Processes[i]->ProcessId
+            )))
+        {
+            if (!SetProcessWorkingSetSize(processHandle, -1, -1))
+                win32Result = GetLastError();
+
+            CloseHandle(processHandle);
+        }
+
+        if (!NT_SUCCESS(status) || win32Result)
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorProcess(hWnd, L"reduce the working set of", Processes[i], status, win32Result))
+                break;
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSetVirtualizationProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in BOOLEAN Enable
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+    HANDLE processHandle;
+    HANDLE tokenHandle;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"set",
+            L"virtualization for the process",
+            L"Enabling or disabling virtualization for a process may " 
+            L"alter its functionality and produce undesirable effects.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        Process->ProcessId
+        )))
+    {
+        if (NT_SUCCESS(status = PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_WRITE,
+            processHandle
+            )))
+        {
+            status = PhSetTokenIsVirtualizationEnabled(tokenHandle, Enable);
+
+            CloseHandle(tokenHandle);
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"set virtualization for", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
 }
