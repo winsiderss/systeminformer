@@ -116,7 +116,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 PH_ANCHOR_ALL);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_REFRESH),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDCLOSE),
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhpRefreshThreadStack(threadStackContext);
