@@ -96,6 +96,7 @@ static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 
 static HWND SelectedProcessWindowHandle;
+static BOOLEAN SelectedProcessVirtualizationEnabled;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -363,6 +364,40 @@ LRESULT CALLBACK PhMainWndProc(
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
                     PhUiResumeProcesses(hWnd, processes, numberOfProcesses);
                     PhFree(processes);
+                }
+                break;
+            case ID_PROCESS_RESTART:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhUiRestartProcess(hWnd, processItem);
+                    }
+                }
+                break;
+            case ID_PROCESS_REDUCEWORKINGSET:
+                {
+                    PPH_PROCESS_ITEM *processes;
+                    ULONG numberOfProcesses;
+
+                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhUiReduceWorkingSetProcesses(hWnd, processes, numberOfProcesses);
+                    PhFree(processes);
+                }
+                break;
+            case ID_PROCESS_VIRTUALIZATION:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhUiSetVirtualizationProcess(
+                            hWnd,
+                            processItem,
+                            !SelectedProcessVirtualizationEnabled
+                            );
+                    }
                 }
                 break;
             case ID_PROCESS_PROPERTIES:
@@ -854,6 +889,76 @@ VOID PhpInitializeProcessMenu(
     )
 {
 #define WINDOW_MENU_INDEX 13
+
+    if (NumberOfProcesses == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfProcesses == 1)
+    {
+        // Do nothing - all menu items are enabled by default.
+    }
+    else
+    {
+        ULONG menuItemsMultiEnabled[] =
+        {
+            ID_PROCESS_TERMINATE,
+            ID_PROCESS_TERMINATETREE,
+            ID_PROCESS_SUSPEND,
+            ID_PROCESS_RESUME,
+            ID_PROCESS_REDUCEWORKINGSET
+        };
+        ULONG i;
+
+        PhEnableAllMenuItems(Menu, FALSE);
+
+        // These menu items are capable of manipulating 
+        // multiple processes.
+        for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
+        {
+            EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
+        }
+    }
+
+    // Virtualization
+    if (NumberOfProcesses == 1)
+    {
+        HANDLE processHandle;
+        HANDLE tokenHandle;
+        BOOLEAN allowed = FALSE;
+        BOOLEAN enabled = FALSE;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            Processes[0]->ProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhOpenProcessToken(
+                &tokenHandle,
+                TOKEN_QUERY,
+                processHandle
+                )))
+            {
+                PhGetTokenIsVirtualizationAllowed(tokenHandle, &allowed);
+                PhGetTokenIsVirtualizationEnabled(tokenHandle, &enabled);
+                SelectedProcessVirtualizationEnabled = enabled;
+
+                CloseHandle(tokenHandle);
+            }
+
+            CloseHandle(processHandle);
+        }
+
+        if (!allowed)
+        {
+            EnableMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, MF_DISABLED | MF_GRAYED);
+        }
+        else
+        {
+            CheckMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, enabled ? MF_CHECKED : MF_UNCHECKED);
+        }
+    }
 
     // Window menu
     if (NumberOfProcesses == 1)

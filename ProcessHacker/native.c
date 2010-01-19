@@ -1642,6 +1642,74 @@ NTSTATUS PhGetTokenPrivileges(
 }
 
 /**
+ * Gets whether virtualization is allowed for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param IsVirtualizationAllowed A variable which receives 
+ * a boolean indicating whether virtualization is allowed 
+ * for the token.
+ */
+NTSTATUS PhGetTokenIsVirtualizationAllowed(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN IsVirtualizationAllowed
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationAllowed;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationAllowed,
+        &virtualizationAllowed,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsVirtualizationAllowed = !!virtualizationAllowed;
+
+    return status;
+}
+
+/**
+ * Gets whether virtualization is enabled for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param IsVirtualizationAllowed A variable which receives 
+ * a boolean indicating whether virtualization is enabled 
+ * for the token.
+ */
+NTSTATUS PhGetTokenIsVirtualizationEnabled(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN IsVirtualizationEnabled
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    ULONG virtualizationEnabled;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenVirtualizationEnabled,
+        &virtualizationEnabled,
+        sizeof(ULONG),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *IsVirtualizationEnabled = !!virtualizationEnabled;
+
+    return status;
+}
+
+/**
  * Modifies a token privilege.
  *
  * \param TokenHandle A handle to a token. The handle
@@ -1697,6 +1765,31 @@ BOOLEAN PhSetTokenPrivilege(
         return FALSE;
 
     return TRUE;
+}
+
+/**
+ * Sets whether virtualization is enabled for a token.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_WRITE access.
+ * \param IsVirtualizationEnabled A boolean indicating 
+ * whether virtualization is to be enabled for the token.
+ */
+NTSTATUS PhSetTokenIsVirtualizationEnabled(
+    __in HANDLE TokenHandle,
+    __in BOOLEAN IsVirtualizationEnabled
+    )
+{
+    ULONG virtualizationEnabled;
+
+    virtualizationEnabled = IsVirtualizationEnabled;
+
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenVirtualizationEnabled,
+        &virtualizationEnabled,
+        sizeof(ULONG)
+        );
 }
 
 /**
