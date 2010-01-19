@@ -155,7 +155,7 @@ VOID PhpThreadProviderDeleteProcedure(
 
         while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
         {
-            PhDereferenceObject(data->StartAddressString);
+            if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }
@@ -618,7 +618,7 @@ VOID PhThreadProviderUpdate(
         {
             PhReleaseMutex(&threadProvider->QueryQueueLock);
 
-            if (data->StartAddressResolveLevel == PhsrlFunction)
+            if (data->StartAddressResolveLevel == PhsrlFunction && data->StartAddressString)
             {
                 PhSwapReference(&data->ThreadItem->StartAddressString, data->StartAddressString);
                 data->ThreadItem->StartAddressResolveLevel = data->StartAddressResolveLevel;
@@ -626,6 +626,7 @@ VOID PhThreadProviderUpdate(
 
             data->ThreadItem->JustResolved = TRUE;
 
+            if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
             PhAcquireMutex(&threadProvider->QueryQueueLock);

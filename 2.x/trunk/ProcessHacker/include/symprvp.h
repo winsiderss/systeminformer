@@ -5,7 +5,7 @@
 
 typedef BOOL (WINAPI *_SymInitialize)(
     __in HANDLE hProcess,
-    __in_opt PCTSTR UserSearchPath,
+    __in_opt PCSTR UserSearchPath,
     __in BOOL fInvadeProcess
     );
 
@@ -25,7 +25,7 @@ typedef BOOL (WINAPI *_SymFromAddr)(
     __in HANDLE hProcess,
     __in DWORD64 Address,
     __out_opt PDWORD64 Displacement,
-    __inout PSYMBOL_INFOW Symbol
+    __inout PSYMBOL_INFO Symbol
     );
 
 typedef DWORD64 (WINAPI *_SymLoadModule64)(
@@ -45,13 +45,13 @@ typedef DWORD (WINAPI *_SymSetOptions)(
 
 typedef BOOL (WINAPI *_SymGetSearchPath)(
     __in HANDLE hProcess,
-    __out PTSTR SearchPath,
+    __out PSTR SearchPath,
     __in DWORD SearchPathLength
     );
 
 typedef BOOL (WINAPI *_SymSetSearchPath)(
     __in HANDLE hProcess,
-    __in_opt PCTSTR SearchPath
+    __in_opt PCSTR SearchPath
     );
 
 typedef BOOL (WINAPI *_SymUnloadModule64)(
