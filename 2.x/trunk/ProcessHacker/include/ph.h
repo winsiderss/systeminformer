@@ -275,11 +275,26 @@ NTSTATUS PhGetTokenPrivileges(
     __out PTOKEN_PRIVILEGES *Privileges
     );
 
+NTSTATUS PhGetTokenIsVirtualizationAllowed(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN IsVirtualizationAllowed
+    );
+
+NTSTATUS PhGetTokenIsVirtualizationEnabled(
+    __in HANDLE TokenHandle,
+    __out PBOOLEAN IsVirtualizationEnabled
+    );
+
 BOOLEAN PhSetTokenPrivilege(
     __in HANDLE TokenHandle,
     __in_opt PWSTR PrivilegeName,
     __in_opt PLUID PrivilegeLuid,
     __in ULONG Attributes
+    );
+
+NTSTATUS PhSetTokenIsVirtualizationEnabled(
+    __in HANDLE TokenHandle,
+    __in BOOLEAN IsVirtualizationEnabled
     );
 
 NTSTATUS PhGetTokenIntegrityLevel(

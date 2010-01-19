@@ -416,6 +416,23 @@ BOOLEAN PhUiResumeProcesses(
     __in ULONG NumberOfProcesses
     );
 
+BOOLEAN PhUiRestartProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
+BOOLEAN PhUiReduceWorkingSetProcesses(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    );
+
+BOOLEAN PhUiSetVirtualizationProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in BOOLEAN Enable
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
