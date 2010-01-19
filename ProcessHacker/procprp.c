@@ -68,6 +68,23 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     propContext->PropSheetPages =
         PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
 
+    if (
+        ProcessItem->ProcessId != DPCS_PROCESS_ID &&
+        ProcessItem->ProcessId != INTERRUPTS_PROCESS_ID
+        )
+    {
+        propContext->Title = PhFormatString(
+            L"%s (%u)",
+            ProcessItem->ProcessName->Buffer,
+            (ULONG)ProcessItem->ProcessId
+            );
+    }
+    else
+    {
+        propContext->Title = ProcessItem->ProcessName;
+        PhReferenceObject(propContext->Title);
+    }
+
     memset(&propSheetHeader, 0, sizeof(PROPSHEETHEADER));
     propSheetHeader.dwSize = sizeof(PROPSHEETHEADER);
     propSheetHeader.dwFlags =
@@ -79,7 +96,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         PSH_USEHICON;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.hIcon = ProcessItem->SmallIcon;
-    propSheetHeader.pszCaption = ProcessItem->ProcessName->Buffer;
+    propSheetHeader.pszCaption = propContext->Title->Buffer;
     propSheetHeader.pfnCallback = PhpPropSheetProc;
 
     propSheetHeader.nPages = 0;
@@ -103,6 +120,7 @@ VOID NTAPI PhpProcessPropContextDeleteProcedure(
     PPH_PROCESS_PROPCONTEXT propContext = (PPH_PROCESS_PROPCONTEXT)Object;
 
     PhFree(propContext->PropSheetPages);
+    PhDereferenceObject(propContext->Title);
     PhDereferenceObject(propContext->ProcessItem);
 }
 
