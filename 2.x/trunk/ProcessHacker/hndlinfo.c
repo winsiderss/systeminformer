@@ -107,7 +107,7 @@ NTSTATUS PhpGetObjectTypeName(
     else
     {
         POBJECT_TYPE_INFORMATION buffer;
-        ULONG returnLength;
+        ULONG returnLength = 0;
         PPH_STRING oldTypeName;
 
         // Get the needed buffer size.
@@ -202,7 +202,7 @@ NTSTATUS PhpGetObjectName(
 {
     NTSTATUS status;
     POBJECT_NAME_INFORMATION buffer;
-    ULONG returnLength;
+    ULONG returnLength = 0;
 
     // Get the needed buffer size.
     if (PhKphHandle)
