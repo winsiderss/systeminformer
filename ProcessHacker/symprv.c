@@ -81,15 +81,15 @@ VOID PhSymbolProviderDynamicImport()
     // The user should have loaded dbghelp.dll and symsrv.dll 
     // already. If not, it's not our problem.
 
-    SymInitialize_I = PhGetProcAddress(L"dbghelp.dll", "SymInitializeW");
+    SymInitialize_I = PhGetProcAddress(L"dbghelp.dll", "SymInitialize");
     SymCleanup_I = PhGetProcAddress(L"dbghelp.dll", "SymCleanup");
-    SymEnumSymbols_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW");
-    SymFromAddr_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW");
+    SymEnumSymbols_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbols");
+    SymFromAddr_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddr");
     SymLoadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymLoadModule64");
     SymGetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymGetOptions");
     SymSetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymSetOptions");
-    SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW");
-    SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW");
+    SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPath");
+    SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPath");
     SymUnloadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymUnloadModule64");
     SymFunctionTableAccess64_I = PhGetProcAddress(L"dbghelp.dll", "SymFunctionTableAccess64");
     SymGetModuleBase64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetModuleBase64");
@@ -272,7 +272,7 @@ PPH_STRING PhGetSymbolFromAddress(
     __out_opt PULONG64 Displacement
     )
 {
-    PSYMBOL_INFOW symbolInfo;
+    PSYMBOL_INFO symbolInfo;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
     ULONG64 displacement;
@@ -280,6 +280,9 @@ PPH_STRING PhGetSymbolFromAddress(
     PPH_STRING modBaseName = NULL;
     ULONG64 modBase;
     PPH_STRING symbolName = NULL;
+
+    if (!SymFromAddr_I)
+        return NULL;
 
     if (Address == 0)
     {
@@ -291,7 +294,7 @@ PPH_STRING PhGetSymbolFromAddress(
         return NULL;
     }
 
-    symbolInfo = PhAllocate(sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN * 2);
+    symbolInfo = PhAllocate(sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN);
     memset(symbolInfo, 0, sizeof(SYMBOL_INFO));
     symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
     symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
@@ -376,9 +379,9 @@ PPH_STRING PhGetSymbolFromAddress(
     // If we have everything, return the full symbol 
     // name: module!symbol+offset.
 
-    symbolName = PhCreateStringEx(
+    symbolName = PhCreateStringFromAnsiEx(
         symbolInfo->Name,
-        symbolInfo->NameLen * 2
+        symbolInfo->NameLen
         );
 
     resolveLevel = PhsrlFunction;
@@ -514,6 +517,9 @@ BOOLEAN PhStackWalk(
     )
 {
     BOOLEAN result;
+
+    if (!StackWalk64_I)
+        return FALSE;
 
     if (!FunctionTableAccessRoutine)
         FunctionTableAccessRoutine = SymFunctionTableAccess64_I;

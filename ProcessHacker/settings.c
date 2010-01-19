@@ -17,6 +17,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
+    PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddIntegerSetting(L"AllowMultipleInstances", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
