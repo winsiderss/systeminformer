@@ -140,8 +140,9 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             switch (id)
             {
-            case IDCLOSE:
-                EndDialog(hwndDlg, IDCLOSE);
+            case IDCANCEL: // Esc and X button to close
+            case IDOK:
+                EndDialog(hwndDlg, IDOK);
                 break;
             case IDC_REFRESH:
                 {
@@ -149,16 +150,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                         (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context")
                         );
                 }
-                break;
-            }
-        }
-        break;
-    case WM_SYSCOMMAND:
-        {
-            switch (wParam)
-            {
-            case SC_CLOSE:
-                EndDialog(hwndDlg, IDCLOSE);
                 break;
             }
         }
