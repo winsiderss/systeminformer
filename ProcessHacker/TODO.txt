@@ -1,4 +1,3 @@
-* Resizing
 * Process tree
 * Column re-ordering
 * Column chooser
@@ -9,13 +8,13 @@
 * Network provider
 
 * Process properties:
-	* Complete the General tab
+	* Complete the General tab (partially done)
 	* Memory provider
 	* Job
 
 * Better object names for TmEn, TmRm, TmTm, TmTx
 
-* Statistics collection
+* Statistics collection (partially done)
 * Graph controls
 * System information window
 * Hidden processes
