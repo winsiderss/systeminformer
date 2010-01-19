@@ -341,7 +341,7 @@ BOOLEAN PhShowConfirmMessage(
         config.pButtons = buttons;
         config.nDefaultButton = IDNO;
 
-        if (TaskDialogIndirect(
+        if (TaskDialogIndirect_I(
             &config,
             &button,
             NULL,
