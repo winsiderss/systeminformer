@@ -124,6 +124,13 @@ VOID NTAPI PhpProcessPropContextDeleteProcedure(
     PhDereferenceObject(propContext->ProcessItem);
 }
 
+VOID PhRefreshProcessPropContext(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext
+    )
+{
+    PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
+}
+
 INT CALLBACK PhpPropSheetProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1539,6 +1546,9 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
     // Wait for stage 1 to be processed.
     PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
+    // Refresh the icon which may have been updated due to 
+    // stage 1.
+    PhRefreshProcessPropContext(PropContext);
 
     // Add the pages...
 

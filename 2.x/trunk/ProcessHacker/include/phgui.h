@@ -311,6 +311,10 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhRefreshProcessPropContext(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext
+    );
+
 BOOLEAN PhAddProcessPropPage(
     __inout PPH_PROCESS_PROPCONTEXT PropContext,
     __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
