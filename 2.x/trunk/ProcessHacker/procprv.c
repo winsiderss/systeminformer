@@ -216,7 +216,9 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
     processItem->ProcessId = ProcessId;
-    PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
+
+    if (ProcessId != DPCS_PROCESS_ID && ProcessId != INTERRUPTS_PROCESS_ID)
+        PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
 
     return processItem;
 }
