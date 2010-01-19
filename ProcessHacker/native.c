@@ -1352,7 +1352,7 @@ NTSTATUS PhWalkThreadStack(
                 break;
 
             // If we have an invalid instruction pointer, break.
-            if (!stackFrame.AddrPC.Offset)
+            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
                 break;
 
             // Convert the stack frame and execute the callback.
@@ -1421,7 +1421,7 @@ SkipAmd64Stack:
                 break;
 
             // If we have an invalid instruction pointer, break.
-            if (!stackFrame.AddrPC.Offset)
+            if (!stackFrame.AddrPC.Offset || stackFrame.AddrPC.Offset == -1)
                 break;
 
             // Convert the stack frame and execute the callback.

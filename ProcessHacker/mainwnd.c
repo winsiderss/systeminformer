@@ -139,6 +139,31 @@ BOOLEAN PhMainWndInitialization(
         PPH_STRING dbghelpPath;
         HMODULE dbghelpModule;
 
+        // Try to set up the path automatically if this is the first run. 
+        {
+            if (PhGetIntegerSetting(L"FirstRun"))
+            {
+                PPH_STRING autoDbghelpPath;
+
+                autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
+                    CSIDL_PROGRAM_FILES,
+#ifdef _M_IX86
+                    L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
+#else
+                    L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
+#endif
+                    ));
+
+                if (autoDbghelpPath)
+                {
+                    if (PhFileExists(autoDbghelpPath->Buffer))
+                    {
+                        PhSetStringSetting(L"DbgHelpPath", autoDbghelpPath->Buffer);
+                    }
+                }
+            }
+        }
+
         dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
 
         if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
@@ -172,6 +197,8 @@ BOOLEAN PhMainWndInitialization(
 
         PhSymbolProviderDynamicImport();
     }
+
+    PhSetIntegerSetting(L"FirstRun", FALSE);
 
     // Initialize the providers.
     PhInitializeProviderThread(&PhPrimaryProviderThread, 1000);
