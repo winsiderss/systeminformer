@@ -561,6 +561,49 @@ BOOLEAN PhUiSetVirtualizationProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiDetachFromDebuggerProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE debugObjectHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_SUSPEND_RESUME,
+        Process->ProcessId
+        )))
+    {
+        if (NT_SUCCESS(status = PhGetProcessDebugObject(
+            processHandle,
+            &debugObjectHandle
+            )))
+        {
+            status = NtRemoveProcessDebug(processHandle, debugObjectHandle);
+
+            CloseHandle(debugObjectHandle);
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    if (status == STATUS_PORT_NOT_SET)
+    {
+        PhShowInformation(hWnd, L"The process is not being debugged.");
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"detach debugger from", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiInjectDllProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process

@@ -533,6 +533,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntdbg.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntexapi.h"
 				>
 			</File>

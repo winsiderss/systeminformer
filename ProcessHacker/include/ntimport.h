@@ -8,6 +8,7 @@
 #include <ntobapi.h>
 #include <ntpsapi.h>
 #include <ntseapi.h>
+#include <ntdbg.h>
 #include <ntrtl.h>
 
 #ifdef NTIMPORT_PRIVATE
@@ -22,7 +23,9 @@ EXT _NtAlertResumeThread NtAlertResumeThread EQNULL;
 EXT _NtAlertThread NtAlertThread EQNULL;
 EXT _NtAllocateVirtualMemory NtAllocateVirtualMemory EQNULL;
 EXT _NtClose NtClose EQNULL;
+EXT _NtCreateDebugObject NtCreateDebugObject EQNULL;
 EXT _NtCreateFile NtCreateFile EQNULL;
+EXT _NtDebugActiveProcess NtDebugActiveProcess EQNULL;
 EXT _NtDeleteFile NtDeleteFile EQNULL;
 EXT _NtDeviceIoControlFile NtDeviceIoControlFile EQNULL;
 EXT _NtDuplicateObject NtDuplicateObject EQNULL;
@@ -48,6 +51,7 @@ EXT _NtQueryVirtualMemory NtQueryVirtualMemory EQNULL;
 EXT _NtQueueApcThread NtQueueApcThread EQNULL;
 EXT _NtReadFile NtReadFile EQNULL;
 EXT _NtReadVirtualMemory NtReadVirtualMemory EQNULL;
+EXT _NtRemoveProcessDebug NtRemoveProcessDebug EQNULL;
 EXT _NtResumeProcess NtResumeProcess EQNULL;
 EXT _NtResumeThread NtResumeThread EQNULL;
 EXT _NtSetContextThread NtSetContextThread EQNULL; 
