@@ -972,7 +972,19 @@ VOID PhpInitializeProcessMenu(
     }
     else if (NumberOfProcesses == 1)
     {
-        // Do nothing - all menu items are enabled by default.
+        // All menu items are enabled by default.
+
+        // If the user selected a fake process, disable all but 
+        // a few menu items.
+        if (
+            Processes[0]->ProcessId == DPCS_PROCESS_ID ||
+            Processes[0]->ProcessId == INTERRUPTS_PROCESS_ID
+            )
+        {
+            PhEnableAllMenuItems(Menu, FALSE);
+            EnableMenuItem(Menu, ID_PROCESS_PROPERTIES, MF_ENABLED);
+            EnableMenuItem(Menu, ID_PROCESS_SEARCHONLINE, MF_ENABLED);
+        }
     }
     else
     {
