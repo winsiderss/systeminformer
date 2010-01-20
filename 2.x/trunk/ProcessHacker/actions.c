@@ -936,3 +936,34 @@ BOOLEAN PhUiResumeThreads(
 
     return success;
 }
+
+BOOLEAN PhUiSetPriorityThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread,
+    __in ULONG ThreadPriorityWin32
+    )
+{
+    NTSTATUS status;
+    ULONG win32Result = 0;
+    HANDLE threadHandle;
+
+    if (NT_SUCCESS(status = PhOpenThread(
+        &threadHandle,
+        ThreadSetAccess,
+        Thread->ThreadId
+        )))
+    {
+        if (!SetThreadPriority(threadHandle, ThreadPriorityWin32))
+            win32Result = GetLastError();
+
+        CloseHandle(threadHandle);
+    }
+
+    if (!NT_SUCCESS(status) || win32Result)
+    {
+        PhpShowErrorThread(hWnd, L"set the priority of", Thread, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}

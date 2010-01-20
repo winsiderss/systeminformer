@@ -945,6 +945,7 @@ VOID PhpInitializeProcessMenu(
     __in ULONG NumberOfProcesses
     )
 {
+#define MISCELLANEOUS_MENU_INDEX 11
 #define WINDOW_MENU_INDEX 13
 
     if (NumberOfProcesses == 0)
@@ -987,6 +988,16 @@ VOID PhpInitializeProcessMenu(
         {
             EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
         }
+    }
+
+    // Remove irrelevant menu items.
+    if (WindowsVersion < WINDOWS_VISTA)
+    {
+        HMENU miscMenu;
+
+        // Remove I/O priority.
+        miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
+        RemoveMenu(miscMenu, 4, MF_BYPOSITION);
     }
 
     // Virtualization
