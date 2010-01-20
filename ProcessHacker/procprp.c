@@ -864,7 +864,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadItem
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, threadItem->PriorityWin32String);
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
         }
         break;
     case WM_PH_THREAD_MODIFIED:
@@ -878,7 +878,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->CyclesDeltaString));
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, threadItem->PriorityWin32String);
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
             }
         }
         break;
