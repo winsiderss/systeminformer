@@ -1022,6 +1022,7 @@ VOID PhpInitializeProcessMenu(
     }
 
     // Remove irrelevant menu items.
+
     if (WindowsVersion < WINDOWS_VISTA)
     {
         HMENU miscMenu;
@@ -1029,6 +1030,11 @@ VOID PhpInitializeProcessMenu(
         // Remove I/O priority.
         miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
         RemoveMenu(miscMenu, 3, MF_BYPOSITION);
+    }
+
+    if (!WINDOWS_HAS_UAC)
+    {
+        RemoveMenu(Menu, ID_PROCESS_VIRTUALIZATION, MF_BYCOMMAND);
     }
 
     // Virtualization
