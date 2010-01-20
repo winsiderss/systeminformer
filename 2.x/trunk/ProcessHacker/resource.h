@@ -11,7 +11,6 @@
 #define IDD_PROCHANDLES                 106
 #define IDD_PROCENVIRONMENT             107
 #define IDD_THRDSTACK                   108
-#define IDD_DIALOG1                     109
 #define IDR_THREAD                      110
 #define IDR_HANDLE                      111
 #define IDR_MODULE                      112
@@ -33,9 +32,6 @@
 #define IDC_PROCGENERAL_FILENAME        1020
 #define IDC_PROCGENERAL_CMDLINE         1021
 #define IDC_PROCGENERAL_CURDIR          1022
-#define ID_MAINWND_PROCESSLV            2001
-#define ID_MAINWND_SERVICELV            2002
-#define ID_MAINWND_NETWORKLV            2003
 #define ID_HACKER_EXIT                  40001
 #define ID_USERS                        40002
 #define ID_TOOLS                        40003
@@ -77,17 +73,9 @@
 #define ID_MISCELLANEOUS_HEAPS          40040
 #define ID_MISCELLANEOUS_INJECTDLL      40041
 #define ID_MISCELLANEOUS_I              40042
-#define ID_I_4                          40043
-#define ID_I_5                          40044
-#define ID_I_6                          40045
-#define ID_I_7                          40046
 #define ID_PROCESS_PRIORITY             40047
 #define ID_PRIORITY_REALTIME            40048
 #define ID_PRIORITY_HIGH                40049
-#define ID_PRIORITY_ABOVENORMAL40050    40050
-#define ID_PRIORITY_NORMAL40051         40051
-#define ID_PRIORITY_BELOWNORMAL40052    40052
-#define ID_PRIORITY_IDLE40053           40053
 #define ID_PROCESS_WINDOW               40054
 #define ID_WINDOW_BRINGTOFRONT          40055
 #define ID_WINDOW_RESTORE               40056
@@ -104,7 +92,6 @@
 #define ID_MODULE_OPENCONTAININGFOLDER  40067
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
-#define ID_ACCELERATOR40073             40073
 
 // Next default values for new objects
 // 
