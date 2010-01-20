@@ -752,6 +752,50 @@ NTSTATUS PhGetProcessDebugObject(
 }
 
 /**
+ * Gets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param IoPriority A variable which receives the I/O 
+ * priority of the process.
+ */
+NTSTATUS PhGetProcessIoPriority(
+    __in HANDLE ProcessHandle,
+    __out PULONG IoPriority
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessIoPriority,
+        IoPriority,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
+ * Gets a process' page priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param PagePriority A variable which receives the page 
+ * priority of the process.
+ */
+NTSTATUS PhGetProcessPagePriority(
+    __in HANDLE ProcessHandle,
+    __out PULONG PagePriority
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessPagePriority,
+        PagePriority,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
  * Gets whether the process is running under the POSIX 
  * subsystem.
  *
@@ -1329,6 +1373,50 @@ NTSTATUS PhGetThreadBasicInformation(
         ThreadBasicInformation,
         BasicInformation,
         sizeof(THREAD_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
+ * Gets a thread's I/O priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle 
+ * must have THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param IoPriority A variable which receives the I/O 
+ * priority of the thread.
+ */
+NTSTATUS PhGetThreadIoPriority(
+    __in HANDLE ThreadHandle,
+    __out PULONG IoPriority
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadIoPriority,
+        IoPriority,
+        sizeof(ULONG),
+        NULL
+        );
+}
+
+/**
+ * Gets a thread's page priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle 
+ * must have THREAD_QUERY_LIMITED_INFORMATION access.
+ * \param PagePriority A variable which receives the page 
+ * priority of the thread.
+ */
+NTSTATUS PhGetThreadPagePriority(
+    __in HANDLE ThreadHandle,
+    __out PULONG PagePriority
+    )
+{
+    return NtQueryInformationThread(
+        ThreadHandle,
+        ThreadPagePriority,
+        PagePriority,
+        sizeof(ULONG),
         NULL
         );
 }
