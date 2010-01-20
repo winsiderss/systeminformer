@@ -538,3 +538,56 @@ BOOLEAN PhUiSetVirtualizationProcess(
 
     return TRUE;
 }
+
+BOOLEAN PhUiInjectDllProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    PH_FILETYPE_FILTER filters[] =
+    {
+        { L"DLL files (*.dll)", L"*.dll" },
+        { L"All files (*.*)", L"*.*" }
+    };
+
+    NTSTATUS status;
+    PVOID fileDialog;
+    PPH_STRING fileName;
+    HANDLE processHandle;
+
+    fileDialog = PhCreateOpenFileDialog();
+    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+    if (!PhShowFileDialog(hWnd, fileDialog))
+    {
+        PhFreeFileDialog(fileDialog);
+        return FALSE;
+    }
+
+    fileName = PHA_DEREFERENCE(PhGetFileDialogFileName(fileDialog));
+    PhFreeFileDialog(fileDialog);
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+        PROCESS_VM_WRITE,
+        Process->ProcessId
+        )))
+    {
+        status = PhInjectDllProcess(
+            processHandle,
+            fileName->Buffer,
+            5000
+            );
+
+        CloseHandle(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"inject the DLL into", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
