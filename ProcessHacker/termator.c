@@ -22,6 +22,9 @@
 
 #include <phgui.h>
 
+#define CROSS_INDEX 0
+#define TICK_INDEX 1
+
 typedef NTSTATUS (NTAPI *PTEST_PROC)(
     __in HANDLE ProcessId
     );
@@ -112,12 +115,12 @@ static VOID PhpRunTerminatorTest(
     // Check if the process exists.
     if (!PhFindProcessInformation(processes, processItem->ProcessId))
     {
-        PhSetListViewItemImageIndex(lvHandle, Index, 1); // tick
+        PhSetListViewItemImageIndex(lvHandle, Index, TICK_INDEX);
         SetDlgItemText(WindowHandle, IDC_TERMINATOR_TEXT, L"The process was terminated.");
     }
     else
     {
-        PhSetListViewItemImageIndex(lvHandle, Index, 0); // cross
+        PhSetListViewItemImageIndex(lvHandle, Index, CROSS_INDEX);
     }
 
     PhFree(processes);
@@ -151,10 +154,10 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
                 );
             PhSetControlTheme(lvHandle, L"explorer");
 
-            imageList = ImageList_Create(16, 16, ILC_COLOR32, 2, 2);
-            PhAddImageListBitmap(imageList, PhInstanceHandle, MAKEINTRESOURCE(IDB_CROSS));
-            PhAddImageListBitmap(imageList, PhInstanceHandle, MAKEINTRESOURCE(IDB_TICK));
-            ListView_SetImageList(lvHandle, imageList, LVSIL_SMALL);
+            imageList = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
+            ImageList_SetImageCount(imageList, 2);
+            PhSetImageListBitmap(imageList, CROSS_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_CROSS));
+            PhSetImageListBitmap(imageList, TICK_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_TICK));
 
             for (i = 0; i < sizeof(PhTerminatorTests) / sizeof(TEST_ITEM); i++)
             {
@@ -167,7 +170,10 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
                     PhTerminatorTests[i].TestProc
                     );
                 PhSetListViewSubItem(lvHandle, itemIndex, 1, PhTerminatorTests[i].Description);
+                PhSetListViewItemImageIndex(lvHandle, itemIndex, -1);
             }
+
+            ListView_SetImageList(lvHandle, imageList, LVSIL_SMALL);
 
             SetDlgItemText(
                 hwndDlg,

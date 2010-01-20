@@ -121,6 +121,12 @@ VOID PhSetListViewItemImageIndex(
     __in INT ImageIndex
     );
 
+VOID PhSetListViewItemStateImage(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT StateImage
+    );
+
 VOID PhSetListViewSubItem(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -166,8 +172,9 @@ VOID PhGetSelectedListViewItemParams(
     __out PULONG NumberOfItems
     );
 
-VOID PhAddImageListBitmap(
+VOID PhSetImageListBitmap(
     __in HIMAGELIST ImageList,
+    __in INT Index,
     __in HINSTANCE InstanceHandle,
     __in LPCWSTR BitmapName
     );
