@@ -1032,11 +1032,6 @@ VOID PhpInitializeProcessMenu(
         DeleteMenu(miscMenu, 3, MF_BYPOSITION);
     }
 
-    if (!WINDOWS_HAS_UAC)
-    {
-        DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
-    }
-
     // Virtualization
     if (NumberOfProcesses == 1)
     {
@@ -1195,6 +1190,13 @@ VOID PhpInitializeProcessMenu(
     else
     {
         EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
+    }
+
+    // Remove irrelevant menu items (continued)
+
+    if (!WINDOWS_HAS_UAC)
+    {
+        DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
     }
 }
 
