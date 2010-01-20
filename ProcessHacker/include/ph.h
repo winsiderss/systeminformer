@@ -189,6 +189,16 @@ NTSTATUS PhGetProcessDebugObject(
     __out PHANDLE DebugObjectHandle
     );
 
+NTSTATUS PhGetProcessIoPriority(
+    __in HANDLE ProcessHandle,
+    __out PULONG IoPriority
+    );
+
+NTSTATUS PhGetProcessPagePriority(
+    __in HANDLE ProcessHandle,
+    __out PULONG PagePriority
+    );
+
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
@@ -235,6 +245,16 @@ NTSTATUS PhInjectDllProcess(
 NTSTATUS PhGetThreadBasicInformation(
     __in HANDLE ThreadHandle,
     __out PTHREAD_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetThreadIoPriority(
+    __in HANDLE ThreadHandle,
+    __out PULONG IoPriority
+    );
+
+NTSTATUS PhGetThreadPagePriority(
+    __in HANDLE ThreadHandle,
+    __out PULONG PagePriority
     );
 
 NTSTATUS PhGetThreadCycleTime(
