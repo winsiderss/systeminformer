@@ -143,6 +143,7 @@ LOGICAL PhGetListViewItemParam(
 
     item.mask = LVIF_PARAM;
     item.iItem = Index;
+    item.iSubItem = 0;
 
     result = ListView_GetItem(ListViewHandle, &item);
 
@@ -172,7 +173,25 @@ VOID PhSetListViewItemImageIndex(
 
     item.mask = LVIF_IMAGE;
     item.iItem = Index;
+    item.iSubItem = 0;
     item.iImage = ImageIndex;
+
+    ListView_SetItem(ListViewHandle, &item);
+}
+
+VOID PhSetListViewItemStateImage(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT StateImage
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_STATE;
+    item.iItem = Index;
+    item.iSubItem = 0;
+    item.state = INDEXTOSTATEIMAGEMASK(StateImage);
+    item.stateMask = LVIS_STATEIMAGEMASK;
 
     ListView_SetItem(ListViewHandle, &item);
 }
@@ -357,8 +376,9 @@ VOID PhGetSelectedListViewItemParams(
     *NumberOfItems = list->Count;
 }
 
-VOID PhAddImageListBitmap(
+VOID PhSetImageListBitmap(
     __in HIMAGELIST ImageList,
+    __in INT Index,
     __in HINSTANCE InstanceHandle,
     __in LPCWSTR BitmapName
     )
@@ -369,7 +389,7 @@ VOID PhAddImageListBitmap(
 
     if (bitmap)
     {
-        ImageList_Add(ImageList, bitmap, NULL);
+        ImageList_Replace(ImageList, Index, bitmap, NULL);
         DeleteObject(bitmap);
     }
 }
