@@ -405,6 +405,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_TERMINATOR:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhShowProcessTerminatorDialog(hWnd, processItem);
+                    }
+                }
+                break;
             case ID_MISCELLANEOUS_INJECTDLL:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();

@@ -14,6 +14,9 @@
 #define IDR_THREAD                      110
 #define IDR_HANDLE                      111
 #define IDR_MODULE                      112
+#define IDD_TERMINATOR                  114
+#define IDB_CROSS                       117
+#define IDB_TICK                        118
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
@@ -31,7 +34,10 @@
 #define IDC_PERMISSIONS                 1018
 #define IDC_PROCGENERAL_FILENAME        1020
 #define IDC_PROCGENERAL_CMDLINE         1021
+#define IDC_RUN_ALL                     1021
 #define IDC_PROCGENERAL_CURDIR          1022
+#define IDC_TERMINATOR_LIST             1022
+#define IDC_TERMINATOR_TEXT             1023
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -100,9 +106,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        114
+#define _APS_NEXT_RESOURCE_VALUE        119
 #define _APS_NEXT_COMMAND_VALUE         40075
-#define _APS_NEXT_CONTROL_VALUE         1021
+#define _APS_NEXT_CONTROL_VALUE         1024
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

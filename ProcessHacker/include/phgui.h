@@ -115,6 +115,12 @@ VOID PhRemoveListViewItem(
     __in INT Index
     );
 
+VOID PhSetListViewItemImageIndex(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT ImageIndex
+    );
+
 VOID PhSetListViewSubItem(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -158,6 +164,12 @@ VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,
     __out PULONG NumberOfItems
+    );
+
+VOID PhAddImageListBitmap(
+    __in HIMAGELIST ImageList,
+    __in HINSTANCE InstanceHandle,
+    __in LPCWSTR BitmapName
     );
 
 #define PH_ANCHOR_LEFT 0x1
@@ -457,6 +469,13 @@ VOID PhShowThreadStackDialog(
     __in HANDLE ProcessId,
     __in HANDLE ThreadId,
     __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
+// termator
+
+VOID PhShowProcessTerminatorDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM Process
     );
 
 #endif

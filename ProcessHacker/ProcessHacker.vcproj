@@ -475,6 +475,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\termator.c"
+				>
+			</File>
+			<File
 				RelativePath=".\thrdprv.c"
 				>
 			</File>
@@ -627,11 +631,19 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 			<File
+				RelativePath=".\resources\cross.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\ProcessHacker.ico"
 				>
 			</File>
 			<File
 				RelativePath=".\ProcessHacker.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\tick.bmp"
 				>
 			</File>
 		</Filter>

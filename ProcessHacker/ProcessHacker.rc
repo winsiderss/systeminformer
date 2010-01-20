@@ -291,6 +291,17 @@ BEGIN
     PUSHBUTTON      "Refresh",IDC_REFRESH,150,207,50,14
 END
 
+IDD_TERMINATOR DIALOGEX 0, 0, 283, 273
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Terminator"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Run All",IDC_RUN_ALL,172,252,50,14
+    PUSHBUTTON      "Close",IDOK,226,252,50,14
+    CONTROL         "",IDC_TERMINATOR_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,21,269,225
+    LTEXT           "Static",IDC_TERMINATOR_TEXT,7,7,269,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -347,6 +358,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 221
     END
+
+    IDD_TERMINATOR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 276
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 266
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -362,6 +381,14 @@ BEGIN
     "M",            ID_PROCESS_SEARCHONLINE, VIRTKEY, CONTROL, NOINVERT
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_CROSS               BITMAP                  "resources\\cross.bmp"
+IDB_TICK                BITMAP                  "resources\\tick.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

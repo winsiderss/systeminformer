@@ -1,3 +1,25 @@
+/*
+ * Process Hacker - 
+ *   thread stack viewer
+ * 
+ * Copyright (C) 2010 wj32
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <phgui.h>
 
 typedef struct THREAD_STACK_CONTEXT
@@ -73,6 +95,8 @@ VOID PhShowThreadStackDialog(
 
     threadStackContext.ThreadHandle = threadHandle;
 
+    PhReferenceObject(SymbolProvider);
+
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_THRDSTACK),
@@ -83,7 +107,7 @@ VOID PhShowThreadStackDialog(
 
     if (threadStackContext.ThreadHandle)
         CloseHandle(threadStackContext.ThreadHandle);
-}
+} 
 
 static INT_PTR CALLBACK PhpThreadStackDlgProc(      
     __in HWND hwndDlg,
@@ -105,6 +129,12 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_THRDSTACK_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
+            ListView_SetExtendedListViewStyleEx(
+                lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER,
+                -1
+                );
+            PhSetControlTheme(lvHandle, L"explorer");
 
             threadStackContext->ListViewHandle = lvHandle;
 
@@ -129,6 +159,10 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
+
+            PhDereferenceObject(
+                ((PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context"))->SymbolProvider
+                );
 
             RemoveProp(hwndDlg, L"Context");
             RemoveProp(hwndDlg, L"LayoutManager");
