@@ -64,6 +64,7 @@ EXT _NtWaitForSingleObject NtWaitForSingleObject EQNULL;
 EXT _NtWriteFile NtWriteFile EQNULL;
 EXT _NtWriteVirtualMemory NtWriteVirtualMemory EQNULL;
 EXT _RtlCreateQueryDebugBuffer RtlCreateQueryDebugBuffer EQNULL;
+EXT _RtlCreateUserThread RtlCreateUserThread EQNULL;
 EXT _RtlDestroyQueryDebugBuffer RtlDestroyQueryDebugBuffer EQNULL;
 EXT _RtlFindMessage RtlFindMessage EQNULL;
 EXT _RtlMultiByteToUnicodeN RtlMultiByteToUnicodeN EQNULL;

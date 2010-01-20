@@ -212,6 +212,25 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     RTL_DRIVE_LETTER_CURDIR CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
+// Threads
+
+typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
+    __in PVOID ThreadParameter
+    );
+
+typedef NTSTATUS (NTAPI *_RtlCreateUserThread)(
+    __in HANDLE Process,
+    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    __in BOOLEAN CreateSuspended,
+    __in_opt ULONG ZeroBits,
+    __in_opt SIZE_T MaximumStackSize,
+    __in_opt SIZE_T CommittedStackSize,
+    __in PUSER_THREAD_START_ROUTINE StartAddress,
+    __in_opt PVOID Parameter,
+    __out_opt PHANDLE Thread,
+    __out_opt PCLIENT_ID ClientId
+    );
+
 // Heaps
 
 typedef struct _RTL_HEAP_ENTRY
