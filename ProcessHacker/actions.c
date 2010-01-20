@@ -853,7 +853,7 @@ BOOLEAN PhUiForceTerminateThreads(
         if (!PhpShowContinueMessageThreads(
             hWnd,
             L"force terminate",
-            L"Forcibly terminating threads may cause the system to crash.",
+            L"Forcibly terminating threads may cause the system to crash or become unstable.",
             TRUE,
             Threads,
             NumberOfThreads
@@ -865,7 +865,7 @@ BOOLEAN PhUiForceTerminateThreads(
         if (!PhpShowContinueMessageThreads(
             hWnd,
             L"terminate",
-            L"Forcibly terminating system threads may cause the system to crash.",
+            L"Forcibly terminating system threads may cause the system to crash or become unstable.",
             TRUE,
             Threads,
             NumberOfThreads
