@@ -1275,6 +1275,28 @@ static VOID NTAPI ModuleRemovedHandler(
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
 }
 
+VOID PhpInitializeModuleMenu(
+    __in HMENU Menu,
+    __in HANDLE ProcessId,
+    __in PPH_MODULE_ITEM *Modules,
+    __in ULONG NumberOfModules
+    )
+{
+    if (NumberOfModules == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfModules == 1)
+    {
+        // Nothing
+    }
+    else
+    {
+        // None of the menu items work with multiple items.
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+}
+
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1389,6 +1411,43 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case ID_MODULE_UNLOAD:
+                {
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (moduleItem)
+                    {
+                        // TODO
+                    }
+                }
+                break;
+            case ID_MODULE_OPENCONTAININGFOLDER:
+                {
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (moduleItem)
+                    {
+                        PhShellExploreFile(hwndDlg, moduleItem->FileName->Buffer);
+                    }
+                }
+                break;
+            case ID_MODULE_PROPERTIES:
+                {
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (moduleItem)
+                    {
+                        PhShellProperties(hwndDlg, moduleItem->FileName->Buffer);
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -1406,14 +1465,20 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     if (header->hwndFrom == lvHandle)
                     {
                         LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPH_MODULE_ITEM *modules;
+                        ULONG numberOfModules;
 
-                        if (itemActivate->iItem != -1)
+                        PhGetSelectedListViewItemParams(lvHandle, &modules, &numberOfModules);
+
+                        if (numberOfModules != 0)
                         {
                             HMENU menu;
                             HMENU subMenu;
 
                             menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE));
                             subMenu = GetSubMenu(menu, 0);
+
+                            PhpInitializeModuleMenu(subMenu, processItem->ProcessId, modules, numberOfModules);
 
                             PhShowContextMenu(
                                 hwndDlg,
@@ -1423,6 +1488,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                                 );
                             DestroyMenu(menu);
                         }
+
+                        PhFree(modules);
                     }
                 }
                 break;

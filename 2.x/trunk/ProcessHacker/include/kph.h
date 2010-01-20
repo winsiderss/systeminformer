@@ -416,7 +416,7 @@ NTSTATUS KphQueryInformationDriver(
     __in HANDLE KphHandle,
     __in HANDLE DriverHandle,
     __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __in_opt PVOID DriverInformation,
+    __out_bcount_opt(DriverInformationLength) PVOID DriverInformation,
     __in ULONG DriverInformationLength,
     __out_opt PULONG ReturnLength
     );
@@ -439,7 +439,7 @@ NTSTATUS KphQueryInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __in PVOID ProcessInformation,
+    __out_bcount_opt(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength,
     __out_opt PULONG ReturnLength
     );
@@ -448,7 +448,7 @@ NTSTATUS KphQueryInformationThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in PVOID ThreadInformation,
+    __out_bcount_opt(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength,
     __out_opt PULONG ReturnLength
     );
@@ -457,7 +457,7 @@ NTSTATUS KphSetInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __in PVOID ProcessInformation,
+    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength
     );
 
@@ -465,7 +465,7 @@ NTSTATUS KphSetInformationThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in PVOID ThreadInformation,
+    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength
     );
 

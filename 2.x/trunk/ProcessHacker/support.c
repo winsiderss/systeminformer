@@ -827,6 +827,36 @@ VOID PhShellExecute(
     }
 }
 
+VOID PhShellExploreFile(
+    __in HWND hWnd,
+    __in PWSTR FileName
+    )
+{
+    PPH_STRING selectFileName;
+
+    selectFileName = PhConcatStrings2(L"/select,", FileName);
+    PhShellExecute(hWnd, L"explorer.exe", selectFileName->Buffer);
+    PhDereferenceObject(selectFileName);
+}
+
+VOID PhShellProperties(
+    __in HWND hWnd,
+    __in PWSTR FileName
+    )
+{
+    SHELLEXECUTEINFO info = { sizeof(info) };
+
+    info.lpFile = FileName;
+    info.nShow = SW_SHOW;
+    info.fMask = SEE_MASK_INVOKEIDLIST;
+    info.lpVerb = L"properties";
+
+    if (!ShellExecuteEx(&info))
+    {
+        PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+    }
+}
+
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
     __in HWND hdlg,
     __in UINT uiMsg,
