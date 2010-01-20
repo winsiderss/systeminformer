@@ -127,6 +127,7 @@ IDR_THREAD MENU
 BEGIN
     POPUP "Thread"
     BEGIN
+        MENUITEM "Inspect",                     ID_THREAD_INSPECT
         MENUITEM "T&erminate\aDel",             ID_THREAD_TERMINATE
         MENUITEM "Force Terminate",             ID_THREAD_FORCETERMINATE
         MENUITEM "Suspend",                     ID_THREAD_SUSPEND
