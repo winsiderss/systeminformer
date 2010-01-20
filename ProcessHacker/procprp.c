@@ -675,6 +675,127 @@ static VOID NTAPI ThreadRemovedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_REMOVED, 0, (LPARAM)Parameter);
 }
 
+VOID PhpInitializeThreadMenu(
+    __in HMENU Menu,
+    __in HANDLE ProcessId,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+#define IOPRIORITY_MENU_INDEX 10
+
+    if (NumberOfThreads == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfThreads == 1)
+    {
+        // All menu items are enabled by default.
+    }
+    else
+    {
+        ULONG menuItemsMultiEnabled[] =
+        {
+            ID_THREAD_TERMINATE,
+            ID_THREAD_FORCETERMINATE,
+            ID_THREAD_SUSPEND,
+            ID_THREAD_RESUME
+        };
+        ULONG i;
+
+        PhEnableAllMenuItems(Menu, FALSE);
+
+        // These menu items are capable of manipulating 
+        // multiple threads.
+        for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
+        {
+            EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
+        }
+    }
+
+    // Remove irrelevant menu items.
+
+    if (WindowsVersion < WINDOWS_VISTA)
+    {
+        // Remove I/O priority.
+        RemoveMenu(Menu, IOPRIORITY_MENU_INDEX, MF_BYPOSITION);
+    }
+
+    if (!PhKphHandle)
+    {
+        // Remove Force Terminate.
+        RemoveMenu(Menu, ID_THREAD_FORCETERMINATE, MF_BYCOMMAND);
+    }
+    else
+    {
+        if (ProcessId == SYSTEM_PROCESS_ID)
+        {
+            // Remove Force Terminate because Terminate does 
+            // the same job.
+            RemoveMenu(Menu, ID_THREAD_FORCETERMINATE, MF_BYCOMMAND);
+        }
+    }
+
+    // Priority
+    if (NumberOfThreads == 1)
+    {
+        HANDLE threadHandle;
+        ULONG threadPriority = 0;
+        ULONG id = 0;
+
+        if (NT_SUCCESS(PhOpenThread(
+            &threadHandle,
+            ThreadQueryAccess,
+            Threads[0]->ThreadId
+            )))
+        {
+            threadPriority = GetThreadPriority(threadHandle);
+
+            CloseHandle(threadHandle);
+        }
+
+        switch (threadPriority)
+        {
+        case THREAD_PRIORITY_TIME_CRITICAL:
+            id = ID_PRIORITY_TIMECRITICAL;
+            break;
+        case THREAD_PRIORITY_HIGHEST:
+            id = ID_PRIORITY_HIGHEST;
+            break;
+        case THREAD_PRIORITY_ABOVE_NORMAL:
+            id = ID_PRIORITY_ABOVENORMAL;
+            break;
+        case THREAD_PRIORITY_NORMAL:
+            id = ID_PRIORITY_NORMAL;
+            break;
+        case THREAD_PRIORITY_BELOW_NORMAL:
+            id = ID_PRIORITY_BELOWNORMAL;
+            break;
+        case THREAD_PRIORITY_LOWEST:
+            id = ID_PRIORITY_LOWEST;
+            break;
+        case THREAD_PRIORITY_IDLE:
+            id = ID_PRIORITY_IDLE;
+            break;
+        }
+
+        if (id != 0)
+        {
+            CheckMenuItem(Menu, id, MF_CHECKED);
+            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+        }
+    }
+}
+
+NTSTATUS PhpThreadPermissionsOpenThread(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
+}
+
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -870,6 +991,77 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhFree(threads);
                 }
                 break;
+            case ID_THREAD_PERMISSIONS:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+                    PPH_ACCESS_ENTRY accessEntries;
+                    ULONG numberOfAccessEntries;
+
+                    if (threadItem)
+                    {
+                        stdObjectSecurity.OpenObject = PhpThreadPermissionsOpenThread;
+                        stdObjectSecurity.Context = threadItem->ThreadId;
+
+                        if (PhGetAccessEntries(L"Thread", &accessEntries, &numberOfAccessEntries))
+                        {
+                            PhEditSecurity(
+                                hwndDlg,
+                                PhaFormatString(L"Thread %u", (ULONG)threadItem->ThreadId)->Buffer,
+                                PhStdGetObjectSecurity,
+                                PhStdSetObjectSecurity,
+                                &stdObjectSecurity,
+                                accessEntries,
+                                numberOfAccessEntries
+                                );
+                            PhFree(accessEntries);
+                        }
+                    }
+                }
+                break;
+            case ID_PRIORITY_TIMECRITICAL:
+            case ID_PRIORITY_HIGHEST:
+            case ID_PRIORITY_ABOVENORMAL:
+            case ID_PRIORITY_NORMAL:
+            case ID_PRIORITY_BELOWNORMAL:
+            case ID_PRIORITY_LOWEST:
+            case ID_PRIORITY_IDLE:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        ULONG threadPriorityWin32;
+
+                        switch (id)
+                        {
+                            case ID_PRIORITY_TIMECRITICAL:
+                                threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
+                                break;
+                            case ID_PRIORITY_HIGHEST:
+                                threadPriorityWin32 = THREAD_PRIORITY_HIGHEST;
+                                break;
+                            case ID_PRIORITY_ABOVENORMAL:
+                                threadPriorityWin32 = THREAD_PRIORITY_ABOVE_NORMAL;
+                                break;
+                            case ID_PRIORITY_NORMAL:
+                                threadPriorityWin32 = THREAD_PRIORITY_NORMAL;
+                                break;
+                            case ID_PRIORITY_BELOWNORMAL:
+                                threadPriorityWin32 = THREAD_PRIORITY_BELOW_NORMAL;
+                                break;
+                            case ID_PRIORITY_LOWEST:
+                                threadPriorityWin32 = THREAD_PRIORITY_LOWEST;
+                                break;
+                            case ID_PRIORITY_IDLE:
+                                threadPriorityWin32 = THREAD_PRIORITY_IDLE;
+                                break;
+                        }
+
+                        PhUiSetPriorityThread(hwndDlg, threadItem, threadPriorityWin32);
+                    }
+                }
+                break;
             }
         }
         break;
@@ -912,6 +1104,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             subMenu = GetSubMenu(menu, 0);
 
                             SetMenuDefaultItem(subMenu, ID_THREAD_INSPECT, FALSE);
+                            PhpInitializeThreadMenu(subMenu, processItem->ProcessId, threads, numberOfThreads);
 
                             PhShowContextMenu(
                                 hwndDlg,

@@ -504,6 +504,12 @@ BOOLEAN PhUiResumeThreads(
     __in ULONG NumberOfThreads
     );
 
+BOOLEAN PhUiSetPriorityThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread,
+    __in ULONG ThreadPriorityWin32
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
