@@ -169,6 +169,16 @@ NTSTATUS PhGetProcessIsWow64(
     __out PBOOLEAN IsWow64
     );
 
+NTSTATUS PhGetProcessIsBeingDebugged(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsBeingDebugged
+    );
+
+NTSTATUS PhGetProcessDebugObject(
+    __in HANDLE ProcessHandle,
+    __out PHANDLE DebugObjectHandle
+    );
+
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
@@ -1116,6 +1126,8 @@ INT PhShowMessage_V(
     );
 
 #define PhShowError(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONERROR, Format, __VA_ARGS__)
+#define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
+#define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
 VOID PhShowStatus(
     __in HWND hWnd,

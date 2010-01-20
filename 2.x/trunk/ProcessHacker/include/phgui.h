@@ -458,6 +458,11 @@ BOOLEAN PhUiSetVirtualizationProcess(
     __in BOOLEAN Enable
     );
 
+BOOLEAN PhUiDetachFromDebuggerProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 BOOLEAN PhUiInjectDllProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
