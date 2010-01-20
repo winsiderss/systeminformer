@@ -740,7 +740,7 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
-        ULONG threadPriority = 0;
+        ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenThread(
