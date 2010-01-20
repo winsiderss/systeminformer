@@ -389,6 +389,16 @@ PPH_STRING PhConvertSidToStringSid(
     __in PSID Sid
     );
 
+NTSTATUS PhOpenDriverByBaseAddress(
+    __out PHANDLE DriverHandle,
+    __in PVOID BaseAddress
+    );
+
+NTSTATUS PhGetDriverServiceKeyName(
+    __in HANDLE DriverHandle,
+    __out PPH_STRING *ServiceKeyName
+    );
+
 NTSTATUS PhDuplicateObject(
     __in HANDLE SourceProcessHandle,
     __in HANDLE SourceHandle,
@@ -422,6 +432,12 @@ NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
     __in PVOID Context
+    );
+
+NTSTATUS PhSetProcessModuleLoadCount(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in USHORT LoadCount
     );
 
 PPH_STRING PhGetKernelFileName();
@@ -467,6 +483,30 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
 
 NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
+    );
+
+/**
+ * A callback function passed to PhEnumDirectoryObjects() 
+ * and called for each directory object.
+ *
+ * \param Name The name of the object.
+ * \param TypeName The name of the object's type.
+ * \param Context A user-defined value passed to 
+ * PhEnumDirectoryObjects().
+ *
+ * \return TRUE to continue the enumeration, FALSE to 
+ * stop.
+ */
+typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
+    __in PPH_STRING Name,
+    __in PPH_STRING TypeName,
+    __in PVOID Context
+    );
+
+NTSTATUS PhEnumDirectoryObjects(
+    __in HANDLE DirectoryHandle,
+    __in PPH_ENUM_DIRECTORY_OBJECTS Callback,
+    __in PVOID Context
     );
 
 VOID PhInitializeDosDeviceNames();
@@ -1267,6 +1307,16 @@ VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
     __in PWSTR Parameters
+    );
+
+VOID PhShellExploreFile(
+    __in HWND hWnd,
+    __in PWSTR FileName
+    );
+
+VOID PhShellProperties(
+    __in HWND hWnd,
+    __in PWSTR FileName
     );
 
 PVOID PhCreateOpenFileDialog();
