@@ -844,7 +844,7 @@ BOOLEAN PhUiForceTerminateThreads(
 
     if (!PhKphHandle)
     {
-        PhShowError(hWnd, L"Unable to force terminate threads because KProcessHacker is not loaded.");
+        PhShowError(hWnd, KPH_ERROR_MESSAGE);
         return FALSE;
     }
 
