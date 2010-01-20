@@ -162,6 +162,21 @@ VOID PhRemoveListViewItem(
     ListView_DeleteItem(ListViewHandle, Index);
 }
 
+VOID PhSetListViewItemImageIndex(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __in INT ImageIndex
+    )
+{
+    LVITEM item;
+
+    item.mask = LVIF_IMAGE;
+    item.iItem = Index;
+    item.iImage = ImageIndex;
+
+    ListView_SetItem(ListViewHandle, &item);
+}
+
 VOID PhSetListViewSubItem(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -340,6 +355,23 @@ VOID PhGetSelectedListViewItemParams(
 
     *Items = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
     *NumberOfItems = list->Count;
+}
+
+VOID PhAddImageListBitmap(
+    __in HIMAGELIST ImageList,
+    __in HINSTANCE InstanceHandle,
+    __in LPCWSTR BitmapName
+    )
+{
+    HBITMAP bitmap;
+
+    bitmap = LoadImage(InstanceHandle, BitmapName, IMAGE_BITMAP, 0, 0, 0);
+
+    if (bitmap)
+    {
+        ImageList_Add(ImageList, bitmap, NULL);
+        DeleteObject(bitmap);
+    }
 }
 
 VOID PhInitializeLayoutManager(
