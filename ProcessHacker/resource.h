@@ -32,6 +32,9 @@
 #define IDC_PROCGENERAL_FILENAME        1020
 #define IDC_PROCGENERAL_CMDLINE         1021
 #define IDC_PROCGENERAL_CURDIR          1022
+#define ID_MAINWND_PROCESSLV            2001
+#define ID_MAINWND_SERVICELV            2002
+#define ID_MAINWND_NETWORKLV            2003
 #define ID_HACKER_EXIT                  40001
 #define ID_USERS                        40002
 #define ID_TOOLS                        40003
