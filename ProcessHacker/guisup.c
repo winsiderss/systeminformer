@@ -327,6 +327,9 @@ VOID PhEnableAllMenuItems(
     ULONG i;
     ULONG count = GetMenuItemCount(Menu);
 
+    if (count == -1)
+        return;
+
     if (Enable)
     {
         for (i = 0; i < count; i++)
