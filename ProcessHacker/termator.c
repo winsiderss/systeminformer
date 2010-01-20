@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <kph.h>
 
 #define CROSS_INDEX 0
 #define TICK_INDEX 1
@@ -36,7 +37,7 @@ typedef struct _TEST_ITEM
     PTEST_PROC TestProc;
 } TEST_ITEM, *PTEST_ITEM;
 
-INT_PTR CALLBACK PhpProcessTerminatorDlgProc(      
+INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -80,21 +81,581 @@ static NTSTATUS NTAPI TerminatorTP1(
     return status;
 }
 
+static NTSTATUS NTAPI TerminatorTP2(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE,
+        ProcessId
+        )))
+    {
+        PUSER_THREAD_START_ROUTINE startAddress;
+
+        // Vista and above export.
+        if (WindowsVersion >= WINDOWS_VISTA)
+            startAddress = (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlExitUserProcess");
+        else
+            startAddress = (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "ExitProcess");
+
+        status = RtlCreateUserThread(
+            processHandle,
+            NULL,
+            FALSE,
+            0,
+            0,
+            0,
+            startAddress,
+            NULL,
+            NULL,
+            NULL
+            );
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorTTGeneric(
+    __in HANDLE ProcessId,
+    __in BOOLEAN UseKph,
+    __in BOOLEAN UseKphDangerous
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    ULONG i;
+
+    if ((UseKph || UseKphDangerous) && !PhKphHandle)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    process = PhFindProcessInformation(processes, ProcessId);
+
+    if (!process)
+    {
+        PhFree(processes);
+        return STATUS_INVALID_CID;
+    }
+
+    for (i = 0; i < process->NumberOfThreads; i++)
+    {
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(PhOpenThread(
+            &threadHandle,
+            THREAD_TERMINATE,
+            process->Threads[i].ClientId.UniqueThread
+            )))
+        {
+            if (UseKphDangerous)
+                KphDangerousTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+            else if (UseKph)
+                KphTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+            else
+                NtTerminateThread(threadHandle, STATUS_SUCCESS);
+
+            CloseHandle(threadHandle);
+        }
+    }
+
+    PhFree(processes);
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS NTAPI TerminatorTT1(
+    __in HANDLE ProcessId
+    )
+{
+    return TerminatorTTGeneric(ProcessId, FALSE, FALSE);
+}
+
+static NTSTATUS NTAPI TerminatorTT2(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    ULONG i;
+    CONTEXT context;
+    PVOID exitProcess;
+
+    exitProcess = PhGetProcAddress(L"kernel32.dll", "ExitProcess");
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    process = PhFindProcessInformation(processes, ProcessId);
+
+    if (!process)
+    {
+        PhFree(processes);
+        return STATUS_INVALID_CID;
+    }
+
+    for (i = 0; i < process->NumberOfThreads; i++)
+    {
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(PhOpenThread(
+            &threadHandle,
+            THREAD_GET_CONTEXT | THREAD_SET_CONTEXT,
+            process->Threads[i].ClientId.UniqueThread
+            )))
+        {
+#ifdef _M_IX86
+            context.ContextFlags = CONTEXT_CONTROL;
+            PhGetThreadContext(threadHandle, &context);
+            context.Eip = (ULONG)exitProcess;
+            PhSetThreadContext(threadHandle, &context);
+#else
+            context.ContextFlags = CONTEXT_CONTROL;
+            PhGetThreadContext(threadHandle, &context);
+            context.Eip = (ULONG64)exitProcess;
+            PhSetThreadContext(threadHandle, &context);
+#endif
+
+            CloseHandle(threadHandle);
+        }
+    }
+
+    PhFree(processes);
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS NTAPI TerminatorTP1a(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle = NtCurrentProcess();
+    ULONG i;
+
+    if (!NtGetNextProcess)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!NT_SUCCESS(status = NtGetNextProcess(
+        NtCurrentProcess(),
+        ProcessQueryAccess | PROCESS_TERMINATE,
+        0,
+        0,
+        &processHandle
+        )))
+        return status;
+
+    for (i = 0; i < 1000; i++) // make sure we don't go into an infinite loop or something
+    {
+        HANDLE newProcessHandle;
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
+        {
+            if (basicInfo.UniqueProcessId == ProcessId)
+            {
+                PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                break;
+            }
+        }
+
+        if (NT_SUCCESS(status = NtGetNextProcess(
+            processHandle,
+            ProcessQueryAccess | PROCESS_TERMINATE,
+            0,
+            0,
+            &newProcessHandle
+            )))
+        {
+            CloseHandle(processHandle);
+            processHandle = newProcessHandle;
+        }
+        else
+        {
+            CloseHandle(processHandle);
+            break;
+        }
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorTT1a(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE threadHandle;
+    ULONG i;
+
+    if (!NtGetNextThread)
+        return STATUS_NOT_SUPPORTED;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION, // NtGetNextThread actually requires this access for some reason
+        ProcessId
+        )))
+    {
+        if (!NT_SUCCESS(status = NtGetNextThread(
+            processHandle,
+            NULL,
+            THREAD_TERMINATE,
+            0,
+            0,
+            &threadHandle
+            )))
+        {
+            CloseHandle(processHandle);
+            return status;
+        }
+
+        for (i = 0; i < 1000; i++)
+        {
+            HANDLE newThreadHandle;
+
+            PhTerminateThread(threadHandle, STATUS_SUCCESS);
+
+            if (NT_SUCCESS(NtGetNextThread(
+                processHandle,
+                threadHandle,
+                THREAD_TERMINATE,
+                0,
+                0,
+                &newThreadHandle
+                )))
+            {
+                CloseHandle(threadHandle);
+                threadHandle = newThreadHandle;
+            }
+            else
+            {
+                CloseHandle(threadHandle);
+                break;
+            }
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorCH1(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_DUP_HANDLE,
+        ProcessId
+        )))
+    {
+        ULONG i;
+
+        for (i = 0; i < 0x1000; i += 4)
+        {
+            PhDuplicateObject(
+                processHandle,
+                (HANDLE)i,
+                NULL,
+                NULL,
+                0,
+                0,
+                DUPLICATE_CLOSE_SOURCE
+                );
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static BOOL CALLBACK DestroyProcessWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    ULONG processId;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (processId == (ULONG)lParam)
+    {
+        PostMessage(hwnd, WM_DESTROY, 0, 0);
+    }
+
+    return TRUE;
+}
+
+static NTSTATUS NTAPI TerminatorW1(
+    __in HANDLE ProcessId
+    )
+{
+    EnumWindows(DestroyProcessWindowsProc, (LPARAM)ProcessId);
+    return STATUS_SUCCESS;
+}
+
+static BOOL CALLBACK QuitProcessWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    ULONG processId;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (processId == (ULONG)lParam)
+    {
+        PostMessage(hwnd, WM_QUIT, 0, 0);
+    }
+
+    return TRUE;
+}
+
+static NTSTATUS NTAPI TerminatorW2(
+    __in HANDLE ProcessId
+    )
+{
+    EnumWindows(QuitProcessWindowsProc, (LPARAM)ProcessId);
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS NTAPI TerminatorTJ1(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    // TODO: Check if the process is already in a job.
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_QUOTA | PROCESS_TERMINATE,
+        ProcessId
+        )))
+    {
+        HANDLE jobHandle;
+
+        jobHandle = CreateJobObject(NULL, NULL);
+
+        if (jobHandle)
+        {
+            AssignProcessToJobObject(jobHandle, processHandle);
+            TerminateJobObject(jobHandle, 0);
+            CloseHandle(jobHandle);
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorTD1(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SUSPEND_RESUME,
+        ProcessId
+        )))
+    {
+        // TODO: Create debug object, debug process, close debug object.
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorTP3(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (!PhKphHandle)
+        return STATUS_NOT_SUPPORTED;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_TERMINATE,
+        ProcessId
+        )))
+    {
+        status = KphTerminateProcess(PhKphHandle, processHandle, STATUS_SUCCESS);
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorTT3(
+    __in HANDLE ProcessId
+    )
+{
+    return TerminatorTTGeneric(ProcessId, TRUE, FALSE);
+}
+
+static NTSTATUS NTAPI TerminatorTT4(
+    __in HANDLE ProcessId
+    )
+{
+    return TerminatorTTGeneric(ProcessId, FALSE, TRUE);
+}
+
+static NTSTATUS NTAPI TerminatorM1(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_WRITE,
+        ProcessId
+        )))
+    {
+        PVOID pageOfGarbage;
+        PVOID baseAddress;
+        MEMORY_BASIC_INFORMATION basicInfo;
+
+        pageOfGarbage = VirtualAlloc(NULL, PAGE_SIZE, MEM_COMMIT, PAGE_READONLY);
+
+        if (!pageOfGarbage)
+        {
+            CloseHandle(processHandle);
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+
+        baseAddress = (PVOID)0;
+
+        while (VirtualQueryEx(
+            processHandle,
+            baseAddress,
+            &basicInfo,
+            sizeof(MEMORY_BASIC_INFORMATION)
+            ))
+        {
+            ULONG i;
+
+            // Make sure we don't write to views of mapped files. That 
+            // could possibly corrupt files!
+            if (basicInfo.Type == MEM_PRIVATE)
+            {
+                for (i = 0; i < basicInfo.RegionSize; i += PAGE_SIZE)
+                {
+                    PhWriteVirtualMemory(
+                        processHandle,
+                        PTR_ADD_OFFSET(baseAddress, i),
+                        pageOfGarbage,
+                        PAGE_SIZE,
+                        NULL
+                        );
+                }
+            }
+
+            baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+        }
+
+        VirtualFree(pageOfGarbage, 0, MEM_RELEASE); 
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
+static NTSTATUS NTAPI TerminatorM2(
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION,
+        ProcessId
+        )))
+    {              
+        PVOID baseAddress;
+        MEMORY_BASIC_INFORMATION basicInfo;
+        ULONG oldProtect;
+
+        baseAddress = (PVOID)0;
+
+        while (VirtualQueryEx(
+            processHandle,
+            baseAddress,
+            &basicInfo,
+            sizeof(MEMORY_BASIC_INFORMATION)
+            ))
+        {
+            VirtualProtectEx(processHandle, baseAddress, basicInfo.RegionSize, PAGE_NOACCESS, &oldProtect);
+            baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    return status;
+}
+
 TEST_ITEM PhTerminatorTests[] =
 {
-    { L"TP1", L"Terminates the process using NtTerminateProcess", TerminatorTP1 }
+    { L"TP1", L"Terminates the process using NtTerminateProcess", TerminatorTP1 },
+    { L"TP2", L"Creates a remote thread in the process which terminates the process", TerminatorTP2 },
+    { L"TT1", L"Terminates the process' threads", TerminatorTT1 },
+    { L"TT2", L"Modifies the process' threads with contexts which terminate the process", TerminatorTT2 },
+    { L"TP1a", L"Terminates the process using NtTerminateProcess (alternative method)", TerminatorTP1a },
+    { L"TT1a", L"Terminates the process' threads (alternative method)", TerminatorTT1a },
+    { L"CH1", L"Closes the process' handles", TerminatorCH1 },
+    { L"W1", L"Sends the WM_DESTROY message to the process' windows", TerminatorW1 },
+    { L"W2", L"Sends the WM_QUIT message to the process' windows", TerminatorW2 },
+    { L"TJ1", L"Assigns the process to a job object and terminates the job", TerminatorTJ1 },
+    { L"TD1", L"Debugs the process and closes the debug object", TerminatorTD1 },
+    { L"TP3", L"Terminates the process in kernel-mode", TerminatorTP3 },
+    { L"TT3", L"Terminates the process' threads in kernel-mode", TerminatorTT3 },
+    { L"TT4", L"Terminates the process' threads using a dangerous kernel-mode method", TerminatorTT4 },
+    { L"M1", L"Writes garbage to the process' memory regions", TerminatorM1 },
+    { L"M2", L"Sets the page protection of the process' memory regions to PAGE_NOACCESS", TerminatorM2 }
 };
 
-static VOID PhpRunTerminatorTest(
+static BOOLEAN PhpRunTerminatorTest(
     __in HWND WindowHandle,
     __in INT Index
     )
 {
     NTSTATUS status;
-    PTEST_PROC param;
+    PTEST_ITEM testItem;
     PPH_PROCESS_ITEM processItem;
     HWND lvHandle;
     PVOID processes;
+    BOOLEAN success = FALSE;
 
     processItem = (PPH_PROCESS_ITEM)GetProp(WindowHandle, L"ProcessItem");
     lvHandle = GetDlgItem(WindowHandle, IDC_TERMINATOR_LIST);
@@ -102,21 +663,43 @@ static VOID PhpRunTerminatorTest(
     if (!PhGetListViewItemParam(
         lvHandle,
         Index,
-        (PPVOID)&param
+        &testItem
         ))
-        return;
+        return FALSE;
 
-    status = param(processItem->ProcessId);
+    if (WSTR_EQUAL(testItem->Id, L"TT4"))
+    {
+        if (!PhShowConfirmMessage(
+            WindowHandle,
+            L"run",
+            L"the TT4 test",
+            L"The TT4 test may cause the system to crash.",
+            TRUE
+            ))
+            return FALSE;
+    }
+
+    status = testItem->TestProc(processItem->ProcessId);
     Sleep(1000);
 
+    if (status == STATUS_NOT_SUPPORTED)
+    {
+        PPH_STRING concat;
+
+        concat = PhConcatStrings2(L"(Not available) ", testItem->Description);
+        PhSetListViewSubItem(lvHandle, Index, 1, concat->Buffer);
+        PhDereferenceObject(concat);
+    }
+
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
-        return;
+        return FALSE;
 
     // Check if the process exists.
     if (!PhFindProcessInformation(processes, processItem->ProcessId))
     {
         PhSetListViewItemImageIndex(lvHandle, Index, TICK_INDEX);
         SetDlgItemText(WindowHandle, IDC_TERMINATOR_TEXT, L"The process was terminated.");
+        success = TRUE;
     }
     else
     {
@@ -124,6 +707,10 @@ static VOID PhpRunTerminatorTest(
     }
 
     PhFree(processes);
+
+    UpdateWindow(WindowHandle);
+
+    return success;
 }
 
 static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(      
@@ -167,7 +754,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
                     lvHandle,
                     MAXINT,
                     PhTerminatorTests[i].Id,
-                    PhTerminatorTests[i].TestProc
+                    &PhTerminatorTests[i]
                     );
                 PhSetListViewSubItem(lvHandle, itemIndex, 1, PhTerminatorTests[i].Description);
                 PhSetListViewItemImageIndex(lvHandle, itemIndex, -1);
@@ -206,10 +793,11 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
 
                         for (i = 0; i < sizeof(PhTerminatorTests) / sizeof(TEST_ITEM); i++)
                         {
-                            PhpRunTerminatorTest(
+                            if (PhpRunTerminatorTest(
                                 hwndDlg,
                                 i
-                                );
+                                ))
+                                break;
                         }
                     }
                 }
