@@ -1642,3 +1642,137 @@ NTSTATUS KphOpenNamedObject(
         NULL
         );
 }
+
+NTSTATUS KphQueryInformationProcess(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    struct
+    {
+        HANDLE ProcessHandle;
+        PROCESS_INFORMATION_CLASS ProcessInformationClass;
+        PVOID ProcessInformation;
+        ULONG ProcessInformationLength;
+        PULONG ReturnLength;
+    } args;
+
+    args.ProcessHandle = ProcessHandle;
+    args.ProcessInformationClass = ProcessInformationClass;
+    args.ProcessInformation = ProcessInformation;
+    args.ProcessInformationLength = ProcessInformationLength;
+    args.ReturnLength = ReturnLength;
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_QUERYINFORMATIONPROCESS,
+        &args,
+        sizeof(args),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+NTSTATUS KphQueryInformationThread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    struct
+    {
+        HANDLE ThreadHandle;
+        THREAD_INFORMATION_CLASS ThreadInformationClass;
+        PVOID ThreadInformation;
+        ULONG ThreadInformationLength;
+        PULONG ReturnLength;
+    } args;
+
+    args.ThreadHandle = ThreadHandle;
+    args.ThreadInformationClass = ThreadInformationClass;
+    args.ThreadInformation = ThreadInformation;
+    args.ThreadInformationLength = ThreadInformationLength;
+    args.ReturnLength = ReturnLength;
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_QUERYINFORMATIONTHREAD,
+        &args,
+        sizeof(args),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+NTSTATUS KphSetInformationProcess(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength
+    )
+{
+    struct
+    {
+        HANDLE ProcessHandle;
+        PROCESS_INFORMATION_CLASS ProcessInformationClass;
+        PVOID ProcessInformation;
+        ULONG ProcessInformationLength;
+    } args;
+
+    args.ProcessHandle = ProcessHandle;
+    args.ProcessInformationClass = ProcessInformationClass;
+    args.ProcessInformation = ProcessInformation;
+    args.ProcessInformationLength = ProcessInformationLength;
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_SETINFORMATIONPROCESS,
+        &args,
+        sizeof(args),
+        NULL,
+        0,
+        NULL
+        );
+}
+
+NTSTATUS KphSetInformationThread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength
+    )
+{
+    struct
+    {
+        HANDLE ThreadHandle;
+        THREAD_INFORMATION_CLASS ThreadInformationClass;
+        PVOID ThreadInformation;
+        ULONG ThreadInformationLength;
+    } args;
+
+    args.ThreadHandle = ThreadHandle;
+    args.ThreadInformationClass = ThreadInformationClass;
+    args.ThreadInformation = ThreadInformation;
+    args.ThreadInformationLength = ThreadInformationLength;
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_SETINFORMATIONTHREAD,
+        &args,
+        sizeof(args),
+        NULL,
+        0,
+        NULL
+        );
+}

@@ -435,4 +435,38 @@ NTSTATUS KphOpenNamedObject(
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+NTSTATUS KphQueryInformationProcess(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSTATUS KphQueryInformationThread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSTATUS KphSetInformationProcess(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength
+    );
+
+NTSTATUS KphSetInformationThread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength
+    );
+
 #endif

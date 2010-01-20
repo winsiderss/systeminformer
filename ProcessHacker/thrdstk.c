@@ -53,6 +53,14 @@ VOID PhShowThreadStackDialog(
     THREAD_STACK_CONTEXT threadStackContext;
     HANDLE threadHandle = NULL;
 
+    // If the user is trying to view a system thread stack 
+    // but KProcessHacker is not loaded, show an error message.
+    if (ProcessId == SYSTEM_PROCESS_ID && !PhKphHandle)
+    {
+        PhShowError(ParentWindowHandle, KPH_ERROR_MESSAGE);
+        return;
+    }
+
     // We don't want stupid users screwing up the program 
     // by stack walking the current thread or something.
     if (ProcessId == NtCurrentProcessId())

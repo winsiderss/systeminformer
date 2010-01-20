@@ -1237,6 +1237,30 @@ NTSTATUS PhGetProcessMappedFileName(
 }
 
 /**
+ * Sets a process' I/O priority.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_SET_INFORMATION access.
+ * \param IoPriority The new I/O priority.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
+NTSTATUS PhSetProcessIoPriority(
+    __in HANDLE ProcessHandle,
+    __in ULONG IoPriority
+    )
+{
+    return KphSetInformationProcess(
+        PhKphHandle,
+        ProcessHandle,
+        ProcessIoPriority,
+        &IoPriority,
+        sizeof(ULONG)
+        );
+}
+
+/**
  * Sets a process' no-execute status.
  *
  * \param ProcessHandle A handle to a process.
@@ -1451,6 +1475,30 @@ NTSTATUS PhGetThreadCycleTime(
     *CycleTime = cycleTime.LowPart;
 
     return status;
+}
+
+/**
+ * Sets a thread's I/O priority.
+ *
+ * \param ThreadHandle A handle to a thread. The handle 
+ * must have THREAD_SET_LIMITED_INFORMATION access.
+ * \param IoPriority The new I/O priority.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
+NTSTATUS PhSetThreadIoPriority(
+    __in HANDLE ThreadHandle,
+    __in ULONG IoPriority
+    )
+{
+    return KphSetInformationThread(
+        PhKphHandle,
+        ThreadHandle,
+        ThreadIoPriority,
+        &IoPriority,
+        sizeof(ULONG)
+        );
 }
 
 /**
