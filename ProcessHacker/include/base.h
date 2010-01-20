@@ -21,6 +21,8 @@
 #define REBASE_ADDRESS(Pointer, OldBase, NewBase) \
     ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(OldBase) + (ULONG_PTR)(NewBase)))
 
+#define PAGE_SIZE 0x1000
+
 #define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
 
 #define PH_TIMEOUT_TO_MS ((LONGLONG)1 * 10 * 1000)
