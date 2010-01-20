@@ -591,3 +591,34 @@ BOOLEAN PhUiInjectDllProcess(
 
     return TRUE;
 }
+
+BOOLEAN PhUiSetPriorityProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in ULONG PriorityClassWin32
+    )
+{
+    NTSTATUS status;
+    ULONG win32Result = 0;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        Process->ProcessId
+        )))
+    {
+        if (!SetPriorityClass(processHandle, PriorityClassWin32))
+            win32Result = GetLastError();
+
+        CloseHandle(processHandle);
+    }
+
+    if (!NT_SUCCESS(status) || win32Result)
+    {
+        PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}

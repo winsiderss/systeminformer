@@ -99,10 +99,10 @@ BEGIN
         BEGIN
             MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
             MENUITEM "High",                        ID_PRIORITY_HIGH
-            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL40050
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL40051
-            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL40052
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE40053
+            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL
+            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
+            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
+            MENUITEM "Idle",                        ID_PRIORITY_IDLE
         END
         POPUP "Window"
         BEGIN
