@@ -671,28 +671,9 @@ VOID PhpSaveWindowState()
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
 {
-    INT index;
-    PPH_PROCESS_ITEM processItem;
-
-    index = PhFindListViewItemByFlags(
-        ProcessListViewHandle,
-        -1,
-        LVNI_SELECTED
+    return PhGetSelectedListViewItemParam(
+        ProcessListViewHandle
         );
-
-    if (index != -1)
-    {
-        if (PhGetListViewItemParam(
-            ProcessListViewHandle,
-            index,
-            &processItem
-            ))
-        {
-            return processItem;
-        }
-    }
-
-    return NULL;
 }
 
 VOID PhpGetSelectedProcesses(
@@ -1149,7 +1130,7 @@ VOID PhMainWndProcessListViewOnNotify(
 
             PhpGetSelectedProcesses(&processes, &numberOfProcesses);
 
-            if (numberOfProcesses > 0)
+            if (numberOfProcesses != 0)
             {
                 HMENU menu;
                 HMENU subMenu;

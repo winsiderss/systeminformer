@@ -298,6 +298,34 @@ NTSTATUS PhTerminateThread(
 }
 
 /**
+ * Suspends a thread.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must 
+ * have THREAD_SUSPEND_RESUME access.
+ */
+NTSTATUS PhSuspendThread(
+    __in HANDLE ThreadHandle,
+    __out_opt PULONG PreviousSuspendCount
+    )
+{
+    return NtSuspendThread(ThreadHandle, PreviousSuspendCount);
+}
+
+/**
+ * Resumes a thread.
+ *
+ * \param ThreadHandle A handle to a thread. The handle must 
+ * have THREAD_SUSPEND_RESUME access.
+ */
+NTSTATUS PhResumeThread(
+    __in HANDLE ThreadHandle,
+    __out_opt PULONG PreviousSuspendCount
+    )
+{
+    return NtResumeThread(ThreadHandle, PreviousSuspendCount);
+}
+
+/**
  * Gets the processor context of a thread.
  *
  * \param ThreadHandle A handle to a thread. The handle must 

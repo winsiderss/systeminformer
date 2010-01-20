@@ -266,6 +266,18 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDOK:
+                // Disable the OK button from working (even though 
+                // it's already hidden). This prevents the Enter 
+                // key from closing the dialog box.
+                return 0;
+            }
+        }
+        break;
     case WM_SIZE:
         {
             if (!IsIconic(hwnd))
@@ -785,6 +797,82 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            INT id = LOWORD(wParam);
+
+            switch (id)
+            {
+            case ID_THREAD_INSPECT:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        PhShowThreadStackDialog(
+                            hwndDlg,
+                            threadsContext->Provider->ProcessId,
+                            threadItem->ThreadId,
+                            threadsContext->Provider->SymbolProvider
+                            );
+                    }
+                }
+                break;
+            case ID_THREAD_TERMINATE:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+
+                    if (
+                        processItem->ProcessId != SYSTEM_PROCESS_ID &&
+                        PhKphHandle
+                        )
+                    {
+                        PhUiTerminateThreads(hwndDlg, threads, numberOfThreads);
+                    }
+                    else
+                    {
+                        PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
+                    }
+
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_FORCETERMINATE:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_SUSPEND:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhUiSuspendThreads(hwndDlg, threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            case ID_THREAD_RESUME:
+                {
+                    PPH_THREAD_ITEM *threads;
+                    ULONG numberOfThreads;
+
+                    PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhUiResumeThreads(hwndDlg, threads, numberOfThreads);
+                    PhFree(threads);
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -801,26 +889,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 {
                     if (header->hwndFrom == lvHandle)
                     {
-                        LPNMITEMACTIVATE item = (LPNMITEMACTIVATE)header;
-
-                        if (item->iItem != -1)
-                        {
-                            PPH_THREAD_ITEM threadItem;
-
-                            if (PhGetListViewItemParam(
-                                lvHandle,
-                                item->iItem,
-                                &threadItem
-                                ))
-                            {
-                                PhShowThreadStackDialog(
-                                    hwndDlg,
-                                    threadsContext->Provider->ProcessId,
-                                    threadItem->ThreadId,
-                                    threadsContext->Provider->SymbolProvider
-                                    );
-                            }
-                        }
+                        SendMessage(hwndDlg, WM_COMMAND, ID_THREAD_INSPECT, 0);
                     }
                 }
                 break;
@@ -829,14 +898,20 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     if (header->hwndFrom == lvHandle)
                     {
                         LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPH_THREAD_ITEM *threads;
+                        ULONG numberOfThreads;
 
-                        if (itemActivate->iItem != -1)
+                        PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+
+                        if (numberOfThreads != 0)
                         {
                             HMENU menu;
                             HMENU subMenu;
 
                             menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_THREAD));
                             subMenu = GetSubMenu(menu, 0);
+
+                            SetMenuDefaultItem(subMenu, ID_THREAD_INSPECT, FALSE);
 
                             PhShowContextMenu(
                                 hwndDlg,
@@ -845,6 +920,23 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 itemActivate->ptAction
                                 );
                             DestroyMenu(menu);
+                        }
+
+                        PhFree(threads);
+                    }
+                }
+                break;
+            case LVN_KEYDOWN:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)header;
+
+                        switch (keyDown->wVKey)
+                        {
+                        case VK_DELETE:
+                            SendMessage(hwndDlg, WM_COMMAND, ID_THREAD_TERMINATE, 0);
+                            break;
                         }
                     }
                 }

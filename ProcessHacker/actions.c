@@ -22,6 +22,7 @@
 
 #include <phgui.h>
 #include <settings.h>
+#include <kph.h>
 
 PWSTR DangerousProcesses[] =
 {
@@ -686,4 +687,252 @@ BOOLEAN PhUiSetPriorityProcess(
     }
 
     return TRUE;
+}
+
+static BOOLEAN PhpShowContinueMessageThreads(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PWSTR Message,
+    __in BOOLEAN Warning,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+    PWSTR object;
+    BOOLEAN cont = FALSE;
+
+    if (NumberOfThreads == 0)
+        return FALSE;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        if (NumberOfThreads == 1)
+        {
+            object = L"the selected thread";
+        }
+        else
+        {
+            object = L"the selected threads";
+        }
+
+        cont = PhShowConfirmMessage(
+            hWnd,
+            Verb,
+            object,
+            Message,
+            Warning
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    return cont;
+}
+
+static BOOLEAN PhpShowErrorThread(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PPH_THREAD_ITEM Thread,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    return PhShowContinueStatus(
+        hWnd,
+        PhaFormatString(
+        L"Unable to %s thread %u",
+        Verb,
+        (ULONG)Thread->ThreadId
+        )->Buffer,
+        Status,
+        Win32Result
+        );
+}
+
+BOOLEAN PhUiTerminateThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    if (!PhpShowContinueMessageThreads(
+        hWnd,
+        L"terminate",
+        L"Terminating a thread may cause the process to stop working.",
+        FALSE,
+        Threads,
+        NumberOfThreads
+        ))
+        return FALSE;
+
+    for (i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(status = PhOpenThread(
+            &threadHandle,
+            THREAD_TERMINATE,
+            Threads[i]->ThreadId
+            )))
+        {
+            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+            CloseHandle(threadHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiForceTerminateThreads(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    if (!PhKphHandle)
+    {
+        PhShowError(hWnd, L"Unable to force terminate threads because KProcessHacker is not loaded.");
+        return FALSE;
+    }
+
+    if (ProcessId != SYSTEM_PROCESS_ID)
+    {
+        if (!PhpShowContinueMessageThreads(
+            hWnd,
+            L"force terminate",
+            L"Forcibly terminating threads may cause the system to crash.",
+            TRUE,
+            Threads,
+            NumberOfThreads
+            ))
+            return FALSE;
+    }
+    else
+    {
+        if (!PhpShowContinueMessageThreads(
+            hWnd,
+            L"terminate",
+            L"Forcibly terminating system threads may cause the system to crash.",
+            TRUE,
+            Threads,
+            NumberOfThreads
+            ))
+            return FALSE;
+    }
+
+    for (i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(status = PhOpenThread(
+            &threadHandle,
+            THREAD_TERMINATE,
+            Threads[i]->ThreadId
+            )))
+        {
+            status = KphDangerousTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+            CloseHandle(threadHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSuspendThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(status = PhOpenThread(
+            &threadHandle,
+            THREAD_SUSPEND_RESUME,
+            Threads[i]->ThreadId
+            )))
+        {
+            status = PhSuspendThread(threadHandle, NULL);
+            CloseHandle(threadHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiResumeThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+
+    for (i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE threadHandle;
+
+        if (NT_SUCCESS(status = PhOpenThread(
+            &threadHandle,
+            THREAD_SUSPEND_RESUME,
+            Threads[i]->ThreadId
+            )))
+        {
+            status = PhResumeThread(threadHandle, NULL);
+            CloseHandle(threadHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0))
+                break;
+        }
+    }
+
+    return success;
 }
