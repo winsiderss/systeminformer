@@ -20,7 +20,6 @@
 * Hidden processes
 * Complete main menu items
 
-* Process menu items
 * Other menu items
 
 * Copy menu
