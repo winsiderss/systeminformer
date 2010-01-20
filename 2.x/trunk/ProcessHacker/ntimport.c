@@ -86,6 +86,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtWriteFile);
     InitProcReq("ntdll.dll", NtWriteVirtualMemory);
     InitProcReq("ntdll.dll", RtlCreateQueryDebugBuffer);
+    InitProcReq("ntdll.dll", RtlCreateUserThread);
     InitProcReq("ntdll.dll", RtlDestroyQueryDebugBuffer);
     InitProcReq("ntdll.dll", RtlFindMessage);
     InitProcReq("ntdll.dll", RtlMultiByteToUnicodeN);

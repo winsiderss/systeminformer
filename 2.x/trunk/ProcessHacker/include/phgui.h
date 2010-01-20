@@ -433,6 +433,11 @@ BOOLEAN PhUiSetVirtualizationProcess(
     __in BOOLEAN Enable
     );
 
+BOOLEAN PhUiInjectDllProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(

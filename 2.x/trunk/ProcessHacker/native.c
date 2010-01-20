@@ -1128,6 +1128,105 @@ NTSTATUS PhSetProcessExecuteFlags(
 }
 
 /**
+ * Causes a process to load a DLL.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION 
+ * and PROCESS_VM_WRITE access.
+ * \param FileName The file name of the DLL to inject.
+ * \param Timeout The timeout, in milliseconds, for the 
+ * process to load the DLL.
+ *
+ * \remarks If the process does not load the DLL before 
+ * the timeout expires it may crash. Choose the timeout 
+ * value carefully.
+ */
+NTSTATUS PhInjectDllProcess(
+    __in HANDLE ProcessHandle,
+    __in PWSTR FileName,
+    __in ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    PVOID baseAddress = NULL;
+    SIZE_T stringSize;
+    SIZE_T allocSize;
+    HANDLE threadHandle;
+
+    stringSize = (wcslen(FileName) + 1) * 2;
+    allocSize = stringSize;
+
+    if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        0,
+        &allocSize,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        )))
+        return status;
+
+    if (!NT_SUCCESS(status = PhWriteVirtualMemory(
+        ProcessHandle,
+        baseAddress,
+        FileName,
+        stringSize,
+        NULL
+        )))
+        goto FreeExit;
+
+    // Vista seems to support native threads better than XP.
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        if (!NT_SUCCESS(status = RtlCreateUserThread(
+            ProcessHandle,
+            NULL,
+            FALSE,
+            0,
+            0,
+            0,
+            (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "LoadLibraryW"),
+            baseAddress,
+            &threadHandle,
+            NULL
+            )))
+            goto FreeExit;
+    }
+    else
+    {
+        if (!CreateRemoteThread(
+            ProcessHandle,
+            NULL,
+            0,
+            (PTHREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "LoadLibraryW"),
+            baseAddress,
+            0,
+            NULL
+            ))
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto FreeExit;
+        }
+    }
+
+    // Wait for the thread to finish.
+    WaitForSingleObject(threadHandle, Timeout);
+    CloseHandle(threadHandle);
+
+FreeExit:
+    // Size needs to be zero if we're freeing.
+    allocSize = 0;
+    NtFreeVirtualMemory(
+        ProcessHandle,
+        &baseAddress,
+        &allocSize,
+        MEM_RELEASE
+        );
+
+    return status;
+}
+
+/**
  * Gets basic information for a thread.
  *
  * \param ThreadHandle A handle to a thread. The handle must have 

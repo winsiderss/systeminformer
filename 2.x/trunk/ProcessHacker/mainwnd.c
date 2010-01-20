@@ -400,6 +400,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_MISCELLANEOUS_INJECTDLL:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhUiInjectDllProcess(hWnd, processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_PROPERTIES:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();

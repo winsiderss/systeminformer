@@ -206,6 +206,12 @@ NTSTATUS PhSetProcessExecuteFlags(
     __in ULONG ExecuteFlags
     );
 
+NTSTATUS PhInjectDllProcess(
+    __in HANDLE ProcessHandle,
+    __in PWSTR FileName,
+    __in ULONG Timeout
+    );
+
 NTSTATUS PhGetThreadBasicInformation(
     __in HANDLE ThreadHandle,
     __out PTHREAD_BASIC_INFORMATION BasicInformation
