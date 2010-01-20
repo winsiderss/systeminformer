@@ -718,13 +718,13 @@ VOID PhpInitializeThreadMenu(
     if (WindowsVersion < WINDOWS_VISTA)
     {
         // Remove I/O priority.
-        RemoveMenu(Menu, IOPRIORITY_MENU_INDEX, MF_BYPOSITION);
+        DeleteMenu(Menu, IOPRIORITY_MENU_INDEX, MF_BYPOSITION);
     }
 
     if (!PhKphHandle)
     {
         // Remove Force Terminate.
-        RemoveMenu(Menu, ID_THREAD_FORCETERMINATE, MF_BYCOMMAND);
+        DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
     }
     else
     {
@@ -732,7 +732,7 @@ VOID PhpInitializeThreadMenu(
         {
             // Remove Force Terminate because Terminate does 
             // the same job.
-            RemoveMenu(Menu, ID_THREAD_FORCETERMINATE, MF_BYCOMMAND);
+            DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
         }
     }
 
