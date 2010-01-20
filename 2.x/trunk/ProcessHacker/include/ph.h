@@ -104,6 +104,16 @@ NTSTATUS PhTerminateThread(
     __in NTSTATUS ExitStatus
     );
 
+NTSTATUS PhSuspendThread(
+    __in HANDLE ThreadHandle,
+    __out_opt PULONG PreviousSuspendCount
+    );
+
+NTSTATUS PhResumeThread(
+    __in HANDLE ThreadHandle,
+    __out_opt PULONG PreviousSuspendCount
+    );
+
 NTSTATUS PhGetThreadContext(
     __in HANDLE ThreadHandle,
     __inout PCONTEXT Context

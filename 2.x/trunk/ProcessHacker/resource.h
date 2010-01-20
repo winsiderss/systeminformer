@@ -101,13 +101,14 @@
 #define ID_MODULE_OPENCONTAININGFOLDER  40067
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
+#define ID_THREAD_INSPECT               40075
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        120
-#define _APS_NEXT_COMMAND_VALUE         40075
+#define _APS_NEXT_COMMAND_VALUE         40076
 #define _APS_NEXT_CONTROL_VALUE         1024
 #define _APS_NEXT_SYMED_VALUE           104
 #endif

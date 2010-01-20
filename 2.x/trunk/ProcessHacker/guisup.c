@@ -343,6 +343,34 @@ VOID PhEnableAllMenuItems(
     }
 }
 
+PVOID PhGetSelectedListViewItemParam(
+    __in HWND hWnd
+    )
+{
+    INT index;
+    PVOID param;
+
+    index = PhFindListViewItemByFlags(
+        hWnd,
+        -1,
+        LVNI_SELECTED
+        );
+
+    if (index != -1)
+    {
+        if (PhGetListViewItemParam(
+            hWnd,
+            index,
+            &param
+            ))
+        {
+            return param;
+        }
+    }
+
+    return NULL;
+}
+
 VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,

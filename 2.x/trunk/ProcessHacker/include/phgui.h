@@ -166,6 +166,10 @@ VOID PhEnableAllMenuItems(
     __in BOOLEAN Enable
     );
 
+PVOID PhGetSelectedListViewItemParam(
+    __in HWND hWnd
+    );
+
 VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,
@@ -326,6 +330,7 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
     PPH_PROCESS_PROPCONTEXT PropContext;
     PVOID Context;
     PROPSHEETPAGE PropSheetPage;
+
     BOOLEAN LayoutInitialized;
 } PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
 
@@ -472,6 +477,31 @@ BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
     __in ULONG PriorityClassWin32
+    );
+
+BOOLEAN PhUiTerminateThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    );
+
+BOOLEAN PhUiForceTerminateThreads(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    );
+
+BOOLEAN PhUiSuspendThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
+    );
+
+BOOLEAN PhUiResumeThreads(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM *Threads,
+    __in ULONG NumberOfThreads
     );
 
 // thrdstk
