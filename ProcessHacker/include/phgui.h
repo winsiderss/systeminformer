@@ -9,6 +9,10 @@
 #include <prsht.h>
 #include "resource.h"
 
+#define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
+            L"or could not be loaded. Make sure Process Hacker is running " \
+            L"on a 32-bit system and with administrative privileges.")
+
 // main
 
 INT WINAPI WinMain(
@@ -473,6 +477,12 @@ BOOLEAN PhUiInjectDllProcess(
     __in PPH_PROCESS_ITEM Process
     );
 
+BOOLEAN PhUiSetIoPriorityProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in ULONG IoPriority
+    );
+
 BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
@@ -508,6 +518,12 @@ BOOLEAN PhUiSetPriorityThread(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM Thread,
     __in ULONG ThreadPriorityWin32
+    );
+
+BOOLEAN PhUiSetIoPriorityThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread,
+    __in ULONG IoPriority
     );
 
 // thrdstk

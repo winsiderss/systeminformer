@@ -231,6 +231,11 @@ NTSTATUS PhGetProcessMappedFileName(
     __out PPH_STRING *FileName
     );
 
+NTSTATUS PhSetProcessIoPriority(
+    __in HANDLE ProcessHandle,
+    __in ULONG IoPriority
+    );
+
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
@@ -260,6 +265,11 @@ NTSTATUS PhGetThreadPagePriority(
 NTSTATUS PhGetThreadCycleTime(
     __in HANDLE ThreadHandle,
     __out PULONG64 CycleTime
+    );
+
+NTSTATUS PhSetThreadIoPriority(
+    __in HANDLE ThreadHandle,
+    __in ULONG IoPriority
     );
 
 #define PH_WALK_I386_STACK 0x1

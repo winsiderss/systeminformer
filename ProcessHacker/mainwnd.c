@@ -435,6 +435,37 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_I_0:
+            case ID_I_1:
+            case ID_I_2:
+            case ID_I_3:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        ULONG ioPriority;
+
+                        switch (id)
+                        {
+                            case ID_I_0:
+                                ioPriority = 0;
+                                break;
+                            case ID_I_1:
+                                ioPriority = 1;
+                                break;
+                            case ID_I_2:
+                                ioPriority = 2;
+                                break;
+                            case ID_I_3:
+                                ioPriority = 3;
+                                break;
+                        }
+
+                        PhUiSetIoPriorityProcess(hWnd, processItem, ioPriority);
+                    }
+                }
+                break;
             case ID_PROCESS_PROPERTIES:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();

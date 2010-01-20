@@ -1101,6 +1101,37 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
+            case ID_I_0:
+            case ID_I_1:
+            case ID_I_2:
+            case ID_I_3:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        ULONG ioPriority;
+
+                        switch (id)
+                        {
+                            case ID_I_0:
+                                ioPriority = 0;
+                                break;
+                            case ID_I_1:
+                                ioPriority = 1;
+                                break;
+                            case ID_I_2:
+                                ioPriority = 2;
+                                break;
+                            case ID_I_3:
+                                ioPriority = 3;
+                                break;
+                        }
+
+                        PhUiSetIoPriorityThread(hwndDlg, threadItem, ioPriority);
+                    }
+                }
+                break;
             }
         }
         break;
