@@ -221,7 +221,7 @@ static NTSTATUS NTAPI TerminatorTT2(
 #else
             context.ContextFlags = CONTEXT_CONTROL;
             PhGetThreadContext(threadHandle, &context);
-            context.Eip = (ULONG64)exitProcess;
+            context.Rip = (ULONG64)exitProcess;
             PhSetThreadContext(threadHandle, &context);
 #endif
 
