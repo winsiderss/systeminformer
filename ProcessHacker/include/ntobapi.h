@@ -162,4 +162,32 @@ typedef NTSTATUS (NTAPI *_NtClose)(
     __in HANDLE Handle
     );
 
+typedef NTSTATUS (NTAPI *_NtCreateDirectoryObject)(
+    __out PHANDLE DirectoryHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *_NtOpenDirectoryObject)(
+    __out PHANDLE DirectoryHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef struct _OBJECT_DIRECTORY_INFORMATION
+{
+    UNICODE_STRING Name;
+    UNICODE_STRING TypeName;
+} OBJECT_DIRECTORY_INFORMATION, *POBJECT_DIRECTORY_INFORMATION;
+
+typedef NTSTATUS (NTAPI *_NtQueryDirectoryObject)(
+    __in HANDLE DirectoryHandle,
+    __out_bcount_opt(BufferLength) PVOID Buffer,
+    __in ULONG Length,
+    __in BOOLEAN ReturnSingleEntry,
+    __in BOOLEAN RestartScan,
+    __inout PULONG Context,
+    __out_opt PULONG ReturnLength
+    );
+
 #endif

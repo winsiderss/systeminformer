@@ -25,6 +25,14 @@
 #include <symprvp.h>
 #include <sddl.h>
 
+typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY Entry,
+    __in PVOID AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    );
+
 PWSTR PhDosDeviceNames[26];
 PH_FAST_LOCK PhDosDeviceNamesLock;
 
@@ -2449,6 +2457,223 @@ PPH_STRING PhConvertSidToStringSid(
     return string;
 }
 
+typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
+{
+    NTSTATUS Status;
+    PVOID BaseAddress;
+    HANDLE DriverHandle;
+} OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT, *POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT;
+
+BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
+    __in PPH_STRING Name,
+    __in PPH_STRING TypeName,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT context = Context;
+    PPH_STRING driverName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE driverHandle;
+    DRIVER_BASIC_INFORMATION basicInfo;
+
+    driverName = PhConcatStrings2(L"\\Driver\\", Name->Buffer);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &driverName->us,
+        0,
+        NULL,
+        NULL
+        );
+
+    status = KphOpenDriver(PhKphHandle, &driverHandle, &objectAttributes);
+    PhDereferenceObject(driverName);
+
+    if (!NT_SUCCESS(status))
+        return TRUE;
+
+    status = KphQueryInformationDriver(
+        PhKphHandle,
+        driverHandle,
+        DriverBasicInformation,
+        &basicInfo,
+        sizeof(DRIVER_BASIC_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (basicInfo.DriverStart == context->BaseAddress)
+        {
+            context->Status = STATUS_SUCCESS;
+            context->DriverHandle = driverHandle;
+
+            return FALSE;
+        }
+    }
+
+    CloseHandle(driverHandle);
+
+    return TRUE;
+}
+
+/**
+ * Opens a driver object using a base address.
+ *
+ * \param DriverHandle A variable which receives a 
+ * handle to the driver object.
+ * \param BaseAddress The base address of the driver 
+ * to open.
+ *
+ * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver could 
+ * not be found.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle. 
+ */
+NTSTATUS PhOpenDriverByBaseAddress(
+    __out PHANDLE DriverHandle,
+    __in PVOID BaseAddress
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING driverDirectoryName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE driverDirectoryHandle;
+    OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT context;
+
+    RtlInitUnicodeString(
+        &driverDirectoryName,
+        L"\\Driver"
+        );
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &driverDirectoryName,
+        0,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status = NtOpenDirectoryObject(
+        &driverDirectoryHandle,
+        DIRECTORY_QUERY,
+        &objectAttributes
+        )))
+        return status;
+
+    context.Status = STATUS_OBJECT_NAME_NOT_FOUND;
+    context.BaseAddress = context.BaseAddress;
+
+    status = PhEnumDirectoryObjects(
+        driverDirectoryHandle,
+        PhpOpenDriverByBaseAddressCallback,
+        &context
+        );
+    CloseHandle(driverDirectoryHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (NT_SUCCESS(context.Status))
+    {
+        *DriverHandle = context.DriverHandle;
+    }
+
+    return context.Status;
+}
+
+/**
+ * Queries variable-sized information for a driver.
+ * The function allocates a buffer to contain the information.
+ *
+ * \param DriverHandle A handle to a driver. The access required 
+ * depends on the information class specified.
+ * \param DriverInformationClass The information class to retrieve.
+ * \param Buffer A variable which receives a pointer to a buffer 
+ * containing the information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
+NTSTATUS PhpQueryDriverVariableSize(
+    __in HANDLE DriverHandle,
+    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
+    __out PPVOID Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG returnLength;
+
+    KphQueryInformationDriver(
+        PhKphHandle,
+        DriverHandle,
+        DriverInformationClass,
+        NULL,
+        0,
+        &returnLength
+        );
+    buffer = PhAllocate(returnLength);
+    status = KphQueryInformationDriver(
+        PhKphHandle,
+        DriverHandle,
+        DriverInformationClass,
+        buffer,
+        returnLength,
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+/**
+ * Gets the service key name of a driver.
+ *
+ * \param DriverHandle A handle to a driver.
+ * \param ServiceKeyName A variable which receives a pointer 
+ * to a string containing the service key name. You must 
+ * free the string using PhDereferenceObject() when you no 
+ * longer need it.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
+NTSTATUS PhGetDriverServiceKeyName(
+    __in HANDLE DriverHandle,
+    __out PPH_STRING *ServiceKeyName
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    PUNICODE_STRING unicodeString;
+
+    if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
+        DriverHandle,
+        DriverServiceKeyNameInformation,
+        &buffer
+        )))
+        return status;
+
+    unicodeString = (PUNICODE_STRING)buffer;
+    *ServiceKeyName = PhCreateStringEx(
+        unicodeString->Buffer,
+        unicodeString->Length
+        );
+    PhFree(buffer);
+
+    return status;
+}
+
 /**
  * Duplicates a handle.
  *
@@ -2509,21 +2734,11 @@ NTSTATUS PhDuplicateObject(
     }
 }
 
-/**
- * Enumerates the modules loaded by a process.
- *
- * \param ProcessHandle A handle to a process. The 
- * handle must have PROCESS_QUERY_LIMITED_INFORMATION 
- * and PROCESS_VM_READ access.
- * \param Callback A callback function which is 
- * executed for each process module.
- * \param Context A user-defined value to pass to the 
- * callback function.
- */
-NTSTATUS PhEnumProcessModules(
+NTSTATUS PhpEnumProcessModules(
     __in HANDLE ProcessHandle,
-    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context1,
+    __in PVOID Context2
     )
 {
     NTSTATUS status;
@@ -2579,13 +2794,12 @@ NTSTATUS PhEnumProcessModules(
         i <= PH_ENUM_PROCESS_MODULES_ITERS
         )
     {
-        PWSTR baseDllNameBuffer;
-        PWSTR fullDllNameBuffer;
-        BOOLEAN cont;
+        PVOID addressOfEntry;
 
+        addressOfEntry = CONTAINING_RECORD(currentLink, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
         status = PhReadVirtualMemory(
             ProcessHandle,
-            CONTAINING_RECORD(currentLink, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks),
+            addressOfEntry,
             &currentEntry,
             sizeof(LDR_DATA_TABLE_ENTRY),
             NULL
@@ -2597,45 +2811,14 @@ NTSTATUS PhEnumProcessModules(
         // Make sure the entry is valid.
         if (currentEntry.DllBase)
         {
-            // Read the base DLL name string and add a null terminator.
-
-            baseDllNameBuffer = PhAllocate(currentEntry.BaseDllName.Length + 2);
-
-            if (NT_SUCCESS(PhReadVirtualMemory(
-                ProcessHandle,
-                currentEntry.BaseDllName.Buffer,
-                baseDllNameBuffer,
-                currentEntry.BaseDllName.Length,
-                NULL
-                )))
-            {
-                baseDllNameBuffer[currentEntry.BaseDllName.Length / 2] = 0;
-                currentEntry.BaseDllName.Buffer = baseDllNameBuffer;
-            }
-
-            // Read the full DLL name string and add a null terminator.
-
-            fullDllNameBuffer = PhAllocate(currentEntry.FullDllName.Length + 2);
-
-            if (NT_SUCCESS(PhReadVirtualMemory(
-                ProcessHandle,
-                currentEntry.FullDllName.Buffer,
-                fullDllNameBuffer,
-                currentEntry.FullDllName.Length,
-                NULL
-                )))
-            {
-                fullDllNameBuffer[currentEntry.FullDllName.Length / 2] = 0;
-                currentEntry.FullDllName.Buffer = fullDllNameBuffer;
-            }
-
             // Execute the callback.
-            cont = Callback(&currentEntry, Context);
-
-            PhFree(baseDllNameBuffer);
-            PhFree(fullDllNameBuffer);
-
-            if (!cont)
+            if (!Callback(
+                ProcessHandle,
+                &currentEntry,
+                addressOfEntry,
+                Context1,
+                Context2
+                ))
                 break;
         }
 
@@ -2644,6 +2827,156 @@ NTSTATUS PhEnumProcessModules(
     }
 
     return status;
+}
+
+BOOLEAN NTAPI PhpEnumProcessModulesCallback(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY Entry,
+    __in PVOID AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    )
+{
+    BOOLEAN cont;
+    PWSTR baseDllNameBuffer;
+    PWSTR fullDllNameBuffer;
+
+    // Read the base DLL name string and add a null terminator.
+
+    baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+
+    if (NT_SUCCESS(PhReadVirtualMemory(
+        ProcessHandle,
+        Entry->BaseDllName.Buffer,
+        baseDllNameBuffer,
+        Entry->BaseDllName.Length,
+        NULL
+        )))
+    {
+        baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
+        Entry->BaseDllName.Buffer = baseDllNameBuffer;
+    }
+
+    // Read the full DLL name string and add a null terminator.
+
+    fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
+
+    if (NT_SUCCESS(PhReadVirtualMemory(
+        ProcessHandle,
+        Entry->FullDllName.Buffer,
+        fullDllNameBuffer,
+        Entry->FullDllName.Length,
+        NULL
+        )))
+    {
+        fullDllNameBuffer[Entry->FullDllName.Length / 2] = 0;
+        Entry->FullDllName.Buffer = fullDllNameBuffer;
+    }
+
+    // Execute the callback.
+    cont = ((PPH_ENUM_PROCESS_MODULES_CALLBACK)Context1)(Entry, Context2);
+
+    PhFree(baseDllNameBuffer);
+    PhFree(fullDllNameBuffer);
+
+    return cont;
+}
+
+/**
+ * Enumerates the modules loaded by a process.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION 
+ * and PROCESS_VM_READ access.
+ * \param Callback A callback function which is 
+ * executed for each process module.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ */
+NTSTATUS PhEnumProcessModules(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    return PhpEnumProcessModules(
+        ProcessHandle,
+        PhpEnumProcessModulesCallback,
+        Callback,
+        Context
+        );
+}
+
+typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
+{
+    NTSTATUS Status;
+    PVOID BaseAddress;
+    USHORT LoadCount;
+} SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
+
+BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY Entry,
+    __in PVOID AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    )
+{
+    PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
+
+    if (Entry->DllBase == context->BaseAddress)
+    {
+        Entry->LoadCount = context->LoadCount;
+
+        context->Status = PhWriteVirtualMemory(
+            ProcessHandle,
+            AddressOfEntry,
+            Entry,
+            sizeof(LDR_DATA_TABLE_ENTRY),
+            NULL
+            );
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Sets the load count of a process module.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION, 
+ * PROCESS_VM_READ and PROCESS_VM_WRITE access.
+ * \param BaseAddress The base address of a module.
+ * \param LoadCount The new load count of the module.
+ *
+ * \retval STATUS_UNSUCCESSFUL The module was not found.
+ */
+NTSTATUS PhSetProcessModuleLoadCount(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in USHORT LoadCount
+    )
+{
+    NTSTATUS status;
+    SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context;
+
+    context.Status = STATUS_UNSUCCESSFUL;
+    context.BaseAddress = BaseAddress;
+    context.LoadCount = LoadCount;
+
+    status = PhpEnumProcessModules(
+        ProcessHandle,
+        PhpSetProcessModuleLoadCountCallback,
+        &context,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return context.Status;
 }
 
 /**
@@ -2850,6 +3183,114 @@ NTSTATUS PhEnumHandles(
     *Handles = (PSYSTEM_HANDLE_INFORMATION)buffer;
 
     return status;
+}
+
+/**
+ * Enumerates the objects in a directory object.
+ *
+ * \param DirectoryHandle A handle to a directory. The 
+ * handle must have DIRECTORY_QUERY access.
+ * \param Callback A callback function which is 
+ * executed for each object.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ */
+NTSTATUS PhEnumDirectoryObjects(
+    __in HANDLE DirectoryHandle,
+    __in PPH_ENUM_DIRECTORY_OBJECTS Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    ULONG context = 0;
+    BOOLEAN firstTime = TRUE;
+    ULONG bufferSize;
+    POBJECT_DIRECTORY_INFORMATION buffer;
+    ULONG i;
+    BOOLEAN cont;
+
+    bufferSize = 0x200;
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        // Get a batch of entries.
+
+        while ((status = NtQueryDirectoryObject(
+            DirectoryHandle,
+            buffer,
+            bufferSize,
+            FALSE,
+            firstTime,
+            &context,
+            &bufferSize
+            )) == STATUS_MORE_ENTRIES)
+        {
+            // Check if we have at least one entry. If not, 
+            // we'll double the buffer size and try again.
+            if (buffer[0].Name.Buffer)
+                break;
+
+            // Make sure we don't resize to over 16 MB.
+            if (bufferSize > 16 * 1024 * 1024)
+            {
+                PhFree(buffer);
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhFree(buffer);
+            return status;
+        }
+
+        // Read the batch and execute the callback function 
+        // for each object.
+
+        i = 0;
+        cont = TRUE;
+
+        while (TRUE)
+        {
+            POBJECT_DIRECTORY_INFORMATION info;
+            PPH_STRING name;
+            PPH_STRING typeName;
+
+            info = &buffer[i];
+
+            if (!info->Name.Buffer)
+                break;
+
+            name = PhCreateStringEx(info->Name.Buffer, info->Name.Length);
+            typeName = PhCreateStringEx(info->TypeName.Buffer, info->TypeName.Length);  
+
+            cont = Callback(name, typeName, Context);
+
+            PhDereferenceObject(name);
+            PhDereferenceObject(typeName);
+
+            if (!cont)
+                break;
+
+            i++;
+        }
+
+        if (!cont)
+            break;
+
+        if (status != STATUS_MORE_ENTRIES)
+            break;
+
+        firstTime = FALSE;
+    }
+
+    PhFree(buffer);
+
+    return STATUS_SUCCESS;
 }
 
 /**

@@ -175,7 +175,6 @@ IDR_MODULE MENU
 BEGIN
     POPUP "Module"
     BEGIN
-        MENUITEM "Get Function Address...",     ID_MODULE_GETFUNCTIONADDRESS
         MENUITEM "Unload",                      ID_MODULE_UNLOAD
         MENUITEM SEPARATOR
         MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
