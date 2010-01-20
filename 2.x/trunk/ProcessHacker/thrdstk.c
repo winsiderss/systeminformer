@@ -121,11 +121,16 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     case WM_INITDIALOG:
         {
             PTHREAD_STACK_CONTEXT threadStackContext;
+            PPH_STRING title;
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
+
+            title = PhFormatString(L"Stack - thread %u", (ULONG)threadStackContext->ThreadId);
+            SetWindowText(hwndDlg, title->Buffer);
+            PhDereferenceObject(title);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_THRDSTACK_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
@@ -155,14 +160,14 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
     case WM_DESTROY:
         {
             PPH_LAYOUT_MANAGER layoutManager;
+            PTHREAD_STACK_CONTEXT threadStackContext;
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
 
-            PhDereferenceObject(
-                ((PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context"))->SymbolProvider
-                );
+            threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+            PhDereferenceObject(threadStackContext->SymbolProvider);
 
             RemoveProp(hwndDlg, L"Context");
             RemoveProp(hwndDlg, L"LayoutManager");
