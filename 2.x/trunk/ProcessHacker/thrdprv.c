@@ -325,6 +325,7 @@ VOID PhpThreadItemDeleteProcedure(
 
     if (threadItem->ThreadHandle) CloseHandle(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
+    if (threadItem->PriorityWin32String) PhDereferenceObject(threadItem->PriorityWin32String);
     if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);
     if (threadItem->CyclesDeltaString) PhDereferenceObject(threadItem->CyclesDeltaString);
 }
@@ -492,28 +493,30 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
-PWSTR PhpGetPriorityWin32String(
+PPH_STRING PhpGetPriorityWin32String(
     __in LONG PriorityWin32
     )
 {
     switch (PriorityWin32)
     {
     case THREAD_PRIORITY_TIME_CRITICAL:
-        return L"Time Critical";
+        return PhCreateString(L"Time Critical");
     case THREAD_PRIORITY_HIGHEST:
-        return L"Highest";
+        return PhCreateString(L"Highest");
     case THREAD_PRIORITY_ABOVE_NORMAL:
-        return L"Above Normal";
+        return PhCreateString(L"Above Normal");
     case THREAD_PRIORITY_NORMAL:
-        return L"Normal";
+        return PhCreateString(L"Normal");
     case THREAD_PRIORITY_BELOW_NORMAL:
-        return L"Below Normal";
+        return PhCreateString(L"Below Normal");
     case THREAD_PRIORITY_LOWEST:
-        return L"Lowest";
+        return PhCreateString(L"Lowest");
     case THREAD_PRIORITY_IDLE:
-        return L"Idle";
+        return PhCreateString(L"Idle");
+    case THREAD_PRIORITY_ERROR_RETURN:
+        return NULL;
     default:
-        return L"";
+        return PhFormatString(L"%d", PriorityWin32);
     }
 }
 
@@ -889,7 +892,12 @@ VOID PhThreadProviderUpdate(
 
                 if (threadItem->PriorityWin32 != oldPriorityWin32)
                 {
-                    threadItem->PriorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+                    PPH_STRING priorityWin32String;
+
+                    priorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+                    PhSwapReference(&threadItem->PriorityWin32String, priorityWin32String);
+                    PhDereferenceObject(priorityWin32String);
+
                     modified = TRUE;
                 }
             }

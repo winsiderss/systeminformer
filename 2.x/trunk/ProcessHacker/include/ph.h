@@ -879,6 +879,7 @@ typedef struct _PH_THREAD_ITEM
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
     KWAIT_REASON WaitReason;
     LONG PriorityWin32;
+    PPH_STRING PriorityWin32String;
 
     HANDLE ThreadHandle;
 
@@ -889,7 +890,6 @@ typedef struct _PH_THREAD_ITEM
     PPH_STRING CyclesDeltaString;
 
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
-    PWSTR PriorityWin32String;
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
 
 typedef struct _PH_THREAD_PROVIDER
