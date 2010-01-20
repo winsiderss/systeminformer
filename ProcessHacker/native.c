@@ -666,6 +666,64 @@ NTSTATUS PhGetProcessIsWow64(
 }
 
 /**
+ * Gets whether a process is being debugged.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION access.
+ * \param IsBeingDebugged A variable which receives a boolean 
+ * indicating whether the process is being debugged.
+ */
+NTSTATUS PhGetProcessIsBeingDebugged(
+    __in HANDLE ProcessHandle,
+    __out PBOOLEAN IsBeingDebugged
+    )
+{
+    NTSTATUS status;
+    PVOID debugPort;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDebugPort,
+        &debugPort,
+        sizeof(PVOID),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *IsBeingDebugged = !!debugPort;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a handle to a process' debug object.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION access.
+ * \param DebugObjectHandle A variable which receives a 
+ * handle to the debug object associated with the process. 
+ * You must close the handle when you no longer need it.
+ *
+ * \retval STATUS_PORT_NOT_SET The process is not being 
+ * debugged and has no associated debug object.
+ */
+NTSTATUS PhGetProcessDebugObject(
+    __in HANDLE ProcessHandle,
+    __out PHANDLE DebugObjectHandle
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessDebugObjectHandle,
+        DebugObjectHandle,
+        sizeof(HANDLE),
+        NULL
+        );
+}
+
+/**
  * Gets whether the process is running under the POSIX 
  * subsystem.
  *

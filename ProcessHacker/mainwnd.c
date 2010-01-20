@@ -415,6 +415,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_MISCELLANEOUS_DETACHFROMDEBUGGER:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhUiDetachFromDebuggerProcess(hWnd, processItem);
+                    }
+                }
+                break;
             case ID_MISCELLANEOUS_INJECTDLL:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
@@ -430,7 +440,9 @@ LRESULT CALLBACK PhMainWndProc(
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
 
                     if (processItem)
+                    {
                         PhpShowProcessProperties(processItem);
+                    }
                 }
                 break;
             case ID_PRIORITY_REALTIME:

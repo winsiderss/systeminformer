@@ -480,7 +480,27 @@ static NTSTATUS NTAPI TerminatorTD1(
         ProcessId
         )))
     {
-        // TODO: Create debug object, debug process, close debug object.
+        HANDLE debugObjectHandle;
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+
+        if (NT_SUCCESS(NtCreateDebugObject(
+            &debugObjectHandle,
+            DEBUG_PROCESS_ASSIGN,
+            &objectAttributes,
+            DEBUG_KILL_ON_CLOSE
+            )))
+        {
+            NtDebugActiveProcess(processHandle, debugObjectHandle);
+            CloseHandle(debugObjectHandle);
+        }
 
         CloseHandle(processHandle);
     }
