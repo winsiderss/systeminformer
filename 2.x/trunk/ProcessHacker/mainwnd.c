@@ -1029,12 +1029,12 @@ VOID PhpInitializeProcessMenu(
 
         // Remove I/O priority.
         miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
-        RemoveMenu(miscMenu, 3, MF_BYPOSITION);
+        DeleteMenu(miscMenu, 3, MF_BYPOSITION);
     }
 
     if (!WINDOWS_HAS_UAC)
     {
-        RemoveMenu(Menu, ID_PROCESS_VIRTUALIZATION, MF_BYCOMMAND);
+        DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
     }
 
     // Virtualization
