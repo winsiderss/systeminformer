@@ -143,6 +143,12 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+VOID PhSetRadioCheckMenuItem(
+    __in HMENU Menu,
+    __in ULONG Id,
+    __in BOOLEAN RadioCheck
+    );
+
 VOID PhEnableAllMenuItems(
     __in HMENU Menu,
     __in BOOLEAN Enable
@@ -436,6 +442,12 @@ BOOLEAN PhUiSetVirtualizationProcess(
 BOOLEAN PhUiInjectDllProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
+    );
+
+BOOLEAN PhUiSetPriorityProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in ULONG PriorityClassWin32
     );
 
 // thrdstk

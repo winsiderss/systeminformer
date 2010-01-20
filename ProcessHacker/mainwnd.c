@@ -104,7 +104,7 @@ BOOLEAN PhMainWndInitialization(
 {
     PH_RECTANGLE windowRectangle;
 
-    // Enable debug privilege if possible.
+    // Enable some privileges.
     {
         HANDLE tokenHandle;
 
@@ -115,6 +115,11 @@ BOOLEAN PhMainWndInitialization(
             )))
         {
             PhSetTokenPrivilege(tokenHandle, L"SeDebugPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeIncreaseBasePriorityPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeLoadDriverPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeShutdownPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeTakeOwnershipPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             CloseHandle(tokenHandle);
         }
     }
@@ -416,6 +421,45 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                         PhpShowProcessProperties(processItem);
+                }
+                break;
+            case ID_PRIORITY_REALTIME:
+            case ID_PRIORITY_HIGH:
+            case ID_PRIORITY_ABOVENORMAL:
+            case ID_PRIORITY_NORMAL:
+            case ID_PRIORITY_BELOWNORMAL:
+            case ID_PRIORITY_IDLE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        ULONG priorityClassWin32;
+
+                        switch (id)
+                        {
+                            case ID_PRIORITY_REALTIME:
+                                priorityClassWin32 = REALTIME_PRIORITY_CLASS;
+                                break;
+                            case ID_PRIORITY_HIGH:
+                                priorityClassWin32 = HIGH_PRIORITY_CLASS;
+                                break;
+                            case ID_PRIORITY_ABOVENORMAL:
+                                priorityClassWin32 = ABOVE_NORMAL_PRIORITY_CLASS;
+                                break;
+                            case ID_PRIORITY_NORMAL:
+                                priorityClassWin32 = NORMAL_PRIORITY_CLASS;
+                                break;
+                            case ID_PRIORITY_BELOWNORMAL:
+                                priorityClassWin32 = BELOW_NORMAL_PRIORITY_CLASS;
+                                break;
+                            case ID_PRIORITY_IDLE:
+                                priorityClassWin32 = IDLE_PRIORITY_CLASS;
+                                break;
+                        }
+
+                        PhUiSetPriorityProcess(hWnd, processItem, priorityClassWin32);
+                    }
                 }
                 break;
             case ID_WINDOW_BRINGTOFRONT:
@@ -967,6 +1011,53 @@ VOID PhpInitializeProcessMenu(
         else
         {
             CheckMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, enabled ? MF_CHECKED : MF_UNCHECKED);
+        }
+    }
+
+    // Priority
+    if (NumberOfProcesses == 1)
+    {
+        HANDLE processHandle;
+        ULONG priorityClass = 0;
+        ULONG id = 0;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            Processes[0]->ProcessId
+            )))
+        {
+            priorityClass = GetPriorityClass(processHandle);
+
+            CloseHandle(processHandle);
+        }
+
+        switch (priorityClass)
+        {
+        case REALTIME_PRIORITY_CLASS:
+            id = ID_PRIORITY_REALTIME;
+            break;
+        case HIGH_PRIORITY_CLASS:
+            id = ID_PRIORITY_HIGH;
+            break;
+        case ABOVE_NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_ABOVENORMAL;
+            break;
+        case NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_NORMAL;
+            break;
+        case BELOW_NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_BELOWNORMAL;
+            break;
+        case IDLE_PRIORITY_CLASS:
+            id = ID_PRIORITY_IDLE;
+            break;
+        }
+
+        if (id != 0)
+        {
+            CheckMenuItem(Menu, id, MF_CHECKED);
+            PhSetRadioCheckMenuItem(Menu, id, TRUE);
         }
     }
 

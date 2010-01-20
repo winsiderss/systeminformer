@@ -266,6 +266,25 @@ VOID PhShowContextMenu(
         );
 }
 
+VOID PhSetRadioCheckMenuItem(
+    __in HMENU Menu,
+    __in ULONG Id,
+    __in BOOLEAN RadioCheck
+    )
+{
+    MENUITEMINFO info = { sizeof(info) };
+
+    info.fMask = MIIM_FTYPE;
+    GetMenuItemInfo(Menu, Id, FALSE, &info);
+
+    if (RadioCheck)
+        info.fType |= MFT_RADIOCHECK;
+    else
+        info.fType &= ~MFT_RADIOCHECK;
+
+    SetMenuItemInfo(Menu, Id, FALSE, &info);
+}
+
 VOID PhEnableAllMenuItems(
     __in HMENU Menu,
     __in BOOLEAN Enable
