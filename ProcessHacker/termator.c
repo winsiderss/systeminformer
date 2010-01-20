@@ -745,9 +745,18 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
     case WM_INITDIALOG:
         {
             PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
+            PPH_STRING title;
             HWND lvHandle;
             HIMAGELIST imageList;
             ULONG i;
+
+            title = PhFormatString(
+                L"Terminator - %s (%u)",
+                processItem->ProcessName->Buffer,
+                (ULONG)processItem->ProcessId
+                );
+            SetWindowText(hwndDlg, title->Buffer);
+            PhDereferenceObject(title);
 
             SetProp(hwndDlg, L"ProcessItem", (HANDLE)processItem);
 
