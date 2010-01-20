@@ -997,7 +997,7 @@ VOID PhpInitializeProcessMenu(
 
         // Remove I/O priority.
         miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
-        RemoveMenu(miscMenu, 4, MF_BYPOSITION);
+        RemoveMenu(miscMenu, 3, MF_BYPOSITION);
     }
 
     // Virtualization
@@ -1045,6 +1045,7 @@ VOID PhpInitializeProcessMenu(
     {
         HANDLE processHandle;
         ULONG priorityClass = 0;
+        ULONG ioPriority = -1;
         ULONG id = 0;
 
         if (NT_SUCCESS(PhOpenProcess(
@@ -1054,6 +1055,17 @@ VOID PhpInitializeProcessMenu(
             )))
         {
             priorityClass = GetPriorityClass(processHandle);
+
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                if (!NT_SUCCESS(PhGetProcessIoPriority(
+                    processHandle,
+                    &ioPriority
+                    )))
+                {
+                    ioPriority = -1;
+                }
+            }
 
             CloseHandle(processHandle);
         }
@@ -1084,6 +1096,33 @@ VOID PhpInitializeProcessMenu(
         {
             CheckMenuItem(Menu, id, MF_CHECKED);
             PhSetRadioCheckMenuItem(Menu, id, TRUE);
+        }
+
+        if (ioPriority != -1)
+        {
+            id = 0;
+
+            switch (ioPriority)
+            {
+            case 0:
+                id = ID_I_0;
+                break;
+            case 1:
+                id = ID_I_1;
+                break;
+            case 2:
+                id = ID_I_2;
+                break;
+            case 3:
+                id = ID_I_3;
+                break;
+            }
+
+            if (id != 0)
+            {
+                CheckMenuItem(Menu, id, MF_CHECKED);
+                PhSetRadioCheckMenuItem(Menu, id, TRUE);
+            }
         }
     }
 

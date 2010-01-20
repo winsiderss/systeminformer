@@ -740,6 +740,7 @@ VOID PhpInitializeThreadMenu(
     if (NumberOfThreads == 1)
     {
         HANDLE threadHandle;
+        ULONG ioPriority = -1;
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         ULONG id = 0;
 
@@ -750,6 +751,17 @@ VOID PhpInitializeThreadMenu(
             )))
         {
             threadPriority = GetThreadPriority(threadHandle);
+
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                if (!NT_SUCCESS(PhGetThreadIoPriority(
+                    threadHandle,
+                    &ioPriority
+                    )))
+                {
+                    ioPriority = -1;
+                }
+            }
 
             CloseHandle(threadHandle);
         }
@@ -783,6 +795,33 @@ VOID PhpInitializeThreadMenu(
         {
             CheckMenuItem(Menu, id, MF_CHECKED);
             PhSetRadioCheckMenuItem(Menu, id, TRUE);
+        }
+
+        if (ioPriority != -1)
+        {
+            id = 0;
+
+            switch (ioPriority)
+            {
+            case 0:
+                id = ID_I_0;
+                break;
+            case 1:
+                id = ID_I_1;
+                break;
+            case 2:
+                id = ID_I_2;
+                break;
+            case 3:
+                id = ID_I_3;
+                break;
+            }
+
+            if (id != 0)
+            {
+                CheckMenuItem(Menu, id, MF_CHECKED);
+                PhSetRadioCheckMenuItem(Menu, id, TRUE);
+            }
         }
     }
 }
