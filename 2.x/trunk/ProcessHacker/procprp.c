@@ -986,8 +986,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
 
                     if (
-                        processItem->ProcessId != SYSTEM_PROCESS_ID &&
-                        PhKphHandle
+                        processItem->ProcessId != SYSTEM_PROCESS_ID ||
+                        !PhKphHandle
                         )
                     {
                         PhUiTerminateThreads(hwndDlg, threads, numberOfThreads);
