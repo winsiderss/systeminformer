@@ -270,6 +270,38 @@ FORCEINLINE PWSTR PhGetString(
 }
 
 /**
+ * Retrieves a pointer to a string object's buffer 
+ * or returns an empty string.
+ *
+ * \param String A pointer to a string object.
+ *
+ * \return A pointer to the string object's buffer 
+ * if the supplied pointer is non-NULL, otherwise 
+ * an empty string.
+ */
+FORCEINLINE PWSTR PhGetStringOrEmpty(
+    __in_opt PPH_STRING String
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return L"";
+}
+
+/**
+ * Determines whether a string is null or empty.
+ *
+ * \param String A pointer to a string object.
+ */
+FORCEINLINE BOOLEAN PhIsStringNullOrEmpty(
+    __in_opt PPH_STRING String
+    )
+{
+    return !String || String->Length == 0;
+}
+
+/**
  * Duplicates a string.
  *
  * \param String A string to duplicate.

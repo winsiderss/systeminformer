@@ -1137,3 +1137,161 @@ BOOLEAN PhUiUnloadModule(
 
     return TRUE;
 }
+
+static BOOLEAN PhpShowErrorHandle(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PPH_HANDLE_ITEM Handle,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    if (!PhIsStringNullOrEmpty(Handle->BestObjectName))
+    {
+        return PhShowContinueStatus(
+            hWnd,
+            PhaFormatString(
+            L"Unable to %s handle \"%s\" (0x%Ix)",
+            Verb,
+            Handle->BestObjectName->Buffer,
+            (ULONG)Handle->Handle
+            )->Buffer,
+            Status,
+            Win32Result
+            );
+    }
+    else
+    {
+        return PhShowContinueStatus(
+            hWnd,
+            PhaFormatString(
+            L"Unable to %s handle 0x%Ix",
+            Verb,
+            (ULONG)Handle->Handle
+            )->Buffer,
+            Status,
+            Win32Result
+            );
+    }
+}
+
+BOOLEAN PhUiCloseHandles(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM *Handles,
+    __in ULONG NumberOfHandles,
+    __in BOOLEAN Warn
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+    BOOLEAN success = TRUE;
+    HANDLE processHandle;
+
+    if (NumberOfHandles == 0)
+        return FALSE;
+
+    if (Warn && PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"close",
+            NumberOfHandles == 1 ? L"the selected handle" : L"the selected handles",
+            L"Closing handles may cause system instability and data corruption.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_DUP_HANDLE,
+        ProcessId
+        )))
+    {
+        ULONG i;
+
+        for (i = 0; i < NumberOfHandles; i++)
+        {
+            status = PhDuplicateObject(
+                processHandle,
+                Handles[i]->Handle,
+                NULL,
+                NULL,
+                0,
+                0,
+                DUPLICATE_CLOSE_SOURCE
+                );
+
+            if (!NT_SUCCESS(status))
+            {
+                success = FALSE;
+
+                if (!PhpShowErrorHandle(
+                    hWnd,
+                    L"close",
+                    Handles[i],
+                    status,
+                    0
+                    ))
+                    break;
+            }
+        }
+
+        CloseHandle(processHandle);
+    }
+    else
+    {
+        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        return FALSE;
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiSetAttributesHandle(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM Handle,
+    __in ULONG Attributes
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (!PhKphHandle)
+    {
+        PhShowError(hWnd, KPH_ERROR_MESSAGE);
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        ProcessId
+        )))
+    {
+        status = KphSetHandleAttributes(
+            PhKphHandle,
+            processHandle,
+            Handle->Handle,
+            Attributes
+            );
+
+        CloseHandle(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorHandle(hWnd, L"set attributes of", Handle, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}

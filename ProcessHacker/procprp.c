@@ -1658,7 +1658,56 @@ static VOID NTAPI HandlesUpdatedHandler(
     PostMessage(handlesContext->WindowHandle, WM_PH_HANDLES_UPDATED, 0, 0);
 }
 
+VOID PhpInitializeHandleMenu(
+    __in HMENU Menu,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM *Handles,
+    __in ULONG NumberOfHandles,
+    __inout PPH_HANDLES_CONTEXT HandlesContext
+    )
+{
+    if (NumberOfHandles == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfHandles == 1)
+    {
+        // Nothing
+    }
+    else
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
 
+        EnableMenuItem(Menu, ID_HANDLE_CLOSE, MF_ENABLED);
+    }
+
+    // Remove irrelevant menu items.
+
+    if (!PhKphHandle)
+    {
+        DeleteMenu(Menu, ID_HANDLE_PROTECTED, 0);
+        DeleteMenu(Menu, ID_HANDLE_INHERIT, 0);
+    }
+
+    // Protected, Inherit
+    if (NumberOfHandles == 1 && PhKphHandle)
+    {
+        HandlesContext->SelectedHandleProtected = FALSE;
+        HandlesContext->SelectedHandleInherit = FALSE;
+
+        if (Handles[0]->Attributes & OBJ_PROTECT_CLOSE)
+        {
+            HandlesContext->SelectedHandleProtected = TRUE;
+            CheckMenuItem(Menu, ID_HANDLE_PROTECTED, MF_CHECKED);
+        }
+
+        if (Handles[0]->Attributes & OBJ_INHERIT)
+        {
+            HandlesContext->SelectedHandleInherit = TRUE;
+            CheckMenuItem(Menu, ID_HANDLE_INHERIT, MF_CHECKED);
+        }
+    }
+}
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
@@ -1793,62 +1842,44 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_COMMAND:
         {
-            switch (LOWORD(wParam))
+            INT id = LOWORD(wParam);
+
+            switch (id)
             {
             case ID_HANDLE_CLOSE:
                 {
-                    NTSTATUS status;
-                    HANDLE processHandle;
+                    PPH_HANDLE_ITEM *handles;
+                    ULONG numberOfHandles;
 
-                    if (NT_SUCCESS(status = PhOpenProcess(
-                        &processHandle,
-                        PROCESS_DUP_HANDLE,
-                        processItem->ProcessId
-                        )))
+                    PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
+                    PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
+                    PhFree(handles);
+                }
+                break;
+            case ID_HANDLE_PROTECTED:
+            case ID_HANDLE_INHERIT:
+                {
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (handleItem)
                     {
-                        PPH_HANDLE_ITEM *selectedItems;
-                        ULONG numberOfItems;
-                        ULONG i;
+                        ULONG attributes = 0;
 
-                        PhGetSelectedListViewItemParams(
-                            lvHandle,
-                            &selectedItems,
-                            &numberOfItems
-                            );
+                        // Re-create the attributes.
 
-                        for (i = 0; i < numberOfItems; i++)
-                        {
-                            status = PhDuplicateObject(
-                                processHandle,
-                                selectedItems[i]->Handle,
-                                NULL,
-                                NULL,
-                                0,
-                                0,
-                                DUPLICATE_CLOSE_SOURCE
-                                );
+                        if (handlesContext->SelectedHandleProtected)
+                            attributes |= OBJ_PROTECT_CLOSE;
+                        if (handlesContext->SelectedHandleInherit)
+                            attributes |= OBJ_INHERIT;
 
-                            if (!NT_SUCCESS(status))
-                            {
-                                if (!PhShowContinueStatus(
-                                    hwndDlg,
-                                    PhaFormatString(
-                                    L"Unable to close the handle \"%s\" (0x%Ix)",
-                                    PhGetString(selectedItems[i]->BestObjectName),
-                                    selectedItems[i]->Handle
-                                    )->Buffer,
-                                    status,
-                                    0
-                                    ))
-                                    break;
-                            }
-                        }
+                        // Toggle the appropriate bit.
 
-                        CloseHandle(processHandle);
-                    }
-                    else
-                    {
-                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                        if (id == ID_HANDLE_PROTECTED)
+                            attributes ^= OBJ_PROTECT_CLOSE;
+                        else if (id == ID_HANDLE_INHERIT)
+                            attributes ^= OBJ_INHERIT;
+
+                        PhUiSetAttributesHandle(hwndDlg, processItem->ProcessId, handleItem, attributes);
                     }
                 }
                 break;
@@ -1872,8 +1903,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     if (header->hwndFrom == lvHandle)
                     {
                         LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPH_HANDLE_ITEM *handles;
+                        ULONG numberOfHandles;
 
-                        if (itemActivate->iItem != -1)
+                        PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
+
+                        if (numberOfHandles != 0)
                         {
                             HMENU menu;
                             HMENU subMenu;
@@ -1882,6 +1917,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                             subMenu = GetSubMenu(menu, 0);
 
                             SetMenuDefaultItem(subMenu, ID_HANDLE_PROPERTIES, FALSE);
+                            PhpInitializeHandleMenu(
+                                subMenu,
+                                processItem->ProcessId,
+                                handles,
+                                numberOfHandles,
+                                handlesContext
+                                );
+
                             PhShowContextMenu(
                                 hwndDlg,
                                 lvHandle,
@@ -1889,6 +1932,25 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                                 itemActivate->ptAction
                                 );
                             DestroyMenu(menu);
+                        }
+
+                        PhFree(handles);
+                    }
+                }
+                break;
+            case LVN_KEYDOWN:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)header;
+
+                        switch (keyDown->wVKey)
+                        {
+                        case VK_DELETE:
+                            // Pass a 1 in lParam to indicate that warnings should be 
+                            // enabled.
+                            SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_CLOSE, 1);
+                            break;
                         }
                     }
                 }
