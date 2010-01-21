@@ -36,6 +36,14 @@ typedef enum _PH_INTEGRITY
     PiInstaller = 5
 } PH_INTEGRITY, *PPH_INTEGRITY;
 
+typedef struct _PH_PROCESS_WS_COUNTERS
+{
+    ULONG NumberOfPages;
+    ULONG NumberOfPrivatePages;
+    ULONG NumberOfSharedPages;
+    ULONG NumberOfShareablePages;
+} PH_PROCESS_WS_COUNTERS, *PPH_PROCESS_WS_COUNTERS;
+
 /** Contains information about an environment variable. */
 typedef struct _PH_ENVIRONMENT_VARIABLE
 {
@@ -229,6 +237,16 @@ NTSTATUS PhGetProcessMappedFileName(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
     __out PPH_STRING *FileName
+    );
+
+NTSTATUS PhGetProcessWorkingSetInformation(
+    __in HANDLE ProcessHandle,
+    __out PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
+    );
+
+NTSTATUS PhGetProcessWsCounters(
+    __in HANDLE ProcessHandle,
+    __out PPH_PROCESS_WS_COUNTERS WsCounters
     );
 
 NTSTATUS PhSetProcessIoPriority(
