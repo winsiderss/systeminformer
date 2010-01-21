@@ -347,6 +347,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\about.c"
+				>
+			</File>
+			<File
 				RelativePath=".\actions.c"
 				>
 			</File>
@@ -644,6 +648,10 @@
 			</File>
 			<File
 				RelativePath=".\ProcessHacker.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\ProcessHacker.png"
 				>
 			</File>
 			<File

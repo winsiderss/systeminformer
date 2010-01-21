@@ -591,6 +591,11 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_HELP_ABOUT:
+                {
+                    PhShowAboutDialog(hWnd);
+                }
+                break;
             }
         }
         break;
