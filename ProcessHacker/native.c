@@ -1389,6 +1389,87 @@ FreeExit:
 }
 
 /**
+ * Causes a process to unload a DLL.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD,
+ * PROCESS_VM_OPERATION, PROCESS_VM_READ and PROCESS_VM_WRITE access.
+ * \param BaseAddress The base address of the DLL to unload.
+ * \param Timeout The timeout, in milliseconds, for the 
+ * process to unload the DLL.
+ */
+NTSTATUS PhUnloadDllProcess(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    status = PhSetProcessModuleLoadCount(
+        ProcessHandle,
+        BaseAddress,
+        1
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        status = RtlCreateUserThread(
+            ProcessHandle,
+            NULL,
+            FALSE,
+            0,
+            0,
+            0,
+            (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "LdrUnloadDll"),
+            BaseAddress,
+            &threadHandle,
+            NULL
+            );
+    }
+    else
+    {
+        if (!(threadHandle = CreateThread(
+            NULL,
+            0,
+            (PTHREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "FreeLibrary"),
+            BaseAddress,
+            0,
+            NULL
+            )))
+        {
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (WaitForSingleObject(threadHandle, Timeout) == WAIT_OBJECT_0)
+    {
+        status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
+
+        if (NT_SUCCESS(status))
+        {
+            status = basicInfo.ExitStatus;
+        }
+    }
+    else
+    {
+        status = STATUS_TIMEOUT;
+    }
+
+    CloseHandle(threadHandle);
+
+    return status;
+}
+
+/**
  * Gets basic information for a thread.
  *
  * \param ThreadHandle A handle to a thread. The handle must have 
@@ -2562,7 +2643,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
         return status;
 
     context.Status = STATUS_OBJECT_NAME_NOT_FOUND;
-    context.BaseAddress = context.BaseAddress;
+    context.BaseAddress = BaseAddress;
 
     status = PhEnumDirectoryObjects(
         driverDirectoryHandle,
@@ -2670,6 +2751,152 @@ NTSTATUS PhGetDriverServiceKeyName(
         unicodeString->Length
         );
     PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhpUnloadDriver(
+    __in PPH_STRING ServiceKeyName
+    )
+{
+    NTSTATUS status;
+    HKEY servicesKeyHandle;
+    HKEY serviceKeyHandle;
+    ULONG disposition;
+    PPH_STRING servicePath;
+
+    if (RegCreateKey(
+        HKEY_LOCAL_MACHINE,
+        L"SYSTEM\\CurrentControlSet\\Services",
+        &servicesKeyHandle
+        ) != ERROR_SUCCESS)
+        return STATUS_UNSUCCESSFUL;
+
+    if (RegCreateKeyEx(
+        servicesKeyHandle,
+        ServiceKeyName->Buffer,
+        0,
+        NULL,
+        0,
+        KEY_WRITE,
+        NULL,
+        &serviceKeyHandle,
+        &disposition
+        ) != ERROR_SUCCESS)
+    {
+        RegCloseKey(servicesKeyHandle);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (disposition == REG_CREATED_NEW_KEY)
+    {
+        ULONG dword;
+        PPH_STRING string;
+
+        // Set up the required values.
+        dword = 1;
+        RegSetKeyValue(serviceKeyHandle, NULL, L"ErrorControl", REG_DWORD, &dword, sizeof(ULONG));
+        RegSetKeyValue(serviceKeyHandle, NULL, L"Start", REG_DWORD, &dword, sizeof(ULONG));
+        RegSetKeyValue(serviceKeyHandle, NULL, L"Type", REG_DWORD, &dword, sizeof(ULONG));
+
+        // Use a bogus name.
+        string = PhCreateString(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
+        RegSetKeyValue(serviceKeyHandle, NULL, L"ImagePath", REG_SZ, string->Buffer, string->Length + 2);
+        PhDereferenceObject(string);
+    }
+
+    servicePath = PhConcatStrings2(
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Services\\",
+        ServiceKeyName->Buffer
+        );
+    status = NtUnloadDriver(&servicePath->us);
+    PhDereferenceObject(servicePath);
+
+    if (disposition == REG_CREATED_NEW_KEY)
+    {
+        RegDeleteTree(servicesKeyHandle, ServiceKeyName->Buffer);
+    }
+
+    RegCloseKey(serviceKeyHandle);
+    RegCloseKey(servicesKeyHandle);
+
+    return status;
+}
+
+/**
+ * Unloads a driver.
+ *
+ * \param BaseAddress The base address of the driver. 
+ * This parameter can be NULL if a value is specified 
+ * in \c Name.
+ * \param Name The base name of the driver. This 
+ * parameter can be NULL if a value is specified in 
+ * \c Name and KProcessHacker is loaded.
+ *
+ * \retval STATUS_INVALID_PARAMETER_MIX Both 
+ * \c BaseAddress and \c Name were null, or \c Name 
+ * was not specified and KProcessHacker is not loaded.
+ * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver 
+ * could not be found.
+ * \retval STATUS_UNSUCCESSFUL The function failed and 
+ * the Win32 error code is available by calling 
+ * GetLastError().
+ */
+NTSTATUS PhUnloadDriver(
+    __in_opt PVOID BaseAddress,
+    __in_opt PWSTR Name
+    )
+{
+    NTSTATUS status;
+    HANDLE driverHandle;
+    PPH_STRING serviceKeyName = NULL;
+
+    if (!BaseAddress && !Name)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if (!Name && !PhKphHandle)
+        return STATUS_INVALID_PARAMETER_MIX;
+
+    // Try to get the service key name by scanning the 
+    // Driver directory.
+
+    if (PhKphHandle && BaseAddress)
+    {
+        if (NT_SUCCESS(PhOpenDriverByBaseAddress(
+            &driverHandle,
+            BaseAddress
+            )))
+        {
+            PhGetDriverServiceKeyName(driverHandle, &serviceKeyName);
+            CloseHandle(driverHandle);
+        }
+    }
+
+    // Use the base name if we didn't get the service 
+    // key name.
+
+    if (!serviceKeyName && Name)
+    {
+        PPH_STRING name;
+
+        name = PhCreateString(Name);
+
+        // Remove the extension if it is present.
+        if (PhStringEndsWith2(name, L".sys", TRUE))
+        {
+            serviceKeyName = PhSubstring(name, 0, name->Length / 2 - 4);
+            PhDereferenceObject(name);
+        }
+        else
+        {
+            serviceKeyName = name;
+        }
+    }
+
+    if (!serviceKeyName)
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+
+    status = PhpUnloadDriver(serviceKeyName);
+    PhDereferenceObject(serviceKeyName);
 
     return status;
 }
@@ -2951,7 +3178,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
  * \param BaseAddress The base address of a module.
  * \param LoadCount The new load count of the module.
  *
- * \retval STATUS_UNSUCCESSFUL The module was not found.
+ * \retval STATUS_DLL_NOT_FOUND The module was not found.
  */
 NTSTATUS PhSetProcessModuleLoadCount(
     __in HANDLE ProcessHandle,
@@ -2962,7 +3189,7 @@ NTSTATUS PhSetProcessModuleLoadCount(
     NTSTATUS status;
     SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context;
 
-    context.Status = STATUS_UNSUCCESSFUL;
+    context.Status = STATUS_DLL_NOT_FOUND;
     context.BaseAddress = BaseAddress;
     context.LoadCount = LoadCount;
 
@@ -3223,7 +3450,7 @@ NTSTATUS PhEnumDirectoryObjects(
             FALSE,
             firstTime,
             &context,
-            &bufferSize
+            NULL
             )) == STATUS_MORE_ENTRIES)
         {
             // Check if we have at least one entry. If not, 
@@ -3239,6 +3466,7 @@ NTSTATUS PhEnumDirectoryObjects(
             }
 
             PhFree(buffer);
+            bufferSize *= 2;
             buffer = PhAllocate(bufferSize);
         }
 

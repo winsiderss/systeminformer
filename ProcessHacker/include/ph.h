@@ -247,6 +247,12 @@ NTSTATUS PhInjectDllProcess(
     __in ULONG Timeout
     );
 
+NTSTATUS PhUnloadDllProcess(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in ULONG Timeout
+    );
+
 NTSTATUS PhGetThreadBasicInformation(
     __in HANDLE ThreadHandle,
     __out PTHREAD_BASIC_INFORMATION BasicInformation
@@ -397,6 +403,11 @@ NTSTATUS PhOpenDriverByBaseAddress(
 NTSTATUS PhGetDriverServiceKeyName(
     __in HANDLE DriverHandle,
     __out PPH_STRING *ServiceKeyName
+    );
+
+NTSTATUS PhUnloadDriver(
+    __in_opt PVOID BaseAddress,
+    __in_opt PWSTR Name
     );
 
 NTSTATUS PhDuplicateObject(
