@@ -17,6 +17,8 @@
 #define IDD_TERMINATOR                  114
 #define IDB_CROSS                       117
 #define IDB_TICK                        118
+#define IDR_SHUTDOWN                    120
+#define IDD_ABOUT                       121
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
@@ -38,6 +40,8 @@
 #define IDC_PROCGENERAL_CURDIR          1022
 #define IDC_TERMINATOR_LIST             1022
 #define IDC_TERMINATOR_TEXT             1023
+#define IDC_ABOUT_NAME                  1024
+#define IDC_SCROLLBAR1                  1025
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -101,14 +105,45 @@
 #define ID_MODULE_PROPERTIES            40068
 #define ID_PROCESS_TERMINATETREE        40069
 #define ID_THREAD_INSPECT               40075
+#define ID_HACKER_RUN                   40076
+#define ID_HACKER_RUNASADMINISTRATOR    40077
+#define ID_HACKER_RUNAS                 40078
+#define ID_HACKER_SHOWDETAILSFORALLPROCESSES 40079
+#define ID_HACKER_0                     40080
+#define ID_HACKER_OPEN                  40081
+#define ID_HACKER_FINDHANDLESORDLLS     40082
+#define ID_HACKER_OPTIONS               40083
+#define ID_SHUTDOWN_LOCK                40084
+#define ID_SHUTDOWN_LOGOFF              40085
+#define ID_SHUTDOWN_SLEEP               40086
+#define ID_SHUTDOWN_HIBERNATE           40087
+#define ID_SHUTDOWN_RESTART             40088
+#define ID_SHUTDOWN_SHUTDOWN            40089
+#define ID_SHUTDOWN_POWEROFF            40090
+#define ID_VIEW_SYSTEMINFORMATION       40091
+#define ID_VIEW_TRAYICONS               40092
+#define ID_TRAYICONS_CPUHISTORY         40093
+#define ID_TRAYICONS_CPUUSAGE           40094
+#define ID_TRAYICONS_I                  40095
+#define ID_TRAYICONS_COMMITHISTORY      40096
+#define ID_TRAYICONS_PHYSICALMEMORYHISTORY 40097
+#define ID_VIEW_REFRESH                 40098
+#define ID_VIEW_UPDATEPROCESSES         40099
+#define ID_VIEW_UPDATESERVICES          40100
+#define ID_TOOLS_CREATESERVICE          40101
+#define ID_TOOLS_HIDDENPROCESSES        40102
+#define ID_TOOLS_VERIFYFILESIGNATURE    40103
+#define ID_HELP_LOG                     40104
+#define ID_HELP_DONATE                  40105
+#define ID_HELP_ABOUT                   40106
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        120
-#define _APS_NEXT_COMMAND_VALUE         40076
-#define _APS_NEXT_CONTROL_VALUE         1024
+#define _APS_NEXT_RESOURCE_VALUE        123
+#define _APS_NEXT_COMMAND_VALUE         40107
+#define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

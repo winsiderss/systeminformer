@@ -65,7 +65,15 @@ IDR_MAINWND MENU
 BEGIN
     POPUP "&Hacker"
     BEGIN
+        MENUITEM "Run...\aCtrl+R",              ID_HACKER_RUN
+        MENUITEM "Run As Administrator...",     ID_HACKER_RUNASADMINISTRATOR
+        MENUITEM "Run As...",                   ID_HACKER_RUNAS
+        MENUITEM "Show Details for All Processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
+        MENUITEM SEPARATOR
+        MENUITEM "Open...\aCtrl+O",             ID_HACKER_OPEN
         MENUITEM "Save...\aCtrl+S",             ID_HACKER_SAVE
+        MENUITEM "Find Handles or DLLs...\aCtrl+F", ID_HACKER_FINDHANDLESORDLLS
+        MENUITEM "Options...",                  ID_HACKER_OPTIONS
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
@@ -117,10 +125,35 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
     END
-    MENUITEM "&View",                       ID_VIEW
-    MENUITEM "&Tools",                      ID_TOOLS
+    POPUP "&View"
+    BEGIN
+        MENUITEM "System Information\aCtrl+I",  ID_VIEW_SYSTEMINFORMATION
+        POPUP "Tray Icons"
+        BEGIN
+            MENUITEM "CPU History",                 ID_TRAYICONS_CPUHISTORY
+            MENUITEM "CPU Usage",                   ID_TRAYICONS_CPUUSAGE
+            MENUITEM "I/O History",                 ID_TRAYICONS_I
+            MENUITEM "Commit History",              ID_TRAYICONS_COMMITHISTORY
+            MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Refresh\aF5",                 ID_VIEW_REFRESH
+        MENUITEM "Update Processes",            ID_VIEW_UPDATEPROCESSES
+        MENUITEM "Update Services",             ID_VIEW_UPDATESERVICES
+    END
+    POPUP "&Tools"
+    BEGIN
+        MENUITEM "Create Service...",           ID_TOOLS_CREATESERVICE
+        MENUITEM "Hidden Processes",            ID_TOOLS_HIDDENPROCESSES
+        MENUITEM "Verify File Signature...",    ID_TOOLS_VERIFYFILESIGNATURE
+    END
     MENUITEM "&Users",                      ID_USERS
-    MENUITEM "H&elp",                       ID_HELP
+    POPUP "H&elp"
+    BEGIN
+        MENUITEM "Log\aCtrl+L",                 ID_HELP_LOG
+        MENUITEM "Donate",                      ID_HELP_DONATE
+        MENUITEM "About",                       ID_HELP_ABOUT
+    END
 END
 
 IDR_THREAD MENU 
@@ -179,6 +212,22 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
         MENUITEM "Properties",                  ID_MODULE_PROPERTIES
+    END
+END
+
+IDR_SHUTDOWN MENU 
+BEGIN
+    POPUP "Shutdown"
+    BEGIN
+        MENUITEM "Lock",                        ID_SHUTDOWN_LOCK
+        MENUITEM "Logoff",                      ID_SHUTDOWN_LOGOFF
+        MENUITEM SEPARATOR
+        MENUITEM "Sleep",                       ID_SHUTDOWN_SLEEP
+        MENUITEM "Hibernate",                   ID_SHUTDOWN_HIBERNATE
+        MENUITEM SEPARATOR
+        MENUITEM "Restart",                     ID_SHUTDOWN_RESTART
+        MENUITEM "Shutdown",                    ID_SHUTDOWN_SHUTDOWN
+        MENUITEM "Poweroff",                    ID_SHUTDOWN_POWEROFF
     END
 END
 
@@ -302,6 +351,19 @@ BEGIN
     LTEXT           "Static",IDC_TERMINATOR_TEXT,7,7,269,8
 END
 
+IDD_ABOUT DIALOGEX 0, 0, 254, 163
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,197,142,50,14
+    ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,21,20
+    LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,50,8
+    LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,107,8
+    GROUPBOX        "Credits",IDC_STATIC,7,42,240,95
+    LTEXT           "wj32 - Project Manager",IDC_STATIC,15,53,76,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -365,6 +427,14 @@ BEGIN
         RIGHTMARGIN, 276
         TOPMARGIN, 7
         BOTTOMMARGIN, 266
+    END
+
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 247
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 156
     END
 END
 #endif    // APSTUDIO_INVOKED
