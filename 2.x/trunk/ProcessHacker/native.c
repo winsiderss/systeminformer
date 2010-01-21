@@ -2760,19 +2760,23 @@ NTSTATUS PhpUnloadDriver(
     )
 {
     NTSTATUS status;
+    ULONG win32Result;
     HKEY servicesKeyHandle;
     HKEY serviceKeyHandle;
     ULONG disposition;
     PPH_STRING servicePath;
 
-    if (RegCreateKey(
+    if ((win32Result = RegCreateKey(
         HKEY_LOCAL_MACHINE,
         L"SYSTEM\\CurrentControlSet\\Services",
         &servicesKeyHandle
-        ) != ERROR_SUCCESS)
+        )) != ERROR_SUCCESS)
+    {
+        SetLastError(win32Result);
         return STATUS_UNSUCCESSFUL;
+    }
 
-    if (RegCreateKeyEx(
+    if ((win32Result = RegCreateKeyEx(
         servicesKeyHandle,
         ServiceKeyName->Buffer,
         0,
@@ -2782,9 +2786,10 @@ NTSTATUS PhpUnloadDriver(
         NULL,
         &serviceKeyHandle,
         &disposition
-        ) != ERROR_SUCCESS)
+        )) != ERROR_SUCCESS)
     {
         RegCloseKey(servicesKeyHandle);
+        SetLastError(win32Result);
         return STATUS_UNSUCCESSFUL;
     }
 
