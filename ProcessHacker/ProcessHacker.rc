@@ -167,7 +167,7 @@ BEGIN
         MENUITEM "Protected",                   ID_HANDLE_PROTECTED
         MENUITEM "Inherit",                     ID_HANDLE_INHERIT
         MENUITEM SEPARATOR
-        MENUITEM "Prope&rties\aEnter",          ID_HANDLE_PROPERTIES
+        MENUITEM "Prope&rties",                 ID_HANDLE_PROPERTIES
     END
 END
 
