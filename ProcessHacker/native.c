@@ -310,6 +310,8 @@ NTSTATUS PhTerminateThread(
  *
  * \param ThreadHandle A handle to a thread. The handle must 
  * have THREAD_SUSPEND_RESUME access.
+ * \param PreviousSuspendCount A variable which receives the 
+ * number of times the thread had been suspended.
  */
 NTSTATUS PhSuspendThread(
     __in HANDLE ThreadHandle,
@@ -324,6 +326,8 @@ NTSTATUS PhSuspendThread(
  *
  * \param ThreadHandle A handle to a thread. The handle must 
  * have THREAD_SUSPEND_RESUME access.
+ * \param PreviousSuspendCount A variable which receives the 
+ * number of times the thread had been suspended.
  */
 NTSTATUS PhResumeThread(
     __in HANDLE ThreadHandle,
@@ -2090,7 +2094,7 @@ NTSTATUS PhGetTokenIsVirtualizationAllowed(
  *
  * \param TokenHandle A handle to a token. The handle 
  * must have TOKEN_QUERY access.
- * \param IsVirtualizationAllowed A variable which receives 
+ * \param IsVirtualizationEnabled A variable which receives 
  * a boolean indicating whether virtualization is enabled 
  * for the token.
  */
@@ -2836,7 +2840,7 @@ NTSTATUS PhpUnloadDriver(
  * in \c Name.
  * \param Name The base name of the driver. This 
  * parameter can be NULL if a value is specified in 
- * \c Name and KProcessHacker is loaded.
+ * \c BaseAddress and KProcessHacker is loaded.
  *
  * \retval STATUS_INVALID_PARAMETER_MIX Both 
  * \c BaseAddress and \c Name were null, or \c Name 
