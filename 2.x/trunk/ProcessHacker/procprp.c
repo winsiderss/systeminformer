@@ -1421,7 +1421,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
-                        // TODO
+                        PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem);
                     }
                 }
                 break;
