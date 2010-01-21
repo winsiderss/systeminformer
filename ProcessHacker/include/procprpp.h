@@ -108,6 +108,9 @@ typedef struct _PH_HANDLES_CONTEXT
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+
+    BOOLEAN SelectedHandleProtected;
+    BOOLEAN SelectedHandleInherit;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 
 #endif

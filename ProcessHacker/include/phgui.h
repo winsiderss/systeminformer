@@ -532,6 +532,21 @@ BOOLEAN PhUiUnloadModule(
     __in PPH_MODULE_ITEM Module
     );
 
+BOOLEAN PhUiCloseHandles(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM *Handles,
+    __in ULONG NumberOfHandles,
+    __in BOOLEAN Warn
+    );
+
+BOOLEAN PhUiSetAttributesHandle(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM Handle,
+    __in ULONG Attributes
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
