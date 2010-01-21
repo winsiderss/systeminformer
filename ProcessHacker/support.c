@@ -823,7 +823,8 @@ VOID PhShellExecute(
 
     if (!ShellExecuteEx(&info))
     {
-        PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+        // It already displays error messages by itself.
+        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
     }
 }
 
@@ -853,7 +854,8 @@ VOID PhShellProperties(
 
     if (!ShellExecuteEx(&info))
     {
-        PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+        // It already displays error messages by itself.
+        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
     }
 }
 

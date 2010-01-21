@@ -1037,3 +1037,34 @@ BOOLEAN PhUiSetIoPriorityThread(
 
     return TRUE;
 }
+
+BOOLEAN PhUiUnloadModule(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_MODULE_ITEM Module
+    )
+{
+    BOOLEAN cont = FALSE;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"unload",
+            ProcessId != SYSTEM_PROCESS_ID ? L"the selected module" : L"the selected driver",
+            ProcessId != SYSTEM_PROCESS_ID ?
+            L"Unloading a module may cause the process to crash." :
+            L"Unloading a driver may cause system instability.",
+            TRUE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    return TRUE;
+}
