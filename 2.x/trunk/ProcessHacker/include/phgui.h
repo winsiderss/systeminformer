@@ -547,13 +547,10 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
-// thrdstk
+// about
 
-VOID PhShowThreadStackDialog(
-    __in HWND ParentWindowHandle,
-    __in HANDLE ProcessId,
-    __in HANDLE ThreadId,
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+VOID PhShowAboutDialog(
+    __in HWND ParentWindowHandle
     );
 
 // termator
@@ -561,6 +558,15 @@ VOID PhShowThreadStackDialog(
 VOID PhShowProcessTerminatorDialog(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_ITEM Process
+    );
+
+// thrdstk
+
+VOID PhShowThreadStackDialog(
+    __in HWND ParentWindowHandle,
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 #endif
