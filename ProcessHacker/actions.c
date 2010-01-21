@@ -1044,14 +1044,17 @@ BOOLEAN PhUiUnloadModule(
     __in PPH_MODULE_ITEM Module
     )
 {
+    NTSTATUS status;
+    ULONG win32Result = 0;
     BOOLEAN cont = FALSE;
+    HANDLE processHandle;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         cont = PhShowConfirmMessage(
             hWnd,
             L"unload",
-            ProcessId != SYSTEM_PROCESS_ID ? L"the selected module" : L"the selected driver",
+            Module->Name->Buffer,
             ProcessId != SYSTEM_PROCESS_ID ?
             L"Unloading a module may cause the process to crash." :
             L"Unloading a driver may cause system instability.",
@@ -1065,6 +1068,72 @@ BOOLEAN PhUiUnloadModule(
 
     if (!cont)
         return FALSE;
+
+    if (ProcessId != SYSTEM_PROCESS_ID)
+    {
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+            PROCESS_VM_READ | PROCESS_VM_WRITE,
+            ProcessId
+            )))
+        {
+            status = PhUnloadDllProcess(
+                processHandle,
+                Module->BaseAddress,
+                5000
+                );
+
+            CloseHandle(processHandle);
+        }
+
+        if (status == STATUS_DLL_NOT_FOUND)
+        {
+#ifdef _M_IX86
+            PhShowError(hWnd, L"Unable to find the module to unload. This may be "
+                L"due to an attempt to unload a mapped file.");
+#else
+            PhShowError(hWnd, L"Unable to find the module to unload. This may be "
+                L"due to an attempt to unload a mapped file or a 32-bit module.");
+#endif
+            return FALSE;
+        }
+
+        if (!NT_SUCCESS(status) || win32Result)
+        {
+            PhShowStatus(
+                hWnd,
+                PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
+                status,
+                win32Result
+                );
+            return FALSE;
+        }
+    }
+    else
+    {
+        status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
+
+        if (status == STATUS_UNSUCCESSFUL)
+            win32Result = GetLastError();
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(
+                hWnd,
+                PhaConcatStrings(
+                3,
+                L"Unable to unload ",
+                Module->Name->Buffer,
+                L". Make sure Process Hacker is running with "
+                L"administrative privileges. Error"
+                )->Buffer,
+                status != STATUS_UNSUCCESSFUL ? status : 0,
+                win32Result
+                );
+            return FALSE;
+        }
+    }
 
     return TRUE;
 }
