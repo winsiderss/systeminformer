@@ -526,6 +526,12 @@ BOOLEAN PhUiSetIoPriorityThread(
     __in ULONG IoPriority
     );
 
+BOOLEAN PhUiUnloadModule(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_MODULE_ITEM Module
+    );
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
