@@ -10,6 +10,48 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryWorkingSetExInformation
 } MEMORY_INFORMATION_CLASS;
 
+typedef struct _MEMORY_WORKING_SET_BLOCK
+{
+    ULONG_PTR Protection : 5;
+    ULONG_PTR ShareCount : 3;
+    ULONG_PTR Shared : 1;
+    ULONG_PTR Node : 3;
+#ifdef _M_X64
+    ULONG_PTR VirtualPage : 52;
+#else
+    ULONG VirtualPage : 20;
+#endif
+} MEMORY_WORKING_SET_BLOCK, *PMEMORY_WORKING_SET_BLOCK;
+
+typedef struct _MEMORY_WORKING_SET_INFORMATION
+{
+    ULONG_PTR NumberOfEntries;
+    MEMORY_WORKING_SET_BLOCK WorkingSetInfo[1];
+} MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
+
+typedef struct _MEMORY_WORKING_SET_EX_BLOCK
+{
+    ULONG_PTR Valid : 1;
+    ULONG_PTR ShareCount : 3;
+    ULONG_PTR Win32Protection : 11;
+    ULONG_PTR Shared : 1;
+    ULONG_PTR Node : 6;
+    ULONG_PTR Locked : 1;
+    ULONG_PTR LargePage : 1;
+    ULONG_PTR Priority : 3;
+    ULONG_PTR Reserved : 5;
+
+#ifdef _M_X64
+    ULONG_PTR ReservedUlong : 32;
+#endif
+} MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
+
+typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
+{
+    PVOID VirtualAddress;
+    MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
+} MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
+
 typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation,

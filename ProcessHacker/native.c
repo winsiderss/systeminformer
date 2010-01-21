@@ -1249,6 +1249,105 @@ NTSTATUS PhGetProcessMappedFileName(
 }
 
 /**
+ * Gets working set information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param WorkingSetInformation A variable which receives a
+ * pointer to the information. You must free the buffer using
+ * PhFree() when you no longer need it.
+ */
+NTSTATUS PhGetProcessWorkingSetInformation(
+    __in HANDLE ProcessHandle,
+    __out PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    SIZE_T bufferSize;
+
+    bufferSize = 0x8000;
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQueryVirtualMemory(
+        ProcessHandle,
+        NULL,
+        MemoryWorkingSetInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to over 
+        // 16 MB.
+        if (bufferSize > 16 * 1024 * 1024)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *WorkingSetInformation = (PMEMORY_WORKING_SET_INFORMATION)buffer;
+
+    return status;
+}
+
+/**
+ * Gets working set counters for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param WsCounters A variable which receives the 
+ * counters.
+ */
+NTSTATUS PhGetProcessWsCounters(
+    __in HANDLE ProcessHandle,
+    __out PPH_PROCESS_WS_COUNTERS WsCounters
+    )
+{
+    NTSTATUS status;
+    PMEMORY_WORKING_SET_INFORMATION wsInfo;
+    PH_PROCESS_WS_COUNTERS wsCounters;
+    ULONG i;
+
+    if (!NT_SUCCESS(status = PhGetProcessWorkingSetInformation(
+        ProcessHandle,
+        &wsInfo
+        )))
+        return status;
+
+    memset(&wsCounters, 0, sizeof(PH_PROCESS_WS_COUNTERS));
+
+    for (i = 0; i < wsInfo->NumberOfEntries; i++)
+    {
+        wsCounters.NumberOfPages++;
+
+        if (wsInfo->WorkingSetInfo[i].ShareCount > 1)
+            wsCounters.NumberOfSharedPages++;
+        if (wsInfo->WorkingSetInfo[i].ShareCount == 0)
+            wsCounters.NumberOfPrivatePages++;
+        if (wsInfo->WorkingSetInfo[i].Shared)
+            wsCounters.NumberOfShareablePages++;
+    }
+
+    PhFree(wsInfo);
+
+    *WsCounters = wsCounters;
+
+    return status;
+}
+
+/**
  * Sets a process' I/O priority.
  *
  * \param ProcessHandle A handle to a process. The handle 
