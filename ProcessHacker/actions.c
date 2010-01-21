@@ -1115,9 +1115,12 @@ BOOLEAN PhUiUnloadModule(
         status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
 
         if (status == STATUS_UNSUCCESSFUL)
+        {
             win32Result = GetLastError();
+            status = 0;
+        }
 
-        if (!NT_SUCCESS(status))
+        if (!NT_SUCCESS(status) || win32Result)
         {
             PhShowStatus(
                 hWnd,
@@ -1128,7 +1131,7 @@ BOOLEAN PhUiUnloadModule(
                 L". Make sure Process Hacker is running with "
                 L"administrative privileges. Error"
                 )->Buffer,
-                status != STATUS_UNSUCCESSFUL ? status : 0,
+                status,
                 win32Result
                 );
             return FALSE;

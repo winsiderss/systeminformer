@@ -19,6 +19,9 @@
 #define IDB_TICK                        118
 #define IDR_SHUTDOWN                    120
 #define IDD_ABOUT                       121
+#define IDR_PROCESS                     123
+#define IDR_MENU1                       124
+#define IDR_SERVICE                     124
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
@@ -136,13 +139,20 @@
 #define ID_HELP_LOG                     40104
 #define ID_HELP_DONATE                  40105
 #define ID_HELP_ABOUT                   40106
+#define ID_SERVICE_GOTOPROCESS          40107
+#define ID_SERVICE_START                40108
+#define ID_SERVICE_CONTINUE             40109
+#define ID_SERVICE_PAUSE                40110
+#define ID_SERVICE_STOP                 40111
+#define ID_SERVICE_DELETE               40112
+#define ID_SERVICE_PROPERTIES           40113
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        123
-#define _APS_NEXT_COMMAND_VALUE         40107
+#define _APS_NEXT_RESOURCE_VALUE        125
+#define _APS_NEXT_COMMAND_VALUE         40114
 #define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
