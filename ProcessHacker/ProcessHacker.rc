@@ -77,54 +77,6 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
-    POPUP "&Process"
-    BEGIN
-        MENUITEM "T&erminate\aDel",             ID_PROCESS_TERMINATE
-        MENUITEM "Terminate Tree\aShift+Del",   ID_PROCESS_TERMINATETREE
-        MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
-        MENUITEM "Resume",                      ID_PROCESS_RESUME
-        MENUITEM "Restart",                     ID_PROCESS_RESTART
-        MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
-        MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
-        MENUITEM SEPARATOR
-        MENUITEM "Affinity",                    ID_PROCESS_AFFINITY
-        MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
-        MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
-        POPUP "Miscellaneous"
-        BEGIN
-            MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
-            MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
-            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
-            POPUP "I/O Priority"
-            BEGIN
-                MENUITEM "0",                           ID_I_0
-                MENUITEM "1",                           ID_I_1
-                MENUITEM "2",                           ID_I_2
-                MENUITEM "3",                           ID_I_3
-            END
-        END
-        POPUP "Priority"
-        BEGIN
-            MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
-            MENUITEM "High",                        ID_PRIORITY_HIGH
-            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL
-            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
-            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
-            MENUITEM "Idle",                        ID_PRIORITY_IDLE
-        END
-        POPUP "Window"
-        BEGIN
-            MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
-            MENUITEM "Restore",                     ID_WINDOW_RESTORE
-            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
-            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
-            MENUITEM SEPARATOR
-            MENUITEM "Close",                       ID_WINDOW_CLOSE
-        END
-        MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
-        MENUITEM SEPARATOR
-        MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
-    END
     POPUP "&View"
     BEGIN
         MENUITEM "System Information\aCtrl+I",  ID_VIEW_SYSTEMINFORMATION
@@ -228,6 +180,72 @@ BEGIN
         MENUITEM "Restart",                     ID_SHUTDOWN_RESTART
         MENUITEM "Shutdown",                    ID_SHUTDOWN_SHUTDOWN
         MENUITEM "Poweroff",                    ID_SHUTDOWN_POWEROFF
+    END
+END
+
+IDR_PROCESS MENU 
+BEGIN
+    POPUP "Process"
+    BEGIN
+        MENUITEM "T&erminate\aDel",             ID_PROCESS_TERMINATE
+        MENUITEM "Terminate Tree\aShift+Del",   ID_PROCESS_TERMINATETREE
+        MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
+        MENUITEM "Resume",                      ID_PROCESS_RESUME
+        MENUITEM "Restart",                     ID_PROCESS_RESTART
+        MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
+        MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
+        MENUITEM SEPARATOR
+        MENUITEM "Affinity",                    ID_PROCESS_AFFINITY
+        MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
+        MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
+        POPUP "Miscellaneous"
+        BEGIN
+            MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
+            MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
+            POPUP "I/O Priority"
+            BEGIN
+                MENUITEM "0",                           ID_I_0
+                MENUITEM "1",                           ID_I_1
+                MENUITEM "2",                           ID_I_2
+                MENUITEM "3",                           ID_I_3
+            END
+        END
+        POPUP "Priority"
+        BEGIN
+            MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
+            MENUITEM "High",                        ID_PRIORITY_HIGH
+            MENUITEM "Above Normal",                ID_PRIORITY_ABOVENORMAL
+            MENUITEM "Normal",                      ID_PRIORITY_NORMAL
+            MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
+            MENUITEM "Idle",                        ID_PRIORITY_IDLE
+        END
+        POPUP "Window"
+        BEGIN
+            MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
+            MENUITEM "Restore",                     ID_WINDOW_RESTORE
+            MENUITEM "Minimize",                    ID_WINDOW_MINIMIZE
+            MENUITEM "Maximize",                    ID_WINDOW_MAXIMIZE
+            MENUITEM SEPARATOR
+            MENUITEM "Close",                       ID_WINDOW_CLOSE
+        END
+        MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
+        MENUITEM SEPARATOR
+        MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
+    END
+END
+
+IDR_SERVICE MENU 
+BEGIN
+    POPUP "Service"
+    BEGIN
+        MENUITEM "Go to Process",               ID_SERVICE_GOTOPROCESS
+        MENUITEM "Start",                       ID_SERVICE_START
+        MENUITEM "Continue",                    ID_SERVICE_CONTINUE
+        MENUITEM "Pause",                       ID_SERVICE_PAUSE
+        MENUITEM "Stop",                        ID_SERVICE_STOP
+        MENUITEM "Delete\aDel",                 ID_SERVICE_DELETE
+        MENUITEM "Properties\aEnter",           ID_SERVICE_PROPERTIES
     END
 END
 
