@@ -869,6 +869,75 @@ VOID PhSortList(
     __in PVOID Context
     );
 
+// pointer list
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhPointerListType;
+#endif
+
+/**
+ * A pointer list structure.
+ * The pointer list is similar to the normal list 
+ * structure, but both insertions and deletions 
+ * occur in constant time. The list is not ordered.
+ */
+typedef struct _PH_POINTER_LIST
+{
+    /** The number of pointers in the list. */
+    ULONG Count;
+    /** The number of pointers for which storage is allocated. */
+    ULONG AllocatedCount;
+    /** Index into pointer array for free list. */
+    ULONG FreeEntry;
+    /** Index of next usable index into pointer array. */
+    ULONG NextEntry;
+    /** The array of pointers. */
+    PPVOID Items;
+} PH_POINTER_LIST, *PPH_POINTER_LIST;
+
+#define PH_IS_LIST_POINTER_VALID(Pointer) (!((ULONG_PTR)(Pointer) & 0x1))
+
+PPH_POINTER_LIST PhCreatePointerList(
+    __in ULONG InitialCapacity
+    );
+
+VOID PhAddPointerListItem(
+    __inout PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    );
+
+ULONG PhIndexOfPointerListItem(
+    __in PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    );
+
+BOOLEAN PhRemovePointerListItem(
+    __inout PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    );
+
+FORCEINLINE BOOLEAN PhEnumPointerList(
+    __in PPH_POINTER_LIST PointerList,
+    __inout PULONG EnumerationKey,
+    __out PPVOID Pointer
+    )
+{
+    while (*EnumerationKey < PointerList->NextEntry)
+    {
+        PVOID pointer = PointerList->Items[*EnumerationKey];
+
+        (*EnumerationKey)++;
+
+        if (PH_IS_LIST_POINTER_VALID(pointer))
+        {
+            *Pointer = pointer;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 // queue
 
 #ifndef BASESUP_PRIVATE
