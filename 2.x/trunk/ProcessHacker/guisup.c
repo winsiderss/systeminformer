@@ -319,6 +319,15 @@ VOID PhSetRadioCheckMenuItem(
     SetMenuItemInfo(Menu, Id, FALSE, &info);
 }
 
+VOID PhEnableMenuItem(
+    __in HMENU Menu,
+    __in ULONG Id,
+    __in BOOLEAN Enable
+    )
+{
+    EnableMenuItem(Menu, Id, Enable ? MF_ENABLED : (MF_DISABLED | MF_GRAYED));
+}
+
 VOID PhEnableAllMenuItems(
     __in HMENU Menu,
     __in BOOLEAN Enable

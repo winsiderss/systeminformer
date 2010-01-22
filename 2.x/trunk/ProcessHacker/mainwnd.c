@@ -1377,21 +1377,29 @@ VOID PhpInitializeServiceMenu(
         {
         case SERVICE_RUNNING:
             {
-                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
+                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE,
+                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                PhEnableMenuItem(Menu, ID_SERVICE_STOP,
+                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
             }
             break;
         case SERVICE_PAUSED:
             {
-                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
+                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE,
+                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_STOP,
+                    Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
             }
             break;
         case SERVICE_STOPPED:
             {
-                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_STOP, MF_DISABLED | MF_GRAYED);
+                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_STOP, FALSE);
             }
             break;
         case SERVICE_START_PENDING:
@@ -1399,10 +1407,10 @@ VOID PhpInitializeServiceMenu(
         case SERVICE_PAUSE_PENDING:
         case SERVICE_STOP_PENDING:
             {
-                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
-                EnableMenuItem(Menu, ID_SERVICE_STOP, MF_DISABLED | MF_GRAYED);
+                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableMenuItem(Menu, ID_SERVICE_STOP, FALSE);
             }
             break;
         }
