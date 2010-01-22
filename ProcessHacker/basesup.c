@@ -34,6 +34,11 @@ VOID NTAPI PhpListDeleteProcedure(
     __in ULONG Flags
     );
 
+VOID NTAPI PhpPointerListDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    );
+
 VOID NTAPI PhpQueueDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -48,6 +53,7 @@ PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhAnsiStringType;
 PPH_OBJECT_TYPE PhStringBuilderType;
 PPH_OBJECT_TYPE PhListType;
+PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 
@@ -93,6 +99,13 @@ BOOLEAN PhInitializeBase()
         &PhListType,
         0,
         PhpListDeleteProcedure
+        )))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateObjectType(
+        &PhPointerListType,
+        0,
+        PhpPointerListDeleteProcedure
         )))
         return FALSE;
 
@@ -1169,6 +1182,173 @@ VOID PhSortList(
         PhpListQSortCompare,
         &qsortContext
         );
+}
+
+/**
+ * Creates a pointer list object.
+ *
+ * \param InitialCapacity The number of elements to 
+ * allocate storage for initially.
+ */
+PPH_POINTER_LIST PhCreatePointerList(
+    __in ULONG InitialCapacity
+    )
+{
+    PPH_POINTER_LIST pointerList;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &pointerList,
+        sizeof(PH_POINTER_LIST),
+        0,
+        PhPointerListType,
+        0
+        )))
+        return NULL;
+
+    // Initial capacity of 0 is not allowed.
+    if (InitialCapacity == 0)
+        InitialCapacity = 1;
+
+    pointerList->Count = 0;
+    pointerList->AllocatedCount = InitialCapacity;
+    pointerList->FreeEntry = -1;
+    pointerList->NextEntry = 0;
+    pointerList->Items = PhAllocate(pointerList->AllocatedCount * sizeof(PVOID));
+
+    return pointerList;
+}
+
+VOID NTAPI PhpPointerListDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    )
+{
+    PPH_POINTER_LIST pointerList = (PPH_POINTER_LIST)Object;
+
+    PhFree(pointerList->Items);
+}
+
+/**
+ * Decodes an index stored in a free entry.
+ */
+FORCEINLINE ULONG PhpDecodePointerListIndex(
+    __in PVOID Index
+    )
+{
+    // At least with Microsoft's compiler, shift right on 
+    // a signed value preserves the sign. This is important 
+    // because we want
+    // decode(encode(-1)) = ((-1 << 1) | 1) >> 1 = -1.
+    return (ULONG)((LONG_PTR)Index >> 1);
+}
+
+/**
+ * Encodes an index for storage in a free entry.
+ */
+FORCEINLINE PVOID PhpEncodePointerListIndex(
+    __in ULONG Index
+    )
+{
+    return (PVOID)(((ULONG_PTR)Index << 1) | 0x1);
+}
+
+/**
+ * Adds a pointer to a pointer list.
+ *
+ * \param PointerList A pointer list object.
+ * \param Pointer The pointer to add. The pointer 
+ * must be at least 2 byte aligned.
+ */
+VOID PhAddPointerListItem(
+    __inout PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    )
+{
+    // Make sure the pointer has the free bit cleared.
+    if (!PH_IS_LIST_POINTER_VALID(Pointer))
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+
+    // Use a free entry if possible.
+    if (PointerList->FreeEntry != -1)
+    {
+        PVOID oldPointer;
+
+        oldPointer = PointerList->Items[PointerList->FreeEntry];
+        PointerList->Items[PointerList->FreeEntry] = Pointer;
+        PointerList->FreeEntry = PhpDecodePointerListIndex(oldPointer);
+    }
+    else
+    {
+        // Use the next entry.
+        if (PointerList->NextEntry == PointerList->AllocatedCount)
+        {
+            PointerList->AllocatedCount *= 2;
+            PointerList->Items = PhReAlloc(PointerList->Items, PointerList->AllocatedCount * sizeof(PVOID));
+        }
+
+        PointerList->Items[PointerList->NextEntry++] = Pointer;
+    }
+
+    PointerList->Count++;
+}
+
+/**
+ * Locates a pointer in a pointer list.
+ *
+ * \param PointerList A pointer list object.
+ * \param Pointer The pointer to find. The pointer 
+ * must be at least 2 byte aligned.
+ *
+ * \return The index of the pointer. If the pointer 
+ * is not found, -1 is returned.
+ */
+ULONG PhIndexOfPointerListItem(
+    __in PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < PointerList->NextEntry; i++)
+    {
+        if (PointerList->Items[i] == Pointer)
+            return i;
+    }
+
+    return -1;
+}
+
+/**
+ * Removes a pointer from a pointer list.
+ *
+ * \param PointerList A pointer list object.
+ * \param Pointer The pointer to add. The pointer 
+ * must be at least 2 byte aligned.
+ */
+BOOLEAN PhRemovePointerListItem(
+    __inout PPH_POINTER_LIST PointerList,
+    __in PVOID Pointer
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < PointerList->NextEntry; i++)
+    {
+        // We don't have to check if the pointer is valid, 
+        // because free entries have the lowest bit set and 
+        // we're assuming the given pointer is 2 byte aligned.
+        if (PointerList->Items[i] == Pointer)
+        {
+            PointerList->Items[i] = PhpEncodePointerListIndex(PointerList->FreeEntry);
+            PointerList->FreeEntry = i;
+
+            PointerList->Count--;
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 /**

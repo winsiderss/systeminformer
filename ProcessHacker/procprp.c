@@ -2014,6 +2014,66 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     return FALSE;
 }
 
+static VOID NTAPI ServiceModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
+    PPH_SERVICES_CONTEXT servicesContext = (PPH_SERVICES_CONTEXT)Context;
+    PPH_SERVICE_MODIFIED_DATA copy;
+
+    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+
+    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
+}
+
+VOID PhpFixProcessServicesControls(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    HWND startButton;
+    HWND pauseButton;
+
+    startButton = GetDlgItem(hWnd, IDC_START);
+    pauseButton = GetDlgItem(hWnd, IDC_PAUSE);
+
+    if (ServiceItem)
+    {
+        switch (ServiceItem->State)
+        {
+        case SERVICE_RUNNING:
+            {
+                SetWindowText(startButton, L"Stop");
+                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+            }
+            break;
+        case SERVICE_PAUSED:
+            {
+                SetWindowText(startButton, L"Continue");
+                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
+                EnableWindow(pauseButton, FALSE);
+            }
+            break;
+        case SERVICE_STOPPED:
+            {
+                SetWindowText(startButton, L"Start");
+                EnableWindow(startButton, TRUE);
+                EnableWindow(pauseButton, FALSE);
+            }
+            break;
+        }
+    }
+    else
+    {
+        SetWindowText(startButton, L"Start");
+        EnableWindow(startButton, FALSE);
+        EnableWindow(pauseButton, FALSE);
+    }
+}
+
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -2043,8 +2103,39 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     {
     case WM_INITDIALOG:
         {
+            ULONG i;
+
             servicesContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_SERVICES_CONTEXT));
+
+            // Get a copy of the process' service list.
+
+            PhAcquireFastLockShared(&processItem->ServiceListLock);
+
+            servicesContext->NumberOfServices = processItem->ServiceList->Count;
+            servicesContext->Services = PhAllocate(servicesContext->NumberOfServices * sizeof(PPH_SERVICE_ITEM));
+
+            {
+                ULONG enumerationKey = 0;
+                PPH_SERVICE_ITEM serviceItem;
+
+                i = 0;
+
+                while (PhEnumPointerList(processItem->ServiceList, &enumerationKey, &serviceItem))
+                {
+                    PhReferenceObject(serviceItem);
+                    servicesContext->Services[i++] = serviceItem;
+                }
+            }
+
+            PhReleaseFastLockShared(&processItem->ServiceListLock);
+
+            PhRegisterCallback(
+                &PhServiceModifiedEvent,
+                ServiceModifiedHandler,
+                servicesContext,
+                &servicesContext->ModifiedEventRegistration
+                );
 
             servicesContext->WindowHandle = hwndDlg;
 
@@ -2053,11 +2144,35 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name"); 
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
+
+            for (i = 0; i < servicesContext->NumberOfServices; i++)
+            {
+                PPH_SERVICE_ITEM serviceItem;
+                INT lvItemIndex;
+
+                serviceItem = servicesContext->Services[i];
+                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
+                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
+            }
+
+            PhpFixProcessServicesControls(hwndDlg, NULL);
         }
         break;
     case WM_DESTROY:
         {
+            ULONG i;
+
+            for (i = 0; i < servicesContext->NumberOfServices; i++)
+                PhDereferenceObject(servicesContext->Services[i]);
+
+            PhFree(servicesContext->Services);
+
+            PhUnregisterCallback(
+                &PhServiceModifiedEvent,
+                &servicesContext->ModifiedEventRegistration
+                );
+
             PhFree(servicesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -2093,17 +2208,43 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case LVN_ITEMCHANGED:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        //LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPH_SERVICE_ITEM serviceItem = NULL;
+
+                        if (ListView_GetSelectedCount(lvHandle) == 1)
+                            serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                        PhpFixProcessServicesControls(hwndDlg, serviceItem);
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_PH_SERVICE_MODIFIED:
         {
             PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
-            PPH_SERVICE_ITEM serviceItem;
+            PPH_SERVICE_ITEM serviceItem = NULL;
 
-            serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+            if (ListView_GetSelectedCount(lvHandle) == 1)
+                serviceItem = PhGetSelectedListViewItemParam(lvHandle);
 
-            if (serviceItem)
+            if (serviceModifiedData->Service == serviceItem)
             {
-                // TODO
+                PhpFixProcessServicesControls(hwndDlg, serviceItem);
             }
+
+            PhFree(serviceModifiedData);
         }
         break;
     }

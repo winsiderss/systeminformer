@@ -832,7 +832,7 @@ typedef struct _PH_PROCESS_ITEM
     BOOLEAN JustProcessed;
     PH_EVENT Stage1Event;
 
-    PPH_LIST ServiceList;
+    PPH_POINTER_LIST ServiceList;
     PH_FAST_LOCK ServiceListLock;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];

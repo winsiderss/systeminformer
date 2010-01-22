@@ -215,7 +215,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
-    processItem->ServiceList = PhCreateList(1);
+    processItem->ServiceList = PhCreatePointerList(1);
     PhInitializeFastLock(&processItem->ServiceListLock);
 
     processItem->ProcessId = ProcessId;
