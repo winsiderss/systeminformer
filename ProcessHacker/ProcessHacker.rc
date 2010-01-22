@@ -400,7 +400,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,172,162,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,225,162,50,14
-    EDITTEXT        IDC_DESCRIPTION,7,7,268,45,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+    EDITTEXT        IDC_DESCRIPTION,7,7,268,45,ES_MULTILINE | ES_READONLY | WS_VSCROLL
     LTEXT           "Type:",IDC_STATIC,7,57,20,8
     COMBOBOX        IDC_TYPE,30,56,110,65,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Start Type:",IDC_STATIC,147,57,38,8
@@ -532,49 +532,6 @@ END
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog Info
-//
-
-IDD_SERVICE DLGINIT
-BEGIN
-    IDC_TYPE, 0x403, 7, 0
-0x7244, 0x7669, 0x7265, "\000" 
-    IDC_TYPE, 0x403, 10, 0
-0x5346, 0x4420, 0x6972, 0x6576, 0x0072, 
-    IDC_TYPE, 0x403, 12, 0
-0x774f, 0x206e, 0x7250, 0x636f, 0x7365, 0x0073, 
-    IDC_TYPE, 0x403, 14, 0
-0x6853, 0x7261, 0x2065, 0x7250, 0x636f, 0x7365, 0x0073, 
-    IDC_TYPE, 0x403, 24, 0
-0x774f, 0x206e, 0x6e49, 0x6574, 0x6172, 0x7463, 0x7669, 0x2065, 0x7250, 
-0x636f, 0x7365, 0x0073, 
-    IDC_TYPE, 0x403, 26, 0
-0x6853, 0x7261, 0x2065, 0x6e49, 0x6574, 0x6172, 0x7463, 0x7669, 0x2065, 
-0x7250, 0x636f, 0x7365, 0x0073, 
-    IDC_STARTTYPE, 0x403, 9, 0
-0x6944, 0x6173, 0x6c62, 0x6465, "\000" 
-    IDC_STARTTYPE, 0x403, 11, 0
-0x6f42, 0x746f, 0x5320, 0x6174, 0x7472, "\000" 
-    IDC_STARTTYPE, 0x403, 13, 0
-0x7953, 0x7473, 0x6d65, 0x5320, 0x6174, 0x7472, "\000" 
-    IDC_STARTTYPE, 0x403, 11, 0
-0x7541, 0x6f74, 0x5320, 0x6174, 0x7472, "\000" 
-    IDC_STARTTYPE, 0x403, 13, 0
-0x6544, 0x616d, 0x646e, 0x5320, 0x6174, 0x7472, "\000" 
-    IDC_ERRORCONTROL, 0x403, 7, 0
-0x6749, 0x6f6e, 0x6572, "\000" 
-    IDC_ERRORCONTROL, 0x403, 7, 0
-0x6f4e, 0x6d72, 0x6c61, "\000" 
-    IDC_ERRORCONTROL, 0x403, 7, 0
-0x6553, 0x6576, 0x6572, "\000" 
-    IDC_ERRORCONTROL, 0x403, 9, 0
-0x7243, 0x7469, 0x6369, 0x6c61, "\000" 
-    0
-END
-
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

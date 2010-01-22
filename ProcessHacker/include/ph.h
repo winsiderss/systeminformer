@@ -943,6 +943,22 @@ PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     );
 
+PWSTR PhGetServiceStateString(
+    __in ULONG ServiceState
+    );
+
+PWSTR PhGetServiceTypeString(
+    __in ULONG ServiceType
+    );
+
+PWSTR PhGetServiceStartTypeString(
+    __in ULONG ServiceStartType
+    );
+
+PWSTR PhGetServiceErrorControlString(
+    __in ULONG ServiceErrorControl
+    );
+
 PH_SERVICE_CHANGE PhGetServiceChange(
     __in PPH_SERVICE_MODIFIED_DATA Data
     );
