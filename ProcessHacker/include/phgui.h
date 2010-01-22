@@ -165,6 +165,12 @@ VOID PhSetRadioCheckMenuItem(
     __in BOOLEAN RadioCheck
     );
 
+VOID PhEnableMenuItem(
+    __in HMENU Menu,
+    __in ULONG Id,
+    __in BOOLEAN Enable
+    );
+
 VOID PhEnableAllMenuItems(
     __in HMENU Menu,
     __in BOOLEAN Enable
