@@ -651,6 +651,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_SERVICE_PROPERTIES:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhShowServicePropertiesDialog(hWnd, serviceItem);
+                    }
+                }
+                break;
             case ID_HELP_ABOUT:
                 {
                     PhShowAboutDialog(hWnd);

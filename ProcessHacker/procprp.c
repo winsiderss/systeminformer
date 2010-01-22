@@ -2276,6 +2276,19 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
             switch (header->code)
             {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                        if (serviceItem)
+                        {
+                            PhShowServicePropertiesDialog(hwndDlg, serviceItem);
+                        }
+                    }
+                }
+                break;
             case LVN_ITEMCHANGED:
                 {
                     if (header->hwndFrom == lvHandle)

@@ -42,6 +42,15 @@ VOID PhAdjustRectangleToBounds(
         Rectangle->Top = Bounds->Top;
 }
 
+VOID PhCenterRectangle(
+    __inout PPH_RECTANGLE Rectangle,
+    __in PPH_RECTANGLE Bounds
+    )
+{
+    Rectangle->Left = Bounds->Left + (Bounds->Width - Rectangle->Width) / 2;
+    Rectangle->Top = Bounds->Top + (Bounds->Height - Rectangle->Height) / 2;
+}
+
 VOID PhAdjustRectangleToWorkingArea(
     __in HWND hWnd,
     __inout PPH_RECTANGLE Rectangle

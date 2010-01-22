@@ -133,6 +133,8 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
 

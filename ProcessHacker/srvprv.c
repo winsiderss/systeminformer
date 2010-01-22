@@ -105,7 +105,9 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
         serviceItem->ProcessId = Information->ServiceStatusProcess.dwProcessId;
-        PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
+
+        if (serviceItem->ProcessId)
+            PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
     }
 
     return serviceItem;
@@ -623,7 +625,11 @@ VOID PhServiceProviderUpdate(
                 serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
                 serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
                 serviceItem->ProcessId = services[i].ServiceStatusProcess.dwProcessId;
-                PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
+
+                if (serviceItem->ProcessId)
+                    PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
+                else
+                    serviceItem->ProcessIdString[0] = 0;
 
                 // Add/remove the service from its process.
 

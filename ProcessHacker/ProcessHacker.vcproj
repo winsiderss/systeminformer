@@ -467,6 +467,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\srvprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\srvprv.c"
 				>
 			</File>

@@ -23,6 +23,7 @@
 #define IDR_SERVICE                     124
 #define IDD_DIALOG1                     125
 #define IDD_PROCSERVICES                125
+#define IDD_SERVICE                     126
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
@@ -50,7 +51,17 @@
 #define IDC_PAUSE                       1027
 #define IDC_START                       1028
 #define IDC_DESCRIPTION                 1029
-#define IDC_EDIT1                       1030
+#define IDC_TYPE                        1032
+#define IDC_STARTTYPE                   1033
+#define IDC_ERRORCONTROL                1034
+#define IDC_EDIT2                       1035
+#define IDC_GROUP                       1035
+#define IDC_BINARYPATH                  1036
+#define IDC_USERACCOUNT                 1037
+#define IDC_PASSWORD                    1040
+#define IDC_PASSWORDCHECK               1041
+#define IDC_SERVICEDLL                  1042
+#define IDC_BUTTON1                     1043
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -157,9 +168,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        126
+#define _APS_NEXT_RESOURCE_VALUE        128
 #define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1031
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
