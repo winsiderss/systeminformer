@@ -20,8 +20,9 @@
 #define IDR_SHUTDOWN                    120
 #define IDD_ABOUT                       121
 #define IDR_PROCESS                     123
-#define IDR_MENU1                       124
 #define IDR_SERVICE                     124
+#define IDD_DIALOG1                     125
+#define IDD_PROCSERVICES                125
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
 #define IDC_PROCGENERAL_ICON            1005
@@ -45,6 +46,10 @@
 #define IDC_TERMINATOR_TEXT             1023
 #define IDC_ABOUT_NAME                  1024
 #define IDC_SCROLLBAR1                  1025
+#define IDC_PROCSERVICES_LIST           1026
+#define IDC_PAUSE                       1027
+#define IDC_BUTTON2                     1028
+#define IDC_START                       1028
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -151,9 +156,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        125
+#define _APS_NEXT_RESOURCE_VALUE        126
 #define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1026
+#define _APS_NEXT_CONTROL_VALUE         1029
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

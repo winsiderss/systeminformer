@@ -65,6 +65,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpProcessServicesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 #define WM_PH_THREAD_ADDED (WM_APP + 201)
 #define WM_PH_THREAD_MODIFIED (WM_APP + 202)
 #define WM_PH_THREAD_REMOVED (WM_APP + 203)
@@ -112,5 +119,12 @@ typedef struct _PH_HANDLES_CONTEXT
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
+
+typedef struct _PH_SERVICES_CONTEXT
+{
+    PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
+
+    HWND WindowHandle;
+} PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
 
 #endif
