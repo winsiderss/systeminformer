@@ -601,6 +601,56 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_SERVICE_START:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhUiStartService(hWnd, serviceItem);
+                    }
+                }
+                break;
+            case ID_SERVICE_CONTINUE:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhUiContinueService(hWnd, serviceItem);
+                    }
+                }
+                break;
+            case ID_SERVICE_PAUSE:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhUiPauseService(hWnd, serviceItem);
+                    }
+                }
+                break;
+            case ID_SERVICE_STOP:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhUiStopService(hWnd, serviceItem);
+                    }
+                }
+                break;
+            case ID_SERVICE_DELETE:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+
+                    if (serviceItem)
+                    {
+                        PhUiDeleteService(hWnd, serviceItem);
+                    }
+                }
+                break;
             case ID_HELP_ABOUT:
                 {
                     PhShowAboutDialog(hWnd);

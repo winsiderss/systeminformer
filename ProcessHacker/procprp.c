@@ -2064,6 +2064,16 @@ VOID PhpFixProcessServicesControls(
                 EnableWindow(pauseButton, FALSE);
             }
             break;
+        case SERVICE_START_PENDING:
+        case SERVICE_CONTINUE_PENDING:
+        case SERVICE_PAUSE_PENDING:
+        case SERVICE_STOP_PENDING:
+            {
+                SetWindowText(startButton, L"Start");
+                EnableWindow(startButton, FALSE);
+                EnableWindow(pauseButton, FALSE);
+            }
+            break;
         }
     }
     else
@@ -2206,9 +2216,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             {
             case IDC_START:
                 {
-                    PPH_SERVICE_ITEM serviceItem;
-
-                    serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
 
                     if (serviceItem)
                     {
@@ -2229,9 +2237,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 break;
             case IDC_PAUSE:
                 {
-                    PPH_SERVICE_ITEM serviceItem;
-
-                    serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
 
                     if (serviceItem)
                     {
