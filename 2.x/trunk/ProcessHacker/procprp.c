@@ -2014,6 +2014,103 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     return FALSE;
 }
 
+INT_PTR CALLBACK PhpProcessServicesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+    PPH_SERVICES_CONTEXT servicesContext;
+    HWND lvHandle;
+
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+    {
+        servicesContext = (PPH_SERVICES_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
+        return FALSE;
+    }
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_PROCSERVICES_LIST);
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            servicesContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_SERVICES_CONTEXT));
+
+            servicesContext->WindowHandle = hwndDlg;
+
+            // Initialize the list.
+            ListView_SetExtendedListViewStyleEx(lvHandle,
+                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name"); 
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhFree(servicesContext);
+
+            PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCSERVICES_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_START),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PAUSE),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            INT id = LOWORD(wParam);
+
+            switch (id)
+            {
+                // TODO
+            }
+        }
+        break;
+    case WM_PH_SERVICE_MODIFIED:
+        {
+            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
+            PPH_SERVICE_ITEM serviceItem;
+
+            serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+
+            if (serviceItem)
+            {
+                // TODO
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
@@ -2080,6 +2177,26 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         );
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
+
+    // Services
+    {
+        ULONG numberOfServices;
+
+        PhAcquireFastLockExclusive(&PropContext->ProcessItem->ServiceListLock);
+        numberOfServices = PropContext->ProcessItem->ServiceList->Count;
+        PhReleaseFastLockExclusive(&PropContext->ProcessItem->ServiceListLock);
+
+        if (numberOfServices != 0)
+        {
+            newPage = PhCreateProcessPropPageContext(
+                MAKEINTRESOURCE(IDD_PROCSERVICES),
+                PhpProcessServicesDlgProc,
+                NULL
+                );
+            PhAddProcessPropPage(PropContext, newPage);
+            PhDereferenceObject(newPage);
+        }
+    }
 
     autoPool = PhCreateAutoPool();
 

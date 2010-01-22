@@ -215,6 +215,9 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
+    processItem->ServiceList = PhCreateList(1);
+    PhInitializeFastLock(&processItem->ServiceListLock);
+
     processItem->ProcessId = ProcessId;
 
     if (ProcessId != DPCS_PROCESS_ID && ProcessId != INTERRUPTS_PROCESS_ID)
@@ -229,6 +232,13 @@ VOID PhpProcessItemDeleteProcedure(
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
+    ULONG i;
+
+    for (i = 0; i < processItem->ServiceList->Count; i++)
+        PhDereferenceObject(processItem->ServiceList->Items[i]);
+
+    PhDereferenceObject(processItem->ServiceList);
+    PhDeleteFastLock(&processItem->ServiceListLock);
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
@@ -919,6 +929,9 @@ VOID PhProcessProviderUpdate(
             {
                 PhpQueueProcessQueryStage1(processItem);
             }
+
+            // Add pending service items to the process item.
+            PhUpdateProcessItemServices(processItem);
 
             // Add the process item to the hashtable.
             PhAcquireFastLockExclusive(&PhProcessHashtableLock);

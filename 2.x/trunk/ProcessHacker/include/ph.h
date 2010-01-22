@@ -832,6 +832,9 @@ typedef struct _PH_PROCESS_ITEM
     BOOLEAN JustProcessed;
     PH_EVENT Stage1Event;
 
+    PPH_LIST ServiceList;
+    PH_FAST_LOCK ServiceListLock;
+
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR SessionIdString[PH_INT32_STR_LEN_1];
@@ -895,6 +898,8 @@ typedef struct _PH_SERVICE_ITEM
     ULONG StartType;
     ULONG ErrorControl;
 
+    BOOLEAN PendingProcess;
+
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
 
@@ -903,6 +908,14 @@ typedef struct _PH_SERVICE_MODIFIED_DATA
     PPH_SERVICE_ITEM Service;
     PH_SERVICE_ITEM OldService;
 } PH_SERVICE_MODIFIED_DATA, *PPH_SERVICE_MODIFIED_DATA;
+
+typedef enum _PH_SERVICE_CHANGE
+{
+    ServiceStarted,
+    ServiceContinued,
+    ServicePaused,
+    ServiceStopped
+} PH_SERVICE_CHANGE, *PPH_SERVICE_CHANGE;
 
 BOOLEAN PhInitializeServiceProvider();
 
@@ -919,6 +932,14 @@ PVOID PhEnumServices(
 
 PVOID PhQueryServiceConfig(
     __in SC_HANDLE ServiceHandle
+    );
+
+PH_SERVICE_CHANGE PhGetServiceChange(
+    __in PPH_SERVICE_MODIFIED_DATA Data
+    );
+
+VOID PhUpdateProcessItemServices(
+    __in PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhServiceProviderUpdate(
