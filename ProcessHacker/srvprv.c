@@ -314,6 +314,7 @@ PPH_STRING PhGetServiceDescription(
 {
     PVOID buffer;
     ULONG returnLength;
+    LPSERVICE_DESCRIPTION serviceDescription;
     PPH_STRING description = NULL;
 
     QueryServiceConfig2(
@@ -333,12 +334,103 @@ PPH_STRING PhGetServiceDescription(
         &returnLength
         ))
     {
-        description = PhCreateString(((SERVICE_DESCRIPTION *)buffer)->lpDescription);
+        serviceDescription = (LPSERVICE_DESCRIPTION)buffer;
+
+        if (serviceDescription->lpDescription)
+            description = PhCreateString(serviceDescription->lpDescription);
     }
 
     PhFree(buffer);
 
     return description;
+}
+
+PWSTR PhGetServiceStateString(
+    __in ULONG ServiceState
+    )
+{
+    switch (ServiceState)
+    {
+    case SERVICE_RUNNING:
+        return L"Running";
+    case SERVICE_PAUSED:
+        return L"Paused";
+    case SERVICE_STOPPED:
+        return L"Stopped";
+    case SERVICE_START_PENDING:
+        return L"Start Pending";
+    case SERVICE_CONTINUE_PENDING:
+        return L"Continue Pending";
+    case SERVICE_PAUSE_PENDING:
+        return L"Pause Pending";
+    case SERVICE_STOP_PENDING:
+        return L"Stop Pending";
+    default:
+        return L"Unknown";
+    }
+}
+
+PWSTR PhGetServiceTypeString(
+    __in ULONG ServiceType
+    )
+{
+    switch (ServiceType)
+    {
+    case SERVICE_KERNEL_DRIVER:
+        return L"Driver";
+    case SERVICE_FILE_SYSTEM_DRIVER:
+        return L"FS Driver";
+    case SERVICE_WIN32_OWN_PROCESS:
+        return L"Own Process";
+    case SERVICE_WIN32_SHARE_PROCESS:
+        return L"Share Process";
+    case SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS:
+        return L"Own Interactive Process";
+    case SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS:
+        return L"Share Interactive Process";
+    default:
+        return L"Unknown";
+    }
+}
+
+PWSTR PhGetServiceStartTypeString(
+    __in ULONG ServiceStartType
+    )
+{
+    switch (ServiceStartType)
+    {
+    case SERVICE_DISABLED:
+        return L"Disabled";
+    case SERVICE_BOOT_START:
+        return L"Boot Start";
+    case SERVICE_SYSTEM_START:
+        return L"System Start";
+    case SERVICE_AUTO_START:
+        return L"Auto Start";
+    case SERVICE_DEMAND_START:
+        return L"Demand Start";
+    default:
+        return L"Unknown";
+    }
+}
+
+PWSTR PhGetServiceErrorControlString(
+    __in ULONG ServiceErrorControl
+    )
+{
+    switch (ServiceErrorControl)
+    {
+    case SERVICE_ERROR_IGNORE:
+        return L"Ignore";
+    case SERVICE_ERROR_NORMAL:
+        return L"Normal";
+    case SERVICE_ERROR_SEVERE:
+        return L"Severe";
+    case SERVICE_ERROR_CRITICAL:
+        return L"Critical";
+    default:
+        return L"Unknown";
+    }
 }
 
 PH_SERVICE_CHANGE PhGetServiceChange(
