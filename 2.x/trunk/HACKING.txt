@@ -45,7 +45,7 @@ Abstraction layers and their modules:
   * Image verification (verify.c)
   * Provider (provider.c)
   * Symbol provider (symprv.c)
-  * Process provider (prcprv.c)
+  * Process provider (procprv.c)
   * Service provider (srvprv.c)
   * Module provider (modprv.c)
   * Thread provider (thrdprv.c)
@@ -53,4 +53,18 @@ Abstraction layers and their modules:
   * General support (support.c)
 
 * PH GUI (phgui.h)
+  * Main (main.c)
+  * GUI support (guisup.c)
+    * List view
+    * Tab control
+    * Menu
+    * Layout manager
   * Settings (settings.h, settings.c)
+  * Main window (mainwnd.c)
+  * Process properties (procprp.c)
+  * Security editor (secedit.c)
+  * Object security data (secdata.c)
+  * UI actions (actions.c)
+  * About (about.c)
+  * Terminator (termator.c)
+  * Thread stack (thrdstk.c)
