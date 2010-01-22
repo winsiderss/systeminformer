@@ -489,6 +489,31 @@ BOOLEAN PhUiSetPriorityProcess(
     __in ULONG PriorityClassWin32
     );
 
+BOOLEAN PhUiStartService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    );
+
+BOOLEAN PhUiContinueService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    );
+
+BOOLEAN PhUiPauseService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    );
+
+BOOLEAN PhUiStopService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    );
+
+BOOLEAN PhUiDeleteService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    );
+
 BOOLEAN PhUiTerminateThreads(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM *Threads,
