@@ -1,0 +1,56 @@
+== Building ==
+Process Hacker must be built using a Microsoft C compiler. 
+Do not attempt to use any other compiler or be prepared to 
+spend a long time trying to fix things. The only tested 
+IDE is Visual Studio 2008. Visual C++ 2008 Express Edition 
+may or may not work. It is recommended that the x64 compiler 
+be installed even if you are not intending to build for that 
+platform.
+
+== Code structure ==
+There are multiple modules; each .c file can contain one or 
+more modules. There are multiple modules in each abstraction 
+layer, and there is generally a .h file for each abstraction 
+layer.
+
+Abstraction layers and their modules:
+
+* Base (base.h)
+
+* PH Base (phbase.h)
+  * NT definitions and imports (ntimport.h, ntimport.c)
+  * Object manager (ref.h, ref.c)
+  * Fast resource lock (fastlock.h, fastlock.c)
+  * Base support (basesup.c)
+    * Heap
+    * Mutex
+    * Event
+    * String
+    * ANSI String
+    * String Builder
+    * List
+    * Pointer List
+    * Queue
+    * Hashtable
+    * Callback
+    * Callback Sync
+  * Base support with auto-dereference support (basesupa.c)
+    * String
+  * Work Queue (workqueue.c)
+
+* PH (ph.h)
+  * KProcessHacker (kph.h, kph.c)
+  * NT object support (native.c)
+  * Handle information (hndlinfo.c)
+  * Image verification (verify.c)
+  * Provider (provider.c)
+  * Symbol provider (symprv.c)
+  * Process provider (prcprv.c)
+  * Service provider (srvprv.c)
+  * Module provider (modprv.c)
+  * Thread provider (thrdprv.c)
+  * Handle provider (hndlprv.c)
+  * General support (support.c)
+
+* PH GUI (phgui.h)
+  * Settings (settings.h, settings.c)
