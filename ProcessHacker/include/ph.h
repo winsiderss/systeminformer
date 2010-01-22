@@ -1228,10 +1228,34 @@ VOID PhAdjustRectangleToBounds(
     __in PPH_RECTANGLE Bounds
     );
 
+VOID PhCenterRectangle(
+    __inout PPH_RECTANGLE Rectangle,
+    __in PPH_RECTANGLE Bounds
+    );
+
 VOID PhAdjustRectangleToWorkingArea(
     __in HWND hWnd,
     __inout PPH_RECTANGLE Rectangle
     );
+
+FORCEINLINE VOID PhCenterWindow(
+    __in HWND WindowHandle,
+    __in HWND ParentWindowHandle
+    )
+{
+    RECT rect, parentRect;
+    PH_RECTANGLE rectangle, parentRectangle;
+
+    GetWindowRect(WindowHandle, &rect);
+    GetWindowRect(ParentWindowHandle, &parentRect);
+    rectangle = PhRectToRectangle(rect);
+    parentRectangle = PhRectToRectangle(parentRect);
+
+    PhCenterRectangle(&rectangle, &parentRectangle);
+    PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
+    MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+        rectangle.Width, rectangle.Height, FALSE);
+}
 
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,

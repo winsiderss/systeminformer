@@ -750,6 +750,8 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             HIMAGELIST imageList;
             ULONG i;
 
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             title = PhFormatString(
                 L"Terminator - %s (%u)",
                 processItem->ProcessName->Buffer,

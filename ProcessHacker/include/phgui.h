@@ -586,6 +586,13 @@ VOID PhShowAboutDialog(
     __in HWND ParentWindowHandle
     );
 
+// srvprp
+
+VOID PhShowServicePropertiesDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_SERVICE_ITEM Service
+    );
+
 // termator
 
 VOID PhShowProcessTerminatorDialog(
