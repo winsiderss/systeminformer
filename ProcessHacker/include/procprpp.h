@@ -122,6 +122,8 @@ typedef struct _PH_HANDLES_CONTEXT
 
 typedef struct _PH_SERVICES_CONTEXT
 {
+    PPH_SERVICE_ITEM *Services;
+    ULONG NumberOfServices;
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
 
     HWND WindowHandle;
