@@ -48,8 +48,9 @@
 #define IDC_SCROLLBAR1                  1025
 #define IDC_PROCSERVICES_LIST           1026
 #define IDC_PAUSE                       1027
-#define IDC_BUTTON2                     1028
 #define IDC_START                       1028
+#define IDC_DESCRIPTION                 1029
+#define IDC_EDIT1                       1030
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -158,7 +159,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        126
 #define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1029
+#define _APS_NEXT_CONTROL_VALUE         1031
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

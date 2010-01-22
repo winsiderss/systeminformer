@@ -930,7 +930,16 @@ PVOID PhEnumServices(
     __out PULONG Count
     );
 
-PVOID PhQueryServiceConfig(
+SC_HANDLE PhOpenService(
+    __in PWSTR ServiceName,
+    __in ACCESS_MASK DesiredAccess
+    );
+
+PVOID PhGetServiceConfig(
+    __in SC_HANDLE ServiceHandle
+    );
+
+PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     );
 

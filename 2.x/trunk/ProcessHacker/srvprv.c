@@ -263,7 +263,26 @@ PVOID PhEnumServices(
     return buffer;
 }
 
-PVOID PhQueryServiceConfig(
+SC_HANDLE PhOpenService(
+    __in PWSTR ServiceName,
+    __in ACCESS_MASK DesiredAccess
+    )
+{
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
+
+    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+
+    if (!scManagerHandle)
+        return NULL;
+
+    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
+    CloseServiceHandle(scManagerHandle);
+
+    return serviceHandle;
+}
+
+PVOID PhGetServiceConfig(
     __in SC_HANDLE ServiceHandle
     )
 {
@@ -285,6 +304,39 @@ PVOID PhQueryServiceConfig(
     }
 
     return buffer;
+}
+
+PPH_STRING PhGetServiceDescription(
+    __in SC_HANDLE ServiceHandle
+    )
+{
+    PVOID buffer;
+    ULONG returnLength;
+    PPH_STRING description = NULL;
+
+    QueryServiceConfig2(
+        ServiceHandle,
+        SERVICE_CONFIG_DESCRIPTION,
+        NULL,
+        0,
+        &returnLength
+        );
+    buffer = PhAllocate(returnLength);
+
+    if (QueryServiceConfig2(
+        ServiceHandle,
+        SERVICE_CONFIG_DESCRIPTION,
+        buffer,
+        returnLength,
+        &returnLength
+        ))
+    {
+        description = PhCreateString(((SERVICE_DESCRIPTION *)buffer)->lpDescription);
+    }
+
+    PhFree(buffer);
+
+    return description;
 }
 
 PH_SERVICE_CHANGE PhGetServiceChange(
@@ -496,7 +548,7 @@ VOID PhServiceProviderUpdate(
                 {
                     LPQUERY_SERVICE_CONFIG config;
 
-                    config = PhQueryServiceConfig(serviceHandle);
+                    config = PhGetServiceConfig(serviceHandle);
 
                     if (config)
                     {
