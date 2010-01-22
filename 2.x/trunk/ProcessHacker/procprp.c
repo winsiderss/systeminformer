@@ -2360,23 +2360,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhDereferenceObject(newPage);
 
     // Services
+    if (PropContext->ProcessItem->ServiceList->Count != 0)
     {
-        ULONG numberOfServices;
-
-        PhAcquireFastLockExclusive(&PropContext->ProcessItem->ServiceListLock);
-        numberOfServices = PropContext->ProcessItem->ServiceList->Count;
-        PhReleaseFastLockExclusive(&PropContext->ProcessItem->ServiceListLock);
-
-        if (numberOfServices != 0)
-        {
-            newPage = PhCreateProcessPropPageContext(
-                MAKEINTRESOURCE(IDD_PROCSERVICES),
-                PhpProcessServicesDlgProc,
-                NULL
-                );
-            PhAddProcessPropPage(PropContext, newPage);
-            PhDereferenceObject(newPage);
-        }
+        newPage = PhCreateProcessPropPageContext(
+            MAKEINTRESOURCE(IDD_PROCSERVICES),
+            PhpProcessServicesDlgProc,
+            NULL
+            );
+        PhAddProcessPropPage(PropContext, newPage);
+        PhDereferenceObject(newPage);
     }
 
     autoPool = PhCreateAutoPool();
