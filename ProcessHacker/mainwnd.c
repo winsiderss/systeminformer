@@ -1320,6 +1320,49 @@ VOID PhpInitializeServiceMenu(
         // None of the menu items work with multiple items.
         PhEnableAllMenuItems(Menu, FALSE);
     }
+
+    if (NumberOfServices == 1)
+    {
+        switch (Services[0]->State)
+        {
+        case SERVICE_RUNNING:
+            {
+                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
+            }
+            break;
+        case SERVICE_PAUSED:
+            {
+                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
+            }
+            break;
+        case SERVICE_STOPPED:
+            {
+                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_STOP, MF_DISABLED | MF_GRAYED);
+            }
+            break;
+        case SERVICE_START_PENDING:
+        case SERVICE_CONTINUE_PENDING:
+        case SERVICE_PAUSE_PENDING:
+        case SERVICE_STOP_PENDING:
+            {
+                EnableMenuItem(Menu, ID_SERVICE_START, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_CONTINUE, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_PAUSE, MF_DISABLED | MF_GRAYED);
+                EnableMenuItem(Menu, ID_SERVICE_STOP, MF_DISABLED | MF_GRAYED);
+            }
+            break;
+        }
+
+        if (!(Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE))
+        {
+            DeleteMenu(Menu, ID_SERVICE_CONTINUE, 0);
+            DeleteMenu(Menu, ID_SERVICE_PAUSE, 0);
+        }
+    }
 }
 
 VOID PhMainWndServiceListViewOnNotify(

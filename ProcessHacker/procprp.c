@@ -2204,7 +2204,41 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
             switch (id)
             {
-                // TODO
+            case IDC_START:
+                {
+                    PPH_SERVICE_ITEM serviceItem;
+
+                    serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (serviceItem)
+                    {
+                        switch (serviceItem->State)
+                        {
+                        case SERVICE_RUNNING:
+                            PhUiStopService(hwndDlg, serviceItem);
+                            break;
+                        case SERVICE_PAUSED:
+                            PhUiContinueService(hwndDlg, serviceItem);
+                            break;
+                        case SERVICE_STOPPED:
+                            PhUiStartService(hwndDlg, serviceItem);
+                            break;
+                        }
+                    }
+                }
+                break;
+            case IDC_PAUSE:
+                {
+                    PPH_SERVICE_ITEM serviceItem;
+
+                    serviceItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (serviceItem)
+                    {
+                        PhUiPauseService(hwndDlg, serviceItem);
+                    }
+                }
+                break;
             }
         }
         break;
