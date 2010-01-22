@@ -744,25 +744,6 @@ static VOID PhpShowErrorService(
         );
 }
 
-SC_HANDLE PhpOpenService(
-    __in PWSTR ServiceName,
-    __in ACCESS_MASK DesiredAccess
-    )
-{
-    SC_HANDLE scManagerHandle;
-    SC_HANDLE serviceHandle;
-
-    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
-
-    if (!scManagerHandle)
-        return NULL;
-
-    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
-    CloseServiceHandle(scManagerHandle);
-
-    return serviceHandle;
-}
-
 BOOLEAN PhUiStartService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
@@ -771,7 +752,7 @@ BOOLEAN PhUiStartService(
     SC_HANDLE serviceHandle;
     BOOLEAN success = FALSE;
 
-    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_START);
+    serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_START);
 
     if (serviceHandle)
     {
@@ -795,7 +776,7 @@ BOOLEAN PhUiContinueService(
     SC_HANDLE serviceHandle;
     BOOLEAN success = FALSE;
 
-    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
+    serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
 
     if (serviceHandle)
     {
@@ -821,7 +802,7 @@ BOOLEAN PhUiPauseService(
     SC_HANDLE serviceHandle;
     BOOLEAN success = FALSE;
 
-    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
+    serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
 
     if (serviceHandle)
     {
@@ -847,7 +828,7 @@ BOOLEAN PhUiStopService(
     SC_HANDLE serviceHandle;
     BOOLEAN success = FALSE;
 
-    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_STOP);
+    serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_STOP);
 
     if (serviceHandle)
     {
@@ -884,7 +865,7 @@ BOOLEAN PhUiDeleteService(
         ))
         return FALSE;
 
-    serviceHandle = PhpOpenService(Service->Name->Buffer, DELETE);
+    serviceHandle = PhOpenService(Service->Name->Buffer, DELETE);
 
     if (serviceHandle)
     {

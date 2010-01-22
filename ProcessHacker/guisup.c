@@ -631,6 +631,11 @@ VOID PhLayoutManagerLayout(
             EndDeferWindowPos(item->DeferHandle);
             item->DeferHandle = NULL;
         }
+
+        if (item->Anchor & PH_FORCE_INVALIDATE)
+        {
+            InvalidateRect(item->Handle, NULL, FALSE);
+        }
     }
 
     if (Manager->RootItem.DeferHandle)

@@ -2035,12 +2035,17 @@ VOID PhpFixProcessServicesControls(
 {
     HWND startButton;
     HWND pauseButton;
+    HWND descriptionLabel;
 
     startButton = GetDlgItem(hWnd, IDC_START);
     pauseButton = GetDlgItem(hWnd, IDC_PAUSE);
+    descriptionLabel = GetDlgItem(hWnd, IDC_DESCRIPTION);
 
     if (ServiceItem)
     {
+        SC_HANDLE serviceHandle;
+        PPH_STRING description;
+
         switch (ServiceItem->State)
         {
         case SERVICE_RUNNING:
@@ -2075,12 +2080,27 @@ VOID PhpFixProcessServicesControls(
             }
             break;
         }
+
+        if (serviceHandle = PhOpenService(
+            ServiceItem->Name->Buffer,
+            SERVICE_QUERY_CONFIG
+            ))
+        {
+            if (description = PhGetServiceDescription(serviceHandle))
+            {
+                SetWindowText(descriptionLabel, description->Buffer);
+                PhDereferenceObject(description);
+            }
+
+            CloseServiceHandle(serviceHandle);
+        }
     }
     else
     {
         SetWindowText(startButton, L"Start");
         EnableWindow(startButton, FALSE);
         EnableWindow(pauseButton, FALSE);
+        SetWindowText(descriptionLabel, L"");
     }
 }
 
@@ -2197,6 +2217,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCSERVICES_LIST),
                     dialogItem, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_START),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PAUSE),

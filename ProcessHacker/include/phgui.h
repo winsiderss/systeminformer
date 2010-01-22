@@ -199,6 +199,8 @@ VOID PhSetImageListBitmap(
 #define PH_ANCHOR_BOTTOM 0x8
 #define PH_ANCHOR_ALL 0xf
 
+#define PH_FORCE_INVALIDATE 0x1000
+
 typedef struct _PH_LAYOUT_ITEM
 {
     HWND Handle;
