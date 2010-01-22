@@ -724,6 +724,182 @@ BOOLEAN PhUiSetPriorityProcess(
     return TRUE;
 }
 
+static VOID PhpShowErrorService(
+    __in HWND hWnd,
+    __in PWSTR Verb,
+    __in PPH_SERVICE_ITEM Service,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    PhShowStatus(
+        hWnd,
+        PhaFormatString(
+        L"Unable to %s %s",
+        Verb,
+        Service->Name->Buffer
+        )->Buffer,
+        Status,
+        Win32Result
+        );
+}
+
+SC_HANDLE PhpOpenService(
+    __in PWSTR ServiceName,
+    __in ACCESS_MASK DesiredAccess
+    )
+{
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
+
+    scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+
+    if (!scManagerHandle)
+        return NULL;
+
+    serviceHandle = OpenService(scManagerHandle, ServiceName, DesiredAccess);
+    CloseServiceHandle(scManagerHandle);
+
+    return serviceHandle;
+}
+
+BOOLEAN PhUiStartService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    SC_HANDLE serviceHandle;
+    BOOLEAN success = FALSE;
+
+    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_START);
+
+    if (serviceHandle)
+    {
+        if (StartService(serviceHandle, 0, NULL))
+            success = TRUE;
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (!success)
+        PhpShowErrorService(hWnd, L"start", Service, 0, GetLastError());
+
+    return success;
+}
+
+BOOLEAN PhUiContinueService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    SC_HANDLE serviceHandle;
+    BOOLEAN success = FALSE;
+
+    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
+
+    if (serviceHandle)
+    {
+        SERVICE_STATUS serviceStatus;
+
+        if (ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+            success = TRUE;
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (!success)
+        PhpShowErrorService(hWnd, L"continue", Service, 0, GetLastError());
+
+    return success;
+}
+
+BOOLEAN PhUiPauseService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    SC_HANDLE serviceHandle;
+    BOOLEAN success = FALSE;
+
+    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_PAUSE_CONTINUE);
+
+    if (serviceHandle)
+    {
+        SERVICE_STATUS serviceStatus;
+
+        if (ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+            success = TRUE;
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (!success)
+        PhpShowErrorService(hWnd, L"pause", Service, 0, GetLastError());
+
+    return success;
+}
+
+BOOLEAN PhUiStopService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    SC_HANDLE serviceHandle;
+    BOOLEAN success = FALSE;
+
+    serviceHandle = PhpOpenService(Service->Name->Buffer, SERVICE_STOP);
+
+    if (serviceHandle)
+    {
+        SERVICE_STATUS serviceStatus;
+
+        if (ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+            success = TRUE;
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (!success)
+        PhpShowErrorService(hWnd, L"stop", Service, 0, GetLastError());
+
+    return success;
+}
+
+BOOLEAN PhUiDeleteService(
+    __in HWND hWnd,
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    SC_HANDLE serviceHandle;
+    BOOLEAN success = FALSE;
+
+    // Warnings cannot be disabled for service deletion.
+    if (!PhShowConfirmMessage(
+        hWnd,
+        L"delete",
+        Service->Name->Buffer,
+        L"Deleting a service can prevent the system from starting "
+        L"or functioning properly.",
+        TRUE
+        ))
+        return FALSE;
+
+    serviceHandle = PhpOpenService(Service->Name->Buffer, DELETE);
+
+    if (serviceHandle)
+    {
+        if (DeleteService(serviceHandle))
+            success = TRUE;
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    if (!success)
+        PhpShowErrorService(hWnd, L"delete", Service, 0, GetLastError());
+
+    return success;
+}
+
 static BOOLEAN PhpShowContinueMessageThreads(
     __in HWND hWnd,
     __in PWSTR Verb,
