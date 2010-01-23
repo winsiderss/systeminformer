@@ -396,6 +396,15 @@ typedef struct _PH_ACCESS_ENTRY
 
 VOID PhSecurityEditorInitialization();
 
+HPROPSHEETPAGE PhCreateSecurityPage(
+    __in PWSTR ObjectName,
+    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    __in PVOID Context,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
+    );
+
 VOID PhEditSecurity(
     __in HWND hWnd,
     __in PWSTR ObjectName,
@@ -584,6 +593,14 @@ BOOLEAN PhUiSetAttributesHandle(
 
 VOID PhShowAboutDialog(
     __in HWND ParentWindowHandle
+    );
+
+// hndlprp.c
+
+VOID PhShowHandleProperties(
+    __in HWND ParentWindowHandle,
+    __in HANDLE ProcessId,
+    __in PPH_HANDLE_ITEM HandleItem
     );
 
 // srvprp

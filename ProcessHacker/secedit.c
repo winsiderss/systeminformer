@@ -48,6 +48,34 @@ VOID PhSecurityEditorInitialization()
     EditSecurity_I = PhGetProcAddress(L"aclui.dll", "EditSecurity"); 
 }
 
+HPROPSHEETPAGE PhCreateSecurityPage(
+    __in PWSTR ObjectName,
+    __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
+    __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
+    __in PVOID Context,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
+    )
+{
+    ISecurityInformation *info;
+    HPROPSHEETPAGE page;
+
+    info = PhSecurityInformation_Create(
+        ObjectName,
+        GetObjectSecurity,
+        SetObjectSecurity,
+        Context,
+        AccessEntries,
+        NumberOfAccessEntries
+        );
+
+    page = CreateSecurityPage_I(info);
+
+    PhSecurityInformation_Release(info);
+
+    return page;
+}
+
 VOID PhEditSecurity(
     __in HWND hWnd,
     __in PWSTR ObjectName,

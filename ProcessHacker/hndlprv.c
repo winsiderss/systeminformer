@@ -328,13 +328,16 @@ VOID PhHandleProviderUpdate(
             handleItem->Handle = (HANDLE)handle->HandleValue;
             PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
             handleItem->Object = handle->Object;
+            PhPrintPointer(handleItem->ObjectString, handleItem->Object);
             handleItem->Attributes = handle->HandleAttributes;
             handleItem->GrantedAccess = (ACCESS_MASK)handle->GrantedAccess;
+            PhPrintPointer(handleItem->GrantedAccessString, (PVOID)handleItem->GrantedAccess);
 
             PhGetHandleInformation(
                 handleProvider->ProcessHandle,
                 handleItem->Handle,
                 handle->ObjectTypeIndex,
+                NULL,
                 &handleItem->TypeName,
                 &handleItem->ObjectName,
                 &handleItem->BestObjectName

@@ -395,10 +395,10 @@ BOOLEAN PhpPropPageDlgProcHeader(
     if (uMsg == WM_INITDIALOG)
     {
         // Save the context.
-        SetProp(hwndDlg, L"PropPageContext", (HANDLE)lParam);
+        SetProp(hwndDlg, L"PropSheetPage", (HANDLE)lParam);
     }
 
-    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PropPageContext");
+    propSheetPage = (LPPROPSHEETPAGE)GetProp(hwndDlg, L"PropSheetPage");
 
     if (!propSheetPage)
         return FALSE;
@@ -414,7 +414,7 @@ VOID PhpPropPageDlgProcDestroy(
     __in HWND hwndDlg
     )
 {
-    RemoveProp(hwndDlg, L"PropPageContext");
+    RemoveProp(hwndDlg, L"PropSheetPage");
 }
 
 PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
@@ -1883,6 +1883,16 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     }
                 }
                 break;
+            case ID_HANDLE_PROPERTIES:
+                {
+                    PPH_HANDLE_ITEM handleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (handleItem)
+                    {
+                        PhShowHandleProperties(hwndDlg, processItem->ProcessId, handleItem);
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1897,6 +1907,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 break;
             case PSN_KILLACTIVE:
                 PhSetProviderEnabled(&handlesContext->ProviderRegistration, FALSE);
+                break;
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_PROPERTIES, 0);
+                    }
+                }
                 break;
             case NM_RCLICK:
                 {
