@@ -519,10 +519,21 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_PROCGENERAL_CMDLINE,
                 PhpGetStringOrNa(processItem->CommandLine));
 
-            if (processItem->VerifySignerName)
+            if (processItem->VerifyResult == VrTrusted)
             {
-                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
-                    PhaConcatStrings2(L"(Verified) ", processItem->VerifySignerName->Buffer)->Buffer);
+                if (processItem->VerifySignerName)
+                {
+                    SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                        PhaConcatStrings2(L"(Verified) ", processItem->VerifySignerName->Buffer)->Buffer);
+                }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                        PhaConcatStrings2(
+                        L"(Verified) ",
+                        PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
+                        )->Buffer);
+                }
             }
             else
             {

@@ -266,7 +266,8 @@ VERIFY_RESULT PhpVerifyFileBasic(
 
     status = WinVerifyTrust_I(NULL, &actionGenericVerifyV2, &trustData);
 
-    *SignerName = PhpGetSignerNameFromStateData(trustData.hWVTStateData);
+    if (status != TRUST_E_NOSIGNATURE)
+        *SignerName = PhpGetSignerNameFromStateData(trustData.hWVTStateData);
 
     // Close the state data.
     trustData.dwStateAction = WTD_STATEACTION_CLOSE;
@@ -366,7 +367,8 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
             status = WinVerifyTrust_I(NULL, &driverActionVerify, &trustData);
 
-            *SignerName = PhpGetSignerNameFromStateData(trustData.hWVTStateData);
+            if (status != TRUST_E_NOSIGNATURE)
+                *SignerName = PhpGetSignerNameFromStateData(trustData.hWVTStateData);
 
             // Close the state data.
             trustData.dwStateAction = WTD_STATEACTION_CLOSE;
