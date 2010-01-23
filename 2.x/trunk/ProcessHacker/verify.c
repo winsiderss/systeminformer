@@ -306,6 +306,13 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     if (fileHandle == INVALID_HANDLE_VALUE)
         return VrNoSignature;
 
+    // Don't try to hash files over 64 MB in size.
+    if (GetFileSize(fileHandle, NULL) > 64 * 1024 * 1024)
+    {
+        CloseHandle(fileHandle);
+        return VrNoSignature;
+    }
+
     fileHashLength = 256;
     fileHash = (PBYTE)PhAllocate(fileHashLength);
 
