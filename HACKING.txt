@@ -66,5 +66,7 @@ Abstraction layers and their modules:
   * Object security data (secdata.c)
   * UI actions (actions.c)
   * About (about.c)
+  * Handle properties (hndlprp.c)
+  * Service properties (srvprp.c)
   * Terminator (termator.c)
   * Thread stack (thrdstk.c)
