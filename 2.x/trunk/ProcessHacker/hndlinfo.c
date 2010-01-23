@@ -85,6 +85,57 @@ VOID PhHandleInfoInitialization()
     }
 }
 
+NTSTATUS PhpGetObjectBasicInformation(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __out POBJECT_BASIC_INFORMATION BasicInformation
+    )
+{
+    NTSTATUS status;
+
+    if (PhKphHandle)
+    {
+        status = KphZwQueryObject(
+            PhKphHandle,
+            ProcessHandle,
+            Handle,
+            ObjectBasicInformation,
+            BasicInformation,
+            sizeof(OBJECT_BASIC_INFORMATION),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // The object was referenced in KProcessHacker, so 
+            // we need to subtract 1 from the pointer count.
+            BasicInformation->PointerCount -= 1;
+        }
+    }
+    else
+    {
+        status = NtQueryObject(
+            Handle,
+            ObjectBasicInformation,
+            BasicInformation,
+            sizeof(OBJECT_BASIC_INFORMATION),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // The object was referenced in NtQueryObject and 
+            // a handle was opened to the object. We need to 
+            // subtract 1 from the pointer count, then subtract 
+            // 1 from both counts.
+            BasicInformation->HandleCount -= 1;
+            BasicInformation->PointerCount -= 2;
+        }
+    }
+
+    return status;
+}
+
 NTSTATUS PhpGetObjectTypeName(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
@@ -521,10 +572,35 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets information for a handle.
+ *
+ * \param ProcessHandle A handle to the process in which the 
+ * handle resides.
+ * \param Handle The handle value.
+ * \param ObjectTypeNumber The object type number of the handle. 
+ * You can specify -1 for this parameter if \c TypeName, 
+ * \c ObjectName and \c BestObjectName are NULL.
+ * \param BasicInformation A variable which receives basic 
+ * information about the object.
+ * \param TypeName A variable which receives the object type name.
+ * \param ObjectName A variable which receives the object name.
+ * \param BestObjectName A variable which receives the formatted 
+ * object name.
+ *
+ * \retval STATUS_INVALID_HANDLE The handle specified in
+ * \c ProcessHandle or \c Handle is invalid.
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in 
+ * \c ObjectTypeNumber is invalid.
+ * \retval STATUS_INVALID_PARAMETER_MIX The value of 
+ * \c ObjectTypeNumber is -1 but \c TypeName, \c ObjectName 
+ * or \c BestObjectName are non-NULL.
+ */
 NTSTATUS PhGetHandleInformation(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
     __in ULONG ObjectTypeNumber,
+    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
     __out_opt PPH_STRING *TypeName,
     __out_opt PPH_STRING *ObjectName,
     __out_opt PPH_STRING *BestObjectName
@@ -538,8 +614,10 @@ NTSTATUS PhGetHandleInformation(
 
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
-    if (ObjectTypeNumber > MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != -1 && ObjectTypeNumber > MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
+    if (ObjectTypeNumber == -1 && (TypeName || ObjectName || BestObjectName))
+        return STATUS_INVALID_PARAMETER_MIX;
 
     // Duplicate the handle if we're not using KPH.
     if (!PhKphHandle)
@@ -566,6 +644,23 @@ NTSTATUS PhGetHandleInformation(
             dupHandle = Handle;
         }
     }
+
+    // Get basic information.
+    if (BasicInformation)
+    {
+        status = PhpGetObjectBasicInformation(
+            ProcessHandle,
+            PhKphHandle ? Handle : dupHandle,
+            BasicInformation
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    // Exit early if we don't need to get any other information.
+    if (!TypeName && !ObjectName && !BestObjectName)
+        goto CleanupExit;
 
     // Get the type name.
     status = PhpGetObjectTypeName(

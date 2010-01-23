@@ -603,6 +603,7 @@ NTSTATUS PhGetHandleInformation(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
     __in ULONG ObjectTypeNumber,
+    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
     __out_opt PPH_STRING *TypeName,
     __out_opt PPH_STRING *ObjectName,
     __out_opt PPH_STRING *BestObjectName
@@ -1116,6 +1117,8 @@ typedef struct _PH_HANDLE_ITEM
     PPH_STRING BestObjectName;
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
+    WCHAR ObjectString[PH_PTR_STR_LEN_1];
+    WCHAR GrantedAccessString[PH_PTR_STR_LEN_1];
 } PH_HANDLE_ITEM, *PPH_HANDLE_ITEM;
 
 typedef struct _PH_HANDLE_PROVIDER

@@ -421,6 +421,32 @@ BEGIN
     PUSHBUTTON      "Permissions",IDC_PERMISSIONS,7,162,50,14
 END
 
+IDD_HNDLGENERAL DIALOGEX 0, 0, 236, 181
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "General"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Basic Information",IDC_STATIC,7,7,222,67
+    LTEXT           "Name:",IDC_STATIC,14,19,22,8
+    EDITTEXT        IDC_NAME,40,19,182,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Type:",IDC_STATIC,14,32,20,8
+    EDITTEXT        IDC_TYPE,40,32,182,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Object Address:",IDC_STATIC,14,44,53,8
+    EDITTEXT        IDC_ADDRESS,71,44,149,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Granted Access:",IDC_STATIC,14,56,54,8
+    EDITTEXT        IDC_GRANTED_ACCESS,71,56,150,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    GROUPBOX        "References",IDC_STATIC,7,78,108,39
+    LTEXT           "References:",IDC_STATIC,14,90,40,8
+    LTEXT           "Static",IDC_REFERENCES,58,90,19,8
+    LTEXT           "Handles:",IDC_STATIC,14,101,29,8
+    LTEXT           "Static",IDC_HANDLES,58,101,19,8
+    GROUPBOX        "Quota Charges",IDC_STATIC,122,78,107,39
+    LTEXT           "Paged:",IDC_STATIC,130,89,24,8
+    LTEXT           "Static",IDC_PAGED,174,89,19,8
+    LTEXT           "Non-Paged:",IDC_STATIC,130,100,39,8
+    LTEXT           "Static",IDC_NONPAGED,174,100,19,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -508,6 +534,14 @@ BEGIN
         RIGHTMARGIN, 275
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
+    END
+
+    IDD_HNDLGENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 229
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 174
     END
 END
 #endif    // APSTUDIO_INVOKED

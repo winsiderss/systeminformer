@@ -375,6 +375,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hndlprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hndlprv.c"
 				>
 			</File>
