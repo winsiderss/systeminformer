@@ -527,21 +527,19 @@ NTSTATUS PhGetProcessImageFileName(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
     PUNICODE_STRING fileName;
 
     status = PhpQueryProcessVariableSize(
         ProcessHandle,
         ProcessImageFileName,
-        &buffer
+        &fileName
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    fileName = (PUNICODE_STRING)buffer;
     *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
-    PhFree(buffer);
+    PhFree(fileName);
 
     return status;
 }
@@ -2641,6 +2639,329 @@ PPH_STRING PhConvertSidToStringSid(
     return string;
 }
 
+NTSTATUS PhpQueryTransactionManagerVariableSize(
+    __in HANDLE TransactionManagerHandle,
+    __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
+    __out PPVOID Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+
+    if (!NtQueryInformationTransactionManager)
+        return STATUS_NOT_SUPPORTED;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryInformationTransactionManager(
+            TransactionManagerHandle,
+            TransactionManagerInformationClass,
+            buffer,
+            bufferSize,
+            NULL
+            );
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            bufferSize *= 2;
+
+            if (bufferSize > 1 * 1024 * 1024)
+                return STATUS_INSUFFICIENT_RESOURCES;
+
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTransactionManagerBasicInformation(
+    __in HANDLE TransactionManagerHandle,
+    __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
+    )
+{
+    if (NtQueryInformationTransactionManager)
+    {
+        return NtQueryInformationTransactionManager(
+            TransactionManagerHandle,
+            TransactionManagerBasicInformation,
+            BasicInformation,
+            sizeof(TRANSACTIONMANAGER_BASIC_INFORMATION),
+            NULL
+            );
+    }
+    else
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+}
+
+NTSTATUS PhGetTransactionManagerLogFileName(
+    __in HANDLE TransactionManagerHandle,
+    __out PPH_STRING *LogFileName
+    )
+{
+    NTSTATUS status;
+    PTRANSACTIONMANAGER_LOGPATH_INFORMATION logPathInfo;
+
+    status = PhpQueryTransactionManagerVariableSize(
+        TransactionManagerHandle,
+        TransactionManagerLogPathInformation,
+        &logPathInfo
+        );
+
+    *LogFileName = PhCreateStringEx(
+        logPathInfo->LogPath,
+        logPathInfo->LogPathLength * 2
+        );
+    PhFree(logPathInfo);
+
+    return status;
+}
+
+NTSTATUS PhpQueryTransactionVariableSize(
+    __in HANDLE TransactionHandle,
+    __in TRANSACTION_INFORMATION_CLASS TransactionInformationClass,
+    __out PPVOID Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+
+    if (!NtQueryInformationTransaction)
+        return STATUS_NOT_SUPPORTED;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryInformationTransaction(
+            TransactionHandle,
+            TransactionInformationClass,
+            buffer,
+            bufferSize,
+            NULL
+            );
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            bufferSize *= 2;
+
+            if (bufferSize > 1 * 1024 * 1024)
+                return STATUS_INSUFFICIENT_RESOURCES;
+
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetTransactionBasicInformation(
+    __in HANDLE TransactionHandle,
+    __out PTRANSACTION_BASIC_INFORMATION BasicInformation
+    )
+{
+    if (NtQueryInformationTransaction)
+    {
+        return NtQueryInformationTransaction(
+            TransactionHandle,
+            TransactionBasicInformation,
+            BasicInformation,
+            sizeof(TRANSACTION_BASIC_INFORMATION),
+            NULL
+            );
+    }
+    else
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+}
+
+NTSTATUS PhGetTransactionPropertiesInformation(
+    __in HANDLE TransactionHandle,
+    __out_opt PLARGE_INTEGER Timeout,
+    __out_opt TRANSACTION_OUTCOME *Outcome,
+    __out_opt PPH_STRING *Description
+    )
+{
+    NTSTATUS status;
+    PTRANSACTION_PROPERTIES_INFORMATION propertiesInfo;
+
+    status = PhpQueryTransactionVariableSize(
+        TransactionHandle,
+        TransactionPropertiesInformation,
+        &propertiesInfo
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Timeout)
+    {
+        *Timeout = propertiesInfo->Timeout;
+    }
+
+    if (Outcome)
+    {
+        *Outcome = propertiesInfo->Outcome;
+    }
+
+    if (Description)
+    {
+        *Description = PhCreateStringEx(
+            propertiesInfo->Description,
+            propertiesInfo->DescriptionLength
+            );
+    }
+
+    PhFree(propertiesInfo);
+
+    return status;
+}
+
+NTSTATUS PhpQueryResourceManagerVariableSize(
+    __in HANDLE ResourceManagerHandle,
+    __in RESOURCEMANAGER_INFORMATION_CLASS ResourceManagerInformationClass,
+    __out PPVOID Buffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+
+    if (!NtQueryInformationResourceManager)
+        return STATUS_NOT_SUPPORTED;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryInformationResourceManager(
+            ResourceManagerHandle,
+            ResourceManagerInformationClass,
+            buffer,
+            bufferSize,
+            NULL
+            );
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            bufferSize *= 2;
+
+            if (bufferSize > 1 * 1024 * 1024)
+                return STATUS_INSUFFICIENT_RESOURCES;
+
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
+NTSTATUS PhGetResourceManagerBasicInformation(
+    __in HANDLE ResourceManagerHandle,
+    __out_opt PGUID Guid,
+    __out_opt PPH_STRING *Description
+    )
+{
+    NTSTATUS status;
+    PRESOURCEMANAGER_BASIC_INFORMATION basicInfo;
+
+    status = PhpQueryResourceManagerVariableSize(
+        ResourceManagerHandle,
+        ResourceManagerBasicInformation,
+        &basicInfo
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Guid)
+    {
+        *Guid = basicInfo->ResourceManagerId;
+    }
+
+    if (Description)
+    {
+        *Description = PhCreateStringEx(
+            basicInfo->Description,
+            basicInfo->DescriptionLength
+            );
+    }
+
+    PhFree(basicInfo);
+
+    return status;
+}
+
+NTSTATUS PhGetEnlistmentBasicInformation(
+    __in HANDLE EnlistmentHandle,
+    __out PENLISTMENT_BASIC_INFORMATION BasicInformation
+    )
+{
+    if (NtQueryInformationEnlistment)
+    {
+        return NtQueryInformationEnlistment(
+            EnlistmentHandle,
+            EnlistmentBasicInformation,
+            BasicInformation,
+            sizeof(ENLISTMENT_BASIC_INFORMATION),
+            NULL
+            );
+    }
+    else
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+}
+
 typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
 {
     NTSTATUS Status;
@@ -2838,22 +3159,20 @@ NTSTATUS PhGetDriverServiceKeyName(
     )
 {
     NTSTATUS status;
-    PVOID buffer;
     PUNICODE_STRING unicodeString;
 
     if (!NT_SUCCESS(status = PhpQueryDriverVariableSize(
         DriverHandle,
         DriverServiceKeyNameInformation,
-        &buffer
+        &unicodeString
         )))
         return status;
 
-    unicodeString = (PUNICODE_STRING)buffer;
     *ServiceKeyName = PhCreateStringEx(
         unicodeString->Buffer,
         unicodeString->Length
         );
-    PhFree(buffer);
+    PhFree(unicodeString);
 
     return status;
 }

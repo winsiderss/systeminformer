@@ -4,6 +4,7 @@
 #include <ntbasic.h>
 #include <ntexapi.h>
 #include <ntioapi.h>
+#include <ntktmapi.h>
 #include <ntlpcapi.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
@@ -45,9 +46,13 @@ EXT _NtOpenProcessToken NtOpenProcessToken EQNULL;
 EXT _NtOpenThread NtOpenThread EQNULL;
 EXT _NtProtectVirtualMemory NtProtectVirtualMemory EQNULL;
 EXT _NtQueryDirectoryObject NtQueryDirectoryObject EQNULL;
+EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment EQNULL;
 EXT _NtQueryInformationProcess NtQueryInformationProcess EQNULL;
+EXT _NtQueryInformationResourceManager NtQueryInformationResourceManager EQNULL;
 EXT _NtQueryInformationThread NtQueryInformationThread EQNULL;
 EXT _NtQueryInformationToken NtQueryInformationToken EQNULL;
+EXT _NtQueryInformationTransaction NtQueryInformationTransaction EQNULL;
+EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager EQNULL;
 EXT _NtQueryObject NtQueryObject EQNULL;           
 EXT _NtQuerySection NtQuerySection EQNULL;
 EXT _NtQuerySecurityObject NtQuerySecurityObject EQNULL;

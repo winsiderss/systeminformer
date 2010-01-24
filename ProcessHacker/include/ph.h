@@ -413,6 +413,39 @@ PPH_STRING PhConvertSidToStringSid(
     __in PSID Sid
     );
 
+NTSTATUS PhGetTransactionManagerBasicInformation(
+    __in HANDLE TransactionManagerHandle,
+    __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetTransactionManagerLogFileName(
+    __in HANDLE TransactionManagerHandle,
+    __out PPH_STRING *LogFileName
+    );
+
+NTSTATUS PhGetTransactionBasicInformation(
+    __in HANDLE TransactionHandle,
+    __out PTRANSACTION_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetTransactionPropertiesInformation(
+    __in HANDLE TransactionHandle,
+    __out_opt PLARGE_INTEGER Timeout,
+    __out_opt TRANSACTION_OUTCOME *Outcome,
+    __out_opt PPH_STRING *Description
+    );
+
+NTSTATUS PhGetResourceManagerBasicInformation(
+    __in HANDLE ResourceManagerHandle,
+    __out_opt PGUID Guid,
+    __out_opt PPH_STRING *Description
+    );
+
+NTSTATUS PhGetEnlistmentBasicInformation(
+    __in HANDLE EnlistmentHandle,
+    __out PENLISTMENT_BASIC_INFORMATION BasicInformation
+    );
+
 NTSTATUS PhOpenDriverByBaseAddress(
     __out PHANDLE DriverHandle,
     __in PVOID BaseAddress
@@ -1413,6 +1446,10 @@ PPH_STRING PhFormatDecimal(
 
 PPH_STRING PhFormatSize(
     __in ULONG64 Size
+    );
+
+PPH_STRING PhFormatGuid(
+    __in PGUID Guid
     );
 
 PVOID PhGetFileVersionInfo(

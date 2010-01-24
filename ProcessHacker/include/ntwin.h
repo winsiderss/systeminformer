@@ -6,6 +6,8 @@
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
 
+typedef GUID *PGUID;
+
 // Missing Desktop access rights
 #define DESKTOP_ALL_ACCESS \
     (DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW | DESKTOP_ENUMERATE | \
