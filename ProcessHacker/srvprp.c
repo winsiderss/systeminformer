@@ -1,24 +1,31 @@
 #include <phgui.h>
 #include <windowsx.h>
 
-NTSTATUS PhpGetServiceSecurity(
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
-    );
-
-NTSTATUS PhpSetServiceSecurity(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
-    );
-
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+static NTSTATUS PhpOpenService(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    SC_HANDLE serviceHandle;
+
+    if (!(serviceHandle = PhOpenService(
+        ((PPH_SERVICE_ITEM)Context)->Name->Buffer,
+        DesiredAccess
+        )))
+        return NTSTATUS_FROM_WIN32(GetLastError());
+
+    *Handle = serviceHandle;
+
+    return STATUS_SUCCESS;
+}
 
 VOID PhShowServiceProperties(
     __in HWND ParentWindowHandle,
@@ -28,6 +35,7 @@ VOID PhShowServiceProperties(
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[2];
+    PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
 
@@ -52,13 +60,17 @@ VOID PhShowServiceProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Security page.
+    stdObjectSecurity.OpenObject = PhpOpenService;
+    stdObjectSecurity.ObjectType = L"Service";
+    stdObjectSecurity.Context = ServiceItem;
+
     if (PhGetAccessEntries(L"Service", &accessEntries, &numberOfAccessEntries))
     {
         pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             ServiceItem->Name->Buffer,
-            PhpGetServiceSecurity,
-            PhpSetServiceSecurity,
-            ServiceItem,
+            PhStdGetObjectSecurity,
+            PhStdSetObjectSecurity,
+            &stdObjectSecurity,
             accessEntries,
             numberOfAccessEntries
             );
@@ -68,60 +80,6 @@ VOID PhShowServiceProperties(
     PropertySheet(&propSheetHeader);
 
     PhDereferenceObject(ServiceItem);
-}
-
-NTSTATUS PhpGetServiceSecurity(
-    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
-    )
-{
-    NTSTATUS status;
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Context;
-    SC_HANDLE serviceHandle;
-
-    if (!(serviceHandle = PhOpenService(
-        serviceItem->Name->Buffer,
-        PhGetAccessForGetSecurity(SecurityInformation)
-        )))
-        return NTSTATUS_FROM_WIN32(GetLastError());
-
-    status = PhGetSeObjectSecurity(
-        serviceHandle,
-        SE_SERVICE,
-        SecurityInformation,
-        SecurityDescriptor
-        );
-    CloseServiceHandle(serviceHandle);
-
-    return status;
-}
-
-NTSTATUS PhpSetServiceSecurity(
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
-    )
-{
-    NTSTATUS status;
-    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Context;
-    SC_HANDLE serviceHandle;
-
-    if (!(serviceHandle = PhOpenService(
-        serviceItem->Name->Buffer,
-        PhGetAccessForSetSecurity(SecurityInformation)
-        )))
-        return NTSTATUS_FROM_WIN32(GetLastError());
-
-    status = PhSetSeObjectSecurity(
-        serviceHandle,
-        SE_SERVICE,
-        SecurityInformation,
-        SecurityDescriptor
-        );
-    CloseServiceHandle(serviceHandle);
-
-    return status;
 }
 
 VOID PhpAddComboBoxItems(

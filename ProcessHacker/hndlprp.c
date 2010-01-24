@@ -82,6 +82,7 @@ VOID PhShowHandleProperties(
 
     // Security page.
     stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
+    stdObjectSecurity.ObjectType = HandleItem->TypeName->Buffer;
     stdObjectSecurity.Context = &context;
 
     if (PhGetAccessEntries(HandleItem->TypeName->Buffer, &accessEntries, &numberOfAccessEntries))

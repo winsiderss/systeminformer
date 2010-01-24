@@ -565,6 +565,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntlpcapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntmmapi.h"
 				>
 			</File>

@@ -4,6 +4,7 @@
 #include <ntbasic.h>
 #include <ntexapi.h>
 #include <ntioapi.h>
+#include <ntlpcapi.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>

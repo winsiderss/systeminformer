@@ -1,6 +1,12 @@
 #ifndef NTPSAPI_H
 #define NTPSAPI_H
 
+// MS has decided to leave this one access right out 
+// of the headers...
+#ifndef THREAD_ALERT
+#define THREAD_ALERT 0x0004
+#endif
+
 #define GDI_HANDLE_BUFFER_SIZE32 34
 #define GDI_HANDLE_BUFFER_SIZE64 60
 
