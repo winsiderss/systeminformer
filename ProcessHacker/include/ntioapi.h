@@ -151,4 +151,26 @@ typedef NTSTATUS (NTAPI *_NtUnloadDriver)(
     __in PUNICODE_STRING DriverServiceName
     );
 
+#ifndef IO_COMPLETION_QUERY_STATE
+#define IO_COMPLETION_QUERY_STATE 0x0001
+#endif
+
+typedef enum _IO_COMPLETION_INFORMATION_CLASS
+{
+    IoCompletionBasicInformation
+} IO_COMPLETION_INFORMATION_CLASS;
+
+typedef struct _IO_COMPLETION_BASIC_INFORMATION
+{
+    LONG Depth;
+} IO_COMPLETION_BASIC_INFORMATION, *PIO_COMPLETION_BASIC_INFORMATION;
+
+typedef NTSTATUS (NTAPI *_NtQueryIoCompletion)(
+    __in HANDLE IoCompletionHandle,
+    __in IO_COMPLETION_INFORMATION_CLASS IoCompletionInformationClass,
+    __out_bcount(IoCompletionInformation) PVOID IoCompletionInformation,
+    __in ULONG IoCompletionInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
 #endif
