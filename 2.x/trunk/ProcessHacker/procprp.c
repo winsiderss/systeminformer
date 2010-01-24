@@ -22,6 +22,7 @@
 
 #include <phgui.h>
 #include <procprpp.h>
+#include <kph.h>
 #include <settings.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
@@ -507,28 +508,33 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SendMessage(GetDlgItem(hwndDlg, IDC_PROCGENERAL_ICON), STM_SETICON,
+            HANDLE processHandle = NULL;
+            PPH_STRING curdir = NULL;
+            PROCESS_BASIC_INFORMATION basicInfo;
+            SYSTEMTIME startTime;
+            CLIENT_ID clientId;
+            ULONG executeFlags;
+            BOOLEAN isProtected;
+
+            // File
+
+            SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
                 (WPARAM)processItem->LargeIcon, 0);
 
-            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_NAME,
-                PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
-            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_VERSION,
-                PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
-            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_FILENAME,
-                PhpGetStringOrNa(processItem->FileName));
-            SetDlgItemText(hwndDlg, IDC_PROCGENERAL_CMDLINE,
-                PhpGetStringOrNa(processItem->CommandLine));
+            SetDlgItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
+            SetDlgItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
+            SetDlgItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
 
             if (processItem->VerifyResult == VrTrusted)
             {
                 if (processItem->VerifySignerName)
                 {
-                    SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
                         PhaConcatStrings2(L"(Verified) ", processItem->VerifySignerName->Buffer)->Buffer);
                 }
                 else
                 {
-                    SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                    SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
                         PhaConcatStrings2(
                         L"(Verified) ",
                         PhGetStringOrEmpty(processItem->VersionInfo.CompanyName)
@@ -537,35 +543,144 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_COMPANYNAME,
+                SetDlgItemText(hwndDlg, IDC_COMPANYNAME,
                     PhpGetStringOrNa(processItem->VersionInfo.CompanyName));
             }
 
+            // Command Line
+
+            SetDlgItemText(hwndDlg, IDC_CMDLINE, PhpGetStringOrNa(processItem->CommandLine));
+
+            // Current Directory
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                ProcessQueryAccess | PROCESS_VM_READ,
+                processItem->ProcessId
+                )))
             {
-                HANDLE processHandle;
-                PPH_STRING curdir = NULL;
+                PhGetProcessPebString(
+                    processHandle,
+                    PhpoCurrentDirectory,
+                    &curdir
+                    );
 
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    ProcessQueryAccess | PROCESS_VM_READ,
-                    processItem->ProcessId
-                    )))
+                CloseHandle(processHandle);
+                processHandle = NULL;
+            }
+
+            SetDlgItemText(hwndDlg, IDC_CURDIR,
+                PhpGetStringOrNa(curdir));
+
+            if (curdir)
+                PhDereferenceObject(curdir);
+
+            // Started
+
+            PhLargeIntegerToLocalSystemTime(&startTime, &processItem->CreateTime);
+            SetDlgItemText(hwndDlg, IDC_STARTED,
+                PhaConcatStrings(
+                3,
+                ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(&startTime, NULL)))->Buffer,
+                L" ",
+                ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(&startTime, NULL)))->Buffer
+                )->Buffer);
+
+            // Parent
+
+            clientId.UniqueProcess = processItem->ParentProcessId;
+            clientId.UniqueThread = NULL;
+
+            SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+
+            // DEP
+
+            SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
+
+            if (NT_SUCCESS(PhOpenProcess(
+                &processHandle,
+                PROCESS_QUERY_INFORMATION,
+                processItem->ProcessId
+                )))
+            {
+                if (NT_SUCCESS(PhGetProcessExecuteFlags(processHandle, &executeFlags)))
                 {
-                    PhGetProcessPebString(
-                        processHandle,
-                        PhpoCurrentDirectory,
-                        &curdir
-                        );
+                    PPH_STRING depString;
 
-                    CloseHandle(processHandle);
+                    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE)
+                        depString = PhaCreateString(L"Enabled");
+                    else
+                        depString = PhaCreateString(L"Disabled");
+
+                    if (executeFlags & MEM_EXECUTE_OPTION_PERMANENT)
+                    {
+                        depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
+                    }
+
+                    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION)
+                    {
+                        depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
+                    }
+
+                    SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
                 }
 
-                SetDlgItemText(hwndDlg, IDC_PROCGENERAL_CURDIR,
-                    PhpGetStringOrNa(curdir));
-
-                if (curdir)
-                    PhDereferenceObject(curdir);
+                CloseHandle(processHandle);
+                processHandle = NULL;
             }
+
+            // PEB address
+
+            SetDlgItemText(hwndDlg, IDC_PEBADDRESS, L"N/A");
+
+            PhOpenProcess(
+                &processHandle,
+                ProcessQueryAccess,
+                processItem->ProcessId
+                );
+
+            if (processHandle)
+            {
+                PhGetProcessBasicInformation(processHandle, &basicInfo);
+                SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
+                    PhaFormatString(L"0x%Ix", basicInfo.PebBaseAddress)->Buffer);
+            }
+
+            // Protected
+
+            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
+
+            if (WINDOWS_HAS_LIMITED_ACCESS)
+            {
+                if (PhKphHandle)
+                {
+                    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
+                    {
+                        if (isProtected)
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Protected");
+                        else
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
+                    }
+                }
+            }
+            else
+            {
+                EnableWindow(GetDlgItem(hwndDlg, IDC_PROTECTION), FALSE);
+            }
+
+            if (processHandle)
+                CloseHandle(processHandle);
+
+#ifdef _M_X64
+            if (processItem->IsWow64)
+                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
+            else
+                SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
+#else
+            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_HIDE);
+            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_HIDE);
+#endif
         }
         break;
     case WM_DESTROY:
@@ -580,25 +695,35 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_FILE),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_NAME),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_COMPANYNAME),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_VERSION),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_FILENAME),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_CMDLINE),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_CURDIR),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTED),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PEBADDRESS),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCGENERAL_PROCESS),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESS),
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
