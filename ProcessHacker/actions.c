@@ -582,6 +582,18 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
             &debugObjectHandle
             )))
         {
+            ULONG flags;
+
+            // Disable kill-on-close.
+            flags = 0;
+            status = NtSetInformationDebugObject(
+                debugObjectHandle,
+                DebugObjectFlags,
+                &flags,
+                sizeof(ULONG),
+                NULL
+                );
+
             status = NtRemoveProcessDebug(processHandle, debugObjectHandle);
 
             CloseHandle(debugObjectHandle);
