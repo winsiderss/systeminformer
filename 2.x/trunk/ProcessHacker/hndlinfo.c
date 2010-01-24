@@ -23,12 +23,23 @@
 #include <ph.h>
 #include <kph.h>
 
+typedef enum _PH_QUERY_OBJECT_WORK
+{
+    QueryNameHack,
+    QuerySecurityHack,
+    SetSecurityHack
+} PH_QUERY_OBJECT_WORK;
+
 typedef struct _PH_QUERY_OBJECT_CONTEXT
 {
     LOGICAL Initialized;
+    PH_QUERY_OBJECT_WORK Work;
+
     HANDLE Handle;
-    POBJECT_NAME_INFORMATION Buffer;
+    SECURITY_INFORMATION SecurityInformation;
+    PVOID Buffer;
     ULONG Length;
+
     NTSTATUS Status;
     ULONG ReturnLength;
 } PH_QUERY_OBJECT_CONTEXT, *PPH_QUERY_OBJECT_CONTEXT;
@@ -800,15 +811,8 @@ CleanupExit:
     return status;
 }
 
-NTSTATUS PhQueryObjectNameHack(
-    __in HANDLE Handle,
-    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
-    __in ULONG ObjectNameInformationLength,
-    __out_opt PULONG ReturnLength
-    )
+BOOLEAN PhpHeadQueryObjectHack()
 {
-    ULONG waitResult;
-
     PhAcquireMutex(&PhQueryObjectMutex);
 
     // Create a query thread if we don't have one.
@@ -818,41 +822,37 @@ NTSTATUS PhQueryObjectNameHack(
             NULL, 0, (LPTHREAD_START_ROUTINE)PhpQueryObjectThreadStart, NULL, 0, NULL);
 
         if (!PhQueryObjectThreadHandle)
-        {
-            PhReleaseMutex(&PhQueryObjectMutex);
-            return STATUS_UNSUCCESSFUL;
-        }
+            return FALSE;
     }
 
     // Create the events if they don't exist.
+
     if (!PhQueryObjectStartEvent)
     {
         if (!(PhQueryObjectStartEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
-        {
-            PhReleaseMutex(&PhQueryObjectMutex);
-            return STATUS_UNSUCCESSFUL;
-        }
+            return FALSE;
     }
 
     if (!PhQueryObjectCompletedEvent)
     {
         if (!(PhQueryObjectCompletedEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
-        {
-            PhReleaseMutex(&PhQueryObjectMutex);
-            return STATUS_UNSUCCESSFUL;
-        }
+            return FALSE;
     }
 
-    // Initialize the work context.
-    PhQueryObjectContext.Handle = Handle;
-    PhQueryObjectContext.Buffer = ObjectNameInformation;
-    PhQueryObjectContext.Length = ObjectNameInformationLength;
+    return TRUE;
+}
+
+NTSTATUS PhpTailQueryObjectHack(
+    __out_opt PULONG ReturnLength
+    )
+{
+    ULONG waitResult;
+
     PhQueryObjectContext.Initialized = TRUE;
     // Allow the worker thread to start.
     SetEvent(PhQueryObjectStartEvent);
     // Wait for the work to complete, with a timeout of 1 second.
     waitResult = WaitForSingleObject(PhQueryObjectCompletedEvent, 1000);
-    // Set the context as uninitialized.
     PhQueryObjectContext.Initialized = FALSE;
 
     // Return normally if the work was completed.
@@ -861,9 +861,9 @@ NTSTATUS PhQueryObjectNameHack(
         NTSTATUS status;
         ULONG returnLength;
 
-        // Copy the status information before we release the mutex.
         status = PhQueryObjectContext.Status;
         returnLength = PhQueryObjectContext.ReturnLength;
+
         PhReleaseMutex(&PhQueryObjectMutex);
 
         if (ReturnLength)
@@ -886,8 +886,64 @@ NTSTATUS PhQueryObjectNameHack(
         }
 
         PhReleaseMutex(&PhQueryObjectMutex);
+
         return STATUS_UNSUCCESSFUL;
     }
+}
+
+NTSTATUS PhQueryObjectNameHack(
+    __in HANDLE Handle,
+    __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,
+    __in ULONG ObjectNameInformationLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    if (!PhpHeadQueryObjectHack())
+        return STATUS_UNSUCCESSFUL;
+
+    PhQueryObjectContext.Work = QueryNameHack;
+    PhQueryObjectContext.Handle = Handle;
+    PhQueryObjectContext.Buffer = ObjectNameInformation;
+    PhQueryObjectContext.Length = ObjectNameInformationLength;
+
+    return PhpTailQueryObjectHack(ReturnLength);
+}
+
+NTSTATUS PhQueryObjectSecurityHack(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out_bcount(Length) PVOID Buffer,
+    __in ULONG Length,
+    __out_opt PULONG ReturnLength
+    )
+{
+    if (!PhpHeadQueryObjectHack())
+        return STATUS_UNSUCCESSFUL;
+
+    PhQueryObjectContext.Work = QuerySecurityHack;
+    PhQueryObjectContext.Handle = Handle;
+    PhQueryObjectContext.SecurityInformation = SecurityInformation;
+    PhQueryObjectContext.Buffer = Buffer;
+    PhQueryObjectContext.Length = Length;
+
+    return PhpTailQueryObjectHack(ReturnLength);
+}
+
+NTSTATUS PhSetObjectSecurityHack(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Buffer
+    )
+{
+    if (!PhpHeadQueryObjectHack())
+        return STATUS_UNSUCCESSFUL;
+
+    PhQueryObjectContext.Work = SetSecurityHack;
+    PhQueryObjectContext.Handle = Handle;
+    PhQueryObjectContext.SecurityInformation = SecurityInformation;
+    PhQueryObjectContext.Buffer = Buffer;
+
+    return PhpTailQueryObjectHack(NULL);
 }
 
 NTSTATUS PhpQueryObjectThreadStart(
@@ -905,13 +961,31 @@ NTSTATUS PhpQueryObjectThreadStart(
         // Make sure we actually have work.
         if (PhQueryObjectContext.Initialized)
         {
-            PhQueryObjectContext.Status = NtQueryObject(
-                PhQueryObjectContext.Handle,
-                ObjectNameInformation,
-                PhQueryObjectContext.Buffer,
-                PhQueryObjectContext.Length,
-                &PhQueryObjectContext.ReturnLength
-                );
+            switch (PhQueryObjectContext.Work)
+            {
+            case QueryNameHack:
+                PhQueryObjectContext.Status = NtQueryObject(
+                    PhQueryObjectContext.Handle,
+                    ObjectNameInformation,
+                    PhQueryObjectContext.Buffer,
+                    PhQueryObjectContext.Length,
+                    &PhQueryObjectContext.ReturnLength
+                    );
+            case QuerySecurityHack:
+                PhQueryObjectContext.Status = NtQuerySecurityObject(
+                    PhQueryObjectContext.Handle,
+                    PhQueryObjectContext.SecurityInformation,
+                    (PSECURITY_DESCRIPTOR)PhQueryObjectContext.Buffer,
+                    PhQueryObjectContext.Length,
+                    &PhQueryObjectContext.ReturnLength
+                    );
+            case SetSecurityHack:
+                PhQueryObjectContext.Status = NtSetSecurityObject(
+                    PhQueryObjectContext.Handle,
+                    PhQueryObjectContext.SecurityInformation,
+                    (PSECURITY_DESCRIPTOR)PhQueryObjectContext.Buffer
+                    );
+            }
 
             // Work done.
             SetEvent(PhQueryObjectCompletedEvent);
