@@ -42,6 +42,9 @@
 #define STR_EQUAL(Str1, Str2) (strcmp(Str1, Str2) == 0)
 #define WSTR_EQUAL(Str1, Str2) (wcscmp(Str1, Str2) == 0)
 
+#define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
+#define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
+
 FORCEINLINE PVOID PhGetProcAddress(
     __in PWSTR LibraryName,
     __in PSTR ProcName

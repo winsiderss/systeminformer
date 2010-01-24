@@ -334,9 +334,16 @@ NTSTATUS PhStdGetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-
-    CloseHandle(handle);
+    if (WSTR_IEQUAL(stdObjectSecurity->ObjectType, L"Service"))
+    {
+        status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
+        CloseServiceHandle(handle);
+    }
+    else
+    {
+        status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        CloseHandle(handle);
+    }
 
     return status;
 }
@@ -362,9 +369,16 @@ NTSTATUS PhStdSetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-
-    CloseHandle(handle);
+    if (WSTR_IEQUAL(stdObjectSecurity->ObjectType, L"Service"))
+    {
+        status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
+        CloseServiceHandle(handle);
+    }
+    else
+    {
+        status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
+        CloseHandle(handle);
+    }
 
     return status;
 }
