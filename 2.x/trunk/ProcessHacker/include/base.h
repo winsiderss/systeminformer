@@ -45,6 +45,73 @@
 #define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
 #define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
 
+FORCEINLINE int intcmp(
+    __in int value1,
+    __in int value2
+    )
+{
+    if (value1 > value2)
+        return 1;
+    else if (value1 < value2)
+        return -1;
+
+    return 0;
+}
+
+FORCEINLINE int uintcmp(
+    __in unsigned int value1,
+    __in unsigned int value2
+    )
+{
+    if (value1 > value2)
+        return 1;
+    else if (value1 < value2)
+        return -1;
+
+    return 0;
+}
+
+FORCEINLINE int int64cmp(
+    __in __int64 value1,
+    __in __int64 value2
+    )
+{
+    if (value1 > value2)
+        return 1;
+    else if (value1 < value2)
+        return -1;
+
+    return 0;
+}
+
+FORCEINLINE int uint64cmp(
+    __in unsigned __int64 value1,
+    __in unsigned __int64 value2
+    )
+{
+    if (value1 > value2)
+        return 1;
+    else if (value1 < value2)
+        return -1;
+
+    return 0;
+}
+
+FORCEINLINE ULONG PhCountBits(
+    __in ULONG Value
+    )
+{
+    ULONG count = 0;
+
+    while (Value)
+    {
+        count++;
+        Value &= Value - 1;
+    }
+
+    return count;
+}
+
 FORCEINLINE PVOID PhGetProcAddress(
     __in PWSTR LibraryName,
     __in PSTR ProcName
