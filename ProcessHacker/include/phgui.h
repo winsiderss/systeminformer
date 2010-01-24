@@ -631,18 +631,34 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+// anawait
+
+VOID PhUiAnalyzeWaitThread(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId,
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 // about
 
 VOID PhShowAboutDialog(
     __in HWND ParentWindowHandle
     );
 
-// hndlprp.c
+// hndlprp
 
 VOID PhShowHandleProperties(
     __in HWND ParentWindowHandle,
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM HandleItem
+    );
+
+// infodlg
+
+VOID PhShowInformationDialog(
+    __in HWND ParentWindowHandle,
+    __in PWSTR String
     );
 
 // srvprp

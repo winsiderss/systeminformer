@@ -160,7 +160,8 @@ NTSTATUS PhpGetObjectTypeName(
     // If the cache contains the object type name, use it. Otherwise, 
     // query the type name.
 
-    typeName = PhObjectTypeNames[ObjectTypeNumber];
+    if (ObjectTypeNumber != -1)
+        typeName = PhObjectTypeNames[ObjectTypeNumber];
 
     if (typeName)
     {
@@ -233,17 +234,20 @@ NTSTATUS PhpGetObjectTypeName(
         // Create a copy of the type name.
         typeName = PhCreateStringEx(buffer->TypeName.Buffer, buffer->TypeName.Length);
 
-        // Try to store the type name in the cache.
-        oldTypeName = _InterlockedCompareExchangePointer(
-            &PhObjectTypeNames[ObjectTypeNumber],
-            typeName,
-            NULL
-            );
+        if (ObjectTypeNumber != -1)
+        {
+            // Try to store the type name in the cache.
+            oldTypeName = _InterlockedCompareExchangePointer(
+                &PhObjectTypeNames[ObjectTypeNumber],
+                typeName,
+                NULL
+                );
 
-        // Add a reference if we stored the type name 
-        // successfully.
-        if (!oldTypeName)
-            PhReferenceObject(typeName);
+            // Add a reference if we stored the type name 
+            // successfully.
+            if (!oldTypeName)
+                PhReferenceObject(typeName);
+        }
 
         PhFree(buffer);
     }
@@ -590,8 +594,8 @@ CleanupExit:
  * handle resides.
  * \param Handle The handle value.
  * \param ObjectTypeNumber The object type number of the handle. 
- * You can specify -1 for this parameter if \c TypeName, 
- * \c ObjectName and \c BestObjectName are NULL.
+ * You can specify -1 for this parameter if the object type number 
+ * is not known.
  * \param BasicInformation A variable which receives basic 
  * information about the object.
  * \param TypeName A variable which receives the object type name.
@@ -603,9 +607,6 @@ CleanupExit:
  * \c ProcessHandle or \c Handle is invalid.
  * \retval STATUS_INVALID_PARAMETER_3 The value specified in 
  * \c ObjectTypeNumber is invalid.
- * \retval STATUS_INVALID_PARAMETER_MIX The value of 
- * \c ObjectTypeNumber is -1 but \c TypeName, \c ObjectName 
- * or \c BestObjectName are non-NULL.
  */
 NTSTATUS PhGetHandleInformation(
     __in HANDLE ProcessHandle,
@@ -627,8 +628,6 @@ NTSTATUS PhGetHandleInformation(
         return STATUS_INVALID_HANDLE;
     if (ObjectTypeNumber != -1 && ObjectTypeNumber > MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
-    if (ObjectTypeNumber == -1 && (TypeName || ObjectName || BestObjectName))
-        return STATUS_INVALID_PARAMETER_MIX;
 
     // Duplicate the handle if we're not using KPH.
     if (!PhKphHandle)
