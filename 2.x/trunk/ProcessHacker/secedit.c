@@ -327,8 +327,7 @@ NTSTATUS PhStdGetObjectSecurity(
 
     status = stdObjectSecurity->OpenObject(
         &handle,
-        READ_CONTROL |
-        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0),
+        PhGetAccessForGetSecurity(SecurityInformation),
         stdObjectSecurity->Context
         );
 
@@ -356,9 +355,7 @@ NTSTATUS PhStdSetObjectSecurity(
 
     status = stdObjectSecurity->OpenObject(
         &handle,
-        ((SecurityInformation & DACL_SECURITY_INFORMATION) ? WRITE_DAC : 0) |
-        ((SecurityInformation & OWNER_SECURITY_INFORMATION) ? WRITE_OWNER : 0) |
-        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0),
+        PhGetAccessForSetSecurity(SecurityInformation),
         stdObjectSecurity->Context
         );
 
@@ -370,4 +367,92 @@ NTSTATUS PhStdSetObjectSecurity(
     CloseHandle(handle);
 
     return status;
+}
+
+NTSTATUS PhGetSeObjectSecurity(
+    __in HANDLE Handle,
+    __in SE_OBJECT_TYPE ObjectType,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    )
+{
+    ULONG win32Result;
+    PSECURITY_DESCRIPTOR securityDescriptor;
+
+    win32Result = GetSecurityInfo(
+        Handle,
+        ObjectType,
+        SecurityInformation,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &securityDescriptor
+        );
+
+    if (win32Result != ERROR_SUCCESS)
+        return NTSTATUS_FROM_WIN32(win32Result);
+
+    *SecurityDescriptor = PhAllocateCopy(
+        securityDescriptor,
+        GetSecurityDescriptorLength(securityDescriptor)
+        );
+    LocalFree(securityDescriptor);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhSetSeObjectSecurity(
+    __in HANDLE Handle,
+    __in SE_OBJECT_TYPE ObjectType,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    )
+{
+    ULONG win32Result;
+    SECURITY_INFORMATION securityInformation = 0;
+    BOOL dummy;
+    PSID owner = NULL;
+    PSID group = NULL;
+    PACL dacl = NULL;
+    PACL sacl = NULL;
+
+    if (SecurityInformation & OWNER_SECURITY_INFORMATION)
+    {
+        if (GetSecurityDescriptorOwner(SecurityDescriptor, &owner, &dummy))
+            securityInformation |= OWNER_SECURITY_INFORMATION;
+    }
+
+    if (SecurityInformation & GROUP_SECURITY_INFORMATION)
+    {
+        if (GetSecurityDescriptorGroup(SecurityDescriptor, &group, &dummy))
+            securityInformation |= GROUP_SECURITY_INFORMATION;
+    }
+
+    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    {
+        if (GetSecurityDescriptorDacl(SecurityDescriptor, &dummy, &dacl, &dummy))
+            securityInformation |= DACL_SECURITY_INFORMATION;
+    }
+
+    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    {
+        if (GetSecurityDescriptorSacl(SecurityDescriptor, &dummy, &sacl, &dummy))
+            securityInformation |= SACL_SECURITY_INFORMATION;
+    }
+
+    win32Result = SetSecurityInfo(
+        Handle,
+        ObjectType,
+        SecurityInformation,
+        owner,
+        group,
+        dacl,
+        sacl
+        );
+
+    if (win32Result != ERROR_SUCCESS)
+        return NTSTATUS_FROM_WIN32(win32Result);
+
+    return STATUS_SUCCESS;
 }

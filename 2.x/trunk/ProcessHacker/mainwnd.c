@@ -657,7 +657,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
-                        PhShowServicePropertiesDialog(hWnd, serviceItem);
+                        PhShowServiceProperties(hWnd, serviceItem);
                     }
                 }
                 break;
