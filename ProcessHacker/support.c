@@ -375,6 +375,78 @@ BOOLEAN PhShowConfirmMessage(
     }
 }
 
+PPH_STRING PhFormatDate(
+    __in_opt PSYSTEMTIME Date,
+    __in_opt PWSTR Format
+    )
+{
+    PPH_STRING string = NULL;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = GetDateFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Date,
+        Format,
+        NULL,
+        0
+        );
+    buffer = PhAllocate(bufferSize * 2);
+
+    if (GetDateFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Date,
+        Format,
+        buffer,
+        bufferSize
+        ))
+    {
+        string = PhCreateString(buffer);
+    }
+
+    PhFree(buffer);
+
+    return string;
+}
+
+PPH_STRING PhFormatTime(
+    __in_opt PSYSTEMTIME Time,
+    __in_opt PWSTR Format
+    )
+{
+    PPH_STRING string = NULL;
+    ULONG bufferSize;
+    PVOID buffer;
+
+    bufferSize = GetTimeFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Time,
+        Format,
+        NULL,
+        0
+        );
+    buffer = PhAllocate(bufferSize * 2);
+
+    if (GetTimeFormat(
+        LOCALE_USER_DEFAULT,
+        0,
+        Time,
+        Format,
+        buffer,
+        bufferSize
+        ))
+    {
+        string = PhCreateString(buffer);
+    }
+
+    PhFree(buffer);
+
+    return string;
+}
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,

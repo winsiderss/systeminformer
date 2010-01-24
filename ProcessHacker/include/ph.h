@@ -1290,6 +1290,54 @@ FORCEINLINE VOID PhCenterWindow(
         rectangle.Width, rectangle.Height, FALSE);
 }
 
+FORCEINLINE VOID PhLargeIntegerToSystemTime(
+    __out PSYSTEMTIME SystemTime,
+    __in PLARGE_INTEGER LargeInteger
+    )
+{
+    FILETIME fileTime;
+
+    fileTime.dwLowDateTime = LargeInteger->LowPart;
+    fileTime.dwHighDateTime = LargeInteger->HighPart;
+    FileTimeToSystemTime(&fileTime, SystemTime);
+}
+
+FORCEINLINE VOID PhLargeIntegerToLocalSystemTime(
+    __out PSYSTEMTIME SystemTime,
+    __in PLARGE_INTEGER LargeInteger
+    )
+{
+    FILETIME fileTime;
+    FILETIME newFileTime;
+
+    fileTime.dwLowDateTime = LargeInteger->LowPart;
+    fileTime.dwHighDateTime = LargeInteger->HighPart;
+    FileTimeToLocalFileTime(&fileTime, &newFileTime);
+    FileTimeToSystemTime(&newFileTime, SystemTime);
+}
+
+FORCEINLINE FILETIME PhSubtractFileTime(
+    __inout FILETIME Value1,
+    __in FILETIME Value2
+    )
+{
+    ULARGE_INTEGER value1;
+    ULARGE_INTEGER value2;
+    ULARGE_INTEGER value3;
+    FILETIME result;
+
+    value1.LowPart = Value1.dwLowDateTime;
+    value1.HighPart = Value1.dwHighDateTime;
+    value2.LowPart = Value2.dwLowDateTime;
+    value2.HighPart = Value2.dwHighDateTime;
+
+    value3.QuadPart = value1.QuadPart - value2.QuadPart;
+    result.dwLowDateTime = value3.LowPart;
+    result.dwHighDateTime = value3.HighPart;
+
+    return result;
+}
+
 PPH_STRING PhGetMessage(
     __in HANDLE DllHandle,
     __in ULONG MessageTableId,
@@ -1345,6 +1393,16 @@ BOOLEAN PhShowConfirmMessage(
     __in PWSTR Object,
     __in_opt PWSTR Message,
     __in BOOLEAN Warning
+    );
+
+PPH_STRING PhFormatDate(
+    __in_opt PSYSTEMTIME Date,
+    __in_opt PWSTR Format
+    );
+
+PPH_STRING PhFormatTime(
+    __in_opt PSYSTEMTIME Time,
+    __in_opt PWSTR Format
     );
 
 PPH_STRING PhFormatDecimal(
