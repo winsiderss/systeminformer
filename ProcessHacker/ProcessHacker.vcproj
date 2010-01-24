@@ -355,6 +355,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\anawait.c"
+				>
+			</File>
+			<File
 				RelativePath=".\basesup.c"
 				>
 			</File>
@@ -380,6 +384,10 @@
 			</File>
 			<File
 				RelativePath=".\hndlprv.c"
+				>
+			</File>
+			<File
+				RelativePath=".\infodlg.c"
 				>
 			</File>
 			<File

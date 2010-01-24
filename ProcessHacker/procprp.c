@@ -819,6 +819,7 @@ VOID PhpInitializeThreadMenu(
     __in ULONG NumberOfThreads
     )
 {
+#define ANALYZE_MENU_INDEX 8
 #define IOPRIORITY_MENU_INDEX 10
 
     if (NumberOfThreads == 0)
@@ -872,6 +873,11 @@ VOID PhpInitializeThreadMenu(
             DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
         }
     }
+
+#ifndef _M_IX86
+    // Remove Analyze.
+    DeleteMenu(Menu, ANALYZE_MENU_INDEX, MF_BYPOSITION);
+#endif
 
     // Priority
     if (NumberOfThreads == 1)
@@ -1193,6 +1199,21 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 );
                             PhFree(accessEntries);
                         }
+                    }
+                }
+                break;
+            case ID_ANALYZE_WAIT:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        PhUiAnalyzeWaitThread(
+                            hwndDlg,
+                            processItem->ProcessId,
+                            threadItem->ThreadId,
+                            threadsContext->Provider->SymbolProvider
+                            );
                     }
                 }
                 break;

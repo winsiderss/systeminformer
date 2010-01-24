@@ -885,6 +885,28 @@ VOID PhStringBuilderAppendEx(
 }
 
 /**
+ * Appends a formatted string to the end of a string builder 
+ * string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Format The format-control string.
+ */
+VOID PhStringBuilderAppendFormat(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+    PPH_STRING string;
+
+    va_start(argptr, Format);
+    string = PhFormatString_V(Format, argptr);
+    PhStringBuilderAppend(StringBuilder, string);
+    PhDereferenceObject(string);
+}
+
+/**
  * Inserts a string into a string builder string.
  *
  * \param StringBuilder A string builder object.
