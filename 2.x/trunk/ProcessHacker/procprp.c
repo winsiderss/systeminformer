@@ -629,6 +629,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     ULONG numberOfAccessEntries;
 
                     stdObjectSecurity.OpenObject = PhpProcessGeneralOpenProcess;
+                    stdObjectSecurity.ObjectType = L"Process";
                     stdObjectSecurity.Context = processItem->ProcessId;
 
                     if (PhGetAccessEntries(L"Process", &accessEntries, &numberOfAccessEntries))
@@ -1051,6 +1052,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     if (threadItem)
                     {
                         stdObjectSecurity.OpenObject = PhpThreadPermissionsOpenThread;
+                        stdObjectSecurity.ObjectType = L"Thread";
                         stdObjectSecurity.Context = threadItem->ThreadId;
 
                         if (PhGetAccessEntries(L"Thread", &accessEntries, &numberOfAccessEntries))
