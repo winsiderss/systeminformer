@@ -26,6 +26,8 @@
 #define IDD_SERVICE                     126
 #define IDD_SRVGENERAL                  126
 #define IDD_HNDLGENERAL                 128
+#define IDD_SCRATCHPAD                  129
+#define IDD_INFORMATION                 129
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -53,7 +55,6 @@
 #define IDC_PROCSERVICES_LIST           1026
 #define IDC_DEP                         1026
 #define IDC_PAUSE                       1027
-#define IDC_PROTECTED                   1027
 #define IDC_PROTECTION                  1027
 #define IDC_START                       1028
 #define IDC_DESCRIPTION                 1029
@@ -76,6 +77,7 @@
 #define IDC_PAGED                       1047
 #define IDC_PROCESSTYPETEXT             1047
 #define IDC_NONPAGED                    1048
+#define IDC_TEXT                        1048
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -182,9 +184,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        129
+#define _APS_NEXT_RESOURCE_VALUE        130
 #define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1048
+#define _APS_NEXT_CONTROL_VALUE         1049
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

@@ -769,6 +769,12 @@ VOID PhStringBuilderAppendEx(
     __in ULONG Length
     );
 
+VOID PhStringBuilderAppendFormat(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PWSTR Format,
+    ...
+    );
+
 VOID PhStringBuilderInsert(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
