@@ -7,6 +7,7 @@
 #define COBJMACROS
 #include <shlobj.h>
 #include <prsht.h>
+#include <aclapi.h>
 #include "resource.h"
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
@@ -427,6 +428,25 @@ typedef struct _PH_STD_OBJECT_SECURITY
     PVOID Context;
 } PH_STD_OBJECT_SECURITY, *PPH_STD_OBJECT_SECURITY;
 
+FORCEINLINE ACCESS_MASK PhGetAccessForGetSecurity(
+    __in SECURITY_INFORMATION SecurityInformation
+    )
+{
+    return
+        READ_CONTROL |
+        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0);
+}
+
+FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
+    __in SECURITY_INFORMATION SecurityInformation
+    )
+{
+    return
+        ((SecurityInformation & DACL_SECURITY_INFORMATION) ? WRITE_DAC : 0) |
+        ((SecurityInformation & OWNER_SECURITY_INFORMATION) ? WRITE_OWNER : 0) |
+        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0);
+}
+
 NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
@@ -437,6 +457,20 @@ NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context
+    );
+
+NTSTATUS PhGetSeObjectSecurity(
+    __in HANDLE Handle,
+    __in SE_OBJECT_TYPE ObjectType,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor
+    );
+
+NTSTATUS PhSetSeObjectSecurity(
+    __in HANDLE Handle,
+    __in SE_OBJECT_TYPE ObjectType,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
 // secdata
@@ -605,16 +639,16 @@ VOID PhShowHandleProperties(
 
 // srvprp
 
-VOID PhShowServicePropertiesDialog(
+VOID PhShowServiceProperties(
     __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM Service
+    __in PPH_SERVICE_ITEM ServiceItem
     );
 
 // termator
 
 VOID PhShowProcessTerminatorDialog(
     __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM Process
+    __in PPH_PROCESS_ITEM ProcessItem
     );
 
 // thrdstk

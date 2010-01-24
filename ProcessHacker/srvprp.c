@@ -1,26 +1,127 @@
 #include <phgui.h>
 #include <windowsx.h>
 
-INT_PTR CALLBACK PhpServicePropertiesDlgProc(      
+NTSTATUS PhpGetServiceSecurity(
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+NTSTATUS PhpSetServiceSecurity(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    );
+
+INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
 
-VOID PhShowServicePropertiesDialog(
+VOID PhShowServiceProperties(
     __in HWND ParentWindowHandle,
-    __in PPH_SERVICE_ITEM Service
+    __in PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PhReferenceObject(Service);
-    DialogBoxParam(
-        PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_SERVICE),
-        ParentWindowHandle,
-        PhpServicePropertiesDlgProc,
-        (LPARAM)Service
+    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
+    PROPSHEETPAGE propSheetPage;
+    HPROPSHEETPAGE pages[2];
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
+
+    PhReferenceObject(ServiceItem);
+
+    propSheetHeader.dwFlags =
+        PSH_NOAPPLYNOW |
+        PSH_NOCONTEXTHELP |
+        PSH_PROPTITLE;
+    propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.pszCaption = ServiceItem->Name->Buffer;
+    propSheetHeader.nPages = 0;
+    propSheetHeader.nStartPage = 0;
+    propSheetHeader.phpage = pages;
+
+    // General page.
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVGENERAL);
+    propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
+    propSheetPage.lParam = (LPARAM)ServiceItem;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // Security page.
+    if (PhGetAccessEntries(L"Service", &accessEntries, &numberOfAccessEntries))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
+            ServiceItem->Name->Buffer,
+            PhpGetServiceSecurity,
+            PhpSetServiceSecurity,
+            ServiceItem,
+            accessEntries,
+            numberOfAccessEntries
+            );
+        PhFree(accessEntries);
+    }
+
+    PropertySheet(&propSheetHeader);
+
+    PhDereferenceObject(ServiceItem);
+}
+
+NTSTATUS PhpGetServiceSecurity(
+    __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Context;
+    SC_HANDLE serviceHandle;
+
+    if (!(serviceHandle = PhOpenService(
+        serviceItem->Name->Buffer,
+        PhGetAccessForGetSecurity(SecurityInformation)
+        )))
+        return NTSTATUS_FROM_WIN32(GetLastError());
+
+    status = PhGetSeObjectSecurity(
+        serviceHandle,
+        SE_SERVICE,
+        SecurityInformation,
+        SecurityDescriptor
         );
+    CloseServiceHandle(serviceHandle);
+
+    return status;
+}
+
+NTSTATUS PhpSetServiceSecurity(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Context;
+    SC_HANDLE serviceHandle;
+
+    if (!(serviceHandle = PhOpenService(
+        serviceItem->Name->Buffer,
+        PhGetAccessForSetSecurity(SecurityInformation)
+        )))
+        return NTSTATUS_FROM_WIN32(GetLastError());
+
+    status = PhSetSeObjectSecurity(
+        serviceHandle,
+        SE_SERVICE,
+        SecurityInformation,
+        SecurityDescriptor
+        );
+    CloseServiceHandle(serviceHandle);
+
+    return status;
 }
 
 VOID PhpAddComboBoxItems(
@@ -35,7 +136,7 @@ VOID PhpAddComboBoxItems(
         ComboBox_AddString(hWnd, Items[i]);
 }
 
-INT_PTR CALLBACK PhpServicePropertiesDlgProc(      
+INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -51,10 +152,9 @@ INT_PTR CALLBACK PhpServicePropertiesDlgProc(
             WCHAR *serviceStartTypeItems[] = { L"Disabled", L"Boot Start", L"System Start",
                 L"Auto Start", L"Demand Start" };
             WCHAR *serviceErrorControlItems[] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             SC_HANDLE serviceHandle;
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetProp(hwndDlg, L"ServiceItem", (HANDLE)serviceItem);
 
@@ -97,11 +197,13 @@ INT_PTR CALLBACK PhpServicePropertiesDlgProc(
 
                 CloseServiceHandle(serviceHandle);
             }
+
+            SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
         {
-            PhDereferenceObject((PPH_SERVICE_ITEM)GetProp(hwndDlg, L"ServiceItem"));
             RemoveProp(hwndDlg, L"ServiceItem");
         }
         break;
@@ -109,11 +211,13 @@ INT_PTR CALLBACK PhpServicePropertiesDlgProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
-                break;
-            case IDOK:
-                EndDialog(hwndDlg, IDOK);
+            case IDC_PASSWORD:
+                {
+                    if (HIWORD(wParam) == EN_CHANGE)
+                    {
+                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_CHECKED);
+                    }
+                }
                 break;
             }
         }

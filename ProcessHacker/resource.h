@@ -24,6 +24,7 @@
 #define IDD_DIALOG1                     125
 #define IDD_PROCSERVICES                125
 #define IDD_SERVICE                     126
+#define IDD_SRVGENERAL                  126
 #define IDD_HNDLGENERAL                 128
 #define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
@@ -68,7 +69,6 @@
 #define IDC_REFERENCES                  1045
 #define IDC_HANDLES                     1046
 #define IDC_PAGED                       1047
-#define IDC_HANDLES2                    1048
 #define IDC_NONPAGED                    1048
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002

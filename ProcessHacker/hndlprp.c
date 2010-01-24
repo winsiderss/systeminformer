@@ -68,7 +68,7 @@ VOID PhShowHandleProperties(
         PSH_PROPTITLE;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Handle";
-    propSheetHeader.nPages = 2;
+    propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
@@ -78,7 +78,7 @@ VOID PhShowHandleProperties(
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_HNDLGENERAL);
     propSheetPage.pfnDlgProc = PhpHandleGeneralDlgProc;
     propSheetPage.lParam = (LPARAM)&context;
-    pages[0] = CreatePropertySheetPage(&propSheetPage);
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Security page.
     stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
@@ -86,7 +86,7 @@ VOID PhShowHandleProperties(
 
     if (PhGetAccessEntries(HandleItem->TypeName->Buffer, &accessEntries, &numberOfAccessEntries))
     {
-        pages[1] = PhCreateSecurityPage(
+        pages[propSheetHeader.nPages++] = PhCreateSecurityPage(
             PhGetStringOrEmpty(HandleItem->BestObjectName),
             PhStdGetObjectSecurity,
             PhStdSetObjectSecurity,
