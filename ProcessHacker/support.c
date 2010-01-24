@@ -580,6 +580,26 @@ PPH_STRING PhFormatSize(
     }
 }
 
+PPH_STRING PhFormatGuid(
+    __in PGUID Guid
+    )
+{
+    PVOID buffer;
+    PPH_STRING string = NULL;
+
+    buffer = PhAllocate(50 * 2);
+
+    if (StringFromGUID2(Guid, buffer, 50))
+    {
+        string = PhCreateString(buffer);
+        PhLowerString(string);
+    }
+
+    PhFree(buffer);
+
+    return string;
+}
+
 PVOID PhGetFileVersionInfo(
     __in PWSTR FileName
     )
