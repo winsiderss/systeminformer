@@ -393,6 +393,7 @@ typedef struct _PH_ACCESS_ENTRY
     ACCESS_MASK Access;
     BOOLEAN General;
     BOOLEAN Specific;
+    PWSTR ShortName;
 } PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
 
 VOID PhSecurityEditorInitialization();
@@ -480,6 +481,12 @@ BOOLEAN PhGetAccessEntries(
     __in PWSTR Type,
     __out PPH_ACCESS_ENTRY *AccessEntries,
     __out PULONG NumberOfAccessEntries
+    );
+
+PPH_STRING PhGetAccessString(
+    __in ACCESS_MASK Access,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
     );
 
 // actions

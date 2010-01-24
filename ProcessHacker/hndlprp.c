@@ -116,13 +116,53 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+            PPH_ACCESS_ENTRY accessEntries;
+            ULONG numberOfAccessEntries;
             HANDLE processHandle;
             OBJECT_BASIC_INFORMATION basicInfo;
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
             SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
             SetDlgItemText(hwndDlg, IDC_ADDRESS, context->HandleItem->ObjectString);
-            SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+
+            if (PhGetAccessEntries(
+                context->HandleItem->TypeName->Buffer,
+                &accessEntries,
+                &numberOfAccessEntries
+                ))
+            {
+                PPH_STRING accessString;
+                PPH_STRING grantedAccessString;
+
+                accessString = PhGetAccessString(
+                    context->HandleItem->GrantedAccess,
+                    accessEntries,
+                    numberOfAccessEntries
+                    );
+
+                if (accessString->Length != 0)
+                {
+                    grantedAccessString = PhFormatString(
+                        L"%s (%s)",
+                        context->HandleItem->GrantedAccessString,
+                        accessString->Buffer
+                        );
+                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, grantedAccessString->Buffer);
+                    PhDereferenceObject(grantedAccessString);
+                }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+                }
+
+                PhDereferenceObject(accessString);
+
+                PhFree(accessEntries);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_GRANTED_ACCESS, context->HandleItem->GrantedAccessString);
+            }
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,

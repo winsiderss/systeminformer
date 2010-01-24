@@ -38,9 +38,9 @@ ACCESS_ENTRIES(Standard)
 {
     { L"Synchronize", SYNCHRONIZE, FALSE, TRUE },
     { L"Delete", DELETE, FALSE, TRUE },
-    { L"Read permissions", READ_CONTROL, FALSE, TRUE },
-    { L"Change permissions", WRITE_DAC, FALSE, TRUE },
-    { L"Take ownership", WRITE_OWNER, FALSE, TRUE }
+    { L"Read permissions", READ_CONTROL, FALSE, TRUE, L"Read control" },
+    { L"Change permissions", WRITE_DAC, FALSE, TRUE, L"Write DAC" },
+    { L"Take ownership", WRITE_OWNER, FALSE, TRUE, L"Write owner" }
 };
 
 ACCESS_ENTRIES(AlpcPort)
@@ -102,15 +102,21 @@ ACCESS_ENTRIES(File)
     { L"Read & execute", FILE_GENERIC_READ | FILE_GENERIC_EXECUTE, TRUE, FALSE },
     { L"Read", FILE_GENERIC_READ, TRUE, FALSE },
     { L"Write", FILE_GENERIC_WRITE, TRUE, FALSE },
-    { L"Traverse folder / execute file", FILE_EXECUTE, FALSE, TRUE },
-    { L"List folder / read data", FILE_READ_DATA, FALSE, TRUE },
+    { L"Traverse folder / execute file", FILE_EXECUTE, FALSE, TRUE, L"Execute" },
+    { L"List folder / read data", FILE_READ_DATA, FALSE, TRUE, L"Read data" },
     { L"Read attributes", FILE_READ_ATTRIBUTES, FALSE, TRUE },
-    { L"Read extended attributes", FILE_READ_EA, FALSE, TRUE },
-    { L"Create files / write data", FILE_WRITE_DATA, FALSE, TRUE },
-    { L"Create folders / append data", FILE_APPEND_DATA, FALSE, TRUE },
+    { L"Read extended attributes", FILE_READ_EA, FALSE, TRUE, L"Read EA" },
+    { L"Create files / write data", FILE_WRITE_DATA, FALSE, TRUE, L"Write data" },
+    { L"Create folders / append data", FILE_APPEND_DATA, FALSE, TRUE, L"Append data" },
     { L"Write attributes", FILE_WRITE_ATTRIBUTES, FALSE, TRUE },
-    { L"Write extended attributes", FILE_WRITE_EA, FALSE, TRUE },
-    { L"Delete subfolders and files", FILE_DELETE_CHILD, FALSE, TRUE }
+    { L"Write extended attributes", FILE_WRITE_EA, FALSE, TRUE, L"Write EA" },
+    { L"Delete subfolders and files", FILE_DELETE_CHILD, FALSE, TRUE, L"Delete child" }
+};
+
+ACCESS_ENTRIES(FilterConnectionPort)
+{
+    { L"Full control", FLT_PORT_ALL_ACCESS, TRUE, TRUE },
+    { L"Connect", FLT_PORT_CONNECT, TRUE, TRUE }
 };
 
 ACCESS_ENTRIES(IoCompletion)
@@ -166,11 +172,11 @@ ACCESS_ENTRIES(Process)
     { L"Set session ID", PROCESS_SET_SESSIONID, TRUE, TRUE },
     { L"Create threads", PROCESS_CREATE_THREAD, TRUE, TRUE },
     { L"Create processes", PROCESS_CREATE_PROCESS, TRUE, TRUE },
-    { L"Modify memory", PROCESS_VM_OPERATION, TRUE, TRUE },
-    { L"Read memory", PROCESS_VM_READ, TRUE, TRUE },
-    { L"Write memory", PROCESS_VM_WRITE, TRUE, TRUE },
+    { L"Modify memory", PROCESS_VM_OPERATION, TRUE, TRUE, L"VM operation" },
+    { L"Read memory", PROCESS_VM_READ, TRUE, TRUE, L"VM read" },
+    { L"Write memory", PROCESS_VM_WRITE, TRUE, TRUE, L"VM write" },
     { L"Duplicate handles", PROCESS_DUP_HANDLE, TRUE, TRUE },
-    { L"Suspend / resume / set port", PROCESS_SUSPEND_RESUME, TRUE, TRUE },
+    { L"Suspend / resume / set port", PROCESS_SUSPEND_RESUME, TRUE, TRUE, L"Suspend/resume" },
     { L"Terminate", PROCESS_TERMINATE, TRUE, TRUE }
 };
 
@@ -184,11 +190,11 @@ ACCESS_ENTRIES(Process60)
     { L"Set session ID", PROCESS_SET_SESSIONID, TRUE, TRUE },
     { L"Create threads", PROCESS_CREATE_THREAD, TRUE, TRUE },
     { L"Create processes", PROCESS_CREATE_PROCESS, TRUE, TRUE },
-    { L"Modify memory", PROCESS_VM_OPERATION, TRUE, TRUE },
-    { L"Read memory", PROCESS_VM_READ, TRUE, TRUE },
-    { L"Write memory", PROCESS_VM_WRITE, TRUE, TRUE },
+    { L"Modify memory", PROCESS_VM_OPERATION, TRUE, TRUE, L"VM operation" },
+    { L"Read memory", PROCESS_VM_READ, TRUE, TRUE, L"VM read" },
+    { L"Write memory", PROCESS_VM_WRITE, TRUE, TRUE, L"VM write" },
     { L"Duplicate handles", PROCESS_DUP_HANDLE, TRUE, TRUE },
-    { L"Suspend / resume / set port", PROCESS_SUSPEND_RESUME, TRUE, TRUE },
+    { L"Suspend / resume / set port", PROCESS_SUSPEND_RESUME, TRUE, TRUE, L"Suspend/resume" },
     { L"Terminate", PROCESS_TERMINATE, TRUE, TRUE }
 };
 
@@ -202,10 +208,10 @@ ACCESS_ENTRIES(Section)
 {
     { L"Full control", SECTION_ALL_ACCESS, TRUE, TRUE },
     { L"Query", SECTION_QUERY, TRUE, TRUE },
-    { L"Map for read", SECTION_MAP_READ, TRUE, TRUE },
-    { L"Map for write", SECTION_MAP_WRITE, TRUE, TRUE },
-    { L"Map for execute", SECTION_MAP_EXECUTE, TRUE, TRUE },
-    { L"Map for execute (explicit)", SECTION_MAP_EXECUTE_EXPLICIT, TRUE, TRUE },
+    { L"Map for read", SECTION_MAP_READ, TRUE, TRUE, L"Map read" },
+    { L"Map for write", SECTION_MAP_WRITE, TRUE, TRUE, L"Map write" },
+    { L"Map for execute", SECTION_MAP_EXECUTE, TRUE, TRUE, L"Map execute" },
+    { L"Map for execute (explicit)", SECTION_MAP_EXECUTE_EXPLICIT, TRUE, TRUE, L"Map execute explicit" },
     { L"Extend size", SECTION_EXTEND_SIZE, TRUE, TRUE }
 };
 
@@ -225,7 +231,7 @@ ACCESS_ENTRIES(Service)
     { L"Enumerate dependents", SERVICE_ENUMERATE_DEPENDENTS, TRUE, TRUE },
     { L"Start", SERVICE_START, TRUE, TRUE },
     { L"Stop", SERVICE_STOP, TRUE, TRUE },
-    { L"Pause / continue", SERVICE_PAUSE_CONTINUE, TRUE, TRUE },
+    { L"Pause / continue", SERVICE_PAUSE_CONTINUE, TRUE, TRUE, L"Pause/continue" },
     { L"Interrogate", SERVICE_INTERROGATE, TRUE, TRUE },
     { L"User-defined control", SERVICE_USER_DEFINED_CONTROL, TRUE, TRUE }
 };
@@ -247,7 +253,7 @@ ACCESS_ENTRIES(Thread)
     { L"Alert", THREAD_ALERT, TRUE, TRUE },
     { L"Impersonate", THREAD_IMPERSONATE, TRUE, TRUE },
     { L"Direct impersonate", THREAD_DIRECT_IMPERSONATION, TRUE, TRUE },
-    { L"Suspend / resume", THREAD_SUSPEND_RESUME, TRUE, TRUE },
+    { L"Suspend / resume", THREAD_SUSPEND_RESUME, TRUE, TRUE, L"Suspend/resume" },
     { L"Terminate", THREAD_TERMINATE, TRUE, TRUE },
 };
 
@@ -255,16 +261,16 @@ ACCESS_ENTRIES(Thread60)
 {
     { L"Full control", THREAD_ALL_ACCESS, TRUE, TRUE },
     { L"Query limited information", THREAD_QUERY_LIMITED_INFORMATION, TRUE, TRUE },
-    { L"Query information", THREAD_QUERY_INFORMATION, TRUE, TRUE },
+    { L"Query information", THREAD_QUERY_INFORMATION | THREAD_QUERY_LIMITED_INFORMATION, TRUE, TRUE },
     { L"Set limited information", THREAD_SET_LIMITED_INFORMATION, TRUE, TRUE },
-    { L"Set information", THREAD_SET_INFORMATION, TRUE, TRUE },
+    { L"Set information", THREAD_SET_INFORMATION | THREAD_SET_LIMITED_INFORMATION, TRUE, TRUE },
     { L"Get context", THREAD_GET_CONTEXT, TRUE, TRUE },
     { L"Set context", THREAD_SET_CONTEXT, TRUE, TRUE },
     { L"Set token", THREAD_SET_THREAD_TOKEN, TRUE, TRUE },
     { L"Alert", THREAD_ALERT, TRUE, TRUE },
     { L"Impersonate", THREAD_IMPERSONATE, TRUE, TRUE },
     { L"Direct impersonate", THREAD_DIRECT_IMPERSONATION, TRUE, TRUE },
-    { L"Suspend / resume", THREAD_SUSPEND_RESUME, TRUE, TRUE },
+    { L"Suspend / resume", THREAD_SUSPEND_RESUME, TRUE, TRUE, L"Suspend/resume" },
     { L"Terminate", THREAD_TERMINATE, TRUE, TRUE },
 };
 
@@ -341,7 +347,7 @@ ACCESS_ENTRIES(Token)
     { L"Adjust groups", TOKEN_ADJUST_GROUPS, FALSE, TRUE },
     { L"Adjust defaults", TOKEN_ADJUST_DEFAULT, FALSE, TRUE },
     { L"Adjust session ID", TOKEN_ADJUST_SESSIONID, FALSE, TRUE },
-    { L"Assign as primary token", TOKEN_ASSIGN_PRIMARY, FALSE, TRUE },
+    { L"Assign as primary token", TOKEN_ASSIGN_PRIMARY, FALSE, TRUE, L"Assign primary" },
     { L"Duplicate", TOKEN_DUPLICATE, FALSE, TRUE },
     { L"Impersonate", TOKEN_IMPERSONATE, FALSE, TRUE },
     { L"Query", TOKEN_QUERY, FALSE, TRUE },
@@ -356,7 +362,7 @@ ACCESS_ENTRIES(Type)
 
 ACCESS_ENTRIES(WindowStation)
 {
-    { L"Full control", WINSTA_ALL_ACCESS, TRUE, TRUE },
+    { L"Full control", WINSTA_ALL_ACCESS | STANDARD_RIGHTS_REQUIRED, TRUE, TRUE },
     { L"Read", WINSTA_GENERIC_READ, TRUE, FALSE },
     { L"Write", WINSTA_GENERIC_WRITE, TRUE, FALSE },
     { L"Execute", WINSTA_GENERIC_EXECUTE, TRUE, FALSE },
@@ -380,6 +386,7 @@ PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(Event, TRUE),
     ACCESS_ENTRY(EventPair, TRUE),
     ACCESS_ENTRY(File, TRUE),
+    ACCESS_ENTRY(FilterConnectionPort, FALSE),
     ACCESS_ENTRY(IoCompletion, TRUE),
     ACCESS_ENTRY(Job, TRUE),
     ACCESS_ENTRY(Key, FALSE),
@@ -491,4 +498,75 @@ BOOLEAN PhGetAccessEntries(
     }
 
     return TRUE;
+}
+
+static int __cdecl PhpAccessEntryCompare(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_ACCESS_ENTRY entry1 = (PPH_ACCESS_ENTRY)elem1;
+    PPH_ACCESS_ENTRY entry2 = (PPH_ACCESS_ENTRY)elem2;
+
+    return intcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
+}
+
+PPH_STRING PhGetAccessString(
+    __in ACCESS_MASK Access,
+    __in PPH_ACCESS_ENTRY AccessEntries,
+    __in ULONG NumberOfAccessEntries
+    )
+{
+    PPH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    PPH_ACCESS_ENTRY accessEntries;
+    PBOOLEAN matched;
+    ULONG i;
+    ULONG j;
+
+    stringBuilder = PhCreateStringBuilder(10);
+
+    // Sort the access entries according to how many access rights they 
+    // include.
+    accessEntries = PhAllocateCopy(AccessEntries, NumberOfAccessEntries * sizeof(PH_ACCESS_ENTRY));
+    qsort(accessEntries, NumberOfAccessEntries, sizeof(PH_ACCESS_ENTRY), PhpAccessEntryCompare);
+
+    matched = PhAllocate(NumberOfAccessEntries * sizeof(BOOLEAN));
+    memset(matched, 0, NumberOfAccessEntries * sizeof(BOOLEAN));
+
+    for (i = 0; i < NumberOfAccessEntries; i++)
+    {
+        // We make sure we haven't matched this access entry yet. 
+        // This ensures that we won't get duplicates, e.g. 
+        // FILE_GENERIC_READ includes FILE_READ_DATA, and we 
+        // don't want to display both to the user.
+        if (
+            !matched[i] &&
+            ((Access & accessEntries[i].Access) == accessEntries[i].Access)
+            )
+        {
+            if (accessEntries[i].ShortName)
+                PhStringBuilderAppend2(stringBuilder, accessEntries[i].ShortName);
+            else
+                PhStringBuilderAppend2(stringBuilder, accessEntries[i].Name);
+
+            PhStringBuilderAppend2(stringBuilder, L", ");
+
+            // Disable equal or more specific entries.
+            for (j = i; j < NumberOfAccessEntries; j++)
+            {
+                if ((accessEntries[i].Access | accessEntries[j].Access) == accessEntries[i].Access)
+                    matched[j] = TRUE;
+            }
+        }
+    }
+
+    // Remove the trailing ", ".
+    if (PhStringEndsWith2(stringBuilder->String, L", ", FALSE))
+        PhStringBuilderRemove(stringBuilder, stringBuilder->String->Length / 2 - 2, 2);
+
+    string = PhReferenceStringBuilderString(stringBuilder);
+    PhDereferenceObject(stringBuilder);
+
+    return string;
 }
