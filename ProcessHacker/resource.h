@@ -26,31 +26,35 @@
 #define IDD_SERVICE                     126
 #define IDD_SRVGENERAL                  126
 #define IDD_HNDLGENERAL                 128
-#define IDC_PROCGENERAL_TERMINATE       1003
 #define IDC_TERMINATE                   1003
-#define IDC_PROCGENERAL_ICON            1005
-#define IDC_PROCGENERAL_FILE            1006
-#define IDC_PROCGENERAL_PROCESS         1007
-#define IDC_PROCGENERAL_NAME            1008
-#define IDC_PROCGENERAL_COMPANYNAME     1009
+#define IDC_FILEICON                    1005
+#define IDC_FILE                        1006
+#define IDC_PROCESS                     1007
 #define IDC_PROCMODULES_LIST            1009
+#define IDC_COMPANYNAME                 1009
 #define IDC_PROCTHREADS_LIST            1010
-#define IDC_PROCGENERAL_VERSION         1010
+#define IDC_VERSION                     1010
 #define IDC_PROCHANDLES_LIST            1011
 #define IDC_PROCENVIRONMENT_LIST        1012
 #define IDC_THRDSTACK_LIST              1013
 #define IDC_REFRESH                     1015
 #define IDC_PERMISSIONS                 1018
-#define IDC_PROCGENERAL_FILENAME        1020
-#define IDC_PROCGENERAL_CMDLINE         1021
+#define IDC_FILENAME                    1020
 #define IDC_RUN_ALL                     1021
-#define IDC_PROCGENERAL_CURDIR          1022
+#define IDC_CMDLINE                     1021
 #define IDC_TERMINATOR_LIST             1022
+#define IDC_CURDIR                      1022
 #define IDC_TERMINATOR_TEXT             1023
+#define IDC_STARTED                     1023
 #define IDC_ABOUT_NAME                  1024
+#define IDC_PEBADDRESS                  1024
 #define IDC_SCROLLBAR1                  1025
+#define IDC_PARENTPROCESS               1025
 #define IDC_PROCSERVICES_LIST           1026
+#define IDC_DEP                         1026
 #define IDC_PAUSE                       1027
+#define IDC_PROTECTED                   1027
+#define IDC_PROTECTION                  1027
 #define IDC_START                       1028
 #define IDC_DESCRIPTION                 1029
 #define IDC_TYPE                        1032
@@ -68,7 +72,9 @@
 #define IDC_NAME                        1044
 #define IDC_REFERENCES                  1045
 #define IDC_HANDLES                     1046
+#define IDC_PROCESSTYPELABEL            1046
 #define IDC_PAGED                       1047
+#define IDC_PROCESSTYPETEXT             1047
 #define IDC_NONPAGED                    1048
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -178,7 +184,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        129
 #define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1046
+#define _APS_NEXT_CONTROL_VALUE         1048
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
