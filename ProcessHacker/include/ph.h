@@ -616,6 +616,20 @@ NTSTATUS PhQueryObjectNameHack(
     __out_opt PULONG ReturnLength
     );
 
+NTSTATUS PhQueryObjectSecurityHack(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out_bcount(Length) PVOID Buffer,
+    __in ULONG Length,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSTATUS PhSetObjectSecurityHack(
+    __in HANDLE Handle,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PVOID Buffer
+    );
+
 // verify
 
 typedef enum _VERIFY_RESULT
