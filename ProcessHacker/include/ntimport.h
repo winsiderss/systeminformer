@@ -11,6 +11,7 @@
 #include <ntseapi.h>
 #include <ntdbg.h>
 #include <ntrtl.h>
+#include <ntmisc.h>
 
 #ifdef NTIMPORT_PRIVATE
 #define EXT
