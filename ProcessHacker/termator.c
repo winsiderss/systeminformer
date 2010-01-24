@@ -46,16 +46,16 @@ INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
 
 VOID PhShowProcessTerminatorDialog(
     __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM Process
+    __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhReferenceObject(Process);
+    PhReferenceObject(ProcessItem);
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_TERMINATOR),
         ParentWindowHandle,
         PhpProcessTerminatorDlgProc,
-        (LPARAM)Process
+        (LPARAM)ProcessItem
         );
 }
 

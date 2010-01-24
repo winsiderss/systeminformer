@@ -2313,7 +2313,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
                         if (serviceItem)
                         {
-                            PhShowServicePropertiesDialog(hwndDlg, serviceItem);
+                            PhShowServiceProperties(hwndDlg, serviceItem);
                         }
                     }
                 }
