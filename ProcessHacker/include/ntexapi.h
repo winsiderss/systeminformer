@@ -18,6 +18,100 @@ typedef struct _EVENT_BASIC_INFORMATION
     LONG EventState;
 } EVENT_BASIC_INFORMATION, *PEVENT_BASIC_INFORMATION;
 
+typedef NTSTATUS (NTAPI *_NtQueryEvent)(
+    __in HANDLE EventHandle,
+    __in EVENT_INFORMATION_CLASS EventInformationClass,
+    __out_bcount(EventInformationLength) PVOID EventInformation,
+    __in ULONG EventInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+#define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)
+
+typedef NTSTATUS (NTAPI *_NtSetLowEventPair)(
+    __in HANDLE EventPairHandle
+    );
+
+typedef NTSTATUS (NTAPI *_NtSetHighEventPair)(
+    __in HANDLE EventPairHandle
+    );
+
+typedef enum _MUTANT_INFORMATION_CLASS
+{
+    MutantBasicInformation,
+    MutantOwnerInformation
+} MUTANT_INFORMATION_CLASS;
+
+typedef struct _MUTANT_BASIC_INFORMATION 
+{
+    LONG CurrentCount;
+    BOOLEAN OwnedByCaller;
+    BOOLEAN AbandonedState;
+} MUTANT_BASIC_INFORMATION, *PMUTANT_BASIC_INFORMATION;
+
+typedef struct _MUTANT_OWNER_INFORMATION
+{
+    CLIENT_ID ClientId;
+} MUTANT_OWNER_INFORMATION, *PMUTANT_OWNER_INFORMATION;
+
+typedef NTSTATUS (NTAPI *_NtQueryMutant)(
+    __in HANDLE MutantHandle,
+    __in MUTANT_INFORMATION_CLASS MutantInformationClass,
+    __out_bcount(MutantInformationLength) PVOID MutantInformation,
+    __in ULONG MutantInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+#ifndef SEMAPHORE_QUERY_STATE
+#define SEMAPHORE_QUERY_STATE 0x0001
+#endif
+
+typedef enum _SEMAPHORE_INFORMATION_CLASS
+{
+    SemaphoreBasicInformation
+} SEMAPHORE_INFORMATION_CLASS;
+
+typedef struct _SEMAPHORE_BASIC_INFORMATION
+{
+    LONG CurrentCount;
+    LONG MaximumCount;
+} SEMAPHORE_BASIC_INFORMATION, *PSEMAPHORE_BASIC_INFORMATION;
+
+typedef NTSTATUS (NTAPI *_NtQuerySemaphore)(
+    __in HANDLE SemaphoreHandle,
+    __in SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
+    __out_bcount(SemaphoreInformationLength) PVOID SemaphoreInformation,
+    __in ULONG SemaphoreInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+typedef enum _TIMER_INFORMATION_CLASS
+{
+    TimerBasicInformation
+} TIMER_INFORMATION_CLASS;
+
+typedef struct _TIMER_BASIC_INFORMATION
+{
+    LARGE_INTEGER RemainingTime;
+    BOOLEAN TimerState;
+} TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
+
+typedef NTSTATUS (NTAPI *_NtQueryTimer)(
+    __in HANDLE TimerHandle,
+    __in TIMER_INFORMATION_CLASS TimerInformationClass,
+    __out_bcount(TimerInformationLength) PVOID TimerInformation,
+    __in ULONG TimerInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+#define PROFILE_CONTROL 0x0001
+#define PROFILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | PROFILE_CONTROL)
+
+#define KEYEDEVENT_WAIT 0x0001
+#define KEYEDEVENT_WAKE 0x0002
+#define KEYEDEVENT_ALL_ACCESS \
+    (STANDARD_RIGHTS_REQUIRED | KEYEDEVENT_WAIT | KEYEDEVENT_WAKE)
+
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
     SystemBasicInformation,

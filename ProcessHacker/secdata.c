@@ -91,6 +91,72 @@ ACCESS_ENTRIES(Event)
     { L"Modify", EVENT_MODIFY_STATE, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(EventPair)
+{
+    { L"Full control", EVENT_PAIR_ALL_ACCESS, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(File)
+{
+    { L"Full control", FILE_ALL_ACCESS, TRUE, TRUE },
+    { L"Read & execute", FILE_GENERIC_READ | FILE_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Read", FILE_GENERIC_READ, TRUE, FALSE },
+    { L"Write", FILE_GENERIC_WRITE, TRUE, FALSE },
+    { L"Traverse folder / execute file", FILE_EXECUTE, FALSE, TRUE },
+    { L"List folder / read data", FILE_READ_DATA, FALSE, TRUE },
+    { L"Read attributes", FILE_READ_ATTRIBUTES, FALSE, TRUE },
+    { L"Read extended attributes", FILE_READ_EA, FALSE, TRUE },
+    { L"Create files / write data", FILE_WRITE_DATA, FALSE, TRUE },
+    { L"Create folders / append data", FILE_APPEND_DATA, FALSE, TRUE },
+    { L"Write attributes", FILE_WRITE_ATTRIBUTES, FALSE, TRUE },
+    { L"Write extended attributes", FILE_WRITE_EA, FALSE, TRUE },
+    { L"Delete subfolders and files", FILE_DELETE_CHILD, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(IoCompletion)
+{
+    { L"Full control", IO_COMPLETION_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", IO_COMPLETION_QUERY_STATE, TRUE, TRUE },
+    { L"Modify", IO_COMPLETION_MODIFY_STATE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Job)
+{
+    { L"Full control", JOB_OBJECT_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", JOB_OBJECT_QUERY, TRUE, TRUE },
+    { L"Assign processes", JOB_OBJECT_ASSIGN_PROCESS, TRUE, TRUE },
+    { L"Set attributes", JOB_OBJECT_SET_ATTRIBUTES, TRUE, TRUE },
+    { L"Set security attributes", JOB_OBJECT_SET_SECURITY_ATTRIBUTES, TRUE, TRUE },
+    { L"Terminate", JOB_OBJECT_TERMINATE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Key)
+{
+    { L"Full control", KEY_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", KEY_READ, TRUE, FALSE },
+    { L"Write", KEY_WRITE, TRUE, FALSE },
+    { L"Execute", KEY_EXECUTE, TRUE, FALSE },
+    { L"Enumerate subkeys", KEY_ENUMERATE_SUB_KEYS, FALSE, TRUE },
+    { L"Query values", KEY_QUERY_VALUE, FALSE, TRUE },
+    { L"Notify", KEY_NOTIFY, FALSE, TRUE },
+    { L"Set values", KEY_SET_VALUE, FALSE, TRUE },
+    { L"Create subkeys", KEY_CREATE_SUB_KEY, FALSE, TRUE },
+    { L"Create links", KEY_CREATE_LINK, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(KeyedEvent)
+{
+    { L"Full control", KEYEDEVENT_ALL_ACCESS, TRUE, TRUE },
+    { L"Wait", KEYEDEVENT_WAIT, TRUE, TRUE },
+    { L"Wake", KEYEDEVENT_WAKE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Mutant)
+{
+    { L"Full control", MUTANT_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", MUTANT_QUERY_STATE, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(Process)
 {
     { L"Full control", PROCESS_ALL_ACCESS & ~PROCESS_QUERY_LIMITED_INFORMATION, TRUE, TRUE },
@@ -126,6 +192,30 @@ ACCESS_ENTRIES(Process60)
     { L"Terminate", PROCESS_TERMINATE, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(Profile)
+{
+    { L"Full control", PROFILE_ALL_ACCESS, TRUE, TRUE },
+    { L"Control", PROFILE_CONTROL, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Section)
+{
+    { L"Full control", SECTION_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", SECTION_QUERY, TRUE, TRUE },
+    { L"Map for read", SECTION_MAP_READ, TRUE, TRUE },
+    { L"Map for write", SECTION_MAP_WRITE, TRUE, TRUE },
+    { L"Map for execute", SECTION_MAP_EXECUTE, TRUE, TRUE },
+    { L"Map for execute (explicit)", SECTION_MAP_EXECUTE_EXPLICIT, TRUE, TRUE },
+    { L"Extend size", SECTION_EXTEND_SIZE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(Semaphore)
+{
+    { L"Full control", SEMAPHORE_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", SEMAPHORE_QUERY_STATE, TRUE, TRUE },
+    { L"Modify", SEMAPHORE_MODIFY_STATE, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(Service)
 {
     { L"Full control", SERVICE_ALL_ACCESS, TRUE, TRUE },
@@ -138,6 +228,12 @@ ACCESS_ENTRIES(Service)
     { L"Pause / continue", SERVICE_PAUSE_CONTINUE, TRUE, TRUE },
     { L"Interrogate", SERVICE_INTERROGATE, TRUE, TRUE },
     { L"User-defined control", SERVICE_USER_DEFINED_CONTROL, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(SymbolicLink)
+{
+    { L"Full control", SYMBOLIC_LINK_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", SYMBOLIC_LINK_QUERY, TRUE, TRUE }
 };
 
 ACCESS_ENTRIES(Thread)
@@ -172,18 +268,140 @@ ACCESS_ENTRIES(Thread60)
     { L"Terminate", THREAD_TERMINATE, TRUE, TRUE },
 };
 
+ACCESS_ENTRIES(Timer)
+{
+    { L"Full control", TIMER_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", TIMER_QUERY_STATE, TRUE, TRUE },
+    { L"Modify", TIMER_MODIFY_STATE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(TmEn)
+{
+    { L"Full control", ENLISTMENT_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", ENLISTMENT_GENERIC_READ, TRUE, FALSE },
+    { L"Write", ENLISTMENT_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", ENLISTMENT_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Query information", ENLISTMENT_QUERY_INFORMATION, FALSE, TRUE },
+    { L"Set information", ENLISTMENT_SET_INFORMATION, FALSE, TRUE },
+    { L"Recover", ENLISTMENT_RECOVER, FALSE, TRUE },
+    { L"Subordinate rights", ENLISTMENT_SUBORDINATE_RIGHTS, FALSE, TRUE },
+    { L"Superior rights", ENLISTMENT_SUPERIOR_RIGHTS, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(TmRm)
+{
+    { L"Full control", RESOURCEMANAGER_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", RESOURCEMANAGER_GENERIC_READ, TRUE, FALSE },
+    { L"Write", RESOURCEMANAGER_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", RESOURCEMANAGER_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Query information", RESOURCEMANAGER_QUERY_INFORMATION, FALSE, TRUE },
+    { L"Set information", RESOURCEMANAGER_SET_INFORMATION, FALSE, TRUE },
+    { L"Get notifications", RESOURCEMANAGER_GET_NOTIFICATION, FALSE, TRUE },
+    { L"Enlist", RESOURCEMANAGER_ENLIST, FALSE, TRUE },
+    { L"Recover", RESOURCEMANAGER_RECOVER, FALSE, TRUE },
+    { L"Register protocols", RESOURCEMANAGER_REGISTER_PROTOCOL, FALSE, TRUE },
+    { L"Complete propagation", RESOURCEMANAGER_COMPLETE_PROPAGATION, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(TmTm)
+{
+    { L"Full control", TRANSACTIONMANAGER_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", TRANSACTIONMANAGER_GENERIC_READ, TRUE, FALSE },
+    { L"Write", TRANSACTIONMANAGER_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", TRANSACTIONMANAGER_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Query information", TRANSACTIONMANAGER_QUERY_INFORMATION, FALSE, TRUE },
+    { L"Set information", TRANSACTIONMANAGER_SET_INFORMATION, FALSE, TRUE },
+    { L"Recover", TRANSACTIONMANAGER_RECOVER, FALSE, TRUE },
+    { L"Rename", TRANSACTIONMANAGER_RENAME, FALSE, TRUE },
+    { L"Create resource manager", TRANSACTIONMANAGER_CREATE_RM, FALSE, TRUE },
+    { L"Bind transactions", TRANSACTIONMANAGER_BIND_TRANSACTION, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(TmTx)
+{
+    { L"Full control", TRANSACTION_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", TRANSACTION_GENERIC_READ, TRUE, FALSE },
+    { L"Write", TRANSACTION_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", TRANSACTION_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Query information", TRANSACTION_QUERY_INFORMATION, FALSE, TRUE },
+    { L"Set information", TRANSACTION_SET_INFORMATION, FALSE, TRUE },
+    { L"Enlist", TRANSACTION_ENLIST, FALSE, TRUE },
+    { L"Commit", TRANSACTION_COMMIT, FALSE, TRUE },
+    { L"Rollback", TRANSACTION_ROLLBACK, FALSE, TRUE },
+    { L"Propagate", TRANSACTION_PROPAGATE, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(Token)
+{
+    { L"Full control", TOKEN_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", TOKEN_READ, TRUE, FALSE },
+    { L"Write", TOKEN_WRITE, TRUE, FALSE },
+    { L"Execute", TOKEN_EXECUTE, TRUE, FALSE },
+    { L"Adjust privileges", TOKEN_ADJUST_PRIVILEGES, FALSE, TRUE },
+    { L"Adjust groups", TOKEN_ADJUST_GROUPS, FALSE, TRUE },
+    { L"Adjust defaults", TOKEN_ADJUST_DEFAULT, FALSE, TRUE },
+    { L"Adjust session ID", TOKEN_ADJUST_SESSIONID, FALSE, TRUE },
+    { L"Assign as primary token", TOKEN_ASSIGN_PRIMARY, FALSE, TRUE },
+    { L"Duplicate", TOKEN_DUPLICATE, FALSE, TRUE },
+    { L"Impersonate", TOKEN_IMPERSONATE, FALSE, TRUE },
+    { L"Query", TOKEN_QUERY, FALSE, TRUE },
+    { L"Query source", TOKEN_QUERY_SOURCE, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(Type)
+{
+    { L"Full control", OBJECT_TYPE_ALL_ACCESS, TRUE, TRUE },
+    { L"Create", OBJECT_TYPE_CREATE, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(WindowStation)
+{
+    { L"Full control", WINSTA_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", WINSTA_GENERIC_READ, TRUE, FALSE },
+    { L"Write", WINSTA_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", WINSTA_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Enumerate", WINSTA_ENUMERATE, FALSE, TRUE },
+    { L"Enumerate desktops", WINSTA_ENUMDESKTOPS, FALSE, TRUE },
+    { L"Read attributes", WINSTA_READATTRIBUTES, FALSE, TRUE },
+    { L"Read screen", WINSTA_READSCREEN, FALSE, TRUE },
+    { L"Access clipboard", WINSTA_ACCESSCLIPBOARD, FALSE, TRUE },
+    { L"Access global atoms", WINSTA_ACCESSGLOBALATOMS, FALSE, TRUE },
+    { L"Create desktop", WINSTA_CREATEDESKTOP, FALSE, TRUE },
+    { L"Write attributes", WINSTA_WRITEATTRIBUTES, FALSE, TRUE },
+    { L"Exit windows", WINSTA_EXITWINDOWS, FALSE, TRUE }
+};
+
 PH_SPECIFIC_TYPE PhSpecificTypes[] =
 {
     ACCESS_ENTRY(AlpcPort, TRUE),
-    ACCESS_ENTRY(DebugObject, FALSE),
+    ACCESS_ENTRY(DebugObject, TRUE),
     ACCESS_ENTRY(Desktop, FALSE),
     ACCESS_ENTRY(Directory, FALSE),
     ACCESS_ENTRY(Event, TRUE),
+    ACCESS_ENTRY(EventPair, TRUE),
+    ACCESS_ENTRY(File, TRUE),
+    ACCESS_ENTRY(IoCompletion, TRUE),
+    ACCESS_ENTRY(Job, TRUE),
+    ACCESS_ENTRY(Key, FALSE),
+    ACCESS_ENTRY(KeyedEvent, FALSE),
+    ACCESS_ENTRY(Mutant, TRUE),
     ACCESS_ENTRY(Process, TRUE),
     ACCESS_ENTRY(Process60, TRUE),
+    ACCESS_ENTRY(Profile, FALSE),
+    ACCESS_ENTRY(Section, FALSE),
+    ACCESS_ENTRY(Semaphore, TRUE),
     ACCESS_ENTRY(Service, FALSE),
+    ACCESS_ENTRY(SymbolicLink, FALSE),
     ACCESS_ENTRY(Thread, TRUE),
-    ACCESS_ENTRY(Thread60, TRUE)
+    ACCESS_ENTRY(Thread60, TRUE),
+    ACCESS_ENTRY(Timer, TRUE),
+    ACCESS_ENTRY(TmEn, FALSE),
+    ACCESS_ENTRY(TmRm, FALSE),
+    ACCESS_ENTRY(TmTm, FALSE),
+    ACCESS_ENTRY(TmTx, FALSE),
+    ACCESS_ENTRY(Token, FALSE),
+    ACCESS_ENTRY(Type, FALSE),
+    ACCESS_ENTRY(WindowStation, FALSE)
 };
 
 BOOLEAN PhGetAccessEntries(
