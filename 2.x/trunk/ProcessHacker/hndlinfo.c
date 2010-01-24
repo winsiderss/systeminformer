@@ -486,6 +486,9 @@ NTSTATUS PhpGetBestObjectName(
             status = PhGetProcessBasicInformation(dupHandle, &basicInfo);
             CloseHandle(dupHandle);
 
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
             clientId.UniqueProcess = basicInfo.UniqueProcessId;
         }
 
@@ -529,16 +532,185 @@ NTSTATUS PhpGetBestObjectName(
             status = PhGetThreadBasicInformation(dupHandle, &basicInfo);
             CloseHandle(dupHandle);
 
+            if (!NT_SUCCESS(status))
+                goto CleanupExit;
+
             clientId = basicInfo.ClientId;
         }
 
         bestObjectName = PhGetClientIdName(&clientId);
     }
+    else if (PhStringEquals2(TypeName, L"TmEn", TRUE))
+    {
+        HANDLE dupHandle;
+        ENLISTMENT_BASIC_INFORMATION basicInfo;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            ENLISTMENT_QUERY_INFORMATION,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetEnlistmentBasicInformation(dupHandle, &basicInfo);
+        CloseHandle(dupHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            bestObjectName = PhFormatGuid(&basicInfo.EnlistmentId);
+        }
+    }
+    else if (PhStringEquals2(TypeName, L"TmRm", TRUE))
+    {
+        HANDLE dupHandle;
+        GUID guid;
+        PPH_STRING description;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            RESOURCEMANAGER_QUERY_INFORMATION,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetResourceManagerBasicInformation(
+            dupHandle,
+            &guid,
+            &description
+            );
+        CloseHandle(dupHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            if (!PhIsStringNullOrEmpty(description))
+            {
+                bestObjectName = description;
+            }
+            else
+            {
+                bestObjectName = PhFormatGuid(&guid);
+
+                if (description)
+                    PhDereferenceObject(description);
+            }
+        }
+    }
+    else if (PhStringEquals2(TypeName, L"TmTm", TRUE))
+    {
+        HANDLE dupHandle;
+        PPH_STRING logFileName = NULL;
+        TRANSACTIONMANAGER_BASIC_INFORMATION basicInfo;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            TRANSACTIONMANAGER_QUERY_INFORMATION,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetTransactionManagerLogFileName(
+            dupHandle,
+            &logFileName
+            );
+
+        if (NT_SUCCESS(status) && !PhIsStringNullOrEmpty(logFileName))
+        {
+            bestObjectName = PhResolveDevicePrefix(logFileName);
+
+            if (bestObjectName)
+                PhDereferenceObject(logFileName);
+            else
+                bestObjectName = logFileName;
+        }
+        else
+        {
+            if (logFileName)
+                PhDereferenceObject(logFileName);
+
+            status = PhGetTransactionManagerBasicInformation(
+                dupHandle,
+                &basicInfo
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                bestObjectName = PhFormatGuid(&basicInfo.TmIdentity);
+            }
+        }
+
+        CloseHandle(dupHandle);
+    }
+    else if (PhStringEquals2(TypeName, L"TmTx", TRUE))
+    {
+        HANDLE dupHandle;
+        PPH_STRING description = NULL;
+        TRANSACTION_BASIC_INFORMATION basicInfo;
+
+        status = NtDuplicateObject(
+            ProcessHandle,
+            Handle,
+            NtCurrentProcess(),
+            &dupHandle,
+            TRANSACTION_QUERY_INFORMATION,
+            0,
+            0
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhGetTransactionPropertiesInformation(
+            dupHandle,
+            NULL,
+            NULL,
+            &description
+            );
+
+        if (NT_SUCCESS(status) && !PhIsStringNullOrEmpty(description))
+        {
+            bestObjectName = description;
+        }
+        else
+        {
+            if (description)
+                PhDereferenceObject(description);
+
+            status = PhGetTransactionBasicInformation(
+                dupHandle,
+                &basicInfo
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                bestObjectName = PhFormatGuid(&basicInfo.TransactionId);
+            }
+        }
+
+        CloseHandle(dupHandle);
+    }
     else if (PhStringEquals2(TypeName, L"Token", TRUE))
     {
         HANDLE dupHandle;
         PTOKEN_USER tokenUser = NULL;
-        TOKEN_STATISTICS statistics;
+        TOKEN_STATISTICS statistics = { 0 };
 
         status = NtDuplicateObject(
             ProcessHandle,

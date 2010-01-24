@@ -569,6 +569,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntktmapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntldr.h"
 				>
 			</File>
