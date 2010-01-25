@@ -2032,9 +2032,46 @@ VOID PhRegisterCallback(
     __out PPH_CALLBACK_REGISTRATION Registration
     )
 {
+    PhRegisterCallbackEx(
+        Callback,
+        Function,
+        Context,
+        0,
+        Registration
+        );
+}
+
+/**
+ * Registers a callback function to be notified.
+ *
+ * \param Callback A pointer to a callback object.
+ * \param Function The callback function.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ * \param Flags A combination of flags controlling the 
+ * callback.
+ * \li \c PH_CALLBACK_SYNC_WITH_UNREGISTER Synchronize 
+ * execution of the callback function with 
+ * PhUnregisterCallback(); see its remarks for more 
+ * details.
+ * \param Registration A variable which receives 
+ * registration information for the callback. Do not 
+ * modify the contents of this structure and do not
+ * free the storage for this structure until you have 
+ * unregistered the callback.
+ */
+VOID PhRegisterCallbackEx(
+    __inout PPH_CALLBACK Callback,
+    __in PPH_CALLBACK_FUNCTION Function,
+    __in PVOID Context,
+    __in USHORT Flags,
+    __out PPH_CALLBACK_REGISTRATION Registration
+    )
+{
     Registration->Function = Function;
     Registration->Context = Context;
     Registration->Unregistering = FALSE;
+    Registration->Flags = Flags;
 
     PhAcquireFastLockExclusive(&Callback->ListLock);
     InsertTailList(&Callback->ListHead, &Registration->ListEntry);
@@ -2050,7 +2087,10 @@ VOID PhRegisterCallback(
  *
  * \remarks The function guarantees that after it returns 
  * no calls to the referenced callback function will be 
- * made. However, the call may still be in progress.
+ * made. If tbe callback was registered with the 
+ * \c PH_CALLBACK_SYNC_WITH_UNREGISTER flag, the function 
+ * additionally guarantees that the callback function will
+ * not be in execution once this function returns.
  */
 VOID PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,
@@ -2092,12 +2132,28 @@ VOID PhInvokeCallback(
         if (registration->Unregistering)
             continue;
 
-        PhReleaseFastLockShared(&Callback->ListLock);
+        // This flag is a hack to make sure that once a callback is 
+        // unregistered, it will not be in execution. This hack is 
+        // required in certain circumstances because the callback 
+        // registration object does not keep track of the Context 
+        // stored in it. This is one of the disadvantages of 
+        // manual reference counting - it is hard to keep track of 
+        // objects across threads.
+        //
+        // Notice that in the provider system we do in fact 
+        // reference the Context object when registering a provider, 
+        // and dereference the object when unregistering a provider.
+
+        if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
+            PhReleaseFastLockShared(&Callback->ListLock);
+
         registration->Function(
             Parameter,
             registration->Context
             );
-        PhAcquireFastLockShared(&Callback->ListLock);
+
+        if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
+            PhAcquireFastLockShared(&Callback->ListLock);
     }
 
     PhReleaseFastLockShared(&Callback->ListLock);

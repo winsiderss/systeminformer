@@ -1069,10 +1069,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->Provider,
                 &threadsContext->ProviderRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &threadsContext->Provider->ThreadAddedEvent,
                 ThreadAddedHandler,
                 threadsContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &threadsContext->AddedEventRegistration
                 );
             PhRegisterCallback(
@@ -1081,10 +1082,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext,
                 &threadsContext->ModifiedEventRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &threadsContext->Provider->ThreadRemovedEvent,
                 ThreadRemovedHandler,
                 threadsContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &threadsContext->RemovedEventRegistration
                 );
             PhRegisterCallback(
@@ -1131,14 +1133,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_DESTROY:
         {
-            // TODO: Fix MAJOR multi-threading bug. This involves 
-            // adding an option for callback invocation to be 
-            // synchronized with unregisters - making sure callback 
-            // functions are not in progress after the unregister 
-            // function returns. Otherwise, at the 
-            // PhDereferenceAllThreadItems line thread items may be 
-            // freed when they're not supposed to be.
-
             PhUnregisterCallback(
                 &threadsContext->Provider->ThreadAddedEvent,
                 &threadsContext->AddedEventRegistration
@@ -1609,16 +1603,18 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 modulesContext->Provider,
                 &modulesContext->ProviderRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &modulesContext->Provider->ModuleAddedEvent,
                 ModuleAddedHandler,
                 modulesContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &modulesContext->AddedEventRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &modulesContext->Provider->ModuleRemovedEvent,
                 ModuleRemovedHandler,
                 modulesContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &modulesContext->RemovedEventRegistration
                 );
             PhSetProviderEnabled(
@@ -2031,10 +2027,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext->Provider,
                 &handlesContext->ProviderRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &handlesContext->Provider->HandleAddedEvent,
                 HandleAddedHandler,
                 handlesContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &handlesContext->AddedEventRegistration
                 );
             PhRegisterCallback(
@@ -2043,10 +2040,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext,
                 &handlesContext->ModifiedEventRegistration
                 );
-            PhRegisterCallback(
+            PhRegisterCallbackEx(
                 &handlesContext->Provider->HandleRemovedEvent,
                 HandleRemovedHandler,
                 handlesContext,
+                PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &handlesContext->RemovedEventRegistration
                 );
             PhRegisterCallback(
