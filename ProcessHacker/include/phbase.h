@@ -1174,6 +1174,8 @@ typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
     __in PVOID Context
     );
 
+#define PH_CALLBACK_SYNC_WITH_UNREGISTER 0x1
+
 /**
  * A callback registration structure.
  */
@@ -1189,6 +1191,8 @@ typedef struct _PH_CALLBACK_REGISTRATION
     /** Whether the registration structure is being 
      * removed. */
     BOOLEAN Unregistering;
+    /** Flags controlling the callback. */
+    USHORT Flags;
 } PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
 
 /**
@@ -1217,6 +1221,14 @@ VOID PhRegisterCallback(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
     __in PVOID Context,
+    __out PPH_CALLBACK_REGISTRATION Registration
+    );
+
+VOID PhRegisterCallbackEx(
+    __inout PPH_CALLBACK Callback,
+    __in PPH_CALLBACK_FUNCTION Function,
+    __in PVOID Context,
+    __in USHORT Flags,
     __out PPH_CALLBACK_REGISTRATION Registration
     );
 
