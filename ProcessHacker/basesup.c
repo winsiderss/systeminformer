@@ -1373,6 +1373,19 @@ BOOLEAN PhRemovePointerListItem(
     return FALSE;
 }
 
+VOID PhDereferenceAllPointerListItems(
+    __in PPH_POINTER_LIST PointerList
+    )
+{
+    ULONG enumerationKey = 0;
+    PVOID pointer;
+
+    while (PhEnumPointerList(PointerList, &enumerationKey, &pointer))
+    {
+        PhDereferenceObject(pointer);
+    }
+}
+
 /**
  * Creates a queue object.
  *
@@ -2034,6 +2047,10 @@ VOID PhRegisterCallback(
  * \param Callback A pointer to a callback object.
  * \param Registration The structure returned by 
  * PhRegisterCallback().
+ *
+ * \remarks The function guarantees that after it returns 
+ * no calls to the referenced callback function will be 
+ * made. However, the call may still be in progress.
  */
 VOID PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,

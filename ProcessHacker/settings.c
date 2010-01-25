@@ -49,6 +49,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
     PhpAddStringSetting(L"ProcPropPage", L"General");
+    PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
