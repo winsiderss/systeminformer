@@ -913,19 +913,15 @@ VOID PhMainWndOnCreate()
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
 
     ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
-    ListView_SetExtendedListViewStyleEx(ProcessListViewHandle,
-        LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP, -1);
+    PhSetListViewStyle(ProcessListViewHandle, TRUE, TRUE);
     BringWindowToTop(ProcessListViewHandle);
 
     ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
-    ListView_SetExtendedListViewStyleEx(ServiceListViewHandle,
-        LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP, -1);
-    PhSetExtendedListView(ServiceListViewHandle);
+    PhSetListViewStyle(ServiceListViewHandle, TRUE, TRUE);
     BringWindowToTop(ServiceListViewHandle);
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
-    ListView_SetExtendedListViewStyleEx(NetworkListViewHandle,
-        LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_HEADERDRAGDROP, -1);
+    PhSetListViewStyle(NetworkListViewHandle, TRUE, TRUE);
     BringWindowToTop(NetworkListViewHandle);
 
     PhSetControlTheme(ProcessListViewHandle, L"explorer");
@@ -943,6 +939,8 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
     PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"PID");
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
+
+    PhSetExtendedListView(ServiceListViewHandle);
 
     PhRegisterCallback(
         &PhProcessAddedEvent,

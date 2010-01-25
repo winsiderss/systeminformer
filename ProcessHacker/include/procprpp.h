@@ -116,6 +116,7 @@ typedef struct _PH_HANDLES_CONTEXT
 
     HWND WindowHandle;
 
+    BOOLEAN ItemsAdded;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;

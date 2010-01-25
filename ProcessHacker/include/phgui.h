@@ -100,6 +100,28 @@ HWND PhCreateListViewControl(
     __in INT_PTR Id
     );
 
+FORCEINLINE VOID PhSetListViewStyle(
+    __in HWND Handle,
+    __in BOOLEAN AllowDragDrop,
+    __in BOOLEAN ShowLabelTips
+    )
+{
+    ULONG style;
+
+    style = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER;
+
+    if (AllowDragDrop)
+        style |= LVS_EX_HEADERDRAGDROP;
+    if (ShowLabelTips)
+        style |= LVS_EX_LABELTIP;
+
+    ListView_SetExtendedListViewStyleEx(
+        Handle,
+        style,
+        -1
+        );
+}
+
 INT PhAddListViewColumn(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -304,11 +326,15 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // extlv
 
+#define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SORTITEMS (WM_APP + 1101)
 
 VOID PhSetExtendedListView(
     __in HWND hWnd
     );
+
+#define ExtendedListView_Init(hWnd) SendMessage(hWnd, ELVM_INIT, 0, 0)
+#define ExtendedListView_SortItems(hWnd) SendMessage(hWnd, ELVM_SORTITEMS, 0, 0)
 
 // mainwnd
 
