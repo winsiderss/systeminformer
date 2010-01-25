@@ -1131,6 +1131,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_DESTROY:
         {
+            // TODO: Fix MAJOR multi-threading bug. This involves 
+            // adding an option for callback invocation to be 
+            // synchronized with unregisters - making sure callback 
+            // functions are not in progress after the unregister 
+            // function returns. Otherwise, at the 
+            // PhDereferenceAllThreadItems line thread items may be 
+            // freed when they're not supposed to be.
+
             PhUnregisterCallback(
                 &threadsContext->Provider->ThreadAddedEvent,
                 &threadsContext->AddedEventRegistration
@@ -2057,6 +2065,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             handlesContext->WindowHandle = hwndDlg;
             handlesContext->NeedsSort = FALSE;
+            handlesContext->HideUnnamedHandles = !!PhGetIntegerSetting(L"HideUnnamedHandles");
 
             // Initialize the list.
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -2256,6 +2265,21 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         {
             INT lvItemIndex;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+
+            // If we're hiding unnamed handles and this handle doesn't 
+            // have a name, don't add it.
+            if (
+                handlesContext->HideUnnamedHandles &&
+                PhIsStringNullOrEmpty(handleItem->BestObjectName)
+                )
+            {
+                // No need to dereference; if we re-add the handle when 
+                // the user changes the "hide unnamed handles" setting 
+                // we can just assume we have a reference to the handle 
+                // item. This is important for consistency with the 
+                // PhDereferenceAllHandleItems call in WM_DESTROY.
+                break;
+            }
 
             // Disable redraw. It will be re-enabled later.
             SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
