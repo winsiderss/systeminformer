@@ -67,6 +67,8 @@ VOID PhSetExtendedListView(
     context->FallbackColumns = PhCreateList(1);
 
     SetProp(hWnd, L"ExtLvContext", (HANDLE)context);
+
+    ExtendedListView_Init(hWnd);
 }
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -91,12 +93,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             PhDereferenceObject(context->FallbackColumns);
             PhFree(context);
             RemoveProp(hwnd, L"ExtLvContext");
-        }
-        break;
-    case WM_SHOWWINDOW:
-        {
-            PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
-            SendMessage(hwnd, ELVM_SORTITEMS, 0, 0);
         }
         break;
     case WM_NOTIFY:
@@ -137,11 +133,18 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                         }
 
                         PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
-                        SendMessage(hwnd, ELVM_SORTITEMS, 0, 0);
+                        ExtendedListView_SortItems(hwnd);
                     }
                 }
                 break;
             }
+        }
+        break;
+    case ELVM_INIT:
+        {
+            PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+
+            return TRUE;
         }
         break;
     case ELVM_SORTITEMS:
@@ -319,6 +322,6 @@ static INT PhpDefaultCompareListViewItems(
     }
     else
     {
-        return wcscmp(xText, yText);
+        return wcsicmp(xText, yText);
     }
 }
