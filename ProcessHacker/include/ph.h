@@ -1112,6 +1112,7 @@ typedef struct _PH_THREAD_PROVIDER
     PH_CALLBACK ThreadAddedEvent;
     PH_CALLBACK ThreadModifiedEvent;
     PH_CALLBACK ThreadRemovedEvent;
+    PH_CALLBACK UpdatedEvent;
     ULONG RunCount;
 
     HANDLE ProcessId;
