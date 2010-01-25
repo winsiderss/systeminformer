@@ -114,6 +114,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
             SC_HANDLE serviceHandle;
 
+            // HACK
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+
             SetProp(hwndDlg, L"ServiceItem", (HANDLE)serviceItem);
 
             PhpAddComboBoxItems(GetDlgItem(hwndDlg, IDC_TYPE), serviceTypeItems,
