@@ -30,6 +30,8 @@
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
+// Strings
+
 #define PH_INT32_STR_LEN 12
 #define PH_INT32_STR_LEN_1 (PH_INT32_STR_LEN + 1)
 
@@ -44,6 +46,28 @@
 
 #define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
 #define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
+
+// Sorting
+
+typedef enum _PH_SORT_ORDER
+{
+    AscendingSortOrder,
+    DescendingSortOrder,
+    NoSortOrder
+} PH_SORT_ORDER, *PPH_SORT_ORDER;
+
+FORCEINLINE INT PhModifySort(
+    __in INT Result,
+    __in PH_SORT_ORDER Order
+    )
+{
+    if (Order == AscendingSortOrder)
+        return Result;
+    else if (Order == DescendingSortOrder)
+        return -Result;
+    else
+        return Result;
+}
 
 FORCEINLINE int intcmp(
     __in int value1,
@@ -96,6 +120,8 @@ FORCEINLINE int uint64cmp(
 
     return 0;
 }
+
+// Misc.
 
 FORCEINLINE ULONG PhCountBits(
     __in ULONG Value

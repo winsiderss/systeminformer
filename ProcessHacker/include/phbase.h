@@ -851,19 +851,18 @@ VOID PhRemoveListItems(
     );
 
 /**
- * A comparison function passed to PhSortList().
+ * A comparison function.
  *
  * \param Item1 The first item.
  * \param Item2 The second item.
- * \param Context A user-defined value passed 
- * to PhSortList().
+ * \param Context A user-defined value.
  *
  * \return
  * \li A positive value if \a Item1 > \a Item2,
  * \li A negative value if \a Item1 < \a Item2, and
  * \li 0 if \a Item1 = \a Item2.
  */
-typedef INT (NTAPI *PPH_LIST_COMPARE_FUNCTION)(
+typedef INT (NTAPI *PPH_COMPARE_FUNCTION)(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -871,7 +870,7 @@ typedef INT (NTAPI *PPH_LIST_COMPARE_FUNCTION)(
 
 VOID PhSortList(
     __in PPH_LIST List,
-    __in PPH_LIST_COMPARE_FUNCTION CompareFunction,
+    __in PPH_COMPARE_FUNCTION CompareFunction,
     __in PVOID Context
     );
 

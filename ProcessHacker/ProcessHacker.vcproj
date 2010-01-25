@@ -367,6 +367,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\extlv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\fastlock.c"
 				>
 			</File>
