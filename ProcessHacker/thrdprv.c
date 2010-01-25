@@ -107,6 +107,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhInitializeCallback(&threadProvider->ThreadAddedEvent);
     PhInitializeCallback(&threadProvider->ThreadModifiedEvent);
     PhInitializeCallback(&threadProvider->ThreadRemovedEvent);
+    PhInitializeCallback(&threadProvider->UpdatedEvent);
 
     threadProvider->ProcessId = ProcessId;
     threadProvider->SymbolProvider = PhCreateSymbolProvider(ProcessId);
@@ -148,6 +149,7 @@ VOID PhpThreadProviderDeleteProcedure(
     PhDeleteCallback(&threadProvider->ThreadAddedEvent);
     PhDeleteCallback(&threadProvider->ThreadModifiedEvent);
     PhDeleteCallback(&threadProvider->ThreadRemovedEvent);
+    PhDeleteCallback(&threadProvider->UpdatedEvent);
 
     // Destroy all queue items.
     {
@@ -915,4 +917,6 @@ VOID PhThreadProviderUpdate(
     }
 
     PhFree(processes);
+
+    PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
 }
