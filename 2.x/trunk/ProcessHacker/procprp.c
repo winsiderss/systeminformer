@@ -1025,7 +1025,7 @@ INT PhpThreadPriorityCompareFunction(
     PPH_THREAD_ITEM item1 = Item1;
     PPH_THREAD_ITEM item2 = Item2;
 
-    return intcmp(item1->Priority, item2->Priority);
+    return intcmp(item1->PriorityWin32, item2->PriorityWin32);
 }
 
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
