@@ -943,6 +943,10 @@ FORCEINLINE BOOLEAN PhEnumPointerList(
     return FALSE;
 }
 
+VOID PhDereferenceAllPointerListItems(
+    __in PPH_POINTER_LIST PointerList
+    );
+
 // queue
 
 #ifndef BASESUP_PRIVATE
