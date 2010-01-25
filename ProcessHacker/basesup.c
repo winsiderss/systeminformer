@@ -1158,7 +1158,7 @@ VOID PhRemoveListItems(
 
 typedef struct _PH_LIST_QSORT_CONTEXT
 {
-    PPH_LIST_COMPARE_FUNCTION CompareFunction;
+    PPH_COMPARE_FUNCTION CompareFunction;
     PVOID Context;
 } PH_LIST_QSORT_CONTEXT, *PPH_LIST_QSORT_CONTEXT;
 
@@ -1188,7 +1188,7 @@ static int __cdecl PhpListQSortCompare(
  */
 VOID PhSortList(
     __in PPH_LIST List,
-    __in PPH_LIST_COMPARE_FUNCTION CompareFunction,
+    __in PPH_COMPARE_FUNCTION CompareFunction,
     __in PVOID Context
     )
 {

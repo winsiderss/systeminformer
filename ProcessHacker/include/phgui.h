@@ -56,6 +56,11 @@ typedef HRESULT (WINAPI *_SetWindowTheme)(
     __in LPCWSTR pszSubIdList
     );
 
+typedef INT (WINAPI *_StrCmpLogicalW)(
+    __in LPCWSTR psz1,
+    __in LPCWSTR psz2
+    );
+
 typedef HRESULT (WINAPI *_TaskDialogIndirect)(      
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
@@ -65,6 +70,7 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 
 #ifndef GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
+extern _StrCmpLogicalW StrCmpLogicalW_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
 
@@ -74,6 +80,20 @@ VOID PhSetControlTheme(
     __in HWND Handle,
     __in PWSTR Theme
     );
+
+FORCEINLINE VOID PhSetWindowStyle(
+    __in HWND Handle,
+    __in LONG_PTR Mask,
+    __in LONG_PTR Value
+    )
+{
+    LONG_PTR style;
+
+    style = GetWindowLongPtr(Handle, GWL_STYLE);
+    style &= ~Mask;
+    style |= Value;
+    SetWindowLongPtr(Handle, GWL_STYLE, style);
+}
 
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
@@ -281,6 +301,14 @@ FORCEINLINE VOID PhResizingMinimumSize(
             Rect->top = Rect->bottom - MinimumHeight;
     }
 }
+
+// extlv
+
+#define ELVM_SORTITEMS (WM_APP + 1101)
+
+VOID PhSetExtendedListView(
+    __in HWND hWnd
+    );
 
 // mainwnd
 

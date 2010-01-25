@@ -25,15 +25,18 @@
 
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _SetWindowTheme SetWindowTheme_I;
+_StrCmpLogicalW StrCmpLogicalW_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
 VOID PhGuiSupportInitialization()
 {
+    LoadLibrary(L"shlwapi.dll");
     LoadLibrary(L"uxtheme.dll");
 
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
+    StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 
