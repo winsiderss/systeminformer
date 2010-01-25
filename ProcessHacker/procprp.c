@@ -1942,14 +1942,16 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->ProviderRegistration
                 );
             handlesContext->WindowHandle = hwndDlg;
+            handlesContext->ItemsAdded = FALSE;
 
             // Initialize the list.
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
+
+            PhSetExtendedListView(lvHandle); 
         }
         break;
     case WM_DESTROY:
@@ -2151,6 +2153,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
+
+            handlesContext->ItemsAdded = TRUE;
         }
         break;
     case WM_PH_HANDLE_MODIFIED:
@@ -2181,6 +2185,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_PH_HANDLES_UPDATED:
         {
+            if (handlesContext->ItemsAdded)
+            {
+                ExtendedListView_SortItems(lvHandle);
+                handlesContext->ItemsAdded = FALSE;
+            }
+
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
             InvalidateRect(lvHandle, NULL, FALSE);
