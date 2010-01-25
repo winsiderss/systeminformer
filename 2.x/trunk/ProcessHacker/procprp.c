@@ -812,6 +812,16 @@ static VOID NTAPI ThreadRemovedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_REMOVED, 0, (LPARAM)Parameter);
 }
 
+static VOID NTAPI ThreadsUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, 0, 0);
+}
+
 VOID PhpInitializeThreadMenu(
     __in HMENU Menu,
     __in HANDLE ProcessId,
@@ -978,6 +988,46 @@ NTSTATUS PhpThreadPermissionsOpenThread(
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
 }
 
+INT PhpThreadTidCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item1 = Item1;
+    PPH_THREAD_ITEM item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->ThreadId, (ULONG_PTR)item2->ThreadId);
+}
+
+INT PhpThreadCyclesCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item1 = Item1;
+    PPH_THREAD_ITEM item2 = Item2;
+    PPH_THREADS_CONTEXT threadsContext = Context;
+
+    if (threadsContext->UseCycleTime)
+        return uint64cmp(item1->CyclesDelta.Delta, item2->CyclesDelta.Delta);
+    else
+        return uint64cmp(item1->ContextSwitchesDelta.Delta, item2->ContextSwitchesDelta.Delta);
+}
+
+INT PhpThreadPriorityCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item1 = Item1;
+    PPH_THREAD_ITEM item2 = Item2;
+
+    return intcmp(item1->Priority, item2->Priority);
+}
+
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1037,6 +1087,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext,
                 &threadsContext->RemovedEventRegistration
                 );
+            PhRegisterCallback(
+                &threadsContext->Provider->UpdatedEvent,
+                ThreadsUpdatedHandler,
+                threadsContext,
+                &threadsContext->UpdatedEventRegistration
+                );
             PhSetProviderEnabled(
                 &threadsContext->ProviderRegistration,
                 TRUE
@@ -1046,15 +1102,31 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 &threadsContext->ProviderRegistration
                 );
             threadsContext->WindowHandle = hwndDlg;
+            threadsContext->UseCycleTime = FALSE;
+            threadsContext->NeedsSort = TRUE;
+
+            if (processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
+            {
+                // Use Cycles instead of Context Switches on Vista.
+                if (WINDOWS_HAS_THREAD_CYCLES)
+                    threadsContext->UseCycleTime = TRUE;
+            }
 
             // Initialize the list.
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"TID");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Cycles Delta"); 
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80,
+                threadsContext->UseCycleTime ? L"Cycles Delta" : L"Context Switches Delta"); 
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Start Address"); 
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Priority"); 
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Priority");
+
+            PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetContext(lvHandle, threadsContext);
+            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpThreadTidCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpThreadPriorityCompareFunction);
+            ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
         }
         break;
     case WM_DESTROY:
@@ -1070,6 +1142,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhUnregisterCallback(
                 &threadsContext->Provider->ThreadRemovedEvent,
                 &threadsContext->RemovedEventRegistration
+                );
+            PhUnregisterCallback(
+                &threadsContext->Provider->UpdatedEvent,
+                &threadsContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(
                 &PhSecondaryProviderThread,
@@ -1371,6 +1447,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             INT lvItemIndex;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
+            // Disable redraw. It will be re-enabled later.
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
@@ -1379,6 +1458,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
+
+            threadsContext->NeedsSort = TRUE;
         }
         break;
     case WM_PH_THREAD_MODIFIED:
@@ -1386,13 +1467,21 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             INT lvItemIndex;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+
             lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, threadItem);
 
             if (lvItemIndex != -1)
             {
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->CyclesDeltaString));
+                if (threadsContext->UseCycleTime)
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->CyclesDeltaString));
+                else
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(threadItem->ContextSwitchesDeltaString));
+
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
+
+                threadsContext->NeedsSort = TRUE;
             }
         }
         break;
@@ -1405,6 +1494,19 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 PhFindListViewItemByParam(lvHandle, -1, threadItem)
                 );
             PhDereferenceObject(threadItem);
+        }
+        break;
+    case WM_PH_THREADS_UPDATED:
+        {
+            if (threadsContext->NeedsSort)
+            {
+                ExtendedListView_SortItems(lvHandle);
+                threadsContext->NeedsSort = FALSE;
+            }
+
+            // Enable redraw.
+            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
+            InvalidateRect(lvHandle, NULL, FALSE);
         }
         break;
     }
@@ -1868,6 +1970,18 @@ VOID PhpInitializeHandleMenu(
     }
 }
 
+INT PhpHandleHandleCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLE_ITEM item1 = Item1;
+    PPH_HANDLE_ITEM item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
+}
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1942,7 +2056,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->ProviderRegistration
                 );
             handlesContext->WindowHandle = hwndDlg;
-            handlesContext->ItemsAdded = FALSE;
+            handlesContext->NeedsSort = FALSE;
 
             // Initialize the list.
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -1951,7 +2065,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name"); 
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
 
-            PhSetExtendedListView(lvHandle); 
+            PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
         }
         break;
     case WM_DESTROY:
@@ -2154,7 +2269,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
 
-            handlesContext->ItemsAdded = TRUE;
+            handlesContext->NeedsSort = TRUE;
         }
         break;
     case WM_PH_HANDLE_MODIFIED:
@@ -2185,10 +2300,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_PH_HANDLES_UPDATED:
         {
-            if (handlesContext->ItemsAdded)
+            if (handlesContext->NeedsSort)
             {
                 ExtendedListView_SortItems(lvHandle);
-                handlesContext->ItemsAdded = FALSE;
+                handlesContext->NeedsSort = FALSE;
             }
 
             // Enable redraw.

@@ -10,7 +10,7 @@ typedef struct _PH_EXTLV_CONTEXT
 
     PVOID Context;
     BOOLEAN TriState;
-    INT SortColumn;
+    ULONG SortColumn;
     PH_SORT_ORDER SortOrder;
 
     PPH_COMPARE_FUNCTION TriStateCompareFunction;
@@ -140,13 +140,50 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
         }
         break;
+    case ELVM_ADDFALLBACKCOLUMN:
+        {
+            PhAddListItem(context->FallbackColumns, (PVOID)wParam); 
+        }
+        return TRUE;
     case ELVM_INIT:
         {
             PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+        }
+        return TRUE;
+    case ELVM_SETCOMPAREFUNCTION:
+        {
+            ULONG column = (ULONG)wParam;
+            PPH_COMPARE_FUNCTION compareFunction = (PPH_COMPARE_FUNCTION)lParam;
 
-            return TRUE;
+            if (column >= PH_MAX_COMPARE_FUNCTIONS)
+                return FALSE;
+
+            context->CompareFunctions[column] = compareFunction;
+        }
+        return TRUE;
+    case ELVM_SETCONTEXT:
+        {
+            context->Context = (PVOID)lParam;
+        }
+        return TRUE;
+    case ELVM_SETSORT:
+        {
+            context->SortColumn = (ULONG)wParam;
+            context->SortOrder = (PH_SORT_ORDER)lParam;
+
+            PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
         }
         break;
+    case ELVM_SETTRISTATE:
+        {
+            context->TriState = !!wParam;
+        }
+        return TRUE;
+    case ELVM_SETTRISTATECOMPAREFUNCTION:
+        {
+            context->TriStateCompareFunction = (PPH_COMPARE_FUNCTION)lParam;
+        }
+        return TRUE;
     case ELVM_SORTITEMS:
         {
             ListView_SortItemsEx(
@@ -154,10 +191,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 PhpExtendedListViewCompareFunc,
                 (LPARAM)context
                 );
-
-            return TRUE;
         }
-        break;
+        return TRUE;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -214,6 +249,13 @@ static INT PhpCompareListViewItems(
     )
 {
     INT result = 0;
+    PVOID xParam;
+    PVOID yParam;
+
+    if (!PhGetListViewItemParam(Context->Handle, X, &xParam))
+        return 0;
+    if (!PhGetListViewItemParam(Context->Handle, Y, &yParam))
+        return 0;
 
     if (
         Context->TriState &&
@@ -221,7 +263,7 @@ static INT PhpCompareListViewItems(
         Context->TriStateCompareFunction
         )
     {
-        result = Context->TriStateCompareFunction((PVOID)X, (PVOID)Y, Context->Context);
+        result = Context->TriStateCompareFunction(xParam, yParam, Context->Context);
     }
 
     if (result != 0)
@@ -233,7 +275,7 @@ static INT PhpCompareListViewItems(
         )
     {
         result = PhModifySort(
-            Context->CompareFunctions[Column]((PVOID)X, (PVOID)Y, Context->Context),
+            Context->CompareFunctions[Column](xParam, yParam, Context->Context),
             Context->SortOrder
             );
     }
@@ -288,8 +330,7 @@ static INT PhpDefaultCompareListViewItems(
     )
 {
     WCHAR xText[261];
-    WCHAR yText[261];
-    WCHAR buffer[261]; 
+    WCHAR yText[261]; 
     LVITEM item;
 
     // Get the X item text.
@@ -297,22 +338,21 @@ static INT PhpDefaultCompareListViewItems(
     item.mask = LVIF_TEXT;
     item.iItem = X;
     item.iSubItem = Column;
-    item.pszText = buffer;
+    item.pszText = yText;
     item.cchTextMax = 260;
 
-    buffer[0] = 0;
+    yText[0] = 0;
     ListView_GetItem(Context->Handle, &item);
-    memcpy(xText, buffer, 261 * 2);
+    memcpy(xText, yText, 261 * 2);
 
     // Get the Y item text.
 
     item.iItem = Y;
-    item.pszText = buffer;
+    item.pszText = yText;
     item.cchTextMax = 260;
 
-    buffer[0] = 0;
+    yText[0] = 0;
     ListView_GetItem(Context->Handle, &item);
-    memcpy(yText, buffer, 261 * 2);
 
     // Compare them.
 

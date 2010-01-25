@@ -69,17 +69,20 @@ FORCEINLINE INT PhModifySort(
         return Result;
 }
 
+#define PH_BUILTIN_COMPARE(value1, value2) \
+    if (value1 > value2) \
+        return 1; \
+    else if (value1 < value2) \
+        return -1; \
+    \
+    return 0
+
 FORCEINLINE int intcmp(
     __in int value1,
     __in int value2
     )
 {
-    if (value1 > value2)
-        return 1;
-    else if (value1 < value2)
-        return -1;
-
-    return 0;
+    PH_BUILTIN_COMPARE(value1, value2);
 }
 
 FORCEINLINE int uintcmp(
@@ -87,12 +90,7 @@ FORCEINLINE int uintcmp(
     __in unsigned int value2
     )
 {
-    if (value1 > value2)
-        return 1;
-    else if (value1 < value2)
-        return -1;
-
-    return 0;
+    PH_BUILTIN_COMPARE(value1, value2);
 }
 
 FORCEINLINE int int64cmp(
@@ -100,12 +98,7 @@ FORCEINLINE int int64cmp(
     __in __int64 value2
     )
 {
-    if (value1 > value2)
-        return 1;
-    else if (value1 < value2)
-        return -1;
-
-    return 0;
+    PH_BUILTIN_COMPARE(value1, value2);
 }
 
 FORCEINLINE int uint64cmp(
@@ -113,12 +106,15 @@ FORCEINLINE int uint64cmp(
     __in unsigned __int64 value2
     )
 {
-    if (value1 > value2)
-        return 1;
-    else if (value1 < value2)
-        return -1;
+    PH_BUILTIN_COMPARE(value1, value2);
+}
 
-    return 0;
+FORCEINLINE int uintptrcmp(
+    __in ULONG_PTR value1,
+    __in ULONG_PTR value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
 }
 
 // Misc.

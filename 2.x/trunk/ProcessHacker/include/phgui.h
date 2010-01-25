@@ -326,15 +326,36 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // extlv
 
+// max 1108
+
+#define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_INIT (WM_APP + 1102)
+#define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
+#define ELVM_SETCONTEXT (WM_APP + 1103)
+#define ELVM_SETSORT (WM_APP + 1108)
+#define ELVM_SETTRISTATE (WM_APP + 1107)
+#define ELVM_SETTRISTATECOMPAREFUNCTION (WM_APP + 1105)
 #define ELVM_SORTITEMS (WM_APP + 1101)
 
 VOID PhSetExtendedListView(
     __in HWND hWnd
     );
 
-#define ExtendedListView_Init(hWnd) SendMessage(hWnd, ELVM_INIT, 0, 0)
-#define ExtendedListView_SortItems(hWnd) SendMessage(hWnd, ELVM_SORTITEMS, 0, 0)
+#define ExtendedListView_AddFallbackColumn(hWnd, Column) \
+    SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
+#define ExtendedListView_Init(hWnd) \
+    SendMessage((hWnd), ELVM_INIT, 0, 0)
+#define ExtendedListView_SetCompareFunction(hWnd, Column, CompareFunction) \
+    SendMessage((hWnd), ELVM_SETCOMPAREFUNCTION, (WPARAM)(Column), (LPARAM)(CompareFunction))
+#define ExtendedListView_SetContext(hWnd, Context) \
+    SendMessage((hWnd), ELVM_SETCONTEXT, 0, (LPARAM)(Context))
+#define ExtendedListView_SetSort(hWnd, Column, Order) \
+    SendMessage((hWnd), ELVM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
+#define ExtendedListView_SetTriState(hWnd, TriState) \
+    SendMessage((hWnd), ELVM_SETTRISTATE, (WPARAM)(TriState), 0)
+#define ExtendedListView_SetTriStateCompareFunction(hWnd, CompareFunction) \
+    SendMessage((hWnd), ELVM_SETTRISTATECOMPAREFUNCTION, 0, (LPARAM)(CompareFunction))
+#define ExtendedListView_SortItems(hWnd) SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
 
 // mainwnd
 

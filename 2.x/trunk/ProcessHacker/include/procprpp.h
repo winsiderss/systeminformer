@@ -75,6 +75,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 #define WM_PH_THREAD_ADDED (WM_APP + 201)
 #define WM_PH_THREAD_MODIFIED (WM_APP + 202)
 #define WM_PH_THREAD_REMOVED (WM_APP + 203)
+#define WM_PH_THREADS_UPDATED (WM_APP + 204)
 
 typedef struct _PH_THREADS_CONTEXT
 {
@@ -83,8 +84,12 @@ typedef struct _PH_THREADS_CONTEXT
     PH_CALLBACK_REGISTRATION AddedEventRegistration;
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
+    PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+
+    BOOLEAN UseCycleTime;
+    BOOLEAN NeedsSort;
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 
 #define WM_PH_MODULE_ADDED (WM_APP + 211)
@@ -116,7 +121,7 @@ typedef struct _PH_HANDLES_CONTEXT
 
     HWND WindowHandle;
 
-    BOOLEAN ItemsAdded;
+    BOOLEAN NeedsSort;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
