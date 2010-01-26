@@ -95,6 +95,47 @@ FORCEINLINE VOID PhSetWindowStyle(
     SetWindowLongPtr(Handle, GWL_STYLE, style);
 }
 
+#ifndef WM_REFLECT
+#define WM_REFLECT 0x2000
+#endif
+
+#define REFLECT_MESSAGE(hwnd, msg, wParam, lParam) \
+    { \
+        LRESULT result_ = PhReflectMessage(hwnd, msg, wParam, lParam); \
+        \
+        if (result_) \
+            return result_; \
+    }
+
+#define REFLECT_MESSAGE_DLG(hwndDlg, hwnd, msg, wParam, lParam) \
+    { \
+        LRESULT result_ = PhReflectMessage(hwnd, msg, wParam, lParam); \
+        \
+        if (result_) \
+        { \
+            SetWindowLongPtr(hwndDlg, DWL_MSGRESULT, result_); \
+            return TRUE; \
+        } \
+    }
+
+FORCEINLINE LRESULT PhReflectMessage(
+    __in HWND Handle,
+    __in UINT Message,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    if (Message == WM_NOTIFY)
+    {
+        LPNMHDR header = (LPNMHDR)lParam;
+
+        if (header->hwndFrom == Handle)
+            return SendMessage(Handle, WM_REFLECT + Message, wParam, lParam);
+    }
+
+    return 0;
+}
+
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
@@ -326,21 +367,31 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // extlv
 
-// max 1109
+typedef COLORREF (NTAPI *PPH_GET_ITEM_COLOR)(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    );
+
+VOID PhSetExtendedListView(
+    __in HWND hWnd
+    );
+
+// max 1113
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
+#define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
+#define ELVM_SETNEWCOLOR (WM_APP + 1112)
+#define ELVM_SETREMOVINGCOLOR (WM_APP + 1113)
 #define ELVM_SETSORT (WM_APP + 1108)
+#define ELVM_SETSTATEHIGHLIGHTING (WM_APP + 1110)
 #define ELVM_SETTRISTATE (WM_APP + 1107)
 #define ELVM_SETTRISTATECOMPAREFUNCTION (WM_APP + 1105)
 #define ELVM_SORTITEMS (WM_APP + 1101)
-
-VOID PhSetExtendedListView(
-    __in HWND hWnd
-    );
 
 #define ExtendedListView_AddFallbackColumn(hWnd, Column) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
@@ -352,13 +403,22 @@ VOID PhSetExtendedListView(
     SendMessage((hWnd), ELVM_SETCOMPAREFUNCTION, (WPARAM)(Column), (LPARAM)(CompareFunction))
 #define ExtendedListView_SetContext(hWnd, Context) \
     SendMessage((hWnd), ELVM_SETCONTEXT, 0, (LPARAM)(Context))
+#define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
+    SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
+#define ExtendedListView_SetNewColor(hWnd, NewColor) \
+    SendMessage((hWnd), ELVM_SETNEWCOLOR, (WPARAM)(NewColor), 0)
+#define ExtendedListView_SetRemovingColor(hWnd, RemovingColor) \
+    SendMessage((hWnd), ELVM_SETREMOVINGCOLOR, (WPARAM)(RemovingColor), 0)
 #define ExtendedListView_SetSort(hWnd, Column, Order) \
     SendMessage((hWnd), ELVM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
+#define ExtendedListView_SetStateHighlighting(hWnd, StateHighlighting) \
+    SendMessage((hWnd), ELVM_SETSTATEHIGHLIGHTING, (WPARAM)(StateHighlighting), 0)
 #define ExtendedListView_SetTriState(hWnd, TriState) \
     SendMessage((hWnd), ELVM_SETTRISTATE, (WPARAM)(TriState), 0)
 #define ExtendedListView_SetTriStateCompareFunction(hWnd, CompareFunction) \
     SendMessage((hWnd), ELVM_SETTRISTATECOMPAREFUNCTION, 0, (LPARAM)(CompareFunction))
-#define ExtendedListView_SortItems(hWnd) SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
+#define ExtendedListView_SortItems(hWnd) \
+    SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
 
 // mainwnd
 
@@ -376,6 +436,7 @@ extern HWND PhMainWndHandle;
 #define WM_PH_SERVICE_ADDED (WM_APP + 104)
 #define WM_PH_SERVICE_MODIFIED (WM_APP + 105)
 #define WM_PH_SERVICE_REMOVED (WM_APP + 106)
+#define WM_PH_SERVICES_UPDATED (WM_APP + 107)
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand

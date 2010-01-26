@@ -842,6 +842,7 @@ typedef struct _PH_IMAGE_VERSION_INFO
 
 typedef struct _PH_PROCESS_ITEM
 {
+    ULONG RunId;
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
@@ -929,10 +930,12 @@ extern PPH_OBJECT_TYPE PhServiceItemType;
 extern PH_CALLBACK PhServiceAddedEvent;
 extern PH_CALLBACK PhServiceModifiedEvent;
 extern PH_CALLBACK PhServiceRemovedEvent;
+extern PH_CALLBACK PhServicesUpdatedEvent;
 #endif
 
 typedef struct _PH_SERVICE_ITEM
 {
+    ULONG RunId;
     PPH_STRING Name;
     PPH_STRING DisplayName;
 
@@ -1028,6 +1031,7 @@ extern PPH_OBJECT_TYPE PhModuleItemType;
 
 typedef struct _PH_MODULE_ITEM
 {
+    ULONG RunId;
     PVOID BaseAddress;
     ULONG Size;
     ULONG Flags;
@@ -1085,6 +1089,7 @@ extern PPH_OBJECT_TYPE PhThreadItemType;
 
 typedef struct _PH_THREAD_ITEM
 {
+    ULONG RunId;
     HANDLE ThreadId;
 
     PH_UINT32_DELTA ContextSwitchesDelta;
@@ -1158,6 +1163,7 @@ extern PPH_OBJECT_TYPE PhHandleItemType;
 
 typedef struct _PH_HANDLE_ITEM
 {
+    ULONG RunId;
     HANDLE Handle;
     PVOID Object;
     ULONG Attributes;
