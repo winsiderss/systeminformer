@@ -120,6 +120,8 @@ VOID PhSetExtendedListView(
     context->ItemColorFunction = NULL;
     context->NumberOfTickItems = 0;
 
+    context->Cursor = NULL;
+
     SetProp(hWnd, L"ExtLvContext", (HANDLE)context);
 
     ExtendedListView_Init(hWnd);
