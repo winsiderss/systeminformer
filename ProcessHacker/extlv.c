@@ -59,6 +59,10 @@ typedef struct _PH_EXTLV_CONTEXT
     COLORREF RemovingColor;
     PPH_GET_ITEM_COLOR ItemColorFunction;
     ULONG NumberOfTickItems;
+
+    // Misc.
+
+    HCURSOR Cursor;
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -256,6 +260,15 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
         }
         break;
+    case WM_SETCURSOR:
+        {
+            if (context->Cursor)
+            {
+                SetCursor(context->Cursor);
+                return TRUE;
+            }
+        }
+        break;
     case WM_TIMER:
         {
             if (wParam == PH_STATE_TIMER)
@@ -429,6 +442,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_SETCONTEXT:
         {
             context->Context = (PVOID)lParam;
+        }
+        return TRUE;
+    case ELVM_SETCURSOR:
+        {
+            context->Cursor = (HCURSOR)lParam;
         }
         return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:

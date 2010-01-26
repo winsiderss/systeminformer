@@ -85,6 +85,7 @@ typedef struct _PH_THREADS_CONTEXT
     PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
     PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
+    PH_CALLBACK_REGISTRATION LoadingStateChangedEventRegistration;
 
     HWND WindowHandle;
 

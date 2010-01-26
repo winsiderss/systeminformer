@@ -822,6 +822,22 @@ static VOID NTAPI ThreadsUpdatedHandler(
     PostMessage(threadsContext->WindowHandle, WM_PH_THREADS_UPDATED, 0, 0);
 }
 
+static VOID NTAPI ThreadsLoadingStateChangedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
+
+    PostMessage(
+        GetDlgItem(threadsContext->WindowHandle, IDC_PROCTHREADS_LIST),
+        ELVM_SETCURSOR,
+        0,
+        // Parameter contains TRUE if loading symbols
+        (LPARAM)(Parameter ? LoadCursor(NULL, IDC_APPSTARTING) : NULL)
+        );
+}
+
 VOID PhpInitializeThreadMenu(
     __in HMENU Menu,
     __in HANDLE ProcessId,
@@ -1095,6 +1111,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext,
                 &threadsContext->UpdatedEventRegistration
                 );
+            PhRegisterCallback(
+                &threadsContext->Provider->LoadingStateChangedEvent,
+                ThreadsLoadingStateChangedHandler,
+                threadsContext,
+                &threadsContext->LoadingStateChangedEventRegistration
+                );
             PhSetProviderEnabled(
                 &threadsContext->ProviderRegistration,
                 TRUE
@@ -1157,6 +1179,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhUnregisterCallback(
                 &threadsContext->Provider->UpdatedEvent,
                 &threadsContext->UpdatedEventRegistration
+                );
+            PhUnregisterCallback(
+                &threadsContext->Provider->LoadingStateChangedEvent,
+                &threadsContext->LoadingStateChangedEventRegistration
                 );
             PhUnregisterProvider(
                 &PhSecondaryProviderThread,
