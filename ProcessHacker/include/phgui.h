@@ -377,13 +377,14 @@ VOID PhSetExtendedListView(
     __in HWND hWnd
     );
 
-// max 1113
+// max 1114
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
+#define ELVM_SETCURSOR (WM_APP + 1114)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
 #define ELVM_SETNEWCOLOR (WM_APP + 1112)
 #define ELVM_SETREMOVINGCOLOR (WM_APP + 1113)
@@ -403,6 +404,8 @@ VOID PhSetExtendedListView(
     SendMessage((hWnd), ELVM_SETCOMPAREFUNCTION, (WPARAM)(Column), (LPARAM)(CompareFunction))
 #define ExtendedListView_SetContext(hWnd, Context) \
     SendMessage((hWnd), ELVM_SETCONTEXT, 0, (LPARAM)(Context))
+#define ExtendedListView_SetCursor(hWnd, Cursor) \
+    SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
 #define ExtendedListView_SetNewColor(hWnd, NewColor) \
