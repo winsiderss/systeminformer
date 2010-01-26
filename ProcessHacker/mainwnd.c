@@ -696,6 +696,11 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 340);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
