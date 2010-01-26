@@ -1902,6 +1902,94 @@ BOOLEAN PhRemoveHashtableEntry(
     return FALSE;
 }
 
+typedef struct _PHP_SIMPLE_HASHTABLE_ENTRY
+{
+    PVOID Key;
+    PVOID Value;
+} PHP_SIMPLE_HASHTABLE_ENTRY, *PPHP_SIMPLE_HASHTABLE_ENTRY;
+
+BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    )
+{
+    PPHP_SIMPLE_HASHTABLE_ENTRY entry1 = Entry1;
+    PPHP_SIMPLE_HASHTABLE_ENTRY entry2 = Entry2;
+
+    return entry1->Key == entry2->Key;
+}
+
+ULONG NTAPI PhpSimpleHashtableHashFunction(
+    __in PVOID Entry
+    )
+{
+    PPHP_SIMPLE_HASHTABLE_ENTRY entry = Entry;
+
+#ifdef _M_IX86
+    return PhHashInt32((ULONG)entry->Key);
+#else
+    return PhHashInt64((ULONG64)entry->Key);
+#endif
+}
+
+PPH_HASHTABLE PhCreateSimpleHashtable(
+    __in ULONG InitialCapacity
+    )
+{
+    return PhCreateHashtable(
+        sizeof(PHP_SIMPLE_HASHTABLE_ENTRY),
+        PhpSimpleHashtableCompareFunction,
+        PhpSimpleHashtableHashFunction,
+        InitialCapacity
+        );
+}
+
+PVOID PhAddSimpleHashtableItem(
+    __inout PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key,
+    __in PVOID Value
+    )
+{
+    PHP_SIMPLE_HASHTABLE_ENTRY entry;
+
+    entry.Key = Key;
+    entry.Value = Value;
+
+    if (PhAddHashtableEntry(SimpleHashtable, &entry))
+        return Value;
+    else
+        return NULL;
+}
+
+PPVOID PhGetSimpleHashtableItem(
+    __in PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key
+    )
+{
+    PHP_SIMPLE_HASHTABLE_ENTRY lookupEntry;
+    PPHP_SIMPLE_HASHTABLE_ENTRY entry;
+
+    lookupEntry.Key = Key;
+    entry = PhGetHashtableEntry(SimpleHashtable, &lookupEntry);
+
+    if (entry)
+        return &entry->Value;
+    else
+        return NULL;
+}
+
+BOOLEAN PhRemoveSimpleHashtableItem(
+    __inout PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key
+    )
+{
+    PHP_SIMPLE_HASHTABLE_ENTRY lookupEntry;
+
+    lookupEntry.Key = Key;
+
+    return PhRemoveHashtableEntry(SimpleHashtable, &lookupEntry);
+}
+
 /**
  * Generates a hash code for a sequence of bytes.
  *
