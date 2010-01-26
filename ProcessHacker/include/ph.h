@@ -1488,6 +1488,10 @@ PPH_STRING PhGetFullPath(
     __out_opt PULONG IndexOfFileName
     );
 
+PPH_STRING PhExpandEnvironmentStrings(
+    __in PWSTR String
+    );
+
 PPH_STRING PhGetBaseName(
     __in PPH_STRING FileName
     );
@@ -1540,6 +1544,11 @@ VOID PhShellExploreFile(
 VOID PhShellProperties(
     __in HWND hWnd,
     __in PWSTR FileName
+    );
+
+PPH_STRING PhQueryRegistryString(
+    __in HKEY KeyHandle,
+    __in_opt PWSTR ValueName
     );
 
 PVOID PhCreateOpenFileDialog();
