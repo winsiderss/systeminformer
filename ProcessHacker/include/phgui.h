@@ -25,6 +25,14 @@ INT WINAPI WinMain(
 
 INT PhMainMessageLoop();
 
+VOID PhRegisterDialog(
+    __in HWND DialogWindowHandle
+    );
+
+VOID PhUnregisterDialog(
+    __in HWND DialogWindowHandle
+    );
+
 VOID PhActivatePreviousInstance();
 
 VOID PhInitializeCommonControls();
@@ -789,6 +797,10 @@ VOID PhShowAboutDialog(
     );
 
 PPH_STRING PhGetDiagnosticsString();
+
+// findobj
+
+VOID PhShowFindObjectsDialog();
 
 // hndlprp
 
