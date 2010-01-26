@@ -23,7 +23,10 @@ VOID PhShowFindObjectsDialog()
             );
     }
 
-    ShowWindow(PhFindObjectsWindowHandle, SW_SHOW);
+    if (!IsWindowVisible(PhFindObjectsWindowHandle))
+        ShowWindow(PhFindObjectsWindowHandle, SW_SHOW);
+    else
+        BringWindowToTop(PhFindObjectsWindowHandle);
 }
 
 static INT_PTR CALLBACK PhpFindObjectsDlgProc(      
