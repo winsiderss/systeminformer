@@ -1713,6 +1713,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
             ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
+            ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by Name, Base Address, Size.
             {
@@ -1858,12 +1859,14 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
 
+            if (moduleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 moduleItem->Name->Buffer,
                 moduleItem
                 );
+            if (moduleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->SizeString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->VersionInfo.FileDescription));
@@ -1897,6 +1900,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -2183,6 +2188,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
+            ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by Type, Handle, Name.
             {
@@ -2399,12 +2405,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             // Disable redraw. It will be re-enabled later.
             SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
 
+            if (handleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 PhGetString(handleItem->TypeName),
                 handleItem
                 );
+            if (handleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
 
@@ -2450,6 +2458,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

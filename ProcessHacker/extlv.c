@@ -262,6 +262,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 INT index = -1;
 
+                // First pass
+
                 while (
                     context->NumberOfTickItems != 0 &&
                     (index = ListView_GetNextItem(hwnd, index, LVNI_ALL)) != -1
@@ -294,12 +296,34 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                         item.state = INDEXTOSTATEIMAGEMASK(RemovingPostItemState);
                         ListView_SetItem(hwnd, &item);
                     }
-                    else if (itemState == RemovingPostItemState)
+                }
+
+                // Second pass
+                // This pass is specifically for deleting items.
+
+                while (
+                    context->NumberOfTickItems != 0 &&
+                    (index = ListView_GetNextItem(hwnd, index, LVNI_ALL)) != -1
+                    )
+                {
+                    LVITEM item;
+                    PH_ITEM_STATE itemState;
+
+                    item.mask = LVIF_STATE;
+                    item.iItem = index;
+                    item.iSubItem = 0;
+                    item.stateMask = LVIS_STATEIMAGEMASK;
+                    ListView_GetItem(hwnd, &item);
+                    itemState = PH_GET_ITEM_STATE(item.state);
+
+                    if (itemState == RemovingPostItemState)
                     {
                         CallWindowProc(oldWndProc, hwnd, LVM_DELETEITEM, index, 0);
-                        index--;
-
                         context->NumberOfTickItems--;
+
+                        // Start the search again. There doesn't seem to be any 
+                        // other way of doing this.
+                        index = -1;
                     }
                 }
 
