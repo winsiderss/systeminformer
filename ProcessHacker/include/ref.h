@@ -58,6 +58,11 @@ extern PPH_OBJECT_TYPE PhObjectTypeObject;
 extern PPH_OBJECT_TYPE PhAllocType;
 #endif
 
+typedef struct _PH_OBJECT_TYPE_INFORMATION
+{
+    ULONG NumberOfObjects;
+} PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
+
 NTSTATUS PhInitializeRef();
 
 NTSTATUS PhCreateObject(
@@ -90,6 +95,11 @@ LONG PhDereferenceObjectEx(
 
 PPH_OBJECT_TYPE PhGetObjectType(
     __in PVOID Object
+    );
+
+VOID PhGetObjectTypeInformation(
+    __in PPH_OBJECT_TYPE ObjectType,
+    __out PPH_OBJECT_TYPE_INFORMATION Information
     );
 
 VOID PhReferenceObject(

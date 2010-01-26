@@ -785,6 +785,8 @@ VOID PhShowAboutDialog(
     __in HWND ParentWindowHandle
     );
 
+PPH_STRING PhGetDiagnosticsString();
+
 // hndlprp
 
 VOID PhShowHandleProperties(
