@@ -55,6 +55,7 @@ PH_FAST_LOCK PhServiceHashtableLock;
 PH_CALLBACK PhServiceAddedEvent;
 PH_CALLBACK PhServiceModifiedEvent;
 PH_CALLBACK PhServiceRemovedEvent;
+PH_CALLBACK PhServicesUpdatedEvent;
 
 BOOLEAN PhInitializeServiceProvider()
 {
@@ -76,6 +77,7 @@ BOOLEAN PhInitializeServiceProvider()
     PhInitializeCallback(&PhServiceAddedEvent);
     PhInitializeCallback(&PhServiceModifiedEvent);
     PhInitializeCallback(&PhServiceRemovedEvent);
+    PhInitializeCallback(&PhServicesUpdatedEvent);
 
     return TRUE;
 }
@@ -632,6 +634,7 @@ VOID PhServiceProviderUpdate(
             // Create the service item and fill in basic information.
 
             serviceItem = PhCreateServiceItem(&services[i]);
+            serviceItem->RunId = runCount;
 
             {
                 SC_HANDLE serviceHandle;
@@ -767,5 +770,6 @@ VOID PhServiceProviderUpdate(
 
     PhFree(services);
 
+    PhInvokeCallback(&PhServicesUpdatedEvent, NULL);
     runCount++;
 }

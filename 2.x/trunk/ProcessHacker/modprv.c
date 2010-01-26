@@ -91,6 +91,8 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     PhInitializeCallback(&moduleProvider->ModuleRemovedEvent);
     PhInitializeCallback(&moduleProvider->UpdatedEvent);
 
+    moduleProvider->RunCount = 0;
+
     moduleProvider->ProcessId = ProcessId;
     moduleProvider->ProcessHandle = NULL;
 
@@ -354,6 +356,7 @@ VOID PhModuleProviderUpdate(
         {
             moduleItem = PhCreateModuleItem();
 
+            moduleItem->RunId = moduleProvider->RunCount;
             moduleItem->BaseAddress = module->BaseAddress;
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
             moduleItem->Size = module->Size;

@@ -86,6 +86,8 @@ VOID PhMainWndOnServiceRemoved(
     __in PPH_SERVICE_ITEM ServiceItem
     );
 
+VOID PhMainWndOnServicesUpdated();
+
 HWND PhMainWndHandle;
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -103,7 +105,8 @@ static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
-static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
+static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration; 
+static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
@@ -760,11 +763,17 @@ LRESULT CALLBACK PhMainWndProc(
             PhMainWndOnServiceRemoved((PPH_SERVICE_ITEM)lParam);
         }
         break;
-    default:
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    case WM_PH_SERVICES_UPDATED:
+        {
+            PhMainWndOnServicesUpdated();
+        }
+        break;
     }
 
-    return 0;
+    REFLECT_MESSAGE(ProcessListViewHandle, uMsg, wParam, lParam);
+    REFLECT_MESSAGE(ServiceListViewHandle, uMsg, wParam, lParam);
+
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
 VOID PhpSaveWindowState()
@@ -904,6 +913,14 @@ static VOID NTAPI ServiceRemovedHandler(
     PostMessage(PhMainWndHandle, WM_PH_SERVICE_REMOVED, 0, (LPARAM)serviceItem);
 }
 
+static VOID NTAPI ServicesUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
+}
+
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -941,6 +958,7 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
 
     PhSetExtendedListView(ServiceListViewHandle);
+    ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
 
     PhRegisterCallback(
         &PhProcessAddedEvent,
@@ -978,6 +996,12 @@ VOID PhMainWndOnCreate()
         ServiceRemovedHandler,
         NULL,
         &ServiceRemovedRegistration
+        );
+    PhRegisterCallback(
+        &PhServicesUpdatedEvent,
+        ServicesUpdatedHandler,
+        NULL,
+        &ServicesUpdatedRegistration
         );
 }
 
@@ -1554,12 +1578,14 @@ VOID PhMainWndOnServiceAdded(
     // Add a reference for the pointer being stored in the list view item.
     PhReferenceObject(ServiceItem);
 
+    if (ServiceItem->RunId == 0) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, FALSE);
     lvItemIndex = PhAddListViewItem(
         ServiceListViewHandle,
         MAXINT,
         ServiceItem->Name->Buffer,
         ServiceItem
         );
+    if (ServiceItem->RunId == 0) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceItem->ProcessIdString);
 }
@@ -1584,4 +1610,9 @@ VOID PhMainWndOnServiceRemoved(
         );
     // Remove the reference we added in PhMainWndOnServiceAdded.
     PhDereferenceObject(ServiceItem);
+}
+
+VOID PhMainWndOnServicesUpdated()
+{
+    // Nothing
 }
