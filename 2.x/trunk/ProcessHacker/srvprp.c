@@ -161,6 +161,46 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PASSWORD, L"password");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_UNCHECKED);
+
+            SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
+
+            {
+                HKEY keyHandle;
+                PPH_STRING keyName;
+
+                keyName = PhConcatStrings(
+                    3,
+                    L"SYSTEM\\CurrentControlSet\\Services\\",
+                    serviceItem->Name->Buffer,
+                    L"\\Parameters"
+                    );
+
+                if (RegOpenKey(
+                    HKEY_LOCAL_MACHINE,
+                    keyName->Buffer,
+                    &keyHandle
+                    ) == ERROR_SUCCESS)
+                {
+                    PPH_STRING serviceDllString;
+
+                    if (serviceDllString = PhQueryRegistryString(keyHandle, L"ServiceDll"))
+                    {
+                        PPH_STRING expandedString;
+
+                        if (expandedString = PhExpandEnvironmentStrings(serviceDllString->Buffer))
+                        {
+                            SetDlgItemText(hwndDlg, IDC_SERVICEDLL, expandedString->Buffer);
+                            PhDereferenceObject(expandedString);
+                        }
+
+                        PhDereferenceObject(serviceDllString);
+                    }
+
+                    RegCloseKey(keyHandle);
+                }
+
+                PhDereferenceObject(keyName);
+            }
         }
         break;
     case WM_DESTROY:

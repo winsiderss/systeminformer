@@ -729,6 +729,41 @@ PPH_STRING PhGetFullPath(
     return fullPath;
 }
 
+PPH_STRING PhExpandEnvironmentStrings(
+    __in PWSTR String
+    )
+{
+    PPH_STRING string;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG returnLength;
+
+    bufferSize = 0x80;
+    buffer = PhAllocate(bufferSize * 2);
+
+    returnLength = ExpandEnvironmentStrings(String, buffer, bufferSize);
+
+    if (returnLength > bufferSize)
+    {
+        PhFree(buffer);
+        bufferSize = returnLength;
+        buffer = PhAllocate(bufferSize * 2);
+
+        returnLength = ExpandEnvironmentStrings(String, buffer, bufferSize);
+    }
+
+    if (returnLength == 0)
+    {
+        PhFree(buffer);
+        return NULL;
+    }
+
+    string = PhCreateString(buffer);
+    PhFree(buffer);
+
+    return string;
+}
+
 PPH_STRING PhGetBaseName(
     __in PPH_STRING FileName
     )
@@ -958,6 +993,61 @@ VOID PhShellProperties(
         // It already displays error messages by itself.
         //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
     }
+}
+
+PPH_STRING PhQueryRegistryString(
+    __in HKEY KeyHandle,
+    __in_opt PWSTR ValueName
+    )
+{
+    ULONG win32Result;
+    PPH_STRING string = NULL;
+    PVOID buffer;
+    ULONG bufferSize = 0x80;
+    ULONG type;
+
+    buffer = PhAllocate(bufferSize);
+
+    if ((win32Result = RegQueryValueEx(
+        KeyHandle,
+        ValueName,
+        NULL,
+        &type,
+        buffer,
+        &bufferSize
+        )) == ERROR_MORE_DATA)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        win32Result = RegQueryValueEx(
+            KeyHandle,
+            ValueName,
+            NULL,
+            &type,
+            buffer,
+            &bufferSize
+            );
+    }
+
+    if (win32Result != ERROR_SUCCESS ||
+        (
+        type != REG_SZ &&
+        type != REG_MULTI_SZ &&
+        type != REG_EXPAND_SZ
+        ))
+    {
+        PhFree(buffer);
+        SetLastError(win32Result);
+        return NULL;
+    }
+
+    if (bufferSize > 2)
+        string = PhCreateStringEx((PWSTR)buffer, bufferSize - 2);
+
+    PhFree(buffer);
+
+    return string;
 }
 
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
