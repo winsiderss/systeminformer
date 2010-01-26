@@ -261,6 +261,13 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             if (wParam == PH_STATE_TIMER)
             {
                 INT index = -1;
+                BOOLEAN redrawDisabled = FALSE;
+
+                if (context->NumberOfTickItems != 0)
+                {
+                    SendMessage(hwnd, WM_SETREDRAW, FALSE, 0);
+                    redrawDisabled = TRUE;
+                }
 
                 // First pass
 
@@ -325,6 +332,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                         // other way of doing this.
                         index = -1;
                     }
+                }
+
+                if (redrawDisabled)
+                {
+                    SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);
+                    InvalidateRect(hwnd, NULL, FALSE);
                 }
 
                 return 0;
