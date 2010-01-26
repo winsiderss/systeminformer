@@ -297,6 +297,21 @@ PPH_OBJECT_TYPE PhGetObjectType(
 }
 
 /**
+ * Gets information about an object type.
+ *
+ * \param ObjectType A pointer to an object type.
+ * \param Information A variable which receives 
+ * information about the object type.
+ */
+VOID PhGetObjectTypeInformation(
+    __in PPH_OBJECT_TYPE ObjectType,
+    __out PPH_OBJECT_TYPE_INFORMATION Information
+    )
+{
+    Information->NumberOfObjects = ObjectType->NumberOfObjects;
+}
+
+/**
  * References the specified object.
  * 
  * \param Object A pointer to the object to reference.

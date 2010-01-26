@@ -417,6 +417,8 @@ VOID PhGetSelectedListViewItemParams(
 
     *Items = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
     *NumberOfItems = list->Count;
+
+    PhDereferenceObject(list);
 }
 
 VOID PhSetImageListBitmap(
