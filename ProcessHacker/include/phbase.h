@@ -1144,7 +1144,7 @@ FORCEINLINE ULONG PhHashInt32(
 }
 
 FORCEINLINE ULONG PhHashInt64(
-    __in ULONGLONG Value
+    __in ULONG64 Value
     )
 {
     // http://www.concentric.net/~Ttwang/tech/inthash.htm
@@ -1158,6 +1158,28 @@ FORCEINLINE ULONG PhHashInt64(
 
     return (ULONG)Value;
 }
+
+// simple hashtable
+
+PPH_HASHTABLE PhCreateSimpleHashtable(
+    __in ULONG InitialCapacity
+    );
+
+PVOID PhAddSimpleHashtableItem(
+    __inout PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key,
+    __in PVOID Value
+    );
+
+PPVOID PhGetSimpleHashtableItem(
+    __in PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key
+    );
+
+BOOLEAN PhRemoveSimpleHashtableItem(
+    __inout PPH_HASHTABLE SimpleHashtable,
+    __in PVOID Key
+    );
 
 // callback
 
