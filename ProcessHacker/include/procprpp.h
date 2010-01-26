@@ -94,6 +94,7 @@ typedef struct _PH_THREADS_CONTEXT
 
 #define WM_PH_MODULE_ADDED (WM_APP + 211)
 #define WM_PH_MODULE_REMOVED (WM_APP + 212)
+#define WM_PH_MODULES_UPDATED (WM_APP + 213)
 
 typedef struct _PH_MODULES_CONTEXT
 {
@@ -101,8 +102,11 @@ typedef struct _PH_MODULES_CONTEXT
     PH_PROVIDER_REGISTRATION ProviderRegistration;
     PH_CALLBACK_REGISTRATION AddedEventRegistration;
     PH_CALLBACK_REGISTRATION RemovedEventRegistration;
+    PH_CALLBACK_REGISTRATION UpdatedEventRegistration;
 
     HWND WindowHandle;
+
+    BOOLEAN NeedsSort;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
