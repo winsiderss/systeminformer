@@ -1121,12 +1121,14 @@ typedef struct _PH_THREAD_PROVIDER
     PH_CALLBACK ThreadModifiedEvent;
     PH_CALLBACK ThreadRemovedEvent;
     PH_CALLBACK UpdatedEvent;
+    PH_CALLBACK LoadingStateChangedEvent;
     ULONG RunCount;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PH_EVENT SymbolsLoadedEvent;
+    LONG SymbolsLoading;
     PPH_QUEUE QueryQueue;
     PH_MUTEX QueryQueueLock;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;

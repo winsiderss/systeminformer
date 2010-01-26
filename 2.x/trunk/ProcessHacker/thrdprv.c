@@ -108,6 +108,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhInitializeCallback(&threadProvider->ThreadModifiedEvent);
     PhInitializeCallback(&threadProvider->ThreadRemovedEvent);
     PhInitializeCallback(&threadProvider->UpdatedEvent);
+    PhInitializeCallback(&threadProvider->LoadingStateChangedEvent);
 
     threadProvider->RunCount = 0;
 
@@ -121,6 +122,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     }
 
     PhInitializeEvent(&threadProvider->SymbolsLoadedEvent);
+    threadProvider->SymbolsLoading = 0;
     threadProvider->QueryQueue = PhCreateQueue(1);
     PhInitializeMutex(&threadProvider->QueryQueueLock);
 
@@ -152,6 +154,7 @@ VOID PhpThreadProviderDeleteProcedure(
     PhDeleteCallback(&threadProvider->ThreadModifiedEvent);
     PhDeleteCallback(&threadProvider->ThreadRemovedEvent);
     PhDeleteCallback(&threadProvider->UpdatedEvent);
+    PhDeleteCallback(&threadProvider->LoadingStateChangedEvent);
 
     // Destroy all queue items.
     {
@@ -416,10 +419,16 @@ NTSTATUS PhpThreadQueryWorker(
     )
 {
     PPH_THREAD_QUERY_DATA data = (PPH_THREAD_QUERY_DATA)Parameter;
+    LONG newSymbolsLoading;
 
     // We can't resolve the start address until symbols have 
     // been loaded.
     PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, INFINITE);
+
+    newSymbolsLoading = _InterlockedIncrement(&data->ThreadProvider->SymbolsLoading);
+
+    if (newSymbolsLoading == 1)
+        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)TRUE);
 
     data->StartAddressString = PhGetSymbolFromAddress(
         data->ThreadProvider->SymbolProvider,
@@ -429,6 +438,11 @@ NTSTATUS PhpThreadQueryWorker(
         NULL,
         NULL
         );
+
+    newSymbolsLoading = _InterlockedDecrement(&data->ThreadProvider->SymbolsLoading);
+
+    if (newSymbolsLoading == 0)
+        PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)FALSE);
 
     PhAcquireMutex(&data->ThreadProvider->QueryQueueLock);
     PhEnqueueQueueItem(data->ThreadProvider->QueryQueue, data);
