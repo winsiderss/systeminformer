@@ -919,4 +919,5 @@ VOID PhThreadProviderUpdate(
     PhFree(processes);
 
     PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
+    threadProvider->RunCount++;
 }

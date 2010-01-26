@@ -108,7 +108,7 @@ FORCEINLINE VOID PhSetListViewStyle(
 {
     ULONG style;
 
-    style = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER;
+    style = LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_INFOTIP;
 
     if (AllowDragDrop)
         style |= LVS_EX_HEADERDRAGDROP;
@@ -326,9 +326,10 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // extlv
 
-// max 1108
+// max 1109
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
+#define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
@@ -343,6 +344,8 @@ VOID PhSetExtendedListView(
 
 #define ExtendedListView_AddFallbackColumn(hWnd, Column) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
+#define ExtendedListView_AddFallbackColumns(hWnd, NumberOfColumns, Columns) \
+    SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMNS, (WPARAM)(NumberOfColumns), (LPARAM)(Columns))
 #define ExtendedListView_Init(hWnd) \
     SendMessage((hWnd), ELVM_INIT, 0, 0)
 #define ExtendedListView_SetCompareFunction(hWnd, Column, CompareFunction) \

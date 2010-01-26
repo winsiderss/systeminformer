@@ -1120,8 +1120,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"TID");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80,
                 threadsContext->UseCycleTime ? L"Cycles Delta" : L"Context Switches Delta"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 200, L"Start Address"); 
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Priority");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 180, L"Start Address"); 
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Priority");
 
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetContext(lvHandle, threadsContext);
@@ -1129,6 +1129,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpThreadPriorityCompareFunction);
             ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
+
+            // Sort by TID, Start Address, Priority, then Cycles/Context Switches Delta.
+            {
+                ULONG fallbackColumns[] = { 0, 2, 3, 1 };
+
+                ExtendedListView_AddFallbackColumns(lvHandle,
+                    sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
+            }
         }
         break;
     case WM_DESTROY:
@@ -1538,6 +1546,16 @@ static VOID NTAPI ModuleRemovedHandler(
     PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_REMOVED, 0, (LPARAM)Parameter);
 }
 
+static VOID NTAPI ModulesUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULES_UPDATED, 0, 0);
+}
+
 VOID PhpInitializeModuleMenu(
     __in HMENU Menu,
     __in HANDLE ProcessId,
@@ -1558,6 +1576,48 @@ VOID PhpInitializeModuleMenu(
         // None of the menu items work with multiple items.
         PhEnableAllMenuItems(Menu, FALSE);
     }
+}
+
+INT PhpModuleTriStateCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item1 = Item1;
+    PPH_MODULE_ITEM item2 = Item2;
+
+    // Place the primary module above the others.
+    if (item1->IsFirst)
+        return -1;
+    else if (item2->IsFirst)
+        return 1;
+
+    return 0;
+}
+
+INT PhpModuleBaseAddressCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item1 = Item1;
+    PPH_MODULE_ITEM item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
+}
+
+INT PhpModuleSizeCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item1 = Item1;
+    PPH_MODULE_ITEM item2 = Item2;
+
+    return uintcmp(item1->Size, item2->Size);
 }
 
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
@@ -1617,6 +1677,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 PH_CALLBACK_SYNC_WITH_UNREGISTER,
                 &modulesContext->RemovedEventRegistration
                 );
+            PhRegisterCallback(
+                &modulesContext->Provider->UpdatedEvent,
+                ModulesUpdatedHandler,
+                modulesContext,
+                &modulesContext->UpdatedEventRegistration
+                );
             PhSetProviderEnabled(
                 &modulesContext->ProviderRegistration,
                 TRUE
@@ -1628,13 +1694,27 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Base Address"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"File Name"); 
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Base Address"); 
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 60, L"Size");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 160, L"Description");
+
+            PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetTriState(lvHandle, TRUE);
+            ExtendedListView_SetTriStateCompareFunction(lvHandle, PhpModuleTriStateCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
+            ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
+
+            // Sort by Name, Base Address, Size.
+            {
+                ULONG fallbackColumns[] = { 0, 1, 2 };
+
+                ExtendedListView_AddFallbackColumns(lvHandle,
+                    sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
+            }
         }
         break;
     case WM_DESTROY:
@@ -1646,6 +1726,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhUnregisterCallback(
                 &modulesContext->Provider->ModuleRemovedEvent,
                 &modulesContext->RemovedEventRegistration
+                );
+            PhUnregisterCallback(
+                &modulesContext->Provider->UpdatedEvent,
+                &modulesContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(
                 &PhSecondaryProviderThread,
@@ -1766,6 +1850,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             INT lvItemIndex;
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
@@ -1774,7 +1860,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 );
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->SizeString));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->FileName));
+            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->VersionInfo.FileDescription));
+
+            modulesContext->NeedsSort = TRUE;
         }
         break;
     case WM_PH_MODULE_REMOVED:
@@ -1786,6 +1874,19 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 PhFindListViewItemByParam(lvHandle, -1, moduleItem)
                 );
             PhDereferenceObject(moduleItem);
+        }
+        break;
+    case WM_PH_MODULES_UPDATED:
+        {
+            if (modulesContext->NeedsSort)
+            {
+                ExtendedListView_SortItems(lvHandle);
+                modulesContext->NeedsSort = FALSE;
+            }
+
+            // Enable redraw.
+            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
+            InvalidateRect(lvHandle, NULL, FALSE);
         }
         break;
     }
@@ -1818,11 +1919,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             ULONG i;
             HWND lvHandle = GetDlgItem(hwndDlg, IDC_PROCENVIRONMENT_LIST);
 
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
-            PhSetControlTheme(lvHandle, L"explorer");
+
+            PhSetExtendedListView(lvHandle);
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -2074,6 +2176,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
+
+            // Sort by Type, Handle, Name.
+            {
+                ULONG fallbackColumns[] = { 0, 2, 1 };
+
+                ExtendedListView_AddFallbackColumns(lvHandle,
+                    sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
+            }
         }
         break;
     case WM_DESTROY:
@@ -2494,11 +2604,12 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             servicesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            ListView_SetExtendedListViewStyleEx(lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER, -1);
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
+
+            PhSetExtendedListView(lvHandle);
 
             for (i = 0; i < servicesContext->NumberOfServices; i++)
             {
