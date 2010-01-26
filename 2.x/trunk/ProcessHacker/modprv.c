@@ -89,6 +89,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
 
     PhInitializeCallback(&moduleProvider->ModuleAddedEvent);
     PhInitializeCallback(&moduleProvider->ModuleRemovedEvent);
+    PhInitializeCallback(&moduleProvider->UpdatedEvent);
 
     moduleProvider->ProcessId = ProcessId;
     moduleProvider->ProcessHandle = NULL;
@@ -131,6 +132,7 @@ VOID PhpModuleProviderDeleteProcedure(
     PhDeleteFastLock(&moduleProvider->ModuleHashtableLock);
     PhDeleteCallback(&moduleProvider->ModuleAddedEvent);
     PhDeleteCallback(&moduleProvider->ModuleRemovedEvent);
+    PhDeleteCallback(&moduleProvider->UpdatedEvent);
 
     if (moduleProvider->ProcessHandle) CloseHandle(moduleProvider->ProcessHandle);
 }
@@ -369,6 +371,8 @@ VOID PhModuleProviderUpdate(
                 PhGetString(moduleItem->FileName)
                 );
 
+            moduleItem->IsFirst = i == 0;
+
             // Add the module item to the hashtable.
             PhAcquireFastLockExclusive(&moduleProvider->ModuleHashtableLock);
             PhAddHashtableEntry(moduleProvider->ModuleHashtable, &moduleItem);
@@ -396,5 +400,6 @@ VOID PhModuleProviderUpdate(
 
     PhDereferenceObject(modules);
 
+    PhInvokeCallback(&moduleProvider->UpdatedEvent, NULL);
     moduleProvider->RunCount++;
 }

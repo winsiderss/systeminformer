@@ -145,6 +145,16 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             PhAddListItem(context->FallbackColumns, (PVOID)wParam); 
         }
         return TRUE;
+    case ELVM_ADDFALLBACKCOLUMNS:
+        {
+            ULONG numberOfColumns = (ULONG)wParam;
+            PULONG columns = (PULONG)lParam;
+            ULONG i;
+
+            for (i = 0; i < numberOfColumns; i++)
+                PhAddListItem(context->FallbackColumns, (PVOID)columns[i]);
+        }
+        return TRUE;
     case ELVM_INIT:
         {
             PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);

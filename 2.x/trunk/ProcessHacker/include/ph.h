@@ -1038,6 +1038,8 @@ typedef struct _PH_MODULE_ITEM
     PPH_STRING SizeString;
 
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
+
+    BOOLEAN IsFirst;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
@@ -1046,6 +1048,7 @@ typedef struct _PH_MODULE_PROVIDER
     PH_FAST_LOCK ModuleHashtableLock;
     PH_CALLBACK ModuleAddedEvent;
     PH_CALLBACK ModuleRemovedEvent;
+    PH_CALLBACK UpdatedEvent;
     ULONG RunCount;
 
     HANDLE ProcessId;
