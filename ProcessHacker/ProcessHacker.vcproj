@@ -375,6 +375,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\findobj.c"
+				>
+			</File>
+			<File
 				RelativePath=".\guisup.c"
 				>
 			</File>

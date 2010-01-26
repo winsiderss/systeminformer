@@ -46,6 +46,7 @@ ACCESS_MASK ThreadQueryAccess;
 ACCESS_MASK ThreadSetAccess;
 ACCESS_MASK ThreadAllAccess;
 
+static PPH_LIST DialogList;
 static PPH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI WinMain(
@@ -106,6 +107,8 @@ INT WINAPI WinMain(
     PhGuiSupportInitialization();
     PhSecurityEditorInitialization();
 
+    DialogList = PhCreateList(1);
+
     if (!PhMainWndInitialization(nCmdShow))
     {
         PhShowError(NULL, L"Unable to initialize the main window.");
@@ -128,6 +131,7 @@ INT PhMainMessageLoop()
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         BOOLEAN processed = FALSE;
+        ULONG i;
 
         if (result == -1)
             return 1;
@@ -141,6 +145,15 @@ INT PhMainMessageLoop()
                 processed = TRUE;
         }
 
+        for (i = 0; i < DialogList->Count; i++)
+        {
+            if (IsDialogMessage((HWND)DialogList->Items[i], &message))
+            {
+                processed = TRUE;
+                break;
+            }
+        }
+
         if (!processed)
         {
             TranslateMessage(&message);
@@ -151,6 +164,25 @@ INT PhMainMessageLoop()
     }
 
     return (INT)message.wParam;
+}
+
+VOID PhRegisterDialog(
+    __in HWND DialogWindowHandle
+    )
+{
+    PhAddListItem(DialogList, (PVOID)DialogWindowHandle);
+}
+
+VOID PhUnregisterDialog(
+    __in HWND DialogWindowHandle
+    )
+{
+    ULONG indexOfDialog;
+
+    indexOfDialog = PhIndexOfListItem(DialogList, (PVOID)DialogWindowHandle);
+
+    if (indexOfDialog != -1)
+        PhRemoveListItem(DialogList, indexOfDialog);
 }
 
 VOID PhActivatePreviousInstance()

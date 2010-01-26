@@ -89,6 +89,7 @@ VOID PhMainWndOnServiceRemoved(
 VOID PhMainWndOnServicesUpdated();
 
 HWND PhMainWndHandle;
+
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
@@ -349,6 +350,11 @@ LRESULT CALLBACK PhMainWndProc(
                     }
 
                     PhFreeFileDialog(saveFileDialog);
+                }
+                break;
+            case ID_HACKER_FINDHANDLESORDLLS:
+                {
+                    PhShowFindObjectsDialog();
                 }
                 break;
             case ID_HACKER_EXIT:

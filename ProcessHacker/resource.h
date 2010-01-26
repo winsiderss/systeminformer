@@ -21,12 +21,11 @@
 #define IDD_ABOUT                       121
 #define IDR_PROCESS                     123
 #define IDR_SERVICE                     124
-#define IDD_DIALOG1                     125
 #define IDD_PROCSERVICES                125
-#define IDD_SERVICE                     126
 #define IDD_SRVGENERAL                  126
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
+#define IDD_FINDOBJECTS                 130
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -49,7 +48,6 @@
 #define IDC_STARTED                     1023
 #define IDC_ABOUT_NAME                  1024
 #define IDC_PEBADDRESS                  1024
-#define IDC_SCROLLBAR1                  1025
 #define IDC_PARENTPROCESS               1025
 #define IDC_PROCSERVICES_LIST           1026
 #define IDC_DEP                         1026
@@ -62,7 +60,6 @@
 #define IDC_ADDRESS                     1033
 #define IDC_ERRORCONTROL                1034
 #define IDC_GRANTED_ACCESS              1034
-#define IDC_EDIT2                       1035
 #define IDC_GROUP                       1035
 #define IDC_BINARYPATH                  1036
 #define IDC_USERACCOUNT                 1037
@@ -77,8 +74,9 @@
 #define IDC_PROCESSTYPETEXT             1047
 #define IDC_NONPAGED                    1048
 #define IDC_TEXT                        1048
-#define IDC_BUTTON1                     1049
 #define IDC_DIAGNOSTICS                 1049
+#define IDC_FILTER                      1050
+#define IDC_RESULTS                     1051
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -185,9 +183,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        130
-#define _APS_NEXT_COMMAND_VALUE         40114
-#define _APS_NEXT_CONTROL_VALUE         1050
+#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_COMMAND_VALUE         40116
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
