@@ -327,6 +327,7 @@ VOID PhHandleProviderUpdate(
         {
             handleItem = PhCreateHandleItem();
 
+            handleItem->RunId = handleProvider->RunCount;
             handleItem->Handle = (HANDLE)handle->HandleValue;
             PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
             handleItem->Object = handle->Object;

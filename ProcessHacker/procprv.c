@@ -882,6 +882,7 @@ VOID PhProcessProviderUpdate(
         {
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
+            processItem->RunId = runCount;
             PhpFillProcessItem(processItem, process);
 
             // Check if process actually has a parent.

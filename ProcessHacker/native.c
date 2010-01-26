@@ -860,20 +860,20 @@ NTSTATUS PhGetProcessCycleTime(
     )
 {
     NTSTATUS status;
-    UOCTA cycleTime;
+    PROCESS_CYCLE_TIME_INFORMATION cycleTimeInfo;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessCycleTime,
-        &cycleTime,
-        sizeof(UOCTA),
+        &cycleTimeInfo,
+        sizeof(PROCESS_CYCLE_TIME_INFORMATION),
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    *CycleTime = cycleTime.LowPart;
+    *CycleTime = cycleTimeInfo.AccumulatedCycles.QuadPart;
 
     return status;
 }
@@ -1649,20 +1649,20 @@ NTSTATUS PhGetThreadCycleTime(
     )
 {
     NTSTATUS status;
-    UOCTA cycleTime;
+    THREAD_CYCLE_TIME_INFORMATION cycleTimeInfo;
 
     status = NtQueryInformationThread(
         ThreadHandle,
         ThreadCycleTime,
-        &cycleTime,
-        sizeof(UOCTA),
+        &cycleTimeInfo,
+        sizeof(THREAD_CYCLE_TIME_INFORMATION),
         NULL
         );
 
     if (!NT_SUCCESS(status))
         return status;
 
-    *CycleTime = cycleTime.LowPart;
+    *CycleTime = cycleTimeInfo.AccumulatedCycles.QuadPart;
 
     return status;
 }

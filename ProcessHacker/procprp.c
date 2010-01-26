@@ -1129,6 +1129,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpThreadPriorityCompareFunction);
             ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
+            ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by TID, Start Address, Priority, then Cycles/Context Switches Delta.
             {
@@ -1460,12 +1461,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             // Disable redraw. It will be re-enabled later.
             SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
 
+            if (threadItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 threadItem->ThreadIdString,
                 threadItem
                 );
+            if (threadItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
 
@@ -1499,6 +1502,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         {
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, threadItem)
@@ -1520,6 +1524,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
@@ -1869,6 +1875,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         {
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
+            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, moduleItem)
@@ -2422,7 +2429,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
             SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
-
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, handleItem)

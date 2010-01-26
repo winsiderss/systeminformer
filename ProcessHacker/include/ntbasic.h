@@ -17,18 +17,6 @@ typedef ULONG *PLOGICAL;
 
 typedef LONG KPRIORITY;
 
-typedef struct _OCTA
-{
-    ULONG64 LowPart;
-    LONG64 HighPart;
-} OCTA, *POCTA;
-
-typedef struct _UOCTA
-{
-    ULONG64 LowPart;
-    ULONG64 HighPart;
-} UOCTA, *PUOCTA;
-
 // NT status macros
 
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
