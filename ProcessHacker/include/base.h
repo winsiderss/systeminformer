@@ -134,6 +134,31 @@ FORCEINLINE ULONG PhCountBits(
     return count;
 }
 
+FORCEINLINE ULONG PhRoundNumber(
+    __in ULONG Value,
+    __in ULONG Multiplier
+    )
+{
+    ULONG newValue;
+
+    newValue = Value / Multiplier * Multiplier;
+
+    // This new value has the multiplier truncated.
+    // E.g. 1099 / 100 * 100 = 1000.
+    // If the difference is less than half the multiplier, 
+    // use the new value.
+    // E.g.
+    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use 
+    // the original value.
+    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use 
+    // the new value.
+
+    if (Value - newValue < Multiplier / 2)
+        return newValue;
+    else
+        return Value;
+}
+
 FORCEINLINE PVOID PhGetProcAddress(
     __in PWSTR LibraryName,
     __in PSTR ProcName
