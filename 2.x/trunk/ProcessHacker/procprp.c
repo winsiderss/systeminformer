@@ -1544,6 +1544,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->NeedsSort = FALSE;
             }
 
+            ExtendedListView_Tick(lvHandle);
+
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
             InvalidateRect(lvHandle, NULL, FALSE);
@@ -1919,6 +1921,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 ExtendedListView_SortItems(lvHandle);
                 modulesContext->NeedsSort = FALSE;
             }
+
+            ExtendedListView_Tick(lvHandle);
 
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
@@ -2477,6 +2481,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 ExtendedListView_SortItems(lvHandle);
                 handlesContext->NeedsSort = FALSE;
             }
+
+            ExtendedListView_Tick(lvHandle);
 
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
