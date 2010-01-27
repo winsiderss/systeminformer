@@ -385,7 +385,7 @@ VOID PhSetExtendedListView(
     __in HWND hWnd
     );
 
-// max 1114
+// max 1115
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
@@ -401,6 +401,7 @@ VOID PhSetExtendedListView(
 #define ELVM_SETTRISTATE (WM_APP + 1107)
 #define ELVM_SETTRISTATECOMPAREFUNCTION (WM_APP + 1105)
 #define ELVM_SORTITEMS (WM_APP + 1101)
+#define ELVM_TICK (WM_APP + 1115)
 
 #define ExtendedListView_AddFallbackColumn(hWnd, Column) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
@@ -430,6 +431,8 @@ VOID PhSetExtendedListView(
     SendMessage((hWnd), ELVM_SETTRISTATECOMPAREFUNCTION, 0, (LPARAM)(CompareFunction))
 #define ExtendedListView_SortItems(hWnd) \
     SendMessage((hWnd), ELVM_SORTITEMS, 0, 0)
+#define ExtendedListView_Tick(hWnd) \
+    SendMessage((hWnd), ELVM_TICK, 0, 0)
 
 // mainwnd
 

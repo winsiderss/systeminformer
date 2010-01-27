@@ -1625,5 +1625,5 @@ VOID PhMainWndOnServiceRemoved(
 
 VOID PhMainWndOnServicesUpdated()
 {
-    // Nothing
+    ExtendedListView_Tick(ServiceListViewHandle);
 }
