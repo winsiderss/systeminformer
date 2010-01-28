@@ -2674,6 +2674,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
             }
 
+            ExtendedListView_SortItems(lvHandle);
+
             PhpFixProcessServicesControls(hwndDlg, NULL);
         }
         break;
