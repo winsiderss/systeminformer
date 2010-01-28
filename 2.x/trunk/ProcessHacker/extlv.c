@@ -332,13 +332,24 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 LVITEM item;
 
-                item.mask = LVIF_STATE;
+                item.mask = LVIF_STATE | LVIF_PARAM;
                 item.iItem = (INT)wParam;
                 item.iSubItem = 0;
                 item.stateMask = LVIS_STATEIMAGEMASK;
-                CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
-
                 item.state = INDEXTOSTATEIMAGEMASK(RemovingItemState);
+
+                // IMPORTANT:
+                // We need to null the param. This is important because the user 
+                // will most likely be storing pointers to heap allocations in 
+                // here, and free the allocation after it has deleted the 
+                // item. The user may allocate sometime in the future and receive 
+                // the same pointer as is stored here. The user may call 
+                // LVM_FINDITEM or LVM_GETNEXTITEM and find this item, which 
+                // is supposed to be deleted. It may then attempt to delete 
+                // this item *twice*, which leads to bad things happening, 
+                // including *not* deleting the item that the user wanted to delete.
+                item.lParam = (LPARAM)NULL;
+
                 ListView_SetItem(hwnd, &item);
 
                 {
