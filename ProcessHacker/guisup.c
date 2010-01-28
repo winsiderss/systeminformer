@@ -60,7 +60,7 @@ HWND PhCreateListViewControl(
     return CreateWindow(
         WC_LISTVIEW,
         L"",
-        WS_CHILD | LVS_REPORT | WS_VISIBLE | WS_BORDER,
+        WS_CHILD | LVS_REPORT | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         3,
@@ -225,7 +225,7 @@ HWND PhCreateTabControl(
     tabControlHandle = CreateWindow(
         WC_TABCONTROL,
         L"",
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
         0,
         0,
         3,

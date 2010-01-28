@@ -1022,9 +1022,12 @@ VOID PhMainWndOnLayout(HDWP *deferHandle)
 
     // Resize the tab control.
     GetClientRect(PhMainWndHandle, &rect);
-    *deferHandle = DeferWindowPos(*deferHandle, TabControlHandle, NULL,
+
+    // Don't defer the resize. The tab control doesn't repaint properly.
+    SetWindowPos(TabControlHandle, NULL,
         rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
         SWP_NOACTIVATE | SWP_NOZORDER);
+    UpdateWindow(TabControlHandle);
 
     PhMainWndTabControlOnLayout(deferHandle);
 }
