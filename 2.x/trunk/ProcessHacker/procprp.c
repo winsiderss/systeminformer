@@ -2533,20 +2533,23 @@ VOID PhpFixProcessServicesControls(
         case SERVICE_RUNNING:
             {
                 SetWindowText(startButton, L"Stop");
+                SetWindowText(pauseButton, L"Pause");
                 EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
                 EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_PAUSED:
             {
-                SetWindowText(startButton, L"Continue");
-                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                EnableWindow(pauseButton, FALSE);
+                SetWindowText(startButton, L"Stop");
+                SetWindowText(pauseButton, L"Continue");
+                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
+                EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
             }
             break;
         case SERVICE_STOPPED:
             {
                 SetWindowText(startButton, L"Start");
+                SetWindowText(pauseButton, L"Pause");
                 EnableWindow(startButton, TRUE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -2557,6 +2560,7 @@ VOID PhpFixProcessServicesControls(
         case SERVICE_STOP_PENDING:
             {
                 SetWindowText(startButton, L"Start");
+                SetWindowText(pauseButton, L"Pause");
                 EnableWindow(startButton, FALSE);
                 EnableWindow(pauseButton, FALSE);
             }
@@ -2580,6 +2584,7 @@ VOID PhpFixProcessServicesControls(
     else
     {
         SetWindowText(startButton, L"Start");
+        SetWindowText(pauseButton, L"Pause");
         EnableWindow(startButton, FALSE);
         EnableWindow(pauseButton, FALSE);
         SetWindowText(descriptionLabel, L"");
@@ -2731,7 +2736,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                             PhUiStopService(hwndDlg, serviceItem);
                             break;
                         case SERVICE_PAUSED:
-                            PhUiContinueService(hwndDlg, serviceItem);
+                            PhUiStopService(hwndDlg, serviceItem);
                             break;
                         case SERVICE_STOPPED:
                             PhUiStartService(hwndDlg, serviceItem);
@@ -2746,7 +2751,15 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
                     if (serviceItem)
                     {
-                        PhUiPauseService(hwndDlg, serviceItem);
+                        switch (serviceItem->State)
+                        {
+                        case SERVICE_RUNNING:
+                            PhUiPauseService(hwndDlg, serviceItem);
+                            break;
+                        case SERVICE_PAUSED:
+                            PhUiContinueService(hwndDlg, serviceItem);
+                            break;
+                        }
                     }
                 }
                 break;
