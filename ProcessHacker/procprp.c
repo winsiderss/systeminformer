@@ -1538,13 +1538,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         break;
     case WM_PH_THREADS_UPDATED:
         {
+            ExtendedListView_Tick(lvHandle);
+
             if (threadsContext->NeedsSort)
             {
                 ExtendedListView_SortItems(lvHandle);
                 threadsContext->NeedsSort = FALSE;
             }
-
-            ExtendedListView_Tick(lvHandle);
 
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
@@ -1916,13 +1916,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         break;
     case WM_PH_MODULES_UPDATED:
         {
+            ExtendedListView_Tick(lvHandle);
+
             if (modulesContext->NeedsSort)
             {
                 ExtendedListView_SortItems(lvHandle);
                 modulesContext->NeedsSort = FALSE;
             }
-
-            ExtendedListView_Tick(lvHandle);
 
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
@@ -2476,13 +2476,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_PH_HANDLES_UPDATED:
         {
+            ExtendedListView_Tick(lvHandle);
+
             if (handlesContext->NeedsSort)
             {
                 ExtendedListView_SortItems(lvHandle);
                 handlesContext->NeedsSort = FALSE;
             }
-
-            ExtendedListView_Tick(lvHandle);
 
             // Enable redraw.
             SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);

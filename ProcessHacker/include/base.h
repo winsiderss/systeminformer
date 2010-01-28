@@ -8,6 +8,7 @@
 #include <ntwin.h>
 #include <intrin.h>
 #include <wchar.h>
+#include <crtdbg.h>
 
 // nonstandard extension used : nameless struct/union
 #pragma warning(disable: 4201)
@@ -149,14 +150,14 @@ FORCEINLINE ULONG PhRoundNumber(
     // use the new value.
     // E.g.
     // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use 
-    // the original value.
+    // the new value plus the multiplier.
     // 1010 -> 1000 (100). 1010 - 1000 < 50, so use 
     // the new value.
 
     if (Value - newValue < Multiplier / 2)
         return newValue;
     else
-        return Value;
+        return newValue + Multiplier;
 }
 
 FORCEINLINE PVOID PhGetProcAddress(
