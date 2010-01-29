@@ -90,6 +90,7 @@ typedef struct _PH_THREADS_CONTEXT
     HWND WindowHandle;
 
     BOOLEAN UseCycleTime;
+    BOOLEAN NeedsRedraw;
     BOOLEAN NeedsSort;
 } PH_THREADS_CONTEXT, *PPH_THREADS_CONTEXT;
 
@@ -107,6 +108,7 @@ typedef struct _PH_MODULES_CONTEXT
 
     HWND WindowHandle;
 
+    BOOLEAN NeedsRedraw;
     BOOLEAN NeedsSort;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
@@ -126,6 +128,7 @@ typedef struct _PH_HANDLES_CONTEXT
 
     HWND WindowHandle;
 
+    BOOLEAN NeedsRedraw;
     BOOLEAN NeedsSort;
     BOOLEAN SelectedHandleProtected;
     BOOLEAN SelectedHandleInherit;
