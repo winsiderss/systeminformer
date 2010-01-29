@@ -4343,6 +4343,7 @@ NTSTATUS PhEnumGenericModules(
         // 32-bit process modules
 
         BOOLEAN opened = FALSE;
+        BOOLEAN isWow64 = FALSE;
         ENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
 
         if (!ProcessHandle)
@@ -4388,11 +4389,18 @@ NTSTATUS PhEnumGenericModules(
                 );
         }
 
+#ifdef _M_X64
+        // And just before we close the process handle, find out 
+        // if the process is running under WOW64.
+        PhGetProcessIsWow64(ProcessHandle, &isWow64);
+#endif
+
         if (opened)
             CloseHandle(ProcessHandle);
 
 #ifdef _M_X64
         // 64-bit process modules
+        if (isWow64)
         {
             PRTL_DEBUG_INFORMATION debugBuffer;
 
@@ -4402,7 +4410,7 @@ NTSTATUS PhEnumGenericModules(
             {
                 if (NT_SUCCESS(RtlQueryProcessDebugInformation(
                     ProcessId,
-                    RTL_QUERY_PROCESS_MODULES32,
+                    RTL_QUERY_PROCESS_MODULES32 | RTL_QUERY_PROCESS_NONINVASIVE,
                     debugBuffer
                     )))
                 {

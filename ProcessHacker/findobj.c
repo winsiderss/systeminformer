@@ -61,7 +61,11 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     case WM_CLOSE:
         {
             ShowWindow(hwndDlg, SW_HIDE);
-            SetWindowLongPtr(hwndDlg, DWL_MSGRESULT, 0);
+            // IMPORTANT
+            // Set the result to 0 so the default dialog message 
+            // handler doesn't invoke IDCANCEL, which will send 
+            // WM_CLOSE, creating an infinite loop.
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, 0);
         }
         return TRUE;
     case WM_COMMAND:
