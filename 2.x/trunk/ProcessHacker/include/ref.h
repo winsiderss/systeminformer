@@ -129,6 +129,19 @@ FORCEINLINE VOID PhSwapReference(
     if (NewObject) PhReferenceObject(NewObject);
 }
 
+FORCEINLINE VOID PhSwapReference2(
+    __inout PPVOID ObjectReference,
+    __in PVOID NewObject
+    )
+{
+    PVOID oldObject;
+
+    oldObject = *ObjectReference;
+    *ObjectReference = NewObject;
+
+    if (oldObject) PhDereferenceObject(oldObject);
+}
+
 NTSTATUS PhCreateAlloc(
     __out PVOID *Alloc,
     __in SIZE_T Size
