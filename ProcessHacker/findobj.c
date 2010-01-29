@@ -193,7 +193,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            ExtendedListView_SetRedraw(lvHandle, FALSE);
 
             PhAcquireMutex(&SearchResultsLock);
 
@@ -221,8 +221,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             PhReleaseMutex(&SearchResultsLock);
 
-            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
-            InvalidateRect(lvHandle, NULL, FALSE);
+            ExtendedListView_SetRedraw(lvHandle, TRUE);
         }
         break;
     case WM_PH_SEARCH_FINISHED:

@@ -54,6 +54,7 @@ typedef struct _PH_EXTLV_CONTEXT
 
     // Misc.
 
+    LONG EnableRedraw;
     HCURSOR Cursor;
 } PH_EXTLV_CONTEXT, *PPH_EXTLV_CONTEXT;
 
@@ -142,6 +143,7 @@ VOID PhSetExtendedListView(
         20
         );
 
+    context->EnableRedraw = 1;
     context->Cursor = NULL;
 
     SetProp(hWnd, L"ExtLvContext", (HANDLE)context);
@@ -472,6 +474,24 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             context->NewColor = (COLORREF)wParam;
         }
         return TRUE;
+    case ELVM_SETREDRAW:
+        {
+            if (wParam)
+                context->EnableRedraw++;
+            else
+                context->EnableRedraw--;
+
+            if (context->EnableRedraw == 1)
+            {
+                SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);
+                InvalidateRect(hwnd, NULL, FALSE);
+            }
+            else if (context->EnableRedraw == 0)
+            {
+                SendMessage(hwnd, WM_SETREDRAW, FALSE, 0);
+            }
+        }
+        return TRUE;
     case ELVM_SETREMOVINGCOLOR:
         {
             context->RemovingColor = (COLORREF)wParam;
@@ -781,7 +801,7 @@ static VOID PhListTick(
         {
             if (!redrawDisabled)
             {
-                SendMessage(hwnd, WM_SETREDRAW, FALSE, 0);
+                ExtendedListView_SetRedraw(hwnd, FALSE);
                 redrawDisabled = TRUE;
             }
 
@@ -798,8 +818,7 @@ static VOID PhListTick(
 
     if (redrawDisabled)
     {
-        SendMessage(hwnd, WM_SETREDRAW, TRUE, 0);
-        InvalidateRect(hwnd, NULL, FALSE);
+        ExtendedListView_SetRedraw(hwnd, TRUE);
     }
 
     if (itemsToRemove)
