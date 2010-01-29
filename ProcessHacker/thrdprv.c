@@ -805,7 +805,7 @@ VOID PhThreadProviderUpdate(
                         &threadItem->StartAddressResolveLevel
                         );
 
-                    PhSwapReference(
+                    PhSwapReference2(
                         &threadItem->StartAddressString,
                         newStartAddressString
                         );
@@ -846,14 +846,14 @@ VOID PhThreadProviderUpdate(
                     if (threadItem->ContextSwitchesDelta.Delta != 0)
                     {
                         PhPrintUInt32(deltaString, threadItem->ContextSwitchesDelta.Delta);
-                        PhSwapReference(
+                        PhSwapReference2(
                             &threadItem->ContextSwitchesDeltaString,
                             PhFormatDecimal(deltaString, 0, TRUE)
                             );
                     }
                     else
                     {
-                        PhSwapReference(
+                        PhSwapReference2(
                             &threadItem->ContextSwitchesDeltaString,
                             PhCreateString(L"")
                             );
@@ -885,14 +885,14 @@ VOID PhThreadProviderUpdate(
                         if (threadItem->CyclesDelta.Delta != 0)
                         {
                             PhPrintUInt64(deltaString, threadItem->CyclesDelta.Delta);
-                            PhSwapReference(
+                            PhSwapReference2(
                                 &threadItem->CyclesDeltaString,
                                 PhFormatDecimal(deltaString, 0, TRUE)
                                 );
                         }
                         else
                         {
-                            PhSwapReference(
+                            PhSwapReference2(
                                 &threadItem->CyclesDeltaString,
                                 PhCreateString(L"")
                                 );
@@ -914,8 +914,7 @@ VOID PhThreadProviderUpdate(
                     PPH_STRING priorityWin32String;
 
                     priorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
-                    PhSwapReference(&threadItem->PriorityWin32String, priorityWin32String);
-                    PhDereferenceObject(priorityWin32String);
+                    PhSwapReference2(&threadItem->PriorityWin32String, priorityWin32String);
 
                     modified = TRUE;
                 }
