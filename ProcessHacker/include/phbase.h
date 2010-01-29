@@ -1183,6 +1183,12 @@ FORCEINLINE ULONG PhHashInt64(
 
 // simple hashtable
 
+typedef struct _PH_SIMPLE_HASHTABLE_ENTRY
+{
+    PVOID Key;
+    PVOID Value;
+} PH_SIMPLE_HASHTABLE_ENTRY, *PPH_SIMPLE_HASHTABLE_ENTRY;
+
 PPH_HASHTABLE PhCreateSimpleHashtable(
     __in ULONG InitialCapacity
     );

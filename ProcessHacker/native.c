@@ -461,7 +461,7 @@ NTSTATUS PhpQueryProcessVariableSize(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG returnLength;
+    ULONG returnLength = 0;
 
     NtQueryInformationProcess(
         ProcessHandle,
@@ -1975,7 +1975,7 @@ NTSTATUS PhpQueryTokenVariableSize(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG returnLength;
+    ULONG returnLength = 0;
 
     NtQueryInformationToken(
         TokenHandle,
@@ -2727,9 +2727,12 @@ NTSTATUS PhGetTransactionManagerLogFileName(
         &logPathInfo
         );
 
+    if (!NT_SUCCESS(status))
+        return status;
+
     *LogFileName = PhCreateStringEx(
         logPathInfo->LogPath,
-        logPathInfo->LogPathLength * 2
+        logPathInfo->LogPathLength
         );
     PhFree(logPathInfo);
 
@@ -3109,7 +3112,7 @@ NTSTATUS PhpQueryDriverVariableSize(
 {
     NTSTATUS status;
     PVOID buffer;
-    ULONG returnLength;
+    ULONG returnLength = 0;
 
     KphQueryInformationDriver(
         PhKphHandle,
