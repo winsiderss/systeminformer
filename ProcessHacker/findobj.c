@@ -226,6 +226,9 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
         break;
     case WM_PH_SEARCH_FINISHED:
         {
+            // Add any un-added items.
+            SendMessage(hwndDlg, WM_PH_SEARCH_UPDATE, 0, 0);
+
             PhDereferenceObject(SearchString);
             PhDeleteMutex(&SearchResultsLock);
 
