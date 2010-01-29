@@ -1142,6 +1142,7 @@ NTSTATUS PhpQueryObjectThreadStart(
                     PhQueryObjectContext.Length,
                     &PhQueryObjectContext.ReturnLength
                     );
+                break;
             case QuerySecurityHack:
                 PhQueryObjectContext.Status = NtQuerySecurityObject(
                     PhQueryObjectContext.Handle,
@@ -1150,12 +1151,14 @@ NTSTATUS PhpQueryObjectThreadStart(
                     PhQueryObjectContext.Length,
                     &PhQueryObjectContext.ReturnLength
                     );
+                break;
             case SetSecurityHack:
                 PhQueryObjectContext.Status = NtSetSecurityObject(
                     PhQueryObjectContext.Handle,
                     PhQueryObjectContext.SecurityInformation,
                     (PSECURITY_DESCRIPTOR)PhQueryObjectContext.Buffer
                     );
+                break;
             }
 
             // Work done.
