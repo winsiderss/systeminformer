@@ -242,7 +242,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 PH_ITEM_STATE itemState;
 
                                 item.mask = LVIF_STATE;
-                                item.iItem = customDraw->nmcd.dwItemSpec;
+                                item.iItem = (INT)customDraw->nmcd.dwItemSpec;
                                 item.iSubItem = 0;
                                 item.stateMask = LVIS_STATEIMAGEMASK;
                                 CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
@@ -253,7 +253,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                     if (context->ItemColorFunction)
                                     {
                                         customDraw->clrTextBk = context->ItemColorFunction(
-                                            customDraw->nmcd.dwItemSpec,
+                                            (INT)customDraw->nmcd.dwItemSpec,
                                             (PVOID)customDraw->nmcd.lItemlParam,
                                             context->Context
                                             );
