@@ -885,6 +885,11 @@ VOID PhpInitializeThreadMenu(
         DeleteMenu(Menu, IOPRIORITY_MENU_INDEX, MF_BYPOSITION);
     }
 
+#ifndef _M_IX86
+    // Remove Analyze.
+    DeleteMenu(Menu, ANALYZE_MENU_INDEX, MF_BYPOSITION);
+#endif
+
     if (!PhKphHandle)
     {
         // Remove Force Terminate.
@@ -899,11 +904,6 @@ VOID PhpInitializeThreadMenu(
             DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
         }
     }
-
-#ifndef _M_IX86
-    // Remove Analyze.
-    DeleteMenu(Menu, ANALYZE_MENU_INDEX, MF_BYPOSITION);
-#endif
 
     // Priority
     if (NumberOfThreads == 1)

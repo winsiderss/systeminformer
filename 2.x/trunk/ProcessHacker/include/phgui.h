@@ -121,7 +121,7 @@ FORCEINLINE VOID PhSetWindowStyle(
         \
         if (result_) \
         { \
-            SetWindowLongPtr(hwndDlg, DWL_MSGRESULT, result_); \
+            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, result_); \
             return TRUE; \
         } \
     }
