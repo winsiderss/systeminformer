@@ -1127,7 +1127,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 );
             threadsContext->WindowHandle = hwndDlg;
             threadsContext->UseCycleTime = FALSE;
-            threadsContext->NeedsSort = TRUE;
+            threadsContext->NeedsRedraw = FALSE;
+            threadsContext->NeedsSort = FALSE;
 
             if (processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
             {
@@ -1484,8 +1485,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             INT lvItemIndex;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
-            // Disable redraw. It will be re-enabled later.
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!threadsContext->NeedsRedraw)
+            {
+                // Disable redraw. It will be re-enabled later.
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                threadsContext->NeedsRedraw = TRUE;
+            }
 
             if (threadItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
@@ -1506,7 +1511,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             INT lvItemIndex;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!threadsContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                threadsContext->NeedsRedraw = TRUE;
+            }
 
             lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, threadItem);
 
@@ -1528,7 +1537,12 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         {
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!threadsContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                threadsContext->NeedsRedraw = TRUE;
+            }
+
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, threadItem)
@@ -1546,9 +1560,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->NeedsSort = FALSE;
             }
 
-            // Enable redraw.
-            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
-            InvalidateRect(lvHandle, NULL, FALSE);
+            if (threadsContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, TRUE);
+                threadsContext->NeedsRedraw = FALSE;
+            }
         }
         break;
     }
@@ -1726,6 +1742,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->ProviderRegistration
                 );
             modulesContext->WindowHandle = hwndDlg;
+            modulesContext->NeedsRedraw = FALSE;
+            modulesContext->NeedsSort = FALSE;
 
             // Initialize the list.
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -1885,7 +1903,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             INT lvItemIndex;
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!modulesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                modulesContext->NeedsRedraw = TRUE;
+            }
 
             if (moduleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
@@ -1906,7 +1928,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         {
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!modulesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                modulesContext->NeedsRedraw = TRUE;
+            }
+
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, moduleItem)
@@ -1924,9 +1951,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 modulesContext->NeedsSort = FALSE;
             }
 
-            // Enable redraw.
-            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
-            InvalidateRect(lvHandle, NULL, FALSE);
+            if (modulesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, TRUE);
+                modulesContext->NeedsRedraw = FALSE;
+            }
         }
         break;
     }
@@ -2206,6 +2235,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->ProviderRegistration
                 );
             handlesContext->WindowHandle = hwndDlg;
+            handlesContext->NeedsRedraw = FALSE;
             handlesContext->NeedsSort = FALSE;
             handlesContext->HideUnnamedHandles = !!PhGetIntegerSetting(L"HideUnnamedHandles");
 
@@ -2432,8 +2462,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 break;
             }
 
-            // Disable redraw. It will be re-enabled later.
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!handlesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                handlesContext->NeedsRedraw = TRUE;
+            }
 
             if (handleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
@@ -2466,7 +2499,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         {
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
-            SendMessage(lvHandle, WM_SETREDRAW, FALSE, 0);
+            if (!handlesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                handlesContext->NeedsRedraw = TRUE;
+            }
+
             PhRemoveListViewItem(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, handleItem)
@@ -2484,9 +2522,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext->NeedsSort = FALSE;
             }
 
-            // Enable redraw.
-            SendMessage(lvHandle, WM_SETREDRAW, TRUE, 0);
-            InvalidateRect(lvHandle, NULL, FALSE);
+            if (handlesContext->NeedsRedraw)
+            {
+                ExtendedListView_SetRedraw(lvHandle, TRUE);
+                handlesContext->NeedsRedraw = FALSE;
+            }
         }
         break;
     }
