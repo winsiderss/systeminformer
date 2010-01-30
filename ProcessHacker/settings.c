@@ -54,8 +54,12 @@ VOID PhSettingsInitialization()
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
+    PhpAddIntegerSetting(L"UseColorDotNet", L"1");
+    PhpAddIntegerSetting(L"ColorDotNet", L"00ffde");
     PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
     PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff"); // red is in the lowest byte, then green, then blue.
+    PhpAddIntegerSetting(L"UseColorRelocatedModules", L"1");
+    PhpAddIntegerSetting(L"ColorRelocatedModules", L"80c0ff");
     PhpAddIntegerSetting(L"UseColorProtectedHandles", L"1");
     PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
@@ -66,8 +70,12 @@ VOID PhpUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
+    UPDATE_INTEGER_CS(UseColorDotNet);
+    UPDATE_INTEGER_CS(ColorDotNet);
     UPDATE_INTEGER_CS(UseColorGuiThreads);
     UPDATE_INTEGER_CS(ColorGuiThreads);
+    UPDATE_INTEGER_CS(UseColorRelocatedModules);
+    UPDATE_INTEGER_CS(ColorRelocatedModules);
     UPDATE_INTEGER_CS(UseColorProtectedHandles);
     UPDATE_INTEGER_CS(ColorProtectedHandles);
     UPDATE_INTEGER_CS(UseColorInheritHandles);
