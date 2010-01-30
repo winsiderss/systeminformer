@@ -162,6 +162,14 @@ INT CALLBACK PhpPropSheetProc(
             WNDPROC oldWndProc;
             PPH_LAYOUT_MANAGER layoutManager;
 
+            // Disable multiple rows.
+            // TODO: Add support for multiple rows
+            PhSetWindowStyle(
+                PropSheet_GetTabControl(hwndDlg),
+                TCS_MULTILINE | TCS_SINGLELINE,
+                TCS_SINGLELINE
+                );
+
             oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
             SetProp(hwndDlg, L"OldWndProc", (HANDLE)oldWndProc);
@@ -231,39 +239,41 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SHOWWINDOW:
         {
-            PPH_LAYOUT_MANAGER layoutManager;
-
-            layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
-
-            // See PhpAddPropPageLayoutItem for an explanation of this hack.
-            layoutManager->RootItem.OrigRect = layoutManager->RootItem.Rect;
-
-            PhAddLayoutItem(layoutManager, PropSheet_GetTabControl(hwnd),
-                NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(layoutManager, GetDlgItem(hwnd, IDCANCEL),
-                NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-            // Hide the OK button.
-            ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
-            // Set the Cancel button's text to "Close".
-            SetDlgItemText(hwnd, IDCANCEL, L"Close");
-
+            if (!GetProp(hwnd, L"LayoutInitialized"))
             {
-                PH_RECTANGLE windowRectangle;
+                PPH_LAYOUT_MANAGER layoutManager;
 
-                windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
-                windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
-                PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
+                layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
 
-                MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
-                    windowRectangle.Width, windowRectangle.Height, FALSE);
+                PhAddLayoutItem(layoutManager, PropSheet_GetTabControl(hwnd),
+                    NULL, PH_ANCHOR_ALL);
+                PhAddLayoutItem(layoutManager, GetDlgItem(hwnd, IDCANCEL),
+                    NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                // Implement cascading by saving an offsetted rectangle.
-                windowRectangle.Left += 20;
-                windowRectangle.Top += 20;
+                // Hide the OK button.
+                ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+                // Set the Cancel button's text to "Close".
+                SetDlgItemText(hwnd, IDCANCEL, L"Close");
 
-                PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
-                PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+                {
+                    PH_RECTANGLE windowRectangle;
+
+                    windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
+                    windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
+                    PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
+
+                    MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
+                        windowRectangle.Width, windowRectangle.Height, FALSE);
+
+                    // Implement cascading by saving an offsetted rectangle.
+                    windowRectangle.Left += 20;
+                    windowRectangle.Top += 20;
+
+                    PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+                    PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+                }
+
+                SetProp(hwnd, L"LayoutInitialized", (HANDLE)TRUE);
             }
         }
         break;
@@ -315,6 +325,21 @@ BOOLEAN PhAddProcessPropPage(
 
     PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
         propSheetPageHandle;
+    PropContext->PropSheetHeader.nPages++;
+
+    return TRUE;
+}
+
+BOOLEAN PhAddProcessPropPage2(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in HPROPSHEETPAGE PropSheetPageHandle
+    )
+{
+    if (PropContext->PropSheetHeader.nPages == PH_PROCESS_PROPCONTEXT_MAXPAGES)
+        return FALSE;
+
+    PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
+        PropSheetPageHandle;
     PropContext->PropSheetHeader.nPages++;
 
     return TRUE;
@@ -2916,6 +2941,28 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     return FALSE;
 }
 
+static NTSTATUS NTAPI PhpOpenProcessToken(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        (HANDLE)Context
+        )))
+        return status;
+
+    status = PhOpenProcessToken(Handle, DesiredAccess, processHandle);
+    CloseHandle(processHandle);
+
+    return status;
+}
+
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
@@ -2955,6 +3002,12 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         );
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
+
+    // Token
+    PhAddProcessPropPage2(
+        PropContext,
+        PhCreateTokenPage(PhpOpenProcessToken, (PVOID)PropContext->ProcessItem->ProcessId)
+        );
 
     // Modules
     newPage = PhCreateProcessPropPageContext(
