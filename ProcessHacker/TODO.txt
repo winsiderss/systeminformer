@@ -2,17 +2,13 @@
 * Column re-ordering
 * Column chooser
 
-* Highlighting (normal & difference)
-
-* Service properties
+* Service properties (partially done)
 * Network provider
 
 * Process properties:
 	* Complete the General tab (partially done)
 	* Memory provider
 	* Job
-
-* Better object names for TmEn, TmRm, TmTm, TmTx
 
 * Statistics collection (partially done)
 * Graph controls
