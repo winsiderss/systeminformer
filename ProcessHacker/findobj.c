@@ -160,6 +160,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                             break;
 
                         SetDlgItemText(hwndDlg, IDOK, L"Cancel");
+
+                        SetCursor(LoadCursor(NULL, IDC_WAIT));
                     }
                     else
                     {
