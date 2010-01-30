@@ -37,6 +37,8 @@ extern ACCESS_MASK ThreadQueryAccess;
 extern ACCESS_MASK ThreadSetAccess;
 extern ACCESS_MASK ThreadAllAccess;
 
+extern COLORREF PhSysWindowColor;
+
 #endif
 
 #define WINDOWS_ANCIENT 0

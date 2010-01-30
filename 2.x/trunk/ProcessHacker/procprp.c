@@ -995,7 +995,7 @@ VOID PhpInitializeThreadMenu(
     }
 }
 
-NTSTATUS PhpThreadPermissionsOpenThread(
+NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
     __in PVOID Context
@@ -1004,7 +1004,7 @@ NTSTATUS PhpThreadPermissionsOpenThread(
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
 }
 
-INT PhpThreadTidCompareFunction(
+INT NTAPI PhpThreadTidCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -1016,7 +1016,7 @@ INT PhpThreadTidCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->ThreadId, (ULONG_PTR)item2->ThreadId);
 }
 
-INT PhpThreadCyclesCompareFunction(
+INT NTAPI PhpThreadCyclesCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -1032,7 +1032,7 @@ INT PhpThreadCyclesCompareFunction(
         return uint64cmp(item1->ContextSwitchesDelta.Delta, item2->ContextSwitchesDelta.Delta);
 }
 
-INT PhpThreadPriorityCompareFunction(
+INT NTAPI PhpThreadPriorityCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -1042,6 +1042,20 @@ INT PhpThreadPriorityCompareFunction(
     PPH_THREAD_ITEM item2 = Item2;
 
     return intcmp(item1->PriorityWin32, item2->PriorityWin32);
+}
+
+COLORREF NTAPI PhpThreadColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item = Param;
+
+    if (PhCsUseColorGuiThreads && item->IsGuiThread)
+        return PhCsColorGuiThreads;
+
+    return PhSysWindowColor;
 }
 
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
@@ -1152,6 +1166,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpThreadPriorityCompareFunction);
             ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
+            ExtendedListView_SetItemColorFunction(lvHandle, PhpThreadColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by TID, Start Address, Priority, then Cycles/Context Switches Delta.
@@ -1628,7 +1643,7 @@ VOID PhpInitializeModuleMenu(
     }
 }
 
-INT PhpModuleTriStateCompareFunction(
+INT NTAPI PhpModuleTriStateCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -1646,7 +1661,7 @@ INT PhpModuleTriStateCompareFunction(
     return 0;
 }
 
-INT PhpModuleBaseAddressCompareFunction(
+INT NTAPI PhpModuleBaseAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -1658,7 +1673,7 @@ INT PhpModuleBaseAddressCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
 }
 
-INT PhpModuleSizeCompareFunction(
+INT NTAPI PhpModuleSizeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -2147,7 +2162,7 @@ VOID PhpInitializeHandleMenu(
     }
 }
 
-INT PhpHandleHandleCompareFunction(
+INT NTAPI PhpHandleHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in PVOID Context
@@ -2157,6 +2172,22 @@ INT PhpHandleHandleCompareFunction(
     PPH_HANDLE_ITEM item2 = Item2;
 
     return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
+}
+
+COLORREF NTAPI PhpHandleColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLE_ITEM item = Param;
+
+    if (PhCsUseColorProtectedHandles && (item->Attributes & OBJ_PROTECT_CLOSE))
+        return PhCsColorProtectedHandles;
+    if (PhCsUseColorInheritHandles && (item->Attributes & OBJ_INHERIT))
+        return PhCsColorInheritHandles;
+
+    return PhSysWindowColor;
 }
 
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
@@ -2248,6 +2279,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
+            ExtendedListView_SetItemColorFunction(lvHandle, PhpHandleColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by Type, Handle, Name.
@@ -2491,7 +2523,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (lvItemIndex != -1)
             {
-                // TODO when highlighting is implemented
+                // Force redraw of the item because its color may have 
+                // changed.
+                ListView_RedrawItems(lvHandle, lvItemIndex, lvItemIndex);
             }
         }
         break;

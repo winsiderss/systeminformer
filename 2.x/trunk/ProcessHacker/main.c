@@ -46,6 +46,8 @@ ACCESS_MASK ThreadQueryAccess;
 ACCESS_MASK ThreadSetAccess;
 ACCESS_MASK ThreadAllAccess;
 
+COLORREF PhSysWindowColor;
+
 static PPH_LIST DialogList;
 static PPH_AUTO_POOL BaseAutoPool;
 
