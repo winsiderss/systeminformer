@@ -519,6 +519,11 @@ BOOLEAN PhAddProcessPropPage(
     __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     );
 
+BOOLEAN PhAddProcessPropPage2(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in HPROPSHEETPAGE PropSheetPageHandle
+    );
+
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
@@ -844,6 +849,15 @@ VOID PhShowThreadStackDialog(
     __in HANDLE ProcessId,
     __in HANDLE ThreadId,
     __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
+// tokprp
+
+#define WM_PH_INIT_LAYOUT_TOKEN_PAGE (WM_APP + 500)
+
+HPROPSHEETPAGE PhCreateTokenPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
     );
 
 #endif

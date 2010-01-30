@@ -26,6 +26,8 @@
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130
+#define IDD_DIALOG1                     131
+#define IDD_OBJTOKEN                    131
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -77,6 +79,12 @@
 #define IDC_DIAGNOSTICS                 1049
 #define IDC_FILTER                      1050
 #define IDC_RESULTS                     1051
+#define IDC_USER                        1052
+#define IDC_USERSID                     1053
+#define IDC_ADVANCED                    1054
+#define IDC_GROUPS                      1055
+#define IDC_GROUPS2                     1056
+#define IDC_PRIVILEGES                  1056
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -183,9 +191,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        131
+#define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         40116
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1056
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif
