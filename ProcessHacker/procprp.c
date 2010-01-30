@@ -1685,6 +1685,22 @@ INT NTAPI PhpModuleSizeCompareFunction(
     return uintcmp(item1->Size, item2->Size);
 }
 
+COLORREF NTAPI PhpModuleColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item = Param;
+
+    if (PhCsUseColorDotNet && (item->Flags & LDRP_COR_IMAGE))
+        return PhCsColorDotNet;
+    if (PhCsUseColorRelocatedModules && (item->Flags & LDRP_IMAGE_NOT_AT_BASE))
+        return PhCsColorRelocatedModules;
+
+    return PhSysWindowColor;
+}
+
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1774,6 +1790,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
             ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
+            ExtendedListView_SetItemColorFunction(lvHandle, PhpModuleColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by Name, Base Address, Size.
