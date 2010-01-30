@@ -66,8 +66,12 @@ BOOLEAN PhSaveSettings(
 #define EXT extern
 #endif
 
+EXT ULONG PhCsUseColorDotNet;
+EXT ULONG PhCsColorDotNet;
 EXT ULONG PhCsUseColorGuiThreads;
 EXT ULONG PhCsColorGuiThreads;
+EXT ULONG PhCsUseColorRelocatedModules;
+EXT ULONG PhCsColorRelocatedModules;
 EXT ULONG PhCsUseColorProtectedHandles;
 EXT ULONG PhCsColorProtectedHandles;
 EXT ULONG PhCsUseColorInheritHandles;
