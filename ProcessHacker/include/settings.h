@@ -56,4 +56,24 @@ BOOLEAN PhSaveSettings(
     __in PWSTR FileName
     );
 
+// Cached settings
+
+#undef EXT
+
+#ifdef SETTINGS_PRIVATE
+#define EXT
+#else
+#define EXT extern
+#endif
+
+EXT ULONG PhCsUseColorGuiThreads;
+EXT ULONG PhCsColorGuiThreads;
+EXT ULONG PhCsUseColorProtectedHandles;
+EXT ULONG PhCsColorProtectedHandles;
+EXT ULONG PhCsUseColorInheritHandles;
+EXT ULONG PhCsColorInheritHandles;
+
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) \
+    (PhSetIntegerSetting(L#Name, (Value)), PhCs##Name = (Value))
+
 #endif

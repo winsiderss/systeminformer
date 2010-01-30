@@ -920,6 +920,27 @@ VOID PhThreadProviderUpdate(
                 }
             }
 
+            // Update the GUI thread status.
+
+            if (threadItem->ThreadHandle && PhKphHandle)
+            {
+                PVOID win32Thread;
+
+                if (NT_SUCCESS(KphGetThreadWin32Thread(
+                    PhKphHandle,
+                    threadItem->ThreadHandle,
+                    &win32Thread
+                    )))
+                {
+                    BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;
+
+                    threadItem->IsGuiThread = win32Thread != NULL;
+
+                    if (threadItem->IsGuiThread != oldIsGuiThread)
+                        modified = TRUE;
+                }
+            }
+
             threadItem->JustResolved = FALSE;
 
             if (modified)
