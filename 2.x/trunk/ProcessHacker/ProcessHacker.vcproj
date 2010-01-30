@@ -515,6 +515,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\tokprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\verify.c"
 				>
 			</File>
