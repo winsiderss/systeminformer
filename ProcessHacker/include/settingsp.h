@@ -4,6 +4,8 @@
 #include <shlobj.h>
 #include "mxml/mxml.h"
 
+VOID PhpUpdateCachedSettings();
+
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
     __in PVOID Entry1,
     __in PVOID Entry2

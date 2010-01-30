@@ -42,6 +42,8 @@ VOID PhMainWndServiceListViewOnNotify(
     __in LPNMHDR Header
     );
 
+VOID PhReloadSysParameters();
+
 VOID PhpSaveWindowState();
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
@@ -263,6 +265,8 @@ BOOLEAN PhMainWndInitialization(
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
 
+    PhReloadSysParameters();
+
     // Initialize child controls.
     PhMainWndOnCreate();
 
@@ -314,6 +318,11 @@ LRESULT CALLBACK PhMainWndProc(
                 PhSaveSettings(PhSettingsFileName->Buffer);
 
             PostQuitMessage(0);
+        }
+        break;
+    case WM_SETTINGCHANGE:
+        {
+            PhReloadSysParameters();
         }
         break;
     case WM_COMMAND:
@@ -785,6 +794,11 @@ LRESULT CALLBACK PhMainWndProc(
     REFLECT_MESSAGE(ServiceListViewHandle, uMsg, wParam, lParam);
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+VOID PhReloadSysParameters()
+{
+    PhSysWindowColor = GetSysColor(COLOR_WINDOW);
 }
 
 VOID PhpSaveWindowState()

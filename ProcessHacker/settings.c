@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define SETTINGS_PRIVATE
 #include <settings.h>
 #include <settingsp.h>
 
@@ -50,6 +51,27 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
+
+    // Colors are specified with R in the lowest byte, then G, then B.
+    // So: bbggrr.
+    PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
+    PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff"); // red is in the lowest byte, then green, then blue.
+    PhpAddIntegerSetting(L"UseColorProtectedHandles", L"1");
+    PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
+    PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
+    PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
+}
+
+VOID PhpUpdateCachedSettings()
+{
+#define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
+
+    UPDATE_INTEGER_CS(UseColorGuiThreads);
+    UPDATE_INTEGER_CS(ColorGuiThreads);
+    UPDATE_INTEGER_CS(UseColorProtectedHandles);
+    UPDATE_INTEGER_CS(ColorProtectedHandles);
+    UPDATE_INTEGER_CS(UseColorInheritHandles);
+    UPDATE_INTEGER_CS(ColorInheritHandles);
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
@@ -135,7 +157,7 @@ static PPH_STRING PhpSettingToString(
         }
     case IntegerSettingType:
         {
-            return PhFormatString(L"%u", (ULONG)Value);
+            return PhFormatString(L"%x", (ULONG)Value);
         }
     case IntegerPairSettingType:
         {
@@ -167,7 +189,7 @@ static BOOLEAN PhpSettingFromString(
         {
             ULONG integer;
 
-            if (swscanf(String->Buffer, L"%u", &integer) != EOF)
+            if (swscanf(String->Buffer, L"%x", &integer) != EOF)
             {
                 *Value = (PVOID)integer;
                 return TRUE;
@@ -508,6 +530,8 @@ BOOLEAN PhLoadSettings(
     }
 
     mxmlDelete(topNode);
+
+    PhpUpdateCachedSettings();
 
     return TRUE;
 }
