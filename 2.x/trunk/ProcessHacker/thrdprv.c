@@ -790,6 +790,14 @@ VOID PhThreadProviderUpdate(
             if (threadItem->JustResolved)
                 modified = TRUE;
 
+            threadItem->Priority = thread->Priority;
+
+            if (threadItem->WaitReason != thread->WaitReason)
+            {
+                threadItem->WaitReason = thread->WaitReason;
+                modified = TRUE;
+            }
+
             // If the resolve level is only at address, it probably 
             // means symbols weren't loaded the last time we 
             // tried to get the start address. Try again.
