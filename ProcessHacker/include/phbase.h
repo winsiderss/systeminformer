@@ -19,6 +19,7 @@ typedef struct _PH_PROVIDER_THREAD PH_PROVIDER_THREAD;
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
+extern BOOLEAN PhElevated;
 extern HANDLE PhHeapHandle;
 extern HINSTANCE PhInstanceHandle;
 extern HANDLE PhKphHandle;
