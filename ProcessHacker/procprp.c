@@ -1077,6 +1077,8 @@ COLORREF NTAPI PhpThreadColorFunction(
 {
     PPH_THREAD_ITEM item = Param;
 
+    if (PhCsUseColorSuspended && item->WaitReason == Suspended)
+        return PhCsColorSuspended;
     if (PhCsUseColorGuiThreads && item->IsGuiThread)
         return PhCsColorGuiThreads;
 
