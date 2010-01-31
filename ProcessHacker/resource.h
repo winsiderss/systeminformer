@@ -87,8 +87,9 @@
 #define IDC_PRIVILEGES                  1056
 #define IDC_SESSIONID                   1057
 #define IDC_ELEVATED                    1058
-#define IDC_ELEVATED2                   1059
 #define IDC_VIRTUALIZED                 1059
+#define IDC_BUTTON1                     1060
+#define IDC_PROPERTIES                  1060
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -197,7 +198,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         40116
-#define _APS_NEXT_CONTROL_VALUE         1060
+#define _APS_NEXT_CONTROL_VALUE         1061
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

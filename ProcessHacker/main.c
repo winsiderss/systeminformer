@@ -28,6 +28,7 @@
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 HFONT PhApplicationFont;
+BOOLEAN PhElevated;
 HANDLE PhHeapHandle;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
@@ -87,6 +88,22 @@ INT WINAPI WinMain(
 
     PhApplicationFileName = PhGetApplicationFileName();
     PhApplicationDirectory = PhGetApplicationDirectory();
+
+    {
+        HANDLE tokenHandle;
+
+        PhElevated = TRUE;
+
+        if (NT_SUCCESS(PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_QUERY,
+            NtCurrentProcess()
+            )))
+        {
+            PhGetTokenIsElevated(tokenHandle, &PhElevated);
+            CloseHandle(tokenHandle);
+        }
+    }
 
     // Load settings.
     {

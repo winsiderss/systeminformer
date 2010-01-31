@@ -909,7 +909,27 @@ PPH_STRING PhGetKnownLocation(
     return NULL;
 }
 
-BOOLEAN PhStartProcess(
+VOID PhShellExecute(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters
+    )
+{
+    SHELLEXECUTEINFO info = { sizeof(info) };
+
+    info.lpFile = FileName;
+    info.lpParameters = Parameters;
+    info.nShow = SW_SHOW;
+    info.hwnd = hWnd;
+
+    if (!ShellExecuteEx(&info))
+    {
+        // It already displays error messages by itself.
+        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
+    }
+}
+
+BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
     __in PWSTR Parameters,
@@ -944,26 +964,6 @@ BOOLEAN PhStartProcess(
     }
 }
 
-VOID PhShellExecute(
-    __in HWND hWnd,
-    __in PWSTR FileName,
-    __in PWSTR Parameters
-    )
-{
-    SHELLEXECUTEINFO info = { sizeof(info) };
-
-    info.lpFile = FileName;
-    info.lpParameters = Parameters;
-    info.nShow = SW_SHOW;
-    info.hwnd = hWnd;
-
-    if (!ShellExecuteEx(&info))
-    {
-        // It already displays error messages by itself.
-        //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
-    }
-}
-
 VOID PhShellExploreFile(
     __in HWND hWnd,
     __in PWSTR FileName
@@ -993,6 +993,82 @@ VOID PhShellProperties(
         // It already displays error messages by itself.
         //PhShowStatus(hWnd, L"Unable to execute the program", 0, GetLastError());
     }
+}
+
+VOID PhShellOpenKey(
+    __in HWND hWnd,
+    __in PPH_STRING KeyName
+    )
+{
+    PPH_STRING lastKey;
+    PPH_STRING tempString;
+    HKEY regeditKeyHandle;
+    PPH_STRING regeditFileName;
+
+    if (RegCreateKey(
+        HKEY_CURRENT_USER,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit",
+        &regeditKeyHandle
+        ) != ERROR_SUCCESS)
+        return;
+
+    // Expand the abbreviations.
+    if (PhStringStartsWith2(KeyName, L"HKCU", TRUE))
+    {
+        lastKey = PhConcatStrings2(L"HKEY_CURRENT_USER", &KeyName->Buffer[4]);
+    }
+    else if (PhStringStartsWith2(KeyName, L"HKU", TRUE))
+    {
+        lastKey = PhConcatStrings2(L"HKEY_USERS", &KeyName->Buffer[3]);
+    }
+    else if (PhStringStartsWith2(KeyName, L"HKCR", TRUE))
+    {
+        lastKey = PhConcatStrings2(L"HKEY_CLASSES_ROOT", &KeyName->Buffer[4]);
+    }
+    else if (PhStringStartsWith2(KeyName, L"HKLM", TRUE))
+    {
+        lastKey = PhConcatStrings2(L"HKEY_LOCAL_MACHINE", &KeyName->Buffer[4]);
+    }
+    else
+    {
+        lastKey = KeyName;
+        PhReferenceObject(KeyName);
+    }
+
+    // Set the last opened key in regedit's configuration. Note that 
+    // if we are on Vista, we need to prepend "Computer\".
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        tempString = PhConcatStrings2(L"Computer\\", lastKey->Buffer);
+        PhDereferenceObject(lastKey);
+        lastKey = tempString;
+    }
+
+    RegSetValueEx(regeditKeyHandle, L"LastKey", 0, REG_SZ, (PBYTE)lastKey->Buffer, lastKey->Length + 2);
+    PhDereferenceObject(lastKey);
+    RegCloseKey(regeditKeyHandle);
+
+    // Start regedit.
+    // If we aren't elevated, request that regedit be elevated. 
+    // This is so we can get the consent dialog in the center of 
+    // the specified window.
+
+    regeditFileName = PhGetKnownLocation(CSIDL_WINDOWS, L"\\regedit.exe");
+
+    if (!regeditFileName)
+        regeditFileName = PhCreateString(L"regedit.exe");
+
+    if (!PhElevated)
+    {
+        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, TRUE, 0);
+    }
+    else
+    {
+        PhShellExecute(hWnd, regeditFileName->Buffer, L"");
+    }
+
+    PhDereferenceObject(regeditFileName);
 }
 
 PPH_STRING PhQueryRegistryString(

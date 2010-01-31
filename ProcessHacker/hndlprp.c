@@ -116,10 +116,28 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+            BOOLEAN showPropertiesButton = FALSE;
             PPH_ACCESS_ENTRY accessEntries;
             ULONG numberOfAccessEntries;
             HANDLE processHandle;
             OBJECT_BASIC_INFORMATION basicInfo;
+
+            SetProp(hwndDlg, L"Context", (HANDLE)context);
+
+            if (!context)
+            {
+                // Dummy
+            }
+            else if (PhStringEquals2(context->HandleItem->TypeName, L"File", TRUE))
+            {
+                showPropertiesButton = TRUE;
+            }
+            else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
+            {
+                showPropertiesButton = TRUE;
+            }
+
+            ShowWindow(GetDlgItem(hwndDlg, IDC_PROPERTIES), showPropertiesButton ? SW_SHOW : SW_HIDE);
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhGetString(context->HandleItem->BestObjectName));
             SetDlgItemText(hwndDlg, IDC_TYPE, context->HandleItem->TypeName->Buffer);
@@ -187,6 +205,36 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 }
 
                 CloseHandle(processHandle);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            RemoveProp(hwndDlg, L"Context");
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_PROPERTIES:
+                {
+                    PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+
+                    if (!context)
+                    {
+                        // Dummy
+                    }
+                    else if (PhStringEquals2(context->HandleItem->TypeName, L"File", TRUE))
+                    {
+                        PhShellProperties(hwndDlg, context->HandleItem->BestObjectName->Buffer);
+                    }
+                    else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
+                    {
+                        PhShellOpenKey(hwndDlg, context->HandleItem->BestObjectName);
+                    }
+                }
+                break;
             }
         }
         break;
