@@ -2028,6 +2028,30 @@ NTSTATUS PhGetTokenUser(
 }
 
 /**
+ * Gets a token's session ID.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param SessionId A variable which receives the 
+ * session ID.
+ */
+NTSTATUS PhGetTokenSessionId(
+    __in HANDLE TokenHandle,
+    __out PULONG SessionId
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSessionId,
+        SessionId,
+        sizeof(ULONG),
+        &returnLength
+        );
+}
+
+/**
  * Gets a token's elevation type.
  *
  * \param TokenHandle A handle to a token. The handle 

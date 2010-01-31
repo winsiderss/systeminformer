@@ -330,6 +330,11 @@ NTSTATUS PhGetTokenUser(
     __out PTOKEN_USER *User
     );
 
+NTSTATUS PhGetTokenSessionId(
+    __in HANDLE TokenHandle,
+    __out PULONG SessionId
+    );
+
 NTSTATUS PhGetTokenElevationType(
     __in HANDLE TokenHandle,
     __out PTOKEN_ELEVATION_TYPE ElevationType

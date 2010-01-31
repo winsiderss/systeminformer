@@ -1614,6 +1614,75 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     return FALSE;
 }
 
+static NTSTATUS NTAPI PhpOpenProcessToken(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        (HANDLE)Context
+        )))
+        return status;
+
+    status = PhOpenProcessToken(Handle, DesiredAccess, processHandle);
+    CloseHandle(processHandle);
+
+    return status;
+}
+
+INT_PTR CALLBACK PhpProcessTokenHookProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            RemoveProp(hwndDlg, L"LayoutInitialized");
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!GetProp(hwndDlg, L"LayoutInitialized"))
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                // This is a big violation of abstraction...
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USER),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USERSID),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIRTUALIZED),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVILEGES),
+                    dialogItem, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                SetProp(hwndDlg, L"LayoutInitialized", (HANDLE)TRUE);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 static VOID NTAPI ModuleAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -2941,28 +3010,6 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     return FALSE;
 }
 
-static NTSTATUS NTAPI PhpOpenProcessToken(
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
-    )
-{
-    NTSTATUS status;
-    HANDLE processHandle;
-
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        ProcessQueryAccess,
-        (HANDLE)Context
-        )))
-        return status;
-
-    status = PhOpenProcessToken(Handle, DesiredAccess, processHandle);
-    CloseHandle(processHandle);
-
-    return status;
-}
-
 NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
@@ -3006,7 +3053,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     // Token
     PhAddProcessPropPage2(
         PropContext,
-        PhCreateTokenPage(PhpOpenProcessToken, (PVOID)PropContext->ProcessItem->ProcessId)
+        PhCreateTokenPage(PhpOpenProcessToken, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessTokenHookProc)
         );
 
     // Modules
