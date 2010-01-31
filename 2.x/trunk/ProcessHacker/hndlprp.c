@@ -81,7 +81,15 @@ VOID PhShowHandleProperties(
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    // 
+    // Object-specific page
+    if (PhStringEquals2(HandleItem->TypeName, L"Token", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateTokenPage(
+            PhpDuplicateHandleFromProcess,
+            &context,
+            NULL
+            );
+    }
 
     // Security page
     stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
