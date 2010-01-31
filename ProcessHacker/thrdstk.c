@@ -144,11 +144,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
             lvHandle = GetDlgItem(hwndDlg, IDC_THRDSTACK_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
-            ListView_SetExtendedListViewStyleEx(
-                lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER,
-                -1
-                );
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
 
             threadStackContext->ListViewHandle = lvHandle;
