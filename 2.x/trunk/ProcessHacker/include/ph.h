@@ -1526,19 +1526,19 @@ FORCEINLINE BOOLEAN PhFileExists(
     return GetFileAttributes(FileName) != INVALID_FILE_ATTRIBUTES;
 }
 
-BOOLEAN PhStartProcess(
+VOID PhShellExecute(
+    __in HWND hWnd,
+    __in PWSTR FileName,
+    __in PWSTR Parameters
+    );
+
+BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
     __in PWSTR Parameters,
     __in ULONG ShowWindowType,
     __in BOOLEAN StartAsAdmin,
     __in_opt ULONG Timeout
-    );
-
-VOID PhShellExecute(
-    __in HWND hWnd,
-    __in PWSTR FileName,
-    __in PWSTR Parameters
     );
 
 VOID PhShellExploreFile(
@@ -1549,6 +1549,11 @@ VOID PhShellExploreFile(
 VOID PhShellProperties(
     __in HWND hWnd,
     __in PWSTR FileName
+    );
+
+VOID PhShellOpenKey(
+    __in HWND hWnd,
+    __in PPH_STRING KeyName
     );
 
 PPH_STRING PhQueryRegistryString(
