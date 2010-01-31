@@ -1,4 +1,5 @@
 #include <phgui.h>
+#include <kph.h>
 
 typedef struct _HANDLE_PROPERTIES_CONTEXT
 {
@@ -72,7 +73,7 @@ VOID PhShowHandleProperties(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
-    // General page.
+    // General page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_HNDLGENERAL);
@@ -80,7 +81,9 @@ VOID PhShowHandleProperties(
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    // Security page.
+    // 
+
+    // Security page
     stdObjectSecurity.OpenObject = PhpDuplicateHandleFromProcess;
     stdObjectSecurity.ObjectType = HandleItem->TypeName->Buffer;
     stdObjectSecurity.Context = &context;
@@ -133,6 +136,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 showPropertiesButton = TRUE;
             }
             else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
+            {
+                showPropertiesButton = TRUE;
+            }
+            else if (PhStringEquals2(context->HandleItem->TypeName, L"Process", TRUE))
             {
                 showPropertiesButton = TRUE;
             }
@@ -232,6 +239,64 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
                     {
                         PhShellOpenKey(hwndDlg, context->HandleItem->BestObjectName);
+                    }
+                    else if (PhStringEquals2(context->HandleItem->TypeName, L"Process", TRUE))
+                    {
+                        HANDLE processHandle;
+                        HANDLE processId;
+                        PPH_PROCESS_ITEM processItem;
+
+                        processId = NULL;
+
+                        if (PhKphHandle)
+                        {
+                            if (NT_SUCCESS(PhOpenProcess(
+                                &processHandle,
+                                ProcessQueryAccess,
+                                context->ProcessId
+                                )))
+                            {
+                                KphGetProcessId(
+                                    PhKphHandle,
+                                    processHandle,
+                                    context->HandleItem->Handle,
+                                    &processId
+                                    );
+                                CloseHandle(processHandle);
+                            }
+                        }
+                        else
+                        {
+                            HANDLE handle;
+                            PROCESS_BASIC_INFORMATION basicInfo;
+
+                            if (NT_SUCCESS(PhpDuplicateHandleFromProcess(
+                                &handle,
+                                ProcessQueryAccess,
+                                context
+                                )))
+                            {
+                                if (NT_SUCCESS(PhGetProcessBasicInformation(handle, &basicInfo)))
+                                    processId = basicInfo.UniqueProcessId;
+
+                                CloseHandle(handle);
+                            }
+                        }
+
+                        if (processId)
+                        {
+                            processItem = PhReferenceProcessItem(processId);
+
+                            if (processItem)
+                            {
+                                ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                                PhDereferenceObject(processItem);
+                            }
+                            else
+                            {
+                                PhShowError(hwndDlg, L"The process does not exist.");
+                            }
+                        }
                     }
                 }
                 break;

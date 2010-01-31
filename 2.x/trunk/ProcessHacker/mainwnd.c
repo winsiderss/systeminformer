@@ -744,6 +744,11 @@ LRESULT CALLBACK PhMainWndProc(
             return PH_ACTIVATE_REPLY;
         }
         break;
+    case WM_PH_SHOW_PROCESS_PROPERTIES:
+        {
+            PhpShowProcessProperties((PPH_PROCESS_ITEM)lParam);
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
