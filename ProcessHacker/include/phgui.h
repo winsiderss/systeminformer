@@ -853,11 +853,10 @@ VOID PhShowThreadStackDialog(
 
 // tokprp
 
-#define WM_PH_INIT_LAYOUT_TOKEN_PAGE (WM_APP + 500)
-
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in PVOID Context,
+    __in_opt DLGPROC HookProc
     );
 
 #endif
