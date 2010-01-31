@@ -446,6 +446,8 @@ extern HWND PhMainWndHandle;
 #define WM_PH_ACTIVATE (WM_APP + 99)
 #define PH_ACTIVATE_REPLY 0x1119
 
+#define WM_PH_SHOW_PROCESS_PROPERTIES (WM_APP + 120)
+
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
 #define WM_PH_PROCESS_REMOVED (WM_APP + 103)
@@ -454,6 +456,9 @@ extern HWND PhMainWndHandle;
 #define WM_PH_SERVICE_MODIFIED (WM_APP + 105)
 #define WM_PH_SERVICE_REMOVED (WM_APP + 106)
 #define WM_PH_SERVICES_UPDATED (WM_APP + 107)
+
+#define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
+    SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
