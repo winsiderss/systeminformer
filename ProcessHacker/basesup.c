@@ -554,6 +554,38 @@ PPH_STRING PhConcatStrings_V(
 }
 
 /**
+ * Concatenates two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ */
+PPH_STRING PhConcatStrings2(
+    __in PWSTR String1,
+    __in PWSTR String2
+    )
+{
+    PPH_STRING string;
+    SIZE_T length1;
+    SIZE_T length2;
+
+    length1 = wcslen(String1) * sizeof(WCHAR);
+    length2 = wcslen(String2) * sizeof(WCHAR);
+    string = PhCreateStringEx(NULL, length1 + length2);
+    memcpy(
+        string->Buffer,
+        String1,
+        length1
+        );
+    memcpy(
+        &string->Buffer[length1 / sizeof(WCHAR)],
+        String2,
+        length2
+        );
+
+    return string;
+}
+
+/**
  * Creates a string using format specifiers.
  *
  * \param Format The format-control string.
