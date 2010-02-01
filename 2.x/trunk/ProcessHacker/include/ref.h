@@ -34,13 +34,12 @@
 
 /* Object type callbacks */
 
-/* PPH_TYPE_DELETE_PROCEDURE
- * 
+/**
  * The delete procedure for an object type, called when 
  * an object of the type is being freed.
  * 
- * Object: A pointer to the object being freed.
- * Flags: The flags specified when the object was created.
+ * \param Object A pointer to the object being freed.
+ * \param Flags The flags specified when the object was created.
  */
 typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
     __in PVOID Object,

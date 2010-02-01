@@ -49,6 +49,11 @@ VOID NTAPI PhpHashtableDeleteProcedure(
     __in ULONG Flags
     );
 
+VOID PhpFreeListDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    );
+
 PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhAnsiStringType;
 PPH_OBJECT_TYPE PhStringBuilderType;
@@ -56,6 +61,7 @@ PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
+PPH_OBJECT_TYPE PhFreeListType;
 
 static ULONG PhpPrimeNumbers[] =
 {
@@ -120,6 +126,13 @@ BOOLEAN PhInitializeBase()
         &PhHashtableType,
         0,
         PhpHashtableDeleteProcedure
+        )))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhCreateObjectType(
+        &PhFreeListType,
+        0,
+        PhpFreeListDeleteProcedure
         )))
         return FALSE;
 
@@ -2067,6 +2080,123 @@ ULONG PhHashBytesSdbm(
     }
 
     return hash;
+}
+
+/**
+ * Creates a free list object.
+ *
+ * \param Size The number of bytes in each allocation.
+ * \param MaximumCount The number of unused allocations 
+ * to store.
+ */
+PPH_FREE_LIST PhCreateFreeList(
+    __in SIZE_T Size,
+    __in ULONG MaximumCount
+    )
+{
+    PPH_FREE_LIST freeList;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &freeList,
+        FIELD_OFFSET(PH_FREE_LIST, List) + MaximumCount * sizeof(PVOID),
+        0,
+        PhFreeListType,
+        0
+        )))
+        return NULL;
+
+    // Maximum count of 0 is not allowed.
+    if (MaximumCount == 0)
+        MaximumCount = 1;
+
+    freeList->Count = 0;
+    freeList->Size = Size;
+    freeList->MaximumCount = MaximumCount;
+
+    return freeList;
+}
+
+VOID PhpFreeListDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    )
+{
+    PPH_FREE_LIST freeList = (PPH_FREE_LIST)Object;
+    ULONG i;
+
+    for (i = 0; i < freeList->Count; i++)
+        PhFree(freeList->List[i]);
+}
+
+/**
+ * Allocates a block of memory from a free list.
+ *
+ * \param FreeList A pointer to a free list object.
+ *
+ * \return A pointer to the allocated block of 
+ * memory.
+ */
+PVOID PhAllocateFromFreeList(
+    __inout PPH_FREE_LIST FreeList
+    )
+{
+    ULONG count;
+
+    while (TRUE)
+    {
+        count = FreeList->Count;
+
+        if (count == 0)
+        {
+            // No unused allocations. Just allocate.
+            return PhAllocate(FreeList->Size);
+        }
+
+        if (_InterlockedCompareExchange(
+            &FreeList->Count,
+            count - 1,
+            count
+            ) == count)
+        {
+            return FreeList->List[count - 1];
+        }
+    }
+}
+
+/**
+ * Frees a block of memory to a free list.
+ *
+ * \param FreeList A pointer to a free list object.
+ * \param Memory A pointer to a block of memory.
+ */
+VOID PhFreeToFreeList(
+    __inout PPH_FREE_LIST FreeList,
+    __in PVOID Memory
+    )
+{
+    ULONG count;
+
+    while (TRUE)
+    {
+        count = FreeList->Count;
+
+        if (count == FreeList->MaximumCount)
+        {
+            // No room for the allocation. Discard it.
+            PhFree(Memory);
+            break;
+        }
+
+        if (_InterlockedCompareExchange(
+            &FreeList->Count,
+            count + 1,
+            count
+            ) == count)
+        {
+            FreeList->List[count] = Memory;
+            break;
+        }
+    }
 }
 
 /**
