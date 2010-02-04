@@ -511,19 +511,26 @@ PPH_STRING PhFormatDecimal(
 }
 
 PPH_STRING PhFormatSize(
-    __in ULONG64 Size
+    __in ULONG64 Size,
+    __in ULONG MaxSizeUnit
     )
 {
     ULONG i = 0;
+    ULONG maxSizeUnit;
     DOUBLE s = (DOUBLE)Size;
 
     if (Size == 0)
         return PhCreateString(L"0");
 
+    if (MaxSizeUnit != -1)
+        maxSizeUnit = MaxSizeUnit;
+    else
+        maxSizeUnit = PhMaxSizeUnit;
+
     while (
         s > 1024 &&
         i < sizeof(PhSizeUnitNames) / sizeof(PWSTR) &&
-        i < PhMaxSizeUnit
+        i < maxSizeUnit
         )
     {
         s /= 1024;

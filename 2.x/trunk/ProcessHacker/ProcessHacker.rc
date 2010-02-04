@@ -498,6 +498,16 @@ BEGIN
     LTEXT           "Unknown",IDC_VIRTUALIZED,189,34,44,8
 END
 
+IDD_HEAPS DIALOGEX 0, 0, 270, 267
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Heaps"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,213,246,50,14
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,256,233
+    CONTROL         "Sizes in bytes",IDC_SIZESINBYTES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,248,59,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -617,6 +627,14 @@ BEGIN
         RIGHTMARGIN, 233
         TOPMARGIN, 7
         BOTTOMMARGIN, 253
+    END
+
+    IDD_HEAPS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 263
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 260
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -367,7 +367,7 @@ VOID PhModuleProviderUpdate(
             moduleItem->FileName = module->FileName;
             PhReferenceObject(moduleItem->FileName);
 
-            moduleItem->SizeString = PhFormatSize(moduleItem->Size);
+            moduleItem->SizeString = PhFormatSize(moduleItem->Size, -1);
 
             PhInitializeImageVersionInfo(
                 &moduleItem->VersionInfo,

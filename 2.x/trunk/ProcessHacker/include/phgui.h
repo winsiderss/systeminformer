@@ -381,11 +381,17 @@ typedef COLORREF (NTAPI *PPH_GET_ITEM_COLOR)(
     __in PVOID Context
     );
 
+typedef HFONT (NTAPI *PPH_GET_ITEM_FONT)(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    );
+
 VOID PhSetExtendedListView(
     __in HWND hWnd
     );
 
-// max 1116
+// max 1117
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
@@ -394,6 +400,7 @@ VOID PhSetExtendedListView(
 #define ELVM_SETCONTEXT (WM_APP + 1103)
 #define ELVM_SETCURSOR (WM_APP + 1114)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
+#define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_SETNEWCOLOR (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
 #define ELVM_SETREMOVINGCOLOR (WM_APP + 1113)
@@ -418,6 +425,8 @@ VOID PhSetExtendedListView(
     SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
+#define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
+    SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
 #define ExtendedListView_SetNewColor(hWnd, NewColor) \
     SendMessage((hWnd), ELVM_SETNEWCOLOR, (WPARAM)(NewColor), 0)
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
