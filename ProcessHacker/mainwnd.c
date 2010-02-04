@@ -804,6 +804,10 @@ LRESULT CALLBACK PhMainWndProc(
 VOID PhReloadSysParameters()
 {
     PhSysWindowColor = GetSysColor(COLOR_WINDOW);
+
+    DeleteObject(PhApplicationFont);
+    DeleteObject(PhBoldMessageFont);
+    PhInitializeFont(PhMainWndHandle);
 }
 
 VOID PhpSaveWindowState()

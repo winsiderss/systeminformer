@@ -1797,6 +1797,20 @@ COLORREF NTAPI PhpModuleColorFunction(
     return PhSysWindowColor;
 }
 
+HFONT NTAPI PhpModuleFontFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item = Param;
+
+    if (item->IsFirst)
+        return PhBoldMessageFont;
+
+    return NULL;
+}
+
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1887,6 +1901,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
             ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpModuleColorFunction);
+            ExtendedListView_SetItemFontFunction(lvHandle, PhpModuleFontFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by Name, Base Address, Size.
