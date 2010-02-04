@@ -59,7 +59,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
     PhpAddIntegerSetting(L"ColorDotNet", L"00ffde");
     PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
-    PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff"); // red is in the lowest byte, then green, then blue.
+    PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff");
     PhpAddIntegerSetting(L"UseColorRelocatedModules", L"1");
     PhpAddIntegerSetting(L"ColorRelocatedModules", L"80c0ff");
     PhpAddIntegerSetting(L"UseColorProtectedHandles", L"1");
