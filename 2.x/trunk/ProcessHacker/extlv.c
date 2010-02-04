@@ -263,6 +263,18 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                             context->Context
                                             );
                                     }
+
+                                    if (context->ItemFontFunction)
+                                    {
+                                        newFont = context->ItemFontFunction(
+                                            (INT)customDraw->nmcd.dwItemSpec,
+                                            (PVOID)customDraw->nmcd.lItemlParam,
+                                            context->Context
+                                            );
+                                    }
+
+                                    if (newFont)
+                                        SelectObject(customDraw->nmcd.hdc, newFont);
                                 }
                                 else if (itemState == NewItemState)
                                 {
@@ -272,18 +284,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 {
                                     customDraw->clrTextBk = context->RemovingColor;
                                 }
-
-                                if (context->ItemFontFunction)
-                                {
-                                    newFont = context->ItemFontFunction(
-                                        (INT)customDraw->nmcd.dwItemSpec,
-                                        (PVOID)customDraw->nmcd.lItemlParam,
-                                        context->Context
-                                        );
-                                }
-
-                                if (newFont)
-                                    SelectObject(customDraw->nmcd.hdc, newFont);
 
                                 if (!newFont)
                                     return CDRF_DODEFAULT;
