@@ -1462,7 +1462,8 @@ PPH_STRING PhFormatDecimal(
     );
 
 PPH_STRING PhFormatSize(
-    __in ULONG64 Size
+    __in ULONG64 Size,
+    __in ULONG MaxSizeUnit
     );
 
 PPH_STRING PhFormatGuid(

@@ -50,6 +50,7 @@ typedef struct _PH_EXTLV_CONTEXT
     COLORREF NewColor;
     COLORREF RemovingColor;
     PPH_GET_ITEM_COLOR ItemColorFunction;
+    PPH_GET_ITEM_FONT ItemFontFunction;
     PPH_HASHTABLE TickHashtable;
 
     // Misc.
@@ -136,6 +137,7 @@ VOID PhSetExtendedListView(
     context->NewColor = RGB(0x00, 0xff, 0x00);
     context->RemovingColor = RGB(0xff, 0x00, 0x00);
     context->ItemColorFunction = NULL;
+    context->ItemFontFunction = NULL;
     context->TickHashtable = PhCreateHashtable(
         sizeof(PH_TICK_ENTRY),
         PhpTickHashtableCompareFunction,
@@ -242,6 +244,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             {
                                 LVITEM item;
                                 PH_ITEM_STATE itemState;
+                                HFONT newFont = NULL;
 
                                 item.mask = LVIF_STATE;
                                 item.iItem = (INT)customDraw->nmcd.dwItemSpec;
@@ -269,8 +272,25 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 {
                                     customDraw->clrTextBk = context->RemovingColor;
                                 }
+
+                                if (context->ItemFontFunction)
+                                {
+                                    newFont = context->ItemFontFunction(
+                                        (INT)customDraw->nmcd.dwItemSpec,
+                                        (PVOID)customDraw->nmcd.lItemlParam,
+                                        context->Context
+                                        );
+                                }
+
+                                if (newFont)
+                                    SelectObject(customDraw->nmcd.hdc, newFont);
+
+                                if (!newFont)
+                                    return CDRF_DODEFAULT;
+                                else
+                                    return CDRF_NEWFONT;
                             }
-                            return CDRF_DODEFAULT;
+                            break;
                         }
                     }
                 }
@@ -467,6 +487,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_SETITEMCOLORFUNCTION:
         {
             context->ItemColorFunction = (PPH_GET_ITEM_COLOR)lParam;
+        }
+        return TRUE;
+    case ELVM_SETITEMFONTFUNCTION:
+        {
+            context->ItemFontFunction = (PPH_GET_ITEM_FONT)lParam;
         }
         return TRUE;
     case ELVM_SETNEWCOLOR:
