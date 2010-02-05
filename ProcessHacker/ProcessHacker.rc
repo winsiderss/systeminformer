@@ -259,6 +259,16 @@ BEGIN
     END
 END
 
+IDR_FINDOBJ MENU 
+BEGIN
+    POPUP "Object"
+    BEGIN
+        MENUITEM "Close\aDel",                  ID_OBJECT_CLOSE
+        MENUITEM "Process Properties",          ID_OBJECT_PROCESSPROPERTIES
+        MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
