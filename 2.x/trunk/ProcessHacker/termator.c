@@ -765,11 +765,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             lvHandle = GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"ID");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Description");
-            ListView_SetExtendedListViewStyleEx(
-                lvHandle,
-                LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER,
-                -1
-                );
+            PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
 
             imageList = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);

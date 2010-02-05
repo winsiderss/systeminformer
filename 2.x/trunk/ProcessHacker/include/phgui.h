@@ -867,6 +867,14 @@ VOID PhShowThreadStackDialog(
 
 // tokprp
 
+PPH_STRING PhGetGroupAttributesString(
+    __in ULONG Attributes
+    );
+
+PWSTR PhGetPrivilegeAttributesString(
+    __in ULONG Attributes
+    );
+
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context,

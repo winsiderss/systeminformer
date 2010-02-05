@@ -29,6 +29,8 @@
 #define IDD_DIALOG1                     131
 #define IDD_OBJTOKEN                    131
 #define IDD_HEAPS                       132
+#define IDR_MENU1                       133
+#define IDR_PRIVILEGE                   133
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -91,7 +93,6 @@
 #define IDC_VIRTUALIZED                 1059
 #define IDC_PROPERTIES                  1060
 #define IDC_LIST                        1061
-#define IDC_CHECK1                      1062
 #define IDC_SIZESINBYTES                1062
 #define ID_MAINWND_PROCESSLV            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -194,13 +195,16 @@
 #define ID_SERVICE_STOP                 40111
 #define ID_SERVICE_DELETE               40112
 #define ID_SERVICE_PROPERTIES           40113
+#define ID_PRIVILEGE_ENABLE             40116
+#define ID_PRIVILEGE_DISABLE            40117
+#define ID_PRIVILEGE_REMOVE             40118
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        133
-#define _APS_NEXT_COMMAND_VALUE         40116
+#define _APS_NEXT_RESOURCE_VALUE        134
+#define _APS_NEXT_COMMAND_VALUE         40119
 #define _APS_NEXT_CONTROL_VALUE         1063
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
