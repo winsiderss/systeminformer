@@ -4,14 +4,25 @@
 #define WM_PH_SEARCH_UPDATE (WM_APP + 801)
 #define WM_PH_SEARCH_FINISHED (WM_APP + 802)
 
+typedef enum _PHP_OBJECT_RESULT_TYPE
+{
+    HandleSearchResult,
+    ModuleSearchResult,
+    MappedFileSearchResult
+} PHP_OBJECT_RESULT_TYPE;
+
 typedef struct _PHP_OBJECT_SEARCH_RESULT
 {
     HANDLE ProcessId;
+    PHP_OBJECT_RESULT_TYPE ResultType;
+
     HANDLE Handle;
     PPH_STRING TypeName;
     PPH_STRING Name;
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
+
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Info;
 } PHP_OBJECT_SEARCH_RESULT, *PPHP_OBJECT_SEARCH_RESULT;
 
 INT_PTR CALLBACK PhpFindObjectsDlgProc(      
@@ -26,6 +37,7 @@ NTSTATUS PhpFindObjectsThreadStart(
     );
 
 HWND PhFindObjectsWindowHandle = NULL;
+HWND PhFindObjectsListViewHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 
 static HANDLE SearchThreadHandle = NULL;
@@ -53,6 +65,36 @@ VOID PhShowFindObjectsDialog()
         BringWindowToTop(PhFindObjectsWindowHandle);
 }
 
+VOID PhpInitializeFindObjMenu(
+    __in HMENU Menu,
+    __in PPHP_OBJECT_SEARCH_RESULT *Results,
+    __in ULONG NumberOfResults
+    )
+{
+    BOOLEAN allCanBeClosed = TRUE;
+    ULONG i;
+
+    if (NumberOfResults == 1)
+    {
+        // Nothing
+    }
+    else
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+
+    for (i = 0; i < NumberOfResults; i++)
+    {
+        if (Results[i]->ResultType != HandleSearchResult)
+        {
+            allCanBeClosed = FALSE;
+            break;
+        }
+    }
+
+    PhEnableMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
+}
+
 static INT_PTR CALLBACK PhpFindObjectsDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -67,7 +109,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             HWND lvHandle;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
+            PhFindObjectsListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_RESULTS);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_FILTER),
@@ -131,7 +173,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         // Cleanup previous results.
 
-                        ListView_DeleteAllItems(GetDlgItem(hwndDlg, IDC_RESULTS));
+                        ListView_DeleteAllItems(PhFindObjectsListViewHandle);
 
                         if (SearchResults)
                         {
@@ -173,6 +215,104 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             case IDCANCEL:
                 {
                     SendMessage(hwndDlg, WM_CLOSE, 0, 0);
+                }
+                break;
+            case ID_OBJECT_PROCESSPROPERTIES:
+                {
+                    PPHP_OBJECT_SEARCH_RESULT result =
+                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+
+                    if (result)
+                    {
+                        PPH_PROCESS_ITEM processItem;
+
+                        if (processItem = PhReferenceProcessItem(result->ProcessId))
+                        {
+                            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                            PhDereferenceObject(processItem);
+                        }
+                    }
+                }
+                break;
+            case ID_OBJECT_PROPERTIES:
+                {
+                    PPHP_OBJECT_SEARCH_RESULT result =
+                        PhGetSelectedListViewItemParam(PhFindObjectsListViewHandle);
+
+                    if (result)
+                    {
+                        PPH_HANDLE_ITEM handleItem;
+
+                        handleItem = PhCreateHandleItem(&result->Info);
+
+                        handleItem->BestObjectName = handleItem->ObjectName = result->Name;
+                        PhReferenceObjectEx(result->Name, 2);
+
+                        handleItem->TypeName = result->TypeName;
+                        PhReferenceObject(result->TypeName);
+
+                        PhShowHandleProperties(
+                            hwndDlg,
+                            result->ProcessId,
+                            handleItem
+                            );
+                        PhDereferenceObject(handleItem);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == PhFindObjectsListViewHandle)
+                    {
+                        SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_PROPERTIES, 0);
+                    }
+                }
+                break;
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == PhFindObjectsListViewHandle)
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPHP_OBJECT_SEARCH_RESULT *results;
+                        ULONG numberOfResults;
+
+                        PhGetSelectedListViewItemParams(PhFindObjectsListViewHandle, &results, &numberOfResults);
+
+                        if (numberOfResults != 0)
+                        {
+                            HMENU menu;
+                            HMENU subMenu;
+
+                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ));
+                            subMenu = GetSubMenu(menu, 0);
+
+                            SetMenuDefaultItem(subMenu, ID_OBJECT_PROPERTIES, FALSE);
+                            PhpInitializeFindObjMenu(
+                                subMenu,
+                                results,
+                                numberOfResults
+                                );
+
+                            PhShowContextMenu(
+                                hwndDlg,
+                                PhFindObjectsListViewHandle,
+                                subMenu,
+                                itemActivate->ptAction
+                                );
+                            DestroyMenu(menu);
+                        }
+
+                        PhFree(results);
+                    }
                 }
                 break;
             }
@@ -345,10 +485,12 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
                     searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
                     searchResult->ProcessId = (HANDLE)handleInfo->UniqueProcessId;
+                    searchResult->ResultType = HandleSearchResult;
                     searchResult->Handle = (HANDLE)handleInfo->HandleValue;
                     searchResult->TypeName = typeName;
                     searchResult->Name = bestObjectName;
                     PhPrintPointer(searchResult->HandleString, (PVOID)searchResult->Handle);
+                    searchResult->Info = *handleInfo;
 
                     PhAcquireMutex(&SearchResultsLock);
 

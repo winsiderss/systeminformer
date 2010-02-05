@@ -126,7 +126,9 @@ VOID PhpHandleProviderDeleteProcedure(
     if (handleProvider->ProcessHandle) CloseHandle(handleProvider->ProcessHandle);
 }
 
-PPH_HANDLE_ITEM PhCreateHandleItem()
+PPH_HANDLE_ITEM PhCreateHandleItem(
+    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO Handle
+    )
 {
     PPH_HANDLE_ITEM handleItem;
 
@@ -140,6 +142,17 @@ PPH_HANDLE_ITEM PhCreateHandleItem()
         return NULL;
 
     memset(handleItem, 0, sizeof(PH_HANDLE_ITEM));
+
+    if (Handle)
+    {
+        handleItem->Handle = (HANDLE)Handle->HandleValue;
+        PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
+        handleItem->Object = Handle->Object;
+        PhPrintPointer(handleItem->ObjectString, handleItem->Object);
+        handleItem->Attributes = Handle->HandleAttributes;
+        handleItem->GrantedAccess = (ACCESS_MASK)Handle->GrantedAccess;
+        PhPrintPointer(handleItem->GrantedAccessString, (PVOID)handleItem->GrantedAccess);
+    }
 
     return handleItem;
 }
@@ -325,16 +338,9 @@ VOID PhHandleProviderUpdate(
 
         if (!handleItem)
         {
-            handleItem = PhCreateHandleItem();
+            handleItem = PhCreateHandleItem(handle);
 
             handleItem->RunId = handleProvider->RunCount;
-            handleItem->Handle = (HANDLE)handle->HandleValue;
-            PhPrintPointer(handleItem->HandleString, (PVOID)handleItem->Handle);
-            handleItem->Object = handle->Object;
-            PhPrintPointer(handleItem->ObjectString, handleItem->Object);
-            handleItem->Attributes = handle->HandleAttributes;
-            handleItem->GrantedAccess = (ACCESS_MASK)handle->GrantedAccess;
-            PhPrintPointer(handleItem->GrantedAccessString, (PVOID)handleItem->GrantedAccess);
 
             PhGetHandleInformation(
                 handleProvider->ProcessHandle,

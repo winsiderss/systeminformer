@@ -975,6 +975,10 @@ typedef enum _PH_SERVICE_CHANGE
 
 BOOLEAN PhInitializeServiceProvider();
 
+PPH_SERVICE_ITEM PhCreateServiceItem(
+    __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
+    );
+
 PPH_SERVICE_ITEM PhReferenceServiceItem(
     __in PWSTR Name
     );
@@ -1205,7 +1209,9 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     __in HANDLE ProcessId
     );
 
-PPH_HANDLE_ITEM PhCreateHandleItem();
+PPH_HANDLE_ITEM PhCreateHandleItem(
+    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO Handle
+    );
 
 PPH_HANDLE_ITEM PhReferenceHandleItem(
     __in PPH_HANDLE_PROVIDER HandleProvider,
