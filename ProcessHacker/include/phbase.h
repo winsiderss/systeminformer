@@ -214,6 +214,33 @@ extern PPH_OBJECT_TYPE PhStringType;
 
 #define PH_STRING_MAXLEN MAXUINT16
 
+typedef struct _PH_STRINGREF
+{
+    USHORT Length;
+    USHORT Reserved;
+    PWSTR Buffer;
+} PH_STRINGREF, *PPH_STRINGREF;
+
+FORCEINLINE VOID PhInitializeStringRef(
+    __out PPH_STRINGREF String,
+    __in PWSTR Buffer
+    )
+{
+    String->Length = wcslen(Buffer) * sizeof(WCHAR);
+    String->Buffer = Buffer;
+}
+
+FORCEINLINE PH_STRINGREF PhCreateStringRef(
+    __in PWSTR Buffer
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, Buffer);
+
+    return string;
+}
+
 /**
  * A Unicode string object.
  */
@@ -223,6 +250,7 @@ typedef struct _PH_STRING
     {
         /** An embedded UNICODE_STRING structure. */
         UNICODE_STRING us;
+        PH_STRINGREF sr;
         struct
         {
             /** The length, in bytes, of the string. */
@@ -1345,6 +1373,24 @@ FORCEINLINE VOID PhIncrementMultipleCallbackSync(
     if ((ULONG)_InterlockedIncrement(&CallbackSync->Value) >= CallbackSync->Target)
         PhInvokeCallback(&CallbackSync->Callback, CallbackSync->Parameter); 
 }
+
+// general
+
+ULONG PhExponentiate(
+    __in ULONG Base,
+    __in ULONG Exponent
+    );
+
+ULONG64 PhExponentiate64(
+    __in ULONG64 Base,
+    __in ULONG Exponent
+    );
+
+BOOLEAN PhStringToInteger64(
+    __in PWSTR String,
+    __in_opt ULONG Base,
+    __out PLONG64 Integer
+    );
 
 // basesupa
 
