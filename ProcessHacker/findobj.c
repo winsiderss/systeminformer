@@ -258,6 +258,8 @@ static NTSTATUS PhpFindObjectsThreadStart(
 {
     PSYSTEM_HANDLE_INFORMATION handles;
     PPH_HASHTABLE processHandleHashtable;
+    ULONG64 searchPointer;
+    BOOLEAN useSearchPointer;
     ULONG i;
 
     PhBaseThreadInitialization();
@@ -267,6 +269,9 @@ static NTSTATUS PhpFindObjectsThreadStart(
         goto Exit;
 
     PhLowerString(SearchString);
+
+    // Try to get a search pointer from the search string.
+    useSearchPointer = PhStringToInteger64(SearchString->Buffer, 0, &searchPointer);
 
     if (NT_SUCCESS(PhEnumHandles(&handles)))
     {
@@ -331,7 +336,10 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 lowerBestObjectName = PhDuplicateString(bestObjectName);
                 PhLowerString(lowerBestObjectName);
 
-                if (PhStringIndexOfString(lowerBestObjectName, 0, SearchString->Buffer) != -1)
+                if (
+                    PhStringIndexOfString(lowerBestObjectName, 0, SearchString->Buffer) != -1 ||
+                    (useSearchPointer && handleInfo->Object == (PVOID)searchPointer)
+                    )
                 {
                     PPHP_OBJECT_SEARCH_RESULT searchResult;
 
