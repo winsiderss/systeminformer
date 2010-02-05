@@ -249,6 +249,16 @@ BEGIN
     END
 END
 
+IDR_PRIVILEGE MENU 
+BEGIN
+    POPUP "Privilege"
+    BEGIN
+        MENUITEM "Enable",                      ID_PRIVILEGE_ENABLE
+        MENUITEM "Disable",                     ID_PRIVILEGE_DISABLE
+        MENUITEM "Remove",                      ID_PRIVILEGE_REMOVE
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

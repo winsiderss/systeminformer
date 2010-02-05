@@ -253,13 +253,20 @@ static NTSTATUS PhpRefreshThreadStack(
     __in PTHREAD_STACK_CONTEXT ThreadStackContext
     )
 {
+    NTSTATUS status;
+
     ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
 
-    return PhWalkThreadStack(
+    SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+    status = PhWalkThreadStack(
         ThreadStackContext->ThreadHandle,
         ThreadStackContext->SymbolProvider->ProcessHandle,
         PH_WALK_I386_STACK | PH_WALK_AMD64_STACK | PH_WALK_KERNEL_STACK,
         PhpWalkThreadStackCallback,
         ThreadStackContext
         );
+    SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, TRUE, 0);
+    InvalidateRect(ThreadStackContext->ListViewHandle, NULL, FALSE);
+
+    return status;
 }
