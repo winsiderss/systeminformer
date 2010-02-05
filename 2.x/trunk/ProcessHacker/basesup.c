@@ -63,6 +63,22 @@ PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 PPH_OBJECT_TYPE PhFreeListType;
 
+static ULONG PhpCharToInteger[] =
+{
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 38, 39, 40, 41,
+    42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 52,
+    53, 54, 55, 56, 57, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 60, 61, 62, 63, 64, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
+    33, 34, 35, 65, 66, 67, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+};
+
 static ULONG PhpPrimeNumbers[] =
 {
     0x3, 0x7, 0xb, 0x11, 0x17, 0x1d, 0x25, 0x2f, 0x3b, 0x47, 0x59, 0x6b, 0x83,
@@ -2401,4 +2417,147 @@ VOID PhInvokeCallback(
     }
 
     PhReleaseFastLockShared(&Callback->ListLock);
+}
+
+ULONG PhExponentiate(
+    __in ULONG Base,
+    __in ULONG Exponent
+    )
+{
+    ULONG result = 1;
+
+    while (Exponent)
+    {
+        if (Exponent & 1)
+            result *= Base;
+
+        Exponent >>= 1;
+        Base *= Base;
+    }
+
+    return result;
+}
+
+ULONG64 PhExponentiate64(
+    __in ULONG64 Base,
+    __in ULONG Exponent
+    )
+{
+    ULONG64 result = 1;
+
+    while (Exponent)
+    {
+        if (Exponent & 1)
+            result *= Base;
+
+        Exponent >>= 1;
+        Base *= Base;
+    }
+
+    return result;
+}
+
+BOOLEAN PhpStringToInteger64(
+    __in PWSTR String,
+    __in ULONG Base,
+    __out PLONG64 Integer
+    )
+{
+    LONG64 result;
+    ULONG length;
+    BOOLEAN negative = FALSE;
+    ULONG i;
+
+    if (Base > 70)
+        return FALSE;
+
+    length = wcslen(String);
+
+    if (length > 0 && String[0] == '-')
+    {
+        negative = TRUE;
+        length--;
+    }
+
+    result = 0;
+
+    for (i = 0; i < length; i++)
+    {
+        WCHAR c; 
+
+        c = towlower(String[length - i - 1]);
+        result += PhpCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
+    }
+
+    if (!negative)
+        *Integer = result;
+    else
+        *Integer = -result;
+
+    return TRUE;
+}
+
+BOOLEAN PhStringToInteger64(
+    __in PWSTR String,
+    __in_opt ULONG Base,
+    __out PLONG64 Integer
+    )
+{
+    LONG64 result;
+    BOOLEAN negative = FALSE;
+    ULONG base;
+
+    // If the user specified a base, don't perform any 
+    // additional processing.
+    if (Base)
+        return PhpStringToInteger64(String, Base, Integer);
+
+    if (String[0] == '-')
+    {
+        negative = TRUE;
+        String++;
+    }
+
+    base = 10;
+
+    if (String[0] == '0')
+    {
+        switch (towlower(String[1]))
+        {
+        case 'x':
+            base = 16;
+            break;
+        case 'o':
+            base = 8;
+            break;
+        case 'b':
+            base = 2;
+            break;
+        case 't': // ternary
+            base = 3;
+            break;
+        case 'q': // quaternary
+            base = 4;
+            break;
+        case 'w': // base 12
+            base = 12;
+            break;
+        case 'r': // base 32
+            base = 32;
+            break;
+        }
+
+        if (base != 10)
+            String += 2;
+    }
+
+    if (!PhpStringToInteger64(String, base, &result))
+        return FALSE;
+
+    if (!negative)
+        *Integer = result;
+    else
+        *Integer = -result;
+
+    return TRUE;
 }
