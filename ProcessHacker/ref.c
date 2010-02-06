@@ -40,6 +40,7 @@ static ULONG PhpAutoPoolTlsIndex;
 #ifdef DEBUG
 LIST_ENTRY PhObjectListHead;
 PH_FAST_LOCK PhObjectListLock;
+PPH_CREATE_OBJECT_HOOK PhCreateObjectHook = NULL;
 #endif
 
 /**
@@ -161,6 +162,16 @@ NTSTATUS PhCreateObject(
     PhAcquireFastLockExclusive(&PhObjectListLock);
     InsertHeadList(&PhObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseFastLockExclusive(&PhObjectListLock);
+
+    if (PhCreateObjectHook)
+    {
+        PhCreateObjectHook(
+            PhObjectHeaderToObject(objectHeader),
+            ObjectSize,
+            Flags,
+            ObjectType
+            );
+    }
 #endif
     
     /* Pass a pointer to the object body back to the caller. */

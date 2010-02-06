@@ -749,6 +749,7 @@ VOID PhProcessProviderUpdate(
     )
 {
     static ULONG runCount = 0;
+    static PPH_LIST pids = NULL;
 
     // Note about locking:
     // Since this is the only function that is allowed to 
@@ -758,7 +759,6 @@ VOID PhProcessProviderUpdate(
 
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
-    PPH_LIST pids;
 
     ULONG64 sysTotalTime;
 
@@ -782,7 +782,8 @@ VOID PhProcessProviderUpdate(
 
     // Create a PID list.
 
-    pids = PhCreateList(40);
+    if (!pids)
+        pids = PhCreateList(40);
 
     process = PH_FIRST_PROCESS(processes);
 
@@ -1014,7 +1015,7 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhDereferenceObject(pids);
+    PhClearList(pids);
     PhFree(processes);
 
     runCount++;
