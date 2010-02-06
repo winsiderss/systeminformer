@@ -86,8 +86,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     autoPool = PhCreateAutoPool();
 
     symbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
-    PhSymbolProviderSetSearchPath(symbolProvider,
-        ((PPH_STRING)PHA_DEREFERENCE(PhGetApplicationDirectory()))->Buffer);
+    PhSymbolProviderSetSearchPath(symbolProvider, PhApplicationDirectory->Buffer);
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
         0, PhpLoadCurrentProcessSymbolsCallback, symbolProvider);
 

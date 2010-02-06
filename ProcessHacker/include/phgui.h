@@ -58,6 +58,39 @@ typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(
     __in DWORD dwFlag
     );
 
+#define RFF_NOBROWSE 0x0001
+#define RFF_NODEFAULT 0x0002
+#define RFF_CALCDIRECTORY 0x0004
+#define RFF_NOLABEL 0x0008
+#define RFF_NOSEPARATEMEM 0x0020
+
+#define RFN_VALIDATE (-510)
+
+typedef struct _NMRUNFILEDLGW
+{
+    NMHDR hdr;
+    LPCWSTR lpszFile;
+    LPCWSTR lpszDirectory; 
+    UINT nShow;
+} NMRUNFILEDLGW, *LPNMRUNFILEDLGW, *PNMRUNFILEDLGW;
+
+typedef NMRUNFILEDLGW NMRUNFILEDLG;
+typedef PNMRUNFILEDLGW PNMRUNFILEDLG;
+typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
+
+#define RF_OK 0x0000
+#define RF_CANCEL 0x0001
+#define RF_RETRY 0x0002
+
+typedef BOOL (WINAPI *_RunFileDlg)(
+    __in HWND hwndOwner,
+    __in_opt HICON hIcon,
+    __in_opt LPCWSTR lpszDirectory,
+    __in_opt LPCWSTR lpszTitle,
+    __in_opt LPCWSTR lpszDescription,
+    __in ULONG uFlags
+    );
+
 typedef HRESULT (WINAPI *_SetWindowTheme)(
     __in HWND hwnd,
     __in LPCWSTR pszSubAppName,
@@ -78,6 +111,7 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 
 #ifndef GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
+extern _RunFileDlg RunFileDlg;
 extern _StrCmpLogicalW StrCmpLogicalW_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
