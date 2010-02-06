@@ -8,6 +8,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 static HANDLE DebugConsoleThreadHandle;
 
 static PPH_HASHTABLE ObjectListSnapshot = NULL;
+static PPH_LIST NewObjectList = NULL;
+static PH_MUTEX NewObjectListLock;
 
 VOID PhShowDebugConsole()
 {
@@ -74,6 +76,38 @@ static VOID PhpPrintObjectInfo(
     wprintf(L"\n");
 }
 
+static VOID PhpDebugCreateObjectHook(
+    __in PVOID Object,
+    __in SIZE_T Size,
+    __in ULONG Flags,
+    __in PPH_OBJECT_TYPE ObjectType
+    )
+{
+    PhAcquireMutex(&NewObjectListLock);
+
+    if (NewObjectList)
+    {
+        PhReferenceObject(Object);
+        PhAddListItem(NewObjectList, Object);
+    }
+
+    PhReleaseMutex(&NewObjectListLock);
+}
+
+static VOID PhpDeleteNewObjectList()
+{
+    if (NewObjectList)
+    {
+        ULONG i;
+
+        for (i = 0; i < NewObjectList->Count; i++)
+            PhDereferenceObject(NewObjectList->Items[i]);
+
+        PhDereferenceObject(NewObjectList);
+        NewObjectList = NULL;
+    }
+}
+
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
@@ -89,6 +123,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhSymbolProviderSetSearchPath(symbolProvider, PhApplicationDirectory->Buffer);
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
         0, PhpLoadCurrentProcessSymbolsCallback, symbolProvider);
+
+    PhInitializeMutex(&NewObjectListLock);
+    PhCreateObjectHook = PhpDebugCreateObjectHook;
 
     while (TRUE)
     {
@@ -122,6 +159,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"objtrace object-address\n"
                 L"objmksnap\n"
                 L"objcmpsnap\n"
+                L"objmknew\n"
+                L"objdelnew\n"
+                L"objviewnew\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"objects"))
@@ -146,16 +186,12 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 objectHeader = CONTAINING_RECORD(currentEntry, PH_OBJECT_HEADER, ObjectListEntry);
 
-                // Prevent the object from being destroyed.
+                // Make sure the object isn't being destroyed.
                 if (!PhReferenceObjectSafe(PhObjectHeaderToObject(objectHeader)))
                 {
                     currentEntry = currentEntry->Flink;
                     continue;
                 }
-
-                // Release the lock because the following operations may 
-                // require creating objects.
-                PhReleaseFastLockShared(&PhObjectListLock);
 
                 totalNumberOfObjects++;
                 totalNumberOfBytes += objectHeader->Size;
@@ -174,10 +210,6 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PhpPrintObjectInfo(objectHeader);
                 }
 
-                PhAcquireFastLockShared(&PhObjectListLock);
-
-                // This ordering is *very* important. We can't allow the object 
-                // to be destroyed outside of the lock.
                 currentEntry = currentEntry->Flink;
                 PhDereferenceObjectDeferDelete(PhObjectHeaderToObject(objectHeader));
             }
@@ -330,6 +362,54 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhDereferenceObject(newObjects);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objmknew"))
+        {
+#ifdef DEBUG
+            PhAcquireMutex(&NewObjectListLock);
+            PhpDeleteNewObjectList();
+            PhReleaseMutex(&NewObjectListLock);
+
+            // Creation needs to be done outside of the lock, 
+            // otherwise a deadlock will occur.
+            NewObjectList = PhCreateList(100);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objdelnew"))
+        {
+#ifdef DEBUG
+            PhAcquireMutex(&NewObjectListLock);
+            PhpDeleteNewObjectList();
+            PhReleaseMutex(&NewObjectListLock);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objviewnew"))
+        {
+#ifdef DEBUG
+            ULONG i;
+
+            PhAcquireMutex(&NewObjectListLock);
+
+            if (!NewObjectList)
+            {
+                wprintf(L"Object creation hooking not active.\n");
+                PhReleaseMutex(&NewObjectListLock);
+                goto EndCommand;
+            }
+
+            for (i = 0; i < NewObjectList->Count; i++)
+            {
+                PhpPrintObjectInfo(PhObjectToObjectHeader(NewObjectList->Items[i]));
+            }
+
+            PhReleaseMutex(&NewObjectListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
