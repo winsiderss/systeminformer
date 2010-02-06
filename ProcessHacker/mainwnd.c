@@ -25,7 +25,7 @@
 #include <settings.h>
 
 typedef BOOL (WINAPI *_FileIconInit)(
-    BOOL RestoreCache
+    __in BOOL RestoreCache
     );
 
 VOID PhMainWndOnCreate();
@@ -111,6 +111,7 @@ static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration; 
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 
+static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
 
@@ -331,6 +332,40 @@ LRESULT CALLBACK PhMainWndProc(
 
             switch (id)
             {
+            case ID_HACKER_RUN:
+                {
+                    if (RunFileDlg)
+                    {
+                        SelectedRunAsAdmin = FALSE;
+                        RunFileDlg(hWnd, NULL, NULL, NULL, NULL, 0);
+                    }
+                }
+                break;
+            case ID_HACKER_RUNASADMINISTRATOR:
+                {
+                    if (RunFileDlg)
+                    {
+                        SelectedRunAsAdmin = TRUE;
+                        RunFileDlg(
+                            hWnd,
+                            LoadIcon(NULL, MAKEINTRESOURCE(IDI_SHIELD)),
+                            NULL,
+                            NULL, 
+                            L"Type the name of a program that will be opened under alternate credentials.",
+                            0
+                            );
+                    }
+                }
+                break;
+            case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
+                {
+                    if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
+                        L"", SW_SHOW, TRUE, 0))
+                    {
+                        DestroyWindow(hWnd);
+                    }
+                }
+                break;
             case ID_HACKER_SAVE:
                 {
                     PVOID saveFileDialog = PhCreateSaveFileDialog();
@@ -781,6 +816,19 @@ LRESULT CALLBACK PhMainWndProc(
             else if (header->hwndFrom == ServiceListViewHandle)
             {
                 PhMainWndServiceListViewOnNotify(header);
+            }
+            else if (header->code == RFN_VALIDATE && SelectedRunAsAdmin)
+            {
+                LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
+
+                if (PhShellExecuteEx(hWnd, runFileDlg->lpszFile, NULL, runFileDlg->nShow, TRUE, 0))
+                {
+                    return RF_CANCEL;
+                }
+                else
+                {
+                    return RF_RETRY;
+                }
             }
         }
         break;
