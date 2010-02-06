@@ -226,7 +226,7 @@ FORCEINLINE VOID PhInitializeStringRef(
     __in PWSTR Buffer
     )
 {
-    String->Length = wcslen(Buffer) * sizeof(WCHAR);
+    String->Length = (USHORT)(wcslen(Buffer) * sizeof(WCHAR));
     String->Buffer = Buffer;
 }
 
