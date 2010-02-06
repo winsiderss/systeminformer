@@ -103,6 +103,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
     if (Information)
     {
         serviceItem->Name = PhCreateString(Information->lpServiceName);
+        serviceItem->Key = serviceItem->Name->sr; 
         serviceItem->DisplayName = PhCreateString(Information->lpDisplayName);
         serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
@@ -135,7 +136,7 @@ BOOLEAN PhpServiceHashtableCompareFunction(
     PPH_SERVICE_ITEM serviceItem1 = *(PPH_SERVICE_ITEM *)Entry1;
     PPH_SERVICE_ITEM serviceItem2 = *(PPH_SERVICE_ITEM *)Entry2;
 
-    return PhStringEquals(serviceItem1->Name, serviceItem2->Name, TRUE);
+    return WSTR_IEQUAL(serviceItem1->Key.Buffer, serviceItem2->Key.Buffer);
 }
 
 ULONG PhpServiceHashtableHashFunction(
@@ -150,16 +151,16 @@ ULONG PhpServiceHashtableHashFunction(
 
     // Check the length. Should never be above 256, but we have 
     // to make sure.
-    if (serviceItem->Name->Length > 256)
+    if (serviceItem->Key.Length > 256 * 2)
         return 0;
 
     // Copy the name and convert it to lowercase.
-    memcpy(lowerName, serviceItem->Name->Buffer, serviceItem->Name->Length);
-    lowerName[serviceItem->Name->Length / sizeof(WCHAR)] = 0; // null terminator
+    memcpy(lowerName, serviceItem->Key.Buffer, serviceItem->Key.Length);
+    lowerName[serviceItem->Key.Length / sizeof(WCHAR)] = 0; // null terminator
     _wcslwr(lowerName);
 
     // Hash the string.
-    return PhHashBytesSdbm((PUCHAR)lowerName, serviceItem->Name->Length);
+    return PhHashBytesSdbm((PUCHAR)lowerName, serviceItem->Key.Length);
 }
 
 PPH_SERVICE_ITEM PhReferenceServiceItem(
@@ -172,7 +173,7 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     PPH_SERVICE_ITEM serviceItem;
 
     // Construct a temporary service item for the lookup.
-    lookupServiceItem.Name = PhCreateString(Name);
+    PhInitializeStringRef(&lookupServiceItem.Key, Name);
 
     PhAcquireFastLockShared(&PhServiceHashtableLock);
 
@@ -192,8 +193,6 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     }
 
     PhReleaseFastLockShared(&PhServiceHashtableLock);
-
-    PhDereferenceObject(lookupServiceItem.Name);
 
     return serviceItem;
 }

@@ -946,6 +946,7 @@ extern PH_CALLBACK PhServicesUpdatedEvent;
 typedef struct _PH_SERVICE_ITEM
 {
     ULONG RunId;
+    PH_STRINGREF Key; // points to Name
     PPH_STRING Name;
     PPH_STRING DisplayName;
 
