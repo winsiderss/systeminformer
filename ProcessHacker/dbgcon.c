@@ -8,8 +8,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
 static HANDLE DebugConsoleThreadHandle;
 
 static PPH_HASHTABLE ObjectListSnapshot = NULL;
+#ifdef DEBUG
 static PPH_LIST NewObjectList = NULL;
 static PH_MUTEX NewObjectListLock;
+#endif
 
 VOID PhShowDebugConsole()
 {
@@ -76,6 +78,7 @@ static VOID PhpPrintObjectInfo(
     wprintf(L"\n");
 }
 
+#ifdef DEBUG
 static VOID PhpDebugCreateObjectHook(
     __in PVOID Object,
     __in SIZE_T Size,
@@ -93,7 +96,9 @@ static VOID PhpDebugCreateObjectHook(
 
     PhReleaseMutex(&NewObjectListLock);
 }
+#endif
 
+#ifdef DEBUG
 static VOID PhpDeleteNewObjectList()
 {
     if (NewObjectList)
@@ -107,6 +112,7 @@ static VOID PhpDeleteNewObjectList()
         NewObjectList = NULL;
     }
 }
+#endif
 
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
@@ -124,8 +130,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
         0, PhpLoadCurrentProcessSymbolsCallback, symbolProvider);
 
+#ifdef DEBUG
     PhInitializeMutex(&NewObjectListLock);
     PhCreateObjectHook = PhpDebugCreateObjectHook;
+#endif
 
     while (TRUE)
     {
