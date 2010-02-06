@@ -827,7 +827,7 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
 
-                if (PhShellExecuteEx(hWnd, runFileDlg->lpszFile, NULL, runFileDlg->nShow, TRUE, 0))
+                if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile, NULL, runFileDlg->nShow, TRUE, 0))
                 {
                     return RF_CANCEL;
                 }
