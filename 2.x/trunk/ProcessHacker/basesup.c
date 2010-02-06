@@ -98,6 +98,7 @@ BOOLEAN PhInitializeBase()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringType,
+        L"String",
         0,
         NULL
         )))
@@ -105,6 +106,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhAnsiStringType,
+        L"AnsiString",
         0,
         NULL
         )))
@@ -112,6 +114,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringBuilderType,
+        L"StringBuilder",
         0,
         PhpStringBuilderDeleteProcedure
         )))
@@ -119,6 +122,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhListType,
+        L"List",
         0,
         PhpListDeleteProcedure
         )))
@@ -126,6 +130,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhPointerListType,
+        L"PointerList",
         0,
         PhpPointerListDeleteProcedure
         )))
@@ -133,6 +138,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhQueueType,
+        L"Queue",
         0,
         PhpQueueDeleteProcedure
         )))
@@ -140,6 +146,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhHashtableType,
+        L"Hashtable",
         0,
         PhpHashtableDeleteProcedure
         )))
@@ -147,6 +154,7 @@ BOOLEAN PhInitializeBase()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhFreeListType,
+        L"FreeList",
         0,
         PhpFreeListDeleteProcedure
         )))

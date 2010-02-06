@@ -61,6 +61,7 @@ BOOLEAN PhInitializeServiceProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhServiceItemType,
+        L"ServiceItem",
         0,
         PhpServiceItemDeleteProcedure
         )))

@@ -64,6 +64,7 @@ BOOLEAN PhInitializeThreadProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhThreadProviderType,
+        L"ThreadProvider",
         0,
         PhpThreadProviderDeleteProcedure
         )))
@@ -71,6 +72,7 @@ BOOLEAN PhInitializeThreadProvider()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhThreadItemType,
+        L"ThreadItem",
         0,
         PhpThreadItemDeleteProcedure
         )))

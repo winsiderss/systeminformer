@@ -49,6 +49,7 @@ BOOLEAN PhInitializeHandleProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhHandleProviderType,
+        L"HandleProvider",
         0,
         PhpHandleProviderDeleteProcedure
         )))
@@ -56,6 +57,7 @@ BOOLEAN PhInitializeHandleProvider()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhHandleItemType,
+        L"HandleItem",
         0,
         PhpHandleItemDeleteProcedure
         )))

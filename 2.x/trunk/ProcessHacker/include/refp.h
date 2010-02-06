@@ -76,7 +76,12 @@ typedef struct _PH_OBJECT_HEADER
     };
     /** The type of the object. */
     PPH_OBJECT_TYPE Type;
-    
+
+#ifdef DEBUG
+    PVOID StackBackTrace[16];
+    LIST_ENTRY ObjectListEntry;
+#endif
+
     /** The body of the object. For use by the \ref PhObjectToObjectHeader 
      * and \ref PhObjectHeaderToObject macros. */
     QUAD Body;
@@ -92,6 +97,9 @@ typedef struct _PH_OBJECT_TYPE
     ULONG Flags;
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
+    
+    /** The name of the type. */
+    PWSTR Name;
     
     /** The total number of objects of this type that are alive. */
     ULONG NumberOfObjects;

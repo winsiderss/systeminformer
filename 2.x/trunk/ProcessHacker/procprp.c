@@ -32,6 +32,7 @@ BOOLEAN PhProcessPropInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhpProcessPropContextType,
+        L"ProcessPropContext",
         0,
         PhpProcessPropContextDeleteProcedure
         )))
@@ -39,6 +40,7 @@ BOOLEAN PhProcessPropInitialization()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhpProcessPropPageContextType,
+        L"ProcessPropPageContext",
         0,
         PhpProcessPropPageContextDeleteProcedure
         )))
