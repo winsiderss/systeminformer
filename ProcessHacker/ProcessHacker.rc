@@ -104,6 +104,7 @@ BEGIN
     BEGIN
         MENUITEM "Log\aCtrl+L",                 ID_HELP_LOG
         MENUITEM "Donate",                      ID_HELP_DONATE
+        MENUITEM "Debug Console",               ID_HELP_DEBUGCONSOLE
         MENUITEM "About",                       ID_HELP_ABOUT
     END
 END

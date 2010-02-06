@@ -8,7 +8,7 @@
 #include <ntwin.h>
 #include <intrin.h>
 #include <wchar.h>
-#include <crtdbg.h>
+#include <stdio.h>
 
 // nonstandard extension used : nameless struct/union
 #pragma warning(disable: 4201)

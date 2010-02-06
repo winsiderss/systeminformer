@@ -49,6 +49,7 @@ BOOLEAN PhInitializeModuleProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhModuleProviderType,
+        L"ModuleProvider",
         0,
         PhpModuleProviderDeleteProcedure
         )))
@@ -56,6 +57,7 @@ BOOLEAN PhInitializeModuleProvider()
 
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhModuleItemType,
+        L"ModuleItem",
         0,
         PhpModuleItemDeleteProcedure
         )))

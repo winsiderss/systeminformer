@@ -201,13 +201,14 @@
 #define ID_OBJECT_CLOSE                 40119
 #define ID_OBJECT_PROPERTIES            40120
 #define ID_OBJECT_PROCESSPROPERTIES     40121
+#define ID_HELP_DEBUGCONSOLE            40122
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        135
-#define _APS_NEXT_COMMAND_VALUE         40122
+#define _APS_NEXT_COMMAND_VALUE         40123
 #define _APS_NEXT_CONTROL_VALUE         1063
 #define _APS_NEXT_SYMED_VALUE           104
 #endif

@@ -367,6 +367,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dbgcon.c"
+				>
+			</File>
+			<File
 				RelativePath=".\extlv.c"
 				>
 			</File>
