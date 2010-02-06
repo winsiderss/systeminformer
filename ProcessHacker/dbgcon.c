@@ -7,6 +7,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
 static HANDLE DebugConsoleThreadHandle;
 
+static PPH_HASHTABLE ObjectListSnapshot = NULL;
+
 VOID PhShowDebugConsole()
 {
     if (!AllocConsole())
@@ -26,6 +28,50 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
         (ULONG64)Module->BaseAddress, Module->Size);
 
     return TRUE;
+}
+
+static VOID PhpPrintObjectInfo(
+    __in PPH_OBJECT_HEADER ObjectHeader
+    )
+{
+    wprintf(L"%Ix", ObjectHeader);
+
+    wprintf(L"\t% 20s", ObjectHeader->Type->Name);
+    wprintf(L"\t%d", ObjectHeader->RefCount - 1);
+
+    if (!ObjectHeader->Type)
+    {
+        // Dummy
+    }
+    else if (ObjectHeader->Type == PhObjectTypeObject)
+    {
+        wprintf(L"\t%.32s", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
+    }
+    else if (ObjectHeader->Type == PhStringType)
+    {
+        wprintf(L"\t%.32s", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+    }
+    else if (ObjectHeader->Type == PhAnsiStringType)
+    {
+        wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+    }
+    else if (ObjectHeader->Type == PhProcessItemType)
+    {
+        wprintf(L"\tPID: %u",
+            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessId);
+    }
+    else if (ObjectHeader->Type == PhServiceItemType)
+    {
+        wprintf(L"\tName: %s",
+            (ULONG)((PPH_SERVICE_ITEM)PhObjectHeaderToObject(ObjectHeader))->Name->Buffer);
+    }
+    else if (ObjectHeader->Type == PhThreadItemType)
+    {
+        wprintf(L"\tTID: %u",
+            (ULONG)((PPH_THREAD_ITEM)PhObjectHeaderToObject(ObjectHeader))->ThreadId);
+    }
+
+    wprintf(L"\n");
 }
 
 NTSTATUS PhpDebugConsoleThreadStart(
@@ -48,6 +94,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
     while (TRUE)
     {
         static PWSTR delims = L" \t";
+        static PWSTR commandDebugOnly = L"This command is not available on non-debug builds.\n";
+
         WCHAR line[201];
         PWSTR context;
         PWSTR command;
@@ -66,6 +114,16 @@ NTSTATUS PhpDebugConsoleThreadStart(
         if (!command)
         {
             continue;
+        }
+        else if (WSTR_IEQUAL(command, L"help"))
+        {
+            wprintf(
+                L"Commands:\n"
+                L"objects [type-name-filter]\n"
+                L"objtrace object-address\n"
+                L"objmksnap\n"
+                L"objcmpsnap\n"
+                );
         }
         else if (WSTR_IEQUAL(command, L"objects"))
         {
@@ -114,44 +172,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     (typeFilter && wcsstr(typeName, typeFilter))
                     )
                 {
-                    wprintf(L"%Ix", objectHeader);
-
-                    wprintf(L"\t% 16s", objectHeader->Type->Name);
-                    wprintf(L"\t%d", objectHeader->RefCount - 1);
-
-                    if (!objectHeader->Type)
-                    {
-                        // Dummy
-                    }
-                    else if (objectHeader->Type == PhObjectTypeObject)
-                    {
-                        wprintf(L"\t%.32s", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(objectHeader))->Name);
-                    }
-                    else if (objectHeader->Type == PhStringType)
-                    {
-                        wprintf(L"\t%.32s", ((PPH_STRING)PhObjectHeaderToObject(objectHeader))->Buffer);
-                    }
-                    else if (objectHeader->Type == PhAnsiStringType)
-                    {
-                        wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(objectHeader))->Buffer);
-                    }
-                    else if (objectHeader->Type == PhProcessItemType)
-                    {
-                        wprintf(L"\tPID: %u",
-                            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(objectHeader))->ProcessId);
-                    }
-                    else if (objectHeader->Type == PhServiceItemType)
-                    {
-                        wprintf(L"\tName: %s",
-                            (ULONG)((PPH_SERVICE_ITEM)PhObjectHeaderToObject(objectHeader))->Name->Buffer);
-                    }
-                    else if (objectHeader->Type == PhThreadItemType)
-                    {
-                        wprintf(L"\tTID: %u",
-                            (ULONG)((PPH_THREAD_ITEM)PhObjectHeaderToObject(objectHeader))->ThreadId);
-                    }
-
-                    wprintf(L"\n");
+                    PhpPrintObjectInfo(objectHeader);
                 }
 
                 PhAcquireFastLockShared(&PhObjectListLock);
@@ -172,7 +193,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhFormatSize(PhpAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
                 ))->Buffer);
 #else
-            wprintf(L"Object list not available; non-debug build.\n");
+            wprintf(commandDebugOnly);
 #endif
         }
         else if (WSTR_IEQUAL(command, L"objtrace"))
@@ -223,7 +244,95 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 wprintf(L"Invalid object address.\n");
             }
 #else
-            wprintf(L"Object stack traces not available; non-debug build.\n");
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objmksnap"))
+        {
+#ifdef DEBUG
+            PLIST_ENTRY currentEntry;
+
+            if (ObjectListSnapshot)
+            {
+                PhDereferenceObject(ObjectListSnapshot);
+                ObjectListSnapshot = NULL;
+            }
+
+            ObjectListSnapshot = PhCreateSimpleHashtable(100);
+
+            PhAcquireFastLockShared(&PhObjectListLock);
+
+            currentEntry = PhObjectListHead.Flink;
+
+            while (currentEntry != &PhObjectListHead)
+            {
+                PPH_OBJECT_HEADER objectHeader;
+
+                objectHeader = CONTAINING_RECORD(currentEntry, PH_OBJECT_HEADER, ObjectListEntry);
+                currentEntry = currentEntry->Flink;
+
+                if (PhObjectHeaderToObject(objectHeader) != ObjectListSnapshot)
+                    PhAddSimpleHashtableItem(ObjectListSnapshot, objectHeader, NULL);
+            }
+
+            PhReleaseFastLockShared(&PhObjectListLock);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objcmpsnap"))
+        {
+#ifdef DEBUG
+            PLIST_ENTRY currentEntry;
+            PPH_LIST newObjects;
+            ULONG i;
+
+            if (!ObjectListSnapshot)
+            {
+                wprintf(L"No snapshot.\n");
+                goto EndCommand;
+            }
+
+            newObjects = PhCreateList(10);
+
+            PhAcquireFastLockShared(&PhObjectListLock);
+
+            currentEntry = PhObjectListHead.Flink;
+
+            while (currentEntry != &PhObjectListHead)
+            {
+                PPH_OBJECT_HEADER objectHeader;
+
+                objectHeader = CONTAINING_RECORD(currentEntry, PH_OBJECT_HEADER, ObjectListEntry);
+                currentEntry = currentEntry->Flink;
+
+                if (
+                    PhObjectHeaderToObject(objectHeader) != ObjectListSnapshot &&
+                    PhObjectHeaderToObject(objectHeader) != newObjects
+                    )
+                {
+                    if (!PhGetSimpleHashtableItem(ObjectListSnapshot, objectHeader))
+                    {
+                        if (PhReferenceObjectSafe(PhObjectHeaderToObject(objectHeader)))
+                            PhAddListItem(newObjects, objectHeader);
+                    }
+                }
+            }
+
+            PhReleaseFastLockShared(&PhObjectListLock);
+
+            for (i = 0; i < newObjects->Count; i++)
+            {
+                PPH_OBJECT_HEADER objectHeader = newObjects->Items[i];
+
+                PhpPrintObjectInfo(objectHeader);
+
+                PhDereferenceObject(PhObjectHeaderToObject(objectHeader));
+            }
+
+            PhDereferenceObject(newObjects);
+#else
+            wprintf(commandDebugOnly);
 #endif
         }
         else
@@ -239,4 +348,6 @@ EndCommand:
     PhDereferenceObject(symbolProvider);
 
     PhFreeAutoPool(autoPool);
+
+    return STATUS_SUCCESS;
 }

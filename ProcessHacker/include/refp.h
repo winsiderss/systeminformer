@@ -42,7 +42,7 @@
  *
  * \return A pointer to an object.
  */
-#define PhObjectHeaderToObject(ObjectHeader) (&((PPH_OBJECT_HEADER)(ObjectHeader))->Body)
+#define PhObjectHeaderToObject(ObjectHeader) ((PVOID)&((PPH_OBJECT_HEADER)(ObjectHeader))->Body)
 
 /**
  * Calculates the total size to allocate for an object.
