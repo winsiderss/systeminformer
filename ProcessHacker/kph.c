@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   KProcessHacker interfacing
+ *   KProcessHacker API
  * 
  * Copyright (C) 2009-2010 wj32
  * 
