@@ -2479,7 +2479,7 @@ BOOLEAN PhpStringToInteger64(
     if (Base > 70)
         return FALSE;
 
-    length = wcslen(String);
+    length = (ULONG)wcslen(String);
 
     if (length > 0 && String[0] == '-')
     {
