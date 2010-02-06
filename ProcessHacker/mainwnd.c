@@ -369,6 +369,51 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case ID_TOOLS_VERIFYFILESIGNATURE:
+                {
+                    PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Executable files (*.exe;*.dll;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.sys;*.scr;*.cpl" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog = PhCreateOpenFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    if (PhShowFileDialog(hWnd, fileDialog))
+                    {
+                        PPH_STRING fileName;
+                        VERIFY_RESULT result;
+                        PPH_STRING signerName;
+
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        result = PhVerifyFile(fileName->Buffer, &signerName);
+
+                        if (result == VrTrusted)
+                        {
+                            PhShowInformation(hWnd, L"\"%s\" is trusted and signed by \"%s\".",
+                                fileName->Buffer, signerName->Buffer);
+                        }
+                        else if (result == VrNoSignature)
+                        {
+                            PhShowInformation(hWnd, L"\"%s\" does not have a digital signature.",
+                                fileName->Buffer);
+                        }
+                        else
+                        {
+                            PhShowInformation(hWnd, L"\"%s\" is not trusted.",
+                                fileName->Buffer);
+                        }
+
+                        if (signerName)
+                            PhDereferenceObject(signerName);
+
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
             case ID_PROCESS_TERMINATE:
                 {
                     PPH_PROCESS_ITEM *processes;
