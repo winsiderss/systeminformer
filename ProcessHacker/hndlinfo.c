@@ -952,22 +952,25 @@ NTSTATUS PhGetHandleInformation(
 
 CleanupExit:
 
-    if (TypeName && typeName)
+    if (NT_SUCCESS(status))
     {
-        *TypeName = typeName;
-        PhReferenceObject(typeName);
-    }
+        if (TypeName && typeName)
+        {
+            *TypeName = typeName;
+            PhReferenceObject(typeName);
+        }
 
-    if (ObjectName && objectName)
-    {
-        *ObjectName = objectName;
-        PhReferenceObject(objectName);
-    }
+        if (ObjectName && objectName)
+        {
+            *ObjectName = objectName;
+            PhReferenceObject(objectName);
+        }
 
-    if (BestObjectName && bestObjectName)
-    {
-        *BestObjectName = bestObjectName;
-        PhReferenceObject(bestObjectName);
+        if (BestObjectName && bestObjectName)
+        {
+            *BestObjectName = bestObjectName;
+            PhReferenceObject(bestObjectName);
+        }
     }
 
     if (dupHandle && ProcessHandle != NtCurrentProcess())
