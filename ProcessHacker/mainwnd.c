@@ -404,6 +404,12 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 DestroyWindow(hWnd);
                 break;
+            case ID_VIEW_REFRESH:
+                {
+                    PhBoostProvider(&PhPrimaryProviderThread, &ProcessProviderRegistration);
+                    PhBoostProvider(&PhPrimaryProviderThread, &ServiceProviderRegistration);
+                }
+                break;
             case ID_TOOLS_VERIFYFILESIGNATURE:
                 {
                     PH_FILETYPE_FILTER filters[] =
