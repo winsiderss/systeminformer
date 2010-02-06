@@ -72,6 +72,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #ifdef DEBUG
             PWSTR typeFilter = wcstok_s(NULL, delims, &context);
             PLIST_ENTRY currentEntry;
+            ULONG totalNumberOfObjects = 0;
+            SIZE_T totalNumberOfBytes = 0;
 
             if (typeFilter)
                 wcslwr(typeFilter);
@@ -97,6 +99,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 // Release the lock because the following operations may 
                 // require creating objects.
                 PhReleaseFastLockShared(&PhObjectListLock);
+
+                totalNumberOfObjects++;
+                totalNumberOfBytes += objectHeader->Size;
 
                 if (typeFilter)
                 {
@@ -130,6 +135,21 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     {
                         wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(objectHeader))->Buffer);
                     }
+                    else if (objectHeader->Type == PhProcessItemType)
+                    {
+                        wprintf(L"\tPID: %u",
+                            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(objectHeader))->ProcessId);
+                    }
+                    else if (objectHeader->Type == PhServiceItemType)
+                    {
+                        wprintf(L"\tName: %s",
+                            (ULONG)((PPH_SERVICE_ITEM)PhObjectHeaderToObject(objectHeader))->Name->Buffer);
+                    }
+                    else if (objectHeader->Type == PhThreadItemType)
+                    {
+                        wprintf(L"\tTID: %u",
+                            (ULONG)((PPH_THREAD_ITEM)PhObjectHeaderToObject(objectHeader))->ThreadId);
+                    }
 
                     wprintf(L"\n");
                 }
@@ -143,6 +163,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhReleaseFastLockShared(&PhObjectListLock);
+
+            wprintf(L"Total number: %u\n", totalNumberOfObjects);
+            wprintf(L"Total size (excl. header): %s\n",
+                ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
+            wprintf(L"Total overhead (header): %s\n",
+                ((PPH_STRING)PHA_DEREFERENCE(
+                PhFormatSize(PhpAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
+                ))->Buffer);
 #else
             wprintf(L"Object list not available; non-debug build.\n");
 #endif
