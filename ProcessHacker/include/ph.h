@@ -821,6 +821,11 @@ BOOLEAN PhSymbolProviderLoadModule(
     __in ULONG Size
     );
 
+VOID PhSymbolProviderSetSearchPath(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in PWSTR SearchPath
+    );
+
 // procprv
 
 #ifndef PROCPRV_PRIVATE
@@ -1614,5 +1619,9 @@ FORCEINLINE PVOID PhAllocateCopy(
 
     return copy;
 }
+
+// dbgcon
+
+VOID PhShowDebugConsole();
 
 #endif

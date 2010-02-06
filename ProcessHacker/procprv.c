@@ -114,6 +114,7 @@ BOOLEAN PhInitializeProcessProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhProcessItemType,
+        L"ProcessItem",
         0,
         PhpProcessItemDeleteProcedure
         )))

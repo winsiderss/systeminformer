@@ -37,16 +37,27 @@ PPH_OBJECT_TYPE PhAllocType = NULL;
 
 static ULONG PhpAutoPoolTlsIndex;
 
+#ifdef DEBUG
+LIST_ENTRY PhObjectListHead;
+PH_FAST_LOCK PhObjectListLock;
+#endif
+
 /**
  * Initializes the object manager module.
  */
 NTSTATUS PhInitializeRef()
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+#ifdef DEBUG
+    InitializeListHead(&PhObjectListHead);
+    PhInitializeFastLock(&PhObjectListLock);
+#endif
     
     // Create the fundamental object type.
     status = PhCreateObjectType(
         &PhObjectTypeObject,
+        L"Type",
         0,
         NULL
         );
@@ -61,6 +72,7 @@ NTSTATUS PhInitializeRef()
     // Create the allocated memory object type.
     status = PhCreateObjectType(
         &PhAllocType,
+        L"Alloc",
         0,
         NULL
         );
@@ -133,6 +145,23 @@ NTSTATUS PhCreateObject(
     objectHeader->Flags = Flags;
     objectHeader->Size = ObjectSize;
     objectHeader->Type = ObjectType;
+
+#ifdef DEBUG
+    {
+        USHORT capturedFrames;
+
+        capturedFrames = RtlCaptureStackBackTrace(1, 16, objectHeader->StackBackTrace, NULL);
+        memset(
+            &objectHeader->StackBackTrace[capturedFrames],
+            0,
+            sizeof(objectHeader->StackBackTrace) - capturedFrames * sizeof(PVOID)
+            );
+    }
+
+    PhAcquireFastLockExclusive(&PhObjectListLock);
+    InsertHeadList(&PhObjectListHead, &objectHeader->ObjectListEntry);
+    PhReleaseFastLockExclusive(&PhObjectListLock);
+#endif
     
     /* Pass a pointer to the object body back to the caller. */
     *Object = PhObjectHeaderToObject(objectHeader);
@@ -156,6 +185,7 @@ NTSTATUS PhCreateObject(
  */
 NTSTATUS PhCreateObjectType(
     __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
     __in ULONG Flags,
     __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
@@ -182,6 +212,7 @@ NTSTATUS PhCreateObjectType(
     /* Initialize the type object. */
     objectType->Flags = Flags;
     objectType->DeleteProcedure = DeleteProcedure;
+    objectType->Name = Name;
     objectType->NumberOfObjects = 0;
     
     *ObjectType = objectType;
@@ -486,6 +517,12 @@ VOID PhpFreeObject(
 {
     /* Object type statistics. */
     _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
+
+#ifdef DEBUG
+    PhAcquireFastLockExclusive(&PhObjectListLock);
+    RemoveEntryList(&ObjectHeader->ObjectListEntry);
+    PhReleaseFastLockExclusive(&PhObjectListLock);
+#endif
     
     /* Call the delete procedure if we have one. */
     if (ObjectHeader->Type->DeleteProcedure)

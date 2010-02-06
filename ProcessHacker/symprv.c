@@ -65,6 +65,7 @@ BOOLEAN PhSymbolProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhSymbolProviderType,
+        L"SymbolProvider",
         0,
         PhpSymbolProviderDeleteProcedure
         )))
@@ -502,6 +503,22 @@ BOOLEAN PhSymbolProviderLoadModule(
     }
 
     return TRUE;
+}
+
+VOID PhSymbolProviderSetSearchPath(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in PWSTR SearchPath
+    )
+{
+    PPH_ANSI_STRING searchPath;
+
+    searchPath = PhCreateAnsiStringFromUnicode(SearchPath);
+
+    PhAcquireMutex(&PhSymMutex);
+    SymSetSearchPath_I(SymbolProvider->ProcessHandle, searchPath->Buffer);
+    PhReleaseMutex(&PhSymMutex);
+
+    PhDereferenceObject(searchPath);
 }
 
 BOOLEAN PhStackWalk(

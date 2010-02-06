@@ -52,9 +52,17 @@ typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 struct _PH_AUTO_POOL;
 typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
 
+struct _PH_FAST_LOCK;
+typedef struct _PH_FAST_LOCK PH_FAST_LOCK, *PPH_FAST_LOCK;
+
 #ifndef REF_PRIVATE
 extern PPH_OBJECT_TYPE PhObjectTypeObject;
 extern PPH_OBJECT_TYPE PhAllocType;
+
+#ifdef DEBUG
+extern LIST_ENTRY PhObjectListHead;
+extern PH_FAST_LOCK PhObjectListLock;
+#endif
 #endif
 
 typedef struct _PH_OBJECT_TYPE_INFORMATION
@@ -74,6 +82,7 @@ NTSTATUS PhCreateObject(
 
 NTSTATUS PhCreateObjectType(
     __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
     __in ULONG Flags,
     __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );

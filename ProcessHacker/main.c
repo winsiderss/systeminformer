@@ -76,9 +76,9 @@ INT WINAPI WinMain(
 
     PhInitializeSystemInformation();
 
+    PhFastLockInitialization();
     if (!NT_SUCCESS(PhInitializeRef()))
         return 1;
-    PhFastLockInitialization();
     if (!PhInitializeBase())
         return 1;
 
