@@ -24,17 +24,20 @@
 #include <phgui.h>
 
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
+_RunFileDlg RunFileDlg;
 _SetWindowTheme SetWindowTheme_I;
 _StrCmpLogicalW StrCmpLogicalW_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
 VOID PhGuiSupportInitialization()
 {
+    LoadLibrary(L"shell32.dll");
     LoadLibrary(L"shlwapi.dll");
     LoadLibrary(L"uxtheme.dll");
 
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
+    RunFileDlg = PhGetProcAddress(L"shell32.dll", (PSTR)61);
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
     StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
