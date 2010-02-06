@@ -55,6 +55,15 @@ typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
 struct _PH_FAST_LOCK;
 typedef struct _PH_FAST_LOCK PH_FAST_LOCK, *PPH_FAST_LOCK;
 
+#ifdef DEBUG
+typedef VOID (NTAPI *PPH_CREATE_OBJECT_HOOK)(
+    __in PVOID Object,
+    __in SIZE_T Size,
+    __in ULONG Flags,
+    __in PPH_OBJECT_TYPE ObjectType
+    );
+#endif
+
 #ifndef REF_PRIVATE
 extern PPH_OBJECT_TYPE PhObjectTypeObject;
 extern PPH_OBJECT_TYPE PhAllocType;
@@ -62,6 +71,7 @@ extern PPH_OBJECT_TYPE PhAllocType;
 #ifdef DEBUG
 extern LIST_ENTRY PhObjectListHead;
 extern PH_FAST_LOCK PhObjectListLock;
+extern PPH_CREATE_OBJECT_HOOK PhCreateObjectHook;
 #endif
 #endif
 
