@@ -589,6 +589,19 @@ FORCEINLINE VOID PhpSetCurrentAutoPool(
 {
     if (!TlsSetValue(PhpAutoPoolTlsIndex, AutoPool))
         PhRaiseStatus(STATUS_UNSUCCESSFUL);
+
+#ifdef DEBUG
+    {
+        PPHP_BASE_THREAD_DBG dbg;
+
+        dbg = (PPHP_BASE_THREAD_DBG)TlsGetValue(PhDbgThreadDbgTlsIndex);
+
+        if (dbg)
+        {
+            dbg->CurrentAutoPool = AutoPool;
+        }
+    }
+#endif
 }
 
 /**

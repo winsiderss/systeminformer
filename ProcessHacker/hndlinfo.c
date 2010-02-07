@@ -992,7 +992,7 @@ BOOLEAN PhpHeadQueryObjectHack()
     // Create a query thread if we don't have one.
     if (!PhQueryObjectThreadHandle)
     {
-        PhQueryObjectThreadHandle = PhCreateThread(0, PhpQueryObjectThreadStart, NULL);
+        PhQueryObjectThreadHandle = CreateThread(NULL, 0, PhpQueryObjectThreadStart, NULL, 0, NULL);
 
         if (!PhQueryObjectThreadHandle)
             return FALSE;
