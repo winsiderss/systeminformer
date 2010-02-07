@@ -24,7 +24,7 @@
 #include <settings.h>
 #include <kph.h>
 
-PWSTR DangerousProcesses[] =
+static PWSTR DangerousProcesses[] =
 {
     L"csrss.exe", L"dwm.exe", L"logonui.exe", L"lsass.exe", L"lsm.exe",
     L"services.exe", L"smss.exe", L"wininit.exe", L"winlogon.exe"

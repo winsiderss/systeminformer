@@ -70,3 +70,126 @@ Abstraction layers and their modules:
   * Service properties (srvprp.c)
   * Terminator (termator.c)
   * Thread stack (thrdstk.c)
+
+== Conventions ==
+
+==== Names ====
+  * Functions, function parameters, and global variables use CamelCase.
+  * Local variables use lowerCamelCase.
+  * Structs, enums and unions use CAPS_WITH_UNDERSCORES.
+
+All names must have an appropriate prefix (with some exceptions):
+  * "Ph" or "PH_" (structures) for public names.
+  * "Php" or "PHP_" for private names.
+  * Some variants such as "Pha".
+  * Private prefixes are created by appending "p" to the prefix. E.g. 
+    "Ph" -> "Php", "Pha" -> "Phap".
+  * Functions and global variables without a prefix must be declared 
+    "static".
+    * "static" names must have a private prefix.
+    * Names with a private prefix do not have to be "static".
+  * Structures without a prefix must be declared in a ".c" file. 
+    Structures declared in a ".c" file may or may not have a prefix.
+
+==== Types ====
+Unless used for the Win32 API, the standard types are:
+
+ * BOOLEAN for a 1 byte boolean, or LOGICAL for a 4 byte boolean.
+ * UCHAR for 1 byte.
+ * SHORT/USHORT for 2 bytes.
+ * LONG/ULONG for 4 bytes.
+ * LONG64/ULONG64 for 8 bytes.
+ * CHAR for a 1 byte character.
+ * WCHAR for a 2 byte character.
+ * PSTR for a string of 1 byte characters.
+ * PWSTR for a string of 2 byte characters.
+
+====== Booleans ======
+Always use:
+
+    if (booleanVariable) // not "if (booleanVariable == TRUE)"
+    {
+        ...
+    }
+
+to test a boolean value.
+
+==== Annotations, qualifiers ====
+ * All parameters must use annotations, such as __in, __inout, __out, etc. 
+ * Do not use "const".
+ * Do not use "volatile" in definitions. Instead, cast to a volatile 
+   pointer when necessary.
+
+==== Threads ====
+Every thread start routine must have the following signature:
+
+    NTSTATUS NameOfRoutine(
+        __in PVOID Parameter
+        );
+
+Each thread should call PhBaseThreadInitialization() at startup.
+
+==== Memory management ====
+Use PhAllocate/PhFree to allocate/free memory. For complex objects, 
+use the reference counting system.
+
+There is semi-automatic reference counting available in the form 
+of auto-dereference pools (similar to Apple's NSAutoreleasePools). 
+Use the PhaDereferenceObject to add an object to the thread's pool, 
+and the object will be dereferenced at an unspecified time in the 
+future. However, the object is guaranteed to not be dereferenced 
+while the current function is executing.
+
+The inline function PHA_DEREFERENCE takes a pointer to an object, 
+auto-dereferences it, and returns the pointer.
+
+==== Strings ====
+Strings use the PH_STRING type, managed by reference counting. 
+To create a string object from a null-terminated string:
+
+    PPH_STRING myString = PhCreateString(L"My string");
+
+    wprintf(
+        L"My string is \"%s\", and uses %u bytes.\n",
+        myString->Buffer,
+        myString->Length
+        );
+
+All string objects have an embedded length (always in bytes), 
+and the string is additionally null-terminated for compatibility 
+reasons.
+
+Strings can be concatenated with PhConcatStrings:
+
+    PPH_STRING newString;
+    
+    newString = PhConcatStrings(
+        4,
+        L"My first string, ",
+        L"My second string, ",
+        aStringFromSomewhere,
+        L"My fourth string."
+        );
+
+Another version concatenates two strings:
+
+    PPH_STRING newString;
+    
+    newString = PhConcatStrings2(
+        L"My first string, ",
+        L"My second string."
+        );
+
+Strings can be formatted:
+
+    PPH_STRING newString;
+    
+    newString = PhFormatString(
+        L"%d: %s, %#x",
+        100,
+        L"test",
+        0xff
+        );
+
+==== Tips ====
+ * Use !! to "cast" to a boolean.
