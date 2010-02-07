@@ -216,9 +216,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"objcmpsnap\n"
                 L"objmknew\n"
                 L"objdelnew\n"
-                L"objviewnew\n",
-                L"dumpobj\n",
-                L"dumpautopool\n",
+                L"objviewnew\n"
+                L"dumpobj\n"
+                L"dumpautopool\n"
                 L"threads\n"
                 );
         }
