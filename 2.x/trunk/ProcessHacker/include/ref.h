@@ -69,9 +69,9 @@ extern PPH_OBJECT_TYPE PhObjectTypeObject;
 extern PPH_OBJECT_TYPE PhAllocType;
 
 #ifdef DEBUG
-extern LIST_ENTRY PhObjectListHead;
-extern PH_FAST_LOCK PhObjectListLock;
-extern PPH_CREATE_OBJECT_HOOK PhCreateObjectHook;
+extern LIST_ENTRY PhDbgObjectListHead;
+extern PH_FAST_LOCK PhDbgObjectListLock;
+extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 #endif
 #endif
 
@@ -165,9 +165,38 @@ NTSTATUS PhCreateAlloc(
     __in SIZE_T Size
     );
 
-PPH_AUTO_POOL PhCreateAutoPool();
+/** The size of the static array in an auto-release pool. */
+#define PH_AUTO_POOL_STATIC_SIZE 64
+/** The maximum size of the dynamic array for it to be 
+ * kept after the auto-release pool is drained. */
+#define PH_AUTO_POOL_DYNAMIC_BIG_SIZE 256
 
-VOID PhFreeAutoPool(
+/**
+ * An auto-dereference pool can be used for 
+ * semi-automatic reference counting. Batches of 
+ * objects are dereferenced at a certain time.
+ *
+ * This object is not thread-safe and cannot 
+ * be used across thread boundaries. Always 
+ * store them as local variables.
+ */
+typedef struct _PH_AUTO_POOL
+{
+    ULONG StaticCount;
+    PVOID StaticObjects[PH_AUTO_POOL_STATIC_SIZE];
+
+    ULONG DynamicCount;
+    ULONG DynamicAllocated;
+    PPVOID DynamicObjects;
+
+    PPH_AUTO_POOL NextPool;
+} PH_AUTO_POOL, *PPH_AUTO_POOL;
+
+VOID PhInitializeAutoPool(
+    __out PPH_AUTO_POOL AutoPool
+    );
+
+VOID PhDeleteAutoPool(
     __inout PPH_AUTO_POOL AutoPool
     );
 

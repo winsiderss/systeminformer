@@ -51,7 +51,7 @@ ACCESS_MASK ThreadAllAccess;
 COLORREF PhSysWindowColor;
 
 static PPH_LIST DialogList;
-static PPH_AUTO_POOL BaseAutoPool;
+static PH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI WinMain(
     __in HINSTANCE hInstance,
@@ -70,6 +70,7 @@ INT WINAPI WinMain(
     PhInitializeWindowsVersion();
     PhRegisterWindowClass();
     PhInitializeCommonControls();
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     if (!PhInitializeImports())
         return 1;
@@ -81,8 +82,6 @@ INT WINAPI WinMain(
         return 1;
     if (!PhInitializeBase())
         return 1;
-
-    PhBaseThreadInitialization();
 
     if (!PhInitializeSystem())
         return 1;
@@ -122,7 +121,7 @@ INT WINAPI WinMain(
 
     PhInitializeKph();
 
-    BaseAutoPool = PhCreateAutoPool();
+    PhInitializeAutoPool(&BaseAutoPool);
 
     PhGuiSupportInitialization();
     PhSecurityEditorInitialization();
@@ -135,7 +134,7 @@ INT WINAPI WinMain(
         return 1;
     }
 
-    PhDrainAutoPool(BaseAutoPool);
+    PhDrainAutoPool(&BaseAutoPool);
 
     return PhMainMessageLoop();
 }
@@ -180,7 +179,7 @@ INT PhMainMessageLoop()
             DispatchMessage(&message);
         }
 
-        PhDrainAutoPool(BaseAutoPool);
+        PhDrainAutoPool(&BaseAutoPool);
     }
 
     return (INT)message.wParam;

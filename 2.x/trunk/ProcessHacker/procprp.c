@@ -3033,15 +3033,15 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     __in PVOID Parameter
     )
 {
+    PH_AUTO_POOL autoPool;
     PPH_PROCESS_PROPCONTEXT PropContext = (PPH_PROCESS_PROPCONTEXT)Parameter;
     PPH_PROCESS_PROPPAGECONTEXT newPage;
     PPH_STRING startPage;
-    PPH_AUTO_POOL autoPool;
     HWND hwnd;
     BOOL result;
     MSG message;
 
-    PhBaseThreadInitialization();
+    PhInitializeAutoPool(&autoPool);
 
     // Wait for stage 1 to be processed.
     PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
@@ -3114,8 +3114,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         PhDereferenceObject(newPage);
     }
 
-    autoPool = PhCreateAutoPool();
-
     // Create the property sheet
 
     startPage = PhGetStringSetting(L"ProcPropPage");
@@ -3142,7 +3140,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
             DispatchMessage(&message);
         }
 
-        PhDrainAutoPool(autoPool);
+        PhDrainAutoPool(&autoPool);
 
         // Destroy the window when necessary.
         if (!PropSheet_GetCurrentPageHwnd(hwnd))
@@ -3154,7 +3152,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
 
     PhDereferenceObject(PropContext);
 
-    PhFreeAutoPool(autoPool);
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }
@@ -3166,7 +3164,7 @@ BOOLEAN PhShowProcessProperties(
     HANDLE threadHandle;
 
     PhReferenceObject(Context);
-    threadHandle = CreateThread(NULL, 0, PhpProcessPropertiesThreadStart, Context, 0, NULL);
+    threadHandle = PhCreateThread(0, PhpProcessPropertiesThreadStart, Context);
 
     if (threadHandle)
     {
