@@ -60,6 +60,8 @@ VOID PhpFreeListDeleteProcedure(
     __in ULONG Flags
     );
 
+// Types
+
 PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhAnsiStringType;
 PPH_OBJECT_TYPE PhStringBuilderType;
@@ -69,7 +71,16 @@ PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 PPH_OBJECT_TYPE PhFreeListType;
 
-PPH_FREE_LIST PhBaseThreadContextFreeList;
+// Threads
+
+PPH_FREE_LIST PhpBaseThreadContextFreeList;
+#ifdef DEBUG
+ULONG PhDbgThreadDbgTlsIndex;
+LIST_ENTRY PhDbgThreadListHead;
+PH_FAST_LOCK PhDbgThreadListLock;
+#endif
+
+// Data
 
 static ULONG PhpCharToInteger[] =
 {
@@ -168,10 +179,15 @@ BOOLEAN PhInitializeBase()
         )))
         return FALSE;
 
-    PhBaseThreadContextFreeList = PhCreateFreeList(
+    PhpBaseThreadContextFreeList = PhCreateFreeList(
         sizeof(PHP_BASE_THREAD_CONTEXT),
         16
         );
+#ifdef DEBUG
+    PhDbgThreadDbgTlsIndex = TlsAlloc();
+    InitializeListHead(&PhDbgThreadListHead);
+    PhInitializeFastLock(&PhDbgThreadListLock);
+#endif
 
     PhWorkQueueInitialization();
 
@@ -184,9 +200,27 @@ NTSTATUS PhpBaseThreadStart(
 {
     NTSTATUS status;
     PHP_BASE_THREAD_CONTEXT context;
+#ifdef DEBUG
+    PHP_BASE_THREAD_DBG dbg;
+#endif
 
     context = *(PPHP_BASE_THREAD_CONTEXT)Parameter;
-    PhFreeToFreeList(PhBaseThreadContextFreeList, Parameter);
+    PhFreeToFreeList(PhpBaseThreadContextFreeList, Parameter);
+
+#ifdef DEBUG
+    dbg.ClientId.UniqueProcess = NtCurrentProcessId();
+    dbg.ClientId.UniqueThread = NtCurrentThreadId();
+
+    dbg.StartAddress = context.StartAddress;
+    dbg.Parameter = context.Parameter;
+    dbg.CurrentAutoPool = NULL;
+
+    PhAcquireFastLockExclusive(&PhDbgThreadListLock);
+    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
+    PhReleaseFastLockExclusive(&PhDbgThreadListLock);
+
+    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+#endif
 
     // Initialization code
 
@@ -196,6 +230,12 @@ NTSTATUS PhpBaseThreadStart(
     status = context.StartAddress(context.Parameter);
 
     // De-initialization code
+
+#ifdef DEBUG
+    PhAcquireFastLockExclusive(&PhDbgThreadListLock);
+    RemoveEntryList(&dbg.ListEntry);
+    PhReleaseFastLockExclusive(&PhDbgThreadListLock);
+#endif
 
     return status;
 }
@@ -216,7 +256,7 @@ HANDLE PhCreateThread(
     HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
-    context = PhAllocateFromFreeList(PhBaseThreadContextFreeList);
+    context = PhAllocateFromFreeList(PhpBaseThreadContextFreeList);
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
@@ -235,7 +275,7 @@ HANDLE PhCreateThread(
     }
     else
     {
-        PhFreeToFreeList(PhBaseThreadContextFreeList, context);
+        PhFreeToFreeList(PhpBaseThreadContextFreeList, context);
         return NULL;
     }
 }
