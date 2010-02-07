@@ -160,7 +160,7 @@ NTSTATUS PhCreateObject(
     }
 
     PhAcquireFastLockExclusive(&PhObjectListLock);
-    InsertHeadList(&PhObjectListHead, &objectHeader->ObjectListEntry);
+    InsertTailList(&PhObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseFastLockExclusive(&PhObjectListLock);
 
     if (PhCreateObjectHook)
