@@ -60,6 +60,10 @@ INT WINAPI WinMain(
     __in INT nCmdShow
     )
 {
+#ifdef DEBUG
+    PHP_BASE_THREAD_DBG dbg;
+#endif
+
     PhInstanceHandle = hInstance;
 
     PhHeapHandle = HeapCreate(0, 0, 0);
@@ -120,6 +124,15 @@ INT WINAPI WinMain(
         PhActivatePreviousInstance();
 
     PhInitializeKph();
+
+#ifdef DEBUG
+    dbg.ClientId.UniqueProcess = NtCurrentProcessId();
+    dbg.ClientId.UniqueThread = NtCurrentThreadId();
+    dbg.StartAddress = WinMain;
+    dbg.Parameter = NULL;
+    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
+    TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
+#endif
 
     PhInitializeAutoPool(&BaseAutoPool);
 

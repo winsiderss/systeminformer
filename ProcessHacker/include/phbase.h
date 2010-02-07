@@ -65,6 +65,29 @@ BOOLEAN PhInitializeBase();
 
 // threads
 
+#ifdef DEBUG
+struct _PH_AUTO_POOL;
+typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
+
+typedef struct _PHP_BASE_THREAD_DBG
+{
+    CLIENT_ID ClientId;
+    LIST_ENTRY ListEntry;
+    PVOID StartAddress;
+    PVOID Parameter;
+
+    PPH_AUTO_POOL CurrentAutoPool;
+} PHP_BASE_THREAD_DBG, *PPHP_BASE_THREAD_DBG;
+#endif
+
+#ifndef BASESUP_PRIVATE
+#ifdef DEBUG
+extern ULONG PhDbgThreadDbgTlsIndex;
+extern LIST_ENTRY PhDbgThreadListHead;
+extern PH_FAST_LOCK PhDbgThreadListLock;
+#endif
+#endif
+
 HANDLE PhCreateThread(
     __in_opt SIZE_T StackSize,
     __in PUSER_THREAD_START_ROUTINE StartAddress,

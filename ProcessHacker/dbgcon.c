@@ -60,7 +60,7 @@ static VOID PhpPrintObjectInfo(
     __in PPH_OBJECT_HEADER ObjectHeader
     )
 {
-    wprintf(L"%Ix", ObjectHeader);
+    wprintf(L"%Ix", PhObjectHeaderToObject(ObjectHeader));
 
     wprintf(L"\t% 20s", ObjectHeader->Type->Name);
     wprintf(L"\t%d", ObjectHeader->RefCount - 1);
@@ -98,6 +98,33 @@ static VOID PhpPrintObjectInfo(
     }
 
     wprintf(L"\n");
+}
+
+static VOID PhpDumpObjectInfo(
+    __in PPH_OBJECT_HEADER ObjectHeader
+    )
+{
+    __try
+    {
+        wprintf(L"Type: %s\n", ObjectHeader->Type->Name);
+
+        if (ObjectHeader->Type == PhObjectTypeObject)
+        {
+            wprintf(L"%.32s\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
+        }
+        else if (ObjectHeader->Type == PhStringType)
+        {
+            wprintf(L"%.32s\n", ((PPH_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        }
+        else if (ObjectHeader->Type == PhAnsiStringType)
+        {
+            wprintf(L"%.32S\n", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        wprintf(L"Error.");
+    }
 }
 
 #ifdef DEBUG
@@ -189,7 +216,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"objcmpsnap\n"
                 L"objmknew\n"
                 L"objdelnew\n"
-                L"objviewnew\n"
+                L"objviewnew\n",
+                L"dumpobj\n",
+                L"dumpautopool\n",
+                L"threads\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"objects"))
@@ -269,7 +299,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             if (PhStringToInteger64(objectAddress, 16, &address))
             {
-                PPH_OBJECT_HEADER objectHeader = (PPH_OBJECT_HEADER)address;
+                PPH_OBJECT_HEADER objectHeader = (PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address);
                 PVOID stackBackTrace[16];
                 ULONG i;
 
@@ -284,7 +314,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                     message = PhGetNtMessage(GetExceptionCode());
                     PHA_DEREFERENCE(message);
-                    wprintf(L"Error: %s\n", message->Buffer);
+                    wprintf(L"Error: %s\n", PhGetString(message));
 
                     goto EndCommand;
                 }
@@ -438,6 +468,85 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhReleaseMutex(&NewObjectListLock);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"dumpobj"))
+        {
+            PWSTR addressString = wcstok_s(NULL, delims, &context);
+            ULONG64 address;
+
+            if (!addressString)
+                goto EndCommand;
+
+            if (PhStringToInteger64(addressString, 16, &address))
+            {
+                PhpDumpObjectInfo((PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address));
+            }
+        }
+        else if (WSTR_IEQUAL(command, L"dumpautopool"))
+        {
+            PWSTR addressString = wcstok_s(NULL, delims, &context);
+            ULONG64 address;
+
+            if (!addressString)
+                goto EndCommand;
+
+            if (PhStringToInteger64(addressString, 16, &address))
+            {
+                PPH_AUTO_POOL autoPool = (PPH_AUTO_POOL)address;
+                ULONG i;
+
+                __try
+                {
+                    wprintf(L"Static count: %u\n", autoPool->StaticCount);
+                    wprintf(L"Dynamic count: %u\n", autoPool->DynamicCount);
+                    wprintf(L"Dynamic allocated: %u\n", autoPool->DynamicAllocated);
+
+                    wprintf(L"Static objects:\n");
+
+                    for (i = 0; i < autoPool->StaticCount; i++)
+                        PhpPrintObjectInfo(PhObjectToObjectHeader(autoPool->StaticObjects[i]));
+
+                    wprintf(L"Dynamic objects:\n");
+
+                    for (i = 0; i < autoPool->DynamicCount; i++)
+                        PhpPrintObjectInfo(PhObjectToObjectHeader(autoPool->DynamicObjects[i]));
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    goto EndCommand;
+                }
+            }
+        }
+        else if (WSTR_IEQUAL(command, L"threads"))
+        {
+#ifdef DEBUG
+            PLIST_ENTRY currentEntry;
+
+            PhAcquireFastLockShared(&PhDbgThreadListLock);
+
+            currentEntry = PhDbgThreadListHead.Flink;
+
+            while (currentEntry != &PhDbgThreadListHead)
+            {
+                PPHP_BASE_THREAD_DBG dbg;
+
+                dbg = CONTAINING_RECORD(currentEntry, PHP_BASE_THREAD_DBG, ListEntry);
+
+                wprintf(L"Thread %u\n", (ULONG)dbg->ClientId.UniqueThread);
+                wprintf(L"\tStart Address: %s\n",
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
+                    symbolProvider, (ULONG64)dbg->StartAddress, NULL, NULL, NULL, NULL
+                    )))->Buffer);
+                wprintf(L"\tParameter: %Ix\n", dbg->Parameter);
+                wprintf(L"\tCurrent auto-pool: %Ix\n", dbg->CurrentAutoPool);
+
+                currentEntry = currentEntry->Flink;
+            }
+
+            PhReleaseFastLockShared(&PhDbgThreadListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
