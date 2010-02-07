@@ -95,7 +95,7 @@ BOOLEAN PhpCreateWorkQueueThread(
 {
     HANDLE threadHandle;
     
-    threadHandle = CreateThread(NULL, 0, PhpWorkQueueThreadStart, WorkQueue, 0, NULL);
+    threadHandle = PhCreateThread(0, PhpWorkQueueThreadStart, WorkQueue);
 
     if (threadHandle)
     {
@@ -115,8 +115,6 @@ NTSTATUS PhpWorkQueueThreadStart(
     )
 {
     PPH_WORK_QUEUE workQueue = (PPH_WORK_QUEUE)Parameter;
-
-    PhBaseThreadInitialization();
 
     while (TRUE)
     {

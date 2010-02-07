@@ -1535,7 +1535,8 @@ NTSTATUS PhUnloadDllProcess(
     }
     else
     {
-        if (!(threadHandle = CreateThread(
+        if (!(threadHandle = CreateRemoteThread(
+            ProcessHandle,
             NULL,
             0,
             (PTHREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "FreeLibrary"),

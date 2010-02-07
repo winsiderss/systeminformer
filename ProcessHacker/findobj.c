@@ -218,7 +218,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         SearchResultsAddIndex = 0;
                         PhInitializeMutex(&SearchResultsLock);
 
-                        SearchThreadHandle = CreateThread(NULL, 0, PhpFindObjectsThreadStart, NULL, 0, NULL);
+                        SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, NULL);
 
                         if (!SearchThreadHandle)
                             break;
@@ -423,8 +423,6 @@ static NTSTATUS PhpFindObjectsThreadStart(
     ULONG64 searchPointer;
     BOOLEAN useSearchPointer;
     ULONG i;
-
-    PhBaseThreadInitialization();
 
     // Refuse to search with no filter.
     if (SearchString->Length == 0)

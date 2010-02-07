@@ -42,7 +42,7 @@ VOID PhShowDebugConsole()
 
     freopen("CONOUT$", "w", stdout);
     freopen("CONIN$", "r", stdin);
-    DebugConsoleThreadHandle = CreateThread(NULL, 0, PhpDebugConsoleThreadStart, NULL, 0, NULL); 
+    DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL); 
 }
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
@@ -141,11 +141,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider;
-    PPH_AUTO_POOL autoPool; 
+    PH_AUTO_POOL autoPool; 
 
-    PhBaseThreadInitialization();
-
-    autoPool = PhCreateAutoPool();
+    PhInitializeAutoPool(&autoPool);
 
     symbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
     PhSymbolProviderSetSearchPath(symbolProvider, PhApplicationDirectory->Buffer);
@@ -154,7 +152,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
 #ifdef DEBUG
     PhInitializeMutex(&NewObjectListLock);
-    PhCreateObjectHook = PhpDebugCreateObjectHook;
+    PhDbgCreateObjectHook = PhpDebugCreateObjectHook;
 #endif
 
     while (TRUE)
@@ -205,11 +203,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
             if (typeFilter)
                 wcslwr(typeFilter);
 
-            PhAcquireFastLockShared(&PhObjectListLock);
+            PhAcquireFastLockShared(&PhDbgObjectListLock);
 
-            currentEntry = PhObjectListHead.Flink;
+            currentEntry = PhDbgObjectListHead.Flink;
 
-            while (currentEntry != &PhObjectListHead)
+            while (currentEntry != &PhDbgObjectListHead)
             {
                 PPH_OBJECT_HEADER objectHeader;
                 WCHAR typeName[32];
@@ -244,7 +242,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhDereferenceObjectDeferDelete(PhObjectHeaderToObject(objectHeader));
             }
 
-            PhReleaseFastLockShared(&PhObjectListLock);
+            PhReleaseFastLockShared(&PhDbgObjectListLock);
 
             wprintf(L"Total number: %u\n", totalNumberOfObjects);
             wprintf(L"Total size (excl. header): %s\n",
@@ -321,11 +319,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             ObjectListSnapshot = PhCreateSimpleHashtable(100);
 
-            PhAcquireFastLockShared(&PhObjectListLock);
+            PhAcquireFastLockShared(&PhDbgObjectListLock);
 
-            currentEntry = PhObjectListHead.Flink;
+            currentEntry = PhDbgObjectListHead.Flink;
 
-            while (currentEntry != &PhObjectListHead)
+            while (currentEntry != &PhDbgObjectListHead)
             {
                 PPH_OBJECT_HEADER objectHeader;
 
@@ -336,7 +334,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PhAddSimpleHashtableItem(ObjectListSnapshot, objectHeader, NULL);
             }
 
-            PhReleaseFastLockShared(&PhObjectListLock);
+            PhReleaseFastLockShared(&PhDbgObjectListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
@@ -356,11 +354,11 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             newObjects = PhCreateList(10);
 
-            PhAcquireFastLockShared(&PhObjectListLock);
+            PhAcquireFastLockShared(&PhDbgObjectListLock);
 
-            currentEntry = PhObjectListHead.Flink;
+            currentEntry = PhDbgObjectListHead.Flink;
 
-            while (currentEntry != &PhObjectListHead)
+            while (currentEntry != &PhDbgObjectListHead)
             {
                 PPH_OBJECT_HEADER objectHeader;
 
@@ -380,7 +378,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 }
             }
 
-            PhReleaseFastLockShared(&PhObjectListLock);
+            PhReleaseFastLockShared(&PhDbgObjectListLock);
 
             for (i = 0; i < newObjects->Count; i++)
             {
@@ -451,12 +449,12 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
 
 EndCommand:
-        PhDrainAutoPool(autoPool);
+        PhDrainAutoPool(&autoPool);
     }
 
     PhDereferenceObject(symbolProvider);
 
-    PhFreeAutoPool(autoPool);
+    PhDeleteAutoPool(&autoPool);
 
     return STATUS_SUCCESS;
 }
