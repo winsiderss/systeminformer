@@ -123,7 +123,7 @@ static VOID PhpDumpObjectInfo(
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        wprintf(L"Error.");
+        wprintf(L"Error.\n");
     }
 }
 
