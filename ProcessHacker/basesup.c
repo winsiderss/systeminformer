@@ -22,7 +22,13 @@
 
 #define BASESUP_PRIVATE
 #include <phbase.h>
-#include "math.h"
+#include <math.h>
+
+typedef struct _PHP_BASE_THREAD_CONTEXT
+{
+    PUSER_THREAD_START_ROUTINE StartAddress;
+    PVOID Parameter;
+} PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
 VOID NTAPI PhpStringBuilderDeleteProcedure(
     __in PVOID Object,
@@ -62,6 +68,8 @@ PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 PPH_OBJECT_TYPE PhFreeListType;
+
+PPH_FREE_LIST PhBaseThreadContextFreeList;
 
 static ULONG PhpCharToInteger[] =
 {
@@ -160,19 +168,76 @@ BOOLEAN PhInitializeBase()
         )))
         return FALSE;
 
+    PhBaseThreadContextFreeList = PhCreateFreeList(
+        sizeof(PHP_BASE_THREAD_CONTEXT),
+        16
+        );
+
     PhWorkQueueInitialization();
 
     return TRUE;
 }
 
-/**
- * Initializes the base support functions for 
- * the current thread.
- * In practice this is used for common thread initialization.
- */
-VOID PhBaseThreadInitialization()
+NTSTATUS PhpBaseThreadStart(
+    __in PVOID Parameter
+    )
 {
+    NTSTATUS status;
+    PHP_BASE_THREAD_CONTEXT context;
+
+    context = *(PPHP_BASE_THREAD_CONTEXT)Parameter;
+    PhFreeToFreeList(PhBaseThreadContextFreeList, Parameter);
+
+    // Initialization code
+
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
+    // Call the user-supplied function.
+    status = context.StartAddress(context.Parameter);
+
+    // De-initialization code
+
+    return status;
+}
+
+/**
+ * Creates a thread.
+ *
+ * \param StackSize The initial stack size of the thread.
+ * \param StartAddress The function to execute in the thread.
+ * \param Parameter A user-defined value to pass to the function.
+ */
+HANDLE PhCreateThread(
+    __in_opt SIZE_T StackSize,
+    __in PUSER_THREAD_START_ROUTINE StartAddress,
+    __in PVOID Parameter
+    )
+{
+    HANDLE threadHandle;
+    PPHP_BASE_THREAD_CONTEXT context;
+
+    context = PhAllocateFromFreeList(PhBaseThreadContextFreeList);
+    context->StartAddress = StartAddress;
+    context->Parameter = Parameter;
+
+    threadHandle = CreateThread(
+        NULL,
+        StackSize,
+        PhpBaseThreadStart,
+        context,
+        0,
+        NULL
+        );
+
+    if (threadHandle)
+    {
+        return threadHandle;
+    }
+    else
+    {
+        PhFreeToFreeList(PhBaseThreadContextFreeList, context);
+        return NULL;
+    }
 }
 
 /**

@@ -22,6 +22,8 @@
 
 // This code was initially ported from KProcessHacker.
 
+#define REF_PRIVATE
+#include <ref.h>
 #include <refp.h>
 
 /** The type object type. */
@@ -38,9 +40,9 @@ PPH_OBJECT_TYPE PhAllocType = NULL;
 static ULONG PhpAutoPoolTlsIndex;
 
 #ifdef DEBUG
-LIST_ENTRY PhObjectListHead;
-PH_FAST_LOCK PhObjectListLock;
-PPH_CREATE_OBJECT_HOOK PhCreateObjectHook = NULL;
+LIST_ENTRY PhDbgObjectListHead;
+PH_FAST_LOCK PhDbgObjectListLock;
+PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 #endif
 
 /**
@@ -51,8 +53,8 @@ NTSTATUS PhInitializeRef()
     NTSTATUS status = STATUS_SUCCESS;
 
 #ifdef DEBUG
-    InitializeListHead(&PhObjectListHead);
-    PhInitializeFastLock(&PhObjectListLock);
+    InitializeListHead(&PhDbgObjectListHead);
+    PhInitializeFastLock(&PhDbgObjectListLock);
 #endif
     
     // Create the fundamental object type.
@@ -159,13 +161,13 @@ NTSTATUS PhCreateObject(
             );
     }
 
-    PhAcquireFastLockExclusive(&PhObjectListLock);
-    InsertTailList(&PhObjectListHead, &objectHeader->ObjectListEntry);
-    PhReleaseFastLockExclusive(&PhObjectListLock);
+    PhAcquireFastLockExclusive(&PhDbgObjectListLock);
+    InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
+    PhReleaseFastLockExclusive(&PhDbgObjectListLock);
 
-    if (PhCreateObjectHook)
+    if (PhDbgCreateObjectHook)
     {
-        PhCreateObjectHook(
+        PhDbgCreateObjectHook(
             PhObjectHeaderToObject(objectHeader),
             ObjectSize,
             Flags,
@@ -530,9 +532,9 @@ VOID PhpFreeObject(
     _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
 
 #ifdef DEBUG
-    PhAcquireFastLockExclusive(&PhObjectListLock);
+    PhAcquireFastLockExclusive(&PhDbgObjectListLock);
     RemoveEntryList(&ObjectHeader->ObjectListEntry);
-    PhReleaseFastLockExclusive(&PhObjectListLock);
+    PhReleaseFastLockExclusive(&PhDbgObjectListLock);
 #endif
     
     /* Call the delete procedure if we have one. */
@@ -590,43 +592,39 @@ FORCEINLINE VOID PhpSetCurrentAutoPool(
 }
 
 /**
- * Creates an auto-dereference pool and sets it 
- * as the current pool for the current thread.
+ * Initializes an auto-dereference pool and sets it 
+ * as the current pool for the current thread. You 
+ * must call PhDeleteAutoPool() before storage for 
+ * the auto-dereference pool is freed.
  *
- * \return A pointer to an auto-dereference pool.
- * You must free the pool using PhFreeAutoPool() 
- * when you no longer need it. Always store the 
- * pointer in a local variable, and do not share 
- * the pointer with any other functions.
+ * \remarks Always store auto-dereference pools in local 
+ * variables, and do not share the pool with any other 
+ * functions.
  */
-PPH_AUTO_POOL PhCreateAutoPool()
+VOID PhInitializeAutoPool(
+    __out PPH_AUTO_POOL AutoPool
+    )
 {
-    PPH_AUTO_POOL autoPool;
-
-    autoPool = (PPH_AUTO_POOL)PhAllocate(sizeof(PH_AUTO_POOL));
-
-    autoPool->StaticCount = 0;
-    autoPool->DynamicCount = 0;
-    autoPool->DynamicAllocated = 0;
-    autoPool->DynamicObjects = NULL;
+    AutoPool->StaticCount = 0;
+    AutoPool->DynamicCount = 0;
+    AutoPool->DynamicAllocated = 0;
+    AutoPool->DynamicObjects = NULL;
 
     // Add the pool to the stack.
-    autoPool->NextPool = PhpGetCurrentAutoPool();
-    PhpSetCurrentAutoPool(autoPool);
-
-    return autoPool;
+    AutoPool->NextPool = PhpGetCurrentAutoPool();
+    PhpSetCurrentAutoPool(AutoPool);
 }
 
 /**
- * Frees an auto-dereference pool.
+ * Deletes an auto-dereference pool.
  * The function will dereference any objects 
  * currently in the pool. If a pool other than 
  * the current pool is passed to the function, 
  * an exception is raised.
  *
- * \param AutoPool The auto-dereference pool to free.
+ * \param AutoPool The auto-dereference pool to delete.
  */
-VOID PhFreeAutoPool(
+VOID PhDeleteAutoPool(
     __inout PPH_AUTO_POOL AutoPool
     )
 {
@@ -641,9 +639,6 @@ VOID PhFreeAutoPool(
     // Free the dynamic array if it hasn't been freed yet.
     if (AutoPool->DynamicObjects)
         PhFree(AutoPool->DynamicObjects);
-
-    // Free the pool.
-    PhFree(AutoPool);
 }
 
 /**

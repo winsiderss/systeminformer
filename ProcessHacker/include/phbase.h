@@ -63,7 +63,13 @@ typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
 BOOLEAN PhInitializeBase();
 
-VOID PhBaseThreadInitialization();
+// threads
+
+HANDLE PhCreateThread(
+    __in_opt SIZE_T StackSize,
+    __in PUSER_THREAD_START_ROUTINE StartAddress,
+    __in PVOID Parameter
+    );
 
 // heap
 
