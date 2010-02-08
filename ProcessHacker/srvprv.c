@@ -517,7 +517,7 @@ VOID PhpAddProcessItemService(
 {
     PhAcquireFastLockExclusive(&ProcessItem->ServiceListLock);
 
-    if (PhIndexOfPointerListItem(ProcessItem->ServiceList, ServiceItem) == -1)
+    if (!PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
     {
         PhReferenceObject(ServiceItem);
         PhAddPointerListItem(ProcessItem->ServiceList, ServiceItem);
@@ -531,10 +531,13 @@ VOID PhpRemoveProcessItemService(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
+    HANDLE pointerHandle;
+
     PhAcquireFastLockExclusive(&ProcessItem->ServiceListLock);
 
-    if (PhRemovePointerListItem(ProcessItem->ServiceList, ServiceItem))
+    if (pointerHandle = PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
     {
+        PhRemovePointerListItem(ProcessItem->ServiceList, pointerHandle);
         PhDereferenceObject(ServiceItem);
     }
 
