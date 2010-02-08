@@ -1448,18 +1448,39 @@ FORCEINLINE PVOID PhpEncodePointerListIndex(
     return (PVOID)(((ULONG_PTR)Index << 1) | 0x1);
 }
 
+FORCEINLINE HANDLE PhpPointerListIndexToHandle(
+    __in ULONG Index
+    )
+{
+    // Add one to allow NULL handles to indicate 
+    // failure/an invalid index.
+    return (HANDLE)(Index + 1);
+}
+
+FORCEINLINE ULONG PhpPointerListHandleToIndex(
+    __in HANDLE Handle
+    )
+{
+    return (ULONG)Handle - 1;
+}
+
 /**
  * Adds a pointer to a pointer list.
  *
  * \param PointerList A pointer list object.
  * \param Pointer The pointer to add. The pointer 
  * must be at least 2 byte aligned.
+ *
+ * \return A handle to the pointer, valid until 
+ * the pointer is removed from the pointer list.
  */
-VOID PhAddPointerListItem(
+HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )
 {
+    ULONG index;
+
     // Make sure the pointer has the free bit cleared.
     if (!PH_IS_LIST_POINTER_VALID(Pointer))
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
@@ -1469,8 +1490,9 @@ VOID PhAddPointerListItem(
     {
         PVOID oldPointer;
 
-        oldPointer = PointerList->Items[PointerList->FreeEntry];
-        PointerList->Items[PointerList->FreeEntry] = Pointer;
+        index = PointerList->FreeEntry;
+        oldPointer = PointerList->Items[index];
+        PointerList->Items[index] = Pointer;
         PointerList->FreeEntry = PhpDecodePointerListIndex(oldPointer);
     }
     else
@@ -1482,10 +1504,13 @@ VOID PhAddPointerListItem(
             PointerList->Items = PhReAlloc(PointerList->Items, PointerList->AllocatedCount * sizeof(PVOID));
         }
 
-        PointerList->Items[PointerList->NextEntry++] = Pointer;
+        index = PointerList->NextEntry++;
+        PointerList->Items[index] = Pointer;
     }
 
     PointerList->Count++;
+
+    return PhpPointerListIndexToHandle(index);
 }
 
 /**
@@ -1495,10 +1520,12 @@ VOID PhAddPointerListItem(
  * \param Pointer The pointer to find. The pointer 
  * must be at least 2 byte aligned.
  *
- * \return The index of the pointer. If the pointer 
- * is not found, -1 is returned.
+ * \return A handle to the pointer, valid until 
+ * the pointer is removed from the pointer list. 
+ * If the pointer is not contained in the pointer 
+ * list, NULL is returned.
  */
-ULONG PhIndexOfPointerListItem(
+HANDLE PhFindPointerListItem(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )
@@ -1508,56 +1535,36 @@ ULONG PhIndexOfPointerListItem(
     for (i = 0; i < PointerList->NextEntry; i++)
     {
         if (PointerList->Items[i] == Pointer)
-            return i;
+            return PhpPointerListIndexToHandle(i);
     }
 
-    return -1;
+    return NULL;
 }
 
 /**
  * Removes a pointer from a pointer list.
  *
  * \param PointerList A pointer list object.
- * \param Pointer The pointer to add. The pointer 
- * must be at least 2 byte aligned.
+ * \param PointerHandle A handle to the pointer 
+ * to remove.
+ *
+ * \remarks No checking is performed on the 
+ * pointer handle. Make sure the handle is valid 
+ * before calling the function.
  */
-BOOLEAN PhRemovePointerListItem(
+VOID PhRemovePointerListItem(
     __inout PPH_POINTER_LIST PointerList,
-    __in PVOID Pointer
+    __in HANDLE PointerHandle
     )
 {
-    ULONG i;
+    ULONG index;
 
-    for (i = 0; i < PointerList->NextEntry; i++)
-    {
-        // We don't have to check if the pointer is valid, 
-        // because free entries have the lowest bit set and 
-        // we're assuming the given pointer is 2 byte aligned.
-        if (PointerList->Items[i] == Pointer)
-        {
-            PointerList->Items[i] = PhpEncodePointerListIndex(PointerList->FreeEntry);
-            PointerList->FreeEntry = i;
+    index = PhpPointerListHandleToIndex(PointerHandle);
 
-            PointerList->Count--;
+    PointerList->Items[index] = PhpEncodePointerListIndex(PointerList->FreeEntry);
+    PointerList->FreeEntry = index;
 
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
-VOID PhDereferenceAllPointerListItems(
-    __in PPH_POINTER_LIST PointerList
-    )
-{
-    ULONG enumerationKey = 0;
-    PVOID pointer;
-
-    while (PhEnumPointerList(PointerList, &enumerationKey, &pointer))
-    {
-        PhDereferenceObject(pointer);
-    }
+    PointerList->Count--;
 }
 
 /**
