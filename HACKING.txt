@@ -120,6 +120,18 @@ to test a boolean value.
  * Do not use "volatile" in definitions. Instead, cast to a volatile 
    pointer when necessary.
 
+==== Function success indicators ====
+There are three main types of indicators used:
+
+ * A NTSTATUS value is returned. The NT_SUCCESS macro checks 
+   if a status value indicates success.
+ * A BOOLEAN value is returned. TRUE indicates success.
+ * The result of the function is returned (e.g. a pointer). 
+   A special value (e.g. NULL) indicates failure.
+
+Unless indicated, a function which fails is guaranteed not to 
+modify any of its output parameters (__out, __out_opt, etc.).
+
 ==== Threads ====
 Every thread start routine must have the following signature:
 
