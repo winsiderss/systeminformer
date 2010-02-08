@@ -962,19 +962,19 @@ PPH_POINTER_LIST PhCreatePointerList(
     __in ULONG InitialCapacity
     );
 
-VOID PhAddPointerListItem(
+HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
 
-ULONG PhIndexOfPointerListItem(
+HANDLE PhFindPointerListItem(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
 
-BOOLEAN PhRemovePointerListItem(
+VOID PhRemovePointerListItem(
     __inout PPH_POINTER_LIST PointerList,
-    __in PVOID Pointer
+    __in HANDLE PointerHandle
     );
 
 FORCEINLINE BOOLEAN PhEnumPointerList(
@@ -998,10 +998,6 @@ FORCEINLINE BOOLEAN PhEnumPointerList(
 
     return FALSE;
 }
-
-VOID PhDereferenceAllPointerListItems(
-    __in PPH_POINTER_LIST PointerList
-    );
 
 // queue
 
