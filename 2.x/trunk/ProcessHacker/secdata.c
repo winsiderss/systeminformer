@@ -565,6 +565,9 @@ PPH_STRING PhGetAccessString(
     if (PhStringEndsWith2(stringBuilder->String, L", ", FALSE))
         PhStringBuilderRemove(stringBuilder, stringBuilder->String->Length / 2 - 2, 2);
 
+    PhFree(matched);
+    PhFree(accessEntries);
+
     string = PhReferenceStringBuilderString(stringBuilder);
     PhDereferenceObject(stringBuilder);
 
