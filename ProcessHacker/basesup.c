@@ -1163,6 +1163,7 @@ VOID PhStringBuilderInsertEx(
         Length
         );
 
+    StringBuilder->String->Length += (USHORT)Length;
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
