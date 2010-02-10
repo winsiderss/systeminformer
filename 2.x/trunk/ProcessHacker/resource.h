@@ -94,9 +94,10 @@
 #define IDC_PROPERTIES                  1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
-#define ID_MAINWND_PROCESSLV            2001
+#define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
+#define ID_MAINWND_PROCESSLV            2004
 #define ID_HACKER_EXIT                  40001
 #define ID_USERS                        40002
 #define ID_TOOLS                        40003
@@ -210,6 +211,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        135
 #define _APS_NEXT_COMMAND_VALUE         40125
 #define _APS_NEXT_CONTROL_VALUE         1063
-#define _APS_NEXT_SYMED_VALUE           104
+#define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif
