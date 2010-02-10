@@ -22,6 +22,7 @@
 
 #define MAINWND_PRIVATE
 #include <phgui.h>
+#include <treelist.h>
 #include <settings.h>
 
 typedef BOOL (WINAPI *_FileIconInit)(
@@ -93,9 +94,11 @@ VOID PhMainWndOnServicesUpdated();
 HWND PhMainWndHandle;
 
 static HWND TabControlHandle;
+static INT ProcessesTlTabIndex;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
 static INT NetworkTabIndex;
+static HWND ProcessTreeListHandle;
 static HWND ProcessListViewHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
@@ -1066,6 +1069,10 @@ VOID PhMainWndOnCreate()
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
+    ProcessesTlTabIndex = PhAddTabControlTab(TabControlHandle, 3, L"Processes");
+
+    ProcessTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_PROCESSTL);
+    BringWindowToTop(ProcessTreeListHandle);
 
     ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
     PhSetListViewStyle(ProcessListViewHandle, TRUE, TRUE);
@@ -1169,7 +1176,13 @@ VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
-    if (selectedIndex == ProcessesTabIndex)
+    if (selectedIndex == ProcessesTlTabIndex)
+    {
+        *deferHandle = DeferWindowPos(*deferHandle, ProcessTreeListHandle, NULL, 
+            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER);
+    }
+    else if (selectedIndex == ProcessesTabIndex)
     {
         *deferHandle = DeferWindowPos(*deferHandle, ProcessListViewHandle, NULL, 
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
@@ -1211,6 +1224,7 @@ VOID PhMainWndTabControlOnSelectionChanged()
         EndDeferWindowPos(deferHandle);
     }
 
+    ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTlTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(ProcessListViewHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(ServiceListViewHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);

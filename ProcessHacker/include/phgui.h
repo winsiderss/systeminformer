@@ -1,7 +1,6 @@
 #ifndef PHGUI_H
 #define PHGUI_H
 
-#include <phbase.h>
 #include <ph.h>
 #include <commctrl.h>
 #define COBJMACROS
