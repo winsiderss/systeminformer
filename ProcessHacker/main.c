@@ -22,6 +22,7 @@
 
 #define MAIN_PRIVATE
 #include <phgui.h>
+#include <treelist.h>
 #include <kph.h>
 #include <settings.h>
 
@@ -137,6 +138,7 @@ INT WINAPI WinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhGuiSupportInitialization();
+    PhTreeListInitialization();
     PhSecurityEditorInitialization();
 
     DialogList = PhCreateList(1);

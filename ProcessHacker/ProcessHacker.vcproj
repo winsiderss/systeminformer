@@ -523,6 +523,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\treelist.c"
+				>
+			</File>
+			<File
 				RelativePath=".\verify.c"
 				>
 			</File>
@@ -670,6 +674,14 @@
 			</File>
 			<File
 				RelativePath=".\include\symprvp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\treelist.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\treelistp.h"
 				>
 			</File>
 			<File
