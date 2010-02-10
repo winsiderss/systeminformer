@@ -915,6 +915,7 @@ VOID PhReloadSysParameters()
     DeleteObject(PhApplicationFont);
     DeleteObject(PhBoldMessageFont);
     PhInitializeFont(PhMainWndHandle);
+	SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 }
 
 VOID PhpSaveWindowState()
