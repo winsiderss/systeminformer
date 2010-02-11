@@ -115,6 +115,33 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 clientRect.right - clientRect.left, 20, SWP_NOACTIVATE | SWP_NOZORDER);
         }
         break;
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_PAINT:
+        {
+            HDC hdc;
+            PAINTSTRUCT paintStruct;
+            RECT clientRect;
+            RECT rect;
+
+            hdc = BeginPaint(hwnd, &paintStruct);
+
+            GetClientRect(hwnd, &clientRect);
+
+            SelectObject(hdc, GetSysColorBrush(COLOR_WINDOW));
+            Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+
+            SelectObject(hdc, GetSysColorBrush(COLOR_WINDOWTEXT));
+            rect.left = 0;
+            rect.top = 0;
+            rect.right = 200;
+            rect.bottom = 100;
+
+            DrawText(hdc, L"Test", -1, &rect, DT_LEFT | DT_NOCLIP);
+
+            EndPaint(hwnd, &paintStruct);
+        }
+        break;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

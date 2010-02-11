@@ -183,6 +183,7 @@ BOOLEAN PhInitializeBase()
         sizeof(PHP_BASE_THREAD_CONTEXT),
         16
         );
+
 #ifdef DEBUG
     PhDbgThreadDbgTlsIndex = TlsAlloc();
     InitializeListHead(&PhDbgThreadListHead);
