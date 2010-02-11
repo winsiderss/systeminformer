@@ -690,6 +690,11 @@ VERIFY_RESULT PhVerifyFile(
 
 // provider
 
+#ifndef PROVIDER_PRIVATE
+extern LIST_ENTRY PhDbgProviderListHead;
+extern PH_FAST_LOCK PhDbgProviderListLock;
+#endif
+
 typedef enum _PH_PROVIDER_THREAD_STATE
 {
     ProviderThreadRunning,
@@ -713,6 +718,9 @@ typedef struct _PH_PROVIDER_REGISTRATION
 
 typedef struct _PH_PROVIDER_THREAD
 {
+#ifdef DEBUG
+    LIST_ENTRY DbgListEntry;
+#endif
     HANDLE ThreadHandle;
     HANDLE TimerHandle;
     ULONG Interval;
