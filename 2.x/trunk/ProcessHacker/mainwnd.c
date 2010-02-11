@@ -351,7 +351,7 @@ LRESULT CALLBACK PhMainWndProc(
                         SelectedRunAsAdmin = TRUE;
                         RunFileDlg(
                             hWnd,
-                            LoadIcon(NULL, MAKEINTRESOURCE(IDI_SHIELD)),
+                            NULL,
                             NULL,
                             NULL, 
                             L"Type the name of a program that will be opened under alternate credentials.",
