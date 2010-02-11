@@ -135,6 +135,11 @@ INT WINAPI WinMain(
     TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
+#ifdef DEBUG
+    InitializeListHead(&PhDbgProviderListHead);
+    PhInitializeFastLock(&PhDbgProviderListLock);
+#endif
+
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhGuiSupportInitialization();

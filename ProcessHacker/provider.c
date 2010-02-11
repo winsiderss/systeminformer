@@ -20,7 +20,13 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define PROVIDER_PRIVATE
 #include <ph.h>
+
+#ifdef DEBUG
+LIST_ENTRY PhDbgProviderListHead;
+PH_FAST_LOCK PhDbgProviderListLock;
+#endif
 
 VOID PhInitializeProviderThread(
     __out PPH_PROVIDER_THREAD ProviderThread,
@@ -35,6 +41,12 @@ VOID PhInitializeProviderThread(
     PhInitializeMutex(&ProviderThread->Mutex);
     InitializeListHead(&ProviderThread->ListHead);
     ProviderThread->BoostCount = 0;
+
+#ifdef DEBUG
+    PhAcquireFastLockExclusive(&PhDbgProviderListLock);
+    InsertTailList(&PhDbgProviderListHead, &ProviderThread->DbgListEntry);
+    PhReleaseFastLockExclusive(&PhDbgProviderListLock);
+#endif
 }
 
 VOID PhDeleteProviderThread(
@@ -42,6 +54,12 @@ VOID PhDeleteProviderThread(
     )
 {
     PhDeleteMutex(&ProviderThread->Mutex);
+
+#ifdef DEBUG
+    PhAcquireFastLockExclusive(&PhDbgProviderListLock);
+    RemoveEntryList(&ProviderThread->DbgListEntry);
+    PhReleaseFastLockExclusive(&PhDbgProviderListLock);
+#endif
 }
 
 NTSTATUS NTAPI PhpProviderThreadStart(
