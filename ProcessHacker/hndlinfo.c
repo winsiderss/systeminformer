@@ -83,7 +83,7 @@ VOID PhHandleInfoInitialization()
                 &tokenUser
                 )))
             {
-                stringSid = PhConvertSidToStringSid(tokenUser->User.Sid);
+                stringSid = PhSidToStringSid(tokenUser->User.Sid);
 
                 PhFree(tokenUser);
             }

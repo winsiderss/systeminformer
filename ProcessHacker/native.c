@@ -2648,7 +2648,7 @@ PPH_STRING PhGetSidFullName(
  * when you no longer need it. If an error occurs, 
  * the function returns NULL.
  */
-PPH_STRING PhConvertSidToStringSid(
+PPH_STRING PhSidToStringSid(
     __in PSID Sid
     )
 {
