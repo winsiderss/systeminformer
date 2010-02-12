@@ -171,6 +171,10 @@ All string objects have an embedded length (always in bytes),
 and the string is additionally null-terminated for compatibility 
 reasons.
 
+String objects must be treated as immutable unless a string 
+object is created and modified before the pointer is shared with 
+any other functions or stored in any global variables.
+
 Strings can be concatenated with PhConcatStrings:
 
     PPH_STRING newString;
