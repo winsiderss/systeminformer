@@ -378,6 +378,27 @@ FORCEINLINE PWSTR PhGetStringOrEmpty(
 }
 
 /**
+ * Retrieves a pointer to a string object's buffer 
+ * or returns the specified alternative string.
+ *
+ * \param String A pointer to a string object.
+ *
+ * \return A pointer to the string object's buffer 
+ * if the supplied pointer is non-NULL, otherwise 
+ * the specified alternative string.
+ */
+FORCEINLINE PWSTR PhGetStringOrDefault(
+    __in_opt PPH_STRING String,
+    __in PWSTR DefaultString
+    )
+{
+    if (String)
+        return String->Buffer;
+    else
+        return DefaultString;
+}
+
+/**
  * Determines whether a string is null or empty.
  *
  * \param String A pointer to a string object.
@@ -1213,11 +1234,11 @@ FORCEINLINE ULONG PhHashInt64(
 
 // simple hashtable
 
-typedef struct _PH_SIMPLE_HASHTABLE_ENTRY
+typedef struct _PH_KEY_VALUE_PAIR
 {
     PVOID Key;
     PVOID Value;
-} PH_SIMPLE_HASHTABLE_ENTRY, *PPH_SIMPLE_HASHTABLE_ENTRY;
+} PH_KEY_VALUE_PAIR, *PPH_KEY_VALUE_PAIR;
 
 PPH_HASHTABLE PhCreateSimpleHashtable(
     __in ULONG InitialCapacity
