@@ -414,7 +414,7 @@ PPH_STRING PhGetSidFullName(
     __in PSID Sid
     );
 
-PPH_STRING PhConvertSidToStringSid(
+PPH_STRING PhSidToStringSid(
     __in PSID Sid
     );
 

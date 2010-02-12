@@ -292,7 +292,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PhDereferenceObject(fullUserName);
                     }
 
-                    if (stringUserSid = PhConvertSidToStringSid(tokenUser->User.Sid))
+                    if (stringUserSid = PhSidToStringSid(tokenUser->User.Sid))
                     {
                         SetDlgItemText(hwndDlg, IDC_USERSID, stringUserSid->Buffer);
                         PhDereferenceObject(stringUserSid);
@@ -344,7 +344,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PPH_STRING attributesString;
 
                         if (!(fullName = PhGetSidFullName(tokenPageContext->Groups->Groups[i].Sid)))
-                            fullName = PhConvertSidToStringSid(tokenPageContext->Groups->Groups[i].Sid);
+                            fullName = PhSidToStringSid(tokenPageContext->Groups->Groups[i].Sid);
 
                         if (fullName)
                         {

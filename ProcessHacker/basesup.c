@@ -2541,6 +2541,9 @@ VOID PhInvokeCallback(
     PhReleaseFastLockShared(&Callback->ListLock);
 }
 
+/**
+ * Performs exponentiation.
+ */
 ULONG PhExponentiate(
     __in ULONG Base,
     __in ULONG Exponent
@@ -2560,6 +2563,9 @@ ULONG PhExponentiate(
     return result;
 }
 
+/**
+ * Performs 64-bit exponentiation.
+ */
 ULONG64 PhExponentiate64(
     __in ULONG64 Base,
     __in ULONG Exponent
@@ -2579,6 +2585,15 @@ ULONG64 PhExponentiate64(
     return result;
 }
 
+/**
+ * Converts a string to an integer.
+ *
+ * \param String The string to process.
+ * \param Base The base which the string uses to 
+ * represent the integer. The maximum value is 
+ * 70.
+ * \param Integer The resulting integer.
+ */
 BOOLEAN PhpStringToInteger64(
     __in PWSTR String,
     __in ULONG Base,
@@ -2619,6 +2634,30 @@ BOOLEAN PhpStringToInteger64(
     return TRUE;
 }
 
+/**
+ * Converts a string to an integer.
+ *
+ * \param String The string to process.
+ * \param Base The base which the string uses to 
+ * represent the integer. The maximum value is 
+ * 70. If the parameter is 0, the base is inferred 
+ * from the string.
+ * \param Integer The resulting integer.
+ *
+ * \remarks If \a Base is 0, the following prefixes 
+ * may be used to indicate bases:
+ *
+ * \li \c 0x Base 16.
+ * \li \c 0o Base 8.
+ * \li \c 0b Base 2.
+ * \li \c 0t Base 3.
+ * \li \c 0q Base 4.
+ * \li \c 0w Base 12.
+ * \li \c 0r Base 32.
+ *
+ * If there is no recognized prefix, base 10 is 
+ * used.
+ */
 BOOLEAN PhStringToInteger64(
     __in PWSTR String,
     __in_opt ULONG Base,
@@ -2633,6 +2672,10 @@ BOOLEAN PhStringToInteger64(
     // additional processing.
     if (Base)
         return PhpStringToInteger64(String, Base, Integer);
+
+    // Note that we don't need to check the length of 
+    // the string, because the null terminator will take 
+    // care of things.
 
     if (String[0] == '-')
     {

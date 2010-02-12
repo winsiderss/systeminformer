@@ -779,6 +779,12 @@ PPH_STRING PhGetBaseName(
 
     lastIndexOfBackslash = PhStringLastIndexOfChar(FileName, 0, '\\');
 
+    if (lastIndexOfBackslash == -1)
+    {
+        PhReferenceObject(FileName);
+        return FileName;
+    }
+
     return PhSubstring(
         FileName,
         lastIndexOfBackslash + 1,
@@ -888,6 +894,12 @@ PPH_STRING PhGetApplicationDirectory()
     return path;
 }
 
+/**
+ * Gets a known location as a file name.
+ *
+ * \param Folder A CSIDL value representing the known location.
+ * \param AppendPath A string to append to the folder path.
+ */
 PPH_STRING PhGetKnownLocation(
     __in ULONG Folder,
     __in_opt PWSTR AppendPath
@@ -971,6 +983,12 @@ BOOLEAN PhShellExecuteEx(
     }
 }
 
+/**
+ * Opens Windows Explorer with a file selected.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param FileName A file name.
+ */
 VOID PhShellExploreFile(
     __in HWND hWnd,
     __in PWSTR FileName
@@ -983,6 +1001,12 @@ VOID PhShellExploreFile(
     PhDereferenceObject(selectFileName);
 }
 
+/**
+ * Shows properties for a file.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param FileName A file name.
+ */
 VOID PhShellProperties(
     __in HWND hWnd,
     __in PWSTR FileName
@@ -1002,6 +1026,12 @@ VOID PhShellProperties(
     }
 }
 
+/**
+ * Opens a key in the Registry Editor.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param KeyName The key name to open.
+ */
 VOID PhShellOpenKey(
     __in HWND hWnd,
     __in PPH_STRING KeyName
@@ -1078,6 +1108,17 @@ VOID PhShellOpenKey(
     PhDereferenceObject(regeditFileName);
 }
 
+/**
+ * Gets a registry string value.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ *
+ * \return A pointer to a string containing the 
+ * value. You must free the string using 
+ * PhDereferenceObject() when you no longer need 
+ * it.
+ */
 PPH_STRING PhQueryRegistryString(
     __in HKEY KeyHandle,
     __in_opt PWSTR ValueName
@@ -1210,6 +1251,14 @@ VOID PhpFreeOpenFileName(
     PhFree(OpenFileName);
 }
 
+/**
+ * Creates a file dialog for the user to select 
+ * a file to open.
+ *
+ * \return An opaque pointer representing the file 
+ * dialog. You must free the file dialog using 
+ * PhFreeFileDialog() when you no longer need it.
+ */
 PVOID PhCreateOpenFileDialog()
 {
     if (WINDOWS_HAS_IFILEDIALOG)
@@ -1237,6 +1286,14 @@ PVOID PhCreateOpenFileDialog()
     }
 }
 
+/**
+ * Creates a file dialog for the user to select 
+ * a file to save to.
+ *
+ * \return An opaque pointer representing the file 
+ * dialog. You must free the file dialog using 
+ * PhFreeFileDialog() when you no longer need it.
+ */
 PVOID PhCreateSaveFileDialog()
 {
     if (WINDOWS_HAS_IFILEDIALOG)
@@ -1264,6 +1321,11 @@ PVOID PhCreateSaveFileDialog()
     }
 }
 
+/**
+ * Frees a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ */
 VOID PhFreeFileDialog(
     __in PVOID FileDialog
     )
@@ -1278,6 +1340,16 @@ VOID PhFreeFileDialog(
     }
 }
 
+/**
+ * Shows a file dialog to the user.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param FileDialog The file dialog.
+ *
+ * \return TRUE if the user selected a file, FALSE if 
+ * the user cancelled the operation or an error 
+ * occurred.
+ */
 BOOLEAN PhShowFileDialog(
     __in HWND hWnd,
     __in PVOID FileDialog
@@ -1307,6 +1379,14 @@ BOOLEAN PhShowFileDialog(
     }
 }
 
+/**
+ * Sets the file type filter for a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ * \param Filters A pointer to an array of file 
+ * type structures.
+ * \param NumberOfFilters The number of file types.
+ */
 VOID PhSetFileDialogFilter(
     __in PVOID FileDialog,
     __in PPH_FILETYPE_FILTER Filters,
@@ -1349,6 +1429,16 @@ VOID PhSetFileDialogFilter(
     }
 }
 
+/**
+ * Gets the file name selected in a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ *
+ * \return A pointer to a string containing the 
+ * file name. You must free the string using 
+ * PhDereferenceObject() when you no longer need 
+ * it.
+ */
 PPH_STRING PhGetFileDialogFileName(
     __in PVOID FileDialog
     )
@@ -1390,6 +1480,12 @@ PPH_STRING PhGetFileDialogFileName(
     }
 }
 
+/**
+ * Sets the file name of a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ * \param FileName The new file name.
+ */
 VOID PhSetFileDialogFileName(
     __in PVOID FileDialog,
     __in PWSTR FileName

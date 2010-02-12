@@ -30,6 +30,11 @@ static PWSTR DangerousProcesses[] =
     L"services.exe", L"smss.exe", L"wininit.exe", L"winlogon.exe"
 };
 
+/**
+ * Determines if a process is a system process.
+ *
+ * \param ProcessId The PID of the process to check.
+ */
 static BOOLEAN PhpIsDangerousProcess(
     __in HANDLE ProcessId
     )
@@ -74,10 +79,26 @@ static BOOLEAN PhpIsDangerousProcess(
     return FALSE;
 }
 
+/**
+ * Checks if the user wants to proceed with an operation.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param Verb A verb describing the action.
+ * \param Message A message containing additional information 
+ * about the action.
+ * \param WarnOnlyIfDangerous TRUE to skip the confirmation 
+ * dialog if none of the processes are system processes, 
+ * FALSE to always show the confirmation dialog.
+ * \param Processes An array of pointers to process items.
+ * \param NumberOfProcesses The number of process items.
+ *
+ * \return TRUE if the user wants to proceed with the operation, 
+ * otherwise FALSE.
+ */
 static BOOLEAN PhpShowContinueMessageProcesses(
     __in HWND hWnd,
     __in PWSTR Verb,
-    __in PWSTR Message,
+    __in_opt PWSTR Message,
     __in BOOLEAN WarnOnlyIfDangerous,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
@@ -157,6 +178,24 @@ static BOOLEAN PhpShowContinueMessageProcesses(
     return cont;
 }
 
+/**
+ * Shows an error message to the user and checks 
+ * if the user wants to continue.
+ *
+ * \param hWnd A handle to the parent window.
+ * \param Verb A verb describing the action which 
+ * resulted in an error.
+ * \param Process The process item which the action 
+ * was performed on.
+ * \param Status A NT status value representing the 
+ * error.
+ * \param Win32Result A Win32 error code representing 
+ * the error.
+ *
+ * \return TRUE if the user wants to continue, otherwise 
+ * FALSE. The result is typically only useful when 
+ * executing an action on multiple processes.
+ */
 static BOOLEAN PhpShowErrorProcess(
     __in HWND hWnd,
     __in PWSTR Verb,
