@@ -23,13 +23,18 @@
 #include <fastlock.h>
 #include <ntimport.h>
 
-extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-
 // FastLock is a port of FastResourceLock from PH 1.x.
 //
-// This code contains no comments because it is a direct 
+// The code contains no comments because it is a direct 
 // port. Please see FastResourceLock.cs in PH 1.x for 
 // details.
+
+// The fast lock is around 7% faster than the critical 
+// section when there is no contention, when used 
+// solely for mutual exclusion. It is also much smaller 
+// than the critical section.
+
+extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 
 #define PH_LOCK_OWNED 0x1
 #define PH_LOCK_EXCLUSIVE_WAKING 0x2

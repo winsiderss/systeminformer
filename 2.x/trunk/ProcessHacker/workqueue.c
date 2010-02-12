@@ -51,11 +51,16 @@ VOID PhInitializeWorkQueue(
     __in ULONG NoWorkTimeout
     )
 {
+    PhInitializeRundownProtection(&WorkQueue->RundownProtect);
+    WorkQueue->Terminating = FALSE;
+
     WorkQueue->Queue = PhCreateQueue(1);
     PhInitializeMutex(&WorkQueue->QueueLock);
+
     WorkQueue->MinimumThreads = MinimumThreads;
     WorkQueue->MaximumThreads = MaximumThreads;
     WorkQueue->NoWorkTimeout = NoWorkTimeout;
+
     PhInitializeMutex(&WorkQueue->StateLock);
     WorkQueue->SemaphoreHandle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
     WorkQueue->CurrentThreads = 0;
@@ -66,6 +71,16 @@ VOID PhDeleteWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue
     )
 {
+    PPH_WORK_QUEUE_ITEM workQueueItem;
+
+    // Wait for all worker threads to exit.
+    WorkQueue->Terminating = TRUE;
+    PhWaitForRundownProtection(&WorkQueue->RundownProtect);
+
+    // Free all un-executed work items.
+    while (PhDequeueQueueItem(WorkQueue->Queue, &workQueueItem))
+        PhFree(workQueueItem);
+
     PhDereferenceObject(WorkQueue->Queue);
     PhDeleteMutex(&WorkQueue->QueueLock);
     PhDeleteMutex(&WorkQueue->StateLock);
@@ -94,7 +109,11 @@ BOOLEAN PhpCreateWorkQueueThread(
     )
 {
     HANDLE threadHandle;
-    
+
+    // Make sure the structure doesn't get deleted while the thread is running.
+    if (!PhAcquireRundownProtection(&WorkQueue->RundownProtect))
+        return FALSE;
+
     threadHandle = PhCreateThread(0, PhpWorkQueueThreadStart, WorkQueue);
 
     if (threadHandle)
@@ -106,6 +125,7 @@ BOOLEAN PhpCreateWorkQueueThread(
     }
     else
     {
+        PhReleaseRundownProtection(&WorkQueue->RundownProtect);
         return FALSE;
     }
 }
@@ -148,6 +168,16 @@ NTSTATUS PhpWorkQueueThreadStart(
         // Wait for work.
         result = WaitForSingleObject(workQueue->SemaphoreHandle, workQueue->NoWorkTimeout);
 
+        if (workQueue->Terminating)
+        {
+            // The work queue is being deleted.
+            PhAcquireMutex(&workQueue->StateLock);
+            workQueue->CurrentThreads--;
+            PhReleaseMutex(&workQueue->StateLock);
+
+            break;
+        }
+
         if (result == WAIT_OBJECT_0)
         {
             // Dequeue the work item.
@@ -187,6 +217,8 @@ NTSTATUS PhpWorkQueueThreadStart(
                 break;
         }
     }
+
+    PhReleaseRundownProtection(&workQueue->RundownProtect);
 
     return STATUS_SUCCESS;
 }

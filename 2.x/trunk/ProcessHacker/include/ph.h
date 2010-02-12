@@ -1440,7 +1440,7 @@ FORCEINLINE FILETIME PhSubtractFileTime(
 }
 
 PPH_STRING PhGetMessage(
-    __in HANDLE DllHandle,
+    __in PVOID DllHandle,
     __in ULONG MessageTableId,
     __in ULONG MessageLanguageId,
     __in ULONG MessageId

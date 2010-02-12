@@ -26,6 +26,17 @@
 WCHAR *PhSizeUnitNames[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
 
+/**
+ * Ensures a rectangle is positioned within the 
+ * specified bounds.
+ *
+ * \param Rectangle The rectangle to be adjusted.
+ * \param Bounds The bounds.
+ *
+ * \remarks If the rectangle is too large to fit 
+ * inside the bounds, it is positioned at the 
+ * top-left of the bounds.
+ */
 VOID PhAdjustRectangleToBounds(
     __inout PPH_RECTANGLE Rectangle,
     __in PPH_RECTANGLE Bounds
@@ -42,6 +53,13 @@ VOID PhAdjustRectangleToBounds(
         Rectangle->Top = Bounds->Top;
 }
 
+/**
+ * Positions a rectangle in the center of the 
+ * specified bounds.
+ *
+ * \param Rectangle The rectangle to be adjusted.
+ * \param Bounds The bounds.
+ */
 VOID PhCenterRectangle(
     __inout PPH_RECTANGLE Rectangle,
     __in PPH_RECTANGLE Bounds
@@ -51,6 +69,13 @@ VOID PhCenterRectangle(
     Rectangle->Top = Bounds->Top + (Bounds->Height - Rectangle->Height) / 2;
 }
 
+/**
+ * Ensures a rectangle is positioned within the 
+ * working area of the specified window's monitor.
+ *
+ * \param hWnd A handle to a window.
+ * \param Rectangle The rectangle to be adjusted.
+ */
 VOID PhAdjustRectangleToWorkingArea(
     __in HWND hWnd,
     __inout PPH_RECTANGLE Rectangle
@@ -70,8 +95,20 @@ VOID PhAdjustRectangleToWorkingArea(
     }
 }
 
+/**
+ * Gets a string stored in a DLL's message table.
+ *
+ * \param DllHandle The base address of the DLL.
+ * \param MessageTableId The identifier of the message table.
+ * \param MessageLanguageId The language ID of the message.
+ * \param MessageId The identifier of the message.
+ *
+ * \return A pointer to a string containing the message. 
+ * You must free the string using PhDereferenceObject() 
+ * when you no longer need it.
+ */
 PPH_STRING PhGetMessage(
-    __in HANDLE DllHandle,
+    __in PVOID DllHandle,
     __in ULONG MessageTableId,
     __in ULONG MessageLanguageId,
     __in ULONG MessageId
@@ -125,6 +162,11 @@ PPH_STRING PhGetMessage(
     }
 }
 
+/**
+ * Gets a message describing a NT status value.
+ *
+ * \param Status The NT status value.
+ */
 PPH_STRING PhGetNtMessage(
     __in NTSTATUS Status
     )
@@ -162,6 +204,11 @@ PPH_STRING PhGetNtMessage(
     return message;
 }
 
+/**
+ * Gets a message describing a Win32 error code.
+ *
+ * \param Result The Win32 error code.
+ */
 PPH_STRING PhGetWin32Message(
     __in ULONG Result
     )
@@ -510,6 +557,20 @@ PPH_STRING PhFormatDecimal(
     return string;
 }
 
+/**
+ * Gets a string representing a size.
+ *
+ * \param Size The size value.
+ * \param MaxSizeUnit The largest unit of size to 
+ * use, or -1 for no limit.
+ * \li \c 0 Bytes.
+ * \li \c 1 Kilobytes.
+ * \li \c 2 Megabytes.
+ * \li \c 3 Gigabytes.
+ * \li \c 4 Terabytes.
+ * \li \c 5 Petabytes.
+ * \li \c 6 Exabytes.
+ */
 PPH_STRING PhFormatSize(
     __in ULONG64 Size,
     __in ULONG MaxSizeUnit
@@ -872,7 +933,7 @@ PPH_STRING PhGetApplicationModuleFileName(
         ULONG indexOfFileName;
 
         fileName = PhCreateString((PWSTR)buffer);
-        indexOfFileName = PhStringLastIndexOfChar((PWSTR)buffer, 0, '\\');
+        indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
 
         if (indexOfFileName != -1)
             indexOfFileName++;
