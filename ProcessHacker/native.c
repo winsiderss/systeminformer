@@ -4022,7 +4022,7 @@ VOID PhRefreshDosDeviceNames()
  * path. You must free the string using PhDereferenceObject() 
  * when you no longer need it.
  */
-PPH_STRING PhResolveDevicePrefix(
+__outRestrict(Name) PPH_STRING PhResolveDevicePrefix(
     __in PPH_STRING Name
     )
 {

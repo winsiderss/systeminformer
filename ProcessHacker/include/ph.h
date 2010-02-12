@@ -580,7 +580,7 @@ VOID PhInitializeDosDeviceNames();
 
 VOID PhRefreshDosDeviceNames();
 
-PPH_STRING PhResolveDevicePrefix(
+__outRestrict(Name) PPH_STRING PhResolveDevicePrefix(
     __in PPH_STRING Name
     );
 
