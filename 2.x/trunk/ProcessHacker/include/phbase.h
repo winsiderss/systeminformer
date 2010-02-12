@@ -382,6 +382,7 @@ FORCEINLINE PWSTR PhGetStringOrEmpty(
  * or returns the specified alternative string.
  *
  * \param String A pointer to a string object.
+ * \param DefaultString The alternative string.
  *
  * \return A pointer to the string object's buffer 
  * if the supplied pointer is non-NULL, otherwise 

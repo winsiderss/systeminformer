@@ -187,6 +187,7 @@ NTSTATUS PhCreateObject(
  *
  * \param ObjectType A variable which receives a pointer to the newly 
  * created object type.
+ * \param Name The name of the type.
  * \param Flags A combination of flags affecting the behaviour of the 
  * object type.
  * \param DeleteProcedure A callback function that is executed when 
