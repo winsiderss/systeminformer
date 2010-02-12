@@ -313,7 +313,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     return E_NOTIMPL;
 }
 
-NTSTATUS PhStdGetObjectSecurity(
+__callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context
@@ -348,7 +348,7 @@ NTSTATUS PhStdGetObjectSecurity(
     return status;
 }
 
-NTSTATUS PhStdSetObjectSecurity(
+__callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context

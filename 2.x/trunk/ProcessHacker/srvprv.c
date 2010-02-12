@@ -243,7 +243,7 @@ VOID PhMarkNeedsConfigUpdateServiceItem(
     ServiceItem->NeedsConfigUpdate = TRUE;
 }
 
-VOID PhpRemoveServiceItem(
+__assumeLocked VOID PhpRemoveServiceItem(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {

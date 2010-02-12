@@ -246,7 +246,7 @@ VOID PhDereferenceAllModuleItems(
     PhReleaseFastLockExclusive(&ModuleProvider->ModuleHashtableLock);
 }
 
-VOID PhpRemoveModuleItem(
+__assumeLocked VOID PhpRemoveModuleItem(
     __in PPH_MODULE_PROVIDER ModuleProvider,
     __in PPH_MODULE_ITEM ModuleItem
     )

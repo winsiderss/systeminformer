@@ -407,7 +407,7 @@ VOID PhDereferenceAllThreadItems(
     PhReleaseFastLockExclusive(&ThreadProvider->ThreadHashtableLock);
 }
 
-VOID PhpRemoveThreadItem(
+__assumeLocked VOID PhpRemoveThreadItem(
     __in PPH_THREAD_PROVIDER ThreadProvider,
     __in PPH_THREAD_ITEM ThreadItem
     )
