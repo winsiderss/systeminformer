@@ -533,7 +533,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
         }
 
         {
-            PPH_SIMPLE_HASHTABLE_ENTRY entry;
+            PPH_KEY_VALUE_PAIR entry;
 
             i = 0;
 

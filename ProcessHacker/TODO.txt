@@ -2,7 +2,6 @@
 * Column re-ordering
 * Column chooser
 
-* Service properties (partially done)
 * Network provider
 
 * Process properties:

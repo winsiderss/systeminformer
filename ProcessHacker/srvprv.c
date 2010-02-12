@@ -57,6 +57,45 @@ PH_CALLBACK PhServiceModifiedEvent;
 PH_CALLBACK PhServiceRemovedEvent;
 PH_CALLBACK PhServicesUpdatedEvent;
 
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+
+static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
+{
+    SIP(L"Running", SERVICE_RUNNING),
+    SIP(L"Paused", SERVICE_PAUSED),
+    SIP(L"Start Pending", SERVICE_START_PENDING),
+    SIP(L"Continue Pending", SERVICE_CONTINUE_PENDING),
+    SIP(L"Pause Pending", SERVICE_PAUSE_PENDING),
+    SIP(L"Stop Pending", SERVICE_STOP_PENDING)
+};
+
+static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
+{
+    SIP(L"Driver", SERVICE_KERNEL_DRIVER),
+    SIP(L"FS Driver", SERVICE_FILE_SYSTEM_DRIVER),
+    SIP(L"Own Process", SERVICE_WIN32_OWN_PROCESS),
+    SIP(L"Share Process", SERVICE_WIN32_SHARE_PROCESS),
+    SIP(L"Own Interactive Process", SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS),
+    SIP(L"Share Interactive Process", SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS)
+};
+
+static PH_KEY_VALUE_PAIR PhpServiceStartTypePairs[] =
+{
+    SIP(L"Disabled", SERVICE_DISABLED),
+    SIP(L"Boot Start", SERVICE_BOOT_START),
+    SIP(L"System Start", SERVICE_SYSTEM_START),
+    SIP(L"Auto Start", SERVICE_AUTO_START),
+    SIP(L"Demand Start", SERVICE_DEMAND_START)
+};
+
+static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
+{
+    SIP(L"Ignore", SERVICE_ERROR_IGNORE),
+    SIP(L"Normal", SERVICE_ERROR_NORMAL),
+    SIP(L"Severe", SERVICE_ERROR_SEVERE),
+    SIP(L"Critical", SERVICE_ERROR_CRITICAL)
+};
+
 BOOLEAN PhInitializeServiceProvider()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
@@ -195,6 +234,13 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     PhReleaseFastLockShared(&PhServiceHashtableLock);
 
     return serviceItem;
+}
+
+VOID PhMarkNeedsConfigUpdateServiceItem(
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    ServiceItem->NeedsConfigUpdate = TRUE;
 }
 
 VOID PhpRemoveServiceItem(
@@ -347,92 +393,165 @@ PPH_STRING PhGetServiceDescription(
     return description;
 }
 
+BOOLEAN PhFindIntegerSiKeyValuePairs(
+    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
+    __in ULONG SizeOfKeyValuePairs,
+    __in PWSTR String,
+    __out PULONG Integer
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if (WSTR_IEQUAL(KeyValuePairs[i].Key, String))
+        {
+            *Integer = (ULONG)KeyValuePairs[i].Value;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhFindStringSiKeyValuePairs(
+    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
+    __in ULONG SizeOfKeyValuePairs,
+    __in ULONG Integer,
+    __out PWSTR *String
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
+    {
+        if ((ULONG)KeyValuePairs[i].Value == Integer)
+        {
+            *String = (PWSTR)KeyValuePairs[i].Key;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 PWSTR PhGetServiceStateString(
     __in ULONG ServiceState
     )
 {
-    switch (ServiceState)
-    {
-    case SERVICE_RUNNING:
-        return L"Running";
-    case SERVICE_PAUSED:
-        return L"Paused";
-    case SERVICE_STOPPED:
-        return L"Stopped";
-    case SERVICE_START_PENDING:
-        return L"Start Pending";
-    case SERVICE_CONTINUE_PENDING:
-        return L"Continue Pending";
-    case SERVICE_PAUSE_PENDING:
-        return L"Pause Pending";
-    case SERVICE_STOP_PENDING:
-        return L"Stop Pending";
-    default:
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhpServiceStatePairs,
+        sizeof(PhpServiceStatePairs),
+        ServiceState,
+        &string
+        ))
+        return string;
+    else
         return L"Unknown";
-    }
 }
 
 PWSTR PhGetServiceTypeString(
     __in ULONG ServiceType
     )
 {
-    switch (ServiceType)
-    {
-    case SERVICE_KERNEL_DRIVER:
-        return L"Driver";
-    case SERVICE_FILE_SYSTEM_DRIVER:
-        return L"FS Driver";
-    case SERVICE_WIN32_OWN_PROCESS:
-        return L"Own Process";
-    case SERVICE_WIN32_SHARE_PROCESS:
-        return L"Share Process";
-    case SERVICE_WIN32_OWN_PROCESS | SERVICE_INTERACTIVE_PROCESS:
-        return L"Own Interactive Process";
-    case SERVICE_WIN32_SHARE_PROCESS | SERVICE_INTERACTIVE_PROCESS:
-        return L"Share Interactive Process";
-    default:
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhpServiceTypePairs,
+        sizeof(PhpServiceTypePairs),
+        ServiceType,
+        &string
+        ))
+        return string;
+    else
         return L"Unknown";
-    }
+}
+
+ULONG PhGetServiceTypeInteger(
+    __in PWSTR ServiceType
+    )
+{
+    ULONG integer;
+
+    if (PhFindIntegerSiKeyValuePairs(
+        PhpServiceTypePairs,
+        sizeof(PhpServiceTypePairs),
+        ServiceType,
+        &integer
+        ))
+        return integer;
+    else
+        return -1;
 }
 
 PWSTR PhGetServiceStartTypeString(
     __in ULONG ServiceStartType
     )
 {
-    switch (ServiceStartType)
-    {
-    case SERVICE_DISABLED:
-        return L"Disabled";
-    case SERVICE_BOOT_START:
-        return L"Boot Start";
-    case SERVICE_SYSTEM_START:
-        return L"System Start";
-    case SERVICE_AUTO_START:
-        return L"Auto Start";
-    case SERVICE_DEMAND_START:
-        return L"Demand Start";
-    default:
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhpServiceStartTypePairs,
+        sizeof(PhpServiceStartTypePairs),
+        ServiceStartType,
+        &string
+        ))
+        return string;
+    else
         return L"Unknown";
-    }
+}
+
+ULONG PhGetServiceStartTypeInteger(
+    __in PWSTR ServiceStartType
+    )
+{
+    ULONG integer;
+
+    if (PhFindIntegerSiKeyValuePairs(
+        PhpServiceStartTypePairs,
+        sizeof(PhpServiceStartTypePairs),
+        ServiceStartType,
+        &integer
+        ))
+        return integer;
+    else
+        return -1;
 }
 
 PWSTR PhGetServiceErrorControlString(
     __in ULONG ServiceErrorControl
     )
 {
-    switch (ServiceErrorControl)
-    {
-    case SERVICE_ERROR_IGNORE:
-        return L"Ignore";
-    case SERVICE_ERROR_NORMAL:
-        return L"Normal";
-    case SERVICE_ERROR_SEVERE:
-        return L"Severe";
-    case SERVICE_ERROR_CRITICAL:
-        return L"Critical";
-    default:
+    PWSTR string;
+
+    if (PhFindStringSiKeyValuePairs(
+        PhpServiceErrorControlPairs,
+        sizeof(PhpServiceErrorControlPairs),
+        ServiceErrorControl,
+        &string
+        ))
+        return string;
+    else
         return L"Unknown";
-    }
+}
+
+ULONG PhGetServiceErrorControlInteger(
+    __in PWSTR ServiceErrorControl
+    )
+{
+    ULONG integer;
+
+    if (PhFindIntegerSiKeyValuePairs(
+        PhpServiceErrorControlPairs,
+        sizeof(PhpServiceErrorControlPairs),
+        ServiceErrorControl,
+        &integer
+        ))
+        return integer;
+    else
+        return -1;
 }
 
 PH_SERVICE_CHANGE PhGetServiceChange(
@@ -544,6 +663,33 @@ VOID PhpRemoveProcessItemService(
     PhReleaseFastLockExclusive(&ProcessItem->ServiceListLock);
 }
 
+VOID PhpUpdateServiceItemConfig(
+    __in SC_HANDLE ScManagerHandle,
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    SC_HANDLE serviceHandle;
+
+    serviceHandle = OpenService(ScManagerHandle, ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
+
+    if (serviceHandle)
+    {
+        LPQUERY_SERVICE_CONFIG config;
+
+        config = PhGetServiceConfig(serviceHandle);
+
+        if (config)
+        {
+            ServiceItem->StartType = config->dwStartType;
+            ServiceItem->ErrorControl = config->dwErrorControl;
+
+            PhFree(config);
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+}
+
 VOID PhServiceProviderUpdate(
     __in PVOID Object
     )
@@ -639,28 +785,7 @@ VOID PhServiceProviderUpdate(
             serviceItem = PhCreateServiceItem(&services[i]);
             serviceItem->RunId = runCount;
 
-            {
-                SC_HANDLE serviceHandle;
-
-                serviceHandle = OpenService(scManagerHandle, serviceItem->Name->Buffer, SERVICE_QUERY_CONFIG);
-
-                if (serviceHandle)
-                {
-                    LPQUERY_SERVICE_CONFIG config;
-
-                    config = PhGetServiceConfig(serviceHandle);
-
-                    if (config)
-                    {
-                        serviceItem->StartType = config->dwStartType;
-                        serviceItem->ErrorControl = config->dwErrorControl;
-
-                        PhFree(config);
-                    }
-
-                    CloseServiceHandle(serviceHandle);
-                }
-            }
+            PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
 
             // Add the service to its process, if appropriate.
             if (
@@ -703,7 +828,8 @@ VOID PhServiceProviderUpdate(
                 serviceItem->Type != services[i].ServiceStatusProcess.dwServiceType || 
                 serviceItem->State != services[i].ServiceStatusProcess.dwCurrentState ||
                 serviceItem->ControlsAccepted != services[i].ServiceStatusProcess.dwControlsAccepted ||
-                serviceItem->ProcessId != services[i].ServiceStatusProcess.dwProcessId
+                serviceItem->ProcessId != services[i].ServiceStatusProcess.dwProcessId ||
+                serviceItem->NeedsConfigUpdate
                 )
             {
                 PH_SERVICE_MODIFIED_DATA serviceModifiedData;
@@ -761,6 +887,13 @@ VOID PhServiceProviderUpdate(
                         else
                             serviceItem->PendingProcess = FALSE;
                     }
+                }
+
+                // Do a config update if necessary.
+                if (serviceItem->NeedsConfigUpdate)
+                {
+                    PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
+                    serviceItem->NeedsConfigUpdate = FALSE;
                 }
 
                 // Raise the service modified event.
