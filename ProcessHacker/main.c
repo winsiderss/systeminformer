@@ -94,6 +94,12 @@ INT WINAPI WinMain(
     PhApplicationFileName = PhGetApplicationFileName();
     PhApplicationDirectory = PhGetApplicationDirectory();
 
+    // Just in case
+    if (!PhApplicationFileName)
+        PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
+    if (!PhApplicationDirectory)
+        PhApplicationDirectory = PhCreateString(L"");
+
     {
         HANDLE tokenHandle;
 
