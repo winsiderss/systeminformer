@@ -75,7 +75,7 @@ NTSTATUS KphConnect(
 
 NTSTATUS KphConnect2(
     __out PHANDLE KphHandle,
-    __in PWSTR DeviceName,
+    __in_opt PWSTR DeviceName,
     __in PWSTR FileName
     )
 {
@@ -85,6 +85,9 @@ NTSTATUS KphConnect2(
     SC_HANDLE serviceHandle;
     BOOLEAN started = FALSE;
     BOOLEAN created = FALSE;
+
+    if (!DeviceName)
+        DeviceName = L"KProcessHacker";
 
     _snwprintf(fullDeviceName, MAX_PATH, L"\\Device\\%s", DeviceName);
 
@@ -175,10 +178,7 @@ NTSTATUS KphDisconnect(
     __in HANDLE KphHandle
     )
 {
-    if (CloseHandle(KphHandle))
-        return STATUS_SUCCESS;
-    else
-        return STATUS_INVALID_HANDLE;
+    return NtClose(KphHandle);
 }
 
 NTSTATUS KphpDeviceIoControl(
