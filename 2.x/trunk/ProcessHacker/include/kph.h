@@ -4,7 +4,7 @@
 #include <phbase.h>
 
 #define KPH_DEVICE_TYPE (0x9999)
-#define KPH_DEVICE_NAME (L"\\\\.\\KProcessHacker")
+#define KPH_DEVICE_NAME (L"\\Device\\KProcessHacker")
 
 #define KPHF_PSTERMINATEPROCESS 0x1
 #define KPHF_PSPTERMINATETHREADBPYPOINTER 0x2
@@ -133,7 +133,7 @@ NTSTATUS KphConnect(
 
 NTSTATUS KphConnect2(
     __out PHANDLE KphHandle,
-    __in PWSTR DeviceName,
+    __in_opt PWSTR DeviceName,
     __in PWSTR FileName
     );
 
