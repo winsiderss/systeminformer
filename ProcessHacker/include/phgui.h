@@ -657,13 +657,13 @@ FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
         ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0);
 }
 
-NTSTATUS PhStdGetObjectSecurity(
+__callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context
     );
 
-NTSTATUS PhStdSetObjectSecurity(
+__callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context

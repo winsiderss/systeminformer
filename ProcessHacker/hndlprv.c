@@ -239,7 +239,7 @@ VOID PhDereferenceAllHandleItems(
     PhReleaseFastLockExclusive(&HandleProvider->HandleHashtableLock);
 }
 
-VOID PhpRemoveHandleItem(
+__assumeLocked VOID PhpRemoveHandleItem(
     __in PPH_HANDLE_PROVIDER HandleProvider,
     __in PPH_HANDLE_ITEM HandleItem
     )

@@ -31,6 +31,20 @@
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
+// Annotations
+
+/**
+ * Indicates that a function assumes the relevant 
+ * locks have been acquired.
+ */
+#define __assumeLocked
+
+/**
+ * Indicates that a return value or output parameter 
+ * will not alias the given parameter.
+ */
+#define __outRestrict(param)
+
 // Strings
 
 #define PH_INT32_STR_LEN 12

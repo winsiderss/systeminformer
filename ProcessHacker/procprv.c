@@ -302,7 +302,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     return processItem;
 }
 
-VOID PhpRemoveProcessItem(
+__assumeLocked VOID PhpRemoveProcessItem(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
