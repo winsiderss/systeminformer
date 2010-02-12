@@ -23,6 +23,13 @@
 #include <phgui.h>
 #include <windowsx.h>
 
+typedef struct _SERVICE_PROPERTIES_CONTEXT
+{
+    PPH_SERVICE_ITEM ServiceItem;
+    BOOLEAN Ready;
+    BOOLEAN Dirty;
+} SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
+
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -57,6 +64,7 @@ VOID PhShowServiceProperties(
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
     HPROPSHEETPAGE pages[2];
+    SERVICE_PROPERTIES_CONTEXT context;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
@@ -74,11 +82,15 @@ VOID PhShowServiceProperties(
     propSheetHeader.phpage = pages;
 
     // General page.
+    context.ServiceItem = ServiceItem;
+    context.Ready = FALSE;
+    context.Dirty = FALSE;
+
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVGENERAL);
     propSheetPage.pfnDlgProc = PhpServiceGeneralDlgProc;
-    propSheetPage.lParam = (LPARAM)ServiceItem;
+    propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Security page.
@@ -133,13 +145,14 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 L"Auto Start", L"Demand Start" };
             WCHAR *serviceErrorControlItems[] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-            PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)propSheetPage->lParam;
+            PSERVICE_PROPERTIES_CONTEXT context = (PSERVICE_PROPERTIES_CONTEXT)propSheetPage->lParam;
+            PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
             SC_HANDLE serviceHandle;
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            SetProp(hwndDlg, L"ServiceItem", (HANDLE)serviceItem);
+            SetProp(hwndDlg, L"Context", (HANDLE)context);
 
             PhpAddComboBoxItems(GetDlgItem(hwndDlg, IDC_TYPE), serviceTypeItems,
                 sizeof(serviceTypeItems) / sizeof(WCHAR *));
@@ -223,11 +236,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                 PhDereferenceObject(keyName);
             }
+
+            context->Ready = TRUE;
         }
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"ServiceItem");
+            RemoveProp(hwndDlg, L"Context");
         }
         break;
     case WM_COMMAND:
@@ -242,6 +257,114 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     }
                 }
                 break;
+            }
+
+            switch (HIWORD(wParam))
+            {
+            case EN_CHANGE:
+            case CBN_SELCHANGE:
+                {
+                    PSERVICE_PROPERTIES_CONTEXT context = 
+                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+
+                    if (context->Ready)
+                        context->Dirty = TRUE;
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_KILLACTIVE:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
+                }
+                return TRUE;
+            case PSN_APPLY:
+                {
+                    PSERVICE_PROPERTIES_CONTEXT context = 
+                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
+                    SC_HANDLE serviceHandle;
+                    PPH_STRING newServiceTypeString;
+                    PPH_STRING newServiceStartTypeString;
+                    PPH_STRING newServiceErrorControlString;
+                    ULONG newServiceType;
+                    ULONG newServiceStartType;
+                    ULONG newServiceErrorControl;
+                    PPH_STRING newServiceGroup;
+                    PPH_STRING newServiceBinaryPath;
+                    PPH_STRING newServiceUserAccount;
+                    PPH_STRING newServicePassword;
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+
+                    if (!context->Dirty)
+                    {
+                        return TRUE;
+                    }
+
+                    newServiceTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_TYPE)));
+                    newServiceStartTypeString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_STARTTYPE)));
+                    newServiceErrorControlString = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ERRORCONTROL)));
+                    newServiceType = PhGetServiceTypeInteger(newServiceTypeString->Buffer);
+                    newServiceStartType = PhGetServiceStartTypeInteger(newServiceStartTypeString->Buffer);
+                    newServiceErrorControl = PhGetServiceErrorControlInteger(newServiceErrorControlString->Buffer);
+
+                    newServiceGroup = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_GROUP)));
+                    newServiceBinaryPath = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
+                    newServiceUserAccount = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_USERACCOUNT)));
+
+                    if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)
+                    {
+                        newServicePassword = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD)));
+                    }
+                    else
+                    {
+                        newServicePassword = NULL;
+                    }
+
+                    serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_CHANGE_CONFIG);
+
+                    if (serviceHandle)
+                    {
+                        if (ChangeServiceConfig(
+                            serviceHandle,
+                            newServiceType,
+                            newServiceStartType,
+                            newServiceErrorControl,
+                            newServiceBinaryPath->Buffer,
+                            newServiceGroup->Buffer,
+                            NULL,
+                            NULL,
+                            newServiceUserAccount->Buffer,
+                            PhGetString(newServicePassword),
+                            NULL
+                            ))
+                        {
+                            PhMarkNeedsConfigUpdateServiceItem(serviceItem);
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to change service configuration",
+                                0, GetLastError());
+                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                        }
+
+                        CloseServiceHandle(serviceHandle);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to change service configuration", 0, GetLastError());
+                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                    }
+                }
+                return TRUE;
             }
         }
         break;

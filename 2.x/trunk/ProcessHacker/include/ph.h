@@ -969,6 +969,7 @@ typedef struct _PH_SERVICE_ITEM
     ULONG ErrorControl;
 
     BOOLEAN PendingProcess;
+    BOOLEAN NeedsConfigUpdate;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
 } PH_SERVICE_ITEM, *PPH_SERVICE_ITEM;
@@ -997,6 +998,10 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     __in PWSTR Name
     );
 
+VOID PhMarkNeedsConfigUpdateServiceItem(
+    __in PPH_SERVICE_ITEM ServiceItem
+    );
+
 PVOID PhEnumServices(
     __in SC_HANDLE ScManagerHandle,
     __in_opt ULONG Type,
@@ -1017,6 +1022,20 @@ PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     );
 
+BOOLEAN PhFindIntegerSiKeyValuePairs(
+    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
+    __in ULONG SizeOfKeyValuePairs,
+    __in PWSTR String,
+    __out PULONG Integer
+    );
+
+BOOLEAN PhFindStringSiKeyValuePairs(
+    __in PPH_KEY_VALUE_PAIR KeyValuePairs,
+    __in ULONG SizeOfKeyValuePairs,
+    __in ULONG Integer,
+    __out PWSTR *String
+    );
+
 PWSTR PhGetServiceStateString(
     __in ULONG ServiceState
     );
@@ -1025,12 +1044,24 @@ PWSTR PhGetServiceTypeString(
     __in ULONG ServiceType
     );
 
+ULONG PhGetServiceTypeInteger(
+    __in PWSTR ServiceType
+    );
+
 PWSTR PhGetServiceStartTypeString(
     __in ULONG ServiceStartType
     );
 
+ULONG PhGetServiceStartTypeInteger(
+    __in PWSTR ServiceStartType
+    );
+
 PWSTR PhGetServiceErrorControlString(
     __in ULONG ServiceErrorControl
+    );
+
+ULONG PhGetServiceErrorControlInteger(
+    __in PWSTR ServiceErrorControl
     );
 
 PH_SERVICE_CHANGE PhGetServiceChange(

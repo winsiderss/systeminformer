@@ -2090,8 +2090,8 @@ BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
     __in PVOID Entry2
     )
 {
-    PPH_SIMPLE_HASHTABLE_ENTRY entry1 = Entry1;
-    PPH_SIMPLE_HASHTABLE_ENTRY entry2 = Entry2;
+    PPH_KEY_VALUE_PAIR entry1 = Entry1;
+    PPH_KEY_VALUE_PAIR entry2 = Entry2;
 
     return entry1->Key == entry2->Key;
 }
@@ -2100,7 +2100,7 @@ ULONG NTAPI PhpSimpleHashtableHashFunction(
     __in PVOID Entry
     )
 {
-    PPH_SIMPLE_HASHTABLE_ENTRY entry = Entry;
+    PPH_KEY_VALUE_PAIR entry = Entry;
 
 #ifdef _M_IX86
     return PhHashInt32((ULONG)entry->Key);
@@ -2114,7 +2114,7 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
     )
 {
     return PhCreateHashtable(
-        sizeof(PH_SIMPLE_HASHTABLE_ENTRY),
+        sizeof(PH_KEY_VALUE_PAIR),
         PhpSimpleHashtableCompareFunction,
         PhpSimpleHashtableHashFunction,
         InitialCapacity
@@ -2127,7 +2127,7 @@ PVOID PhAddSimpleHashtableItem(
     __in PVOID Value
     )
 {
-    PH_SIMPLE_HASHTABLE_ENTRY entry;
+    PH_KEY_VALUE_PAIR entry;
 
     entry.Key = Key;
     entry.Value = Value;
@@ -2143,8 +2143,8 @@ PPVOID PhGetSimpleHashtableItem(
     __in PVOID Key
     )
 {
-    PH_SIMPLE_HASHTABLE_ENTRY lookupEntry;
-    PPH_SIMPLE_HASHTABLE_ENTRY entry;
+    PH_KEY_VALUE_PAIR lookupEntry;
+    PPH_KEY_VALUE_PAIR entry;
 
     lookupEntry.Key = Key;
     entry = PhGetHashtableEntry(SimpleHashtable, &lookupEntry);
@@ -2160,7 +2160,7 @@ BOOLEAN PhRemoveSimpleHashtableItem(
     __in PVOID Key
     )
 {
-    PH_SIMPLE_HASHTABLE_ENTRY lookupEntry;
+    PH_KEY_VALUE_PAIR lookupEntry;
 
     lookupEntry.Key = Key;
 
