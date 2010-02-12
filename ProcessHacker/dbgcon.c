@@ -211,6 +211,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         {
             wprintf(
                 L"Commands:\n"
+                L"testperf\n"
                 L"objects [type-name-filter]\n"
                 L"objtrace object-address\n"
                 L"objmksnap\n"
@@ -223,6 +224,72 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"threads\n"
                 L"provthreads\n"
                 );
+        }
+        else if (WSTR_IEQUAL(command, L"testperf"))
+        {
+            LARGE_INTEGER countsPerMs;
+            LARGE_INTEGER startCounter;
+            LARGE_INTEGER endCounter;
+            ULONG i;
+            PPH_STRING testString;
+            PH_MUTEX testMutex;
+            PH_FAST_LOCK testFastLock;
+
+            QueryPerformanceFrequency(&countsPerMs);
+            countsPerMs.QuadPart /= 1000;
+
+            // Control (string reference counting)
+            testString = PhCreateString(L"");
+            PhReferenceObject(testString);
+            PhDereferenceObject(testString);
+            QueryPerformanceCounter(&startCounter);
+
+            for (i = 0; i < 10000000; i++)
+            {
+                PhReferenceObject(testString);
+                PhDereferenceObject(testString);
+            }
+
+            QueryPerformanceCounter(&endCounter);
+            PhDereferenceObject(testString);
+
+            wprintf(L"Referencing: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
+
+            // Mutex
+
+            PhInitializeMutex(&testMutex);
+            PhAcquireMutex(&testMutex);
+            PhReleaseMutex(&testMutex);
+            QueryPerformanceCounter(&startCounter);
+
+            for (i = 0; i < 10000000; i++)
+            {
+                PhAcquireMutex(&testMutex);
+                PhReleaseMutex(&testMutex);
+            }
+
+            QueryPerformanceCounter(&endCounter);
+            PhDeleteMutex(&testMutex);
+
+            wprintf(L"Mutex: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
+
+            // Fast lock
+
+            PhInitializeFastLock(&testFastLock);
+            PhAcquireFastLockExclusive(&testFastLock);
+            PhReleaseFastLockExclusive(&testFastLock);
+            QueryPerformanceCounter(&startCounter);
+
+            for (i = 0; i < 10000000; i++)
+            {
+                PhAcquireFastLockExclusive(&testFastLock);
+                PhReleaseFastLockExclusive(&testFastLock);
+            }
+
+            QueryPerformanceCounter(&endCounter);
+            PhDeleteFastLock(&testFastLock);
+
+            wprintf(L"Fast lock: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
         }
         else if (WSTR_IEQUAL(command, L"objects"))
         {

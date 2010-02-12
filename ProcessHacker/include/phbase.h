@@ -235,6 +235,39 @@ FORCEINLINE BOOLEAN PhTestEvent(
     return !!(Event->Value & PH_EVENT_SET);
 }
 
+// rundown protection
+
+#define PH_RUNDOWN_ACTIVE 0x1
+#define PH_RUNDOWN_REF_SHIFT 1
+#define PH_RUNDOWN_REF_INC 0x2
+
+typedef struct _PH_RUNDOWN_PROTECT
+{
+    ULONG_PTR Value;
+} PH_RUNDOWN_PROTECT, *PPH_RUNDOWN_PROTECT;
+
+typedef struct _PH_RUNDOWN_WAIT_BLOCK
+{
+    ULONG_PTR Count;
+    PH_EVENT WakeEvent;
+} PH_RUNDOWN_WAIT_BLOCK, *PPH_RUNDOWN_WAIT_BLOCK;
+
+VOID PhInitializeRundownProtection(
+    __out PPH_RUNDOWN_PROTECT Protection
+    );
+
+BOOLEAN PhAcquireRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    );
+
+VOID PhReleaseRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    );
+
+VOID PhWaitForRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    );
+
 // string
 
 #ifndef BASESUP_PRIVATE
@@ -1487,6 +1520,9 @@ PPH_STRING PhaSubstring(
 
 typedef struct _PH_WORK_QUEUE
 {
+    PH_RUNDOWN_PROTECT RundownProtect;
+    BOOLEAN Terminating;
+
     PPH_QUEUE Queue;
     PH_MUTEX QueueLock;
 

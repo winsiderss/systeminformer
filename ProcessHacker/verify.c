@@ -401,6 +401,18 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     return PhpStatusToVerifyResult(status);
 }
 
+/**
+ * Verifies a file's digital signature.
+ *
+ * \param FileName A file name.
+ * \param SignerName A variable which receives a pointer 
+ * to a string containing the signer name. You must free 
+ * the string using PhDereferenceObject() when you no 
+ * longer need it. Note that the signer name may be NULL 
+ * if it is not valid.
+ *
+ * \return A VERIFY_RESULT value.
+ */
 VERIFY_RESULT PhVerifyFile(
     __in PWSTR FileName,
     __out_opt PPH_STRING *SignerName

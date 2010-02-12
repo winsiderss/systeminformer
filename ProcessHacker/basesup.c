@@ -507,6 +507,134 @@ VOID PhResetEvent(
         Event->Value = PH_EVENT_REFCOUNT_INC;
 }
 
+VOID PhInitializeRundownProtection(
+    __out PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    Protection->Value = 0;
+}
+
+BOOLEAN PhAcquireRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+
+    // Increment the reference count only if rundown 
+    // has not started.
+
+    while (TRUE)
+    {
+        value = Protection->Value;
+
+        if (value & PH_RUNDOWN_ACTIVE)
+            return FALSE;
+
+        if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+            (PPVOID)&Protection->Value,
+            (PVOID)(value + PH_RUNDOWN_REF_INC),
+            (PVOID)value
+            ) == value)
+            return TRUE;
+    }
+}
+
+VOID PhReleaseRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+
+    while (TRUE)
+    {
+        value = Protection->Value;
+
+        if (value & PH_RUNDOWN_ACTIVE)
+        {
+            PPH_RUNDOWN_WAIT_BLOCK waitBlock;
+
+            // Since rundown is active, the reference count has been 
+            // moved to the waiter's wait block. If we are the last 
+            // user, we must wake up the waiter.
+
+            waitBlock = (PPH_RUNDOWN_WAIT_BLOCK)(value & ~PH_RUNDOWN_ACTIVE);
+
+#ifdef _M_IX86
+            if (InterlockedDecrement((PLONG)&waitBlock->Count) == 0)
+#else
+            if (InterlockedDecrement64((PLONGLONG)&waitBlock->Count) == 0)
+#endif
+            {
+                PhSetEvent(&waitBlock->WakeEvent);
+            }
+
+            break;
+        }
+        else
+        {
+            // Decrement the reference count normally.
+
+            if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+                (PPVOID)&Protection->Value,
+                (PVOID)(value - PH_RUNDOWN_REF_INC),
+                (PVOID)value
+                ) == value)
+                break;
+        }
+    }
+}
+
+VOID PhWaitForRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+    ULONG_PTR count;
+    PH_RUNDOWN_WAIT_BLOCK waitBlock;
+    BOOLEAN waitBlockInitialized;
+
+    // Fast path. If the reference count is 0 or 
+    // rundown has already been completed, return.
+    value = (ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&Protection->Value,
+        (PVOID)PH_RUNDOWN_ACTIVE,
+        (PVOID)0
+        );
+
+    if (value == 0 || value == PH_RUNDOWN_ACTIVE)
+        return;
+
+    waitBlockInitialized = FALSE;
+
+    while (TRUE)
+    {
+        value = Protection->Value;
+        count = value >> PH_RUNDOWN_REF_SHIFT;
+
+        // Initialize the wait block if necessary.
+        if (count != 0 && !waitBlockInitialized)
+        {
+            PhInitializeEvent(&waitBlock.WakeEvent);
+            waitBlockInitialized = TRUE;
+        }
+
+        // Save the existing reference count.
+        waitBlock.Count = count;
+
+        if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+            (PPVOID)&Protection->Value,
+            (PVOID)((ULONG_PTR)&waitBlock | PH_RUNDOWN_ACTIVE),
+            (PVOID)value
+            ) == value)
+        {
+            if (count != 0)
+                PhWaitForEvent(&waitBlock.WakeEvent, INFINITE);
+
+            break;
+        }
+    }
+}
+
 /**
  * Creates a string object from an existing 
  * null-terminated string.
