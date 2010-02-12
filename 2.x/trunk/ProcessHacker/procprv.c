@@ -151,7 +151,7 @@ BOOLEAN PhInitializeProcessProvider()
 
     PhCpuInformation = PhAllocate(
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
-        PhSystemBasicInformation.NumberOfProcessors
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
 
     PhInitializeDelta(&PhCpuKernelDelta);
@@ -709,7 +709,7 @@ VOID PhpUpdateCpuInformation()
         SystemProcessorPerformanceInformation,
         PhCpuInformation,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
-        PhSystemBasicInformation.NumberOfProcessors,
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors,
         &returnLength
         );
 

@@ -866,6 +866,22 @@ PPH_STRING PhGetApplicationModuleFileName(
     }
 
     fileName = PhGetFullPath((PWSTR)buffer, IndexOfFileName);
+
+    if (!fileName)
+    {
+        ULONG indexOfFileName;
+
+        fileName = PhCreateString((PWSTR)buffer);
+        indexOfFileName = PhStringLastIndexOfChar((PWSTR)buffer, 0, '\\');
+
+        if (indexOfFileName != -1)
+            indexOfFileName++;
+        else
+            indexOfFileName = 0;
+
+        *IndexOfFileName = indexOfFileName;
+    }
+
     PhFree(buffer);
 
     return fileName;
