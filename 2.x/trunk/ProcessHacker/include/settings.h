@@ -21,29 +21,29 @@ typedef struct _PH_SETTING
 
 VOID PhSettingsInitialization();
 
-ULONG PhGetIntegerSetting(
+__mayRaise ULONG PhGetIntegerSetting(
     __in PWSTR Name
     );
 
-PH_INTEGER_PAIR PhGetIntegerPairSetting(
+__mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     __in PWSTR Name
     );
 
-PPH_STRING PhGetStringSetting(
+__mayRaise PPH_STRING PhGetStringSetting(
     __in PWSTR Name
     );
 
-VOID PhSetIntegerSetting(
+__mayRaise VOID PhSetIntegerSetting(
     __in PWSTR Name,
     __in ULONG Value
     );
 
-VOID PhSetIntegerPairSetting(
+__mayRaise VOID PhSetIntegerPairSetting(
     __in PWSTR Name,
     __in PH_INTEGER_PAIR Value
     );
 
-VOID PhSetStringSetting(
+__mayRaise VOID PhSetStringSetting(
     __in PWSTR Name,
     __in PWSTR Value
     );

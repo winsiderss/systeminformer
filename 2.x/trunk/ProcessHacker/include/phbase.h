@@ -96,7 +96,7 @@ HANDLE PhCreateThread(
 
 // heap
 
-PVOID PhAllocate(
+__mayRaise PVOID PhAllocate(
     __in SIZE_T Size
     );
 
@@ -1017,7 +1017,7 @@ PPH_POINTER_LIST PhCreatePointerList(
     __in ULONG InitialCapacity
     );
 
-HANDLE PhAddPointerListItem(
+__mayRaise HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );

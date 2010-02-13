@@ -293,7 +293,7 @@ HANDLE PhCreateThread(
  * the block of memory, it raises a 
  * STATUS_INSUFFICIENT_RESOURCES exception.
  */
-PVOID PhAllocate(
+__mayRaise PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
@@ -1604,7 +1604,7 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  * \return A handle to the pointer, valid until 
  * the pointer is removed from the pointer list.
  */
-HANDLE PhAddPointerListItem(
+__mayRaise HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )

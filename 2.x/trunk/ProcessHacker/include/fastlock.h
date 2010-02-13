@@ -25,12 +25,12 @@ VOID PhDeleteFastLock(
     );
 
 #define PhAcquireFastLockExclusive PhfAcquireFastLockExclusive
-VOID FASTCALL PhfAcquireFastLockExclusive(
+__mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhAcquireFastLockShared PhfAcquireFastLockShared
-VOID FASTCALL PhfAcquireFastLockShared(
+__mayRaise VOID FASTCALL PhfAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
