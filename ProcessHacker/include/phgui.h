@@ -15,13 +15,6 @@
 
 // main
 
-INT WINAPI wWinMain(
-    __in HINSTANCE hInstance,
-    __in HINSTANCE hPrevInstance,
-    __in LPWSTR lpCmdLine,
-    __in INT nCmdShow
-    );
-
 INT PhMainMessageLoop();
 
 VOID PhRegisterDialog(

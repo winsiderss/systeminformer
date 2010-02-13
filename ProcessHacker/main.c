@@ -54,10 +54,10 @@ COLORREF PhSysWindowColor;
 static PPH_LIST DialogList;
 static PH_AUTO_POOL BaseAutoPool;
 
-INT WINAPI wWinMain(
+INT WINAPI WinMain(
     __in HINSTANCE hInstance,
-    __in HINSTANCE hPrevInstance,
-    __in LPWSTR lpCmdLine,
+    __in_opt HINSTANCE hPrevInstance,
+    __in LPSTR lpCmdLine,
     __in INT nCmdShow
     )
 {

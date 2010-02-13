@@ -493,27 +493,17 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
     __in PVOID Parameter
     )
 {
-    PPH_OBJECT_HEADER objectHeader = NULL;
-    
-    while (TRUE)
-    {
-        /* Get the next object to free while replacing the global variable with 
-         * what we needed to free next.
-         */
-        objectHeader = _InterlockedExchangePointer(&PhObjectNextToFree, objectHeader);
+    PPH_OBJECT_HEADER objectHeader;
+    PPH_OBJECT_HEADER nextObjectHeader;
 
-        /* If we have an object to free, free it and move on to the 
-         * next object. Otherwise, stop.
-         */
-        if (objectHeader)
-        {
-            PhpFreeObject(objectHeader);
-            objectHeader = objectHeader->NextToFree;
-        }
-        else
-        {
-            break;
-        }
+    // Clear the list and obtain the first object to free.
+    objectHeader = _InterlockedExchangePointer(&PhObjectNextToFree, NULL);
+
+    while (objectHeader)
+    {
+        nextObjectHeader = objectHeader->NextToFree;
+        PhpFreeObject(objectHeader);
+        objectHeader = nextObjectHeader;
     }
 
     return STATUS_SUCCESS;
