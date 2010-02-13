@@ -128,8 +128,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             GetClientRect(hwnd, &clientRect);
 
-            SelectObject(hdc, GetSysColorBrush(COLOR_WINDOW));
-            Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
+            FillRect(hdc, &paintStruct.rcPaint, GetSysColorBrush(COLOR_WINDOW));
 
             SelectObject(hdc, GetSysColorBrush(COLOR_WINDOWTEXT));
             rect.left = 0;
