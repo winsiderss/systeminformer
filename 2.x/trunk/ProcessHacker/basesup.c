@@ -461,6 +461,7 @@ BOOLEAN PhWaitForEvent(
     if (!eventHandle)
     {
         eventHandle = CreateEvent(NULL, TRUE, FALSE, NULL);
+        assert(eventHandle);
 
         // Try to set the event handle to our event.
         if (_InterlockedCompareExchangePointer(
@@ -503,6 +504,8 @@ VOID PhResetEvent(
     __inout PPH_EVENT Event
     )
 {
+    assert(!Event->EventHandle);
+
     if (PhTestEvent(Event))
         Event->Value = PH_EVENT_REFCOUNT_INC;
 }
@@ -1604,16 +1607,14 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  * \return A handle to the pointer, valid until 
  * the pointer is removed from the pointer list.
  */
-__mayRaise HANDLE PhAddPointerListItem(
+HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )
 {
     ULONG index;
 
-    // Make sure the pointer has the free bit cleared.
-    if (!PH_IS_LIST_POINTER_VALID(Pointer))
-        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+    assert(PH_IS_LIST_POINTER_VALID(Pointer));
 
     // Use a free entry if possible.
     if (PointerList->FreeEntry != -1)
@@ -1662,6 +1663,8 @@ HANDLE PhFindPointerListItem(
 {
     ULONG i;
 
+    assert(PH_IS_LIST_POINTER_VALID(Pointer));
+
     for (i = 0; i < PointerList->NextEntry; i++)
     {
         if (PointerList->Items[i] == Pointer)
@@ -1688,6 +1691,8 @@ VOID PhRemovePointerListItem(
     )
 {
     ULONG index;
+
+    assert(PointerHandle);
 
     index = PhpPointerListHandleToIndex(PointerHandle);
 

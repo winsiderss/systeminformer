@@ -1017,7 +1017,7 @@ PPH_POINTER_LIST PhCreatePointerList(
     __in ULONG InitialCapacity
     );
 
-__mayRaise HANDLE PhAddPointerListItem(
+HANDLE PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
