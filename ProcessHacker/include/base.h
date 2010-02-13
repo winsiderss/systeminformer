@@ -17,6 +17,8 @@
 // 'function': was declared deprecated
 #pragma warning(disable: 4996)
 
+#define FASTCALL __fastcall
+
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
 #define REBASE_ADDRESS(Pointer, OldBase, NewBase) \
