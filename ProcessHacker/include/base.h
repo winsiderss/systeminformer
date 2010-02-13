@@ -8,6 +8,7 @@
 #include <ntwin.h>
 #include <intrin.h>
 #include <wchar.h>
+#include <assert.h>
 #include <stdio.h>
 
 // nonstandard extension used : nameless struct/union
