@@ -112,7 +112,7 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     }
 }
 
-VOID PhAcquireFastLockExclusive(
+VOID FASTCALL PhfAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     )
 {
@@ -166,7 +166,7 @@ VOID PhAcquireFastLockExclusive(
     }
 }
 
-VOID PhAcquireFastLockShared(
+VOID FASTCALL PhfAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     )
 {
@@ -228,7 +228,7 @@ VOID PhAcquireFastLockShared(
     }
 }
 
-VOID PhReleaseFastLockExclusive(
+VOID FASTCALL PhfReleaseFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     )
 {
@@ -274,7 +274,7 @@ VOID PhReleaseFastLockExclusive(
     }
 }
 
-VOID PhReleaseFastLockShared(
+VOID FASTCALL PhfReleaseFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     )
 {
@@ -321,7 +321,7 @@ VOID PhReleaseFastLockShared(
     }
 }
 
-BOOLEAN PhTryAcquireFastLockExclusive(
+BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     )
 {
@@ -339,7 +339,7 @@ BOOLEAN PhTryAcquireFastLockExclusive(
         ) == value;
 }
 
-BOOLEAN PhTryAcquireFastLockShared(
+BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     )
 {

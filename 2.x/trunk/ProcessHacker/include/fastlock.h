@@ -24,27 +24,33 @@ VOID PhDeleteFastLock(
     __inout PPH_FAST_LOCK FastLock
     );
 
-VOID PhAcquireFastLockExclusive(
+#define PhAcquireFastLockExclusive PhfAcquireFastLockExclusive
+VOID FASTCALL PhfAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
-VOID PhAcquireFastLockShared(
+#define PhAcquireFastLockShared PhfAcquireFastLockShared
+VOID FASTCALL PhfAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
-VOID PhReleaseFastLockExclusive(
+#define PhReleaseFastLockExclusive PhfReleaseFastLockExclusive
+VOID FASTCALL PhfReleaseFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
-VOID PhReleaseFastLockShared(
+#define PhReleaseFastLockShared PhfReleaseFastLockShared
+VOID FASTCALL PhfReleaseFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
-BOOLEAN PhTryAcquireFastLockExclusive(
+#define PhTryAcquireFastLockExclusive PhfTryAcquireFastLockExclusive
+BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
-BOOLEAN PhTryAcquireFastLockShared(
+#define PhTryAcquireFastLockShared PhfTryAcquireFastLockShared
+BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
