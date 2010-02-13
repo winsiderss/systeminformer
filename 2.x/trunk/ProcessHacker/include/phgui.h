@@ -15,10 +15,10 @@
 
 // main
 
-INT WINAPI WinMain(
+INT WINAPI wWinMain(
     __in HINSTANCE hInstance,
     __in HINSTANCE hPrevInstance,
-    __in LPSTR lpCmdLine,
+    __in LPWSTR lpCmdLine,
     __in INT nCmdShow
     );
 
