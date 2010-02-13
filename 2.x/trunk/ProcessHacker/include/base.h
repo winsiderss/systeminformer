@@ -51,12 +51,6 @@
  */
 #define __mayRaise
 
-/**
- * Indicates that a return value or output parameter 
- * will not alias the given parameter.
- */
-#define __outRestrict(param)
-
 // Strings
 
 #define PH_INT32_STR_LEN 12
