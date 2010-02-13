@@ -82,7 +82,7 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
 
 NTSTATUS PhInitializeRef();
 
-NTSTATUS PhCreateObject(
+__mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
@@ -105,7 +105,7 @@ BOOLEAN PhDereferenceObjectDeferDelete(
     __in PVOID Object
     );
 
-LONG PhDereferenceObjectEx(
+__mayRaise LONG PhDereferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount,
     __in BOOLEAN DeferDelete
@@ -124,7 +124,7 @@ VOID PhReferenceObject(
     __in PVOID Object
     );
 
-LONG PhReferenceObjectEx(
+__mayRaise LONG PhReferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount
     );
@@ -196,11 +196,11 @@ VOID PhInitializeAutoPool(
     __out PPH_AUTO_POOL AutoPool
     );
 
-VOID PhDeleteAutoPool(
+__mayRaise VOID PhDeleteAutoPool(
     __inout PPH_AUTO_POOL AutoPool
     );
 
-VOID PhaDereferenceObject(
+__mayRaise VOID PhaDereferenceObject(
     __in PVOID Object
     );
 

@@ -42,6 +42,16 @@
 #define __assumeLocked
 
 /**
+ * Indicates that a function may raise a software
+ * exception.
+ *
+ * \remarks Do not use this annotation for 
+ * temporary usages of exceptions, e.g. unimplemented 
+ * functions.
+ */
+#define __mayRaise
+
+/**
  * Indicates that a return value or output parameter 
  * will not alias the given parameter.
  */
