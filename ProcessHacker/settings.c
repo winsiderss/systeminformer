@@ -296,7 +296,7 @@ static PPH_STRING PhpJoinXmlTextNodes(
     return string;
 }
 
-ULONG PhGetIntegerSetting(
+__mayRaise ULONG PhGetIntegerSetting(
     __in PWSTR Name
     )
 {
@@ -324,7 +324,7 @@ ULONG PhGetIntegerSetting(
     return value;
 }
 
-PH_INTEGER_PAIR PhGetIntegerPairSetting(
+__mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     __in PWSTR Name
     )
 {
@@ -355,7 +355,7 @@ PH_INTEGER_PAIR PhGetIntegerPairSetting(
     return value;
 }
 
-PPH_STRING PhGetStringSetting(
+__mayRaise PPH_STRING PhGetStringSetting(
     __in PWSTR Name
     )
 {
@@ -391,7 +391,7 @@ PPH_STRING PhGetStringSetting(
     return value;
 }
 
-VOID PhSetIntegerSetting(
+__mayRaise VOID PhSetIntegerSetting(
     __in PWSTR Name,
     __in ULONG Value
     )
@@ -413,7 +413,7 @@ VOID PhSetIntegerSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-VOID PhSetIntegerPairSetting(
+__mayRaise VOID PhSetIntegerPairSetting(
     __in PWSTR Name,
     __in PH_INTEGER_PAIR Value
     )
@@ -436,7 +436,7 @@ VOID PhSetIntegerPairSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-VOID PhSetStringSetting(
+__mayRaise VOID PhSetStringSetting(
     __in PWSTR Name,
     __in PWSTR Value
     )

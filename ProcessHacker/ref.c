@@ -104,7 +104,7 @@ NTSTATUS PhInitializeRef()
  * \param AdditionalReferences The number of references to add to the object. The 
  * object will initially have a reference count of 1 + AdditionalReferences.
  */
-NTSTATUS PhCreateObject(
+__mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
@@ -286,7 +286,7 @@ BOOLEAN PhDereferenceObjectDeferDelete(
  * 
  * \return The new reference count of the object.
  */
-LONG PhDereferenceObjectEx(
+__mayRaise LONG PhDereferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount,
     __in BOOLEAN DeferDelete
@@ -380,7 +380,7 @@ VOID PhReferenceObject(
  * 
  * \return The new reference count of the object.
  */
-LONG PhReferenceObjectEx(
+__mayRaise LONG PhReferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount
     )
@@ -584,7 +584,7 @@ FORCEINLINE PPH_AUTO_POOL PhpGetCurrentAutoPool()
  * Sets the current auto-dereference pool for the 
  * current thread.
  */
-FORCEINLINE VOID PhpSetCurrentAutoPool(
+__mayRaise FORCEINLINE VOID PhpSetCurrentAutoPool(
     __in PPH_AUTO_POOL AutoPool
     )
 {
@@ -638,7 +638,7 @@ VOID PhInitializeAutoPool(
  *
  * \param AutoPool The auto-dereference pool to delete.
  */
-VOID PhDeleteAutoPool(
+__mayRaise VOID PhDeleteAutoPool(
     __inout PPH_AUTO_POOL AutoPool
     )
 {
@@ -665,7 +665,7 @@ VOID PhDeleteAutoPool(
  * will be dereferenced when the current auto-dereference 
  * pool is drained or freed.
  */
-VOID PhaDereferenceObject(
+__mayRaise VOID PhaDereferenceObject(
     __in PVOID Object
     )
 {
