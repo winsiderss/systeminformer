@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <hidnproc.h>
 #include <windowsx.h>
 
 INT_PTR CALLBACK PhpHiddenProcessesDlgProc(      
@@ -94,6 +95,8 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_AddFallbackColumn(lvHandle, 0);
+            ExtendedListView_AddFallbackColumn(lvHandle, 1);
 
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute Force");
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles");
@@ -133,4 +136,339 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     }
 
     return FALSE;
+}
+
+NTSTATUS PhEnumProcessHandles(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_HANDLE_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 2048;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQueryProcessHandles(
+            PhKphHandle,
+            ProcessHandle,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Handles = buffer;
+
+    return status;
+}
+
+NTSTATUS PhGetProcessKnownType(
+    __in HANDLE ProcessHandle,
+    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    )
+{
+    NTSTATUS status;
+    PH_KNOWN_PROCESS_TYPE knownProcessType;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PPH_STRING systemDirectory;
+    PPH_STRING fileName;
+    PPH_STRING newFileName;
+    PPH_STRING baseName;
+
+    if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
+        ProcessHandle,
+        &basicInfo
+        )))
+        return status;
+
+    if (basicInfo.UniqueProcessId == SYSTEM_PROCESS_ID)
+    {
+        *KnownProcessType = SystemProcessType;
+        return STATUS_SUCCESS;
+    }
+
+    systemDirectory = PhGetSystemDirectory();
+
+    if (!systemDirectory)
+        return STATUS_UNSUCCESSFUL;
+
+    if (!NT_SUCCESS(status = PhGetProcessImageFileName(
+        ProcessHandle,
+        &fileName
+        )))
+    {
+        PhDereferenceObject(systemDirectory);
+        return status;
+    }
+
+    newFileName = PhGetFileName(fileName);
+    PhDereferenceObject(fileName);
+
+    knownProcessType = UnknownProcessType;
+
+    if (PhStringStartsWith(newFileName, systemDirectory, TRUE))
+    {
+        baseName = PhSubstring(newFileName, 0, systemDirectory->Length / 2);
+
+        // The system directory string never ends in a backslash, unless 
+        // it is a drive root. We're not going to account for that case.
+
+        if (!baseName)
+            ; // Dummy
+        else if (PhStringEquals2(baseName, L"\\smss.exe", TRUE))
+            knownProcessType = SessionManagerProcessType;
+        else if (PhStringEquals2(baseName, L"\\csrss.exe", TRUE))
+            knownProcessType = WindowsSubsystemProcessType;
+        else if (PhStringEquals2(baseName, L"\\wininit.exe", TRUE))
+            knownProcessType = WindowsStartupProcessType;
+        else if (PhStringEquals2(baseName, L"\\services.exe", TRUE))
+            knownProcessType = ServiceControlManagerProcessType;
+        else if (PhStringEquals2(baseName, L"\\lsass.exe", TRUE))
+            knownProcessType = LocalSecurityAuthorityProcessType;
+        else if (PhStringEquals2(baseName, L"\\lsm.exe", TRUE))
+            knownProcessType = LocalSessionManagerProcessType;
+
+        PhDereferenceObject(baseName);
+    }
+
+    PhDereferenceObject(systemDirectory);
+    PhDereferenceObject(newFileName);
+
+    *KnownProcessType = knownProcessType;
+
+    return status;
+}
+
+NTSTATUS PhpOpenCsrProcesses(
+    __out PHANDLE *ProcessHandles,
+    __out PULONG NumberOfProcessHandles
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    PPH_LIST processHandleList;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    processHandleList = PhCreateList(8);
+
+    process = PH_FIRST_PROCESS(processes);
+
+    do
+    {
+        HANDLE processHandle;
+        PH_KNOWN_PROCESS_TYPE knownProcessType;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess | PROCESS_DUP_HANDLE,
+            process->UniqueProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhGetProcessKnownType(
+                processHandle,
+                &knownProcessType
+                )) &&
+                knownProcessType == WindowsSubsystemProcessType)
+            {
+                PhAddListItem(processHandleList, processHandle);
+            }
+            else
+            {
+                CloseHandle(processHandle);
+            }
+        }
+    } while (process = PH_NEXT_PROCESS(process));
+
+    *ProcessHandles = PhAllocateCopy(processHandleList->Items, processHandleList->Count * sizeof(HANDLE));
+    *NumberOfProcessHandles = processHandleList->Count;
+
+    PhDereferenceObject(processHandleList);
+
+    return status;
+}
+
+NTSTATUS PhpGetCsrHandleProcessId(
+    __inout PPH_CSR_HANDLE_INFO Handle
+    )
+{
+    NTSTATUS status;
+
+    Handle->IsThreadHandle = FALSE;
+    Handle->ProcessId = NULL;
+
+    // Assume the handle is a process handle, and get the 
+    // process ID.
+
+    status = KphGetProcessId(
+        PhKphHandle,
+        Handle->CsrProcessHandle,
+        Handle->Handle,
+        &Handle->ProcessId
+        );
+
+    if (!Handle->ProcessId)
+        status = STATUS_UNSUCCESSFUL;
+
+    if (!NT_SUCCESS(status))
+    {
+        HANDLE threadId;
+
+        // We failed to get the process ID. Assume the handle 
+        // is a thread handle, and get the process ID.
+
+        status = KphGetThreadId(
+            PhKphHandle,
+            Handle->CsrProcessHandle,
+            Handle->Handle,
+            &threadId,
+            &Handle->ProcessId
+            );
+
+        if (!Handle->ProcessId)
+            status = STATUS_UNSUCCESSFUL;
+
+        if (NT_SUCCESS(status))
+            Handle->IsThreadHandle = TRUE;
+    }
+
+    return status;
+}
+
+NTSTATUS PhEnumCsrProcessHandles(
+    __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PHANDLE csrProcessHandles;
+    ULONG numberOfCsrProcessHandles;
+    ULONG i;
+    BOOLEAN stop = FALSE;
+    PPH_LIST pids;
+
+    if (!NT_SUCCESS(status = PhpOpenCsrProcesses(
+        &csrProcessHandles,
+        &numberOfCsrProcessHandles
+        )))
+        return status;
+
+    pids = PhCreateList(40);
+
+    for (i = 0; i < numberOfCsrProcessHandles; i++)
+    {
+        PPROCESS_HANDLE_INFORMATION handles;
+        ULONG j;
+
+        if (stop)
+            break;
+
+        if (NT_SUCCESS(PhEnumProcessHandles(csrProcessHandles[i], &handles)))
+        {
+            for (j = 0; j < handles->HandleCount; j++)
+            {
+                PH_CSR_HANDLE_INFO handle;
+
+                handle.CsrProcessHandle = csrProcessHandles[i];
+                handle.Handle = handles->Handles[j].Handle;
+
+                // Get the process ID associated with the handle. 
+                // This call will fail if the handle is not a 
+                // process or thread handle.
+                if (!NT_SUCCESS(PhpGetCsrHandleProcessId(&handle)))
+                    continue;
+
+                // Avoid duplicate PIDs.
+                if (PhIndexOfListItem(pids, handle.ProcessId) != -1)
+                    continue;
+
+                PhAddListItem(pids, handle.ProcessId);
+
+                if (!Callback(&handle, Context))
+                {
+                    stop = TRUE;
+                    break;
+                }
+            }
+
+            PhFree(handles);
+        }
+    }
+
+    PhDereferenceObject(pids);
+
+    for (i = 0; i < numberOfCsrProcessHandles; i++)
+        CloseHandle(csrProcessHandles[i]);
+
+    PhFree(csrProcessHandles);
+
+    return status;
+}
+
+NTSTATUS PhOpenProcessByCsrHandle(
+    __out PHANDLE ProcessHandle,
+    __in PPH_CSR_HANDLE_INFO Handle,
+    __in ACCESS_MASK DesiredAccess
+    )
+{
+    NTSTATUS status;
+
+    if (!Handle->IsThreadHandle)
+    {
+        status = PhDuplicateObject(
+            Handle->CsrProcessHandle,
+            Handle->Handle,
+            NtCurrentProcess(),
+            ProcessHandle,
+            DesiredAccess,
+            0,
+            0
+            );
+    }
+    else
+    {
+        HANDLE threadHandle;
+
+        if (!NT_SUCCESS(status = PhDuplicateObject(
+            Handle->CsrProcessHandle,
+            Handle->Handle,
+            NtCurrentProcess(),
+            &threadHandle,
+            ThreadQueryAccess,
+            0,
+            0
+            )))
+            return status;
+
+        status = KphOpenThreadProcess(
+            PhKphHandle,
+            ProcessHandle,
+            threadHandle,
+            DesiredAccess
+            );
+        CloseHandle(threadHandle);
+    }
+
+    return status;
 }

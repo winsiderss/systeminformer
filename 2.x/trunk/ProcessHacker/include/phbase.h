@@ -1104,6 +1104,14 @@ BOOLEAN PhPeekQueueItem(
 extern PPH_OBJECT_TYPE PhHashtableType;
 #endif
 
+ULONG PhGetPrimeNumber(
+    __in ULONG Minimum
+    );
+
+ULONG PhRoundUpToPowerOfTwo(
+    __in ULONG Number
+    );
+
 typedef struct _PH_HASHTABLE_ENTRY
 {
     /** Hash code of the entry. -1 if entry is unused. */
@@ -1148,10 +1156,11 @@ typedef ULONG (NTAPI *PPH_HASHTABLE_HASH_FUNCTION)(
     __in PVOID Entry
     );
 
-// Enables collection of statistics
-#define PH_HASHTABLE_ENABLE_STATS
+// Use power-of-two sizes instead of primes
+#define PH_HASHTABLE_POWER_OF_TWO_SIZE
+
 // Enables 2^32-1 possible hash codes instead of only 2^31
-#define PH_HASHTABLE_ENABLE_FULL_HASH
+//#define PH_HASHTABLE_FULL_HASH
 
 /**
  * A hashtable structure.
@@ -1182,13 +1191,6 @@ typedef struct _PH_HASHTABLE
      * count of entries that were ever allocated.
      */
     ULONG NextEntry;
-
-#ifdef PH_HASHTABLE_ENABLE_STATS
-    /** The number of buckets which refer to more 
-     * than one entry.
-     */
-    ULONG TotalCollisions;
-#endif
 } PH_HASHTABLE, *PPH_HASHTABLE;
 
 #define PH_HASHTABLE_ENTRY_SIZE(InnerSize) (sizeof(PH_HASHTABLE_ENTRY) + (InnerSize))
@@ -1231,12 +1233,22 @@ BOOLEAN PhRemoveHashtableEntry(
     __in PVOID Entry
     );
 
-ULONG PhHashBytes(
+#define PhHashBytes PhHashBytesSdbm
+
+#define PhHashBytesHsieh PhfHashBytesHsieh
+ULONG FASTCALL PhfHashBytesHsieh(
     __in PUCHAR Bytes,
     __in ULONG Length
     );
 
-ULONG PhHashBytesSdbm(
+#define PhHashBytesMurmur PhfHashBytesMurmur
+ULONG FASTCALL PhfHashBytesMurmur(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    );
+
+#define PhHashBytesSdbm PhfHashBytesSdbm
+ULONG FASTCALL PhfHashBytesSdbm(
     __in PUCHAR Bytes,
     __in ULONG Length
     );

@@ -1839,7 +1839,7 @@ BOOLEAN PhPeekQueueItem(
     return TRUE;
 }
 
-ULONG PhpGetPrimeNumber(
+ULONG PhGetPrimeNumber(
     __in ULONG Minimum
     )
 {
@@ -1869,6 +1869,60 @@ ULONG PhpGetPrimeNumber(
     }
 
     return Minimum;
+}
+
+ULONG PhRoundUpToPowerOfTwo(
+    __in ULONG Number
+    )
+{
+    Number--;
+    Number |= Number >> 1;
+    Number |= Number >> 2;
+    Number |= Number >> 4;
+    Number |= Number >> 8;
+    Number |= Number >> 16;
+    Number++;
+
+    return Number;
+}
+
+FORCEINLINE ULONG PhpValidateHash(
+    __in ULONG Hash
+    )
+{
+    // No point in using a full hash when we're going to 
+    // AND with size minus one anyway.
+#if defined(PH_HASHTABLE_FULL_HASH) && !defined(PH_HASHTABLE_POWER_OF_TWO_SIZE)
+    if (Hash != -1)
+        return Hash;
+    else
+        return 0;
+#else
+    return Hash & MAXLONG;
+#endif
+}
+
+FORCEINLINE ULONG PhpIndexFromHash(
+    __in PPH_HASHTABLE Hashtable,
+    __in ULONG Hash
+    )
+{
+#ifdef PH_HASHTABLE_POWER_OF_TWO_SIZE
+    return Hash & (Hashtable->AllocatedBuckets - 1);
+#else
+    return Hash % Hashtable->AllocatedBuckets;
+#endif
+}
+
+FORCEINLINE ULONG PhpGetNumberOfBuckets(
+    __in ULONG Capacity
+    )
+{
+#ifdef PH_HASHTABLE_POWER_OF_TWO_SIZE
+    return PhRoundUpToPowerOfTwo(Capacity);
+#else
+    return PhGetPrimeNumber(Capacity);
+#endif
 }
 
 /**
@@ -1901,12 +1955,16 @@ PPH_HASHTABLE PhCreateHashtable(
         )))
         return NULL;
 
+    // Initial capacity of 0 is not allowed.
+    if (InitialCapacity == 0)
+        InitialCapacity = 1;
+
     hashtable->EntrySize = EntrySize;
     hashtable->CompareFunction = CompareFunction;
     hashtable->HashFunction = HashFunction;
 
     // Allocate the buckets.
-    hashtable->AllocatedBuckets = PhpGetPrimeNumber(InitialCapacity);
+    hashtable->AllocatedBuckets = PhpGetNumberOfBuckets(InitialCapacity);
     hashtable->Buckets = PhAllocate(sizeof(ULONG) * hashtable->AllocatedBuckets);
     // Set all bucket values to -1.
     memset(hashtable->Buckets, 0xff, sizeof(ULONG) * hashtable->AllocatedBuckets);
@@ -1937,20 +1995,6 @@ VOID PhpHashtableDeleteProcedure(
     PhFree(hashtable->Entries);
 }
 
-FORCEINLINE ULONG PhpValidateHash(
-    __in ULONG Hash
-    )
-{
-#ifdef PH_HASHTABLE_ENABLE_FULL_HASH
-    if (Hash != -1)
-        return Hash;
-    else
-        return 0;
-#else
-    return Hash & MAXLONG;
-#endif
-}
-
 VOID PhpResizeHashtable(
     __inout PPH_HASHTABLE Hashtable,
     __in ULONG NewCapacity
@@ -1960,7 +2004,7 @@ VOID PhpResizeHashtable(
 
     // Re-allocate the buckets. Note that we don't need to keep the 
     // contents.
-    Hashtable->AllocatedBuckets = PhpGetPrimeNumber(NewCapacity);
+    Hashtable->AllocatedBuckets = PhpGetNumberOfBuckets(NewCapacity);
     PhFree(Hashtable->Buckets);
     Hashtable->Buckets = PhAllocate(sizeof(ULONG) * Hashtable->AllocatedBuckets);
     // Set all bucket values to -1.
@@ -1980,7 +2024,7 @@ VOID PhpResizeHashtable(
 
         if (entry->HashCode != -1)
         {
-            ULONG index = entry->HashCode % Hashtable->AllocatedBuckets;
+            ULONG index = PhpIndexFromHash(Hashtable, entry->HashCode);
 
             entry->Next = Hashtable->Buckets[index];
             Hashtable->Buckets[index] = i;
@@ -2009,12 +2053,27 @@ PVOID PhAddHashtableEntry(
     ULONG freeEntry; // index of new entry in entry array 
     PPH_HASHTABLE_ENTRY entry; // pointer to new entry in entry array
 
-    // Make sure the hashtable doesn't already contain the entry.
-    if (PhGetHashtableEntry(Hashtable, Entry))
-        return NULL;
-
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
-    index = hashCode % Hashtable->AllocatedBuckets;
+    index = PhpIndexFromHash(Hashtable, hashCode);
+
+#if 1
+    // Check if the hashtable already contains the entry.
+    {
+        ULONG i;
+
+        i = Hashtable->Buckets[index];
+
+        for (; i != -1; i = entry->Next)
+        {
+            entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
+
+            if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
+            {
+                return NULL;
+            }
+        }
+    }
+#endif
 
     // Use a free entry if possible.
     if (Hashtable->FreeEntry != -1)
@@ -2031,7 +2090,7 @@ PVOID PhAddHashtableEntry(
         {
             // Resize the hashtable.
             PhpResizeHashtable(Hashtable, Hashtable->AllocatedBuckets * 2);
-            index = hashCode % Hashtable->AllocatedBuckets;
+            index = PhpIndexFromHash(Hashtable, hashCode);
         }
 
         freeEntry = Hashtable->NextEntry++;
@@ -2046,11 +2105,6 @@ PVOID PhAddHashtableEntry(
     memcpy(&entry->Body, Entry, Hashtable->EntrySize);
 
     Hashtable->Count++;
-
-#ifdef PH_HASHTABLE_ENABLE_STATS
-    if (entry->Next != -1)
-        Hashtable->TotalCollisions++;
-#endif
 
     return &entry->Body;
 }
@@ -2143,7 +2197,7 @@ PVOID PhGetHashtableEntry(
     PPH_HASHTABLE_ENTRY entry;
 
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
-    i = Hashtable->Buckets[hashCode % Hashtable->AllocatedBuckets];
+    i = Hashtable->Buckets[PhpIndexFromHash(Hashtable, hashCode)];
 
     for (; i != -1; i = entry->Next)
     {
@@ -2184,7 +2238,7 @@ BOOLEAN PhRemoveHashtableEntry(
     PPH_HASHTABLE_ENTRY entry;
 
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
-    index = hashCode % Hashtable->AllocatedBuckets;
+    index = PhpIndexFromHash(Hashtable, hashCode);
     previousIndex = -1;
 
     for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
@@ -2216,6 +2270,142 @@ BOOLEAN PhRemoveHashtableEntry(
     }
 
     return FALSE;
+}
+
+/**
+ * Generates a hash code for a sequence of bytes.
+ *
+ * \param Bytes A pointer to a byte array.
+ * \param Length The number of bytes to hash.
+ */
+ULONG FASTCALL PhfHashBytesHsieh(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    )
+{
+    // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
+    ULONG hash;
+    ULONG tmp;
+    ULONG rem;
+
+    if (!Length)
+        return 0;
+
+    hash = Length;
+    rem = Length & 3;
+    Length >>= 2;
+
+    for (; Length > 0; Length--)
+    {
+        hash += *(PUSHORT)Bytes;
+        tmp = (*(PUSHORT)(Bytes + 2) << 11) ^ hash;
+        hash = (hash << 16) ^ tmp;
+        Bytes += 4;
+        hash += hash >> 11;
+    }
+
+    switch (rem)
+    {
+    case 3:
+        hash += *(PUSHORT)Bytes;
+        hash ^= hash << 16;
+        hash ^= Bytes[2] << 18;
+        hash += hash >> 11;
+        break;
+    case 2:
+        hash += *(PUSHORT)Bytes;
+        hash ^= hash << 11;
+        hash += hash >> 17;
+        break;
+    case 1:
+        hash += *Bytes;
+        hash ^= hash << 10;
+        hash += hash >> 1;
+        break;
+    }
+
+    hash ^= hash << 3;
+    hash += hash >> 5;
+    hash ^= hash << 4;
+    hash += hash >> 17;
+    hash ^= hash << 25;
+    hash += hash >> 6;
+
+    return hash;
+}
+
+/**
+ * Generates a hash code for a sequence of bytes.
+ *
+ * \param Bytes A pointer to a byte array.
+ * \param Length The number of bytes to hash.
+ */
+ULONG FASTCALL PhfHashBytesMurmur(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    )
+{
+    // Murmur hash, http://murmurhash.googlepages.com
+    const ULONG magic = 0x5bd1e995;
+    const ULONG shift = 24;
+
+    ULONG hash = Length;
+    ULONG tmp;
+
+    while (Length >= 4)
+    {
+        tmp = *(PULONG)Bytes;
+
+        tmp *= magic;
+        tmp ^= tmp >> shift;
+        tmp *= magic;
+
+        hash *= magic;
+        hash ^= tmp;
+
+        Bytes += 4;
+        Length -= 4;
+    }
+
+    switch (Length)
+    {
+    case 3:
+        hash ^= Bytes[2] << 16;
+    case 2:
+        hash ^= Bytes[1] << 8;
+    case 1:
+        hash ^= Bytes[0];
+        hash *= magic;
+    }
+
+    hash ^= hash >> 13;
+    hash *= magic;
+    hash ^= hash >> 15;
+
+    return hash;
+}
+
+/**
+ * Generates a hash code for a sequence of bytes.
+ *
+ * \param Bytes A pointer to a byte array.
+ * \param Length The number of bytes to hash.
+ */
+ULONG FASTCALL PhfHashBytesSdbm(
+    __in PUCHAR Bytes,
+    __in ULONG Length
+    )
+{
+    ULONG hash = Length;
+    PUCHAR endByte = Bytes + Length;
+
+    while (Bytes != endByte)
+    {
+        hash = *Bytes + (hash << 6) + (hash << 16) - hash;
+        Bytes++;
+    }
+
+    return hash;
 }
 
 BOOLEAN NTAPI PhpSimpleHashtableCompareFunction(
@@ -2298,91 +2488,6 @@ BOOLEAN PhRemoveSimpleHashtableItem(
     lookupEntry.Key = Key;
 
     return PhRemoveHashtableEntry(SimpleHashtable, &lookupEntry);
-}
-
-/**
- * Generates a hash code for a sequence of bytes.
- *
- * \param Bytes A pointer to a byte array.
- * \param Length The number of bytes to hash.
- */
-ULONG PhHashBytes(
-    __in PUCHAR Bytes,
-    __in ULONG Length
-    )
-{
-    // Hsieh hash, http://www.azillionmonkeys.com/qed/hash.html
-    ULONG hash;
-    ULONG tmp;
-    ULONG rem;
-
-    if (!Length || !Bytes)
-        return 0;
-
-    hash = Length;
-    rem = Length & 3;
-    Length >>= 2;
-
-    for (; Length > 0; Length--)
-    {
-        hash += *(PUSHORT)Bytes;
-        tmp = (*(PUSHORT)(Bytes + 2) << 11) ^ hash;
-        hash = (hash << 16) ^ tmp;
-        Bytes += 4;
-        hash += hash >> 11;
-    }
-
-    switch (rem)
-    {
-    case 3:
-        hash += *(PUSHORT)Bytes;
-        hash ^= hash << 16;
-        hash ^= Bytes[2] << 18;
-        hash += hash >> 11;
-        break;
-    case 2:
-        hash += *(PUSHORT)Bytes;
-        hash ^= hash << 11;
-        hash += hash >> 17;
-        break;
-    case 1:
-        hash += *Bytes;
-        hash ^= hash << 10;
-        hash += hash >> 1;
-        break;
-    }
-
-    hash ^= hash << 3;
-    hash += hash >> 5;
-    hash ^= hash << 4;
-    hash += hash >> 17;
-    hash ^= hash << 25;
-    hash += hash >> 6;
-
-    return hash;
-}
-
-/**
- * Generates a hash code for a sequence of bytes.
- *
- * \param Bytes A pointer to a byte array.
- * \param Length The number of bytes to hash.
- */
-ULONG PhHashBytesSdbm(
-    __in PUCHAR Bytes,
-    __in ULONG Length
-    )
-{
-    ULONG hash = Length;
-    PUCHAR endByte = Bytes + Length;
-
-    while (Bytes != endByte)
-    {
-        hash = *Bytes + (hash << 6) + (hash << 16) - hash;
-        Bytes++;
-    }
-
-    return hash;
 }
 
 /**
