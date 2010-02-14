@@ -48,6 +48,8 @@ static PH_LAYOUT_MANAGER WindowLayoutManager;
 
 static PH_HIDDEN_PROCESS_METHOD ProcessesMethod;
 static PPH_LIST ProcessesList = NULL;
+static ULONG NumberOfHiddenProcesses;
+static ULONG NumberOfTerminatedProcesses;
 
 VOID PhShowHiddenProcessesDialog()
 {
@@ -168,6 +170,8 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         PhStringEquals2(method, L"Brute Force", TRUE) ?
                         BruteForceScanMethod :
                         CsrHandlesScanMethod;
+                    NumberOfHiddenProcesses = 0;
+                    NumberOfTerminatedProcesses = 0;
 
                     ExtendedListView_SetRedraw(PhHiddenProcessesListViewHandle, FALSE);
                     status = PhEnumHiddenProcesses(
@@ -178,8 +182,17 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     ExtendedListView_SortItems(PhHiddenProcessesListViewHandle);
                     ExtendedListView_SetRedraw(PhHiddenProcessesListViewHandle, TRUE);
 
-                    if (!NT_SUCCESS(status))
+                    if (NT_SUCCESS(status))
+                    {
+                        SetDlgItemText(hwndDlg, IDC_DESCRIPTION,
+                            PhaFormatString(L"%u hidden processes, %u terminated processes.",
+                            NumberOfHiddenProcesses, NumberOfTerminatedProcesses)->Buffer
+                            );
+                    }
+                    else
+                    {
                         PhShowStatus(hwndDlg, L"Unable to perform the scan", status, 0);
+                    }
                 }
                 break;
             case IDC_TERMINATE:
@@ -256,6 +269,21 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, 476, 380);
         }
         break;
+    case WM_CTLCOLORSTATIC:
+        {
+            if (lParam == GetDlgItem(hwndDlg, IDC_DESCRIPTION))
+            {
+                if (NumberOfHiddenProcesses != 0)
+                {
+                    SetTextColor((HDC)wParam, RGB(0xff, 0x00, 0x00));
+                }
+
+                SetBkMode((HDC)wParam, TRANSPARENT);
+
+                return GetStockObject(NULL_BRUSH);
+            }
+        }
+        break;
     }
 
     REFLECT_MESSAGE_DLG(hwndDlg, PhHiddenProcessesListViewHandle, uMsg, wParam, lParam);
@@ -303,6 +331,11 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
         PhGetStringOrDefault(entry->FileName, L"(unknown)"), entry);
     PhPrintUInt32(pidString, (ULONG)entry->ProcessId);
     PhSetListViewSubItem(PhHiddenProcessesListViewHandle, lvItemIndex, 1, pidString);
+
+    if (entry->Type == HiddenProcess)
+        NumberOfHiddenProcesses++;
+    else if (entry->Type == TerminatedProcess)
+        NumberOfTerminatedProcesses++;
 
     return TRUE;
 }
