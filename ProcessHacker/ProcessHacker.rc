@@ -529,6 +529,21 @@ BEGIN
     CONTROL         "Sizes in bytes",IDC_SIZESINBYTES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,248,59,10
 END
 
+IDD_HIDDENPROCESSES DIALOGEX 0, 0, 337, 221
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Hidden Processes"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,280,200,50,14
+    LTEXT           "Processes highlighted red are hidden while those highlighted grey have terminated.",IDC_INTRO,7,7,323,12
+    CONTROL         "",IDC_PROCESSES,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,23,323,162
+    RTEXT           "",IDC_DESCRIPTION,7,187,323,11
+    PUSHBUTTON      "&Scan",IDC_SCAN,225,200,50,14
+    PUSHBUTTON      "Save...",IDC_SAVE,170,200,50,14
+    PUSHBUTTON      "Terminate",IDC_TERMINATE,115,200,50,14
+    COMBOBOX        IDC_METHOD,7,201,73,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -656,6 +671,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 260
+    END
+
+    IDD_HIDDENPROCESSES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 330
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 214
     END
 END
 #endif    // APSTUDIO_INVOKED

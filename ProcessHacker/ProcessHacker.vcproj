@@ -387,6 +387,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hidnproc.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hndlinfo.c"
 				>
 			</File>
