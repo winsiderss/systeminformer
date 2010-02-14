@@ -472,6 +472,35 @@ VOID PhSetExtendedListView(
 #define ExtendedListView_Tick(hWnd) \
     SendMessage((hWnd), ELVM_TICK, 0, 0)
 
+/**
+ * Gets the brightness of a color.
+ *
+ * \param Color The color.
+ *
+ * \return A value ranging from 0 to 255, 
+ * indicating the brightness of the color.
+ */
+FORCEINLINE ULONG PhGetColorBrightness(
+    __in COLORREF Color
+    )
+{
+    ULONG r = Color & 0xff;
+    ULONG g = (Color >> 8) & 0xff;
+    ULONG b = (Color >> 16) & 0xff;
+    ULONG min;
+    ULONG max;
+
+    min = r;
+    if (g < min) min = g;
+    if (b < min) min = b;
+
+    max = r;
+    if (g > max) max = g;
+    if (b > max) max = b;
+
+    return (min + max) / 2;
+}
+
 // mainwnd
 
 #ifndef MAINWND_PRIVATE
