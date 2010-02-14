@@ -31,6 +31,7 @@
 #define IDD_HEAPS                       132
 #define IDR_PRIVILEGE                   133
 #define IDR_FINDOBJ                     134
+#define IDD_HIDDENPROCESSES             135
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -94,6 +95,11 @@
 #define IDC_PROPERTIES                  1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
+#define IDC_PROCESSES                   1063
+#define IDC_SCAN                        1064
+#define IDC_SAVE                        1065
+#define IDC_METHOD                      1067
+#define IDC_INTRO                       1068
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -208,9 +214,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        135
+#define _APS_NEXT_RESOURCE_VALUE        136
 #define _APS_NEXT_COMMAND_VALUE         40125
-#define _APS_NEXT_CONTROL_VALUE         1063
+#define _APS_NEXT_CONTROL_VALUE         1069
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

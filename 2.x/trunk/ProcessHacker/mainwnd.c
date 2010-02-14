@@ -413,6 +413,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhBoostProvider(&PhPrimaryProviderThread, &ServiceProviderRegistration);
                 }
                 break;
+            case ID_TOOLS_HIDDENPROCESSES:
+                {
+                    PhShowHiddenProcessesDialog();
+                }
+                break;
             case ID_TOOLS_VERIFYFILESIGNATURE:
                 {
                     PH_FILETYPE_FILTER filters[] =
