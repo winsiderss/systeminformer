@@ -189,7 +189,7 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
     PVOID baseAddress = (*(PPH_MODULE_ITEM *)Entry)->BaseAddress;
 
 #ifdef _M_IX86
-    return (ULONG)baseAddress;
+    return PhHashInt32((ULONG)baseAddress);
 #else
     return PhHashInt64((ULONGLONG)baseAddress);
 #endif
