@@ -266,6 +266,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             {
                                 LVITEM item;
                                 PH_ITEM_STATE itemState;
+                                BOOLEAN colorChanged = FALSE;
                                 HFONT newFont = NULL;
 
                                 item.mask = LVIF_STATE;
@@ -284,6 +285,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                             (PVOID)customDraw->nmcd.lItemlParam,
                                             context->Context
                                             );
+                                        colorChanged = TRUE;
                                     }
 
                                     if (context->ItemFontFunction)
@@ -301,10 +303,20 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 else if (itemState == NewItemState)
                                 {
                                     customDraw->clrTextBk = context->NewColor;
+                                    colorChanged = TRUE;
                                 }
                                 else if (itemState == RemovingItemState)
                                 {
                                     customDraw->clrTextBk = context->RemovingColor;
+                                    colorChanged = TRUE;
+                                }
+
+                                if (colorChanged)
+                                {
+                                    if (PhGetColorBrightness(customDraw->clrTextBk) > 100) // slightly less than half
+                                        customDraw->clrText = RGB(0x00, 0x00, 0x00);
+                                    else
+                                        customDraw->clrText = RGB(0xff, 0xff, 0xff);
                                 }
 
                                 if (!newFont)

@@ -508,7 +508,7 @@ NTSTATUS PhpGetBestObjectName(
                 &clientId.UniqueProcess
                 );
 
-            if (!NT_SUCCESS(status) || !clientId.UniqueProcess || !clientId.UniqueThread)
+            if (!NT_SUCCESS(status) || !clientId.UniqueThread || !clientId.UniqueProcess)
                 goto CleanupExit;
         }
         else
