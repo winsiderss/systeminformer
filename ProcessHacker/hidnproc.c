@@ -185,7 +185,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     if (NT_SUCCESS(status))
                     {
                         SetDlgItemText(hwndDlg, IDC_DESCRIPTION,
-                            PhaFormatString(L"%u hidden processes, %u terminated processes.",
+                            PhaFormatString(L"%u hidden process(es), %u terminated process(es).",
                             NumberOfHiddenProcesses, NumberOfTerminatedProcesses)->Buffer
                             );
                     }
@@ -278,7 +278,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     SetTextColor((HDC)wParam, RGB(0xff, 0x00, 0x00));
                 }
 
-                SetBkMode((HDC)wParam, TRANSPARENT);
+                SetBkColor((HDC)wParam, GetSysColor(COLOR_3DFACE));
 
                 return GetStockObject(NULL_BRUSH);
             }
@@ -415,7 +415,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
             CloseHandle(processHandle);
         }
 
-        if (status2 == STATUS_INVALID_CID)
+        if (status2 == STATUS_INVALID_CID || status2 == STATUS_INVALID_PARAMETER)
             status2 = STATUS_SUCCESS;
 
         if (!NT_SUCCESS(status2))
