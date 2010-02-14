@@ -31,9 +31,23 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
     __in LPARAM lParam
     );
 
+COLORREF NTAPI PhpHiddenProcessesColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    );
+
+BOOLEAN NTAPI PhpHiddenProcessesCallback(
+    __in PPH_HIDDEN_PROCESS_ENTRY Process,
+    __in PVOID Context
+    );
+
 HWND PhHiddenProcessesWindowHandle = NULL;
 HWND PhHiddenProcessesListViewHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
+
+static PH_HIDDEN_PROCESS_METHOD ProcessesMethod;
+static PPH_LIST ProcessesList = NULL;
 
 VOID PhShowHiddenProcessesDialog()
 {
@@ -97,6 +111,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumn(lvHandle, 0);
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
+            ExtendedListView_SetItemColorFunction(lvHandle, PhpHiddenProcessesColorFunction);
 
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute Force");
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles");
@@ -120,6 +135,114 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     SendMessage(hwndDlg, WM_CLOSE, 0, 0);
                 }
                 break;
+            case IDC_SCAN:
+                {
+                    NTSTATUS status;
+                    PPH_STRING method;
+
+                    method = PhGetWindowText(GetDlgItem(hwndDlg, IDC_METHOD));
+                    PHA_DEREFERENCE(method);
+
+                    if (ProcessesList)
+                    {
+                        ULONG i;
+
+                        for (i = 0; i < ProcessesList->Count; i++)
+                        {
+                            PPH_HIDDEN_PROCESS_ENTRY entry = ProcessesList->Items[i];
+
+                            if (entry->FileName)
+                                PhDereferenceObject(entry->FileName);
+
+                            PhFree(entry);
+                        }
+
+                        PhDereferenceObject(ProcessesList);
+                    }
+
+                    ListView_DeleteAllItems(PhHiddenProcessesListViewHandle);
+
+                    ProcessesList = PhCreateList(40);
+
+                    ProcessesMethod =
+                        PhStringEquals2(method, L"Brute Force", TRUE) ?
+                        BruteForceScanMethod :
+                        CsrHandlesScanMethod;
+
+                    ExtendedListView_SetRedraw(PhHiddenProcessesListViewHandle, FALSE);
+                    status = PhEnumHiddenProcesses(
+                        ProcessesMethod,
+                        PhpHiddenProcessesCallback,
+                        NULL
+                        );
+                    ExtendedListView_SortItems(PhHiddenProcessesListViewHandle);
+                    ExtendedListView_SetRedraw(PhHiddenProcessesListViewHandle, TRUE);
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to perform the scan", status, 0);
+                }
+                break;
+            case IDC_TERMINATE:
+                {
+                    PPH_HIDDEN_PROCESS_ENTRY entry;
+
+                    entry = PhGetSelectedListViewItemParam(PhHiddenProcessesListViewHandle);
+
+                    if (entry)
+                    {
+                        if (!PhGetIntegerSetting(L"EnableWarnings") ||
+                            PhShowConfirmMessage(
+                            hwndDlg,
+                            L"terminate",
+                            L"the selected process",
+                            L"Terminating a hidden process may cause the system to become unstable "
+                            L"or crash.",
+                            TRUE
+                            ))
+                        {
+                            NTSTATUS status;
+                            HANDLE processHandle;
+
+                            if (ProcessesMethod == BruteForceScanMethod)
+                            {
+                                status = PhOpenProcess(
+                                    &processHandle,
+                                    PROCESS_TERMINATE,
+                                    entry->ProcessId
+                                    );
+                            }
+                            else
+                            {
+                                status = PhOpenProcessByCsrHandles(
+                                    &processHandle,
+                                    PROCESS_TERMINATE,
+                                    entry->ProcessId
+                                    );
+                            }
+
+                            if (NT_SUCCESS(status))
+                            {
+                                status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                                CloseHandle(processHandle);
+                            }
+
+                            if (NT_SUCCESS(status))
+                            {
+                                INT lvItemIndex = PhFindListViewItemByParam(
+                                    PhHiddenProcessesListViewHandle, -1, entry
+                                    );
+
+                                if (lvItemIndex != -1)
+                                    PhRemoveListViewItem(PhHiddenProcessesListViewHandle, lvItemIndex);
+                            }
+                            else
+                            {
+                                PhShowStatus(hwndDlg, L"Unable to terminate the process", status, 0);
+                            }
+                        }
+                    }
+                }
+                break;
             }
         }
         break;
@@ -135,7 +258,279 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         break;
     }
 
+    REFLECT_MESSAGE_DLG(hwndDlg, PhHiddenProcessesListViewHandle, uMsg, wParam, lParam);
+
     return FALSE;
+}
+
+static COLORREF NTAPI PhpHiddenProcessesColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PPH_HIDDEN_PROCESS_ENTRY entry = Param;
+
+    switch (entry->Type)
+    {
+    case UnknownProcess:
+    case HiddenProcess:
+        return RGB(0xff, 0x00, 0x00);
+    case TerminatedProcess:
+        return RGB(0x77, 0x77, 0x77);
+    }
+
+    return PhSysWindowColor;
+}
+
+static BOOLEAN NTAPI PhpHiddenProcessesCallback(
+    __in PPH_HIDDEN_PROCESS_ENTRY Process,
+    __in PVOID Context
+    )
+{
+    PPH_HIDDEN_PROCESS_ENTRY entry;
+    INT lvItemIndex;
+    WCHAR pidString[PH_INT32_STR_LEN_1];
+
+    entry = PhAllocateCopy(Process, sizeof(PH_HIDDEN_PROCESS_ENTRY));
+
+    if (entry->FileName)
+        PhReferenceObject(entry->FileName);
+
+    PhAddListItem(ProcessesList, entry);
+
+    lvItemIndex = PhAddListViewItem(PhHiddenProcessesListViewHandle, MAXINT,
+        PhGetStringOrDefault(entry->FileName, L"(unknown)"), entry);
+    PhPrintUInt32(pidString, (ULONG)entry->ProcessId);
+    PhSetListViewSubItem(PhHiddenProcessesListViewHandle, lvItemIndex, 1, pidString);
+
+    return TRUE;
+}
+
+NTSTATUS PhpEnumHiddenProcessesBruteForce(
+    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    PPH_LIST pids;
+    ULONG pid;
+    BOOLEAN stop = FALSE;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    pids = PhCreateList(40);
+
+    process = PH_FIRST_PROCESS(processes);
+
+    do
+    {
+        PhAddListItem(pids, process->UniqueProcessId);
+    } while (process = PH_NEXT_PROCESS(process));
+
+    PhFree(processes);
+
+    for (pid = 8; pid <= 65536; pid += 4)
+    {
+        NTSTATUS status2;
+        HANDLE processHandle;
+        PH_HIDDEN_PROCESS_ENTRY entry;
+        KERNEL_USER_TIMES times;
+        PPH_STRING fileName;
+
+        status2 = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            (HANDLE)pid
+            );
+
+        if (NT_SUCCESS(status2))
+        {
+            entry.ProcessId = (HANDLE)pid;
+
+            if (NT_SUCCESS(status2 = NtQueryInformationProcess(
+                processHandle,
+                ProcessTimes,
+                &times,
+                sizeof(KERNEL_USER_TIMES),
+                NULL
+                )) &&
+                NT_SUCCESS(status2 = PhGetProcessImageFileName(
+                processHandle,
+                &fileName
+                )))
+            {
+                entry.FileName = PhGetFileName(fileName);
+                PhDereferenceObject(fileName);
+
+                if (times.ExitTime.QuadPart != 0)
+                    entry.Type = TerminatedProcess;
+                else if (PhIndexOfListItem(pids, (HANDLE)pid) != -1)
+                    entry.Type = NormalProcess;
+                else
+                    entry.Type = HiddenProcess;
+
+                if (!Callback(&entry, Context))
+                    stop = TRUE;
+
+                PhDereferenceObject(entry.FileName);
+            }
+
+            CloseHandle(processHandle);
+        }
+
+        if (status2 == STATUS_INVALID_CID)
+            status2 = STATUS_SUCCESS;
+
+        if (!NT_SUCCESS(status2))
+        {
+            entry.ProcessId = (HANDLE)pid;
+            entry.FileName = NULL;
+            entry.Type = UnknownProcess;
+
+            if (!Callback(&entry, Context))
+                stop = TRUE;
+        }
+
+        if (stop)
+            break;
+    }
+
+    PhDereferenceObject(pids);
+
+    return status;
+}
+
+typedef struct _CSR_HANDLES_CONTEXT
+{
+    PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback;
+    PVOID Context;
+    PPH_LIST Pids;
+} CSR_HANDLES_CONTEXT, *PCSR_HANDLES_CONTEXT;
+
+static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
+    __in PPH_CSR_HANDLE_INFO Handle,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = TRUE;
+    PCSR_HANDLES_CONTEXT context = Context;
+    HANDLE processHandle;
+    KERNEL_USER_TIMES times;
+    PPH_STRING fileName;
+    PH_HIDDEN_PROCESS_ENTRY entry;
+
+    entry.ProcessId = Handle->ProcessId;
+
+    if (NT_SUCCESS(status = PhOpenProcessByCsrHandle(
+        &processHandle,
+        ProcessQueryAccess,
+        Handle
+        )))
+    {
+        if (NT_SUCCESS(status = NtQueryInformationProcess(
+            processHandle,
+            ProcessTimes,
+            &times,
+            sizeof(KERNEL_USER_TIMES),
+            NULL
+            )) &&
+            NT_SUCCESS(status = PhGetProcessImageFileName(
+            processHandle,
+            &fileName
+            )))
+        {
+            entry.FileName = PhGetFileName(fileName);
+            PhDereferenceObject(fileName);
+
+            if (times.ExitTime.QuadPart != 0)
+                entry.Type = TerminatedProcess;
+            else if (PhIndexOfListItem(context->Pids, Handle->ProcessId) != -1)
+                entry.Type = NormalProcess;
+            else
+                entry.Type = HiddenProcess;
+
+            if (!context->Callback(&entry, context->Context))
+                cont = FALSE;
+
+            PhDereferenceObject(entry.FileName);
+        }
+
+        CloseHandle(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        entry.FileName = NULL;
+        entry.Type = UnknownProcess;
+
+        if (!context->Callback(&entry, context->Context))
+            cont = FALSE;
+    }
+
+    return cont;
+}
+
+NTSTATUS PhpEnumHiddenProcessesCsrHandles(
+    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    PPH_LIST pids;
+    CSR_HANDLES_CONTEXT context;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+        return status;
+
+    pids = PhCreateList(40);
+
+    process = PH_FIRST_PROCESS(processes);
+
+    do
+    {
+        PhAddListItem(pids, process->UniqueProcessId);
+    } while (process = PH_NEXT_PROCESS(process));
+
+    PhFree(processes);
+
+    context.Callback = Callback;
+    context.Context = Context;
+    context.Pids = pids;
+
+    status = PhEnumCsrProcessHandles(PhpCsrProcessHandlesCallback, &context);
+
+    PhDereferenceObject(pids);
+
+    return status;
+}
+
+NTSTATUS PhEnumHiddenProcesses(
+    __in PH_HIDDEN_PROCESS_METHOD Method,
+    __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    if (Method == BruteForceScanMethod)
+    {
+        return PhpEnumHiddenProcessesBruteForce(
+            Callback,
+            Context
+            );
+    }
+    else
+    {
+        return PhpEnumHiddenProcessesCsrHandles(
+            Callback,
+            Context
+            );
+    }
 }
 
 NTSTATUS PhEnumProcessHandles(
@@ -227,7 +622,11 @@ NTSTATUS PhGetProcessKnownType(
 
     if (PhStringStartsWith(newFileName, systemDirectory, TRUE))
     {
-        baseName = PhSubstring(newFileName, 0, systemDirectory->Length / 2);
+        baseName = PhSubstring(
+            newFileName,
+            systemDirectory->Length / 2,
+            (newFileName->Length - systemDirectory->Length) / 2
+            );
 
         // The system directory string never ends in a backslash, unless 
         // it is a drive root. We're not going to account for that case.
@@ -346,7 +745,7 @@ NTSTATUS PhpGetCsrHandleProcessId(
             &Handle->ProcessId
             );
 
-        if (!Handle->ProcessId)
+        if (!threadId || !Handle->ProcessId)
             status = STATUS_UNSUCCESSFUL;
 
         if (NT_SUCCESS(status))
@@ -428,8 +827,8 @@ NTSTATUS PhEnumCsrProcessHandles(
 
 NTSTATUS PhOpenProcessByCsrHandle(
     __out PHANDLE ProcessHandle,
-    __in PPH_CSR_HANDLE_INFO Handle,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __in PPH_CSR_HANDLE_INFO Handle
     )
 {
     NTSTATUS status;
@@ -471,4 +870,56 @@ NTSTATUS PhOpenProcessByCsrHandle(
     }
 
     return status;
+}
+
+typedef struct _OPEN_PROCESS_BY_CSR_CONTEXT
+{
+    NTSTATUS Status;
+    PHANDLE ProcessHandle;
+    ACCESS_MASK DesiredAccess;
+    HANDLE ProcessId;
+} OPEN_PROCESS_BY_CSR_CONTEXT, *POPEN_PROCESS_BY_CSR_CONTEXT;
+
+static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
+    __in PPH_CSR_HANDLE_INFO Handle,
+    __in PVOID Context
+    )
+{
+    POPEN_PROCESS_BY_CSR_CONTEXT context = Context;
+
+    if (Handle->ProcessId == context->ProcessId)
+    {
+        context->Status = PhOpenProcessByCsrHandle(
+            context->ProcessHandle,
+            context->DesiredAccess,
+            Handle
+            );
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhOpenProcessByCsrHandles(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ProcessId
+    )
+{
+    NTSTATUS status;
+    OPEN_PROCESS_BY_CSR_CONTEXT context;
+
+    context.Status = STATUS_INVALID_CID;
+    context.ProcessHandle = ProcessHandle;
+    context.DesiredAccess = DesiredAccess;
+    context.ProcessId = ProcessId;
+
+    if (!NT_SUCCESS(status = PhEnumCsrProcessHandles(
+        PhpOpenProcessByCsrHandlesCallback,
+        &context
+        )))
+        return status;
+
+    return context.Status;
 }
