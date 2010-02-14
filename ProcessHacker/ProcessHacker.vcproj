@@ -561,6 +561,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\hidnproc.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\kph.h"
 				>
 			</File>
