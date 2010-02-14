@@ -23,11 +23,16 @@
 #include <ph.h>
 #include <refp.h>
 
+VOID PhpPrintHashtableStatistics(
+    __in PPH_HASHTABLE Hashtable
+    );
+
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     );
 
 static HANDLE DebugConsoleThreadHandle;
+static PPH_SYMBOL_PROVIDER DebugConsoleSymbolProvider;
 
 static PPH_HASHTABLE ObjectListSnapshot = NULL;
 #ifdef DEBUG
@@ -54,6 +59,15 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
         (ULONG64)Module->BaseAddress, Module->Size);
 
     return TRUE;
+}
+
+static PWSTR PhpGetSymbolForAddress(
+    __in PVOID Address
+    )
+{
+    return ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
+        DebugConsoleSymbolProvider, (ULONG64)Address, NULL, NULL, NULL, NULL
+        )))->Buffer;
 }
 
 static VOID PhpPrintObjectInfo(
@@ -121,11 +135,83 @@ static VOID PhpDumpObjectInfo(
         {
             wprintf(L"%S\n", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
         }
+        else if (ObjectHeader->Type == PhHashtableType)
+        {
+            PhpPrintHashtableStatistics((PPH_HASHTABLE)PhObjectHeaderToObject(ObjectHeader));
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
         wprintf(L"Error.\n");
     }
+}
+
+static VOID PhpPrintHashtableStatistics(
+    __in PPH_HASHTABLE Hashtable
+    )
+{
+    ULONG i;
+    ULONG expectedLookupMisses = 0;
+
+    wprintf(L"Count: %u\n", Hashtable->Count);
+    wprintf(L"Allocated buckets: %u\n", Hashtable->AllocatedBuckets);
+    wprintf(L"Allocated entries: %u\n", Hashtable->AllocatedEntries);
+    wprintf(L"Next free entry: %d\n", Hashtable->FreeEntry);
+    wprintf(L"Next usable entry: %d\n", Hashtable->NextEntry);
+
+    wprintf(L"Hash function: %s\n", PhpGetSymbolForAddress(Hashtable->HashFunction));
+    wprintf(L"Compare function: %s\n", PhpGetSymbolForAddress(Hashtable->CompareFunction));
+
+    wprintf(L"\nBuckets:\n");
+
+    for (i = 0; i < Hashtable->AllocatedBuckets; i++)
+    {
+        ULONG index;
+        ULONG count = 0;
+
+        // Count the number of entries in this bucket.
+
+        index = Hashtable->Buckets[i];
+
+        while (index != -1)
+        {
+            index = PH_HASHTABLE_GET_ENTRY(Hashtable, index)->Next;
+            count++;
+        }
+
+        if (count != 0)
+        {
+            expectedLookupMisses += count - 1;
+        }
+
+        if (count != 0)
+        {
+            wprintf(L"%u: ", i);
+
+            // Print out the entry indicies.
+
+            index = Hashtable->Buckets[i];
+
+            while (index != -1)
+            {
+                wprintf(L"%u", index);
+
+                index = PH_HASHTABLE_GET_ENTRY(Hashtable, index)->Next;
+                count--;
+
+                if (count != 0)
+                    wprintf(L", ");
+            }
+
+            wprintf(L"\n");
+        }
+        else
+        {
+            //wprintf(L"%u: (empty)\n");
+        }
+    }
+
+    wprintf(L"\nExpected lookup misses: %u\n", expectedLookupMisses);
 }
 
 #ifdef DEBUG
@@ -168,15 +254,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
 {
-    PPH_SYMBOL_PROVIDER symbolProvider;
     PH_AUTO_POOL autoPool; 
 
     PhInitializeAutoPool(&autoPool);
 
-    symbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
-    PhSymbolProviderSetSearchPath(symbolProvider, PhApplicationDirectory->Buffer);
+    DebugConsoleSymbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
+    PhSymbolProviderSetSearchPath(DebugConsoleSymbolProvider, PhApplicationDirectory->Buffer);
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
-        0, PhpLoadCurrentProcessSymbolsCallback, symbolProvider);
+        0, PhpLoadCurrentProcessSymbolsCallback, DebugConsoleSymbolProvider);
 
 #ifdef DEBUG
     PhInitializeMutex(&NewObjectListLock);
@@ -393,8 +478,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     if (!stackBackTrace[i])
                         break;
 
-                    wprintf(L"%s\n", ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
-                        symbolProvider, (ULONG64)stackBackTrace[i], NULL, NULL, NULL, NULL)))->Buffer);
+                    wprintf(L"%s\n", PhpGetSymbolForAddress(stackBackTrace[i]));
                 }
             }
             else
@@ -605,10 +689,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 dbg = CONTAINING_RECORD(currentEntry, PHP_BASE_THREAD_DBG, ListEntry);
 
                 wprintf(L"Thread %u\n", (ULONG)dbg->ClientId.UniqueThread);
-                wprintf(L"\tStart Address: %s\n",
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
-                    symbolProvider, (ULONG64)dbg->StartAddress, NULL, NULL, NULL, NULL
-                    )))->Buffer);
+                wprintf(L"\tStart Address: %s\n", PhpGetSymbolForAddress(dbg->StartAddress));
                 wprintf(L"\tParameter: %Ix\n", dbg->Parameter);
                 wprintf(L"\tCurrent auto-pool: %Ix\n", dbg->CurrentAutoPool);
 
@@ -659,10 +740,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                     wprintf(L"\tProvider registration at %Ix\n", registration);
                     wprintf(L"\t\tEnabled: %s\n", registration->Enabled ? L"Yes" : L"No");
-                    wprintf(L"\t\tFunction: %s\n",
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetSymbolFromAddress(
-                        symbolProvider, (ULONG64)registration->Function, NULL, NULL, NULL, NULL
-                        )))->Buffer);
+                    wprintf(L"\t\tFunction: %s\n", PhpGetSymbolForAddress(registration->Function));
 
                     if (registration->Object)
                     {
@@ -695,7 +773,7 @@ EndCommand:
         PhDrainAutoPool(&autoPool);
     }
 
-    PhDereferenceObject(symbolProvider);
+    PhDereferenceObject(DebugConsoleSymbolProvider);
 
     PhDeleteAutoPool(&autoPool);
 
