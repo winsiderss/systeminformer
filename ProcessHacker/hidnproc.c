@@ -118,6 +118,8 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"Brute Force");
             ComboBox_AddString(GetDlgItem(hwndDlg, IDC_METHOD), L"CSR Handles");
             ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_METHOD), -1, L"CSR Handles");
+
+            EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
         }
         break;
     case WM_CLOSE:
@@ -253,6 +255,26 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                                 PhShowStatus(hwndDlg, L"Unable to terminate the process", status, 0);
                             }
                         }
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case LVN_ITEMCHANGED:
+                {
+                    if (header->hwndFrom == PhHiddenProcessesListViewHandle)
+                    {
+                        EnableWindow(
+                            GetDlgItem(hwndDlg, IDC_TERMINATE),
+                            ListView_GetSelectedCount(PhHiddenProcessesListViewHandle) == 1
+                            );
                     }
                 }
                 break;
