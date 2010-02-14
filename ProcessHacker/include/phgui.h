@@ -853,6 +853,10 @@ PPH_STRING PhGetDiagnosticsString();
 
 VOID PhShowFindObjectsDialog();
 
+// hidnproc
+
+VOID PhShowHiddenProcessesDialog();
+
 // hndlprp
 
 VOID PhShowHandleProperties(
