@@ -94,10 +94,10 @@ typedef struct _PH_OBJECT_TYPE
     ULONG Flags;
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
-    
+
     /** The name of the type. */
     PWSTR Name;
-    
+
     /** The total number of objects of this type that are alive. */
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
