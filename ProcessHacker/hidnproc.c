@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <settings.h>
 #include <hidnproc.h>
 #include <windowsx.h>
 
@@ -293,7 +294,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         break;
     case WM_CTLCOLORSTATIC:
         {
-            if (lParam == GetDlgItem(hwndDlg, IDC_DESCRIPTION))
+            if ((HWND)lParam == GetDlgItem(hwndDlg, IDC_DESCRIPTION))
             {
                 if (NumberOfHiddenProcesses != 0)
                 {
@@ -302,7 +303,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                 SetBkColor((HDC)wParam, GetSysColor(COLOR_3DFACE));
 
-                return GetStockObject(NULL_BRUSH);
+                return (INT_PTR)GetStockObject(NULL_BRUSH);
             }
         }
         break;
