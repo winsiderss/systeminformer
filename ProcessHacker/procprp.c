@@ -1160,14 +1160,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext,
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
-            PhSetProviderEnabled(
-                &threadsContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &threadsContext->ProviderRegistration
-                );
             threadsContext->WindowHandle = hwndDlg;
             threadsContext->UseCycleTime = FALSE;
             threadsContext->NeedsRedraw = FALSE;
@@ -1205,6 +1197,15 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 ExtendedListView_AddFallbackColumns(lvHandle,
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
+
+            PhSetProviderEnabled(
+                &threadsContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &threadsContext->ProviderRegistration
+                );
         }
         break;
     case WM_DESTROY:
@@ -1876,14 +1877,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 modulesContext,
                 &modulesContext->UpdatedEventRegistration
                 );
-            PhSetProviderEnabled(
-                &modulesContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &modulesContext->ProviderRegistration
-                );
             modulesContext->WindowHandle = hwndDlg;
             modulesContext->NeedsRedraw = FALSE;
             modulesContext->NeedsSort = FALSE;
@@ -1913,6 +1906,15 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 ExtendedListView_AddFallbackColumns(lvHandle,
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
+
+            PhSetProviderEnabled(
+                &modulesContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &modulesContext->ProviderRegistration
+                );
         }
         break;
     case WM_DESTROY:
@@ -2387,14 +2389,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext,
                 &handlesContext->UpdatedEventRegistration
                 );
-            PhSetProviderEnabled(
-                &handlesContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &handlesContext->ProviderRegistration
-                );
             handlesContext->WindowHandle = hwndDlg;
             handlesContext->NeedsRedraw = FALSE;
             handlesContext->NeedsSort = FALSE;
@@ -2419,6 +2413,15 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 ExtendedListView_AddFallbackColumns(lvHandle,
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
+
+            PhSetProviderEnabled(
+                &handlesContext->ProviderRegistration,
+                TRUE
+                );
+            PhBoostProvider(
+                &PhSecondaryProviderThread,
+                &handlesContext->ProviderRegistration
+                );
         }
         break;
     case WM_DESTROY:
