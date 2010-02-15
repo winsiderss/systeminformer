@@ -62,7 +62,7 @@ typedef struct _PH_OBJECT_HEADER
 {
     /** The reference count of the object. */
     LONG RefCount;
-    /** The flags that were used to create the object. */
+    /** Reserved. */
     ULONG Flags;
     union
     {

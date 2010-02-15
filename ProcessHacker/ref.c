@@ -112,40 +112,45 @@ __mayRaise NTSTATUS PhCreateObject(
     __in_opt LONG AdditionalReferences
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
-    
+
     /* Check the flags. */
     if ((Flags & PHOBJ_VALID_FLAGS) != Flags) /* Valid flag mask */
-        return STATUS_INVALID_PARAMETER_3;
+    {
+        status = STATUS_INVALID_PARAMETER_3;
+    }
     /* The object type is only optional if the fundamental object type 
      * hasn't been created. */
-    if (!ObjectType && PhObjectTypeObject)
-        return STATUS_INVALID_PARAMETER_4;
+    else if (!ObjectType && PhObjectTypeObject)
+    {
+        status = STATUS_INVALID_PARAMETER_4;
+    }
     /* Make sure the additional reference count isn't negative. */
-    if (AdditionalReferences < 0)
-        return STATUS_INVALID_PARAMETER_5;
-    
+    else if (AdditionalReferences < 0)
+    {
+        status = STATUS_INVALID_PARAMETER_5;
+    }
+
     /* Allocate storage for the object. Note that this includes 
      * the object header followed by the object body. */
     objectHeader = PhpAllocateObject(ObjectSize);
-    
+
     if (!objectHeader)
-    {
-        if (Flags & PHOBJ_RAISE_ON_FAIL)
-            PhRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
-        else
-            return STATUS_INSUFFICIENT_RESOURCES;
-    }
-    
+        status = STATUS_INSUFFICIENT_RESOURCES;
+
+    if (!NT_SUCCESS(status) && (Flags & PHOBJ_RAISE_ON_FAIL))
+        PhRaiseStatus(status);
+
     /* Object type statistics. */
     if (ObjectType)
     {
         _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
     }
-    
+
     /* Initialize the object header. */
     objectHeader->RefCount = 1 + AdditionalReferences;
-    objectHeader->Flags = Flags;
+    objectHeader->Flags = 0;
     objectHeader->Size = ObjectSize;
     objectHeader->Type = ObjectType;
 
@@ -175,11 +180,11 @@ __mayRaise NTSTATUS PhCreateObject(
             );
     }
 #endif
-    
+
     /* Pass a pointer to the object body back to the caller. */
     *Object = PhObjectHeaderToObject(objectHeader);
-    
-    return STATUS_SUCCESS;
+
+    return status;
 }
 
 /**
@@ -533,7 +538,7 @@ VOID PhpFreeObject(
     {
         ObjectHeader->Type->DeleteProcedure(
             PhObjectHeaderToObject(ObjectHeader),
-            ObjectHeader->Flags
+            0
             );
     }
     
