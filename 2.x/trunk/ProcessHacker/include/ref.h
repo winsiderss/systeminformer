@@ -39,7 +39,7 @@
  * an object of the type is being freed.
  * 
  * \param Object A pointer to the object being freed.
- * \param Flags The flags specified when the object was created.
+ * \param Flags Reserved.
  */
 typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
     __in PVOID Object,
