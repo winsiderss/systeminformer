@@ -562,11 +562,7 @@ VOID PhReleaseRundownProtection(
 
             waitBlock = (PPH_RUNDOWN_WAIT_BLOCK)(value & ~PH_RUNDOWN_ACTIVE);
 
-#ifdef _M_IX86
-            if (InterlockedDecrement((PLONG)&waitBlock->Count) == 0)
-#else
-            if (InterlockedDecrement64((PLONGLONG)&waitBlock->Count) == 0)
-#endif
+            if (_InterlockedDecrementPointer(&waitBlock->Count) == 0)
             {
                 PhSetEvent(&waitBlock->WakeEvent);
             }
