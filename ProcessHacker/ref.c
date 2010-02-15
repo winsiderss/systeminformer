@@ -358,6 +358,7 @@ VOID PhGetObjectTypeInformation(
     __out PPH_OBJECT_TYPE_INFORMATION Information
     )
 {
+    Information->Name = ObjectType->Name;
     Information->NumberOfObjects = ObjectType->NumberOfObjects;
 }
 

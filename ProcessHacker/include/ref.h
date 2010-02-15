@@ -77,6 +77,7 @@ extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 
 typedef struct _PH_OBJECT_TYPE_INFORMATION
 {
+    PWSTR Name;
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
