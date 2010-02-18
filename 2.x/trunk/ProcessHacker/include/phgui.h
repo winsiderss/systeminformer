@@ -882,6 +882,13 @@ PPH_STRING PhGetDiagnosticsString();
 
 VOID PhShowFindObjectsDialog();
 
+// heapinfo
+
+VOID PhShowProcessHeapsDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 // hidnproc
 
 VOID PhShowHiddenProcessesDialog();

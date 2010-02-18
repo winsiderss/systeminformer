@@ -49,7 +49,6 @@ VOID PhShowProcessTerminatorDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhReferenceObject(ProcessItem);
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_TERMINATOR),
@@ -798,7 +797,6 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhDereferenceObject((PPH_PROCESS_ITEM)GetProp(hwndDlg, L"ProcessItem"));
             RemoveProp(hwndDlg, L"ProcessItem");
         }
         break;
