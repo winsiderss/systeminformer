@@ -1506,6 +1506,11 @@ PPH_STRING PhFormatTime(
     __in_opt PWSTR Format
     );
 
+PPH_STRING PhFormatUInt64(
+    __in ULONG64 Value,
+    __in BOOLEAN GroupDigits
+    );
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
