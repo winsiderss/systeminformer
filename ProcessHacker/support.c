@@ -494,6 +494,18 @@ PPH_STRING PhFormatTime(
     return string;
 }
 
+PPH_STRING PhFormatUInt64(
+    __in ULONG64 Value,
+    __in BOOLEAN GroupDigits
+    )
+{
+    WCHAR string[PH_INT64_STR_LEN_1];
+
+    PhPrintUInt64(string, Value);
+
+    return PhFormatDecimal(string, 0, TRUE);
+}
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
