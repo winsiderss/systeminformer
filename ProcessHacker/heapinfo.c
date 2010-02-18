@@ -1,10 +1,35 @@
+/*
+ * Process Hacker - 
+ *   process heaps dialog
+ * 
+ * Copyright (C) 2010 wj32
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <phgui.h>
+#include <windowsx.h>
 
 typedef struct _PROCESS_HEAPS_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PRTL_PROCESS_HEAPS ProcessHeaps;
     PVOID ProcessHeap;
+
+    HWND ListViewHandle;
 } PROCESS_HEAPS_CONTEXT, *PPROCESS_HEAPS_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
@@ -68,6 +93,69 @@ VOID PhShowProcessHeapsDialog(
     RtlDestroyQueryDebugBuffer(debugBuffer);
 }
 
+static INT NTAPI PhpHeapAddressCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PRTL_HEAP_INFORMATION heapInfo1 = Item1;
+    PRTL_HEAP_INFORMATION heapInfo2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)heapInfo1->BaseAddress, (ULONG_PTR)heapInfo2->BaseAddress);
+}
+
+static INT NTAPI PhpHeapUsedCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PRTL_HEAP_INFORMATION heapInfo1 = Item1;
+    PRTL_HEAP_INFORMATION heapInfo2 = Item2;
+
+    return uintptrcmp(heapInfo1->BytesAllocated, heapInfo2->BytesAllocated);
+}
+
+static INT NTAPI PhpHeapCommittedCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PRTL_HEAP_INFORMATION heapInfo1 = Item1;
+    PRTL_HEAP_INFORMATION heapInfo2 = Item2;
+
+    return uintptrcmp(heapInfo1->BytesCommitted, heapInfo2->BytesCommitted);
+}
+
+static INT NTAPI PhpHeapEntriesCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PRTL_HEAP_INFORMATION heapInfo1 = Item1;
+    PRTL_HEAP_INFORMATION heapInfo2 = Item2;
+
+    return uintcmp(heapInfo1->NumberOfEntries, heapInfo2->NumberOfEntries);
+}
+
+static HFONT NTAPI PhpHeapFontFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PRTL_HEAP_INFORMATION heapInfo = Param;
+    PPROCESS_HEAPS_CONTEXT context = Context;
+
+    if (heapInfo->BaseAddress == context->ProcessHeap)
+        return PhBoldMessageFont;
+
+    return NULL;
+}
+
 INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -75,20 +163,31 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     __in LPARAM lParam
     )
 {
+    PPROCESS_HEAPS_CONTEXT context;
+
+    if (uMsg != WM_INITDIALOG)
+    {
+        context = (PPROCESS_HEAPS_CONTEXT)GetProp(hwndDlg, L"Context");
+    }
+    else
+    {
+        context = (PPROCESS_HEAPS_CONTEXT)lParam;
+        SetProp(hwndDlg, L"Context", (HANDLE)context);
+    }
+
+    if (!context)
+        return FALSE;
+
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
-            PPROCESS_HEAPS_CONTEXT context;
             HWND lvHandle;
             ULONG i;
 
-            context = (PPROCESS_HEAPS_CONTEXT)lParam;
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Address");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Used");
@@ -98,6 +197,12 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             PhSetControlTheme(lvHandle, L"explorer");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetContext(lvHandle, context);
+            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHeapAddressCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHeapUsedCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHeapCommittedCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpHeapEntriesCompareFunction);
+            ExtendedListView_SetItemFontFunction(lvHandle, PhpHeapFontFunction);
 
             for (i = 0; i < context->ProcessHeaps->NumberOfHeaps; i++)
             {
@@ -123,6 +228,8 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
                 PhDereferenceObject(committedString);
                 PhDereferenceObject(numberOfEntriesString);
             }
+
+            ExtendedListView_SortItems(lvHandle);
         }
         break;
     case WM_DESTROY:
@@ -137,10 +244,42 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDC_SIZESINBYTES:
+                {
+                    BOOLEAN sizesInBytes = Button_GetCheck(GetDlgItem(hwndDlg, IDC_SIZESINBYTES)) == BST_CHECKED;
+                    INT index = -1;
+
+                    ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
+                    while ((index = ListView_GetNextItem(context->ListViewHandle, index, LVNI_ALL)) != -1)
+                    {
+                        PRTL_HEAP_INFORMATION heapInfo;
+                        PPH_STRING usedString;
+                        PPH_STRING committedString;
+
+                        if (PhGetListViewItemParam(context->ListViewHandle, index, &heapInfo))
+                        {
+                            usedString = PhFormatSize(heapInfo->BytesAllocated, sizesInBytes ? 0 : -1);
+                            committedString = PhFormatSize(heapInfo->BytesCommitted, sizesInBytes ? 0 : -1);
+
+                            PhSetListViewSubItem(context->ListViewHandle, index, 1, usedString->Buffer); 
+                            PhSetListViewSubItem(context->ListViewHandle, index, 2, committedString->Buffer);
+
+                            PhDereferenceObject(usedString);
+                            PhDereferenceObject(committedString);
+                        }
+                    }
+
+                    ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
+                }
+                break;
             }
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
