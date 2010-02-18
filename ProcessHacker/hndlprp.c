@@ -82,7 +82,6 @@ VOID PhShowHandleProperties(
     ULONG numberOfAccessEntries;
 
     context.ProcessId = ProcessId;
-    PhReferenceObject(HandleItem);
     context.HandleItem = HandleItem;
 
     propSheetHeader.dwFlags =
@@ -132,8 +131,6 @@ VOID PhShowHandleProperties(
     }
 
     PropertySheet(&propSheetHeader);
-
-    PhDereferenceObject(HandleItem);
 }
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(

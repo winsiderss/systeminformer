@@ -533,7 +533,11 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        // The object relies on the list view reference, which could 
+                        // disappear if we don't reference the object here.
+                        PhReferenceObject(processItem);
                         PhShowProcessTerminatorDialog(hWnd, processItem);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -544,6 +548,18 @@ LRESULT CALLBACK PhMainWndProc(
                     if (processItem)
                     {
                         PhUiDetachFromDebuggerProcess(hWnd, processItem);
+                    }
+                }
+                break;
+            case ID_MISCELLANEOUS_HEAPS:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhShowProcessHeapsDialog(hWnd, processItem);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -769,7 +785,11 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        // The object relies on the list view reference, which could 
+                        // disappear if we don't reference the object here.
+                        PhReferenceObject(serviceItem);
                         PhShowServiceProperties(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;
