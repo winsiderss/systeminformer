@@ -4432,7 +4432,7 @@ NTSTATUS PhEnumGenericModules(
         {
             PRTL_DEBUG_INFORMATION debugBuffer;
 
-            debugBuffer = RtlCreateQueryDebugBuffer(0, TRUE);
+            debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE);
 
             if (debugBuffer)
             {

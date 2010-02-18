@@ -889,6 +889,11 @@ VOID PhShowProcessHeapsDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+NTSTATUS PhGetProcessDefaultHeap(
+    __in HANDLE ProcessHandle,
+    __out PPVOID Heap
+    );
+
 // hidnproc
 
 VOID PhShowHiddenProcessesDialog();
