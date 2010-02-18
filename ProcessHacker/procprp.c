@@ -2520,7 +2520,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                     if (handleItem)
                     {
+                        // The object relies on the list view reference, which could 
+                        // disappear if we don't reference the object here.
+                        PhReferenceObject(handleItem);
                         PhShowHandleProperties(hwndDlg, processItem->ProcessId, handleItem);
+                        PhDereferenceObject(handleItem);
                     }
                 }
                 break;

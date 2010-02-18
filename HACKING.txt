@@ -155,6 +155,10 @@ while the current function is executing.
 The inline function PHA_DEREFERENCE takes a pointer to an object, 
 auto-dereferences it, and returns the pointer.
 
+Referencing an object is necessary whenever a pointer to the object 
+is stored in a globally visible location or passed to another thread. 
+In most other cases, referencing is not necessary.
+
 ==== Strings ====
 Strings use the PH_STRING type, managed by reference counting. 
 To create a string object from a null-terminated string:

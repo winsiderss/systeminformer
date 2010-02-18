@@ -387,6 +387,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\heapinfo.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hidnproc.c"
 				>
 			</File>

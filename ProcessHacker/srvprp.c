@@ -69,8 +69,6 @@ VOID PhShowServiceProperties(
     PPH_ACCESS_ENTRY accessEntries;
     ULONG numberOfAccessEntries;
 
-    PhReferenceObject(ServiceItem);
-
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
@@ -112,8 +110,6 @@ VOID PhShowServiceProperties(
     }
 
     PropertySheet(&propSheetHeader);
-
-    PhDereferenceObject(ServiceItem);
 }
 
 VOID PhpAddComboBoxItems(
