@@ -913,6 +913,13 @@ VOID PhShowInformationDialog(
     __in PWSTR String
     );
 
+// runas
+
+VOID PhShowRunAsDialog(
+    __in HWND ParentWindowHandle,
+    __in_opt HANDLE ProcessId
+    );
+
 // srvprp
 
 VOID PhShowServiceProperties(
