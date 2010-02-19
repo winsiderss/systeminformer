@@ -487,6 +487,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\runas.c"
+				>
+			</File>
+			<File
 				RelativePath=".\secdata.c"
 				>
 			</File>

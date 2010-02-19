@@ -360,6 +360,11 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_HACKER_RUNAS:
+                {
+                    PhShowRunAsDialog(hWnd, NULL);
+                }
+                break;
             case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                 {
                     if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
