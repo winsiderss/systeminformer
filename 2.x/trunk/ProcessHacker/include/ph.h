@@ -82,6 +82,13 @@ NTSTATUS PhOpenProcessToken(
     __in HANDLE ProcessHandle
     );
 
+NTSTATUS PhOpenThreadToken(
+    __out PHANDLE TokenHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ThreadHandle,
+    __in BOOLEAN OpenAsSelf
+    );
+
 NTSTATUS PhGetObjectSecurity(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,

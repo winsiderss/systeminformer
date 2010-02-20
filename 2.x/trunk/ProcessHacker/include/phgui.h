@@ -953,6 +953,13 @@ PWSTR PhGetPrivilegeAttributesString(
     __in ULONG Attributes
     );
 
+VOID PhShowTokenProperties(
+    __in HWND ParentWindowHandle,
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context,
+    __in_opt PWSTR Title
+    );
+
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context,

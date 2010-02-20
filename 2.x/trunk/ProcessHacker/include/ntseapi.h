@@ -9,6 +9,13 @@ typedef NTSTATUS (NTAPI *_NtOpenProcessToken)(
     __out PHANDLE TokenHandle
     );
 
+typedef NTSTATUS (NTAPI *_NtOpenThreadToken)(
+    __in HANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in BOOLEAN OpenAsSelf,
+    __out PHANDLE TokenHandle
+    );
+
 typedef NTSTATUS (NTAPI *_NtQueryInformationToken)(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,

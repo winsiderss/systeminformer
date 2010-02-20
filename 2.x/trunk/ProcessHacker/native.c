@@ -145,6 +145,30 @@ NTSTATUS PhOpenProcessToken(
     }
 }
 
+/**
+ * Opens a thread token.
+ *
+ * \param TokenHandle A variable which receives a handle to the token.
+ * \param DesiredAccess The desired access to the token.
+ * \param ThreadHandle A handle to a thread.
+ * \param OpenAsSelf TRUE to use the primary token for access checks, 
+ * FALSE to use the impersonation token.
+ */
+NTSTATUS PhOpenThreadToken(
+    __out PHANDLE TokenHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ThreadHandle,
+    __in BOOLEAN OpenAsSelf
+    )
+{
+    return NtOpenThreadToken(
+        ThreadHandle,
+        DesiredAccess,
+        OpenAsSelf,
+        TokenHandle
+        );
+}
+
 NTSTATUS PhGetObjectSecurity(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,

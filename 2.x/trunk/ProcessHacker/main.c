@@ -105,7 +105,8 @@ INT WINAPI WinMain(
 
         PhElevated = TRUE;
 
-        if (NT_SUCCESS(PhOpenProcessToken(
+        if (WINDOWS_HAS_UAC &&
+            NT_SUCCESS(PhOpenProcessToken(
             &tokenHandle,
             TOKEN_QUERY,
             NtCurrentProcess()
