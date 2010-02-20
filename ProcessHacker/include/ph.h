@@ -626,11 +626,24 @@ NTSTATUS PhLookupSid(
     );
 
 PPH_STRING PhGetSidFullName(
-    __in PSID Sid
+    __in PSID Sid,
+    __in BOOLEAN IncludeDomain,
+    __out_opt PSID_NAME_USE NameUse
     );
 
 PPH_STRING PhSidToStringSid(
     __in PSID Sid
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_ACCOUNTS_CALLBACK)(
+    __in PSID Sid,
+    __in PVOID Context
+    );
+
+NTSTATUS PhEnumAccounts(
+    __in LSA_HANDLE PolicyHandle,
+    __in PPH_ENUM_ACCOUNTS_CALLBACK Callback,
+    __in PVOID Context
     );
 
 // hndlinfo

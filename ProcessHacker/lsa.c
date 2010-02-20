@@ -267,17 +267,19 @@ NTSTATUS PhLookupSid(
  * returns NULL.
  */
 PPH_STRING PhGetSidFullName(
-    __in PSID Sid
+    __in PSID Sid,
+    __in BOOLEAN IncludeDomain,
+    __out_opt PSID_NAME_USE NameUse
     )
 {
     PPH_STRING fullName;
     PPH_STRING name;
     PPH_STRING domainName;
 
-    if (!NT_SUCCESS(PhLookupSid(Sid, &name, &domainName, NULL)))
+    if (!NT_SUCCESS(PhLookupSid(Sid, &name, &domainName, NameUse)))
         return NULL;
 
-    if (domainName->Length != 0)
+    if (domainName->Length != 0 && IncludeDomain)
     {
         fullName = PhConcatStrings(3, domainName->Buffer, L"\\", name->Buffer);
     }
@@ -318,4 +320,50 @@ PPH_STRING PhSidToStringSid(
     LocalFree(stringSid);
 
     return string;
+}
+
+NTSTATUS PhEnumAccounts(
+    __in LSA_HANDLE PolicyHandle,
+    __in PPH_ENUM_ACCOUNTS_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    PLSA_ENUMERATION_INFORMATION buffer;
+    ULONG count;
+    ULONG i;
+    BOOLEAN cont = TRUE;
+
+    while (TRUE)
+    {
+        status = LsaEnumerateAccounts(
+            PolicyHandle,
+            &enumerationContext,
+            &buffer,
+            0x100,
+            &count
+            );
+
+        if (status == STATUS_NO_MORE_ENTRIES)
+            break;
+        if (!NT_SUCCESS(status))
+            return status;
+
+        for (i = 0; i < count; i++)
+        {
+            if (!Callback(buffer[i].Sid, Context))
+            {
+                cont = FALSE;
+                break;
+            }
+        }
+
+        LsaFreeMemory(buffer);
+
+        if (!cont)
+            break;
+    }
+
+    return status;
 }
