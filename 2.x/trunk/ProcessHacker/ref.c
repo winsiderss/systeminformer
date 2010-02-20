@@ -209,13 +209,49 @@ NTSTATUS PhCreateObjectType(
     __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     )
 {
+    return PhCreateObjectTypeEx(
+        ObjectType,
+        Name,
+        Flags,
+        DeleteProcedure,
+        NULL
+        );
+}
+
+/**
+ * Creates an object type.
+ *
+ * \param ObjectType A variable which receives a pointer to the newly 
+ * created object type.
+ * \param Name The name of the type.
+ * \param Flags A combination of flags affecting the behaviour of the 
+ * object type.
+ * \param DeleteProcedure A callback function that is executed when 
+ * an object of this type is about to be freed (i.e. when its 
+ * reference count is 0).
+ * \param Parameters A structure containing additional parameters 
+ * for the object type.
+ *
+ * \remarks Do not reference or dereference the object type once it 
+ * is created.
+ */
+NTSTATUS PhCreateObjectTypeEx(
+    __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
+    __in ULONG Flags,
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
+    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
+    )
+{
     NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_TYPE objectType;
-    
+
     /* Check the flags. */
     if ((Flags & PHOBJTYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
         return STATUS_INVALID_PARAMETER_3;
-    
+    if ((Flags & PHOBJTYPE_SECURED) && !Parameters)
+        return STATUS_INVALID_PARAMETER_MIX;
+
     /* Create the type object. */
     status = PhCreateObject(
         &objectType,
@@ -227,13 +263,19 @@ NTSTATUS PhCreateObjectType(
     
     if (!NT_SUCCESS(status))
         return status;
-    
+
     /* Initialize the type object. */
     objectType->Flags = Flags;
     objectType->DeleteProcedure = DeleteProcedure;
     objectType->Name = Name;
     objectType->NumberOfObjects = 0;
-    
+
+    if (Parameters)
+    {
+        objectType->OffsetOfSecurityDescriptor = Parameters->OffsetOfSecurityDescriptor;
+        objectType->GenericMapping = Parameters->GenericMapping;
+    }
+
     *ObjectType = objectType;
     
     return status;
@@ -433,6 +475,39 @@ BOOLEAN PhReferenceObjectSafe(
     result = PhpInterlockedIncrementSafe(&objectHeader->RefCount);
     
     return result;
+}
+
+NTSTATUS PhQuerySecurityObject(
+    __in PVOID Object,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in ULONG BufferLength,
+    __out PULONG ReturnLength
+    )
+{
+    PPH_OBJECT_TYPE objectType;
+    PSECURITY_DESCRIPTOR *securityDescriptor;
+
+    objectType = PhObjectToObjectHeader(Object)->Type;
+    securityDescriptor = PhpGetObjectSecurityDescriptor(Object, objectType);
+
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS PhSetSecurityObject(
+    __in PVOID Object,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in_opt HANDLE TokenHandle
+    )
+{
+    PPH_OBJECT_TYPE objectType;
+    PSECURITY_DESCRIPTOR *securityDescriptor;
+
+    objectType = PhObjectToObjectHeader(Object)->Type;
+    securityDescriptor = PhpGetObjectSecurityDescriptor(Object, objectType);
+
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 /**

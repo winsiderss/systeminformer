@@ -30,7 +30,8 @@
 #define PHOBJ_VALID_FLAGS 0x00000001
 
 /* Object type flags */
-#define PHOBJTYPE_VALID_FLAGS 0x00000000
+#define PHOBJTYPE_SECURED 0x00000001
+#define PHOBJTYPE_VALID_FLAGS 0x00000001
 
 /* Object type callbacks */
 
@@ -75,6 +76,12 @@ extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 #endif
 #endif
 
+typedef struct _PH_OBJECT_TYPE_PARAMETERS
+{
+    UCHAR OffsetOfSecurityDescriptor;
+    GENERIC_MAPPING GenericMapping;
+} PH_OBJECT_TYPE_PARAMETERS, *PPH_OBJECT_TYPE_PARAMETERS;
+
 typedef struct _PH_OBJECT_TYPE_INFORMATION
 {
     PWSTR Name;
@@ -96,6 +103,14 @@ NTSTATUS PhCreateObjectType(
     __in PWSTR Name,
     __in ULONG Flags,
     __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    );
+
+NTSTATUS PhCreateObjectTypeEx(
+    __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
+    __in ULONG Flags,
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
+    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
     );
 
 VOID PhDereferenceObject(
@@ -132,6 +147,21 @@ __mayRaise LONG PhReferenceObjectEx(
 
 BOOLEAN PhReferenceObjectSafe(
     __in PVOID Object
+    );
+
+NTSTATUS PhQuerySecurityObject(
+    __in PVOID Object,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __out_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in ULONG BufferLength,
+    __out PULONG ReturnLength
+    );
+
+NTSTATUS PhSetSecurityObject(
+    __in PVOID Object,
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in_opt HANDLE TokenHandle
     );
 
 FORCEINLINE VOID PhSwapReference(
