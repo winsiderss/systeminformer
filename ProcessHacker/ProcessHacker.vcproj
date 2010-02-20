@@ -69,7 +69,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib version.lib"
+				AdditionalDependencies="comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				GenerateDebugInformation="true"
@@ -148,7 +148,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib version.lib"
+				AdditionalDependencies="comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				GenerateDebugInformation="true"
@@ -228,7 +228,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib version.lib"
+				AdditionalDependencies="comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				GenerateDebugInformation="true"
@@ -310,7 +310,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="comctl32.lib version.lib"
+				AdditionalDependencies="comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				GenerateDebugInformation="true"

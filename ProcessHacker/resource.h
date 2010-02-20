@@ -105,7 +105,6 @@
 #define IDC_BROWSE                      1070
 #define IDC_USERNAME                    1071
 #define IDC_SESSIONS                    1074
-#define IDC_COMBO1                      1075
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -215,6 +214,7 @@
 #define ID_OBJECT_PROPERTIES            40120
 #define ID_OBJECT_PROCESSPROPERTIES     40121
 #define ID_HELP_DEBUGCONSOLE            40122
+#define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
@@ -223,6 +223,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         40125
 #define _APS_NEXT_CONTROL_VALUE         1076
-#define _APS_NEXT_SYMED_VALUE           105
+#define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
