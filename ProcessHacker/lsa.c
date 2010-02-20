@@ -258,6 +258,10 @@ NTSTATUS PhLookupSid(
  * Gets the name of a SID.
  *
  * \param Sid A SID to query.
+ * \param IncludeDomain TRUE to include the domain name, 
+ * otherwise FALSE.
+ * \param NameUse A variable which receives the SID's 
+ * usage.
  *
  * \return A pointer to a string containing 
  * the name of the SID in the following 
