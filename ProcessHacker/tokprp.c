@@ -48,6 +48,31 @@ INT_PTR CALLBACK PhpTokenPageProc(
     __in LPARAM lParam
     );
 
+VOID PhShowTokenProperties(
+    __in HWND ParentWindowHandle,
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context,
+    __in_opt PWSTR Title
+    )
+{
+    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
+    HPROPSHEETPAGE pages[1];
+
+    propSheetHeader.dwFlags =
+        PSH_NOAPPLYNOW |
+        PSH_NOCONTEXTHELP |
+        PSH_PROPTITLE;
+    propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.pszCaption = Title ? Title : L"Token";
+    propSheetHeader.nPages = 1;
+    propSheetHeader.nStartPage = 0;
+    propSheetHeader.phpage = pages;
+
+    pages[0] = PhCreateTokenPage(OpenObject, Context, NULL);
+
+    PropertySheet(&propSheetHeader);
+}
+
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context,
