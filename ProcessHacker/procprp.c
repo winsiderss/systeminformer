@@ -1398,7 +1398,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     NTSTATUS status;
                     PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
                     HANDLE threadHandle;
-                    HANDLE tokenHandle;
 
                     if (threadItem)
                     {
