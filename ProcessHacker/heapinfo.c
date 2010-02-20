@@ -74,7 +74,7 @@ VOID PhShowProcessHeapsDialog(
             )))
         {
             PhGetProcessDefaultHeap(processHandle, &context.ProcessHeap);
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         DialogBoxParam(

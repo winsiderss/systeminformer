@@ -62,7 +62,7 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
         0,
         0
         );
-    CloseHandle(processHandle);
+    NtClose(processHandle);
 
     return status;
 }
@@ -238,7 +238,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     SetDlgItemInt(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
                 }
 
-                CloseHandle(processHandle);
+                NtClose(processHandle);
             }
         }
         break;
@@ -289,7 +289,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                                     context->HandleItem->Handle,
                                     &processId
                                     );
-                                CloseHandle(processHandle);
+                                NtClose(processHandle);
                             }
                         }
                         else
@@ -306,7 +306,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                                 if (NT_SUCCESS(PhGetProcessBasicInformation(handle, &basicInfo)))
                                     processId = basicInfo.UniqueProcessId;
 
-                                CloseHandle(handle);
+                                NtClose(handle);
                             }
                         }
 

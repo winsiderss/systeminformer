@@ -314,7 +314,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     // Don't try to hash files over 64 MB in size.
     if (GetFileSize(fileHandle, NULL) > 64 * 1024 * 1024)
     {
-        CloseHandle(fileHandle);
+        NtClose(fileHandle);
         return VrNoSignature;
     }
 
@@ -327,13 +327,13 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
         if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
         {
-            CloseHandle(fileHandle);
+            NtClose(fileHandle);
             PhFree(fileHash);
             return VrNoSignature;
         }
     }
 
-    CloseHandle(fileHandle);
+    NtClose(fileHandle);
 
     if (!CryptCATAdminAcquireContext(&catAdminHandle, &driverActionVerify, 0))
     {

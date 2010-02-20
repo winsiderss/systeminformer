@@ -140,7 +140,7 @@ BOOLEAN PhMainWndInitialization(
             PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeShutdownPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeTakeOwnershipPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            CloseHandle(tokenHandle);
+            NtClose(tokenHandle);
         }
     }
 
@@ -1368,10 +1368,10 @@ VOID PhpInitializeProcessMenu(
                 PhGetTokenIsVirtualizationEnabled(tokenHandle, &enabled);
                 SelectedProcessVirtualizationEnabled = enabled;
 
-                CloseHandle(tokenHandle);
+                NtClose(tokenHandle);
             }
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (!allowed)
@@ -1411,7 +1411,7 @@ VOID PhpInitializeProcessMenu(
                 }
             }
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         switch (priorityClass)

@@ -74,7 +74,7 @@ static NTSTATUS NTAPI TerminatorTP1(
         // Don't use KPH.
         status = NtTerminateProcess(processHandle, STATUS_SUCCESS);
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -114,7 +114,7 @@ static NTSTATUS NTAPI TerminatorTP2(
             NULL
             );
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -162,7 +162,7 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
             else
                 NtTerminateThread(threadHandle, STATUS_SUCCESS);
 
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
     }
 
@@ -224,7 +224,7 @@ static NTSTATUS NTAPI TerminatorTT2(
             PhSetThreadContext(threadHandle, &context);
 #endif
 
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
     }
 
@@ -275,12 +275,12 @@ static NTSTATUS NTAPI TerminatorTP1a(
             &newProcessHandle
             )))
         {
-            CloseHandle(processHandle);
+            NtClose(processHandle);
             processHandle = newProcessHandle;
         }
         else
         {
-            CloseHandle(processHandle);
+            NtClose(processHandle);
             break;
         }
     }
@@ -315,7 +315,7 @@ static NTSTATUS NTAPI TerminatorTT1a(
             &threadHandle
             )))
         {
-            CloseHandle(processHandle);
+            NtClose(processHandle);
             return status;
         }
 
@@ -334,17 +334,17 @@ static NTSTATUS NTAPI TerminatorTT1a(
                 &newThreadHandle
                 )))
             {
-                CloseHandle(threadHandle);
+                NtClose(threadHandle);
                 threadHandle = newThreadHandle;
             }
             else
             {
-                CloseHandle(threadHandle);
+                NtClose(threadHandle);
                 break;
             }
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -378,7 +378,7 @@ static NTSTATUS NTAPI TerminatorCH1(
                 );
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -457,10 +457,10 @@ static NTSTATUS NTAPI TerminatorTJ1(
         {
             AssignProcessToJobObject(jobHandle, processHandle);
             TerminateJobObject(jobHandle, 0);
-            CloseHandle(jobHandle);
+            NtClose(jobHandle);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -498,10 +498,10 @@ static NTSTATUS NTAPI TerminatorTD1(
             )))
         {
             NtDebugActiveProcess(processHandle, debugObjectHandle);
-            CloseHandle(debugObjectHandle);
+            NtClose(debugObjectHandle);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -525,7 +525,7 @@ static NTSTATUS NTAPI TerminatorTP3(
     {
         status = KphTerminateProcess(PhKphHandle, processHandle, STATUS_SUCCESS);
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -566,7 +566,7 @@ static NTSTATUS NTAPI TerminatorM1(
 
         if (!pageOfGarbage)
         {
-            CloseHandle(processHandle);
+            NtClose(processHandle);
             return STATUS_INSUFFICIENT_RESOURCES;
         }
 
@@ -602,7 +602,7 @@ static NTSTATUS NTAPI TerminatorM1(
 
         VirtualFree(pageOfGarbage, 0, MEM_RELEASE); 
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;
@@ -638,7 +638,7 @@ static NTSTATUS NTAPI TerminatorM2(
             baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     return status;

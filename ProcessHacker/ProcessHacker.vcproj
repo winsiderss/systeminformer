@@ -419,6 +419,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\lsa.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>
@@ -618,6 +622,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ntlpcapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntlsa.h"
 				>
 			</File>
 			<File

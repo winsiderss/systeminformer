@@ -84,7 +84,7 @@ VOID PhDeleteWorkQueue(
     PhDereferenceObject(WorkQueue->Queue);
     PhDeleteMutex(&WorkQueue->QueueLock);
     PhDeleteMutex(&WorkQueue->StateLock);
-    CloseHandle(WorkQueue->SemaphoreHandle);
+    NtClose(WorkQueue->SemaphoreHandle);
 }
 
 FORCEINLINE VOID PhpInitializeWorkQueueItem(
@@ -119,7 +119,7 @@ BOOLEAN PhpCreateWorkQueueThread(
     if (threadHandle)
     {
         WorkQueue->CurrentThreads++;
-        CloseHandle(threadHandle);
+        NtClose(threadHandle);
 
         return TRUE;
     }

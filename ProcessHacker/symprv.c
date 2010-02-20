@@ -198,7 +198,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
 
     PhDereferenceObject(symbolProvider->ModulesList);
     PhDeleteFastLock(&symbolProvider->ModulesListLock);
-    if (symbolProvider->IsRealHandle) CloseHandle(symbolProvider->ProcessHandle);
+    if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
 VOID PhpFreeSymbolModule(

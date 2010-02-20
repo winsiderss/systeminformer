@@ -366,7 +366,7 @@ FORCEINLINE VOID PhpDereferenceEvent(
     {
         if (Event->EventHandle)
         {
-            CloseHandle(Event->EventHandle);
+            NtClose(Event->EventHandle);
             Event->EventHandle = NULL;
         }
     }
@@ -471,7 +471,7 @@ BOOLEAN PhWaitForEvent(
             ) != NULL)
         {
             // Someone else set the event before we did.
-            CloseHandle(eventHandle);
+            NtClose(eventHandle);
         }
     }
 

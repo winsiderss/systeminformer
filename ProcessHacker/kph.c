@@ -235,7 +235,7 @@ NTSTATUS KphGetFeatures(
     return status;
 }
 
-NTSTATUS KphCloseHandle(
+NTSTATUS KphNtClose(
     __in HANDLE KphHandle,
     __in HANDLE Handle
     )
@@ -249,7 +249,7 @@ NTSTATUS KphCloseHandle(
 
     return KphpDeviceIoControl(
         KphHandle,
-        KPH_CLOSEHANDLE,
+        KPH_NtClose,
         &args,
         sizeof(args),
         NULL,
