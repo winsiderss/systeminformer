@@ -324,6 +324,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             countsPerMs.QuadPart /= 1000;
 
             // Control (string reference counting)
+
             testString = PhCreateString(L"");
             PhReferenceObject(testString);
             PhDereferenceObject(testString);

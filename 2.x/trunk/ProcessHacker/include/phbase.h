@@ -278,9 +278,16 @@ extern PPH_OBJECT_TYPE PhStringType;
 
 typedef struct _PH_STRINGREF
 {
-    USHORT Length;
-    USHORT Reserved;
-    PWSTR Buffer;
+    union
+    {
+        struct
+        {
+            USHORT Length;
+            USHORT Reserved;
+            PWSTR Buffer;
+        };
+        UNICODE_STRING us;
+    };
 } PH_STRINGREF, *PPH_STRINGREF;
 
 FORCEINLINE VOID PhInitializeStringRef(

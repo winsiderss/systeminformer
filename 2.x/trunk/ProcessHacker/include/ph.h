@@ -388,36 +388,6 @@ NTSTATUS PhGetTokenIntegrityLevel(
     __out_opt PPH_STRING *IntegrityString
     );
 
-BOOLEAN PhLookupPrivilegeName(
-    __in PLUID PrivilegeValue,
-    __out PPH_STRING *PrivilegeName
-    );
-
-BOOLEAN PhLookupPrivilegeDisplayName(
-    __in PWSTR PrivilegeName,
-    __out PPH_STRING *PrivilegeDisplayName
-    );
-
-BOOLEAN PhLookupPrivilegeValue(
-    __in PWSTR PrivilegeName,
-    __out PLUID PrivilegeValue
-    );
-
-BOOLEAN PhLookupSid(
-    __in PSID Sid,
-    __out_opt PPH_STRING *Name,
-    __out_opt PPH_STRING *DomainName,
-    __out_opt PSID_NAME_USE NameUse
-    );
-
-PPH_STRING PhGetSidFullName(
-    __in PSID Sid
-    );
-
-PPH_STRING PhSidToStringSid(
-    __in PSID Sid
-    );
-
 NTSTATUS PhGetTransactionManagerBasicInformation(
     __in HANDLE TransactionManagerHandle,
     __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
@@ -623,6 +593,44 @@ NTSTATUS PhEnumGenericModules(
     __in ULONG Flags,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
     __in PVOID Context
+    );
+
+// lsa
+
+NTSTATUS PhOpenLsaPolicy(
+    __out PLSA_HANDLE PolicyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt PUNICODE_STRING SystemName
+    );
+
+BOOLEAN PhLookupPrivilegeName(
+    __in PLUID PrivilegeValue,
+    __out PPH_STRING *PrivilegeName
+    );
+
+BOOLEAN PhLookupPrivilegeDisplayName(
+    __in PWSTR PrivilegeName,
+    __out PPH_STRING *PrivilegeDisplayName
+    );
+
+BOOLEAN PhLookupPrivilegeValue(
+    __in PWSTR PrivilegeName,
+    __out PLUID PrivilegeValue
+    );
+
+NTSTATUS PhLookupSid(
+    __in PSID Sid,
+    __out_opt PPH_STRING *Name,
+    __out_opt PPH_STRING *DomainName,
+    __out_opt PSID_NAME_USE NameUse
+    );
+
+PPH_STRING PhGetSidFullName(
+    __in PSID Sid
+    );
+
+PPH_STRING PhSidToStringSid(
+    __in PSID Sid
     );
 
 // hndlinfo

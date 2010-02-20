@@ -112,7 +112,7 @@ INT WINAPI WinMain(
             )))
         {
             PhGetTokenIsElevated(tokenHandle, &PhElevated);
-            CloseHandle(tokenHandle);
+            NtClose(tokenHandle);
         }
     }
 

@@ -205,8 +205,8 @@ VOID PhStopProviderThread(
     WaitForSingleObject(ProviderThread->ThreadHandle, INFINITE);
 
     // Free resources.
-    CloseHandle(ProviderThread->ThreadHandle);
-    CloseHandle(ProviderThread->TimerHandle);
+    NtClose(ProviderThread->ThreadHandle);
+    NtClose(ProviderThread->TimerHandle);
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
     ProviderThread->State = ProviderThreadStopped;

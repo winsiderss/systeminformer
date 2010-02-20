@@ -398,7 +398,7 @@ VOID PhpProcessQueryStage1(
                         &Data->IntegrityString
                         );
 
-                    CloseHandle(tokenHandle);
+                    NtClose(tokenHandle);
                 }
             }
 
@@ -407,7 +407,7 @@ VOID PhpProcessQueryStage1(
             PhGetProcessIsWow64(processHandle, &Data->IsWow64);
 #endif
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
     }
 
@@ -639,7 +639,7 @@ VOID PhpFillProcessItem(
                 ProcessItem->CommandLine = commandLine;
             }
 
-            CloseHandle(processHandle2);
+            NtClose(processHandle2);
         }
     }
 
@@ -659,33 +659,16 @@ VOID PhpFillProcessItem(
 
                 if (NT_SUCCESS(status))
                 {
-                    PPH_STRING userName;
-                    PPH_STRING domainName;
-
-                    if (PhLookupSid(user->User.Sid, &userName, &domainName, NULL))
-                    {
-                        PPH_STRING fullName;
-
-                        fullName = PhCreateStringEx(NULL, domainName->Length + 2 + userName->Length);
-                        memcpy(fullName->Buffer, domainName->Buffer, domainName->Length);
-                        fullName->Buffer[domainName->Length / 2] = '\\';
-                        memcpy(&fullName->Buffer[domainName->Length / 2 + 1], userName->Buffer, userName->Length);
-
-                        ProcessItem->UserName = fullName;
-
-                        PhDereferenceObject(userName);
-                        PhDereferenceObject(domainName);
-                    }
-
+                    ProcessItem->UserName = PhGetSidFullName(user->User.Sid);
                     PhFree(user);
                 }
             }
 
-            CloseHandle(tokenHandle);
+            NtClose(tokenHandle);
         }
     }
 
-    CloseHandle(processHandle);
+    NtClose(processHandle);
 }
 
 VOID PhpUpdatePerfInformation()

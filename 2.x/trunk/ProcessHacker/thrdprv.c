@@ -332,7 +332,7 @@ VOID PhpThreadItemDeleteProcedure(
 {
     PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)Object;
 
-    if (threadItem->ThreadHandle) CloseHandle(threadItem->ThreadHandle);
+    if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->PriorityWin32String) PhDereferenceObject(threadItem->PriorityWin32String);
     if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);

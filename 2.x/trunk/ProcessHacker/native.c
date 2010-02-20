@@ -23,7 +23,6 @@
 #include <ph.h>
 #include <kph.h>
 #include <symprvp.h>
-#include <sddl.h>
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in HANDLE ProcessHandle,
@@ -1474,7 +1473,7 @@ NTSTATUS PhInjectDllProcess(
 
     // Wait for the thread to finish.
     WaitForSingleObject(threadHandle, Timeout);
-    CloseHandle(threadHandle);
+    NtClose(threadHandle);
 
 FreeExit:
     // Size needs to be zero if we're freeing.
@@ -1566,7 +1565,7 @@ NTSTATUS PhUnloadDllProcess(
         status = STATUS_TIMEOUT;
     }
 
-    CloseHandle(threadHandle);
+    NtClose(threadHandle);
 
     return status;
 }
@@ -1952,7 +1951,7 @@ ResumeExit:
         NtResumeThread(ThreadHandle, NULL);
 
     if (processOpened)
-        CloseHandle(ProcessHandle);
+        NtClose(ProcessHandle);
 
     return status;
 }
@@ -2426,244 +2425,6 @@ NTSTATUS PhGetTokenIntegrityLevel(
     return status;
 }
 
-/**
- * Gets the name of a privilege from its LUID.
- *
- * \param PrivilegeValue The LUID of a privilege.
- * \param PrivilegeName A variable which receives 
- * a pointer to a string containing the privilege 
- * name. You must free the string using 
- * PhDereferenceObject() when you no longer need it.
- */
-BOOLEAN PhLookupPrivilegeName(
-    __in PLUID PrivilegeValue,
-    __out PPH_STRING *PrivilegeName
-    )
-{
-    PVOID buffer;
-    ULONG bufferSize;
-
-    bufferSize = 0x10;
-    buffer = PhAllocate(bufferSize * 2);
-
-    if (!LookupPrivilegeName(NULL, PrivilegeValue, buffer, &bufferSize))
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize * 2);
-
-        if (!LookupPrivilegeName(NULL, PrivilegeValue, buffer, &bufferSize))
-        {
-            PhFree(buffer);
-            return FALSE;
-        }
-    }
-
-    *PrivilegeName = PhCreateString(buffer);
-
-    return TRUE;
-}
-
-/**
- * Gets the display name of a privilege from its name.
- *
- * \param PrivilegeName The name of a privilege.
- * \param PrivilegeDisplayName A variable which receives 
- * a pointer to a string containing the privilege's 
- * display name. You must free the string using 
- * PhDereferenceObject() when you no longer need it.
- */
-BOOLEAN PhLookupPrivilegeDisplayName(
-    __in PWSTR PrivilegeName,
-    __out PPH_STRING *PrivilegeDisplayName
-    )
-{
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG languageId;
-
-    bufferSize = 0x40;
-    buffer = PhAllocate(bufferSize * 2);
-
-    if (!LookupPrivilegeDisplayName(NULL, PrivilegeName, buffer, &bufferSize, &languageId))
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize * 2);
-
-        if (!LookupPrivilegeDisplayName(NULL, PrivilegeName, buffer, &bufferSize, &languageId))
-        {
-            PhFree(buffer);
-            return FALSE;
-        }
-    }
-
-    *PrivilegeDisplayName = PhCreateString(buffer);
-
-    return TRUE;
-}
-
-/**
- * Gets the LUID of a privilege from its name.
- *
- * \param PrivilegeName The name of a privilege.
- * \param PrivilegeValue A variable which receives 
- * the LUID of the privilege.
- */
-BOOLEAN PhLookupPrivilegeValue(
-    __in PWSTR PrivilegeName,
-    __out PLUID PrivilegeValue
-    )
-{
-    return !!LookupPrivilegeValue(
-        NULL,
-        PrivilegeName,
-        PrivilegeValue
-        );
-}
-
-/**
- * Gets information about a SID.
- *
- * \param Sid A SID to query.
- * \param Name A variable which receives a pointer 
- * to a string containing the SID's name. You must 
- * free the string using PhDereferenceObject() when 
- * you no longer need it.
- * \param DomainName A variable which receives a pointer 
- * to a string containing the SID's domain name. You must 
- * free the string using PhDereferenceObject() when 
- * you no longer need it.
- * \param NameUse A variable which receives the 
- * SID's usage.
- */
-BOOLEAN PhLookupSid(
-    __in PSID Sid,
-    __out_opt PPH_STRING *Name,
-    __out_opt PPH_STRING *DomainName,
-    __out_opt PSID_NAME_USE NameUse
-    )
-{
-    PVOID nameBuffer;
-    ULONG nameBufferSize;
-    PVOID domainNameBuffer;
-    ULONG domainNameBufferSize;
-    SID_NAME_USE nameUse;
-
-    nameBufferSize = 0x40;
-    nameBuffer = PhAllocate(nameBufferSize * 2);
-    domainNameBufferSize = 0x40;
-    domainNameBuffer = PhAllocate(domainNameBufferSize * 2);
-
-    if (!LookupAccountSid(
-        NULL,
-        Sid,
-        nameBuffer,
-        &nameBufferSize,
-        domainNameBuffer,
-        &domainNameBufferSize,
-        &nameUse
-        ))
-    {
-        PhFree(nameBuffer);
-        nameBuffer = PhAllocate(nameBufferSize * 2);
-        PhFree(domainNameBuffer);
-        domainNameBuffer = PhAllocate(domainNameBufferSize * 2);
-
-        if (!LookupAccountSid(
-            NULL,
-            Sid,
-            nameBuffer,
-            &nameBufferSize,
-            domainNameBuffer,
-            &domainNameBufferSize,
-            &nameUse
-            ))
-        {
-            PhFree(nameBuffer);
-            PhFree(domainNameBuffer);
-
-            return FALSE;
-        }
-    }
-
-    if (Name)
-        *Name = PhCreateString(nameBuffer);
-    if (DomainName)
-        *DomainName = PhCreateString(domainNameBuffer);
-    if (NameUse)
-        *NameUse = nameUse;
-
-    PhFree(nameBuffer);
-    PhFree(domainNameBuffer);
-
-    return TRUE;
-}
-
-/**
- * Gets the name of a SID.
- *
- * \param Sid A SID to query.
- *
- * \return A pointer to a string containing 
- * the name of the SID in the following 
- * format: domain\\name. You must free the string 
- * using PhDereferenceObject() when you no longer 
- * need it. If an error occurs, the function 
- * returns NULL.
- */
-PPH_STRING PhGetSidFullName(
-    __in PSID Sid
-    )
-{
-    PPH_STRING fullName;
-    PPH_STRING name;
-    PPH_STRING domainName;
-
-    if (!PhLookupSid(Sid, &name, &domainName, NULL))
-        return NULL;
-
-    if (domainName->Length != 0)
-    {
-        fullName = PhConcatStrings(3, domainName->Buffer, L"\\", name->Buffer);
-    }
-    else
-    {
-        fullName = name;
-        PhReferenceObject(name);
-    }
-
-    PhDereferenceObject(name);
-    PhDereferenceObject(domainName);
-
-    return fullName;
-}
-
-/**
- * Gets a SDDL string representation of a SID.
- *
- * \param Sid A SID to query.
- *
- * \return A pointer to a string containing the 
- * SDDL representation of the SID. You must 
- * free the string using PhDereferenceObject() 
- * when you no longer need it. If an error occurs, 
- * the function returns NULL.
- */
-PPH_STRING PhSidToStringSid(
-    __in PSID Sid
-    )
-{
-    PWSTR stringSid;
-    PPH_STRING string;
-
-    if (!ConvertSidToStringSid(Sid, &stringSid))
-        return NULL;
-
-    string = PhCreateString(stringSid);
-    LocalFree(stringSid);
-
-    return string;
-}
-
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     __in HANDLE TransactionManagerHandle,
     __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
@@ -3045,7 +2806,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
         }
     }
 
-    CloseHandle(driverHandle);
+    NtClose(driverHandle);
 
     return TRUE;
 }
@@ -3102,7 +2863,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
         PhpOpenDriverByBaseAddressCallback,
         &context
         );
-    CloseHandle(driverDirectoryHandle);
+    NtClose(driverDirectoryHandle);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -3322,7 +3083,7 @@ NTSTATUS PhUnloadDriver(
             )))
         {
             PhGetDriverServiceKeyName(driverHandle, &serviceKeyName);
-            CloseHandle(driverHandle);
+            NtClose(driverHandle);
         }
     }
 
@@ -4424,7 +4185,7 @@ NTSTATUS PhEnumGenericModules(
 #endif
 
         if (opened)
-            CloseHandle(ProcessHandle);
+            NtClose(ProcessHandle);
 
 #ifdef _M_X64
         // 64-bit process modules

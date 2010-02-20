@@ -70,7 +70,7 @@ VOID PhUiAnalyzeWaitThread(
         PhpWalkThreadStackAnalyzeCallback,
         &context
         );
-    CloseHandle(threadHandle);
+    NtClose(threadHandle);
 
     if (context.Found)
     {

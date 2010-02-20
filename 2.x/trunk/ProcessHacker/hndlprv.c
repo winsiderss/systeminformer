@@ -125,7 +125,7 @@ VOID PhpHandleProviderDeleteProcedure(
     PhDeleteCallback(&handleProvider->HandleModifiedEvent);
     PhDeleteCallback(&handleProvider->HandleRemovedEvent);
 
-    if (handleProvider->ProcessHandle) CloseHandle(handleProvider->ProcessHandle);
+    if (handleProvider->ProcessHandle) NtClose(handleProvider->ProcessHandle);
 }
 
 PPH_HANDLE_ITEM PhCreateHandleItem(

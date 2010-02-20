@@ -397,7 +397,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhDeleteMutex(&SearchResultsLock);
 
             WaitForSingleObject(SearchThreadHandle, INFINITE);
-            CloseHandle(SearchThreadHandle);
+            NtClose(SearchThreadHandle);
             SearchThreadHandle = NULL;
             SearchStop = FALSE;
 
@@ -538,7 +538,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
             i = 0;
 
             while (PhEnumHashtable(processHandleHashtable, &entry, &i))
-                CloseHandle((HANDLE)entry->Value);
+                NtClose((HANDLE)entry->Value);
         }
 
         PhDereferenceObject(processHandleHashtable);

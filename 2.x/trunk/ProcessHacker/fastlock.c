@@ -80,13 +80,13 @@ VOID PhDeleteFastLock(
 {
     if (FastLock->ExclusiveWakeEvent)
     {
-        CloseHandle(FastLock->ExclusiveWakeEvent);
+        NtClose(FastLock->ExclusiveWakeEvent);
         FastLock->ExclusiveWakeEvent = NULL;
     }
 
     if (FastLock->SharedWakeEvent)
     {
-        CloseHandle(FastLock->SharedWakeEvent);
+        NtClose(FastLock->SharedWakeEvent);
         FastLock->SharedWakeEvent = NULL;
     }
 }
@@ -108,7 +108,7 @@ FORCEINLINE VOID PhpEnsureEventCreated(
         NULL
         ) != NULL)
     {
-        CloseHandle(handle);
+        NtClose(handle);
     }
 }
 

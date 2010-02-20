@@ -239,7 +239,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             if (NT_SUCCESS(status))
                             {
                                 status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
-                                CloseHandle(processHandle);
+                                NtClose(processHandle);
                             }
 
                             if (NT_SUCCESS(status))
@@ -435,7 +435,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
                 PhDereferenceObject(entry.FileName);
             }
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (status2 == STATUS_INVALID_CID || status2 == STATUS_INVALID_PARAMETER)
@@ -516,7 +516,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
             PhDereferenceObject(entry.FileName);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))
@@ -751,7 +751,7 @@ NTSTATUS PhpOpenCsrProcesses(
             }
             else
             {
-                CloseHandle(processHandle);
+                NtClose(processHandle);
             }
         }
     } while (process = PH_NEXT_PROCESS(process));
@@ -874,7 +874,7 @@ NTSTATUS PhEnumCsrProcessHandles(
     PhDereferenceObject(pids);
 
     for (i = 0; i < numberOfCsrProcessHandles; i++)
-        CloseHandle(csrProcessHandles[i]);
+        NtClose(csrProcessHandles[i]);
 
     PhFree(csrProcessHandles);
 
@@ -922,7 +922,7 @@ NTSTATUS PhOpenProcessByCsrHandle(
             threadHandle,
             DesiredAccess
             );
-        CloseHandle(threadHandle);
+        NtClose(threadHandle);
     }
 
     return status;

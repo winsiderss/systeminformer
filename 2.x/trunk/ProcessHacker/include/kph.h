@@ -11,7 +11,7 @@
 
 #define KPH_CTL_CODE(x) CTL_CODE(KPH_DEVICE_TYPE, 0x800 + x, METHOD_BUFFERED, FILE_ANY_ACCESS)
 
-#define KPH_CLOSEHANDLE KPH_CTL_CODE(0)
+#define KPH_NtClose KPH_CTL_CODE(0)
 #define KPH_SSQUERYCLIENTENTRY KPH_CTL_CODE(1)
 #define KPH_RESERVED1 KPH_CTL_CODE(2)
 #define KPH_OPENPROCESS KPH_CTL_CODE(3)
@@ -146,7 +146,7 @@ NTSTATUS KphGetFeatures(
     __out PULONG Features
     );
 
-NTSTATUS KphCloseHandle(
+NTSTATUS KphNtClose(
     __in HANDLE KphHandle,
     __in HANDLE Handle
     );

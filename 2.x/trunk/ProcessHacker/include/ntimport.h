@@ -14,6 +14,8 @@
 #include <ntrtl.h>
 #include <ntmisc.h>
 
+#include <ntlsa.h>
+
 #ifdef NTIMPORT_PRIVATE
 #define EXT
 #define EQNULL = NULL

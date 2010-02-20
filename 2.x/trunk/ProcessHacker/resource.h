@@ -104,8 +104,8 @@
 #define IDC_PROGRAM                     1069
 #define IDC_BROWSE                      1070
 #define IDC_USERNAME                    1071
-#define IDC_BUTTON2                     1074
 #define IDC_SESSIONS                    1074
+#define IDC_COMBO1                      1075
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -222,7 +222,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        137
 #define _APS_NEXT_COMMAND_VALUE         40125
-#define _APS_NEXT_CONTROL_VALUE         1075
+#define _APS_NEXT_CONTROL_VALUE         1076
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif
