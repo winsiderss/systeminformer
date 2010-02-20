@@ -24,6 +24,7 @@
 #define EQNULL
 #endif
 
+EXT _NtAccessCheck NtAccessCheck EQNULL;
 EXT _NtAlertResumeThread NtAlertResumeThread EQNULL;
 EXT _NtAlertThread NtAlertThread EQNULL;
 EXT _NtAllocateVirtualMemory NtAllocateVirtualMemory EQNULL;
@@ -46,6 +47,7 @@ EXT _NtOpenFile NtOpenFile EQNULL;
 EXT _NtOpenProcess NtOpenProcess EQNULL;
 EXT _NtOpenProcessToken NtOpenProcessToken EQNULL;
 EXT _NtOpenThread NtOpenThread EQNULL;
+EXT _NtPrivilegeCheck NtPrivilegeCheck EQNULL;
 EXT _NtProtectVirtualMemory NtProtectVirtualMemory EQNULL;
 EXT _NtQueryDirectoryObject NtQueryDirectoryObject EQNULL;
 EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment EQNULL;
@@ -80,14 +82,19 @@ EXT _NtUnloadDriver NtUnloadDriver EQNULL;
 EXT _NtWaitForSingleObject NtWaitForSingleObject EQNULL;
 EXT _NtWriteFile NtWriteFile EQNULL;
 EXT _NtWriteVirtualMemory NtWriteVirtualMemory EQNULL;
+EXT _RtlCopySecurityDescriptor RtlCopySecurityDescriptor EQNULL;
 EXT _RtlCreateQueryDebugBuffer RtlCreateQueryDebugBuffer EQNULL;
 EXT _RtlCreateUserThread RtlCreateUserThread EQNULL;
+EXT _RtlDeleteSecurityObject RtlDeleteSecurityObject EQNULL;
 EXT _RtlDestroyQueryDebugBuffer RtlDestroyQueryDebugBuffer EQNULL;
 EXT _RtlFindMessage RtlFindMessage EQNULL;
 EXT _RtlMultiByteToUnicodeN RtlMultiByteToUnicodeN EQNULL;
 EXT _RtlMultiByteToUnicodeSize RtlMultiByteToUnicodeSize EQNULL;
+EXT _RtlNewSecurityObject RtlNewSecurityObject EQNULL;
 EXT _RtlNtStatusToDosError RtlNtStatusToDosError EQNULL;
 EXT _RtlQueryProcessDebugInformation RtlQueryProcessDebugInformation EQNULL;
+EXT _RtlQuerySecurityObject RtlQuerySecurityObject EQNULL;
+EXT _RtlSetSecurityObject RtlSetSecurityObject EQNULL;
 EXT _RtlUnicodeToMultiByteN RtlUnicodeToMultiByteN EQNULL;
 EXT _RtlUnicodeToMultiByteSize RtlUnicodeToMultiByteSize EQNULL;
 

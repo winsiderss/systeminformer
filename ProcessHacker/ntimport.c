@@ -40,6 +40,7 @@
 
 BOOLEAN PhInitializeImports()
 {
+    InitProcReq("ntdll.dll", NtAccessCheck);
     InitProcReq("ntdll.dll", NtAlertResumeThread);
     InitProcReq("ntdll.dll", NtAlertThread);
     InitProcReq("ntdll.dll", NtAllocateVirtualMemory);
@@ -62,6 +63,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtOpenProcess);
     InitProcReq("ntdll.dll", NtOpenProcessToken);
     InitProcReq("ntdll.dll", NtOpenThread);
+    InitProcReq("ntdll.dll", NtPrivilegeCheck);
     InitProcReq("ntdll.dll", NtProtectVirtualMemory);
     InitProcReq("ntdll.dll", NtQueryDirectoryObject);
     InitProc("ntdll.dll", NtQueryInformationEnlistment);
@@ -96,14 +98,19 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtWaitForSingleObject);
     InitProcReq("ntdll.dll", NtWriteFile);
     InitProcReq("ntdll.dll", NtWriteVirtualMemory);
+    InitProcReq("ntdll.dll", RtlCopySecurityDescriptor);
     InitProcReq("ntdll.dll", RtlCreateQueryDebugBuffer);
     InitProcReq("ntdll.dll", RtlCreateUserThread);
+    InitProcReq("ntdll.dll", RtlDeleteSecurityObject);
     InitProcReq("ntdll.dll", RtlDestroyQueryDebugBuffer);
     InitProcReq("ntdll.dll", RtlFindMessage);
     InitProcReq("ntdll.dll", RtlMultiByteToUnicodeN);
     InitProcReq("ntdll.dll", RtlMultiByteToUnicodeSize);
+    InitProcReq("ntdll.dll", RtlNewSecurityObject);
     InitProcReq("ntdll.dll", RtlNtStatusToDosError);
     InitProcReq("ntdll.dll", RtlQueryProcessDebugInformation);
+    InitProcReq("ntdll.dll", RtlQuerySecurityObject);
+    InitProcReq("ntdll.dll", RtlSetSecurityObject);
     InitProcReq("ntdll.dll", RtlUnicodeToMultiByteN);
     InitProcReq("ntdll.dll", RtlUnicodeToMultiByteSize);
 

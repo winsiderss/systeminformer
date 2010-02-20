@@ -380,4 +380,40 @@ typedef ULONG (NTAPI *_RtlNtStatusToDosError)(
     __in NTSTATUS Status
     );
 
+// Security objects
+
+typedef NTSTATUS (NTAPI *_RtlNewSecurityObject)(
+    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
+    __out PSECURITY_DESCRIPTOR *NewDescriptor,
+    __in BOOLEAN IsDirectoryObject,
+    __in_opt HANDLE Token,
+    __in PGENERIC_MAPPING GenericMapping
+    );
+
+typedef NTSTATUS (NTAPI *_RtlDeleteSecurityObject)(
+    __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
+    );
+
+typedef NTSTATUS (NTAPI *_RtlCopySecurityDescriptor)(
+    __in PSECURITY_DESCRIPTOR InputSecurityDescriptor,
+    __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
+    );
+
+typedef NTSTATUS (NTAPI *_RtlQuerySecurityObject)(
+     __in PSECURITY_DESCRIPTOR ObjectDescriptor,
+     __in SECURITY_INFORMATION SecurityInformation,
+     __out_opt PSECURITY_DESCRIPTOR ResultantDescriptor,
+     __in ULONG DescriptorLength,
+     __out PULONG ReturnLength
+     );
+
+typedef NTSTATUS (NTAPI *_RtlSetSecurityObject)(
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR ModificationDescriptor,
+    __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
+    __in PGENERIC_MAPPING GenericMapping,
+    __in_opt HANDLE Token
+    );
+
 #endif
