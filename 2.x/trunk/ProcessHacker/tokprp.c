@@ -286,7 +286,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
                 {
-                    if (fullUserName = PhGetSidFullName(tokenUser->User.Sid))
+                    if (fullUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL))
                     {
                         SetDlgItemText(hwndDlg, IDC_USER, fullUserName->Buffer);
                         PhDereferenceObject(fullUserName);
@@ -343,7 +343,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                         PPH_STRING fullName;
                         PPH_STRING attributesString;
 
-                        if (!(fullName = PhGetSidFullName(tokenPageContext->Groups->Groups[i].Sid)))
+                        if (!(fullName = PhGetSidFullName(tokenPageContext->Groups->Groups[i].Sid, TRUE, NULL)))
                             fullName = PhSidToStringSid(tokenPageContext->Groups->Groups[i].Sid);
 
                         if (fullName)

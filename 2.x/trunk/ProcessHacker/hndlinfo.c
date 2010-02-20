@@ -732,7 +732,7 @@ NTSTATUS PhpGetBestObjectName(
         {
             PPH_STRING fullName;
 
-            fullName = PhGetSidFullName(tokenUser->User.Sid);
+            fullName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
 
             if (fullName)
             {
