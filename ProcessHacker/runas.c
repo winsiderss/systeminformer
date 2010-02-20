@@ -21,6 +21,7 @@
  */
 
 #include <phgui.h>
+#include <windowsx.h>
 
 INT_PTR CALLBACK PhpRunAsDlgProc(
     __in HWND hwndDlg,
@@ -28,6 +29,17 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+#define SIP(String, Integer) { (String), (PVOID)(Integer) }
+
+static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
+{
+    SIP(L"Batch", LOGON32_LOGON_BATCH),
+    SIP(L"Interactive", LOGON32_LOGON_INTERACTIVE),
+    SIP(L"Network", LOGON32_LOGON_NETWORK),
+    SIP(L"New credentials", LOGON32_LOGON_NEW_CREDENTIALS),
+    SIP(L"Service", LOGON32_LOGON_SERVICE)
+};
 
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
@@ -54,7 +66,16 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            HWND typeComboBoxHandle = GetDlgItem(hwndDlg, IDC_TYPE);
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            ComboBox_AddString(typeComboBoxHandle, L"Batch");
+            ComboBox_AddString(typeComboBoxHandle, L"Interactive");
+            ComboBox_AddString(typeComboBoxHandle, L"Network");
+            ComboBox_AddString(typeComboBoxHandle, L"New credentials");
+            ComboBox_AddString(typeComboBoxHandle, L"Service");
+            ComboBox_SelectString(typeComboBoxHandle, -1, L"Interactive");
         }
         break;
     case WM_COMMAND:
@@ -62,8 +83,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-            case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDOK:
+                {
+                    EndDialog(hwndDlg, IDOK);
+                }
                 break;
             case IDC_BROWSE:
                 {

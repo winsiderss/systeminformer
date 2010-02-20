@@ -398,7 +398,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     ExtendedListView_SortItems(privilegesLv);
                 }
 
-                CloseHandle(tokenHandle);
+                NtClose(tokenHandle);
             }
         }
         break;
@@ -558,7 +558,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                         ExtendedListView_SetRedraw(tokenPageContext->PrivilegesListViewHandle, TRUE);
 
-                        CloseHandle(tokenHandle);
+                        NtClose(tokenHandle);
                     }
                     else
                     {

@@ -114,7 +114,7 @@ VOID PhShowThreadStackDialog(
         );
 
     if (threadStackContext.ThreadHandle)
-        CloseHandle(threadStackContext.ThreadHandle);
+        NtClose(threadStackContext.ThreadHandle);
 } 
 
 static INT_PTR CALLBACK PhpThreadStackDlgProc(      

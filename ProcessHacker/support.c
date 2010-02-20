@@ -1062,7 +1062,7 @@ BOOLEAN PhShellExecuteEx(
         if (Timeout)
             WaitForSingleObject(info.hProcess, Timeout);
 
-        CloseHandle(info.hProcess);
+        NtClose(info.hProcess);
 
         return TRUE;
     }

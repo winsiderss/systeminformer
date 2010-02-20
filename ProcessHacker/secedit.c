@@ -342,7 +342,7 @@ __callback NTSTATUS PhStdGetObjectSecurity(
     else
     {
         status = PhGetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        CloseHandle(handle);
+        NtClose(handle);
     }
 
     return status;
@@ -377,7 +377,7 @@ __callback NTSTATUS PhStdSetObjectSecurity(
     else
     {
         status = PhSetObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
-        CloseHandle(handle);
+        NtClose(handle);
     }
 
     return status;

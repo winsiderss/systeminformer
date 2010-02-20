@@ -138,7 +138,7 @@ VOID PhpModuleProviderDeleteProcedure(
     PhDeleteCallback(&moduleProvider->ModuleRemovedEvent);
     PhDeleteCallback(&moduleProvider->UpdatedEvent);
 
-    if (moduleProvider->ProcessHandle) CloseHandle(moduleProvider->ProcessHandle);
+    if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
 
 PPH_MODULE_ITEM PhCreateModuleItem()

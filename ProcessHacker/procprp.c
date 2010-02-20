@@ -592,7 +592,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     &curdir
                     );
 
-                CloseHandle(processHandle);
+                NtClose(processHandle);
                 processHandle = NULL;
             }
 
@@ -653,7 +653,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
                 }
 
-                CloseHandle(processHandle);
+                NtClose(processHandle);
                 processHandle = NULL;
             }
 
@@ -697,7 +697,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
 
             if (processHandle)
-                CloseHandle(processHandle);
+                NtClose(processHandle);
 
 #ifdef _M_X64
             if (processItem->IsWow64)
@@ -959,7 +959,7 @@ VOID PhpInitializeThreadMenu(
                 }
             }
 
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
 
         switch (threadPriority)
@@ -1636,7 +1636,7 @@ static NTSTATUS NTAPI PhpOpenProcessToken(
         return status;
 
     status = PhOpenProcessToken(Handle, DesiredAccess, processHandle);
-    CloseHandle(processHandle);
+    NtClose(processHandle);
 
     return status;
 }
@@ -2171,7 +2171,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PhFreeProcessEnvironmentVariables(variables, numberOfVariables);
                 }
 
-                CloseHandle(processHandle);
+                NtClose(processHandle);
             }
         }
         break;
@@ -2483,7 +2483,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     ULONG numberOfHandles;
 
                     PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
-                    PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
+                    PhUiNtCloses(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
                     PhFree(handles);
                 }
                 break;
@@ -3175,7 +3175,7 @@ BOOLEAN PhShowProcessProperties(
 
     if (threadHandle)
     {
-        CloseHandle(threadHandle);
+        NtClose(threadHandle);
         return TRUE;
     }
     else

@@ -56,7 +56,7 @@ static BOOLEAN PhpIsDangerousProcess(
         return FALSE;
 
     status = PhGetProcessImageFileName(processHandle, &fileName);
-    CloseHandle(processHandle);
+    NtClose(processHandle);
 
     if (!NT_SUCCESS(status))
         return FALSE;
@@ -267,7 +267,7 @@ BOOLEAN PhUiTerminateProcesses(
             )))
         {
             status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -313,7 +313,7 @@ BOOLEAN PhUiSuspendProcesses(
             )))
         {
             status = PhSuspendProcess(processHandle);
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -359,7 +359,7 @@ BOOLEAN PhUiResumeProcesses(
             )))
         {
             status = PhResumeProcess(processHandle);
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -444,7 +444,7 @@ BOOLEAN PhUiRestartProcess(
 
     PhaDereferenceObject(currentDirectory);
 
-    CloseHandle(processHandle);
+    NtClose(processHandle);
     processHandle = NULL;
 
     // Open the process and terminate it.
@@ -462,7 +462,7 @@ BOOLEAN PhUiRestartProcess(
         )))
         goto ErrorExit;
 
-    CloseHandle(processHandle);
+    NtClose(processHandle);
     processHandle = NULL;
 
     // Start the process.
@@ -487,12 +487,12 @@ BOOLEAN PhUiRestartProcess(
         goto ErrorExit;
     }
 
-    CloseHandle(processInformation.hProcess);
-    CloseHandle(processInformation.hThread);
+    NtClose(processInformation.hProcess);
+    NtClose(processInformation.hThread);
 
 ErrorExit:
     if (processHandle)
-        CloseHandle(processHandle);
+        NtClose(processHandle);
 
     if (!NT_SUCCESS(status) || win32Result)
     {
@@ -527,7 +527,7 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             if (!SetProcessWorkingSetSize(processHandle, -1, -1))
                 win32Result = GetLastError();
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (!NT_SUCCESS(status) || win32Result)
@@ -586,10 +586,10 @@ BOOLEAN PhUiSetVirtualizationProcess(
         {
             status = PhSetTokenIsVirtualizationEnabled(tokenHandle, Enable);
 
-            CloseHandle(tokenHandle);
+            NtClose(tokenHandle);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))
@@ -635,10 +635,10 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
             status = NtRemoveProcessDebug(processHandle, debugObjectHandle);
 
-            CloseHandle(debugObjectHandle);
+            NtClose(debugObjectHandle);
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (status == STATUS_PORT_NOT_SET)
@@ -697,7 +697,7 @@ BOOLEAN PhUiInjectDllProcess(
             5000
             );
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))
@@ -732,7 +732,7 @@ BOOLEAN PhUiSetIoPriorityProcess(
     {
         status = PhSetProcessIoPriority(processHandle, IoPriority);
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))
@@ -763,7 +763,7 @@ BOOLEAN PhUiSetPriorityProcess(
         if (!SetPriorityClass(processHandle, PriorityClassWin32))
             win32Result = GetLastError();
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status) || win32Result)
@@ -1025,7 +1025,7 @@ BOOLEAN PhUiTerminateThreads(
             )))
         {
             status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -1093,7 +1093,7 @@ BOOLEAN PhUiForceTerminateThreads(
             )))
         {
             status = KphDangerousTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -1129,7 +1129,7 @@ BOOLEAN PhUiSuspendThreads(
             )))
         {
             status = PhSuspendThread(threadHandle, NULL);
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -1165,7 +1165,7 @@ BOOLEAN PhUiResumeThreads(
             )))
         {
             status = PhResumeThread(threadHandle, NULL);
-            CloseHandle(threadHandle);
+            NtClose(threadHandle);
         }
 
         if (!NT_SUCCESS(status))
@@ -1199,7 +1199,7 @@ BOOLEAN PhUiSetPriorityThread(
         if (!SetThreadPriority(threadHandle, ThreadPriorityWin32))
             win32Result = GetLastError();
 
-        CloseHandle(threadHandle);
+        NtClose(threadHandle);
     }
 
     if (!NT_SUCCESS(status) || win32Result)
@@ -1234,7 +1234,7 @@ BOOLEAN PhUiSetIoPriorityThread(
     {
         status = PhSetThreadIoPriority(threadHandle, IoPriority);
 
-        CloseHandle(threadHandle);
+        NtClose(threadHandle);
     }
 
     if (!NT_SUCCESS(status))
@@ -1292,7 +1292,7 @@ BOOLEAN PhUiUnloadModule(
                 5000
                 );
 
-            CloseHandle(processHandle);
+            NtClose(processHandle);
         }
 
         if (status == STATUS_DLL_NOT_FOUND)
@@ -1386,7 +1386,7 @@ static BOOLEAN PhpShowErrorHandle(
     }
 }
 
-BOOLEAN PhUiCloseHandles(
+BOOLEAN PhUiNtCloses(
     __in HWND hWnd,
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM *Handles,
@@ -1455,7 +1455,7 @@ BOOLEAN PhUiCloseHandles(
             }
         }
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
     else
     {
@@ -1495,7 +1495,7 @@ BOOLEAN PhUiSetAttributesHandle(
             Attributes
             );
 
-        CloseHandle(processHandle);
+        NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))

@@ -88,7 +88,7 @@ VOID PhHandleInfoInitialization()
                 PhFree(tokenUser);
             }
 
-            CloseHandle(tokenHandle);
+            NtClose(tokenHandle);
         }
 
         HkcuPrefix = PhConcatStrings2(L"\\REGISTRY\\USER\\", stringSid->Buffer);
@@ -484,7 +484,7 @@ NTSTATUS PhpGetBestObjectName(
                 goto CleanupExit;
 
             status = PhGetProcessBasicInformation(dupHandle, &basicInfo);
-            CloseHandle(dupHandle);
+            NtClose(dupHandle);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -530,7 +530,7 @@ NTSTATUS PhpGetBestObjectName(
                 goto CleanupExit;
 
             status = PhGetThreadBasicInformation(dupHandle, &basicInfo);
-            CloseHandle(dupHandle);
+            NtClose(dupHandle);
 
             if (!NT_SUCCESS(status))
                 goto CleanupExit;
@@ -559,7 +559,7 @@ NTSTATUS PhpGetBestObjectName(
             goto CleanupExit;
 
         status = PhGetEnlistmentBasicInformation(dupHandle, &basicInfo);
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
 
         if (NT_SUCCESS(status))
         {
@@ -590,7 +590,7 @@ NTSTATUS PhpGetBestObjectName(
             &guid,
             &description
             );
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
 
         if (NT_SUCCESS(status))
         {
@@ -656,7 +656,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
     }
     else if (PhStringEquals2(TypeName, L"TmTx", TRUE))
     {
@@ -704,7 +704,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
 
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
     }
     else if (PhStringEquals2(TypeName, L"Token", TRUE))
     {
@@ -743,7 +743,7 @@ NTSTATUS PhpGetBestObjectName(
             PhFree(tokenUser);
         }
 
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
     }
 
 CleanupExit:
@@ -974,7 +974,7 @@ CleanupExit:
     }
 
     if (dupHandle && ProcessHandle != NtCurrentProcess())
-        CloseHandle(dupHandle);
+        NtClose(dupHandle);
     if (typeName)
         PhDereferenceObject(typeName);
     if (objectName)
