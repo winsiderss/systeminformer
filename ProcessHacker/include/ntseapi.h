@@ -24,4 +24,21 @@ typedef NTSTATUS (NTAPI *_NtSetInformationToken)(
     __in ULONG TokenInformationLength
     );
 
+typedef NTSTATUS (NTAPI *_NtAccessCheck)(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in HANDLE ClientToken,
+    __in ACCESS_MASK DesiredAccess,
+    __in PGENERIC_MAPPING GenericMapping,
+    __out_bcount(*PrivilegeSetLength) PPRIVILEGE_SET PrivilegeSet,
+    __inout PULONG PrivilegeSetLength,
+    __out PACCESS_MASK GrantedAccess,
+    __out PNTSTATUS AccessStatus
+    );
+
+typedef NTSTATUS (NTAPI *_NtPrivilegeCheck)(
+    __in HANDLE ClientToken,
+    __inout PPRIVILEGE_SET RequiredPrivileges,
+    __out PBOOLEAN Result
+    );
+
 #endif

@@ -50,6 +50,9 @@
  */
 #define PhpAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
+#define PhpGetObjectSecurityDescriptor(Object, ObjectType) \
+    ((PSECURITY_DESCRIPTOR *)PTR_ADD_OFFSET((Object), (ObjectType)->OffsetOfSecurityDescriptor))
+
 typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
@@ -62,8 +65,10 @@ typedef struct _PH_OBJECT_HEADER
 {
     /** The reference count of the object. */
     LONG RefCount;
+
     /** Reserved. */
     ULONG Flags;
+
     union
     {
         /** The size of the object, excluding the header. */
@@ -71,6 +76,7 @@ typedef struct _PH_OBJECT_HEADER
         /** A pointer to the object header of the next object to free. */
         PPH_OBJECT_HEADER NextToFree;
     };
+
     /** The type of the object. */
     PPH_OBJECT_TYPE Type;
 
@@ -92,6 +98,14 @@ typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
     ULONG Flags;
+
+    /** The number of bytes at which the pointer to the 
+     * object's security descriptor is stored. */
+    UCHAR OffsetOfSecurityDescriptor;
+    UCHAR Reserved1;
+    UCHAR Reserved2;
+    UCHAR Reserved3;
+
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
 
@@ -100,6 +114,8 @@ typedef struct _PH_OBJECT_TYPE
 
     /** The total number of objects of this type that are alive. */
     ULONG NumberOfObjects;
+
+    GENERIC_MAPPING GenericMapping;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
 /** 
