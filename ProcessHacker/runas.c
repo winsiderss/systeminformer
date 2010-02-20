@@ -55,6 +55,27 @@ VOID PhShowRunAsDialog(
         );
 }
 
+static BOOLEAN NTAPI PhpRunAsEnumAccountsCallback(
+    __in PSID Sid,
+    __in PVOID Context
+    )
+{
+    PPH_STRING name;
+    SID_NAME_USE nameUse;
+
+    name = PhGetSidFullName(Sid, TRUE, &nameUse);
+
+    if (name)
+    {
+        if (nameUse == SidTypeUser)
+            ComboBox_AddString((HWND)Context, name->Buffer);
+
+        PhDereferenceObject(name);
+    }
+
+    return TRUE;
+}
+
 INT_PTR CALLBACK PhpRunAsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -67,6 +88,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     case WM_INITDIALOG:
         {
             HWND typeComboBoxHandle = GetDlgItem(hwndDlg, IDC_TYPE);
+            HWND userNameComboBoxHandle = GetDlgItem(hwndDlg, IDC_USERNAME);
+            LSA_HANDLE policyHandle;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -76,6 +99,19 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             ComboBox_AddString(typeComboBoxHandle, L"New credentials");
             ComboBox_AddString(typeComboBoxHandle, L"Service");
             ComboBox_SelectString(typeComboBoxHandle, -1, L"Interactive");
+
+            ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\SYSTEM");
+            ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\LOCAL SERVICE");
+            ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\NETWORK SERVICE");
+
+            if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
+            {
+                PhEnumAccounts(policyHandle, PhpRunAsEnumAccountsCallback, (PVOID)GetDlgItem(hwndDlg, IDC_USERNAME));
+                LsaClose(policyHandle);
+            }
+
+            SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
+            Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
         }
         break;
     case WM_COMMAND:

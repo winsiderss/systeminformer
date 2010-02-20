@@ -659,7 +659,7 @@ VOID PhpFillProcessItem(
 
                 if (NT_SUCCESS(status))
                 {
-                    ProcessItem->UserName = PhGetSidFullName(user->User.Sid);
+                    ProcessItem->UserName = PhGetSidFullName(user->User.Sid, TRUE, NULL);
                     PhFree(user);
                 }
             }
