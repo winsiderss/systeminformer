@@ -932,6 +932,8 @@ VOID PhpInitializeThreadMenu(
         }
     }
 
+    PhEnableMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
+
     // Priority
     if (NumberOfThreads == 1)
     {
@@ -956,6 +958,22 @@ VOID PhpInitializeThreadMenu(
                     )))
                 {
                     ioPriority = -1;
+                }
+            }
+
+            // Token
+            {
+                HANDLE tokenHandle;
+
+                if (NT_SUCCESS(PhOpenThreadToken(
+                    &tokenHandle,
+                    TOKEN_QUERY,
+                    threadHandle,
+                    TRUE
+                    )))
+                {
+                    PhEnableMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
+                    NtClose(tokenHandle);
                 }
             }
 
@@ -1085,6 +1103,20 @@ COLORREF NTAPI PhpThreadColorFunction(
         return PhCsColorGuiThreads;
 
     return PhSysWindowColor;
+}
+
+NTSTATUS NTAPI PhpOpenThreadTokenObject(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    return PhOpenThreadToken(
+        Handle,
+        DesiredAccess,
+        (HANDLE)Context,
+        TRUE
+        );
 }
 
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
@@ -1357,6 +1389,37 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 numberOfAccessEntries
                                 );
                             PhFree(accessEntries);
+                        }
+                    }
+                }
+                break;
+            case ID_THREAD_TOKEN:
+                {
+                    NTSTATUS status;
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+                    HANDLE threadHandle;
+                    HANDLE tokenHandle;
+
+                    if (threadItem)
+                    {
+                        if (NT_SUCCESS(status = PhOpenThread(
+                            &threadHandle,
+                            ThreadQueryAccess,
+                            threadItem->ThreadId
+                            )))
+                        {
+                            PhShowTokenProperties(
+                                hwndDlg,
+                                PhpOpenThreadTokenObject,
+                                (PVOID)threadHandle,
+                                NULL
+                                );
+
+                            NtClose(threadHandle);
+                        }
+                        else
+                        {
+                            PhShowStatus(hwndDlg, L"Unable to open the thread", status, 0);
                         }
                     }
                 }

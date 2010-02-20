@@ -140,6 +140,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
+
+            if (!PhElevated)
+                SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
         }
         break;
     case WM_COMMAND:

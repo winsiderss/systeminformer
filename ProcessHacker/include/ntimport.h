@@ -47,6 +47,7 @@ EXT _NtOpenFile NtOpenFile EQNULL;
 EXT _NtOpenProcess NtOpenProcess EQNULL;
 EXT _NtOpenProcessToken NtOpenProcessToken EQNULL;
 EXT _NtOpenThread NtOpenThread EQNULL;
+EXT _NtOpenThreadToken NtOpenThreadToken EQNULL;
 EXT _NtPrivilegeCheck NtPrivilegeCheck EQNULL;
 EXT _NtProtectVirtualMemory NtProtectVirtualMemory EQNULL;
 EXT _NtQueryDirectoryObject NtQueryDirectoryObject EQNULL;
