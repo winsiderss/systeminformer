@@ -376,12 +376,12 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_HACKER_SAVE:
                 {
-                    PVOID saveFileDialog = PhCreateSaveFileDialog();
-                    PH_FILETYPE_FILTER filters[] =
+                    static PH_FILETYPE_FILTER filters[] =
                     {
                         { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
                         { L"All files (*.*)", L"*.*" }
                     };
+                    PVOID saveFileDialog = PhCreateSaveFileDialog();
 
                     PhSetFileDialogFilter(saveFileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
@@ -425,7 +425,7 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_TOOLS_VERIFYFILESIGNATURE:
                 {
-                    PH_FILETYPE_FILTER filters[] =
+                    static PH_FILETYPE_FILTER filters[] =
                     {
                         { L"Executable files (*.exe;*.dll;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.sys;*.scr;*.cpl" },
                         { L"All files (*.*)", L"*.*" }

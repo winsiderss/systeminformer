@@ -661,7 +661,7 @@ BOOLEAN PhUiInjectDllProcess(
     __in PPH_PROCESS_ITEM Process
     )
 {
-    PH_FILETYPE_FILTER filters[] =
+    static PH_FILETYPE_FILTER filters[] =
     {
         { L"DLL files (*.dll)", L"*.dll" },
         { L"All files (*.*)", L"*.*" }
