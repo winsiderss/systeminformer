@@ -1,8 +1,6 @@
 #ifndef FASTLOCK_H
 #define FASTLOCK_H
 
-#include <base.h>
-
 // FastLock is a port of FastResourceLock from PH 1.x.
 
 typedef struct _PH_FAST_LOCK
