@@ -24,6 +24,16 @@
 #include <wtsapi32.h>
 #include <windowsx.h>
 
+typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
+    __out LPVOID *lpEnvironment,
+    __in_opt HANDLE hToken,
+    __in BOOL bInherit
+    );
+
+typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
+    __in LPVOID lpEnvironment
+    );
+
 typedef struct _RUNAS_DIALOG_CONTEXT
 {
     HANDLE ProcessId;
@@ -38,6 +48,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     __in LPARAM lParam
     );
 
+VOID PhSetDesktopWinStaAccess();
+
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
 static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
@@ -48,6 +60,9 @@ static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
     SIP(L"New credentials", LOGON32_LOGON_NEW_CREDENTIALS),
     SIP(L"Service", LOGON32_LOGON_SERVICE)
 };
+
+static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
+static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
 
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
@@ -159,12 +174,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 break;
             case IDC_BROWSE:
                 {
-                    PVOID fileDialog;
-                    PH_FILETYPE_FILTER filters[] =
+                    static PH_FILETYPE_FILTER filters[] =
                     {
                         { L"Programs (*.exe;*.pif;*.com;*.bat)", L"*.exe;*.pif;*.com;*.bat" },
                         { L"All files (*.*)", L"*.*" }
                     };
+                    PVOID fileDialog;
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
@@ -300,4 +315,195 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     }
 
     return FALSE;
+}
+
+VOID PhSetDesktopWinStaAccess()
+{
+    HWINSTA wsHandle;
+    HDESK desktopHandle;
+    SECURITY_DESCRIPTOR securityDescriptor;
+
+    // Create a security descriptor with a NULL DACL, 
+    // thereby allowing everyone to access the object.
+    InitializeSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION); 
+
+    if (wsHandle = OpenWindowStation(
+        L"WinSta0",
+        FALSE,
+        WRITE_DAC
+        ))
+    {
+        PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
+        CloseWindowStation(wsHandle);
+    }
+
+    if (desktopHandle = OpenDesktop(
+        L"Default",
+        0,
+        FALSE,
+        WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
+        ))
+    {
+        PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
+        CloseDesktop(desktopHandle);
+    }
+}
+
+static VOID PhpImportUserEnv()
+{
+    HMODULE userenv;
+
+    if (!CreateEnvironmentBlock_I || !DestroyEnvironmentBlock_I)
+    {
+        userenv = LoadLibrary(L"userenv.dll");
+        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userenv, "CreateEnvironmentBlock");
+        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userenv, "DestroyEnvironmentBlock");
+    }
+}
+
+NTSTATUS PhCreateProcessAsUser(
+    __in_opt PWSTR ApplicationName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PWSTR CurrentDirectory,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR DomainName,
+    __in_opt PWSTR UserName,
+    __in_opt PWSTR Password,
+    __in_opt ULONG LogonType,
+    __in_opt HANDLE ProcessIdWithToken,
+    __in ULONG SessionId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    LOGICAL result;
+    HANDLE tokenHandle;
+    PVOID defaultEnvironment;
+    STARTUPINFO startupInfo = { sizeof(startupInfo) };
+    PROCESS_INFORMATION processInfo;
+
+    if (!ApplicationName && !CommandLine)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if ((!DomainName || !UserName || !Password) && !ProcessIdWithToken)
+        return STATUS_INVALID_PARAMETER_MIX;
+
+    // Get the token handle, either obtained by 
+    // logging in as a user or stealing a token from 
+    // another process.
+
+    if (!ProcessIdWithToken)
+    {
+        if (!LogonUser(
+            UserName,
+            DomainName,
+            Password,
+            LogonType,
+            LOGON32_PROVIDER_DEFAULT,
+            &tokenHandle
+            ))
+            return STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        HANDLE processHandle;
+
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            ProcessIdWithToken
+            )))
+            return status;
+
+        status = PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_ALL_ACCESS,
+            processHandle
+            );
+        NtClose(processHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        // If we're going to set the session ID, we need 
+        // to duplicate the token.
+        if (SessionId != -1)
+        {
+            HANDLE newTokenHandle;
+
+            result = DuplicateTokenEx(
+                tokenHandle,
+                TOKEN_ALL_ACCESS,
+                NULL,
+                SecurityImpersonation,
+                TokenPrimary,
+                &newTokenHandle
+                );
+            NtClose(tokenHandle);
+
+            if (!result)
+                return STATUS_UNSUCCESSFUL;
+
+            tokenHandle = newTokenHandle;
+        }
+    }
+
+    // Set the session ID if needed.
+
+    if (SessionId != -1)
+    {
+        if (!NT_SUCCESS(status = PhSetTokenSessionId(
+            tokenHandle,
+            SessionId
+            )))
+        {
+            NtClose(tokenHandle);
+            return status;
+        }
+    }
+
+    if (!Environment)
+    {
+        PhpImportUserEnv();
+        defaultEnvironment = NULL;
+        CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
+    }
+
+    startupInfo.lpDesktop = L"WinSta0\\Default";
+
+    result = CreateProcessAsUser(
+        tokenHandle,
+        ApplicationName,
+        CommandLine,
+        NULL,
+        NULL,
+        FALSE,
+        CREATE_UNICODE_ENVIRONMENT,
+        Environment ? Environment : defaultEnvironment,
+        CurrentDirectory,
+        &startupInfo,
+        &processInfo
+        );
+
+    if (defaultEnvironment)
+    {
+        DestroyEnvironmentBlock_I(defaultEnvironment);
+    }
+
+    NtClose(tokenHandle);
+
+    if (result)
+    {
+        if (ProcessHandle)
+            *ProcessHandle = processInfo.hProcess;
+        else
+            NtClose(processInfo.hProcess);
+
+        if (ThreadHandle)
+            *ThreadHandle = processInfo.hThread;
+        else
+            NtClose(processInfo.hThread);
+    }
+
+    return result ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
