@@ -2268,6 +2268,19 @@ NTSTATUS PhGetTokenIsVirtualizationEnabled(
     return status;
 }
 
+NTSTATUS PhSetTokenSessionId(
+    __in HANDLE TokenHandle,
+    __in ULONG SessionId
+    )
+{
+    return NtSetInformationToken(
+        TokenHandle,
+        TokenSessionId,
+        &SessionId,
+        sizeof(ULONG)
+        );
+}
+
 /**
  * Modifies a token privilege.
  *

@@ -377,6 +377,11 @@ NTSTATUS PhGetTokenIsVirtualizationEnabled(
     __out PBOOLEAN IsVirtualizationEnabled
     );
 
+NTSTATUS PhSetTokenSessionId(
+    __in HANDLE TokenHandle,
+    __in ULONG SessionId
+    );
+
 BOOLEAN PhSetTokenPrivilege(
     __in HANDLE TokenHandle,
     __in_opt PWSTR PrivilegeName,
