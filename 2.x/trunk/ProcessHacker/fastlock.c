@@ -20,8 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <fastlock.h>
-#include <ntimport.h>
+#include <phbase.h>
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 //

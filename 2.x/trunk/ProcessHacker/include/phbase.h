@@ -5,6 +5,7 @@
 #include <ntimport.h>
 #include <ref.h>
 #include <fastlock.h>
+#include <queuedlock.h>
 
 #define PH_APP_NAME (L"Process Hacker")
 
