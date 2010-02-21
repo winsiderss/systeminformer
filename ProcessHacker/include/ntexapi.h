@@ -112,6 +112,33 @@ typedef NTSTATUS (NTAPI *_NtQueryTimer)(
 #define KEYEDEVENT_ALL_ACCESS \
     (STANDARD_RIGHTS_REQUIRED | KEYEDEVENT_WAIT | KEYEDEVENT_WAKE)
 
+typedef NTSTATUS (NTAPI *_NtCreateKeyedEvent)(
+    __out PHANDLE KeyedEventHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in ULONG Flags
+    );
+
+typedef NTSTATUS (NTAPI *_NtOpenKeyedEvent)(
+    __out PHANDLE KeyedEventHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *_NtReleaseKeyedEvent)(
+    __in HANDLE KeyedEventHandle,
+    __in PVOID KeyValue,
+    __in BOOLEAN Alertable,
+    __in_opt PLARGE_INTEGER Timeout
+    );
+
+typedef NTSTATUS (NTAPI *_NtWaitForKeyedEvent)(
+    __in HANDLE KeyedEventHandle,
+    __in PVOID KeyValue,
+    __in BOOLEAN Alertable,
+    __in_opt PLARGE_INTEGER Timeout
+    );
+
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
     SystemBasicInformation,

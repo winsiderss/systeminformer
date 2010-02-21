@@ -1592,3 +1592,29 @@ VOID PhSetFileDialogFileName(
         ofn->lpstrFile = PhAllocateCopy(FileName, ((ULONG)wcslen(FileName) + 1) * 2);
     }
 }
+
+VOID PhParseCommandLine(
+    __in PPH_STRINGREF CommandLine,
+    __in PPH_COMMAND_LINE_OPTION Options,
+    __in ULONG NumberOfOptions,
+    __in PPH_COMMAND_LINE_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    ULONG i;
+    ULONG length;
+    PPH_STRING_BUILDER stringBuilder;
+
+    stringBuilder = PhCreateStringBuilder(10);
+    i = 0;
+    length = CommandLine->Length / 2;
+
+    while (TRUE)
+    {
+        // Check for an option specifier.
+        if (i < length)
+        {
+            
+        }
+    }
+}

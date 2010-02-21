@@ -491,6 +491,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\queuedlock.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ref.c"
 				>
 			</File>
@@ -674,6 +678,10 @@
 			</File>
 			<File
 				RelativePath=".\include\procprpp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\queuedlock.h"
 				>
 			</File>
 			<File
