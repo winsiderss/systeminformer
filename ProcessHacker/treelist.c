@@ -12,7 +12,7 @@ BOOLEAN PhTreeListInitialization()
     c.cbWndExtra = sizeof(PVOID);
     c.hInstance = PhInstanceHandle;
     c.hIcon = NULL;
-    c.hCursor = NULL;
+    c.hCursor = LoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
     c.lpszMenuName = NULL;
     c.lpszClassName = PH_TREELIST_CLASSNAME;
@@ -87,7 +87,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
             context->HeaderHandle = CreateWindow(
                 WC_HEADER,
                 L"",
-                WS_CHILD | WS_BORDER | HDS_BUTTONS | HDS_HORZ,
+                WS_CHILD | WS_BORDER | WS_VISIBLE | HDS_BUTTONS | HDS_HORZ,
                 0,
                 0,
                 createStruct->cx,
@@ -97,6 +97,17 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 PhInstanceHandle,
                 NULL
                 );
+
+            {
+                HDITEM item;
+
+                item.mask = HDI_FORMAT | HDI_TEXT | HDI_WIDTH;
+                item.cxy = 200;
+                item.pszText = L"Name";
+                item.fmt = HDF_LEFT | HDF_STRING;
+
+                Header_InsertItem(context->HeaderHandle, 0, &item);
+            }
         }
         break;
     case WM_DESTROY:
@@ -128,11 +139,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             GetClientRect(hwnd, &clientRect);
 
-            FillRect(hdc, &paintStruct.rcPaint, GetSysColorBrush(COLOR_WINDOW));
+            //FillRect(hdc, &paintStruct.rcPaint, GetSysColorBrush(COLOR_WINDOW));
 
             SelectObject(hdc, GetSysColorBrush(COLOR_WINDOWTEXT));
             rect.left = 0;
-            rect.top = 0;
+            rect.top = 20;
             rect.right = 200;
             rect.bottom = 100;
 
