@@ -2342,8 +2342,8 @@ ULONG FASTCALL PhfHashBytesMurmur(
     )
 {
     // Murmur hash, http://murmurhash.googlepages.com
-    const ULONG magic = 0x5bd1e995;
-    const ULONG shift = 24;
+#define MURMUR_MAGIC 0x5bd1e995
+#define MURMUR_SHIFT 24
 
     ULONG hash = Length;
     ULONG tmp;
@@ -2352,11 +2352,11 @@ ULONG FASTCALL PhfHashBytesMurmur(
     {
         tmp = *(PULONG)Bytes;
 
-        tmp *= magic;
-        tmp ^= tmp >> shift;
-        tmp *= magic;
+        tmp *= MURMUR_MAGIC;
+        tmp ^= tmp >> MURMUR_SHIFT;
+        tmp *= MURMUR_MAGIC;
 
-        hash *= magic;
+        hash *= MURMUR_MAGIC;
         hash ^= tmp;
 
         Bytes += 4;
@@ -2371,11 +2371,11 @@ ULONG FASTCALL PhfHashBytesMurmur(
         hash ^= Bytes[1] << 8;
     case 1:
         hash ^= Bytes[0];
-        hash *= magic;
+        hash *= MURMUR_MAGIC;
     }
 
     hash ^= hash >> 13;
-    hash *= magic;
+    hash *= MURMUR_MAGIC;
     hash ^= hash >> 15;
 
     return hash;

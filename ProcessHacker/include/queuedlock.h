@@ -58,18 +58,22 @@ FORCEINLINE VOID PhInitializeQueuedLock(
     QueuedLock->Value = 0;
 }
 
+#define PhAcquireQueuedLockExclusive PhfAcquireQueuedLockExclusive
 VOID FASTCALL PhfAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
+#define PhAcquireQueuedLockShared PhfAcquireQueuedLockShared
 VOID FASTCALL PhfAcquireQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
+#define PhReleaseQueuedLockExclusive PhfReleaseQueuedLockExclusive
 VOID FASTCALL PhfReleaseQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
+#define PhReleaseQueuedLockShared PhfReleaseQueuedLockShared
 VOID FASTCALL PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
