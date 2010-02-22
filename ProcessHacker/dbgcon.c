@@ -316,8 +316,9 @@ static NTSTATUS PhpRwLockTestThreadStart(
 {
 #define RW_ITERS 10000
 #define RW_READ_ITERS 100
-#define RW_WRITE_ITERS 40
-#define RW_SPIN_ITERS 100
+#define RW_WRITE_ITERS 20
+#define RW_READ_SPIN_ITERS 30
+#define RW_WRITE_SPIN_ITERS 80
 
     RW_TEST_CONTEXT context = *(PRW_TEST_CONTEXT)Parameter;
     ULONG i;
@@ -334,7 +335,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
             context.AcquireShared(context.Parameter);
             _InterlockedIncrement(&RwReadersActive);
 
-            for (m = 0; m < RW_SPIN_ITERS; m++)
+            for (m = 0; m < RW_READ_SPIN_ITERS; m++)
                 YieldProcessor();
 
             if (*(volatile LONG *)&RwWritersActive != 0)
@@ -348,7 +349,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
 
             // Spin for a while
 
-            for (m = 0; m < RW_SPIN_ITERS / 2; m++)
+            for (m = 0; m < 10; m++)
                 YieldProcessor();
 
             if (j == RW_READ_ITERS / 2)
@@ -360,7 +361,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
                     context.AcquireExclusive(context.Parameter);
                     _InterlockedIncrement(&RwWritersActive);
 
-                    for (m = 0; m < RW_SPIN_ITERS; m++)
+                    for (m = 0; m < RW_WRITE_SPIN_ITERS; m++)
                         YieldProcessor();
 
                     if (*(volatile LONG *)&RwReadersActive != 0)
