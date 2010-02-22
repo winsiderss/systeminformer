@@ -140,7 +140,7 @@ INT CALLBACK PhpPropSheetProc(
     __in LPARAM lParam
     )
 {
-    const LONG addStyle = WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME;
+#define PROPSHEET_ADD_STYLE (WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME);
 
     switch (uMsg)
     {
@@ -150,11 +150,11 @@ INT CALLBACK PhpPropSheetProc(
             {
                 if (((DLGTEMPLATEEX *)lParam)->signature == 0xffff)
                 {
-                    ((DLGTEMPLATEEX *)lParam)->style |= addStyle;
+                    ((DLGTEMPLATEEX *)lParam)->style |= PROPSHEET_ADD_STYLE;
                 }
                 else
                 {
-                    ((DLGTEMPLATE *)lParam)->style |= addStyle;
+                    ((DLGTEMPLATE *)lParam)->style |= PROPSHEET_ADD_STYLE;
                 }
             }
         }
