@@ -250,6 +250,188 @@ static VOID PhpDeleteNewObjectList()
 }
 #endif
 
+typedef struct _STOPWATCH
+{
+    LARGE_INTEGER StartCounter;
+    LARGE_INTEGER EndCounter;
+} STOPWATCH, *PSTOPWATCH;
+
+static VOID PhInitializeStopwatch(
+    __out PSTOPWATCH Stopwatch
+    )
+{
+    Stopwatch->StartCounter.QuadPart = 0;
+    Stopwatch->EndCounter.QuadPart = 0;
+}
+
+static VOID PhStartStopwatch(
+    __inout PSTOPWATCH Stopwatch
+    )
+{
+    QueryPerformanceCounter(&Stopwatch->StartCounter);
+}
+
+static VOID PhStopStopwatch(
+    __inout PSTOPWATCH Stopwatch
+    )
+{
+    QueryPerformanceCounter(&Stopwatch->EndCounter);
+}
+
+static ULONG PhGetMillisecondsStopwatch(
+    __in PSTOPWATCH Stopwatch
+    )
+{
+    LARGE_INTEGER countsPerMs;
+
+    QueryPerformanceFrequency(&countsPerMs);
+    countsPerMs.QuadPart /= 1000;
+
+    return (ULONG)((Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart) /
+        countsPerMs.QuadPart);
+}
+
+typedef VOID (FASTCALL *PPHF_RW_LOCK_FUNCTION)(
+    __in PVOID Parameter
+    );
+
+typedef struct _RW_TEST_CONTEXT
+{
+    PWSTR Name;
+
+    PPHF_RW_LOCK_FUNCTION AcquireExclusive;
+    PPHF_RW_LOCK_FUNCTION AcquireShared;
+    PPHF_RW_LOCK_FUNCTION ReleaseExclusive;
+    PPHF_RW_LOCK_FUNCTION ReleaseShared;
+
+    PVOID Parameter;
+} RW_TEST_CONTEXT, *PRW_TEST_CONTEXT;
+
+static LONG RwReadersActive;
+static LONG RwWritersActive;
+
+static NTSTATUS PhpRwLockTestThreadStart(
+    __in PVOID Parameter
+    )
+{
+#define RW_ITERS 10000
+#define RW_READ_ITERS 100
+#define RW_WRITE_ITERS 40
+#define RW_SPIN_ITERS 100
+
+    RW_TEST_CONTEXT context = *(PRW_TEST_CONTEXT)Parameter;
+    ULONG i;
+    ULONG j;
+    ULONG k;
+    ULONG m;
+
+    for (i = 0; i < RW_ITERS; i++)
+    {
+        for (j = 0; j < RW_READ_ITERS; j++)
+        {
+            // Read zone
+
+            context.AcquireShared(context.Parameter);
+            _InterlockedIncrement(&RwReadersActive);
+
+            for (m = 0; m < RW_SPIN_ITERS; m++)
+                YieldProcessor();
+
+            if (*(volatile LONG *)&RwWritersActive != 0)
+            {
+                wprintf(L"[fail]: writers active in read zone!\n");
+                Sleep(INFINITE);
+            }
+
+            _InterlockedDecrement(&RwReadersActive);
+            context.ReleaseShared(context.Parameter);
+
+            // Spin for a while
+
+            for (m = 0; m < RW_SPIN_ITERS / 2; m++)
+                YieldProcessor();
+
+            if (j == RW_READ_ITERS / 2)
+            {
+                // Write zone
+
+                for (k = 0; k < RW_WRITE_ITERS; k++)
+                {
+                    context.AcquireExclusive(context.Parameter);
+                    _InterlockedIncrement(&RwWritersActive);
+
+                    for (m = 0; m < RW_SPIN_ITERS; m++)
+                        YieldProcessor();
+
+                    if (*(volatile LONG *)&RwReadersActive != 0)
+                    {
+                        wprintf(L"[fail]: readers active in write zone!\n");
+                        Sleep(INFINITE);
+                    }
+
+                    _InterlockedDecrement(&RwWritersActive);
+                    context.ReleaseExclusive(context.Parameter);
+                }
+            }
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static VOID PhpTestRwLock(
+    __in PRW_TEST_CONTEXT Context
+    )
+{
+#define RW_PROCESSORS 4
+
+    STOPWATCH stopwatch;
+    ULONG i;
+    HANDLE threadHandles[RW_PROCESSORS];
+
+    // Dummy
+
+    Context->AcquireExclusive(Context->Parameter);
+    Context->ReleaseExclusive(Context->Parameter);
+    Context->AcquireShared(Context->Parameter);
+    Context->ReleaseShared(Context->Parameter);
+
+    // Null test
+
+    PhStartStopwatch(&stopwatch);
+
+    for (i = 0; i < 2000000; i++)
+    {
+        Context->AcquireExclusive(Context->Parameter);
+        Context->ReleaseExclusive(Context->Parameter);
+        Context->AcquireShared(Context->Parameter);
+        Context->ReleaseShared(Context->Parameter);
+    }
+
+    PhStopStopwatch(&stopwatch);
+
+    wprintf(L"[null] %s: %ums\n", Context->Name, PhGetMillisecondsStopwatch(&stopwatch));
+
+    // Stress test
+
+    RwReadersActive = 0;
+    RwWritersActive = 0;
+
+    for (i = 0; i < RW_PROCESSORS; i++)
+    {
+        threadHandles[i] = PhCreateThread(0, PhpRwLockTestThreadStart, Context); 
+    }
+
+    PhStartStopwatch(&stopwatch);
+    WaitForMultipleObjects(RW_PROCESSORS, threadHandles, TRUE, INFINITE);
+    PhStopStopwatch(&stopwatch);
+
+    for (i = 0; i < RW_PROCESSORS; i++)
+        NtClose(threadHandles[i]);
+
+    wprintf(L"[strs] %s: %ums\n", Context->Name, PhGetMillisecondsStopwatch(&stopwatch));
+}
+
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
@@ -297,6 +479,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             wprintf(
                 L"Commands:\n"
                 L"testperf\n"
+                L"testlocks\n"
                 L"objects [type-name-filter]\n"
                 L"objtrace object-address\n"
                 L"objmksnap\n"
@@ -312,23 +495,19 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
         {
-            LARGE_INTEGER countsPerMs;
-            LARGE_INTEGER startCounter;
-            LARGE_INTEGER endCounter;
+            STOPWATCH stopwatch;
             ULONG i;
             PPH_STRING testString;
             PH_MUTEX testMutex;
             PH_FAST_LOCK testFastLock;
-
-            QueryPerformanceFrequency(&countsPerMs);
-            countsPerMs.QuadPart /= 1000;
+            PH_QUEUED_LOCK testQueuedLock;
 
             // Control (string reference counting)
 
             testString = PhCreateString(L"");
             PhReferenceObject(testString);
             PhDereferenceObject(testString);
-            QueryPerformanceCounter(&startCounter);
+            PhStartStopwatch(&stopwatch);
 
             for (i = 0; i < 10000000; i++)
             {
@@ -336,17 +515,17 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhDereferenceObject(testString);
             }
 
-            QueryPerformanceCounter(&endCounter);
+            PhStopStopwatch(&stopwatch);
             PhDereferenceObject(testString);
 
-            wprintf(L"Referencing: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
+            wprintf(L"Referencing: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
 
             // Mutex
 
             PhInitializeMutex(&testMutex);
             PhAcquireMutex(&testMutex);
             PhReleaseMutex(&testMutex);
-            QueryPerformanceCounter(&startCounter);
+            PhStartStopwatch(&stopwatch);
 
             for (i = 0; i < 10000000; i++)
             {
@@ -354,17 +533,17 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhReleaseMutex(&testMutex);
             }
 
-            QueryPerformanceCounter(&endCounter);
+            PhStopStopwatch(&stopwatch);
             PhDeleteMutex(&testMutex);
 
-            wprintf(L"Mutex: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
+            wprintf(L"Mutex: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
 
             // Fast lock
 
             PhInitializeFastLock(&testFastLock);
             PhAcquireFastLockExclusive(&testFastLock);
             PhReleaseFastLockExclusive(&testFastLock);
-            QueryPerformanceCounter(&startCounter);
+            PhStartStopwatch(&stopwatch);
 
             for (i = 0; i < 10000000; i++)
             {
@@ -372,10 +551,52 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhReleaseFastLockExclusive(&testFastLock);
             }
 
-            QueryPerformanceCounter(&endCounter);
+            PhStopStopwatch(&stopwatch);
             PhDeleteFastLock(&testFastLock);
 
-            wprintf(L"Fast lock: %ums\n", (endCounter.QuadPart - startCounter.QuadPart) / countsPerMs.QuadPart);
+            wprintf(L"Fast lock: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
+
+            // Queued lock
+
+            PhInitializeQueuedLock(&testQueuedLock);
+            PhAcquireQueuedLockExclusive(&testQueuedLock);
+            PhReleaseQueuedLockExclusive(&testQueuedLock);
+            PhStartStopwatch(&stopwatch);
+
+            for (i = 0; i < 10000000; i++)
+            {
+                PhAcquireQueuedLockExclusive(&testQueuedLock);
+                PhReleaseQueuedLockExclusive(&testQueuedLock);
+            }
+
+            PhStopStopwatch(&stopwatch);
+
+            wprintf(L"Queued lock: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
+        }
+        else if (WSTR_IEQUAL(command, L"testlocks"))
+        {
+            RW_TEST_CONTEXT context;
+            PH_FAST_LOCK fastLock;
+            PH_QUEUED_LOCK queuedLock;
+
+            context.Name = L"FastLock";
+            context.AcquireExclusive = PhfAcquireFastLockExclusive;
+            context.AcquireShared = PhfAcquireFastLockShared;
+            context.ReleaseExclusive = PhfReleaseFastLockExclusive;
+            context.ReleaseShared = PhfReleaseFastLockShared;
+            context.Parameter = &fastLock;
+            PhInitializeFastLock(&fastLock);
+            PhpTestRwLock(&context);
+            PhDeleteFastLock(&fastLock);
+
+            context.Name = L"QueuedLock";
+            context.AcquireExclusive = PhfAcquireQueuedLockExclusive;
+            context.AcquireShared = PhfAcquireQueuedLockShared;
+            context.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
+            context.ReleaseShared = PhfReleaseQueuedLockShared;
+            context.Parameter = &queuedLock;
+            PhInitializeQueuedLock(&queuedLock);
+            PhpTestRwLock(&context);
         }
         else if (WSTR_IEQUAL(command, L"objects"))
         {
