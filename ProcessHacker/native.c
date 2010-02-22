@@ -3646,9 +3646,9 @@ NTSTATUS PhEnumHandles(
         PhFree(buffer);
         bufferSize *= 2;
 
-        // Fail if we're resizing the buffer to over 
-        // 16 MB.
-        if (bufferSize > 16 * 1024 * 1024)
+        // Fail if we're resizing the buffer to something 
+        // very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
         buffer = PhAllocate(bufferSize);
@@ -3711,8 +3711,8 @@ NTSTATUS PhEnumDirectoryObjects(
             if (buffer[0].Name.Buffer)
                 break;
 
-            // Make sure we don't resize to over 16 MB.
-            if (bufferSize > 16 * 1024 * 1024)
+            // Make sure we don't use too much memory.
+            if (bufferSize > PH_LARGE_BUFFER_SIZE)
             {
                 PhFree(buffer);
                 return STATUS_INSUFFICIENT_RESOURCES;
