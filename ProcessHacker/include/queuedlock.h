@@ -30,8 +30,19 @@ typedef struct _PH_QUEUED_LOCK
 
 typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
 {
+    /** A pointer to the next wait block, i.e. the 
+     * wait block pushed onto the list before this 
+     * one.
+     */
     struct _PH_QUEUED_WAIT_BLOCK *Next;
+    /** A pointer to the previous wait block, i.e. the 
+     * wait block pushed onto the list after this 
+     * one.
+     */
     struct _PH_QUEUED_WAIT_BLOCK *Previous;
+    /** A pointer to the last wait block, i.e. the 
+     * first waiter pushed onto the list.
+     */
     struct _PH_QUEUED_WAIT_BLOCK *Last;
 
     ULONG SharedOwners;
@@ -39,6 +50,13 @@ typedef struct DECLSPEC_ALIGN(16) _PH_QUEUED_WAIT_BLOCK
 } PH_QUEUED_WAIT_BLOCK, *PPH_QUEUED_WAIT_BLOCK;
 
 BOOLEAN PhQueuedLockInitialization();
+
+FORCEINLINE VOID PhInitializeQueuedLock(
+    __out PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    QueuedLock->Value = 0;
+}
 
 VOID FASTCALL PhfAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
