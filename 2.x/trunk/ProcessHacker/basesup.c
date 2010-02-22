@@ -2613,7 +2613,7 @@ VOID PhInitializeCallback(
     )
 {
     InitializeListHead(&Callback->ListHead);
-    PhInitializeFastLock(&Callback->ListLock);
+    PhInitializeQueuedLock(&Callback->ListLock);
 }
 
 /**
@@ -2625,7 +2625,7 @@ VOID PhDeleteCallback(
     __inout PPH_CALLBACK Callback
     )
 {
-    PhDeleteFastLock(&Callback->ListLock);
+    // Nothing for now
 }
 
 /**
@@ -2689,9 +2689,9 @@ VOID PhRegisterCallbackEx(
     Registration->Unregistering = FALSE;
     Registration->Flags = Flags;
 
-    PhAcquireFastLockExclusive(&Callback->ListLock);
+    PhAcquireQueuedLockExclusive(&Callback->ListLock);
     InsertTailList(&Callback->ListHead, &Registration->ListEntry);
-    PhReleaseFastLockExclusive(&Callback->ListLock);
+    PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
 /**
@@ -2715,9 +2715,9 @@ VOID PhUnregisterCallback(
 {
     Registration->Unregistering = TRUE;
 
-    PhAcquireFastLockExclusive(&Callback->ListLock);
+    PhAcquireQueuedLockExclusive(&Callback->ListLock);
     RemoveEntryList(&Registration->ListEntry);
-    PhReleaseFastLockExclusive(&Callback->ListLock);
+    PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
 /**
@@ -2734,7 +2734,7 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
-    PhAcquireFastLockShared(&Callback->ListLock);
+    PhAcquireQueuedLockShared(&Callback->ListLock);
 
     listEntry = Callback->ListHead.Flink;
 
@@ -2761,7 +2761,7 @@ VOID PhInvokeCallback(
         // and dereference the object when unregistering a provider.
 
         if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhReleaseFastLockShared(&Callback->ListLock);
+            PhReleaseQueuedLockShared(&Callback->ListLock);
 
         registration->Function(
             Parameter,
@@ -2769,10 +2769,10 @@ VOID PhInvokeCallback(
             );
 
         if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhAcquireFastLockShared(&Callback->ListLock);
+            PhAcquireQueuedLockShared(&Callback->ListLock);
     }
 
-    PhReleaseFastLockShared(&Callback->ListLock);
+    PhReleaseQueuedLockShared(&Callback->ListLock);
 }
 
 /**
