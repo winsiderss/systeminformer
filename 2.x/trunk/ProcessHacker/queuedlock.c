@@ -316,6 +316,7 @@ VOID FASTCALL PhpfWakeQueuedLock(
         // Also if there are multiple shared owners they may be 
         // traversing the list, and we shouldn't be doing so.
         assert(!(value & PH_QUEUED_LOCK_MULTIPLE_SHARED));
+        assert(value & PH_QUEUED_LOCK_TRAVERSING);
 
         // There's no point in waking a waiter if the lock 
         // is owned. Clear the traversing bit.
@@ -480,19 +481,12 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
 
     while (TRUE)
     {
-        // Use the fast path only if the lock isn't owned 
-        // OR it is owned in shared mode and there are no waiters.
-        // The second condition ensures we prioritize exclusive mode 
-        // over shared mode.
         if (
-            !(value & PH_QUEUED_LOCK_OWNED) ||
-            (!(value & PH_QUEUED_LOCK_WAITERS) && (PhGetQueuedLockSharedOwners(value) > 0))
+            !(value & PH_QUEUED_LOCK_WAITERS) &&
+            (!(value & PH_QUEUED_LOCK_OWNED) || (PhGetQueuedLockSharedOwners(value) > 0))
             )
         {
-            if (!(value & PH_QUEUED_LOCK_OWNED))
-                newValue = value + PH_QUEUED_LOCK_OWNED + PH_QUEUED_LOCK_SHARED_INC;
-            else
-                newValue = value + PH_QUEUED_LOCK_SHARED_INC;
+            newValue = (value + PH_QUEUED_LOCK_SHARED_INC) | PH_QUEUED_LOCK_OWNED;
 
             if ((newValue = (ULONG_PTR)_InterlockedCompareExchangePointer(
                 (PPVOID)&QueuedLock->Value,
