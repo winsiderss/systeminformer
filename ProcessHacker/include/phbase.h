@@ -1389,7 +1389,7 @@ typedef struct _PH_CALLBACK
     /** The list of registered callbacks. */
     LIST_ENTRY ListHead;
     /** A lock protecting the callbacks list. */
-    PH_FAST_LOCK ListLock;
+    PH_QUEUED_LOCK ListLock;
 } PH_CALLBACK, *PPH_CALLBACK;
 
 VOID PhInitializeCallback(

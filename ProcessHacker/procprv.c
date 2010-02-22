@@ -90,7 +90,7 @@ VOID PhpUpdateCpuInformation();
 PPH_OBJECT_TYPE PhProcessItemType;
 
 PPH_HASHTABLE PhProcessHashtable;
-PH_FAST_LOCK PhProcessHashtableLock;
+PH_QUEUED_LOCK PhProcessHashtableLock;
 
 PPH_QUEUE PhProcessQueryDataQueue;
 PH_MUTEX PhProcessQueryDataQueueLock;
@@ -126,7 +126,7 @@ BOOLEAN PhInitializeProcessProvider()
         PhpProcessHashtableHashFunction,
         40
         );
-    PhInitializeFastLock(&PhProcessHashtableLock);
+    PhInitializeQueuedLock(&PhProcessHashtableLock);
 
     PhProcessQueryDataQueue = PhCreateQueue(40);
     PhInitializeMutex(&PhProcessQueryDataQueueLock);
@@ -280,7 +280,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     // Construct a temporary process item for the lookup.
     lookupProcessItem.ProcessId = ProcessId;
 
-    PhAcquireFastLockShared(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
 
     processItemPtr = (PPH_PROCESS_ITEM *)PhGetHashtableEntry(
         PhProcessHashtable,
@@ -297,7 +297,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
         processItem = NULL;
     }
 
-    PhReleaseFastLockShared(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
 
     return processItem;
 }
@@ -812,14 +812,14 @@ VOID PhProcessProviderUpdate(
         // Lock only if we have something to do.
         if (processesToRemove)
         {
-            PhAcquireFastLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
 
             for (i = 0; i < processesToRemove->Count; i++)
             {
                 PhpRemoveProcessItem((PPH_PROCESS_ITEM)processesToRemove->Items[i]);
             }
 
-            PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
             PhDereferenceObject(processesToRemove);
         }
     }
@@ -920,9 +920,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateProcessItemServices(processItem);
 
             // Add the process item to the hashtable.
-            PhAcquireFastLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
             PhAddHashtableEntry(PhProcessHashtable, &processItem);
-            PhReleaseFastLockExclusive(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
