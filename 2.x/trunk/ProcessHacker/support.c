@@ -920,7 +920,7 @@ PPH_STRING PhGetApplicationModuleFileName(
     {
         returnLength = GetModuleFileName(ModuleHandle, buffer, bufferSize);
 
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        if (returnLength == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
         {
             PhFree(buffer);
             bufferSize *= 2;
@@ -928,6 +928,7 @@ PPH_STRING PhGetApplicationModuleFileName(
         }
         else
         {
+            // Success or a non-buffer-related error occurred.
             break;
         }
     }

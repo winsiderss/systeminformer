@@ -32,6 +32,8 @@
 #define PH_TIMEOUT_TO_MS ((LONGLONG)1 * 10 * 1000)
 #define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
 
+#define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
+
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
 
 // Annotations
