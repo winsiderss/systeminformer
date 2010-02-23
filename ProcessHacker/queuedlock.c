@@ -20,6 +20,59 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The queued lock is:
+ * * Around 10% faster than the fast lock.
+ * * Only the size of a pointer.
+ * * Low on resource usage (no additional kernel objects are 
+ *   created for blocking).
+ *
+ * The usual flags are used for contention-free 
+ * acquire/release. When there is contention, stack-based 
+ * wait blocks are chained. The first wait block contains 
+ * the shared owners count which is decremented by 
+ * shared releasers.
+ *
+ * Naturally these wait blocks would be chained 
+ * in FILO order, but list optimization is done for two purposes:
+ * * Finding the last wait block (where the shared owners 
+ *   count is stored). This is implemented by the Last pointer.
+ * * Unblocking the wait blocks in FIFO order. This is 
+ *   implemented by the Previous pointer.
+ *
+ * The optimization is incremental - each optimization run 
+ * will stop at the first optimized wait block. Any needed 
+ * optimization is completed just before waking waiters.
+ *
+ * The waiters list/chain has the following restrictions:
+ * * At any time wait blocks may be pushed onto the list.
+ * * While waking waiters, the list may not be traversed 
+ *   nor optimized.
+ * * When there are multiple shared owners, shared releasers 
+ *   may traverse the list (to find the last wait block). 
+ *   This is not an issue because waiters wouldn't be woken 
+ *   until there are no more shared owners.
+ * * List optimization may be done at any time except for 
+ *   when someone else is waking waiters. This is controlled 
+ *   by the traversing bit.
+ *
+ * The traversing bit has the following rules:
+ * * The list may be optimized only after the traversing bit 
+ *   is set, checking that it wasn't set already. 
+ *   If it was set, it would indicate that someone else is 
+ *   optimizing the list or waking waiters.
+ * * Before waking waiters the traversing bit must be set. 
+ *   If it was set already, just clear the owned bit.
+ * * If during list optimization the owned bit is detected 
+ *   to be cleared, the function begins waking waiters. This 
+ *   is because the owned bit is cleared when a releaser 
+ *   fails to set the traversing bit.
+ *
+ * Blocking is implemented through a process-wide keyed event. 
+ * A spin count is also used before blocking on the keyed 
+ * event.
+ */
+
 #include <phbase.h>
 
 VOID FASTCALL PhpfOptimizeQueuedLockList(
@@ -53,6 +106,36 @@ BOOLEAN PhQueuedLockInitialization()
     return TRUE;
 }
 
+/**
+ * Pushes a wait block onto a queued lock's waiters list.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ * \param Exclusive Whether the wait block is in exclusive 
+ * mode.
+ * \param WaitBlock A variable which receives the resulting 
+ * wait block structure.
+ * \param Optimize A variable which receives a boolean 
+ * indicating whether to optimize the waiters list.
+ * \param NewValue The old value of the queued lock. This 
+ * value is useful only if the function returns FALSE.
+ * \param CurrentValue The new value of the queued lock. This 
+ * value is useful only if the function returns TRUE.
+ *
+ * \return TRUE if the wait block was pushed onto the waiters 
+ * list, otherwise FALSE.
+ *
+ * \remarks
+ * \li The function assumes the following flags are set: 
+ * \ref PH_QUEUED_LOCK_OWNED.
+ * \li Do not move the wait block location after this 
+ * function is called.
+ * \li The \a Optimize boolean is a hint to call 
+ * PhpfOptimizeQueuedLockList() if the function succeeds. It is 
+ * recommended, but not essential that this occurs.
+ * \li Call PhpBlockOnQueuedWaitBlock() to wait for the wait 
+ * block to be unblocked.
+ */
 FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
     __inout PPH_QUEUED_LOCK QueuedLock,
     __in ULONG_PTR Value,
@@ -83,7 +166,7 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
         WaitBlock->SharedOwners = 0;
 
         // Push our wait block onto the list.
-        // Set the Traversing bit because we'll be optimizing the list.
+        // Set the traversing bit because we'll be optimizing the list.
         newValue = ((ULONG_PTR)WaitBlock) | (Value & PH_QUEUED_LOCK_FLAGS) |
             PH_QUEUED_LOCK_TRAVERSING;
 
@@ -139,6 +222,18 @@ FORCEINLINE BOOLEAN PhpPushQueuedWaitBlock(
     return newValue == Value;
 }
 
+/**
+ * Finds the last wait block in the waiters list.
+ *
+ * \param Value The current value of the queued lock.
+ *
+ * \return A pointer to the last wait block.
+ *
+ * \remarks The function assumes the following flags are set: 
+ * \ref PH_QUEUED_LOCK_WAITERS, 
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED or 
+ * \ref PH_QUEUED_LOCK_TRAVERSING.
+ */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
     __in ULONG_PTR Value
     )
@@ -206,6 +301,11 @@ __mayRaise FORCEINLINE VOID PhpBlockOnQueuedWaitBlock(
     }
 }
 
+/**
+ * Unblocks a wait block.
+ *
+ * \param WaitBlock A wait block.
+ */
 __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
@@ -224,6 +324,15 @@ __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
     }
 }
 
+/**
+ * Optimizes a queued lock waiters list.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
+ */
 VOID FASTCALL PhpfOptimizeQueuedLockList(
     __inout PPH_QUEUED_LOCK QueuedLock,
     __in ULONG_PTR Value
@@ -295,6 +404,17 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
     }
 }
 
+/**
+ * Wakes waiters in a queued lock.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
+ * The function assumes the following flags are not set:
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
+ */
 VOID FASTCALL PhpfWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock,
     __in ULONG_PTR Value
@@ -314,7 +434,9 @@ VOID FASTCALL PhpfWakeQueuedLock(
         // If there are multiple shared owners, no one is going 
         // to wake waiters since the lock would still be owned. 
         // Also if there are multiple shared owners they may be 
-        // traversing the list, and we shouldn't be doing so.
+        // traversing the list. While that is safe when 
+        // done concurrently with list optimization, we may be 
+        // removing and waking waiters.
         assert(!(value & PH_QUEUED_LOCK_MULTIPLE_SHARED));
         assert(value & PH_QUEUED_LOCK_TRAVERSING);
 
@@ -421,6 +543,11 @@ VOID FASTCALL PhpfWakeQueuedLock(
     } while (waitBlock);
 }
 
+/**
+ * Acquires a queued lock in exclusive mode.
+ *
+ * \param QueuedLock A queued lock.
+ */
 VOID FASTCALL PhfAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
@@ -467,6 +594,11 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
     }
 }
 
+/**
+ * Acquires a queued lock in shared mode.
+ *
+ * \param QueuedLock A queued lock.
+ */
 VOID FASTCALL PhfAcquireQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
@@ -481,6 +613,11 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
 
     while (TRUE)
     {
+        // We can't acquire if there are waiters for two reasons:
+        //
+        // We want to prioritize exclusive acquires over shared acquires.
+        // There's currently no fast, safe way of finding the last wait 
+        // block and incrementing the shared owners count here.
         if (
             !(value & PH_QUEUED_LOCK_WAITERS) &&
             (!(value & PH_QUEUED_LOCK_OWNED) || (PhGetQueuedLockSharedOwners(value) > 0))
@@ -518,6 +655,11 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
     }
 }
 
+/**
+ * Releases a queued lock in exclusive mode.
+ *
+ * \param QueuedLock A queued lock.
+ */
 VOID FASTCALL PhfReleaseQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
@@ -573,6 +715,11 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
     }
 }
 
+/**
+ * Releases a queued lock in shared mode.
+ *
+ * \param QueuedLock A queued lock.
+ */
 VOID FASTCALL PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
@@ -610,7 +757,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
         // decrement the shared owners count.
         waitBlock = PhpFindLastQueuedWaitBlock(value);
 
-        if ((ULONG)_InterlockedDecrement((PULONG)&waitBlock->SharedOwners) > 0)
+        if ((ULONG)_InterlockedDecrement((PLONG)&waitBlock->SharedOwners) > 0)
             return;
     }
 

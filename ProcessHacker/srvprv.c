@@ -50,7 +50,7 @@ VOID PhpRemoveProcessItemService(
 PPH_OBJECT_TYPE PhServiceItemType;
 
 PPH_HASHTABLE PhServiceHashtable;
-PH_FAST_LOCK PhServiceHashtableLock;
+PH_QUEUED_LOCK PhServiceHashtableLock;
 
 PH_CALLBACK PhServiceAddedEvent;
 PH_CALLBACK PhServiceModifiedEvent;
@@ -112,7 +112,7 @@ BOOLEAN PhInitializeServiceProvider()
         PhpServiceHashtableHashFunction,
         40
         );
-    PhInitializeFastLock(&PhServiceHashtableLock);
+    PhInitializeQueuedLock(&PhServiceHashtableLock);
 
     PhInitializeCallback(&PhServiceAddedEvent);
     PhInitializeCallback(&PhServiceModifiedEvent);
@@ -214,7 +214,7 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     // Construct a temporary service item for the lookup.
     PhInitializeStringRef(&lookupServiceItem.Key, Name);
 
-    PhAcquireFastLockShared(&PhServiceHashtableLock);
+    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
 
     serviceItemPtr = (PPH_SERVICE_ITEM *)PhGetHashtableEntry(
         PhServiceHashtable,
@@ -231,7 +231,7 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
         serviceItem = NULL;
     }
 
-    PhReleaseFastLockShared(&PhServiceHashtableLock);
+    PhReleaseQueuedLockShared(&PhServiceHashtableLock);
 
     return serviceItem;
 }
@@ -759,14 +759,14 @@ VOID PhServiceProviderUpdate(
 
         if (servicesToRemove)
         {
-            PhAcquireFastLockExclusive(&PhServiceHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
 
             for (i = 0; i < servicesToRemove->Count; i++)
             {
                 PhpRemoveServiceItem((PPH_SERVICE_ITEM)servicesToRemove->Items[i]);
             }
 
-            PhReleaseFastLockExclusive(&PhServiceHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
             PhDereferenceObject(servicesToRemove);
         }
     }
@@ -815,9 +815,9 @@ VOID PhServiceProviderUpdate(
             }
 
             // Add the service item to the hashtable.
-            PhAcquireFastLockExclusive(&PhServiceHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
             PhAddHashtableEntry(PhServiceHashtable, &serviceItem);
-            PhReleaseFastLockExclusive(&PhServiceHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
 
             // Raise the service added event.
             PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
