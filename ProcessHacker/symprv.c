@@ -118,7 +118,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         return NULL;
 
     symbolProvider->ModulesList = PhCreateList(10);
-    PhInitializeFastLock(&symbolProvider->ModulesListLock);
+    PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
     symbolProvider->IsRealHandle = TRUE;
 
     // Try to open the process with many different access masks. 
@@ -197,7 +197,6 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     }
 
     PhDereferenceObject(symbolProvider->ModulesList);
-    PhDeleteFastLock(&symbolProvider->ModulesListLock);
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
@@ -235,7 +234,7 @@ ULONG64 PhGetModuleFromAddress(
 {
     ULONG i;
 
-    PhAcquireFastLockShared(&SymbolProvider->ModulesListLock);
+    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
 
     for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
     {
@@ -253,13 +252,13 @@ ULONG64 PhGetModuleFromAddress(
                 PhReferenceObject(module->FileName);
             }
 
-            PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+            PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
 
             return baseAddress;
         }
     }
 
-    PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+    PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
 
     return 0;
 }
@@ -332,7 +331,7 @@ PPH_STRING PhGetSymbolFromAddress(
 
         modBase = symbolInfo->ModBase;
 
-        PhAcquireFastLockShared(&SymbolProvider->ModulesListLock);
+        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
 
         for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
         {
@@ -349,7 +348,7 @@ PPH_STRING PhGetSymbolFromAddress(
             }
         }
 
-        PhReleaseFastLockShared(&SymbolProvider->ModulesListLock);
+        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
     }
 
     // If we don't have a module name, return an address.
@@ -465,7 +464,7 @@ BOOLEAN PhSymbolProviderLoadModule(
         ULONG i;
         PPH_SYMBOL_MODULE symbolModule = NULL;
 
-        PhAcquireFastLockExclusive(&SymbolProvider->ModulesListLock);
+        PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
 
         for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
         {
@@ -491,7 +490,7 @@ BOOLEAN PhSymbolProviderLoadModule(
             PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
         }
 
-        PhReleaseFastLockExclusive(&SymbolProvider->ModulesListLock);
+        PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
     }
 
     if (!baseAddress)

@@ -819,7 +819,7 @@ extern PPH_OBJECT_TYPE PhSymbolProviderType;
 typedef struct _PH_SYMBOL_PROVIDER
 {
     PPH_LIST ModulesList;
-    PH_FAST_LOCK ModulesListLock;
+    PH_QUEUED_LOCK ModulesListLock;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
