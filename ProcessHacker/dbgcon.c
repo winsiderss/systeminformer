@@ -316,9 +316,9 @@ static NTSTATUS PhpRwLockTestThreadStart(
 {
 #define RW_ITERS 10000
 #define RW_READ_ITERS 100
-#define RW_WRITE_ITERS 20
-#define RW_READ_SPIN_ITERS 30
-#define RW_WRITE_SPIN_ITERS 80
+#define RW_WRITE_ITERS 10
+#define RW_READ_SPIN_ITERS 60
+#define RW_WRITE_SPIN_ITERS 200
 
     RW_TEST_CONTEXT context = *(PRW_TEST_CONTEXT)Parameter;
     ULONG i;
