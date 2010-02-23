@@ -54,7 +54,7 @@ NTSTATUS PhInitializeRef()
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgObjectListHead);
-    PhInitializeFastLock(&PhDbgObjectListLock);
+    PhInitializeQueuedLock(&PhDbgObjectListLock);
 #endif
     
     // Create the fundamental object type.
@@ -166,9 +166,9 @@ __mayRaise NTSTATUS PhCreateObject(
             );
     }
 
-    PhAcquireFastLockExclusive(&PhDbgObjectListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
     InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
-    PhReleaseFastLockExclusive(&PhDbgObjectListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 
     if (PhDbgCreateObjectHook)
     {
@@ -604,9 +604,9 @@ VOID PhpFreeObject(
     _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
 
 #ifdef DEBUG
-    PhAcquireFastLockExclusive(&PhDbgObjectListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
     RemoveEntryList(&ObjectHeader->ObjectListEntry);
-    PhReleaseFastLockExclusive(&PhDbgObjectListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
     
     /* Call the delete procedure if we have one. */
