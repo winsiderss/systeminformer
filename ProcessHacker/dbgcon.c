@@ -610,7 +610,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             if (typeFilter)
                 wcslwr(typeFilter);
 
-            PhAcquireFastLockShared(&PhDbgObjectListLock);
+            PhAcquireQueuedLockShared(&PhDbgObjectListLock);
 
             currentEntry = PhDbgObjectListHead.Flink;
 
@@ -649,7 +649,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhDereferenceObjectDeferDelete(PhObjectHeaderToObject(objectHeader));
             }
 
-            PhReleaseFastLockShared(&PhDbgObjectListLock);
+            PhReleaseQueuedLockShared(&PhDbgObjectListLock);
 
             wprintf(L"Total number: %u\n", totalNumberOfObjects);
             wprintf(L"Total size (excl. header): %s\n",
@@ -725,7 +725,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             ObjectListSnapshot = PhCreateSimpleHashtable(100);
 
-            PhAcquireFastLockShared(&PhDbgObjectListLock);
+            PhAcquireQueuedLockShared(&PhDbgObjectListLock);
 
             currentEntry = PhDbgObjectListHead.Flink;
 
@@ -740,7 +740,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PhAddSimpleHashtableItem(ObjectListSnapshot, objectHeader, NULL);
             }
 
-            PhReleaseFastLockShared(&PhDbgObjectListLock);
+            PhReleaseQueuedLockShared(&PhDbgObjectListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
@@ -760,7 +760,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             newObjects = PhCreateList(10);
 
-            PhAcquireFastLockShared(&PhDbgObjectListLock);
+            PhAcquireQueuedLockShared(&PhDbgObjectListLock);
 
             currentEntry = PhDbgObjectListHead.Flink;
 
@@ -784,7 +784,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 }
             }
 
-            PhReleaseFastLockShared(&PhDbgObjectListLock);
+            PhReleaseQueuedLockShared(&PhDbgObjectListLock);
 
             for (i = 0; i < newObjects->Count; i++)
             {
