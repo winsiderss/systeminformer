@@ -1323,6 +1323,8 @@ extern PPH_OBJECT_TYPE PhFreeListType;
 typedef struct _PH_FREE_LIST
 {
     ULONG Count;
+    PH_QUEUED_LOCK Lock;
+
     ULONG MaximumCount;
     SIZE_T Size;
     PVOID List[1];
@@ -1544,13 +1546,13 @@ typedef struct _PH_WORK_QUEUE
     BOOLEAN Terminating;
 
     PPH_QUEUE Queue;
-    PH_MUTEX QueueLock;
+    PH_QUEUED_LOCK QueueLock;
 
     ULONG MaximumThreads;
     ULONG MinimumThreads;
     ULONG NoWorkTimeout;
 
-    PH_MUTEX StateLock;
+    PH_QUEUED_LOCK StateLock;
     HANDLE SemaphoreHandle;
     ULONG CurrentThreads;
     ULONG BusyThreads;
