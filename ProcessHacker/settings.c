@@ -593,18 +593,19 @@ BOOLEAN PhSaveSettings(
     {
         PPH_STRING fullPath;
         ULONG indexOfFileName;
+        PPH_STRING directoryName;
 
         fullPath = PhGetFullPath(FileName, &indexOfFileName);
 
         if (fullPath)
         {
-            PPH_STRING directoryName;
+            if (indexOfFileName != -1)
+            {
+                directoryName = PhSubstring(fullPath, 0, indexOfFileName);
+                SHCreateDirectoryEx(NULL, directoryName->Buffer, NULL);
+                PhDereferenceObject(directoryName);
+            }
 
-            directoryName = PhSubstring(fullPath, 0, indexOfFileName);
-
-            SHCreateDirectoryEx(NULL, directoryName->Buffer, NULL);
-
-            PhDereferenceObject(directoryName);
             PhDereferenceObject(fullPath);
         }
     }
