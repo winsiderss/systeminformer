@@ -41,7 +41,7 @@ static ULONG PhpAutoPoolTlsIndex;
 
 #ifdef DEBUG
 LIST_ENTRY PhDbgObjectListHead;
-PH_FAST_LOCK PhDbgObjectListLock;
+PH_QUEUED_LOCK PhDbgObjectListLock;
 PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 #endif
 

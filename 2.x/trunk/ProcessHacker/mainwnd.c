@@ -940,6 +940,29 @@ LRESULT CALLBACK PhMainWndProc(
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+VOID PhpReloadListViewFont()
+{
+    HFONT fontHandle;
+    LOGFONT font;
+
+    if (ProcessListViewHandle && (fontHandle = (HFONT)SendMessage(ProcessListViewHandle, WM_GETFONT, 0, 0)))
+    {
+        if (GetObject(fontHandle, sizeof(LOGFONT), &font))
+        {
+            font.lfWeight = FW_BOLD;
+            fontHandle = CreateFontIndirect(&font);
+
+            if (fontHandle)
+            {
+                if (PhBoldListViewFont)
+                    DeleteObject(PhBoldListViewFont);
+
+                PhBoldListViewFont = fontHandle;
+            }
+        }
+    }
+}
+
 VOID PhReloadSysParameters()
 {
     PhSysWindowColor = GetSysColor(COLOR_WINDOW);
@@ -948,6 +971,8 @@ VOID PhReloadSysParameters()
     DeleteObject(PhBoldMessageFont);
     PhInitializeFont(PhMainWndHandle);
 	SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
+
+    PhpReloadListViewFont();
 }
 
 VOID PhpSaveWindowState()
@@ -1110,6 +1135,7 @@ VOID PhMainWndOnCreate()
     ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
     PhSetListViewStyle(ProcessListViewHandle, TRUE, TRUE);
     BringWindowToTop(ProcessListViewHandle);
+    PhpReloadListViewFont();
 
     ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
     PhSetListViewStyle(ServiceListViewHandle, TRUE, TRUE);
