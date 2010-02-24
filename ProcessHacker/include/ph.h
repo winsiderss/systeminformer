@@ -759,7 +759,7 @@ typedef struct _PH_PROVIDER_THREAD
     ULONG Interval;
     PH_PROVIDER_THREAD_STATE State;
 
-    PH_MUTEX Mutex;
+    PH_QUEUED_LOCK Lock;
     LIST_ENTRY ListHead;
     ULONG BoostCount;
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
