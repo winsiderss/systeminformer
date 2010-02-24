@@ -88,7 +88,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         InitializeListHead(&tempListHead);
 
-        PhAcquireQueuedLockExclusive(&providerThread->Lock);
+        PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
         // Main loop.
 
@@ -125,8 +125,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
                 if (registration->Unregistering)
                 {
-                    PhReleaseQueuedLockExclusive(&providerThread->Lock);
-                    PhAcquireQueuedLockExclusive(&providerThread->Lock);
+                    PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
+                    PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
                     continue;
                 }
@@ -143,9 +143,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             if (object)
                 PhReferenceObject(object);
 
-            PhReleaseQueuedLockExclusive(&providerThread->Lock);
+            PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
             registration->Function(registration->Object);
-            PhAcquireQueuedLockExclusive(&providerThread->Lock);
+            PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
             if (object)
                 PhDereferenceObject(object);
@@ -156,7 +156,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
         while ((listEntry = RemoveHeadList(&tempListHead)) != &tempListHead)
             InsertTailList(&providerThread->ListHead, listEntry);
 
-        PhReleaseQueuedLockExclusive(&providerThread->Lock);
+        PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
 
         // Perform an alertable wait so we can be woken up by 
         // someone telling us to terminate.
@@ -246,7 +246,7 @@ VOID PhBoostProvider(
 
     // Simply move to the provider to the front of the list. 
     // This works even if the provider is currently in the temp list.
-    PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
+    PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
 
     RemoveEntryList(&Registration->ListEntry);
     InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
@@ -254,7 +254,7 @@ VOID PhBoostProvider(
     Registration->Boosting = TRUE;
     ProviderThread->BoostCount++;
 
-    PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+    PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
 
     // Wake up the thread.
     NtAlertThread(ProviderThread->ThreadHandle);
@@ -284,9 +284,9 @@ VOID PhRegisterProvider(
     if (Object)
         PhReferenceObject(Object);
 
-    PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
+    PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
     InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
-    PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+    PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
 }
 
 VOID PhUnregisterProvider(
@@ -304,7 +304,7 @@ VOID PhUnregisterProvider(
     //    will be removed from the temp list and so 
     //    it won't be re-added to the main list.
 
-    PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
+    PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
 
     RemoveEntryList(&Registration->ListEntry);
 
@@ -317,5 +317,5 @@ VOID PhUnregisterProvider(
     if (Registration->Object)
         PhDereferenceObject(Registration->Object);
 
-    PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+    PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
 }

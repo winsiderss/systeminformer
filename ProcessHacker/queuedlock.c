@@ -21,6 +21,9 @@
  */
 
 /*
+ * Queued lock, a.k.a. push lock (kernel-mode) or slim reader-writer lock 
+ * (user-mode).
+ *
  * The queued lock is:
  * * Around 10% faster than the fast lock.
  * * Only the size of a pointer.
