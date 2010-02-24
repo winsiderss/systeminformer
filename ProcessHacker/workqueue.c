@@ -148,7 +148,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             BOOLEAN terminate = FALSE;
 
             // Lock and re-check.
-            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
 
             // Check the minimum as well.
             if (
@@ -160,7 +160,7 @@ NTSTATUS PhpWorkQueueThreadStart(
                 terminate = TRUE;
             }
 
-            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
 
             if (terminate)
                 break;
@@ -172,9 +172,9 @@ NTSTATUS PhpWorkQueueThreadStart(
         if (workQueue->Terminating)
         {
             // The work queue is being deleted.
-            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
             workQueue->CurrentThreads--;
-            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
 
             break;
         }
@@ -182,9 +182,9 @@ NTSTATUS PhpWorkQueueThreadStart(
         if (result == WAIT_OBJECT_0)
         {
             // Dequeue the work item.
-            PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
+            PhAcquireQueuedLockExclusiveFast(&workQueue->QueueLock);
             PhDequeueQueueItem(workQueue->Queue, &workQueueItem);
-            PhReleaseQueuedLockExclusive(&workQueue->QueueLock);
+            PhReleaseQueuedLockExclusiveFast(&workQueue->QueueLock);
 
             // Make sure we got work.
             if (workQueueItem)
@@ -203,7 +203,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             // No work arrived before the timeout passed (or some error occurred).
             // Terminate the thread.
 
-            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
 
             // Check the minimum.
             if (workQueue->CurrentThreads > workQueue->MinimumThreads)
@@ -212,7 +212,7 @@ NTSTATUS PhpWorkQueueThreadStart(
                 terminate = TRUE;
             }
 
-            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
 
             if (terminate)
                 break;
@@ -250,14 +250,14 @@ VOID PhQueueWorkQueueItem(
         )
     {
         // Lock and re-check.
-        PhAcquireQueuedLockExclusive(&WorkQueue->StateLock);
+        PhAcquireQueuedLockExclusiveFast(&WorkQueue->StateLock);
 
         if (WorkQueue->CurrentThreads < WorkQueue->MaximumThreads)
         {
             PhpCreateWorkQueueThread(WorkQueue);
         }
 
-        PhReleaseQueuedLockExclusive(&WorkQueue->StateLock);
+        PhReleaseQueuedLockExclusiveFast(&WorkQueue->StateLock);
     }
 }
 

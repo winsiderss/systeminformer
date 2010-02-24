@@ -2678,9 +2678,9 @@ VOID PhRegisterCallbackEx(
     Registration->Unregistering = FALSE;
     Registration->Flags = Flags;
 
-    PhAcquireQueuedLockExclusive(&Callback->ListLock);
+    PhAcquireQueuedLockExclusiveFast(&Callback->ListLock);
     InsertTailList(&Callback->ListHead, &Registration->ListEntry);
-    PhReleaseQueuedLockExclusive(&Callback->ListLock);
+    PhReleaseQueuedLockExclusiveFast(&Callback->ListLock);
 }
 
 /**
@@ -2704,9 +2704,9 @@ VOID PhUnregisterCallback(
 {
     Registration->Unregistering = TRUE;
 
-    PhAcquireQueuedLockExclusive(&Callback->ListLock);
+    PhAcquireQueuedLockExclusiveFast(&Callback->ListLock);
     RemoveEntryList(&Registration->ListEntry);
-    PhReleaseQueuedLockExclusive(&Callback->ListLock);
+    PhReleaseQueuedLockExclusiveFast(&Callback->ListLock);
 }
 
 /**
@@ -2723,7 +2723,7 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
-    PhAcquireQueuedLockShared(&Callback->ListLock);
+    PhAcquireQueuedLockSharedFast(&Callback->ListLock);
 
     listEntry = Callback->ListHead.Flink;
 
@@ -2750,7 +2750,7 @@ VOID PhInvokeCallback(
         // and dereference the object when unregistering a provider.
 
         if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhReleaseQueuedLockShared(&Callback->ListLock);
+            PhReleaseQueuedLockSharedFast(&Callback->ListLock);
 
         registration->Function(
             Parameter,
@@ -2758,10 +2758,10 @@ VOID PhInvokeCallback(
             );
 
         if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhAcquireQueuedLockShared(&Callback->ListLock);
+            PhAcquireQueuedLockSharedFast(&Callback->ListLock);
     }
 
-    PhReleaseQueuedLockShared(&Callback->ListLock);
+    PhReleaseQueuedLockSharedFast(&Callback->ListLock);
 }
 
 /**
