@@ -2,6 +2,7 @@
 #define QUEUEDLOCK_H
 
 #define PH_QUEUED_LOCK_OWNED ((ULONG_PTR)0x1)
+#define PH_QUEUED_LOCK_OWNED_SHIFT 0
 #define PH_QUEUED_LOCK_WAITERS ((ULONG_PTR)0x2)
 
 // Valid only if Waiters = 0
@@ -77,5 +78,102 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
 VOID FASTCALL PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
+
+#define PhTryWakePushLock PhfTryWakePushLock
+VOID FASTCALL PhfTryWakePushLock(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    );
+
+// Inline functions
+
+FORCEINLINE VOID PhAcquireQueuedLockExclusiveFast(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+#ifdef _M_IX86
+    if (_interlockedbittestandset((PLONG)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
+#else
+    if (_interlockedbittestandset64((PLONG64)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
+#endif
+    {
+        // Owned bit was already set. Slow path.
+        PhAcquireQueuedLockExclusive(QueuedLock);
+    }
+}
+
+FORCEINLINE VOID PhAcquireQueuedLockSharedFast(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    ULONG_PTR value;
+
+    value = QueuedLock->Value;
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&QueuedLock->Value,
+        (PVOID)(PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC),
+        (PVOID)value
+        ) != value)
+    {
+        PhAcquireQueuedLockShared(QueuedLock);
+    }
+}
+
+FORCEINLINE BOOLEAN PhTryAcquirePushLockExclusive(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+#ifdef _M_IX86
+    if (!_interlockedbittestandset((PLONG)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
+#else
+    if (!_interlockedbittestandset64((PLONG64)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
+#endif
+    {
+        return TRUE; 
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+FORCEINLINE VOID PhReleaseQueuedLockExclusiveFast(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    ULONG_PTR value;
+
+#ifdef _M_IX86
+    value = (ULONG_PTR)_InterlockedExchangeAdd((PLONG)&QueuedLock->Value, -PH_QUEUED_LOCK_OWNED);
+#else
+    value = (ULONG_PTR)_InterlockedExchangeAdd((PLONG64)&QueuedLock->Value, -PH_QUEUED_LOCK_OWNED);
+#endif
+
+    if (
+        (value & PH_QUEUED_LOCK_WAITERS) &&
+        !(value & PH_QUEUED_LOCK_TRAVERSING)
+        )
+    {
+        PhTryWakePushLock(QueuedLock);
+    }
+}
+
+FORCEINLINE VOID PhReleaseQueuedLockSharedFast(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    ULONG_PTR value;
+
+    value = PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC;
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&QueuedLock->Value,
+        (PVOID)0,
+        (PVOID)value
+        ) != value)
+    {
+        PhReleaseQueuedLockShared(QueuedLock);
+    }
+}
 
 #endif
