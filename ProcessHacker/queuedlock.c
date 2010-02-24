@@ -88,6 +88,13 @@ VOID FASTCALL PhpfWakeQueuedLock(
     __in ULONG_PTR Value
     );
 
+VOID FASTCALL PhpfWakeQueuedLockEx(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value,
+	__in BOOLEAN IgnoreOwned,
+	__in BOOLEAN WakeAll
+    );
+
 HANDLE PhQueuedLockKeyedEventHandle;
 ULONG PhQueuedLockSpinCount;
 
@@ -408,20 +415,20 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
 }
 
 /**
- * Wakes waiters in a queued lock.
+ * Dequeues the appropriate number of wait blocks in 
+ * a queued lock.
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
- *
- * \remarks The function assumes the following flags are set:
- * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
- * The function assumes the following flags are not set:
- * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
+ * \param WakeAll TRUE to remove all wait blocks, FALSE 
+ * to decide based on the wait block type.
  */
-VOID FASTCALL PhpfWakeQueuedLock(
-    __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
-    )
+FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
+	__inout PPH_QUEUED_LOCK QueuedLock,
+	__in ULONG_PTR Value,
+	__in BOOLEAN IgnoreOwned,
+	__in BOOLEAN WakeAll
+	)
 {
     ULONG_PTR value;
     ULONG_PTR newValue;
@@ -445,7 +452,7 @@ VOID FASTCALL PhpfWakeQueuedLock(
 
         // There's no point in waking a waiter if the lock 
         // is owned. Clear the traversing bit.
-        while (value & PH_QUEUED_LOCK_OWNED)
+        while (!IgnoreOwned && (value & PH_QUEUED_LOCK_OWNED))
         {
             newValue = value - PH_QUEUED_LOCK_TRAVERSING;
 
@@ -454,7 +461,7 @@ VOID FASTCALL PhpfWakeQueuedLock(
                 (PVOID)newValue,
                 (PVOID)value
                 )) == value)
-                return;
+                return NULL;
 
             value = newValue;
         }
@@ -485,6 +492,7 @@ VOID FASTCALL PhpfWakeQueuedLock(
         // traversing bit before we wake waiters.
 
         if (
+			!WaitAll &&
             (waitBlock->Flags & PH_QUEUED_WAITER_EXCLUSIVE) &&
             (previousWaitBlock = waitBlock->Previous)
             )
@@ -536,14 +544,73 @@ VOID FASTCALL PhpfWakeQueuedLock(
         }
     }
 
+	return waitBlock;
+}
+
+/**
+ * Wakes waiters in a queued lock.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
+ * The function assumes the following flags are not set:
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
+ */
+VOID FASTCALL PhpfWakeQueuedLock(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value
+    )
+{
+	PPH_QUEUED_WAIT_BLOCK waitBlock;
+	PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
+
+	waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, FALSE, FALSE);
+
     // Wake waiters.
 
-    do
+    while (waitBlock)
     {
         previousWaitBlock = waitBlock->Previous;
         PhpUnblockQueuedWaitBlock(waitBlock);
         waitBlock = previousWaitBlock;
-    } while (waitBlock);
+    }
+}
+
+/**
+ * Wakes waiters in a queued lock.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ * \param WakeAll TRUE to wake all waiters, FALSE to 
+ * decide based on the wait block type.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
+ * The function assumes the following flags are not set:
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED.
+ */
+VOID FASTCALL PhpfWakeQueuedLockEx(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value,
+	__in BOOLEAN IgnoreOwned,
+	__in BOOLEAN WakeAll
+    )
+{
+	PPH_QUEUED_WAIT_BLOCK waitBlock;
+	PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
+
+	waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, IgnoreOwned, WakeAll);
+
+    // Wake waiters.
+
+    while (waitBlock)
+    {
+        previousWaitBlock = waitBlock->Previous;
+        PhpUnblockQueuedWaitBlock(waitBlock);
+        waitBlock = previousWaitBlock;
+    }
 }
 
 /**
@@ -830,4 +897,82 @@ VOID FASTCALL PhfTryWakePushLock(
     {
         PhpfWakeQueuedLock(QueuedLock, newValue);
     }
+}
+
+/**
+ * Wakes one thread sleeping on a condition variable.
+ *
+ * \param Condition A condition variable.
+ */
+VOID FASTCALL PhfPulseCondition(
+	__inout PPH_QUEUED_LOCK Condition
+	)
+{
+	PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
+}
+
+/**
+ * Wakes all threads sleeping on a condition variable.
+ *
+ * \param Condition A condition variable.
+ */
+VOID FASTCALL PhfPulseAllCondition(
+	__inout PPH_QUEUED_LOCK Condition
+	)
+{
+	PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
+}
+	
+/**
+ * Sleeps on a condition variable.
+ *
+ * \param Condition A condition variable.
+ * \param Lock A queued lock to release/acquire.
+ * \param Timeout Not implemented.
+ */
+VOID FASTCALL PhfWaitForCondition(
+	__inout PPH_QUEUED_LOCK Condition,
+	__inout_opt PPH_QUEUED_LOCK Lock,
+	__in_opt PLARGE_INTEGER Timeout
+	)
+{
+	ULONG_PTR value;
+	ULONG_PTR currentValue;
+	PH_QUEUED_WAIT_BLOCK waitBlock;
+	BOOLEAN optimize;
+
+	value = Condition->Value;
+
+	while (TRUE)
+	{
+		if (PhpPushQueuedWaitBlock(
+			Condition,
+			value,
+			TRUE,
+			&waitBlock,
+			&optimize,
+			&value,
+			&currentValue
+			))
+		{
+			if (optimize)
+				PhpfOptimizeQueuedLockList(Condition, currentValue);
+
+			if (Lock)
+			{
+				PhReleaseQueuedLockExclusiveFast(Lock);
+			}
+
+			PhpBlockOnQueuedWaitBlock(&waitBlock);
+
+			if (Lock)
+			{
+				// Don't use the fast variant; it is extremely likely 
+				// that the lock is still owned.
+				PhAcquireQueuedLockExclusive(Lock);
+			}
+
+			break;
+		}
+	}
 }
