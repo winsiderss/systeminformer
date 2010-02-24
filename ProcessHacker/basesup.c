@@ -2514,6 +2514,8 @@ PPH_FREE_LIST PhCreateFreeList(
         MaximumCount = 1;
 
     freeList->Count = 0;
+    PhInitializeQueuedLock(&freeList->Lock);
+
     freeList->Size = Size;
     freeList->MaximumCount = MaximumCount;
 
@@ -2544,27 +2546,25 @@ PVOID PhAllocateFromFreeList(
     __inout PPH_FREE_LIST FreeList
     )
 {
-    ULONG count;
+    PVOID memory;
 
-    while (TRUE)
+    // TODO: Implement as lock-free singly linked list.
+
+    PhAcquireQueuedLockExclusive(&FreeList->Lock);
+
+    if (FreeList->Count != 0)
     {
-        count = FreeList->Count;
-
-        if (count == 0)
-        {
-            // No unused allocations. Just allocate.
-            return PhAllocate(FreeList->Size);
-        }
-
-        if (_InterlockedCompareExchange(
-            &FreeList->Count,
-            count - 1,
-            count
-            ) == count)
-        {
-            return FreeList->List[count - 1];
-        }
+        memory = FreeList->List[--FreeList->Count];
     }
+    else
+    {
+        // No unused allocations. Just allocate.
+        memory = PhAllocate(FreeList->Size);
+    }
+
+    PhReleaseQueuedLockExclusive(&FreeList->Lock);
+
+    return memory;
 }
 
 /**
@@ -2578,29 +2578,18 @@ VOID PhFreeToFreeList(
     __in PVOID Memory
     )
 {
-    ULONG count;
+    PhAcquireQueuedLockExclusive(&FreeList->Lock);
 
-    while (TRUE)
+    if (FreeList->Count < FreeList->MaximumCount)
     {
-        count = FreeList->Count;
-
-        if (count == FreeList->MaximumCount)
-        {
-            // No room for the allocation. Discard it.
-            PhFree(Memory);
-            break;
-        }
-
-        if (_InterlockedCompareExchange(
-            &FreeList->Count,
-            count + 1,
-            count
-            ) == count)
-        {
-            FreeList->List[count] = Memory;
-            break;
-        }
+        FreeList->List[FreeList->Count++] = Memory;
     }
+    else
+    {
+        PhFree(Memory);
+    }
+
+    PhReleaseQueuedLockExclusive(&FreeList->Lock);
 }
 
 /**
