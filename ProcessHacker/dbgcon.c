@@ -560,14 +560,14 @@ NTSTATUS PhpDebugConsoleThreadStart(
             // Queued lock
 
             PhInitializeQueuedLock(&testQueuedLock);
-            PhAcquireQueuedLockExclusive(&testQueuedLock);
-            PhReleaseQueuedLockExclusive(&testQueuedLock);
+            PhAcquireQueuedLockExclusiveFast(&testQueuedLock);
+            PhReleaseQueuedLockExclusiveFast(&testQueuedLock);
             PhStartStopwatch(&stopwatch);
 
             for (i = 0; i < 10000000; i++)
             {
-                PhAcquireQueuedLockExclusive(&testQueuedLock);
-                PhReleaseQueuedLockExclusive(&testQueuedLock);
+                PhAcquireQueuedLockExclusiveFast(&testQueuedLock);
+                PhReleaseQueuedLockExclusiveFast(&testQueuedLock);
             }
 
             PhStopStopwatch(&stopwatch);
