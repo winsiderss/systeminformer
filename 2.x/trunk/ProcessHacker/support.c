@@ -801,7 +801,16 @@ PPH_STRING PhGetFullPath(
 
     if (IndexOfFileName)
     {
-        *IndexOfFileName = (ULONG)(filePart - (PWSTR)buffer);
+        if (filePart)
+        {
+            // The path points to a file.
+            *IndexOfFileName = (ULONG)(filePart - (PWSTR)buffer);
+        }
+        else
+        {
+            // The path points to a directory.
+            *IndexOfFileName = -1;
+        }
     }
 
     PhFree(buffer);
@@ -946,14 +955,18 @@ PPH_STRING PhGetApplicationModuleFileName(
         ULONG indexOfFileName;
 
         fileName = PhCreateString((PWSTR)buffer);
-        indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
 
-        if (indexOfFileName != -1)
-            indexOfFileName++;
-        else
-            indexOfFileName = 0;
+        if (IndexOfFileName)
+        {
+            indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
 
-        *IndexOfFileName = indexOfFileName;
+            if (indexOfFileName != -1)
+                indexOfFileName++;
+            else
+                indexOfFileName = -1;
+
+            *IndexOfFileName = indexOfFileName;
+        }
     }
 
     PhFree(buffer);
@@ -976,8 +989,12 @@ PPH_STRING PhGetApplicationDirectory()
 
     if (fileName)
     {
-        // Remove the file name from the path.
-        path = PhSubstring(fileName, 0, indexOfFileName);
+        if (indexOfFileName != -1)
+        {
+            // Remove the file name from the path.
+            path = PhSubstring(fileName, 0, indexOfFileName);
+        }
+
         PhDereferenceObject(fileName);
     }
 

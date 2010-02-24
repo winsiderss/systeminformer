@@ -203,14 +203,16 @@ BOOLEAN PhMainWndInitialization(
 
             if (fullDbghelpPath)
             {
-                dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
+                if (indexOfFileName != -1)
+                {
+                    dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
+                    symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
+                    LoadLibrary(symsrvPath->Buffer);
 
-                symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
+                    PhDereferenceObject(symsrvPath);
+                    PhDereferenceObject(dbghelpFolder);
+                }
 
-                LoadLibrary(symsrvPath->Buffer);
-
-                PhDereferenceObject(symsrvPath);
-                PhDereferenceObject(dbghelpFolder);
                 PhDereferenceObject(fullDbghelpPath);
             }
         }
