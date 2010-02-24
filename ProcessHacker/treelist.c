@@ -87,11 +87,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
             context->HeaderHandle = CreateWindow(
                 WC_HEADER,
                 L"",
-                WS_CHILD | WS_BORDER | WS_VISIBLE | HDS_BUTTONS | HDS_HORZ,
+                WS_CHILD | WS_VISIBLE | HDS_BUTTONS | HDS_FULLDRAG | HDS_HORZ,
                 0,
                 0,
-                createStruct->cx,
-                CW_USEDEFAULT,
+                0,
+                0,
                 hwnd,
                 (HMENU)PH_TREELIST_HEADER_ID,
                 PhInstanceHandle,
@@ -108,6 +108,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                 Header_InsertItem(context->HeaderHandle, 0, &item);
             }
+
+            SendMessage(hwnd, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
         }
         break;
     case WM_DESTROY:
@@ -120,10 +122,19 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case WM_SIZE:
         {
             RECT clientRect;
+            HDLAYOUT layout;
+            WINDOWPOS pos;
 
             GetClientRect(hwnd, &clientRect);
-            SetWindowPos(context->HeaderHandle, NULL, 0, 0,
-                clientRect.right - clientRect.left, 20, SWP_NOACTIVATE | SWP_NOZORDER);
+
+            layout.prc = &clientRect;
+            layout.pwpos = &pos;
+
+            if (Header_Layout(context->HeaderHandle, &layout))
+            {
+                SetWindowPos(context->HeaderHandle, NULL, pos.x, pos.y,
+                    pos.cx, pos.cy, SWP_NOACTIVATE | SWP_NOZORDER);
+            }
         }
         break;
     case WM_ERASEBKGND:
@@ -150,6 +161,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
             DrawText(hdc, L"Test", -1, &rect, DT_LEFT | DT_NOCLIP);
 
             EndPaint(hwnd, &paintStruct);
+        }
+        break;
+    case WM_SETFONT:
+        {
+            SendMessage(context->HeaderHandle, WM_SETFONT, wParam, lParam);
         }
         break;
     }
