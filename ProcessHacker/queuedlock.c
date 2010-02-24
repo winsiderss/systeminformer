@@ -794,3 +794,37 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
         value = newValue;
     }
 }
+
+/**
+ * Wakes waiters in a queued lock, making no assumptions 
+ * about the state of the lock.
+ *
+ * \param QueuedLock A queued lock.
+ */
+VOID FASTCALL PhfTryWakePushLock(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    ULONG_PTR value;
+    ULONG_PTR newValue;
+
+    value = QueuedLock->Value;
+
+    if (
+        !(value & PH_QUEUED_LOCK_WAITERS) ||
+        (value & PH_QUEUED_LOCK_TRAVERSING) ||
+        (value & PH_QUEUED_LOCK_OWNED)
+        )
+        return;
+
+    newValue = value + PH_QUEUED_LOCK_TRAVERSING;
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&QueuedLock->Value,
+        (PVOID)newValue,
+        (PVOID)value
+        ) == value)
+    {
+        PhpfWakeQueuedLock(QueuedLock, newValue);
+    }
+}

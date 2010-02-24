@@ -2550,7 +2550,7 @@ PVOID PhAllocateFromFreeList(
 
     // TODO: Implement as lock-free singly linked list.
 
-    PhAcquireQueuedLockExclusive(&FreeList->Lock);
+    PhAcquireQueuedLockExclusiveFast(&FreeList->Lock);
 
     if (FreeList->Count != 0)
     {
@@ -2562,7 +2562,7 @@ PVOID PhAllocateFromFreeList(
         memory = PhAllocate(FreeList->Size);
     }
 
-    PhReleaseQueuedLockExclusive(&FreeList->Lock);
+    PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
 
     return memory;
 }
@@ -2578,7 +2578,7 @@ VOID PhFreeToFreeList(
     __in PVOID Memory
     )
 {
-    PhAcquireQueuedLockExclusive(&FreeList->Lock);
+    PhAcquireQueuedLockExclusiveFast(&FreeList->Lock);
 
     if (FreeList->Count < FreeList->MaximumCount)
     {
@@ -2589,7 +2589,7 @@ VOID PhFreeToFreeList(
         PhFree(Memory);
     }
 
-    PhReleaseQueuedLockExclusive(&FreeList->Lock);
+    PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
 }
 
 /**
