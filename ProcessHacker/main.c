@@ -29,9 +29,11 @@
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 HFONT PhApplicationFont;
+HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
 BOOLEAN PhElevated;
 HANDLE PhHeapHandle;
+HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
 ULONG PhKphFeatures;
@@ -297,14 +299,15 @@ VOID PhInitializeFont(
     __in HWND hWnd
     )
 {
+    LOGFONT iconTitleFont;
     NONCLIENTMETRICS metrics = { sizeof(metrics) };
     BOOLEAN success;
 
     success = !!SystemParametersInfo(SPI_GETNONCLIENTMETRICS, 0, &metrics, 0);
 
     if (
-        !(PhApplicationFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8, FW_NORMAL)) &&
-        !(PhApplicationFont = PhpCreateFont(hWnd, L"Tahoma", 8, FW_NORMAL))
+        !(PhApplicationFont = PhpCreateFont(hWnd, L"Tahoma", 8, FW_NORMAL)) &&
+        !(PhApplicationFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8, FW_NORMAL))
         )
     {
         if (success)
@@ -314,8 +317,8 @@ VOID PhInitializeFont(
     }
 
     if (
-        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8, FW_BOLD)) &&
-        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Tahoma", 8, FW_BOLD))
+        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Tahoma", 8, FW_BOLD)) &&
+        !(PhBoldMessageFont = PhpCreateFont(hWnd, L"Microsoft Sans Serif", 8, FW_BOLD))
         )
     {
         if (success)
@@ -328,6 +331,11 @@ VOID PhInitializeFont(
             PhBoldMessageFont = NULL;
         }
     }
+
+    success = !!SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &iconTitleFont, 0);
+
+    if (success)
+        PhIconTitleFont = CreateFontIndirect(&iconTitleFont);
 }
 
 VOID PhInitializeKph()

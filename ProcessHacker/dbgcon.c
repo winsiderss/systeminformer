@@ -951,7 +951,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     wprintf(L"Thread not running\n");
                 }
 
-                PhAcquireMutex(&providerThread->Mutex);
+                PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
                 providerEntry = providerThread->ListHead.Flink;
 
@@ -974,7 +974,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     providerEntry = providerEntry->Flink;
                 }
 
-                PhReleaseMutex(&providerThread->Mutex);
+                PhReleaseQueuedLockExclusive(&providerThread->Lock);
 
                 wprintf(L"\n");
 
