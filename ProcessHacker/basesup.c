@@ -2603,6 +2603,7 @@ VOID PhInitializeCallback(
 {
     InitializeListHead(&Callback->ListHead);
     PhInitializeQueuedLock(&Callback->ListLock);
+    PhInitializeQueuedLock(&Callback->BusyCondition);
 }
 
 /**
@@ -2654,11 +2655,7 @@ VOID PhRegisterCallback(
  * \param Context A user-defined value to pass to the 
  * callback function.
  * \param Flags A combination of flags controlling the 
- * callback.
- * \li \c PH_CALLBACK_SYNC_WITH_UNREGISTER Synchronize 
- * execution of the callback function with 
- * PhUnregisterCallback(); see its remarks for more 
- * details.
+ * callback. Set this parameter to 0.
  * \param Registration A variable which receives 
  * registration information for the callback. Do not 
  * modify the contents of this structure and do not
@@ -2675,6 +2672,7 @@ VOID PhRegisterCallbackEx(
 {
     Registration->Function = Function;
     Registration->Context = Context;
+    Registration->Busy = 0;
     Registration->Unregistering = FALSE;
     Registration->Flags = Flags;
 
@@ -2705,7 +2703,13 @@ VOID PhUnregisterCallback(
     Registration->Unregistering = TRUE;
 
     PhAcquireQueuedLockExclusiveFast(&Callback->ListLock);
+
+    // Wait for the callback to be unbusy.
+    while (Registration->Busy)
+        PhWaitForCondition(&Callback->BusyCondition, &Callback->ListLock, NULL);
+
     RemoveEntryList(&Registration->ListEntry);
+
     PhReleaseQueuedLockExclusiveFast(&Callback->ListLock);
 }
 
@@ -2730,35 +2734,36 @@ VOID PhInvokeCallback(
     while (listEntry != &Callback->ListHead)
     {
         PPH_CALLBACK_REGISTRATION registration;
+        LONG busy;
 
         registration = CONTAINING_RECORD(listEntry, PH_CALLBACK_REGISTRATION, ListEntry);
-        listEntry = listEntry->Flink;
 
+        // Don't bother executing the callback function if 
+        // it is being unregistered.
         if (registration->Unregistering)
             continue;
 
-        // This flag is a hack to make sure that once a callback is 
-        // unregistered, it will not be in execution. This hack is 
-        // required in certain circumstances because the callback 
-        // registration object does not keep track of the Context 
-        // stored in it. This is one of the disadvantages of 
-        // manual reference counting - it is hard to keep track of 
-        // objects across threads.
-        //
-        // Notice that in the provider system we do in fact 
-        // reference the Context object when registering a provider, 
-        // and dereference the object when unregistering a provider.
+        _InterlockedIncrement(&registration->Busy);
 
-        if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhReleaseQueuedLockSharedFast(&Callback->ListLock);
+        // Execute the callback function.
 
+        PhReleaseQueuedLockSharedFast(&Callback->ListLock);
         registration->Function(
             Parameter,
             registration->Context
             );
+        PhAcquireQueuedLockSharedFast(&Callback->ListLock);
 
-        if (!(registration->Flags & PH_CALLBACK_SYNC_WITH_UNREGISTER))
-            PhAcquireQueuedLockSharedFast(&Callback->ListLock);
+        busy = _InterlockedDecrement(&registration->Busy);
+
+        if (registration->Unregistering && busy == 0)
+        {
+            // Someone started unregistering while the callback 
+            // function was executing, and we must wake them.
+            PhPulseAllCondition(&Callback->BusyCondition);
+        }
+
+        listEntry = listEntry->Flink;
     }
 
     PhReleaseQueuedLockSharedFast(&Callback->ListLock);

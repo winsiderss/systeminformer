@@ -339,13 +339,16 @@ __mayRaise FORCEINLINE VOID PhpUnblockQueuedWaitBlock(
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * to conduct normal checks.
  *
  * \remarks The function assumes the following flags are set:
  * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
  */
-VOID FASTCALL PhpfOptimizeQueuedLockList(
+FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
     __inout PPH_QUEUED_LOCK QueuedLock,
-    __in ULONG_PTR Value
+    __in ULONG_PTR Value,
+    __in BOOLEAN IgnoreOwned
     )
 {
     ULONG_PTR value;
@@ -415,11 +418,30 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
 }
 
 /**
+ * Optimizes a queued lock waiters list.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS, \ref PH_QUEUED_LOCK_TRAVERSING.
+ */
+VOID FASTCALL PhpfOptimizeQueuedLockList(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value
+    )
+{
+    PhpOptimizeQueuedLockListEx(QueuedLock, Value, FALSE);
+}
+
+/**
  * Dequeues the appropriate number of wait blocks in 
  * a queued lock.
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * to conduct normal checks.
  * \param WakeAll TRUE to remove all wait blocks, FALSE 
  * to decide based on the wait block type.
  */
@@ -448,7 +470,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
         // done concurrently with list optimization, we may be 
         // removing and waking waiters.
         assert(!(value & PH_QUEUED_LOCK_MULTIPLE_SHARED));
-        assert(value & PH_QUEUED_LOCK_TRAVERSING);
+        assert(IgnoreOwned || (value & PH_QUEUED_LOCK_TRAVERSING));
 
         // There's no point in waking a waiter if the lock 
         // is owned. Clear the traversing bit.
@@ -513,12 +535,15 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
             // Make sure we only wake this waiter.
             waitBlock->Previous = NULL;
 
-            // Clear the traversing bit.
+            if (!IgnoreOwned)
+            {
+                // Clear the traversing bit.
 #ifdef _M_IX86
-            _InterlockedExchangeAdd((PLONG)&QueuedLock->Value, -(LONG)PH_QUEUED_LOCK_TRAVERSING);
+                _InterlockedExchangeAdd((PLONG)&QueuedLock->Value, -(LONG)PH_QUEUED_LOCK_TRAVERSING);
 #else
-            _InterlockedExchangeAdd64((PLONG64)&QueuedLock->Value, -(LONG64)PH_QUEUED_LOCK_TRAVERSING);
+                _InterlockedExchangeAdd64((PLONG64)&QueuedLock->Value, -(LONG64)PH_QUEUED_LOCK_TRAVERSING);
 #endif
+            }
 
             break;
         }
@@ -956,7 +981,9 @@ VOID FASTCALL PhfWaitForCondition(
 			))
 		{
 			if (optimize)
-				PhpfOptimizeQueuedLockList(Condition, currentValue);
+            {
+				PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
+            }
 
 			if (Lock)
 			{
