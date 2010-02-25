@@ -608,6 +608,8 @@ VOID FASTCALL PhpfWakeQueuedLock(
  *
  * \param QueuedLock A queued lock.
  * \param Value The current value of the queued lock.
+ * \param IgnoreOwned TRUE to ignore lock state, FALSE 
+ * to conduct normal checks.
  * \param WakeAll TRUE to wake all waiters, FALSE to 
  * decide based on the wait block type.
  *
