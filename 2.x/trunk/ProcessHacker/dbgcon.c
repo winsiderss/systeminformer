@@ -433,6 +433,20 @@ static VOID PhpTestRwLock(
     wprintf(L"[strs] %s: %ums\n", Context->Name, PhGetMillisecondsStopwatch(&stopwatch));
 }
 
+VOID FASTCALL PhfAcquireMutex(
+    __in PPH_MUTEX Mutex
+    )
+{
+    PhAcquireMutex(Mutex);
+}
+
+VOID FASTCALL PhfReleaseMutex(
+    __in PPH_MUTEX Mutex
+    )
+{
+    PhReleaseMutex(Mutex);
+}
+
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
@@ -579,6 +593,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             RW_TEST_CONTEXT context;
             PH_FAST_LOCK fastLock;
             PH_QUEUED_LOCK queuedLock;
+            PH_MUTEX mutex;
 
             context.Name = L"FastLock";
             context.AcquireExclusive = PhfAcquireFastLockExclusive;
@@ -595,6 +610,25 @@ NTSTATUS PhpDebugConsoleThreadStart(
             context.AcquireShared = PhfAcquireQueuedLockShared;
             context.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
             context.ReleaseShared = PhfReleaseQueuedLockShared;
+            context.Parameter = &queuedLock;
+            PhInitializeQueuedLock(&queuedLock);
+            PhpTestRwLock(&context);
+
+            context.Name = L"Mutex";
+            context.AcquireExclusive = PhfAcquireMutex;
+            context.AcquireShared = PhfAcquireMutex;
+            context.ReleaseExclusive = PhfReleaseMutex;
+            context.ReleaseShared = PhfReleaseMutex;
+            context.Parameter = &mutex;
+            PhInitializeMutex(&mutex);
+            PhpTestRwLock(&context);
+            PhDeleteMutex(&mutex);
+
+            context.Name = L"QueuedLockMutex";
+            context.AcquireExclusive = PhfAcquireQueuedLockExclusive;
+            context.AcquireShared = PhfAcquireQueuedLockExclusive;
+            context.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
+            context.ReleaseShared = PhfReleaseQueuedLockExclusive;
             context.Parameter = &queuedLock;
             PhInitializeQueuedLock(&queuedLock);
             PhpTestRwLock(&context);
