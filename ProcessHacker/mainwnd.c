@@ -476,7 +476,9 @@ LRESULT CALLBACK PhMainWndProc(
                     ULONG numberOfProcesses;
 
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhReferenceObjects(processes, numberOfProcesses);
                     PhUiTerminateProcesses(hWnd, processes, numberOfProcesses);
+                    PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
                 }
                 break;
@@ -486,7 +488,9 @@ LRESULT CALLBACK PhMainWndProc(
                     ULONG numberOfProcesses;
 
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhReferenceObjects(processes, numberOfProcesses);
                     PhUiSuspendProcesses(hWnd, processes, numberOfProcesses);
+                    PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
                 }
                 break;
@@ -496,7 +500,9 @@ LRESULT CALLBACK PhMainWndProc(
                     ULONG numberOfProcesses;
 
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhReferenceObjects(processes, numberOfProcesses);
                     PhUiResumeProcesses(hWnd, processes, numberOfProcesses);
+                    PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
                 }
                 break;
@@ -506,7 +512,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        PhReferenceObject(processItem);
                         PhUiRestartProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -516,7 +524,9 @@ LRESULT CALLBACK PhMainWndProc(
                     ULONG numberOfProcesses;
 
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhReferenceObjects(processes, numberOfProcesses);
                     PhUiReduceWorkingSetProcesses(hWnd, processes, numberOfProcesses);
+                    PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
                 }
                 break;
@@ -526,11 +536,13 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        PhReferenceObject(processItem);
                         PhUiSetVirtualizationProcess(
                             hWnd,
                             processItem,
                             !SelectedProcessVirtualizationEnabled
                             );
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -554,7 +566,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        PhReferenceObject(processItem);
                         PhUiDetachFromDebuggerProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -576,7 +590,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        PhReferenceObject(processItem);
                         PhUiInjectDllProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -607,7 +623,9 @@ LRESULT CALLBACK PhMainWndProc(
                                 break;
                         }
 
+                        PhReferenceObject(processItem);
                         PhUiSetIoPriorityProcess(hWnd, processItem, ioPriority);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -617,6 +635,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
+                        // No reference needed; no messages pumped.
                         PhpShowProcessProperties(processItem);
                     }
                 }
@@ -656,7 +675,9 @@ LRESULT CALLBACK PhMainWndProc(
                                 break;
                         }
 
+                        PhReferenceObject(processItem);
                         PhUiSetPriorityProcess(hWnd, processItem, priorityClassWin32);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -742,7 +763,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        PhReferenceObject(serviceItem);
                         PhUiStartService(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;
@@ -752,7 +775,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        PhReferenceObject(serviceItem);
                         PhUiContinueService(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;
@@ -762,7 +787,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        PhReferenceObject(serviceItem);
                         PhUiPauseService(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;
@@ -772,7 +799,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        PhReferenceObject(serviceItem);
                         PhUiStopService(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;
@@ -782,7 +811,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (serviceItem)
                     {
+                        PhReferenceObject(serviceItem);
                         PhUiDeleteService(hWnd, serviceItem);
+                        PhDereferenceObject(serviceItem);
                     }
                 }
                 break;

@@ -1303,12 +1303,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
+                        PhReferenceObject(threadsContext->Provider->SymbolProvider);
                         PhShowThreadStackDialog(
                             hwndDlg,
                             threadsContext->Provider->ProcessId,
                             threadItem->ThreadId,
                             threadsContext->Provider->SymbolProvider
                             );
+                        PhDereferenceObject(threadsContext->Provider->SymbolProvider);
                     }
                 }
                 break;
@@ -1318,6 +1320,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     ULONG numberOfThreads;
 
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
 
                     if (
                         processItem->ProcessId != SYSTEM_PROCESS_ID ||
@@ -1331,6 +1334,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
                     }
 
+                    PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }
                 break;
@@ -1340,7 +1344,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     ULONG numberOfThreads;
 
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
                     PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }
                 break;
@@ -1350,7 +1356,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     ULONG numberOfThreads;
 
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
                     PhUiSuspendThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }
                 break;
@@ -1360,7 +1368,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     ULONG numberOfThreads;
 
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
+                    PhReferenceObjects(threads, numberOfThreads);
                     PhUiResumeThreads(hwndDlg, threads, numberOfThreads);
+                    PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }
                 break;
@@ -1429,12 +1439,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     if (threadItem)
                     {
+                        PhReferenceObject(threadsContext->Provider->SymbolProvider);
                         PhUiAnalyzeWaitThread(
                             hwndDlg,
                             processItem->ProcessId,
                             threadItem->ThreadId,
                             threadsContext->Provider->SymbolProvider
                             );
+                        PhDereferenceObject(threadsContext->Provider->SymbolProvider);
                     }
                 }
                 break;
@@ -1477,7 +1489,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 break;
                         }
 
+                        PhReferenceObject(threadItem);
                         PhUiSetPriorityThread(hwndDlg, threadItem, threadPriorityWin32);
+                        PhDereferenceObject(threadItem);
                     }
                 }
                 break;
@@ -1508,7 +1522,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                                 break;
                         }
 
+                        PhReferenceObject(threadItem);
                         PhUiSetIoPriorityThread(hwndDlg, threadItem, ioPriority);
+                        PhDereferenceObject(threadItem);
                     }
                 }
                 break;
@@ -2032,7 +2048,9 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                     if (moduleItem)
                     {
+                        PhReferenceObject(moduleItem);
                         PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem);
+                        PhDereferenceObject(moduleItem);
                     }
                 }
                 break;
@@ -2545,7 +2563,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     ULONG numberOfHandles;
 
                     PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
-                    PhUiNtCloses(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
+                    PhReferenceObjects(handles, numberOfHandles);
+                    PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
+                    PhDereferenceObjects(handles, numberOfHandles);
                     PhFree(handles);
                 }
                 break;
@@ -2572,7 +2592,9 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         else if (id == ID_HANDLE_INHERIT)
                             attributes ^= OBJ_INHERIT;
 
+                        PhReferenceObject(handleItem);
                         PhUiSetAttributesHandle(hwndDlg, processItem->ProcessId, handleItem, attributes);
+                        PhDereferenceObject(handleItem);
                     }
                 }
                 break;
@@ -2900,7 +2922,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
             // Get a copy of the process' service list.
 
-            PhAcquireFastLockShared(&processItem->ServiceListLock);
+            PhAcquireQueuedLockShared(&processItem->ServiceListLock);
 
             servicesContext->NumberOfServices = processItem->ServiceList->Count;
             servicesContext->Services = PhAllocate(servicesContext->NumberOfServices * sizeof(PPH_SERVICE_ITEM));
@@ -2918,7 +2940,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 }
             }
 
-            PhReleaseFastLockShared(&processItem->ServiceListLock);
+            PhReleaseQueuedLockShared(&processItem->ServiceListLock);
 
             PhRegisterCallback(
                 &PhServiceModifiedEvent,

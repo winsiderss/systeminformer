@@ -103,8 +103,6 @@ VOID PhShowThreadStackDialog(
 
     threadStackContext.ThreadHandle = threadHandle;
 
-    PhReferenceObject(SymbolProvider);
-
     DialogBoxParam(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_THRDSTACK),
@@ -173,7 +171,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhFree(layoutManager);
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
-            PhDereferenceObject(threadStackContext->SymbolProvider);
 
             RemoveProp(hwndDlg, L"Context");
             RemoveProp(hwndDlg, L"LayoutManager");
