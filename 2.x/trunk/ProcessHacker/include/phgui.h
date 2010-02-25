@@ -846,7 +846,7 @@ BOOLEAN PhUiUnloadModule(
     __in PPH_MODULE_ITEM Module
     );
 
-BOOLEAN PhUiNtCloses(
+BOOLEAN PhUiCloseHandles(
     __in HWND hWnd,
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM *Handles,

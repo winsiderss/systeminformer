@@ -922,7 +922,7 @@ VOID FASTCALL PhfPulseAllCondition(
 {
 	PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
 }
-	
+
 /**
  * Sleeps on a condition variable.
  *

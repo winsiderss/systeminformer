@@ -95,6 +95,28 @@ VOID PhAdjustRectangleToWorkingArea(
     }
 }
 
+VOID PhReferenceObjects(
+    __in PPVOID Objects,
+    __in ULONG NumberOfObjects
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < NumberOfObjects; i++)
+        PhReferenceObject(Objects[i]);
+}
+
+VOID PhDereferenceObjects(
+    __in PPVOID Objects,
+    __in ULONG NumberOfObjects
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < NumberOfObjects; i++)
+        PhDereferenceObject(Objects[i]);
+}
+
 /**
  * Gets a string stored in a DLL's message table.
  *

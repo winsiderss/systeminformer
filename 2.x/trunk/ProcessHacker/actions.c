@@ -1386,7 +1386,7 @@ static BOOLEAN PhpShowErrorHandle(
     }
 }
 
-BOOLEAN PhUiNtCloses(
+BOOLEAN PhUiCloseHandles(
     __in HWND hWnd,
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM *Handles,

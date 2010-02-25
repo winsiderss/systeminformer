@@ -933,7 +933,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_EVENT Stage1Event;
 
     PPH_POINTER_LIST ServiceList;
-    PH_FAST_LOCK ServiceListLock;
+    PH_QUEUED_LOCK ServiceListLock;
 
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
@@ -1471,6 +1471,16 @@ FORCEINLINE FILETIME PhSubtractFileTime(
 
     return result;
 }
+
+VOID PhReferenceObjects(
+    __in PPVOID Objects,
+    __in ULONG NumberOfObjects
+    );
+
+VOID PhDereferenceObjects(
+    __in PPVOID Objects,
+    __in ULONG NumberOfObjects
+    );
 
 PPH_STRING PhGetMessage(
     __in PVOID DllHandle,
