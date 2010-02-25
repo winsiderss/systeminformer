@@ -364,7 +364,7 @@ FORCEINLINE VOID PhpOptimizeQueuedLockListEx(
     {
         assert(value & PH_QUEUED_LOCK_TRAVERSING);
 
-        if (!(value & PH_QUEUED_LOCK_OWNED))
+        if (!IgnoreOwned && !(value & PH_QUEUED_LOCK_OWNED))
         {
             // Someone has requested that we wake waiters.
             PhpfWakeQueuedLock(QueuedLock, value);
