@@ -159,6 +159,13 @@ Referencing an object is necessary whenever a pointer to the object
 is stored in a globally visible location or passed to another thread. 
 In most other cases, referencing is not necessary.
 
+All objects passed to functions must have a guaranteed reference 
+for the duration of that call. One mistake is to keep a reference 
+which could be destroyed in a window procedure, and to use that reference 
+implicitly inside the window procedure. Messages can still be pumped 
+(e.g. dialog boxes) while the window procedure is executing, so the 
+window procedure must reference the object as soon as possible.
+
 ==== Strings ====
 Strings use the PH_STRING type, managed by reference counting. 
 To create a string object from a null-terminated string:

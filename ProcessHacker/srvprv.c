@@ -634,7 +634,7 @@ VOID PhpAddProcessItemService(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PhAcquireFastLockExclusive(&ProcessItem->ServiceListLock);
+    PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
     if (!PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
     {
@@ -642,7 +642,7 @@ VOID PhpAddProcessItemService(
         PhAddPointerListItem(ProcessItem->ServiceList, ServiceItem);
     }
 
-    PhReleaseFastLockExclusive(&ProcessItem->ServiceListLock);
+    PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 }
 
 VOID PhpRemoveProcessItemService(
@@ -652,7 +652,7 @@ VOID PhpRemoveProcessItemService(
 {
     HANDLE pointerHandle;
 
-    PhAcquireFastLockExclusive(&ProcessItem->ServiceListLock);
+    PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
     if (pointerHandle = PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
     {
@@ -660,7 +660,7 @@ VOID PhpRemoveProcessItemService(
         PhDereferenceObject(ServiceItem);
     }
 
-    PhReleaseFastLockExclusive(&ProcessItem->ServiceListLock);
+    PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 }
 
 VOID PhpUpdateServiceItemConfig(

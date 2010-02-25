@@ -217,7 +217,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
     processItem->ServiceList = PhCreatePointerList(1);
-    PhInitializeFastLock(&processItem->ServiceListLock);
+    PhInitializeQueuedLock(&processItem->ServiceListLock);
 
     processItem->ProcessId = ProcessId;
 
@@ -239,7 +239,6 @@ VOID PhpProcessItemDeleteProcedure(
         PhDereferenceObject(processItem->ServiceList->Items[i]);
 
     PhDereferenceObject(processItem->ServiceList);
-    PhDeleteFastLock(&processItem->ServiceListLock);
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);
