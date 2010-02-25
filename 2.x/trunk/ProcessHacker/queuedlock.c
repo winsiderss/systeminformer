@@ -518,7 +518,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
         // traversing bit before we wake waiters.
 
         if (
-            !WaitAll &&
+            !WakeAll &&
             (waitBlock->Flags & PH_QUEUED_WAITER_EXCLUSIVE) &&
             (previousWaitBlock = waitBlock->Previous)
             )
