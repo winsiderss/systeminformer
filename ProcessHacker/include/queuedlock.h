@@ -86,20 +86,20 @@ VOID FASTCALL PhfTryWakePushLock(
 
 #define PhPulseCondition PhfPulseCondition
 VOID FASTCALL PhfPulseCondition(
-	__inout PPH_QUEUED_LOCK Condition
-	);
+    __inout PPH_QUEUED_LOCK Condition
+    );
 
 #define PhPulseAllCondition PhfPulseAllCondition
 VOID FASTCALL PhfPulseAllCondition(
-	__inout PPH_QUEUED_LOCK Condition
-	);
+    __inout PPH_QUEUED_LOCK Condition
+    );
 
 #define PhWaitForCondition PhfWaitForCondition
 VOID FASTCALL PhfWaitForCondition(
-	__inout PPH_QUEUED_LOCK Condition,
-	__inout_opt PPH_QUEUED_LOCK Lock,
-	__in_opt PLARGE_INTEGER Timeout
-	);
+    __inout PPH_QUEUED_LOCK Condition,
+    __inout_opt PPH_QUEUED_LOCK Lock,
+    __in_opt PLARGE_INTEGER Timeout
+    );
 
 // Inline functions
 

@@ -74,6 +74,10 @@
  * Blocking is implemented through a process-wide keyed event. 
  * A spin count is also used before blocking on the keyed 
  * event.
+ *
+ * Queued locks can also act as condition variables, with 
+ * wait, pulse and pulse all support. Waiters are released 
+ * in FIFO order.
  */
 
 #include <phbase.h>
@@ -91,8 +95,8 @@ VOID FASTCALL PhpfWakeQueuedLock(
 VOID FASTCALL PhpfWakeQueuedLockEx(
     __inout PPH_QUEUED_LOCK QueuedLock,
     __in ULONG_PTR Value,
-	__in BOOLEAN IgnoreOwned,
-	__in BOOLEAN WakeAll
+    __in BOOLEAN IgnoreOwned,
+    __in BOOLEAN WakeAll
     );
 
 HANDLE PhQueuedLockKeyedEventHandle;
@@ -446,11 +450,11 @@ VOID FASTCALL PhpfOptimizeQueuedLockList(
  * to decide based on the wait block type.
  */
 FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
-	__inout PPH_QUEUED_LOCK QueuedLock,
-	__in ULONG_PTR Value,
-	__in BOOLEAN IgnoreOwned,
-	__in BOOLEAN WakeAll
-	)
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value,
+    __in BOOLEAN IgnoreOwned,
+    __in BOOLEAN WakeAll
+    )
 {
     ULONG_PTR value;
     ULONG_PTR newValue;
@@ -514,7 +518,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
         // traversing bit before we wake waiters.
 
         if (
-			!WaitAll &&
+            !WaitAll &&
             (waitBlock->Flags & PH_QUEUED_WAITER_EXCLUSIVE) &&
             (previousWaitBlock = waitBlock->Previous)
             )
@@ -569,7 +573,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
         }
     }
 
-	return waitBlock;
+    return waitBlock;
 }
 
 /**
@@ -588,10 +592,10 @@ VOID FASTCALL PhpfWakeQueuedLock(
     __in ULONG_PTR Value
     )
 {
-	PPH_QUEUED_WAIT_BLOCK waitBlock;
-	PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
+    PPH_QUEUED_WAIT_BLOCK waitBlock;
+    PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
 
-	waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, FALSE, FALSE);
+    waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, FALSE, FALSE);
 
     // Wake waiters.
 
@@ -621,14 +625,14 @@ VOID FASTCALL PhpfWakeQueuedLock(
 VOID FASTCALL PhpfWakeQueuedLockEx(
     __inout PPH_QUEUED_LOCK QueuedLock,
     __in ULONG_PTR Value,
-	__in BOOLEAN IgnoreOwned,
-	__in BOOLEAN WakeAll
+    __in BOOLEAN IgnoreOwned,
+    __in BOOLEAN WakeAll
     )
 {
-	PPH_QUEUED_WAIT_BLOCK waitBlock;
-	PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
+    PPH_QUEUED_WAIT_BLOCK waitBlock;
+    PPH_QUEUED_WAIT_BLOCK previousWaitBlock;
 
-	waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, IgnoreOwned, WakeAll);
+    waitBlock = PhpPrepareToWakeQueuedLock(QueuedLock, Value, IgnoreOwned, WakeAll);
 
     // Wake waiters.
 
@@ -932,10 +936,10 @@ VOID FASTCALL PhfTryWakePushLock(
  * \param Condition A condition variable.
  */
 VOID FASTCALL PhfPulseCondition(
-	__inout PPH_QUEUED_LOCK Condition
-	)
+    __inout PPH_QUEUED_LOCK Condition
+    )
 {
-	PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
+    PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
 }
 
 /**
@@ -944,10 +948,10 @@ VOID FASTCALL PhfPulseCondition(
  * \param Condition A condition variable.
  */
 VOID FASTCALL PhfPulseAllCondition(
-	__inout PPH_QUEUED_LOCK Condition
-	)
+    __inout PPH_QUEUED_LOCK Condition
+    )
 {
-	PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
+    PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
 }
 
 /**
@@ -958,50 +962,50 @@ VOID FASTCALL PhfPulseAllCondition(
  * \param Timeout Not implemented.
  */
 VOID FASTCALL PhfWaitForCondition(
-	__inout PPH_QUEUED_LOCK Condition,
-	__inout_opt PPH_QUEUED_LOCK Lock,
-	__in_opt PLARGE_INTEGER Timeout
-	)
+    __inout PPH_QUEUED_LOCK Condition,
+    __inout_opt PPH_QUEUED_LOCK Lock,
+    __in_opt PLARGE_INTEGER Timeout
+    )
 {
-	ULONG_PTR value;
-	ULONG_PTR currentValue;
-	PH_QUEUED_WAIT_BLOCK waitBlock;
-	BOOLEAN optimize;
+    ULONG_PTR value;
+    ULONG_PTR currentValue;
+    PH_QUEUED_WAIT_BLOCK waitBlock;
+    BOOLEAN optimize;
 
-	value = Condition->Value;
+    value = Condition->Value;
 
-	while (TRUE)
-	{
-		if (PhpPushQueuedWaitBlock(
-			Condition,
-			value,
-			TRUE,
-			&waitBlock,
-			&optimize,
-			&value,
-			&currentValue
-			))
-		{
-			if (optimize)
+    while (TRUE)
+    {
+        if (PhpPushQueuedWaitBlock(
+            Condition,
+            value,
+            TRUE,
+            &waitBlock,
+            &optimize,
+            &value,
+            &currentValue
+            ))
+        {
+            if (optimize)
             {
-				PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
+                PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
             }
 
-			if (Lock)
-			{
-				PhReleaseQueuedLockExclusiveFast(Lock);
-			}
+            if (Lock)
+            {
+                PhReleaseQueuedLockExclusiveFast(Lock);
+            }
 
-			PhpBlockOnQueuedWaitBlock(&waitBlock);
+            PhpBlockOnQueuedWaitBlock(&waitBlock);
 
-			if (Lock)
-			{
-				// Don't use the fast variant; it is extremely likely 
-				// that the lock is still owned.
-				PhAcquireQueuedLockExclusive(Lock);
-			}
+            if (Lock)
+            {
+                // Don't use the fast variant; it is extremely likely 
+                // that the lock is still owned.
+                PhAcquireQueuedLockExclusive(Lock);
+            }
 
-			break;
-		}
-	}
+            break;
+        }
+    }
 }
