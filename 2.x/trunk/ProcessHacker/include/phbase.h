@@ -1361,8 +1361,6 @@ typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
     __in PVOID Context
     );
 
-#define PH_CALLBACK_SYNC_WITH_UNREGISTER 0x1
-
 /**
  * A callback registration structure.
  */
@@ -1375,9 +1373,13 @@ typedef struct _PH_CALLBACK_REGISTRATION
     /** A user-defined value to be passed to the 
      * callback function. */
     PVOID Context;
+    /** A value indicating whether the registration 
+     * structure is being used. */
+    LONG Busy;
     /** Whether the registration structure is being 
      * removed. */
     BOOLEAN Unregistering;
+    BOOLEAN Reserved;
     /** Flags controlling the callback. */
     USHORT Flags;
 } PH_CALLBACK_REGISTRATION, *PPH_CALLBACK_REGISTRATION;
@@ -1394,6 +1396,9 @@ typedef struct _PH_CALLBACK
     LIST_ENTRY ListHead;
     /** A lock protecting the callbacks list. */
     PH_QUEUED_LOCK ListLock;
+    /** A condition variable pulsed when 
+     * the callback becomes free. */
+    PH_QUEUED_LOCK BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
 
 VOID PhInitializeCallback(
@@ -1428,17 +1433,6 @@ VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
     __in PVOID Parameter
     );
-
-FORCEINLINE VOID PhInvokeCallbackRegistration(
-    __in PPH_CALLBACK_REGISTRATION Registration,
-    __in PVOID Parameter
-    )
-{
-    Registration->Function(
-        Parameter,
-        Registration->Context
-        );
-}
 
 // callbacksync
 
