@@ -10,4 +10,9 @@ HWND PhCreateTreeListControl(
     __in INT_PTR Id
     );
 
+typedef struct _PH_TREELIST_ITEM
+{
+    ULONG Flags;
+} PH_TREELIST_ITEM, *PPH_TREELIST_ITEM;
+
 #endif
