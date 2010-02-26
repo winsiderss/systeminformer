@@ -2688,12 +2688,9 @@ VOID PhRegisterCallbackEx(
  * \param Registration The structure returned by 
  * PhRegisterCallback().
  *
- * \remarks The function guarantees that after it returns 
- * no calls to the referenced callback function will be 
- * made. If tbe callback was registered with the 
- * \c PH_CALLBACK_SYNC_WITH_UNREGISTER flag, the function 
- * additionally guarantees that the callback function will
- * not be in execution once this function returns.
+ * \remarks It is guaranteed that the callback 
+ * function will not be in execution once this function 
+ * returns.
  */
 VOID PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,

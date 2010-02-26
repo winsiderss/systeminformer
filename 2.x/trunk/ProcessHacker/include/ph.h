@@ -1270,7 +1270,7 @@ typedef struct _PH_HANDLE_ITEM
 typedef struct _PH_HANDLE_PROVIDER
 {
     PPH_HASHTABLE HandleHashtable;
-    PH_FAST_LOCK HandleHashtableLock;
+    PH_QUEUED_LOCK HandleHashtableLock;
     PH_CALLBACK HandleAddedEvent;
     PH_CALLBACK HandleModifiedEvent;
     PH_CALLBACK HandleRemovedEvent;
