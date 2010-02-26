@@ -259,14 +259,26 @@ FORCEINLINE PVOID _InterlockedExchangePointer(
 
 #endif
 
+FORCEINLINE LONG_PTR _InterlockedExchangeAddPointer(
+    __inout LONG_PTR volatile *Addend,
+    __in LONG_PTR Value
+    )
+{
+#ifdef _M_IX86
+    return (LONG_PTR)_InterlockedExchangeAdd((PLONG)Addend, (LONG)Value);
+#else
+    return (LONG_PTR)_InterlockedExchangeAdd64((PLONG64)Addend, (LONG64)Value);
+#endif
+}
+
 FORCEINLINE LONG_PTR _InterlockedIncrementPointer(
     __inout LONG_PTR volatile *Addend
     )
 {
 #ifdef _M_IX86
-    return (LONG_PTR)_InterlockedIncrement((PLONG_PTR)Addend);
+    return (LONG_PTR)_InterlockedIncrement((PLONG)Addend);
 #else
-    return (LONG_PTR)_InterlockedIncrement64((PLONG_PTR)Addend);
+    return (LONG_PTR)_InterlockedIncrement64((PLONG64)Addend);
 #endif
 }
 
@@ -275,9 +287,9 @@ FORCEINLINE LONG_PTR _InterlockedDecrementPointer(
     )
 {
 #ifdef _M_IX86
-    return (LONG_PTR)_InterlockedDecrement((PLONG_PTR)Addend);
+    return (LONG_PTR)_InterlockedDecrement((PLONG)Addend);
 #else
-    return (LONG_PTR)_InterlockedDecrement64((PLONG_PTR)Addend);
+    return (LONG_PTR)_InterlockedDecrement64((PLONG64)Addend);
 #endif
 }
 
