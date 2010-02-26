@@ -837,7 +837,7 @@ BOOLEAN PhSymbolProviderInitialization();
 VOID PhSymbolProviderDynamicImport();
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
-    __in HANDLE ProcessId
+    __in_opt HANDLE ProcessId
     );
 
 ULONG64 PhGetModuleFromAddress(

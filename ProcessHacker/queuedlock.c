@@ -542,11 +542,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpPrepareToWakeQueuedLock(
             if (!IgnoreOwned)
             {
                 // Clear the traversing bit.
-#ifdef _M_IX86
-                _InterlockedExchangeAdd((PLONG)&QueuedLock->Value, -(LONG)PH_QUEUED_LOCK_TRAVERSING);
-#else
-                _InterlockedExchangeAdd64((PLONG64)&QueuedLock->Value, -(LONG64)PH_QUEUED_LOCK_TRAVERSING);
-#endif
+                _InterlockedExchangeAddPointer((PLONG_PTR)&QueuedLock->Value, -(LONG_PTR)PH_QUEUED_LOCK_TRAVERSING);
             }
 
             break;

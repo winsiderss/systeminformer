@@ -103,7 +103,7 @@ VOID PhSymbolProviderDynamicImport()
 }
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
-    __in HANDLE ProcessId
+    __in_opt HANDLE ProcessId
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider;
@@ -119,50 +119,54 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 
     symbolProvider->ModulesList = PhCreateList(10);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
-    symbolProvider->IsRealHandle = TRUE;
 
-    // Try to open the process with many different access masks. 
-    // Keep in mind that this handle will be re-used when 
-    // walking stacks.
-    if (!NT_SUCCESS(PhOpenProcess(
-        &symbolProvider->ProcessHandle,
-        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-        ProcessId
-        )))
+    if (ProcessId)
     {
+        symbolProvider->IsRealHandle = TRUE;
+
+        // Try to open the process with many different accesses. 
+        // This handle will be re-used when walking stacks.
         if (!NT_SUCCESS(PhOpenProcess(
             &symbolProvider->ProcessHandle,
-            ProcessQueryAccess | PROCESS_VM_READ,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
             ProcessId
             )))
         {
             if (!NT_SUCCESS(PhOpenProcess(
                 &symbolProvider->ProcessHandle,
-                ProcessQueryAccess,
+                ProcessQueryAccess | PROCESS_VM_READ,
                 ProcessId
                 )))
             {
-                HANDLE nextFakeHandle;
-
-                // Just generate a fake handle.
-                do
+                if (!NT_SUCCESS(PhOpenProcess(
+                    &symbolProvider->ProcessHandle,
+                    ProcessQueryAccess,
+                    ProcessId
+                    )))
                 {
-                    nextFakeHandle = PhNextFakeHandle;
-                } while (_InterlockedCompareExchangePointer(
-                    &PhNextFakeHandle,
-                    (HANDLE)((ULONG_PTR)nextFakeHandle + 4),
-                    nextFakeHandle
-                    ) != nextFakeHandle);
-
-                // Add one to make sure it isn't divisible 
-                // by 4 (so it can't be mistaken for a real 
-                // handle).
-                nextFakeHandle = (HANDLE)((ULONG_PTR)nextFakeHandle + 1);
-
-                symbolProvider->ProcessHandle = nextFakeHandle;
-                symbolProvider->IsRealHandle = FALSE;
+                    symbolProvider->IsRealHandle = FALSE;
+                }
             }
         }
+    }
+    else
+    {
+        symbolProvider->IsRealHandle = FALSE;
+    }
+
+    if (!symbolProvider->IsRealHandle)
+    {
+        HANDLE fakeHandle;
+
+        // Just generate a fake handle.
+        fakeHandle = (HANDLE)_InterlockedExchangeAddPointer((PLONG_PTR)&PhNextFakeHandle, 4);
+
+        // Add one to make sure it isn't divisible 
+        // by 4 (so it can't be mistaken for a real 
+        // handle).
+        fakeHandle = (HANDLE)((ULONG_PTR)fakeHandle + 1);
+
+        symbolProvider->ProcessHandle = fakeHandle;
     }
 
     if (SymInitialize_I)

@@ -160,11 +160,7 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusiveFast(
 {
     ULONG_PTR value;
 
-#ifdef _M_IX86
-    value = (ULONG_PTR)_InterlockedExchangeAdd((PLONG)&QueuedLock->Value, -(LONG)PH_QUEUED_LOCK_OWNED);
-#else
-    value = (ULONG_PTR)_InterlockedExchangeAdd64((PLONG64)&QueuedLock->Value, -(LONG64)PH_QUEUED_LOCK_OWNED);
-#endif
+    value = (ULONG_PTR)_InterlockedExchangeAddPointer((PLONG_PTR)&QueuedLock->Value, -(LONG_PTR)PH_QUEUED_LOCK_OWNED);
 
     // Only check for waiters here, not the traversing bit, since 
     // that isn't common.
