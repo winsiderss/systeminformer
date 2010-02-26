@@ -33,7 +33,7 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     );
 
 PWSTR PhDosDeviceNames[26];
-PH_FAST_LOCK PhDosDeviceNamesLock;
+PH_QUEUED_LOCK PhDosDeviceNamesLock;
 
 /**
  * Opens a process.
@@ -3784,7 +3784,7 @@ VOID PhInitializeDosDeviceNames()
     for (i = 0; i < 26; i++)
         PhDosDeviceNames[i] = PhAllocate(64 * sizeof(WCHAR));
 
-    PhInitializeFastLock(&PhDosDeviceNamesLock);
+    PhInitializeQueuedLock(&PhDosDeviceNamesLock);
 }
 
 /**
@@ -3802,12 +3802,12 @@ VOID PhRefreshDosDeviceNames()
     {
         deviceName[0] = (WCHAR)('A' + i);
 
-        PhAcquireFastLockExclusive(&PhDosDeviceNamesLock);
+        PhAcquireQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
 
         if (!QueryDosDevice(deviceName, PhDosDeviceNames[i], 64))
             PhDosDeviceNames[i][0] = 0;
 
-        PhReleaseFastLockExclusive(&PhDosDeviceNamesLock);
+        PhReleaseQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
     }
 }
 
@@ -3834,7 +3834,7 @@ PPH_STRING PhResolveDevicePrefix(
         ULONG prefixLength;
         BOOLEAN isPrefix = FALSE;
 
-        PhAcquireFastLockShared(&PhDosDeviceNamesLock);
+        PhAcquireQueuedLockSharedFast(&PhDosDeviceNamesLock);
 
         prefix = PhDosDeviceNames[i];
         prefixLength = (ULONG)wcslen(prefix);
@@ -3842,7 +3842,7 @@ PPH_STRING PhResolveDevicePrefix(
         if (prefixLength > 0)
             isPrefix = PhStringStartsWith2(Name, prefix, TRUE);
 
-        PhReleaseFastLockShared(&PhDosDeviceNamesLock);
+        PhReleaseQueuedLockSharedFast(&PhDosDeviceNamesLock);
 
         if (isPrefix)
         {
