@@ -267,19 +267,16 @@ ULONG PhpProcessHashtableHashFunction(
     return (ULONG)(*(PPH_PROCESS_ITEM *)Entry)->ProcessId / 4;
 }
 
-PPH_PROCESS_ITEM PhReferenceProcessItem(
+__assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
     __in HANDLE ProcessId
     )
 {
     PH_PROCESS_ITEM lookupProcessItem;
     PPH_PROCESS_ITEM lookupProcessItemPtr = &lookupProcessItem;
     PPH_PROCESS_ITEM *processItemPtr;
-    PPH_PROCESS_ITEM processItem;
 
     // Construct a temporary process item for the lookup.
     lookupProcessItem.ProcessId = ProcessId;
-
-    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
 
     processItemPtr = (PPH_PROCESS_ITEM *)PhGetHashtableEntry(
         PhProcessHashtable,
@@ -287,16 +284,25 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
         );
 
     if (processItemPtr)
-    {
-        processItem = *processItemPtr;
-        PhReferenceObject(processItem);
-    }
+        return *processItemPtr;
     else
-    {
-        processItem = NULL;
-    }
+        return NULL;
+}
 
-    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+PPH_PROCESS_ITEM PhReferenceProcessItem(
+    __in HANDLE ProcessId
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    PhAcquireQueuedLockSharedFast(&PhProcessHashtableLock);
+
+    processItem = PhpLookupProcessItem(ProcessId);
+
+    if (processItem)
+        PhReferenceObject(processItem);
+
+    PhReleaseQueuedLockSharedFast(&PhProcessHashtableLock);
 
     return processItem;
 }
@@ -811,14 +817,14 @@ VOID PhProcessProviderUpdate(
         // Lock only if we have something to do.
         if (processesToRemove)
         {
-            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusiveFast(&PhProcessHashtableLock);
 
             for (i = 0; i < processesToRemove->Count; i++)
             {
                 PhpRemoveProcessItem((PPH_PROCESS_ITEM)processesToRemove->Items[i]);
             }
 
-            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusiveFast(&PhProcessHashtableLock);
             PhDereferenceObject(processesToRemove);
         }
     }
@@ -860,7 +866,7 @@ VOID PhProcessProviderUpdate(
     {
         PPH_PROCESS_ITEM processItem;
 
-        processItem = PhReferenceProcessItem(process->UniqueProcessId);
+        processItem = PhpLookupProcessItem(process->UniqueProcessId);
 
         if (!processItem)
         {
@@ -919,9 +925,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateProcessItemServices(processItem);
 
             // Add the process item to the hashtable.
-            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusiveFast(&PhProcessHashtableLock);
             PhAddHashtableEntry(PhProcessHashtable, &processItem);
-            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusiveFast(&PhProcessHashtableLock);
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
@@ -975,7 +981,7 @@ VOID PhProcessProviderUpdate(
                 PhInvokeCallback(&PhProcessModifiedEvent, processItem);
             }
 
-            PhDereferenceObject(processItem);
+            // No reference added by PhpLookupProcessItem.
         }
 
         // Trick ourselves into thinking that DPCs and Interrupts 
