@@ -70,6 +70,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     NTSTATUS status = STATUS_SUCCESS;
     PLIST_ENTRY listEntry;
     PPH_PROVIDER_REGISTRATION registration;
+    PPH_PROVIDER_FUNCTION providerFunction;
     PVOID object;
     LIST_ENTRY tempListHead;
 
@@ -138,13 +139,14 @@ NTSTATUS NTAPI PhpProviderThreadStart(
                 providerThread->BoostCount--;
             }
 
+            providerFunction = registration->Function;
             object = registration->Object;
 
             if (object)
                 PhReferenceObject(object);
 
             PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
-            registration->Function(registration->Object);
+            providerFunction(object);
             PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
             if (object)
