@@ -151,6 +151,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             ULONG numberOfAccessEntries;
             HANDLE processHandle;
             OBJECT_BASIC_INFORMATION basicInfo;
+            BOOLEAN haveBasicInfo = FALSE;
 
             SetProp(hwndDlg, L"Context", (HANDLE)context);
 
@@ -236,9 +237,19 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     SetDlgItemInt(hwndDlg, IDC_HANDLES, basicInfo.HandleCount, FALSE);
                     SetDlgItemInt(hwndDlg, IDC_PAGED, basicInfo.PagedPoolCharge, FALSE);
                     SetDlgItemInt(hwndDlg, IDC_NONPAGED, basicInfo.NonPagedPoolCharge, FALSE);
+
+                    haveBasicInfo = TRUE;
                 }
 
                 NtClose(processHandle);
+            }
+
+            if (!haveBasicInfo)
+            {
+                SetDlgItemText(hwndDlg, IDC_REFERENCES, L"Unknown");
+                SetDlgItemText(hwndDlg, IDC_HANDLES, L"Unknown");
+                SetDlgItemText(hwndDlg, IDC_PAGED, L"Unknown");
+                SetDlgItemText(hwndDlg, IDC_NONPAGED, L"Unknown");
             }
         }
         break;
