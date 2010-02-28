@@ -154,7 +154,7 @@ NTSTATUS PhLoadMappedImage(
     status = PhGetFileSize(FileHandle, &size);
 
     if (!NT_SUCCESS(status))
-        goto ExitAndCleanup;
+        goto CleanupExit;
 
     status = NtCreateSection(
         &sectionHandle,
@@ -167,7 +167,7 @@ NTSTATUS PhLoadMappedImage(
         );
 
     if (!NT_SUCCESS(status))
-        goto ExitAndCleanup;
+        goto CleanupExit;
 
     // Map the section.
 
@@ -188,7 +188,7 @@ NTSTATUS PhLoadMappedImage(
         );
 
     if (!NT_SUCCESS(status))
-        goto ExitAndCleanup;
+        goto CleanupExit;
 
     // Initialize the mapped file.
 
@@ -203,7 +203,7 @@ NTSTATUS PhLoadMappedImage(
         NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
     }
 
-ExitAndCleanup:
+CleanupExit:
     if (sectionHandle)
         NtClose(sectionHandle);
     if (openedFile)
