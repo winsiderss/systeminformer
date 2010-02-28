@@ -101,13 +101,7 @@ typedef enum _SECTION_INHERIT
 
 #define SEC_BASED 0x200000
 #define SEC_NO_CHANGE 0x400000
-#define SEC_FILE 0x800000
-#define SEC_IMAGE 0x1000000
-#define SEC_RESERVE 0x4000000
-#define SEC_COMMIT 0x8000000
-#define SEC_NOCACHE 0x10000000
 #define SEC_GLOBAL 0x20000000
-#define SEC_LARGE_PAGES 0x80000000
 
 #define MEM_EXECUTE_OPTION_DISABLE 0x1 
 #define MEM_EXECUTE_OPTION_ENABLE 0x2
@@ -164,6 +158,45 @@ typedef NTSTATUS (NTAPI *_NtQueryVirtualMemory)(
     __out_bcount(MemoryInformationLength) PVOID MemoryInformation,
     __in SIZE_T MemoryInformationLength,
     __out_opt PSIZE_T ReturnLength
+    );
+
+typedef NTSTATUS (NTAPI *_NtCreateSection)(
+    __out PHANDLE SectionHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in_opt PLARGE_INTEGER MaximumSize,
+    __in ULONG SectionPageProtection,
+    __in ULONG AllocationAttributes,
+    __in_opt HANDLE FileHandle
+    );
+
+typedef NTSTATUS (NTAPI *_NtOpenSection)(
+    __out PHANDLE SectionHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *_NtMapViewOfSection)(
+    __in HANDLE SectionHandle,
+    __in HANDLE ProcessHandle,
+    __inout PVOID *BaseAddress,
+    __in ULONG_PTR ZeroBits,
+    __in SIZE_T CommitSize,
+    __inout_opt PLARGE_INTEGER SectionOffset,
+    __inout PSIZE_T ViewSize,
+    __in SECTION_INHERIT InheritDisposition,
+    __in ULONG AllocationType,
+    __in ULONG Win32Protect
+    );
+
+typedef NTSTATUS (NTAPI *_NtUnmapViewOfSection)(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress
+    );
+
+typedef NTSTATUS (NTAPI *_NtExtendSection)(
+    __in HANDLE SectionHandle,
+    __inout PLARGE_INTEGER NewSectionSize
     );
 
 typedef NTSTATUS (NTAPI *_NtQuerySection)(

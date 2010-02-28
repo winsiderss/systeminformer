@@ -431,6 +431,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mapimg.c"
+				>
+			</File>
+			<File
 				RelativePath=".\modprv.c"
 				>
 			</File>

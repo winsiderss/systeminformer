@@ -1305,7 +1305,7 @@ NTSTATUS PhGetProcessWorkingSetInformation(
 
         // Fail if we're resizing the buffer to over 
         // 16 MB.
-        if (bufferSize > 16 * 1024 * 1024)
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
         buffer = PhAllocate(bufferSize);
@@ -2462,6 +2462,31 @@ NTSTATUS PhGetTokenIntegrityLevel(
     return status;
 }
 
+NTSTATUS PhGetFileSize(
+    __in HANDLE FileHandle,
+    __out PLARGE_INTEGER Size
+    )
+{
+    NTSTATUS status;
+    FILE_STANDARD_INFORMATION standardInfo;
+    IO_STATUS_BLOCK isb;
+
+    status = NtQueryInformationFile(
+        FileHandle,
+        &isb,
+        &standardInfo,
+        sizeof(FILE_STANDARD_INFORMATION),
+        FileStandardInformation
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *Size = standardInfo.EndOfFile;
+
+    return status;
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     __in HANDLE TransactionManagerHandle,
     __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
@@ -2902,7 +2927,7 @@ NTSTATUS PhOpenDriverByBaseAddress(
         );
     NtClose(driverDirectoryHandle);
 
-    if (!NT_SUCCESS(status))
+    if (!NT_SUCCESS(status) && !NT_SUCCESS(context.Status))
         return status;
 
     if (NT_SUCCESS(context.Status))
