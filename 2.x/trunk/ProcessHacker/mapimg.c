@@ -28,11 +28,6 @@ VOID PhpMappedImageProbe(
     __in SIZE_T Length
     );
 
-USHORT PhpExportIndexToOrdinal(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in ULONG Index
-    );
-
 ULONG PhpLookupMappedImageExportName(
     __in PPH_MAPPED_IMAGE_EXPORTS Exports,
     __in PSTR Name
@@ -259,7 +254,8 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
 
 PVOID PhMappedImageRvaToVa(
     __in PPH_MAPPED_IMAGE MappedImage,
-    __in ULONG Rva
+    __in ULONG Rva,
+    __out_opt PIMAGE_SECTION_HEADER *Section
     )
 {
     PIMAGE_SECTION_HEADER section;
@@ -269,11 +265,13 @@ PVOID PhMappedImageRvaToVa(
     if (!section)
         return NULL;
 
+    if (Section)
+        *Section = section;
+
     return (PVOID)(
         (ULONG_PTR)MappedImage->ViewBase +
-        section->PointerToRawData -
-        section->VirtualAddress +
-        Rva
+        (Rva - section->VirtualAddress) +
+        section->PointerToRawData
         );
 }
 
@@ -332,7 +330,7 @@ FORCEINLINE NTSTATUS PhpGetMappedImageLoadConfig(
     if (!NT_SUCCESS(status))
         return status;
 
-    loadConfig = PhMappedImageRvaToVa(MappedImage, entry->VirtualAddress);
+    loadConfig = PhMappedImageRvaToVa(MappedImage, entry->VirtualAddress, NULL);
 
     if (!loadConfig)
         return STATUS_INVALID_PARAMETER;
@@ -400,7 +398,8 @@ NTSTATUS PhInitializeMappedImageExports(
 
     exportDirectory = PhMappedImageRvaToVa(
         MappedImage,
-        Exports->DataDirectory->VirtualAddress
+        Exports->DataDirectory->VirtualAddress,
+        NULL
         );
 
     if (!exportDirectory)
@@ -422,15 +421,18 @@ NTSTATUS PhInitializeMappedImageExports(
 
     Exports->AddressTable = (PULONG)PhMappedImageRvaToVa(
         MappedImage,
-        exportDirectory->AddressOfFunctions
+        exportDirectory->AddressOfFunctions,
+        NULL
         );
     Exports->NamePointerTable = (PULONG)PhMappedImageRvaToVa(
         MappedImage,
-        exportDirectory->AddressOfNames
+        exportDirectory->AddressOfNames,
+        NULL
         );
     Exports->OrdinalTable = (PUSHORT)PhMappedImageRvaToVa(
         MappedImage,
-        exportDirectory->AddressOfNameOrdinals
+        exportDirectory->AddressOfNameOrdinals,
+        NULL
         );
 
     if (
@@ -463,15 +465,13 @@ NTSTATUS PhInitializeMappedImageExports(
         return GetExceptionCode();
     }
 
-    return STATUS_SUCCESS;
-}
+    // The ordinal and name tables are parallel.
+    // Getting an index into the name table (e.g. by doing a binary 
+    // search) and indexing into the ordinal table will produce the 
+    // ordinal for that name, *unbiased* (unlike in the specification).
+    // The unbiased ordinal is an index into the address table.
 
-USHORT PhpExportIndexToOrdinal(
-    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
-    __in ULONG Index
-    )
-{
-    return (USHORT)(Exports->OrdinalTable[Index] + Exports->ExportDirectory->Base);
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS PhGetMappedImageExportEntry(
@@ -485,13 +485,14 @@ NTSTATUS PhGetMappedImageExportEntry(
     if (Index >= Exports->ExportDirectory->NumberOfFunctions)
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    Entry->Ordinal = PhpExportIndexToOrdinal(Exports, Index);
+    Entry->Ordinal = Exports->OrdinalTable[Index] + (USHORT)Exports->ExportDirectory->Base;
 
     if (Index < Exports->ExportDirectory->NumberOfNames)
     {
         name = PhMappedImageRvaToVa(
             Exports->MappedImage,
-            Exports->NamePointerTable[Index]
+            Exports->NamePointerTable[Index],
+            NULL
             );
 
         if (!name)
@@ -527,7 +528,7 @@ NTSTATUS PhGetMappedImageExportFunction(
         if (index == -1)
             return STATUS_PROCEDURE_NOT_FOUND;
 
-        Ordinal = PhpExportIndexToOrdinal(Exports, index);
+        Ordinal = Exports->OrdinalTable[index] + (USHORT)Exports->ExportDirectory->Base;
     }
 
     Ordinal -= (USHORT)Exports->ExportDirectory->Base;
@@ -546,7 +547,8 @@ NTSTATUS PhGetMappedImageExportFunction(
 
         Function->ForwardedName = PhMappedImageRvaToVa(
             Exports->MappedImage,
-            rva
+            rva,
+            NULL
             );
 
         if (!Function->ForwardedName)
@@ -560,7 +562,8 @@ NTSTATUS PhGetMappedImageExportFunction(
     {
         Function->Function = PhMappedImageRvaToVa(
             Exports->MappedImage,
-            rva
+            rva,
+            NULL
             );
         Function->ForwardedName = NULL;
     }
@@ -586,8 +589,12 @@ ULONG PhpLookupMappedImageExportName(
 
         name = PhMappedImageRvaToVa(
             Exports->MappedImage,
-            Exports->NamePointerTable[i]
+            Exports->NamePointerTable[i],
+            NULL
             );
+
+        if (!name)
+            return -1;
 
         // TODO: Probe the name.
 
@@ -602,4 +609,267 @@ ULONG PhpLookupMappedImageExportName(
     }
 
     return -1;
+}
+
+NTSTATUS PhInitializeMappedImageImports(
+    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_IMPORT_DESCRIPTOR descriptor;
+    ULONG i;
+
+    Imports->MappedImage = MappedImage;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_IMPORT,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    descriptor = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!descriptor)
+        return STATUS_INVALID_PARAMETER;
+
+    Imports->DescriptorTable = descriptor;
+
+    // Do a scan to determine how many import descriptors there are.
+
+    i = 0;
+
+    __try
+    {
+        while (TRUE)
+        {
+            PhpMappedImageProbe(MappedImage, descriptor, sizeof(IMAGE_IMPORT_DESCRIPTOR));
+
+            if (descriptor->OriginalFirstThunk == 0 && descriptor->FirstThunk == 0)
+                break;
+
+            descriptor++;
+            i++;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    Imports->NumberOfDlls = i;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageImportDll(
+    __in PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in ULONG Index,
+    __out PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll
+    )
+{
+    ULONG i;
+
+    if (Index >= Imports->NumberOfDlls)
+        return STATUS_INVALID_PARAMETER_2;
+
+    ImportDll->MappedImage = Imports->MappedImage;
+    ImportDll->Descriptor = &Imports->DescriptorTable[Index];
+
+    ImportDll->Name = PhMappedImageRvaToVa(
+        ImportDll->MappedImage,
+        ImportDll->Descriptor->Name,
+        NULL
+        );
+
+    if (!ImportDll->Name)
+        return STATUS_INVALID_PARAMETER;
+
+    // TODO: Probe the name.
+
+    if (ImportDll->Descriptor->OriginalFirstThunk)
+    {
+        ImportDll->LookupTable = PhMappedImageRvaToVa(
+            ImportDll->MappedImage,
+            ImportDll->Descriptor->OriginalFirstThunk,
+            NULL
+            );
+    }
+    else
+    {
+        ImportDll->LookupTable = PhMappedImageRvaToVa(
+            ImportDll->MappedImage,
+            ImportDll->Descriptor->FirstThunk,
+            NULL
+            );
+    }
+
+    if (!ImportDll->LookupTable)
+        return STATUS_INVALID_PARAMETER;
+
+    // Do a scan to determine how many entries there are.
+
+    i = 0;
+
+    if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        PULONG entry;
+
+        entry = (PULONG)ImportDll->LookupTable;
+
+        __try
+        {
+            while (TRUE)
+            {
+                PhpMappedImageProbe(
+                    ImportDll->MappedImage,
+                    entry,
+                    sizeof(ULONG)
+                    );
+
+                if (*entry == 0)
+                    break;
+
+                entry++;
+                i++;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PULONG64 entry;
+
+        entry = (PULONG64)ImportDll->LookupTable;
+
+        __try
+        {
+            while (TRUE)
+            {
+                PhpMappedImageProbe(
+                    ImportDll->MappedImage,
+                    entry,
+                    sizeof(ULONG64)
+                    );
+
+                if (*entry == 0)
+                    break;
+
+                entry++;
+                i++;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    ImportDll->NumberOfEntries = i;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageImportEntry(
+    __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
+    __in ULONG Index,
+    __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    )
+{
+    PIMAGE_IMPORT_BY_NAME importByName;
+
+    if (Index >= ImportDll->NumberOfEntries)
+        return STATUS_INVALID_PARAMETER_2;
+
+    if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        ULONG entry;
+
+        entry = ((PULONG)ImportDll->LookupTable)[Index];
+
+        // Is this entry using an ordinal?
+        if (entry & 0x80000000)
+        {
+            Entry->Ordinal = (USHORT)(entry & 0xffff);
+            Entry->NameHint = 0;
+            Entry->Name = NULL;
+
+            return STATUS_SUCCESS;
+        }
+        else
+        {
+            importByName = PhMappedImageRvaToVa(
+                ImportDll->MappedImage,
+                entry,
+                NULL
+                );
+        }
+    }
+    else if (ImportDll->MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        ULONG64 entry;
+
+        entry = ((PULONG64)ImportDll->LookupTable)[Index];
+
+        // Is this entry using an ordinal?
+        if (entry & 0x8000000000000000)
+        {
+            Entry->Ordinal = (USHORT)(entry & 0xffff);
+            Entry->NameHint = 0;
+            Entry->Name = NULL;
+
+            return STATUS_SUCCESS;
+        }
+        else
+        {
+            importByName = PhMappedImageRvaToVa(
+                ImportDll->MappedImage,
+                (ULONG)entry,
+                NULL
+                );
+        }
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    if (!importByName)
+        return STATUS_INVALID_PARAMETER;
+
+    __try
+    {
+        PhpMappedImageProbe(
+            ImportDll->MappedImage,
+            importByName,
+            sizeof(IMAGE_IMPORT_BY_NAME)
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    Entry->Ordinal = 0;
+    Entry->NameHint = importByName->Hint;
+    Entry->Name = (PSTR)importByName->Name;
+
+    // TODO: Probe the name.
+
+    return STATUS_SUCCESS;
 }
