@@ -400,6 +400,11 @@ NTSTATUS PhGetTokenIntegrityLevel(
     __out_opt PPH_STRING *IntegrityString
     );
 
+NTSTATUS PhGetFileSize(
+    __in HANDLE FileHandle,
+    __out PLARGE_INTEGER Size
+    );
+
 NTSTATUS PhGetTransactionManagerBasicInformation(
     __in HANDLE TransactionManagerHandle,
     __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
@@ -699,6 +704,104 @@ NTSTATUS PhSetObjectSecurityHack(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Buffer
+    );
+
+// mapimg
+
+typedef struct _PH_MAPPED_IMAGE
+{
+    PVOID ViewBase;
+    SIZE_T Size;
+
+    PIMAGE_NT_HEADERS NtHeaders;
+    ULONG NumberOfSections;
+    PIMAGE_SECTION_HEADER Sections;
+    USHORT Magic;
+} PH_MAPPED_IMAGE, *PPH_MAPPED_IMAGE;
+
+NTSTATUS PhInitializeMappedImage(
+    __out PPH_MAPPED_IMAGE MappedImage,
+    __in PVOID ViewBase,
+    __in SIZE_T Size
+    );
+
+NTSTATUS PhLoadMappedImage(
+    __in_opt PWSTR FileName,
+    __in_opt HANDLE FileHandle,
+    __in BOOLEAN ReadOnly,
+    __out PPH_MAPPED_IMAGE MappedImage
+    );
+
+NTSTATUS PhUnloadMappedImage(
+    __inout PPH_MAPPED_IMAGE MappedImage
+    );
+
+PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
+    __in PPH_MAPPED_IMAGE MappedImage,
+    __in ULONG Rva
+    );
+
+PVOID PhMappedImageRvaToVa(
+    __in PPH_MAPPED_IMAGE MappedImage,
+    __in ULONG Rva
+    );
+
+NTSTATUS PhGetMappedImageDataEntry(
+    __in PPH_MAPPED_IMAGE MappedImage,
+    __in ULONG Index,
+    __out PIMAGE_DATA_DIRECTORY *Entry
+    );
+
+NTSTATUS PhGetMappedImageLoadConfig32(
+    __in PPH_MAPPED_IMAGE MappedImage,
+    __out PIMAGE_LOAD_CONFIG_DIRECTORY32 *LoadConfig
+    );
+
+NTSTATUS PhGetMappedImageLoadConfig64(
+    __in PPH_MAPPED_IMAGE MappedImage,
+    __out PIMAGE_LOAD_CONFIG_DIRECTORY64 *LoadConfig
+    );
+
+typedef struct _PH_MAPPED_IMAGE_EXPORTS
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    ULONG NumberOfEntries;
+
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+    PIMAGE_EXPORT_DIRECTORY ExportDirectory;
+    PULONG AddressTable;
+    PULONG NamePointerTable;
+    PUSHORT OrdinalTable;
+} PH_MAPPED_IMAGE_EXPORTS, *PPH_MAPPED_IMAGE_EXPORTS;
+
+typedef struct _PH_MAPPED_IMAGE_EXPORT_ENTRY
+{
+    USHORT Ordinal;
+    PSTR Name;
+} PH_MAPPED_IMAGE_EXPORT_ENTRY, *PPH_MAPPED_IMAGE_EXPORT_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
+{
+    PVOID Function;
+    PSTR ForwardedName;
+} PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
+
+NTSTATUS PhInitializeMappedImageExports(
+    __out PPH_MAPPED_IMAGE_EXPORTS Exports,
+    __in PPH_MAPPED_IMAGE MappedImage
+    );
+
+NTSTATUS PhGetMappedImageExportEntry(
+    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
+    __in ULONG Index,
+    __out PPH_MAPPED_IMAGE_EXPORT_ENTRY Entry
+    );
+
+NTSTATUS PhGetMappedImageExportFunction(
+    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
+    __in_opt PSTR Name,
+    __in_opt USHORT Ordinal,
+    __out PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
     );
 
 // verify
