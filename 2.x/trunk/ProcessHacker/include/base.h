@@ -231,6 +231,27 @@ FORCEINLINE VOID PhPrintPointer(
     _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%Ix", Pointer);
 }
 
+FORCEINLINE VOID PhProbeAddress(
+    __in PVOID UserAddress,
+    __in SIZE_T UserLength,
+    __in PVOID BufferAddress,
+    __in SIZE_T BufferLength,
+    __in ULONG Alignment
+    )
+{
+    if (UserLength != 0)
+    {
+        if (((ULONG_PTR)UserAddress & (Alignment - 1)) != 0)
+            PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
+
+        if (
+            (((ULONG_PTR)UserAddress + UserLength) < (ULONG_PTR)UserAddress) ||
+            (((ULONG_PTR)UserAddress + UserLength) > ((ULONG_PTR)BufferAddress + BufferLength))
+            )
+            PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+    }
+}
+
 #ifdef _M_IX86
 
 FORCEINLINE PVOID _InterlockedCompareExchangePointer(

@@ -132,6 +132,10 @@ There are three main types of indicators used:
 Unless indicated, a function which fails is guaranteed not to 
 modify any of its output parameters (__out, __out_opt, etc.).
 
+For functions which are passed a callback function, it is not 
+guaranteed that a failed function has not executed the callback 
+function.
+
 ==== Threads ====
 Every thread start routine must have the following signature:
 

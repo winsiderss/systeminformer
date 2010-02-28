@@ -66,6 +66,89 @@ typedef VOID (NTAPI *PIO_APC_ROUTINE)(
     __in ULONG Reserved
     );
 
+typedef enum _FILE_INFORMATION_CLASS
+{
+    FileDirectoryInformation = 1,
+    FileFullDirectoryInformation,
+    FileBothDirectoryInformation,
+    FileBasicInformation,
+    FileStandardInformation,
+    FileInternalInformation,
+    FileEaInformation,
+    FileAccessInformation,
+    FileNameInformation,
+    FileRenameInformation,
+    FileLinkInformation,
+    FileNamesInformation,
+    FileDispositionInformation,
+    FilePositionInformation,
+    FileFullEaInformation,
+    FileModeInformation,
+    FileAlignmentInformation,
+    FileAllInformation,
+    FileAllocationInformation,
+    FileEndOfFileInformation,
+    FileAlternateNameInformation,
+    FileStreamInformation,
+    FilePipeInformation,
+    FilePipeLocalInformation,
+    FilePipeRemoteInformation,
+    FileMailslotQueryInformation,
+    FileMailslotSetInformation,
+    FileCompressionInformation,
+    FileObjectIdInformation,
+    FileCompletionInformation,
+    FileMoveClusterInformation,
+    FileQuotaInformation,
+    FileReparsePointInformation,
+    FileNetworkOpenInformation,
+    FileAttributeTagInformation,
+    FileTrackingInformation,
+    FileIdBothDirectoryInformation, 
+    FileIdFullDirectoryInformation, 
+    FileValidDataLengthInformation, 
+    FileShortNameInformation,
+    FileIoCompletionNotificationInformation, 
+    FileIoStatusBlockRangeInformation,
+    FileIoPriorityHintInformation,
+    FileSfioReserveInformation,
+    FileSfioVolumeInformation,
+    FileHardLinkInformation,
+    FileProcessIdsUsingFileInformation,
+    FileNormalizedNameInformation,
+    FileNetworkPhysicalNameInformation,
+    FileIdGlobalTxDirectoryInformation,
+    FileIsRemoteDeviceInformation,
+    FileAttributeCacheInformation,
+    FileNumaNodeInformation,
+    FileStandardLinkInformation,
+    FileRemoteProtocolInformation,
+    FileMaximumInformation
+} FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
+
+typedef struct _FILE_BASIC_INFORMATION
+{
+    LARGE_INTEGER CreationTime;
+    LARGE_INTEGER LastAccessTime;
+    LARGE_INTEGER LastWriteTime;
+    LARGE_INTEGER ChangeTime;
+    ULONG FileAttributes;
+} FILE_BASIC_INFORMATION, *PFILE_BASIC_INFORMATION;
+
+typedef struct _FILE_STANDARD_INFORMATION
+{
+    LARGE_INTEGER AllocationSize;
+    LARGE_INTEGER EndOfFile;
+    ULONG NumberOfLinks;
+    BOOLEAN DeletePending;
+    BOOLEAN Directory;
+} FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
+
+typedef struct _FILE_POSITION_INFORMATION
+{
+    LARGE_INTEGER CurrentByteOffset;
+} FILE_POSITION_INFORMATION, *PFILE_POSITION_INFORMATION;
+
 typedef NTSTATUS (NTAPI *_NtDeleteFile)(
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -117,6 +200,22 @@ typedef NTSTATUS (NTAPI *_NtOpenFile)(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in ULONG ShareAccess,
     __in ULONG OpenOptions
+    );
+
+typedef NTSTATUS (NTAPI *_NtQueryInformationFile)(
+    __in HANDLE FileHandle,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __out_bcount(Length) PVOID FileInformation,
+    __in ULONG Length,
+    __in FILE_INFORMATION_CLASS FileInformationClass
+    );
+
+typedef NTSTATUS (NTAPI *_NtSetInformationFile)(
+    __in HANDLE FileHandle,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __in_bcount(Length) PVOID FileInformation,
+    __in ULONG Length,
+    __in FILE_INFORMATION_CLASS FileInformationClass
     );
 
 typedef NTSTATUS (NTAPI *_NtReadFile)(
