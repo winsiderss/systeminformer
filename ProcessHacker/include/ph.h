@@ -743,7 +743,8 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
 
 PVOID PhMappedImageRvaToVa(
     __in PPH_MAPPED_IMAGE MappedImage,
-    __in ULONG Rva
+    __in ULONG Rva,
+    __out_opt PIMAGE_SECTION_HEADER *Section
     );
 
 NTSTATUS PhGetMappedImageDataEntry(
@@ -802,6 +803,42 @@ NTSTATUS PhGetMappedImageExportFunction(
     __in_opt PSTR Name,
     __in_opt USHORT Ordinal,
     __out PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
+    );
+
+typedef struct _PH_MAPPED_IMAGE_IMPORTS
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    ULONG NumberOfDlls;
+
+    PIMAGE_IMPORT_DESCRIPTOR DescriptorTable;
+} PH_MAPPED_IMAGE_IMPORTS, *PPH_MAPPED_IMAGE_IMPORTS;
+
+typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PSTR Name;
+    ULONG NumberOfEntries;
+
+    PIMAGE_IMPORT_DESCRIPTOR Descriptor;
+    PPVOID LookupTable;
+} PH_MAPPED_IMAGE_IMPORT_DLL, *PPH_MAPPED_IMAGE_IMPORT_DLL;
+
+typedef struct _PH_MAPPED_IMAGE_IMPORT_ENTRY
+{
+    USHORT Ordinal;
+    USHORT NameHint;
+    PSTR Name;
+} PH_MAPPED_IMAGE_IMPORT_ENTRY, *PPH_MAPPED_IMAGE_IMPORT_ENTRY;
+
+NTSTATUS PhInitializeMappedImageImports(
+    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in PPH_MAPPED_IMAGE MappedImage
+    );
+
+NTSTATUS PhGetMappedImageImportDll(
+    __in PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in ULONG Index,
+    __out PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll
     );
 
 // verify
@@ -1600,7 +1637,7 @@ PPH_STRING PhGetWin32Message(
     __in ULONG Result
     );
 
-#define PH_MAX_MESSAGE_SIZE 400
+#define PH_MAX_MESSAGE_SIZE 800
 
 INT PhShowMessage(
     __in HWND hWnd,
