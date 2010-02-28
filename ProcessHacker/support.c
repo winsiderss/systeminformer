@@ -1633,6 +1633,93 @@ VOID PhSetFileDialogFileName(
     }
 }
 
+NTSTATUS PhIsExecutablePacked(
+    __in PWSTR FileName,
+    __out PBOOLEAN IsPacked,
+    __out_opt PULONG NumberOfModules,
+    __out_opt PULONG NumberOfFunctions
+    )
+{
+    // An image is packed if:
+    //
+    // 1. It references fewer than 3 modules, and 
+    // 2. It imports fewer than 5 functions.
+    //
+    // Or:
+    //
+    // 1. The function-to-module ratio is lower than 4 
+    //    (on average fewer than 4 functions are imported 
+    //    from each module), and
+    // 2. It references more than 3 modules but fewer than 
+    //    30 modules.
+
+    NTSTATUS status;
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_IMPORTS imports;
+    PH_MAPPED_IMAGE_IMPORT_DLL importDll;
+    ULONG i;
+    ULONG numberOfModules;
+    ULONG numberOfFunctions = 0;
+    BOOLEAN isPacked;
+
+    status = PhLoadMappedImage(
+        FileName,
+        NULL,
+        TRUE,
+        &mappedImage
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhInitializeMappedImageImports(
+        &imports,
+        &mappedImage
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Get the module and function totals.
+
+    numberOfModules = imports.NumberOfDlls;
+
+    for (i = 0; i < numberOfModules; i++)
+    {
+        if (!NT_SUCCESS(status = PhGetMappedImageImportDll(
+            &imports,
+            i,
+            &importDll
+            )))
+            goto CleanupExit;
+
+        numberOfFunctions += importDll.NumberOfEntries;
+    }
+
+    // Determine if the image is packed.
+
+    if (
+        (numberOfModules < 3 && numberOfFunctions < 5) ||
+        (((FLOAT)numberOfFunctions / numberOfModules) < 4 &&
+        numberOfModules > 3 && numberOfModules < 30)
+        )
+    {
+        isPacked = TRUE;
+    }
+
+    *IsPacked = isPacked;
+
+    if (NumberOfModules)
+        *NumberOfModules = numberOfModules;
+    if (NumberOfFunctions)
+        *NumberOfFunctions = numberOfFunctions;
+
+CleanupExit:
+    PhUnloadMappedImage(&mappedImage);
+
+    return status;
+}
+
 VOID PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,

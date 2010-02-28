@@ -432,6 +432,13 @@ VOID PhpProcessQueryStage2(
             processItem->FileName->Buffer,
             &Data->VerifySignerName
             );
+
+        PhIsExecutablePacked(
+            processItem->FileName->Buffer,
+            &Data->IsPacked,
+            NULL,
+            NULL
+            );
     }
 }
 
