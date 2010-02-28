@@ -1835,6 +1835,13 @@ VOID PhSetFileDialogFileName(
     __in PWSTR FileName
     );
 
+NTSTATUS PhIsExecutablePacked(
+    __in PWSTR FileName,
+    __out PBOOLEAN IsPacked,
+    __out_opt PULONG NumberOfModules,
+    __out_opt PULONG NumberOfFunctions
+    );
+
 typedef struct _PH_COMMAND_LINE_OPTION
 {
     ULONG Id;
