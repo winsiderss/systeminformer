@@ -590,48 +590,48 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
         else if (WSTR_IEQUAL(command, L"testlocks"))
         {
-            RW_TEST_CONTEXT context;
+            RW_TEST_CONTEXT testContext;
             PH_FAST_LOCK fastLock;
             PH_QUEUED_LOCK queuedLock;
             PH_MUTEX mutex;
 
-            context.Name = L"FastLock";
-            context.AcquireExclusive = PhfAcquireFastLockExclusive;
-            context.AcquireShared = PhfAcquireFastLockShared;
-            context.ReleaseExclusive = PhfReleaseFastLockExclusive;
-            context.ReleaseShared = PhfReleaseFastLockShared;
-            context.Parameter = &fastLock;
+            testContext.Name = L"FastLock";
+            testContext.AcquireExclusive = PhfAcquireFastLockExclusive;
+            testContext.AcquireShared = PhfAcquireFastLockShared;
+            testContext.ReleaseExclusive = PhfReleaseFastLockExclusive;
+            testContext.ReleaseShared = PhfReleaseFastLockShared;
+            testContext.Parameter = &fastLock;
             PhInitializeFastLock(&fastLock);
-            PhpTestRwLock(&context);
+            PhpTestRwLock(&testContext);
             PhDeleteFastLock(&fastLock);
 
-            context.Name = L"QueuedLock";
-            context.AcquireExclusive = PhfAcquireQueuedLockExclusive;
-            context.AcquireShared = PhfAcquireQueuedLockShared;
-            context.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
-            context.ReleaseShared = PhfReleaseQueuedLockShared;
-            context.Parameter = &queuedLock;
+            testContext.Name = L"QueuedLock";
+            testContext.AcquireExclusive = PhfAcquireQueuedLockExclusive;
+            testContext.AcquireShared = PhfAcquireQueuedLockShared;
+            testContext.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
+            testContext.ReleaseShared = PhfReleaseQueuedLockShared;
+            testContext.Parameter = &queuedLock;
             PhInitializeQueuedLock(&queuedLock);
-            PhpTestRwLock(&context);
+            PhpTestRwLock(&testContext);
 
-            context.Name = L"Mutex";
-            context.AcquireExclusive = PhfAcquireMutex;
-            context.AcquireShared = PhfAcquireMutex;
-            context.ReleaseExclusive = PhfReleaseMutex;
-            context.ReleaseShared = PhfReleaseMutex;
-            context.Parameter = &mutex;
+            testContext.Name = L"Mutex";
+            testContext.AcquireExclusive = PhfAcquireMutex;
+            testContext.AcquireShared = PhfAcquireMutex;
+            testContext.ReleaseExclusive = PhfReleaseMutex;
+            testContext.ReleaseShared = PhfReleaseMutex;
+            testContext.Parameter = &mutex;
             PhInitializeMutex(&mutex);
-            PhpTestRwLock(&context);
+            PhpTestRwLock(&testContext);
             PhDeleteMutex(&mutex);
 
-            context.Name = L"QueuedLockMutex";
-            context.AcquireExclusive = PhfAcquireQueuedLockExclusive;
-            context.AcquireShared = PhfAcquireQueuedLockExclusive;
-            context.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
-            context.ReleaseShared = PhfReleaseQueuedLockExclusive;
-            context.Parameter = &queuedLock;
+            testContext.Name = L"QueuedLockMutex";
+            testContext.AcquireExclusive = PhfAcquireQueuedLockExclusive;
+            testContext.AcquireShared = PhfAcquireQueuedLockExclusive;
+            testContext.ReleaseExclusive = PhfReleaseQueuedLockExclusive;
+            testContext.ReleaseShared = PhfReleaseQueuedLockExclusive;
+            testContext.Parameter = &queuedLock;
             PhInitializeQueuedLock(&queuedLock);
-            PhpTestRwLock(&context);
+            PhpTestRwLock(&testContext);
         }
         else if (WSTR_IEQUAL(command, L"objects"))
         {
@@ -905,24 +905,24 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             if (PhStringToInteger64(addressString, 16, &address))
             {
-                PPH_AUTO_POOL autoPool = (PPH_AUTO_POOL)address;
+                PPH_AUTO_POOL userAutoPool = (PPH_AUTO_POOL)address;
                 ULONG i;
 
                 __try
                 {
-                    wprintf(L"Static count: %u\n", autoPool->StaticCount);
-                    wprintf(L"Dynamic count: %u\n", autoPool->DynamicCount);
-                    wprintf(L"Dynamic allocated: %u\n", autoPool->DynamicAllocated);
+                    wprintf(L"Static count: %u\n", userAutoPool->StaticCount);
+                    wprintf(L"Dynamic count: %u\n", userAutoPool->DynamicCount);
+                    wprintf(L"Dynamic allocated: %u\n", userAutoPool->DynamicAllocated);
 
                     wprintf(L"Static objects:\n");
 
-                    for (i = 0; i < autoPool->StaticCount; i++)
-                        PhpPrintObjectInfo(PhObjectToObjectHeader(autoPool->StaticObjects[i]), 0);
+                    for (i = 0; i < userAutoPool->StaticCount; i++)
+                        PhpPrintObjectInfo(PhObjectToObjectHeader(userAutoPool->StaticObjects[i]), 0);
 
                     wprintf(L"Dynamic objects:\n");
 
-                    for (i = 0; i < autoPool->DynamicCount; i++)
-                        PhpPrintObjectInfo(PhObjectToObjectHeader(autoPool->DynamicObjects[i]), 0);
+                    for (i = 0; i < userAutoPool->DynamicCount; i++)
+                        PhpPrintObjectInfo(PhObjectToObjectHeader(userAutoPool->DynamicObjects[i]), 0);
                 }
                 __except (EXCEPTION_EXECUTE_HANDLER)
                 {

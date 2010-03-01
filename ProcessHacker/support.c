@@ -1706,6 +1706,10 @@ NTSTATUS PhIsExecutablePacked(
     {
         isPacked = TRUE;
     }
+    else
+    {
+        isPacked = FALSE;
+    }
 
     *IsPacked = isPacked;
 

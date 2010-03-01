@@ -467,7 +467,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
             itemState = PH_GET_ITEM_STATE(item.state);
 
-            if (itemState == RemovingItemState || itemState == RemovingItemState)
+            if (itemState == RemovingItemState)
                 return FALSE;
 
             item.mask = oldMask;
@@ -886,11 +886,11 @@ static VOID PhListTick(
 
         for (i = 0; i < itemsToRemove->Count; i++)
         {
-            PH_TICK_ENTRY entry;
+            PH_TICK_ENTRY removeEntry;
 
-            entry.Id = (ULONG)itemsToRemove->Items[i];
+            removeEntry.Id = (ULONG)itemsToRemove->Items[i];
 
-            PhRemoveHashtableEntry(Context->TickHashtable, &entry);
+            PhRemoveHashtableEntry(Context->TickHashtable, &removeEntry);
         }
 
         PhDereferenceObject(itemsToRemove);
