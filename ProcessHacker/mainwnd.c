@@ -47,6 +47,12 @@ VOID PhReloadSysParameters();
 
 VOID PhpSaveWindowState();
 
+VOID PhpSaveAllSettings();
+
+VOID PhpPrepareForEarlyShutdown();
+
+VOID PhpCancelEarlyShutdown();
+
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
 VOID PhpGetSelectedProcesses(
@@ -310,19 +316,8 @@ LRESULT CALLBACK PhMainWndProc(
     { 
     case WM_DESTROY:
         {
-            WINDOWPLACEMENT placement = { sizeof(placement) };
-            PH_RECTANGLE windowRectangle;
-
-            GetWindowPlacement(hWnd, &placement);
-            windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
-
-            PhSetIntegerPairSetting(L"MainWindowPosition", windowRectangle.Position);
-            PhSetIntegerPairSetting(L"MainWindowSize", windowRectangle.Size);
-
-            PhpSaveWindowState();
-
-            if (PhSettingsFileName)
-                PhSaveSettings(PhSettingsFileName->Buffer);
+            if (!PhMainWndExiting)
+                PhpSaveAllSettings();
 
             PostQuitMessage(0);
         }
@@ -370,16 +365,16 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                 {
-                    PhMainWndExiting = TRUE;
+                    ProcessHacker_PrepareForEarlyShutdown(hWnd);
 
                     if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
                         L"", SW_SHOW, TRUE, 0))
                     {
-                        DestroyWindow(hWnd);
+                        ProcessHacker_Destroy(hWnd);
                     }
                     else
                     {
-                        PhMainWndExiting = FALSE;
+                        ProcessHacker_CancelEarlyShutdown(hWnd);
                     }
                 }
                 break;
@@ -419,7 +414,7 @@ LRESULT CALLBACK PhMainWndProc(
                 }
                 break;
             case ID_HACKER_EXIT:
-                DestroyWindow(hWnd);
+                ProcessHacker_Destroy(hWnd);
                 break;
             case ID_VIEW_REFRESH:
                 {
@@ -933,6 +928,26 @@ LRESULT CALLBACK PhMainWndProc(
             PhpShowProcessProperties((PPH_PROCESS_ITEM)lParam);
         }
         break;
+    case WM_PH_DESTROY:
+        {
+            DestroyWindow(hWnd);
+        }
+        break;
+    case WM_PH_SAVE_ALL_SETTINGS:
+        {
+            PhpSaveAllSettings();
+        }
+        break;
+    case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
+        {
+            PhpPrepareForEarlyShutdown();
+        }
+        break;
+    case WM_PH_CANCEL_EARLY_SHUTDOWN:
+        {
+            PhpCancelEarlyShutdown();
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
@@ -1030,6 +1045,34 @@ VOID PhpSaveWindowState()
         PhSetIntegerSetting(L"MainWindowState", SW_NORMAL);
     else if (placement.showCmd == SW_MAXIMIZE)
         PhSetIntegerSetting(L"MainWindowState", SW_MAXIMIZE);
+}
+
+VOID PhpSaveAllSettings()
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+    PH_RECTANGLE windowRectangle;
+
+    GetWindowPlacement(PhMainWndHandle, &placement);
+    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
+
+    PhSetIntegerPairSetting(L"MainWindowPosition", windowRectangle.Position);
+    PhSetIntegerPairSetting(L"MainWindowSize", windowRectangle.Size);
+
+    PhpSaveWindowState();
+
+    if (PhSettingsFileName)
+        PhSaveSettings(PhSettingsFileName->Buffer);
+}
+
+VOID PhpPrepareForEarlyShutdown()
+{
+    PhpSaveAllSettings();
+    PhMainWndExiting = TRUE;
+}
+
+VOID PhpCancelEarlyShutdown()
+{
+    PhMainWndExiting = FALSE;
 }
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
