@@ -139,6 +139,9 @@ INT WINAPI WinMain(
         }
     }
 
+    // Set priority to High.
+    SetPriorityClass(NtCurrentProcess(), HIGH_PRIORITY_CLASS);
+
     // Activate a previous instance if required.
     if (!PhGetIntegerSetting(L"AllowMultipleInstances"))
         PhActivatePreviousInstance();
