@@ -244,12 +244,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             if (NT_SUCCESS(status))
                             {
-                                INT lvItemIndex = PhFindListViewItemByParam(
-                                    PhHiddenProcessesListViewHandle, -1, entry
-                                    );
-
-                                if (lvItemIndex != -1)
-                                    PhRemoveListViewItem(PhHiddenProcessesListViewHandle, lvItemIndex);
+                                // Sleep for a bit before continuing. It seems to help avoid 
+                                // BSODs.
+                                Sleep(250);
+                                SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
                             else
                             {
