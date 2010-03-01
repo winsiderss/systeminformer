@@ -122,15 +122,11 @@ FORCEINLINE VOID PhAcquireQueuedLockSharedFast(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
-    ULONG_PTR value;
-
-    value = QueuedLock->Value;
-
     if ((ULONG_PTR)_InterlockedCompareExchangePointer(
         (PPVOID)&QueuedLock->Value,
         (PVOID)(PH_QUEUED_LOCK_OWNED | PH_QUEUED_LOCK_SHARED_INC),
-        (PVOID)value
-        ) != value)
+        (PVOID)0
+        ) != 0)
     {
         PhAcquireQueuedLockShared(QueuedLock);
     }
