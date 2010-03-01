@@ -236,9 +236,9 @@ VOID PhQueueWorkQueueItem(
     PhpInitializeWorkQueueItem(workQueueItem, Function, Context);
 
     // Enqueue the work item.
-    PhAcquireQueuedLockExclusive(&WorkQueue->QueueLock);
+    PhAcquireQueuedLockExclusiveFast(&WorkQueue->QueueLock);
     PhEnqueueQueueItem(WorkQueue->Queue, workQueueItem);
-    PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
+    PhReleaseQueuedLockExclusiveFast(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
     ReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
 
