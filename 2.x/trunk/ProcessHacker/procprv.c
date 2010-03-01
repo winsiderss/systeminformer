@@ -436,8 +436,8 @@ VOID PhpProcessQueryStage2(
         PhIsExecutablePacked(
             processItem->FileName->Buffer,
             &Data->IsPacked,
-            NULL,
-            NULL
+            &Data->ImportModules,
+            &Data->ImportFunctions
             );
     }
 }

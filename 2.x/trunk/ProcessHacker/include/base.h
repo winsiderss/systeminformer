@@ -192,7 +192,7 @@ FORCEINLINE PVOID PhGetProcAddress(
 }
 
 FORCEINLINE VOID PhPrintInt32(
-    __out PWSTR Destination,
+    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
     __in LONG Int32
     )
 {
@@ -200,7 +200,7 @@ FORCEINLINE VOID PhPrintInt32(
 }
 
 FORCEINLINE VOID PhPrintUInt32(
-    __out PWSTR Destination,
+    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
     __in ULONG UInt32
     )
 {
@@ -208,7 +208,7 @@ FORCEINLINE VOID PhPrintUInt32(
 }
 
 FORCEINLINE VOID PhPrintInt64(
-    __out PWSTR Destination,
+    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
     __in LONG64 Int64
     )
 {
@@ -216,7 +216,7 @@ FORCEINLINE VOID PhPrintInt64(
 }
 
 FORCEINLINE VOID PhPrintUInt64(
-    __out PWSTR Destination,
+    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
     __in ULONG64 UInt64
     )
 {
@@ -224,7 +224,7 @@ FORCEINLINE VOID PhPrintUInt64(
 }
 
 FORCEINLINE VOID PhPrintPointer(
-    __out PWSTR Destination,
+    __out_ecount(PH_PTR_STR_LEN) PWSTR Destination,
     __in PVOID Pointer
     )
 {

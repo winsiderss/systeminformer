@@ -505,6 +505,7 @@ FORCEINLINE ULONG PhGetColorBrightness(
 
 #ifndef MAINWND_PRIVATE
 extern HWND PhMainWndHandle;
+extern BOOLEAN PhMainWndExiting;
 #endif
 
 #define WM_PH_ACTIVATE (WM_APP + 99)

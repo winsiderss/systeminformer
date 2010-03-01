@@ -132,15 +132,23 @@ __mayRaise NTSTATUS PhCreateObject(
         status = STATUS_INVALID_PARAMETER_5;
     }
 
-    /* Allocate storage for the object. Note that this includes 
-     * the object header followed by the object body. */
-    objectHeader = PhpAllocateObject(ObjectSize);
+    if (NT_SUCCESS(status))
+    {
+        /* Allocate storage for the object. Note that this includes 
+         * the object header followed by the object body. */
+        objectHeader = PhpAllocateObject(ObjectSize);
 
-    if (!objectHeader)
-        status = STATUS_INSUFFICIENT_RESOURCES;
+        if (!objectHeader)
+            status = STATUS_INSUFFICIENT_RESOURCES;
+    }
 
-    if (!NT_SUCCESS(status) && (Flags & PHOBJ_RAISE_ON_FAIL))
-        PhRaiseStatus(status);
+    if (!NT_SUCCESS(status))
+    {
+        if (!(Flags & PHOBJ_RAISE_ON_FAIL))
+            return status;
+        else
+            PhRaiseStatus(status);
+    }
 
     /* Object type statistics. */
     if (ObjectType)

@@ -371,12 +371,12 @@ PPH_STRING PhConcatStrings2(
     );
 
 PPH_STRING PhFormatString(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     );
 
 PPH_STRING PhFormatString_V(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     __in va_list ArgPtr
     );
 
@@ -892,7 +892,7 @@ VOID PhStringBuilderAppendEx(
 
 VOID PhStringBuilderAppendFormat(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     );
 
@@ -1516,7 +1516,7 @@ PPH_STRING PhaConcatStrings2(
     );
 
 PPH_STRING PhaFormatString(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     );
 

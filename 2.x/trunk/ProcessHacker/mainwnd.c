@@ -92,6 +92,7 @@ VOID PhMainWndOnServiceRemoved(
 VOID PhMainWndOnServicesUpdated();
 
 HWND PhMainWndHandle;
+BOOLEAN PhMainWndExiting = FALSE;
 
 static HWND TabControlHandle;
 static INT ProcessesTlTabIndex;
@@ -369,10 +370,16 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_HACKER_SHOWDETAILSFORALLPROCESSES:
                 {
+                    PhMainWndExiting = TRUE;
+
                     if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
                         L"", SW_SHOW, TRUE, 0))
                     {
                         DestroyWindow(hWnd);
+                    }
+                    else
+                    {
+                        PhMainWndExiting = FALSE;
                     }
                 }
                 break;
@@ -906,12 +913,19 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_ACTIVATE:
         {
-            if (IsIconic(hWnd))
+            if (!PhMainWndExiting)
             {
-                ShowWindow(hWnd, SW_RESTORE);
-            }
+                if (IsIconic(hWnd))
+                {
+                    ShowWindow(hWnd, SW_RESTORE);
+                }
 
-            return PH_ACTIVATE_REPLY;
+                return PH_ACTIVATE_REPLY;
+            }
+            else
+            {
+                return 0;
+            }
         }
         break;
     case WM_PH_SHOW_PROCESS_PROPERTIES:
