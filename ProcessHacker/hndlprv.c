@@ -105,6 +105,8 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
         ProcessId
         );
 
+    handleProvider->TempListHashtable = PhCreateSimpleHashtable(20);
+
     return handleProvider;
 }
 
@@ -125,6 +127,8 @@ VOID PhpHandleProviderDeleteProcedure(
     PhDeleteCallback(&handleProvider->HandleRemovedEvent);
 
     if (handleProvider->ProcessHandle) NtClose(handleProvider->ProcessHandle);
+
+    PhDereferenceObject(handleProvider->TempListHashtable);
 }
 
 PPH_HANDLE_ITEM PhCreateHandleItem(
@@ -263,6 +267,7 @@ VOID PhHandleProviderUpdate(
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO handles;
     ULONG numberOfHandles;
     ULONG i;
+    PPH_KEY_VALUE_PAIR handlePair;
 
     if (!handleProvider->ProcessHandle)
         return;
@@ -273,34 +278,48 @@ VOID PhHandleProviderUpdate(
     handles = handleInfo->Handles;
     numberOfHandles = handleInfo->NumberOfHandles;
 
+    // Make a list of the relevant handles.
+    for (i = 0; i < numberOfHandles; i++)
+    {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = &handles[i];
+
+        if (handle->UniqueProcessId == (USHORT)handleProvider->ProcessId)
+        {
+            PhAddSimpleHashtableItem(
+                handleProvider->TempListHashtable,
+                (PVOID)handle->HandleValue,
+                handle
+                );
+        }
+    }
+
     // Look for closed handles.
     {
         PPH_LIST handlesToRemove = NULL;
         ULONG enumerationKey = 0;
         PPH_HANDLE_ITEM *handleItem;
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO *tempHashtableValue;
 
         while (PhEnumHashtable(handleProvider->HandleHashtable, (PPVOID)&handleItem, &enumerationKey))
         {
             BOOLEAN found = FALSE;
 
             // Check if the handle still exists.
-            for (i = 0; i < numberOfHandles; i++)
+
+            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO *)PhGetSimpleHashtableItem(
+                handleProvider->TempListHashtable,
+                (PVOID)((*handleItem)->Handle)
+                );
+
+            if (tempHashtableValue)
             {
-                PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = &handles[i];
-
-                if (handle->UniqueProcessId != (USHORT)handleProvider->ProcessId)
-                    continue;
-
                 // Also compare the object pointers to make sure a 
                 // different object wasn't re-opened with the same 
-                // handle value.
-                if (
-                    (*handleItem)->Handle == (HANDLE)handle->HandleValue &&
-                    (*handleItem)->Object == handle->Object
-                    )
+                // handle value. This isn't 100% accurate as pool 
+                // addresses may be re-used, but it works well.
+                if ((*handleItem)->Object == (*tempHashtableValue)->Object)
                 {
                     found = TRUE;
-                    break;
                 }
             }
 
@@ -334,13 +353,13 @@ VOID PhHandleProviderUpdate(
     }
 
     // Look for new handles and update existing ones.
-    for (i = 0; i < numberOfHandles; i++)
-    {
-        PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = &handles[i];
-        PPH_HANDLE_ITEM handleItem;
 
-        if (handle->UniqueProcessId != (USHORT)handleProvider->ProcessId)
-            continue;
+    i = 0;
+
+    while (PhEnumHashtable(handleProvider->TempListHashtable, &handlePair, &i))
+    {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = handlePair->Value;
+        PPH_HANDLE_ITEM handleItem;
 
         handleItem = PhpLookupHandleItem(handleProvider, (HANDLE)handle->HandleValue);
 
@@ -394,6 +413,17 @@ VOID PhHandleProviderUpdate(
     }
 
     PhFree(handleInfo);
+
+    // Re-create the temporary hashtable if it got too big.
+    if (handleProvider->TempListHashtable->AllocatedEntries > 8192)
+    {
+        PhDereferenceObject(handleProvider->TempListHashtable);
+        handleProvider->TempListHashtable = PhCreateSimpleHashtable(512);
+    }
+    else
+    {
+        PhClearHashtable(handleProvider->TempListHashtable);
+    }
 
     PhInvokeCallback(&handleProvider->UpdatedEvent, NULL);
     handleProvider->RunCount++;

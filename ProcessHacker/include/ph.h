@@ -1419,6 +1419,8 @@ typedef struct _PH_HANDLE_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+
+    PPH_HASHTABLE TempListHashtable;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
 
 BOOLEAN PhInitializeHandleProvider();
