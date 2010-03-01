@@ -128,7 +128,15 @@ INT WINAPI WinMain(
         PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
 
         if (PhSettingsFileName)
-            PhLoadSettings(PhSettingsFileName->Buffer);
+        {
+            if (!PhLoadSettings(PhSettingsFileName->Buffer))
+            {
+                // Pretend we don't have a settings store so bad things 
+                // don't happen.
+                PhDereferenceObject(PhSettingsFileName);
+                PhSettingsFileName = NULL;
+            }
+        }
     }
 
     // Activate a previous instance if required.
