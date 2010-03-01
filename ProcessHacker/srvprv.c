@@ -361,7 +361,7 @@ PPH_STRING PhGetServiceDescription(
     )
 {
     PVOID buffer;
-    ULONG returnLength;
+    ULONG returnLength = 0x100;
     LPSERVICE_DESCRIPTION serviceDescription;
     PPH_STRING description = NULL;
 

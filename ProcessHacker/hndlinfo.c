@@ -91,8 +91,16 @@ VOID PhHandleInfoInitialization()
             NtClose(tokenHandle);
         }
 
-        HkcuPrefix = PhConcatStrings2(L"\\REGISTRY\\USER\\", stringSid->Buffer);
-        HkcucrPrefix = PhConcatStrings2(HkcuPrefix->Buffer, L"_Classes");
+        if (stringSid)
+        {
+            HkcuPrefix = PhConcatStrings2(L"\\REGISTRY\\USER\\", stringSid->Buffer);
+            HkcucrPrefix = PhConcatStrings2(HkcuPrefix->Buffer, L"_Classes");
+        }
+        else
+        {
+            HkcuPrefix = PhCreateString(L"..."); // some random string that won't ever get matched
+            HkcucrPrefix = PhCreateString(L"...");
+        }
     }
 }
 
@@ -160,7 +168,7 @@ NTSTATUS PhpGetObjectTypeName(
     // If the cache contains the object type name, use it. Otherwise, 
     // query the type name.
 
-    if (ObjectTypeNumber != -1)
+    if (ObjectTypeNumber != -1 && ObjectTypeNumber <= MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
 
     if (typeName)
