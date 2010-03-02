@@ -841,6 +841,12 @@ NTSTATUS PhGetMappedImageImportDll(
     __out PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll
     );
 
+NTSTATUS PhGetMappedImageImportEntry(
+    __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
+    __in ULONG Index,
+    __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    );
+
 // verify
 
 typedef enum _VERIFY_RESULT
