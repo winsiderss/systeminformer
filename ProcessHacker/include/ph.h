@@ -747,6 +747,13 @@ PVOID PhMappedImageRvaToVa(
     __out_opt PIMAGE_SECTION_HEADER *Section
     );
 
+BOOLEAN PhGetMappedImageSectionName(
+    __in PIMAGE_SECTION_HEADER Section,
+    __out_ecount_z_opt(Count) PSTR Buffer,
+    __in ULONG Count,
+    __out_opt PULONG ReturnCount
+    );
+
 NTSTATUS PhGetMappedImageDataEntry(
     __in PPH_MAPPED_IMAGE MappedImage,
     __in ULONG Index,

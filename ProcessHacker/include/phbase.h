@@ -918,7 +918,7 @@ VOID PhStringBuilderInsertEx(
 VOID PhStringBuilderRemove(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
-    __in ULONG Length
+    __in ULONG Count
     );
 
 // list

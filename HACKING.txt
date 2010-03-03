@@ -193,6 +193,39 @@ implicitly inside the window procedure. Messages can still be pumped
 (e.g. dialog boxes) while the window procedure is executing, so the 
 window procedure must reference the object as soon as possible.
 
+==== Names (2) ====
+
+====== Object creation/deletion ======
+* Allocate means allocate memory without initialization.
+* Create means allocate memory for an object and initialize the 
+  object.
+* Free can be used for objects created with Allocate or Create 
+  functions. When used with Create
+* Initialize means initialize an object with caller-supplied 
+  storage.
+* Delete is paired with Initialize and does not free the object 
+  as it was allocated by the caller.
+* Create is used when objects are being created through the 
+  reference counting system.
+
+Examples:
+* PhAllocateFromFreeList/PhFreeToFreeList
+* PhCreateFileDialog/PhFreeFileDialog
+* PhInitializeWorkQueue/PhDeleteWorkQueue
+* PhCreateString/PhDereferenceObject
+
+====== Element counts ======
+* Length specifies the length in bytes. E.g. PhCreateString 
+  requires the length to be specified in bytes.
+* Count specifies the length in elements. E.g. PhSubstring 
+  requires the length to be specified in characters.
+* Index specifies the index in elements. E.g. PhSubstring 
+  requires the index to be specified in characters.
+
+When null terminated strings are being written to output, 
+the return count, if any, must be specified as the 
+number of characters written including the null terminator.
+
 ==== Strings ====
 Strings use the PH_STRING type, managed by reference counting. 
 To create a string object from a null-terminated string:
