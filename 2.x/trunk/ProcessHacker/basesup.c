@@ -1301,12 +1301,12 @@ VOID PhStringBuilderInsertEx(
  * \param StringBuilder A string builder object.
  * \param StartIndex The index, in characters, at 
  * which to begin removing characters.
- * \param Length The number of characters to remove.
+ * \param Count The number of characters to remove.
  */
 VOID PhStringBuilderRemove(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
-    __in ULONG Length
+    __in ULONG Count
     )
 {
     // Overwrite the removed part with the part 
@@ -1314,10 +1314,10 @@ VOID PhStringBuilderRemove(
 
     memcpy(
         &StringBuilder->String->Buffer[StartIndex],
-        &StringBuilder->String->Buffer[StartIndex + Length],
-        StringBuilder->String->Length - (Length + StartIndex) * sizeof(WCHAR)
+        &StringBuilder->String->Buffer[StartIndex + Count],
+        StringBuilder->String->Length - (Count + StartIndex) * sizeof(WCHAR)
         );
-    StringBuilder->String->Length -= (USHORT)(Length * sizeof(WCHAR));
+    StringBuilder->String->Length -= (USHORT)(Count * sizeof(WCHAR));
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 

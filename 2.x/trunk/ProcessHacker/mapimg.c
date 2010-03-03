@@ -39,15 +39,17 @@ NTSTATUS PhInitializeMappedImage(
     __in SIZE_T Size
     )
 {
-    PCHAR start;
+    PIMAGE_DOS_HEADER dosHeader;
     ULONG ntHeadersOffset;
 
     MappedImage->ViewBase = ViewBase;
     MappedImage->Size = Size;
 
+    dosHeader = (PIMAGE_DOS_HEADER)ViewBase;
+
     __try
     {
-        PhpMappedImageProbe(MappedImage, ViewBase, 0x3c + sizeof(ULONG));
+        PhpMappedImageProbe(MappedImage, dosHeader, sizeof(IMAGE_DOS_HEADER));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -56,21 +58,19 @@ NTSTATUS PhInitializeMappedImage(
 
     // Check the initial MZ.
 
-    start = ViewBase;
-
-    if (start[0] != 'M' || start[1] != 'Z')
+    if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
         return STATUS_INVALID_IMAGE_NOT_MZ;
 
-    // Get a pointer to the NT headers.
+    // Get a pointer to the NT headers and probe it.
 
-    ntHeadersOffset = *(PULONG)(start + 0x3c);
+    ntHeadersOffset = (ULONG)dosHeader->e_lfanew;
 
     if (ntHeadersOffset == 0)
         return STATUS_INVALID_IMAGE_FORMAT;
     if (ntHeadersOffset >= 0x10000000 || ntHeadersOffset >= Size)
         return STATUS_INVALID_IMAGE_FORMAT;
 
-    MappedImage->NtHeaders = (PIMAGE_NT_HEADERS)(start + ntHeadersOffset);
+    MappedImage->NtHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(ViewBase, ntHeadersOffset);
 
     __try
     {
@@ -92,16 +92,10 @@ NTSTATUS PhInitializeMappedImage(
         return GetExceptionCode();
     }
 
-    // Get a pointer to the first section.
+    // Check the signature and verify the magic.
 
-    MappedImage->NumberOfSections = MappedImage->NtHeaders->FileHeader.NumberOfSections;
-
-    MappedImage->Sections = (PIMAGE_SECTION_HEADER)(
-        ((PCHAR)&MappedImage->NtHeaders->OptionalHeader) +
-        MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader
-        );
-
-    // Verify the magic.
+    if (MappedImage->NtHeaders->Signature != IMAGE_NT_SIGNATURE)
+        return STATUS_INVALID_IMAGE_FORMAT;
 
     MappedImage->Magic = MappedImage->NtHeaders->OptionalHeader.Magic;
 
@@ -110,6 +104,15 @@ NTSTATUS PhInitializeMappedImage(
         MappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
         )
         return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Get a pointer to the first section.
+
+    MappedImage->NumberOfSections = MappedImage->NtHeaders->FileHeader.NumberOfSections;
+
+    MappedImage->Sections = (PIMAGE_SECTION_HEADER)(
+        ((PCHAR)&MappedImage->NtHeaders->OptionalHeader) +
+        MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader
+        );
 
     return STATUS_SUCCESS;
 }
@@ -273,6 +276,40 @@ PVOID PhMappedImageRvaToVa(
         (Rva - section->VirtualAddress) +
         section->PointerToRawData
         );
+}
+
+BOOLEAN PhGetMappedImageSectionName(
+    __in PIMAGE_SECTION_HEADER Section,
+    __out_ecount_z_opt(Count) PSTR Buffer,
+    __in ULONG Count,
+    __out_opt PULONG ReturnCount
+    )
+{
+    ULONG i = 0;
+    BOOLEAN copied;
+
+    // Determine the length of the section name.
+
+    while (i < IMAGE_SIZEOF_SHORT_NAME && Section->Name[i])
+        i++;
+
+    // Copy the name if there is enough room.
+
+    if (Buffer && Count >= i + 1) // need one byte for null terminator
+    {
+        memcpy(Buffer, Section->Name, i);
+        Buffer[i] = 0;
+        copied = TRUE;
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = i + 1;
+
+    return copied;
 }
 
 NTSTATUS PhGetMappedImageDataEntry(
