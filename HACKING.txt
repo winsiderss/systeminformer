@@ -26,6 +26,7 @@ Abstraction layers and their modules:
     * Heap
     * Mutex
     * Event
+    * Rundown Protection
     * String
     * ANSI String
     * String Builder
@@ -156,6 +157,16 @@ the exclusive acquire/release functions.
 
 For mutexes with blocking expected, the PH_MUTEX is an alternative. 
 Currently the PH_MUTEX is the same as RTL_CRITICAL_SECTION.
+
+Events can be used through PH_EVENT. This object does not create a 
+kernel event object until needed, and testing its state is very 
+fast.
+
+Rundown protection is available through PH_RUNDOWN_PROTECT.
+
+Condition variables are available using the queued lock. Simply 
+declare and initialize a queued lock variable, and use the 
+PhPulse(All)Condition and PhWaitForCondition functions.
 
 ==== Memory management ====
 Use PhAllocate/PhFree to allocate/free memory. For complex objects, 
