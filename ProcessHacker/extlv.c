@@ -682,24 +682,24 @@ static INT PhpCompareListViewItems(
             (PVOID)yItem.lParam,
             Context->Context
             );
-    }
 
-    if (result != 0)
-        return result;
+        if (result != 0)
+            return result;
+    }
 
     if (
         Column < PH_MAX_COMPARE_FUNCTIONS &&
-        Context->CompareFunctions[Column] != NULL
+        Context->CompareFunctions[Column]
         )
     {
         result = PhModifySort(
             Context->CompareFunctions[Column]((PVOID)xItem.lParam, (PVOID)yItem.lParam, Context->Context),
             Context->SortOrder
             );
-    }
 
-    if (result != 0)
-        return result;
+        if (result != 0)
+            return result;
+    }
 
     return PhModifySort(
         PhpDefaultCompareListViewItems(Context, X, Y, Column),
