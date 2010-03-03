@@ -2370,6 +2370,30 @@ VOID PhpInitializeHandleMenu(
     }
 }
 
+INT NTAPI PhpHandleTypeCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLE_ITEM item1 = Item1;
+    PPH_HANDLE_ITEM item2 = Item2;
+
+    return PhStringCompare(item1->TypeName, item2->TypeName, TRUE);
+}
+
+INT NTAPI PhpHandleNameCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_HANDLE_ITEM item1 = Item1;
+    PPH_HANDLE_ITEM item2 = Item2;
+
+    return PhStringCompare(item1->BestObjectName, item2->BestObjectName, TRUE);
+}
+
 INT NTAPI PhpHandleHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
@@ -2476,6 +2500,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHandleTypeCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHandleNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpHandleColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
