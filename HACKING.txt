@@ -21,6 +21,7 @@ Abstraction layers and their modules:
   * NT definitions and imports (ntimport.h, ntimport.c)
   * Object manager (ref.h, ref.c)
   * Fast resource lock (fastlock.h, fastlock.c)
+  * Queued resource lock (queuedlock.h, queuedlock.c)
   * Base support (basesup.c)
     * Heap
     * Mutex
@@ -41,6 +42,8 @@ Abstraction layers and their modules:
 * PH (ph.h)
   * KProcessHacker (kph.h, kph.c)
   * NT object support (native.c)
+  * LSA support (lsa.c)
+  * Mapped images (mapimg.c)
   * Handle information (hndlinfo.c)
   * Image verification (verify.c)
   * Provider (provider.c)
@@ -65,11 +68,7 @@ Abstraction layers and their modules:
   * Security editor (secedit.c)
   * Object security data (secdata.c)
   * UI actions (actions.c)
-  * About (about.c)
-  * Handle properties (hndlprp.c)
-  * Service properties (srvprp.c)
-  * Terminator (termator.c)
-  * Thread stack (thrdstk.c)
+  * ...
 
 == Conventions ==
 
@@ -82,6 +81,8 @@ All names must have an appropriate prefix (with some exceptions):
   * "Ph" or "PH_" (structures) for public names.
   * "Php" or "PHP_" for private names.
   * Some variants such as "Pha".
+  * Fastcall functions have "f" appended to the prefix. E.g.
+    "Ph" -> "Phf", "Php" -> "Phpf".
   * Private prefixes are created by appending "p" to the prefix. E.g. 
     "Ph" -> "Php", "Pha" -> "Phap".
   * Functions and global variables without a prefix must be declared 
@@ -143,7 +144,18 @@ Every thread start routine must have the following signature:
         __in PVOID Parameter
         );
 
-Each thread should call PhBaseThreadInitialization() at startup.
+Thread creation is done through the PhCreateThread function.
+
+==== Synchronization ====
+The queued lock should be used for all synchronization, due to its 
+small size and good performance. The *Fast variants of the acquire/release 
+functions should be used whenever possible, because they make 
+non-contended acquires up to twice as fast. Although the queued lock 
+is a reader-writer lock, it can be used as a mutex simply by using 
+the exclusive acquire/release functions.
+
+For mutexes with blocking expected, the PH_MUTEX is an alternative. 
+Currently the PH_MUTEX is the same as RTL_CRITICAL_SECTION.
 
 ==== Memory management ====
 Use PhAllocate/PhFree to allocate/free memory. For complex objects, 

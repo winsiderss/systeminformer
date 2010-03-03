@@ -13,7 +13,6 @@
 * Statistics collection (partially done)
 * Graph controls
 * System information window
-* Hidden processes
 * Complete main menu items
 
 * Copy menu
