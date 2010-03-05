@@ -65,7 +65,7 @@ PPH_STRING PhaConcatStrings2(
 }
 
 PPH_STRING PhaFormatString(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     )
 {

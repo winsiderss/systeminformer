@@ -848,7 +848,7 @@ PPH_STRING PhConcatStrings2(
  * \param Format The format-control string.
  */
 PPH_STRING PhFormatString(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     )
 {
@@ -866,7 +866,7 @@ PPH_STRING PhFormatString(
  * \param ArgPtr A pointer to the list of arguments.
  */
 PPH_STRING PhFormatString_V(
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     __in va_list ArgPtr
     )
 {
@@ -1217,7 +1217,7 @@ VOID PhStringBuilderAppendChar(
  */
 VOID PhStringBuilderAppendFormat(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in PWSTR Format,
+    __in __format_string PWSTR Format,
     ...
     )
 {
