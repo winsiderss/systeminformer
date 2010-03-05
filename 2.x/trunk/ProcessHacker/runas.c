@@ -41,6 +41,19 @@ typedef struct _RUNAS_DIALOG_CONTEXT
     PPH_LIST SessionIdList;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
+typedef struct _RUNAS_SERVICE_PARAMETERS
+{
+    ULONG Pid;
+    PPH_STRING UserName;
+    PPH_STRING Password;
+    ULONG LogonType;
+    ULONG SessionId;
+    PPH_STRING CurrentDirectory;
+    PPH_STRING CommandLine;
+    PPH_STRING FileName;
+    PPH_STRING ErrorMailslot;
+} RUNAS_SERVICE_PARAMETERS, *PRUNAS_SERVICE_PARAMETERS;
+
 INT_PTR CALLBACK PhpRunAsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -63,6 +76,8 @@ static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
 
 static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
 static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
+
+static RUNAS_SERVICE_PARAMETERS RunAsServiceParameters;
 
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
@@ -346,6 +361,168 @@ VOID PhSetDesktopWinStaAccess()
     {
         PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
         CloseDesktop(desktopHandle);
+    }
+}
+
+PPH_STRING PhpCEscapeString(
+    __in PPH_STRINGREF String
+    )
+{
+    PPH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    ULONG length;
+    ULONG i;
+    WCHAR temp[2];
+
+    length = String->Length / 2;
+    stringBuilder = PhCreateStringBuilder(String->Length / 3);
+
+    temp[0] = '\\';
+
+    for (i = 0; i < length; i++)
+    {
+        switch (String->Buffer[i])
+        {
+        case '\\':
+        case '\"':
+        case '\'':
+            temp[1] = String->Buffer[i];
+            PhStringBuilderAppendEx(stringBuilder, temp, 4);
+            break;
+        default:
+            PhStringBuilderAppendEx(stringBuilder, &String->Buffer[i], 2);
+            break;
+        }
+    }
+
+    string = PhReferenceStringBuilderString(stringBuilder);
+    PhDereferenceObject(stringBuilder);
+
+    return string;
+}
+
+PPH_STRING PhpBuildRunAsServiceCommandLine(
+    __in PWSTR Program,
+    __in PWSTR UserName,
+    __in PWSTR Password,
+    __in ULONG LogonType,
+    __in ULONG SessionId
+    )
+{
+    PH_STRINGREF stringRef;
+    PPH_STRING string;
+    PPH_STRING_BUILDER commandLineBuilder;
+
+    commandLineBuilder = PhCreateStringBuilder(PhApplicationFileName->Length + 40);
+
+    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+    PhStringBuilderAppend(commandLineBuilder, PhApplicationFileName);
+    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+
+    PhInitializeStringRef(&stringRef, Program);
+    string = PhpCEscapeString(&stringRef);
+    PhStringBuilderAppend2(commandLineBuilder, L" -c \"");
+    PhStringBuilderAppend(commandLineBuilder, string);
+    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+    PhDereferenceObject(string);
+
+    PhInitializeStringRef(&stringRef, UserName);
+    string = PhpCEscapeString(&stringRef);
+    PhStringBuilderAppend2(commandLineBuilder, L" -u \"");
+    PhStringBuilderAppend(commandLineBuilder, string);
+    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+    PhDereferenceObject(string);
+
+    PhInitializeStringRef(&stringRef, Password);
+    string = PhpCEscapeString(&stringRef);
+    PhStringBuilderAppend2(commandLineBuilder, L" -p \"");
+    PhStringBuilderAppend(commandLineBuilder, string);
+    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+    PhDereferenceObject(string);
+
+    PhStringBuilderAppendFormat(
+        commandLineBuilder,
+        L" -t %u -s %u",
+        LogonType,
+        SessionId
+        );
+
+    string = PhReferenceStringBuilderString(commandLineBuilder);
+    PhDereferenceObject(commandLineBuilder);
+
+    return string;
+}
+
+VOID PhRunAsCommandStart(
+    __in PWSTR Program,
+    __in PWSTR UserName,
+    __in PWSTR Password,
+    __in ULONG LogonType,
+    __in ULONG SessionId
+    )
+{
+
+}
+
+VOID PhpRunAsServiceExit(
+    __in ULONG ExitCode
+    )
+{
+    if (RunAsServiceParameters.ErrorMailslot)
+    {
+        HANDLE fileHandle;
+        OBJECT_ATTRIBUTES oa;
+        IO_STATUS_BLOCK isb;
+        PPH_STRING fileName;
+
+        fileName = PhConcatStrings2(
+            L"\\Device\\Mailslot\\",
+            RunAsServiceParameters.ErrorMailslot->Buffer
+            );
+
+        InitializeObjectAttributes(
+            &oa,
+            &fileName->us,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+
+        if (NT_SUCCESS(NtOpenFile(
+            &fileHandle,
+            FILE_GENERIC_WRITE,
+            &oa,
+            &isb,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, &ExitCode, sizeof(ULONG), NULL, NULL); 
+            NtClose(fileHandle);
+        }
+
+        PhDereferenceObject(fileName);
+    }
+
+    ExitProcess(ExitCode);
+}
+
+VOID PhRunAsServiceStart()
+{
+    HANDLE tokenHandle;
+
+    // Enable some required privileges.
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        &tokenHandle,
+        TOKEN_ADJUST_PRIVILEGES,
+        NtCurrentProcess()
+        )))
+    {
+        PhSetTokenPrivilege(tokenHandle, L"SeAssignPrimaryTokenPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege(tokenHandle, L"SeBackupPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        NtClose(tokenHandle);
     }
 }
 
