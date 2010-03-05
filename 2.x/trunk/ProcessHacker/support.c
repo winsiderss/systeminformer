@@ -1724,10 +1724,106 @@ CleanupExit:
     return status;
 }
 
+PPH_STRING PhpParseCommandLineValue(
+    __in PPH_STRINGREF CommandLine,
+    __inout PULONG Index
+    )
+{
+    PPH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    ULONG length;
+    ULONG i;
+
+    BOOLEAN inEscape;
+    BOOLEAN inQuote;
+    BOOLEAN endOfValue;
+
+    length = CommandLine->Length / 2;
+    i = *Index;
+
+    stringBuilder = PhCreateStringBuilder(10);
+    inEscape = FALSE;
+    inQuote = FALSE;
+    endOfValue = FALSE;
+
+    for (; i < length; i++)
+    {
+        if (inEscape)
+        {
+            switch (CommandLine->Buffer[i])
+            {
+            case '\\':
+            case '\"':
+            case '\'':
+                PhStringBuilderAppendEx(
+                    stringBuilder,
+                    &CommandLine->Buffer[i],
+                    2
+                    );
+                break;
+            default:
+                // Unknown escape. Append both the backslash and 
+                // escape character.
+                PhStringBuilderAppendEx(
+                    stringBuilder,
+                    &CommandLine->Buffer[i - 1],
+                    4
+                    );
+                break;
+            }
+
+            inEscape = FALSE;
+        }
+        else
+        {
+            switch (CommandLine->Buffer[i])
+            {
+            case '\\':
+                inEscape = TRUE;
+                break;
+            case '\"':
+            case '\'':
+                if (!inQuote)
+                    inQuote = TRUE;
+                else
+                    inQuote = FALSE;
+
+                break;
+            default:
+                if (CommandLine->Buffer[i] == ' ' && !inQuote)
+                {
+                    endOfValue = TRUE;
+                }
+                else
+                {
+                    PhStringBuilderAppendEx(
+                        stringBuilder,
+                        &CommandLine->Buffer[i],
+                        2
+                        );
+                }
+
+                break;
+            }
+        }
+
+        if (endOfValue)
+            break;
+    }
+
+    *Index = i;
+
+    string = PhReferenceStringBuilderString(stringBuilder);
+    PhDereferenceObject(stringBuilder);
+
+    return string;
+}
+
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
+    __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
     __in PVOID Context
     )
@@ -1737,14 +1833,11 @@ BOOLEAN PhParseCommandLine(
     ULONG length;
     BOOLEAN cont;
 
-    ULONG optionNameLength;
     PH_STRINGREF optionName;
-    PPH_COMMAND_LINE_OPTION option;
-    PPH_STRING_BUILDER optionValueBuilder;
+    PPH_COMMAND_LINE_OPTION option = NULL;
+    PPH_STRING optionValue;
 
-    BOOLEAN inEscape;
-    BOOLEAN inQuote;
-    BOOLEAN endOfValue;
+    PPH_STRING mainArgumentValue = NULL;
 
     if (CommandLine->Length == 0)
         return TRUE;
@@ -1752,86 +1845,24 @@ BOOLEAN PhParseCommandLine(
     i = 0;
     length = CommandLine->Length / 2;
 
-    while (i < length)
+    while (TRUE)
     {
         // Skip spaces.
         while (i < length && CommandLine->Buffer[i] == ' ')
             i++;
 
-        if (option && option->AcceptArgument)
+        if (i >= length)
+            return TRUE;
+
+        if (option &&
+            (option->Type == MandatoryArgumentType ||
+            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != '-')))
         {
-            // Read the value.
+            // Read the value and execute the callback function.
 
-            optionValueBuilder = PhCreateStringBuilder(10);
-            inEscape = FALSE;
-            inQuote = FALSE;
-            endOfValue = FALSE;
-
-            for (; i < length; i++)
-            {
-                if (inEscape)
-                {
-                    switch (CommandLine->Buffer[i])
-                    {
-                    case '\\':
-                    case '\"':
-                    case '\'':
-                        PhStringBuilderAppendEx(
-                            optionValueBuilder,
-                            &CommandLine->Buffer[i],
-                            2
-                            );
-                        break;
-                    default:
-                        // Unknown escape. Append both the backslash and 
-                        // escape character.
-                        PhStringBuilderAppendEx(
-                            optionValueBuilder,
-                            &CommandLine->Buffer[i - 1],
-                            4
-                            );
-                        break;
-                    }
-
-                    inEscape = FALSE;
-                }
-                else
-                {
-                    switch (CommandLine->Buffer[i])
-                    {
-                    case '\"':
-                    case '\'':
-                        if (!inQuote)
-                            inQuote = TRUE;
-                        else
-                            inQuote = FALSE;
-
-                        break;
-                    default:
-                        if (CommandLine->Buffer[i] == ' ' && !inQuote)
-                        {
-                            endOfValue = TRUE;
-                        }
-                        else
-                        {
-                            PhStringBuilderAppendEx(
-                                optionValueBuilder,
-                                &CommandLine->Buffer[i],
-                                2
-                                );
-                        }
-
-                        break;
-                    }
-                }
-
-                if (endOfValue)
-                    break;
-            }
-
-            cont = Callback(option, optionValueBuilder->String, Context);
-
-            PhDereferenceObject(optionValueBuilder);
+            optionValue = PhpParseCommandLineValue(CommandLine, &i);
+            cont = Callback(option, optionValue, Context);
+            PhDereferenceObject(optionValue);
 
             if (!cont)
                 return TRUE;
@@ -1840,12 +1871,15 @@ BOOLEAN PhParseCommandLine(
         }
         else if (CommandLine->Buffer[i] == '-')
         {
-            // Read the option (only alphanumeric characters allowed).
+            ULONG originalIndex;
+            ULONG optionNameLength;
 
-            optionNameLength = 0;
+            // Read the option (only alphanumeric characters allowed).
 
             // Skip the dash.
             i++;
+
+            originalIndex = i;
 
             for (; i < length; i++)
             {
@@ -1853,8 +1887,10 @@ BOOLEAN PhParseCommandLine(
                     break;
             }
 
-            optionName.Buffer = &CommandLine->Buffer[i - optionNameLength];
-            optionName.Length = optionNameLength * 2;
+            optionNameLength = i - originalIndex;
+
+            optionName.Buffer = &CommandLine->Buffer[originalIndex];
+            optionName.Length = (USHORT)(optionNameLength * 2);
 
             // Find the option descriptor.
 
@@ -1862,17 +1898,17 @@ BOOLEAN PhParseCommandLine(
 
             for (j = 0; j < NumberOfOptions; j++)
             {
-                if (PhStringRefEquals2(&optionName, Options[i].Name, FALSE))
+                if (PhStringRefEquals2(&optionName, Options[j].Name, FALSE))
                 {
-                    option = &Options[i];
+                    option = &Options[j];
                     break;
                 }
             }
 
-            if (!option)
+            if (!option && !(Flags & PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS))
                 return FALSE;
 
-            if (!option->AcceptArgument)
+            if (option && option->Type == NoArgumentType)
             {
                 cont = Callback(option, NULL, Context);
 
@@ -1882,6 +1918,23 @@ BOOLEAN PhParseCommandLine(
                 option = NULL;
             }
         }
+        else
+        {
+            // Value with no option. This becomes our "main argument". 
+            // If we had a previous "main argument", replace it with 
+            // this one.
+
+            if (mainArgumentValue)
+                PhDereferenceObject(mainArgumentValue);
+
+            mainArgumentValue = PhpParseCommandLineValue(CommandLine, &i);
+        }
+    }
+
+    if (mainArgumentValue)
+    {
+        Callback(NULL, mainArgumentValue, Context);
+        PhDereferenceObject(mainArgumentValue);
     }
 
     return TRUE;

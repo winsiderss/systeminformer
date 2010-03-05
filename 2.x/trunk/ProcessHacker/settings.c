@@ -459,7 +459,7 @@ __mayRaise VOID PhSetStringSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
-BOOLEAN PhLoadSettings(
+NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     )
 {
@@ -470,18 +470,23 @@ BOOLEAN PhLoadSettings(
     settingsFile = _wfopen(FileName, L"r");
 
     if (!settingsFile)
-        return FALSE;
+    {
+        if (errno == ENOENT)
+            return STATUS_NO_SUCH_FILE;
+        else
+            return STATUS_UNSUCCESSFUL;
+    }
 
     topNode = mxmlLoadFile(NULL, settingsFile, MXML_NO_CALLBACK);
     fclose(settingsFile);
 
     if (!topNode)
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
 
     if (!topNode->child)
     {
         mxmlDelete(topNode);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     currentNode = topNode->child;
@@ -545,10 +550,10 @@ BOOLEAN PhLoadSettings(
 
     PhpUpdateCachedSettings();
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }
 
-BOOLEAN PhSaveSettings(
+NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     )
 {
@@ -615,12 +620,12 @@ BOOLEAN PhSaveSettings(
     if (!settingsFile)
     {
         mxmlDelete(topNode);
-        return FALSE;
+        return STATUS_UNSUCCESSFUL;
     }
 
     mxmlSaveFile(topNode, settingsFile, MXML_NO_CALLBACK);
     mxmlDelete(topNode);
     fclose(settingsFile);
 
-    return TRUE;
+    return STATUS_SUCCESS;
 }

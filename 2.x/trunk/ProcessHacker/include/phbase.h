@@ -17,6 +17,9 @@ typedef struct _PH_STRING *PPH_STRING;
 struct _PH_PROVIDER_THREAD;
 typedef struct _PH_PROVIDER_THREAD PH_PROVIDER_THREAD;
 
+struct _PH_STARTUP_PARAMETERS;
+typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
+
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
@@ -29,6 +32,7 @@ extern HINSTANCE PhInstanceHandle;
 extern HANDLE PhKphHandle;
 extern ULONG PhKphFeatures;
 extern PPH_STRING PhSettingsFileName;
+extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern PWSTR PhWindowClassName;
 extern ULONG WindowsVersion;
