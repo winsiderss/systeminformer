@@ -915,6 +915,11 @@ VOID PhStringBuilderAppendEx(
     __in ULONG Length
     );
 
+VOID PhStringBuilderAppendChar(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in WCHAR Character
+    );
+
 VOID PhStringBuilderAppendFormat(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in __format_string PWSTR Format,

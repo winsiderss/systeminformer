@@ -21,6 +21,11 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING SettingsFileName;
     BOOLEAN ShowHidden;
     BOOLEAN ShowVisible;
+
+    BOOLEAN CommandMode;
+    PPH_STRING CommandType;
+    PPH_STRING CommandObject;
+    PPH_STRING CommandAction;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 INT PhMainMessageLoop();
@@ -685,19 +690,50 @@ FORCEINLINE ACCESS_MASK PhGetAccessForGetSecurity(
     __in SECURITY_INFORMATION SecurityInformation
     )
 {
-    return
-        READ_CONTROL |
-        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0);
+    ACCESS_MASK access = 0;
+
+    if (
+        (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
+        (SecurityInformation & GROUP_SECURITY_INFORMATION) ||
+        (SecurityInformation & DACL_SECURITY_INFORMATION)
+        )
+    {
+        access |= READ_CONTROL;
+    }
+
+    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    {
+        access |= ACCESS_SYSTEM_SECURITY;
+    }
+
+    return access;
 }
 
 FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
     __in SECURITY_INFORMATION SecurityInformation
     )
 {
-    return
-        ((SecurityInformation & DACL_SECURITY_INFORMATION) ? WRITE_DAC : 0) |
-        ((SecurityInformation & OWNER_SECURITY_INFORMATION) ? WRITE_OWNER : 0) |
-        ((SecurityInformation & SACL_SECURITY_INFORMATION) ? ACCESS_SYSTEM_SECURITY : 0);
+    ACCESS_MASK access = 0;
+
+    if (
+        (SecurityInformation & OWNER_SECURITY_INFORMATION) ||
+        (SecurityInformation & GROUP_SECURITY_INFORMATION)
+        )
+    {
+        access |= WRITE_OWNER;
+    }
+
+    if (SecurityInformation & DACL_SECURITY_INFORMATION)
+    {
+        access |= WRITE_DAC;
+    }
+
+    if (SecurityInformation & SACL_SECURITY_INFORMATION)
+    {
+        access |= ACCESS_SYSTEM_SECURITY;
+    }
+
+    return access;
 }
 
 __callback NTSTATUS PhStdGetObjectSecurity(
@@ -939,6 +975,25 @@ VOID PhShowInformationDialog(
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
     __in_opt HANDLE ProcessId
+    );
+
+VOID PhRunAsCommandStart();
+
+VOID PhRunAsServiceStart();
+
+NTSTATUS PhCreateProcessAsUser(
+    __in_opt PWSTR ApplicationName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PWSTR CurrentDirectory,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR DomainName,
+    __in_opt PWSTR UserName,
+    __in_opt PWSTR Password,
+    __in_opt ULONG LogonType,
+    __in_opt HANDLE ProcessIdWithToken,
+    __in ULONG SessionId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
     );
 
 // srvprp

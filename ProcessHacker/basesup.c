@@ -1187,6 +1187,28 @@ VOID PhStringBuilderAppendEx(
 }
 
 /**
+ * Appends a character to the end of a string builder 
+ * string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Character The character to append.
+ */
+VOID PhStringBuilderAppendChar(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in WCHAR Character
+    )
+{
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + sizeof(WCHAR))
+    {
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + sizeof(WCHAR));
+    }
+
+    StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = Character;
+    StringBuilder->String->Length += sizeof(WCHAR);
+    PhpWriteStringBuilderNullTerminator(StringBuilder);
+}
+
+/**
  * Appends a formatted string to the end of a string builder 
  * string.
  *

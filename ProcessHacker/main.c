@@ -532,6 +532,10 @@ VOID PhInitializeWindowsVersion()
 #define PH_ARG_NOSETTINGS 2
 #define PH_ARG_SHOWVISIBLE 3
 #define PH_ARG_SHOWHIDDEN 4
+#define PH_ARG_COMMANDMODE 5
+#define PH_ARG_COMMANDTYPE 6
+#define PH_ARG_COMMANDOBJECT 7
+#define PH_ARG_COMMANDACTION 8
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -559,6 +563,30 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_SHOWHIDDEN:
             PhStartupParameters.ShowHidden = TRUE;
             break;
+        case PH_ARG_COMMANDMODE:
+            PhStartupParameters.CommandMode = TRUE;
+            break;
+        case PH_ARG_COMMANDTYPE:
+            if (!PhStartupParameters.CommandType && Value)
+            {
+                PhReferenceObject(Value);
+                PhStartupParameters.CommandType = Value;
+            }
+            break;
+        case PH_ARG_COMMANDOBJECT:
+            if (!PhStartupParameters.CommandObject && Value)
+            {
+                PhReferenceObject(Value);
+                PhStartupParameters.CommandObject = Value;
+            }
+            break;
+        case PH_ARG_COMMANDACTION:
+            if (!PhStartupParameters.CommandAction && Value)
+            {
+                PhReferenceObject(Value);
+                PhStartupParameters.CommandAction = Value;
+            }
+            break;
         }
     }
 
@@ -572,7 +600,11 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
         { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
         { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
-        { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType }
+        { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
+        { PH_ARG_COMMANDMODE, L"c", NoArgumentType },
+        { PH_ARG_COMMANDTYPE, L"ctype", MandatoryArgumentType },
+        { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
+        { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -592,6 +624,10 @@ VOID PhpProcessStartupParameters()
         PhShowInformation(
             NULL,
             L"Command line options:\n\n"
+            L"-c\n"
+            L"-ctype command-type\n"
+            L"-cobject command-object\n"
+            L"-caction command-action\n"
             L"-hide\n"
             L"-nosettings"
             L"-settings filename\n"
