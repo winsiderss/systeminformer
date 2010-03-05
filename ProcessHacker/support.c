@@ -1724,7 +1724,7 @@ CleanupExit:
     return status;
 }
 
-VOID PhParseCommandLine(
+BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
@@ -1733,19 +1733,156 @@ VOID PhParseCommandLine(
     )
 {
     ULONG i;
+    ULONG j;
     ULONG length;
-    PPH_STRING_BUILDER stringBuilder;
+    BOOLEAN cont;
 
-    stringBuilder = PhCreateStringBuilder(10);
+    ULONG optionNameLength;
+    PH_STRINGREF optionName;
+    PPH_COMMAND_LINE_OPTION option;
+    PPH_STRING_BUILDER optionValueBuilder;
+
+    BOOLEAN inEscape;
+    BOOLEAN inQuote;
+    BOOLEAN endOfValue;
+
+    if (CommandLine->Length == 0)
+        return TRUE;
+
     i = 0;
     length = CommandLine->Length / 2;
 
-    while (TRUE)
+    while (i < length)
     {
-        // Check for an option specifier.
-        if (i < length)
+        // Skip spaces.
+        while (i < length && CommandLine->Buffer[i] == ' ')
+            i++;
+
+        if (option && option->AcceptArgument)
         {
-            
+            // Read the value.
+
+            optionValueBuilder = PhCreateStringBuilder(10);
+            inEscape = FALSE;
+            inQuote = FALSE;
+            endOfValue = FALSE;
+
+            for (; i < length; i++)
+            {
+                if (inEscape)
+                {
+                    switch (CommandLine->Buffer[i])
+                    {
+                    case '\\':
+                    case '\"':
+                    case '\'':
+                        PhStringBuilderAppendEx(
+                            optionValueBuilder,
+                            &CommandLine->Buffer[i],
+                            2
+                            );
+                        break;
+                    default:
+                        // Unknown escape. Append both the backslash and 
+                        // escape character.
+                        PhStringBuilderAppendEx(
+                            optionValueBuilder,
+                            &CommandLine->Buffer[i - 1],
+                            4
+                            );
+                        break;
+                    }
+
+                    inEscape = FALSE;
+                }
+                else
+                {
+                    switch (CommandLine->Buffer[i])
+                    {
+                    case '\"':
+                    case '\'':
+                        if (!inQuote)
+                            inQuote = TRUE;
+                        else
+                            inQuote = FALSE;
+
+                        break;
+                    default:
+                        if (CommandLine->Buffer[i] == ' ' && !inQuote)
+                        {
+                            endOfValue = TRUE;
+                        }
+                        else
+                        {
+                            PhStringBuilderAppendEx(
+                                optionValueBuilder,
+                                &CommandLine->Buffer[i],
+                                2
+                                );
+                        }
+
+                        break;
+                    }
+                }
+
+                if (endOfValue)
+                    break;
+            }
+
+            cont = Callback(option, optionValueBuilder->String, Context);
+
+            PhDereferenceObject(optionValueBuilder);
+
+            if (!cont)
+                return TRUE;
+
+            option = NULL;
+        }
+        else if (CommandLine->Buffer[i] == '-')
+        {
+            // Read the option (only alphanumeric characters allowed).
+
+            optionNameLength = 0;
+
+            // Skip the dash.
+            i++;
+
+            for (; i < length; i++)
+            {
+                if (!iswalnum(CommandLine->Buffer[i]))
+                    break;
+            }
+
+            optionName.Buffer = &CommandLine->Buffer[i - optionNameLength];
+            optionName.Length = optionNameLength * 2;
+
+            // Find the option descriptor.
+
+            option = NULL;
+
+            for (j = 0; j < NumberOfOptions; j++)
+            {
+                if (PhStringRefEquals2(&optionName, Options[i].Name, FALSE))
+                {
+                    option = &Options[i];
+                    break;
+                }
+            }
+
+            if (!option)
+                return FALSE;
+
+            if (!option->AcceptArgument)
+            {
+                cont = Callback(option, NULL, Context);
+
+                if (!cont)
+                    return TRUE;
+
+                option = NULL;
+            }
         }
     }
+
+    return TRUE;
 }
