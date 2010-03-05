@@ -313,6 +313,27 @@ FORCEINLINE PH_STRINGREF PhCreateStringRef(
     return string;
 }
 
+FORCEINLINE INT PhStringRefCompare2(
+    __in PPH_STRINGREF String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcsncmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+    else
+        return wcsnicmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+}
+
+FORCEINLINE BOOLEAN PhStringRefEquals2(
+    __in PPH_STRINGREF String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    return PhStringRefCompare2(String1, String2, IgnoreCase) == 0;
+}
+
 /**
  * A Unicode string object.
  */

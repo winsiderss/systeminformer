@@ -1860,20 +1860,17 @@ NTSTATUS PhIsExecutablePacked(
 typedef struct _PH_COMMAND_LINE_OPTION
 {
     ULONG Id;
-    PWSTR LongName;
-    PWSTR ShortName;
+    PWSTR Name;
     BOOLEAN AcceptArgument;
-
-    PWSTR Description;
 } PH_COMMAND_LINE_OPTION, *PPH_COMMAND_LINE_OPTION;
 
 typedef VOID (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
     __in PPH_COMMAND_LINE_OPTION Option,
-    __in PPH_STRING Value,
+    __in_opt PPH_STRING Value,
     __in PVOID Context
     );
 
-VOID PhParseCommandLine(
+BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
