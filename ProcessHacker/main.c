@@ -26,6 +26,8 @@
 #include <kph.h>
 #include <settings.h>
 
+VOID PhpProcessStartupParameters();
+
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 HFONT PhApplicationFont;
@@ -37,7 +39,8 @@ HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle;
 ULONG PhKphFeatures;
-PPH_STRING PhSettingsFileName;
+PPH_STRING PhSettingsFileName = NULL;
+PH_STARTUP_PARAMETERS PhStartupParameters;
 SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 PWSTR PhWindowClassName = L"ProcessHacker";
 ULONG WindowsVersion;
@@ -121,20 +124,44 @@ INT WINAPI WinMain(
         }
     }
 
+    PhpProcessStartupParameters();
+
     // Load settings.
     {
         PhSettingsInitialization();
 
-        PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
-
-        if (PhSettingsFileName)
+        if (!PhStartupParameters.NoSettings)
         {
-            if (!PhLoadSettings(PhSettingsFileName->Buffer))
+            // Use the settings file name given in the command line, 
+            // otherwise use the default location.
+
+            if (PhStartupParameters.SettingsFileName)
             {
-                // Pretend we don't have a settings store so bad things 
-                // don't happen.
-                PhDereferenceObject(PhSettingsFileName);
-                PhSettingsFileName = NULL;
+                // Get an absolute path now.
+                PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
+            }
+
+            if (!PhSettingsFileName)
+            {
+                PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+            }
+
+            if (PhSettingsFileName)
+            {
+                NTSTATUS status;
+
+                status = PhLoadSettings(PhSettingsFileName->Buffer);
+
+                // If we didn't find the file, it will be created. Otherwise, 
+                // there was probably a parsing error and we don't want to 
+                // change anything.
+                if (!NT_SUCCESS(status) && status != STATUS_NO_SUCH_FILE)
+                {
+                    // Pretend we don't have a settings store so bad things 
+                    // don't happen.
+                    PhDereferenceObject(PhSettingsFileName);
+                    PhSettingsFileName = NULL;
+                }
             }
         }
     }
@@ -498,5 +525,77 @@ VOID PhInitializeWindowsVersion()
         ThreadQueryAccess = THREAD_QUERY_INFORMATION;
         ThreadSetAccess = THREAD_SET_INFORMATION;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
+    }
+}
+
+#define PH_ARG_SETTINGS 1
+#define PH_ARG_NOSETTINGS 2
+#define PH_ARG_SHOWVISIBLE 3
+#define PH_ARG_SHOWHIDDEN 4
+
+BOOLEAN NTAPI PhpCommandLineOptionCallback(
+    __in_opt PPH_COMMAND_LINE_OPTION Option,
+    __in_opt PPH_STRING Value,
+    __in PVOID Context
+    )
+{
+    if (Option)
+    {
+        switch (Option->Id)
+        {
+        case PH_ARG_SETTINGS:
+            if (!PhStartupParameters.SettingsFileName && Value)
+            {
+                PhReferenceObject(Value);
+                PhStartupParameters.SettingsFileName = Value;
+            }
+            break;
+        case PH_ARG_NOSETTINGS:
+            PhStartupParameters.NoSettings = TRUE;
+            break;
+        case PH_ARG_SHOWVISIBLE:
+            PhStartupParameters.ShowVisible = TRUE;
+            break;
+        case PH_ARG_SHOWHIDDEN:
+            PhStartupParameters.ShowHidden = TRUE;
+            break;
+        }
+    }
+
+    return TRUE;
+}
+
+VOID PhpProcessStartupParameters()
+{
+    static PH_COMMAND_LINE_OPTION options[] =
+    {
+        { PH_ARG_SETTINGS, L"settings", MandatoryArgumentType },
+        { PH_ARG_NOSETTINGS, L"nosettings", NoArgumentType },
+        { PH_ARG_SHOWVISIBLE, L"v", NoArgumentType },
+        { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType }
+    };
+    PH_STRINGREF commandLine;
+
+    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+
+    memset(&PhStartupParameters, 0, sizeof(PH_STARTUP_PARAMETERS));
+
+    if (!PhParseCommandLine(
+        &commandLine,
+        options,
+        sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
+        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
+        PhpCommandLineOptionCallback,
+        NULL
+        ))
+    {
+        PhShowInformation(
+            NULL,
+            L"Command line options:\n\n"
+            L"-hide\n"
+            L"-nosettings"
+            L"-settings filename\n"
+            L"-v\n"
+            );
     }
 }

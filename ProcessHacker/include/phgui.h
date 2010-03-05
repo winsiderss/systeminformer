@@ -15,6 +15,14 @@
 
 // main
 
+typedef struct _PH_STARTUP_PARAMETERS
+{
+    BOOLEAN NoSettings;
+    PPH_STRING SettingsFileName;
+    BOOLEAN ShowHidden;
+    BOOLEAN ShowVisible;
+} PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
+
 INT PhMainMessageLoop();
 
 VOID PhRegisterDialog(

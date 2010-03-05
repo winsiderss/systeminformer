@@ -1857,23 +1857,33 @@ NTSTATUS PhIsExecutablePacked(
     __out_opt PULONG NumberOfFunctions
     );
 
+typedef enum _PH_COMMAND_LINE_OPTION_TYPE
+{
+    NoArgumentType,
+    MandatoryArgumentType,
+    OptionalArgumentType
+} PH_COMMAND_LINE_OPTION_TYPE, *PPH_COMMAND_LINE_OPTION_TYPE;
+
 typedef struct _PH_COMMAND_LINE_OPTION
 {
     ULONG Id;
     PWSTR Name;
-    BOOLEAN AcceptArgument;
+    PH_COMMAND_LINE_OPTION_TYPE Type;
 } PH_COMMAND_LINE_OPTION, *PPH_COMMAND_LINE_OPTION;
 
-typedef VOID (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
-    __in PPH_COMMAND_LINE_OPTION Option,
+typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
+    __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
     __in PVOID Context
     );
+
+#define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
 
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
+    __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
     __in PVOID Context
     );
