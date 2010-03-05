@@ -390,7 +390,7 @@ PPH_STRING PhpCEscapeString(
             PhStringBuilderAppendEx(stringBuilder, temp, 4);
             break;
         default:
-            PhStringBuilderAppendEx(stringBuilder, &String->Buffer[i], 2);
+            PhStringBuilderAppendChar(stringBuilder, String->Buffer[i]);
             break;
         }
     }
