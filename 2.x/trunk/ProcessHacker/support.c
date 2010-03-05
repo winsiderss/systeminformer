@@ -1542,9 +1542,9 @@ VOID PhSetFileDialogFilter(
         for (i = 0; i < NumberOfFilters; i++)
         {
             PhStringBuilderAppend2(filterBuilder, Filters[i].Name);
-            PhStringBuilderAppendEx(filterBuilder, L"\0", 2);
+            PhStringBuilderAppendChar(filterBuilder, 0);
             PhStringBuilderAppend2(filterBuilder, Filters[i].Filter);
-            PhStringBuilderAppendEx(filterBuilder, L"\0", 2);
+            PhStringBuilderAppendChar(filterBuilder, 0);
         }
 
         filterString = PhReferenceStringBuilderString(filterBuilder);
@@ -1755,11 +1755,7 @@ PPH_STRING PhpParseCommandLineValue(
             case '\\':
             case '\"':
             case '\'':
-                PhStringBuilderAppendEx(
-                    stringBuilder,
-                    &CommandLine->Buffer[i],
-                    2
-                    );
+                PhStringBuilderAppendChar(stringBuilder, CommandLine->Buffer[i]);
                 break;
             default:
                 // Unknown escape. Append both the backslash and 
@@ -1796,11 +1792,7 @@ PPH_STRING PhpParseCommandLineValue(
                 }
                 else
                 {
-                    PhStringBuilderAppendEx(
-                        stringBuilder,
-                        &CommandLine->Buffer[i],
-                        2
-                        );
+                    PhStringBuilderAppendChar(stringBuilder, CommandLine->Buffer[i]);
                 }
 
                 break;
