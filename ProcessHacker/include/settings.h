@@ -48,11 +48,11 @@ __mayRaise VOID PhSetStringSetting(
     __in PWSTR Value
     );
 
-BOOLEAN PhLoadSettings(
+NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     );
 
-BOOLEAN PhSaveSettings(
+NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     );
 
