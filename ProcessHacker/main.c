@@ -37,7 +37,7 @@ BOOLEAN PhElevated;
 HANDLE PhHeapHandle;
 HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
-HANDLE PhKphHandle;
+HANDLE PhKphHandle = NULL;
 ULONG PhKphFeatures;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters;
@@ -188,7 +188,8 @@ INT WINAPI WinMain(
     if (!PhGetIntegerSetting(L"AllowMultipleInstances"))
         PhActivatePreviousInstance();
 
-    PhInitializeKph();
+    if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)
+        PhInitializeKph();
 
 #ifdef DEBUG
     dbg.ClientId.UniqueProcess = NtCurrentProcessId();
@@ -401,11 +402,8 @@ VOID PhInitializeKph()
     // Append kprocesshacker.sys to the application directory.
     kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, kprocesshacker);
 
-    PhKphHandle = NULL;
     KphConnect2(&PhKphHandle, L"KProcessHacker", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);
-#else
-    PhKphHandle = NULL;
 #endif
 
     if (PhKphHandle)
