@@ -325,6 +325,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         newServicePassword = NULL;
                     }
 
+                    if (newServiceType == SERVICE_KERNEL_DRIVER && newServiceUserAccount->Length == 0)
+                    {
+                        newServiceUserAccount = NULL;
+                    }
+
                     serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_CHANGE_CONFIG);
 
                     if (serviceHandle)
@@ -338,7 +343,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             newServiceGroup->Buffer,
                             NULL,
                             NULL,
-                            newServiceUserAccount->Buffer,
+                            PhGetString(newServiceUserAccount),
                             PhGetString(newServicePassword),
                             NULL
                             ))
