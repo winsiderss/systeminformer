@@ -24,6 +24,10 @@
 #define LDRP_MM_LOADED 0x40000000
 #define LDRP_COMPAT_DATABASE_PROCESSED 0x80000000
 
+// Use the size of the structure as it was in 
+// Windows XP.
+#define LDR_DATA_TABLE_ENTRY_SIZE FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ForwarderLinks)
+
 typedef struct _LDR_DATA_TABLE_ENTRY
 {
     LIST_ENTRY InLoadOrderLinks;
@@ -48,17 +52,17 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     };
     union
     {
-        struct
-        {
-            ULONG TimeDateStamp;
-        };
-        struct
-        {
-            PVOID LoadedImports;
-        };
+        ULONG TimeDateStamp;
+        PVOID LoadedImports;
     };
     PVOID EntryPointActivationContext;
     PVOID PatchInformation;
+    LIST_ENTRY ForwarderLinks;
+    LIST_ENTRY ServiceTagLinks;
+    LIST_ENTRY StaticLinks;
+    PVOID ConextInformation;
+    ULONG_PTR OriginalBase;
+    LARGE_INTEGER LoadTime;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 typedef struct _RTL_PROCESS_MODULE_INFORMATION

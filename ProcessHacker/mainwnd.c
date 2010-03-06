@@ -368,7 +368,7 @@ LRESULT CALLBACK PhMainWndProc(
                     ProcessHacker_PrepareForEarlyShutdown(hWnd);
 
                     if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
-                        L"", SW_SHOW, TRUE, 0))
+                        L"", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
                     {
                         ProcessHacker_Destroy(hWnd);
                     }
@@ -895,7 +895,8 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
 
-                if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile, NULL, runFileDlg->nShow, TRUE, 0))
+                if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
+                    NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
                 {
                     return RF_CANCEL;
                 }

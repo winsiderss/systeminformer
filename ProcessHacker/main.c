@@ -166,6 +166,21 @@ INT WINAPI WinMain(
         }
     }
 
+    if (
+        PhStartupParameters.CommandMode &&
+        PhStartupParameters.CommandType &&
+        PhStartupParameters.CommandAction
+        )
+    {
+        RtlExitUserProcess(PhCommandModeStart());
+    }
+
+    if (PhStartupParameters.RunAsServiceMode)
+    {
+        PhRunAsServiceStart();
+        RtlExitUserProcess(STATUS_SUCCESS);
+    }
+
     // Set priority to High.
     SetPriorityClass(NtCurrentProcess(), HIGH_PRIORITY_CLASS);
 
@@ -288,7 +303,7 @@ VOID PhActivatePreviousInstance()
         if (result == PH_ACTIVATE_REPLY)
         {
             SetForegroundWindow(hwnd);
-            ExitProcess(0);
+            RtlExitUserProcess(STATUS_SUCCESS);
         }
     }
 }
@@ -536,6 +551,8 @@ VOID PhInitializeWindowsVersion()
 #define PH_ARG_COMMANDTYPE 6
 #define PH_ARG_COMMANDOBJECT 7
 #define PH_ARG_COMMANDACTION 8
+#define PH_ARG_RUNASSERVICEMODE 9
+#define PH_ARG_NOKPH 10
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -548,11 +565,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         switch (Option->Id)
         {
         case PH_ARG_SETTINGS:
-            if (!PhStartupParameters.SettingsFileName && Value)
-            {
-                PhReferenceObject(Value);
-                PhStartupParameters.SettingsFileName = Value;
-            }
+            PhSwapReference(&PhStartupParameters.SettingsFileName, Value);
             break;
         case PH_ARG_NOSETTINGS:
             PhStartupParameters.NoSettings = TRUE;
@@ -567,25 +580,19 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.CommandMode = TRUE;
             break;
         case PH_ARG_COMMANDTYPE:
-            if (!PhStartupParameters.CommandType && Value)
-            {
-                PhReferenceObject(Value);
-                PhStartupParameters.CommandType = Value;
-            }
+            PhSwapReference(&PhStartupParameters.CommandType, Value);
             break;
         case PH_ARG_COMMANDOBJECT:
-            if (!PhStartupParameters.CommandObject && Value)
-            {
-                PhReferenceObject(Value);
-                PhStartupParameters.CommandObject = Value;
-            }
+            PhSwapReference(&PhStartupParameters.CommandObject, Value);
             break;
         case PH_ARG_COMMANDACTION:
-            if (!PhStartupParameters.CommandAction && Value)
-            {
-                PhReferenceObject(Value);
-                PhStartupParameters.CommandAction = Value;
-            }
+            PhSwapReference(&PhStartupParameters.CommandAction, Value);
+            break;
+        case PH_ARG_RUNASSERVICEMODE:
+            PhStartupParameters.RunAsServiceMode = TRUE;
+            break;
+        case PH_ARG_NOKPH:
+            PhStartupParameters.NoKph = TRUE;
             break;
         }
     }
@@ -604,7 +611,9 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_COMMANDMODE, L"c", NoArgumentType },
         { PH_ARG_COMMANDTYPE, L"ctype", MandatoryArgumentType },
         { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
-        { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType }
+        { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType },
+        { PH_ARG_RUNASSERVICEMODE, L"ras", NoArgumentType },
+        { PH_ARG_NOKPH, L"nokph", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -629,7 +638,9 @@ VOID PhpProcessStartupParameters()
             L"-cobject command-object\n"
             L"-caction command-action\n"
             L"-hide\n"
-            L"-nosettings"
+            L"-nokph\n"
+            L"-nosettings\n"
+            L"-ras\n"
             L"-settings filename\n"
             L"-v\n"
             );

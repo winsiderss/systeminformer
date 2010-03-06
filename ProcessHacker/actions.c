@@ -1253,7 +1253,6 @@ BOOLEAN PhUiUnloadModule(
     )
 {
     NTSTATUS status;
-    ULONG win32Result = 0;
     BOOLEAN cont = FALSE;
     HANDLE processHandle;
 
@@ -1307,13 +1306,13 @@ BOOLEAN PhUiUnloadModule(
             return FALSE;
         }
 
-        if (!NT_SUCCESS(status) || win32Result)
+        if (!NT_SUCCESS(status))
         {
             PhShowStatus(
                 hWnd,
                 PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
                 status,
-                win32Result
+                0
                 );
             return FALSE;
         }
@@ -1322,13 +1321,7 @@ BOOLEAN PhUiUnloadModule(
     {
         status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
 
-        if (status == STATUS_UNSUCCESSFUL)
-        {
-            win32Result = GetLastError();
-            status = 0;
-        }
-
-        if (!NT_SUCCESS(status) || win32Result)
+        if (!NT_SUCCESS(status))
         {
             PhShowStatus(
                 hWnd,
@@ -1340,7 +1333,7 @@ BOOLEAN PhUiUnloadModule(
                 L"administrative privileges. Error"
                 )->Buffer,
                 status,
-                win32Result
+                0
                 );
             return FALSE;
         }
