@@ -147,7 +147,7 @@ NTSTATUS PhLoadMappedImage(
             );
 
         if (FileHandle == INVALID_HANDLE_VALUE)
-            return STATUS_UNSUCCESSFUL;
+            return NTSTATUS_FROM_WIN32(GetLastError());
 
         openedFile = TRUE;
     }

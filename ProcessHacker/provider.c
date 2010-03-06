@@ -225,7 +225,7 @@ VOID PhSetProviderThreadInterval(
     {
         LARGE_INTEGER interval;
 
-        interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_TO_MS;
+        interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_MS;
 
         SetWaitableTimer(
             ProviderThread->TimerHandle,

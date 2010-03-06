@@ -24,6 +24,13 @@ typedef LONG KPRIORITY;
 #define NT_WARNING(Status) ((((ULONG)(Status)) >> 30) == 2)
 #define NT_ERROR(Status) ((((ULONG)(Status)) >> 30) == 3)
 
+#define NT_FACILITY_MASK 0xfff
+#define NT_FACILITY_SHIFT 16
+#define NT_FACILITY(Status) ((((ULONG)(Status)) >> NT_FACILITY_SHIFT) & NT_FACILITY_MASK)
+
+#define NT_NTWIN32(Status) (NT_FACILITY(Status) == FACILITY_NTWIN32)
+#define WIN32_FROM_NTSTATUS(Status) (((ULONG)(Status)) & 0xffff)
+
 // Synchronization enumerations
 
 typedef enum _EVENT_TYPE
@@ -97,11 +104,15 @@ typedef struct _CLIENT_ID
     HANDLE UniqueThread;
 } CLIENT_ID, *PCLIENT_ID;
 
+#include <pshpack4.h>
+
 typedef struct _KSYSTEM_TIME
 {
     ULONG LowPart;
     LONG High1Time;
     LONG High2Time;
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
+
+#include <poppack.h>
 
 #endif

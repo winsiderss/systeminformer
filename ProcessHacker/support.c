@@ -279,21 +279,23 @@ PPH_STRING PhpGetStatusMessage(
     {
         // In some cases we want the simple Win32 messages.
         if (
-            Status != STATUS_ACCESS_DENIED &&
-            Status != STATUS_ACCESS_VIOLATION
+            Status == STATUS_ACCESS_DENIED ||
+            Status == STATUS_ACCESS_VIOLATION
             )
         {
-            return PhGetNtMessage(Status);
+            Win32Result = RtlNtStatusToDosError(Status);
         }
-        else
+        // Process NTSTATUS values with the NT-Win32 facility.
+        else if (NT_NTWIN32(Status))
         {
-            return PhGetWin32Message(RtlNtStatusToDosError(Status));
+            Win32Result = WIN32_FROM_NTSTATUS(Status);
         }
     }
+
+    if (!Win32Result)
+        return PhGetNtMessage(Status);
     else
-    {
         return PhGetWin32Message(Win32Result);
-    }
 }
 
 VOID PhShowStatus(
@@ -442,6 +444,29 @@ BOOLEAN PhShowConfirmMessage(
             action->Buffer
             ) == IDYES;
     }
+}
+
+VOID PhGenerateRandomAlphaString(
+    __out_ecount_z(Count) PWSTR Buffer,
+    __in ULONG Count
+    )
+{
+    ULONG i;
+    FILETIME time;
+
+    if (Count == 0)
+        return;
+
+    GetSystemTimeAsFileTime(&time);
+
+    srand((time.dwHighDateTime * time.dwHighDateTime) ^ time.dwLowDateTime);
+
+    for (i = 0; i < Count - 1; i++)
+    {
+        Buffer[i] = 'A' + (rand() % 26);
+    }
+
+    Buffer[Count - 1] = 0;
 }
 
 PPH_STRING PhFormatDate(
@@ -1057,6 +1082,65 @@ PPH_STRING PhGetKnownLocation(
     return NULL;
 }
 
+NTSTATUS PhWaitForMultipleObjectsAndPump(
+    __in_opt HWND hWnd,
+    __in ULONG NumberOfHandles,
+    __in PHANDLE Handles,
+    __in ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    ULONG64 startTickCount;
+    ULONG64 currentTickCount;
+    LONG64 currentTimeout;
+
+    startTickCount = NtGetTickCount64();
+    currentTimeout = Timeout;
+
+    while (TRUE)
+    {
+        status = MsgWaitForMultipleObjects(
+            NumberOfHandles,
+            Handles,
+            FALSE,
+            (ULONG)currentTimeout,
+            QS_ALLEVENTS
+            );
+
+        if (status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles))
+        {
+            return status;
+        }
+        else if (status == (STATUS_WAIT_0 + NumberOfHandles))
+        {
+            MSG msg;
+
+            // Pump messages
+
+            while (PeekMessage(&msg, hWnd, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            return status;
+        }
+
+        // Recompute the timeout value.
+
+        if (Timeout != INFINITE)
+        {
+            currentTickCount = NtGetTickCount64();
+            currentTimeout = (LONG64)Timeout - (currentTickCount - startTickCount);
+
+            if (currentTimeout < 0)
+                return STATUS_TIMEOUT;
+        }
+    }
+}
+
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
@@ -1082,8 +1166,9 @@ BOOLEAN PhShellExecuteEx(
     __in PWSTR FileName,
     __in PWSTR Parameters,
     __in ULONG ShowWindowType,
-    __in BOOLEAN StartAsAdmin,
-    __in_opt ULONG Timeout
+    __in ULONG Flags,
+    __in_opt ULONG Timeout,
+    __out_opt PHANDLE ProcessHandle
     )
 {
     SHELLEXECUTEINFO info = { sizeof(info) };
@@ -1094,15 +1179,31 @@ BOOLEAN PhShellExecuteEx(
     info.nShow = ShowWindowType;
     info.hwnd = hWnd;
 
-    if (StartAsAdmin)
+    if ((Flags & PH_SHELL_EXECUTE_ADMIN) && WINDOWS_HAS_UAC)
         info.lpVerb = L"runas";
 
     if (ShellExecuteEx(&info))
     {
         if (Timeout)
-            WaitForSingleObject(info.hProcess, Timeout);
+        {
+            if (!(Flags & PH_SHELL_EXECUTE_PUMP_MESSAGES))
+            {
+                LARGE_INTEGER timeout;
 
-        NtClose(info.hProcess);
+                timeout.QuadPart = -(LONG)Timeout * PH_TIMEOUT_MS;
+
+                NtWaitForSingleObject(info.hProcess, FALSE, &timeout);
+            }
+            else
+            {
+                PhWaitForMultipleObjectsAndPump(NULL, 1, &info.hProcess, Timeout);
+            }
+        }
+
+        if (ProcessHandle)
+            *ProcessHandle = info.hProcess;
+        else
+            NtClose(info.hProcess);
 
         return TRUE;
     }
@@ -1227,7 +1328,7 @@ VOID PhShellOpenKey(
 
     if (!PhElevated)
     {
-        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, TRUE, 0);
+        PhShellExecuteEx(hWnd, regeditFileName->Buffer, L"", SW_NORMAL, PH_SHELL_EXECUTE_ADMIN, 0, NULL);
     }
     else
     {

@@ -1069,7 +1069,7 @@ VOID PhpResizeStringBuilder(
     memcpy(
         newString->Buffer,
         StringBuilder->String->Buffer,
-        StringBuilder->String->Length
+        StringBuilder->String->Length + sizeof(WCHAR) // include null terminator
         );
 
     // Copy the old string length.

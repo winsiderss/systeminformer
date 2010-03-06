@@ -50,6 +50,44 @@
 #define FILE_EXISTS 0x00000004
 #define FILE_DOES_NOT_EXIST 0x00000005
 
+// Named pipe values
+
+// NamedPipeType for NtCreateNamedPipeFile
+#define FILE_PIPE_BYTE_STREAM_TYPE 0x00000000
+#define FILE_PIPE_MESSAGE_TYPE 0x00000001
+
+// CompletionMode for NtCreateNamedPipeFile
+#define FILE_PIPE_QUEUE_OPERATION 0x00000000
+#define FILE_PIPE_COMPLETE_OPERATION 0x00000001
+
+// ReadMode for NtCreateNamedPipeFile
+#define FILE_PIPE_BYTE_STREAM_MODE 0x00000000
+#define FILE_PIPE_MESSAGE_MODE 0x00000001
+
+// NamedPipeConfiguration for NtQueryInformationFile
+#define FILE_PIPE_INBOUND 0x00000000
+#define FILE_PIPE_OUTBOUND 0x00000001
+#define FILE_PIPE_FULL_DUPLEX 0x00000002
+
+// NamedPipeState for NtQueryInformationFile
+#define FILE_PIPE_DISCONNECTED_STATE 0x00000001
+#define FILE_PIPE_LISTENING_STATE 0x00000002
+#define FILE_PIPE_CONNECTED_STATE 0x00000003
+#define FILE_PIPE_CLOSING_STATE 0x00000004
+
+// NamedPipeEnd for NtQueryInformationFile
+#define FILE_PIPE_CLIENT_END 0x00000000
+#define FILE_PIPE_SERVER_END 0x00000001
+
+// Mailslot values
+
+#define MAILSLOT_SIZE_AUTO 0
+
+// Special ByteOffset parameters
+
+#define FILE_WRITE_TO_END_OF_FILE 0xffffffff
+#define FILE_USE_FILE_POINTER_POSITION 0xfffffffe
+
 typedef struct _IO_STATUS_BLOCK
 {
     union
@@ -165,6 +203,34 @@ typedef NTSTATUS (NTAPI *_NtCreateFile)(
     __in ULONG CreateOptions,
     __in_bcount_opt(EaLength) PVOID EaBuffer,
     __in ULONG EaLength
+    );
+
+typedef NTSTATUS (NTAPI *_NtCreateNamedPipeFile)(
+    __out PHANDLE FileHandle,
+    __in ULONG DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __in ULONG ShareAccess,
+    __in ULONG CreateDisposition,
+    __in ULONG CreateOptions,
+    __in ULONG NamedPipeType,
+    __in ULONG ReadMode,
+    __in ULONG CompletionMode,
+    __in ULONG MaximumInstances,
+    __in ULONG InboundQuota,
+    __in ULONG OutboundQuota,
+    __in_opt PLARGE_INTEGER DefaultTimeout
+    );
+
+typedef NTSTATUS (NTAPI *_NtCreateMailslotFile)(
+    __out PHANDLE FileHandle,
+    __in ULONG DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __in ULONG CreateOptions,
+    __in ULONG MailslotQuota,
+    __in ULONG MaximumMessageSize,
+    __in PLARGE_INTEGER ReadTimeout
     );
 
 typedef NTSTATUS (NTAPI *_NtDeviceIoControlFile)(
