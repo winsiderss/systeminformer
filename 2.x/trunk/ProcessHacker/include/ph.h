@@ -1900,6 +1900,11 @@ typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
 
 #define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
 
+PPH_STRING PhParseCommandLinePart(
+    __in PPH_STRINGREF CommandLine,
+    __inout PULONG Index
+    );
+
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
     __in PPH_COMMAND_LINE_OPTION Options,

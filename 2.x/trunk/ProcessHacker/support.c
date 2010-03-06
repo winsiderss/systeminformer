@@ -1825,7 +1825,7 @@ CleanupExit:
     return status;
 }
 
-PPH_STRING PhpParseCommandLineValue(
+PPH_STRING PhParseCommandLinePart(
     __in PPH_STRINGREF CommandLine,
     __inout PULONG Index
     )
@@ -1953,7 +1953,7 @@ BOOLEAN PhParseCommandLine(
         {
             // Read the value and execute the callback function.
 
-            optionValue = PhpParseCommandLineValue(CommandLine, &i);
+            optionValue = PhParseCommandLinePart(CommandLine, &i);
             cont = Callback(option, optionValue, Context);
             PhDereferenceObject(optionValue);
 
@@ -2020,7 +2020,7 @@ BOOLEAN PhParseCommandLine(
             if (mainArgumentValue)
                 PhDereferenceObject(mainArgumentValue);
 
-            mainArgumentValue = PhpParseCommandLineValue(CommandLine, &i);
+            mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
         }
     }
 
