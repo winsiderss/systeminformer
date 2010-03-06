@@ -48,6 +48,11 @@ __mayRaise VOID PhSetStringSetting(
     __in PWSTR Value
     );
 
+__mayRaise VOID PhSetStringSetting2(
+    __in PWSTR Name,
+    __in PPH_STRINGREF Value
+    );
+
 NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     );

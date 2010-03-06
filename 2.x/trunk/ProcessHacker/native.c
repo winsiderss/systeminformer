@@ -669,6 +669,38 @@ NTSTATUS PhGetProcessPebString(
 }
 
 /**
+ * Gets a process' session ID.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param SessionId A variable which receives the 
+ * process' session ID.
+ */
+NTSTATUS PhGetProcessSessionId(
+    __in HANDLE ProcessHandle,
+    __out PULONG SessionId
+    )
+{
+    NTSTATUS status;
+    PROCESS_SESSION_INFORMATION sessionInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessSessionInformation,
+        &sessionInfo,
+        sizeof(PROCESS_SESSION_INFORMATION),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *SessionId = sessionInfo.SessionId;
+    }
+
+    return status;
+}
+
+/**
  * Gets a process' no-execute status.
  *
  * \param ProcessHandle A handle to a process. The handle 
