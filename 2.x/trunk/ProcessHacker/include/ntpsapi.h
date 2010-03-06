@@ -16,7 +16,7 @@
 #define GDI_HANDLE_BUFFER_SIZE GDI_HANDLE_BUFFER_SIZE64
 #endif
 
-typedef ULONG GDI_HANDLE_BUFFER [GDI_HANDLE_BUFFER_SIZE];
+typedef ULONG GDI_HANDLE_BUFFER[GDI_HANDLE_BUFFER_SIZE];
 
 #define FLS_MAXIMUM_AVAILABLE 128
 #define TLS_MINIMUM_AVAILABLE 64
@@ -31,6 +31,8 @@ typedef struct _PEB_LDR_DATA
     LIST_ENTRY InMemoryOrderModuleList;
     LIST_ENTRY InInitializationOrderModuleList;
     PVOID EntryInProgress;
+    BOOLEAN ShutdownInProgress;
+    HANDLE ShutdownThreadId;
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
 
 #include <ntpebteb.h>

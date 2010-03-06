@@ -3,14 +3,25 @@
 
 #include <ntldr.h>
 
-// Heaps
+// Defines for forwarded ntdll functions
 
 #define RtlCreateHeap HeapCreate
 #define RtlDestroyHeap HeapDestroy
-
 #define RtlAllocateHeap HeapAlloc
 #define RtlFreeHeap HeapFree
 #define RtlReAllocateHeap HeapReAlloc
+#define RtlSizeHeap HeapSize
+
+#define RtlInitializeCriticalSection InitializeCriticalSection
+#define RtlDeleteCriticalSection DeleteCriticalSection
+#define RtlEnterCriticalSection EnterCriticalSection
+#define RtlTryEnterCriticalSection TryEnterCriticalSection
+#define RtlLeaveCriticalSection LeaveCriticalSection
+
+#define RtlExitUserProcess ExitProcess
+#define RtlExitUserThread ExitThread
+
+#define RtlGetCurrentProcessorNumber GetCurrentProcessorNumber
 
 // Linked lists
 
@@ -210,6 +221,9 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     UNICODE_STRING ShellInfo;
     UNICODE_STRING RuntimeData;
     RTL_DRIVE_LETTER_CURDIR CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
+
+    ULONG EnvironmentSize;
+    ULONG EnvironmentVersion;
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
 // Threads

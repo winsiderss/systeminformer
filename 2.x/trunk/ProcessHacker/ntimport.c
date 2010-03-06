@@ -49,6 +49,8 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtCreateDirectoryObject);
     InitProcReq("ntdll.dll", NtCreateFile);
     InitProcReq("ntdll.dll", NtCreateKeyedEvent);
+    InitProcReq("ntdll.dll", NtCreateMailslotFile);
+    InitProcReq("ntdll.dll", NtCreateNamedPipeFile);
     InitProcReq("ntdll.dll", NtCreateSection);
     InitProcReq("ntdll.dll", NtDebugActiveProcess);
     InitProcReq("ntdll.dll", NtDeleteFile);

@@ -136,7 +136,7 @@ FORCEINLINE VOID PhInitializeMutex(
     )
 {
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
-    InitializeCriticalSection(Mutex);
+    RtlInitializeCriticalSection(Mutex);
 #else
     PhInitializeFastLock(Mutex);
 #endif
@@ -152,7 +152,7 @@ FORCEINLINE VOID PhDeleteMutex(
     )
 {
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
-    DeleteCriticalSection(Mutex);
+    RtlDeleteCriticalSection(Mutex);
 #else
     PhDeleteFastLock(Mutex);
 #endif
@@ -168,7 +168,7 @@ FORCEINLINE VOID PhAcquireMutex(
     )
 {
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
-    EnterCriticalSection(Mutex);
+    RtlEnterCriticalSection(Mutex);
 #else
     PhAcquireFastLockExclusive(Mutex);
 #endif
@@ -184,7 +184,7 @@ FORCEINLINE VOID PhReleaseMutex(
     )
 {
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
-    LeaveCriticalSection(Mutex);
+    RtlLeaveCriticalSection(Mutex);
 #else
     PhReleaseFastLockExclusive(Mutex);
 #endif

@@ -1694,6 +1694,11 @@ BOOLEAN PhShowConfirmMessage(
     __in BOOLEAN Warning
     );
 
+VOID PhGenerateRandomAlphaString(
+    __out_ecount_z(Count) PWSTR Buffer,
+    __in ULONG Count
+    );
+
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format
@@ -1781,19 +1786,30 @@ FORCEINLINE BOOLEAN PhFileExists(
     return GetFileAttributes(FileName) != INVALID_FILE_ATTRIBUTES;
 }
 
+NTSTATUS PhWaitForMultipleObjectsAndPump(
+    __in_opt HWND hWnd,
+    __in ULONG NumberOfHandles,
+    __in PHANDLE Handles,
+    __in ULONG Timeout
+    );
+
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
     __in PWSTR Parameters
     );
 
+#define PH_SHELL_EXECUTE_ADMIN 0x1
+#define PH_SHELL_EXECUTE_PUMP_MESSAGES 0x2
+
 BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
     __in PWSTR Parameters,
     __in ULONG ShowWindowType,
-    __in BOOLEAN StartAsAdmin,
-    __in_opt ULONG Timeout
+    __in ULONG Flags,
+    __in_opt ULONG Timeout,
+    __out_opt PHANDLE ProcessHandle
     );
 
 VOID PhShellExploreFile(

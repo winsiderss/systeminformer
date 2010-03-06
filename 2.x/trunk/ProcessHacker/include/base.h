@@ -29,8 +29,8 @@
 
 #define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
 
-#define PH_TIMEOUT_TO_MS ((LONGLONG)1 * 10 * 1000)
-#define PH_TIMEOUT_TO_SEC (PH_TIMEOUT_TO_MS * 1000)
+#define PH_TIMEOUT_MS ((LONGLONG)1 * 10 * 1000)
+#define PH_TIMEOUT_SEC (PH_TIMEOUT_MS * 1000)
 
 #define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
 

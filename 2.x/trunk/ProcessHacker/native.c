@@ -1101,7 +1101,7 @@ NTSTATUS PhGetProcessEnvironmentVariables(
             &mbi,
             sizeof(MEMORY_BASIC_INFORMATION)
             ))
-            return STATUS_UNSUCCESSFUL;
+            return NTSTATUS_FROM_WIN32(GetLastError());
 
         environmentLength = (ULONG)(mbi.RegionSize -
             ((ULONG_PTR)environment - (ULONG_PTR)mbi.BaseAddress));
@@ -1490,7 +1490,7 @@ NTSTATUS PhInjectDllProcess(
             NULL
             ))
         {
-            status = STATUS_UNSUCCESSFUL;
+            status = NTSTATUS_FROM_WIN32(GetLastError());
             goto FreeExit;
         }
     }
@@ -3045,8 +3045,7 @@ NTSTATUS PhpUnloadDriver(
         &servicesKeyHandle
         )) != ERROR_SUCCESS)
     {
-        SetLastError(win32Result);
-        return STATUS_UNSUCCESSFUL;
+        return NTSTATUS_FROM_WIN32(win32Result);
     }
 
     if ((win32Result = RegCreateKeyEx(
@@ -3062,8 +3061,7 @@ NTSTATUS PhpUnloadDriver(
         )) != ERROR_SUCCESS)
     {
         RegCloseKey(servicesKeyHandle);
-        SetLastError(win32Result);
-        return STATUS_UNSUCCESSFUL;
+        return NTSTATUS_FROM_WIN32(win32Result);
     }
 
     if (disposition == REG_CREATED_NEW_KEY)
@@ -3116,9 +3114,6 @@ NTSTATUS PhpUnloadDriver(
  * was not specified and KProcessHacker is not loaded.
  * \retval STATUS_OBJECT_NAME_NOT_FOUND The driver 
  * could not be found.
- * \retval STATUS_UNSUCCESSFUL The function failed and 
- * the Win32 error code is available by calling 
- * GetLastError().
  */
 NTSTATUS PhUnloadDriver(
     __in_opt PVOID BaseAddress,
@@ -3306,7 +3301,7 @@ NTSTATUS PhpEnumProcessModules(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            sizeof(LDR_DATA_TABLE_ENTRY),
+            LDR_DATA_TABLE_ENTRY_SIZE,
             NULL
             );
 
@@ -3437,7 +3432,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
             ProcessHandle,
             AddressOfEntry,
             Entry,
-            sizeof(LDR_DATA_TABLE_ENTRY),
+            LDR_DATA_TABLE_ENTRY_SIZE,
             NULL
             );
 

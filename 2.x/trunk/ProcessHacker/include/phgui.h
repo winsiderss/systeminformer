@@ -17,6 +17,7 @@
 
 typedef struct _PH_STARTUP_PARAMETERS
 {
+    BOOLEAN NoKph;
     BOOLEAN NoSettings;
     PPH_STRING SettingsFileName;
     BOOLEAN ShowHidden;
@@ -26,6 +27,8 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandType;
     PPH_STRING CommandObject;
     PPH_STRING CommandAction;
+
+    BOOLEAN RunAsServiceMode;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 INT PhMainMessageLoop();
@@ -278,6 +281,9 @@ INT PhAddTabControlTab(
     __in INT Index,
     __in PWSTR Text
     );
+
+#define PHA_GET_DLGITEM_TEXT(hwndDlg, id) \
+    ((PPH_STRING)PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, id))))
 
 PPH_STRING PhGetWindowText(
     __in HWND hwnd
@@ -918,6 +924,10 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+// cmdmode
+
+NTSTATUS PhCommandModeStart();
+
 // anawait
 
 VOID PhUiAnalyzeWaitThread(
@@ -977,7 +987,20 @@ VOID PhShowRunAsDialog(
     __in_opt HANDLE ProcessId
     );
 
-VOID PhRunAsCommandStart();
+NTSTATUS PhRunAsCommandStart(
+    __in PWSTR ServiceCommandLine,
+    __in PWSTR ServiceName
+    );
+
+NTSTATUS PhRunAsCommandStart2(
+    __in HWND hWnd,
+    __in PWSTR Program,
+    __in_opt PWSTR UserName,
+    __in_opt PWSTR Password,
+    __in_opt ULONG LogonType,
+    __in_opt HANDLE ProcessIdWithToken,
+    __in ULONG SessionId
+    );
 
 VOID PhRunAsServiceStart();
 

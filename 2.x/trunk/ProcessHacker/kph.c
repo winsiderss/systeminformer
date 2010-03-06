@@ -498,7 +498,9 @@ NTSTATUS KphTerminateProcess(
     /* Check if we were trying to terminate the current 
      * process and do it now. */
     if (status == STATUS_CANT_TERMINATE_SELF)
-        status = NtTerminateProcess(NtCurrentProcess(), ExitStatus);
+    {
+        RtlExitUserProcess(ExitStatus);
+    }
 
     return status;
 }
@@ -1148,7 +1150,9 @@ NTSTATUS KphTerminateThread(
         );
 
     if (status == STATUS_CANT_TERMINATE_SELF)
-        status = NtTerminateThread(NtCurrentThread(), ExitStatus);
+    {
+        RtlExitUserThread(ExitStatus);
+    }
 
     return status;
 }

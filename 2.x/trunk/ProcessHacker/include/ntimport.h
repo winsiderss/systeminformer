@@ -33,6 +33,8 @@ EXT _NtCreateDebugObject NtCreateDebugObject EQNULL;
 EXT _NtCreateDirectoryObject NtCreateDirectoryObject EQNULL;
 EXT _NtCreateFile NtCreateFile EQNULL;
 EXT _NtCreateKeyedEvent NtCreateKeyedEvent EQNULL;
+EXT _NtCreateMailslotFile NtCreateMailslotFile EQNULL;
+EXT _NtCreateNamedPipeFile NtCreateNamedPipeFile EQNULL;
 EXT _NtCreateSection NtCreateSection EQNULL;
 EXT _NtDebugActiveProcess NtDebugActiveProcess EQNULL;
 EXT _NtDeleteFile NtDeleteFile EQNULL;

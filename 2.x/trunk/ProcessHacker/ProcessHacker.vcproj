@@ -373,6 +373,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cmdmode.c"
+				>
+			</File>
+			<File
 				RelativePath=".\dbgcon.c"
 				>
 			</File>
