@@ -822,7 +822,7 @@ NTSTATUS PhRunAsCommandStart2(
             timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
             status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
 
-            if (status == WAIT_OBJECT_0)
+            if (status == STATUS_WAIT_0)
             {
                 PROCESS_BASIC_INFORMATION basicInfo;
 
