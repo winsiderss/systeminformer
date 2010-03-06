@@ -178,14 +178,20 @@ __mayRaise NTSTATUS PhCreateObject(
     InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 
-    if (PhDbgCreateObjectHook)
     {
-        PhDbgCreateObjectHook(
-            PhObjectHeaderToObject(objectHeader),
-            ObjectSize,
-            Flags,
-            ObjectType
-            );
+        PPH_CREATE_OBJECT_HOOK dbgCreateObjectHook;
+
+        dbgCreateObjectHook = PhDbgCreateObjectHook;
+
+        if (dbgCreateObjectHook)
+        {
+            dbgCreateObjectHook(
+                PhObjectHeaderToObject(objectHeader),
+                ObjectSize,
+                Flags,
+                ObjectType
+                );
+        }
     }
 #endif
 
