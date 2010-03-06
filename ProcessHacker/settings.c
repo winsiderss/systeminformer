@@ -33,7 +33,7 @@ VOID PhSettingsInitialization()
         sizeof(PH_SETTING),
         PhpSettingsHashtableCompareFunction,
         PhpSettingsHashtableHashFunction,
-        20
+        80
         );
     PhInitializeQueuedLock(&PhSettingsLock);
 
@@ -51,6 +51,8 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
+    PhpAddStringSetting(L"RunAsProgram", L"");
+    PhpAddStringSetting(L"RunAsUserName", L"");
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
@@ -375,7 +377,9 @@ __mayRaise PPH_STRING PhGetStringSetting(
         }
         else
         {
-            value = PhCreateString(L"");
+            // Set to NULL, create an empty string 
+            // outside of the lock.
+            value = NULL;
         }
     }
     else
@@ -387,6 +391,9 @@ __mayRaise PPH_STRING PhGetStringSetting(
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
+
+    if (!value)
+        value = PhCreateString(L"");
 
     return value;
 }
@@ -451,6 +458,29 @@ __mayRaise VOID PhSetStringSetting(
     {
         PhpFreeSettingValue(StringSettingType, setting->Value);
         setting->Value = PhCreateString(Value);
+    }
+
+    PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+
+    if (!setting)
+        PhRaiseStatus(STATUS_NOT_FOUND);
+}
+
+__mayRaise VOID PhSetStringSetting2(
+    __in PWSTR Name,
+    __in PPH_STRINGREF Value
+    )
+{
+    PPH_SETTING setting;
+
+    PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+
+    setting = PhpLookupSetting(Name);
+
+    if (setting && setting->Type == StringSettingType)
+    {
+        PhpFreeSettingValue(StringSettingType, setting->Value);
+        setting->Value = PhCreateStringEx(Value->Buffer, Value->Length);
     }
 
     PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);

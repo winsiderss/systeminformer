@@ -184,6 +184,11 @@ NTSTATUS PhGetProcessPebString(
     __out PPH_STRING *String
     );
 
+NTSTATUS PhGetProcessSessionId(
+    __in HANDLE ProcessHandle,
+    __out PULONG SessionId
+    );
+
 NTSTATUS PhGetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __out PULONG ExecuteFlags

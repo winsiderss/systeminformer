@@ -22,10 +22,12 @@
 
 #define GUISUP_PRIVATE
 #include <phgui.h>
+#include <windowsx.h>
 
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _RunFileDlg RunFileDlg;
 _SetWindowTheme SetWindowTheme_I;
+_SHAutoComplete SHAutoComplete_I;
 _StrCmpLogicalW StrCmpLogicalW_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
@@ -39,6 +41,7 @@ VOID PhGuiSupportInitialization()
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     RunFileDlg = PhGetProcAddress(L"shell32.dll", (PSTR)61);
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
+    SHAutoComplete_I = PhGetProcAddress(L"shlwapi.dll", "SHAutoComplete");
     StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
@@ -276,6 +279,42 @@ PPH_STRING PhGetWindowText(
     string = PhCreateStringEx(NULL, length * 2);
 
     if (GetWindowText(hwnd, string->Buffer, string->Length / 2 + 1))
+    {
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+}
+
+PPH_STRING PhGetComboBoxString(
+    __in HWND hwnd,
+    __in INT Index
+    )
+{
+    PPH_STRING string;
+    ULONG length;
+
+    if (Index == -1)
+    {
+        Index = ComboBox_GetCurSel(hwnd);
+
+        if (Index == -1)
+            return NULL;
+    }
+
+    length = ComboBox_GetLBTextLen(hwnd, Index);
+
+    if (length == CB_ERR)
+        return NULL;
+    if (length == 0)
+        return PhCreateString(L"");
+
+    string = PhCreateStringEx(NULL, length * 2);
+
+    if (ComboBox_GetLBText(hwnd, Index, string->Buffer) != CB_ERR)
     {
         return string;
     }

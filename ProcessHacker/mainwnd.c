@@ -191,7 +191,7 @@ BOOLEAN PhMainWndInitialization(
                 {
                     if (PhFileExists(autoDbghelpPath->Buffer))
                     {
-                        PhSetStringSetting(L"DbgHelpPath", autoDbghelpPath->Buffer);
+                        PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
                     }
                 }
             }

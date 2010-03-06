@@ -21,6 +21,8 @@
  */
 
 #include <phgui.h>
+#include <settings.h>
+#include <shlwapi.h>
 #include <wtsapi32.h>
 #include <windowsx.h>
 
@@ -38,7 +40,6 @@ typedef struct _RUNAS_DIALOG_CONTEXT
 {
     HANDLE ProcessId;
     PPH_LIST SessionIdList;
-    BOOLEAN InRunAsCommand;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
 typedef struct _RUNAS_SERVICE_PARAMETERS
@@ -93,7 +94,6 @@ VOID PhShowRunAsDialog(
 
     context.ProcessId = ProcessId;
     context.SessionIdList = NULL;
-    context.InRunAsCommand = FALSE;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -125,6 +125,24 @@ static BOOLEAN NTAPI PhpRunAsEnumAccountsCallback(
     return TRUE;
 }
 
+static BOOLEAN IsServiceAccount(
+    __in PPH_STRING UserName
+    )
+{
+    if (
+        PhStringEquals2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) || 
+        PhStringEquals2(UserName, L"NT AUTHORITY\\NETWORK SERVICE", TRUE) ||
+        PhStringEquals2(UserName, L"NT AUTHORITY\\SYSTEM", TRUE)
+        )
+    {
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
 INT_PTR CALLBACK PhpRunAsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -147,9 +165,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     if (!context)
         return FALSE;
 
-    if (context->InRunAsCommand)
-        return FALSE;
-
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -157,8 +172,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             HWND typeComboBoxHandle = GetDlgItem(hwndDlg, IDC_TYPE);
             HWND userNameComboBoxHandle = GetDlgItem(hwndDlg, IDC_USERNAME);
             LSA_HANDLE policyHandle;
+            ULONG sessionId;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
+            SHAutoComplete_I(
+                GetDlgItem(hwndDlg, IDC_PROGRAM), 
+                SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_FILESYS_ONLY
+                );
 
             ComboBox_AddString(typeComboBoxHandle, L"Batch");
             ComboBox_AddString(typeComboBoxHandle, L"Interactive");
@@ -177,6 +198,17 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 LsaClose(policyHandle);
             }
 
+            if (NT_SUCCESS(PhGetProcessSessionId(NtCurrentProcess(), &sessionId)))
+                SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE); 
+
+            SetDlgItemText(hwndDlg, IDC_PROGRAM,
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsProgram")))->Buffer);
+            SetDlgItemText(hwndDlg, IDC_USERNAME,
+                ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsUserName")))->Buffer);
+
+            // Fire the user name changed event so we can fix the logon type.
+            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
+
             SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
 
@@ -189,15 +221,25 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(hwndDlg, IDCANCEL);
                 break;
             case IDOK:
                 {
                     NTSTATUS status;
+                    PPH_STRING program;
+                    PPH_STRING userName;
+                    PPH_STRING password;
                     PPH_STRING logonTypeString;
                     ULONG logonType;
 
+                    program = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM);
+                    userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
                     logonTypeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TYPE);
+
+                    if (!IsServiceAccount(userName))
+                        password = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PASSWORD);
+                    else
+                        password = NULL;
 
                     if (PhFindIntegerSiKeyValuePairs(
                         PhpLogonTypePairs,
@@ -206,17 +248,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &logonType
                         ))
                     {
-                        context->InRunAsCommand = TRUE;
                         status = PhRunAsCommandStart2(
                             hwndDlg,
-                            PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM)->Buffer,
-                            PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME)->Buffer,
-                            PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PASSWORD)->Buffer,
+                            program->Buffer,
+                            userName->Buffer,
+                            PhGetStringOrEmpty(password),
                             logonType,
                             context->ProcessId,
                             GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE)
                             );
-                        context->InRunAsCommand = FALSE;
                     }
                     else
                     {
@@ -230,6 +270,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
                     else if (status != STATUS_TIMEOUT)
                     {
+                        PhSetStringSetting2(L"RunAsProgram", &program->sr);
+                        PhSetStringSetting2(L"RunAsUserName", &userName->sr);
                         EndDialog(hwndDlg, IDOK);
                     }
                 }
@@ -245,6 +287,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFileName(fileDialog, PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM)->Buffer);
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
@@ -256,6 +299,49 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
 
                     PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case IDC_USERNAME:
+                {
+                    PPH_STRING userName = NULL;
+
+                    if (!context->ProcessId && HIWORD(wParam) == CBN_SELCHANGE)
+                    {
+                        userName = PHA_DEREFERENCE(PhGetComboBoxString(GetDlgItem(hwndDlg, IDC_USERNAME), -1));
+                    }
+                    else if (!context->ProcessId && (
+                        HIWORD(wParam) == CBN_EDITCHANGE ||
+                        HIWORD(wParam) == CBN_CLOSEUP
+                        ))
+                    {
+                        userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
+                    }
+
+                    if (userName)
+                    {
+                        if (IsServiceAccount(userName))
+                        {
+                            EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
+
+                            // Hack for Windows XP
+                            if (
+                                PhStringEquals2(userName, L"NT AUTHORITY\\SYSTEM", TRUE) &&
+                                WindowsVersion <= WINDOWS_XP
+                                )
+                            { 
+                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"NewCredentials");
+                            }
+                            else
+                            {
+                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"Service");
+                            }
+                        }
+                        else
+                        {
+                            EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), TRUE);
+                            ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"Interactive");
+                        }
+                    }
                 }
                 break;
             case IDC_SESSIONS:
