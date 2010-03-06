@@ -28,6 +28,8 @@ _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _RunFileDlg RunFileDlg;
 _SetWindowTheme SetWindowTheme_I;
 _SHAutoComplete SHAutoComplete_I;
+_SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
+_SHParseDisplayName SHParseDisplayName_I;
 _StrCmpLogicalW StrCmpLogicalW_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
@@ -42,6 +44,8 @@ VOID PhGuiSupportInitialization()
     RunFileDlg = PhGetProcAddress(L"shell32.dll", (PSTR)61);
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
     SHAutoComplete_I = PhGetProcAddress(L"shlwapi.dll", "SHAutoComplete");
+    SHOpenFolderAndSelectItems_I = PhGetProcAddress(L"shell32.dll", "SHOpenFolderAndSelectItems");
+    SHParseDisplayName_I = PhGetProcAddress(L"shell32.dll", "SHParseDisplayName");
     StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }

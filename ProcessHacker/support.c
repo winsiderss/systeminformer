@@ -1224,11 +1224,24 @@ VOID PhShellExploreFile(
     __in PWSTR FileName
     )
 {
-    PPH_STRING selectFileName;
+    if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
+    {
+        LPITEMIDLIST item;
+        SFGAOF attributes;
 
-    selectFileName = PhConcatStrings2(L"/select,", FileName);
-    PhShellExecute(hWnd, L"explorer.exe", selectFileName->Buffer);
-    PhDereferenceObject(selectFileName);
+        if (SUCCEEDED(SHParseDisplayName(FileName, NULL, &item, 0, &attributes)))
+        {
+            SHOpenFolderAndSelectItems(item, 0, NULL, 0);
+        }
+    }
+    else
+    {
+        PPH_STRING selectFileName;
+
+        selectFileName = PhConcatStrings2(L"/select,", FileName);
+        PhShellExecute(hWnd, L"explorer.exe", selectFileName->Buffer);
+        PhDereferenceObject(selectFileName);
+    }
 }
 
 /**
