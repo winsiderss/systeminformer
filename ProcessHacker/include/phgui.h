@@ -105,6 +105,11 @@ typedef HRESULT (WINAPI *_SetWindowTheme)(
     __in LPCWSTR pszSubIdList
     );
 
+typedef HRESULT (WINAPI *_SHAutoComplete)(
+    __in HWND hwndEdit,
+    __in DWORD dwFlags
+    );
+
 typedef INT (WINAPI *_StrCmpLogicalW)(
     __in LPCWSTR psz1,
     __in LPCWSTR psz2
@@ -120,6 +125,7 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 #ifndef GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _RunFileDlg RunFileDlg;
+extern _SHAutoComplete SHAutoComplete_I;
 extern _StrCmpLogicalW StrCmpLogicalW_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
@@ -287,6 +293,11 @@ INT PhAddTabControlTab(
 
 PPH_STRING PhGetWindowText(
     __in HWND hwnd
+    );
+
+PPH_STRING PhGetComboBoxString(
+    __in HWND hwnd,
+    __in INT Index
     );
 
 VOID PhShowContextMenu(
