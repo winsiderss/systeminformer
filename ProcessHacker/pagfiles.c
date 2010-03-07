@@ -95,6 +95,8 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
 
                 lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, newFileName->Buffer, pagefile);
 
+                PhDereferenceObject(newFileName);
+
                 // Usage
                 usage = PhFormatSize(UInt32x32To64(pagefile->TotalInUse, PAGE_SIZE), -1);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, usage->Buffer);
@@ -109,8 +111,6 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
                 usage = PhFormatSize(UInt32x32To64(pagefile->TotalSize, PAGE_SIZE), -1);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, usage->Buffer);
                 PhDereferenceObject(usage);
-
-                PhDereferenceObject(newFileName);
 
                 pagefile = PH_NEXT_PAGEFILE(pagefile);
             }
