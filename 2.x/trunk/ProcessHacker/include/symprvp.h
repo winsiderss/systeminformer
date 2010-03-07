@@ -81,6 +81,16 @@ typedef BOOL (WINAPI *_StackWalk64)(
     __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     );
 
+typedef BOOL (WINAPI *_MiniDumpWriteDump)(
+    __in HANDLE hProcess,
+    __in DWORD ProcessId,
+    __in HANDLE hFile,
+    __in MINIDUMP_TYPE DumpType,
+    __in PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+    __in PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+    __in PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+    );
+
 typedef UINT_PTR (CALLBACK *_SymbolServerGetOptions)();
 
 typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
@@ -99,5 +109,9 @@ BOOLEAN PhStackWalk(
     __in_opt PGET_MODULE_BASE_ROUTINE64 GetModuleBaseRoutine,
     __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     );
+
+#ifndef SYMPRV_PRIVATE
+extern _MiniDumpWriteDump MiniDumpWriteDump_I;
+#endif
 
 #endif

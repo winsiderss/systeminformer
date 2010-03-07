@@ -965,6 +965,13 @@ VOID PhUiAnalyzeWaitThread(
     __in PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
+// mdump
+
+BOOLEAN PhUiCreateDumpFileProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 // about
 
 VOID PhShowAboutDialog(
