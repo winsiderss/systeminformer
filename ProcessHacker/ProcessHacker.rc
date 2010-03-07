@@ -566,6 +566,16 @@ BEGIN
     COMBOBOX        IDC_USERNAME,53,38,123,12,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
 END
 
+IDD_PROGRESS DIALOGEX 0, 0, 216, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Progress"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,159,41,50,14
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",0x0,7,23,202,14
+    LTEXT           "Please wait...",IDC_PROGRESSTEXT,7,7,202,12
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -709,6 +719,14 @@ BEGIN
         RIGHTMARGIN, 271
         TOPMARGIN, 7
         BOTTOMMARGIN, 110
+    END
+
+    IDD_PROGRESS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 209
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -548,6 +548,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_CREATEDUMPFILE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhUiCreateDumpFileProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_TERMINATOR:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();

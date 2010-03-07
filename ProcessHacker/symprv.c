@@ -58,6 +58,7 @@ _SymUnloadModule64 SymUnloadModule64_I;
 _SymFunctionTableAccess64 SymFunctionTableAccess64_I;
 _SymGetModuleBase64 SymGetModuleBase64_I;
 _StackWalk64 StackWalk64_I;
+_MiniDumpWriteDump MiniDumpWriteDump_I;
 _SymbolServerGetOptions SymbolServerGetOptions;
 _SymbolServerSetOptions SymbolServerSetOptions;
 
@@ -95,6 +96,7 @@ VOID PhSymbolProviderDynamicImport()
     SymFunctionTableAccess64_I = PhGetProcAddress(L"dbghelp.dll", "SymFunctionTableAccess64");
     SymGetModuleBase64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetModuleBase64");
     StackWalk64_I = PhGetProcAddress(L"dbghelp.dll", "StackWalk64");
+    MiniDumpWriteDump_I = PhGetProcAddress(L"dbghelp.dll", "MiniDumpWriteDump");
     SymbolServerGetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerGetOptions");
     SymbolServerSetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerSetOptions");
 
