@@ -1417,6 +1417,82 @@ PPH_STRING PhQueryRegistryString(
     return string;
 }
 
+VOID PhMapFlags1(
+    __inout PULONG Value2,
+    __in ULONG Value1,
+    __in PPH_FLAG_MAPPING Mappings,
+    __in ULONG NumberOfMappings
+    )
+{
+    ULONG i;
+    ULONG value2;
+
+    value2 = *Value2;
+
+    if (value2 != 0)
+    {
+        // There are existing flags. Map the flags 
+        // we know about by clearing/setting them. The flags 
+        // we don't know about won't be affected.
+
+        for (i = 0; i < NumberOfMappings; i++)
+        {
+            if (Value1 & Mappings[i].Flag1)
+                value2 |= Mappings[i].Flag2;
+            else
+                value2 &= ~Mappings[i].Flag2;
+        }
+    }
+    else
+    {
+        // There are no existing flags, which means 
+        // we can build the value from scratch, with no 
+        // clearing needed.
+
+        for (i = 0; i < NumberOfMappings; i++)
+        {
+            if (Value1 & Mappings[i].Flag1)
+                value2 |= Mappings[i].Flag2;
+        }
+    }
+
+    *Value2 = value2;
+}
+
+VOID PhMapFlags2(
+    __inout PULONG Value1,
+    __in ULONG Value2,
+    __in PPH_FLAG_MAPPING Mappings,
+    __in ULONG NumberOfMappings
+    )
+{
+    ULONG i;
+    ULONG value1;
+
+    value1 = *Value1;
+
+    if (value1 != 0)
+    {
+        for (i = 0; i < NumberOfMappings; i++)
+        {
+            if (Value2 & Mappings[i].Flag2)
+                value1 |= Mappings[i].Flag1;
+            else
+                value1 &= ~Mappings[i].Flag1;
+        }
+    }
+    else
+    {
+        for (i = 0; i < NumberOfMappings; i++)
+        {
+            if (Value2 & Mappings[i].Flag2)
+                value1 |= Mappings[i].Flag1;
+        }
+    }
+
+    *Value1 = value1;
+}
+
 UINT_PTR CALLBACK PhpOpenFileNameHookProc(
     __in HWND hdlg,
     __in UINT uiMsg,
@@ -1516,6 +1592,7 @@ PVOID PhCreateOpenFileDialog()
             &fileDialog
             )))
         {
+            // The default options are fine.
             return fileDialog;
         }
         else
@@ -1525,7 +1602,12 @@ PVOID PhCreateOpenFileDialog()
     }
     else
     {
-        return PhpCreateOpenFileName(1); 
+        OPENFILENAME *ofn;
+
+        ofn = PhpCreateOpenFileName(1);
+        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST);
+
+        return ofn;
     }
 }
 
@@ -1551,6 +1633,7 @@ PVOID PhCreateSaveFileDialog()
             &fileDialog
             )))
         {
+            // The default options are fine.
             return fileDialog;
         }
         else
@@ -1560,7 +1643,12 @@ PVOID PhCreateSaveFileDialog()
     }
     else
     {
-        return PhpCreateOpenFileName(2); 
+        OPENFILENAME *ofn;
+
+        ofn = PhpCreateOpenFileName(2);
+        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT);
+
+        return ofn;
     }
 }
 
@@ -1619,6 +1707,137 @@ BOOLEAN PhShowFileDialog(
         {
             return GetSaveFileName(ofn);
         }
+    }
+}
+
+static PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
+{
+    { PH_FILEDIALOG_CREATEPROMPT, FOS_CREATEPROMPT },
+    { PH_FILEDIALOG_PATHMUSTEXIST, FOS_PATHMUSTEXIST },
+    { PH_FILEDIALOG_FILEMUSTEXIST, FOS_FILEMUSTEXIST },
+    { PH_FILEDIALOG_SHOWHIDDEN, FOS_FORCESHOWHIDDEN },
+    { PH_FILEDIALOG_NODEREFERENCELINKS, FOS_NODEREFERENCELINKS },
+    { PH_FILEDIALOG_OVERWRITEPROMPT, FOS_OVERWRITEPROMPT },
+    { PH_FILEDIALOG_DEFAULTEXPANDED, FOS_DEFAULTNOMINIMODE }
+};
+
+static PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
+{
+    { PH_FILEDIALOG_CREATEPROMPT, OFN_CREATEPROMPT },
+    { PH_FILEDIALOG_PATHMUSTEXIST, OFN_PATHMUSTEXIST },
+    { PH_FILEDIALOG_FILEMUSTEXIST, OFN_FILEMUSTEXIST },
+    { PH_FILEDIALOG_SHOWHIDDEN, OFN_FORCESHOWHIDDEN },
+    { PH_FILEDIALOG_NODEREFERENCELINKS, OFN_NODEREFERENCELINKS },
+    { PH_FILEDIALOG_OVERWRITEPROMPT, OFN_OVERWRITEPROMPT }
+};
+
+/**
+ * Gets the options for a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ *
+ * \return The currently enabled options. See the 
+ * documentation for PhSetFileDialogOptions() for details.
+ */
+ULONG PhGetFileDialogOptions(
+    __in PVOID FileDialog
+    )
+{
+    if (WINDOWS_HAS_IFILEDIALOG)
+    {
+        FILEOPENDIALOGOPTIONS dialogOptions;
+        ULONG options;
+
+        if (SUCCEEDED(IFileDialog_GetOptions((IFileDialog *)FileDialog, &dialogOptions)))
+        {
+            options = 0;
+
+            PhMapFlags2(
+                &options,
+                dialogOptions,
+                PhpFileDialogIfdMappings,
+                sizeof(PhpFileDialogIfdMappings) / sizeof(PH_FLAG_MAPPING)
+                );
+
+            return options;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        ULONG options;
+
+        options = 0;
+
+        PhMapFlags2(
+            &options,
+            ofn->Flags,
+            PhpFileDialogOfnMappings,
+            sizeof(PhpFileDialogOfnMappings) / sizeof(PH_FLAG_MAPPING)
+            );
+
+        return options;
+    }
+}
+
+/**
+ * Sets the options for a file dialog.
+ *
+ * \param FileDialog The file dialog.
+ * \param Options A combination of flags specifying the options.
+ * \li \c PH_FILEDIALOG_CREATEPROMPT A prompt for creation will 
+ * be displayed when the selected item does not exist. This is only 
+ * valid for Save dialogs.
+ * \li \c PH_FILEDIALOG_PATHMUSTEXIST The selected item must be 
+ * in an existing folder. This is enabled by default.
+ * \li \c PH_FILEDIALOG_FILEMUSTEXIST The selected item must exist. 
+ * This is enabled by default and is only valid for Open dialogs.
+ * \li \c PH_FILEDIALOG_SHOWHIDDEN Items with the System and Hidden 
+ * attributes will be displayed.
+ * \li \c PH_FILEDIALOG_NODEREFERENCELINKS Shortcuts will not be 
+ * followed, allowing .lnk files to be opened.
+ * \li \c PH_FILEDIALOG_OVERWRITEPROMPT An overwrite prompt will be 
+ * displayed if an existing item is selected. This is enabled by 
+ * default and is only valid for Save dialogs.
+ * \li \c PH_FILEDIALOG_DEFAULTEXPANDED The file dialog should be 
+ * expanded by default (i.e. the folder browser should be displayed). 
+ * This is only valid for Save dialogs.
+ */
+VOID PhSetFileDialogOptions(
+    __in PVOID FileDialog,
+    __in ULONG Options
+    )
+{
+    if (WINDOWS_HAS_IFILEDIALOG)
+    {
+        FILEOPENDIALOGOPTIONS dialogOptions;
+
+        if (SUCCEEDED(IFileDialog_GetOptions((IFileDialog *)FileDialog, &dialogOptions)))
+        {
+            PhMapFlags1(
+                &dialogOptions,
+                Options,
+                PhpFileDialogIfdMappings,
+                sizeof(PhpFileDialogIfdMappings) / sizeof(PH_FLAG_MAPPING)
+                );
+
+            IFileDialog_SetOptions((IFileDialog *)FileDialog, dialogOptions);
+        }
+    }
+    else
+    {
+        OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+
+        PhMapFlags1(
+            &ofn->Flags,
+            Options,
+            PhpFileDialogOfnMappings,
+            sizeof(PhpFileDialogOfnMappings) / sizeof(PH_FLAG_MAPPING)
+            );
     }
 }
 
