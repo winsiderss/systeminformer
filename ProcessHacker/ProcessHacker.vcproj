@@ -541,6 +541,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\support2.c"
+				>
+			</File>
+			<File
 				RelativePath=".\symprv.c"
 				>
 			</File>

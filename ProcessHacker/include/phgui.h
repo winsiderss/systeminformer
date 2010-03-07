@@ -548,6 +548,13 @@ FORCEINLINE ULONG PhGetColorBrightness(
     return (min + max) / 2;
 }
 
+// support2
+
+VOID PhSearchOnlineString(
+    __in HWND hWnd,
+    __in PWSTR String
+    );
+
 // mainwnd
 
 #ifndef MAINWND_PRIVATE

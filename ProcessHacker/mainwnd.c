@@ -748,26 +748,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
-                        PPH_STRING searchEngine = PHA_DEREFERENCE(PhGetStringSetting(L"SearchEngine"));
-                        ULONG indexOfReplacement = PhStringIndexOfString(searchEngine, 0, L"%s");
-
-                        if (indexOfReplacement != -1)
-                        {
-                            PPH_STRING newString;
-
-                            // Replace "%s" with the process name.
-                            newString = PhaConcatStrings(
-                                3,
-                                PhaSubstring(searchEngine, 0, indexOfReplacement)->Buffer,
-                                processItem->ProcessName->Buffer,
-                                PhaSubstring(
-                                searchEngine,
-                                indexOfReplacement + 2,
-                                searchEngine->Length / 2 - indexOfReplacement - 2
-                                )->Buffer
-                                );
-                            PhShellExecute(hWnd, newString->Buffer, NULL);
-                        }
+                        PhSearchOnlineString(hWnd, processItem->ProcessName->Buffer);
                     }
                 }
                 break;
