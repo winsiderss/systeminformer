@@ -41,9 +41,6 @@
  * also no limits on how many times a provider can be boosted - 
  * if a provider is boosted 10 times in succession, it will be run 10 
  * times in addition to the periodic run.
- *
- * Register/unregister/boost operations are completely thread-safe. 
- * Start/stop operations are not thread-safe.
  */
 
 #define PROVIDER_PRIVATE
