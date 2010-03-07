@@ -1022,6 +1022,12 @@ VOID PhShowInformationDialog(
     __in PWSTR String
     );
 
+// pagfiles
+
+VOID PhShowPagefilesDialog(
+    __in HWND ParentWindowHandle
+    );
+
 // runas
 
 VOID PhShowRunAsDialog(
