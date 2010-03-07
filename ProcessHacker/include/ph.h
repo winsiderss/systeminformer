@@ -897,9 +897,13 @@ typedef VOID (NTAPI *PPH_PROVIDER_FUNCTION)(
     __in PVOID Object
     );
 
+struct _PH_PROVIDER_THREAD;
+typedef struct _PH_PROVIDER_THREAD *PPH_PROVIDER_THREAD;
+
 typedef struct _PH_PROVIDER_REGISTRATION
 {
     LIST_ENTRY ListEntry;
+    PPH_PROVIDER_THREAD ProviderThread;
     PPH_PROVIDER_FUNCTION Function;
     PVOID Object;
     BOOLEAN Enabled;
@@ -945,7 +949,6 @@ VOID PhSetProviderThreadInterval(
     );
 
 BOOLEAN PhBoostProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
@@ -962,7 +965,6 @@ VOID PhRegisterProvider(
     );
 
 VOID PhUnregisterProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
