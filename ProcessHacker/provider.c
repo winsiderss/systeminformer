@@ -40,7 +40,10 @@
  * and does not cause the next periodic run to be missed. There are 
  * also no limits on how many times a provider can be boosted - 
  * if a provider is boosted 10 times in succession, it will be run 10 
- * times in addition to the periodic run.
+ * times in addition to the periodic run. Providers, even when 
+ * boosted, always run on the same provider thread. The other option 
+ * would be to have the boosting thread run the provider function 
+ * directly, which would involve unnecessary blocking and synchronization.
  */
 
 #define PROVIDER_PRIVATE
