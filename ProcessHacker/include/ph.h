@@ -1837,6 +1837,26 @@ PPH_STRING PhQueryRegistryString(
     __in_opt PWSTR ValueName
     );
 
+typedef struct _PH_FLAG_MAPPING
+{
+    ULONG Flag1;
+    ULONG Flag2;
+} PH_FLAG_MAPPING, *PPH_FLAG_MAPPING;
+
+VOID PhMapFlags1(
+    __inout PULONG Value2,
+    __in ULONG Value1,
+    __in PPH_FLAG_MAPPING Mappings,
+    __in ULONG NumberOfMappings
+    );
+
+VOID PhMapFlags2(
+    __inout PULONG Value1,
+    __in ULONG Value2,
+    __in PPH_FLAG_MAPPING Mappings,
+    __in ULONG NumberOfMappings
+    );
+
 PVOID PhCreateOpenFileDialog();
 
 PVOID PhCreateSaveFileDialog();
@@ -1848,6 +1868,23 @@ VOID PhFreeFileDialog(
 BOOLEAN PhShowFileDialog(
     __in HWND hWnd,
     __in PVOID FileDialog
+    );
+
+#define PH_FILEDIALOG_CREATEPROMPT 0x1
+#define PH_FILEDIALOG_PATHMUSTEXIST 0x2 // default both
+#define PH_FILEDIALOG_FILEMUSTEXIST 0x4 // default open
+#define PH_FILEDIALOG_SHOWHIDDEN 0x8
+#define PH_FILEDIALOG_NODEREFERENCELINKS 0x10
+#define PH_FILEDIALOG_OVERWRITEPROMPT 0x20 // default save
+#define PH_FILEDIALOG_DEFAULTEXPANDED 0x40
+
+ULONG PhGetFileDialogOptions(
+    __in PVOID FileDialog
+    );
+
+VOID PhSetFileDialogOptions(
+    __in PVOID FileDialog,
+    __in ULONG Options
     );
 
 typedef struct _PH_FILETYPE_FILTER
