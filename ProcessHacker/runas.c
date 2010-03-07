@@ -329,7 +329,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 WindowsVersion <= WINDOWS_XP
                                 )
                             { 
-                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"NewCredentials");
+                                ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"New credentials");
                             }
                             else
                             {
