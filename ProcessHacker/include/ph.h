@@ -944,7 +944,7 @@ VOID PhSetProviderThreadInterval(
     __in ULONG Interval
     );
 
-VOID PhBoostProvider(
+BOOLEAN PhBoostProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     );

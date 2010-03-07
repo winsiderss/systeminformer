@@ -20,6 +20,32 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * Provider objects allow a function to be executed periodically. 
+ * This is managed by a synchronization timer object which is 
+ * signaled periodically. The use of a timer object as opposed to 
+ * a simple sleep call means that the length of time a provider 
+ * function takes to execute has no effect on the interval between 
+ * runs.
+ *
+ * In contrast to callback objects, the context passed to provider 
+ * functions must be reference-counted objects. This means that 
+ * it is not guaranteed that the function will not be in execution 
+ * after the unregister operation is complete. However, the 
+ * since the context object is reference-counted, there are no 
+ * safety issues.
+ *
+ * Providers can be boosted, which causes them to be run immediately 
+ * ignoring the interval. This is separate to the periodic runs, 
+ * and does not cause the next periodic run to be missed. There are 
+ * also no limits on how many times a provider can be boosted - 
+ * if a provider is boosted 10 times in succession, it will be run 10 
+ * times in addition to the periodic run.
+ *
+ * Register/unregister/boost operations are completely thread-safe. 
+ * Start/stop operations are not thread-safe.
+ */
+
 #define PROVIDER_PRIVATE
 #include <ph.h>
 
@@ -28,6 +54,12 @@ LIST_ENTRY PhDbgProviderListHead;
 PH_FAST_LOCK PhDbgProviderListLock;
 #endif
 
+/**
+ * Initializes a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ * \param Interval The interval between each run, in milliseconds.
+ */
 VOID PhInitializeProviderThread(
     __out PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
@@ -49,6 +81,11 @@ VOID PhInitializeProviderThread(
 #endif
 }
 
+/**
+ * Frees resources used by a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ */
 VOID PhDeleteProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     )
@@ -93,11 +130,22 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Main loop.
 
+        // We check the status variable for STATUS_ALERTED, which 
+        // means that someone is requesting that a provider be 
+        // boosted. Note that if they alert this thread while we 
+        // are not waiting on the timer, when we do perform the 
+        // wait it will return immediately with STATUS_ALERTED.
+
         while (TRUE)
         {
             if (status == STATUS_ALERTED)
             {
                 // Check if we have any more providers to boost.
+                // Note that this always works because boosted 
+                // providers are always in front of normal providers. 
+                // Therefore we will never mistakenly boost normal 
+                // providers.
+
                 if (providerThread->BoostCount == 0)
                     break;
             }
@@ -161,7 +209,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
         PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
 
         // Perform an alertable wait so we can be woken up by 
-        // someone telling us to terminate.
+        // someone telling us to boost providers, or to terminate.
         status = NtWaitForSingleObject(
             providerThread->TimerHandle,
             TRUE,
@@ -172,6 +220,11 @@ NTSTATUS NTAPI PhpProviderThreadStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Starts a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ */
 VOID PhStartProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     )
@@ -193,6 +246,11 @@ VOID PhStartProviderThread(
     ProviderThread->State = ProviderThreadRunning;
 }
 
+/**
+ * Stops a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ */
 VOID PhStopProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     )
@@ -211,9 +269,16 @@ VOID PhStopProviderThread(
     NtClose(ProviderThread->TimerHandle);
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
+
     ProviderThread->State = ProviderThreadStopped;
 }
 
+/**
+ * Sets the run interval for a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ * \param Interval The interval between each run, in milliseconds.
+ */
 VOID PhSetProviderThreadInterval(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
@@ -238,17 +303,41 @@ VOID PhSetProviderThreadInterval(
     }
 }
 
-VOID PhBoostProvider(
+/**
+ * Causes a provider to be queued for immediate execution.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ *
+ * \return TRUE if the operation was successful; FALSE if 
+ * the provider is being unregistered, or the provider thread 
+ * is not running.
+ *
+ * \remarks Boosted providers will be run immediately, ignoring 
+ * the run interval. Boosting will not however affect the normal 
+ * runs; if a provider is boosted \a n times, it will be run 
+ * \a n times in addition to the normal periodic run.
+ */
+BOOLEAN PhBoostProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     )
 {
     if (Registration->Unregistering)
-        return;
+        return FALSE;
 
     // Simply move to the provider to the front of the list. 
     // This works even if the provider is currently in the temp list.
+
     PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
+
+    // Abort if the provider is stopping/stopped.
+    if (ProviderThread->State != ProviderThreadRunning)
+    {
+        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+        return FALSE;
+    }
 
     RemoveEntryList(&Registration->ListEntry);
     InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
@@ -260,8 +349,18 @@ VOID PhBoostProvider(
 
     // Wake up the thread.
     NtAlertThread(ProviderThread->ThreadHandle);
+
+    return TRUE;
 }
 
+/**
+ * Sets whether a provider is enabled.
+ *
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ * \param Enabled TRUE if the provider is enabled, otherwise 
+ * FALSE.
+ */
 VOID PhSetProviderEnabled(
     __in PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
@@ -270,6 +369,20 @@ VOID PhSetProviderEnabled(
     Registration->Enabled = Enabled;
 }
 
+/**
+ * Registers a provider with a provider thread.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ * \param Function The provider function.
+ * \param Object A pointer to an object to pass to the provider 
+ * function. The object must be managed by the reference-counting 
+ * system.
+ * \param Registration A variable which receives registration 
+ * information for the provider.
+ *
+ * \remarks The provider is initially disabled. Call 
+ * PhSetProviderEnabled() to enable it.
+ */
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
@@ -291,6 +404,16 @@ VOID PhRegisterProvider(
     PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
 }
 
+/**
+ * Unregisters a provider.
+ *
+ * \param ProviderThread A pointer to a provider thread object.
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ *
+ * \remarks The provider function may still be in execution 
+ * once this function returns.
+ */
 VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
