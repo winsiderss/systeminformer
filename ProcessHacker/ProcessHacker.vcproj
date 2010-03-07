@@ -441,6 +441,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\mdump.c"
+				>
+			</File>
+			<File
 				RelativePath=".\modprv.c"
 				>
 			</File>

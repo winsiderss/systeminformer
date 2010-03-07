@@ -33,6 +33,8 @@
 #define IDR_FINDOBJ                     134
 #define IDD_HIDDENPROCESSES             135
 #define IDD_RUNAS                       136
+#define IDD_DIALOG2                     137
+#define IDD_PROGRESS                    137
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -105,6 +107,8 @@
 #define IDC_BROWSE                      1070
 #define IDC_USERNAME                    1071
 #define IDC_SESSIONS                    1074
+#define IDC_PROGRESS                    1076
+#define IDC_PROGRESSTEXT                1077
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -220,9 +224,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        137
+#define _APS_NEXT_RESOURCE_VALUE        138
 #define _APS_NEXT_COMMAND_VALUE         40125
-#define _APS_NEXT_CONTROL_VALUE         1076
+#define _APS_NEXT_CONTROL_VALUE         1078
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
