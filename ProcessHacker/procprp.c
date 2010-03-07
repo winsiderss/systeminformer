@@ -2032,6 +2032,16 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     }
                 }
                 break;
+            case ID_MODULE_SEARCHONLINE:
+                {
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (moduleItem)
+                    {
+                        PhSearchOnlineString(hwndDlg, moduleItem->Name->Buffer);
+                    }
+                }
+                break;
             case ID_MODULE_OPENCONTAININGFOLDER:
                 {
                     PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
