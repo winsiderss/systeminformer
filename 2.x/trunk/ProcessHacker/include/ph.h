@@ -544,6 +544,24 @@ NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
     );
 
+#define PH_FIRST_PAGEFILE(Pagefiles) ( \
+    /* The size of a pagefile can never be 0. A TotalSize of 0 
+     * is used to indicate that there are no pagefiles.
+     */ ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefiles))->TotalSize ? \
+    (PSYSTEM_PAGEFILE_INFORMATION)(Pagefiles) : \
+    NULL \
+    )
+#define PH_NEXT_PAGEFILE(Pagefile) ( \
+    ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset ? \
+    (PSYSTEM_PAGEFILE_INFORMATION)((PCHAR)(Pagefile) + \
+    ((PSYSTEM_PAGEFILE_INFORMATION)(Pagefile))->NextEntryOffset) : \
+    NULL \
+    )
+
+NTSTATUS PhEnumPagefiles(
+    __out PPVOID Pagefiles
+    );
+
 /**
  * A callback function passed to PhEnumDirectoryObjects() 
  * and called for each directory object.

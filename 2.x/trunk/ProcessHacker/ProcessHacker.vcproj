@@ -493,6 +493,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pagfiles.c"
+				>
+			</File>
+			<File
 				RelativePath=".\procprp.c"
 				>
 			</File>

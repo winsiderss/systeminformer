@@ -427,6 +427,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhShowHiddenProcessesDialog();
                 }
                 break;
+            case ID_TOOLS_PAGEFILES:
+                {
+                    PhShowPagefilesDialog(hWnd);
+                }
+                break;
             case ID_TOOLS_VERIFYFILESIGNATURE:
                 {
                     static PH_FILETYPE_FILTER filters[] =
@@ -470,6 +475,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
 
                     PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case ID_HELP_DEBUGCONSOLE:
+                {
+                    PhShowDebugConsole();
+                }
+                break;
+            case ID_HELP_ABOUT:
+                {
+                    PhShowAboutDialog(hWnd);
                 }
                 break;
             case ID_PROCESS_TERMINATE:
@@ -824,16 +839,6 @@ LRESULT CALLBACK PhMainWndProc(
                         PhShowServiceProperties(hWnd, serviceItem);
                         PhDereferenceObject(serviceItem);
                     }
-                }
-                break;
-            case ID_HELP_DEBUGCONSOLE:
-                {
-                    PhShowDebugConsole();
-                }
-                break;
-            case ID_HELP_ABOUT:
-                {
-                    PhShowAboutDialog(hWnd);
                 }
                 break;
             }

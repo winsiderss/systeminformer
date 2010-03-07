@@ -3717,6 +3717,45 @@ NTSTATUS PhEnumHandles(
     return status;
 }
 
+NTSTATUS PhEnumPagefiles(
+    __out PPVOID Pagefiles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x200;
+
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQuerySystemInformation(
+        SystemPageFileInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to something 
+        // very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Pagefiles = buffer;
+
+    return status;
+}
+
 /**
  * Enumerates the objects in a directory object.
  *
