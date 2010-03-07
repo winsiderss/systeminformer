@@ -418,8 +418,8 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_VIEW_REFRESH:
                 {
-                    PhBoostProvider(&PhPrimaryProviderThread, &ProcessProviderRegistration);
-                    PhBoostProvider(&PhPrimaryProviderThread, &ServiceProviderRegistration);
+                    PhBoostProvider(&ProcessProviderRegistration);
+                    PhBoostProvider(&ServiceProviderRegistration);
                 }
                 break;
             case ID_TOOLS_HIDDENPROCESSES:

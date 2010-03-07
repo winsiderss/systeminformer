@@ -1228,14 +1228,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(
-                &threadsContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &threadsContext->ProviderRegistration
-                );
+            PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
+            PhBoostProvider(&threadsContext->ProviderRegistration);
         }
         break;
     case WM_DESTROY:
@@ -1260,10 +1254,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 &threadsContext->Provider->LoadingStateChangedEvent,
                 &threadsContext->LoadingStateChangedEventRegistration
                 );
-            PhUnregisterProvider(
-                &PhSecondaryProviderThread,
-                &threadsContext->ProviderRegistration
-                );
+            PhUnregisterProvider(&threadsContext->ProviderRegistration);
 
             PhDereferenceAllThreadItems(threadsContext->Provider);
 
@@ -1981,14 +1972,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(
-                &modulesContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &modulesContext->ProviderRegistration
-                );
+            PhSetProviderEnabled(&modulesContext->ProviderRegistration, TRUE);
+            PhBoostProvider(&modulesContext->ProviderRegistration);
         }
         break;
     case WM_DESTROY:
@@ -2005,10 +1990,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->Provider->UpdatedEvent,
                 &modulesContext->UpdatedEventRegistration
                 );
-            PhUnregisterProvider(
-                &PhSecondaryProviderThread,
-                &modulesContext->ProviderRegistration
-                );
+            PhUnregisterProvider(&modulesContext->ProviderRegistration);
 
             PhDereferenceAllModuleItems(modulesContext->Provider);
 
@@ -2514,14 +2496,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(
-                &handlesContext->ProviderRegistration,
-                TRUE
-                );
-            PhBoostProvider(
-                &PhSecondaryProviderThread,
-                &handlesContext->ProviderRegistration
-                );
+            PhSetProviderEnabled(&handlesContext->ProviderRegistration, TRUE);
+            PhBoostProvider(&handlesContext->ProviderRegistration);
         }
         break;
     case WM_DESTROY:
@@ -2542,10 +2518,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->Provider->UpdatedEvent,
                 &handlesContext->UpdatedEventRegistration
                 );
-            PhUnregisterProvider(
-                &PhSecondaryProviderThread,
-                &handlesContext->ProviderRegistration
-                );
+            PhUnregisterProvider(&handlesContext->ProviderRegistration);
 
             PhDereferenceAllHandleItems(handlesContext->Provider);
 
