@@ -306,7 +306,6 @@ VOID PhSetProviderThreadInterval(
 /**
  * Causes a provider to be queued for immediate execution.
  *
- * \param ProviderThread A pointer to a provider thread object.
  * \param Registration A pointer to the registration object for 
  * a provider.
  *
@@ -320,35 +319,38 @@ VOID PhSetProviderThreadInterval(
  * \a n times in addition to the normal periodic run.
  */
 BOOLEAN PhBoostProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     )
 {
+    PPH_PROVIDER_THREAD providerThread;
+
     if (Registration->Unregistering)
         return FALSE;
+
+    providerThread = Registration->ProviderThread;
 
     // Simply move to the provider to the front of the list. 
     // This works even if the provider is currently in the temp list.
 
-    PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
+    PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
     // Abort if the provider is stopping/stopped.
-    if (ProviderThread->State != ProviderThreadRunning)
+    if (providerThread->State != ProviderThreadRunning)
     {
-        PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
+        PhReleaseQueuedLockExclusive(&providerThread->Lock);
         return FALSE;
     }
 
     RemoveEntryList(&Registration->ListEntry);
-    InsertHeadList(&ProviderThread->ListHead, &Registration->ListEntry);
+    InsertHeadList(&providerThread->ListHead, &Registration->ListEntry);
 
     Registration->Boosting = TRUE;
-    ProviderThread->BoostCount++;
+    providerThread->BoostCount++;
 
-    PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
+    PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
 
     // Wake up the thread.
-    NtAlertThread(ProviderThread->ThreadHandle);
+    NtAlertThread(providerThread->ThreadHandle);
 
     return TRUE;
 }
@@ -390,6 +392,7 @@ VOID PhRegisterProvider(
     __out PPH_PROVIDER_REGISTRATION Registration
     )
 {
+    Registration->ProviderThread = ProviderThread;
     Registration->Function = Function;
     Registration->Object = Object;
     Registration->Enabled = FALSE;
@@ -407,7 +410,6 @@ VOID PhRegisterProvider(
 /**
  * Unregisters a provider.
  *
- * \param ProviderThread A pointer to a provider thread object.
  * \param Registration A pointer to the registration object for 
  * a provider.
  *
@@ -415,10 +417,13 @@ VOID PhRegisterProvider(
  * once this function returns.
  */
 VOID PhUnregisterProvider(
-    __inout PPH_PROVIDER_THREAD ProviderThread,
     __inout PPH_PROVIDER_REGISTRATION Registration
     )
 {
+    PPH_PROVIDER_THREAD providerThread;
+
+    providerThread = Registration->ProviderThread;
+
     Registration->Unregistering = TRUE;
 
     // There are two possibilities for removal:
@@ -429,18 +434,18 @@ VOID PhUnregisterProvider(
     //    will be removed from the temp list and so 
     //    it won't be re-added to the main list.
 
-    PhAcquireQueuedLockExclusiveFast(&ProviderThread->Lock);
+    PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
 
     RemoveEntryList(&Registration->ListEntry);
 
     // Fix the boost count.
     if (Registration->Boosting)
-        ProviderThread->BoostCount--;
+        providerThread->BoostCount--;
 
     // The user-supplied object must be dereferenced 
     // while the mutex is held.
     if (Registration->Object)
         PhDereferenceObject(Registration->Object);
 
-    PhReleaseQueuedLockExclusiveFast(&ProviderThread->Lock);
+    PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
 }
