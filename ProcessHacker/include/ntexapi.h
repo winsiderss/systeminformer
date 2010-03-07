@@ -511,6 +511,49 @@ typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
     UNICODE_STRING TypeName;
 } SYSTEM_OBJECTTYPE_INFORMATION, *PSYSTEM_OBJECTTYPE_INFORMATION;
 
+typedef struct _SYSTEM_OBJECT_INFORMATION
+{
+    ULONG NextEntryOffset;
+    PVOID Object;
+    HANDLE CreatorUniqueProcess;
+    USHORT CreatorBackTraceIndex;
+    USHORT Flags;
+    LONG PointerCount;
+    LONG HandleCount;
+    ULONG PagedPoolCharge;
+    ULONG NonPagedPoolCharge;
+    HANDLE ExclusiveProcessId;
+    PVOID SecurityDescriptor;
+    UNICODE_STRING NameInfo;
+} SYSTEM_OBJECT_INFORMATION, *PSYSTEM_OBJECT_INFORMATION;
+
+typedef struct _SYSTEM_PAGEFILE_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG TotalSize;
+    ULONG TotalInUse;
+    ULONG PeakUsage;
+    UNICODE_STRING PageFileName;
+} SYSTEM_PAGEFILE_INFORMATION, *PSYSTEM_PAGEFILE_INFORMATION;
+
+#define MM_WORKING_SET_MAX_HARD_ENABLE 0x1
+#define MM_WORKING_SET_MAX_HARD_DISABLE 0x2
+#define MM_WORKING_SET_MIN_HARD_ENABLE 0x4
+#define MM_WORKING_SET_MIN_HARD_DISABLE 0x8
+
+typedef struct _SYSTEM_FILECACHE_INFORMATION
+{
+    SIZE_T CurrentSize;
+    SIZE_T PeakSize;
+    ULONG PageFaultCount;
+    SIZE_T MinimumWorkingSet;
+    SIZE_T MaximumWorkingSet;
+    SIZE_T CurrentSizeIncludingTransitionInPages;
+    SIZE_T PeakSizeIncludingTransitionInPages;
+    ULONG TransitionRePurposeCount;
+    ULONG Flags;
+} SYSTEM_FILECACHE_INFORMATION, *PSYSTEM_FILECACHE_INFORMATION;
+
 typedef NTSTATUS (NTAPI *_NtQuerySystemInformation)(
     __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
     __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,

@@ -34,6 +34,7 @@
 #define IDD_HIDDENPROCESSES             135
 #define IDD_RUNAS                       136
 #define IDD_PROGRESS                    137
+#define IDD_PAGEFILES                   138
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -218,15 +219,16 @@
 #define ID_OBJECT_PROCESSPROPERTIES     40121
 #define ID_HELP_DEBUGCONSOLE            40122
 #define ID_MODULE_SEARCHONLINE          40125
+#define ID_TOOLS_PAGEFILES              40126
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        138
-#define _APS_NEXT_COMMAND_VALUE         40126
-#define _APS_NEXT_CONTROL_VALUE         1078
+#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_COMMAND_VALUE         40127
+#define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

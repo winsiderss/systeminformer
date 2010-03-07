@@ -97,6 +97,7 @@ BEGIN
     BEGIN
         MENUITEM "Create Service...",           ID_TOOLS_CREATESERVICE
         MENUITEM "Hidden Processes",            ID_TOOLS_HIDDENPROCESSES
+        MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
         MENUITEM "Verify File Signature...",    ID_TOOLS_VERIFYFILESIGNATURE
     END
     MENUITEM "&Users",                      ID_USERS
@@ -577,6 +578,15 @@ BEGIN
     LTEXT           "Please wait...",IDC_PROGRESSTEXT,7,7,202,12
 END
 
+IDD_PAGEFILES DIALOGEX 0, 0, 322, 162
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Pagefiles"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,265,141,50,14
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,308,128
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -728,6 +738,14 @@ BEGIN
         RIGHTMARGIN, 209
         TOPMARGIN, 7
         BOTTOMMARGIN, 55
+    END
+
+    IDD_PAGEFILES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 315
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 155
     END
 END
 #endif    // APSTUDIO_INVOKED
