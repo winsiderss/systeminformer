@@ -33,24 +33,56 @@ VOID PhShowPagefilesDialog(
     __in HWND ParentWindowHandle
     )
 {
-    NTSTATUS status;
-    PSYSTEM_PAGEFILE_INFORMATION pagefiles;
-
-    if (!NT_SUCCESS(status = PhEnumPagefiles(&pagefiles)))
-    {
-        PhShowStatus(ParentWindowHandle, L"Unable to get pagefile information", status, 0);
-        return;
-    }
-
-    DialogBoxParam(
+    DialogBox(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_PAGEFILES),
         ParentWindowHandle,
-        PhpPagefilesDlgProc,
-        (LPARAM)pagefiles
+        PhpPagefilesDlgProc
         );
+}
 
-    PhFree(pagefiles);
+static VOID PhpAddPagefileItems(
+    __in HWND ListViewHandle,
+    __in PVOID Pagefiles
+    )
+{
+    PSYSTEM_PAGEFILE_INFORMATION pagefile;
+
+    pagefile = PH_FIRST_PAGEFILE(Pagefiles);
+
+    while (pagefile)
+    {
+        INT lvItemIndex;
+        PPH_STRING fileName;
+        PPH_STRING newFileName;
+        PPH_STRING usage;
+
+        fileName = PhCreateStringEx(pagefile->PageFileName.Buffer, pagefile->PageFileName.Length);
+        newFileName = PhGetFileName(fileName);
+        PhDereferenceObject(fileName);
+
+        lvItemIndex = PhAddListViewItem(ListViewHandle, MAXINT,
+            newFileName->Buffer, NULL);
+
+        PhDereferenceObject(newFileName);
+
+        // Usage
+        usage = PhFormatSize(UInt32x32To64(pagefile->TotalInUse, PAGE_SIZE), -1);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, usage->Buffer);
+        PhDereferenceObject(usage);
+
+        // Peak usage
+        usage = PhFormatSize(UInt32x32To64(pagefile->PeakUsage, PAGE_SIZE), -1);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, usage->Buffer);
+        PhDereferenceObject(usage);
+
+        // Total
+        usage = PhFormatSize(UInt32x32To64(pagefile->TotalSize, PAGE_SIZE), -1);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, usage->Buffer);
+        PhDereferenceObject(usage);
+
+        pagefile = PH_NEXT_PAGEFILE(pagefile);
+    }
 }
 
 INT_PTR CALLBACK PhpPagefilesDlgProc(
@@ -64,11 +96,10 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PVOID pagefiles;
-            PSYSTEM_PAGEFILE_INFORMATION pagefile;
+            NTSTATUS status;
             HWND lvHandle;
+            PVOID pagefiles;
 
-            pagefiles = (PSYSTEM_PAGEFILE_INFORMATION)lParam;
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -80,39 +111,15 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
 
-            pagefile = PH_FIRST_PAGEFILE(pagefiles);
-
-            while (pagefile)
+            if (NT_SUCCESS(status = PhEnumPagefiles(&pagefiles)))
             {
-                INT lvItemIndex;
-                PPH_STRING fileName;
-                PPH_STRING newFileName;
-                PPH_STRING usage;
-
-                fileName = PhCreateStringEx(pagefile->PageFileName.Buffer, pagefile->PageFileName.Length);
-                newFileName = PhGetFileName(fileName);
-                PhDereferenceObject(fileName);
-
-                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, newFileName->Buffer, pagefile);
-
-                PhDereferenceObject(newFileName);
-
-                // Usage
-                usage = PhFormatSize(UInt32x32To64(pagefile->TotalInUse, PAGE_SIZE), -1);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, usage->Buffer);
-                PhDereferenceObject(usage);
-
-                // Peak usage
-                usage = PhFormatSize(UInt32x32To64(pagefile->PeakUsage, PAGE_SIZE), -1);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 2, usage->Buffer);
-                PhDereferenceObject(usage);
-
-                // Total
-                usage = PhFormatSize(UInt32x32To64(pagefile->TotalSize, PAGE_SIZE), -1);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 3, usage->Buffer);
-                PhDereferenceObject(usage);
-
-                pagefile = PH_NEXT_PAGEFILE(pagefile);
+                PhpAddPagefileItems(lvHandle, pagefiles);
+                PhFree(pagefiles);
+            }
+            else
+            {
+                PhShowStatus(hwndDlg, L"Unable to get pagefile information", status, 0);
+                EndDialog(hwndDlg, IDCANCEL);
             }
 
             SetFocus(GetDlgItem(hwndDlg, IDOK));
@@ -125,6 +132,23 @@ INT_PTR CALLBACK PhpPagefilesDlgProc(
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDC_REFRESH:
+                {
+                    NTSTATUS status;
+                    PVOID pagefiles;
+
+                    if (NT_SUCCESS(status = PhEnumPagefiles(&pagefiles)))
+                    {
+                        ListView_DeleteAllItems(GetDlgItem(hwndDlg, IDC_LIST));
+                        PhpAddPagefileItems(GetDlgItem(hwndDlg, IDC_LIST), pagefiles);
+                        PhFree(pagefiles);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to get pagefile information", status, 0);
+                    }
+                }
                 break;
             }
         }
