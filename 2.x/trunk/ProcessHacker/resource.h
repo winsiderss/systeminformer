@@ -109,6 +109,7 @@
 #define IDC_SESSIONS                    1074
 #define IDC_PROGRESS                    1076
 #define IDC_PROGRESSTEXT                1077
+#define IDC_BUTTON1                     1079
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -228,7 +229,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        139
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1079
+#define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
