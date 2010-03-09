@@ -200,7 +200,7 @@ window procedure must reference the object as soon as possible.
 * Create means allocate memory for an object and initialize the 
   object.
 * Free can be used for objects created with Allocate or Create 
-  functions. When used with Create
+  functions.
 * Initialize means initialize an object with caller-supplied 
   storage.
 * Delete is paired with Initialize and does not free the object 
