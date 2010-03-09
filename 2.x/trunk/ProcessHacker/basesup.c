@@ -773,6 +773,7 @@ PPH_STRING PhConcatStrings_V(
     ULONG i;
     SIZE_T totalLength = 0;
     SIZE_T stringLength;
+    SIZE_T cachedLengths[PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE];
     PWSTR arg;
     PPH_STRING string;
 
@@ -783,7 +784,11 @@ PPH_STRING PhConcatStrings_V(
     for (i = 0; i < Count; i++)
     {
         arg = va_arg(argptr, PWSTR);
-        totalLength += wcslen(arg) * sizeof(WCHAR);
+        stringLength = wcslen(arg) * sizeof(WCHAR);
+        totalLength += stringLength;
+
+        if (i < PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE)
+            cachedLengths[i] = stringLength;
     }
 
     // Create the string.
@@ -798,7 +803,12 @@ PPH_STRING PhConcatStrings_V(
     for (i = 0; i < Count; i++)
     {
         arg = va_arg(argptr, PWSTR);
-        stringLength = wcslen(arg) * sizeof(WCHAR);
+
+        if (i < PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE)
+            stringLength = cachedLengths[i];
+        else
+            stringLength = wcslen(arg) * sizeof(WCHAR);
+
         memcpy(
             &string->Buffer[totalLength / sizeof(WCHAR)],
             arg,

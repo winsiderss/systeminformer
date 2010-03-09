@@ -385,6 +385,8 @@ PPH_STRING PhConcatStrings(
     ...
     );
 
+#define PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE 16
+
 PPH_STRING PhConcatStrings_V(
     __in ULONG Count,
     __in va_list ArgPtr
