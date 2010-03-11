@@ -79,7 +79,8 @@ VOID PhShowServiceProperties(
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
 
-    // General page.
+    // General
+
     context.ServiceItem = ServiceItem;
     context.Ready = FALSE;
     context.Dirty = FALSE;
@@ -91,7 +92,8 @@ VOID PhShowServiceProperties(
     propSheetPage.lParam = (LPARAM)&context;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    // Security page.
+    // Security
+
     stdObjectSecurity.OpenObject = PhpOpenService;
     stdObjectSecurity.ObjectType = L"Service";
     stdObjectSecurity.Context = ServiceItem;
