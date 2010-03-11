@@ -362,6 +362,8 @@ VOID PhInitializeKph()
 
 BOOLEAN PhInitializeAppSystem()
 {
+    PhApplicationName = L"Process Hacker";
+
     if (!PhInitializeProcessProvider())
         return FALSE;
     if (!PhInitializeServiceProvider())

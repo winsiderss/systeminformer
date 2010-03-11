@@ -1,8 +1,6 @@
 #ifndef PHAPP_H
 #define PHAPP_H
 
-#define PH_APP_NAME (L"Process Hacker")
-
 #include <phgui.h>
 #include <providers.h>
 #include "resource.h"
