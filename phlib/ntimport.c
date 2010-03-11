@@ -98,6 +98,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSetContextThread);
     InitProcReq("ntdll.dll", NtSetInformationDebugObject);
     InitProcReq("ntdll.dll", NtSetInformationFile);
+    InitProcReq("ntdll.dll", NtSetInformationObject);
     InitProcReq("ntdll.dll", NtSetInformationProcess);
     InitProcReq("ntdll.dll", NtSetInformationThread);
     InitProcReq("ntdll.dll", NtSetInformationToken);
