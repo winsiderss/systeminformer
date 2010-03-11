@@ -82,6 +82,7 @@ EXT _NtResumeThread NtResumeThread EQNULL;
 EXT _NtSetContextThread NtSetContextThread EQNULL;
 EXT _NtSetInformationDebugObject NtSetInformationDebugObject EQNULL;
 EXT _NtSetInformationFile NtSetInformationFile EQNULL;
+EXT _NtSetInformationObject NtSetInformationObject EQNULL;
 EXT _NtSetInformationProcess NtSetInformationProcess EQNULL;
 EXT _NtSetInformationThread NtSetInformationThread EQNULL;
 EXT _NtSetInformationToken NtSetInformationToken EQNULL;

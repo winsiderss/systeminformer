@@ -46,9 +46,12 @@ NTSTATUS KphConnect(
     __in_opt PWSTR DeviceName
     )
 {
+    NTSTATUS status;
+    HANDLE kphHandle;
     UNICODE_STRING objectName;
     OBJECT_ATTRIBUTES objectAttributes;
     IO_STATUS_BLOCK isb;
+    OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
 
     if (DeviceName)
         RtlInitUnicodeString(&objectName, DeviceName);
@@ -63,14 +66,33 @@ NTSTATUS KphConnect(
         NULL
         );
 
-    return NtOpenFile(
-        KphHandle,
+    status = NtOpenFile(
+        &kphHandle,
         FILE_GENERIC_READ | FILE_GENERIC_WRITE,
         &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
+
+    if (NT_SUCCESS(status))
+    {
+        // Protect the handle from being closed.
+
+        handleFlagInfo.Inherit = FALSE;
+        handleFlagInfo.ProtectFromClose = TRUE;
+
+        NtSetInformationObject(
+            kphHandle,
+            ObjectHandleFlagInformation,
+            &handleFlagInfo,
+            sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
+            );
+
+        *KphHandle = kphHandle;
+    }
+
+    return status;
 }
 
 NTSTATUS KphConnect2(
@@ -178,6 +200,20 @@ NTSTATUS KphDisconnect(
     __in HANDLE KphHandle
     )
 {
+    OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
+
+    // Unprotect the handle.
+
+    handleFlagInfo.Inherit = FALSE;
+    handleFlagInfo.ProtectFromClose = FALSE;
+
+    NtSetInformationObject(
+        KphHandle,
+        ObjectHandleFlagInformation,
+        &handleFlagInfo,
+        sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
+        );
+
     return NtClose(KphHandle);
 }
 
