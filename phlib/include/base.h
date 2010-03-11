@@ -15,6 +15,8 @@
 #pragma warning(disable: 4201)
 // nonstandard extension used : bit field types other than int
 #pragma warning(disable: 4214)
+// 'function': attributes not present on previous declaration
+#pragma warning(disable: 4985)
 // 'function': was declared deprecated
 #pragma warning(disable: 4996)
 
