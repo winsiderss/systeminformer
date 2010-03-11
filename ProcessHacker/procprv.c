@@ -21,7 +21,7 @@
  */
 
 #define PROCPRV_PRIVATE
-#include <ph.h>
+#include <phapp.h>
 
 VOID PhpQueueProcessQueryStage1(
     __in PPH_PROCESS_ITEM ProcessItem
@@ -313,6 +313,50 @@ __assumeLocked VOID PhpRemoveProcessItem(
 {
     PhRemoveHashtableEntry(PhProcessHashtable, &ProcessItem);
     PhDereferenceObject(ProcessItem);
+}
+
+PPH_STRING PhGetClientIdName(
+    __in PCLIENT_ID ClientId
+    )
+{
+    PPH_STRING name;
+    PPH_STRING processName = NULL;
+    PPH_PROCESS_ITEM processItem;
+
+    processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
+
+    if (processItem)
+    {
+        processName = processItem->ProcessName;
+        PhReferenceObject(processName);
+        PhDereferenceObject(processItem);
+    }
+
+    if (ClientId->UniqueThread)
+    {
+        if (processName)
+        {
+            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
+        }
+        else
+        {
+            name = PhFormatString(L"Non-existent process (%u): %u",
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
+        }
+    }
+    else
+    {
+        if (processName)
+            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
+        else
+            name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
+    }
+
+    if (processName)
+        PhDereferenceObject(processName);
+
+    return name;
 }
 
 VOID PhpProcessQueryStage1(

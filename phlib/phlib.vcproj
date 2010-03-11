@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="ProcessHacker"
-	ProjectGUID="{0271DD27-6707-4290-8DFE-285702B7115D}"
-	RootNamespace="ProcessHacker"
+	Name="phlib"
+	ProjectGUID="{477D0215-F252-41A1-874B-F27E3EA1ED17}"
+	RootNamespace="phlib"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="196613"
+	TargetFrameworkVersion="131072"
 	>
 	<Platforms>
 		<Platform
@@ -21,9 +21,9 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)\bin\$(ConfigurationName)32"
-			IntermediateDirectory="$(SolutionDir)\obj\$(ConfigurationName)32"
-			ConfigurationType="1"
+			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)32"
+			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)32"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,13 +40,12 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TargetEnvironment="3"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="include"
 				PreprocessorDefinitions="DEBUG"
 				StringPooling="true"
 				MinimalRebuild="false"
@@ -54,7 +53,7 @@
 				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="3"
+				DebugInformationFormat="4"
 				CallingConvention="2"
 				CompileAs="1"
 			/>
@@ -68,21 +67,11 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib comctl32.lib wtsapi32.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)32"
-				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="true"
-				SubSystem="2"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
+				AdditionalDependencies="version.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -92,9 +81,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -102,9 +88,9 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(SolutionDir)\bin\$(ConfigurationName)64"
-			IntermediateDirectory="$(SolutionDir)\obj\$(ConfigurationName)64"
-			ConfigurationType="1"
+			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)64"
+			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)64"
+			ConfigurationType="4"
 			CharacterSet="1"
 			>
 			<Tool
@@ -127,7 +113,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="include"
 				PreprocessorDefinitions="DEBUG"
 				StringPooling="true"
 				MinimalRebuild="false"
@@ -149,21 +135,11 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib comctl32.lib wtsapi32.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)64"
-				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="true"
-				SubSystem="2"
-				TargetMachine="17"
+				Name="VCLibrarianTool"
+				AdditionalDependencies="version.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -173,9 +149,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -183,9 +156,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)\bin\$(ConfigurationName)32"
-			IntermediateDirectory="$(SolutionDir)\obj\$(ConfigurationName)32"
-			ConfigurationType="1"
+			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)32"
+			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)32"
+			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -203,18 +176,16 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TargetEnvironment="3"
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -232,23 +203,11 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib comctl32.lib wtsapi32.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)32"
-				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="true"
-				SubSystem="2"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				TargetMachine="1"
+				Name="VCLibrarianTool"
+				AdditionalDependencies="version.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -258,9 +217,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -268,9 +224,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(SolutionDir)\bin\$(ConfigurationName)64"
-			IntermediateDirectory="$(SolutionDir)\obj\$(ConfigurationName)64"
-			ConfigurationType="1"
+			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)64"
+			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)64"
+			ConfigurationType="4"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -295,11 +251,10 @@
 				AdditionalOptions="/MP"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="include"
 				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
-				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -317,23 +272,11 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib comctl32.lib wtsapi32.lib"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)64"
-				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
-				IgnoreAllDefaultLibraries="false"
-				GenerateDebugInformation="true"
-				SubSystem="2"
-				OptimizeReferences="2"
-				EnableCOMDATFolding="2"
-				TargetMachine="17"
+				Name="VCLibrarianTool"
+				AdditionalDependencies="version.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -343,9 +286,6 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -361,127 +301,71 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\about.c"
+				RelativePath=".\basesup.c"
 				>
 			</File>
 			<File
-				RelativePath=".\actions.c"
+				RelativePath=".\basesupa.c"
 				>
 			</File>
 			<File
-				RelativePath=".\anawait.c"
+				RelativePath=".\extlv.c"
 				>
 			</File>
 			<File
-				RelativePath=".\cmdmode.c"
+				RelativePath=".\fastlock.c"
 				>
 			</File>
 			<File
-				RelativePath=".\dbgcon.c"
+				RelativePath=".\global.c"
 				>
 			</File>
 			<File
-				RelativePath=".\findobj.c"
+				RelativePath=".\guisup.c"
 				>
 			</File>
 			<File
-				RelativePath=".\heapinfo.c"
+				RelativePath=".\hndlinfo.c"
 				>
 			</File>
 			<File
-				RelativePath=".\hidnproc.c"
+				RelativePath=".\kph.c"
 				>
 			</File>
 			<File
-				RelativePath=".\hndlprp.c"
+				RelativePath=".\lsa.c"
 				>
 			</File>
 			<File
-				RelativePath=".\hndlprv.c"
+				RelativePath=".\mapimg.c"
 				>
 			</File>
 			<File
-				RelativePath=".\infodlg.c"
+				RelativePath=".\native.c"
 				>
 			</File>
 			<File
-				RelativePath=".\main.c"
+				RelativePath=".\ntimport.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mainwnd.c"
+				RelativePath=".\provider.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mdump.c"
+				RelativePath=".\queuedlock.c"
 				>
 			</File>
 			<File
-				RelativePath=".\modprv.c"
+				RelativePath=".\ref.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml-attr.c"
+				RelativePath=".\secdata.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml-entity.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-file.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-index.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-node.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-private.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-search.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-set.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-string.c"
-				>
-			</File>
-			<File
-				RelativePath=".\pagfiles.c"
-				>
-			</File>
-			<File
-				RelativePath=".\procprp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\procprv.c"
-				>
-			</File>
-			<File
-				RelativePath=".\runas.c"
-				>
-			</File>
-			<File
-				RelativePath=".\settings.c"
-				>
-			</File>
-			<File
-				RelativePath=".\srvprp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\srvprv.c"
+				RelativePath=".\secedit.c"
 				>
 			</File>
 			<File
@@ -489,19 +373,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\termator.c"
+				RelativePath=".\svcsup.c"
 				>
 			</File>
 			<File
-				RelativePath=".\thrdprv.c"
+				RelativePath=".\symprv.c"
 				>
 			</File>
 			<File
-				RelativePath=".\thrdstk.c"
+				RelativePath=".\treelist.c"
 				>
 			</File>
 			<File
-				RelativePath=".\tokprp.c"
+				RelativePath=".\verify.c"
+				>
+			</File>
+			<File
+				RelativePath=".\workqueue.c"
 				>
 			</File>
 		</Filter>
@@ -511,43 +399,131 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\mxml\config.h"
+				RelativePath=".\include\base.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\hidnproc.h"
+				RelativePath=".\include\dltmgr.h"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml-private.h"
+				RelativePath=".\include\fastlock.h"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml.h"
+				RelativePath=".\include\kph.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\phapp.h"
+				RelativePath=".\include\ntbasic.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\procprpp.h"
+				RelativePath=".\include\ntdbg.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\providers.h"
+				RelativePath=".\include\ntexapi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\resource.h"
+				RelativePath=".\include\ntimport.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\settings.h"
+				RelativePath=".\include\ntioapi.h"
 				>
 			</File>
 			<File
-				RelativePath=".\include\settingsp.h"
+				RelativePath=".\include\ntktmapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntldr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntlpcapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntlsa.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntmisc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntmmapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntobapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntpebteb.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntpsapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntrtl.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntseapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntwin.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phbase.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phgui.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\queuedlock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ref.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\refp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\seceditp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\symprv.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\treelist.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\treelistp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\verifyp.h"
 				>
 			</File>
 		</Filter>
@@ -556,35 +532,7 @@
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<File
-				RelativePath=".\resources\bitmap1.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\cross.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\ProcessHacker.ico"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\ProcessHacker.png"
-				>
-			</File>
-			<File
-				RelativePath=".\ProcessHacker.rc"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\tick.bmp"
-				>
-			</File>
 		</Filter>
-		<File
-			RelativePath=".\TODO.txt"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

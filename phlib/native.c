@@ -22,7 +22,7 @@
 
 #include <ph.h>
 #include <kph.h>
-#include <symprvp.h>
+#include <symprv.h>
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in HANDLE ProcessHandle,

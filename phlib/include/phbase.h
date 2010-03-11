@@ -7,9 +7,11 @@
 #include <fastlock.h>
 #include <queuedlock.h>
 
-#define PH_APP_NAME (L"Process Hacker")
+#ifndef PH_APP_NAME
+#define PH_APP_NAME (L"Application")
+#endif
 
-#ifndef MAIN_PRIVATE
+#ifndef PHLIB_GLOBAL_PRIVATE
 
 struct _PH_STRING;
 typedef struct _PH_STRING *PPH_STRING;
@@ -20,33 +22,25 @@ typedef struct _PH_PROVIDER_THREAD PH_PROVIDER_THREAD;
 struct _PH_STARTUP_PARAMETERS;
 typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
 
-extern PPH_STRING PhApplicationDirectory;
-extern PPH_STRING PhApplicationFileName;
-extern HFONT PhApplicationFont;
-extern HFONT PhBoldListViewFont;
-extern HFONT PhBoldMessageFont;
+#define __userSet
+
+extern __userSet HFONT PhApplicationFont;
+extern __userSet HFONT PhBoldListViewFont;
+extern __userSet HFONT PhBoldMessageFont;
 extern BOOLEAN PhElevated;
 extern HANDLE PhHeapHandle;
-extern HFONT PhIconTitleFont;
+extern __userSet HFONT PhIconTitleFont;
 extern HINSTANCE PhInstanceHandle;
-extern HANDLE PhKphHandle;
-extern ULONG PhKphFeatures;
-extern PPH_STRING PhSettingsFileName;
-extern PH_STARTUP_PARAMETERS PhStartupParameters;
+extern __userSet HANDLE PhKphHandle;
+extern __userSet ULONG PhKphFeatures;
 extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-extern PWSTR PhWindowClassName;
 extern ULONG WindowsVersion;
-
-extern PH_PROVIDER_THREAD PhPrimaryProviderThread;
-extern PH_PROVIDER_THREAD PhSecondaryProviderThread;
 
 extern ACCESS_MASK ProcessQueryAccess;
 extern ACCESS_MASK ProcessAllAccess;
 extern ACCESS_MASK ThreadQueryAccess;
 extern ACCESS_MASK ThreadSetAccess;
 extern ACCESS_MASK ThreadAllAccess;
-
-extern COLORREF PhSysWindowColor;
 
 #endif
 
@@ -62,6 +56,10 @@ extern COLORREF PhSysWindowColor;
 #define WINDOWS_HAS_PSSUSPENDRESUMEPROCESS (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_THREAD_CYCLES (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
+
+// global
+
+NTSTATUS PhInitializePhLib();
 
 // basesup
 

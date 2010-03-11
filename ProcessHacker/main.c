@@ -21,7 +21,7 @@
  */
 
 #define MAIN_PRIVATE
-#include <phgui.h>
+#include <phapp.h>
 #include <treelist.h>
 #include <kph.h>
 #include <settings.h>
@@ -30,29 +30,12 @@ VOID PhpProcessStartupParameters();
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
-HFONT PhApplicationFont;
-HFONT PhBoldListViewFont;
-HFONT PhBoldMessageFont;
-BOOLEAN PhElevated;
-HANDLE PhHeapHandle;
-HFONT PhIconTitleFont;
-HINSTANCE PhInstanceHandle;
-HANDLE PhKphHandle = NULL;
-ULONG PhKphFeatures;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters;
-SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 PWSTR PhWindowClassName = L"ProcessHacker";
-ULONG WindowsVersion;
 
 PH_PROVIDER_THREAD PhPrimaryProviderThread;
 PH_PROVIDER_THREAD PhSecondaryProviderThread;
-
-ACCESS_MASK ProcessQueryAccess;
-ACCESS_MASK ProcessAllAccess;
-ACCESS_MASK ThreadQueryAccess;
-ACCESS_MASK ThreadSetAccess;
-ACCESS_MASK ThreadAllAccess;
 
 COLORREF PhSysWindowColor;
 
@@ -70,33 +53,15 @@ INT WINAPI WinMain(
     PHP_BASE_THREAD_DBG dbg;
 #endif
 
-    PhInstanceHandle = hInstance;
-
-    PhHeapHandle = HeapCreate(0, 0, 0);
-
-    if (!PhHeapHandle)
-        return 1;
-
-    PhInitializeWindowsVersion();
-    PhRegisterWindowClass();
-    PhInitializeCommonControls();
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
-    if (!PhInitializeImports())
+    if (!NT_SUCCESS(PhInitializePhLib()))
+        return 1;
+    if (!PhInitializeAppSystem())
         return 1;
 
-    PhInitializeSystemInformation();
-
-    PhFastLockInitialization();
-    if (!PhQueuedLockInitialization())
-        return 1;
-    if (!NT_SUCCESS(PhInitializeRef()))
-        return 1;
-    if (!PhInitializeBase())
-        return 1;
-
-    if (!PhInitializeSystem())
-        return 1;
+    PhRegisterWindowClass();
+    PhInitializeCommonControls();
 
     PhApplicationFileName = PhGetApplicationFileName();
     PhApplicationDirectory = PhGetApplicationDirectory();
@@ -106,23 +71,6 @@ INT WINAPI WinMain(
         PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
     if (!PhApplicationDirectory)
         PhApplicationDirectory = PhCreateString(L"");
-
-    {
-        HANDLE tokenHandle;
-
-        PhElevated = TRUE;
-
-        if (WINDOWS_HAS_UAC &&
-            NT_SUCCESS(PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_QUERY,
-            NtCurrentProcess()
-            )))
-        {
-            PhGetTokenIsElevated(tokenHandle, &PhElevated);
-            NtClose(tokenHandle);
-        }
-    }
 
     PhpProcessStartupParameters();
 
@@ -412,11 +360,8 @@ VOID PhInitializeKph()
     }
 }
 
-BOOLEAN PhInitializeSystem()
+BOOLEAN PhInitializeAppSystem()
 {
-    PhVerifyInitialization();
-    if (!PhSymbolProviderInitialization())
-        return FALSE;
     if (!PhInitializeProcessProvider())
         return FALSE;
     if (!PhInitializeServiceProvider())
@@ -425,41 +370,14 @@ BOOLEAN PhInitializeSystem()
         return FALSE;
     if (!PhInitializeThreadProvider())
         return FALSE;
-    PhHandleInfoInitialization();
     if (!PhInitializeHandleProvider())
         return FALSE;
     if (!PhProcessPropInitialization())
         return FALSE;
 
-    PhInitializeDosDeviceNames();
-    PhRefreshDosDeviceNames();
+    PhSetHandleClientIdFunction(PhGetClientIdName);
 
     return TRUE;
-}
-
-VOID PhInitializeSystemInformation()
-{
-    ULONG returnLength;
-
-    if (!NT_SUCCESS(NtQuerySystemInformation(
-        SystemBasicInformation,
-        &PhSystemBasicInformation,
-        sizeof(SYSTEM_BASIC_INFORMATION),
-        &returnLength
-        )))
-    {
-        SYSTEM_INFO systemInfo;
-
-        GetSystemInfo(&systemInfo);
-
-        PhSystemBasicInformation.Reserved = systemInfo.dwOemId;
-        PhSystemBasicInformation.PageSize = systemInfo.dwPageSize;
-        PhSystemBasicInformation.MinimumUserModeAddress = (ULONG_PTR)systemInfo.lpMinimumApplicationAddress;
-        PhSystemBasicInformation.MaximumUserModeAddress = (ULONG_PTR)systemInfo.lpMaximumApplicationAddress;
-        PhSystemBasicInformation.ActiveProcessorsAffinityMask = systemInfo.dwActiveProcessorMask;
-        PhSystemBasicInformation.NumberOfProcessors = (CCHAR)systemInfo.dwNumberOfProcessors;
-        PhSystemBasicInformation.AllocationGranularity = systemInfo.dwAllocationGranularity;
-    }
 }
 
 ATOM PhRegisterWindowClass()
@@ -481,64 +399,6 @@ ATOM PhRegisterWindowClass()
     wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
 
     return RegisterClassEx(&wcex);
-}
-
-VOID PhInitializeWindowsVersion()
-{
-    OSVERSIONINFOEX version;
-    ULONG majorVersion;
-    ULONG minorVersion;
-
-    version.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    GetVersionEx((POSVERSIONINFO)&version);
-    majorVersion = version.dwMajorVersion;
-    minorVersion = version.dwMinorVersion;
-
-    if (majorVersion == 5 && minorVersion < 1 || majorVersion < 5)
-    {
-        WindowsVersion = WINDOWS_ANCIENT;
-    }
-    /* Windows XP */
-    else if (majorVersion == 5 && minorVersion == 1)
-    {
-        WindowsVersion = WINDOWS_XP;
-    }
-    /* Windows Server 2003 */
-    else if (majorVersion == 5 && minorVersion == 2)
-    {
-        WindowsVersion = WINDOWS_SERVER_2003;
-    }
-    /* Windows Vista, Windows Server 2008 */
-    else if (majorVersion == 6 && minorVersion == 0)
-    {
-        WindowsVersion = WINDOWS_VISTA;
-    }
-    /* Windows 7, Windows Server 2008 R2 */
-    else if (majorVersion == 6 && minorVersion == 1)
-    {
-        WindowsVersion = WINDOWS_7;
-    }
-    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
-    {
-        WindowsVersion = WINDOWS_NEW;
-    }
-
-    if (WINDOWS_HAS_LIMITED_ACCESS)
-    {
-        ProcessQueryAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
-        ThreadQueryAccess = THREAD_QUERY_LIMITED_INFORMATION;
-        ThreadSetAccess = THREAD_SET_LIMITED_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-    }
-    else
-    {
-        ProcessQueryAccess = PROCESS_QUERY_INFORMATION;
-        ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
-        ThreadQueryAccess = THREAD_QUERY_INFORMATION;
-        ThreadSetAccess = THREAD_SET_INFORMATION;
-        ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
-    }
 }
 
 #define PH_ARG_SETTINGS 1

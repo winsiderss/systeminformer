@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ph.h>
+#include <phapp.h>
 #include <refp.h>
 
 VOID PhpPrintHashtableStatistics(

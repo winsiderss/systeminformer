@@ -21,7 +21,7 @@
  */
 
 #define MAINWND_PRIVATE
-#include <phgui.h>
+#include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
 
