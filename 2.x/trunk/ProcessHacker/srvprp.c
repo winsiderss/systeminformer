@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <phapp.h>
 #include <windowsx.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT

@@ -21,7 +21,7 @@
  */
 
 #define HNDLPRV_PRIVATE
-#include <ph.h>
+#include <phapp.h>
 
 VOID NTAPI PhpHandleProviderDeleteProcedure(
     __in PVOID Object,

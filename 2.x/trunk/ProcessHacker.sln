@@ -2,6 +2,11 @@
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHacker\ProcessHacker.vcproj", "{0271DD27-6707-4290-8DFE-285702B7115D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib", "phlib\phlib.vcproj", "{477D0215-F252-41A1-874B-F27E3EA1ED17}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +24,14 @@ Global
 		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|Win32.Build.0 = Release|Win32
 		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|x64.ActiveCfg = Release|x64
 		{0271DD27-6707-4290-8DFE-285702B7115D}.Release|x64.Build.0 = Release|x64
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Debug|Win32.ActiveCfg = Debug|Win32
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Debug|Win32.Build.0 = Debug|Win32
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Debug|x64.ActiveCfg = Debug|x64
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Debug|x64.Build.0 = Debug|x64
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|Win32.ActiveCfg = Release|Win32
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|Win32.Build.0 = Release|Win32
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|x64.ActiveCfg = Release|x64
+		{477D0215-F252-41A1-874B-F27E3EA1ED17}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <phapp.h>
 
 static INT_PTR CALLBACK PhpInformationDlgProc(      
     __in HWND hwndDlg,
