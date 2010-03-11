@@ -48,6 +48,25 @@ INT_PTR CALLBACK PhpTokenPageProc(
     __in LPARAM lParam
     );
 
+VOID PhpShowTokenAdvancedProperties(
+    __in HWND ParentWindowHandle,
+    __in PTOKEN_PAGE_CONTEXT Context
+    );
+
+INT_PTR CALLBACK PhpTokenGeneralPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpTokenAdvancedPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 VOID PhShowTokenProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
@@ -597,8 +616,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 break;
             case IDC_ADVANCED:
                 {
-                    // TODO
-                    PhShowInformation(hwndDlg, L"Advanced");
+                    PhpShowTokenAdvancedProperties(hwndDlg, tokenPageContext);
                 }
                 break;
             }
@@ -643,5 +661,88 @@ INT_PTR CALLBACK PhpTokenPageProc(
     REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->GroupsListViewHandle, uMsg, wParam, lParam);
     REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->PrivilegesListViewHandle, uMsg, wParam, lParam);
 
+    return FALSE;
+}
+
+VOID PhpShowTokenAdvancedProperties(
+    __in HWND ParentWindowHandle,
+    __in PTOKEN_PAGE_CONTEXT Context
+    )
+{
+    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
+    HPROPSHEETPAGE pages[2];
+    PROPSHEETPAGE generalPage;
+    PROPSHEETPAGE advancedPage;
+    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
+
+    propSheetHeader.dwFlags =
+        PSH_NOAPPLYNOW |
+        PSH_NOCONTEXTHELP |
+        PSH_PROPTITLE;
+    propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.pszCaption = L"Token";
+    propSheetHeader.nPages = 3;
+    propSheetHeader.nStartPage = 0;
+    propSheetHeader.phpage = pages;
+
+    // General
+
+    memset(&generalPage, 0, sizeof(PROPSHEETPAGE));
+    generalPage.dwSize = sizeof(PROPSHEETPAGE);
+    generalPage.pszTemplate = MAKEINTRESOURCE(IDD_TOKGENERAL);
+    generalPage.pfnDlgProc = PhpTokenGeneralPageProc;
+    generalPage.lParam = (LPARAM)Context;
+    pages[0] = CreatePropertySheetPage(&generalPage);
+
+    // Advanced
+
+    memset(&advancedPage, 0, sizeof(PROPSHEETPAGE));
+    advancedPage.dwSize = sizeof(PROPSHEETPAGE);
+    advancedPage.pszTemplate = MAKEINTRESOURCE(IDD_TOKADVANCED);
+    advancedPage.pfnDlgProc = PhpTokenAdvancedPageProc;
+    advancedPage.lParam = (LPARAM)Context;
+    pages[1] = CreatePropertySheetPage(&advancedPage);
+
+    // Security
+
+    stdObjectSecurity.OpenObject = Context->OpenObject;
+    stdObjectSecurity.ObjectType = L"Token";
+    stdObjectSecurity.Context = Context->Context;
+
+    if (PhGetAccessEntries(L"Token", &accessEntries, &numberOfAccessEntries))
+    {
+        pages[2] = PhCreateSecurityPage(
+            L"Token",
+            PhStdGetObjectSecurity,
+            PhStdSetObjectSecurity,
+            &stdObjectSecurity,
+            accessEntries,
+            numberOfAccessEntries
+            );
+        PhFree(accessEntries);
+    }
+
+    PropertySheet(&propSheetHeader);
+}
+
+INT_PTR CALLBACK PhpTokenGeneralPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpTokenAdvancedPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
     return FALSE;
 }

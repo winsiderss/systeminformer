@@ -35,6 +35,9 @@
 #define IDD_RUNAS                       136
 #define IDD_PROGRESS                    137
 #define IDD_PAGEFILES                   138
+#define IDD_TOKGENERAL                  139
+#define IDD_DIALOG2                     140
+#define IDD_TOKADVANCED                 140
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -67,11 +70,17 @@
 #define IDC_TYPE                        1032
 #define IDC_STARTTYPE                   1033
 #define IDC_ADDRESS                     1033
+#define IDC_IMPERSONATIONLEVEL          1033
 #define IDC_ERRORCONTROL                1034
 #define IDC_GRANTED_ACCESS              1034
+#define IDC_TOKENLUID                   1034
 #define IDC_GROUP                       1035
+#define IDC_AUTHENTICATIONLUID          1035
 #define IDC_BINARYPATH                  1036
+#define IDC_MEMORYUSED                  1036
 #define IDC_USERACCOUNT                 1037
+#define IDC_TYPE6                       1037
+#define IDC_MEMORYAVAILABLE             1037
 #define IDC_PASSWORD                    1040
 #define IDC_PASSWORDCHECK               1041
 #define IDC_SERVICEDLL                  1042
@@ -89,13 +98,18 @@
 #define IDC_USER                        1052
 #define IDC_USERSID                     1053
 #define IDC_ADVANCED                    1054
+#define IDC_OWNER                       1054
 #define IDC_GROUPS                      1055
+#define IDC_PRIMARYGROUP                1055
 #define IDC_GROUPS2                     1056
 #define IDC_PRIVILEGES                  1056
+#define IDC_VIRTUALIZATION              1056
 #define IDC_SESSIONID                   1057
 #define IDC_ELEVATED                    1058
 #define IDC_VIRTUALIZED                 1059
+#define IDC_SOURCENAME                  1059
 #define IDC_PROPERTIES                  1060
+#define IDC_SOURCELUID                  1060
 #define IDC_LIST                        1061
 #define IDC_SIZESINBYTES                1062
 #define IDC_PROCESSES                   1063
@@ -110,6 +124,7 @@
 #define IDC_PROGRESS                    1076
 #define IDC_PROGRESSTEXT                1077
 #define IDC_BUTTON1                     1079
+#define IDC_LINKEDTOKEN                 1079
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -227,9 +242,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        139
+#define _APS_NEXT_RESOURCE_VALUE        141
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1080
+#define _APS_NEXT_CONTROL_VALUE         1081
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
