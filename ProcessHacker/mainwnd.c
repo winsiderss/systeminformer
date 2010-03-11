@@ -249,7 +249,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhMainWndHandle = CreateWindow(
         PhWindowClassName,
-        PH_APP_NAME,
+        PhApplicationName,
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         windowRectangle.Left,
         windowRectangle.Top,

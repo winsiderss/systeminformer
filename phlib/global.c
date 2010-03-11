@@ -5,6 +5,7 @@ VOID PhInitializeSystemInformation();
 VOID PhInitializeWindowsVersion();
 
 HFONT PhApplicationFont;
+PWSTR PhApplicationName = L"Application";
 HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
 BOOLEAN PhElevated;

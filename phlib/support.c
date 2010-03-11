@@ -267,7 +267,7 @@ INT PhShowMessage_V(
     if (result == -1)
         return -1;
 
-    return MessageBox(hWnd, message, PH_APP_NAME, Type);
+    return MessageBox(hWnd, message, PhApplicationName, Type);
 }
 
 PPH_STRING PhpGetStatusMessage(

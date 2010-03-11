@@ -7,10 +7,6 @@
 #include <fastlock.h>
 #include <queuedlock.h>
 
-#ifndef PH_APP_NAME
-#define PH_APP_NAME (L"Application")
-#endif
-
 #ifndef PHLIB_GLOBAL_PRIVATE
 
 struct _PH_STRING;
@@ -25,6 +21,7 @@ typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
 #define __userSet
 
 extern __userSet HFONT PhApplicationFont;
+extern __userSet PWSTR PhApplicationName;
 extern __userSet HFONT PhBoldListViewFont;
 extern __userSet HFONT PhBoldMessageFont;
 extern BOOLEAN PhElevated;
