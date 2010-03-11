@@ -57,6 +57,7 @@ PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
 
 #define MAX_OBJECT_TYPE_NUMBER 256
 PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER + 1];
+PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
 
 static PPH_STRING HkcuPrefix;
 static PPH_STRING HkcucrPrefix;
@@ -102,6 +103,16 @@ VOID PhHandleInfoInitialization()
             HkcucrPrefix = PhCreateString(L"...");
         }
     }
+}
+
+PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
+    __in PPH_GET_CLIENT_ID_NAME GetClientIdName
+    )
+{
+    return _InterlockedExchangePointer(
+        (PPVOID)&PhHandleGetClientIdName,
+        GetClientIdName
+        );
 }
 
 NTSTATUS PhpGetObjectBasicInformation(
@@ -385,29 +396,71 @@ PPH_STRING PhFormatNativeKeyName(
     return newName;
 }
 
-PPH_STRING PhGetClientIdName(
+PPH_STRING PhStdGetClientIdName(
     __in PCLIENT_ID ClientId
     )
 {
+    static PH_QUEUED_LOCK cachedProcessesLock = PH_QUEUED_LOCK_INIT;
+    static PVOID processes = NULL;
+    static ULONG64 lastProcessesTickCount = 0;
+
     PPH_STRING name;
-    PPH_STRING processName = NULL;
-    PPH_PROCESS_ITEM processItem;
+    ULONG64 tickCount;
+    PSYSTEM_PROCESS_INFORMATION processInfo;
 
-    processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
+    // Get a new process list only if 2 seconds have passed 
+    // since the last update.
 
-    if (processItem)
+    tickCount = NtGetTickCount64();
+
+    if (tickCount - lastProcessesTickCount >= 2000)
     {
-        processName = processItem->ProcessName;
-        PhReferenceObject(processName);
-        PhDereferenceObject(processItem);
+        PhAcquireQueuedLockExclusiveFast(&cachedProcessesLock);
+
+        // Re-check the tick count.
+        if (tickCount - lastProcessesTickCount >= 2000)
+        {
+            if (processes)
+            {
+                PhFree(processes);
+                processes = NULL;
+            }
+
+            if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+            {
+                PhReleaseQueuedLockExclusive(&cachedProcessesLock);
+                return PhCreateString(L"(Error querying processes)");
+            }
+
+            lastProcessesTickCount = tickCount;
+        }
+
+        PhReleaseQueuedLockExclusiveFast(&cachedProcessesLock);
     }
+
+    // Get a lock on the process list and get a name for the client ID.
+
+    PhAcquireQueuedLockSharedFast(&cachedProcessesLock);
+
+    if (!processes)
+    {
+        PhReleaseQueuedLockShared(&cachedProcessesLock);
+        return NULL;
+    }
+
+    processInfo = PhFindProcessInformation(processes, ClientId->UniqueProcess);
 
     if (ClientId->UniqueThread)
     {
-        if (processName)
+        if (processInfo)
         {
-            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
-                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
+            name = PhFormatString(
+                L"%.*s (%u): %u",
+                processInfo->ImageName.Length / 2,
+                processInfo->ImageName.Buffer,
+                (ULONG)ClientId->UniqueProcess,
+                (ULONG)ClientId->UniqueThread
+                );
         }
         else
         {
@@ -417,14 +470,22 @@ PPH_STRING PhGetClientIdName(
     }
     else
     {
-        if (processName)
-            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
+        if (processInfo)
+        {
+            name = PhFormatString(
+                L"%.*s (%u)",
+                processInfo->ImageName.Length / 2,
+                processInfo->ImageName.Buffer,
+                (ULONG)ClientId->UniqueProcess
+                );
+        }
         else
+        {
             name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
+        }
     }
 
-    if (processName)
-        PhDereferenceObject(processName);
+    PhReleaseQueuedLockSharedFast(&cachedProcessesLock);
 
     return name;
 }
@@ -500,7 +561,10 @@ NTSTATUS PhpGetBestObjectName(
             clientId.UniqueProcess = basicInfo.UniqueProcessId;
         }
 
-        bestObjectName = PhGetClientIdName(&clientId);
+        if (PhHandleGetClientIdName)
+        {
+            bestObjectName = PhHandleGetClientIdName(&clientId);
+        }
     }
     else if (PhStringEquals2(TypeName, L"Thread", TRUE))
     {
@@ -546,7 +610,10 @@ NTSTATUS PhpGetBestObjectName(
             clientId = basicInfo.ClientId;
         }
 
-        bestObjectName = PhGetClientIdName(&clientId);
+        if (PhHandleGetClientIdName)
+        {
+            bestObjectName = PhHandleGetClientIdName(&clientId);
+        }
     }
     else if (PhStringEquals2(TypeName, L"TmEn", TRUE))
     {

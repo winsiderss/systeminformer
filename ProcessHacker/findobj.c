@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <phapp.h>
 #include <windowsx.h>
 
 #define WM_PH_SEARCH_UPDATE (WM_APP + 801)

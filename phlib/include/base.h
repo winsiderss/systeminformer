@@ -32,6 +32,9 @@
 #define PH_TIMEOUT_MS ((LONGLONG)1 * 10 * 1000)
 #define PH_TIMEOUT_SEC (PH_TIMEOUT_MS * 1000)
 
+#define DPCS_PROCESS_ID ((HANDLE)-2)
+#define INTERRUPTS_PROCESS_ID ((HANDLE)-3)
+
 #define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)

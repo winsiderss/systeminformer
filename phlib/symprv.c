@@ -22,7 +22,7 @@
 
 #define SYMPRV_PRIVATE
 #include <ph.h>
-#include <symprvp.h>
+#include <symprv.h>
 
 typedef struct _PH_SYMBOL_MODULE
 {

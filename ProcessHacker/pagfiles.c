@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
+#include <phapp.h>
 
 INT_PTR CALLBACK PhpPagefilesDlgProc(
     __in HWND hwndDlg,

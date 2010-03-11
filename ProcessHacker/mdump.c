@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phgui.h>
-#include <symprvp.h>
+#include <phapp.h>
+#include <symprv.h>
 
 #define WM_PH_MINIDUMP_STATUS_UPDATE (WM_APP + 301)
 

@@ -21,7 +21,7 @@
  */
 
 #define MODPRV_PRIVATE
-#include <ph.h>
+#include <phapp.h>
 
 VOID NTAPI PhpModuleProviderDeleteProcedure(
     __in PVOID Object,
