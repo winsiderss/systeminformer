@@ -408,7 +408,7 @@ INT CALLBACK PhpStandardPropPageProc(
     return 1;
 }
 
-BOOLEAN PhpPropPageDlgProcHeader(
+FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in LPARAM lParam,

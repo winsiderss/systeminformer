@@ -342,6 +342,16 @@ NTSTATUS PhGetTokenUser(
     __out PTOKEN_USER *User
     );
 
+NTSTATUS PhGetTokenOwner(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_OWNER *Owner
+    );
+
+NTSTATUS PhGetTokenPrimaryGroup(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_PRIMARY_GROUP *PrimaryGroup
+    );
+
 NTSTATUS PhGetTokenSessionId(
     __in HANDLE TokenHandle,
     __out PULONG SessionId
@@ -362,6 +372,11 @@ NTSTATUS PhGetTokenStatistics(
     __out PTOKEN_STATISTICS Statistics
     );
 
+NTSTATUS PhGetTokenSource(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_SOURCE Source
+    );
+
 NTSTATUS PhGetTokenGroups(
     __in HANDLE TokenHandle,
     __out PTOKEN_GROUPS *Groups
@@ -370,6 +385,11 @@ NTSTATUS PhGetTokenGroups(
 NTSTATUS PhGetTokenPrivileges(
     __in HANDLE TokenHandle,
     __out PTOKEN_PRIVILEGES *Privileges
+    );
+
+NTSTATUS PhGetTokenLinkedToken(
+    __in HANDLE TokenHandle,
+    __out PHANDLE LinkedTokenHandle
     );
 
 NTSTATUS PhGetTokenIsVirtualizationAllowed(
