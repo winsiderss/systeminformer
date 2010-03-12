@@ -285,31 +285,13 @@ BOOLEAN PhGetMappedImageSectionName(
     __out_opt PULONG ReturnCount
     )
 {
-    ULONG i = 0;
-    BOOLEAN copied;
-
-    // Determine the length of the section name.
-
-    while (i < IMAGE_SIZEOF_SHORT_NAME && Section->Name[i])
-        i++;
-
-    // Copy the name if there is enough room.
-
-    if (Buffer && Count >= i + 1) // need one byte for null terminator
-    {
-        memcpy(Buffer, Section->Name, i);
-        Buffer[i] = 0;
-        copied = TRUE;
-    }
-    else
-    {
-        copied = FALSE;
-    }
-
-    if (ReturnCount)
-        *ReturnCount = i + 1;
-
-    return copied;
+    return PhCopyAnsiStringZ(
+        Section->Name,
+        IMAGE_SIZEOF_SHORT_NAME,
+        Buffer,
+        Count,
+        ReturnCount
+        );
 }
 
 NTSTATUS PhGetMappedImageDataEntry(

@@ -2084,6 +2084,50 @@ NTSTATUS PhGetTokenUser(
 }
 
 /**
+ * Gets a token's owner.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param Owner A variable which receives a pointer to 
+ * a structure containing the token's owner. You must 
+ * free the structure using PhFree() when you no longer 
+ * need it.
+ */
+NTSTATUS PhGetTokenOwner(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_OWNER *Owner
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenOwner,
+        Owner
+        );
+}
+
+/**
+ * Gets a token's primary group.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param PrimaryGroup A variable which receives a pointer to 
+ * a structure containing the token's primary group. You must 
+ * free the structure using PhFree() when you no longer 
+ * need it.
+ */
+NTSTATUS PhGetTokenPrimaryGroup(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_PRIMARY_GROUP *PrimaryGroup
+    )
+{
+    return PhpQueryTokenVariableSize(
+        TokenHandle,
+        TokenPrimaryGroup,
+        PrimaryGroup
+        );
+}
+
+/**
  * Gets a token's session ID.
  *
  * \param TokenHandle A handle to a token. The handle 
@@ -2189,6 +2233,30 @@ NTSTATUS PhGetTokenStatistics(
 }
 
 /**
+ * Gets a token's source.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY_SOURCE access.
+ * \param Source A variable which receives the 
+ * token's source.
+ */
+NTSTATUS PhGetTokenSource(
+    __in HANDLE TokenHandle,
+    __out PTOKEN_SOURCE Source
+    )
+{
+    ULONG returnLength;
+
+    return NtQueryInformationToken(
+        TokenHandle,
+        TokenSource,
+        Source,
+        sizeof(TOKEN_SOURCE),
+        &returnLength
+        );
+}
+
+/**
  * Gets a token's groups.
  *
  * \param TokenHandle A handle to a token. The handle 
@@ -2230,6 +2298,40 @@ NTSTATUS PhGetTokenPrivileges(
         TokenPrivileges,
         Privileges
         );
+}
+
+/**
+ * Gets a handle to a token's linked token.
+ *
+ * \param TokenHandle A handle to a token. The handle 
+ * must have TOKEN_QUERY access.
+ * \param LinkedTokenHandle A variable which receives a 
+ * handle to the linked token. You must close the handle 
+ * using NtClose() when you no longer need it.
+ */
+NTSTATUS PhGetTokenLinkedToken(
+    __in HANDLE TokenHandle,
+    __out PHANDLE LinkedTokenHandle
+    )
+{
+    NTSTATUS status;
+    ULONG returnLength;
+    TOKEN_LINKED_TOKEN linkedToken;
+
+    status = NtQueryInformationToken(
+        TokenHandle,
+        TokenLinkedToken,
+        &linkedToken,
+        sizeof(TOKEN_LINKED_TOKEN),
+        &returnLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *LinkedTokenHandle = linkedToken.LinkedToken;
+
+    return status;
 }
 
 /**

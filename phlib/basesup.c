@@ -635,6 +635,246 @@ VOID PhWaitForRundownProtection(
 }
 
 /**
+ * Copies a string with optional null termination and 
+ * a maximum number of characters.
+ *
+ * \param InputBuffer A pointer to the input string.
+ * \param InputCount The maximum number of characters 
+ * to copy. Specify -1 for no limit.
+ * \param OutputBuffer A pointer to the output buffer.
+ * \param OutputCount The number of characters in the 
+ * output buffer, including the null terminator.
+ * \param ReturnCount A variable which receives the 
+ * number of characters required to contain the input 
+ * string, including the null terminator. If the 
+ * function returns TRUE, this variable contains the 
+ * number of characters written to the output buffer.
+ *
+ * \return TRUE if the input string was copied to 
+ * the output string, otherwise FALSE.
+ *
+ * \remarks The function stops copying when it 
+ * encounters the first null character in the input 
+ * string. It will also stop copying when it reaches 
+ * the character count specified in \a InputCount, if 
+ * \a InputCount is not -1.
+ */
+BOOLEAN PhCopyAnsiStringZ(
+    __in PSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    )
+{
+    ULONG i;
+    BOOLEAN copied;
+
+    // Determine the length of the input string.
+
+    if (InputCount != -1)
+    {
+        i = 0;
+
+        while (i < InputCount && InputBuffer[i])
+            i++;
+    }
+    else
+    {
+        i = (ULONG)strlen(InputBuffer);
+    }
+
+    // Copy the string if there is enough room.
+
+    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    {
+        memcpy(OutputBuffer, InputBuffer, i);
+        OutputBuffer[i] = 0;
+        copied = TRUE;
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = i + 1;
+
+    return copied;
+}
+
+/**
+ * Copies a string with optional null termination and 
+ * a maximum number of characters.
+ *
+ * \param InputBuffer A pointer to the input string.
+ * \param InputCount The maximum number of characters 
+ * to copy. Specify -1 for no limit.
+ * \param OutputBuffer A pointer to the output buffer.
+ * \param OutputCount The number of characters in the 
+ * output buffer, including the null terminator.
+ * \param ReturnCount A variable which receives the 
+ * number of characters required to contain the input 
+ * string, including the null terminator. If the 
+ * function returns TRUE, this variable contains the 
+ * number of characters written to the output buffer.
+ *
+ * \return TRUE if the input string was copied to 
+ * the output string, otherwise FALSE.
+ *
+ * \remarks The function stops copying when it 
+ * encounters the first null character in the input 
+ * string. It will also stop copying when it reaches 
+ * the character count specified in \a InputCount, if 
+ * \a InputCount is not -1.
+ */
+BOOLEAN PhCopyUnicodeStringZ(
+    __in PWSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    )
+{
+    ULONG i;
+    BOOLEAN copied;
+
+    // Determine the length of the input string.
+
+    if (InputCount != -1)
+    {
+        i = 0;
+
+        while (i < InputCount && InputBuffer[i])
+            i++;
+    }
+    else
+    {
+        i = (ULONG)wcslen(InputBuffer);
+    }
+
+    // Copy the string if there is enough room.
+
+    if (OutputBuffer && OutputCount >= i + 1) // need one character for null terminator
+    {
+        memcpy(OutputBuffer, InputBuffer, i * sizeof(WCHAR));
+        OutputBuffer[i] = 0;
+        copied = TRUE;
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = i + 1;
+
+    return copied;
+}
+
+/**
+ * Copies a string with optional null termination and 
+ * a maximum number of characters.
+ *
+ * \param InputBuffer A pointer to the input string.
+ * \param InputCount The maximum number of characters 
+ * to copy. Specify -1 for no limit.
+ * \param OutputBuffer A pointer to the output buffer.
+ * \param OutputCount The number of characters in the 
+ * output buffer, including the null terminator.
+ * \param ReturnCount A variable which receives the 
+ * number of characters required to contain the input 
+ * string, including the null terminator. If the 
+ * function returns TRUE, this variable contains the 
+ * number of characters written to the output buffer.
+ *
+ * \return TRUE if the input string was copied to 
+ * the output string, otherwise FALSE.
+ *
+ * \remarks The function stops copying when it 
+ * encounters the first null character in the input 
+ * string. It will also stop copying when it reaches 
+ * the character count specified in \a InputCount, if 
+ * \a InputCount is not -1.
+ */
+BOOLEAN PhCopyUnicodeStringZFromAnsi(
+    __in PSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    )
+{
+    NTSTATUS status;
+    ULONG i;
+    ULONG unicodeBytes;
+    BOOLEAN copied;
+
+    // Determine the length of the input string.
+
+    if (InputCount != -1)
+    {
+        i = 0;
+
+        while (i < InputCount && InputBuffer[i])
+            i++;
+    }
+    else
+    {
+        i = (ULONG)strlen(InputBuffer);
+    }
+
+    // Determine the length of the output string.
+
+    status = RtlMultiByteToUnicodeSize(
+        &unicodeBytes,
+        InputBuffer,
+        i
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        if (ReturnCount)
+            *ReturnCount = -1;
+
+        return FALSE;
+    }
+
+    // Convert the string to Unicode if there is enough room.
+
+    if (OutputBuffer && OutputCount >= unicodeBytes / sizeof(WCHAR) + 1)
+    {
+        status = RtlMultiByteToUnicodeN(
+            OutputBuffer,
+            unicodeBytes,
+            NULL,
+            InputBuffer,
+            i
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            // RtlMultiByteToUnicodeN doesn't null terminate the string.
+            OutputBuffer[unicodeBytes / sizeof(WCHAR)] = 0;
+            copied = TRUE;
+        }
+        else
+        {
+            copied = FALSE;
+        }
+    }
+    else
+    {
+        copied = FALSE;
+    }
+
+    if (ReturnCount)
+        *ReturnCount = unicodeBytes / sizeof(WCHAR) + 1;
+
+    return copied;
+}
+
+/**
  * Creates a string object from an existing 
  * null-terminated string.
  *
