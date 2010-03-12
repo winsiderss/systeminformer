@@ -128,6 +128,11 @@ BOOLEAN PhInitializeSystem()
     PhInitializeDosDeviceNames();
     PhRefreshDosDeviceNames();
 
+#ifdef DEBUG
+    InitializeListHead(&PhDbgProviderListHead);
+    PhInitializeFastLock(&PhDbgProviderListLock);
+#endif
+
     return TRUE;
 }
 
