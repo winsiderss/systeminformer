@@ -252,7 +252,22 @@ static COLORREF NTAPI PhpTokenPrivilegeColorFunction(
     return PhGetPrivilegeAttributesColor(luidAndAttributes->Attributes);
 }
 
-INT_PTR CALLBACK PhpTokenPageProc(
+PWSTR PhGetElevationTypeString(
+    __in TOKEN_ELEVATION_TYPE ElevationType
+    )
+{
+    switch (ElevationType)
+    {
+    case TokenElevationTypeFull:
+        return L"Yes";
+    case TokenElevationTypeLimited:
+        return L"No";
+    default:
+        return L"N/A";
+    }
+}
+
+FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -272,6 +287,20 @@ INT_PTR CALLBACK PhpTokenPageProc(
         tokenPageContext = (PTOKEN_PAGE_CONTEXT)propSheetPage->lParam;
         SetProp(hwndDlg, L"TokenPageContext", (HANDLE)tokenPageContext);
     }
+
+    return tokenPageContext;
+}
+
+INT_PTR CALLBACK PhpTokenPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
 
     if (!tokenPageContext)
         return FALSE;
@@ -323,7 +352,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 PPH_STRING fullUserName;
                 PPH_STRING stringUserSid;
                 ULONG sessionId;
-                BOOLEAN isElevated;
+                TOKEN_ELEVATION_TYPE elevationType;
                 BOOLEAN isVirtualizationAllowed;
                 BOOLEAN isVirtualizationEnabled;
                 ULONG i;
@@ -350,8 +379,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                 if (WINDOWS_HAS_UAC)
                 {
-                    if (NT_SUCCESS(PhGetTokenIsElevated(tokenHandle, &isElevated)))
-                        SetDlgItemText(hwndDlg, IDC_ELEVATED, isElevated ? L"Yes" : L"No");
+                    if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                        SetDlgItemText(hwndDlg, IDC_ELEVATED, PhGetElevationTypeString(elevationType));
 
                     if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
                     {
@@ -727,6 +756,15 @@ VOID PhpShowTokenAdvancedProperties(
     PropertySheet(&propSheetHeader);
 }
 
+static NTSTATUS PhpOpenLinkedToken(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    return PhGetTokenLinkedToken((HANDLE)Context, Handle);
+}
+
 INT_PTR CALLBACK PhpTokenGeneralPageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -734,6 +772,164 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
     __in LPARAM lParam
     )
 {
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HANDLE tokenHandle;
+            PPH_STRING tokenUserName = NULL;
+            PPH_STRING tokenUserSid = NULL;
+            PPH_STRING tokenOwnerName = NULL;
+            PPH_STRING tokenPrimaryGroupName = NULL;
+            ULONG tokenSessionId = -1;
+            PWSTR tokenElevated = L"N/A";
+            BOOLEAN hasLinkedToken = FALSE;
+            PWSTR tokenVirtualization = L"N/A";
+            WCHAR tokenSourceName[TOKEN_SOURCE_LENGTH + 1] = L"Unknown";
+            WCHAR tokenSourceLuid[PH_PTR_STR_LEN_1] = L"Unknown";
+
+            if (NT_SUCCESS(tokenPageContext->OpenObject(
+                &tokenHandle,
+                TOKEN_QUERY,
+                tokenPageContext->Context
+                )))
+            {
+                PTOKEN_USER tokenUser;
+                PTOKEN_OWNER tokenOwner;
+                PTOKEN_PRIMARY_GROUP tokenPrimaryGroup;
+                TOKEN_ELEVATION_TYPE elevationType;
+                BOOLEAN isVirtualizationAllowed;
+                BOOLEAN isVirtualizationEnabled;
+
+                if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+                {
+                    tokenUserName = PHA_DEREFERENCE(PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL));
+                    tokenUserSid = PHA_DEREFERENCE(PhSidToStringSid(tokenUser->User.Sid));
+
+                    PhFree(tokenUser);
+                }
+
+                if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
+                {
+                    tokenOwnerName = PHA_DEREFERENCE(PhGetSidFullName(tokenOwner->Owner, TRUE, NULL));
+                    PhFree(tokenOwner);
+                }
+
+                if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &tokenPrimaryGroup)))
+                {
+                    tokenPrimaryGroupName = PHA_DEREFERENCE(PhGetSidFullName(
+                        tokenPrimaryGroup->PrimaryGroup, TRUE, NULL));
+                    PhFree(tokenPrimaryGroup);
+                }
+
+                PhGetTokenSessionId(tokenHandle, &tokenSessionId);
+
+                if (WINDOWS_HAS_UAC)
+                {
+                    if (NT_SUCCESS(PhGetTokenElevationType(tokenHandle, &elevationType)))
+                    {
+                        tokenElevated = PhGetElevationTypeString(elevationType);
+                        hasLinkedToken = elevationType != TokenElevationTypeDefault;
+                    }
+
+                    if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &isVirtualizationAllowed)))
+                    {
+                        if (isVirtualizationAllowed)
+                        {
+                            if (NT_SUCCESS(PhGetTokenIsVirtualizationEnabled(tokenHandle, &isVirtualizationEnabled)))
+                            {
+                                tokenVirtualization = isVirtualizationEnabled ? L"Yes" : L"No";
+                            }
+                        }
+                        else
+                        {
+                            tokenVirtualization = L"Not Allowed";
+                        }
+                    }
+                }
+
+                NtClose(tokenHandle);
+            }
+
+            if (NT_SUCCESS(tokenPageContext->OpenObject(
+                &tokenHandle,
+                TOKEN_QUERY_SOURCE,
+                tokenPageContext->Context
+                )))
+            {
+                TOKEN_SOURCE tokenSource;
+
+                if (NT_SUCCESS(PhGetTokenSource(tokenHandle, &tokenSource)))
+                {
+                    PhCopyUnicodeStringZFromAnsi(
+                        tokenSource.SourceName,
+                        TOKEN_SOURCE_LENGTH,
+                        tokenSourceName,
+                        sizeof(tokenSourceName) / 2,
+                        NULL
+                        );
+
+                    PhPrintPointer(tokenSourceLuid, (PVOID)tokenSource.SourceIdentifier.LowPart);
+                }
+
+                NtClose(tokenHandle);
+            }
+
+            SetDlgItemText(hwndDlg, IDC_USER, PhGetStringOrDefault(tokenUserName, L"Unknown"));
+            SetDlgItemText(hwndDlg, IDC_USERSID, PhGetStringOrDefault(tokenUserSid, L"Unknown"));
+            SetDlgItemText(hwndDlg, IDC_OWNER, PhGetStringOrDefault(tokenOwnerName, L"Unknown"));
+            SetDlgItemText(hwndDlg, IDC_PRIMARYGROUP, PhGetStringOrDefault(tokenPrimaryGroupName, L"Unknown"));
+
+            if (tokenSessionId != -1)
+                SetDlgItemInt(hwndDlg, IDC_SESSIONID, tokenSessionId, FALSE);
+            else
+                SetDlgItemText(hwndDlg, IDC_SESSIONID, L"Unknown");
+
+            SetDlgItemText(hwndDlg, IDC_ELEVATED, tokenElevated);
+            SetDlgItemText(hwndDlg, IDC_VIRTUALIZATION, tokenVirtualization);
+            SetDlgItemText(hwndDlg, IDC_SOURCENAME, tokenSourceName);
+            SetDlgItemText(hwndDlg, IDC_SOURCELUID, tokenSourceLuid);
+
+            if (!hasLinkedToken)
+                ShowWindow(GetDlgItem(hwndDlg, IDC_LINKEDTOKEN), SW_HIDE);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_LINKEDTOKEN:
+                {
+                    NTSTATUS status;
+                    HANDLE tokenHandle;
+
+                    if (NT_SUCCESS(status = tokenPageContext->OpenObject(
+                        &tokenHandle,
+                        TOKEN_QUERY,
+                        tokenPageContext->Context
+                        )))
+                    {
+                        PhShowTokenProperties(hwndDlg, PhpOpenLinkedToken, (PVOID)tokenHandle, L"Linked Token");
+                        NtClose(tokenHandle);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to open the token", status, 0);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    }
+
     return FALSE;
 }
 
@@ -744,5 +940,21 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     __in LPARAM lParam
     )
 {
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+
+    tokenPageContext = PhpTokenPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!tokenPageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+
+        }
+        break;
+    }
+
     return FALSE;
 }

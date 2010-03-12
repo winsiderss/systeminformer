@@ -276,6 +276,30 @@ VOID PhWaitForRundownProtection(
 extern PPH_OBJECT_TYPE PhStringType;
 #endif
 
+BOOLEAN PhCopyAnsiStringZ(
+    __in PSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    );
+
+BOOLEAN PhCopyUnicodeStringZ(
+    __in PWSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    );
+
+BOOLEAN PhCopyUnicodeStringZFromAnsi(
+    __in PSTR InputBuffer,
+    __in ULONG InputCount,
+    __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
+    __in ULONG OutputCount,
+    __out_opt PULONG ReturnCount
+    );
+
 #define PH_STRING_MAXLEN MAXUINT16
 
 typedef struct _PH_STRINGREF
