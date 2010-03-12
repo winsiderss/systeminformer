@@ -1613,7 +1613,10 @@ NTSTATUS PhUnloadDllProcess(
 
         if (NT_SUCCESS(status))
         {
-            status = basicInfo.ExitStatus;
+            if (WindowsVersion >= WINDOWS_VISTA)
+                status = basicInfo.ExitStatus;
+            else
+                status = basicInfo.ExitStatus != 0 ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
         }
     }
     else
