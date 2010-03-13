@@ -40,6 +40,12 @@
 #define IDD_TOKADVANCED                 140
 #define IDD_DIALOG3                     141
 #define IDD_OBJJOB                      141
+#define IDD_OBJEVENT                    142
+#define IDD_OBJMUTANT                   143
+#define IDD_OBJSEMAPHORE                144
+#define IDD_OBJTIMER                    145
+#define IDD_DIALOG4                     146
+#define IDD_JOBSTATISTICS               146
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -126,8 +132,18 @@
 #define IDC_PROGRESSTEXT                1077
 #define IDC_BUTTON1                     1079
 #define IDC_LINKEDTOKEN                 1079
-#define IDC_LIST2                       1083
 #define IDC_LIMITS                      1083
+#define IDC_SIGNALED                    1084
+#define IDC_SET                         1085
+#define IDC_RESET                       1086
+#define IDC_PULSE                       1087
+#define IDC_COUNT                       1088
+#define IDC_ABANDONED                   1089
+#define IDC_CURRENTCOUNT                1090
+#define IDC_MAXIMUMCOUNT                1091
+#define IDC_ACQUIRE                     1092
+#define IDC_RELEASE                     1093
+#define IDC_CANCEL                      1094
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -245,9 +261,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
+#define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1084
+#define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

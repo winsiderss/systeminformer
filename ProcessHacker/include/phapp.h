@@ -73,6 +73,42 @@ VOID PhSearchOnlineString(
     __in PWSTR String
     );
 
+FORCEINLINE PVOID PhpGenericPropertyPageHeader(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam,
+    __in PWSTR ContextName
+    )
+{
+    PVOID context;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
+
+            context = (PVOID)propSheetPage->lParam;
+            SetProp(hwndDlg, ContextName, (HANDLE)context);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            context = (PVOID)GetProp(hwndDlg, ContextName);
+            RemoveProp(hwndDlg, ContextName);
+        }
+        break;
+    default:
+        {
+            context = (PVOID)GetProp(hwndDlg, ContextName);
+        }
+        break;
+    }
+
+    return context;
+}
+
 // mainwnd
 
 #ifndef MAINWND_PRIVATE
@@ -361,6 +397,13 @@ VOID PhShowAboutDialog(
     );
 
 PPH_STRING PhGetDiagnosticsString();
+
+// exprp
+
+HPROPSHEETPAGE PhCreateEventPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    );
 
 // findobj
 

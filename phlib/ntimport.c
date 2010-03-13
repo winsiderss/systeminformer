@@ -79,6 +79,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtPrivilegeCheck);
     InitProcReq("ntdll.dll", NtProtectVirtualMemory);
     InitProcReq("ntdll.dll", NtQueryDirectoryObject);
+    InitProcReq("ntdll.dll", NtQueryEvent);
     InitProc("ntdll.dll", NtQueryInformationEnlistment);
     InitProcReq("ntdll.dll", NtQueryInformationFile);
     InitProcReq("ntdll.dll", NtQueryInformationJobObject);

@@ -450,6 +450,11 @@ NTSTATUS PhGetTokenIntegrityLevel(
     __out_opt PPH_STRING *IntegrityString
     );
 
+NTSTATUS PhGetEventBasicInformation(
+    __in HANDLE EventHandle,
+    __out PEVENT_BASIC_INFORMATION BasicInformation
+    );
+
 NTSTATUS PhGetFileSize(
     __in HANDLE FileHandle,
     __out PLARGE_INTEGER Size

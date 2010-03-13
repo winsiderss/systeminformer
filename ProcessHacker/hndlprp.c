@@ -103,7 +103,26 @@ VOID PhShowHandleProperties(
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     // Object-specific page
-    if (PhStringEquals2(HandleItem->TypeName, L"Token", TRUE))
+    if (!HandleItem->TypeName)
+    {
+        // Dummy
+    }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Event", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateEventPage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Job", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateJobPage(
+            PhpDuplicateHandleFromProcess,
+            &context,
+            NULL
+            );
+    }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Token", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
             PhpDuplicateHandleFromProcess,

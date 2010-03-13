@@ -7,7 +7,6 @@
 * Process properties:
 	* Complete the General tab (partially done)
 	* Memory provider
-	* Job (partially done)
 
 * Statistics collection (partially done)
 * Graph controls
