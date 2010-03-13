@@ -383,6 +383,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sync.c"
+				>
+			</File>
+			<File
 				RelativePath=".\treelist.c"
 				>
 			</File>

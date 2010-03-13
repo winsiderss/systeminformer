@@ -1061,8 +1061,7 @@ typedef struct _PH_SYMBOL_PROVIDER
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
-    LONG Initialized;
-    PH_EVENT InitializedEvent;
+    PH_INITONCE InitOnce;
 #endif
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
 
