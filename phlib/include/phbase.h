@@ -270,6 +270,30 @@ VOID PhWaitForRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
+// one-time initialization
+
+#define PH_INITONCE_UNINITIALIZED 0
+#define PH_INITONCE_INITIALIZED 1
+#define PH_INITONCE_INITIALIZING 2
+
+typedef struct _PH_INITONCE
+{
+    LONG State;
+    PH_EVENT WakeEvent;
+} PH_INITONCE, *PPH_INITONCE;
+
+VOID PhInitializeInitOnce(
+    __out PPH_INITONCE InitOnce
+    );
+
+BOOLEAN PhBeginInitOnce(
+    __inout PPH_INITONCE InitOnce
+    );
+
+VOID PhEndInitOnce(
+    __inout PPH_INITONCE InitOnce
+    );
+
 // string
 
 #ifndef BASESUP_PRIVATE

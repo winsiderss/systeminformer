@@ -176,8 +176,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     }
 
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
-    symbolProvider->Initialized = 0;
-    PhInitializeEvent(&symbolProvider->InitializedEvent);
+    PhInitializeInitOnce(&symbolProvider->InitOnce);
 #else
     PhpRegisterSymbolProvider(symbolProvider);
 #endif
@@ -215,15 +214,7 @@ VOID PhpRegisterSymbolProvider(
     )
 {
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
-    LONG oldInitialized;
-
-    // 0: not initialized
-    // 1: initialized
-    // 2: initializing
-
-    oldInitialized = _InterlockedCompareExchange(&SymbolProvider->Initialized, 2, 0);
-
-    if (oldInitialized == 0)
+    if (PhBeginInitOnce(&SymbolProvider->InitOnce))
     {
         if (SymInitialize_I)
         {
@@ -232,12 +223,7 @@ VOID PhpRegisterSymbolProvider(
             PhReleaseMutex(&PhSymMutex);
         }
 
-        _InterlockedExchange(&SymbolProvider->Initialized, 1);
-        PhSetEvent(&SymbolProvider->InitializedEvent);
-    }
-    else if (oldInitialized == 2)
-    {
-        PhWaitForEvent(&SymbolProvider->InitializedEvent, INFINITE);
+        PhEndInitOnce(&SymbolProvider->InitOnce);
     }
 #else
     if (SymInitialize_I)
