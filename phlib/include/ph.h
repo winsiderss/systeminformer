@@ -1050,6 +1050,8 @@ VOID PhUnregisterProvider(
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
 #endif
 
+//#define PH_SYMBOL_PROVIDER_DELAY_INIT
+
 #define PH_MAX_SYMBOL_NAME_LEN 128
 
 typedef struct _PH_SYMBOL_PROVIDER
@@ -1058,6 +1060,10 @@ typedef struct _PH_SYMBOL_PROVIDER
     PH_QUEUED_LOCK ModulesListLock;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    LONG Initialized;
+    PH_EVENT InitializedEvent;
+#endif
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
 
 typedef enum _PH_SYMBOL_RESOLVE_LEVEL

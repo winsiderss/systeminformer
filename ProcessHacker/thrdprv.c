@@ -423,14 +423,14 @@ NTSTATUS PhpThreadQueryWorker(
     PPH_THREAD_QUERY_DATA data = (PPH_THREAD_QUERY_DATA)Parameter;
     LONG newSymbolsLoading;
 
-    // We can't resolve the start address until symbols have 
-    // been loaded.
-    PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, INFINITE);
-
     newSymbolsLoading = _InterlockedIncrement(&data->ThreadProvider->SymbolsLoading);
 
     if (newSymbolsLoading == 1)
         PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)TRUE);
+
+    // We can't resolve the start address until symbols have 
+    // been loaded.
+    PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, INFINITE);
 
     data->StartAddressString = PhGetSymbolFromAddress(
         data->ThreadProvider->SymbolProvider,
