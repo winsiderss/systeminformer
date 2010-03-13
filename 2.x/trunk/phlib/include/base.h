@@ -31,8 +31,21 @@
 
 #define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
 
-#define PH_TIMEOUT_MS ((LONGLONG)1 * 10 * 1000)
-#define PH_TIMEOUT_SEC (PH_TIMEOUT_MS * 1000)
+#define PH_TICKS_PER_NS ((LONGLONG)1 * 10)
+#define PH_TICKS_PER_MS (PH_TICKS_PER_NS * 1000)
+#define PH_TICKS_PER_SEC (PH_TICKS_PER_MS * 1000)
+#define PH_TICKS_PER_MIN (PH_TICKS_PER_SEC * 60)
+#define PH_TICKS_PER_HOUR (PH_TICKS_PER_MIN * 60)
+#define PH_TICKS_PER_DAY (PH_TICKS_PER_HOUR * 24)
+
+#define PH_TICKS_PARTIAL_MS(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_MS) % 1000)
+#define PH_TICKS_PARTIAL_SEC(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_SEC) % 60)
+#define PH_TICKS_PARTIAL_MIN(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_MIN) % 60)
+#define PH_TICKS_PARTIAL_HOURS(Ticks) (((ULONG64)(Ticks) / PH_TICKS_PER_HOUR) % 24)
+#define PH_TICKS_PARTIAL_DAYS(Ticks) ((ULONG64)(Ticks) / PH_TICKS_PER_DAY)
+
+#define PH_TIMEOUT_MS PH_TICKS_PER_MS
+#define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
 
 #define DPCS_PROCESS_ID ((HANDLE)-2)
 #define INTERRUPTS_PROCESS_ID ((HANDLE)-3)
@@ -229,7 +242,7 @@ FORCEINLINE VOID PhPrintUInt64(
 }
 
 FORCEINLINE VOID PhPrintPointer(
-    __out_ecount(PH_PTR_STR_LEN) PWSTR Destination,
+    __out_ecount(PH_PTR_STR_LEN_1) PWSTR Destination,
     __in PVOID Pointer
     )
 {

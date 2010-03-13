@@ -88,6 +88,10 @@ PPH_STRING PhGetClientIdName(
     __in PCLIENT_ID ClientId
     );
 
+PWSTR PhGetProcessPriorityClassWin32String(
+    __in ULONG PriorityClassWin32
+    );
+
 VOID PhProcessProviderUpdate(
     __in PVOID Object
     );
@@ -294,6 +298,10 @@ PPH_THREAD_ITEM PhReferenceThreadItem(
 
 VOID PhDereferenceAllThreadItems(
     __in PPH_THREAD_PROVIDER ThreadProvider
+    );
+
+PPH_STRING PhGetThreadPriorityWin32String(
+    __in LONG PriorityWin32
     );
 
 VOID PhThreadProviderUpdate(
