@@ -36,6 +36,10 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     __in ULONG Flags
     );
 
+VOID PhpRegisterSymbolProvider(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 VOID PhpFreeSymbolModule(
     __in PPH_SYMBOL_MODULE SymbolModule
     );
@@ -171,12 +175,12 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         symbolProvider->ProcessHandle = fakeHandle;
     }
 
-    if (SymInitialize_I)
-    {
-        PhAcquireMutex(&PhSymMutex);
-        SymInitialize_I(symbolProvider->ProcessHandle, NULL, FALSE);
-        PhReleaseMutex(&PhSymMutex);
-    }
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    symbolProvider->Initialized = 0;
+    PhInitializeEvent(&symbolProvider->InitializedEvent);
+#else
+    PhpRegisterSymbolProvider(symbolProvider);
+#endif
 
     return symbolProvider;
 }
@@ -204,6 +208,45 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
 
     PhDereferenceObject(symbolProvider->ModulesList);
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
+}
+
+VOID PhpRegisterSymbolProvider(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    LONG oldInitialized;
+
+    // 0: not initialized
+    // 1: initialized
+    // 2: initializing
+
+    oldInitialized = _InterlockedCompareExchange(&SymbolProvider->Initialized, 2, 0);
+
+    if (oldInitialized == 0)
+    {
+        if (SymInitialize_I)
+        {
+            PhAcquireMutex(&PhSymMutex);
+            SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
+            PhReleaseMutex(&PhSymMutex);
+        }
+
+        _InterlockedExchange(&SymbolProvider->Initialized, 1);
+        PhSetEvent(&SymbolProvider->InitializedEvent);
+    }
+    else if (oldInitialized == 2)
+    {
+        PhWaitForEvent(&SymbolProvider->InitializedEvent, INFINITE);
+    }
+#else
+    if (SymInitialize_I)
+    {
+        PhAcquireMutex(&PhSymMutex);
+        SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
+        PhReleaseMutex(&PhSymMutex);
+    }
+#endif
 }
 
 VOID PhpFreeSymbolModule(
@@ -299,6 +342,10 @@ PPH_STRING PhGetSymbolFromAddress(
 
         return NULL;
     }
+
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PhpRegisterSymbolProvider(SymbolProvider);
+#endif
 
     symbolInfo = PhAllocate(sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN);
     memset(symbolInfo, 0, sizeof(SYMBOL_INFO));
@@ -447,6 +494,10 @@ BOOLEAN PhSymbolProviderLoadModule(
     if (!SymLoadModule64_I)
         return FALSE;
 
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PhpRegisterSymbolProvider(SymbolProvider);
+#endif
+
     fileName = PhCreateAnsiStringFromUnicode(FileName);
 
     if (!fileName)
@@ -516,6 +567,10 @@ VOID PhSymbolProviderSetSearchPath(
     )
 {
     PPH_ANSI_STRING searchPath;
+
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PhpRegisterSymbolProvider(SymbolProvider);
+#endif
 
     searchPath = PhCreateAnsiStringFromUnicode(SearchPath);
 
