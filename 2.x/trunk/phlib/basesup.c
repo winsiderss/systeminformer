@@ -3050,7 +3050,7 @@ VOID PhPrintTimeSpan(
         _snwprintf(
             Destination,
             PH_TIMESPAN_STR_LEN,
-            L"%I64u:%02I64u:%02I64u:%03I64u",
+            L"%02I64u:%02I64u:%02I64u.%03I64u",
             PH_TICKS_PARTIAL_HOURS(Ticks),
             PH_TICKS_PARTIAL_MIN(Ticks),
             PH_TICKS_PARTIAL_SEC(Ticks),
