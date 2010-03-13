@@ -406,6 +406,11 @@ INT_PTR CALLBACK PhpJobPageProc(
                     }
                 }
                 break;
+            case IDC_ADVANCED:
+                {
+                    PhShowInformation(hwndDlg, L"Advanced");
+                }
+                break;
             }
         }
         break;
