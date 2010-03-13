@@ -451,12 +451,15 @@ static NTSTATUS NTAPI TerminatorTJ1(
     {
         HANDLE jobHandle;
 
-        jobHandle = CreateJobObject(NULL, NULL);
+        status = NtCreateJobObject(&jobHandle, JOB_OBJECT_ALL_ACCESS, NULL); 
 
-        if (jobHandle)
+        if (NT_SUCCESS(status))
         {
-            AssignProcessToJobObject(jobHandle, processHandle);
-            TerminateJobObject(jobHandle, 0);
+            status = NtAssignProcessToJobObject(jobHandle, processHandle);
+
+            if (NT_SUCCESS(status))
+                status = NtTerminateJobObject(jobHandle, STATUS_SUCCESS);
+
             NtClose(jobHandle);
         }
 

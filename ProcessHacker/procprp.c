@@ -2794,6 +2794,83 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     return FALSE;
 }
 
+static NTSTATUS NTAPI PhpOpenProcessJob(
+    __out PHANDLE Handle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE jobHandle = NULL;
+
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        (HANDLE)Context
+        )))
+        return status;
+
+    status = KphOpenProcessJob(PhKphHandle, &jobHandle, processHandle, DesiredAccess);
+    NtClose(processHandle);
+
+    if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)
+    {
+        *Handle = jobHandle;
+    }
+    else if (NT_SUCCESS(status))
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+    return status;
+}
+
+INT_PTR CALLBACK PhpProcessJobHookProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            RemoveProp(hwndDlg, L"LayoutInitialized");
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!GetProp(hwndDlg, L"LayoutInitialized"))
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                // This is a big violation of abstraction...
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSES),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIMITS),
+                    dialogItem, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                SetProp(hwndDlg, L"LayoutInitialized", (HANDLE)TRUE);
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 static VOID NTAPI ServiceModifiedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -3195,6 +3272,20 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         );
     PhAddProcessPropPage(PropContext, newPage);
     PhDereferenceObject(newPage);
+
+    // Job
+    if (
+        PropContext->ProcessItem->IsInJob &&
+        // There's no way the job page can function without KPH since it needs 
+        // to open a handle to the job.
+        PhKphHandle
+        )
+    {
+        PhAddProcessPropPage2(
+            PropContext,
+            PhCreateJobPage(PhpOpenProcessJob, (PVOID)PropContext->ProcessItem->ProcessId, PhpProcessJobHookProc)
+            );
+    }
 
     // Services
     if (PropContext->ProcessItem->ServiceList->Count != 0)

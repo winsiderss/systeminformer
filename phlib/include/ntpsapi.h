@@ -361,4 +361,46 @@ typedef NTSTATUS (NTAPI *_NtQueueApcThread)(
     __in_opt PVOID ApcArgument3
     );
 
+typedef NTSTATUS (NTAPI *_NtCreateJobObject)(
+    __out PHANDLE JobHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *_NtOpenJobObject)(
+    __out PHANDLE JobHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+typedef NTSTATUS (NTAPI *_NtAssignProcessToJobObject)(
+    __in HANDLE JobHandle,
+    __in HANDLE ProcessHandle
+    );
+
+typedef NTSTATUS (NTAPI *_NtTerminateJobObject)(
+    __in HANDLE JobHandle,
+    __in NTSTATUS ExitStatus
+    );
+
+typedef NTSTATUS (NTAPI *_NtIsProcessInJob)(
+    __in HANDLE ProcessHandle,
+    __in_opt HANDLE JobHandle
+    ); 
+
+typedef NTSTATUS (NTAPI *_NtQueryInformationJobObject)(
+    __in_opt HANDLE JobHandle,
+    __in JOBOBJECTINFOCLASS JobObjectInformationClass,
+    __out_bcount(JobObjectInformationLength) PVOID JobObjectInformation,
+    __in ULONG JobObjectInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+typedef NTSTATUS (NTAPI *_NtSetInformationJobObject)(
+    __in HANDLE JobHandle,
+    __in JOBOBJECTINFOCLASS JobObjectInformationClass,
+    __in_bcount(JobObjectInformationLength) PVOID JobObjectInformation,
+    __in ULONG JobObjectInformationLength
+    );
+
 #endif

@@ -405,6 +405,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\jobprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>

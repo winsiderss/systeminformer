@@ -337,6 +337,31 @@ NTSTATUS PhWalkThreadStack(
     __in PVOID Context
     );
 
+NTSTATUS PhGetJobBasicAndIoAccounting(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
+    );
+
+NTSTATUS PhGetJobBasicLimits(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
+    );
+
+NTSTATUS PhGetJobExtendedLimits(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
+    );
+
+NTSTATUS PhGetJobBasicUiRestrictions(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
+    );
+
+NTSTATUS PhGetJobProcessIdList(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
+    );
+
 NTSTATUS PhGetTokenUser(
     __in HANDLE TokenHandle,
     __out PTOKEN_USER *User
