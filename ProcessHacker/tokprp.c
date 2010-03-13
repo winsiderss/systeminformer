@@ -951,7 +951,69 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     {
     case WM_INITDIALOG:
         {
+            HANDLE tokenHandle;
+            PWSTR tokenType = L"Unknown";
+            PWSTR tokenImpersonationLevel = L"Unknown";
+            WCHAR tokenLuid[PH_PTR_STR_LEN_1] = L"Unknown";
+            WCHAR authenticationLuid[PH_PTR_STR_LEN_1] = L"Unknown";
+            PPH_STRING memoryUsed = NULL;
+            PPH_STRING memoryAvailable = NULL;
 
+            if (NT_SUCCESS(tokenPageContext->OpenObject(
+                &tokenHandle,
+                TOKEN_QUERY,
+                tokenPageContext->Context
+                )))
+            {
+                TOKEN_STATISTICS statistics;
+
+                if (NT_SUCCESS(PhGetTokenStatistics(tokenHandle, &statistics)))
+                {
+                    switch (statistics.TokenType)
+                    {
+                    case TokenPrimary:
+                        tokenType = L"Primary";
+                        break;
+                    case TokenImpersonation:
+                        tokenType = L"Impersonation";
+                        break;
+                    }
+
+                    switch (statistics.ImpersonationLevel)
+                    {
+                    case SecurityAnonymous:
+                        tokenImpersonationLevel = L"Anonymous";
+                        break;
+                    case SecurityIdentification:
+                        tokenImpersonationLevel = L"Identification";
+                        break;
+                    case SecurityImpersonation:
+                        tokenImpersonationLevel = L"Impersonation";
+                        break;
+                    case SecurityDelegation:
+                        tokenImpersonationLevel = L"Delegation";
+                        break;
+                    }
+
+                    PhPrintPointer(tokenLuid, (PVOID)statistics.TokenId.LowPart);
+                    PhPrintPointer(authenticationLuid, (PVOID)statistics.AuthenticationId.LowPart);
+
+                    // DynamicCharged contains the number of bytes allocated.
+                    // DynamicAvailable contains the number of bytes free.
+                    memoryUsed = PHA_DEREFERENCE(PhFormatSize(
+                        statistics.DynamicCharged - statistics.DynamicAvailable, -1));
+                    memoryAvailable = PHA_DEREFERENCE(PhFormatSize(statistics.DynamicCharged, -1));
+                }
+
+                NtClose(tokenHandle);
+            }
+
+            SetDlgItemText(hwndDlg, IDC_TYPE, tokenType);
+            SetDlgItemText(hwndDlg, IDC_IMPERSONATIONLEVEL, tokenImpersonationLevel);
+            SetDlgItemText(hwndDlg, IDC_TOKENLUID, tokenLuid);
+            SetDlgItemText(hwndDlg, IDC_AUTHENTICATIONLUID, authenticationLuid);
+            SetDlgItemText(hwndDlg, IDC_MEMORYUSED, PhGetStringOrDefault(memoryUsed, L"Unknown"));
+            SetDlgItemText(hwndDlg, IDC_MEMORYAVAILABLE, PhGetStringOrDefault(memoryAvailable, L"Unknown"));
         }
         break;
     }
