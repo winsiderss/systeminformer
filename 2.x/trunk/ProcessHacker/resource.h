@@ -38,6 +38,8 @@
 #define IDD_TOKGENERAL                  139
 #define IDD_DIALOG2                     140
 #define IDD_TOKADVANCED                 140
+#define IDD_DIALOG3                     141
+#define IDD_OBJJOB                      141
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -79,7 +81,6 @@
 #define IDC_BINARYPATH                  1036
 #define IDC_MEMORYUSED                  1036
 #define IDC_USERACCOUNT                 1037
-#define IDC_TYPE6                       1037
 #define IDC_MEMORYAVAILABLE             1037
 #define IDC_PASSWORD                    1040
 #define IDC_PASSWORDCHECK               1041
@@ -125,6 +126,8 @@
 #define IDC_PROGRESSTEXT                1077
 #define IDC_BUTTON1                     1079
 #define IDC_LINKEDTOKEN                 1079
+#define IDC_LIST2                       1083
+#define IDC_LIMITS                      1083
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -242,9 +245,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        141
+#define _APS_NEXT_RESOURCE_VALUE        142
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1081
+#define _APS_NEXT_CONTROL_VALUE         1084
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

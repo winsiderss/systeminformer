@@ -397,6 +397,21 @@ VOID PhShowInformationDialog(
     __in PWSTR String
     );
 
+// jobprp
+
+VOID PhShowJobProperties(
+    __in HWND ParentWindowHandle,
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context,
+    __in_opt PWSTR Title
+    );
+
+HPROPSHEETPAGE PhCreateJobPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context,
+    __in_opt DLGPROC HookProc
+    );
+
 // pagfiles
 
 VOID PhShowPagefilesDialog(

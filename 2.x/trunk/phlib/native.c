@@ -2015,6 +2015,107 @@ ResumeExit:
     return status;
 }
 
+NTSTATUS PhGetJobBasicAndIoAccounting(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicAndIoAccountingInformation,
+        BasicAndIoAccounting,
+        sizeof(JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobBasicLimits(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicLimitInformation,
+        BasicLimits,
+        sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobExtendedLimits(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectExtendedLimitInformation,
+        ExtendedLimits,
+        sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobBasicUiRestrictions(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
+    )
+{
+    return NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicUIRestrictions,
+        BasicUiRestrictions,
+        sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS),
+        NULL
+        );
+}
+
+NTSTATUS PhGetJobProcessIdList(
+    __in HANDLE JobHandle,
+    __out PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQueryInformationJobObject(
+        JobHandle,
+        JobObjectBasicProcessIdList,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQueryInformationJobObject(
+            JobHandle,
+            JobObjectBasicProcessIdList,
+            buffer,
+            bufferSize,
+            NULL
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *ProcessIdList = (PJOBOBJECT_BASIC_PROCESS_ID_LIST)buffer;
+
+    return status;
+}
+
 /**
  * Queries variable-sized information for a token.
  * The function allocates a buffer to contain the information.
