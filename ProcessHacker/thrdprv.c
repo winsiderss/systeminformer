@@ -513,7 +513,7 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
-PPH_STRING PhpGetPriorityWin32String(
+PPH_STRING PhGetThreadPriorityWin32String(
     __in LONG PriorityWin32
     )
 {
@@ -737,7 +737,7 @@ VOID PhThreadProviderUpdate(
 
             // Get the Win32 priority.
             threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
-            threadItem->PriorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+            threadItem->PriorityWin32String = PhGetThreadPriorityWin32String(threadItem->PriorityWin32);
 
             if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
             {
@@ -923,7 +923,7 @@ VOID PhThreadProviderUpdate(
                 {
                     PPH_STRING priorityWin32String;
 
-                    priorityWin32String = PhpGetPriorityWin32String(threadItem->PriorityWin32);
+                    priorityWin32String = PhGetThreadPriorityWin32String(threadItem->PriorityWin32);
                     PhSwapReference2(&threadItem->PriorityWin32String, priorityWin32String);
 
                     modified = TRUE;

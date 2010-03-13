@@ -856,6 +856,29 @@ VOID PhpUpdateCpuInformation()
         );
 }
 
+PWSTR PhGetProcessPriorityClassWin32String(
+    __in ULONG PriorityClassWin32
+    )
+{
+    switch (PriorityClassWin32)
+    {
+    case REALTIME_PRIORITY_CLASS:
+        return L"Real Time";
+    case HIGH_PRIORITY_CLASS:
+        return L"High";
+    case ABOVE_NORMAL_PRIORITY_CLASS:
+        return L"Above Normal";
+    case NORMAL_PRIORITY_CLASS:
+        return L"Normal";
+    case BELOW_NORMAL_PRIORITY_CLASS:
+        return L"Below Normal";
+    case IDLE_PRIORITY_CLASS:
+        return L"Idle";
+    default:
+        return L"Unknown";
+    }
+}
+
 VOID PhProcessProviderUpdate(
     __in PVOID Object
     )
