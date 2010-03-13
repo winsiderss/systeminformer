@@ -44,10 +44,12 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtAlertResumeThread);
     InitProcReq("ntdll.dll", NtAlertThread);
     InitProcReq("ntdll.dll", NtAllocateVirtualMemory);
+    InitProcReq("ntdll.dll", NtAssignProcessToJobObject);
     InitProcReq("ntdll.dll", NtClose);
     InitProcReq("ntdll.dll", NtCreateDebugObject);
     InitProcReq("ntdll.dll", NtCreateDirectoryObject);
     InitProcReq("ntdll.dll", NtCreateFile);
+    InitProcReq("ntdll.dll", NtCreateJobObject);
     InitProcReq("ntdll.dll", NtCreateKeyedEvent);
     InitProcReq("ntdll.dll", NtCreateMailslotFile);
     InitProcReq("ntdll.dll", NtCreateNamedPipeFile);
@@ -62,10 +64,12 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtGetContextThread);
     InitProc("ntdll.dll", NtGetNextProcess);
     InitProc("ntdll.dll", NtGetNextThread);
+    InitProcReq("ntdll.dll", NtIsProcessInJob);
     InitProcReq("ntdll.dll", NtLoadDriver);
     InitProcReq("ntdll.dll", NtMapViewOfSection);
     InitProcReq("ntdll.dll", NtOpenDirectoryObject);
     InitProcReq("ntdll.dll", NtOpenFile);
+    InitProcReq("ntdll.dll", NtOpenJobObject);
     InitProcReq("ntdll.dll", NtOpenKeyedEvent);
     InitProcReq("ntdll.dll", NtOpenProcess);
     InitProcReq("ntdll.dll", NtOpenProcessToken);
@@ -77,6 +81,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtQueryDirectoryObject);
     InitProc("ntdll.dll", NtQueryInformationEnlistment);
     InitProcReq("ntdll.dll", NtQueryInformationFile);
+    InitProcReq("ntdll.dll", NtQueryInformationJobObject);
     InitProcReq("ntdll.dll", NtQueryInformationProcess);
     InitProc("ntdll.dll", NtQueryInformationResourceManager);
     InitProcReq("ntdll.dll", NtQueryInformationThread);
@@ -98,6 +103,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSetContextThread);
     InitProcReq("ntdll.dll", NtSetInformationDebugObject);
     InitProcReq("ntdll.dll", NtSetInformationFile);
+    InitProcReq("ntdll.dll", NtSetInformationJobObject);
     InitProcReq("ntdll.dll", NtSetInformationObject);
     InitProcReq("ntdll.dll", NtSetInformationProcess);
     InitProcReq("ntdll.dll", NtSetInformationThread);
@@ -105,6 +111,7 @@ BOOLEAN PhInitializeImports()
     InitProcReq("ntdll.dll", NtSetSecurityObject);
     InitProcReq("ntdll.dll", NtSuspendProcess);
     InitProcReq("ntdll.dll", NtSuspendThread);
+    InitProcReq("ntdll.dll", NtTerminateJobObject);
     InitProcReq("ntdll.dll", NtTerminateProcess);
     InitProcReq("ntdll.dll", NtTerminateThread);
     InitProcReq("ntdll.dll", NtUnloadDriver);

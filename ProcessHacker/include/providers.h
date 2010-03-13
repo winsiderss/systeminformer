@@ -32,6 +32,7 @@ typedef struct _PH_PROCESS_ITEM
     LARGE_INTEGER CreateTime;
 
     PPH_STRING UserName;
+    TOKEN_ELEVATION_TYPE ElevationType;
     PH_INTEGRITY IntegrityLevel;
 
     PPH_STRING JobName;

@@ -22,6 +22,7 @@
 
 #define PROCPRV_PRIVATE
 #include <phapp.h>
+#include <kph.h>
 
 VOID PhpQueueProcessQueryStage1(
     __in PPH_PROCESS_ITEM ProcessItem
@@ -41,10 +42,14 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
 {
     PH_PROCESS_QUERY_DATA Header;
 
+    PPH_STRING CommandLine;
+
     HICON SmallIcon;
     HICON LargeIcon;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
+    TOKEN_ELEVATION_TYPE ElevationType;
+    BOOLEAN IsElevated;
     PH_INTEGRITY IntegrityLevel;
     PPH_STRING IntegrityString;
 
@@ -52,6 +57,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsInJob;
     BOOLEAN IsInSignificantJob;
 
+    BOOLEAN IsPosix;
     BOOLEAN IsWow64;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
 
@@ -366,6 +372,9 @@ VOID PhpProcessQueryStage1(
     NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
+    HANDLE processHandleLimited = NULL;
+
+    PhOpenProcess(&processHandleLimited, ProcessQueryAccess, processId);
 
     if (processItem->FileName)
     {
@@ -425,40 +434,149 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+    // POSIX, command line
     {
         HANDLE processHandle;
 
-        status = PhOpenProcess(&processHandle, ProcessQueryAccess, processId);
+        status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess | PROCESS_VM_READ,
+            processId
+            );
 
         if (NT_SUCCESS(status))
         {
-            // Integrity
-            if (WINDOWS_HAS_UAC)
-            {
-                HANDLE tokenHandle;
+            BOOLEAN isPosix;
+            PPH_STRING commandLine;
+            ULONG i;
 
-                status = PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandle);
+            status = PhGetProcessIsPosix(processHandle, &isPosix);
+            Data->IsPosix = isPosix;
+
+            if (!NT_SUCCESS(status) || !isPosix)
+            {
+                status = PhGetProcessCommandLine(processHandle, &commandLine);
 
                 if (NT_SUCCESS(status))
                 {
-                    PhGetTokenIntegrityLevel(
-                        tokenHandle,
-                        &Data->IntegrityLevel,
-                        &Data->IntegrityString
-                        );
-
-                    NtClose(tokenHandle);
+                    // Some command lines (e.g. from taskeng.exe) have nulls in them. 
+                    // Since Windows can't display them, we'll replace them with 
+                    // spaces.
+                    for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
+                    {
+                        if (commandLine->Buffer[i] == 0)
+                            commandLine->Buffer[i] = ' ';
+                    }
                 }
             }
+            else
+            {
+                // Get the POSIX command line.
+                status = PhGetProcessPosixCommandLine(processHandle, &commandLine);
+            }
 
-#ifdef _M_X64
-            // WOW64
-            PhGetProcessIsWow64(processHandle, &Data->IsWow64);
-#endif
+            if (NT_SUCCESS(status))
+            {
+                Data->CommandLine = commandLine;
+            }
 
             NtClose(processHandle);
         }
     }
+
+    // Token information
+    if (processHandleLimited)
+    {
+        if (WINDOWS_HAS_UAC)
+        {
+            HANDLE tokenHandle;
+
+            status = PhOpenProcessToken(&tokenHandle, TOKEN_QUERY, processHandleLimited);
+
+            if (NT_SUCCESS(status))
+            {
+                // Elevation
+                if (NT_SUCCESS(PhGetTokenElevationType(
+                    tokenHandle,
+                    &Data->ElevationType
+                    )))
+                {
+                    Data->IsElevated = Data->ElevationType == TokenElevationTypeFull;
+                }
+
+                // Integrity
+                PhGetTokenIntegrityLevel(
+                    tokenHandle,
+                    &Data->IntegrityLevel,
+                    &Data->IntegrityString
+                    );
+
+                NtClose(tokenHandle);
+            }
+        }
+
+#ifdef _M_X64
+        // WOW64
+        PhGetProcessIsWow64(processHandle, &Data->IsWow64);
+#endif
+    }
+
+    // Job
+    if (processHandleLimited)
+    {
+        if (PhKphHandle)
+        {
+            HANDLE jobHandle = NULL;
+
+            status = KphOpenProcessJob(
+                PhKphHandle,
+                &jobHandle,
+                processHandleLimited,
+                JOB_OBJECT_QUERY
+                );
+
+            if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)
+            {
+                JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
+
+                Data->IsInJob = TRUE;
+
+                PhGetHandleInformation(
+                    NtCurrentProcess(),
+                    jobHandle,
+                    -1,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &Data->JobName
+                    );
+
+                // Process Explorer only recognizes processes as being in jobs if they 
+                // don't have the silent-breakaway-OK limit as their only limit.
+                // Emulate this behaviour.
+                if (NT_SUCCESS(PhGetJobBasicLimits(jobHandle, &basicLimits)))
+                {
+                    Data->IsInSignificantJob =
+                        basicLimits.LimitFlags != JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK;
+                }
+
+                NtClose(jobHandle);
+            }
+        }
+        else
+        {
+            // KProcessHacker not available. We can determine if the process is 
+            // in a job, but we can't get a handle to the job.
+
+            status = NtIsProcessInJob(processHandleLimited, NULL);
+
+            if (NT_SUCCESS(status))
+                Data->IsInJob = status == STATUS_PROCESS_IN_JOB;
+        }
+    }
+
+    if (processHandleLimited)
+        NtClose(processHandleLimited);
 
     PhpQueueProcessQueryStage2(processItem);
 }
@@ -552,13 +670,17 @@ VOID PhpFillProcessItemStage1(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
+    processItem->CommandLine = Data->CommandLine;
     processItem->SmallIcon = Data->SmallIcon;
     processItem->LargeIcon = Data->LargeIcon;
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
+    processItem->ElevationType = Data->ElevationType;
     processItem->IntegrityLevel = Data->IntegrityLevel;
     processItem->JobName = Data->JobName;
+    processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
+    processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
 
     if (Data->IntegrityString)
@@ -647,55 +769,6 @@ VOID PhpFillProcessItem(
 
                 PhDereferenceObject(fileName);
             }
-        }
-    }
-
-    {
-        HANDLE processHandle2;
-
-        status = PhOpenProcess(
-            &processHandle2,
-            ProcessQueryAccess | PROCESS_VM_READ,
-            ProcessItem->ProcessId
-            );
-
-        if (NT_SUCCESS(status))
-        {
-            BOOLEAN isPosix;
-            PPH_STRING commandLine;
-            ULONG i;
-
-            status = PhGetProcessIsPosix(processHandle2, &isPosix);
-            ProcessItem->IsPosix = isPosix;
-
-            if (!NT_SUCCESS(status) || !isPosix)
-            {
-                status = PhGetProcessCommandLine(processHandle2, &commandLine);
-
-                if (NT_SUCCESS(status))
-                {
-                    // Some command lines (e.g. from taskeng.exe) have nulls in them. 
-                    // Since Windows can't display them, we'll replace them with 
-                    // spaces.
-                    for (i = 0; i < (ULONG)commandLine->Length / 2; i++)
-                    {
-                        if (commandLine->Buffer[i] == 0)
-                            commandLine->Buffer[i] = ' ';
-                    }
-                }
-            }
-            else
-            {
-                // Get the POSIX command line.
-                status = PhGetProcessPosixCommandLine(processHandle2, &commandLine);
-            }
-
-            if (NT_SUCCESS(status))
-            {
-                ProcessItem->CommandLine = commandLine;
-            }
-
-            NtClose(processHandle2);
         }
     }
 
