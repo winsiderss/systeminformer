@@ -147,6 +147,18 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
     return jobPageContext;
 }
 
+static PhpAddLimit(
+    __in HWND Handle,
+    __in PWSTR Name,
+    __in PWSTR Value
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhAddListViewItem(Handle, MAXINT, Name, NULL);
+    PhSetListViewSubItem(Handle, lvItemIndex, 1, Value);
+}
+
 INT_PTR CALLBACK PhpJobPageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -197,6 +209,8 @@ INT_PTR CALLBACK PhpJobPageProc(
             {
                 PPH_STRING jobObjectName = NULL;
                 PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+                JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedLimits;
+                JOBOBJECT_BASIC_UI_RESTRICTIONS basicUiRestrictions;
 
                 // Name
 
@@ -235,6 +249,125 @@ INT_PTR CALLBACK PhpJobPageProc(
                     }
 
                     PhFree(processIdList);
+                }
+
+                // Limits
+
+                if (NT_SUCCESS(PhGetJobExtendedLimits(jobHandle, &extendedLimits)))
+                {
+                    ULONG flags = extendedLimits.BasicLimitInformation.LimitFlags;
+
+                    if (flags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS)
+                    {
+                        WCHAR value[PH_INT32_STR_LEN_1];
+                        PhPrintUInt32(value, extendedLimits.BasicLimitInformation.ActiveProcessLimit);
+                        PhpAddLimit(limitsLv, L"Active Processes", value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_AFFINITY)
+                    {
+                        WCHAR value[PH_PTR_STR_LEN_1];
+                        PhPrintPointer(value, (PVOID)extendedLimits.BasicLimitInformation.Affinity);
+                        PhpAddLimit(limitsLv, L"Affinity", value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_BREAKAWAY_OK)
+                    {
+                        PhpAddLimit(limitsLv, L"Breakaway OK", L"Enabled");
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION)
+                    {
+                        PhpAddLimit(limitsLv, L"Die on Unhandled Exception", L"Enabled");
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_JOB_MEMORY)
+                    {
+                        PPH_STRING value = PhFormatSize(extendedLimits.JobMemoryLimit, -1);
+                        PhpAddLimit(limitsLv, L"Job Memory", value->Buffer);
+                        PhDereferenceObject(value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_JOB_TIME)
+                    {
+                        WCHAR value[PH_TIMESPAN_STR_LEN_1];
+                        PhPrintTimeSpan(value, extendedLimits.BasicLimitInformation.PerJobUserTimeLimit.QuadPart,
+                            PH_TIMESPAN_DHMS);
+                        PhpAddLimit(limitsLv, L"Job Time", value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE)
+                    {
+                        PhpAddLimit(limitsLv, L"Kill on Job Close", L"Enabled");
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
+                    {
+                        PhpAddLimit(limitsLv, L"Priority Class",
+                            PhGetProcessPriorityClassWin32String(extendedLimits.BasicLimitInformation.PriorityClass));
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
+                    {
+                        PPH_STRING value = PhFormatSize(extendedLimits.ProcessMemoryLimit, -1);
+                        PhpAddLimit(limitsLv, L"Process Memory", value->Buffer);
+                        PhDereferenceObject(value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_PROCESS_TIME)
+                    {
+                        WCHAR value[PH_TIMESPAN_STR_LEN_1];
+                        PhPrintTimeSpan(value, extendedLimits.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart,
+                            PH_TIMESPAN_DHMS);
+                        PhpAddLimit(limitsLv, L"Process Time", value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_SCHEDULING_CLASS)
+                    {
+                        WCHAR value[PH_INT32_STR_LEN_1];
+                        PhPrintUInt32(value, extendedLimits.BasicLimitInformation.SchedulingClass);
+                        PhpAddLimit(limitsLv, L"Scheduling Class", value);
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)
+                    {
+                        PhpAddLimit(limitsLv, L"Silent Breakaway OK", L"Enabled");
+                    }
+
+                    if (flags & JOB_OBJECT_LIMIT_WORKINGSET)
+                    {
+                        PPH_STRING value;
+                        
+                        value = PhFormatSize(extendedLimits.BasicLimitInformation.MinimumWorkingSetSize, -1);
+                        PhpAddLimit(limitsLv, L"Working Set Minimum", value->Buffer);
+                        PhDereferenceObject(value);
+
+                        value = PhFormatSize(extendedLimits.BasicLimitInformation.MaximumWorkingSetSize, -1);
+                        PhpAddLimit(limitsLv, L"Working Set Maximum", value->Buffer);
+                        PhDereferenceObject(value);
+                    }
+                }
+
+                if (NT_SUCCESS(PhGetJobBasicUiRestrictions(jobHandle, &basicUiRestrictions)))
+                {
+                    ULONG flags = basicUiRestrictions.UIRestrictionsClass;
+
+                    if (flags & JOB_OBJECT_UILIMIT_DESKTOP)
+                        PhpAddLimit(limitsLv, L"Desktop", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_DISPLAYSETTINGS)
+                        PhpAddLimit(limitsLv, L"Display Settings", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_EXITWINDOWS)
+                        PhpAddLimit(limitsLv, L"Exit Windows", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_GLOBALATOMS)
+                        PhpAddLimit(limitsLv, L"Global Atoms", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_HANDLES)
+                        PhpAddLimit(limitsLv, L"Handles", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_READCLIPBOARD)
+                        PhpAddLimit(limitsLv, L"Read Clipboard", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS)
+                        PhpAddLimit(limitsLv, L"System Parameters", L"Limited");
+                    if (flags & JOB_OBJECT_UILIMIT_WRITECLIPBOARD)
+                        PhpAddLimit(limitsLv, L"Write Clipboard", L"Limited");
                 }
 
                 NtClose(jobHandle);

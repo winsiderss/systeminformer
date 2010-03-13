@@ -3038,6 +3038,49 @@ VOID PhInvokeCallback(
     PhReleaseQueuedLockSharedFast(&Callback->ListLock);
 }
 
+VOID PhPrintTimeSpan(
+    __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
+    __in ULONG64 Ticks,
+    __in_opt ULONG Mode
+    )
+{
+    switch (Mode)
+    {
+    case PH_TIMESPAN_HMSM:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%I64u:%02I64u:%02I64u:%03I64u",
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks),
+            PH_TICKS_PARTIAL_MS(Ticks)
+            );
+        break;
+    case PH_TIMESPAN_DHMS:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%I64u:%02I64u:%02I64u:%02I64u",
+            PH_TICKS_PARTIAL_DAYS(Ticks),
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks)
+            );
+        break;
+    default:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%02I64u:%02I64u:%02I64u",
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks)
+            );
+        break;
+    }
+}
+
 /**
  * Performs exponentiation.
  */

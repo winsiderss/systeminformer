@@ -1525,6 +1525,19 @@ FORCEINLINE VOID PhIncrementMultipleCallbackSync(
 
 // general
 
+#define PH_TIMESPAN_STR_LEN 30
+#define PH_TIMESPAN_STR_LEN_1 (PH_TIMESPAN_STR_LEN + 1)
+
+#define PH_TIMESPAN_HMS 0
+#define PH_TIMESPAN_HMSM 1
+#define PH_TIMESPAN_DHMS 2
+
+VOID PhPrintTimeSpan(
+    __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
+    __in ULONG64 Ticks,
+    __in_opt ULONG Mode
+    );
+
 ULONG PhExponentiate(
     __in ULONG Base,
     __in ULONG Exponent
