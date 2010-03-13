@@ -381,6 +381,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\exprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\findobj.c"
 				>
 			</File>

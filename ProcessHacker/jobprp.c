@@ -42,6 +42,18 @@ INT_PTR CALLBACK PhpJobPageProc(
     __in LPARAM lParam
     );
 
+VOID PhpShowJobAdvancedProperties(
+    __in HWND ParentWindowHandle,
+    __in PJOB_PAGE_CONTEXT Context
+    );
+
+INT_PTR CALLBACK PhpJobStatisticsPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 VOID PhShowJobProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
@@ -130,21 +142,8 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
     __in LPARAM lParam
     )
 {
-    PJOB_PAGE_CONTEXT jobPageContext;
-
-    if (uMsg != WM_INITDIALOG)
-    {
-        jobPageContext = (PJOB_PAGE_CONTEXT)GetProp(hwndDlg, L"JobPageContext");
-    }
-    else
-    {
-        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-
-        jobPageContext = (PJOB_PAGE_CONTEXT)propSheetPage->lParam;
-        SetProp(hwndDlg, L"JobPageContext", (HANDLE)jobPageContext);
-    }
-
-    return jobPageContext;
+    return (PJOB_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
+        hwndDlg, uMsg, wParam, lParam, L"JobPageContext");
 }
 
 static PhpAddLimit(
@@ -408,7 +407,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 break;
             case IDC_ADVANCED:
                 {
-                    PhShowInformation(hwndDlg, L"Advanced");
+                    PhpShowJobAdvancedProperties(hwndDlg, jobPageContext);
                 }
                 break;
             }
@@ -416,5 +415,68 @@ INT_PTR CALLBACK PhpJobPageProc(
         break;
     }
 
+    return FALSE;
+}
+
+VOID PhpShowJobAdvancedProperties(
+    __in HWND ParentWindowHandle,
+    __in PJOB_PAGE_CONTEXT Context
+    )
+{
+    PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
+    HPROPSHEETPAGE pages[2];
+    PROPSHEETPAGE statisticsPage;
+    PH_STD_OBJECT_SECURITY stdObjectSecurity;
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
+
+    propSheetHeader.dwFlags =
+        PSH_NOAPPLYNOW |
+        PSH_NOCONTEXTHELP |
+        PSH_PROPTITLE;
+    propSheetHeader.hwndParent = ParentWindowHandle;
+    propSheetHeader.pszCaption = L"Job";
+    propSheetHeader.nPages = 2;
+    propSheetHeader.nStartPage = 0;
+    propSheetHeader.phpage = pages;
+
+    // General
+
+    memset(&statisticsPage, 0, sizeof(PROPSHEETPAGE));
+    statisticsPage.dwSize = sizeof(PROPSHEETPAGE);
+    statisticsPage.pszTemplate = MAKEINTRESOURCE(IDD_JOBSTATISTICS);
+    statisticsPage.pfnDlgProc = PhpJobStatisticsPageProc;
+    statisticsPage.lParam = (LPARAM)Context;
+    pages[0] = CreatePropertySheetPage(&statisticsPage);
+
+    // Security
+
+    stdObjectSecurity.OpenObject = Context->OpenObject;
+    stdObjectSecurity.ObjectType = L"Job";
+    stdObjectSecurity.Context = Context->Context;
+
+    if (PhGetAccessEntries(L"Job", &accessEntries, &numberOfAccessEntries))
+    {
+        pages[1] = PhCreateSecurityPage(
+            L"Job",
+            PhStdGetObjectSecurity,
+            PhStdSetObjectSecurity,
+            &stdObjectSecurity,
+            accessEntries,
+            numberOfAccessEntries
+            );
+        PhFree(accessEntries);
+    }
+
+    PropertySheet(&propSheetHeader);
+}
+
+INT_PTR CALLBACK PhpJobStatisticsPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
     return FALSE;
 }

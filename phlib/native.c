@@ -2700,6 +2700,20 @@ NTSTATUS PhGetTokenIntegrityLevel(
     return status;
 }
 
+NTSTATUS PhGetEventBasicInformation(
+    __in HANDLE EventHandle,
+    __out PEVENT_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryEvent(
+        EventHandle,
+        EventBasicInformation,
+        BasicInformation,
+        sizeof(EVENT_BASIC_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhGetFileSize(
     __in HANDLE FileHandle,
     __out PLARGE_INTEGER Size

@@ -274,21 +274,8 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     __in LPARAM lParam
     )
 {
-    PTOKEN_PAGE_CONTEXT tokenPageContext;
-
-    if (uMsg != WM_INITDIALOG)
-    {
-        tokenPageContext = (PTOKEN_PAGE_CONTEXT)GetProp(hwndDlg, L"TokenPageContext");
-    }
-    else
-    {
-        LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
-
-        tokenPageContext = (PTOKEN_PAGE_CONTEXT)propSheetPage->lParam;
-        SetProp(hwndDlg, L"TokenPageContext", (HANDLE)tokenPageContext);
-    }
-
-    return tokenPageContext;
+    return (PTOKEN_PAGE_CONTEXT)PhpGenericPropertyPageHeader(
+        hwndDlg, uMsg, wParam, lParam, L"TokenPageContext");
 }
 
 INT_PTR CALLBACK PhpTokenPageProc(
@@ -479,8 +466,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
         {
             if (tokenPageContext->Groups) PhFree(tokenPageContext->Groups);
             if (tokenPageContext->Privileges) PhFree(tokenPageContext->Privileges);
-
-            RemoveProp(hwndDlg, L"TokenPageContext");
         }
         break;
     case WM_COMMAND:
@@ -699,7 +684,7 @@ VOID PhpShowTokenAdvancedProperties(
     )
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
-    HPROPSHEETPAGE pages[2];
+    HPROPSHEETPAGE pages[3];
     PROPSHEETPAGE generalPage;
     PROPSHEETPAGE advancedPage;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
