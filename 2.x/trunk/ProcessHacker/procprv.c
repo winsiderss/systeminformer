@@ -517,7 +517,7 @@ VOID PhpProcessQueryStage1(
 
 #ifdef _M_X64
         // WOW64
-        PhGetProcessIsWow64(processHandle, &Data->IsWow64);
+        PhGetProcessIsWow64(processHandleLimited, &Data->IsWow64);
 #endif
     }
 

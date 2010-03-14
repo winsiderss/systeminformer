@@ -195,7 +195,10 @@ PPH_STRING PhGetNtMessage(
 {
     PPH_STRING message;
 
-    message = PhGetMessage(GetModuleHandle(L"ntdll.dll"), 0xb, GetUserDefaultLangID(), (ULONG)Status);
+    if (!NT_NTWIN32(Status))
+        message = PhGetMessage(GetModuleHandle(L"ntdll.dll"), 0xb, GetUserDefaultLangID(), (ULONG)Status);
+    else
+        message = PhGetWin32Message(WIN32_FROM_NTSTATUS(Status));
 
     if (!message)
         return NULL;
@@ -2219,7 +2222,7 @@ BOOLEAN PhParseCommandLine(
             i++;
 
         if (i >= length)
-            return TRUE;
+            break;
 
         if (option &&
             (option->Type == MandatoryArgumentType ||
@@ -2232,7 +2235,7 @@ BOOLEAN PhParseCommandLine(
             PhDereferenceObject(optionValue);
 
             if (!cont)
-                return TRUE;
+                break;
 
             option = NULL;
         }
@@ -2280,7 +2283,7 @@ BOOLEAN PhParseCommandLine(
                 cont = Callback(option, NULL, Context);
 
                 if (!cont)
-                    return TRUE;
+                    break;
 
                 option = NULL;
             }
