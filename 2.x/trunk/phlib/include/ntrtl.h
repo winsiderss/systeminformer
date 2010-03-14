@@ -5,7 +5,6 @@
 
 // Defines for forwarded ntdll functions
 
-#define RtlCreateHeap HeapCreate
 #define RtlDestroyHeap HeapDestroy
 #define RtlAllocateHeap HeapAlloc
 #define RtlFreeHeap HeapFree
@@ -133,7 +132,10 @@ FORCEINLINE VOID RtlInitUnicodeString(
     DestinationString->Buffer = SourceString;
 }
 
-typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeN)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlMultiByteToUnicodeN(
     __out PWSTR UnicodeString,
     __in ULONG MaxBytesInUnicodeString,
     __out_opt PULONG BytesInUnicodeString,
@@ -141,13 +143,19 @@ typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeN)(
     __in ULONG BytesInMultiByteString
     );
 
-typedef NTSTATUS (NTAPI *_RtlMultiByteToUnicodeSize)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlMultiByteToUnicodeSize(
     __out PULONG BytesInUnicodeString,
     __in PSTR MultiByteString,
     __in ULONG BytesInMultiByteString
     );
 
-typedef NTSTATUS (NTAPI *_RtlUnicodeToMultiByteN)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToMultiByteN(
     __out PSTR MultiByteString,
     __in ULONG MaxBytesInMultiByteString,
     __out_opt PULONG BytesInMultiByteString,
@@ -155,7 +163,10 @@ typedef NTSTATUS (NTAPI *_RtlUnicodeToMultiByteN)(
     __in ULONG BytesInUnicodeString
     );
 
-typedef NTSTATUS (NTAPI *_RtlUnicodeToMultiByteSize)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToMultiByteSize(
     __out PULONG BytesInMultiByteString,
     __in PWSTR UnicodeString,
     __in ULONG BytesInUnicodeString
@@ -232,7 +243,10 @@ typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
     __in PVOID ThreadParameter
     );
 
-typedef NTSTATUS (NTAPI *_RtlCreateUserThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlCreateUserThread(
     __in HANDLE Process,
     __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
     __in BOOLEAN CreateSuspended,
@@ -354,16 +368,25 @@ typedef struct _RTL_DEBUG_INFORMATION
     PVOID Reserved[6];
 } RTL_DEBUG_INFORMATION, *PRTL_DEBUG_INFORMATION;
 
-typedef PRTL_DEBUG_INFORMATION (*_RtlCreateQueryDebugBuffer)(
+NTSYSCALLAPI
+PRTL_DEBUG_INFORMATION
+NTAPI
+RtlCreateQueryDebugBuffer(
     __in_opt ULONG MaximumCommit,
     __in BOOLEAN UseEventPair
     );
 
-typedef NTSTATUS (*_RtlDestroyQueryDebugBuffer)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlDestroyQueryDebugBuffer(
     __in PRTL_DEBUG_INFORMATION Buffer
     );
 
-typedef NTSTATUS (NTAPI *_RtlQueryProcessDebugInformation)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlQueryProcessDebugInformation(
     __in HANDLE UniqueProcessId,
     __in ULONG Flags,
     __inout PRTL_DEBUG_INFORMATION Buffer
@@ -380,7 +403,10 @@ typedef NTSTATUS (NTAPI *_RtlQueryProcessDebugInformation)(
 
 // Messages
 
-typedef NTSTATUS (NTAPI *_RtlFindMessage)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlFindMessage(
     __in PVOID DllHandle,
     __in ULONG MessageTableId,
     __in ULONG MessageLanguageId,
@@ -390,13 +416,19 @@ typedef NTSTATUS (NTAPI *_RtlFindMessage)(
 
 // Errors
 
-typedef ULONG (NTAPI *_RtlNtStatusToDosError)(
+NTSYSCALLAPI
+ULONG
+NTAPI
+RtlNtStatusToDosError(
     __in NTSTATUS Status
     );
 
 // Security objects
 
-typedef NTSTATUS (NTAPI *_RtlNewSecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlNewSecurityObject(
     __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
     __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
     __out PSECURITY_DESCRIPTOR *NewDescriptor,
@@ -405,16 +437,25 @@ typedef NTSTATUS (NTAPI *_RtlNewSecurityObject)(
     __in PGENERIC_MAPPING GenericMapping
     );
 
-typedef NTSTATUS (NTAPI *_RtlDeleteSecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlDeleteSecurityObject(
     __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
     );
 
-typedef NTSTATUS (NTAPI *_RtlCopySecurityDescriptor)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlCopySecurityDescriptor(
     __in PSECURITY_DESCRIPTOR InputSecurityDescriptor,
     __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
     );
 
-typedef NTSTATUS (NTAPI *_RtlQuerySecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlQuerySecurityObject(
      __in PSECURITY_DESCRIPTOR ObjectDescriptor,
      __in SECURITY_INFORMATION SecurityInformation,
      __out_opt PSECURITY_DESCRIPTOR ResultantDescriptor,
@@ -422,7 +463,10 @@ typedef NTSTATUS (NTAPI *_RtlQuerySecurityObject)(
      __out PULONG ReturnLength
      );
 
-typedef NTSTATUS (NTAPI *_RtlSetSecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlSetSecurityObject(
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR ModificationDescriptor,
     __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
