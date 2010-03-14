@@ -343,6 +343,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\maplib.c"
+				>
+			</File>
+			<File
 				RelativePath=".\native.c"
 				>
 			</File>

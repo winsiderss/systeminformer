@@ -460,6 +460,11 @@ NTSTATUS PhGetFileSize(
     __out PLARGE_INTEGER Size
     );
 
+NTSTATUS PhSetFileSize(
+    __in HANDLE FileHandle,
+    __in PLARGE_INTEGER Size
+    );
+
 NTSTATUS PhGetTransactionManagerBasicInformation(
     __in HANDLE TransactionManagerHandle,
     __out PTRANSACTIONMANAGER_BASIC_INFORMATION BasicInformation
@@ -817,6 +822,14 @@ NTSTATUS PhUnloadMappedImage(
     __inout PPH_MAPPED_IMAGE MappedImage
     );
 
+NTSTATUS PhMapViewOfEntireFile(
+    __in_opt PWSTR FileName,
+    __in_opt HANDLE FileHandle,
+    __in BOOLEAN ReadOnly,
+    __out PPVOID ViewBase,
+    __out PSIZE_T Size
+    );
+
 PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
     __in PPH_MAPPED_IMAGE MappedImage,
     __in ULONG Rva
@@ -913,9 +926,12 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
 
 typedef struct _PH_MAPPED_IMAGE_IMPORT_ENTRY
 {
-    USHORT Ordinal;
-    USHORT NameHint;
     PSTR Name;
+    union
+    {
+        USHORT Ordinal;
+        USHORT NameHint;
+    };
 } PH_MAPPED_IMAGE_IMPORT_ENTRY, *PPH_MAPPED_IMAGE_IMPORT_ENTRY;
 
 NTSTATUS PhInitializeMappedImageImports(
@@ -933,6 +949,89 @@ NTSTATUS PhGetMappedImageImportEntry(
     __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     __in ULONG Index,
     __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    );
+
+// maplib
+
+struct _PH_MAPPED_ARCHIVE;
+typedef struct _PH_MAPPED_ARCHIVE *PPH_MAPPED_ARCHIVE;
+
+typedef enum _PH_MAPPED_ARCHIVE_MEMBER_TYPE
+{
+    NormalArchiveMemberType,
+    LinkerArchiveMemberType,
+    LongnamesArchiveMemberType
+} PH_MAPPED_ARCHIVE_MEMBER_TYPE;
+
+typedef struct _PH_MAPPED_ARCHIVE_MEMBER
+{
+    PPH_MAPPED_ARCHIVE MappedArchive;
+    PH_MAPPED_ARCHIVE_MEMBER_TYPE Type;
+    PSTR Name;
+    ULONG Size;
+    PVOID Data;
+
+    PIMAGE_ARCHIVE_MEMBER_HEADER Header;
+    CHAR NameBuffer[20];
+} PH_MAPPED_ARCHIVE_MEMBER, *PPH_MAPPED_ARCHIVE_MEMBER;
+
+typedef struct _PH_MAPPED_ARCHIVE
+{
+    PVOID ViewBase;
+    SIZE_T Size;
+
+    PH_MAPPED_ARCHIVE_MEMBER FirstLinkerMember;
+    PH_MAPPED_ARCHIVE_MEMBER SecondLinkerMember;
+    PH_MAPPED_ARCHIVE_MEMBER LongnamesMember;
+    BOOLEAN HasLongnamesMember;
+
+    PPH_MAPPED_ARCHIVE_MEMBER FirstStandardMember;
+    PPH_MAPPED_ARCHIVE_MEMBER LastStandardMember;
+} PH_MAPPED_ARCHIVE, *PPH_MAPPED_ARCHIVE;
+
+typedef struct _PH_MAPPED_ARCHIVE_IMPORT_ENTRY
+{
+    PSTR Name;
+    PSTR DllName;
+    union
+    {
+        USHORT Ordinal;
+        USHORT NameHint;
+    };
+    BYTE Type;
+    BYTE NameType;
+    USHORT Machine;
+} PH_MAPPED_ARCHIVE_IMPORT_ENTRY, *PPH_MAPPED_ARCHIVE_IMPORT_ENTRY;
+
+NTSTATUS PhInitializeMappedArchive(
+    __out PPH_MAPPED_ARCHIVE MappedArchive,
+    __in PVOID ViewBase,
+    __in SIZE_T Size
+    );
+
+NTSTATUS PhLoadMappedArchive(
+    __in_opt PWSTR FileName,
+    __in_opt HANDLE FileHandle,
+    __in BOOLEAN ReadOnly,
+    __out PPH_MAPPED_ARCHIVE MappedArchive
+    );
+
+NTSTATUS PhUnloadMappedArchive(
+    __inout PPH_MAPPED_ARCHIVE MappedArchive
+    );
+
+NTSTATUS PhGetNextMappedArchiveMember(
+    __in PPH_MAPPED_ARCHIVE_MEMBER Member,
+    __out PPH_MAPPED_ARCHIVE_MEMBER NextMember
+    );
+
+BOOLEAN PhIsMappedArchiveMemberShortFormat(
+    __in PPH_MAPPED_ARCHIVE_MEMBER Member
+    );
+
+NTSTATUS PhGetMappedArchiveImportEntry(
+    __in PPH_MAPPED_ARCHIVE_MEMBER Member,
+    __out PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
 
 // verify
