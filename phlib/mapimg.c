@@ -20,6 +20,14 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This file contains functions to load and retrieve information about 
+ * image files (exe, dll). The file format for image files is explained 
+ * in the PE/COFF specification located at:
+ *
+ * http://www.microsoft.com/whdc/system/platform/firmware/PECOFF.mspx
+ */
+
 #include <ph.h>
 
 VOID PhpMappedImageProbe(
@@ -125,9 +133,56 @@ NTSTATUS PhLoadMappedImage(
     )
 {
     NTSTATUS status;
+
+    status = PhMapViewOfEntireFile(
+        FileName,
+        FileHandle,
+        ReadOnly,
+        &MappedImage->ViewBase,
+        &MappedImage->Size
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = PhInitializeMappedImage(
+            MappedImage,
+            MappedImage->ViewBase,
+            MappedImage->Size
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
+        }
+    }
+
+    return status;
+}
+
+NTSTATUS PhUnloadMappedImage(
+    __inout PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    return NtUnmapViewOfSection(
+        NtCurrentProcess(),
+        MappedImage->ViewBase
+        );
+}
+
+NTSTATUS PhMapViewOfEntireFile(
+    __in_opt PWSTR FileName,
+    __in_opt HANDLE FileHandle,
+    __in BOOLEAN ReadOnly,
+    __out PPVOID ViewBase,
+    __out PSIZE_T Size
+    )
+{
+    NTSTATUS status;
     BOOLEAN openedFile = FALSE;
     LARGE_INTEGER size;
     HANDLE sectionHandle = NULL;
+    SIZE_T viewSize;
+    PVOID viewBase;
 
     if (!FileName && !FileHandle)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -174,17 +229,17 @@ NTSTATUS PhLoadMappedImage(
 
     // Map the section.
 
-    MappedImage->Size = (SIZE_T)size.QuadPart;
-    MappedImage->ViewBase = NULL;
+    viewSize = (SIZE_T)size.QuadPart;
+    viewBase = NULL;
 
     status = NtMapViewOfSection(
         sectionHandle,
         NtCurrentProcess(),
-        &MappedImage->ViewBase,
+        &viewBase,
         0,
         0,
         NULL,
-        &MappedImage->Size,
+        &viewSize,
         ViewShare,
         0,
         ReadOnly ? PAGE_EXECUTE_READ : PAGE_EXECUTE_READWRITE
@@ -193,18 +248,8 @@ NTSTATUS PhLoadMappedImage(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    // Initialize the mapped file.
-
-    status = PhInitializeMappedImage(
-        MappedImage,
-        MappedImage->ViewBase,
-        MappedImage->Size
-        );
-
-    if (!NT_SUCCESS(status))
-    {
-        NtUnmapViewOfSection(NtCurrentProcess(), MappedImage->ViewBase);
-    }
+    *ViewBase = viewBase;
+    *Size = viewSize;
 
 CleanupExit:
     if (sectionHandle)
@@ -213,16 +258,6 @@ CleanupExit:
         NtClose(FileHandle);
 
     return status;
-}
-
-NTSTATUS PhUnloadMappedImage(
-    __inout PPH_MAPPED_IMAGE MappedImage
-    )
-{
-    return NtUnmapViewOfSection(
-        NtCurrentProcess(),
-        MappedImage->ViewBase
-        );
 }
 
 VOID PhpMappedImageProbe(
@@ -824,9 +859,8 @@ NTSTATUS PhGetMappedImageImportEntry(
         // Is this entry using an ordinal?
         if (entry & 0x80000000)
         {
-            Entry->Ordinal = (USHORT)(entry & 0xffff);
-            Entry->NameHint = 0;
             Entry->Name = NULL;
+            Entry->Ordinal = (USHORT)(entry & 0xffff);
 
             return STATUS_SUCCESS;
         }
@@ -848,9 +882,8 @@ NTSTATUS PhGetMappedImageImportEntry(
         // Is this entry using an ordinal?
         if (entry & 0x8000000000000000)
         {
-            Entry->Ordinal = (USHORT)(entry & 0xffff);
-            Entry->NameHint = 0;
             Entry->Name = NULL;
+            Entry->Ordinal = (USHORT)(entry & 0xffff);
 
             return STATUS_SUCCESS;
         }
@@ -884,9 +917,8 @@ NTSTATUS PhGetMappedImageImportEntry(
         return GetExceptionCode();
     }
 
-    Entry->Ordinal = 0;
-    Entry->NameHint = importByName->Hint;
     Entry->Name = (PSTR)importByName->Name;
+    Entry->NameHint = importByName->Hint;
 
     // TODO: Probe the name.
 
