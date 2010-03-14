@@ -228,14 +228,20 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
 
 // System calls
 
-typedef NTSTATUS (NTAPI *_NtOpenProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PCLIENT_ID ClientId
     );
 
-typedef NTSTATUS (NTAPI *_NtTerminateProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTerminateProcess(
     __in_opt HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus
     );
@@ -249,7 +255,10 @@ typedef NTSTATUS (NTAPI *_NtTerminateProcess)(
 #define NtCurrentProcessId() ((HANDLE)GetCurrentProcessId())
 #define NtCurrentThreadId() ((HANDLE)GetCurrentThreadId())
 
-typedef NTSTATUS (NTAPI *_NtQueryInformationProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationProcess(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
     __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
@@ -274,31 +283,46 @@ typedef NTSTATUS (NTAPI *_NtGetNextThread)(
     __out PHANDLE NewThreadHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationProcess(
     __in HANDLE ProcessHandle,
     __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
     __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PCLIENT_ID ClientId
     );
 
-typedef NTSTATUS (NTAPI *_NtTerminateThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTerminateThread(
     __in_opt HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
     );
 
-typedef NTSTATUS (NTAPI *_NtSuspendThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSuspendThread(
     __in HANDLE ThreadHandle,
     __out_opt PULONG PreviousSuspendCount
     );
 
-typedef NTSTATUS (NTAPI *_NtResumeThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtResumeThread(
     __in HANDLE ThreadHandle,
     __out_opt PULONG PreviousSuspendCount
     );
@@ -311,17 +335,26 @@ typedef NTSTATUS (NTAPI *_NtResumeProcess)(
     __in HANDLE ProcessHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtGetContextThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetContextThread(
     __in HANDLE ThreadHandle,
     __inout PCONTEXT ThreadContext
     );
 
-typedef NTSTATUS (NTAPI *_NtSetContextThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetContextThread(
     __in HANDLE ThreadHandle,
     __in PCONTEXT ThreadContext
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryInformationThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationThread(
     __in HANDLE ThreadHandle,
     __in THREAD_INFORMATION_CLASS ThreadInformationClass,
     __out_bcount(ThreadInformationLength) PVOID ThreadInformation,
@@ -329,23 +362,35 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationThread)(
     __out_opt PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationThread(
     __in HANDLE ThreadHandle,
     __in THREAD_INFORMATION_CLASS ThreadInformationClass,
     __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
     __in ULONG ThreadInformationLength
     );
 
-typedef NTSTATUS (NTAPI *_NtAlertThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertThread(
     __in HANDLE ThreadHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtAlertResumeThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertResumeThread(
     __in HANDLE ThreadHandle,
     __out_opt PULONG PreviousSuspendCount
     );
 
-typedef NTSTATUS (NTAPI *_NtTestAlert)();
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTestAlert();
 
 typedef VOID (*PPS_APC_ROUTINE)(
     __in_opt PVOID ApcArgument1,
@@ -353,7 +398,10 @@ typedef VOID (*PPS_APC_ROUTINE)(
     __in_opt PVOID ApcArgument3
     );
 
-typedef NTSTATUS (NTAPI *_NtQueueApcThread)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueueApcThread(
     __in HANDLE ThreadHandle,
     __in PPS_APC_ROUTINE ApcRoutine,
     __in_opt PVOID ApcArgument1,
@@ -361,24 +409,36 @@ typedef NTSTATUS (NTAPI *_NtQueueApcThread)(
     __in_opt PVOID ApcArgument3
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateJobObject(
     __out PHANDLE JobHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenJobObject(
     __out PHANDLE JobHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtAssignProcessToJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAssignProcessToJobObject(
     __in HANDLE JobHandle,
     __in HANDLE ProcessHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtTerminateJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTerminateJobObject(
     __in HANDLE JobHandle,
     __in NTSTATUS ExitStatus
     );
@@ -388,7 +448,10 @@ typedef NTSTATUS (NTAPI *_NtIsProcessInJob)(
     __in_opt HANDLE JobHandle
     ); 
 
-typedef NTSTATUS (NTAPI *_NtQueryInformationJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationJobObject(
     __in_opt HANDLE JobHandle,
     __in JOBOBJECTINFOCLASS JobObjectInformationClass,
     __out_bcount(JobObjectInformationLength) PVOID JobObjectInformation,
@@ -396,7 +459,10 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationJobObject)(
     __out_opt PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationJobObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationJobObject(
     __in HANDLE JobHandle,
     __in JOBOBJECTINFOCLASS JobObjectInformationClass,
     __in_bcount(JobObjectInformationLength) PVOID JobObjectInformation,
