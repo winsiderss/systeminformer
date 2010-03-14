@@ -192,11 +192,17 @@ typedef struct _FILE_END_OF_FILE_INFORMATION
     LARGE_INTEGER EndOfFile;
 } FILE_END_OF_FILE_INFORMATION, *PFILE_END_OF_FILE_INFORMATION; 
 
-typedef NTSTATUS (NTAPI *_NtDeleteFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteFile(
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateFile(
     __out PHANDLE FileHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -210,7 +216,10 @@ typedef NTSTATUS (NTAPI *_NtCreateFile)(
     __in ULONG EaLength
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateNamedPipeFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateNamedPipeFile(
     __out PHANDLE FileHandle,
     __in ULONG DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -227,7 +236,10 @@ typedef NTSTATUS (NTAPI *_NtCreateNamedPipeFile)(
     __in_opt PLARGE_INTEGER DefaultTimeout
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateMailslotFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateMailslotFile(
     __out PHANDLE FileHandle,
     __in ULONG DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -238,7 +250,10 @@ typedef NTSTATUS (NTAPI *_NtCreateMailslotFile)(
     __in PLARGE_INTEGER ReadTimeout
     );
 
-typedef NTSTATUS (NTAPI *_NtDeviceIoControlFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeviceIoControlFile(
     __in HANDLE FileHandle,
     __in_opt HANDLE Event,
     __in_opt PIO_APC_ROUTINE ApcRoutine,
@@ -251,7 +266,10 @@ typedef NTSTATUS (NTAPI *_NtDeviceIoControlFile)(
     __in ULONG OutputBufferLength
     );
 
-typedef NTSTATUS (NTAPI *_NtFsControlFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFsControlFile(
     __in HANDLE FileHandle,
     __in_opt HANDLE Event,
     __in_opt PIO_APC_ROUTINE ApcRoutine,
@@ -264,7 +282,10 @@ typedef NTSTATUS (NTAPI *_NtFsControlFile)(
     __in ULONG OutputBufferLength
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenFile(
     __out PHANDLE FileHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -273,7 +294,10 @@ typedef NTSTATUS (NTAPI *_NtOpenFile)(
     __in ULONG OpenOptions
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryInformationFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationFile(
     __in HANDLE FileHandle,
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __out_bcount(Length) PVOID FileInformation,
@@ -281,7 +305,10 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationFile)(
     __in FILE_INFORMATION_CLASS FileInformationClass
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationFile(
     __in HANDLE FileHandle,
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in_bcount(Length) PVOID FileInformation,
@@ -289,7 +316,10 @@ typedef NTSTATUS (NTAPI *_NtSetInformationFile)(
     __in FILE_INFORMATION_CLASS FileInformationClass
     );
 
-typedef NTSTATUS (NTAPI *_NtReadFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReadFile(
     __in HANDLE FileHandle,
     __in_opt HANDLE Event,
     __in_opt PIO_APC_ROUTINE ApcRoutine,
@@ -301,7 +331,10 @@ typedef NTSTATUS (NTAPI *_NtReadFile)(
     __in_opt PULONG Key
     );
 
-typedef NTSTATUS (NTAPI *_NtWriteFile)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWriteFile(
     __in HANDLE FileHandle,
     __in_opt HANDLE Event,
     __in_opt PIO_APC_ROUTINE ApcRoutine,
@@ -313,11 +346,17 @@ typedef NTSTATUS (NTAPI *_NtWriteFile)(
     __in_opt PULONG Key
     );
 
-typedef NTSTATUS (NTAPI *_NtLoadDriver)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtLoadDriver(
     __in PUNICODE_STRING DriverServiceName
     );
 
-typedef NTSTATUS (NTAPI *_NtUnloadDriver)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUnloadDriver(
     __in PUNICODE_STRING DriverServiceName
     );
 
@@ -335,7 +374,10 @@ typedef struct _IO_COMPLETION_BASIC_INFORMATION
     LONG Depth;
 } IO_COMPLETION_BASIC_INFORMATION, *PIO_COMPLETION_BASIC_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQueryIoCompletion)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryIoCompletion(
     __in HANDLE IoCompletionHandle,
     __in IO_COMPLETION_INFORMATION_CLASS IoCompletionInformationClass,
     __out_bcount(IoCompletionInformation) PVOID IoCompletionInformation,

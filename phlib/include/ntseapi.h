@@ -3,20 +3,29 @@
 
 // System calls
 
-typedef NTSTATUS (NTAPI *_NtOpenProcessToken)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenProcessToken(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __out PHANDLE TokenHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenThreadToken)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenThreadToken(
     __in HANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
     __in BOOLEAN OpenAsSelf,
     __out PHANDLE TokenHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryInformationToken)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationToken(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
     __out_bcount(TokenInformationLength) PVOID TokenInformation,
@@ -24,14 +33,20 @@ typedef NTSTATUS (NTAPI *_NtQueryInformationToken)(
     __out PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationToken)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationToken(
     __in HANDLE TokenHandle,
     __in TOKEN_INFORMATION_CLASS TokenInformationClass,
     __in_bcount(TokenInformationLength) PVOID TokenInformation,
     __in ULONG TokenInformationLength
     );
 
-typedef NTSTATUS (NTAPI *_NtAccessCheck)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAccessCheck(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in HANDLE ClientToken,
     __in ACCESS_MASK DesiredAccess,
@@ -42,7 +57,10 @@ typedef NTSTATUS (NTAPI *_NtAccessCheck)(
     __out PNTSTATUS AccessStatus
     );
 
-typedef NTSTATUS (NTAPI *_NtPrivilegeCheck)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtPrivilegeCheck(
     __in HANDLE ClientToken,
     __inout PPRIVILEGE_SET RequiredPrivileges,
     __out PBOOLEAN Result

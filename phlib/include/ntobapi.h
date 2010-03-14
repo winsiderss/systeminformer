@@ -89,7 +89,10 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
     BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQueryObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryObject(
     __in HANDLE Handle,
     __in OBJECT_INFORMATION_CLASS ObjectInformationClass,
     __out_bcount_opt(ObjectInformationLength) PVOID ObjectInformation,
@@ -97,14 +100,20 @@ typedef NTSTATUS (NTAPI *_NtQueryObject)(
     __out_opt PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationObject(
     __in HANDLE Handle,
     __in OBJECT_INFORMATION_CLASS ObjectInformationClass,
     __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
     __in ULONG ObjectInformationLength
     );
 
-typedef NTSTATUS (NTAPI *_NtDuplicateObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDuplicateObject(
     __in HANDLE SourceProcessHandle,
     __in HANDLE SourceHandle,
     __in_opt HANDLE TargetProcessHandle,
@@ -118,7 +127,10 @@ typedef NTSTATUS (NTAPI *_NtDuplicateObject)(
 #define DUPLICATE_SAME_ACCESS 0x00000002
 #define DUPLICATE_SAME_ATTRIBUTES 0x00000004
 
-typedef NTSTATUS (NTAPI *_NtMakeTemporaryObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMakeTemporaryObject(
     __in HANDLE Handle
     );
 
@@ -126,20 +138,29 @@ typedef NTSTATUS (NTAPI *_NtMakePermanentObject)(
     __in HANDLE Handle
     );
 
-typedef NTSTATUS (NTAPI *_NtSignalAndWaitForSingleObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSignalAndWaitForSingleObject(
     __in HANDLE SignalHandle,
     __in HANDLE WaitHandle,
     __in BOOLEAN Alertable,
     __in_opt PLARGE_INTEGER Timeout
     );
 
-typedef NTSTATUS (NTAPI *_NtWaitForSingleObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForSingleObject(
     __in HANDLE Handle,
     __in BOOLEAN Alertable,
     __in_opt PLARGE_INTEGER Timeout
     );
 
-typedef NTSTATUS (NTAPI *_NtWaitForMultipleObjects)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForMultipleObjects(
     __in ULONG Count,
     __in_ecount(Count) PHANDLE Handles,
     __in WAIT_TYPE WaitType,
@@ -147,13 +168,19 @@ typedef NTSTATUS (NTAPI *_NtWaitForMultipleObjects)(
     __in_opt PLARGE_INTEGER Timeout
     );
 
-typedef NTSTATUS (NTAPI *_NtSetSecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetSecurityObject(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
-typedef NTSTATUS (NTAPI *_NtQuerySecurityObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySecurityObject(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,
     __out_bcount_opt(Length) PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -161,17 +188,26 @@ typedef NTSTATUS (NTAPI *_NtQuerySecurityObject)(
     __out PULONG LengthNeeded
     );
 
-typedef NTSTATUS (NTAPI *_NtClose)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtClose(
     __in HANDLE Handle
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateDirectoryObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateDirectoryObject(
     __out PHANDLE DirectoryHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenDirectoryObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenDirectoryObject(
     __out PHANDLE DirectoryHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
@@ -183,7 +219,10 @@ typedef struct _OBJECT_DIRECTORY_INFORMATION
     UNICODE_STRING TypeName;
 } OBJECT_DIRECTORY_INFORMATION, *POBJECT_DIRECTORY_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQueryDirectoryObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryDirectoryObject(
     __in HANDLE DirectoryHandle,
     __out_bcount_opt(BufferLength) PVOID Buffer,
     __in ULONG Length,

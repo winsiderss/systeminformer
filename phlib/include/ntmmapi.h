@@ -111,7 +111,10 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE 0x20 
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x3f
 
-typedef NTSTATUS (NTAPI *_NtAllocateVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateVirtualMemory(
     __in HANDLE ProcessHandle,
     __inout PVOID *BaseAddress,
     __in ULONG_PTR ZeroBits,
@@ -120,14 +123,20 @@ typedef NTSTATUS (NTAPI *_NtAllocateVirtualMemory)(
     __in ULONG Protect
     );
 
-typedef NTSTATUS (NTAPI *_NtFreeVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFreeVirtualMemory(
     __in HANDLE ProcessHandle,
     __inout PVOID *BaseAddress,
     __inout PSIZE_T RegionSize,
     __in ULONG FreeType
     );
 
-typedef NTSTATUS (NTAPI *_NtReadVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReadVirtualMemory(
     __in HANDLE ProcessHandle,
     __in_opt PVOID BaseAddress,
     __out_bcount(BufferSize) PVOID Buffer,
@@ -135,7 +144,10 @@ typedef NTSTATUS (NTAPI *_NtReadVirtualMemory)(
     __out_opt PSIZE_T NumberOfBytesRead
     );
 
-typedef NTSTATUS (NTAPI *_NtWriteVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWriteVirtualMemory(
     __in HANDLE ProcessHandle,
     __in_opt PVOID BaseAddress,
     __in_bcount(BufferSize) PVOID Buffer,
@@ -143,7 +155,10 @@ typedef NTSTATUS (NTAPI *_NtWriteVirtualMemory)(
     __out_opt PSIZE_T NumberOfBytesWritten
     );
 
-typedef NTSTATUS (NTAPI *_NtProtectVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtProtectVirtualMemory(
     __in HANDLE ProcessHandle,
     __inout PVOID *BaseAddress,
     __inout PSIZE_T RegionSize,
@@ -151,7 +166,10 @@ typedef NTSTATUS (NTAPI *_NtProtectVirtualMemory)(
     __out PULONG OldProtect
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryVirtualMemory)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
     __in MEMORY_INFORMATION_CLASS MemoryInformationClass,
@@ -160,7 +178,10 @@ typedef NTSTATUS (NTAPI *_NtQueryVirtualMemory)(
     __out_opt PSIZE_T ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtCreateSection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateSection(
     __out PHANDLE SectionHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
@@ -170,13 +191,19 @@ typedef NTSTATUS (NTAPI *_NtCreateSection)(
     __in_opt HANDLE FileHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenSection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenSection(
     __out PHANDLE SectionHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtMapViewOfSection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMapViewOfSection(
     __in HANDLE SectionHandle,
     __in HANDLE ProcessHandle,
     __inout PVOID *BaseAddress,
@@ -189,17 +216,26 @@ typedef NTSTATUS (NTAPI *_NtMapViewOfSection)(
     __in ULONG Win32Protect
     );
 
-typedef NTSTATUS (NTAPI *_NtUnmapViewOfSection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUnmapViewOfSection(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress
     );
 
-typedef NTSTATUS (NTAPI *_NtExtendSection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtExtendSection(
     __in HANDLE SectionHandle,
     __inout PLARGE_INTEGER NewSectionSize
     );
 
-typedef NTSTATUS (NTAPI *_NtQuerySection)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySection(
     __in HANDLE SectionHandle,
     __in SECTION_INFORMATION_CLASS SectionInformationClass,
     __out_bcount(SectionInformationLength) PVOID SectionInformation,
