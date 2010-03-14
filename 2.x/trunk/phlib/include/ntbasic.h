@@ -15,6 +15,16 @@ typedef PVOID *PPVOID;
 typedef ULONG LOGICAL;
 typedef ULONG *PLOGICAL;
 
+// Cardinal types
+
+typedef char CCHAR;
+typedef short CSHORT;
+typedef ULONG CLONG;
+
+typedef CCHAR *PCCHAR;
+typedef CSHORT *PCSHORT;
+typedef CLONG *PCLONG;
+
 typedef LONG KPRIORITY;
 
 // NT status macros
