@@ -5,22 +5,8 @@
 
 // Defines for forwarded ntdll functions
 
-#define RtlDestroyHeap HeapDestroy
-#define RtlAllocateHeap HeapAlloc
-#define RtlFreeHeap HeapFree
-#define RtlReAllocateHeap HeapReAlloc
-#define RtlSizeHeap HeapSize
-
-#define RtlInitializeCriticalSection InitializeCriticalSection
-#define RtlDeleteCriticalSection DeleteCriticalSection
-#define RtlEnterCriticalSection EnterCriticalSection
-#define RtlTryEnterCriticalSection TryEnterCriticalSection
-#define RtlLeaveCriticalSection LeaveCriticalSection
-
 #define RtlExitUserProcess ExitProcess
 #define RtlExitUserThread ExitThread
-
-#define RtlGetCurrentProcessorNumber GetCurrentProcessorNumber
 
 // Linked lists
 
@@ -171,6 +157,85 @@ RtlUnicodeToMultiByteSize(
     __in PWSTR UnicodeString,
     __in ULONG BytesInUnicodeString
     );
+
+// Synchronization
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeCriticalSection(
+    __out PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeCriticalSectionAndSpinCount(
+    __inout PRTL_CRITICAL_SECTION CriticalSection,
+    __in ULONG SpinCount
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteCriticalSection(
+    __inout PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlEnterCriticalSection(
+    __inout PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLeaveCriticalSection(
+    __inout PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlTryEnterCriticalSection(
+    __inout PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlIsCriticalSectionLocked(
+    __in PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlIsCriticalSectionLockedByThread(
+    __in PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetCriticalSectionRecursionCount(
+    __in PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlSetCriticalSectionSpinCount(
+    __inout PRTL_CRITICAL_SECTION CriticalSection,
+    __in ULONG SpinCount
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetCurrentProcessorNumber();
 
 // Processes
 
@@ -323,6 +388,124 @@ typedef struct _RTL_PROCESS_HEAPS
     ULONG NumberOfHeaps;
     RTL_HEAP_INFORMATION Heaps[1];
 } RTL_PROCESS_HEAPS, *PRTL_PROCESS_HEAPS;
+
+typedef NTSTATUS (NTAPI *PRTL_HEAP_COMMIT_ROUTINE)(
+    __in PVOID Base,
+    __inout PVOID *CommitAddress,
+    __inout PSIZE_T CommitSize
+    );
+
+typedef struct _RTL_HEAP_PARAMETERS
+{
+    ULONG Length;
+    SIZE_T SegmentReserve;
+    SIZE_T SegmentCommit;
+    SIZE_T DeCommitFreeBlockThreshold;
+    SIZE_T DeCommitTotalFreeThreshold;
+    SIZE_T MaximumAllocationSize;
+    SIZE_T VirtualMemoryThreshold;
+    SIZE_T InitialCommit;
+    SIZE_T InitialReserve;
+    PRTL_HEAP_COMMIT_ROUTINE CommitRoutine;
+    SIZE_T Reserved[2];
+} RTL_HEAP_PARAMETERS, *PRTL_HEAP_PARAMETERS;
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlCreateHeap(
+    __in ULONG Flags,
+    __in_opt PVOID HeapBase,
+    __in_opt SIZE_T ReserveSize,
+    __in_opt SIZE_T CommitSize,
+    __in_opt PVOID Lock,
+    __in_opt PRTL_HEAP_PARAMETERS Parameters
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlDestroyHeap(
+    __in PVOID HeapHandle
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAllocateHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags,
+    __in SIZE_T Size
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlFreeHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags,
+    __in PVOID BaseAddress
+    );
+
+NTSYSAPI
+SIZE_T
+NTAPI
+RtlSizeHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags,
+    __in PVOID BaseAddress
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlZeroHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags
+    );
+
+#define RtlProcessHeap() (NtCurrentPeb()->ProcessHeap)
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlLockHeap(
+    __in PVOID HeapHandle
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlUnlockHeap(
+    __in PVOID HeapHandle
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlReAllocateHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags,
+    __in PVOID BaseAddress,
+    __in SIZE_T Size
+    );
+
+NTSYSAPI
+SIZE_T
+NTAPI
+RtlCompactHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlValidateHeap(
+    __in PVOID HeapHandle,
+    __in ULONG Flags,
+    __in PVOID BaseAddress
+    );
 
 // LUIDs
 
