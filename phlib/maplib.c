@@ -383,17 +383,18 @@ NTSTATUS PhGetMappedArchiveImportEntry(
     Entry->NameType = (BYTE)importHeader->NameType;
     Entry->Machine = importHeader->Machine;
 
+    // TODO: Probe the name.
+    Entry->Name = (PSTR)PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER));
+    Entry->DllName = (PSTR)PTR_ADD_OFFSET(Entry->Name, strlen(Entry->Name) + 1);
+
+    // Ordinal/NameHint are union'ed, so these statements are exactly the same. 
+    // It's there in case this changes in the future.
     if (Entry->NameType == IMPORT_OBJECT_ORDINAL)
     {
-        Entry->Name = NULL;
-        Entry->DllName = (PSTR)PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER) + 1);
         Entry->Ordinal = importHeader->Ordinal;
     }
     else
     {
-        // TODO: Probe the name.
-        Entry->Name = (PSTR)PTR_ADD_OFFSET(importHeader, sizeof(IMPORT_OBJECT_HEADER));
-        Entry->DllName = (PSTR)PTR_ADD_OFFSET(Entry->Name, strlen(Entry->Name) + 1);
         Entry->NameHint = importHeader->Hint;
     }
 

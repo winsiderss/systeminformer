@@ -18,6 +18,17 @@ typedef struct _EVENT_BASIC_INFORMATION
     LONG EventState;
 } EVENT_BASIC_INFORMATION, *PEVENT_BASIC_INFORMATION;
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateEvent(
+    __out PHANDLE EventHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in EVENT_TYPE EventType,
+    __in BOOLEAN InitialState
+    );
+
 typedef NTSTATUS (NTAPI *_NtQueryEvent)(
     __in HANDLE EventHandle,
     __in EVENT_INFORMATION_CLASS EventInformationClass,
