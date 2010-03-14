@@ -8,11 +8,6 @@ be installed even if you are not intending to build for that
 platform.
 
 == Code structure ==
-There are multiple modules; each .c file can contain one or 
-more modules. There are multiple modules in each abstraction 
-layer, and there is generally a .h file for each abstraction 
-layer.
-
 Abstraction layers and their modules:
 
 * Base (base.h)
@@ -63,6 +58,8 @@ Abstraction layers and their modules:
     * Tab control
     * Menu
     * Layout manager
+
+* PH Application (phapp.h)
   * Settings (settings.h, settings.c)
   * Main window (mainwnd.c)
   * Process properties (procprp.c)
