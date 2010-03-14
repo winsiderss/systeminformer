@@ -1607,7 +1607,7 @@ NTSTATUS PhUnloadDllProcess(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (WaitForSingleObject(threadHandle, Timeout) == WAIT_OBJECT_0)
+    if (WaitForSingleObject(threadHandle, Timeout) == STATUS_WAIT_0)
     {
         status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
 
