@@ -51,7 +51,7 @@ int __cdecl main(int argc, char *argv[])
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        0,
+        PH_COMMAND_LINE_IGNORE_FIRST_PART,
         CommandLineCallback,
         NULL
         ) || !inFile)

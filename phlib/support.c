@@ -2290,6 +2290,8 @@ BOOLEAN PhParseCommandLine(
         }
         else
         {
+            BOOLEAN wasFirst;
+
             // Value with no option. This becomes our "main argument". 
             // If we had a previous "main argument", replace it with 
             // this one.
@@ -2297,7 +2299,17 @@ BOOLEAN PhParseCommandLine(
             if (mainArgumentValue)
                 PhDereferenceObject(mainArgumentValue);
 
+            wasFirst = i == 0;
             mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
+
+            if ((Flags & PH_COMMAND_LINE_IGNORE_FIRST_PART) && wasFirst)
+            {
+                if (mainArgumentValue)
+                {
+                    PhDereferenceObject(mainArgumentValue);
+                    mainArgumentValue = NULL;
+                }
+            }
         }
     }
 
