@@ -1104,7 +1104,7 @@ NTSTATUS PhpTailQueryObjectHack(
     PhQueryObjectContext.Initialized = FALSE;
 
     // Return normally if the work was completed.
-    if (waitResult == WAIT_OBJECT_0)
+    if (waitResult == STATUS_WAIT_0)
     {
         NTSTATUS status;
         ULONG returnLength;
@@ -1203,7 +1203,7 @@ NTSTATUS PhpQueryObjectThreadStart(
     while (TRUE)
     {
         // Wait for work.
-        if (WaitForSingleObject(PhQueryObjectStartEvent, INFINITE) != WAIT_OBJECT_0)
+        if (WaitForSingleObject(PhQueryObjectStartEvent, INFINITE) != STATUS_WAIT_0)
             continue;
 
         // Make sure we actually have work.

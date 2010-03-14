@@ -1,8 +1,6 @@
 #ifndef NTOBAPI_H
 #define NTOBAPI_H
 
-#include <ntbasic.h>
-
 #define OBJECT_TYPE_CREATE 0x0001
 #define OBJECT_TYPE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
 

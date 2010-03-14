@@ -1,7 +1,9 @@
 #ifndef NTEXAPI_H
 #define NTEXAPI_H
 
-#include <ntbasic.h>
+#include <ntkeapi.h>
+
+// Event
 
 #ifndef EVENT_QUERY_STATE
 #define EVENT_QUERY_STATE 0x0001
@@ -32,6 +34,50 @@ NtCreateEvent(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtOpenEvent(
+    __out PHANDLE EventHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetEvent(
+    __in HANDLE EventHandle,
+    __out_opt PLONG PreviousState
+    );
+
+typedef NTSTATUS (NTAPI *_NtSetEventBoostPriority)(
+    __in HANDLE EventHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtClearEvent(
+    __in HANDLE EventHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtResetEvent(
+    __in HANDLE EventHandle,
+    __out_opt PLONG PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtPulseEvent(
+    __in HANDLE EventHandle,
+    __out_opt PLONG PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryEvent(
     __in HANDLE EventHandle,
     __in EVENT_INFORMATION_CLASS EventInformationClass,
@@ -40,7 +86,27 @@ NtQueryEvent(
     __out_opt PULONG ReturnLength
     );
 
+// Event Pair
+
 #define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateEventPair(
+    __out PHANDLE EventPairHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenEventPair(
+    __out PHANDLE EventPairHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
 
 NTSYSCALLAPI
 NTSTATUS
@@ -55,6 +121,36 @@ NTAPI
 NtSetHighEventPair(
     __in HANDLE EventPairHandle
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitLowEventPair( 
+    __in HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitHighEventPair(
+    __in HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetLowWaitHighEventPair(
+    __in HANDLE EventPairHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetHighWaitLowEventPair(
+    __in HANDLE EventPairHandle
+    );
+
+// Mutant
 
 typedef enum _MUTANT_INFORMATION_CLASS
 {
@@ -77,6 +173,33 @@ typedef struct _MUTANT_OWNER_INFORMATION
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtCreateMutant(
+    __out PHANDLE MutantHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in BOOLEAN InitialOwner
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenMutant(
+    __out PHANDLE MutantHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReleaseMutant(
+    __in HANDLE MutantHandle,
+    __out_opt PLONG PreviousCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQueryMutant(
     __in HANDLE MutantHandle,
     __in MUTANT_INFORMATION_CLASS MutantInformationClass,
@@ -84,6 +207,8 @@ NtQueryMutant(
     __in ULONG MutantInformationLength,
     __out_opt PULONG ReturnLength
     );
+
+// Semaphore
 
 #ifndef SEMAPHORE_QUERY_STATE
 #define SEMAPHORE_QUERY_STATE 0x0001
@@ -103,6 +228,35 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtCreateSemaphore(
+    __out PHANDLE SemaphoreHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in LONG InitialCount,
+    __in LONG MaximumCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenSemaphore(
+    __out PHANDLE SemaphoreHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReleaseSemaphore(
+    __in HANDLE SemaphoreHandle,
+    __in LONG ReleaseCount,
+    __out_opt PLONG PreviousCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtQuerySemaphore(
     __in HANDLE SemaphoreHandle,
     __in SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
@@ -110,6 +264,8 @@ NtQuerySemaphore(
     __in ULONG SemaphoreInformationLength,
     __out_opt PULONG ReturnLength
     );
+
+// Timer
 
 typedef enum _TIMER_INFORMATION_CLASS
 {
@@ -122,6 +278,52 @@ typedef struct _TIMER_BASIC_INFORMATION
     BOOLEAN TimerState;
 } TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
 
+typedef VOID (NTAPI *PTIMER_APC_ROUTINE)(
+    __in PVOID TimerContext,
+    __in ULONG TimerLowValue,
+    __in LONG TimerHighValue
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateTimer(
+    __out PHANDLE TimerHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in TIMER_TYPE TimerType
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenTimer(
+    __out PHANDLE TimerHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetTimer(
+    __in HANDLE TimerHandle,
+    __in PLARGE_INTEGER DueTime,
+    __in_opt PTIMER_APC_ROUTINE TimerApcRoutine,
+    __in_opt PVOID TimerContext,
+    __in BOOLEAN ResumeTimer,
+    __in_opt LONG Period,
+    __out_opt PBOOLEAN PreviousState
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelTimer(
+    __in HANDLE TimerHandle,
+    __out_opt PBOOLEAN CurrentState
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -133,8 +335,57 @@ NtQueryTimer(
     __out_opt PULONG ReturnLength
     );
 
+// Profile
+
 #define PROFILE_CONTROL 0x0001
 #define PROFILE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | PROFILE_CONTROL)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProfile(
+    __out PHANDLE ProfileHandle,
+    __in_opt HANDLE Process,
+    __in PVOID ProfileBase,
+    __in SIZE_T ProfileSize,
+    __in ULONG BucketSize,
+    __in PULONG Buffer,
+    __in ULONG BufferSize,
+    __in KPROFILE_SOURCE ProfileSource,
+    __in KAFFINITY Affinity
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtStartProfile(
+    __in HANDLE ProfileHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtStopProfile(
+    __in HANDLE ProfileHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryIntervalProfile(
+    __in KPROFILE_SOURCE ProfileSource,
+    __out PULONG Interval
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetIntervalProfile(
+    __in ULONG Interval,
+    __in KPROFILE_SOURCE Source
+    );
+
+// Keyed Event
 
 #define KEYEDEVENT_WAIT 0x0001
 #define KEYEDEVENT_WAKE 0x0002
@@ -167,6 +418,44 @@ typedef NTSTATUS (NTAPI *_NtWaitForKeyedEvent)(
     __in BOOLEAN Alertable,
     __in_opt PLARGE_INTEGER Timeout
     );
+
+// Time
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemTime(
+    __out PLARGE_INTEGER SystemTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetSystemTime(
+    __in_opt PLARGE_INTEGER SystemTime,
+    __out_opt PLARGE_INTEGER PreviousTime
+    );
+
+// Performance Counter
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryPerformanceCounter(
+    __out PLARGE_INTEGER PerformanceCounter,
+    __out_opt PLARGE_INTEGER PerformanceFrequency
+    );
+
+// LUIDs
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateLocallyUniqueId(
+    __out PLUID Luid
+    );
+
+// System Information
 
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
@@ -394,48 +683,6 @@ typedef struct _SYSTEM_PERFORMANCE_INFORMATION
     ULONG SystemCalls;
 } SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
 
-typedef enum _KWAIT_REASON
-{
-    Executive = 0,
-    FreePage = 1,
-    PageIn = 2,
-    PoolAllocation = 3,
-    DelayExecution = 4,
-    Suspended = 5,
-    UserRequest = 6,
-    WrExecutive = 7,
-    WrFreePage = 8,
-    WrPageIn = 9,
-    WrPoolAllocation = 10,
-    WrDelayExecution = 11,
-    WrSuspended = 12,
-    WrUserRequest = 13,
-    WrEventPair = 14,
-    WrQueue = 15,
-    WrLpcReceive = 16,
-    WrLpcReply = 17,
-    WrVirtualMemory = 18,
-    WrPageOut = 19,
-    WrRendezvous = 20,
-    Spare2 = 21,
-    Spare3 = 22,
-    Spare4 = 23,
-    Spare5 = 24,
-    WrCalloutStack = 25,
-    WrKernel = 26,
-    WrResource = 27,
-    WrPushLock = 28,
-    WrMutex = 29,
-    WrQuantumEnd = 30,
-    WrDispatchInt = 31,
-    WrPreempted = 32,
-    WrYieldExecution = 33,
-    WrFastMutex = 34,
-    WrGuardedMutex = 35,
-    WrRundown = 36,
-    MaximumWaitReason = 37
-} KWAIT_REASON, *PKWAIT_REASON;
-
 typedef struct _SYSTEM_THREAD_INFORMATION
 {
     LARGE_INTEGER KernelTime;
@@ -591,6 +838,15 @@ NtQuerySystemInformation(
     __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
     __in ULONG SystemInformationLength,
     __out_opt PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetSystemInformation(
+    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    __in_bcount_opt(SystemInformationLength) PVOID SystemInformation,
+    __in ULONG SystemInformationLength
     );
 
 // Kernel-user shared data

@@ -99,7 +99,7 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     if (*Handle != NULL)
         return;
 
-    handle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+    NtCreateSemaphore(&handle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
 
     if (_InterlockedCompareExchangePointer(
         Handle,
@@ -141,10 +141,11 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
                 value
                 ) == value)
             {
-                if (WaitForSingleObject(
+                if (NtWaitForSingleObject(
                     FastLock->ExclusiveWakeEvent,
-                    INFINITE
-                    ) != WAIT_OBJECT_0)
+                    FALSE,
+                    NULL
+                    ) != STATUS_WAIT_0)
                     PhRaiseStatus(STATUS_UNSUCCESSFUL);
 
                 do
@@ -212,10 +213,11 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockShared(
                 value
                 ) == value)
             {
-                if (WaitForSingleObject(
+                if (NtWaitForSingleObject(
                     FastLock->SharedWakeEvent,
-                    INFINITE
-                    ) != WAIT_OBJECT_0)
+                    FALSE,
+                    NULL
+                    ) != STATUS_WAIT_0)
                     PhRaiseStatus(STATUS_UNSUCCESSFUL);
 
                 continue;
@@ -245,7 +247,7 @@ VOID FASTCALL PhfReleaseFastLockExclusive(
                 value
                 ) == value)
             {
-                ReleaseSemaphore(FastLock->ExclusiveWakeEvent, 1, NULL);
+                NtReleaseSemaphore(FastLock->ExclusiveWakeEvent, 1, NULL);
 
                 break;
             }
@@ -263,7 +265,7 @@ VOID FASTCALL PhfReleaseFastLockExclusive(
                 ) == value)
             {
                 if (sharedWaiters)
-                    ReleaseSemaphore(FastLock->SharedWakeEvent, sharedWaiters, 0);
+                    NtReleaseSemaphore(FastLock->SharedWakeEvent, sharedWaiters, 0);
 
                 break;
             }
@@ -301,7 +303,7 @@ VOID FASTCALL PhfReleaseFastLockShared(
                 value
                 ) == value)
             {
-                ReleaseSemaphore(FastLock->ExclusiveWakeEvent, 1, NULL);
+                NtReleaseSemaphore(FastLock->ExclusiveWakeEvent, 1, NULL);
 
                 break;
             }

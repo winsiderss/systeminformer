@@ -64,7 +64,8 @@ VOID PhInitializeWorkQueue(
     WorkQueue->NoWorkTimeout = NoWorkTimeout;
 
     PhInitializeQueuedLock(&WorkQueue->StateLock);
-    WorkQueue->SemaphoreHandle = CreateSemaphore(NULL, 0, MAXLONG, NULL);
+
+    NtCreateSemaphore(&WorkQueue->SemaphoreHandle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
     WorkQueue->CurrentThreads = 0;
     WorkQueue->BusyThreads = 0;
 }
@@ -77,7 +78,7 @@ VOID PhDeleteWorkQueue(
 
     // Wait for all worker threads to exit.
     WorkQueue->Terminating = TRUE;
-    ReleaseSemaphore(WorkQueue->SemaphoreHandle, WorkQueue->CurrentThreads, NULL);
+    NtReleaseSemaphore(WorkQueue->SemaphoreHandle, WorkQueue->CurrentThreads, NULL);
     PhWaitForRundownProtection(&WorkQueue->RundownProtect);
 
     // Free all un-executed work items.
@@ -139,8 +140,8 @@ NTSTATUS PhpWorkQueueThreadStart(
 
     while (TRUE)
     {
+        NTSTATUS status;
         PPH_WORK_QUEUE_ITEM workQueueItem = NULL;
-        ULONG result;
 
         // Check if we have more threads than the limit.
         if (workQueue->CurrentThreads > workQueue->MaximumThreads)
@@ -167,7 +168,7 @@ NTSTATUS PhpWorkQueueThreadStart(
         }
 
         // Wait for work.
-        result = WaitForSingleObject(workQueue->SemaphoreHandle, workQueue->NoWorkTimeout);
+        status = (NTSTATUS)WaitForSingleObject(workQueue->SemaphoreHandle, workQueue->NoWorkTimeout);
 
         if (workQueue->Terminating)
         {
@@ -179,7 +180,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             break;
         }
 
-        if (result == WAIT_OBJECT_0)
+        if (status == STATUS_WAIT_0)
         {
             // Dequeue the work item.
             PhAcquireQueuedLockExclusiveFast(&workQueue->QueueLock);
@@ -240,7 +241,7 @@ VOID PhQueueWorkQueueItem(
     PhEnqueueQueueItem(WorkQueue->Queue, workQueueItem);
     PhReleaseQueuedLockExclusiveFast(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
-    ReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
+    NtReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
 
     // Check if all worker threads are currently busy, 
     // and if we can create more threads.
