@@ -2739,6 +2739,25 @@ NTSTATUS PhGetFileSize(
     return status;
 }
 
+NTSTATUS PhSetFileSize(
+    __in HANDLE FileHandle,
+    __in PLARGE_INTEGER Size
+    )
+{
+    FILE_END_OF_FILE_INFORMATION endOfFileInfo;
+    IO_STATUS_BLOCK isb;
+
+    endOfFileInfo.EndOfFile = *Size;
+
+    return NtSetInformationFile(
+        FileHandle,
+        &isb,
+        &endOfFileInfo,
+        sizeof(FILE_END_OF_FILE_INFORMATION),
+        FileEndOfFileInformation
+        );
+}
+
 NTSTATUS PhpQueryTransactionManagerVariableSize(
     __in HANDLE TransactionManagerHandle,
     __in TRANSACTIONMANAGER_INFORMATION_CLASS TransactionManagerInformationClass,
