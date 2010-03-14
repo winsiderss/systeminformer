@@ -63,7 +63,6 @@ EXT _NtOpenThreadToken NtOpenThreadToken EQNULL;
 EXT _NtPrivilegeCheck NtPrivilegeCheck EQNULL;
 EXT _NtProtectVirtualMemory NtProtectVirtualMemory EQNULL;
 EXT _NtQueryDirectoryObject NtQueryDirectoryObject EQNULL;
-EXT _NtQueryEvent NtQueryEvent EQNULL;
 EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment EQNULL;
 EXT _NtQueryInformationFile NtQueryInformationFile EQNULL;
 EXT _NtQueryInformationJobObject NtQueryInformationJobObject EQNULL;
@@ -76,7 +75,6 @@ EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager E
 EXT _NtQueryObject NtQueryObject EQNULL;           
 EXT _NtQuerySection NtQuerySection EQNULL;
 EXT _NtQuerySecurityObject NtQuerySecurityObject EQNULL;
-EXT _NtQuerySystemInformation NtQuerySystemInformation EQNULL;
 EXT _NtQueryVirtualMemory NtQueryVirtualMemory EQNULL;
 EXT _NtQueueApcThread NtQueueApcThread EQNULL;
 EXT _NtReadFile NtReadFile EQNULL;
