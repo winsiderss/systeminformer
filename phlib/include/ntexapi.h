@@ -29,7 +29,10 @@ NtCreateEvent(
     __in BOOLEAN InitialState
     );
 
-typedef NTSTATUS (NTAPI *_NtQueryEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryEvent(
     __in HANDLE EventHandle,
     __in EVENT_INFORMATION_CLASS EventInformationClass,
     __out_bcount(EventInformationLength) PVOID EventInformation,
@@ -39,11 +42,17 @@ typedef NTSTATUS (NTAPI *_NtQueryEvent)(
 
 #define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)
 
-typedef NTSTATUS (NTAPI *_NtSetLowEventPair)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetLowEventPair(
     __in HANDLE EventPairHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtSetHighEventPair)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetHighEventPair(
     __in HANDLE EventPairHandle
     );
 
@@ -65,7 +74,10 @@ typedef struct _MUTANT_OWNER_INFORMATION
     CLIENT_ID ClientId;
 } MUTANT_OWNER_INFORMATION, *PMUTANT_OWNER_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQueryMutant)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryMutant(
     __in HANDLE MutantHandle,
     __in MUTANT_INFORMATION_CLASS MutantInformationClass,
     __out_bcount(MutantInformationLength) PVOID MutantInformation,
@@ -88,7 +100,10 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
     LONG MaximumCount;
 } SEMAPHORE_BASIC_INFORMATION, *PSEMAPHORE_BASIC_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQuerySemaphore)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySemaphore(
     __in HANDLE SemaphoreHandle,
     __in SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
     __out_bcount(SemaphoreInformationLength) PVOID SemaphoreInformation,
@@ -107,7 +122,10 @@ typedef struct _TIMER_BASIC_INFORMATION
     BOOLEAN TimerState;
 } TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQueryTimer)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryTimer(
     __in HANDLE TimerHandle,
     __in TIMER_INFORMATION_CLASS TimerInformationClass,
     __out_bcount(TimerInformationLength) PVOID TimerInformation,
@@ -565,7 +583,10 @@ typedef struct _SYSTEM_FILECACHE_INFORMATION
     ULONG Flags;
 } SYSTEM_FILECACHE_INFORMATION, *PSYSTEM_FILECACHE_INFORMATION;
 
-typedef NTSTATUS (NTAPI *_NtQuerySystemInformation)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemInformation(
     __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
     __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
     __in ULONG SystemInformationLength,
