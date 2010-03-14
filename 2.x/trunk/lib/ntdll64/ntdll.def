@@ -1,3 +1,5 @@
 LIBRARY ntdll.dll
 EXPORTS
     NtCreateEvent
+    NtQueryEvent
+    NtQuerySystemInformation
