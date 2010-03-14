@@ -1233,11 +1233,7 @@ BOOLEAN PhShellExecuteEx(
         {
             if (!(Flags & PH_SHELL_EXECUTE_PUMP_MESSAGES))
             {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -(LONG)Timeout * PH_TIMEOUT_MS;
-
-                NtWaitForSingleObject(info.hProcess, FALSE, &timeout);
+                WaitForSingleObject(info.hProcess, Timeout);
             }
             else
             {

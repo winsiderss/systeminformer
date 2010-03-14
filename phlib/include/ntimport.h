@@ -4,12 +4,14 @@
 #include <ntbasic.h>
 #include <ntexapi.h>
 #include <ntioapi.h>
+#include <ntkeapi.h>
 #include <ntktmapi.h>
 #include <ntlpcapi.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
 #include <ntpsapi.h>
 #include <ntseapi.h>
+
 #include <ntdbg.h>
 #include <ntrtl.h>
 #include <ntmisc.h>

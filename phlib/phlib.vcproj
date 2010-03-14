@@ -443,6 +443,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntkeapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntktmapi.h"
 				>
 			</File>

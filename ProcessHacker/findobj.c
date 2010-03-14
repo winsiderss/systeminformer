@@ -396,7 +396,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhDereferenceObject(SearchString);
             PhDeleteMutex(&SearchResultsLock);
 
-            WaitForSingleObject(SearchThreadHandle, INFINITE);
+            NtWaitForSingleObject(SearchThreadHandle, FALSE, NULL);
             NtClose(SearchThreadHandle);
             SearchThreadHandle = NULL;
             SearchStop = FALSE;

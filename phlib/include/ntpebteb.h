@@ -1,7 +1,6 @@
 #ifndef NTPEBTEB_H
 #define NTPEBTEB_H
 
-#include <ntbasic.h>
 #include <ntldr.h>
 #include <ntrtl.h>
 

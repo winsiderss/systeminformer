@@ -414,7 +414,7 @@ VOID PhSetEvent(
 
     if (eventHandle)
     {
-        SetEvent(eventHandle);
+        NtSetEvent(eventHandle, NULL);
     }
 
     PhpDereferenceEvent(Event);
@@ -460,7 +460,7 @@ BOOLEAN PhWaitForEvent(
     // Don't bother creating an event if we already have one.
     if (!eventHandle)
     {
-        eventHandle = CreateEvent(NULL, TRUE, FALSE, NULL);
+        NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
         assert(eventHandle);
 
         // Try to set the event handle to our event.
@@ -479,7 +479,7 @@ BOOLEAN PhWaitForEvent(
     // it is set.
     if (!(*(volatile ULONG *)(&Event->Value) & PH_EVENT_SET))
     {
-        result = WaitForSingleObject(Event->EventHandle, Timeout) == WAIT_OBJECT_0;
+        result = WaitForSingleObject(Event->EventHandle, Timeout) == STATUS_WAIT_0;
     }
     else
     {

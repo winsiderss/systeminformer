@@ -233,7 +233,7 @@ VOID PhStartProviderThread(
         return;
 
     // Create and set the timer.
-    ProviderThread->TimerHandle = CreateWaitableTimer(NULL, FALSE, NULL);
+    NtCreateTimer(&ProviderThread->TimerHandle, TIMER_ALL_ACCESS, NULL, SynchronizationTimer);
     PhSetProviderThreadInterval(ProviderThread, ProviderThread->Interval);
 
     // Create and start the thread.
@@ -262,7 +262,7 @@ VOID PhStopProviderThread(
     // wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
     NtAlertThread(ProviderThread->ThreadHandle); // wake it up
-    WaitForSingleObject(ProviderThread->ThreadHandle, INFINITE);
+    NtWaitForSingleObject(ProviderThread->ThreadHandle, FALSE, NULL);
 
     // Free resources.
     NtClose(ProviderThread->ThreadHandle);
@@ -291,15 +291,7 @@ VOID PhSetProviderThreadInterval(
         LARGE_INTEGER interval;
 
         interval.QuadPart = -(LONGLONG)Interval * PH_TIMEOUT_MS;
-
-        SetWaitableTimer(
-            ProviderThread->TimerHandle,
-            &interval,
-            Interval,
-            NULL,
-            NULL,
-            FALSE
-            );
+        NtSetTimer(ProviderThread->TimerHandle, &interval, NULL, NULL, FALSE, Interval, NULL); 
     }
 }
 
