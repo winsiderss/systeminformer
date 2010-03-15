@@ -690,6 +690,31 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
                     }
                 }
+                else
+                {
+                    HANDLE processHandle;
+                    PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
+
+                    if (NT_SUCCESS(PhOpenProcess(
+                        &processHandle,
+                        ProcessQueryAccess,
+                        processItem->ProcessId
+                        )))
+                    {
+                        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(
+                            processHandle,
+                            &extendedBasicInfo
+                            )))
+                        {
+                            if (extendedBasicInfo.IsProtectedProcess)
+                                SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Protected");
+                            else
+                                SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
+                        }
+
+                        NtClose(processHandle);
+                    }
+                }
             }
             else
             {
