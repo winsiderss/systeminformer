@@ -9,6 +9,9 @@
 
 #define PHNT_VERSION PHNT_WIN2K
 
+// Note: definitions marked with an asterisk have been 
+// reverse-engineered.
+
 #include <ntbasic.h>
 #include <ntexapi.h>
 #include <ntioapi.h>

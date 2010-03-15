@@ -326,6 +326,26 @@ RtlCreateUserThread(
     __out_opt PCLIENT_ID ClientId
     );
 
+#ifdef _M_X64
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlWow64GetThreadContext(
+    __in HANDLE ThreadHandle,
+    __inout PWOW64_CONTEXT ThreadContext
+    );
+#endif
+
+#ifdef _M_X64
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlWow64SetThreadContext(
+    __in HANDLE ThreadHandle,
+    __in PWOW64_CONTEXT ThreadContext
+    );
+#endif
+
 // Heaps
 
 typedef struct _RTL_HEAP_ENTRY
@@ -525,6 +545,26 @@ RtlValidateHeap(
     __in ULONG Flags,
     __in PVOID BaseAddress
     );
+
+// Transactions
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+/* * */
+NTSYSAPI
+HANDLE
+NTAPI
+RtlGetCurrentTransaction();
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+/* * */
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlSetCurrentTransaction(
+    __in HANDLE TransactionHandle
+    );
+#endif
 
 // LUIDs
 

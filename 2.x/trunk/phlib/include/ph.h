@@ -160,6 +160,11 @@ NTSTATUS PhGetProcessBasicInformation(
     __out PPROCESS_BASIC_INFORMATION BasicInformation
     );
 
+NTSTATUS PhGetProcessExtendedBasicInformation(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
+    );
+
 NTSTATUS PhGetProcessImageFileName(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *FileName

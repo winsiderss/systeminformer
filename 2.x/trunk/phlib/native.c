@@ -536,6 +536,29 @@ NTSTATUS PhGetProcessBasicInformation(
 }
 
 /**
+ * Gets extended basic information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have 
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param ExtendedBasicInformation A variable which receives the information.
+ */
+NTSTATUS PhGetProcessExtendedBasicInformation(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
+    )
+{
+    ExtendedBasicInformation->Size = sizeof(PROCESS_EXTENDED_BASIC_INFORMATION);
+
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessBasicInformation,
+        ExtendedBasicInformation,
+        sizeof(PROCESS_EXTENDED_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
  * Gets the file name of the process' image.
  *
  * \param ProcessHandle A handle to a process. The handle must 
@@ -851,13 +874,23 @@ NTSTATUS PhGetProcessPagePriority(
     __out PULONG PagePriority
     )
 {
-    return NtQueryInformationProcess(
+    NTSTATUS status;
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessPagePriority,
-        PagePriority,
-        sizeof(ULONG),
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *PagePriority = pagePriorityInfo.PagePriority;
+    }
+
+    return status;
 }
 
 /**
@@ -1685,13 +1718,23 @@ NTSTATUS PhGetThreadPagePriority(
     __out PULONG PagePriority
     )
 {
-    return NtQueryInformationThread(
+    NTSTATUS status;
+    PAGE_PRIORITY_INFORMATION pagePriorityInfo;
+
+    status = NtQueryInformationThread(
         ThreadHandle,
         ThreadPagePriority,
-        PagePriority,
-        sizeof(ULONG),
+        &pagePriorityInfo,
+        sizeof(PAGE_PRIORITY_INFORMATION),
         NULL
         );
+
+    if (NT_SUCCESS(status))
+    {
+        *PagePriority = pagePriorityInfo.PagePriority;
+    }
+
+    return status;
 }
 
 /**
