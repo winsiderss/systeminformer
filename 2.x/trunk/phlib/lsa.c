@@ -21,7 +21,6 @@
  */
 
 #include <ph.h>
-#include <sddl.h>
 
 LSA_HANDLE PhLookupPolicyHandle = NULL;
 
@@ -314,16 +313,21 @@ PPH_STRING PhSidToStringSid(
     __in PSID Sid
     )
 {
-    PWSTR stringSid;
-    PPH_STRING string;
+    WCHAR buffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
+    UNICODE_STRING string;
 
-    if (!ConvertSidToStringSid(Sid, &stringSid))
+    string.Length = 0;
+    string.MaximumLength = MAX_UNICODE_STACK_BUFFER_LENGTH * sizeof(WCHAR);
+    string.Buffer = buffer;
+
+    if (!NT_SUCCESS(RtlConvertSidToUnicodeString(
+        &string,
+        Sid,
+        FALSE
+        )))
         return NULL;
 
-    string = PhCreateString(stringSid);
-    LocalFree(stringSid);
-
-    return string;
+    return PhCreateStringEx(string.Buffer, string.Length);
 }
 
 NTSTATUS PhEnumAccounts(

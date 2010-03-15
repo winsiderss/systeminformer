@@ -756,18 +756,14 @@ PPH_STRING PhFormatGuid(
     __in PGUID Guid
     )
 {
-    PVOID buffer;
-    PPH_STRING string = NULL;
+    PPH_STRING string;
+    UNICODE_STRING unicodeString;
 
-    buffer = PhAllocate(50 * 2);
+    if (!NT_SUCCESS(RtlStringFromGUID(Guid, &unicodeString)))
+        return NULL;
 
-    if (StringFromGUID2(Guid, buffer, 50))
-    {
-        string = PhCreateString(buffer);
-        PhLowerString(string);
-    }
-
-    PhFree(buffer);
+    string = PhCreateStringEx(unicodeString.Buffer, unicodeString.Length);
+    RtlFreeUnicodeString(&unicodeString);
 
     return string;
 }
@@ -914,32 +910,51 @@ PPH_STRING PhExpandEnvironmentStrings(
     __in PWSTR String
     )
 {
+    NTSTATUS status;
     PPH_STRING string;
+    UNICODE_STRING sourceString;
+    UNICODE_STRING destinationString;
     PVOID buffer;
-    ULONG bufferSize;
-    ULONG returnLength;
+    ULONG bufferLength;
 
-    bufferSize = 0x80;
-    buffer = PhAllocate(bufferSize * 2);
+    RtlInitUnicodeString(&sourceString, String);
 
-    returnLength = ExpandEnvironmentStrings(String, buffer, bufferSize);
+    bufferLength = 0x40;
+    buffer = PhAllocate(bufferLength);
+    destinationString.Length = 0;
+    destinationString.MaximumLength = (USHORT)bufferLength;
+    destinationString.Buffer = buffer;
 
-    if (returnLength > bufferSize)
+    status = RtlExpandEnvironmentStrings_U(
+        NULL,
+        &sourceString,
+        &destinationString, 
+        &bufferLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhFree(buffer);
-        bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize * 2);
+        buffer = PhAllocate(bufferLength);
+        destinationString.Length = 0;
+        destinationString.MaximumLength = (USHORT)bufferLength;
+        destinationString.Buffer = buffer;
 
-        returnLength = ExpandEnvironmentStrings(String, buffer, bufferSize);
+        status = RtlExpandEnvironmentStrings_U(
+            NULL,
+            &sourceString,
+            &destinationString,
+            &bufferLength
+            );
     }
 
-    if (returnLength == 0)
+    if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
         return NULL;
     }
 
-    string = PhCreateString(buffer);
+    string = PhCreateStringEx(destinationString.Buffer, destinationString.Length);
     PhFree(buffer);
 
     return string;
