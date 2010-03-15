@@ -103,7 +103,7 @@ __mayRaise PVOID PhAllocate(
     );
 
 VOID PhFree(
-    __in PVOID Memory
+    __in __post_invalid PVOID Memory
     );
 
 PVOID PhReAlloc(
@@ -1030,6 +1030,7 @@ VOID PhClearList(
     __inout PPH_LIST List
     );
 
+__success(return != -1)
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item

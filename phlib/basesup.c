@@ -314,7 +314,7 @@ __mayRaise PVOID PhAllocate(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFree(
-    __in PVOID Memory
+    __in __post_invalid PVOID Memory
     )
 {
     RtlFreeHeap(PhHeapHandle, 0, Memory);
@@ -1553,6 +1553,7 @@ VOID PhClearList(
  * \return The index of the item. If the 
  * item was not found, -1 is returned.
  */
+__success(return != -1)
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item

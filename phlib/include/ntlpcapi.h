@@ -37,6 +37,18 @@ typedef struct _PORT_MESSAGE
     };
 } PORT_MESSAGE, *PPORT_MESSAGE;
 
+typedef struct _PORT_DATA_ENTRY
+{
+    PVOID Base;
+    ULONG Size;
+} PORT_DATA_ENTRY, *PPORT_DATA_ENTRY;
+
+typedef struct _PORT_DATA_INFORMATION
+{
+    ULONG CountDataEntries;
+    PORT_DATA_ENTRY DataEntries[1];
+} PORT_DATA_INFORMATION, *PPORT_DATA_INFORMATION;
+
 #define LPC_REQUEST 1
 #define LPC_REPLY 2
 #define LPC_DATAGRAM 3
