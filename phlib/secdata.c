@@ -236,6 +236,13 @@ ACCESS_ENTRIES(Service)
     { L"User-defined control", SERVICE_USER_DEFINED_CONTROL, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(Session)
+{
+    { L"Full control", SESSION_ALL_ACCESS, TRUE, TRUE },
+    { L"Query", SESSION_QUERY_ACCESS, TRUE, TRUE },
+    { L"Modify", SESSION_MODIFY_ACCESS, TRUE, TRUE }
+};
+
 ACCESS_ENTRIES(SymbolicLink)
 {
     { L"Full control", SYMBOLIC_LINK_ALL_ACCESS, TRUE, TRUE },
@@ -398,6 +405,7 @@ PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(Section, FALSE),
     ACCESS_ENTRY(Semaphore, TRUE),
     ACCESS_ENTRY(Service, FALSE),
+    ACCESS_ENTRY(Session, FALSE),
     ACCESS_ENTRY(SymbolicLink, FALSE),
     ACCESS_ENTRY(Thread, TRUE),
     ACCESS_ENTRY(Thread60, TRUE),
