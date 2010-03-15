@@ -1,6 +1,14 @@
 #ifndef NTIMPORT_H
 #define NTIMPORT_H
 
+#define PHNT_WIN2K 50
+#define PHNT_WINXP 51
+#define PHNT_WS03 52
+#define PHNT_VISTA 60
+#define PHNT_WIN7 61
+
+#define PHNT_VERSION PHNT_WIN2K
+
 #include <ntbasic.h>
 #include <ntexapi.h>
 #include <ntioapi.h>
