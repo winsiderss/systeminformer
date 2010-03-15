@@ -107,57 +107,6 @@ FORCEINLINE VOID InsertHeadList(
     (Entry)->Next = (ListHead)->Next; \
     (ListHead)->Next = (Entry)
 
-// Strings
-
-FORCEINLINE VOID RtlInitUnicodeString(
-    __out PUNICODE_STRING DestinationString,
-    __in PWSTR SourceString
-    )
-{
-    DestinationString->MaximumLength = DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR));
-    DestinationString->Buffer = SourceString;
-}
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-RtlMultiByteToUnicodeN(
-    __out PWSTR UnicodeString,
-    __in ULONG MaxBytesInUnicodeString,
-    __out_opt PULONG BytesInUnicodeString,
-    __in PSTR MultiByteString,
-    __in ULONG BytesInMultiByteString
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-RtlMultiByteToUnicodeSize(
-    __out PULONG BytesInUnicodeString,
-    __in PSTR MultiByteString,
-    __in ULONG BytesInMultiByteString
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-RtlUnicodeToMultiByteN(
-    __out PSTR MultiByteString,
-    __in ULONG MaxBytesInMultiByteString,
-    __out_opt PULONG BytesInMultiByteString,
-    __in PWSTR UnicodeString,
-    __in ULONG BytesInUnicodeString
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-RtlUnicodeToMultiByteSize(
-    __out PULONG BytesInMultiByteString,
-    __in PWSTR UnicodeString,
-    __in ULONG BytesInUnicodeString
-    );
-
 // Synchronization
 
 NTSYSAPI
@@ -236,6 +185,59 @@ NTSYSAPI
 ULONG
 NTAPI
 RtlGetCurrentProcessorNumber();
+
+// Environment
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateEnvironment(
+    __in BOOLEAN CloneCurrentEnvironment,
+    __out PVOID *Environment
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDestroyEnvironment(
+    __in PVOID Environment
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetCurrentEnvironment(
+    __in PVOID Environment,
+    __out_opt PVOID *PreviousEnvironment
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetEnvironmentVariable(
+    __in_opt PVOID *Environment,
+    __in PUNICODE_STRING Name,
+    __in PUNICODE_STRING Value
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryEnvironmentVariable_U(
+    __in PVOID Environment,
+    __in PUNICODE_STRING Name,
+    __out PUNICODE_STRING Value
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlExpandEnvironmentStrings_U(
+    __in_opt PVOID Environment,
+    __in PUNICODE_STRING Source,
+    __out PUNICODE_STRING Destination,
+    __out_opt PULONG ReturnedLength
+    );
 
 // Processes
 
@@ -410,6 +412,23 @@ typedef struct _RTL_HEAP_PARAMETERS
     SIZE_T Reserved[2];
 } RTL_HEAP_PARAMETERS, *PRTL_HEAP_PARAMETERS;
 
+#define HEAP_SETTABLE_USER_VALUE 0x00000100
+#define HEAP_SETTABLE_USER_FLAG1 0x00000200
+#define HEAP_SETTABLE_USER_FLAG2 0x00000400
+#define HEAP_SETTABLE_USER_FLAG3 0x00000800
+#define HEAP_SETTABLE_USER_FLAGS 0x00000e00
+
+#define HEAP_CLASS_0 0x00000000 // Process heap
+#define HEAP_CLASS_1 0x00001000 // Private heap
+#define HEAP_CLASS_2 0x00002000 // Kernel heap
+#define HEAP_CLASS_3 0x00003000 // GDI heap
+#define HEAP_CLASS_4 0x00004000 // User heap
+#define HEAP_CLASS_5 0x00005000 // Console heap
+#define HEAP_CLASS_6 0x00006000 // User desktop heap
+#define HEAP_CLASS_7 0x00007000 // CSR shared heap
+#define HEAP_CLASS_8 0x00008000 // CSR port heap
+#define HEAP_CLASS_MASK 0x0000f000
+
 NTSYSAPI
 PVOID
 NTAPI
@@ -426,7 +445,7 @@ NTSYSAPI
 PVOID
 NTAPI
 RtlDestroyHeap(
-    __in PVOID HeapHandle
+    __in __post_invalid PVOID HeapHandle
     );
 
 NTSYSAPI
@@ -434,7 +453,7 @@ PVOID
 NTAPI
 RtlAllocateHeap(
     __in PVOID HeapHandle,
-    __in ULONG Flags,
+    __in_opt ULONG Flags,
     __in SIZE_T Size
     );
 
@@ -443,8 +462,8 @@ BOOLEAN
 NTAPI
 RtlFreeHeap(
     __in PVOID HeapHandle,
-    __in ULONG Flags,
-    __in PVOID BaseAddress
+    __in_opt ULONG Flags,
+    __in __post_invalid PVOID BaseAddress
     );
 
 NTSYSAPI
@@ -604,6 +623,898 @@ ULONG
 NTAPI
 RtlNtStatusToDosError(
     __in NTSTATUS Status
+    );
+
+// Strings
+
+FORCEINLINE VOID RtlInitUnicodeString(
+    __out PUNICODE_STRING DestinationString,
+    __in PWSTR SourceString
+    )
+{
+    DestinationString->MaximumLength = DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR));
+    DestinationString->Buffer = SourceString;
+}
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAnsiStringToUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in PANSI_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToAnsiString(
+    __inout PANSI_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+LONG
+NTAPI
+RtlCompareUnicodeString(
+    __in PUNICODE_STRING String1,
+    __in PUNICODE_STRING String2,
+    __in BOOLEAN CaseInSensitive
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualUnicodeString(
+    __in PUNICODE_STRING String1,
+    __in PUNICODE_STRING String2,
+    __in BOOLEAN CaseInSensitive
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlPrefixUnicodeString(
+    __in PUNICODE_STRING String1,
+    __in PUNICODE_STRING String2,
+    __in BOOLEAN CaseInSensitive
+    );
+
+#define RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END 0x00000001
+#define RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET 0x00000002
+#define RTL_FIND_CHAR_IN_UNICODE_STRING_CASE_INSENSITIVE 0x00000004
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFindCharInUnicodeString(
+    __in ULONG Flags,
+    __in PUNICODE_STRING StringToSearch,
+    __in PUNICODE_STRING CharSet,
+    __out PUSHORT NonInclusivePrefixLength
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeUnicodeString(
+    __in PUNICODE_STRING UnicodeString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeAnsiString(
+    __in PANSI_STRING AnsiString
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlMultiByteToUnicodeN(
+    __out PWSTR UnicodeString,
+    __in ULONG MaxBytesInUnicodeString,
+    __out_opt PULONG BytesInUnicodeString,
+    __in PSTR MultiByteString,
+    __in ULONG BytesInMultiByteString
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlMultiByteToUnicodeSize(
+    __out PULONG BytesInUnicodeString,
+    __in PSTR MultiByteString,
+    __in ULONG BytesInMultiByteString
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToMultiByteN(
+    __out PSTR MultiByteString,
+    __in ULONG MaxBytesInMultiByteString,
+    __out_opt PULONG BytesInMultiByteString,
+    __in PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToMultiByteSize(
+    __out PULONG BytesInMultiByteString,
+    __in PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlStringFromGUID(
+    __in PGUID Guid,
+    __out PUNICODE_STRING GuidString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGUIDFromString(
+    __in PUNICODE_STRING GuidString,
+    __out PGUID Guid
+    );
+
+// Bitmaps
+
+typedef struct _RTL_BITMAP
+{
+    ULONG SizeOfBitMap;
+    PULONG Buffer;
+} RTL_BITMAP, *PRTL_BITMAP;
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeBitMap(
+    __out PRTL_BITMAP BitMapHeader,
+    __in PULONG BitMapBuffer,
+    __in ULONG SizeOfBitMap
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlClearBit(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetBit(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTestBit(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlClearAllBits(
+    __in PRTL_BITMAP BitMapHeader
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetAllBits(
+    __in PRTL_BITMAP BitMapHeader
+    );
+
+__success(return != -1)
+__checkReturn
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindClearBits(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG NumberToFind,
+    __in ULONG HintIndex
+    );
+
+__success(return != -1)
+__checkReturn
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindSetBits(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG NumberToFind,
+    __in ULONG HintIndex
+    );
+
+__success(return != -1)
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindClearBitsAndSet(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG NumberToFind,
+    __in ULONG HintIndex
+    );
+
+__success(return != -1)
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindSetBitsAndClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG NumberToFind,
+    __in ULONG HintIndex
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlClearBits(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
+    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetBits(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
+    __in_range(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet
+    );
+
+typedef struct _RTL_BITMAP_RUN
+{
+    ULONG StartingIndex;
+    ULONG NumberOfBits;
+} RTL_BITMAP_RUN, *PRTL_BITMAP_RUN;
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindClearRuns(
+    __in PRTL_BITMAP BitMapHeader,
+    __out_ecount_part(SizeOfRunArray, return) PRTL_BITMAP_RUN RunArray,
+    __in_range(>, 0) ULONG SizeOfRunArray,
+    __in BOOLEAN LocateLongestRuns
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindLongestRunClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __out PULONG StartingIndex
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindFirstRunClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __out PULONG StartingIndex
+    );
+
+__checkReturn
+FORCEINLINE
+BOOLEAN
+RtlCheckBit(
+    __in PRTL_BITMAP BitMapHeader,
+    __in_range(<, BitMapHeader->SizeOfBitMap) ULONG BitPosition
+    )
+{
+#ifdef _M_IX86
+    return (((PLONG)BitMapHeader->Buffer)[BitPosition / 32] >> (BitPosition % 32)) & 0x1;
+#else
+    return BitTest64((LONG64 const *)BitMapHeader->Buffer, (LONG64)BitPosition);
+#endif
+}
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlNumberOfClearBits(
+    __in PRTL_BITMAP BitMapHeader
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlNumberOfSetBits(
+    __in PRTL_BITMAP BitMapHeader
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAreBitsClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG StartingIndex,
+    __in ULONG Length
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAreBitsSet(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG StartingIndex,
+    __in ULONG Length
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindNextForwardRunClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG FromIndex,
+    __out PULONG StartingRunIndex
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlFindLastBackwardRunClear(
+    __in PRTL_BITMAP BitMapHeader,
+    __in ULONG FromIndex,
+    __out PULONG StartingRunIndex
+    );
+
+// SIDs
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlValidSid(
+    __in PSID Sid
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualSid(
+    __in PSID Sid1,
+    __in PSID Sid2
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlLengthRequiredSid(
+    __in ULONG SubAuthorityCount
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlFreeSid(
+    __in __post_invalid PSID Sid
+    );
+
+__checkReturn
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAllocateAndInitializeSid(
+    __in PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    __in UCHAR SubAuthorityCount,
+    __in ULONG SubAuthority0,
+    __in ULONG SubAuthority1,
+    __in ULONG SubAuthority2,
+    __in ULONG SubAuthority3,
+    __in ULONG SubAuthority4,
+    __in ULONG SubAuthority5,
+    __in ULONG SubAuthority6,
+    __in ULONG SubAuthority7,
+    __deref_out PSID *Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitializeSid(
+    __out PSID Sid,
+    __in PSID_IDENTIFIER_AUTHORITY IdentifierAuthority,
+    __in UCHAR SubAuthorityCount
+    );
+
+NTSYSAPI
+PSID_IDENTIFIER_AUTHORITY
+NTAPI
+RtlIdentifierAuthoritySid(
+    __in PSID Sid
+    );
+
+NTSYSAPI
+PULONG
+NTAPI
+RtlSubAuthoritySid(
+    __in PSID Sid,
+    __in ULONG SubAuthority
+    );
+
+NTSYSAPI
+PUCHAR
+NTAPI
+RtlSubAuthorityCountSid(
+    __in PSID Sid
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlLengthSid(
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCopySid(
+    __in ULONG DestinationSidLength,
+    __in_bcount(DestinationSidLength) PSID DestinationSid,
+    __in PSID SourceSid
+    );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateServiceSid(
+    __in PUNICODE_STRING ServiceName,
+    __out_bcount(*ServiceSidLength) PSID ServiceSid,
+    __inout PULONG ServiceSidLength
+    );
+#endif
+
+#define MAX_UNICODE_STACK_BUFFER_LENGTH 256
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlConvertSidToUnicodeString(
+    __inout PUNICODE_STRING UnicodeString,
+    __in PSID Sid,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+// LUIDs
+
+#define RtlEqualLuid(L1, L2) \
+    (((L1)->LowPart == (L2)->LowPart) && \
+    ((L1)->HighPart == (L2)->HighPart))
+
+#define RtlIsZeroLuid(L1) ((BOOLEAN)(((L1)->LowPart | (L1)->HighPart) == 0))
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCopyLuid(
+    __out PLUID DestinationLuid,
+    __in PLUID SourceLuid
+    );
+
+// Security Descriptors
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateSecurityDescriptor(
+    __out PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in ULONG Revision
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateSecurityDescriptorRelative(
+    __out PISECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
+    __in ULONG Revision
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlValidSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlLengthSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlValidRelativeSecurityDescriptor(
+    __in_bcount(SecurityDescriptorLength) PSECURITY_DESCRIPTOR SecurityDescriptorInput,
+    __in ULONG SecurityDescriptorLength,
+    __in SECURITY_INFORMATION RequiredInformation
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetControlSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PSECURITY_DESCRIPTOR_CONTROL Control,
+    __out PULONG Revision
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetControlSecurityDescriptor(
+     __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+     __in SECURITY_DESCRIPTOR_CONTROL ControlBitsOfInterest,
+     __in SECURITY_DESCRIPTOR_CONTROL ControlBitsToSet
+     );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetAttributesSecurityDescriptor(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in SECURITY_DESCRIPTOR_CONTROL Control,
+    __out PULONG Revision
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlGetSecurityDescriptorRMControl(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PUCHAR RMControl
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetSecurityDescriptorRMControl(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in_opt PUCHAR RMControl
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetDaclSecurityDescriptor(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in BOOLEAN DaclPresent,
+    __in_opt PACL Dacl,
+    __in_opt BOOLEAN DaclDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetDaclSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PBOOLEAN DaclPresent,
+    __out PACL *Dacl,
+    __out PBOOLEAN DaclDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetSaclSecurityDescriptor(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in BOOLEAN SaclPresent,
+    __in_opt PACL Sacl,
+    __in_opt BOOLEAN SaclDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSaclSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PBOOLEAN SaclPresent,
+    __out PACL *Sacl,
+    __out PBOOLEAN SaclDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetSaclSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PBOOLEAN SaclPresent,
+    __out PACL *Sacl,
+    __out PBOOLEAN SaclDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetOwnerSecurityDescriptor(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in_opt PSID Owner,
+    __in_opt BOOLEAN OwnerDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetOwnerSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PSID *Owner,
+    __out PBOOLEAN OwnerDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetGroupSecurityDescriptor(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in_opt PSID Group,
+    __in_opt BOOLEAN GroupDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetGroupSecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __out PSID *Group,
+    __out PBOOLEAN GroupDefaulted
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlMakeSelfRelativeSD(
+    __in PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    __out_bcount(*BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    __inout PULONG BufferLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAbsoluteToSelfRelativeSD(
+    __in PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    __out_bcount_part_opt(*BufferLength, *BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    __inout PULONG BufferLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSelfRelativeToAbsoluteSD(
+    __in PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    __out_bcount_part_opt(*AbsoluteSecurityDescriptorSize, *AbsoluteSecurityDescriptorSize) PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    __inout PULONG AbsoluteSecurityDescriptorSize,
+    __out_bcount_part_opt(*DaclSize, *DaclSize) PACL Dacl,
+    __inout PULONG DaclSize,
+    __out_bcount_part_opt(*SaclSize, *SaclSize) PACL Sacl,
+    __inout PULONG SaclSize,
+    __out_bcount_part_opt(*OwnerSize, *OwnerSize) PSID Owner,
+    __inout PULONG OwnerSize,
+    __out_bcount_part_opt(*PrimaryGroupSize, *PrimaryGroupSize) PSID PrimaryGroup,
+    __inout PULONG PrimaryGroupSize
+    );
+
+// ACLs
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateAcl(
+    __out_bcount(AclLength) PACL Acl,
+    __in ULONG AclLength,
+    __in ULONG AclRevision
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlValidAcl(
+    __in PACL Acl
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryInformationAcl(
+    __in PACL Acl,
+    __out_bcount(AclInformationLength) PVOID AclInformation,
+    __in ULONG AclInformationLength,
+    __in ACL_INFORMATION_CLASS AclInformationClass
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetInformationAcl(
+    __inout PACL Acl,
+    __in_bcount(AclInformationLength) PVOID AclInformation,
+    __in ULONG AclInformationLength,
+    __in ACL_INFORMATION_CLASS AclInformationClass
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG StartingAceIndex,
+    __in_bcount(AceListLength) PVOID AceList,
+    __in ULONG AceListLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteAce(
+    __inout PACL Acl,
+    __in ULONG AceIndex
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetAce(
+    __in PACL Acl,
+    __in ULONG AceIndex,
+    __deref_out PVOID *Ace
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessAllowedAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessAllowedAceEx(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessDeniedAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessDeniedAceEx(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAuditAccessAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid,
+    __in BOOLEAN AuditSuccess,
+    __in BOOLEAN AuditFailure
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAuditAccessAceEx(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in PSID Sid,
+    __in BOOLEAN AuditSuccess,
+    __in BOOLEAN AuditFailure
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessAllowedObjectAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in_opt PGUID ObjectTypeGuid,
+    __in_opt PGUID InheritedObjectTypeGuid,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAccessDeniedObjectAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in_opt PGUID ObjectTypeGuid,
+    __in_opt PGUID InheritedObjectTypeGuid,
+    __in PSID Sid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAuditAccessObjectAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ACCESS_MASK AccessMask,
+    __in_opt PGUID ObjectTypeGuid,
+    __in_opt PGUID InheritedObjectTypeGuid,
+    __in PSID Sid,
+    __in BOOLEAN AuditSuccess,
+    __in BOOLEAN AuditFailure
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlFirstFreeAce(
+    __in PACL Acl,
+    __out PVOID *FirstFree
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddCompoundAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in UCHAR AceType,
+    __in ACCESS_MASK AccessMask,
+    __in PSID ServerSid,
+    __in PSID ClientSid
     );
 
 // Security objects
