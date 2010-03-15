@@ -2539,7 +2539,8 @@ BOOLEAN PhSetTokenPrivilege(
     __in ULONG Attributes
     )
 {
-    TOKEN_PRIVILEGES privileges = { 0 };
+    NTSTATUS status;
+    TOKEN_PRIVILEGES privileges;
 
     privileges.PrivilegeCount = 1;
     privileges.Privileges[0].Attributes = Attributes;
@@ -2561,17 +2562,17 @@ BOOLEAN PhSetTokenPrivilege(
         return FALSE;
     }
 
-    if (!AdjustTokenPrivileges(
+    if (!NT_SUCCESS(status = NtAdjustPrivilegesToken(
         TokenHandle,
         FALSE,
         &privileges,
         0,
         NULL,
         NULL
-        ))
+        )))
         return FALSE;
 
-    if (GetLastError() == ERROR_NOT_ALL_ASSIGNED)
+    if (status == STATUS_NOT_ALL_ASSIGNED)
         return FALSE;
 
     return TRUE;
