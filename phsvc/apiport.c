@@ -56,3 +56,39 @@ NTSTATUS PhApiPortInitialization()
 
     return status;
 }
+
+NTSTATUS PhApiRequestThreadStart(
+    __in PVOID Parameter
+    )
+{
+    NTSTATUS status;
+    HANDLE portHandle;
+    PVOID portContext;
+    PHSVC_API_MSG receiveMessage;
+    PPHSVC_API_MSG replyMessage;
+    CSHORT messageType;
+
+    portHandle = PhSvcApiPortHandle;
+
+    while (TRUE)
+    {
+        status = NtReplyWaitReceivePort(
+            portHandle,
+            &portContext,
+            &receiveMessage.h,
+            &replyMessage->h
+            );
+
+        if (status != STATUS_SUCCESS)
+        {
+            if (NT_SUCCESS(status))
+                continue;
+
+            // Client probably died.
+            portHandle = PhSvcApiPortHandle;
+            replyMessage = NULL;
+        }
+
+        messageType = receiveMessage.h.u2.s2.Type;
+    }
+}
