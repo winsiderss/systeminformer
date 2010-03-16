@@ -205,13 +205,13 @@ INT_PTR CALLBACK PhpEventPageProc(
                         switch (LOWORD(wParam))
                         {
                         case IDC_SET:
-                            SetEvent(eventHandle);
+                            NtSetEvent(eventHandle, NULL);
                             break;
                         case IDC_RESET:
-                            ResetEvent(eventHandle);
+                            NtResetEvent(eventHandle, NULL);
                             break;
                         case IDC_PULSE:
-                            PulseEvent(eventHandle);
+                            NtPulseEvent(eventHandle, NULL);
                             break;
                         }
 
