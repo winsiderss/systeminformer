@@ -460,6 +460,11 @@ NTSTATUS PhGetEventBasicInformation(
     __out PEVENT_BASIC_INFORMATION BasicInformation
     );
 
+NTSTATUS PhGetSemaphoreBasicInformation(
+    __in HANDLE SemaphoreHandle,
+    __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
+    );
+
 NTSTATUS PhGetFileSize(
     __in HANDLE FileHandle,
     __out PLARGE_INTEGER Size

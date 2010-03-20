@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   properties for basic executive objects
+ *   properties for NT objects
  * 
  * Copyright (C) 2010 wj32
  * 
@@ -42,6 +42,13 @@ INT CALLBACK PhpCommonPropPageProc(
     );
 
 INT_PTR CALLBACK PhpEventPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpSemaphorePageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -143,6 +150,7 @@ static VOID PhpRefreshEventPageInfo(
     {
         EVENT_BASIC_INFORMATION basicInfo;
         PWSTR eventType = L"Unknown";
+        PWSTR eventState = L"Unknown";
 
         if (NT_SUCCESS(PhGetEventBasicInformation(eventHandle, &basicInfo)))
         {
@@ -156,9 +164,11 @@ static VOID PhpRefreshEventPageInfo(
                 break;
             }
 
-            SetDlgItemText(hwndDlg, IDC_TYPE, eventType);
-            SetDlgItemText(hwndDlg, IDC_SIGNALED, basicInfo.EventState > 0 ? L"True" : L"False");
+            eventState = basicInfo.EventState > 0 ? L"True" : L"False";
         }
+
+        SetDlgItemText(hwndDlg, IDC_TYPE, eventType);
+        SetDlgItemText(hwndDlg, IDC_SIGNALED, eventState);
 
         NtClose(eventHandle);
     }
@@ -222,6 +232,122 @@ INT_PTR CALLBACK PhpEventPageProc(
 
                     if (!NT_SUCCESS(status))
                         PhShowStatus(hwndDlg, L"Unable to open the event", status, 0);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+HPROPSHEETPAGE PhCreateSemaphorePage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJSEMAPHORE),
+        PhpSemaphorePageProc
+        );
+}
+
+static VOID PhpRefreshSemaphorePageInfo(
+    __in HWND hwndDlg,
+    __in PCOMMON_PAGE_CONTEXT PageContext
+    )
+{
+    HANDLE semaphoreHandle;
+
+    if (NT_SUCCESS(PageContext->OpenObject(
+        &semaphoreHandle,
+        SEMAPHORE_QUERY_STATE,
+        PageContext->Context
+        )))
+    {
+        SEMAPHORE_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetSemaphoreBasicInformation(semaphoreHandle, &basicInfo)))
+        {
+            SetDlgItemInt(hwndDlg, IDC_CURRENTCOUNT, basicInfo.CurrentCount, TRUE);
+            SetDlgItemInt(hwndDlg, IDC_MAXIMUMCOUNT, basicInfo.MaximumCount, TRUE);
+        }
+        else
+        {
+            SetDlgItemText(hwndDlg, IDC_CURRENTCOUNT, L"Unknown");
+            SetDlgItemText(hwndDlg, IDC_MAXIMUMCOUNT, L"Unknown");
+        }
+
+        NtClose(semaphoreHandle);
+    }
+}
+
+INT_PTR CALLBACK PhpSemaphorePageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!pageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpRefreshSemaphorePageInfo(hwndDlg, pageContext);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_ACQUIRE:
+            case IDC_RELEASE:
+                {
+                    NTSTATUS status;
+                    HANDLE semaphoreHandle;
+
+                    if (NT_SUCCESS(status = pageContext->OpenObject(
+                        &semaphoreHandle,
+                        LOWORD(wParam) == IDC_ACQUIRE ? SYNCHRONIZE : SEMAPHORE_MODIFY_STATE,
+                        pageContext->Context
+                        )))
+                    {
+                        switch (LOWORD(wParam))
+                        {
+                        case IDC_ACQUIRE:
+                            {
+                                LARGE_INTEGER timeout;
+
+                                timeout.QuadPart = 0;
+
+                                if (NtWaitForSingleObject(semaphoreHandle, FALSE, &timeout) != STATUS_WAIT_0)
+                                {
+                                    PhShowError(hwndDlg, L"Unable to acquire the semaphore.");
+                                }
+                            }
+                            break;
+                        case IDC_RELEASE:
+                            NtReleaseSemaphore(semaphoreHandle, 1, NULL);
+                            break;
+                        }
+
+                        NtClose(semaphoreHandle);
+                    }
+
+                    PhpRefreshSemaphorePageInfo(hwndDlg, pageContext);
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to open the semaphore", status, 0);
                 }
                 break;
             }

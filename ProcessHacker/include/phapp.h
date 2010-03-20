@@ -398,13 +398,6 @@ VOID PhShowAboutDialog(
 
 PPH_STRING PhGetDiagnosticsString();
 
-// exprp
-
-HPROPSHEETPAGE PhCreateEventPage(
-    __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
-    );
-
 // findobj
 
 VOID PhShowFindObjectsDialog();
@@ -453,6 +446,18 @@ HPROPSHEETPAGE PhCreateJobPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context,
     __in_opt DLGPROC HookProc
+    );
+
+// ntobjprp
+
+HPROPSHEETPAGE PhCreateEventPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    );
+
+HPROPSHEETPAGE PhCreateSemaphorePage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
     );
 
 // pagfiles

@@ -34,16 +34,12 @@ NTSTATUS PhpWorkQueueThreadStart(
 
 PPH_FREE_LIST PhWorkQueueItemFreeList;
 PH_WORK_QUEUE PhGlobalWorkQueue;
+PH_INITONCE PhGlobalWorkQueueInitOnce;
 
 VOID PhWorkQueueInitialization()
 {
     PhWorkQueueItemFreeList = PhCreateFreeList(sizeof(PH_WORK_QUEUE_ITEM), 32);
-    PhInitializeWorkQueue(
-        &PhGlobalWorkQueue,
-        0,
-        3,
-        1000
-        );
+    PhInitializeInitOnce(&PhGlobalWorkQueueInitOnce);
 }
 
 VOID PhInitializeWorkQueue(
@@ -267,6 +263,17 @@ VOID PhQueueGlobalWorkQueueItem(
     __in PVOID Context
     )
 {
+    if (PhBeginInitOnce(&PhGlobalWorkQueueInitOnce))
+    {
+        PhInitializeWorkQueue(
+            &PhGlobalWorkQueue,
+            0,
+            3,
+            1000
+            );
+        PhEndInitOnce(&PhGlobalWorkQueueInitOnce);
+    }
+
     PhQueueWorkQueueItem(
         &PhGlobalWorkQueue,
         Function,

@@ -1623,6 +1623,71 @@ PPH_STRING PhaSubstring(
     __in ULONG Count
     );
 
+// handle
+
+#define PH_HANDLE_TABLE_ENTRY_TYPE 0x3
+#define PH_HANDLE_TABLE_ENTRY_IN_USE 0x0
+#define PH_HANDLE_TABLE_ENTRY_FREE 0x1
+#define PH_HANDLE_TABLE_ENTRY_LEVEL 0x2
+
+#define PH_HANDLE_TABLE_ENTRY_LOCKED 0x4
+#define PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT 2
+
+#define PH_HANDLE_TABLE_ENTRY_VALUE_SHIFT 3
+
+// Values:
+// In use: object pointer
+// Free: next free entry value
+// Level: next unused entry value 
+
+typedef struct _PH_HANDLE_TABLE_ENTRY
+{
+    union
+    {
+        PVOID Object;
+        ULONG_PTR Value;
+        struct
+        {
+            ULONG Type : 2;
+            ULONG Locked : 1;
+            ULONG Value : 29;
+        } TypeAndValue;
+    };
+    union
+    {
+        ACCESS_MASK GrantedAccess;
+        struct _PH_HANDLE_TABLE_ENTRY *Entries;
+    };
+} PH_HANDLE_TABLE_ENTRY, *PPH_HANDLE_TABLE_ENTRY;
+
+#define PH_HANDLE_TABLE_LEVEL_ENTRIES 256
+
+typedef struct _PH_HANDLE_TABLE
+{
+    ULONG Count;
+    PPH_HANDLE_TABLE_ENTRY Entries;
+
+    PH_QUEUED_LOCK LockedCondition;
+    ULONG FreeValue;
+    ULONG NextValue;
+} PH_HANDLE_TABLE, *PPH_HANDLE_TABLE;
+
+VOID PhHandleTableInitialization();
+
+VOID PhInitializeHandleTable(
+    __out PPH_HANDLE_TABLE HandleTable
+    );
+
+VOID PhLockHandleTableEntry(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
+VOID PhUnlockHandleTableEntry(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
 // workqueue
 
 typedef struct _PH_WORK_QUEUE

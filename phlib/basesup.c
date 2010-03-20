@@ -191,6 +191,7 @@ BOOLEAN PhInitializeBase()
 #endif
 
     PhWorkQueueInitialization();
+    PhHandleTableInitialization();
 
     return TRUE;
 }

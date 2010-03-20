@@ -325,6 +325,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\handle.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hndlinfo.c"
 				>
 			</File>
