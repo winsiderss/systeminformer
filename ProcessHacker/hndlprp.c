@@ -122,6 +122,13 @@ VOID PhShowHandleProperties(
             NULL
             );
     }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Semaphore", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
     else if (PhStringEquals2(HandleItem->TypeName, L"Token", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
