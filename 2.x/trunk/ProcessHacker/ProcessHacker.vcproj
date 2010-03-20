@@ -381,10 +381,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\exprp.c"
-				>
-			</File>
-			<File
 				RelativePath=".\findobj.c"
 				>
 			</File>
@@ -462,6 +458,10 @@
 			</File>
 			<File
 				RelativePath=".\mxml\mxml-string.c"
+				>
+			</File>
+			<File
+				RelativePath=".\ntobjprp.c"
 				>
 			</File>
 			<File

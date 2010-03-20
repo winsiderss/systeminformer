@@ -2758,6 +2758,20 @@ NTSTATUS PhGetEventBasicInformation(
         );
 }
 
+NTSTATUS PhGetSemaphoreBasicInformation(
+    __in HANDLE SemaphoreHandle,
+    __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQuerySemaphore(
+        SemaphoreHandle,
+        SemaphoreBasicInformation,
+        BasicInformation,
+        sizeof(SEMAPHORE_BASIC_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhGetFileSize(
     __in HANDLE FileHandle,
     __out PLARGE_INTEGER Size

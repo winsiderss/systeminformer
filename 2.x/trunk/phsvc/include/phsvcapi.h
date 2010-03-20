@@ -14,16 +14,23 @@ typedef struct _PHSVC_API_CONNECTINFO
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
-    PHSVC_API_NUMBER ApiNumber;
-    NTSTATUS ReturnStatus;
-
     union
     {
+        PHSVC_API_CONNECTINFO ConnectInfo;
         struct
         {
-            HANDLE Handle;
-        } Close;
-    } Arguments;
+            PHSVC_API_NUMBER ApiNumber;
+            NTSTATUS ReturnStatus;
+
+            union
+            {
+                struct
+                {
+                    HANDLE Handle;
+                } Close;
+            } Arguments;
+        };
+    };
 } PHSVC_API_MSG, *PPHSVC_API_MSG;
 
 #endif

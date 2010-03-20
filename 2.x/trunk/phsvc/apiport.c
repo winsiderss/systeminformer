@@ -67,6 +67,7 @@ NTSTATUS PhApiRequestThreadStart(
     PHSVC_API_MSG receiveMessage;
     PPHSVC_API_MSG replyMessage;
     CSHORT messageType;
+    PPHSVC_CLIENT client;
 
     portHandle = PhSvcApiPortHandle;
 
@@ -79,16 +80,64 @@ NTSTATUS PhApiRequestThreadStart(
             &replyMessage->h
             );
 
+        portHandle = PhSvcApiPortHandle;
+        replyMessage = NULL;
+
         if (status != STATUS_SUCCESS)
         {
-            if (NT_SUCCESS(status))
-                continue;
-
             // Client probably died.
-            portHandle = PhSvcApiPortHandle;
-            replyMessage = NULL;
+            continue;
         }
 
         messageType = receiveMessage.h.u2.s2.Type;
+
+        if (messageType == LPC_CONNECTION_REQUEST)
+        {
+            PhHandleConnectionRequest(&receiveMessage);
+            continue;
+        }
+
+        if (!portContext)
+            continue;
+
+        client = (PPHSVC_CLIENT)portContext;
+
+
+    }
+}
+
+VOID PhHandleConnectionRequest(
+    __in PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPHSVC_CLIENT client;
+    HANDLE portHandle;
+
+    client = PhSvcCreateClient(&Message->h.ClientId);
+
+    status = NtAcceptConnectPort(
+        &portHandle,
+        client,
+        &Message->h,
+        TRUE,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(client);
+        return;
+    }
+
+    client->PortHandle = portHandle;
+
+    status = NtCompleteConnectPort(portHandle);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(client);
+        return;
     }
 }
