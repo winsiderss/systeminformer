@@ -329,11 +329,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
                                 LARGE_INTEGER timeout;
 
                                 timeout.QuadPart = 0;
-
-                                if (NtWaitForSingleObject(semaphoreHandle, FALSE, &timeout) != STATUS_WAIT_0)
-                                {
-                                    PhShowError(hwndDlg, L"Unable to acquire the semaphore.");
-                                }
+                                NtWaitForSingleObject(semaphoreHandle, FALSE, &timeout);
                             }
                             break;
                         case IDC_RELEASE:
