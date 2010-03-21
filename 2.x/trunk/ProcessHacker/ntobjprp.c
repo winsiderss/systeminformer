@@ -48,7 +48,21 @@ INT_PTR CALLBACK PhpEventPageProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpMutantPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpSemaphorePageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpTimerPageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -242,6 +256,105 @@ INT_PTR CALLBACK PhpEventPageProc(
     return FALSE;
 }
 
+HPROPSHEETPAGE PhCreateMutantPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJMUTANT),
+        PhpMutantPageProc
+        );
+}
+
+static VOID PhpRefreshMutantPageInfo(
+    __in HWND hwndDlg,
+    __in PCOMMON_PAGE_CONTEXT PageContext
+    )
+{
+    HANDLE mutantHandle;
+
+    if (NT_SUCCESS(PageContext->OpenObject(
+        &mutantHandle,
+        SEMAPHORE_QUERY_STATE,
+        PageContext->Context
+        )))
+    {
+        MUTANT_BASIC_INFORMATION basicInfo;
+        MUTANT_OWNER_INFORMATION ownerInfo;
+
+        if (NT_SUCCESS(PhGetMutantBasicInformation(mutantHandle, &basicInfo)))
+        {
+            SetDlgItemInt(hwndDlg, IDC_COUNT, basicInfo.CurrentCount, TRUE);
+            SetDlgItemText(hwndDlg, IDC_ABANDONED, basicInfo.AbandonedState ? L"True" : L"False");
+        }
+        else
+        {
+            SetDlgItemText(hwndDlg, IDC_COUNT, L"Unknown");
+            SetDlgItemText(hwndDlg, IDC_ABANDONED, L"Unknown");
+        }
+
+        if (
+            WindowsVersion >= WINDOWS_VISTA &&
+            NT_SUCCESS(PhGetMutantOwnerInformation(mutantHandle, &ownerInfo))
+            )
+        {
+            PPH_STRING name;
+
+            if (ownerInfo.ClientId.UniqueProcess != NULL)
+            {
+                name = PhGetClientIdName(&ownerInfo.ClientId);
+                SetDlgItemText(hwndDlg, IDC_OWNER, name->Buffer);
+                PhDereferenceObject(name);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_OWNER, L"N/A");
+            }
+        }
+        else
+        {
+            SetDlgItemText(hwndDlg, IDC_OWNER, L"Unknown");
+        }
+
+        NtClose(mutantHandle);
+    }
+}
+
+INT_PTR CALLBACK PhpMutantPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!pageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            if (WindowsVersion < WINDOWS_VISTA)
+            {
+                EnableWindow(GetDlgItem(hwndDlg, IDC_OWNERLABEL), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_OWNER), FALSE);
+            }
+
+            PhpRefreshMutantPageInfo(hwndDlg, pageContext);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 HPROPSHEETPAGE PhCreateSemaphorePage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context
@@ -344,6 +457,107 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
 
                     if (!NT_SUCCESS(status))
                         PhShowStatus(hwndDlg, L"Unable to open the semaphore", status, 0);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+HPROPSHEETPAGE PhCreateTimerPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJTIMER),
+        PhpTimerPageProc
+        );
+}
+
+static VOID PhpRefreshTimerPageInfo(
+    __in HWND hwndDlg,
+    __in PCOMMON_PAGE_CONTEXT PageContext
+    )
+{
+    HANDLE timerHandle;
+
+    if (NT_SUCCESS(PageContext->OpenObject(
+        &timerHandle,
+        TIMER_QUERY_STATE,
+        PageContext->Context
+        )))
+    {
+        TIMER_BASIC_INFORMATION basicInfo;
+
+        if (NT_SUCCESS(PhGetTimerBasicInformation(timerHandle, &basicInfo)))
+        {
+            SetDlgItemText(hwndDlg, IDC_SIGNALED, basicInfo.TimerState ? L"True" : L"False");
+        }
+        else
+        {
+            SetDlgItemText(hwndDlg, IDC_SIGNALED, L"Unknown");
+        }
+
+        NtClose(timerHandle);
+    }
+}
+
+INT_PTR CALLBACK PhpTimerPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!pageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpRefreshTimerPageInfo(hwndDlg, pageContext);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_CANCEL:
+                {
+                    NTSTATUS status;
+                    HANDLE timerHandle;
+
+                    if (NT_SUCCESS(status = pageContext->OpenObject(
+                        &timerHandle,
+                        TIMER_MODIFY_STATE,
+                        pageContext->Context
+                        )))
+                    {
+                        switch (LOWORD(wParam))
+                        {
+                        case IDC_CANCEL:
+                            NtCancelTimer(timerHandle, NULL);
+                            break;
+                        }
+
+                        NtClose(timerHandle);
+                    }
+
+                    PhpRefreshTimerPageInfo(hwndDlg, pageContext);
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to open the timer", status, 0);
                 }
                 break;
             }
