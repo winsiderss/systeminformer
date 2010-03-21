@@ -673,7 +673,7 @@ BEGIN
     LTEXT           "Unknown",IDC_COUNT,55,7,124,8
     LTEXT           "Abandoned:",IDC_STATIC,7,18,40,8
     LTEXT           "Unknown",IDC_ABANDONED,55,18,124,8
-    LTEXT           "Owner:",IDC_STATIC,7,29,25,8
+    LTEXT           "Owner:",IDC_OWNERLABEL,7,29,25,8
     LTEXT           "Unknown",IDC_OWNER,55,29,124,8
 END
 

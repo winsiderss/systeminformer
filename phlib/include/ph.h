@@ -460,9 +460,24 @@ NTSTATUS PhGetEventBasicInformation(
     __out PEVENT_BASIC_INFORMATION BasicInformation
     );
 
+NTSTATUS PhGetMutantBasicInformation(
+    __in HANDLE MutantHandle,
+    __out PMUTANT_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetMutantOwnerInformation(
+    __in HANDLE MutantHandle,
+    __out PMUTANT_OWNER_INFORMATION OwnerInformation
+    );
+
 NTSTATUS PhGetSemaphoreBasicInformation(
     __in HANDLE SemaphoreHandle,
     __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
+    );
+
+NTSTATUS PhGetTimerBasicInformation(
+    __in HANDLE TimerHandle,
+    __out PTIMER_BASIC_INFORMATION BasicInformation
     );
 
 NTSTATUS PhGetFileSize(
