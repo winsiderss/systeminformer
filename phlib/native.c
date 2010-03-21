@@ -2758,6 +2758,34 @@ NTSTATUS PhGetEventBasicInformation(
         );
 }
 
+NTSTATUS PhGetMutantBasicInformation(
+    __in HANDLE MutantHandle,
+    __out PMUTANT_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryMutant(
+        MutantHandle,
+        MutantBasicInformation,
+        BasicInformation,
+        sizeof(MUTANT_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetMutantOwnerInformation(
+    __in HANDLE MutantHandle,
+    __out PMUTANT_OWNER_INFORMATION OwnerInformation
+    )
+{
+    return NtQueryMutant(
+        MutantHandle,
+        MutantOwnerInformation,
+        OwnerInformation,
+        sizeof(MUTANT_OWNER_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhGetSemaphoreBasicInformation(
     __in HANDLE SemaphoreHandle,
     __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
@@ -2768,6 +2796,20 @@ NTSTATUS PhGetSemaphoreBasicInformation(
         SemaphoreBasicInformation,
         BasicInformation,
         sizeof(SEMAPHORE_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+NTSTATUS PhGetTimerBasicInformation(
+    __in HANDLE TimerHandle,
+    __out PTIMER_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryTimer(
+        TimerHandle,
+        TimerBasicInformation,
+        BasicInformation,
+        sizeof(TIMER_BASIC_INFORMATION),
         NULL
         );
 }

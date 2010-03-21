@@ -122,9 +122,23 @@ VOID PhShowHandleProperties(
             NULL
             );
     }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Mutant", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateMutantPage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
     else if (PhStringEquals2(HandleItem->TypeName, L"Semaphore", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Timer", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateTimerPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
