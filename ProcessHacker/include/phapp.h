@@ -455,7 +455,17 @@ HPROPSHEETPAGE PhCreateEventPage(
     __in PVOID Context
     );
 
+HPROPSHEETPAGE PhCreateEventPairPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    );
+
 HPROPSHEETPAGE PhCreateMutantPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    );
+
+HPROPSHEETPAGE PhCreateSectionPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context
     );

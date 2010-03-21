@@ -2786,6 +2786,20 @@ NTSTATUS PhGetMutantOwnerInformation(
         );
 }
 
+NTSTATUS PhGetSectionBasicInformation(
+    __in HANDLE SectionHandle,
+    __out PSECTION_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQuerySection(
+        SectionHandle,
+        SectionBasicInformation,
+        BasicInformation,
+        sizeof(SECTION_BASIC_INFORMATION),
+        NULL
+        );
+}
+
 NTSTATUS PhGetSemaphoreBasicInformation(
     __in HANDLE SemaphoreHandle,
     __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
