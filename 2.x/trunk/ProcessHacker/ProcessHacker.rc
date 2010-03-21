@@ -707,6 +707,26 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
 END
 
+IDD_OBJEVENTPAIR DIALOGEX 0, 0, 186, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Event Pair"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Set Low",IDC_SETLOW,7,7,50,14
+    PUSHBUTTON      "Set High",IDC_SETHIGH,61,7,50,14
+END
+
+IDD_OBJSECTION DIALOGEX 0, 0, 186, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Section"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Type:",IDC_STATIC,7,7,20,8
+    LTEXT           "Unknown",IDC_TYPE,43,7,136,8
+    LTEXT           "Size:",IDC_STATIC,7,18,16,8
+    LTEXT           "Unknown",IDC_SIZE_,43,18,136,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -930,6 +950,22 @@ BEGIN
         RIGHTMARGIN, 153
         TOPMARGIN, 7
         BOTTOMMARGIN, 151
+    END
+
+    IDD_OBJEVENTPAIR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 69
+    END
+
+    IDD_OBJSECTION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 179
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 69
     END
 END
 #endif    // APSTUDIO_INVOKED

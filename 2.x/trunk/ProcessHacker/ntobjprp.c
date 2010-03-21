@@ -48,7 +48,21 @@ INT_PTR CALLBACK PhpEventPageProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpEventPairPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpMutantPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpSectionPageProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -256,6 +270,81 @@ INT_PTR CALLBACK PhpEventPageProc(
     return FALSE;
 }
 
+HPROPSHEETPAGE PhCreateEventPairPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJEVENTPAIR),
+        PhpEventPairPageProc
+        );
+}
+
+INT_PTR CALLBACK PhpEventPairPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!pageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            // Nothing
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_SETLOW:
+            case IDC_SETHIGH:
+                {
+                    NTSTATUS status;
+                    HANDLE eventPairHandle;
+
+                    if (NT_SUCCESS(status = pageContext->OpenObject(
+                        &eventPairHandle,
+                        EVENT_PAIR_ALL_ACCESS,
+                        pageContext->Context
+                        )))
+                    {
+                        switch (LOWORD(wParam))
+                        {
+                        case IDC_SETLOW:
+                            NtSetLowEventPair(eventPairHandle);
+                            break;
+                        case IDC_SETHIGH:
+                            NtSetHighEventPair(eventPairHandle);
+                            break;
+                        }
+
+                        NtClose(eventPairHandle);
+                    }
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to open the event pair", status, 0);
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 HPROPSHEETPAGE PhCreateMutantPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context
@@ -348,6 +437,83 @@ INT_PTR CALLBACK PhpMutantPageProc(
             }
 
             PhpRefreshMutantPageInfo(hwndDlg, pageContext);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+HPROPSHEETPAGE PhCreateSectionPage(
+    __in PPH_OPEN_OBJECT OpenObject,
+    __in PVOID Context
+    )
+{
+    return PhpCommonCreatePage(
+        OpenObject,
+        Context,
+        MAKEINTRESOURCE(IDD_OBJSECTION),
+        PhpSectionPageProc
+        );
+}
+
+static VOID PhpRefreshSectionPageInfo(
+    __in HWND hwndDlg,
+    __in PCOMMON_PAGE_CONTEXT PageContext
+    )
+{
+    HANDLE sectionHandle;
+
+    if (NT_SUCCESS(PageContext->OpenObject(
+        &sectionHandle,
+        SECTION_QUERY,
+        PageContext->Context
+        )))
+    {
+        SECTION_BASIC_INFORMATION basicInfo;
+        PWSTR sectionType = L"Unknown";
+        PPH_STRING sectionSize = NULL;
+
+        if (NT_SUCCESS(PhGetSectionBasicInformation(sectionHandle, &basicInfo)))
+        {
+            if (basicInfo.AllocationAttributes & SEC_COMMIT)
+                sectionType = L"Commit";
+            else if (basicInfo.AllocationAttributes & SEC_FILE)
+                sectionType = L"File";
+            else if (basicInfo.AllocationAttributes & SEC_IMAGE)
+                sectionType = L"Image";
+            else if (basicInfo.AllocationAttributes & SEC_RESERVE)
+                sectionType = L"Reserve";
+
+            sectionSize = PHA_DEREFERENCE(PhFormatSize(basicInfo.MaximumSize.QuadPart, -1));
+        }
+
+        SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
+        SetDlgItemText(hwndDlg, IDC_SIZE_, PhGetStringOrDefault(sectionSize, L"Unknown"));
+
+        NtClose(sectionHandle);
+    }
+}
+
+INT_PTR CALLBACK PhpSectionPageProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PCOMMON_PAGE_CONTEXT pageContext;
+
+    pageContext = PhpCommonPageHeader(hwndDlg, uMsg, wParam, lParam);
+
+    if (!pageContext)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpRefreshSectionPageInfo(hwndDlg, pageContext);
         }
         break;
     }
