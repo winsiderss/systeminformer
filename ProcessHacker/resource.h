@@ -45,6 +45,8 @@
 #define IDD_OBJSEMAPHORE                144
 #define IDD_OBJTIMER                    145
 #define IDD_JOBSTATISTICS               146
+#define IDD_OBJEVENTPAIR                147
+#define IDD_OBJSECTION                  148
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -144,6 +146,9 @@
 #define IDC_RELEASE                     1093
 #define IDC_CANCEL                      1094
 #define IDC_OWNERLABEL                  1095
+#define IDC_SETLOW                      1096
+#define IDC_SETHIGH                     1097
+#define IDC_SIZE_                       1098
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -263,7 +268,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1096
+#define _APS_NEXT_CONTROL_VALUE         1099
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

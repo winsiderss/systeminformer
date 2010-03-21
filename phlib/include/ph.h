@@ -470,6 +470,11 @@ NTSTATUS PhGetMutantOwnerInformation(
     __out PMUTANT_OWNER_INFORMATION OwnerInformation
     );
 
+NTSTATUS PhGetSectionBasicInformation(
+    __in HANDLE SectionHandle,
+    __out PSECTION_BASIC_INFORMATION BasicInformation
+    );
+
 NTSTATUS PhGetSemaphoreBasicInformation(
     __in HANDLE SemaphoreHandle,
     __out PSEMAPHORE_BASIC_INFORMATION BasicInformation

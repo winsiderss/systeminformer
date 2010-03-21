@@ -114,6 +114,13 @@ VOID PhShowHandleProperties(
             &context
             );
     }
+    else if (PhStringEquals2(HandleItem->TypeName, L"EventPair", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
     else if (PhStringEquals2(HandleItem->TypeName, L"Job", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(
@@ -125,6 +132,13 @@ VOID PhShowHandleProperties(
     else if (PhStringEquals2(HandleItem->TypeName, L"Mutant", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateMutantPage(
+            PhpDuplicateHandleFromProcess,
+            &context
+            );
+    }
+    else if (PhStringEquals2(HandleItem->TypeName, L"Section", TRUE))
+    {
+        pages[propSheetHeader.nPages++] = PhCreateSectionPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
