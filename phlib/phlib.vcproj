@@ -423,6 +423,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\handlep.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\kph.h"
 				>
 			</File>

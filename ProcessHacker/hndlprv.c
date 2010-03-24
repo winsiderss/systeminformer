@@ -191,8 +191,8 @@ ULONG PhpHandleHashtableHashFunction(
     return (ULONG)(*(PPH_HANDLE_ITEM *)Entry)->Handle / 4;
 }
 
-__assumeLocked PPH_HANDLE_ITEM PhpLookupHandleItem(
-    __in PPH_HANDLE_PROVIDER HandleProvider,
+PPH_HANDLE_ITEM PhpLookupHandleItem(
+    __in __assumeLocked PPH_HANDLE_PROVIDER HandleProvider,
     __in HANDLE Handle
     )
 {
