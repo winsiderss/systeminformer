@@ -198,6 +198,8 @@ window procedure must reference the object as soon as possible.
   object.
 * Free can be used for objects created with Allocate or Create 
   functions.
+* Destroy can also be used for objects created with Create 
+  functions.
 * Initialize means initialize an object with caller-supplied 
   storage.
 * Delete is paired with Initialize and does not free the object 

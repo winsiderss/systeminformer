@@ -22,6 +22,9 @@
 
 #define FASTCALL __fastcall
 
+#define SIMPLE_EXCEPTION_FILTER(Condition) \
+    ((Condition) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
 #define REBASE_ADDRESS(Pointer, OldBase, NewBase) \

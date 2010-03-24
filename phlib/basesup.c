@@ -2705,16 +2705,15 @@ PVOID PhAllocateFromFreeList(
     if (FreeList->Count != 0)
     {
         memory = FreeList->List[--FreeList->Count];
+        PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
+        return memory;
     }
     else
     {
         // No unused allocations. Just allocate.
-        memory = PhAllocate(FreeList->Size);
+        PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
+        return PhAllocate(FreeList->Size);
     }
-
-    PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
-
-    return memory;
 }
 
 /**
