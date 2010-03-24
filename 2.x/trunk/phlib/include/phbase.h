@@ -1623,22 +1623,10 @@ PPH_STRING PhaSubstring(
     __in ULONG Count
     );
 
-// handle
+// handle 
 
-#define PH_HANDLE_TABLE_ENTRY_TYPE 0x3
-#define PH_HANDLE_TABLE_ENTRY_IN_USE 0x0
-#define PH_HANDLE_TABLE_ENTRY_FREE 0x1
-#define PH_HANDLE_TABLE_ENTRY_LEVEL 0x2
-
-#define PH_HANDLE_TABLE_ENTRY_LOCKED 0x4
-#define PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT 2
-
-#define PH_HANDLE_TABLE_ENTRY_VALUE_SHIFT 3
-
-// Values:
-// In use: object pointer
-// Free: next free entry value
-// Level: next unused entry value 
+struct _PH_HANDLE_TABLE;
+typedef struct _PH_HANDLE_TABLE *PPH_HANDLE_TABLE;
 
 typedef struct _PH_HANDLE_TABLE_ENTRY
 {
@@ -1648,34 +1636,36 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
         ULONG_PTR Value;
         struct
         {
-            ULONG Type : 2;
-            ULONG Locked : 1;
-            ULONG Value : 29;
+            /** The type of the entry; 1 if the entry is free, 
+             * otherwise 0 if the entry is in use.
+             */
+            ULONG_PTR Type : 1;
+            /** Whether the entry is not locked; 1 if the entry 
+             * is not locked, otherwise 0 if the entry is locked. 
+             */
+            ULONG_PTR Locked : 1;
+            ULONG_PTR Value : sizeof(ULONG_PTR) * 8 - 2;
         } TypeAndValue;
     };
     union
     {
         ACCESS_MASK GrantedAccess;
-        struct _PH_HANDLE_TABLE_ENTRY *Entries;
+        ULONG NextFreeValue;
+        ULONG_PTR Value2;
     };
 } PH_HANDLE_TABLE_ENTRY, *PPH_HANDLE_TABLE_ENTRY;
 
-#define PH_HANDLE_TABLE_LEVEL_ENTRIES 256
+#define PH_HANDLE_TABLE_SAFE
+#define PH_HANDLE_TABLE_FREE_COUNT 64
 
-typedef struct _PH_HANDLE_TABLE
-{
-    ULONG Count;
-    PPH_HANDLE_TABLE_ENTRY Entries;
-
-    PH_QUEUED_LOCK LockedCondition;
-    ULONG FreeValue;
-    ULONG NextValue;
-} PH_HANDLE_TABLE, *PPH_HANDLE_TABLE;
+#define PH_HANDLE_TABLE_STRICT_FIFO 0x1
 
 VOID PhHandleTableInitialization();
 
-VOID PhInitializeHandleTable(
-    __out PPH_HANDLE_TABLE HandleTable
+PPH_HANDLE_TABLE PhCreateHandleTable();
+
+VOID PhDestroyHandleTable(
+    __in __post_invalid PPH_HANDLE_TABLE HandleTable
     );
 
 VOID PhLockHandleTableEntry(
@@ -1683,9 +1673,49 @@ VOID PhLockHandleTableEntry(
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
+BOOLEAN PhLockInUseHandleTableEntry(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
 VOID PhUnlockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
+HANDLE PhCreateHandle(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
+BOOLEAN PhDestroyHandle(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in HANDLE Handle,
+    __in_opt __assumeLocked PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
+
+PPH_HANDLE_TABLE_ENTRY PhGetHandleTableEntry(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in HANDLE Handle
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in HANDLE Handle,
+    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry,
+    __in PVOID Context
+    );
+
+VOID PhEnumHandleTable(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
+    __in PVOID Context
+    );
+
+VOID PhSweepHandleTable(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
+    __in PVOID Context
     );
 
 // workqueue

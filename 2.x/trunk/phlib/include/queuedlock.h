@@ -134,7 +134,7 @@ FORCEINLINE VOID PhAcquireQueuedLockSharedFast(
     }
 }
 
-FORCEINLINE BOOLEAN PhTryAcquirePushLockExclusive(
+FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -184,6 +184,39 @@ FORCEINLINE VOID PhReleaseQueuedLockSharedFast(
     {
         PhReleaseQueuedLockShared(QueuedLock);
     }
+}
+
+FORCEINLINE VOID PhAcquireReleaseQueuedLockExclusive(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    BOOLEAN owned;
+
+    MemoryBarrier();
+    owned = !!(QueuedLock->Value & PH_QUEUED_LOCK_OWNED);
+    MemoryBarrier();
+
+    if (owned)
+    {
+        PhAcquireQueuedLockExclusiveFast(QueuedLock);
+        PhReleaseQueuedLockExclusiveFast(QueuedLock);
+    }
+}
+
+FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
+    __inout PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    BOOLEAN owned;
+
+    // Need two memory barriers because we don't want the 
+    // compiler re-ordering the following check in either 
+    // direction.
+    MemoryBarrier();
+    owned = !!(QueuedLock->Value & PH_QUEUED_LOCK_OWNED);
+    MemoryBarrier();
+
+    return owned;
 }
 
 #endif
