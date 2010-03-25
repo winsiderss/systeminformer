@@ -1,5 +1,10 @@
 #include <phsvc.h>
 
+NTSTATUS PhApiRequestThreadStart(
+    __in PVOID Parameter
+    );
+
+ULONG PhSvcApiThreadContextTlsIndex;
 HANDLE PhSvcApiPortHandle;
 
 NTSTATUS PhApiPortInitialization()
@@ -13,6 +18,7 @@ NTSTATUS PhApiPortInitialization()
     ULONG sdAllocationLength;
     PACL dacl;
     PSID worldSid;
+    ULONG i;
 
     RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
 
@@ -54,7 +60,19 @@ NTSTATUS PhApiPortInitialization()
     PhFree(securityDescriptor);
     PhFree(worldSid);
 
+    PhSvcApiThreadContextTlsIndex = TlsAlloc();
+
+    for (i = 0; i < 8; i++)
+    {
+        PhCreateThread(0, PhApiRequestThreadStart, NULL);
+    }
+
     return status;
+}
+
+PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext()
+{
+    return (PPHSVC_THREAD_CONTEXT)TlsGetValue(PhSvcApiThreadContextTlsIndex);
 }
 
 NTSTATUS PhApiRequestThreadStart(
@@ -62,6 +80,7 @@ NTSTATUS PhApiRequestThreadStart(
     )
 {
     NTSTATUS status;
+    PHSVC_THREAD_CONTEXT threadContext;
     HANDLE portHandle;
     PVOID portContext;
     PHSVC_API_MSG receiveMessage;
@@ -69,15 +88,21 @@ NTSTATUS PhApiRequestThreadStart(
     CSHORT messageType;
     PPHSVC_CLIENT client;
 
+    threadContext.CurrentClient = NULL;
+    threadContext.OldClient = NULL;
+
+    TlsSetValue(PhSvcApiThreadContextTlsIndex, &threadContext);
+
     portHandle = PhSvcApiPortHandle;
+    replyMessage = NULL;
 
     while (TRUE)
     {
         status = NtReplyWaitReceivePort(
             portHandle,
             &portContext,
-            &receiveMessage.h,
-            &replyMessage->h
+            (PPORT_MESSAGE)&receiveMessage,
+            (PPORT_MESSAGE)replyMessage
             );
 
         portHandle = PhSvcApiPortHandle;
@@ -101,8 +126,11 @@ NTSTATUS PhApiRequestThreadStart(
             continue;
 
         client = (PPHSVC_CLIENT)portContext;
+        threadContext.CurrentClient = client;
 
+        PhSvcDispatchApiCall(client, &receiveMessage, &replyMessage, &portHandle);
 
+        assert(!threadContext.OldClient);
     }
 }
 
@@ -115,6 +143,12 @@ VOID PhHandleConnectionRequest(
     HANDLE portHandle;
 
     client = PhSvcCreateClient(&Message->h.ClientId);
+
+    if (!client)
+    {
+        NtAcceptConnectPort(&portHandle, NULL, &Message->h, FALSE, NULL, NULL);
+        return;
+    }
 
     status = NtAcceptConnectPort(
         &portHandle,
