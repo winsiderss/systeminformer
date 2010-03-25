@@ -1,6 +1,9 @@
 #ifndef PHBASE_H
 #define PHBASE_H
 
+#pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "version.lib")
+
 #include <base.h>
 #include <ntimport.h>
 #include <ref.h>
