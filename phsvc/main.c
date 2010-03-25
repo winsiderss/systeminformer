@@ -12,6 +12,7 @@ INT WINAPI WinMain(
 
     if (!NT_SUCCESS(PhSvcClientInitialization()))
         return 1;
+    PhSvcApiInitialization();
     if (!NT_SUCCESS(PhApiPortInitialization()))
         return 1;
 
