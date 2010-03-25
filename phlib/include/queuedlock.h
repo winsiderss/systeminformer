@@ -103,6 +103,24 @@ VOID FASTCALL PhfWaitForCondition(
     __in_opt PLARGE_INTEGER Timeout
     );
 
+#define PhQueueWakeEvent PhfQueueWakeEvent
+VOID FASTCALL PhfQueueWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
+    );
+
+#define PhSetWakeEvent PhfSetWakeEvent
+VOID FASTCALL PhfSetWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent
+    );
+
+#define PhWaitForWakeEvent PhfWaitForWakeEvent
+NTSTATUS FASTCALL PhfWaitForWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in_opt PLARGE_INTEGER Timeout
+    );
+
 // Inline functions
 
 FORCEINLINE VOID PhAcquireQueuedLockExclusiveFast(
@@ -213,10 +231,18 @@ FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
     // compiler re-ordering the following check in either 
     // direction.
     MemoryBarrier();
-    owned = !!(QueuedLock->Value & PH_QUEUED_LOCK_OWNED);
+    owned = !(QueuedLock->Value & PH_QUEUED_LOCK_OWNED);
     MemoryBarrier();
 
     return owned;
+}
+
+FORCEINLINE VOID PhSetWakeEventFast(
+    __inout PPH_QUEUED_LOCK WakeEvent
+    )
+{
+    if (WakeEvent->Value)
+        PhSetWakeEvent(WakeEvent);
 }
 
 #endif

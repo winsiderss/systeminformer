@@ -46,7 +46,7 @@ PPH_HANDLE_TABLE PhCreateHandleTable()
     handleTable = PhAllocate(sizeof(PH_HANDLE_TABLE));
 
     PhInitializeQueuedLock(&handleTable->Lock);
-    PhInitializeQueuedLock(&handleTable->LockedCondition);
+    PhInitializeQueuedLock(&handleTable->HandleWakeEvent);
 
     handleTable->NextValue = 0;
 
@@ -148,6 +148,29 @@ VOID PhDestroyHandleTable(
     PhFree(HandleTable);
 }
 
+VOID PhpBlockOnLockedHandleTableEntry(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    )
+{
+    PH_QUEUED_WAIT_BLOCK waitBlock;
+    ULONG_PTR value;
+
+    PhQueueWakeEvent(&HandleTable->HandleWakeEvent, &waitBlock);
+
+    value = HandleTableEntry->Value;
+
+    if (value & PH_HANDLE_TABLE_ENTRY_LOCKED)
+    {
+        // Entry has been unlocked; cancel the wait.
+        PhSetWakeEvent(&HandleTable->HandleWakeEvent);
+    }
+    else
+    {
+        PhWaitForWakeEvent(&HandleTable->HandleWakeEvent, &waitBlock, NULL);
+    }
+}
+
 VOID PhLockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
@@ -158,7 +181,7 @@ VOID PhLockHandleTableEntry(
         PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT
         ))
     {
-        PhWaitForCondition(&HandleTable->LockedCondition, NULL, NULL);
+        PhpBlockOnLockedHandleTableEntry(HandleTable, HandleTableEntry);
     }
 }
 
@@ -188,7 +211,7 @@ BOOLEAN PhLockInUseHandleTableEntry(
             }
         }
 
-        PhWaitForCondition(&HandleTable->LockedCondition, NULL, NULL);
+        PhpBlockOnLockedHandleTableEntry(HandleTable, HandleTableEntry);
     }
 }
 
@@ -201,7 +224,7 @@ VOID PhUnlockHandleTableEntry(
         (PLONG)&HandleTableEntry->Value,
         PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT
         );
-    PhPulseAllCondition(&HandleTable->LockedCondition);
+    PhSetWakeEvent(&HandleTable->HandleWakeEvent);
 }
 
 HANDLE PhCreateHandle(
@@ -218,7 +241,8 @@ HANDLE PhCreateHandle(
         return NULL;
 
     // Copy the given handle table entry to the allocated entry.
-    entry->TypeAndValue.Type = PH_HANDLE_TABLE_ENTRY_IN_USE | PH_HANDLE_TABLE_ENTRY_LOCKED;
+    entry->TypeAndValue.Type = PH_HANDLE_TABLE_ENTRY_IN_USE;
+    entry->TypeAndValue.Locked = TRUE;
     entry->TypeAndValue.Value = HandleTableEntry->TypeAndValue.Value;
     entry->Value2 = HandleTableEntry->Value2;
 
@@ -251,9 +275,9 @@ BOOLEAN PhDestroyHandle(
         (PVOID)(PH_HANDLE_TABLE_ENTRY_FREE | PH_HANDLE_TABLE_ENTRY_LOCKED)
         );
 
-    // The handle table entry now has the lock bit cleared, so we 
+    // The handle table entry now has the (not) locked bit set, so we 
     // should wake waiters.
-    PhPulseAllCondition(&HandleTable->LockedCondition);
+    PhSetWakeEvent(&HandleTable->HandleWakeEvent);
 
     PhpFreeHandleTableEntry(HandleTable, handleValue, HandleTableEntry);
 
@@ -339,6 +363,101 @@ VOID PhSweepHandleTable(
 
         handleValue++;
     }
+}
+
+NTSTATUS PhQueryInformationHandleTable(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    __out_bcount_opt(BufferLength) PVOID Buffer,
+    __in ULONG BufferLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    ULONG returnLength;
+
+    switch (InformationClass)
+    {
+    case HandleTableBasicInformation:
+        {
+            PPH_HANDLE_TABLE_BASIC_INFORMATION basicInfo = Buffer;
+
+            if (BufferLength == sizeof(PH_HANDLE_TABLE_BASIC_INFORMATION))
+            {
+                basicInfo->Count = HandleTable->Count;
+                basicInfo->Flags = HandleTable->Flags;
+                basicInfo->TableLevel = HandleTable->TableValue & PH_HANDLE_TABLE_LEVEL_MASK;
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            returnLength = sizeof(PH_HANDLE_TABLE_BASIC_INFORMATION);
+        }
+        break;
+    case HandleTableFlagsInformation:
+        {
+            PPH_HANDLE_TABLE_FLAGS_INFORMATION flagsInfo = Buffer;
+
+            if (BufferLength == sizeof(PH_HANDLE_TABLE_FLAGS_INFORMATION))
+            {
+                flagsInfo->Flags = HandleTable->Flags;
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            returnLength = sizeof(PH_HANDLE_TABLE_FLAGS_INFORMATION);
+        }
+        break;
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+    }
+
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+
+    return status;
+}
+
+NTSTATUS PhSetInformationHandleTable(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    __in_bcount(BufferLength) PVOID Buffer,
+    __in ULONG BufferLength
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    switch (InformationClass)
+    {
+    case HandleTableFlagsInformation:
+        {
+            PPH_HANDLE_TABLE_FLAGS_INFORMATION flagsInfo = Buffer;
+            ULONG flags;
+
+            if (BufferLength == sizeof(PH_HANDLE_TABLE_FLAGS_INFORMATION))
+            {
+                flags = flagsInfo->Flags;
+
+                if ((flags & PH_HANDLE_TABLE_VALID_FLAGS) == flags)
+                    HandleTable->Flags = flags;
+                else
+                    status = STATUS_INVALID_PARAMETER; 
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+        }
+        break;
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+    }
+
+    return status;
 }
 
 PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
@@ -598,7 +717,7 @@ BOOLEAN PhpAllocateMoreHandleTableEntries(
                 table1 = PhpCreateHandleTableLevel1(HandleTable);
 
 #ifdef PH_HANDLE_TABLE_SAFE
-                if (table1)
+                if (!table1)
                 {
                     PhpFreeHandleTableLevel2(table2);
                     return FALSE;
@@ -868,10 +987,10 @@ ULONG PhpMoveFreeHandleTableEntries(
         count < PH_HANDLE_TABLE_FREE_COUNT
         )
     {
-        freeValueAlt = PH_HANDLE_VALUE_INVALID;
+        index = PH_HANDLE_VALUE_INVALID;
     }
 
-    return freeValueAlt;
+    return index;
 }
 
 PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(

@@ -1662,6 +1662,7 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
 #define PH_HANDLE_TABLE_FREE_COUNT 64
 
 #define PH_HANDLE_TABLE_STRICT_FIFO 0x1
+#define PH_HANDLE_TABLE_VALID_FLAGS 0x1
 
 VOID PhHandleTableInitialization();
 
@@ -1719,6 +1720,40 @@ VOID PhSweepHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
     __in PVOID Context
+    );
+
+typedef enum _PH_HANDLE_TABLE_INFORMATION_CLASS
+{
+    HandleTableBasicInformation,
+    HandleTableFlagsInformation,
+    MaxHandleTableInfoClass
+} PH_HANDLE_TABLE_INFORMATION_CLASS;
+
+typedef struct _PH_HANDLE_TABLE_BASIC_INFORMATION
+{
+    ULONG Count;
+    ULONG Flags;
+    ULONG TableLevel;
+} PH_HANDLE_TABLE_BASIC_INFORMATION, *PPH_HANDLE_TABLE_BASIC_INFORMATION;
+
+typedef struct _PH_HANDLE_TABLE_FLAGS_INFORMATION
+{
+    ULONG Flags;
+} PH_HANDLE_TABLE_FLAGS_INFORMATION, *PPH_HANDLE_TABLE_FLAGS_INFORMATION;
+
+NTSTATUS PhQueryInformationHandleTable(
+    __in PPH_HANDLE_TABLE HandleTable,
+    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    __out_bcount_opt(BufferLength) PVOID Buffer,
+    __in ULONG BufferLength,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSTATUS PhSetInformationHandleTable(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
+    __in_bcount(BufferLength) PVOID Buffer,
+    __in ULONG BufferLength
     );
 
 // workqueue

@@ -286,8 +286,9 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
  *
  * \param WaitBlock A wait block.
  */
-__mayRaise FORCEINLINE VOID PhpBlockOnQueuedWaitBlock(
-    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
+__mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
+    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -309,10 +310,16 @@ __mayRaise FORCEINLINE VOID PhpBlockOnQueuedWaitBlock(
             PhQueuedLockKeyedEventHandle,
             WaitBlock,
             FALSE,
-            NULL
+            Timeout
             )))
             PhRaiseStatus(status);
     }
+    else
+    {
+        status = STATUS_SUCCESS;
+    }
+
+    return status;
 }
 
 /**
@@ -683,7 +690,7 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
-                PhpBlockOnQueuedWaitBlock(&waitBlock);
+                PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
             }
         }
 
@@ -744,7 +751,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
-                PhpBlockOnQueuedWaitBlock(&waitBlock);
+                PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
             }
         }
 
@@ -930,24 +937,32 @@ VOID FASTCALL PhfTryWakePushLock(
  * Wakes one thread sleeping on a condition variable.
  *
  * \param Condition A condition variable.
+ *
+ * \remarks The associated lock must be acquired before calling 
+ * the function.
  */
 VOID FASTCALL PhfPulseCondition(
     __inout PPH_QUEUED_LOCK Condition
     )
 {
-    PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
+    if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
+        PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, FALSE);
 }
 
 /**
  * Wakes all threads sleeping on a condition variable.
  *
  * \param Condition A condition variable.
+ *
+ * \remarks The associated lock must be acquired before calling 
+ * the function.
  */
 VOID FASTCALL PhfPulseAllCondition(
     __inout PPH_QUEUED_LOCK Condition
     )
 {
-    PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
+    if (Condition->Value & PH_QUEUED_LOCK_WAITERS)
+        PhpfWakeQueuedLockEx(Condition, Condition->Value, TRUE, TRUE);
 }
 
 /**
@@ -956,6 +971,9 @@ VOID FASTCALL PhfPulseAllCondition(
  * \param Condition A condition variable.
  * \param Lock A queued lock to release/acquire.
  * \param Timeout Not implemented.
+ *
+ * \remarks The associated lock must be acquired before calling 
+ * the function.
  */
 VOID FASTCALL PhfWaitForCondition(
     __inout PPH_QUEUED_LOCK Condition,
@@ -992,7 +1010,7 @@ VOID FASTCALL PhfWaitForCondition(
                 PhReleaseQueuedLockExclusiveFast(Lock);
             }
 
-            PhpBlockOnQueuedWaitBlock(&waitBlock);
+            PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
 
             if (Lock)
             {
@@ -1004,4 +1022,95 @@ VOID FASTCALL PhfWaitForCondition(
             break;
         }
     }
+}
+
+/**
+ * Queues a wait block to a wake event.
+ *
+ * \param WakeEvent A wake event.
+ * \param WaitBlock A wait block.
+ *
+ * \remarks If you later determine that the wait should 
+ * not occur, you must call PhfSetWakeEvent() to dequeue 
+ * the wait block.
+ */
+VOID FASTCALL PhfQueueWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
+    )
+{
+    PPH_QUEUED_WAIT_BLOCK value;
+    PPH_QUEUED_WAIT_BLOCK newValue;
+
+    WaitBlock->Flags = PH_QUEUED_WAITER_SPINNING;
+
+    value = (PPH_QUEUED_WAIT_BLOCK)WakeEvent->Value;
+
+    while (TRUE)
+    {
+        WaitBlock->Next = value;
+
+        if ((newValue = _InterlockedCompareExchangePointer(
+            (PPVOID)&WakeEvent->Value,
+            WaitBlock,
+            value
+            )) == value)
+            break;
+
+        value = newValue;
+    }
+}
+
+/**
+ * Sets a wake event, unblocking all queued wait blocks.
+ *
+ * \param WakeEvent A wake event.
+ */
+VOID FASTCALL PhfSetWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent
+    )
+{
+    PPH_QUEUED_WAIT_BLOCK waitBlock;
+
+    // Pop all waiters and unblock them.
+
+    waitBlock = _InterlockedExchangePointer((PPVOID)&WakeEvent->Value, NULL);
+
+    while (waitBlock)
+    {
+        waitBlock = waitBlock->Next;
+        PhpUnblockQueuedWaitBlock(waitBlock);
+    }
+}
+
+/**
+ * Waits for a wake event to be set.
+ *
+ * \param WakeEvent A wake event.
+ * \param WaitBlock A wait block previously queued to 
+ * the wake event using PhfQueueWakeEvent().
+ * \param Timeout A timeout value.
+ *
+ * \param Wake events are subject to spurious wakeups. You 
+ * should call this function in a loop which checks a 
+ * predicate.
+ */
+NTSTATUS FASTCALL PhfWaitForWakeEvent(
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in_opt PLARGE_INTEGER Timeout
+    )
+{
+    NTSTATUS status;
+
+    status = PhpBlockOnQueuedWaitBlock(WaitBlock, Timeout);
+
+    if (status != STATUS_SUCCESS)
+    {
+        // Probably a timeout. There's no way of unlinking 
+        // the wait block safely, so just wake everyone.
+        PhSetWakeEvent(WakeEvent);
+    }
+
+    return status;
 }
