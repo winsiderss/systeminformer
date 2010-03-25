@@ -53,6 +53,14 @@ PPH_HANDLE_TABLE PhCreateHandleTable()
     handleTable->Count = 0;
     handleTable->TableValue = (ULONG_PTR)PhpCreateHandleTableLevel0(handleTable, TRUE);
 
+#ifdef PH_HANDLE_TABLE_SAFE
+    if (!handleTable->TableValue)
+    {
+        PhFree(handleTable);
+        return NULL;
+    }
+#endif
+
     // We have now created the level 0 table.
     // The free list can now be set up to point to handle 0, which 
     // points to the rest of the free list (1 -> 2 -> 3 -> ...).

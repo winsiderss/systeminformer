@@ -3,7 +3,9 @@
 
 typedef enum _PHSVC_API_NUMBER
 {
-    PhSvcCloseApi = 1
+    PhSvcCloseApi = 1,
+    PhSvcTestOpenApi = 2,
+    PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
 typedef struct _PHSVC_API_CONNECTINFO
@@ -24,11 +26,21 @@ typedef struct _PHSVC_API_MSG
 
             union
             {
-                struct
+                union
                 {
-                    HANDLE Handle;
-                } Close;
-            } Arguments;
+                    struct
+                    {
+                        HANDLE Handle;
+                    } Close;
+                } Arguments;
+                union
+                {
+                    struct
+                    {
+                        HANDLE Handle;
+                    } TestOpen;
+                } Output;
+            };
         };
     };
 } PHSVC_API_MSG, *PPHSVC_API_MSG;
