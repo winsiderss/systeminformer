@@ -31,7 +31,7 @@
 typedef struct _PH_HANDLE_TABLE
 {
     PH_QUEUED_LOCK Lock;
-    PH_QUEUED_LOCK LockedCondition;
+    PH_QUEUED_LOCK HandleWakeEvent;
 
     ULONG Count;
     ULONG_PTR TableValue;
@@ -92,6 +92,11 @@ FORCEINLINE ULONG PhpDecodeHandle(
 {
     return ((ULONG)Handle - PH_HANDLE_VALUE_BIAS) >> PH_HANDLE_VALUE_SHIFT;
 }
+
+VOID PhpBlockOnLockedHandleTableEntry(
+    __inout PPH_HANDLE_TABLE HandleTable,
+    __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
+    );
 
 PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
