@@ -144,6 +144,8 @@ BOOLEAN PhSvcAttachClient(
     PhReferenceObject(Client);
     threadContext->OldClient = threadContext->CurrentClient;
     threadContext->CurrentClient = Client;
+
+    return TRUE;
 }
 
 VOID PhSvcDetachClient(

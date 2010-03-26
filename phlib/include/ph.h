@@ -266,6 +266,11 @@ NTSTATUS PhGetProcessWsCounters(
     __out PPH_PROCESS_WS_COUNTERS WsCounters
     );
 
+NTSTATUS PhSetProcessAffinityMask(
+    __in HANDLE ProcessHandle,
+    __in ULONG_PTR AffinityMask
+    );
+
 NTSTATUS PhSetProcessIoPriority(
     __in HANDLE ProcessHandle,
     __in ULONG IoPriority

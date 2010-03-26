@@ -830,7 +830,7 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                         {
                             if (NT_SUCCESS(PhGetTokenIsVirtualizationEnabled(tokenHandle, &isVirtualizationEnabled)))
                             {
-                                tokenVirtualization = isVirtualizationEnabled ? L"Yes" : L"No";
+                                tokenVirtualization = isVirtualizationEnabled ? L"Enabled" : L"Disabled";
                             }
                         }
                         else

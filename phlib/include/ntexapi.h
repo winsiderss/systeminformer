@@ -923,8 +923,35 @@ typedef struct _KUSER_SHARED_DATA
     ULONG NumberOfPhysicalPages;
 
     BOOLEAN SafeBootMode;
+    union
+    {
+        BOOLEAN TscQpcData;
+        struct
+        {
+            BOOLEAN TscQpcEnabled : 1;
+            BOOLEAN TscQpcSpareFlag : 1;
+            UCHAR TscQpcShift : 6;
+        };
+    };
+    BOOLEAN TscQpcPad[2];
 
-    ULONG TraceLogging;
+    union
+    {
+        ULONG TraceLogging;
+        ULONG SharedDataFlags;
+        struct
+        {
+            ULONG DbgErrorPortPresent : 1;
+            ULONG DbgElevationEnabled : 1;
+            ULONG DbgVirtEnabled : 1;
+            ULONG DbgInstallerDetectEnabled : 1;
+            ULONG DbgSystemDllRelocated : 1;
+            ULONG DbgDynProcessorEnabled : 1;
+            ULONG DbgSEHValidationEnabled : 1;
+            ULONG SpareBits : 25;
+        };
+    };
+    ULONG DataFlagsPad[1];
 
     ULONGLONG TestRetInstruction;
     ULONG SystemCall;
@@ -935,11 +962,44 @@ typedef struct _KUSER_SHARED_DATA
     {
         volatile KSYSTEM_TIME TickCount;
         volatile ULONG64 TickCountQuad;
+        ULONG ReservedTickCountOverlay[3];
     };
+    ULONG TickCountPad[1];
 
     ULONG Cookie;
 
+    // Entries below all invalid below Windows Vista
+
+    ULONG CookiePad[1];
+    ULONGLONG ConsoleSessionForegroundProcessId;
+
     ULONG Wow64SharedInformation[MAX_WOW64_SHARED_ENTRIES];
+
+    USHORT UserModeGlobalLogger[16];
+    ULONG ImageFileExecutionOptions;
+
+    ULONG LangGenerationCount;
+
+    union
+    {
+        ULONGLONG AffinityPad; // only valid on Windows Vista
+        ULONG_PTR ActiveProcessorAffinity; // only valid on Windows Vista
+        LARGE_INTEGER Reserved5;
+    };
+    LARGE_INTEGER InterruptTimeBias;
+    LARGE_INTEGER TscQpcBias;
+
+    ULONG ActiveProcessorCount;
+    USHORT ActiveGroupCount;
+    USHORT Reserved4;
+
+    ULONG AitSamplingValue;
+    ULONG AppCompatFlag;
+    ULONGLONG SystemDllNativeRelocation;
+    ULONG SystemDllWowRelocation;
+
+    ULONG XStatePad[1];
+    XSTATE_CONFIGURATION XState;
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountMultiplier) == 0x4);
@@ -980,7 +1040,6 @@ C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallReturn) == 0x304);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCallPad) == 0x308);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCount) == 0x320);
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountQuad) == 0x320);
-C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, Wow64SharedInformation) == 0x334);
 
 #ifdef _M_IX86
 #define USER_SHARED_DATA ((KUSER_SHARED_DATA * const)0x7ffe0000)
