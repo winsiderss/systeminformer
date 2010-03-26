@@ -1434,6 +1434,26 @@ NTSTATUS PhGetProcessWsCounters(
 }
 
 /**
+ * Sets a process' affinity mask.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_SET_INFORMATION access.
+ * \param AffinityMask The new affinity mask.
+ */
+NTSTATUS PhSetProcessAffinityMask(
+    __in HANDLE ProcessHandle,
+    __in ULONG_PTR AffinityMask
+    )
+{
+    return NtSetInformationProcess(
+        ProcessHandle,
+        ProcessAffinityMask,
+        &AffinityMask,
+        sizeof(ULONG_PTR)
+        );
+}
+
+/**
  * Sets a process' I/O priority.
  *
  * \param ProcessHandle A handle to a process. The handle 

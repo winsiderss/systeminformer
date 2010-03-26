@@ -563,6 +563,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_AFFINITY:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhShowProcessAffinityDialog(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_CREATEDUMPFILE:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();

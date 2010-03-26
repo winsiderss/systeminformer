@@ -398,6 +398,13 @@ VOID PhShowAboutDialog(
 
 PPH_STRING PhGetDiagnosticsString();
 
+// affinity
+
+VOID PhShowProcessAffinityDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 // findobj
 
 VOID PhShowFindObjectsDialog();

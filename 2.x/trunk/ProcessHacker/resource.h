@@ -47,6 +47,7 @@
 #define IDD_JOBSTATISTICS               146
 #define IDD_OBJEVENTPAIR                147
 #define IDD_OBJSECTION                  148
+#define IDD_AFFINITY                    149
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -149,6 +150,38 @@
 #define IDC_SETLOW                      1096
 #define IDC_SETHIGH                     1097
 #define IDC_SIZE_                       1098
+#define IDC_CPU0                        1099
+#define IDC_CPU1                        1100
+#define IDC_CPU2                        1101
+#define IDC_CPU3                        1102
+#define IDC_CPU4                        1103
+#define IDC_CPU5                        1104
+#define IDC_CPU6                        1105
+#define IDC_CPU7                        1106
+#define IDC_CPU8                        1107
+#define IDC_CPU9                        1108
+#define IDC_CPU10                       1109
+#define IDC_CPU11                       1110
+#define IDC_CPU12                       1111
+#define IDC_CPU13                       1112
+#define IDC_CPU14                       1113
+#define IDC_CPU15                       1114
+#define IDC_CPU16                       1115
+#define IDC_CPU17                       1116
+#define IDC_CPU18                       1117
+#define IDC_CPU19                       1118
+#define IDC_CPU20                       1119
+#define IDC_CPU21                       1120
+#define IDC_CPU22                       1121
+#define IDC_CPU23                       1122
+#define IDC_CPU24                       1123
+#define IDC_CPU25                       1124
+#define IDC_CPU26                       1125
+#define IDC_CPU27                       1126
+#define IDC_CPU28                       1127
+#define IDC_CPU29                       1128
+#define IDC_CPU30                       1129
+#define IDC_CPU31                       1130
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -266,9 +299,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        147
+#define _APS_NEXT_RESOURCE_VALUE        150
 #define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1099
+#define _APS_NEXT_CONTROL_VALUE         1100
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
