@@ -138,7 +138,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     for (i = 0; i < 32; i++)
                     {
                         if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_CPU0 + i)) == BST_CHECKED)
-                            affinityMask |= 1 << i;
+                            affinityMask |= (ULONG_PTR)1 << i;
                     }
 
                     // Open the process and set the affinity mask.
