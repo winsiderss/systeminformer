@@ -22,7 +22,7 @@
 
 #include <phapp.h>
 
-static INT_PTR CALLBACK PhpAboutDlgProc(      
+static INT_PTR CALLBACK PhpAboutDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

@@ -369,6 +369,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\affinity.c"
+				>
+			</File>
+			<File
 				RelativePath=".\anawait.c"
 				>
 			</File>
