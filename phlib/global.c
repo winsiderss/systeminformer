@@ -80,14 +80,14 @@ NTSTATUS PhInitializePhLib()
 
         PhElevated = TRUE;
 
-        if (WINDOWS_HAS_UAC &&
-            NT_SUCCESS(PhOpenProcessToken(
+        if (NT_SUCCESS(PhOpenProcessToken(
             &tokenHandle,
             TOKEN_QUERY,
             NtCurrentProcess()
             )))
         {
-            PhGetTokenIsElevated(tokenHandle, &PhElevated);
+            if (WINDOWS_HAS_UAC)
+                PhGetTokenIsElevated(tokenHandle, &PhElevated);
 
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
