@@ -966,6 +966,41 @@ NTSTATUS PhGetProcessCycleTime(
     return status;
 }
 
+NTSTATUS PhGetProcessDepStatus(
+    __in HANDLE ProcessHandle,
+    __out PULONG DepStatus
+    )
+{
+    NTSTATUS status;
+    ULONG executeFlags;
+    ULONG depStatus;
+
+    if (!NT_SUCCESS(status = PhGetProcessExecuteFlags(
+        ProcessHandle,
+        &executeFlags
+        )))
+        return status;
+
+    // Check if execution of data pages is enabled.
+    if (executeFlags & MEM_EXECUTE_OPTION_ENABLE)
+        depStatus = 0;
+    // Check if execution of data pages is disabled.
+    else if (executeFlags & MEM_EXECUTE_OPTION_DISABLE)
+        depStatus = PH_PROCESS_DEP_ENABLED;
+    // Neither flag is set in OptOut mode.
+    else
+        depStatus = PH_PROCESS_DEP_ENABLED;
+
+    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION)
+        depStatus |= PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED;
+    if (executeFlags & MEM_EXECUTE_OPTION_PERMANENT)
+        depStatus |= PH_PROCESS_DEP_PERMANENT;
+
+    *DepStatus = depStatus;
+
+    return status;
+}
+
 /**
  * Gets the POSIX command line of a process.
  *
@@ -1496,6 +1531,26 @@ NTSTATUS PhSetProcessExecuteFlags(
         ProcessHandle,
         ExecuteFlags
         );
+}
+
+NTSTATUS PhSetProcessDepStatus(
+    __in HANDLE ProcessHandle,
+    __in ULONG DepStatus
+    )
+{
+    ULONG executeFlags;
+
+    if (DepStatus & PH_PROCESS_DEP_ENABLED)
+        executeFlags = MEM_EXECUTE_OPTION_DISABLE;
+    else
+        executeFlags = MEM_EXECUTE_OPTION_ENABLE;
+
+    if (DepStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED)
+        executeFlags |= MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION;
+    if (DepStatus & PH_PROCESS_DEP_PERMANENT)
+        executeFlags |= MEM_EXECUTE_OPTION_PERMANENT;
+
+    return PhSetProcessExecuteFlags(ProcessHandle, executeFlags);
 }
 
 /**
