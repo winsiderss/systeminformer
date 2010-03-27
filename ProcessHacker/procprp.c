@@ -540,7 +540,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PROCESS_BASIC_INFORMATION basicInfo;
             SYSTEMTIME startTime;
             CLIENT_ID clientId;
-            ULONG executeFlags;
+            ULONG depStatus;
             BOOLEAN isProtected;
 
             // File
@@ -623,38 +623,49 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // DEP
 
-            SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
-
-            if (NT_SUCCESS(PhOpenProcess(
-                &processHandle,
-                PROCESS_QUERY_INFORMATION,
-                processItem->ProcessId
-                )))
+#ifdef _M_X64
+            if (processItem->IsWow64)
+#else
+            if (TRUE)
+#endif
             {
-                if (NT_SUCCESS(PhGetProcessExecuteFlags(processHandle, &executeFlags)))
+                SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    PROCESS_QUERY_INFORMATION,
+                    processItem->ProcessId
+                    )))
                 {
-                    PPH_STRING depString;
-
-                    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE)
-                        depString = PhaCreateString(L"Enabled");
-                    else
-                        depString = PhaCreateString(L"Disabled");
-
-                    if (executeFlags & MEM_EXECUTE_OPTION_PERMANENT)
+                    if (NT_SUCCESS(PhGetProcessDepStatus(processHandle, &depStatus)))
                     {
-                        depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
+                        PPH_STRING depString;
+
+                        if (depStatus & PH_PROCESS_DEP_ENABLED)
+                            depString = PhaCreateString(L"Enabled");
+                        else
+                            depString = PhaCreateString(L"Disabled");
+
+                        if (depStatus & PH_PROCESS_DEP_PERMANENT)
+                        {
+                            depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
+                        }
+
+                        if (depStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED)
+                        {
+                            depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
+                        }
+
+                        SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
                     }
 
-                    if (executeFlags & MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION)
-                    {
-                        depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
-                    }
-
-                    SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
+                    NtClose(processHandle);
+                    processHandle = NULL;
                 }
-
-                NtClose(processHandle);
-                processHandle = NULL;
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
             }
 
             // PEB address
