@@ -120,6 +120,9 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 WTSFreeMemory(state);
             }
 
+            if (clientName)
+                SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientName->Buffer);
+
             WTSQuerySessionInformation(
                 WTS_CURRENT_SERVER_HANDLE,
                 sessionId,
@@ -155,13 +158,10 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (clientDisplay)
             {
-                if (clientDisplay->ColorDepth > 2)
-                {
-                    SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
-                        PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,
-                        clientDisplay->VerticalResolution, clientDisplay->ColorDepth)->Buffer
-                        );
-                }
+                SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
+                    PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,
+                    clientDisplay->VerticalResolution, clientDisplay->ColorDepth)->Buffer
+                    );
 
                 WTSFreeMemory(clientDisplay);
             }
