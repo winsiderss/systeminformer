@@ -509,8 +509,22 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_USER_LOGOFF:
                 {
-                    if (!WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
-                        PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
+                    if (PhShowConfirmMessage(
+                        hWnd,
+                        L"logoff",
+                        L"the user",
+                        NULL,
+                        FALSE
+                        ))
+                    {
+                        if (!WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
+                            PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
+                    }
+                }
+                break;
+            case ID_USER_SENDMESSAGE:
+                {
+                    PhShowSessionSendMessageDialog(hWnd, SelectedUserSessionId);
                 }
                 break;
             case ID_HELP_DEBUGCONSOLE:
