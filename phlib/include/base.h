@@ -5,7 +5,7 @@
 #define UNICODE
 #endif
 
-#include <ntwin.h>
+#include <ntbasic.h>
 #include <intrin.h>
 #include <wchar.h>
 #include <assert.h>

@@ -15,6 +15,9 @@ typedef PVOID *PPVOID;
 typedef ULONG LOGICAL;
 typedef ULONG *PLOGICAL;
 
+typedef __success(return >= 0) LONG NTSTATUS;
+typedef NTSTATUS *PNTSTATUS;
+
 // Cardinal types
 
 typedef char CCHAR;
