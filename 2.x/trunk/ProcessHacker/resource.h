@@ -48,6 +48,11 @@
 #define IDD_OBJEVENTPAIR                147
 #define IDD_OBJSECTION                  148
 #define IDD_AFFINITY                    149
+#define IDD_SYSINFO                     150
+#define IDR_USER                        151
+#define IDD_EDITMESSAGE                 152
+#define IDD_DIALOG4                     153
+#define IDD_SESSION                     153
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -152,15 +157,19 @@
 #define IDC_SIZE_                       1098
 #define IDC_CPU0                        1099
 #define IDC_CPU1                        1100
+#define IDC_ZSYSTEM                     1100
 #define IDC_CPU2                        1101
 #define IDC_CPU3                        1102
 #define IDC_CPU4                        1103
 #define IDC_CPU5                        1104
 #define IDC_CPU6                        1105
 #define IDC_CPU7                        1106
+#define IDC_ZPROCESSES_L                1106
 #define IDC_CPU8                        1107
+#define IDC_TITLE                       1107
 #define IDC_CPU9                        1108
 #define IDC_CPU10                       1109
+#define IDC_TIMEOUT                     1109
 #define IDC_CPU11                       1110
 #define IDC_CPU12                       1111
 #define IDC_CPU13                       1112
@@ -293,15 +302,20 @@
 #define ID_HELP_DEBUGCONSOLE            40122
 #define ID_MODULE_SEARCHONLINE          40125
 #define ID_TOOLS_PAGEFILES              40126
+#define ID_USER_DISCONNECT              40127
+#define ID_USER_LOGOFF                  40128
+#define ID_USER_SENDMESSAGE             40129
+#define ID_USER_PROPERTIES              40130
+#define ID_USERS_DUMMY                  40131
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         40127
-#define _APS_NEXT_CONTROL_VALUE         1100
-#define _APS_NEXT_SYMED_VALUE           107
+#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_COMMAND_VALUE         40132
+#define _APS_NEXT_CONTROL_VALUE         1111
+#define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

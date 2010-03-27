@@ -24,9 +24,15 @@
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
+#include <wtsapi32.h>
 
 typedef BOOL (WINAPI *_FileIconInit)(
     __in BOOL RestoreCache
+    );
+
+typedef BOOL (WINAPI *_WTSRegisterSessionNotification)(
+    __in HWND hWnd,
+    __in DWORD dwFlags
     );
 
 VOID PhMainWndOnCreate();
@@ -52,6 +58,8 @@ VOID PhpSaveAllSettings();
 VOID PhpPrepareForEarlyShutdown();
 
 VOID PhpCancelEarlyShutdown();
+
+VOID PhpRefreshUsersMenu();
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
@@ -124,6 +132,7 @@ static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
+static ULONG SelectedUserSessionId;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -302,6 +311,21 @@ BOOLEAN PhMainWndInitialization(
         ShowWindow(PhMainWndHandle, ShowCommand);
     }
 
+    // Register for WTS notifications.
+    {
+        _WTSRegisterSessionNotification WTSRegisterSessionNotification_I;
+
+        WTSRegisterSessionNotification_I = (_WTSRegisterSessionNotification)GetProcAddress(
+            GetModuleHandle(L"wtsapi32.dll"),
+            "WTSRegisterSessionNotification"
+            );
+
+        if (WTSRegisterSessionNotification_I)
+            WTSRegisterSessionNotification_I(PhMainWndHandle, NOTIFY_FOR_ALL_SESSIONS);
+    }
+
+    PhpRefreshUsersMenu();
+
     return TRUE;
 }
 
@@ -475,6 +499,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
 
                     PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case ID_USER_DISCONNECT:
+                {
+                    if (!WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
+                        PhShowStatus(hWnd, L"Unable to disconnect the session", 0, GetLastError());
+                }
+                break;
+            case ID_USER_LOGOFF:
+                {
+                    if (!WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
+                        PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
                 }
                 break;
             case ID_HELP_DEBUGCONSOLE:
@@ -870,6 +906,28 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    case WM_MENUSELECT:
+        {
+            switch (LOWORD(wParam))
+            {
+            case ID_USER_DISCONNECT:
+            case ID_USER_LOGOFF:
+            case ID_USER_SENDMESSAGE:
+            case ID_USER_PROPERTIES:
+                {
+                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+                    menuItemInfo.fMask = MIIM_DATA;
+
+                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
+                    {
+                        SelectedUserSessionId = (ULONG)menuItemInfo.dwItemData;
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_SIZE:
         {
             if (!IsIconic(hWnd))
@@ -914,6 +972,14 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     return RF_RETRY;
                 }
+            }
+        }
+        break;
+    case WM_WTSSESSION_CHANGE:
+        {
+            if (wParam == WTS_SESSION_LOGON || wParam == WTS_SESSION_LOGOFF)
+            {
+                PhpRefreshUsersMenu();
             }
         }
         break;
@@ -1084,6 +1150,87 @@ VOID PhpPrepareForEarlyShutdown()
 VOID PhpCancelEarlyShutdown()
 {
     PhMainWndExiting = FALSE;
+}
+
+VOID PhpRefreshUsersMenu()
+{
+    HMENU menu;
+    PWTS_SESSION_INFO sessions;
+    ULONG numberOfSessions;
+    ULONG i;
+    ULONG j;
+    MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
+
+    menu = GetMenu(PhMainWndHandle);
+    menu = GetSubMenu(menu, 3);
+
+    // Delete all items in the Users menu.
+    while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
+
+    if (WTSEnumerateSessions(
+        WTS_CURRENT_SERVER_HANDLE,
+        0,
+        1,
+        &sessions,
+        &numberOfSessions
+        ))
+    {
+        for (i = 0; i < numberOfSessions; i++)
+        {
+            HMENU userMenu;
+            PPH_STRING domainName;
+            PPH_STRING userName;
+            PPH_STRING menuText;
+            ULONG numberOfItems;
+
+            domainName = PHA_DEREFERENCE(PhGetSessionInformationString(
+                WTS_CURRENT_SERVER_HANDLE,
+                sessions[i].SessionId,
+                WTSDomainName
+                ));
+            userName = PHA_DEREFERENCE(PhGetSessionInformationString(
+                WTS_CURRENT_SERVER_HANDLE,
+                sessions[i].SessionId,
+                WTSUserName
+                ));
+
+            if (PhIsStringNullOrEmpty(domainName) || PhIsStringNullOrEmpty(userName))
+            {
+                // Probably the Services or RDP-Tcp session.
+                continue;
+            }
+
+            menuText = PhaFormatString(
+                L"%u: %s\\%s",
+                sessions[i].SessionId,
+                domainName->Buffer,
+                userName->Buffer
+                );
+
+            userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
+            AppendMenu(
+                menu,
+                MF_STRING | MF_POPUP,
+                (UINT_PTR)userMenu,
+                menuText->Buffer
+                );
+
+            menuItemInfo.fMask = MIIM_DATA;
+            menuItemInfo.dwItemData = sessions[i].SessionId;
+
+            numberOfItems = GetMenuItemCount(userMenu);
+
+            if (numberOfItems != -1)
+            {
+                for (j = 0; j < numberOfItems; j++)
+                    SetMenuItemInfo(userMenu, j, TRUE, &menuItemInfo);
+            }
+        }
+
+        WTSFreeMemory(sessions);
+    }
+
+    DrawMenuBar(PhMainWndHandle);
 }
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
