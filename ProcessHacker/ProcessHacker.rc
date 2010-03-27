@@ -100,7 +100,10 @@ BEGIN
         MENUITEM "Pagefiles",                   ID_TOOLS_PAGEFILES
         MENUITEM "Verify File Signature...",    ID_TOOLS_VERIFYFILESIGNATURE
     END
-    MENUITEM "&Users",                      ID_USERS
+    POPUP "&Users"
+    BEGIN
+        MENUITEM "Dummy",                       ID_USERS_DUMMY
+    END
     POPUP "H&elp"
     BEGIN
         MENUITEM "Log\aCtrl+L",                 ID_HELP_LOG
@@ -269,6 +272,17 @@ BEGIN
         MENUITEM "Close\aDel",                  ID_OBJECT_CLOSE
         MENUITEM "Process Properties",          ID_OBJECT_PROCESSPROPERTIES
         MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
+    END
+END
+
+IDR_USER MENU 
+BEGIN
+    POPUP "User"
+    BEGIN
+        MENUITEM "Disconnect",                  ID_USER_DISCONNECT
+        MENUITEM "Logoff",                      ID_USER_LOGOFF
+        MENUITEM "Send Message...",             ID_USER_SENDMESSAGE
+        MENUITEM "Properties",                  ID_USER_PROPERTIES
     END
 END
 
@@ -769,6 +783,41 @@ BEGIN
     CONTROL         "CPU 31",IDC_CPU31,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,144,107,39,10
 END
 
+IDD_SYSINFO DIALOGEX 0, 0, 464, 318
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "System Information"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,407,297,50,14
+    GROUPBOX        "System",IDC_ZSYSTEM,7,168,121,52
+    LTEXT           "Processes",IDC_ZPROCESSES_L,14,179,33,8
+END
+
+IDD_EDITMESSAGE DIALOGEX 0, 0, 282, 163
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Message"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,172,142,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,225,142,50,14
+    LTEXT           "Title:",IDC_STATIC,7,8,17,8
+    EDITTEXT        IDC_TITLE,52,7,223,12,ES_AUTOHSCROLL
+    EDITTEXT        IDC_TEXT,52,23,223,79,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDC_TIMEOUT,52,122,43,12,ES_AUTOHSCROLL
+    LTEXT           "Timeout (s):",IDC_STATIC,7,123,40,8
+    COMBOBOX        IDC_TYPE,52,105,80,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Text:",IDC_STATIC,7,24,18,8
+    LTEXT           "Icon:",IDC_STATIC,7,107,18,8
+END
+
+IDD_SESSION DIALOGEX 0, 0, 201, 133
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Session Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,144,112,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1016,6 +1065,30 @@ BEGIN
         RIGHTMARGIN, 192
         TOPMARGIN, 7
         BOTTOMMARGIN, 138
+    END
+
+    IDD_SYSINFO, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 457
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 311
+    END
+
+    IDD_EDITMESSAGE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 156
+    END
+
+    IDD_SESSION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 194
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 126
     END
 END
 #endif    // APSTUDIO_INVOKED

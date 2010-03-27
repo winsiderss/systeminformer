@@ -370,29 +370,23 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                         for (i = 0; i < numberOfSessions; i++)
                         {
-                            ULONG length;
-                            PWSTR domainName = NULL;
-                            PWSTR userName = NULL;
+                            PPH_STRING domainName;
+                            PPH_STRING userName;
                             PPH_STRING menuString;
 
-                            WTSQuerySessionInformation(
+                            domainName = PHA_DEREFERENCE(PhGetSessionInformationString(
                                 WTS_CURRENT_SERVER_HANDLE,
                                 sessions[i].SessionId,
-                                WTSDomainName,
-                                &domainName,
-                                &length
-                                );
-                            WTSQuerySessionInformation(
+                                WTSDomainName
+                                ));
+                            userName = PHA_DEREFERENCE(PhGetSessionInformationString(
                                 WTS_CURRENT_SERVER_HANDLE,
                                 sessions[i].SessionId,
-                                WTSUserName,
-                                &userName,
-                                &length
-                                );
+                                WTSUserName
+                                ));
 
                             if (
-                                userName &&
-                                !WSTR_EQUAL(userName, L"") &&
+                                !PhIsStringNullOrEmpty(userName) &&
                                 sessions[i].pWinStationName &&
                                 !WSTR_EQUAL(sessions[i].pWinStationName, L"")
                                 )
@@ -401,8 +395,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     L"%u: %s (%s\\%s)",
                                     sessions[i].SessionId,
                                     sessions[i].pWinStationName,
-                                    domainName ? domainName : L"",
-                                    userName
+                                    PhGetStringOrEmpty(domainName),
+                                    userName->Buffer
                                     );
                             }
                             else if (
@@ -420,9 +414,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             {
                                 menuString = PhFormatString(L"%u", sessions[i].SessionId);
                             }
-
-                            if (domainName) WTSFreeMemory(domainName);
-                            if (userName) WTSFreeMemory(userName);
 
                             AppendMenu(sessionsMenu, MF_STRING, IDDYNAMIC + i, menuString->Buffer);
                             PhDereferenceObject(menuString);
