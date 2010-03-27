@@ -27,6 +27,7 @@ extern __userSet HFONT PhApplicationFont;
 extern __userSet PWSTR PhApplicationName;
 extern __userSet HFONT PhBoldListViewFont;
 extern __userSet HFONT PhBoldMessageFont;
+extern PPH_STRING PhCurrentUserName;
 extern BOOLEAN PhElevated;
 extern HANDLE PhHeapHandle;
 extern __userSet HFONT PhIconTitleFont;

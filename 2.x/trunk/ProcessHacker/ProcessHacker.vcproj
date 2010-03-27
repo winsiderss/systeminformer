@@ -516,6 +516,10 @@
 				RelativePath=".\tokprp.c"
 				>
 			</File>
+			<File
+				RelativePath=".\ussndmsg.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
