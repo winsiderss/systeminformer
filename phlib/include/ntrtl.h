@@ -186,6 +186,52 @@ ULONG
 NTAPI
 RtlGetCurrentProcessorNumber();
 
+// PEB
+
+NTSYSAPI
+VOID
+NTAPI
+RtlAcquirePebLock();
+
+NTSYSAPI
+VOID
+NTAPI
+RtlReleasePebLock();
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAllocateFromPeb(
+    __in ULONG Size,
+    __out PVOID *Block
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFreeToPeb(
+    __in PVOID Block,
+    __in ULONG Size
+    );
+
+NTSYSAPI
+NTSTATUS
+STDAPIVCALLTYPE
+RtlSetProcessIsCritical(
+    __in BOOLEAN NewValue,
+    __out_opt PBOOLEAN OldValue,
+    __in BOOLEAN CheckFlag
+    );
+
+NTSYSAPI
+NTSTATUS
+STDAPIVCALLTYPE
+RtlSetThreadIsCritical(
+    __in BOOLEAN NewValue,
+    __out_opt PBOOLEAN OldValue,
+    __in BOOLEAN CheckFlag
+    );
+
 // Environment
 
 NTSYSAPI
@@ -803,6 +849,226 @@ NTAPI
 RtlGUIDFromString(
     __in PUNICODE_STRING GuidString,
     __out PGUID Guid
+    );
+
+// IPv4/6 conversion
+
+struct in_addr;
+struct in6_addr;
+
+NTSYSAPI
+PWSTR
+NTAPI
+RtlIpv4AddressToStringW(
+    __in struct in_addr *Addr,
+    __out_ecount(16) PWSTR S
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv4AddressToStringExW(
+    __in struct in_addr *Address,
+    __in USHORT Port,
+    __out_ecount_part(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    __inout PULONG AddressStringLength
+    );
+
+NTSYSAPI
+PWSTR
+NTAPI
+RtlIpv6AddressToStringW(
+    __in struct in6_addr *Addr,
+    __out_ecount(65) PWSTR S
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv6AddressToStringExW(
+    __in struct in6_addr *Address,
+    __in ULONG ScopeId,
+    __in USHORT Port,
+    __out_ecount_part(*AddressStringLength, *AddressStringLength) PWSTR AddressString,
+    __inout PULONG AddressStringLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv4StringToAddressW(
+    __in PWSTR S,
+    __in BOOLEAN Strict,
+    __out PWSTR *Terminator,
+    __out struct in_addr *Addr
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv4StringToAddressExW(
+    __in PWSTR AddressString,
+    __in BOOLEAN Strict,
+    __out struct in_addr *Address,
+    __out PUSHORT Port
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv6StringToAddressW(
+    __in PWSTR S,
+    __out PWSTR *Terminator,
+    __out struct in6_addr *Addr
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIpv6StringToAddressExW(
+    __in PWSTR AddressString,
+    __out struct in6_addr *Address,
+    __out PULONG ScopeId,
+    __out PUSHORT Port
+    );
+
+#define RtlIpv4AddressToString RtlIpv4AddressToStringW
+#define RtlIpv4AddressToStringEx RtlIpv4AddressToStringExW
+#define RtlIpv6AddressToString RtlIpv6AddressToStringW
+#define RtlIpv6AddressToStringEx RtlIpv6AddressToStringExW
+#define RtlIpv4StringToAddress RtlIpv4StringToAddressW
+#define RtlIpv4StringToAddressEx RtlIpv4StringToAddressExW
+#define RtlIpv6StringToAddress RtlIpv6StringToAddressW
+#define RtlIpv6StringToAddressEx RtlIpv6StringToAddressExW
+
+// Time
+
+typedef struct _TIME_FIELDS
+{
+    CSHORT Year; // 1601...
+    CSHORT Month; // 1..12
+    CSHORT Day; // 1..31
+    CSHORT Hour; // 0..23
+    CSHORT Minute; // 0..59
+    CSHORT Second; // 0..59
+    CSHORT Milliseconds; // 0..999
+    CSHORT Weekday; // 0..6 = Sunday..Saturday
+} TIME_FIELDS, *PTIME_FIELDS;
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCutoverTimeToSystemTime(
+    __in PTIME_FIELDS CutoverTime,
+    __out PLARGE_INTEGER SystemTime,
+    __in PLARGE_INTEGER CurrentSystemTime,
+    __in BOOLEAN ThisYear
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSystemTimeToLocalTime(
+    __in PLARGE_INTEGER SystemTime,
+    __out PLARGE_INTEGER LocalTime
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLocalTimeToSystemTime(
+    __in PLARGE_INTEGER LocalTime,
+    __out PLARGE_INTEGER SystemTime
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlTimeToElapsedTimeFields(
+    __in PLARGE_INTEGER Time,
+    __out PTIME_FIELDS TimeFields
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlTimeToTimeFields(
+    __in PLARGE_INTEGER Time,
+    __out PTIME_FIELDS TimeFields
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTimeFieldsToTime(
+    __in PTIME_FIELDS TimeFields, // Weekday is ignored
+    __out PLARGE_INTEGER Time
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTimeToSecondsSince1980(
+    __in PLARGE_INTEGER Time,
+    __out PULONG ElapsedSeconds
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSecondsSince1980ToTime(
+    __in ULONG ElapsedSeconds,
+    __out PLARGE_INTEGER Time
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTimeToSecondsSince1970(
+    __in PLARGE_INTEGER Time,
+    __out PULONG ElapsedSeconds
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSecondsSince1970ToTime(
+    __in ULONG ElapsedSeconds,
+    __out PLARGE_INTEGER Time
+    );
+
+// Time zones
+
+typedef struct _RTL_TIME_ZONE_INFORMATION
+{
+    LONG Bias;
+    WCHAR StandardName[32];
+    TIME_FIELDS StandardStart;
+    LONG StandardBias;
+    WCHAR DaylightName[32];
+    TIME_FIELDS DaylightStart;
+    LONG DaylightBias;
+} RTL_TIME_ZONE_INFORMATION, *PRTL_TIME_ZONE_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryTimeZoneInformation(
+    __out PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetTimeZoneInformation(
+    __in PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetActiveTimeBias(
+    __in LONG ActiveBias
     );
 
 // Bitmaps

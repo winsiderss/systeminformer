@@ -172,9 +172,13 @@
 #define IDC_TIMEOUT                     1109
 #define IDC_CPU11                       1110
 #define IDC_CPU12                       1111
+#define IDC_STATE                       1111
 #define IDC_CPU13                       1112
+#define IDC_CLIENTNAME                  1112
 #define IDC_CPU14                       1113
+#define IDC_CLIENTADDRESS               1113
 #define IDC_CPU15                       1114
+#define IDC_CLIENTDISPLAY               1114
 #define IDC_CPU16                       1115
 #define IDC_CPU17                       1116
 #define IDC_CPU18                       1117
@@ -315,7 +319,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
 #define _APS_NEXT_COMMAND_VALUE         40132
-#define _APS_NEXT_CONTROL_VALUE         1111
+#define _APS_NEXT_CONTROL_VALUE         1115
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

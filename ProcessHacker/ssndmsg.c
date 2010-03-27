@@ -83,8 +83,9 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
 
             if (PhCurrentUserName)
             {
-                SetWindowText(
-                    GetDlgItem(hwndDlg, IDC_TITLE),
+                SetDlgItemText(
+                    hwndDlg,
+                    IDC_TITLE,
                     PhaFormatString(L"Message from %s", PhCurrentUserName->Buffer)->Buffer
                     );
             }

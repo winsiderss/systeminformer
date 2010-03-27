@@ -1,10 +1,16 @@
 #ifndef NTWIN
 #define NTWIN
 
+#define WIN32_LEAN_AND_MEAN
 #define WIN32_NO_STATUS
 #include <windows.h>
 #undef WIN32_NO_STATUS
 #include <ntstatus.h>
+
+#include <winioctl.h>
+#include <shellapi.h>
+#include <ole2.h>
+#include <commdlg.h>
 
 typedef GUID *PGUID;
 

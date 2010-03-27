@@ -485,6 +485,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sessprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\settings.c"
 				>
 			</File>
@@ -494,6 +498,10 @@
 			</File>
 			<File
 				RelativePath=".\srvprv.c"
+				>
+			</File>
+			<File
+				RelativePath=".\ssndmsg.c"
 				>
 			</File>
 			<File
@@ -514,10 +522,6 @@
 			</File>
 			<File
 				RelativePath=".\tokprp.c"
-				>
-			</File>
-			<File
-				RelativePath=".\ussndmsg.c"
 				>
 			</File>
 		</Filter>

@@ -527,6 +527,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhShowSessionSendMessageDialog(hWnd, SelectedUserSessionId);
                 }
                 break;
+            case ID_USER_PROPERTIES:
+                {
+                    PhShowSessionProperties(hWnd, SelectedUserSessionId);
+                }
+                break;
             case ID_HELP_DEBUGCONSOLE:
                 {
                     PhShowDebugConsole();
