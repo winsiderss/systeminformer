@@ -584,4 +584,11 @@ HPROPSHEETPAGE PhCreateTokenPage(
     __in_opt DLGPROC HookProc
     );
 
+// ussndmsg
+
+VOID PhShowSessionSendMessageDialog(
+    __in HWND ParentWindowHandle,
+    __in ULONG SessionId
+    );
+
 #endif

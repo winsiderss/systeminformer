@@ -31,6 +31,7 @@ HFONT PhApplicationFont;
 PWSTR PhApplicationName = L"Application";
 HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
+PPH_STRING PhCurrentUserName = NULL;
 BOOLEAN PhElevated;
 HANDLE PhHeapHandle;
 HFONT PhIconTitleFont;
@@ -75,6 +76,7 @@ NTSTATUS PhInitializePhLib()
 
     {
         HANDLE tokenHandle;
+        PTOKEN_USER tokenUser;
 
         PhElevated = TRUE;
 
@@ -86,6 +88,13 @@ NTSTATUS PhInitializePhLib()
             )))
         {
             PhGetTokenIsElevated(tokenHandle, &PhElevated);
+
+            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+            {
+                PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
+                PhFree(tokenUser);
+            }
+
             NtClose(tokenHandle);
         }
     }
