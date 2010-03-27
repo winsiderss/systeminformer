@@ -81,10 +81,14 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
             ComboBox_AddString(iconComboBox, L"Question");
             ComboBox_SelectString(iconComboBox, -1, L"None");
 
-            SetWindowText(
-                GetDlgItem(hwndDlg, IDC_TITLE),
-                PhaFormatString(L"Message from %s", PhCurrentUserName->Buffer)->Buffer
-                );
+            if (PhCurrentUserName)
+            {
+                SetWindowText(
+                    GetDlgItem(hwndDlg, IDC_TITLE),
+                    PhaFormatString(L"Message from %s", PhCurrentUserName->Buffer)->Buffer
+                    );
+            }
+
             SetFocus(GetDlgItem(hwndDlg, IDC_TEXT));
         }
         break;
