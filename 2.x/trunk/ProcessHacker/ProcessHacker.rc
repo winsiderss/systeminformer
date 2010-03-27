@@ -810,12 +810,24 @@ BEGIN
     LTEXT           "Icon:",IDC_STATIC,7,107,18,8
 END
 
-IDD_SESSION DIALOGEX 0, 0, 201, 133
+IDD_SESSION DIALOGEX 0, 0, 201, 111
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Session Properties"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,144,112,50,14
+    DEFPUSHBUTTON   "Close",IDOK,144,90,50,14
+    LTEXT           "User name:",IDC_STATIC,6,6,38,8
+    LTEXT           "Session ID:",IDC_STATIC,6,18,37,8
+    LTEXT           "State:",IDC_STATIC,6,30,21,8
+    LTEXT           "Client name:",IDC_STATIC,6,42,41,8
+    LTEXT           "Client address:",IDC_STATIC,6,54,49,8
+    LTEXT           "Client display:",IDC_STATIC,6,66,46,8
+    LTEXT           "N/A",IDC_USERNAME,66,6,128,8
+    LTEXT           "N/A",IDC_SESSIONID,66,18,128,8
+    LTEXT           "N/A",IDC_STATE,66,30,128,8
+    LTEXT           "N/A",IDC_CLIENTNAME,66,42,128,8
+    LTEXT           "N/A",IDC_CLIENTADDRESS,66,54,128,8
+    LTEXT           "N/A",IDC_CLIENTDISPLAY,66,66,128,8
 END
 
 
@@ -1088,7 +1100,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 194
         TOPMARGIN, 7
-        BOTTOMMARGIN, 126
+        BOTTOMMARGIN, 104
     END
 END
 #endif    // APSTUDIO_INVOKED

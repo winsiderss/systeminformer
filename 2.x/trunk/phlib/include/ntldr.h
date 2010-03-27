@@ -85,4 +85,41 @@ typedef struct _RTL_PROCESS_MODULES
     RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrLoadDll(
+    __in_opt PWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out PVOID *DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandle(
+    __in_opt PWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out PVOID *DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnloadDll(
+    __in PVOID DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetProcedureAddress(
+    __in PVOID DllHandle,
+    __in_opt PANSI_STRING ProcedureName,
+    __in_opt ULONG ProcedureNumber,
+    __out PVOID *ProcedureAddress
+    );
+
 #endif

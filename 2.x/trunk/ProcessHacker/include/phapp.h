@@ -538,11 +538,25 @@ NTSTATUS PhCreateProcessAsUser(
     __out_opt PHANDLE ThreadHandle
     );
 
+// sessprp
+
+VOID PhShowSessionProperties(
+    __in HWND ParentWindowHandle,
+    __in ULONG SessionId
+    );
+
 // srvprp
 
 VOID PhShowServiceProperties(
     __in HWND ParentWindowHandle,
     __in PPH_SERVICE_ITEM ServiceItem
+    );
+
+// ssndmsg
+
+VOID PhShowSessionSendMessageDialog(
+    __in HWND ParentWindowHandle,
+    __in ULONG SessionId
     );
 
 // termator
@@ -582,13 +596,6 @@ HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
     __in PVOID Context,
     __in_opt DLGPROC HookProc
-    );
-
-// ussndmsg
-
-VOID PhShowSessionSendMessageDialog(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
     );
 
 #endif

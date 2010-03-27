@@ -332,8 +332,8 @@ NtTerminateProcess(
 #define ZwCurrentThread() NtCurrentThread()
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
 
-#define NtCurrentProcessId() ((HANDLE)GetCurrentProcessId())
-#define NtCurrentThreadId() ((HANDLE)GetCurrentThreadId())
+#define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
+#define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
 
 NTSYSCALLAPI
 NTSTATUS
