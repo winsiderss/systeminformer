@@ -234,6 +234,15 @@ NTSTATUS PhGetProcessCycleTime(
     __out PULONG64 CycleTime
     );
 
+#define PH_PROCESS_DEP_ENABLED 0x1
+#define PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED 0x2
+#define PH_PROCESS_DEP_PERMANENT 0x4
+
+NTSTATUS PhGetProcessDepStatus(
+    __in HANDLE ProcessHandle,
+    __out PULONG DepStatus
+    );
+
 NTSTATUS PhGetProcessPosixCommandLine(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *CommandLine
@@ -279,6 +288,11 @@ NTSTATUS PhSetProcessIoPriority(
 NTSTATUS PhSetProcessExecuteFlags(
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteFlags
+    );
+
+NTSTATUS PhSetProcessDepStatus(
+    __in HANDLE ProcessHandle,
+    __in ULONG DepStatus
     );
 
 NTSTATUS PhInjectDllProcess(
