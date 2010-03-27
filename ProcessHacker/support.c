@@ -22,6 +22,36 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <wtsapi32.h>
+
+PPH_STRING PhGetSessionInformationString(
+    __in HANDLE ServerHandle,
+    __in ULONG SessionId,
+    __in ULONG InformationClass
+    )
+{
+    PPH_STRING string;
+    PWSTR buffer;
+    ULONG length;
+
+    if (WTSQuerySessionInformation(
+        ServerHandle,
+        SessionId,
+        (WTS_INFO_CLASS)InformationClass,
+        &buffer,
+        &length
+        ))
+    {
+        string = PhCreateString(buffer);
+        WTSFreeMemory(buffer);
+
+        return string;
+    }
+    else
+    {
+        return NULL;
+    }
+}
 
 VOID PhSearchOnlineString(
     __in HWND hWnd,

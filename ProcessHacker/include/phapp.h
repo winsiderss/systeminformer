@@ -68,6 +68,12 @@ ATOM PhRegisterWindowClass();
 
 // support
 
+PPH_STRING PhGetSessionInformationString(
+    __in HANDLE ServerHandle,
+    __in ULONG SessionId,
+    __in ULONG InformationClass
+    );
+
 VOID PhSearchOnlineString(
     __in HWND hWnd,
     __in PWSTR String
