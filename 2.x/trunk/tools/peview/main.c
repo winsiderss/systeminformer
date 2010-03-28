@@ -55,8 +55,6 @@ INT WINAPI WinMain(
 
     PhGuiSupportInitialization();
 
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
-
     PhApplicationName = L"PE Viewer";
 
     commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
@@ -78,6 +76,8 @@ INT WINAPI WinMain(
             { L"All files (*.*)", L"*.*" }
         };
         PVOID fileDialog;
+
+        CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
         fileDialog = PhCreateOpenFileDialog();
         PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));

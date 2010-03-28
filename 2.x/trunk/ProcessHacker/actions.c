@@ -380,14 +380,11 @@ BOOLEAN PhUiRestartProcess(
     )
 {
     NTSTATUS status;
-    ULONG win32Result = 0;
     BOOLEAN cont = FALSE;
     HANDLE processHandle = NULL;
     BOOLEAN isPosix;
     PPH_STRING commandLine;
     PPH_STRING currentDirectory;
-    STARTUPINFO startupInfo;
-    PROCESS_INFORMATION processInformation;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
@@ -467,36 +464,24 @@ BOOLEAN PhUiRestartProcess(
 
     // Start the process.
 
-    memset(&startupInfo, 0, sizeof(STARTUPINFO));
-    startupInfo.cb = sizeof(STARTUPINFO);
-
-    if (!CreateProcess(
+    status = PhCreateProcessWin32(
         PhGetString(Process->FileName), // we didn't wait for S1 processing
         commandLine->Buffer, // string may be modified, but it's OK in this case
         NULL,
-        NULL,
-        FALSE,
+        currentDirectory->Buffer,
         0,
         NULL,
-        currentDirectory->Buffer,
-        &startupInfo,
-        &processInformation
-        ))
-    {
-        win32Result = GetLastError();
-        goto ErrorExit;
-    }
-
-    NtClose(processInformation.hProcess);
-    NtClose(processInformation.hThread);
+        NULL,
+        NULL
+        );
 
 ErrorExit:
     if (processHandle)
         NtClose(processHandle);
 
-    if (!NT_SUCCESS(status) || win32Result)
+    if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"restart", Process, status, win32Result);
+        PhpShowErrorProcess(hWnd, L"restart", Process, status, 0);
         return FALSE;
     }
 

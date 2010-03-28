@@ -311,6 +311,7 @@
 #define ID_USER_SENDMESSAGE             40129
 #define ID_USER_PROPERTIES              40130
 #define ID_USERS_DUMMY                  40131
+#define ID_MODULE_INSPECT               40132
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -318,7 +319,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         40132
+#define _APS_NEXT_COMMAND_VALUE         40133
 #define _APS_NEXT_CONTROL_VALUE         1115
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
