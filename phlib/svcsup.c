@@ -321,3 +321,72 @@ ULONG PhGetServiceErrorControlInteger(
     else
         return -1;
 }
+
+PPH_STRING PhGetServiceNameFromTag(
+    __in HANDLE ProcessId,
+    __in PVOID ServiceTag
+    )
+{
+    PPH_STRING serviceName = NULL;
+    _I_QueryTagInformation I_QueryTagInformation;
+    SC_SERVICE_TAG_QUERY query;
+
+    I_QueryTagInformation = PhGetProcAddress(L"advapi32.dll", "I_QueryTagInformation");
+
+    if (!I_QueryTagInformation)
+        return NULL;
+
+    query.ProcessId = (ULONG)ProcessId;
+    query.ServiceTag = ServiceTag;
+    query.Unknown = 0;
+    query.Buffer = NULL;
+
+    I_QueryTagInformation(NULL, ServiceNameFromTagInformation, &query);
+
+    if (query.Buffer)
+    {
+        serviceName = PhCreateString((PWSTR)query.Buffer);
+        LocalFree(query.Buffer);
+    }
+
+    return serviceName;
+}
+
+NTSTATUS PhGetThreadServiceTag(
+    __in HANDLE ThreadHandle,
+    __in_opt HANDLE ProcessHandle,
+    __out PPVOID ServiceTag
+    )
+{
+    NTSTATUS status;
+    THREAD_BASIC_INFORMATION basicInfo;
+    BOOLEAN openedProcessHandle = FALSE;
+
+    if (!NT_SUCCESS(status = PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return status;
+
+    if (!ProcessHandle)
+    {
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            &ProcessHandle,
+            PROCESS_VM_READ,
+            ThreadHandle
+            )))
+            return status;
+
+        openedProcessHandle = TRUE;
+    }
+
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(basicInfo.TebBaseAddress, FIELD_OFFSET(TEB, SubProcessTag)),
+        ServiceTag,
+        sizeof(PVOID),
+        NULL
+        );
+
+    if (openedProcessHandle)
+        NtClose(ProcessHandle);
+
+    return status;
+}

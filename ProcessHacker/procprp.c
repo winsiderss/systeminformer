@@ -1247,6 +1247,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 180, L"Start Address"); 
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Priority");
 
+            if (processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
+                PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Service");
+
             PhSetExtendedListView(lvHandle);
             ExtendedListView_SetContext(lvHandle, threadsContext);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpThreadTidCompareFunction);
@@ -1256,9 +1259,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             ExtendedListView_SetItemColorFunction(lvHandle, PhpThreadColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
-            // Sort by TID, Start Address, Priority, then Cycles/Context Switches Delta.
+            // Sort by TID, Start Address, Priority, Cycles/Context Switches Delta, then Service.
             {
-                ULONG fallbackColumns[] = { 0, 2, 3, 1 };
+                ULONG fallbackColumns[] = { 0, 2, 3, 1, 4 };
 
                 ExtendedListView_AddFallbackColumns(lvHandle,
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
@@ -1676,6 +1679,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
+
+                if (processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
+                    PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhGetString(threadItem->ServiceName));
 
                 threadsContext->NeedsSort = TRUE;
             }
