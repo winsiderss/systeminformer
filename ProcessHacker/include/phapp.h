@@ -68,6 +68,26 @@ ATOM PhRegisterWindowClass();
 
 // support
 
+typedef enum _PH_KNOWN_PROCESS_TYPE
+{
+    UnknownProcessType,
+    SystemProcessType, // ntoskrnl/ntkrnlpa/...
+    SessionManagerProcessType, // smss
+    WindowsSubsystemProcessType, // csrss
+    WindowsStartupProcessType, // wininit
+    ServiceControlManagerProcessType, // services
+    LocalSecurityAuthorityProcessType, // lsass
+    LocalSessionManagerProcessType, // lsm
+    ServiceHostProcessType, // svchost
+    RunDllAsAppProcessType, // rundll32
+    ComSurrogateProcessType // dllhost
+} PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
+
+NTSTATUS PhGetProcessKnownType(
+    __in HANDLE ProcessHandle,
+    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    );
+
 PPH_STRING PhGetSessionInformationString(
     __in HANDLE ServerHandle,
     __in ULONG SessionId,

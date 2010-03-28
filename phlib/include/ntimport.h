@@ -29,6 +29,8 @@
 
 #include <ntlsa.h>
 
+#include <rev.h>
+
 #ifdef NTIMPORT_PRIVATE
 #define EXT
 #define EQNULL = NULL

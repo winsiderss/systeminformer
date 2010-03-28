@@ -249,6 +249,7 @@ typedef struct _PH_THREAD_ITEM
     KWAIT_REASON WaitReason;
     LONG PriorityWin32;
     PPH_STRING PriorityWin32String;
+    PPH_STRING ServiceName;
 
     HANDLE ThreadHandle;
 
@@ -260,6 +261,8 @@ typedef struct _PH_THREAD_ITEM
 
     WCHAR ThreadIdString[PH_INT32_STR_LEN_1];
 } PH_THREAD_ITEM, *PPH_THREAD_ITEM;
+
+typedef enum _PH_KNOWN_PROCESS_TYPE PH_KNOWN_PROCESS_TYPE;
 
 typedef struct _PH_THREAD_PROVIDER
 {
@@ -274,6 +277,7 @@ typedef struct _PH_THREAD_PROVIDER
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+    BOOLEAN HasServices;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PH_EVENT SymbolsLoadedEvent;
     LONG SymbolsLoading;

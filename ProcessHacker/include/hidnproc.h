@@ -24,18 +24,6 @@ typedef struct _PH_HIDDEN_PROCESS_ENTRY
     PH_HIDDEN_PROCESS_TYPE Type;
 } PH_HIDDEN_PROCESS_ENTRY, *PPH_HIDDEN_PROCESS_ENTRY;
 
-typedef enum _PH_KNOWN_PROCESS_TYPE
-{
-    UnknownProcessType,
-    SystemProcessType,
-    SessionManagerProcessType,
-    WindowsSubsystemProcessType,
-    WindowsStartupProcessType,
-    ServiceControlManagerProcessType,
-    LocalSecurityAuthorityProcessType,
-    LocalSessionManagerProcessType
-} PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
-
 typedef struct _PH_CSR_HANDLE_INFO
 {
     HANDLE CsrProcessHandle;
@@ -54,11 +42,6 @@ NTSTATUS PhEnumHiddenProcesses(
     __in PH_HIDDEN_PROCESS_METHOD Method,
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
     __in PVOID Context
-    );
-
-NTSTATUS PhGetProcessKnownType(
-    __in HANDLE ProcessHandle,
-    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
     );
 
 NTSTATUS PhEnumProcessHandles(

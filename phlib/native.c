@@ -113,6 +113,40 @@ NTSTATUS PhOpenThread(
     }
 }
 
+NTSTATUS PhOpenThreadProcess(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ThreadHandle
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphOpenThreadProcess(
+            PhKphHandle,
+            ProcessHandle,
+            ThreadHandle,
+            DesiredAccess
+            );
+    }
+    else
+    {
+        NTSTATUS status;
+        THREAD_BASIC_INFORMATION basicInfo;
+
+        if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
+            ThreadHandle,
+            &basicInfo
+            )))
+            return status;
+
+        return PhOpenProcess(
+            ProcessHandle,
+            DesiredAccess,
+            basicInfo.ClientId.UniqueProcess
+            );
+    }
+}
+
 /**
  * Opens a process token.
  *
@@ -1933,33 +1967,12 @@ NTSTATUS PhWalkThreadStack(
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
     {
-        if (PhKphHandle)
-        {
-            if (!NT_SUCCESS(status = KphOpenThreadProcess(
-                PhKphHandle,
-                &ProcessHandle,
-                ThreadHandle,
-                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
-                )))
-                return status;
-        }
-        else
-        {
-            THREAD_BASIC_INFORMATION basicInfo;
-
-            if (!NT_SUCCESS(status = PhGetThreadBasicInformation(
-                ThreadHandle,
-                &basicInfo
-                )))
-                return status;
-
-            if (!NT_SUCCESS(status = PhOpenProcess(
-                &ProcessHandle,
-                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-                basicInfo.ClientId.UniqueProcess
-                )))
-                return status;
-        }
+        if (!NT_SUCCESS(status = PhOpenThreadProcess(
+            &ProcessHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ThreadHandle
+            )))
+            return status;
 
         processOpened = TRUE;
     }

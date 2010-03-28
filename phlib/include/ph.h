@@ -76,6 +76,12 @@ NTSTATUS PhOpenThread(
     __in HANDLE ThreadId
     );
 
+NTSTATUS PhOpenThreadProcess(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in HANDLE ThreadHandle
+    );
+
 NTSTATUS PhOpenProcessToken(
     __out PHANDLE TokenHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -1304,6 +1310,17 @@ PWSTR PhGetServiceErrorControlString(
 
 ULONG PhGetServiceErrorControlInteger(
     __in PWSTR ServiceErrorControl
+    );
+
+PPH_STRING PhGetServiceNameFromTag(
+    __in HANDLE ProcessId,
+    __in PVOID ServiceTag
+    );
+
+NTSTATUS PhGetThreadServiceTag(
+    __in HANDLE ThreadHandle,
+    __in_opt HANDLE ProcessHandle,
+    __out PPVOID ServiceTag
     );
 
 // support

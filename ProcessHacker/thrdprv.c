@@ -28,8 +28,11 @@ typedef struct _PH_THREAD_QUERY_DATA
 {
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_THREAD_ITEM ThreadItem;
+
     PPH_STRING StartAddressString;
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
+
+    PPH_STRING ServiceName;
 } PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
 
 VOID NTAPI PhpThreadProviderDeleteProcedure(
@@ -296,6 +299,19 @@ NTSTATUS PhpThreadProviderLoadSymbols(
         }
     }
 
+    // Check if the process has services - we'll need to know before getting service tag/name 
+    // information.
+    if (WINDOWS_HAS_SERVICE_TAGS)
+    {
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(threadProvider->ProcessId))
+        {
+            threadProvider->HasServices = processItem->ServiceList->Count != 0;
+            PhDereferenceObject(processItem);
+        }
+    }
+
     PhSetEvent(&threadProvider->SymbolsLoadedEvent);
 
     PhDereferenceObject(threadProvider);
@@ -335,6 +351,7 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
     if (threadItem->PriorityWin32String) PhDereferenceObject(threadItem->PriorityWin32String);
+    if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
     if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);
     if (threadItem->CyclesDeltaString) PhDereferenceObject(threadItem->CyclesDeltaString);
 }
@@ -445,6 +462,28 @@ NTSTATUS PhpThreadQueryWorker(
 
     if (newSymbolsLoading == 0)
         PhInvokeCallback(&data->ThreadProvider->LoadingStateChangedEvent, (PVOID)FALSE);
+
+    // Get the service tag, and the service name.
+    if (
+        WINDOWS_HAS_SERVICE_TAGS &&
+        data->ThreadProvider->SymbolProvider->IsRealHandle &&
+        data->ThreadItem->ThreadHandle
+        )
+    {
+        PVOID serviceTag;
+
+        if (NT_SUCCESS(PhGetThreadServiceTag(
+            data->ThreadItem->ThreadHandle,
+            data->ThreadProvider->ProcessHandle,
+            &serviceTag
+            )))
+        {
+            data->ServiceName = PhGetServiceNameFromTag(
+                data->ThreadProvider->ProcessId,
+                serviceTag
+                );
+        }
+    }
 
     PhAcquireMutex(&data->ThreadProvider->QueryQueueLock);
     PhEnqueueQueueItem(data->ThreadProvider->QueryQueue, data);
@@ -646,6 +685,8 @@ VOID PhThreadProviderUpdate(
                 PhSwapReference(&data->ThreadItem->StartAddressString, data->StartAddressString);
                 data->ThreadItem->StartAddressResolveLevel = data->StartAddressResolveLevel;
             }
+
+            PhSwapReference2(&data->ThreadItem->ServiceName, data->ServiceName);
 
             data->ThreadItem->JustResolved = TRUE;
 
