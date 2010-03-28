@@ -460,7 +460,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     static PH_FILETYPE_FILTER filters[] =
                     {
-                        { L"Executable files (*.exe;*.dll;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.sys;*.scr;*.cpl" },
+                        { L"Executable files (*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl)", L"*.exe;*.dll;*.ocx;*.sys;*.scr;*.cpl" },
                         { L"All files (*.*)", L"*.*" }
                     };
                     PVOID fileDialog = PhCreateOpenFileDialog();

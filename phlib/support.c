@@ -95,6 +95,50 @@ VOID PhAdjustRectangleToWorkingArea(
     }
 }
 
+VOID PhCenterWindow(
+    __in HWND WindowHandle,
+    __in_opt HWND ParentWindowHandle
+    )
+{
+    if (ParentWindowHandle)
+    {
+        RECT rect, parentRect;
+        PH_RECTANGLE rectangle, parentRectangle;
+
+        GetWindowRect(WindowHandle, &rect);
+        GetWindowRect(ParentWindowHandle, &parentRect);
+        rectangle = PhRectToRectangle(rect);
+        parentRectangle = PhRectToRectangle(parentRect);
+
+        PhCenterRectangle(&rectangle, &parentRectangle);
+        PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
+        MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+            rectangle.Width, rectangle.Height, FALSE);
+    }
+    else
+    {
+        MONITORINFO monitorInfo = { sizeof(monitorInfo) };
+
+        if (GetMonitorInfo(
+            MonitorFromWindow(WindowHandle, MONITOR_DEFAULTTONEAREST),
+            &monitorInfo
+            ))
+        {
+            RECT rect;
+            PH_RECTANGLE rectangle;
+            PH_RECTANGLE bounds;
+
+            GetWindowRect(WindowHandle, &rect);
+            rectangle = PhRectToRectangle(rect);
+            bounds = PhRectToRectangle(monitorInfo.rcWork);
+
+            PhCenterRectangle(&rectangle, &bounds);
+            MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+                rectangle.Width, rectangle.Height, FALSE);
+        }
+    }
+}
+
 VOID PhReferenceObjects(
     __in PPVOID Objects,
     __in ULONG NumberOfObjects

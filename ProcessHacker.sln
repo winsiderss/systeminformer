@@ -20,6 +20,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phsvc", "phsvc\phsvc.vcproj
 		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\peview.vcproj", "{72C124A2-3C80-41C6-ABA1-C4948B713204}"
+	ProjectSection(ProjectDependencies) = postProject
+		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -56,11 +61,20 @@ Global
 		{030499FD-1C80-42E0-B315-92B77787C19B}.Release|Win32.Build.0 = Release|Win32
 		{030499FD-1C80-42E0-B315-92B77787C19B}.Release|x64.ActiveCfg = Release|x64
 		{030499FD-1C80-42E0-B315-92B77787C19B}.Release|x64.Build.0 = Release|x64
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|Win32.ActiveCfg = Debug|Win32
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|Win32.Build.0 = Debug|Win32
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|x64.ActiveCfg = Debug|x64
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Debug|x64.Build.0 = Debug|x64
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|Win32.ActiveCfg = Release|Win32
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|Win32.Build.0 = Release|Win32
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|x64.ActiveCfg = Release|x64
+		{72C124A2-3C80-41C6-ABA1-C4948B713204}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175} = {2758DC86-368B-430C-9D29-F1EF20032A71}
+		{72C124A2-3C80-41C6-ABA1-C4948B713204} = {2758DC86-368B-430C-9D29-F1EF20032A71}
 	EndGlobalSection
 EndGlobal

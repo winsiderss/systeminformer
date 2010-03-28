@@ -1424,24 +1424,10 @@ VOID PhAdjustRectangleToWorkingArea(
     __inout PPH_RECTANGLE Rectangle
     );
 
-FORCEINLINE VOID PhCenterWindow(
+VOID PhCenterWindow(
     __in HWND WindowHandle,
-    __in HWND ParentWindowHandle
-    )
-{
-    RECT rect, parentRect;
-    PH_RECTANGLE rectangle, parentRectangle;
-
-    GetWindowRect(WindowHandle, &rect);
-    GetWindowRect(ParentWindowHandle, &parentRect);
-    rectangle = PhRectToRectangle(rect);
-    parentRectangle = PhRectToRectangle(parentRect);
-
-    PhCenterRectangle(&rectangle, &parentRectangle);
-    PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
-    MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
-        rectangle.Width, rectangle.Height, FALSE);
-}
+    __in_opt HWND ParentWindowHandle
+    );
 
 FORCEINLINE VOID PhLargeIntegerToSystemTime(
     __out PSYSTEMTIME SystemTime,
