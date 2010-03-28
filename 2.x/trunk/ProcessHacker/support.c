@@ -24,6 +24,93 @@
 #include <settings.h>
 #include <wtsapi32.h>
 
+NTSTATUS PhGetProcessKnownType(
+    __in HANDLE ProcessHandle,
+    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    )
+{
+    NTSTATUS status;
+    PH_KNOWN_PROCESS_TYPE knownProcessType;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PPH_STRING systemDirectory;
+    PPH_STRING fileName;
+    PPH_STRING newFileName;
+    PPH_STRING baseName;
+
+    if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
+        ProcessHandle,
+        &basicInfo
+        )))
+        return status;
+
+    if (basicInfo.UniqueProcessId == SYSTEM_PROCESS_ID)
+    {
+        *KnownProcessType = SystemProcessType;
+        return STATUS_SUCCESS;
+    }
+
+    systemDirectory = PhGetSystemDirectory();
+
+    if (!systemDirectory)
+        return STATUS_UNSUCCESSFUL;
+
+    if (!NT_SUCCESS(status = PhGetProcessImageFileName(
+        ProcessHandle,
+        &fileName
+        )))
+    {
+        PhDereferenceObject(systemDirectory);
+        return status;
+    }
+
+    newFileName = PhGetFileName(fileName);
+    PhDereferenceObject(fileName);
+
+    knownProcessType = UnknownProcessType;
+
+    if (PhStringStartsWith(newFileName, systemDirectory, TRUE))
+    {
+        baseName = PhSubstring(
+            newFileName,
+            systemDirectory->Length / 2,
+            (newFileName->Length - systemDirectory->Length) / 2
+            );
+
+        // The system directory string never ends in a backslash, unless 
+        // it is a drive root. We're not going to account for that case.
+
+        if (!baseName)
+            ; // Dummy
+        else if (PhStringEquals2(baseName, L"\\smss.exe", TRUE))
+            knownProcessType = SessionManagerProcessType;
+        else if (PhStringEquals2(baseName, L"\\csrss.exe", TRUE))
+            knownProcessType = WindowsSubsystemProcessType;
+        else if (PhStringEquals2(baseName, L"\\wininit.exe", TRUE))
+            knownProcessType = WindowsStartupProcessType;
+        else if (PhStringEquals2(baseName, L"\\services.exe", TRUE))
+            knownProcessType = ServiceControlManagerProcessType;
+        else if (PhStringEquals2(baseName, L"\\lsass.exe", TRUE))
+            knownProcessType = LocalSecurityAuthorityProcessType;
+        else if (PhStringEquals2(baseName, L"\\lsm.exe", TRUE))
+            knownProcessType = LocalSessionManagerProcessType;
+        else if (PhStringEquals2(baseName, L"\\svchost.exe", TRUE))
+            knownProcessType = ServiceHostProcessType;
+        else if (PhStringEquals2(baseName, L"\\rundll32.exe", TRUE))
+            knownProcessType = RunDllAsAppProcessType;
+        else if (PhStringEquals2(baseName, L"\\dllhost.exe", TRUE))
+            knownProcessType = ComSurrogateProcessType;
+
+        PhDereferenceObject(baseName);
+    }
+
+    PhDereferenceObject(systemDirectory);
+    PhDereferenceObject(newFileName);
+
+    *KnownProcessType = knownProcessType;
+
+    return status;
+}
+
 PPH_STRING PhGetSessionInformationString(
     __in HANDLE ServerHandle,
     __in ULONG SessionId,
