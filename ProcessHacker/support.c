@@ -111,6 +111,123 @@ NTSTATUS PhGetProcessKnownType(
     return status;
 }
 
+static BOOLEAN PhpSvchostCommandLineCallback(
+    __in_opt PPH_COMMAND_LINE_OPTION Option,
+    __in_opt PPH_STRING Value,
+    __in PVOID Context
+    )
+{
+    PPH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine = Context;
+
+    if (Option && Option->Id == 1)
+    {
+        PhSwapReference(&knownCommandLine->ServiceHost.GroupName, Value);
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhaGetProcessKnownCommandLine(
+    __in PPH_STRING CommandLine,
+    __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
+    __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    )
+{
+    switch (KnownProcessType)
+    {
+    case ServiceHostProcessType:
+        {
+            static PH_COMMAND_LINE_OPTION options[] =
+            {
+                { 1, L"k", MandatoryArgumentType }
+            };
+
+            KnownCommandLine->ServiceHost.GroupName = NULL;
+
+            PhParseCommandLine(
+                &CommandLine->sr,
+                options,
+                sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
+                PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
+                PhpSvchostCommandLineCallback,
+                KnownCommandLine
+                );
+
+            return KnownCommandLine->ServiceHost.GroupName != NULL;
+        }
+        break;
+    case RunDllAsAppProcessType:
+        {
+            ULONG i;
+            ULONG lastIndexOfComma;
+            PPH_STRING dllName;
+            PPH_STRING procedureName;
+
+            i = 0;
+
+            // Get the rundll32.exe part.
+
+            dllName = PhParseCommandLinePart(&CommandLine->sr, &i);
+
+            if (!dllName)
+                return FALSE;
+
+            PhDereferenceObject(dllName);
+
+            // Get the DLL name part.
+
+            while (i < (ULONG)CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
+                i++;
+
+            dllName = PhParseCommandLinePart(&CommandLine->sr, &i);
+
+            if (!dllName)
+                return FALSE;
+
+            PhaDereferenceObject(dllName);
+
+            // The procedure name begins after the last comma.
+
+            lastIndexOfComma = PhStringLastIndexOfChar(dllName, 0, ',');
+
+            if (lastIndexOfComma == -1)
+                return FALSE;
+
+            procedureName = PhaSubstring(
+                dllName,
+                lastIndexOfComma + 1,
+                dllName->Length / 2 - lastIndexOfComma - 1
+                );
+            dllName = PhaSubstring(dllName, 0, lastIndexOfComma);
+
+            // If the DLL name isn't an absolute path, assume it's in system32.
+
+            if (PhStringIndexOfChar(dllName, 0, ':') == -1)
+            {
+                dllName = PhaConcatStrings(
+                    3,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetSystemDirectory()))->Buffer,
+                    L"\\",
+                    dllName
+                    );
+            }
+
+            KnownCommandLine->RunDllAsApp.FileName = dllName;
+            KnownCommandLine->RunDllAsApp.ProcedureName = procedureName;
+        }
+        break;
+    case ComSurrogateProcessType:
+        {
+            // TODO
+        }
+        break;
+    default:
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 PPH_STRING PhGetSessionInformationString(
     __in HANDLE ServerHandle,
     __in ULONG SessionId,
