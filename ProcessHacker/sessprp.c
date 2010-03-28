@@ -120,7 +120,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 WTSFreeMemory(state);
             }
 
-            if (clientName)
+            if (!PhIsStringNullOrEmpty(clientName))
                 SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientName->Buffer);
 
             WTSQuerySessionInformation(
@@ -133,17 +133,20 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (clientAddress)
             {
-                switch (clientAddress->AddressFamily)
+                if (!PhIsStringNullOrEmpty(clientName))
                 {
-                case AF_INET:
-                    RtlIpv4AddressToString((struct in_addr *)&clientAddress->Address, clientAddressString);
-                    break;
-                case AF_INET6:
-                    RtlIpv6AddressToString((struct in6_addr *)&clientAddress->Address, clientAddressString);
-                    break;
-                }
+                    switch (clientAddress->AddressFamily)
+                    {
+                    case AF_INET:
+                        RtlIpv4AddressToString((struct in_addr *)&clientAddress->Address, clientAddressString);
+                        break;
+                    case AF_INET6:
+                        RtlIpv6AddressToString((struct in6_addr *)&clientAddress->Address, clientAddressString);
+                        break;
+                    }
 
-                SetDlgItemText(hwndDlg, IDC_CLIENTADDRESS, clientAddressString);
+                    SetDlgItemText(hwndDlg, IDC_CLIENTADDRESS, clientAddressString);
+                }
 
                 WTSFreeMemory(clientAddress);
             }
@@ -158,10 +161,13 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (clientDisplay)
             {
-                SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
-                    PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,
-                    clientDisplay->VerticalResolution, clientDisplay->ColorDepth)->Buffer
-                    );
+                if (!PhIsStringNullOrEmpty(clientName))
+                {
+                    SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
+                        PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,
+                        clientDisplay->VerticalResolution, clientDisplay->ColorDepth)->Buffer
+                        );
+                }
 
                 WTSFreeMemory(clientDisplay);
             }
