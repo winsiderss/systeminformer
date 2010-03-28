@@ -43,15 +43,15 @@ typedef struct _PH_PROCESS_ITEM
     ULONG ImportFunctions;
     ULONG ImportModules;
 
-    BOOLEAN HasParent : 1;
-    BOOLEAN IsBeingDebugged : 1;
-    BOOLEAN IsDotNet : 1;
-    BOOLEAN IsElevated : 1;
-    BOOLEAN IsInJob : 1;
-    BOOLEAN IsInSignificantJob : 1;
-    BOOLEAN IsPacked : 1;
-    BOOLEAN IsPosix : 1;
-    BOOLEAN IsWow64 : 1;
+    ULONG HasParent : 1;
+    ULONG IsBeingDebugged : 1;
+    ULONG IsDotNet : 1;
+    ULONG IsElevated : 1;
+    ULONG IsInJob : 1;
+    ULONG IsInSignificantJob : 1;
+    ULONG IsPacked : 1;
+    ULONG IsPosix : 1;
+    ULONG IsWow64 : 1;
 
     BOOLEAN JustProcessed;
     PH_EVENT Stage1Event;

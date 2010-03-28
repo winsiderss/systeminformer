@@ -88,6 +88,31 @@ NTSTATUS PhGetProcessKnownType(
     __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
     );
 
+typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
+{
+    struct
+    {
+        PPH_STRING GroupName;
+    } ServiceHost;
+    struct
+    {
+        PPH_STRING FileName;
+        PPH_STRING ProcedureName;
+    } RunDllAsApp;
+    struct
+    {
+        GUID Guid;
+        PPH_STRING Name;
+        PPH_STRING FileName;
+    } ComSurrogate;
+} PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
+
+BOOLEAN PhaGetProcessKnownCommandLine(
+    __in PPH_STRING CommandLine,
+    __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
+    __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    );
+
 PPH_STRING PhGetSessionInformationString(
     __in HANDLE ServerHandle,
     __in ULONG SessionId,

@@ -756,11 +756,13 @@ __mayRaise VOID PhaDereferenceObject(
 {
     PPH_AUTO_POOL autoPool = PhpGetCurrentAutoPool();
 
+#ifdef DEBUG
     // If we don't have an auto-dereference pool, 
     // we don't want to leak the object (unlike what 
     // Apple does with NSAutoreleasePool).
     if (!autoPool)
         PhRaiseStatus(STATUS_UNSUCCESSFUL);
+#endif
 
     // See if we can use the static array.
     if (autoPool->StaticCount < PH_AUTO_POOL_STATIC_SIZE)
