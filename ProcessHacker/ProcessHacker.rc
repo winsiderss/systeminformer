@@ -167,6 +167,7 @@ BEGIN
     BEGIN
         MENUITEM "Unload",                      ID_MODULE_UNLOAD
         MENUITEM SEPARATOR
+        MENUITEM "Inspect",                     ID_MODULE_INSPECT
         MENUITEM "Search Online",               ID_MODULE_SEARCHONLINE
         MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
         MENUITEM "Properties",                  ID_MODULE_PROPERTIES

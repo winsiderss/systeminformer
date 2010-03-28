@@ -1836,6 +1836,15 @@ VOID PhpInitializeModuleMenu(
     __in ULONG NumberOfModules
     )
 {
+    PPH_STRING inspectExecutables;
+
+    inspectExecutables = PhGetStringSetting(L"ProgramInspectExecutables");
+
+    if (inspectExecutables->Length == 0)
+        DeleteMenu(Menu, ID_MODULE_INSPECT, 0);
+
+    PhDereferenceObject(inspectExecutables);
+
     if (NumberOfModules == 0)
     {
         PhEnableAllMenuItems(Menu, FALSE);
@@ -2071,6 +2080,21 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         PhReferenceObject(moduleItem);
                         PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem);
                         PhDereferenceObject(moduleItem);
+                    }
+                }
+                break;
+            case ID_MODULE_INSPECT:
+                {
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (moduleItem)
+                    {
+                        PhShellExecuteUserString(
+                            hwndDlg,
+                            L"ProgramInspectExecutables",
+                            moduleItem->FileName->Buffer,
+                            FALSE
+                            );
                     }
                 }
                 break;

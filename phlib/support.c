@@ -1245,6 +1245,91 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     }
 }
 
+NTSTATUS PhCreateProcessWin32(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR CurrentDirectory,
+    __in ULONG Flags,
+    __in_opt HANDLE TokenHandle,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
+    static PH_FLAG_MAPPING mappings[] =
+    {
+        { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
+        { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED }
+    };
+    NTSTATUS status;
+    PPH_STRING commandLine = NULL;
+    STARTUPINFO startupInfo = { sizeof(startupInfo) };
+    PROCESS_INFORMATION processInfo;
+    ULONG newFlags;
+
+    if (CommandLine)
+        commandLine = PhCreateString(CommandLine);
+
+    newFlags = 0;
+    PhMapFlags1(&newFlags, Flags, &mappings, sizeof(mappings) / sizeof(PH_FLAG_MAPPING));
+
+    if (!TokenHandle)
+    {
+        if (CreateProcess(
+            FileName,
+            PhGetString(commandLine),
+            NULL,
+            NULL,
+            !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
+            newFlags,
+            Environment,
+            CurrentDirectory,
+            &startupInfo,
+            &processInfo
+            ))
+            status = STATUS_SUCCESS;
+        else
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+    }
+    else
+    {
+        if (CreateProcessAsUser(
+            TokenHandle,
+            FileName,
+            PhGetString(commandLine),
+            NULL,
+            NULL,
+            !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
+            newFlags,
+            Environment,
+            CurrentDirectory,
+            &startupInfo,
+            &processInfo
+            ))
+            status = STATUS_SUCCESS;
+        else
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+    }
+
+    if (commandLine)
+        PhDereferenceObject(commandLine);
+
+    if (NT_SUCCESS(status))
+    {
+        if (ProcessHandle)
+            *ProcessHandle = processInfo.hProcess;
+        else
+            NtClose(processInfo.hProcess);
+
+        if (ThreadHandle)
+            *ThreadHandle = processInfo.hThread;
+        else
+            NtClose(processInfo.hThread);
+    }
+
+    return status;
+}
+
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
