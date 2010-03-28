@@ -857,10 +857,10 @@ NTSTATUS PhGetMappedImageImportEntry(
         entry = ((PULONG)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
-        if (entry & 0x80000000)
+        if (entry & IMAGE_ORDINAL_FLAG32)
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)(entry & 0xffff);
+            Entry->Ordinal = (USHORT)IMAGE_ORDINAL32(entry);
 
             return STATUS_SUCCESS;
         }
@@ -880,10 +880,10 @@ NTSTATUS PhGetMappedImageImportEntry(
         entry = ((PULONG64)ImportDll->LookupTable)[Index];
 
         // Is this entry using an ordinal?
-        if (entry & 0x8000000000000000)
+        if (entry & IMAGE_ORDINAL_FLAG64)
         {
             Entry->Name = NULL;
-            Entry->Ordinal = (USHORT)(entry & 0xffff);
+            Entry->Ordinal = (USHORT)IMAGE_ORDINAL64(entry);
 
             return STATUS_SUCCESS;
         }
