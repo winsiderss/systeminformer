@@ -178,7 +178,11 @@ typedef struct _TEB
     PVOID SystemReserved1[54];
     NTSTATUS ExceptionCode;
     PVOID ActivationContextStackPointer;
+#ifdef _M_X64
+    BYTE SpareBytes[24];
+#else
     BYTE SpareBytes[36];
+#endif
     ULONG TxFsContext;
 
     GDI_TEB_BATCH GdiTebBatch;
@@ -187,9 +191,9 @@ typedef struct _TEB
     ULONG GdiClientPID;
     ULONG GdiClientTID;
     PVOID GdiThreadLocalInfo;
-    PVOID Win32ClientInfo[62];
+    ULONG_PTR Win32ClientInfo[62];
     PVOID glDispatchTable[233];
-    PVOID glReserved1[29];
+    ULONG_PTR glReserved1[29];
     PVOID glReserved2;
     PVOID glSectionInfo;
     PVOID glSection;
@@ -210,7 +214,11 @@ typedef struct _TEB
     PVOID DbgSsReserved[2];
 
     ULONG HardErrorMode;
+#ifdef _M_X64
+    PVOID Instrumentation[11];
+#else
     PVOID Instrumentation[9];
+#endif
     GUID ActivityId;
 
     PVOID SubProcessTag;

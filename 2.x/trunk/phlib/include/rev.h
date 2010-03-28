@@ -37,7 +37,7 @@ typedef enum _SC_SERVICE_TAG_QUERY_TYPE
 typedef struct _SC_SERVICE_TAG_QUERY
 {
     ULONG ProcessId;
-    PVOID ServiceTag;
+    ULONG ServiceTag;
     ULONG Unknown;
     PVOID Buffer;
 } SC_SERVICE_TAG_QUERY, *PSC_SERVICE_TAG_QUERY;

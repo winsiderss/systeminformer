@@ -337,7 +337,7 @@ PPH_STRING PhGetServiceNameFromTag(
         return NULL;
 
     query.ProcessId = (ULONG)ProcessId;
-    query.ServiceTag = ServiceTag;
+    query.ServiceTag = (ULONG)ServiceTag;
     query.Unknown = 0;
     query.Buffer = NULL;
 
