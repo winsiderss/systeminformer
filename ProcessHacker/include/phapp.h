@@ -124,6 +124,13 @@ VOID PhSearchOnlineString(
     __in PWSTR String
     );
 
+VOID PhShellExecuteUserString(
+    __in HWND hWnd,
+    __in PWSTR Setting,
+    __in PWSTR String,
+    __in BOOLEAN UseShellExecute
+    );
+
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,

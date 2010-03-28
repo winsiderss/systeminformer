@@ -1674,6 +1674,21 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     __in ULONG Timeout
     );
 
+#define PH_CREATE_PROCESS_INHERIT_HANDLES 0x1
+#define PH_CREATE_PROCESS_UNICODE_ENVIRONMENT 0x2
+#define PH_CREATE_PROCESS_SUSPENDED 0x4
+
+NTSTATUS PhCreateProcessWin32(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR CurrentDirectory,
+    __in ULONG Flags,
+    __in_opt HANDLE TokenHandle,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    );
+
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,

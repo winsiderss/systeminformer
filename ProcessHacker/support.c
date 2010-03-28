@@ -262,22 +262,41 @@ VOID PhSearchOnlineString(
     __in PWSTR String
     )
 {
-    PPH_STRING searchEngine = PhGetStringSetting(L"SearchEngine");
-    ULONG indexOfReplacement = PhStringIndexOfString(searchEngine, 0, L"%s");
+    PhShellExecuteUserString(hWnd, L"SearchEngine", String, TRUE);
+}
+
+VOID PhShellExecuteUserString(
+    __in HWND hWnd,
+    __in PWSTR Setting,
+    __in PWSTR String,
+    __in BOOLEAN UseShellExecute
+    )
+{
+    PPH_STRING executeString = PhGetStringSetting(Setting);
+    ULONG indexOfReplacement;
+    PPH_STRING stringBefore;
+    PPH_STRING stringAfter;
+    PPH_STRING newString;
+
+    // Make sure the user executable string is absolute.
+    if (PhStringIndexOfChar(executeString, 0, L':') == -1)
+    {
+        newString = PhConcatStrings2(PhApplicationDirectory->Buffer, executeString->Buffer);
+        PhDereferenceObject(executeString);
+        executeString = newString;
+    }
+
+    indexOfReplacement = PhStringIndexOfString(executeString, 0, L"%s");
 
     if (indexOfReplacement != -1)
     {
-        PPH_STRING stringBefore;
-        PPH_STRING stringAfter;
-        PPH_STRING newString;
-
         // Replace "%s" with the string.
 
-        stringBefore = PhSubstring(searchEngine, 0, indexOfReplacement);
+        stringBefore = PhSubstring(executeString, 0, indexOfReplacement);
         stringAfter = PhSubstring(
-            searchEngine,
+            executeString,
             indexOfReplacement + 2,
-            searchEngine->Length / 2 - indexOfReplacement - 2
+            executeString->Length / 2 - indexOfReplacement - 2
             );
 
         newString = PhConcatStrings(
@@ -286,12 +305,25 @@ VOID PhSearchOnlineString(
             String,
             stringAfter->Buffer
             );
-        PhShellExecute(hWnd, newString->Buffer, NULL);
+
+        if (UseShellExecute)
+        {
+            PhShellExecute(hWnd, newString->Buffer, NULL);
+        }
+        else
+        {
+            NTSTATUS status;
+
+            status = PhCreateProcessWin32(NULL, newString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
+
+            if (!NT_SUCCESS(status))
+                PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
+        }
 
         PhDereferenceObject(newString);
         PhDereferenceObject(stringAfter);
         PhDereferenceObject(stringBefore);
     }
 
-    PhDereferenceObject(searchEngine);
+    PhDereferenceObject(executeString);
 }
