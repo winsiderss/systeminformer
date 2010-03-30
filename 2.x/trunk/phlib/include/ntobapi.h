@@ -87,6 +87,8 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
     BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
 
+// Objects, handles
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -108,6 +110,10 @@ NtSetInformationObject(
     __in ULONG ObjectInformationLength
     );
 
+#define DUPLICATE_CLOSE_SOURCE 0x00000001
+#define DUPLICATE_SAME_ACCESS 0x00000002
+#define DUPLICATE_SAME_ATTRIBUTES 0x00000004
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -120,10 +126,6 @@ NtDuplicateObject(
     __in ULONG HandleAttributes,
     __in ULONG Options
     );
-
-#define DUPLICATE_CLOSE_SOURCE 0x00000001
-#define DUPLICATE_SAME_ACCESS 0x00000002
-#define DUPLICATE_SAME_ATTRIBUTES 0x00000004
 
 NTSYSCALLAPI
 NTSTATUS
@@ -193,6 +195,8 @@ NtClose(
     __in HANDLE Handle
     );
 
+// Directory objects
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -228,6 +232,36 @@ NtQueryDirectoryObject(
     __in BOOLEAN RestartScan,
     __inout PULONG Context,
     __out_opt PULONG ReturnLength
+    );
+
+// Symbolic links
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateSymbolicLinkObject(
+    __out PHANDLE LinkHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in PUNICODE_STRING LinkTarget
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenSymbolicLinkObject(
+    __out PHANDLE LinkHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySymbolicLinkObject(
+    __in HANDLE LinkHandle,
+    __inout PUNICODE_STRING LinkTarget,
+    __out_opt PULONG ReturnedLength
     );
 
 #endif

@@ -35,6 +35,18 @@ typedef struct _PEB_LDR_DATA
     HANDLE ShutdownThreadId;
 } PEB_LDR_DATA, *PPEB_LDR_DATA;
 
+typedef struct _INITIAL_TEB
+{
+    struct
+    {
+        PVOID OldStackBase;
+        PVOID OldStackLimit;
+    } OldInitialTeb;
+    PVOID StackBase;
+    PVOID StackLimit;
+    PVOID StackAllocationBase;
+} INITIAL_TEB, *PINITIAL_TEB;
+
 #include <ntpebteb.h>
 
 typedef enum _PROCESS_INFORMATION_CLASS
@@ -221,6 +233,12 @@ typedef struct _POOLED_USAGE_AND_LIMITS
     SIZE_T PagefileLimit;
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
+typedef struct _PROCESS_WS_WATCH_INFORMATION
+{
+    PVOID FaultingPc;
+    PVOID FaultingVa;
+} PROCESS_WS_WATCH_INFORMATION, *PPROCESS_WS_WATCH_INFORMATION;
+
 typedef struct _PROCESS_SESSION_INFORMATION
 {
     ULONG SessionId;
@@ -311,6 +329,43 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
 
 // System calls
 
+// Processes
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProcess(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE ParentProcess,
+    __in BOOLEAN InheritObjectTable,
+    __in_opt HANDLE SectionHandle,
+    __in_opt HANDLE DebugPort,
+    __in_opt HANDLE ExceptionPort
+    );
+
+#define PROCESS_CREATE_FLAGS_BREAKAWAY 0x00000001
+#define PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT 0x00000002
+#define PROCESS_CREATE_FLAGS_INHERIT_HANDLES 0x00000004
+#define PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE 0x00000008
+#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProcessEx(
+    __out PHANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE ParentProcess,
+    __in ULONG Flags,
+    __in_opt HANDLE SectionHandle,
+    __in_opt HANDLE DebugPort,
+    __in_opt HANDLE ExceptionPort,
+    __in ULONG JobMemberLevel
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -327,6 +382,14 @@ NTAPI
 NtTerminateProcess(
     __in_opt HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus
+    );
+
+typedef NTSTATUS (NTAPI *_NtSuspendProcess)(
+    __in HANDLE ProcessHandle
+    );
+
+typedef NTSTATUS (NTAPI *_NtResumeProcess)(
+    __in HANDLE ProcessHandle
     );
 
 #define NtCurrentProcess() ((HANDLE)(LONG_PTR)-1)
@@ -379,6 +442,27 @@ NtSetInformationProcess(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtQueryPortInformationProcess();
+
+// Threads
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateThread(
+    __out PHANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE ProcessHandle,
+    __out PCLIENT_ID ClientId,
+    __in PCONTEXT ThreadContext,
+    __in PINITIAL_TEB InitialTeb,
+    __in BOOLEAN CreateSuspended
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -410,13 +494,10 @@ NtResumeThread(
     __out_opt PULONG PreviousSuspendCount
     );
 
-typedef NTSTATUS (NTAPI *_NtSuspendProcess)(
-    __in HANDLE ProcessHandle
-    );
-
-typedef NTSTATUS (NTAPI *_NtResumeProcess)(
-    __in HANDLE ProcessHandle
-    );
+NTSYSCALLAPI
+ULONG
+NTAPI
+NtGetCurrentProcessorNumber();
 
 NTSYSCALLAPI
 NTSTATUS
@@ -474,6 +555,34 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtTestAlert();
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtImpersonateThread(
+    __in HANDLE ServerThreadHandle,
+    __in HANDLE ClientThreadHandle,
+    __in PSECURITY_QUALITY_OF_SERVICE SecurityQos
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtRegisterThreadTerminatePort(
+    __in HANDLE PortHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetLdtEntries(
+    __in ULONG Selector0,
+    __in ULONG Entry0Low,
+    __in ULONG Entry0Hi,
+    __in ULONG Selector1,
+    __in ULONG Entry1Low,
+    __in ULONG Entry1Hi
+    );
 
 typedef VOID (*PPS_APC_ROUTINE)(
     __in_opt PVOID ApcArgument1,
@@ -550,6 +659,15 @@ NtSetInformationJobObject(
     __in JOBOBJECTINFOCLASS JobObjectInformationClass,
     __in_bcount(JobObjectInformationLength) PVOID JobObjectInformation,
     __in ULONG JobObjectInformationLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateJobSet(
+    __in ULONG NumJob,
+    __in_ecount(NumJob) PJOB_SET_ARRAY UserJobSet,
+    __in ULONG Flags
     );
 
 #endif

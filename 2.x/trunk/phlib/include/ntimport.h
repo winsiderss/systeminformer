@@ -13,6 +13,8 @@
 // reverse-engineered.
 
 #include <ntbasic.h>
+#include <ntcm.h>
+#include <ntdbg.h>
 #include <ntexapi.h>
 #include <ntioapi.h>
 #include <ntkeapi.h>
@@ -20,14 +22,16 @@
 #include <ntlpcapi.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
+#include <ntpnpapi.h>
+#include <ntpoapi.h>
 #include <ntpsapi.h>
-#include <ntseapi.h>
-
-#include <ntdbg.h>
+#include <ntregapi.h>
 #include <ntrtl.h>
-#include <ntmisc.h>
+#include <ntseapi.h>
+#include <ntxcapi.h>
 
 #include <ntlsa.h>
+#include <ntmisc.h>
 
 #include <rev.h>
 
