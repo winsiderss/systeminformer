@@ -649,6 +649,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWorkingSetInformation2, // 120
     SystemNumaDistanceInformation,
     SystemProcessorBrandStringInformation2, // HalDispatchTable -> HalpGetProcessorBrandString, info class 26
+    SystemMemoryCommitmentInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1080,6 +1081,16 @@ typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
     HANDLE ProcessId;
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
+
+/* * */
+
+typedef struct _SYSTEM_MEMORY_COMMITMENT_INFORMATION
+{
+    ULONG AvailablePages;
+    ULONG CommittedPages;
+    ULONG CommitLimit;
+    ULONG PeakCommitment; 
+} SYSTEM_MEMORY_COMMITMENT_INFORMATION, *PSYSTEM_MEMORY_COMMITMENT_INFORMATION;
 
 NTSYSCALLAPI
 NTSTATUS
