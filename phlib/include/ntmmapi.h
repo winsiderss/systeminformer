@@ -111,6 +111,8 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE 0x20 
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x3f
 
+// Virtual memory
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -181,6 +183,28 @@ NtQueryVirtualMemory(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtLockVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __inout PVOID *BaseAddress,
+    __inout PSIZE_T RegionSize,
+    __in ULONG MapType
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtUnlockVirtualMemory( 
+    __in HANDLE ProcessHandle,
+    __inout PVOID *BaseAddress,
+    __inout PSIZE_T RegionSize,
+    __in ULONG MapType
+    );
+
+// Sections
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtCreateSection(
     __out PHANDLE SectionHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -242,5 +266,99 @@ NtQuerySection(
     __in SIZE_T SectionInformationLength,
     __out_opt PSIZE_T ReturnLength
     );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAreMappedFilesTheSame(
+    __in PVOID File1MappedAsAnImage,
+    __in PVOID File2MappedAsFile
+    );
+
+// User physical pages
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMapUserPhysicalPages(
+    __in PVOID VirtualAddress,
+    __in ULONG_PTR NumberOfPages,
+    __in_ecount_opt(NumberOfPages) PULONG_PTR UserPfnArray
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtMapUserPhysicalPagesScatter(
+    __in_ecount(NumberOfPages) PVOID *VirtualAddresses,
+    __in ULONG_PTR NumberOfPages,
+    __in_ecount_opt(NumberOfPages) PULONG_PTR UserPfnArray
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateUserPhysicalPages(
+    __in HANDLE ProcessHandle,
+    __inout PULONG_PTR NumberOfPages,
+    __out_ecount(*NumberOfPages) PULONG_PTR UserPfnArray
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFreeUserPhysicalPages(
+    __in HANDLE ProcessHandle,
+    __inout PULONG_PTR NumberOfPages,
+    __in_ecount(*NumberOfPages) PULONG_PTR UserPfnArray
+    );
+
+// Misc.
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetWriteWatch(
+    __in HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PVOID BaseAddress,
+    __in SIZE_T RegionSize,
+    __out_ecount(*EntriesInUserAddressArray) PVOID *UserAddressArray,
+    __inout PULONG_PTR EntriesInUserAddressArray,
+    __out PULONG Granularity
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtResetWriteWatch(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in SIZE_T RegionSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreatePagingFile(
+    __in PUNICODE_STRING PageFileName,
+    __in PLARGE_INTEGER MinimumSize,
+    __in PLARGE_INTEGER MaximumSize,
+    __in ULONG Priority
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFlushInstructionCache(
+    __in HANDLE ProcessHandle,
+    __in_opt PVOID BaseAddress,
+    __in SIZE_T Length
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFlushWriteBuffer();
 
 #endif

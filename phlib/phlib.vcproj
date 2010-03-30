@@ -435,6 +435,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntcm.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntdbg.h"
 				>
 			</File>
@@ -487,7 +491,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntpnpapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntpoapi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntpsapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntregapi.h"
 				>
 			</File>
 			<File
@@ -500,6 +516,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ntwin.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntxcapi.h"
 				>
 			</File>
 			<File
