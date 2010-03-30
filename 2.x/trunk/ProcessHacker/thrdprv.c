@@ -552,6 +552,32 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     return symbol;
 }
 
+static NTSTATUS PhpGetThreadCycleTime(
+    __in PPH_THREAD_PROVIDER ThreadProvider,
+    __in_opt PULARGE_INTEGER IdleThreadCycleTimes,
+    __in PPH_THREAD_ITEM ThreadItem,
+    __out PULONG64 CycleTime
+    )
+{
+    if (ThreadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
+    {
+        return PhGetThreadCycleTime(ThreadItem->ThreadHandle, CycleTime);
+    }
+    else
+    {
+        if (
+            IdleThreadCycleTimes && 
+            (ULONG)ThreadItem->ThreadId < (ULONG)PhSystemBasicInformation.NumberOfProcessors
+            )
+        {
+            *CycleTime = IdleThreadCycleTimes[(ULONG)ThreadItem->ThreadId].QuadPart;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_INVALID_PARAMETER;
+}
+
 PPH_STRING PhGetThreadPriorityWin32String(
     __in LONG PriorityWin32
     )
@@ -589,6 +615,7 @@ VOID PhThreadProviderUpdate(
     PSYSTEM_THREAD_INFORMATION threads;
     ULONG numberOfThreads;
     ULONG i;
+    PULARGE_INTEGER idleThreadCycleTimes = NULL;
 
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
@@ -616,6 +643,25 @@ VOID PhThreadProviderUpdate(
         for (i = 0; i < numberOfThreads; i++)
         {
             threads[i].ClientId.UniqueThread = (HANDLE)i;
+        }
+
+        // Get the cycle times if we're on Vista.
+        if (WINDOWS_HAS_THREAD_CYCLES)
+        {
+            idleThreadCycleTimes = PhAllocate(
+                sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
+                );
+
+            if (!NT_SUCCESS(NtQuerySystemInformation(
+                SystemProcessorIdleCycleTime,
+                idleThreadCycleTimes,
+                sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+                NULL
+                )))
+            {
+                PhFree(idleThreadCycleTimes);
+                idleThreadCycleTimes = NULL;
+            }
         }
     }
 
@@ -737,8 +783,10 @@ VOID PhThreadProviderUpdate(
             {
                 ULONG64 cycles;
 
-                if (NT_SUCCESS(PhGetThreadCycleTime(
-                    threadItem->ThreadHandle,
+                if (NT_SUCCESS(PhpGetThreadCycleTime(
+                    threadProvider,
+                    idleThreadCycleTimes,
+                    threadItem,
                     &cycles
                     )))
                 {
@@ -922,8 +970,10 @@ VOID PhThreadProviderUpdate(
 
                 oldDelta = threadItem->CyclesDelta.Delta;
 
-                if (NT_SUCCESS(PhGetThreadCycleTime(
-                    threadItem->ThreadHandle,
+                if (NT_SUCCESS(PhpGetThreadCycleTime(
+                    threadProvider,
+                    idleThreadCycleTimes,
+                    threadItem,
                     &cycles
                     )))
                 {
@@ -1005,6 +1055,7 @@ VOID PhThreadProviderUpdate(
     }
 
     PhFree(processes);
+    if (idleThreadCycleTimes) PhFree(idleThreadCycleTimes);
 
     PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
     threadProvider->RunCount++;

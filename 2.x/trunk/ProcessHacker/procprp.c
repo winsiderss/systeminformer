@@ -1231,12 +1231,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext->NeedsRedraw = FALSE;
             threadsContext->NeedsSort = FALSE;
 
-            if (processItem->ProcessId != SYSTEM_IDLE_PROCESS_ID)
-            {
-                // Use Cycles instead of Context Switches on Vista.
-                if (WINDOWS_HAS_THREAD_CYCLES)
-                    threadsContext->UseCycleTime = TRUE;
-            }
+            // Use Cycles instead of Context Switches on Vista.
+            if (WINDOWS_HAS_THREAD_CYCLES)
+                threadsContext->UseCycleTime = TRUE;
 
             // Initialize the list.
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
