@@ -4198,6 +4198,74 @@ NTSTATUS PhEnumPagefiles(
 }
 
 /**
+ * Gets the file name of a process' image.
+ *
+ * \param ProcessId The ID of the process.
+ * \param FileName A variable which receives a pointer to a 
+ * string containing the file name. You must free the string 
+ * using PhDereferenceObject() when you no longer need it.
+ *
+ * \remarks This function only works on Windows Vista and 
+ * above. There does not appear to be any access checking 
+ * performed by the kernel for this.
+ */
+NTSTATUS PhGetProcessImageFileNameByProcessId(
+    __in HANDLE ProcessId,
+    __out PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+    SYSTEM_PROCESS_IMAGE_NAME_INFORMATION imageNameInfo;
+
+    buffer = PhAllocate(bufferSize);
+
+    imageNameInfo.ProcessId = ProcessId;
+    imageNameInfo.ImageName.Length = 0;
+    imageNameInfo.ImageName.MaximumLength = (USHORT)bufferSize;
+    imageNameInfo.ImageName.Buffer = buffer;
+
+    // This info class allows you to get the file name of any process, 
+    // with no security checks!
+    // The only issue is that it's completely undocumented (not in *any* 
+    // public header files).
+    status = NtQuerySystemInformation(
+        SystemProcessImageNameInformation,
+        &imageNameInfo,
+        sizeof(SYSTEM_PROCESS_IMAGE_NAME_INFORMATION),
+        NULL
+        );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        // Required length is stored in MaximumLength.
+
+        PhFree(buffer);
+        buffer = PhAllocate(imageNameInfo.ImageName.MaximumLength);
+        imageNameInfo.ImageName.Buffer = buffer;
+
+        status = NtQuerySystemInformation(
+            SystemProcessImageNameInformation,
+            &imageNameInfo,
+            sizeof(SYSTEM_PROCESS_IMAGE_NAME_INFORMATION),
+            NULL
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *FileName = PhCreateStringEx(imageNameInfo.ImageName.Buffer, imageNameInfo.ImageName.Length);
+    PhFree(buffer);
+
+    return status;
+}
+
+/**
  * Enumerates the objects in a directory object.
  *
  * \param DirectoryHandle A handle to a directory. The 

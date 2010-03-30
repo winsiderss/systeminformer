@@ -48,15 +48,22 @@ static BOOLEAN PhpIsDangerousProcess(
     if (ProcessId == SYSTEM_PROCESS_ID)
         return TRUE;
 
-    if (!NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        ProcessQueryAccess,
-        ProcessId
-        )))
-        return FALSE;
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName);
+    }
+    else
+    {
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            ProcessId
+            )))
+            return FALSE;
 
-    status = PhGetProcessImageFileName(processHandle, &fileName);
-    NtClose(processHandle);
+        status = PhGetProcessImageFileName(processHandle, &fileName);
+        NtClose(processHandle);
+    }
 
     if (!NT_SUCCESS(status))
         return FALSE;
