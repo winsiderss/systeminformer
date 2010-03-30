@@ -216,6 +216,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
         }
         break;
+    case WM_DESTROY:
+        {
+            if (context->SessionIdList)
+                PhDereferenceObject(context->SessionIdList);
+        }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -352,6 +358,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     ULONG i;
                     RECT buttonRect;
                     POINT point;
+                    UINT selectedItem;
 
                     sessionsMenu = CreatePopupMenu();
 
@@ -415,7 +422,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 menuString = PhFormatString(L"%u", sessions[i].SessionId);
                             }
 
-                            AppendMenu(sessionsMenu, MF_STRING, IDDYNAMIC + i, menuString->Buffer);
+                            AppendMenu(sessionsMenu, MF_STRING, 1 + i, menuString->Buffer);
                             PhDereferenceObject(menuString);
 
                             PhAddListItem(context->SessionIdList, (PVOID)sessions[i].SessionId);
@@ -426,25 +433,25 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         GetClientRect(GetDlgItem(hwndDlg, IDC_SESSIONS), &buttonRect);
                         point.x = buttonRect.right;
                         point.y = 0;
-                        PhShowContextMenu(hwndDlg, GetDlgItem(hwndDlg, IDC_SESSIONS), sessionsMenu, point);
+
+                        selectedItem = PhShowContextMenu2(
+                            hwndDlg,
+                            GetDlgItem(hwndDlg, IDC_SESSIONS),
+                            sessionsMenu,
+                            point
+                            );
+
+                        if (selectedItem != 0)
+                        {
+                            SetDlgItemInt(
+                                hwndDlg,
+                                IDC_SESSIONID,
+                                (ULONG)context->SessionIdList->Items[selectedItem - 1],
+                                FALSE
+                                );
+                        }
 
                         DestroyMenu(sessionsMenu);
-                    }
-                }
-                break;
-            default:
-                {
-                    if (LOWORD(wParam) >= IDDYNAMIC)
-                    {
-                        ULONG index = LOWORD(wParam) - IDDYNAMIC;
-
-                        if (context->SessionIdList && index < context->SessionIdList->Count)
-                        {
-                            ULONG sessionId;
-
-                            sessionId = (ULONG)context->SessionIdList->Items[index];
-                            SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
-                        }
                     }
                 }
                 break;
