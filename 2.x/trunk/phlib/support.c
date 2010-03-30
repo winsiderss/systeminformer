@@ -1271,7 +1271,7 @@ NTSTATUS PhCreateProcessWin32(
         commandLine = PhCreateString(CommandLine);
 
     newFlags = 0;
-    PhMapFlags1(&newFlags, Flags, &mappings, sizeof(mappings) / sizeof(PH_FLAG_MAPPING));
+    PhMapFlags1(&newFlags, Flags, mappings, sizeof(mappings) / sizeof(PH_FLAG_MAPPING));
 
     if (!TokenHandle)
     {
