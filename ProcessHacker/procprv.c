@@ -710,7 +710,7 @@ VOID PhpFillProcessItem(
     )
 {
     NTSTATUS status;
-    HANDLE processHandle;
+    HANDLE processHandle = NULL;
 
     ProcessItem->ParentProcessId = Process->InheritedFromUniqueProcessId;
     ProcessItem->SessionId = Process->SessionId;
@@ -728,10 +728,7 @@ VOID PhpFillProcessItem(
     PhPrintUInt32(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);
     PhPrintUInt32(ProcessItem->SessionIdString, ProcessItem->SessionId);
 
-    status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
-
-    if (!NT_SUCCESS(status))
-        return;
+    PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessItem->ProcessId);
 
     // Process information
     {
@@ -742,7 +739,10 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            status = PhGetProcessImageFileName(processHandle, &fileName);
+            if (WindowsVersion >= WINDOWS_VISTA)
+                status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
+            else
+                status = PhGetProcessImageFileName(processHandle, &fileName);
 
             if (NT_SUCCESS(status))
             {
@@ -773,6 +773,7 @@ VOID PhpFillProcessItem(
     }
 
     // Token-related information
+    if (processHandle)
     {
         HANDLE tokenHandle;
 

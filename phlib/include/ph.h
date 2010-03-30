@@ -672,6 +672,11 @@ NTSTATUS PhEnumPagefiles(
     __out PPVOID Pagefiles
     );
 
+NTSTATUS PhGetProcessImageFileNameByProcessId(
+    __in HANDLE ProcessId,
+    __out PPH_STRING *FileName
+    );
+
 /**
  * A callback function passed to PhEnumDirectoryObjects() 
  * and called for each directory object.

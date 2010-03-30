@@ -75,6 +75,32 @@ typedef enum _KPROFILE_SOURCE
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtCallbackReturn(
+    __in_bcount_opt(OutputLength) PVOID OutputBuffer,
+    __in ULONG OutputLength,
+    __in NTSTATUS Status
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryDebugFilterState(
+    __in ULONG ComponentId,
+    __in ULONG Level
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetDebugFilterState(
+    __in ULONG ComponentId,
+    __in ULONG Level,
+    __in BOOLEAN State
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtYieldExecution();
 
 #endif

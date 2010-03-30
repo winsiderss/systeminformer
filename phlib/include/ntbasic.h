@@ -28,7 +28,10 @@ typedef CCHAR *PCCHAR;
 typedef CSHORT *PCSHORT;
 typedef CLONG *PCLONG;
 
+// Specific
+
 typedef LONG KPRIORITY;
+typedef USHORT RTL_ATOM, *PRTL_ATOM;
 
 // NT status macros
 
