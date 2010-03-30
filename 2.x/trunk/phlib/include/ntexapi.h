@@ -3,6 +3,36 @@
 
 #include <ntkeapi.h>
 
+// Thread execution
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDelayExecution(
+    __in BOOLEAN Alertable,
+    __in PLARGE_INTEGER DelayInterval
+    );
+
+// Environment values
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemEnvironmentValue(
+    __in PUNICODE_STRING VariableName,
+    __out_bcount(ValueLength) PWSTR VariableValue,
+    __in USHORT ValueLength,
+    __out_opt PUSHORT ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetSystemEnvironmentValue(
+    __in PUNICODE_STRING VariableName,
+    __in PUNICODE_STRING VariableValue
+    );
+
 // Event
 
 #ifndef EVENT_QUERY_STATE
@@ -436,6 +466,24 @@ NtSetSystemTime(
     __out_opt PLARGE_INTEGER PreviousTime
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryTimerResolution(
+    __out PULONG MaximumTime,
+    __out PULONG MinimumTime,
+    __out PULONG CurrentTime
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetTimerResolution(
+    __in ULONG DesiredTime,
+    __in BOOLEAN SetResolution,
+    __out PULONG ActualTime
+    );
+
 // Performance Counter
 
 NTSYSCALLAPI
@@ -453,6 +501,25 @@ NTSTATUS
 NTAPI
 NtAllocateLocallyUniqueId(
     __out PLUID Luid
+    );
+
+// UUIDs
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetUuidSeed(
+    __in PCHAR Seed
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateUuids(
+    __out PULARGE_INTEGER Time,
+    __out PULONG Range,
+    __out PULONG Sequence,
+    __out PCHAR Seed
     );
 
 // System Information
@@ -538,23 +605,23 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemFirmwareTableInformation,
     SystemModuleInformationEx,
     SystemVerifierTriageInformation,
-    SystemSuperfetchInformation,
+    SystemSuperfetchInformation, // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // 80
     SystemFileCacheInformationEx,
     SystemNotImplemented19,
-    SystemProcessorDebugInformation,
+    SystemProcessorIdleCycleTime, // array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
     SystemVerifierInformation2,
     SystemNotImplemented20,
-    SystemRefTraceInformation,
-    SystemSpecialPoolTag, // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
-    SystemProcessImageName,
+    SystemRefTraceInformation, // ObQueryRefTraceInformation
+    SystemSpecialPoolTagInformation, // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
+    SystemProcessImageNameInformation,
     SystemNotImplemented21,
     SystemBootEnvironmentInformation, // 90
     SystemEnlightenmentInformation,
     SystemVerifierInformationEx,
     SystemNotImplemented22,
     SystemNotImplemented23,
-    SystemCovInformation,
+    SystemCovInformation, // ExpCovQueryInformation
     SystemNotImplemented24,
     SystemNotImplemented25,
     SystemPartitionInformation,
@@ -562,23 +629,28 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPerformanceDistributionInformation, // 100
     SystemNumaProximityNodeInformation,
     SystemTimeZoneInformation2,
-    SystemCodeIntegrityInformation,
+    SystemCodeIntegrityInformation, // SeCodeIntegrityQueryInformation
     SystemNotImplemented26,
-    SystemUnknownInformation, // No symbols for this case, very strange...
-    SystemVaInformation, // 106, calls MmQuerySystemVaInformation
+    SystemProcessorBrandStringInformation, // HalDispatchTable -> HalpGetProcessorBrandString, info class 23
+    SystemVaInformation, // MmQuerySystemVaInformation
+    SystemLogicalProcessorRelationshipInformation, // KeQueryLogicalProcessorRelationship
+    SystemProcessorCycleTime, // array of ULARGE_INTEGERs, one for each processor
+    SystemStoreInformation, // SmQueryStoreInformation
+    SystemNotImplemented27, // 110
+    SystemNotImplemented28,
+    SystemVhdBootInformation,
+    SystemCpuQuotaInformation, // PsQueryCpuQuotaInformation
+    SystemNotImplemented29,
+    SystemNotImplemented30,
+    SystemLowPriorityIoInformation,
+    SystemTpmBootEntropyInformation, // ExQueryTpmBootEntropyInformation
+    SystemVerifierInformation3,
+    SystemWorkingSetInformation, // MmQuerySystemWorkingSetInformation
+    SystemWorkingSetInformation2, // 120
+    SystemNumaDistanceInformation,
+    SystemProcessorBrandStringInformation2, // HalDispatchTable -> HalpGetProcessorBrandString, info class 26
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
-
-typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
-{
-    LARGE_INTEGER BootTime;
-    LARGE_INTEGER CurrentTime;
-    LARGE_INTEGER TimeZoneBias;
-    ULONG TimeZoneId;
-    ULONG Reserved;
-    ULONGLONG BootTimeBias;
-    ULONGLONG SleepTimeBias;
-} SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
 
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
@@ -595,6 +667,26 @@ typedef struct _SYSTEM_BASIC_INFORMATION
     CCHAR NumberOfProcessors;
 } SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
 
+typedef struct _SYSTEM_PROCESSOR_INFORMATION
+{
+    USHORT ProcessorArchitecture;
+    USHORT ProcessorLevel;
+    USHORT ProcessorRevision;
+    USHORT Reserved;
+    ULONG ProcessorFeatureBits;
+} SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
+
+typedef struct _SYSTEM_TIMEOFDAY_INFORMATION
+{
+    LARGE_INTEGER BootTime;
+    LARGE_INTEGER CurrentTime;
+    LARGE_INTEGER TimeZoneBias;
+    ULONG TimeZoneId;
+    ULONG Reserved;
+    ULONGLONG BootTimeBias;
+    ULONGLONG SleepTimeBias;
+} SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
+
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
 {
     LARGE_INTEGER IdleTime;
@@ -604,6 +696,18 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
     LARGE_INTEGER InterruptTime;
     ULONG InterruptCount;
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
+
+typedef struct _SYSTEM_PROCESSOR_IDLE_INFORMATION
+{
+    ULONGLONG IdleTime;
+    ULONGLONG C1Time;
+    ULONGLONG C2Time;
+    ULONGLONG C3Time;
+    ULONG C1Transitions;
+    ULONG C2Transitions;
+    ULONG C3Transitions;
+    ULONG Padding;
+} SYSTEM_PROCESSOR_IDLE_INFORMATION, *PSYSTEM_PROCESSOR_IDLE_INFORMATION;
 
 typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 {
@@ -772,6 +876,13 @@ typedef struct _SYSTEM_HANDLE_INFORMATION
     SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
+typedef struct _SYSTEM_REGISTRY_QUOTA_INFORMATION
+{
+    ULONG RegistryQuotaAllowed;
+    ULONG RegistryQuotaUsed;
+    SIZE_T PagedPoolSize;
+} SYSTEM_REGISTRY_QUOTA_INFORMATION, *PSYSTEM_REGISTRY_QUOTA_INFORMATION;
+
 typedef struct _SYSTEM_OBJECTTYPE_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -829,6 +940,146 @@ typedef struct _SYSTEM_FILECACHE_INFORMATION
     ULONG TransitionRePurposeCount;
     ULONG Flags;
 } SYSTEM_FILECACHE_INFORMATION, *PSYSTEM_FILECACHE_INFORMATION;
+
+typedef struct _SYSTEM_POOL_ENTRY
+{
+    BOOLEAN Allocated;
+    BOOLEAN Spare0;
+    USHORT AllocatorBackTraceIndex;
+    ULONG Size;
+    union
+    {
+        UCHAR Tag[4];
+        ULONG TagUlong;
+        PVOID ProcessChargedQuota;
+    };
+} SYSTEM_POOL_ENTRY, *PSYSTEM_POOL_ENTRY;
+
+typedef struct _SYSTEM_POOL_INFORMATION
+{
+    SIZE_T TotalSize;
+    PVOID FirstEntry;
+    USHORT EntryOverhead;
+    BOOLEAN PoolTagPresent;
+    BOOLEAN Spare0;
+    ULONG NumberOfEntries;
+    SYSTEM_POOL_ENTRY Entries[1];
+} SYSTEM_POOL_INFORMATION, *PSYSTEM_POOL_INFORMATION;
+
+typedef struct _SYSTEM_POOLTAG
+{
+    union
+    {
+        UCHAR Tag[4];
+        ULONG TagUlong;
+    };
+    ULONG PagedAllocs;
+    ULONG PagedFrees;
+    SIZE_T PagedUsed;
+    ULONG NonPagedAllocs;
+    ULONG NonPagedFrees;
+    SIZE_T NonPagedUsed;
+} SYSTEM_POOLTAG, *PSYSTEM_POOLTAG;
+
+typedef struct _SYSTEM_POOLTAG_INFORMATION
+{
+    ULONG Count;
+    SYSTEM_POOLTAG TagInfo[1];
+} SYSTEM_POOLTAG_INFORMATION, *PSYSTEM_POOLTAG_INFORMATION;
+
+typedef struct _SYSTEM_SESSION_POOLTAG_INFORMATION
+{
+    SIZE_T NextEntryOffset;
+    ULONG SessionId;
+    ULONG Count;
+    SYSTEM_POOLTAG TagInfo[1];
+} SYSTEM_SESSION_POOLTAG_INFORMATION, *PSYSTEM_SESSION_POOLTAG_INFORMATION;
+
+typedef struct _SYSTEM_BIGPOOL_ENTRY
+{
+    union
+    {
+        PVOID VirtualAddress;
+        ULONG_PTR NonPaged : 1;
+    };
+    SIZE_T SizeInBytes;
+    union
+    {
+        UCHAR Tag[4];
+        ULONG TagUlong;
+    };
+} SYSTEM_BIGPOOL_ENTRY, *PSYSTEM_BIGPOOL_ENTRY;
+
+typedef struct _SYSTEM_BIGPOOL_INFORMATION
+{
+    ULONG Count;
+    SYSTEM_BIGPOOL_ENTRY AllocatedInfo[1];
+} SYSTEM_BIGPOOL_INFORMATION, *PSYSTEM_BIGPOOL_INFORMATION;
+
+typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
+{
+    SIZE_T NextEntryOffset;
+    ULONG SessionId;
+    ULONG ViewFailures;
+    SIZE_T NumberOfBytesAvailable;
+    SIZE_T NumberOfBytesAvailableContiguous;
+} SYSTEM_SESSION_MAPPED_VIEW_INFORMATION, *PSYSTEM_SESSION_MAPPED_VIEW_INFORMATION;
+
+typedef struct _SYSTEM_CONTEXT_SWITCH_INFORMATION
+{
+    ULONG ContextSwitches;
+    ULONG FindAny;
+    ULONG FindLast;
+    ULONG FindIdeal;
+    ULONG IdleAny;
+    ULONG IdleCurrent;
+    ULONG IdleLast;
+    ULONG IdleIdeal;
+    ULONG PreemptAny;
+    ULONG PreemptCurrent;
+    ULONG PreemptLast;
+    ULONG SwitchToIdle;
+} SYSTEM_CONTEXT_SWITCH_INFORMATION, *PSYSTEM_CONTEXT_SWITCH_INFORMATION;
+
+typedef struct _SYSTEM_INTERRUPT_INFORMATION
+{
+    ULONG ContextSwitches;
+    ULONG DpcCount;
+    ULONG DpcRate;
+    ULONG TimeIncrement;
+    ULONG DpcBypassCount;
+    ULONG ApcBypassCount;
+} SYSTEM_INTERRUPT_INFORMATION, *PSYSTEM_INTERRUPT_INFORMATION;
+
+typedef struct _SYSTEM_DPC_BEHAVIOR_INFORMATION
+{
+    ULONG Spare;
+    ULONG DpcQueueDepth;
+    ULONG MinimumDpcRate;
+    ULONG AdjustDpcThreshold;
+    ULONG IdealDpcRate;
+} SYSTEM_DPC_BEHAVIOR_INFORMATION, *PSYSTEM_DPC_BEHAVIOR_INFORMATION;
+
+typedef struct _SYSTEM_LOOKASIDE_INFORMATION
+{
+    USHORT CurrentDepth;
+    USHORT MaximumDepth;
+    ULONG TotalAllocates;
+    ULONG AllocateMisses;
+    ULONG TotalFrees;
+    ULONG FreeMisses;
+    ULONG Type;
+    ULONG Tag;
+    ULONG Size;
+} SYSTEM_LOOKASIDE_INFORMATION, *PSYSTEM_LOOKASIDE_INFORMATION;
+
+/* * */
+
+typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
+{
+    HANDLE ProcessId;
+    UNICODE_STRING ImageName;
+} SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1073,5 +1324,132 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
     return (UInt32x32To64(tickCount.LowPart, USER_SHARED_DATA->TickCountMultiplier) >> 24) +
         (UInt32x32To64(tickCount.HighPart, USER_SHARED_DATA->TickCountMultiplier) << 8);
 }
+
+// Locale
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryDefaultLocale(
+    __in BOOLEAN UserProfile,
+    __out PLCID DefaultLocaleId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetDefaultLocale(
+    __in BOOLEAN UserProfile,
+    __in LCID DefaultLocaleId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInstallUILanguage(
+    __out LANGID *InstallUILanguageId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryDefaultUILanguage(
+    __out LANGID *DefaultUILanguageId
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetDefaultUILanguage(
+    __in LANGID DefaultUILanguageId
+    );
+
+// Global atoms
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAddAtom(
+    __in_bcount_opt(Length) PWSTR AtomName,
+    __in ULONG Length,
+    __out_opt PRTL_ATOM Atom
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFindAtom(
+    __in_bcount_opt(Length) PWSTR AtomName,
+    __in ULONG Length,
+    __out_opt PRTL_ATOM Atom
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeleteAtom(
+    __in RTL_ATOM Atom
+    );
+
+typedef enum _ATOM_INFORMATION_CLASS
+{
+    AtomBasicInformation,
+    AtomTableInformation
+} ATOM_INFORMATION_CLASS;
+
+typedef struct _ATOM_BASIC_INFORMATION
+{
+    USHORT UsageCount;
+    USHORT Flags;
+    USHORT NameLength;
+    WCHAR Name[1];
+} ATOM_BASIC_INFORMATION, *PATOM_BASIC_INFORMATION;
+
+typedef struct _ATOM_TABLE_INFORMATION
+{
+    ULONG NumberOfAtoms;
+    RTL_ATOM Atoms[1];
+} ATOM_TABLE_INFORMATION, *PATOM_TABLE_INFORMATION;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationAtom(
+    __in RTL_ATOM Atom,
+    __in ATOM_INFORMATION_CLASS AtomInformationClass,
+    __out_bcount(AtomInformationLength) PVOID AtomInformation,
+    __in ULONG AtomInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+// Misc.
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetDefaultHardErrorPort(
+    __in HANDLE DefaultHardErrorPort
+    );
+
+typedef enum _SHUTDOWN_ACTION
+{
+    ShutdownNoReboot,
+    ShutdownReboot,
+    ShutdownPowerOff
+} SHUTDOWN_ACTION;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtShutdownSystem(
+    __in SHUTDOWN_ACTION Action
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDisplayString(
+    __in PUNICODE_STRING String
+    );
 
 #endif

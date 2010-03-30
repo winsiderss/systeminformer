@@ -851,6 +851,29 @@ RtlGUIDFromString(
     __out PGUID Guid
     );
 
+// Random
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlUniform(
+    __inout PULONG Seed
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRandom(
+    __inout PULONG Seed
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRandomEx(
+    __inout PULONG Seed
+    );
+
 // IPv4/6 conversion
 
 struct in_addr;
@@ -1284,6 +1307,156 @@ RtlFindLastBackwardRunClear(
     __in PRTL_BITMAP BitMapHeader,
     __in ULONG FromIndex,
     __out PULONG StartingRunIndex
+    );
+
+// Handle tables
+
+typedef struct _RTL_HANDLE_TABLE_ENTRY
+{
+    union
+    {
+        ULONG Flags; // allocated entries have the low bit set
+        struct _RTL_HANDLE_TABLE_ENTRY *NextFree;
+    };
+} RTL_HANDLE_TABLE_ENTRY, *PRTL_HANDLE_TABLE_ENTRY;
+
+#define RTL_HANDLE_ALLOCATED (USHORT)0x0001
+
+typedef struct _RTL_HANDLE_TABLE
+{
+    ULONG MaximumNumberOfHandles;
+    ULONG SizeOfHandleTableEntry;
+    ULONG Reserved[2];
+    PRTL_HANDLE_TABLE_ENTRY FreeHandles;
+    PRTL_HANDLE_TABLE_ENTRY CommittedHandles;
+    PRTL_HANDLE_TABLE_ENTRY UnCommittedHandles;
+    PRTL_HANDLE_TABLE_ENTRY MaxReservedHandles;
+} RTL_HANDLE_TABLE, *PRTL_HANDLE_TABLE;
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeHandleTable(
+    __in ULONG MaximumNumberOfHandles,
+    __in ULONG SizeOfHandleTableEntry,
+    __out PRTL_HANDLE_TABLE HandleTable
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDestroyHandleTable(
+    __inout PRTL_HANDLE_TABLE HandleTable
+    );
+
+NTSYSAPI
+PRTL_HANDLE_TABLE_ENTRY
+NTAPI
+RtlAllocateHandle(
+    __in PRTL_HANDLE_TABLE HandleTable,
+    __out_opt PULONG HandleIndex
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlFreeHandle(
+    __in PRTL_HANDLE_TABLE HandleTable,
+    __in PRTL_HANDLE_TABLE_ENTRY Handle
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsValidHandle(
+    __in PRTL_HANDLE_TABLE HandleTable,
+    __in PRTL_HANDLE_TABLE_ENTRY Handle
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsValidIndexHandle(
+    __in PRTL_HANDLE_TABLE HandleTable,
+    __in ULONG HandleIndex,
+    __out PRTL_HANDLE_TABLE_ENTRY *Handle
+    );
+
+// Atom tables
+
+#define RTL_ATOM_MAXIMUM_INTEGER_ATOM (RTL_ATOM)0xc000
+#define RTL_ATOM_INVALID_ATOM (RTL_ATOM)0x0000
+#define RTL_ATOM_TABLE_DEFAULT_NUMBER_OF_BUCKETS 37
+#define RTL_ATOM_MAXIMUM_NAME_LENGTH 255
+#define RTL_ATOM_PINNED 0x01
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateAtomTable(
+    __in ULONG NumberOfBuckets,
+    __out PVOID *AtomTableHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDestroyAtomTable(
+    __in __post_invalid PVOID AtomTableHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlEmptyAtomTable(
+    __in PVOID AtomTableHandle,
+    __in BOOLEAN IncludePinnedAtoms
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddAtomToAtomTable(
+    __in PVOID AtomTableHandle,
+    __in PWSTR AtomName,
+    __inout_opt PRTL_ATOM Atom
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLookupAtomInAtomTable(
+    __in PVOID AtomTableHandle,
+    __in PWSTR AtomName,
+    __out_opt PRTL_ATOM Atom
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteAtomFromAtomTable(
+    __in PVOID AtomTableHandle,
+    __in RTL_ATOM Atom
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlPinAtomInAtomTable(
+    __in PVOID AtomTableHandle,
+    __in RTL_ATOM Atom
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryAtomInAtomTable(
+    __in PVOID AtomTableHandle,
+    __in RTL_ATOM Atom,
+    __out_opt PULONG AtomUsage,
+    __out_opt PULONG AtomFlags,
+    __inout_bcount_part_opt(*AtomNameLength, *AtomNameLength) PWSTR AtomName,
+    __inout_opt PULONG AtomNameLength
     );
 
 // SIDs
