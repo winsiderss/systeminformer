@@ -273,6 +273,13 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+UINT PhShowContextMenu2(
+    __in HWND hwnd,
+    __in HWND subHwnd,
+    __in HMENU menu,
+    __in POINT point
+    );
+
 VOID PhSetRadioCheckMenuItem(
     __in HMENU Menu,
     __in ULONG Id,

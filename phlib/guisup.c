@@ -349,6 +349,26 @@ VOID PhShowContextMenu(
         );
 }
 
+UINT PhShowContextMenu2(
+    __in HWND hwnd,
+    __in HWND subHwnd,
+    __in HMENU menu,
+    __in POINT point
+    )
+{
+    ClientToScreen(subHwnd, &point);
+
+    return (UINT)TrackPopupMenu(
+        menu,
+        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+        point.x,
+        point.y,
+        0,
+        hwnd,
+        NULL
+        );
+}
+
 VOID PhSetRadioCheckMenuItem(
     __in HMENU Menu,
     __in ULONG Id,
