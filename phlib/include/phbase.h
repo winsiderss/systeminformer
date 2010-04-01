@@ -1674,12 +1674,7 @@ VOID PhDestroyHandleTable(
     __in __post_invalid PPH_HANDLE_TABLE HandleTable
     );
 
-VOID PhLockHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    );
-
-BOOLEAN PhLockInUseHandleTableEntry(
+BOOLEAN PhLockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
