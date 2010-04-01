@@ -160,9 +160,12 @@ VOID PhpBlockOnLockedHandleTableEntry(
 
     value = HandleTableEntry->Value;
 
-    if (value & PH_HANDLE_TABLE_ENTRY_LOCKED)
+    if (
+        (value & PH_HANDLE_TABLE_ENTRY_TYPE) != PH_HANDLE_TABLE_ENTRY_IN_USE ||
+        (value & PH_HANDLE_TABLE_ENTRY_LOCKED)
+        )
     {
-        // Entry has been unlocked; cancel the wait.
+        // Entry is not in use or has been unlocked; cancel the wait.
         PhSetWakeEvent(&HandleTable->HandleWakeEvent);
     }
     else
@@ -171,21 +174,7 @@ VOID PhpBlockOnLockedHandleTableEntry(
     }
 }
 
-VOID PhLockHandleTableEntry(
-    __inout PPH_HANDLE_TABLE HandleTable,
-    __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
-    )
-{
-    while (!_interlockedbittestandreset(
-        (PLONG)&HandleTableEntry->Value,
-        PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT
-        ))
-    {
-        PhpBlockOnLockedHandleTableEntry(HandleTable, HandleTableEntry);
-    }
-}
-
-BOOLEAN PhLockInUseHandleTableEntry(
+BOOLEAN PhLockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     )
@@ -241,10 +230,17 @@ HANDLE PhCreateHandle(
         return NULL;
 
     // Copy the given handle table entry to the allocated entry.
+
+    // All free entries have the Free type and have the (not) locked 
+    // bit clear. There is no problem with setting the Type now; 
+    // the entry is still locked, so they will block.
     entry->TypeAndValue.Type = PH_HANDLE_TABLE_ENTRY_IN_USE;
-    entry->TypeAndValue.Locked = TRUE;
     entry->TypeAndValue.Value = HandleTableEntry->TypeAndValue.Value;
     entry->Value2 = HandleTableEntry->Value2;
+
+    // Now we unlock this entry, waking anyone who was caught back 
+    // there before we had finished setting up the entry.
+    PhUnlockHandleTableEntry(HandleTable, entry);
 
     return PhpEncodeHandle(handleValue);
 }
@@ -266,17 +262,18 @@ BOOLEAN PhDestroyHandle(
         if (!HandleTableEntry)
             return FALSE;
 
-        if (!PhLockInUseHandleTableEntry(HandleTable, HandleTableEntry))
+        if (!PhLockHandleTableEntry(HandleTable, HandleTableEntry))
             return FALSE;
     }
 
     _InterlockedExchangePointer(
         (PVOID *)&HandleTableEntry->Value,
-        (PVOID)(PH_HANDLE_TABLE_ENTRY_FREE | PH_HANDLE_TABLE_ENTRY_LOCKED)
+        (PVOID)PH_HANDLE_TABLE_ENTRY_FREE
         );
 
-    // The handle table entry now has the (not) locked bit set, so we 
-    // should wake waiters.
+    // The handle table entry is now free; wake any waiters because they 
+    // can't lock the entry now. Any future lock attempts will fail because 
+    // the entry is marked as being free.
     PhSetWakeEvent(&HandleTable->HandleWakeEvent);
 
     PhpFreeHandleTableEntry(HandleTable, handleValue, HandleTableEntry);
@@ -296,7 +293,7 @@ PPH_HANDLE_TABLE_ENTRY PhGetHandleTableEntry(
     if (!entry)
         return NULL;
 
-    if (!PhLockInUseHandleTableEntry(HandleTable, entry))
+    if (!PhLockHandleTableEntry(HandleTable, entry))
         return NULL;
 
     return entry;
@@ -316,7 +313,7 @@ VOID PhEnumHandleTable(
 
     while (entry = PhpLookupHandleTableEntry(HandleTable, handleValue))
     {
-        if (PhLockInUseHandleTableEntry(HandleTable, entry))
+        if (PhLockHandleTableEntry(HandleTable, entry))
         {
             cont = Callback(
                 HandleTable,
@@ -1023,12 +1020,12 @@ PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
 
         for (i = baseValue + 1; i < baseValue + PH_HANDLE_TABLE_LEVEL_ENTRIES; i++)
         {
-            entry->Value = PH_HANDLE_TABLE_ENTRY_FREE | PH_HANDLE_TABLE_ENTRY_LOCKED;
+            entry->Value = PH_HANDLE_TABLE_ENTRY_FREE;
             entry->NextFreeValue = i;
             entry++;
         }
 
-        entry->Value = PH_HANDLE_TABLE_ENTRY_FREE | PH_HANDLE_TABLE_ENTRY_LOCKED;
+        entry->Value = PH_HANDLE_TABLE_ENTRY_FREE;
         entry->NextFreeValue = PH_HANDLE_VALUE_INVALID;
     }
 
