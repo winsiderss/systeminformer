@@ -1229,13 +1229,15 @@ NTSTATUS PhGetProcessEnvironmentVariables(
     {
         MEMORY_BASIC_INFORMATION mbi;
 
-        if (!VirtualQueryEx(
+        if (!NT_SUCCESS(status = NtQueryVirtualMemory(
             ProcessHandle,
             environment,
+            MemoryBasicInformation,
             &mbi,
-            sizeof(MEMORY_BASIC_INFORMATION)
-            ))
-            return NTSTATUS_FROM_WIN32(GetLastError());
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            )))
+            return status;
 
         environmentLength = (ULONG)(mbi.RegionSize -
             ((ULONG_PTR)environment - (ULONG_PTR)mbi.BaseAddress));
@@ -4658,12 +4660,14 @@ VOID PhpEnumGenericMappedFiles(
 
     baseAddress = (PVOID)0;
 
-    while (VirtualQueryEx(
+    while (NT_SUCCESS(NtQueryVirtualMemory(
         ProcessHandle,
         baseAddress,
+        MemoryBasicInformation,
         &basicInfo,
-        sizeof(MEMORY_BASIC_INFORMATION)
-        ))
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
     {
         if (basicInfo.Type == MEM_MAPPED)
         {
