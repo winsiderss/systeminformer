@@ -582,7 +582,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSessionProcessInformation,
     SystemLoadGdiDriverInSystemSpace,
     SystemNumaProcessorMap,
-    SystemPrefetcherInformation,
+    SystemPrefetcherInformation, // PfSnQueryPrefetcherInformation
     SystemExtendedProcessInformation,
     SystemRecommendedSharedDataAlignment,
     SystemComPlusPackage,
@@ -1100,11 +1100,104 @@ typedef struct _SYSTEM_LOOKASIDE_INFORMATION
 
 /* * */
 
+// Common structure used by a few info classes
+
+typedef enum _SYSTEM_EXTENDED_INFORMATION_TYPE
+{
+    ExtendedPrefetcherInformation = 23,
+    ExtendedSuperfetchInformation = 45
+} SYSTEM_EXTENDED_INFORMATION_TYPE;
+
+#define SYSTEM_EXTENDED_INFORMATION_MAGIC ('kuhC') 
+
+typedef struct _SYSTEM_EXTENDED_INFORMATION
+{
+    SYSTEM_EXTENDED_INFORMATION_TYPE Type;
+    ULONG Magic;
+    ULONG InformationClass;
+    PVOID Buffer;
+    ULONG BufferSize;
+} SYSTEM_EXTENDED_INFORMATION, *PSYSTEM_EXTENDED_INFORMATION;
+
+/* * */
+
+typedef enum _SYSTEM_PREFETCHER_INFORMATION_CLASS
+{
+    PrefetcherCompletedTraceInformation = 1,
+    PrefetcherUnknownInformation = 2, // ???
+    PrefetcherBootLoaderTraceInformation = 4
+} SYSTEM_PREFETCHER_INFORMATION_CLASS;
+
+/* * */
+
+typedef enum _SYSTEM_SUPERFETCH_INFORMATION_CLASS
+{
+    SuperfetchCompletedTraceInformation = 1,
+    SuperfetchUnknownInformation2 = 2, // size 24
+    SuperfetchPfnPrioRequestInformation = 6,
+    SuperfetchPrivSourceInformation = 8,
+    SuperfetchUnknownInformation9 = 9, // size 4
+    SuperfetchScenarioInformation = 12,
+    SuperfetchMemoryListInformation = 16,
+    SuperfetchMemoryRangesInformation = 17,
+    SuperfetchUnknownInformation20 = 20 // size 8
+} SYSTEM_SUPERFETCH_INFORMATION_CLASS;
+
+/* * */
+
 typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
 {
     HANDLE ProcessId;
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
+
+typedef struct _SYSTEM_VHD_BOOT_INFORMATION
+{
+    BOOLEAN OsDiskIsVhd;
+    ULONG OsVhdFilePathOffset;
+    WCHAR OsVhdParentVolume[ANYSIZE_ARRAY];
+} SYSTEM_VHD_BOOT_INFORMATION, *PSYSTEM_VHD_BOOT_INFORMATION;
+
+/* * */
+/* http://www.msuiche.net/2009/04/01/low-priority-io-count-information-systemlowpriorityinformation/ */
+
+typedef struct _SYSTEM_LOW_PRIORITY_IO_INFORMATION
+{
+    ULONG IoLowPriorityReadOperationCount;
+    ULONG IoLowPriorityWriteOperationCount;
+    ULONG IoKernelIssuedIoBoostedCount;
+    ULONG IoPagingReadLowPriorityCount;
+    ULONG IoPagingReadLowPriorityBumpedCount;
+    ULONG IoPagingWriteLowPriorityCount;
+    ULONG IoPagingWriteLowPriorityBumpedCount;
+    ULONG IoBoostedThreadedIrpCount;
+    ULONG IoBoostedPagingIrpCount;
+    ULONG IoBlanketBoostCount;
+} SYSTEM_LOW_PRIORITY_IO_INFORMATION, *PSYSTEM_LOW_PRIORITY_IO_INFORMATION;
+
+/* * */
+
+typedef enum _TPM_BOOT_ENTROPY_RESULT_CODE
+{
+    TpmBootEntropyStructureUninitialized,
+    TpmBootEntropyDisabledByPolicy,
+    TpmBootEntropyNoTpmFound,
+    TpmBootEntropyTpmError,
+    TpmBootEntropySuccess
+} TPM_BOOT_ENTROPY_RESULT_CODE;
+
+// Contents of KeLoaderBlock->Extension->TpmBootEntropyResult (TPM_BOOT_ENTROPY_LDR_RESULT).
+// EntropyData is truncated to 40 bytes.
+
+typedef struct _SYSTEM_TPM_BOOT_ENTROPY_INFORMATION
+{
+    ULONGLONG Policy;
+    TPM_BOOT_ENTROPY_RESULT_CODE ResultCode;
+    NTSTATUS ResultStatus;
+    ULONGLONG Time;
+    ULONG EntropyLength;
+    UCHAR EntropyData[40]; 
+} SYSTEM_TPM_BOOT_ENTROPY_INFORMATION, *PSYSTEM_TPM_BOOT_ENTROPY_INFORMATION;
 
 /* * */
 
