@@ -16,7 +16,6 @@ extern PH_CALLBACK PhProcessRemovedEvent;
 
 typedef struct _PH_PROCESS_ITEM
 {
-    ULONG RunId;
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
@@ -109,7 +108,6 @@ extern PH_CALLBACK PhServicesUpdatedEvent;
 
 typedef struct _PH_SERVICE_ITEM
 {
-    ULONG RunId;
     PH_STRINGREF Key; // points to Name
     PPH_STRING Name;
     PPH_STRING DisplayName;
@@ -179,7 +177,6 @@ extern PPH_OBJECT_TYPE PhModuleItemType;
 
 typedef struct _PH_MODULE_ITEM
 {
-    ULONG RunId;
     PVOID BaseAddress;
     ULONG Size;
     ULONG Flags;
@@ -201,7 +198,6 @@ typedef struct _PH_MODULE_PROVIDER
     PH_CALLBACK ModuleAddedEvent;
     PH_CALLBACK ModuleRemovedEvent;
     PH_CALLBACK UpdatedEvent;
-    ULONG RunCount;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
@@ -237,7 +233,6 @@ extern PPH_OBJECT_TYPE PhThreadItemType;
 
 typedef struct _PH_THREAD_ITEM
 {
-    ULONG RunId;
     HANDLE ThreadId;
 
     PH_UINT32_DELTA ContextSwitchesDelta;
@@ -273,7 +268,6 @@ typedef struct _PH_THREAD_PROVIDER
     PH_CALLBACK ThreadRemovedEvent;
     PH_CALLBACK UpdatedEvent;
     PH_CALLBACK LoadingStateChangedEvent;
-    ULONG RunCount;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
@@ -321,7 +315,6 @@ extern PPH_OBJECT_TYPE PhHandleItemType;
 
 typedef struct _PH_HANDLE_ITEM
 {
-    ULONG RunId;
     HANDLE Handle;
     PVOID Object;
     ULONG Attributes;
@@ -344,7 +337,6 @@ typedef struct _PH_HANDLE_PROVIDER
     PH_CALLBACK HandleModifiedEvent;
     PH_CALLBACK HandleRemovedEvent;
     PH_CALLBACK UpdatedEvent;
-    ULONG RunCount;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;

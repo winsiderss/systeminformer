@@ -1141,6 +1141,7 @@ typedef struct _PH_PROVIDER_REGISTRATION
     PPH_PROVIDER_THREAD ProviderThread;
     PPH_PROVIDER_FUNCTION Function;
     PVOID Object;
+    ULONG RunId;
     BOOLEAN Enabled;
     BOOLEAN Unregistering;
     BOOLEAN Boosting;
@@ -1183,15 +1184,6 @@ VOID PhSetProviderThreadInterval(
     __in ULONG Interval
     );
 
-BOOLEAN PhBoostProvider(
-    __inout PPH_PROVIDER_REGISTRATION Registration
-    );
-
-VOID PhSetProviderEnabled(
-    __in PPH_PROVIDER_REGISTRATION Registration,
-    __in BOOLEAN Enabled
-    );
-
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
@@ -1201,6 +1193,20 @@ VOID PhRegisterProvider(
 
 VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration
+    );
+
+BOOLEAN PhBoostProvider(
+    __inout PPH_PROVIDER_REGISTRATION Registration,
+    __out_opt PULONG FutureRunId
+    );
+
+ULONG PhGetProviderRunId(
+    __in PPH_PROVIDER_REGISTRATION Registration
+    );
+
+VOID PhSetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration,
+    __in BOOLEAN Enabled
     );
 
 // symprv

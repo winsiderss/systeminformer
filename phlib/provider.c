@@ -37,11 +37,8 @@
  *
  * Providers can be boosted, which causes them to be run immediately 
  * ignoring the interval. This is separate to the periodic runs, 
- * and does not cause the next periodic run to be missed. There are 
- * also no limits on how many times a provider can be boosted - 
- * if a provider is boosted 10 times in succession, it will be run 10 
- * times in addition to the periodic run. Providers, even when 
- * boosted, always run on the same provider thread. The other option 
+ * and does not cause the next periodic run to be missed. Providers, even 
+ * when boosted, always run on the same provider thread. The other option 
  * would be to have the boosting thread run the provider function 
  * directly, which would involve unnecessary blocking and synchronization.
  */
@@ -193,6 +190,8 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             if (object)
                 PhReferenceObject(object);
 
+            registration->RunId++;
+
             PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
             providerFunction(object);
             PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
@@ -296,74 +295,6 @@ VOID PhSetProviderThreadInterval(
 }
 
 /**
- * Causes a provider to be queued for immediate execution.
- *
- * \param Registration A pointer to the registration object for 
- * a provider.
- *
- * \return TRUE if the operation was successful; FALSE if 
- * the provider is being unregistered, or the provider thread 
- * is not running.
- *
- * \remarks Boosted providers will be run immediately, ignoring 
- * the run interval. Boosting will not however affect the normal 
- * runs; if a provider is boosted \a n times, it will be run 
- * \a n times in addition to the normal periodic run.
- */
-BOOLEAN PhBoostProvider(
-    __inout PPH_PROVIDER_REGISTRATION Registration
-    )
-{
-    PPH_PROVIDER_THREAD providerThread;
-
-    if (Registration->Unregistering)
-        return FALSE;
-
-    providerThread = Registration->ProviderThread;
-
-    // Simply move to the provider to the front of the list. 
-    // This works even if the provider is currently in the temp list.
-
-    PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
-
-    // Abort if the provider is stopping/stopped.
-    if (providerThread->State != ProviderThreadRunning)
-    {
-        PhReleaseQueuedLockExclusive(&providerThread->Lock);
-        return FALSE;
-    }
-
-    RemoveEntryList(&Registration->ListEntry);
-    InsertHeadList(&providerThread->ListHead, &Registration->ListEntry);
-
-    Registration->Boosting = TRUE;
-    providerThread->BoostCount++;
-
-    PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
-
-    // Wake up the thread.
-    NtAlertThread(providerThread->ThreadHandle);
-
-    return TRUE;
-}
-
-/**
- * Sets whether a provider is enabled.
- *
- * \param Registration A pointer to the registration object for 
- * a provider.
- * \param Enabled TRUE if the provider is enabled, otherwise 
- * FALSE.
- */
-VOID PhSetProviderEnabled(
-    __in PPH_PROVIDER_REGISTRATION Registration,
-    __in BOOLEAN Enabled
-    )
-{
-    Registration->Enabled = Enabled;
-}
-
-/**
  * Registers a provider with a provider thread.
  *
  * \param ProviderThread A pointer to a provider thread object.
@@ -387,6 +318,7 @@ VOID PhRegisterProvider(
     Registration->ProviderThread = ProviderThread;
     Registration->Function = Function;
     Registration->Object = Object;
+    Registration->RunId = 0;
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
     Registration->Boosting = FALSE;
@@ -440,4 +372,92 @@ VOID PhUnregisterProvider(
         PhDereferenceObject(Registration->Object);
 
     PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
+}
+
+/**
+ * Causes a provider to be queued for immediate execution.
+ *
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ *
+ * \return TRUE if the operation was successful; FALSE if 
+ * the provider is being unregistered, the provider is already 
+ * being boosted, or the provider thread is not running.
+ *
+ * \remarks Boosted providers will be run immediately, ignoring 
+ * the run interval. Boosting will not however affect the normal 
+ * runs.
+ */
+BOOLEAN PhBoostProvider(
+    __inout PPH_PROVIDER_REGISTRATION Registration,
+    __out_opt PULONG FutureRunId
+    )
+{
+    PPH_PROVIDER_THREAD providerThread;
+    ULONG futureRunId;
+
+    if (Registration->Unregistering)
+        return FALSE;
+
+    providerThread = Registration->ProviderThread;
+
+    // Simply move to the provider to the front of the list. 
+    // This works even if the provider is currently in the temp list.
+
+    PhAcquireQueuedLockExclusiveFast(&providerThread->Lock);
+
+    // Abort if the provider is already being boosted or the 
+    // provider thread is stopping/stopped.
+    if (Registration->Boosting || providerThread->State != ProviderThreadRunning)
+    {
+        PhReleaseQueuedLockExclusive(&providerThread->Lock);
+        return FALSE;
+    }
+
+    RemoveEntryList(&Registration->ListEntry);
+    InsertHeadList(&providerThread->ListHead, &Registration->ListEntry);
+
+    Registration->Boosting = TRUE;
+    providerThread->BoostCount++;
+
+    futureRunId = Registration->RunId + 1;
+
+    PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
+
+    // Wake up the thread.
+    NtAlertThread(providerThread->ThreadHandle);
+
+    if (FutureRunId)
+        *FutureRunId = futureRunId;
+
+    return TRUE;
+}
+
+/**
+ * Gets the current run ID of a provider.
+ *
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ */
+ULONG PhGetProviderRunId(
+    __in PPH_PROVIDER_REGISTRATION Registration
+    )
+{
+    return Registration->RunId;
+}
+
+/**
+ * Sets whether a provider is enabled.
+ *
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ * \param Enabled TRUE if the provider is enabled, otherwise 
+ * FALSE.
+ */
+VOID PhSetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration,
+    __in BOOLEAN Enabled
+    )
+{
+    Registration->Enabled = Enabled;
 }

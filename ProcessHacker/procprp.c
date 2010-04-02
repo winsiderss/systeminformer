@@ -852,7 +852,12 @@ static VOID NTAPI ThreadAddedHandler(
 
     // Parameter contains a pointer to the added thread item.
     PhReferenceObject(Parameter);
-    PostMessage(threadsContext->WindowHandle, WM_PH_THREAD_ADDED, 0, (LPARAM)Parameter);
+    PostMessage(
+        threadsContext->WindowHandle,
+        WM_PH_THREAD_ADDED,
+        PhGetProviderRunId(&threadsContext->ProviderRegistration),
+        (LPARAM)Parameter
+        );
 }
 
 static VOID NTAPI ThreadModifiedHandler(
@@ -893,7 +898,7 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
 
     PostMessage(
-        GetDlgItem(threadsContext->WindowHandle, IDC_PROCTHREADS_LIST),
+        GetDlgItem(threadsContext->WindowHandle, IDC_LIST),
         ELVM_SETCURSOR,
         0,
         // Parameter contains TRUE if loading symbols
@@ -1265,11 +1270,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
 
             PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
-            PhBoostProvider(&threadsContext->ProviderRegistration);
+            PhBoostProvider(&threadsContext->ProviderRegistration, NULL);
         }
         break;
     case WM_DESTROY:
         {
+            // TODO: Fix unsafe cleanup logic.
+
             PhUnregisterCallback(
                 &threadsContext->Provider->ThreadAddedEvent,
                 &threadsContext->AddedEventRegistration
@@ -1631,6 +1638,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     case WM_PH_THREAD_ADDED:
         {
             INT lvItemIndex;
+            ULONG runId = (ULONG)wParam;
             PPH_THREAD_ITEM threadItem = (PPH_THREAD_ITEM)lParam;
 
             if (!threadsContext->NeedsRedraw)
@@ -1640,14 +1648,14 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->NeedsRedraw = TRUE;
             }
 
-            if (threadItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 threadItem->ThreadIdString,
                 threadItem
                 );
-            if (threadItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
 
@@ -1803,7 +1811,12 @@ static VOID NTAPI ModuleAddedHandler(
 
     // Parameter contains a pointer to the added module item.
     PhReferenceObject(Parameter);
-    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_ADDED, 0, (LPARAM)Parameter);
+    PostMessage(
+        modulesContext->WindowHandle,
+        WM_PH_MODULE_ADDED,
+        PhGetProviderRunId(&modulesContext->ProviderRegistration),
+        (LPARAM)Parameter
+        );
 }
 
 static VOID NTAPI ModuleRemovedHandler(
@@ -2021,7 +2034,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
 
             PhSetProviderEnabled(&modulesContext->ProviderRegistration, TRUE);
-            PhBoostProvider(&modulesContext->ProviderRegistration);
+            PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
         }
         break;
     case WM_DESTROY:
@@ -2179,6 +2192,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     case WM_PH_MODULE_ADDED:
         {
             INT lvItemIndex;
+            ULONG runId = (ULONG)wParam;
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
             if (!modulesContext->NeedsRedraw)
@@ -2187,14 +2201,14 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 modulesContext->NeedsRedraw = TRUE;
             }
 
-            if (moduleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 moduleItem->Name->Buffer,
                 moduleItem
                 );
-            if (moduleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->SizeString));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->VersionInfo.FileDescription));
@@ -2341,7 +2355,12 @@ static VOID NTAPI HandleAddedHandler(
 
     // Parameter contains a pointer to the added handle item.
     PhReferenceObject(Parameter);
-    PostMessage(handlesContext->WindowHandle, WM_PH_HANDLE_ADDED, 0, (LPARAM)Parameter);
+    PostMessage(
+        handlesContext->WindowHandle,
+        WM_PH_HANDLE_ADDED,
+        PhGetProviderRunId(&handlesContext->ProviderRegistration),
+        (LPARAM)Parameter
+        );
 }
 
 static VOID NTAPI HandleModifiedHandler(
@@ -2570,7 +2589,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             }
 
             PhSetProviderEnabled(&handlesContext->ProviderRegistration, TRUE);
-            PhBoostProvider(&handlesContext->ProviderRegistration);
+            PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
         }
         break;
     case WM_DESTROY:
@@ -2764,6 +2783,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_PH_HANDLE_ADDED:
         {
             INT lvItemIndex;
+            ULONG runId = (ULONG)wParam;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
             // If we're hiding unnamed handles and this handle doesn't 
@@ -2787,14 +2807,14 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 handlesContext->NeedsRedraw = TRUE;
             }
 
-            if (handleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
             lvItemIndex = PhAddListViewItem(
                 lvHandle,
                 MAXINT,
                 PhGetString(handleItem->TypeName),
                 handleItem
                 );
-            if (handleItem->RunId == 0) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
             PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
 

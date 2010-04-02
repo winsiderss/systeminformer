@@ -115,8 +115,6 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
     PhInitializeCallback(&threadProvider->UpdatedEvent);
     PhInitializeCallback(&threadProvider->LoadingStateChangedEvent);
 
-    threadProvider->RunCount = 0;
-
     threadProvider->ProcessId = ProcessId;
     threadProvider->SymbolProvider = PhCreateSymbolProvider(ProcessId);
 
@@ -758,7 +756,6 @@ VOID PhThreadProviderUpdate(
             PVOID startAddress = NULL;
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
-            threadItem->RunId = threadProvider->RunCount;
 
             PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->Priority = thread->Priority;
@@ -1058,5 +1055,4 @@ VOID PhThreadProviderUpdate(
     if (idleThreadCycleTimes) PhFree(idleThreadCycleTimes);
 
     PhInvokeCallback(&threadProvider->UpdatedEvent, NULL);
-    threadProvider->RunCount++;
 }
