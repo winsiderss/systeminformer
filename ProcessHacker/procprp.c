@@ -1178,7 +1178,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
         return FALSE;
     }
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_PROCTHREADS_LIST);
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -1307,7 +1307,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCTHREADS_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
@@ -1952,7 +1952,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         return FALSE;
     }
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST);
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -2055,7 +2055,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCMODULES_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
@@ -2266,7 +2266,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PPH_ENVIRONMENT_VARIABLE variables;
             ULONG numberOfVariables;
             ULONG i;
-            HWND lvHandle = GetDlgItem(hwndDlg, IDC_PROCENVIRONMENT_LIST);
+            HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -2318,7 +2318,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCENVIRONMENT_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
@@ -2500,7 +2500,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         return FALSE;
     }
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_PROCHANDLES_LIST);
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -2608,7 +2608,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCHANDLES_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
@@ -3052,7 +3052,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
         return FALSE;
     }
 
-    lvHandle = GetDlgItem(hwndDlg, IDC_PROCSERVICES_LIST);
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -3143,7 +3143,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 PPH_LAYOUT_ITEM dialogItem;
 
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCSERVICES_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
