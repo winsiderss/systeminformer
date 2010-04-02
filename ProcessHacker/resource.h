@@ -26,7 +26,6 @@
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130
-#define IDD_DIALOG1                     131
 #define IDD_OBJTOKEN                    131
 #define IDD_HEAPS                       132
 #define IDR_PRIVILEGE                   133
@@ -36,9 +35,7 @@
 #define IDD_PROGRESS                    137
 #define IDD_PAGEFILES                   138
 #define IDD_TOKGENERAL                  139
-#define IDD_DIALOG2                     140
 #define IDD_TOKADVANCED                 140
-#define IDD_DIALOG3                     141
 #define IDD_OBJJOB                      141
 #define IDD_OBJEVENT                    142
 #define IDD_OBJMUTANT                   143
@@ -51,8 +48,8 @@
 #define IDD_SYSINFO                     150
 #define IDR_USER                        151
 #define IDD_EDITMESSAGE                 152
-#define IDD_DIALOG4                     153
 #define IDD_SESSION                     153
+#define IDD_PROCMEMORY                  154
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006

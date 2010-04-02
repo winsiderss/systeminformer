@@ -94,8 +94,6 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     PhInitializeCallback(&handleProvider->HandleRemovedEvent);
     PhInitializeCallback(&handleProvider->UpdatedEvent);
 
-    handleProvider->RunCount = 0;
-
     handleProvider->ProcessId = ProcessId;
     handleProvider->ProcessHandle = NULL;
 
@@ -367,8 +365,6 @@ VOID PhHandleProviderUpdate(
         {
             handleItem = PhCreateHandleItem(handle);
 
-            handleItem->RunId = handleProvider->RunCount;
-
             PhGetHandleInformation(
                 handleProvider->ProcessHandle,
                 handleItem->Handle,
@@ -426,5 +422,4 @@ VOID PhHandleProviderUpdate(
     }
 
     PhInvokeCallback(&handleProvider->UpdatedEvent, NULL);
-    handleProvider->RunCount++;
 }

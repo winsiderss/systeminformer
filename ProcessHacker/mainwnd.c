@@ -92,6 +92,7 @@ VOID PhMainWndOnProcessRemoved(
     );
 
 VOID PhMainWndOnServiceAdded(
+    __in ULONG RunId,
     __in PPH_SERVICE_ITEM ServiceItem
     );
 
@@ -442,8 +443,8 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_VIEW_REFRESH:
                 {
-                    PhBoostProvider(&ProcessProviderRegistration);
-                    PhBoostProvider(&ServiceProviderRegistration);
+                    PhBoostProvider(&ProcessProviderRegistration, NULL);
+                    PhBoostProvider(&ServiceProviderRegistration, NULL);
                 }
                 break;
             case ID_TOOLS_HIDDENPROCESSES:
@@ -1064,9 +1065,10 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_SERVICE_ADDED:
         {
+            ULONG runId = (ULONG)wParam;
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
 
-            PhMainWndOnServiceAdded(serviceItem);
+            PhMainWndOnServiceAdded(runId, serviceItem);
             PhDereferenceObject(serviceItem);
         }
         break;
@@ -1351,7 +1353,12 @@ static VOID NTAPI ServiceAddedHandler(
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
 
     PhReferenceObject(serviceItem);
-    PostMessage(PhMainWndHandle, WM_PH_SERVICE_ADDED, 0, (LPARAM)serviceItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_SERVICE_ADDED,
+        PhGetProviderRunId(&ServiceProviderRegistration),
+        (LPARAM)serviceItem
+        );
 }
 
 static VOID NTAPI ServiceModifiedHandler(
@@ -2052,6 +2059,7 @@ VOID PhMainWndOnProcessRemoved(
 }
 
 VOID PhMainWndOnServiceAdded(
+    __in ULONG RunId,
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
@@ -2060,14 +2068,14 @@ VOID PhMainWndOnServiceAdded(
     // Add a reference for the pointer being stored in the list view item.
     PhReferenceObject(ServiceItem);
 
-    if (ServiceItem->RunId == 0) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, FALSE);
+    if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, FALSE);
     lvItemIndex = PhAddListViewItem(
         ServiceListViewHandle,
         MAXINT,
         ServiceItem->Name->Buffer,
         ServiceItem
         );
-    if (ServiceItem->RunId == 0) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
+    if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceItem->ProcessIdString);
 }
