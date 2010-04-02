@@ -57,12 +57,8 @@
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
 #define IDC_PROCESS                     1007
-#define IDC_PROCMODULES_LIST            1009
 #define IDC_COMPANYNAME                 1009
-#define IDC_PROCTHREADS_LIST            1010
 #define IDC_VERSION                     1010
-#define IDC_PROCHANDLES_LIST            1011
-#define IDC_PROCENVIRONMENT_LIST        1012
 #define IDC_THRDSTACK_LIST              1013
 #define IDC_REFRESH                     1015
 #define IDC_PERMISSIONS                 1018
@@ -76,7 +72,6 @@
 #define IDC_ABOUT_NAME                  1024
 #define IDC_PEBADDRESS                  1024
 #define IDC_PARENTPROCESS               1025
-#define IDC_PROCSERVICES_LIST           1026
 #define IDC_DEP                         1026
 #define IDC_PAUSE                       1027
 #define IDC_PROTECTION                  1027
