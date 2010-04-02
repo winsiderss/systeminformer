@@ -441,7 +441,6 @@ VOID PhServiceProviderUpdate(
             // Create the service item and fill in basic information.
 
             serviceItem = PhCreateServiceItem(&services[i]);
-            serviceItem->RunId = runCount;
 
             PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
 
