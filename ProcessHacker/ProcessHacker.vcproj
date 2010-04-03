@@ -377,6 +377,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chdlg.c"
+				>
+			</File>
+			<File
 				RelativePath=".\cmdmode.c"
 				>
 			</File>
