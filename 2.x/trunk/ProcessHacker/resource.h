@@ -50,6 +50,7 @@
 #define IDD_EDITMESSAGE                 152
 #define IDD_SESSION                     153
 #define IDD_PROCMEMORY                  154
+#define IDD_CHOOSE                      155
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -172,8 +173,12 @@
 #define IDC_CPU15                       1114
 #define IDC_CLIENTDISPLAY               1114
 #define IDC_CPU16                       1115
+#define IDC_CHOICE                      1115
 #define IDC_CPU17                       1116
+#define IDC_OPTION                      1116
 #define IDC_CPU18                       1117
+#define IDC_COMBO1                      1117
+#define IDC_CHOICEUSER                  1117
 #define IDC_CPU19                       1118
 #define IDC_CPU20                       1119
 #define IDC_CPU21                       1120
@@ -310,9 +315,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
+#define _APS_NEXT_RESOURCE_VALUE        157
 #define _APS_NEXT_COMMAND_VALUE         40133
-#define _APS_NEXT_CONTROL_VALUE         1115
+#define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif
