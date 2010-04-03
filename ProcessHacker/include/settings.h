@@ -1,8 +1,6 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <ph.h>
-
 typedef enum _PH_SETTING_TYPE
 {
     StringSettingType,
