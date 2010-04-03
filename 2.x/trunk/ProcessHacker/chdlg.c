@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <settings.h>
 #include <windowsx.h>
 
 typedef struct _CHOICE_DIALOG_CONTEXT
@@ -137,7 +138,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 i = 0;
 
                 // Split the saved choices using the newline character.
-                while (i < savedChoices->Length / 2)
+                while (i < (ULONG)savedChoices->Length / 2)
                 {
                     indexOfNewLine = PhStringIndexOfChar(savedChoices, i, '\n');
 
