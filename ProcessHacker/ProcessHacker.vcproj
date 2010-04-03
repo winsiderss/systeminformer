@@ -585,6 +585,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resources\cog_edit.png"
+				>
+			</File>
+			<File
 				RelativePath=".\resources\cross.bmp"
 				>
 			</File>
