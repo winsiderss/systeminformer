@@ -74,7 +74,7 @@ BOOLEAN PhaChoiceDialog(
         ParentWindowHandle,
         PhpChoiceDlgProc,
         (LPARAM)&context
-        );
+        ) == IDOK;
 }
 
 INT_PTR CALLBACK PhpChoiceDlgProc(
@@ -114,6 +114,8 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICEUSER);
                 ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICE), SW_HIDE);
             }
+
+            context->ComboBoxHandle = comboBoxHandle;
 
             checkBoxHandle = GetDlgItem(hwndDlg, IDC_OPTION);
 

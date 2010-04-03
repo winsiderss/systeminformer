@@ -543,6 +543,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             ULONG depStatus;
             BOOLEAN isProtected;
 
+            SendMessage(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), BM_SETIMAGE, IMAGE_BITMAP,
+                (LPARAM)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_COGEDIT), IMAGE_BITMAP, 0, 0, LR_SHARED)); 
+
             // File
 
             SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
@@ -699,6 +702,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Protected");
                         else
                             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
+
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
                 else
@@ -740,9 +745,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"32-bit");
             else
                 SetDlgItemText(hwndDlg, IDC_PROCESSTYPETEXT, L"64-bit");
-#else
-            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_HIDE);
-            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_HIDE);
+
+            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPELABEL), SW_SHOW);
+            ShowWindow(GetDlgItem(hwndDlg, IDC_PROCESSTYPETEXT), SW_SHOW);
 #endif
         }
         break;
@@ -782,6 +787,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITPROTECTION),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
@@ -801,6 +808,31 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (id)
             {
+            case IDC_EDITPROTECTION:
+                {
+                    static WCHAR *choices[] = { L"Protected", L"Not Protected" };
+                    NTSTATUS status;
+                    BOOLEAN isProtected;
+                    PPH_STRING selectedChoice;
+
+                    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
+                    {
+                        selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
+
+                        if (PhaChoiceDialog(hwndDlg, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
+                            NULL, 0, &selectedChoice, NULL, NULL))
+                        {
+                            status = KphSetProcessProtected(PhKphHandle, processItem->ProcessId,
+                                PhStringEquals2(selectedChoice, L"Protected", FALSE));
+
+                            if (NT_SUCCESS(status))
+                                SetDlgItemText(hwndDlg, IDC_PROTECTION, selectedChoice->Buffer);
+                            else
+                                PhShowStatus(hwndDlg, L"Unable to set process protection", status, 0);
+                        }
+                    }
+                }
+                break;
             case IDC_TERMINATE:
                 {
                     PhUiTerminateProcesses(
