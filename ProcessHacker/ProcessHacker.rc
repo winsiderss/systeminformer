@@ -361,9 +361,10 @@ BEGIN
     LTEXT           "DEP:",IDC_STATIC,13,183,16,8
     EDITTEXT        IDC_DEP,65,181,160,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Protection:",IDC_STATIC,13,198,36,8
-    EDITTEXT        IDC_PROTECTION,65,197,160,12,ES_AUTOHSCROLL | ES_READONLY
-    LTEXT           "Process Type:",IDC_PROCESSTYPELABEL,13,219,46,8
-    LTEXT           "32-bit",IDC_PROCESSTYPETEXT,67,219,20,8
+    EDITTEXT        IDC_PROTECTION,65,197,139,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "Process Type:",IDC_PROCESSTYPELABEL,13,219,46,8,NOT WS_VISIBLE
+    LTEXT           "32-bit",IDC_PROCESSTYPETEXT,67,219,20,8,NOT WS_VISIBLE
+    PUSHBUTTON      "Edit",IDC_EDITPROTECTION,208,195,17,15,BS_BITMAP | WS_DISABLED
 END
 
 IDD_PROCMODULES DIALOGEX 0, 0, 240, 260
@@ -1165,6 +1166,7 @@ END
 
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
+IDB_COGEDIT             BITMAP                  "resources\\cog_edit.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
