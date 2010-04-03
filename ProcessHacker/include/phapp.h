@@ -463,6 +463,24 @@ VOID PhShowProcessAffinityDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+// chdlg
+
+#define PH_CHOICE_DIALOG_SAVED_CHOICES 10
+
+#define PH_CHOICE_DIALOG_USER_CHOICE 0x1
+
+BOOLEAN PhaChoiceDialog(
+    __in HWND ParentWindowHandle,
+    __in PWSTR Title,
+    __in_opt PWSTR *Choices,
+    __in_opt ULONG NumberOfChoices,
+    __in_opt PWSTR Option,
+    __in ULONG Flags,
+    __inout PPH_STRING *SelectedChoice,
+    __inout_opt PBOOLEAN SelectedOption,
+    __in_opt PWSTR SavedChoicesSettingName
+    );
+
 // findobj
 
 VOID PhShowFindObjectsDialog();
