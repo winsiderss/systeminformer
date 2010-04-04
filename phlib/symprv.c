@@ -444,7 +444,12 @@ CleanupExit:
     if (ResolveLevel)
         *ResolveLevel = resolveLevel;
     if (FileName)
+    {
         *FileName = modFileName;
+
+        if (modFileName)
+            PhReferenceObject(modFileName);
+    }
     if (SymbolName)
     {
         *SymbolName = symbolName;

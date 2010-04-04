@@ -309,6 +309,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\data.c"
+				>
+			</File>
+			<File
 				RelativePath=".\extlv.c"
 				>
 			</File>

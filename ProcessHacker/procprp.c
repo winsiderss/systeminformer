@@ -26,6 +26,9 @@
 #include <settings.h>
 #include <windowsx.h>
 
+#define SET_BUTTON_BITMAP(Id, Bitmap) \
+    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
+
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 
@@ -312,7 +315,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
 BOOLEAN PhAddProcessPropPage(
     __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     )
 {
     HPROPSHEETPAGE propSheetPageHandle;
@@ -324,7 +327,6 @@ BOOLEAN PhAddProcessPropPage(
         &PropPageContext->PropSheetPage
         );
     PropPageContext->PropContext = PropContext;
-    PhReferenceObject(PropContext);
 
     PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
         propSheetPageHandle;
@@ -608,9 +610,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 magnifier = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MAGNIFIER), IMAGE_BITMAP);
                 pencil = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PENCIL), IMAGE_BITMAP);
 
-#define SET_BUTTON_BITMAP(Id, Bitmap) \
-    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
-
                 SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
                 SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
                 SET_BUTTON_BITMAP(IDC_EDITDEP, pencil);
@@ -679,13 +678,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             // Started
 
             PhLargeIntegerToLocalSystemTime(&startTime, &processItem->CreateTime);
-            SetDlgItemText(hwndDlg, IDC_STARTED,
-                PhaConcatStrings(
-                3,
-                ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(&startTime, NULL)))->Buffer,
-                L" ",
-                ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(&startTime, NULL)))->Buffer
-                )->Buffer);
+            SetDlgItemText(hwndDlg, IDC_STARTED, PhaFormatDateTime(&startTime)->Buffer);
 
             // Parent
 
@@ -1234,6 +1227,104 @@ NTSTATUS NTAPI PhpOpenThreadTokenObject(
         );
 }
 
+VOID PhpUpdateThreadDetails(
+    __in HWND hwndDlg,
+    __in BOOLEAN Force
+    )
+{
+    HWND lvHandle;
+    ULONG selectedCount;
+    PPH_THREAD_ITEM threadItem;
+    PPH_STRING startModule = NULL;
+    PPH_STRING started = NULL;
+    WCHAR kernelTime[PH_TIMESPAN_STR_LEN_1] = L"N/A";
+    WCHAR userTime[PH_TIMESPAN_STR_LEN_1] = L"N/A";
+    PPH_STRING contextSwitches = NULL;
+    PPH_STRING cycles = NULL;
+    PPH_STRING state = NULL;
+    WCHAR priority[PH_INT32_STR_LEN_1] = L"N/A";
+    WCHAR basePriority[PH_INT32_STR_LEN_1] = L"N/A";
+    WCHAR ioPriority[PH_INT32_STR_LEN_1] = L"N/A";
+    WCHAR pagePriority[PH_INT32_STR_LEN_1] = L"N/A";
+    HANDLE threadHandle;
+    SYSTEMTIME time;
+    ULONG ioPriorityInteger;
+    ULONG pagePriorityInteger;
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+    selectedCount = ListView_GetSelectedCount(lvHandle);
+
+    if (selectedCount != 1 && !Force)
+        return;
+
+    if (selectedCount == 1)
+    {
+        threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+        if (!threadItem)
+            return;
+
+        startModule = threadItem->StartAddressFileName;
+
+        PhLargeIntegerToLocalSystemTime(&time, &threadItem->CreateTime);
+        started = PhaFormatDateTime(&time);
+
+        PhPrintTimeSpan(kernelTime, threadItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
+        PhPrintTimeSpan(userTime, threadItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
+
+        contextSwitches = PHA_DEREFERENCE(PhFormatUInt64(threadItem->ContextSwitchesDelta.Value, TRUE));
+
+        if (WINDOWS_HAS_THREAD_CYCLES)
+            cycles = PHA_DEREFERENCE(PhFormatUInt64(threadItem->CyclesDelta.Value, TRUE));
+
+        if (threadItem->State != Waiting)
+        {
+            if ((ULONG)threadItem->State < MaximumThreadState)
+                state = PhaCreateString(PhKThreadStateNames[(ULONG)threadItem->State]);
+        }
+        else
+        {
+            if ((ULONG)threadItem->WaitReason < MaximumWaitReason)
+                state = PhaConcatStrings2(L"Wait:", PhKWaitReasonNames[(ULONG)threadItem->WaitReason]);
+            else
+                state = PhaCreateString(L"Waiting");
+        }
+
+        PhPrintInt32(priority, threadItem->Priority);
+        PhPrintInt32(basePriority, threadItem->BasePriority);
+
+        if (NT_SUCCESS(PhOpenThread(&threadHandle, ThreadQueryAccess, threadItem->ThreadId)))
+        {
+            if (NT_SUCCESS(PhGetThreadIoPriority(threadHandle, &ioPriorityInteger)))
+                PhPrintUInt32(ioPriority, ioPriorityInteger);
+            if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriorityInteger)))
+                PhPrintUInt32(pagePriority, pagePriorityInteger);
+
+            NtClose(threadHandle);
+        }
+    }
+
+    if (Force)
+    {
+        // These don't change...
+
+        SetDlgItemText(hwndDlg, IDC_STARTMODULE, PhGetStringOrEmpty(startModule));
+        EnableWindow(GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE), !!startModule);
+
+        SetDlgItemText(hwndDlg, IDC_STARTED, PhGetStringOrDefault(started, L"N/A"));
+    }
+
+    SetDlgItemText(hwndDlg, IDC_KERNELTIME, kernelTime);
+    SetDlgItemText(hwndDlg, IDC_USERTIME, userTime);
+    SetDlgItemText(hwndDlg, IDC_CONTEXTSWITCHES, PhGetStringOrDefault(contextSwitches, L"N/A"));
+    SetDlgItemText(hwndDlg, IDC_CYCLES, PhGetStringOrDefault(cycles, L"N/A"));
+    SetDlgItemText(hwndDlg, IDC_STATE, PhGetStringOrDefault(state, L"N/A"));
+    SetDlgItemText(hwndDlg, IDC_PRIORITY, priority);
+    SetDlgItemText(hwndDlg, IDC_BASEPRIORITY, basePriority);
+    SetDlgItemText(hwndDlg, IDC_IOPRIORITY, ioPriority);
+    SetDlgItemText(hwndDlg, IDC_PAGEPRIORITY, pagePriority);
+}
+
 INT_PTR CALLBACK PhpProcessThreadsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1345,6 +1436,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
             PhBoostProvider(&threadsContext->ProviderRegistration, NULL);
+
+            SET_BUTTON_BITMAP(IDC_OPENSTARTMODULE,
+                PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP));
         }
         break;
     case WM_DESTROY:
@@ -1390,6 +1484,32 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
+
+#define ADD_BL_ITEM(Id) \
+    PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, Id), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM)
+
+                // Thread details area
+                {
+                    ULONG id;
+
+                    for (id = IDC_STATICBL1; id <= IDC_STATICBL11; id++)
+                        ADD_BL_ITEM(id);
+                }
+
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE),
+                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE),
+                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                ADD_BL_ITEM(IDC_STARTED);
+                ADD_BL_ITEM(IDC_KERNELTIME);
+                ADD_BL_ITEM(IDC_USERTIME);
+                ADD_BL_ITEM(IDC_CONTEXTSWITCHES);
+                ADD_BL_ITEM(IDC_CYCLES);
+                ADD_BL_ITEM(IDC_STATE);
+                ADD_BL_ITEM(IDC_PRIORITY);
+                ADD_BL_ITEM(IDC_BASEPRIORITY);
+                ADD_BL_ITEM(IDC_IOPRIORITY);
+                ADD_BL_ITEM(IDC_PAGEPRIORITY);
 
                 PhpDoPropPageLayout(hwndDlg);
 
@@ -1634,6 +1754,16 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
+            case IDC_OPENSTARTMODULE:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem && threadItem->StartAddressFileName)
+                    {
+                        PhShellExploreFile(hwndDlg, threadItem->StartAddressFileName->Buffer);
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1704,6 +1834,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                             break;
                         }
                     }
+                }
+                break;
+            case LVN_ITEMCHANGED:
+                {
+                    PhpUpdateThreadDetails(hwndDlg, TRUE);
                 }
                 break;
             }
@@ -1798,6 +1933,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 ExtendedListView_SetRedraw(lvHandle, TRUE);
                 threadsContext->NeedsRedraw = FALSE;
             }
+
+            PhpUpdateThreadDetails(hwndDlg, FALSE);
         }
         break;
     }
@@ -3463,7 +3600,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
-    PhDereferenceObject(newPage);
 
     // Threads
     newPage = PhCreateProcessPropPageContext(
@@ -3472,7 +3608,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
-    PhDereferenceObject(newPage);
 
     // Token
     PhAddProcessPropPage2(
@@ -3487,7 +3622,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
-    PhDereferenceObject(newPage);
 
     // Environment
     newPage = PhCreateProcessPropPageContext(
@@ -3496,7 +3630,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
-    PhDereferenceObject(newPage);
 
     // Handles
     newPage = PhCreateProcessPropPageContext(
@@ -3505,7 +3638,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);
-    PhDereferenceObject(newPage);
 
     // Job
     if (
@@ -3530,7 +3662,6 @@ NTSTATUS PhpProcessPropertiesThreadStart(
             NULL
             );
         PhAddProcessPropPage(PropContext, newPage);
-        PhDereferenceObject(newPage);
     }
 
     // Create the property sheet
