@@ -698,11 +698,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
                     {
-                        if (isProtected)
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Protected");
-                        else
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
-
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, isProtected ? L"Protected" : L"Not Protected");
                         EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
@@ -722,10 +718,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                             &extendedBasicInfo
                             )))
                         {
-                            if (extendedBasicInfo.IsProtectedProcess)
-                                SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Protected");
-                            else
-                                SetDlgItemText(hwndDlg, IDC_PROTECTION, L"Not Protected");
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION,
+                                extendedBasicInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
                         }
 
                         NtClose(processHandle);
@@ -810,25 +804,14 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
             case IDC_EDITPROTECTION:
                 {
-                    static WCHAR *choices[] = { L"Protected", L"Not Protected" };
-                    NTSTATUS status;
-                    BOOLEAN isProtected;
-                    PPH_STRING selectedChoice;
-
-                    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
+                    if (PhUiSetProtectionProcess(hwndDlg, processItem))
                     {
-                        selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
+                        BOOLEAN isProtected;
 
-                        if (PhaChoiceDialog(hwndDlg, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
-                            NULL, 0, &selectedChoice, NULL, NULL))
+                        if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
                         {
-                            status = KphSetProcessProtected(PhKphHandle, processItem->ProcessId,
-                                PhStringEquals2(selectedChoice, L"Protected", FALSE));
-
-                            if (NT_SUCCESS(status))
-                                SetDlgItemText(hwndDlg, IDC_PROTECTION, selectedChoice->Buffer);
-                            else
-                                PhShowStatus(hwndDlg, L"Unable to set process protection", status, 0);
+                            SetDlgItemText(hwndDlg, IDC_PROTECTION,
+                                isProtected ? L"Protected" : L"Not Protected");
                         }
                     }
                 }
