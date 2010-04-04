@@ -135,6 +135,7 @@ typedef struct _PH_HANDLES_CONTEXT
 
     HWND WindowHandle;
 
+    PPH_POINTER_LIST HandleList;
     BOOLEAN NeedsRedraw;
     BOOLEAN NeedsSort;
     BOOLEAN SelectedHandleProtected;

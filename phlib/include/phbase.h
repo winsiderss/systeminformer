@@ -1113,6 +1113,13 @@ HANDLE PhAddPointerListItem(
     __in PVOID Pointer
     );
 
+BOOLEAN PhEnumPointerListEx(
+    __in PPH_POINTER_LIST PointerList,
+    __inout PULONG EnumerationKey,
+    __out PPVOID Pointer,
+    __out PHANDLE PointerHandle
+    );
+
 HANDLE PhFindPointerListItem(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
