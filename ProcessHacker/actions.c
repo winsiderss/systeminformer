@@ -767,6 +767,118 @@ BOOLEAN PhUiSetPriorityProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetDepStatusProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    static WCHAR *choices[] = { L"Disabled", L"Enabled", L"Enabled, DEP-ATL thunk emulation disabled" };
+    NTSTATUS status;
+    HANDLE processHandle;
+    ULONG depStatus;
+    PPH_STRING selectedChoice;
+    BOOLEAN selectedOption;
+
+    // Get the initial DEP status of the process.
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_INFORMATION,
+        Process->ProcessId
+        )))
+    {
+        if (NT_SUCCESS(status = PhGetProcessDepStatus(processHandle, &depStatus)))
+        {
+            ULONG choiceIndex;
+
+            if (depStatus & PH_PROCESS_DEP_ENABLED)
+            {
+                if (depStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED)
+                    choiceIndex = 2;
+                else
+                    choiceIndex = 1;
+            }
+            else
+            {
+                choiceIndex = 0;
+            }
+
+            selectedChoice = PhaCreateString(choices[choiceIndex]);
+            selectedOption = FALSE;
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"set the DEP status of", Process, status, 0);
+        return FALSE;
+    }
+
+    while (PhaChoiceDialog(
+        hWnd,
+        L"DEP",
+        choices,
+        sizeof(choices) / sizeof(PWSTR),
+        PhKphHandle ? L"Permanent" : NULL, // if no KPH, SetProcessDEPPolicy determines permanency
+        0,
+        &selectedChoice,
+        &selectedOption,
+        NULL
+        ))
+    {
+        // Build the new DEP status from the selected choice and option.
+
+        depStatus = 0;
+
+        if (PhStringEquals2(selectedChoice, choices[0], FALSE))
+            depStatus = 0;
+        else if (PhStringEquals2(selectedChoice, choices[1], FALSE))
+            depStatus = PH_PROCESS_DEP_ENABLED;
+        else if (PhStringEquals2(selectedChoice, choices[2], FALSE))
+            depStatus = PH_PROCESS_DEP_ENABLED | PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED;
+
+        if (selectedOption)
+            depStatus |= PH_PROCESS_DEP_PERMANENT;
+
+        // Try to set the DEP status.
+
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PhKphHandle ? ProcessQueryAccess : (PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION | PROCESS_VM_WRITE),
+            Process->ProcessId
+            )))
+        {
+            if (PhKphHandle)
+                status = PhSetProcessDepStatus(processHandle, depStatus);
+            else
+                status = PhSetProcessDepStatusInvasive(processHandle, depStatus, 5000);
+
+            NtClose(processHandle);
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            return TRUE;
+        }
+        else if (status == STATUS_NOT_SUPPORTED)
+        {
+            PhShowError(
+                hWnd,
+                L"This feature is not supported by your operating system. "
+                L"The minimum supported versions are Windows XP SP3 and Windows Vista SP1."
+                );
+        }
+        else
+        {
+            PhpShowErrorProcess(hWnd, L"set the DEP status of", Process, status, 0);
+        }
+    }
+
+    return FALSE;
+}
+
 BOOLEAN PhUiSetProtectionProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
@@ -790,7 +902,7 @@ BOOLEAN PhUiSetProtectionProcess(
     {
         selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
 
-        if (PhaChoiceDialog(hWnd, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
+        while (PhaChoiceDialog(hWnd, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
             NULL, 0, &selectedChoice, NULL, NULL))
         {
             status = KphSetProcessProtected(PhKphHandle, Process->ProcessId,
@@ -799,7 +911,7 @@ BOOLEAN PhUiSetProtectionProcess(
             if (NT_SUCCESS(status))
                 return TRUE;
             else
-                PhShowStatus(hWnd, L"Unable to set process protection", status, 0);
+                PhpShowErrorProcess(hWnd, L"set the protection of", Process, status, 0);
         }
     }
 
