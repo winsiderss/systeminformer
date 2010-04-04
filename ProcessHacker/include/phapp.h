@@ -345,6 +345,11 @@ BOOLEAN PhUiSetPriorityProcess(
     __in ULONG PriorityClassWin32
     );
 
+BOOLEAN PhUiSetProtectionProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 BOOLEAN PhUiStartService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
