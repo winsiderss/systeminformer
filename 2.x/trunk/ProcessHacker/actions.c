@@ -767,6 +767,45 @@ BOOLEAN PhUiSetPriorityProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetProtectionProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    static WCHAR *choices[] = { L"Protected", L"Not Protected" };
+    NTSTATUS status;
+    BOOLEAN isProtected;
+    PPH_STRING selectedChoice;
+
+    if (!WINDOWS_HAS_LIMITED_ACCESS)
+        return FALSE;
+
+    if (!PhKphHandle)
+    {
+        PhShowError(hWnd, KPH_ERROR_MESSAGE);
+        return FALSE;
+    }
+
+    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, Process->ProcessId, &isProtected)))
+    {
+        selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
+
+        if (PhaChoiceDialog(hWnd, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
+            NULL, 0, &selectedChoice, NULL, NULL))
+        {
+            status = KphSetProcessProtected(PhKphHandle, Process->ProcessId,
+                PhStringEquals2(selectedChoice, L"Protected", FALSE));
+
+            if (NT_SUCCESS(status))
+                return TRUE;
+            else
+                PhShowStatus(hWnd, L"Unable to set process protection", status, 0);
+        }
+    }
+
+    return FALSE;
+}
+
 static VOID PhpShowErrorService(
     __in HWND hWnd,
     __in PWSTR Verb,
