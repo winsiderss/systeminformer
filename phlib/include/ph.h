@@ -301,6 +301,12 @@ NTSTATUS PhSetProcessDepStatus(
     __in ULONG DepStatus
     );
 
+NTSTATUS PhSetProcessDepStatusInvasive(
+    __in HANDLE ProcessHandle,
+    __in ULONG DepStatus,
+    __in ULONG Timeout
+    );
+
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
     __in PWSTR FileName,

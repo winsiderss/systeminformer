@@ -345,6 +345,11 @@ BOOLEAN PhUiSetPriorityProcess(
     __in ULONG PriorityClassWin32
     );
 
+BOOLEAN PhUiSetDepStatusProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 BOOLEAN PhUiSetProtectionProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
