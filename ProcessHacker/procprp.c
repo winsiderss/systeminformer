@@ -599,11 +599,21 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             BOOLEAN isProtected;
 
             {
-                HBITMAP cogEdit;
+                HBITMAP folder;
+                HBITMAP magnifier;
+                HBITMAP pencil;
 
-                cogEdit = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_COGEDIT), IMAGE_BITMAP, 0, 0, LR_SHARED);
-                SendMessage(GetDlgItem(hwndDlg, IDC_EDITDEP), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)cogEdit);
-                SendMessage(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)cogEdit);
+                folder = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP);
+                magnifier = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MAGNIFIER), IMAGE_BITMAP);
+                pencil = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PENCIL), IMAGE_BITMAP);
+
+#define SET_BUTTON_BITMAP(Id, Bitmap) \
+    SendMessage(GetDlgItem(hwndDlg, (Id)), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)(Bitmap))
+
+                SET_BUTTON_BITMAP(IDC_OPENFILENAME, folder);
+                SET_BUTTON_BITMAP(IDC_VIEWPARENTPROCESS, magnifier);
+                SET_BUTTON_BITMAP(IDC_EDITDEP, pencil);
+                SET_BUTTON_BITMAP(IDC_EDITPROTECTION, pencil);
             }
 
             // File
@@ -678,11 +688,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Parent
 
-            clientId.UniqueProcess = processItem->ParentProcessId;
-            clientId.UniqueThread = NULL;
+            if (processItem->HasParent)
+            {
+                clientId.UniqueProcess = processItem->ParentProcessId;
+                clientId.UniqueThread = NULL;
 
-            SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS, ((PPH_STRING)PHA_DEREFERENCE(PhFormatString(
+                    L"Non-existent process (%u)", (ULONG)processItem->ParentProcessId)))->Buffer);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECTPARENT), FALSE);
+            }
 
             // DEP
 
@@ -774,6 +793,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR),
@@ -784,6 +805,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECTPARENT),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
@@ -811,6 +834,26 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (id)
             {
+            case IDC_OPENFILENAME:
+                {
+                    PhShellExploreFile(hwndDlg, processItem->FileName->Buffer);
+                }
+                break;
+            case IDC_VIEWPARENTPROCESS:
+                {
+                    PPH_PROCESS_ITEM parentProcessItem;
+
+                    if (parentProcessItem = PhReferenceProcessItem(processItem->ParentProcessId))
+                    {
+                        ProcessHacker_ShowProcessProperties(PhMainWndHandle, parentProcessItem);
+                        PhDereferenceObject(parentProcessItem);
+                    }
+                    else
+                    {
+                        PhShowError(hwndDlg, L"The process does not exist.");
+                    }
+                }
+                break;
             case IDC_EDITDEP:
                 {
                     if (PhUiSetDepStatusProcess(hwndDlg, processItem))

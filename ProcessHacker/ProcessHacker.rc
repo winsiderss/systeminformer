@@ -347,7 +347,7 @@ BEGIN
     LTEXT           "Version:",IDC_STATIC,15,41,27,8
     EDITTEXT        IDC_VERSION,44,41,183,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
     LTEXT           "Image File Name:",IDC_STATIC,15,55,56,8
-    EDITTEXT        IDC_FILENAME,14,65,212,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_FILENAME,15,65,189,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Command Line:",IDC_STATIC,13,103,50,8
     EDITTEXT        IDC_CMDLINE,78,101,147,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Current Directory:",IDC_STATIC,13,119,60,8
@@ -357,7 +357,7 @@ BEGIN
     LTEXT           "PEB Address:",IDC_STATIC,14,151,44,8
     EDITTEXT        IDC_PEBADDRESS,65,149,160,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Parent:",IDC_STATIC,13,167,25,8
-    EDITTEXT        IDC_PARENTPROCESS,65,165,160,12,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_PARENTPROCESS,65,165,139,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "DEP:",IDC_STATIC,13,183,16,8
     EDITTEXT        IDC_DEP,65,181,139,12,ES_AUTOHSCROLL | ES_READONLY
     LTEXT           "Protection:",IDC_STATIC,13,198,36,8
@@ -366,6 +366,8 @@ BEGIN
     LTEXT           "32-bit",IDC_PROCESSTYPETEXT,67,219,20,8,NOT WS_VISIBLE
     PUSHBUTTON      "Edit",IDC_EDITPROTECTION,208,195,17,15,BS_BITMAP | WS_DISABLED
     PUSHBUTTON      "Edit",IDC_EDITDEP,208,179,17,15,BS_BITMAP | WS_DISABLED
+    PUSHBUTTON      "View",IDC_VIEWPARENTPROCESS,208,163,17,15,BS_BITMAP
+    PUSHBUTTON      "Open",IDC_OPENFILENAME,208,64,17,15,BS_BITMAP
 END
 
 IDD_PROCMODULES DIALOGEX 0, 0, 240, 260
@@ -1168,6 +1170,9 @@ END
 IDB_CROSS               BITMAP                  "resources\\cross.bmp"
 IDB_TICK                BITMAP                  "resources\\tick.bmp"
 IDB_COGEDIT             BITMAP                  "resources\\cog_edit.bmp"
+IDB_PENCIL              BITMAP                  "resources\\pencil.bmp"
+IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
+IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
