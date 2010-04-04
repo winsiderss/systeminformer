@@ -134,6 +134,8 @@
 #define IDC_BUTTON1                     1079
 #define IDC_LINKEDTOKEN                 1079
 #define IDC_EDITPROTECTION              1079
+#define IDC_EDITPROTECTION2             1080
+#define IDC_EDITDEP                     1080
 #define IDC_LIMITS                      1083
 #define IDC_SIGNALED                    1084
 #define IDC_SET                         1085

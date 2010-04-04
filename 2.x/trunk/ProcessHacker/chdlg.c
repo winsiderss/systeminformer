@@ -238,6 +238,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     {
                         PPH_STRING_BUILDER savedChoices;
                         ULONG i;
+                        ULONG choicesToSave = PH_CHOICE_DIALOG_SAVED_CHOICES;
                         PPH_STRING choice;
 
                         savedChoices = PhCreateStringBuilder(100);
@@ -247,12 +248,21 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         PhStringBuilderAppend(savedChoices, selectedChoice);
                         PhStringBuilderAppendChar(savedChoices, '\n');
 
-                        for (i = 1; i < PH_CHOICE_DIALOG_SAVED_CHOICES; i++)
+                        for (i = 1; i < choicesToSave; i++)
                         {
                             choice = PhGetComboBoxString(context->ComboBoxHandle, i);
 
                             if (!choice)
                                 break;
+
+                            // Don't save the choice if it's the same as the one 
+                            // entered by the user.
+                            if (PhStringEquals(choice, selectedChoice, FALSE))
+                            {
+                                PhDereferenceObject(choice);
+                                choicesToSave++; // useless for now, but may be needed in the future
+                                continue;
+                            }
 
                             PhStringBuilderAppend(savedChoices, choice);
                             PhDereferenceObject(choice);

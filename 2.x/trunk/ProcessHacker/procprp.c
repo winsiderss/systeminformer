@@ -516,6 +516,62 @@ PWSTR PhpGetStringOrNa(
         return L"N/A";
 }
 
+VOID PhpUpdateProcessDep(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    HANDLE processHandle;
+    ULONG depStatus;
+
+#ifdef _M_X64
+    if (ProcessItem->IsWow64)
+#else
+    if (TRUE)
+#endif
+    {
+        SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION,
+            ProcessItem->ProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhGetProcessDepStatus(processHandle, &depStatus)))
+            {
+                PPH_STRING depString;
+
+                if (depStatus & PH_PROCESS_DEP_ENABLED)
+                    depString = PhaCreateString(L"Enabled");
+                else
+                    depString = PhaCreateString(L"Disabled");
+
+                if ((depStatus & PH_PROCESS_DEP_ENABLED) &&
+                    (depStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED))
+                {
+                    depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
+                }
+
+                if (depStatus & PH_PROCESS_DEP_PERMANENT)
+                {
+                    depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
+                }
+
+                SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_EDITDEP), !(depStatus & PH_PROCESS_DEP_PERMANENT));
+            }
+
+            NtClose(processHandle);
+            processHandle = NULL;
+        }
+    }
+    else
+    {
+        SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
+    }
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -540,11 +596,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             PROCESS_BASIC_INFORMATION basicInfo;
             SYSTEMTIME startTime;
             CLIENT_ID clientId;
-            ULONG depStatus;
             BOOLEAN isProtected;
 
-            SendMessage(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), BM_SETIMAGE, IMAGE_BITMAP,
-                (LPARAM)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_COGEDIT), IMAGE_BITMAP, 0, 0, LR_SHARED)); 
+            {
+                HBITMAP cogEdit;
+
+                cogEdit = LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDB_COGEDIT), IMAGE_BITMAP, 0, 0, LR_SHARED);
+                SendMessage(GetDlgItem(hwndDlg, IDC_EDITDEP), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)cogEdit);
+                SendMessage(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), BM_SETIMAGE, IMAGE_BITMAP, (LPARAM)cogEdit);
+            }
 
             // File
 
@@ -626,50 +686,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // DEP
 
-#ifdef _M_X64
-            if (processItem->IsWow64)
-#else
-            if (TRUE)
-#endif
-            {
-                SetDlgItemText(hwndDlg, IDC_DEP, L"N/A");
-
-                if (NT_SUCCESS(PhOpenProcess(
-                    &processHandle,
-                    PROCESS_QUERY_INFORMATION,
-                    processItem->ProcessId
-                    )))
-                {
-                    if (NT_SUCCESS(PhGetProcessDepStatus(processHandle, &depStatus)))
-                    {
-                        PPH_STRING depString;
-
-                        if (depStatus & PH_PROCESS_DEP_ENABLED)
-                            depString = PhaCreateString(L"Enabled");
-                        else
-                            depString = PhaCreateString(L"Disabled");
-
-                        if (depStatus & PH_PROCESS_DEP_PERMANENT)
-                        {
-                            depString = PhaConcatStrings2(depString->Buffer, L", Permanent");
-                        }
-
-                        if (depStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED)
-                        {
-                            depString = PhaConcatStrings2(depString->Buffer, L", DEP-ATL thunk emulation disabled");
-                        }
-
-                        SetDlgItemText(hwndDlg, IDC_DEP, depString->Buffer);
-                    }
-
-                    NtClose(processHandle);
-                    processHandle = NULL;
-                }
-            }
-            else
-            {
-                SetDlgItemText(hwndDlg, IDC_DEP, L"Enabled, Permanent");
-            }
+            PhpUpdateProcessDep(hwndDlg, processItem);
 
             // PEB address
 
@@ -702,27 +719,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                         EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
-                else
+                else if (processHandle)
                 {
-                    HANDLE processHandle;
                     PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
 
-                    if (NT_SUCCESS(PhOpenProcess(
-                        &processHandle,
-                        ProcessQueryAccess,
-                        processItem->ProcessId
+                    if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(
+                        processHandle,
+                        &extendedBasicInfo
                         )))
                     {
-                        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(
-                            processHandle,
-                            &extendedBasicInfo
-                            )))
-                        {
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION,
-                                extendedBasicInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
-                        }
-
-                        NtClose(processHandle);
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION,
+                            extendedBasicInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
                     }
                 }
             }
@@ -779,6 +786,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITPROTECTION),
@@ -802,6 +811,12 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             switch (id)
             {
+            case IDC_EDITDEP:
+                {
+                    if (PhUiSetDepStatusProcess(hwndDlg, processItem))
+                        PhpUpdateProcessDep(hwndDlg, processItem);
+                }
+                break;
             case IDC_EDITPROTECTION:
                 {
                     if (PhUiSetProtectionProcess(hwndDlg, processItem))

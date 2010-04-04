@@ -1589,6 +1589,70 @@ NTSTATUS PhSetProcessDepStatus(
     return PhSetProcessExecuteFlags(ProcessHandle, executeFlags);
 }
 
+NTSTATUS PhSetProcessDepStatusInvasive(
+    __in HANDLE ProcessHandle,
+    __in ULONG DepStatus,
+    __in ULONG Timeout
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+    PVOID setProcessDepPolicy;
+    ULONG flags;
+
+    setProcessDepPolicy = PhGetProcAddress(L"kernel32.dll", "SetProcessDEPPolicy");
+
+    if (!setProcessDepPolicy)
+        return STATUS_NOT_SUPPORTED;
+
+    flags = 0;
+
+    if (DepStatus & PH_PROCESS_DEP_ENABLED)
+        flags |= PROCESS_DEP_ENABLE;
+    if (DepStatus & PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED)
+        flags |= PROCESS_DEP_DISABLE_ATL_THUNK_EMULATION;
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        status = RtlCreateUserThread(
+            ProcessHandle,
+            NULL,
+            FALSE,
+            0,
+            0,
+            0,
+            (PUSER_THREAD_START_ROUTINE)setProcessDepPolicy,
+            (PVOID)flags,
+            &threadHandle,
+            NULL
+            );
+    }
+    else
+    {
+        if (!(threadHandle = CreateRemoteThread(
+            ProcessHandle,
+            NULL,
+            0,
+            (PTHREAD_START_ROUTINE)setProcessDepPolicy,
+            (PVOID)flags,
+            0,
+            NULL
+            )))
+        {
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Wait for the thread to finish.
+    WaitForSingleObject(threadHandle, Timeout);
+    NtClose(threadHandle);
+
+    return status;
+}
+
 /**
  * Causes a process to load a DLL.
  *
