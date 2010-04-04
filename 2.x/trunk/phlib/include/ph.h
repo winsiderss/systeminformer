@@ -5,6 +5,13 @@
 #include <stdarg.h>
 #include <dltmgr.h>
 
+// data
+
+#ifndef DATA_PRIVATE
+extern WCHAR *PhKThreadStateNames[MaximumThreadState];
+extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
+#endif
+
 // native
 
 /** The PID of the idle process. */
@@ -1589,6 +1596,18 @@ PPH_STRING PhFormatTime(
     __in_opt PSYSTEMTIME Time,
     __in_opt PWSTR Format
     );
+
+FORCEINLINE PPH_STRING PhaFormatDateTime(
+    __in_opt PSYSTEMTIME DateTime
+    )
+{
+    return PhaConcatStrings(
+        3,
+        ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(DateTime, NULL)))->Buffer,
+        L" ",
+        ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(DateTime, NULL)))->Buffer
+        );
+}
 
 PPH_STRING PhFormatUInt64(
     __in ULONG64 Value,

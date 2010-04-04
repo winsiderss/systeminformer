@@ -66,6 +66,21 @@
 #define __assumeLocked
 
 /**
+ * Indicates that a function assumes the specified 
+ * number of references are available for the object.
+ *
+ * \remarks Usually functions reference objects if they 
+ * store them for later usage; this annotation specifies 
+ * that the caller must supply these extra references 
+ * itself. In effect these references are "transferred" 
+ * to the function and must not be used. E.g. if you 
+ * create an object and immediately call a function 
+ * with __assumeRefs(1), you may no longer use the object 
+ * since that one reference you held is no longer yours.
+ */
+#define __assumeRefs(count)
+
+/**
  * Indicates that a function may raise a software
  * exception.
  *

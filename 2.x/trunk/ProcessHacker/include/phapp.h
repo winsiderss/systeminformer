@@ -266,7 +266,7 @@ VOID PhRefreshProcessPropContext(
 
 BOOLEAN PhAddProcessPropPage(
     __inout PPH_PROCESS_PROPCONTEXT PropContext,
-    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     );
 
 BOOLEAN PhAddProcessPropPage2(

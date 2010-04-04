@@ -235,12 +235,19 @@ typedef struct _PH_THREAD_ITEM
 {
     HANDLE ThreadId;
 
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+
     PH_UINT32_DELTA ContextSwitchesDelta;
     PH_UINT64_DELTA CyclesDelta;
     LONG Priority;
+    LONG BasePriority;
     ULONG64 StartAddress;
     PPH_STRING StartAddressString;
+    PPH_STRING StartAddressFileName;
     PH_SYMBOL_RESOLVE_LEVEL StartAddressResolveLevel;
+    KTHREAD_STATE State;
     KWAIT_REASON WaitReason;
     LONG PriorityWin32;
     PPH_STRING PriorityWin32String;
