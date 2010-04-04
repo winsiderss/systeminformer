@@ -138,7 +138,6 @@
 #define IDC_LINKEDTOKEN                 1079
 #define IDC_EDITPROTECTION              1079
 #define IDC_EDITDEP                     1080
-#define IDC_INSPECTPARENT               1081
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
 #define IDC_LIMITS                      1083
@@ -188,7 +187,9 @@
 #define IDC_CPU18                       1117
 #define IDC_CHOICEUSER                  1117
 #define IDC_CPU19                       1118
+#define IDC_HIDEUNNAMEDHANDLES          1118
 #define IDC_CPU20                       1119
+#define IDC_HIDEFREEREGIONS             1119
 #define IDC_CPU21                       1120
 #define IDC_CPU22                       1121
 #define IDC_CPU23                       1122
@@ -325,7 +326,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         40133
-#define _APS_NEXT_CONTROL_VALUE         1118
+#define _APS_NEXT_CONTROL_VALUE         1120
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif
