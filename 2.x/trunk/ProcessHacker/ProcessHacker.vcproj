@@ -597,6 +597,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resources\folder.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\magnifier.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\pencil.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\ProcessHacker.ico"
 				>
 			</File>

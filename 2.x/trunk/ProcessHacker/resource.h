@@ -52,6 +52,9 @@
 #define IDD_PROCMEMORY                  154
 #define IDD_CHOOSE                      155
 #define IDB_COGEDIT                     156
+#define IDB_PENCIL                      157
+#define IDB_FOLDER                      158
+#define IDB_MAGNIFIER                   159
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -134,8 +137,10 @@
 #define IDC_BUTTON1                     1079
 #define IDC_LINKEDTOKEN                 1079
 #define IDC_EDITPROTECTION              1079
-#define IDC_EDITPROTECTION2             1080
 #define IDC_EDITDEP                     1080
+#define IDC_INSPECTPARENT               1081
+#define IDC_VIEWPARENTPROCESS           1081
+#define IDC_OPENFILENAME                1082
 #define IDC_LIMITS                      1083
 #define IDC_SIGNALED                    1084
 #define IDC_SET                         1085
@@ -318,7 +323,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        157
+#define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         40133
 #define _APS_NEXT_CONTROL_VALUE         1118
 #define _APS_NEXT_SYMED_VALUE           111

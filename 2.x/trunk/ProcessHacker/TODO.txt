@@ -5,7 +5,6 @@
 * Network provider
 
 * Process properties:
-	* Complete the General tab (partially done)
 	* Memory provider
 
 * Statistics collection (partially done)

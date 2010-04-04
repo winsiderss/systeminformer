@@ -131,6 +131,8 @@ VOID PhShellExecuteUserString(
     __in BOOLEAN UseShellExecute
     );
 
+#define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
+
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
     __in HWND hwndDlg,
     __in UINT uMsg,
