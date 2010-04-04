@@ -189,18 +189,38 @@
 #define IDC_CPU19                       1118
 #define IDC_HIDEUNNAMEDHANDLES          1118
 #define IDC_CPU20                       1119
-#define IDC_HIDEFREEREGIONS             1119
 #define IDC_CPU21                       1120
+#define IDC_STARTMODULE                 1120
 #define IDC_CPU22                       1121
+#define IDC_OPENSTARTMODULE             1121
 #define IDC_CPU23                       1122
+#define IDC_KERNELTIME                  1122
 #define IDC_CPU24                       1123
+#define IDC_USERTIME                    1123
 #define IDC_CPU25                       1124
+#define IDC_CONTEXTSWITCHES             1124
 #define IDC_CPU26                       1125
+#define IDC_CYCLES                      1125
 #define IDC_CPU27                       1126
+#define IDC_PRIORITY                    1126
 #define IDC_CPU28                       1127
+#define IDC_BASEPRIORITY                1127
 #define IDC_CPU29                       1128
+#define IDC_IOPRIORITY                  1128
 #define IDC_CPU30                       1129
+#define IDC_PAGEPRIORITY                1129
 #define IDC_CPU31                       1130
+#define IDC_STATICBL1                   1130
+#define IDC_STATICBL2                   1131
+#define IDC_STATICBL3                   1132
+#define IDC_STATICBL4                   1133
+#define IDC_STATICBL5                   1134
+#define IDC_STATICBL6                   1135
+#define IDC_STATICBL7                   1136
+#define IDC_STATICBL8                   1137
+#define IDC_STATICBL9                   1138
+#define IDC_STATICBL10                  1139
+#define IDC_STATICBL11                  1140
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -326,7 +346,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         40133
-#define _APS_NEXT_CONTROL_VALUE         1120
+#define _APS_NEXT_CONTROL_VALUE         1141
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

@@ -639,7 +639,7 @@ PPH_STRING PhFormatUInt64(
 
     PhPrintUInt64(string, Value);
 
-    return PhFormatDecimal(string, 0, TRUE);
+    return PhFormatDecimal(string, 0, GroupDigits);
 }
 
 PPH_STRING PhFormatDecimal(

@@ -1,6 +1,20 @@
 #ifndef NTKEAPI_H
 #define NTKEAPI_H
 
+typedef enum _KTHREAD_STATE
+{
+    Initialized,
+    Ready,
+    Running,
+    Standby,
+    Terminated,
+    Waiting,
+    Transition,
+    DeferredReady,
+    GateWait,
+    MaximumThreadState
+} KTHREAD_STATE, *PKTHREAD_STATE;
+
 typedef enum _KWAIT_REASON
 {
     Executive = 0,

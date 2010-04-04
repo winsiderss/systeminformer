@@ -348,6 +348,7 @@ VOID PhpThreadItemDeleteProcedure(
 
     if (threadItem->ThreadHandle) NtClose(threadItem->ThreadHandle);
     if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
+    if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->PriorityWin32String) PhDereferenceObject(threadItem->PriorityWin32String);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
     if (threadItem->ContextSwitchesDeltaString) PhDereferenceObject(threadItem->ContextSwitchesDeltaString);
@@ -451,7 +452,7 @@ NTSTATUS PhpThreadQueryWorker(
         data->ThreadProvider->SymbolProvider,
         data->ThreadItem->StartAddress,
         &data->StartAddressResolveLevel,
-        NULL,
+        &data->ThreadItem->StartAddressFileName,
         NULL,
         NULL
         );
@@ -757,8 +758,14 @@ VOID PhThreadProviderUpdate(
 
             threadItem = PhCreateThreadItem(thread->ClientId.UniqueThread);
 
+            threadItem->CreateTime = thread->CreateTime;
+            threadItem->KernelTime = thread->KernelTime;
+            threadItem->UserTime = thread->UserTime;
+
             PhUpdateDelta(&threadItem->ContextSwitchesDelta, thread->ContextSwitches);
             threadItem->Priority = thread->Priority;
+            threadItem->BasePriority = thread->BasePriority;
+            threadItem->State = (KTHREAD_STATE)thread->ThreadState;
             threadItem->WaitReason = thread->WaitReason;
 
             // Try to open a handle to the thread.
@@ -878,7 +885,13 @@ VOID PhThreadProviderUpdate(
             if (threadItem->JustResolved)
                 modified = TRUE;
 
+            threadItem->KernelTime = thread->KernelTime;
+            threadItem->UserTime = thread->UserTime;
+
             threadItem->Priority = thread->Priority;
+            threadItem->BasePriority = thread->BasePriority;
+
+            threadItem->State = (KTHREAD_STATE)thread->ThreadState;
 
             if (threadItem->WaitReason != thread->WaitReason)
             {
