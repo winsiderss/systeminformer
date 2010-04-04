@@ -1418,6 +1418,10 @@ VOID PhShellExploreFile(
         {
             SHOpenFolderAndSelectItems(item, 0, NULL, 0);
         }
+        else
+        {
+            PhShowError(hWnd, L"The location \"%s\" could not be found.", FileName);
+        }
     }
     else
     {
