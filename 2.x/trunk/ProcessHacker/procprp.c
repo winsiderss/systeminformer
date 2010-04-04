@@ -24,6 +24,7 @@
 #include <procprpp.h>
 #include <kph.h>
 #include <settings.h>
+#include <windowsx.h>
 
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
@@ -700,7 +701,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 SetDlgItemText(hwndDlg, IDC_PARENTPROCESS, ((PPH_STRING)PHA_DEREFERENCE(PhFormatString(
                     L"Non-existent process (%u)", (ULONG)processItem->ParentProcessId)))->Buffer);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_INSPECTPARENT), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
 
             // DEP
@@ -805,7 +806,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INSPECTPARENT),
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -2569,6 +2570,23 @@ COLORREF NTAPI PhpHandleColorFunction(
     return PhSysWindowColor;
 }
 
+VOID PhpAddHandleItem(
+    __in HWND ListViewHandle,
+    __in PPH_HANDLE_ITEM HandleItem
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhAddListViewItem(
+        ListViewHandle,
+        MAXINT,
+        PhGetString(HandleItem->TypeName),
+        HandleItem
+        );
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 1, PhGetString(HandleItem->BestObjectName));
+    PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, HandleItem->HandleString);
+}
+
 INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -2635,9 +2653,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 &handlesContext->UpdatedEventRegistration
                 );
             handlesContext->WindowHandle = hwndDlg;
+            handlesContext->HandleList = PhCreatePointerList(100);
             handlesContext->NeedsRedraw = FALSE;
             handlesContext->NeedsSort = FALSE;
             handlesContext->HideUnnamedHandles = !!PhGetIntegerSetting(L"HideUnnamedHandles");
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES),
+                handlesContext->HideUnnamedHandles ? BST_CHECKED : BST_UNCHECKED);
 
             // Initialize the list.
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
@@ -2688,6 +2710,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhDereferenceAllHandleItems(handlesContext->Provider);
 
             PhDereferenceObject(handlesContext->Provider);
+            PhDereferenceObject(handlesContext->HandleList);
             PhFree(handlesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -2768,6 +2791,62 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         PhShowHandleProperties(hwndDlg, processItem->ProcessId, handleItem);
                         PhDereferenceObject(handleItem);
                     }
+                }
+                break;
+            case IDC_HIDEUNNAMEDHANDLES:
+                {
+                    BOOLEAN hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
+                    ULONG enumerationKey;
+                    PPH_HANDLE_ITEM handleItem;
+
+                    handlesContext->HideUnnamedHandles = hide;
+
+                    SetCursor(LoadCursor(NULL, IDC_WAIT));
+                    ExtendedListView_SetRedraw(lvHandle, FALSE);
+
+                    if (!hide)
+                    {
+                        // Add all hidden handle items from the list.
+
+                        ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
+
+                        enumerationKey = 0;
+
+                        while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
+                        {
+                            if (PhIsStringNullOrEmpty(handleItem->BestObjectName))
+                            {
+                                PhpAddHandleItem(lvHandle, handleItem);
+                            }
+                        }
+
+                        ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+                        ExtendedListView_SortItems(lvHandle);
+                    }
+                    else
+                    {
+                        // Find all items without a name and remove them.
+
+                        ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
+
+                        enumerationKey = 0;
+
+                        while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
+                        {
+                            if (PhIsStringNullOrEmpty(handleItem->BestObjectName))
+                            {
+                                PhRemoveListViewItem(
+                                    lvHandle,
+                                    PhFindListViewItemByParam(lvHandle, -1, handleItem)
+                                    );
+                            }
+                        }
+
+                        ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
+                    }
+
+                    ExtendedListView_SetRedraw(lvHandle, TRUE);
+                    SetCursor(LoadCursor(NULL, IDC_ARROW));
                 }
                 break;
             }
@@ -2855,9 +2934,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
         break;
     case WM_PH_HANDLE_ADDED:
         {
-            INT lvItemIndex;
             ULONG runId = (ULONG)wParam;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+
+            PhAddPointerListItem(handlesContext->HandleList, handleItem);
 
             // If we're hiding unnamed handles and this handle doesn't 
             // have a name, don't add it.
@@ -2881,15 +2961,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             }
 
             if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
-            lvItemIndex = PhAddListViewItem(
-                lvHandle,
-                MAXINT,
-                PhGetString(handleItem->TypeName),
-                handleItem
-                );
+            PhpAddHandleItem(lvHandle, handleItem);
             if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, PhGetString(handleItem->BestObjectName));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, handleItem->HandleString);
 
             handlesContext->NeedsSort = TRUE;
         }
@@ -2912,6 +2985,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
     case WM_PH_HANDLE_REMOVED:
         {
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
+            HANDLE pointerHandle;
 
             if (!handlesContext->NeedsRedraw)
             {
@@ -2923,6 +2997,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 lvHandle,
                 PhFindListViewItemByParam(lvHandle, -1, handleItem)
                 );
+
+            if (pointerHandle = PhFindPointerListItem(handlesContext->HandleList, handleItem))
+                PhRemovePointerListItem(handlesContext->HandleList, pointerHandle);
+
             PhDereferenceObject(handleItem);
         }
         break;

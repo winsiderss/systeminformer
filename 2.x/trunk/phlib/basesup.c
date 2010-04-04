@@ -1790,6 +1790,32 @@ HANDLE PhAddPointerListItem(
     return PhpPointerListIndexToHandle(index);
 }
 
+BOOLEAN PhEnumPointerListEx(
+    __in PPH_POINTER_LIST PointerList,
+    __inout PULONG EnumerationKey,
+    __out PPVOID Pointer,
+    __out PHANDLE PointerHandle
+    )
+{
+    while (*EnumerationKey < PointerList->NextEntry)
+    {
+        ULONG index = *EnumerationKey;
+        PVOID pointer = PointerList->Items[index];
+
+        (*EnumerationKey)++;
+
+        if (PH_IS_LIST_POINTER_VALID(pointer))
+        {
+            *Pointer = pointer;
+            *PointerHandle = PhpPointerListIndexToHandle(index);
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 /**
  * Locates a pointer in a pointer list.
  *
