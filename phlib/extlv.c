@@ -30,21 +30,6 @@
 // information except for the state image index 
 // value. This is conveniently 4 bits wide.
 
-typedef enum _PH_ITEM_STATE
-{
-    // The item is normal. Use the ItemColorFunction 
-    // to determine the color of the item.
-    NormalItemState = 0,
-    // The item is new. On the next tick, 
-    // change the state to NormalItemState. When an 
-    // item is in this state, highlight it in NewColor.
-    NewItemState,
-    // The item is being removed. On the next tick,
-    // delete the item. When an item is in this state, 
-    // highlight it in RemovingColor.
-    RemovingItemState
-} PH_ITEM_STATE;
-
 #define PH_GET_ITEM_STATE(State) (((State) & LVIS_STATEIMAGEMASK) >> 12)
 
 #define PH_STATE_TIMER 3
@@ -71,8 +56,8 @@ typedef struct _PH_EXTLV_CONTEXT
     ULONG HighlightingDuration;
     COLORREF NewColor;
     COLORREF RemovingColor;
-    PPH_GET_ITEM_COLOR ItemColorFunction;
-    PPH_GET_ITEM_FONT ItemFontFunction;
+    PPH_EXTLV_GET_ITEM_COLOR ItemColorFunction;
+    PPH_EXTLV_GET_ITEM_FONT ItemFontFunction;
     PPH_HASHTABLE TickHashtable;
 
     // Misc.
@@ -92,12 +77,6 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
-    );
-
-VOID PhpSetSortIcon(
-    __in HWND hwnd,
-    __in INT Index,
-    __in PH_SORT_ORDER Order
     );
 
 INT PhpExtendedListViewCompareFunc(
@@ -238,7 +217,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             context->SortOrder = AscendingSortOrder;
                         }
 
-                        PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+                        PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
                         ExtendedListView_SortItems(hwnd);
                     }
                 }
@@ -494,7 +473,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_INIT:
         {
-            PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+            PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
         }
         return TRUE;
     case ELVM_SETCOMPAREFUNCTION:
@@ -520,12 +499,12 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:
         {
-            context->ItemColorFunction = (PPH_GET_ITEM_COLOR)lParam;
+            context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;
         }
         return TRUE;
     case ELVM_SETITEMFONTFUNCTION:
         {
-            context->ItemFontFunction = (PPH_GET_ITEM_FONT)lParam;
+            context->ItemFontFunction = (PPH_EXTLV_GET_ITEM_FONT)lParam;
         }
         return TRUE;
     case ELVM_SETNEWCOLOR:
@@ -561,7 +540,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             context->SortColumn = (ULONG)wParam;
             context->SortOrder = (PH_SORT_ORDER)lParam;
 
-            PhpSetSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+            PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
         }
         return TRUE;
     case ELVM_SETSTATEHIGHLIGHTING:
@@ -604,7 +583,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
-static VOID PhpSetSortIcon(
+VOID PhSetHeaderSortIcon(
     __in HWND hwnd,
     __in INT Index,
     __in PH_SORT_ORDER Order

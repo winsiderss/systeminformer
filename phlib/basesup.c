@@ -517,7 +517,8 @@ VOID PhResetEvent(
  *
  * \param InputBuffer A pointer to the input string.
  * \param InputCount The maximum number of characters 
- * to copy. Specify -1 for no limit.
+ * to copy, not including the null terminator. Specify 
+ * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
  * \param OutputCount The number of characters in the 
  * output buffer, including the null terminator.
@@ -586,7 +587,8 @@ BOOLEAN PhCopyAnsiStringZ(
  *
  * \param InputBuffer A pointer to the input string.
  * \param InputCount The maximum number of characters 
- * to copy. Specify -1 for no limit.
+ * to copy, not including the null terminator. Specify 
+ * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
  * \param OutputCount The number of characters in the 
  * output buffer, including the null terminator.
@@ -655,7 +657,8 @@ BOOLEAN PhCopyUnicodeStringZ(
  *
  * \param InputBuffer A pointer to the input string.
  * \param InputCount The maximum number of characters 
- * to copy. Specify -1 for no limit.
+ * to copy, not including the null terminator. Specify 
+ * -1 for no limit.
  * \param OutputBuffer A pointer to the output buffer.
  * \param OutputCount The number of characters in the 
  * output buffer, including the null terminator.
@@ -1426,12 +1429,15 @@ VOID PhStringBuilderInsertEx(
         PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + Length);
     }
 
-    // Create some space for the string.
-    memmove(
-        &StringBuilder->String->Buffer[Index + Length / sizeof(WCHAR)],
-        &StringBuilder->String->Buffer[Index],
-        Length
-        );
+    if (Index * sizeof(WCHAR) < StringBuilder->String->Length)
+    {
+        // Create some space for the string.
+        memmove(
+            &StringBuilder->String->Buffer[Index + Length / sizeof(WCHAR)],
+            &StringBuilder->String->Buffer[Index],
+            StringBuilder->String->Length - Index * sizeof(WCHAR)
+            );
+    }
 
     // Copy the new string.
     memcpy(
@@ -1534,6 +1540,39 @@ VOID PhAddListItem(
 }
 
 /**
+ * Adds items to a list.
+ *
+ * \param List A list object.
+ * \param Items An array containing the items to add.
+ * \param Count The number of items to add.
+ */
+VOID PhAddListItems(
+    __inout PPH_LIST List,
+    __in PPVOID Items,
+    __in ULONG Count
+    )
+{
+    // See if we need to resize the list.
+    if (List->AllocatedCount < List->Count + Count)
+    {
+        List->AllocatedCount *= 2;
+
+        if (List->AllocatedCount < List->Count + Count)
+            List->AllocatedCount = List->Count + Count;
+
+        List->Items = PhReAlloc(List->Items, List->AllocatedCount * sizeof(PVOID));
+    }
+
+    memcpy(
+        &List->Items[List->Count],
+        Items,
+        Count * sizeof(PVOID)
+        );
+
+    List->Count += Count;
+}
+
+/**
  * Clears a list.
  *
  * \param List A list object.
@@ -1572,13 +1611,75 @@ ULONG PhIndexOfListItem(
 }
 
 /**
+ * Inserts an item into a list.
+ *
+ * \param List A list object.
+ * \param Index The index at which to insert the item.
+ * \param Item The item to add.
+ */
+VOID PhInsertListItem(
+    __inout PPH_LIST List,
+    __in ULONG Index,
+    __in PVOID Item
+    )
+{
+    PhInsertListItems(List, Index, &Item, 1);
+}
+
+/**
+ * Inserts items into a list.
+ *
+ * \param List A list object.
+ * \param Index The index at which to insert the items.
+ * \param Items An array containing the items to add.
+ * \param Count The number of items to add.
+ */
+VOID PhInsertListItems(
+    __inout PPH_LIST List,
+    __in ULONG Index,
+    __in PPVOID Items,
+    __in ULONG Count
+    )
+{
+    // See if we need to resize the list.
+    if (List->AllocatedCount < List->Count + Count)
+    {
+        List->AllocatedCount *= 2;
+
+        if (List->AllocatedCount < List->Count + Count)
+            List->AllocatedCount = List->Count + Count;
+
+        List->Items = PhReAlloc(List->Items, List->AllocatedCount * sizeof(PVOID));
+    }
+
+    if (Index < List->Count)
+    {
+        // Shift the existing items backward.
+        memmove(
+            &List->Items[Index + Count],
+            &List->Items[Index],
+            (List->Count - Index) * sizeof(PVOID)
+            );
+    }
+
+    // Copy the new items into the list.
+    memcpy(
+        &List->Items[Index],
+        Items,
+        Count * sizeof(PVOID)
+        );
+
+    List->Count += Count;
+}
+
+/**
  * Removes an item from a list.
  *
  * \param List A list object.
  * \param Index The index of the item.
  */
 VOID PhRemoveListItem(
-    __in PPH_LIST List,
+    __inout PPH_LIST List,
     __in ULONG Index
     )
 {
@@ -1594,7 +1695,7 @@ VOID PhRemoveListItem(
  * \param Count The number of items to remove.
  */
 VOID PhRemoveListItems(
-    __in PPH_LIST List,
+    __inout PPH_LIST List,
     __in ULONG StartIndex,
     __in ULONG Count
     )
@@ -1603,7 +1704,7 @@ VOID PhRemoveListItems(
     memmove(
         &List->Items[StartIndex],
         &List->Items[StartIndex + Count],
-        List->Count - StartIndex - Count
+        (List->Count - StartIndex - Count) * sizeof(PVOID)
         );
 
     List->Count -= Count;
