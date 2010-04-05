@@ -2,6 +2,7 @@
 #define PHAPP_H
 
 #include <phgui.h>
+#include <treelist.h>
 #include <providers.h>
 #include "resource.h"
 
@@ -65,6 +66,42 @@ VOID PhInitializeKph();
 BOOLEAN PhInitializeAppSystem();
 
 ATOM PhRegisterWindowClass();
+
+// proctree
+
+// Columns
+#define PHTLC_NAME 0
+#define PHTLC_PID 1
+#define PHTLC_USERNAME 2
+
+typedef struct _PH_PROCESS_NODE
+{
+    PH_TREELIST_NODE Node;
+
+    HANDLE ProcessId;
+    PPH_PROCESS_ITEM ProcessItem;
+
+    struct _PH_PROCESS_NODE *Parent;
+    PPH_LIST Children;
+} PH_PROCESS_NODE, *PPH_PROCESS_NODE;
+
+VOID PhProcessTreeListInitialization();
+
+VOID PhInitializeProcessTreeList(
+    __in HWND hwnd
+    );
+
+VOID PhCreateProcessNode(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+PPH_PROCESS_NODE PhFindProcessNode(
+   __in HANDLE ProcessId
+   );
+
+VOID PhRemoveProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
 
 // support
 
