@@ -404,13 +404,61 @@ FORCEINLINE VOID PhResizingMinimumSize(
 
 // extlv
 
-typedef COLORREF (NTAPI *PPH_GET_ITEM_COLOR)(
+#define PH_ALIGN_CENTER 0x0
+#define PH_ALIGN_LEFT 0x1
+#define PH_ALIGN_RIGHT 0x2
+#define PH_ALIGN_TOP 0x4
+#define PH_ALIGN_BOTTOM 0x8
+
+FORCEINLINE ULONG PhToListViewColumnAlign(
+    __in ULONG Align
+    )
+{
+    switch (Align)
+    {
+    case PH_ALIGN_LEFT:
+        return LVCFMT_LEFT;
+    case PH_ALIGN_RIGHT:
+        return LVCFMT_RIGHT;
+    default:
+        return LVCFMT_CENTER;
+    }
+}
+
+FORCEINLINE ULONG PhFromListViewColumnAlign(
+    __in ULONG Format
+    )
+{
+    if (Format & LVCFMT_LEFT)
+        return PH_ALIGN_LEFT;
+    else if (Format & LVCFMT_RIGHT)
+        return PH_ALIGN_RIGHT;
+    else
+        return PH_ALIGN_CENTER;
+}
+
+typedef enum _PH_ITEM_STATE
+{
+    // The item is normal. Use the ItemColorFunction 
+    // to determine the color of the item.
+    NormalItemState = 0,
+    // The item is new. On the next tick, 
+    // change the state to NormalItemState. When an 
+    // item is in this state, highlight it in NewColor.
+    NewItemState,
+    // The item is being removed. On the next tick,
+    // delete the item. When an item is in this state, 
+    // highlight it in RemovingColor.
+    RemovingItemState
+} PH_ITEM_STATE;
+
+typedef COLORREF (NTAPI *PPH_EXTLV_GET_ITEM_COLOR)(
     __in INT Index,
     __in PVOID Param,
     __in PVOID Context
     );
 
-typedef HFONT (NTAPI *PPH_GET_ITEM_FONT)(
+typedef HFONT (NTAPI *PPH_EXTLV_GET_ITEM_FONT)(
     __in INT Index,
     __in PVOID Param,
     __in PVOID Context
@@ -418,6 +466,12 @@ typedef HFONT (NTAPI *PPH_GET_ITEM_FONT)(
 
 VOID PhSetExtendedListView(
     __in HWND hWnd
+    );
+
+VOID PhSetHeaderSortIcon(
+    __in HWND hwnd,
+    __in INT Index,
+    __in PH_SORT_ORDER Order
     );
 
 // max 1117

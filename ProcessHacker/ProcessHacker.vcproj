@@ -485,6 +485,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\proctree.c"
+				>
+			</File>
+			<File
 				RelativePath=".\runas.c"
 				>
 			</File>

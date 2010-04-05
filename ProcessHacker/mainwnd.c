@@ -80,7 +80,7 @@ VOID PhpShowProcessProperties(
     );
 
 VOID PhMainWndOnProcessAdded(
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
     );
 
 VOID PhMainWndOnProcessModified(
@@ -1050,7 +1050,6 @@ LRESULT CALLBACK PhMainWndProc(
             PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
 
             PhMainWndOnProcessAdded(processItem);
-            PhDereferenceObject(processItem);
         }
         break;
     case WM_PH_PROCESS_MODIFIED:
@@ -1434,6 +1433,9 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"PID");
 
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
+
+    PhProcessTreeListInitialization();
+    PhInitializeProcessTreeList(ProcessTreeListHandle);
 
     PhSetExtendedListView(ServiceListViewHandle);
     ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
@@ -2010,13 +2012,10 @@ VOID PhMainWndServiceListViewOnNotify(
 }
 
 VOID PhMainWndOnProcessAdded(
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
     INT lvItemIndex;
-
-    // Add a reference for the pointer being stored in the list view item.
-    PhReferenceObject(ProcessItem);
 
     lvItemIndex = PhAddListViewItem(
         ProcessListViewHandle,
@@ -2028,6 +2027,8 @@ VOID PhMainWndOnProcessAdded(
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(ProcessItem->UserName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(ProcessItem->FileName));
     PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
+
+    PhCreateProcessNode(ProcessItem);
 }
 
 VOID PhMainWndOnProcessModified(
@@ -2050,11 +2051,13 @@ VOID PhMainWndOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
+    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+
     PhRemoveListViewItem(
         ProcessListViewHandle,
         PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem)
         );
-    // Remove the reference we added in PhMainWndOnProcessAdded.
+    // Remove the reference for the process item being displayed.
     PhDereferenceObject(ProcessItem);
 }
 

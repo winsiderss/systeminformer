@@ -1027,8 +1027,14 @@ PPH_LIST PhCreateList(
     );
 
 VOID PhAddListItem(
-    __in PPH_LIST List,
+    __inout PPH_LIST List,
     __in PVOID Item
+    );
+
+VOID PhAddListItems(
+    __inout PPH_LIST List,
+    __in PPVOID Items,
+    __in ULONG Count
     );
 
 VOID PhClearList(
@@ -1041,13 +1047,26 @@ ULONG PhIndexOfListItem(
     __in PVOID Item
     );
 
+VOID PhInsertListItem(
+    __inout PPH_LIST List,
+    __in ULONG Index,
+    __in PVOID Item
+    );
+
+VOID PhInsertListItems(
+    __inout PPH_LIST List,
+    __in ULONG Index,
+    __in PPVOID Items,
+    __in ULONG Count
+    );
+
 VOID PhRemoveListItem(
-    __in PPH_LIST List,
+    __inout PPH_LIST List,
     __in ULONG Index
     );
 
 VOID PhRemoveListItems(
-    __in PPH_LIST List,
+    __inout PPH_LIST List,
     __in ULONG StartIndex,
     __in ULONG Count
     );
