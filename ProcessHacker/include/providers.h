@@ -9,6 +9,7 @@ extern PPH_OBJECT_TYPE PhProcessItemType;
 extern PH_CALLBACK PhProcessAddedEvent;
 extern PH_CALLBACK PhProcessModifiedEvent;
 extern PH_CALLBACK PhProcessRemovedEvent;
+extern PH_CALLBACK PhProcessesUpdatedEvent;
 #endif
 
 #define PH_INTEGRITY_STR_LEN 10

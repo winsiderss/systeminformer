@@ -84,7 +84,16 @@ VOID PhpCustomDrawPrePaintSubItem(
     __in LPNMLVCUSTOMDRAW CustomDraw
     );
 
-BOOLEAN PhpIsNodeLeaf(
+VOID PhpTreeListTick(
+    __in PPHP_TREELIST_CONTEXT Context
+    );
+
+BOOLEAN PhpReferenceTreeListNode(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node
+    );
+
+BOOLEAN PhpDereferenceTreeListNode(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node
     );
@@ -94,6 +103,11 @@ BOOLEAN PhpGetNodeChildren(
     __in PPH_TREELIST_NODE Node,
     __out PPH_TREELIST_NODE **Children,
     __out PULONG NumberOfChildren
+    );
+
+BOOLEAN PhpIsNodeLeaf(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node
     );
 
 BOOLEAN PhpGetNodeText(

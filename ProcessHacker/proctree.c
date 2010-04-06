@@ -41,7 +41,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in PVOID Context
     );
 
-static HANDLE TreeListHandle;
+static HANDLE ProcessTreeListHandle;
+static ULONG ProcessTreeListSortColumn;
+static PH_SORT_ORDER ProcessTreeListSortOrder;
+
 static PPH_HASHTABLE ProcessNodeHashtable;
 static PPH_LIST ProcessNodeList;
 static PPH_LIST ProcessNodeRootList;
@@ -65,7 +68,7 @@ VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     )
 {
-    TreeListHandle = hwnd;
+    ProcessTreeListHandle = hwnd;
 
     TreeList_SetCallback(hwnd, PhpProcessTreeListCallback);
     TreeList_SetPlusMinus(
@@ -74,9 +77,12 @@ VOID PhInitializeProcessTreeList(
         PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MINUS), IMAGE_BITMAP)
         );
 
-    PhAddTreeListColumn(hwnd, 0, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeListColumn(hwnd, 1, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, 2, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
+
+    TreeList_SetTriState(hwnd, TRUE);
+    TreeList_SetSort(hwnd, 0, NoSortOrder);
 }
 
 static BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
@@ -151,7 +157,7 @@ VOID PhCreateProcessNode(
 
     PhAddListItem(ProcessNodeList, processNode);
 
-    TreeList_NodesStructured(TreeListHandle);
+    TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
 PPH_PROCESS_NODE PhFindProcessNode(
@@ -207,7 +213,7 @@ VOID PhRemoveProcessNode(
 
     PhDereferenceObject(ProcessNode->Children);
 
-    TreeList_NodesStructured(TreeListHandle);
+    TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
 VOID PhUpdateProcessNode(
@@ -216,8 +222,44 @@ VOID PhUpdateProcessNode(
 {
     memset(ProcessNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
-    TreeList_UpdateNode(TreeListHandle, &ProcessNode->Node);
+    TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
+
+#define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
+
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeListCompare##Column( \
+    __in const void *_elem1, \
+    __in const void *_elem2 \
+    ) \
+{ \
+    PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)_elem1; \
+    PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)_elem2; \
+    PPH_PROCESS_ITEM processItem1 = node1->ProcessItem; \
+    PPH_PROCESS_ITEM processItem2 = node2->ProcessItem; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    return PhModifySort(sortResult, ProcessTreeListSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Pid)
+{
+    // Use signed int so DPCs and Interrupts are placed above System Idle Process.
+    sortResult = intcmp((LONG)processItem1->ProcessId, (LONG)processItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserName)
+{
+    sortResult = wcsicmp2(PhGetString(processItem1->UserName), PhGetString(processItem2->UserName));
+}
+END_SORT_FUNCTION
 
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
@@ -237,15 +279,43 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
             node = (PPH_PROCESS_NODE)getChildren->Node;
 
-            if (!node)
+            if (ProcessTreeListSortOrder == NoSortOrder)
             {
-                getChildren->Children = (PPH_TREELIST_NODE *)ProcessNodeRootList->Items;
-                getChildren->NumberOfChildren = ProcessNodeRootList->Count;
+                if (!node)
+                {
+                    getChildren->Children = (PPH_TREELIST_NODE *)ProcessNodeRootList->Items;
+                    getChildren->NumberOfChildren = ProcessNodeRootList->Count;
+                }
+                else
+                {
+                    getChildren->Children = (PPH_TREELIST_NODE *)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
             }
             else
             {
-                getChildren->Children = (PPH_TREELIST_NODE *)node->Children->Items;
-                getChildren->NumberOfChildren = node->Children->Count;
+                if (!node)
+                {
+                    static PVOID sortFunctions[] =
+                    {
+                        SORT_FUNCTION(Name),
+                        SORT_FUNCTION(Pid),
+                        SORT_FUNCTION(UserName)
+                    };
+                    int (__cdecl *sortFunction)(const void *, const void *);
+
+                    if (ProcessTreeListSortColumn < PHTLC_MAXIMUM)
+                        sortFunction = sortFunctions[ProcessTreeListSortColumn];
+
+                    if (sortFunction)
+                    {
+                        // Don't use PhSortList to avoid overhead.
+                        qsort(ProcessNodeList->Items, ProcessNodeList->Count, sizeof(PVOID), sortFunction);
+                    }
+
+                    getChildren->Children = (PPH_TREELIST_NODE *)ProcessNodeList->Items;
+                    getChildren->NumberOfChildren = ProcessNodeList->Count;
+                }
             }
         }
         return TRUE;
@@ -255,7 +325,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
             node = (PPH_PROCESS_NODE)isLeaf->Node;
 
-            isLeaf->IsLeaf = node->Children->Count == 0; 
+            if (ProcessTreeListSortOrder == NoSortOrder)
+                isLeaf->IsLeaf = node->Children->Count == 0;
+            else
+                isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeListGetNodeText:
@@ -346,6 +419,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
 
             getNodeIcon->Flags = TLC_CACHE;
+        }
+        return TRUE;
+    case TreeListSortChanged:
+        {
+            TreeList_GetSort(hwnd, &ProcessTreeListSortColumn, &ProcessTreeListSortOrder);
+            // Force a rebuild to sort the items.
+            TreeList_NodesStructured(hwnd);
         }
         return TRUE;
     }

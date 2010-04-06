@@ -104,6 +104,7 @@ PH_MUTEX PhProcessQueryDataQueueLock;
 PH_CALLBACK PhProcessAddedEvent;
 PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
+PH_CALLBACK PhProcessesUpdatedEvent;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -140,6 +141,7 @@ BOOLEAN PhInitializeProcessProvider()
     PhInitializeCallback(&PhProcessAddedEvent);
     PhInitializeCallback(&PhProcessModifiedEvent);
     PhInitializeCallback(&PhProcessRemovedEvent);
+    PhInitializeCallback(&PhProcessesUpdatedEvent);
 
     RtlInitUnicodeString(
         &PhDpcsProcessInformation.ImageName,
@@ -1153,5 +1155,6 @@ VOID PhProcessProviderUpdate(
     PhClearList(pids);
     PhFree(processes);
 
+    PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
     runCount++;
 }
