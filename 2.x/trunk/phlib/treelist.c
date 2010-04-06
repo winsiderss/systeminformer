@@ -292,7 +292,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 PhpApplyNodeState(node, lv->uNewState);
                             }
 
-                            ListView_RedrawItems(context->ListViewHandle, 0, context->List->Count - 1);
+                            InvalidateRect(context->ListViewHandle, NULL, TRUE);
                         }
                     }
                     break;
@@ -570,7 +570,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
             if (context->EnableRedraw == 1)
             {
                 SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
-                InvalidateRect(context->ListViewHandle, NULL, FALSE);
+                InvalidateRect(context->ListViewHandle, NULL, TRUE);
             }
             else if (context->EnableRedraw == 0)
             {
