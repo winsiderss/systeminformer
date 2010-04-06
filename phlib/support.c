@@ -2174,6 +2174,9 @@ NTSTATUS PhIsExecutablePacked(
     //    from each module), and
     // 2. It references more than 3 modules but fewer than 
     //    30 modules.
+    //
+    // An image is not considered to be packed if it has only 
+    // one import from a module named "mscoree.dll".
 
     NTSTATUS status;
     PH_MAPPED_IMAGE mappedImage;
@@ -2182,6 +2185,7 @@ NTSTATUS PhIsExecutablePacked(
     ULONG i;
     ULONG numberOfModules;
     ULONG numberOfFunctions = 0;
+    BOOLEAN isModuleMscoree = FALSE;
     BOOLEAN isPacked;
 
     status = PhLoadMappedImage(
@@ -2215,15 +2219,19 @@ NTSTATUS PhIsExecutablePacked(
             )))
             goto CleanupExit;
 
+        if (STR_IEQUAL(importDll.Name, "mscoree.dll"))
+            isModuleMscoree = TRUE;
+
         numberOfFunctions += importDll.NumberOfEntries;
     }
 
     // Determine if the image is packed.
 
     if (
-        (numberOfModules < 3 && numberOfFunctions < 5) ||
+        ((numberOfModules < 3 && numberOfFunctions < 5) ||
         (((FLOAT)numberOfFunctions / numberOfModules) < 4 &&
-        numberOfModules > 3 && numberOfModules < 30)
+        numberOfModules > 3 && numberOfModules < 30)) &&
+        !(numberOfModules == 1 && numberOfFunctions == 1 && isModuleMscoree)
         )
     {
         isPacked = TRUE;

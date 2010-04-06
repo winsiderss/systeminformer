@@ -216,6 +216,7 @@ VOID PhUpdateProcessNode(
 {
     memset(ProcessNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
+    TreeList_UpdateNode(TreeListHandle, &ProcessNode->Node);
 }
 
 BOOLEAN NTAPI PhpProcessTreeListCallback(
@@ -289,8 +290,28 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             node = (PPH_PROCESS_NODE)getNodeColor->Node;
             processItem = node->ProcessItem;
 
-            if (PhCsUseColorServiceProcesses && processItem->ServiceList->Count != 0)
+            if (!processItem)
+                ; // Dummy
+            else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
+                getNodeColor->BackColor = PhCsColorElevatedProcesses;
+            else if (
+                PhCsUseColorPacked &&
+                (processItem->VerifyResult != VrUnknown &&
+                processItem->VerifyResult != VrNoSignature &&
+                processItem->VerifyResult != VrTrusted
+                ))
+                getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorPacked && processItem->IsPacked)
+                getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorServiceProcesses && processItem->ServiceList->Count != 0)
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
+            else if (
+                PhCsUseColorOwnProcesses &&
+                processItem->UserName &&
+                PhCurrentUserName &&
+                PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
+                )
+                getNodeColor->BackColor = PhCsColorOwnProcesses;
 
             getNodeColor->Flags = TLC_CACHE | TLGNC_AUTO_FORECOLOR;
         }

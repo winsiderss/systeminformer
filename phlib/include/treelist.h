@@ -157,6 +157,7 @@ typedef struct _PH_TREELIST_GET_NODE_ICON
 #define TLM_GETCOLUMN (WM_APP + 1208)
 #define TLM_SETCOLUMN (WM_APP + 1209)
 #define TLM_SETPLUSMINUS (WM_APP + 1210)
+#define TLM_UPDATENODE (WM_APP + 1211)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -174,10 +175,10 @@ typedef struct _PH_TREELIST_GET_NODE_ICON
     SendMessage((hWnd), TLM_NODESSTRUCTURED, 0, 0)
 
 #define TreeList_AddColumn(hWnd, Column) \
-    SendMessage((hWnd), TLM_ADDCOLUMN, 0, (LPARAM)Column)
+    SendMessage((hWnd), TLM_ADDCOLUMN, 0, (LPARAM)(Column))
 
 #define TreeList_RemoveColumn(hWnd, Column) \
-    SendMessage((hWnd), TLM_REMOVECOLUMN, 0, (LPARAM)Column)
+    SendMessage((hWnd), TLM_REMOVECOLUMN, 0, (LPARAM)(Column))
 
 #define TLCM_VISIBLE 0x1
 #define TLCM_TEXT 0x2
@@ -186,13 +187,16 @@ typedef struct _PH_TREELIST_GET_NODE_ICON
 #define TLCM_DISPLAYINDEX 0x10
 
 #define TreeList_GetColumn(hWnd, Column, Mask) \
-    SendMessage((hWnd), TLM_GETCOLUMN, (WPARAM)Mask, (LPARAM)Column)
+    SendMessage((hWnd), TLM_GETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
 
 #define TreeList_SetColumn(hWnd, Column, Mask) \
-    SendMessage((hWnd), TLM_SETCOLUMN, (WPARAM)Mask, (LPARAM)Column)
+    SendMessage((hWnd), TLM_SETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
 
 #define TreeList_SetPlusMinus(hWnd, Plus, Minus) \
-    SendMessage((hWnd), TLM_SETPLUSMINUS, (WPARAM)Plus, (LPARAM)Minus)
+    SendMessage((hWnd), TLM_SETPLUSMINUS, (WPARAM)(Plus), (LPARAM)(Minus))
+
+#define TreeList_UpdateNode(hWnd, Node) \
+    SendMessage((hWnd), TLM_UPDATENODE, 0, (LPARAM)(Node))
 
 BOOLEAN PhTreeListInitialization();
 

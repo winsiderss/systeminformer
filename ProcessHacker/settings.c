@@ -59,12 +59,18 @@ VOID PhSettingsInitialization()
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
+    PhpAddIntegerSetting(L"UseColorOwnProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorOwnProcesses", L"aaffff");
     PhpAddIntegerSetting(L"UseColorServiceProcesses", L"1");
     PhpAddIntegerSetting(L"ColorServiceProcesses", L"ffffcc");
+    PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorElevatedProcesses", L"00aaff");
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
     PhpAddIntegerSetting(L"ColorSuspended", L"777777");
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
     PhpAddIntegerSetting(L"ColorDotNet", L"00ffde");
+    PhpAddIntegerSetting(L"UseColorPacked", L"1");
+    PhpAddIntegerSetting(L"ColorPacked", L"8728f5"); // Deep Pink
     PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
     PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff");
     PhpAddIntegerSetting(L"UseColorRelocatedModules", L"1");
@@ -79,12 +85,18 @@ VOID PhpUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
+    UPDATE_INTEGER_CS(UseColorOwnProcesses);
+    UPDATE_INTEGER_CS(ColorOwnProcesses);
     UPDATE_INTEGER_CS(UseColorServiceProcesses);
     UPDATE_INTEGER_CS(ColorServiceProcesses);
+    UPDATE_INTEGER_CS(UseColorElevatedProcesses);
+    UPDATE_INTEGER_CS(ColorElevatedProcesses);
     UPDATE_INTEGER_CS(UseColorSuspended);
     UPDATE_INTEGER_CS(ColorSuspended);
     UPDATE_INTEGER_CS(UseColorDotNet);
     UPDATE_INTEGER_CS(ColorDotNet);
+    UPDATE_INTEGER_CS(UseColorPacked);
+    UPDATE_INTEGER_CS(ColorPacked);
     UPDATE_INTEGER_CS(UseColorGuiThreads);
     UPDATE_INTEGER_CS(ColorGuiThreads);
     UPDATE_INTEGER_CS(UseColorRelocatedModules);
