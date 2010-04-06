@@ -48,7 +48,9 @@ typedef struct _PHP_TREELIST_CONTEXT
     HTHEME ThemeData;
     BOOLEAN ThemeActive;
     HBITMAP PlusBitmap;
+    PH_INTEGER_PAIR PlusBitmapSize;
     HBITMAP MinusBitmap;
+    PH_INTEGER_PAIR MinusBitmapSize;
     HDC IconDc;
 } PHP_TREELIST_CONTEXT, *PPHP_TREELIST_CONTEXT;
 

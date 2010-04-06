@@ -544,8 +544,32 @@ LRESULT CALLBACK PhpTreeListWndProc(
         return TRUE;
     case TLM_SETPLUSMINUS:
         {
-            context->PlusBitmap = (HBITMAP)wParam;
-            context->MinusBitmap = (HBITMAP)lParam;
+            HBITMAP plusBitmap = (HBITMAP)wParam;
+            HBITMAP minusBitmap = (HBITMAP)lParam;
+            BITMAP bitmap;
+
+            if (GetObject(plusBitmap, sizeof(BITMAP), &bitmap))
+            {
+                context->PlusBitmapSize.X = bitmap.bmWidth;
+                context->PlusBitmapSize.Y = bitmap.bmHeight;
+            }
+            else
+            {
+                return FALSE;
+            }
+
+            if (GetObject(minusBitmap, sizeof(BITMAP), &bitmap))
+            {
+                context->MinusBitmapSize.X = bitmap.bmWidth;
+                context->MinusBitmapSize.Y = bitmap.bmHeight;
+            }
+            else
+            {
+                return FALSE;
+            }
+
+            context->PlusBitmap = plusBitmap;
+            context->MinusBitmap = minusBitmap;
         }
         return TRUE;
     case TLM_UPDATENODE:
@@ -1029,6 +1053,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
         {
             BOOLEAN drewUsingTheme = FALSE;
             RECT themeRect;
+            PH_INTEGER_PAIR glyphSize;
 
             if (!node->s.IsLeaf)
             {
@@ -1058,16 +1083,22 @@ static VOID PhpCustomDrawPrePaintSubItem(
                         Context->IconDc = CreateCompatibleDC(CustomDraw->nmcd.hdc);
 
                     if (node->Expanded)
+                    {
                         SelectObject(Context->IconDc, Context->MinusBitmap);
+                        glyphSize = Context->MinusBitmapSize;
+                    }
                     else
+                    {
                         SelectObject(Context->IconDc, Context->PlusBitmap);
+                        glyphSize = Context->PlusBitmapSize;
+                    }
 
                     BitBlt(
                         CustomDraw->nmcd.hdc,
-                        textRect.left + (16 - 9) / 2, // TODO: un-hardcode the 9
-                        textRect.top + (16 - 9) / 2,
-                        9,
-                        9,
+                        textRect.left + (16 - glyphSize.X) / 2,
+                        textRect.top + (16 - glyphSize.Y) / 2,
+                        glyphSize.X,
+                        glyphSize.Y,
                         Context->IconDc,
                         0,
                         0,
