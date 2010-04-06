@@ -20,6 +20,8 @@ typedef struct _PH_TREELIST_COLUMN
     ULONG Alignment;
     ULONG DisplayIndex;
 
+    ULONG TextFlags;
+
     struct
     {
         ULONG ViewIndex; // actual index in header control
@@ -42,10 +44,14 @@ typedef struct _PH_TREELIST_NODE
     };
 
     PH_ITEM_STATE State;
-    COLORREF ForeColor;
     COLORREF BackColor;
+    COLORREF ForeColor;
     ULONG ColorFlags;
     HFONT Font;
+    HICON Icon;
+
+    PPH_STRINGREF TextCache;
+    ULONG TextCacheSize;
 
     ULONG Level; // 0 for root, 1, 2, ...
 
@@ -54,16 +60,17 @@ typedef struct _PH_TREELIST_NODE
         ULONG ViewIndex; // actual index in list view, -1 for none
         ULONG ViewState; // LVIS_*
 
-        //BOOLEAN IsLeaf;
-        //struct _PH_TREELIST_NODE *Parent; // NULL for root nodes
-        //ULONG NumberOfChildren;
-        //struct _PH_TREELIST_NODE **Children; // can be NULL if no children
+        BOOLEAN IsLeaf;
 
         ULONG StateTickCount;
 
         // Cache
         BOOLEAN CachedColorValid;
         BOOLEAN CachedFontValid;
+        BOOLEAN CachedIconValid;
+
+        // Temp. Drawing Data
+        COLORREF DrawForeColor;
     } s;
 } PH_TREELIST_NODE, *PPH_TREELIST_NODE;
 
@@ -73,7 +80,8 @@ typedef enum _PH_TREELIST_MESSAGE
     TreeListIsLeaf, // PPH_TREELIST_IS_LEAF Parameter1
     TreeListGetNodeText, // PPH_TREELIST_GET_NODE_TEXT Parameter1
     TreeListGetNodeColor, // PPH_TREELIST_GET_NODE_COLOR Parameter1
-    TreeListGetNodeFont // PPH_TREELIST_GET_NODE_FONT Parameter1
+    TreeListGetNodeFont, // PPH_TREELIST_GET_NODE_FONT Parameter1
+    TreeListGetNodeIcon // PPH_TREELIST_GET_NODE_ICON Parameter1
 } PH_TREELIST_MESSAGE;
 
 typedef BOOLEAN (NTAPI *PPH_TREELIST_CALLBACK)(
@@ -109,10 +117,10 @@ typedef struct _PH_TREELIST_GET_NODE_TEXT
     PPH_TREELIST_NODE Node;
     ULONG Id;
 
-    PWSTR Text;
+    PH_STRINGREF Text;
 } PH_TREELIST_GET_NODE_TEXT, *PPH_TREELIST_GET_NODE_TEXT;
 
-#define TLGNC_AUTO_FORECOLOR 0x2
+#define TLGNC_AUTO_FORECOLOR 0x1000
 
 typedef struct _PH_TREELIST_GET_NODE_COLOR
 {
@@ -131,6 +139,14 @@ typedef struct _PH_TREELIST_GET_NODE_FONT
     HFONT Font;
 } PH_TREELIST_GET_NODE_FONT, *PPH_TREELIST_GET_NODE_FONT;
 
+typedef struct _PH_TREELIST_GET_NODE_ICON
+{
+    ULONG Flags;
+    PPH_TREELIST_NODE Node;
+
+    HICON Icon;
+} PH_TREELIST_GET_NODE_ICON, *PPH_TREELIST_GET_NODE_ICON;
+
 #define TLM_SETCALLBACK (WM_APP + 1201)
 #define TLM_SETCONTEXT (WM_APP + 1202)
 #define TLM_NODESADDED (WM_APP + 1203)
@@ -140,6 +156,7 @@ typedef struct _PH_TREELIST_GET_NODE_FONT
 #define TLM_REMOVECOLUMN (WM_APP + 1207)
 #define TLM_GETCOLUMN (WM_APP + 1208)
 #define TLM_SETCOLUMN (WM_APP + 1209)
+#define TLM_SETPLUSMINUS (WM_APP + 1210)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -159,6 +176,9 @@ typedef struct _PH_TREELIST_GET_NODE_FONT
 #define TreeList_AddColumn(hWnd, Column) \
     SendMessage((hWnd), TLM_ADDCOLUMN, 0, (LPARAM)Column)
 
+#define TreeList_RemoveColumn(hWnd, Column) \
+    SendMessage((hWnd), TLM_REMOVECOLUMN, 0, (LPARAM)Column)
+
 #define TLCM_VISIBLE 0x1
 #define TLCM_TEXT 0x2
 #define TLCM_WIDTH 0x4
@@ -171,8 +191,8 @@ typedef struct _PH_TREELIST_GET_NODE_FONT
 #define TreeList_SetColumn(hWnd, Column, Mask) \
     SendMessage((hWnd), TLM_SETCOLUMN, (WPARAM)Mask, (LPARAM)Column)
 
-#define TreeList_RemoveColumn(hWnd, Column) \
-    SendMessage((hWnd), TLM_REMOVECOLUMN, 0, (LPARAM)Column)
+#define TreeList_SetPlusMinus(hWnd, Plus, Minus) \
+    SendMessage((hWnd), TLM_SETPLUSMINUS, (WPARAM)Plus, (LPARAM)Minus)
 
 BOOLEAN PhTreeListInitialization();
 
@@ -185,6 +205,15 @@ VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     );
 
+#define TLIN_COLOR 0x1
+#define TLIN_FONT 0x2
+#define TLIN_ICON 0x4
+
+VOID PhInvalidateTreeListNode(
+    __inout PPH_TREELIST_NODE Node,
+    __in ULONG Flags
+    );
+
 BOOLEAN PhAddTreeListColumn(
     __in HWND hwnd,
     __in ULONG Id,
@@ -192,7 +221,8 @@ BOOLEAN PhAddTreeListColumn(
     __in PWSTR Text,
     __in ULONG Width,
     __in ULONG Alignment,
-    __in ULONG DisplayIndex
+    __in ULONG DisplayIndex,
+    __in ULONG TextFlags
     );
 
 __callback BOOLEAN NTAPI PhTreeListNullCallback(

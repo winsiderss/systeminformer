@@ -22,6 +22,7 @@
 
 #define MAINWND_PRIVATE
 #include <phapp.h>
+#include <settings.h>
 
 BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
     __in PVOID Entry1,
@@ -45,6 +46,8 @@ static PPH_HASHTABLE ProcessNodeHashtable;
 static PPH_LIST ProcessNodeList;
 static PPH_LIST ProcessNodeRootList;
 
+static HICON StockAppIcon;
+
 VOID PhProcessTreeListInitialization()
 {
     ProcessNodeHashtable = PhCreateHashtable(
@@ -65,10 +68,15 @@ VOID PhInitializeProcessTreeList(
     TreeListHandle = hwnd;
 
     TreeList_SetCallback(hwnd, PhpProcessTreeListCallback);
+    TreeList_SetPlusMinus(
+        hwnd,
+        PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PLUS), IMAGE_BITMAP),
+        PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MINUS), IMAGE_BITMAP)
+        );
 
-    PhAddTreeListColumn(hwnd, 0, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0);
-    PhAddTreeListColumn(hwnd, 1, TRUE, L"PID", 40, PH_ALIGN_RIGHT, 1);
-    PhAddTreeListColumn(hwnd, 2, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2);
+    PhAddTreeListColumn(hwnd, 0, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeListColumn(hwnd, 1, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, 2, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
 }
 
 static BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
@@ -101,6 +109,10 @@ VOID PhCreateProcessNode(
     processNode->ProcessId = ProcessItem->ProcessId;
     processNode->ProcessItem = ProcessItem;
 
+    memset(processNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
+    processNode->Node.TextCache = processNode->TextCache;
+    processNode->Node.TextCacheSize = PHTLC_MAXIMUM;
+
     processNode->Children = PhCreateList(1);
 
     // Find this process' parent and add the process to it if we found it.
@@ -112,6 +124,7 @@ VOID PhCreateProcessNode(
     else
     {
         // No parent, add to root list.
+        processNode->Parent = NULL;
         PhAddListItem(ProcessNodeRootList, processNode);
     }
 
@@ -123,6 +136,7 @@ VOID PhCreateProcessNode(
 
         if (node->ProcessItem->HasParent && node->ProcessItem->ParentProcessId == ProcessItem->ProcessId)
         {
+            node->Parent = processNode;
             PhAddListItem(processNode->Children, node);
         }
     }
@@ -162,11 +176,46 @@ VOID PhRemoveProcessNode(
     )
 {
     ULONG index;
+    ULONG i;
+
+    if (ProcessNode->Parent)
+    {
+        // Remove the node from its parent.
+
+        if ((index = PhIndexOfListItem(ProcessNode->Parent->Children, ProcessNode)) != -1)
+            PhRemoveListItem(ProcessNode->Parent->Children, index);
+    }
+    else
+    {
+        // Remove the node from the root list.
+
+        if ((index = PhIndexOfListItem(ProcessNodeRootList, ProcessNode)) != -1)
+            PhRemoveListItem(ProcessNodeRootList, index);
+    }
+
+    // Move the node's children to the root list.
+    for (i = 0; i < ProcessNode->Children->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNode->Children->Items[i];
+
+        node->Parent = NULL;
+        PhAddListItem(ProcessNodeRootList, node);
+    }
 
     if ((index = PhIndexOfListItem(ProcessNodeList, ProcessNode)) != -1)
         PhRemoveListItem(ProcessNodeList, index);
 
     PhDereferenceObject(ProcessNode->Children);
+
+    TreeList_NodesStructured(TreeListHandle);
+}
+
+VOID PhUpdateProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    memset(ProcessNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
+    PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
 }
 
 BOOLEAN NTAPI PhpProcessTreeListCallback(
@@ -199,6 +248,15 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
         }
         return TRUE;
+    case TreeListIsLeaf:
+        {
+            PPH_TREELIST_IS_LEAF isLeaf = Parameter1;
+
+            node = (PPH_PROCESS_NODE)isLeaf->Node;
+
+            isLeaf->IsLeaf = node->Children->Count == 0; 
+        }
+        return TRUE;
     case TreeListGetNodeText:
         {
             PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
@@ -208,17 +266,65 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             switch (getNodeText->Id)
             {
             case PHTLC_NAME:
-                getNodeText->Text = node->ProcessItem->ProcessName->Buffer;
+                getNodeText->Text = node->ProcessItem->ProcessName->sr;
                 break;
             case PHTLC_PID:
-                getNodeText->Text = node->ProcessItem->ProcessIdString;
+                PhInitializeStringRef(&getNodeText->Text, node->ProcessItem->ProcessIdString);
                 break;
             case PHTLC_USERNAME:
-                getNodeText->Text = PhGetString(node->ProcessItem->UserName);
+                getNodeText->Text = PhGetStringRefOrEmpty(node->ProcessItem->UserName);
                 break;
             default:
                 return FALSE;
             }
+
+            getNodeText->Flags = TLC_CACHE;
+        }
+        return TRUE;
+    case TreeListGetNodeColor:
+        {
+            PPH_TREELIST_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_PROCESS_ITEM processItem;
+
+            node = (PPH_PROCESS_NODE)getNodeColor->Node;
+            processItem = node->ProcessItem;
+
+            if (PhCsUseColorServiceProcesses && processItem->ServiceList->Count != 0)
+                getNodeColor->BackColor = PhCsColorServiceProcesses;
+
+            getNodeColor->Flags = TLC_CACHE | TLGNC_AUTO_FORECOLOR;
+        }
+        return TRUE;
+    case TreeListGetNodeIcon:
+        {
+            PPH_TREELIST_GET_NODE_ICON getNodeIcon = Parameter1;
+
+            node = (PPH_PROCESS_NODE)getNodeIcon->Node;
+
+            if (node->ProcessItem->SmallIcon)
+            {
+                getNodeIcon->Icon = node->ProcessItem->SmallIcon;
+            }
+            else
+            {
+                if (!StockAppIcon)
+                {
+                    SHFILEINFO fileInfo = { 0 };
+
+                    SHGetFileInfo(
+                        L".exe",
+                        FILE_ATTRIBUTE_NORMAL,
+                        &fileInfo,
+                        sizeof(SHFILEINFO),
+                        SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON
+                        );
+                    StockAppIcon = fileInfo.hIcon;
+                }
+
+                getNodeIcon->Icon = StockAppIcon;
+            }
+
+            getNodeIcon->Flags = TLC_CACHE;
         }
         return TRUE;
     }

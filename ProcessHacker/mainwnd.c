@@ -2045,6 +2045,8 @@ VOID PhMainWndOnProcessModified(
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 5, ProcessItem->CpuUsageString);
         PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 6, ProcessItem->IsPacked ? L"Yes" : L"No");
     }
+
+    PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 }
 
 VOID PhMainWndOnProcessRemoved(
