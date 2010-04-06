@@ -376,7 +376,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 PhpInsertNodeChildren(context, children[i], 0);
             }
 
-            ListView_SetItemCount(context->ListViewHandle, context->List->Count);
+            ListView_SetItemCountEx(context->ListViewHandle, context->List->Count, LVSICF_NOSCROLL);
         }
         return TRUE;
     case TLM_ADDCOLUMN:
@@ -523,6 +523,13 @@ LRESULT CALLBACK PhpTreeListWndProc(
         {
             context->PlusBitmap = (HBITMAP)wParam;
             context->MinusBitmap = (HBITMAP)lParam;
+        }
+        return TRUE;
+    case TLM_UPDATENODE:
+        {
+            PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
+
+            ListView_Update(context->ListViewHandle, node->s.ViewIndex);
         }
         return TRUE;
     }
