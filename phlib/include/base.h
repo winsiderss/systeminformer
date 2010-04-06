@@ -177,6 +177,19 @@ FORCEINLINE int uintptrcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+FORCEINLINE int wcsicmp2(
+    __in_opt PWSTR Value1,
+    __in_opt PWSTR Value2
+    )
+{
+    if (Value1 && Value2)
+        return wcsicmp(Value1, Value2);
+    else if (!Value1)
+        return !Value2 ? 0 : -1;
+    else
+        return 1;
+}
+
 // Misc.
 
 FORCEINLINE ULONG PhCountBits(
