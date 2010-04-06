@@ -43,6 +43,7 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     // Drawing
 
+    TEXTMETRIC TextMetrics;
     PPH_HASHTABLE BrushCache;
     HTHEME ThemeData;
     BOOLEAN ThemeActive;
