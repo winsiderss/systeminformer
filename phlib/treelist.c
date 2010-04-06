@@ -1021,7 +1021,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     textRect.top += iconVertMargin;
     textRect.bottom -= iconVertMargin;
 
-    if (subItemIndex == 0)
+    if (column->DisplayIndex == 0)
     {
         textRect.left += node->Level * 16;
 
