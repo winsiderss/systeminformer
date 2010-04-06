@@ -609,7 +609,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resources\minus.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\resources\pencil.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\plus.bmp"
 				>
 			</File>
 			<File

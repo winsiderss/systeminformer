@@ -59,6 +59,8 @@ VOID PhSettingsInitialization()
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
+    PhpAddIntegerSetting(L"UseColorServiceProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorServiceProcesses", L"ffffcc");
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
     PhpAddIntegerSetting(L"ColorSuspended", L"777777");
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
@@ -77,6 +79,8 @@ VOID PhpUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
+    UPDATE_INTEGER_CS(UseColorServiceProcesses);
+    UPDATE_INTEGER_CS(ColorServiceProcesses);
     UPDATE_INTEGER_CS(UseColorSuspended);
     UPDATE_INTEGER_CS(ColorSuspended);
     UPDATE_INTEGER_CS(UseColorDotNet);

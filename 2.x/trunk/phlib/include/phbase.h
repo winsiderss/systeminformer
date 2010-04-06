@@ -354,6 +354,14 @@ FORCEINLINE VOID PhInitializeStringRef(
     String->Buffer = Buffer;
 }
 
+FORCEINLINE VOID PhInitializeEmptyStringRef(
+    __out PPH_STRINGREF String
+    )
+{
+    String->Length = 0;
+    String->Buffer = NULL;
+}
+
 FORCEINLINE PH_STRINGREF PhCreateStringRef(
     __in PWSTR Buffer
     )
@@ -475,6 +483,24 @@ FORCEINLINE PWSTR PhGetString(
         return NULL;
 }
 
+FORCEINLINE PH_STRINGREF PhGetStringRef(
+    __in_opt PPH_STRING String
+    )
+{
+    PH_STRINGREF sr;
+
+    if (String)
+    {
+        sr = String->sr;
+    }
+    else
+    {
+        PhInitializeEmptyStringRef(&sr);
+    }
+
+    return sr;
+}
+
 /**
  * Retrieves a pointer to a string object's buffer 
  * or returns an empty string.
@@ -493,6 +519,25 @@ FORCEINLINE PWSTR PhGetStringOrEmpty(
         return String->Buffer;
     else
         return L"";
+}
+
+FORCEINLINE PH_STRINGREF PhGetStringRefOrEmpty(
+    __in_opt PPH_STRING String
+    )
+{
+    PH_STRINGREF sr;
+
+    if (String)
+    {
+        sr = String->sr;
+    }
+    else
+    {
+        sr.Length = 0;
+        sr.Buffer = L"";
+    }
+
+    return sr;
 }
 
 /**

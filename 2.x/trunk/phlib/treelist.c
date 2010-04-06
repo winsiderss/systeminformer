@@ -1,6 +1,7 @@
 #include <phgui.h>
 #include <treelist.h>
 #include <treelistp.h>
+#include <vsstyle.h>
 
 BOOLEAN PhTreeListInitialization()
 {
@@ -49,13 +50,11 @@ VOID PhpInitializeTreeListContext(
     Context->Context = NULL;
 
     Context->MaxId = 0;
-    Context->Columns = PhCreateHashtable(
-        sizeof(PH_TREELIST_COLUMN),
-        PhpColumnHashtableCompareFunction,
-        PhpColumnHashtableHashFunction,
-        8
-        );
+    Context->Columns = NULL;
+    Context->NumberOfColumns = 0;
+    Context->AllocatedColumns = 0;
     Context->List = PhCreateList(64);
+    Context->CanAnyExpand = FALSE;
 
     Context->TriState = FALSE;
     Context->SortColumn = 0;
@@ -70,14 +69,29 @@ VOID PhpInitializeTreeListContext(
 
     Context->EnableRedraw = 0;
     Context->Cursor = NULL;
+    Context->BrushCache = PhCreateSimpleHashtable(16);
+    Context->ThemeData = NULL;
+    Context->PlusBitmap = NULL;
+    Context->MinusBitmap = NULL;
+    Context->IconDc = NULL;
 }
 
 VOID PhpDeleteTreeListContext(
     __inout PPHP_TREELIST_CONTEXT Context
     )
 {
-    PhDereferenceObject(Context->Columns);
+    PhpClearBrushCache(Context);
+
+    if (Context->Columns)
+        PhFree(Context->Columns);
+
     PhDereferenceObject(Context->List);
+    PhDereferenceObject(Context->BrushCache);
+
+    if (Context->ThemeData)
+        CloseThemeData_I(Context->ThemeData);
+    if (Context->IconDc)
+        DeleteDC(Context->IconDc);
 }
 
 static BOOLEAN NTAPI PhpColumnHashtableCompareFunction(
@@ -127,7 +141,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
             context->ListViewHandle = CreateWindow(
                 WC_LISTVIEW,
                 L"",
-                WS_CHILD | LVS_REPORT | LVS_OWNERDATA | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
+                WS_CHILD | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS |
+                WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
                 0,
                 0,
                 createStruct->cx,
@@ -152,6 +167,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
             context->OldLvWndProc = (WNDPROC)GetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC);
             SetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC, (LONG_PTR)PhpTreeListLvHookWndProc);
             SetProp(context->ListViewHandle, L"TreeListContext", (HANDLE)context);
+
+            PhpReloadThemeData(context);
 
             SendMessage(hwnd, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
         }
@@ -201,34 +218,18 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                         if (ldi->item.mask & LVIF_TEXT)
                         {
-                            PH_TREELIST_GET_NODE_TEXT getNodeText;
+                            PH_STRINGREF text;
 
-                            getNodeText.Flags = 0;
-                            getNodeText.Node = node;
-                            getNodeText.Id = ldi->item.iSubItem;
-                            getNodeText.Text = NULL;
-
-                            if (context->Callback(
-                                hwnd,
-                                TreeListGetNodeText,
-                                &getNodeText,
-                                NULL,
-                                context->Context
-                                ) && getNodeText.Text)
+                            if (PhpGetNodeText(context, node, ldi->item.iSubItem, &text))
                             {
                                 PhCopyUnicodeStringZ(
-                                    getNodeText.Text,
-                                    ldi->item.cchTextMax - 1,
+                                    text.Buffer,
+                                    min(text.Length / 2, ldi->item.cchTextMax - 1),
                                     ldi->item.pszText,
                                     ldi->item.cchTextMax,
                                     NULL
                                     );
                             }
-                        }
-
-                        if (ldi->item.mask & LVIF_INDENT)
-                        {
-                            ldi->item.iIndent = node->Level;
                         }
                     }
                     break;
@@ -282,135 +283,36 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 case NM_CUSTOMDRAW:
                     {
                         LPNMLVCUSTOMDRAW customDraw = (LPNMLVCUSTOMDRAW)hdr;
-                        ULONG itemIndex = (ULONG)customDraw->nmcd.dwItemSpec;
-                        ULONG subItemIndex = (ULONG)customDraw->iSubItem;
-                        PPH_TREELIST_NODE node;
-                        HFONT newFont = NULL;
 
                         switch (customDraw->nmcd.dwDrawStage)
                         {
                         case CDDS_PREPAINT:
-                            if (itemIndex < context->List->Count)
-                                return CDRF_NOTIFYITEMDRAW;
-                            break;
+                            return CDRF_NOTIFYITEMDRAW;
                         case CDDS_ITEMPREPAINT:
                             {
-                                BOOLEAN colorChanged = FALSE;
-                                BOOLEAN autoForeColor = FALSE;
-
-                                if (itemIndex >= context->List->Count)
-                                    return CDRF_DODEFAULT;
-
-                                node = context->List->Items[itemIndex];
-
-                                if (node->State == NormalItemState)
-                                {
-                                    if (node->s.CachedColorValid)
-                                    {
-                                        customDraw->clrTextBk = node->BackColor;
-                                        customDraw->clrText = node->ForeColor;
-                                        colorChanged = TRUE;
-                                        autoForeColor = !!(node->ColorFlags & TLGNC_AUTO_FORECOLOR);
-                                    }
-                                    else
-                                    {
-                                        PH_TREELIST_GET_NODE_COLOR getNodeColor;
-
-                                        getNodeColor.Flags = 0;
-                                        getNodeColor.Node = node;
-                                        getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
-                                        getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
-
-                                        if (context->Callback(
-                                            hwnd,
-                                            TreeListGetNodeColor,
-                                            &getNodeColor,
-                                            NULL,
-                                            context->Context
-                                            ))
-                                        {
-                                            customDraw->clrTextBk = getNodeColor.BackColor;
-                                            customDraw->clrText = getNodeColor.ForeColor;
-
-                                            if (getNodeColor.Flags & TLC_CACHE)
-                                            {
-                                                node->BackColor = getNodeColor.BackColor;
-                                                node->ForeColor = getNodeColor.ForeColor;
-                                                node->ColorFlags = getNodeColor.Flags & TLGNC_AUTO_FORECOLOR;
-                                                node->s.CachedColorValid = TRUE;
-                                            }
-
-                                            colorChanged = TRUE;
-                                            autoForeColor = !!(getNodeColor.Flags & TLGNC_AUTO_FORECOLOR);
-                                        }
-                                    }
-
-                                    if (node->s.CachedFontValid)
-                                    {
-                                        if (node->Font)
-                                            SelectObject(customDraw->nmcd.hdc, node->Font);
-                                    }
-                                    else
-                                    {
-                                        PH_TREELIST_GET_NODE_FONT getNodeFont;
-
-                                        getNodeFont.Flags = 0;
-                                        getNodeFont.Node = node;
-                                        getNodeFont.Font = NULL;
-
-                                        if (context->Callback(
-                                            hwnd,
-                                            TreeListGetNodeFont,
-                                            &getNodeFont,
-                                            NULL,
-                                            context->Context
-                                            ))
-                                        {
-                                            if (getNodeFont.Flags & TLC_CACHE)
-                                            {
-                                                node->Font = getNodeFont.Font;
-                                                node->s.CachedFontValid = TRUE;
-                                            }
-
-                                            newFont = getNodeFont.Font;
-
-                                            if (getNodeFont.Font)
-                                                SelectObject(customDraw->nmcd.hdc, getNodeFont.Font);
-                                        }
-                                    }
-                                }
-                                else if (node->State == NewItemState)
-                                {
-                                    customDraw->clrTextBk = context->NewColor;
-                                    colorChanged = TRUE;
-                                    autoForeColor = TRUE;
-                                }
-                                else if (node->State == RemovingItemState)
-                                {
-                                    customDraw->clrTextBk = context->RemovingColor;
-                                    colorChanged = TRUE;
-                                    autoForeColor = TRUE;
-                                }
-
-                                if (colorChanged)
-                                {
-                                    if (PhGetColorBrightness(customDraw->clrTextBk) > 100) // slightly less than half
-                                        customDraw->clrText = RGB(0x00, 0x00, 0x00);
-                                    else
-                                        customDraw->clrText = RGB(0xff, 0xff, 0xff);
-                                }
-
-                                if (!newFont)
-                                    return CDRF_DODEFAULT;
-                                else
-                                    return CDRF_NEWFONT;
+                                PhpCustomDrawPrePaintItem(context, customDraw);
                             }
-                            break;
+                            return CDRF_NOTIFYSUBITEMDRAW;
+                        case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
+                            {
+                                // We sometimes get useless notifications where the 
+                                // rectangle is 0 - just ignore them.
+                                if (customDraw->nmcd.rc.right - customDraw->nmcd.rc.left == 0)
+                                    return CDRF_SKIPDEFAULT;
+
+                                PhpCustomDrawPrePaintSubItem(context, customDraw);
+                            }
+                            return CDRF_SKIPDEFAULT;
                         }
                     }
                     break;
                 }
             }
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PhpReloadThemeData(context);
         }
         break;
     case TLM_SETCALLBACK:
@@ -445,6 +347,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 return FALSE;
 
             PhClearList(context->List);
+            context->CanAnyExpand = FALSE;
 
             for (i = 0; i < numberOfChildren; i++)
             {
@@ -459,13 +362,50 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
             PPH_TREELIST_COLUMN realColumn;
 
+            // Check if a column with the same ID already exists.
+            if (column->Id < context->AllocatedColumns && context->Columns[column->Id])
+                return FALSE;
+
             if (context->MaxId < column->Id)
                 context->MaxId = column->Id;
 
-            realColumn = PhAddHashtableEntry(context->Columns, column);
+            realColumn = PhAllocateCopy(column, sizeof(PH_TREELIST_COLUMN));
 
-            if (!realColumn)
-                return FALSE;
+            // Boring array management
+            if (context->AllocatedColumns < context->MaxId + 1)
+            {
+                context->AllocatedColumns *= 2;
+
+                if (context->AllocatedColumns < context->MaxId + 1)
+                    context->AllocatedColumns = context->MaxId + 1;
+
+                if (context->Columns)
+                {
+                    ULONG oldAllocatedColumns;
+                    
+                    oldAllocatedColumns = context->AllocatedColumns;
+                    context->Columns = PhReAlloc(
+                        context->Columns,
+                        context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
+                        );
+
+                    // Zero the newly allocated portion.
+                    memset(
+                        &context->Columns[oldAllocatedColumns],
+                        0,
+                        (context->AllocatedColumns - oldAllocatedColumns) * sizeof(PPH_TREELIST_COLUMN)
+                        );
+                }
+                else
+                {
+                    context->Columns = PhAllocate(
+                        context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
+                        );
+                    memset(context->Columns, 0, context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN));
+                }
+
+                context->Columns[context->NumberOfColumns++] = realColumn;
+            }
 
             if (realColumn->Visible)
             {
@@ -483,9 +423,10 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
             PPH_TREELIST_COLUMN realColumn;
 
-            realColumn = PhGetHashtableEntry(context->Columns, column);
-
-            if (!realColumn)
+            if (
+                column->Id >= context->AllocatedColumns ||
+                !(realColumn = context->Columns[column->Id])
+                )
                 return FALSE;
 
             if (mask & TLCM_VISIBLE)
@@ -546,12 +487,20 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
             PPH_TREELIST_COLUMN realColumn;
 
-            realColumn = PhGetHashtableEntry(context->Columns, column);
-
-            if (!realColumn)
+            if (
+                column->Id >= context->AllocatedColumns ||
+                !(realColumn = context->Columns[column->Id])
+                )
                 return FALSE;
 
             PhpDeleteColumn(context, realColumn);
+            context->Columns[column->Id] = NULL;
+        }
+        return TRUE;
+    case TLM_SETPLUSMINUS:
+        {
+            context->PlusBitmap = (HBITMAP)wParam;
+            context->MinusBitmap = (HBITMAP)lParam;
         }
         return TRUE;
     }
@@ -580,17 +529,96 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
             RemoveProp(hwnd, L"TreeListContext");
         }
         break;
+    case WM_SETFOCUS:
+        {
+            context->HasFocus = TRUE;
+        }
+        break;
+    case WM_KILLFOCUS:
+        {
+            context->HasFocus = FALSE;
+        }
+        break;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+        {
+            LONG x = LOWORD(lParam);
+            LONG y = HIWORD(lParam);
+            LVHITTESTINFO htInfo = { 0 };
+            INT itemIndex;
+            PPH_TREELIST_NODE node;
+            LONG glyphX;
+
+            htInfo.pt.x = x;
+            htInfo.pt.y = y;
+
+            if (
+                (itemIndex = ListView_HitTest(hwnd, &htInfo)) != -1 &&
+                (ULONG)itemIndex < context->List->Count
+                )
+            {
+                // Determine whether the event took place on the 
+                // plus/minus glyph.
+
+                node = context->List->Items[itemIndex];
+                glyphX = node->Level * 16;
+
+                if (
+                    !node->s.IsLeaf &&
+                    x >= glyphX &&
+                    x < glyphX + 16 + 5 // allow for some extra space
+                    )
+                {
+                    switch (uMsg)
+                    {
+                    case WM_LBUTTONDOWN:
+                        node->Expanded = !node->Expanded;
+
+                        // Let the LV select the item.
+                        CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
+                        SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+
+                        return 0;
+                    case WM_LBUTTONDBLCLK:
+                        return 0;
+                    }
+                }
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
             switch (header->code)
             {
+            case HDN_ITEMCHANGING:
+            case HDN_ITEMCHANGED:
+                {
+                    if (header->hwndFrom == ListView_GetHeader(hwnd))
+                    {
+                        LPNMHEADER header2 = (LPNMHEADER)header;
+                        LVCOLUMN lvColumn;
+                        PPH_TREELIST_COLUMN column;
+
+                        lvColumn.mask = LVCF_SUBITEM;
+
+                        // Update the width.
+                        if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
+                        {
+                            column = context->Columns[lvColumn.iSubItem];
+                            column->Width = header2->pitem->cxy;
+                        }
+                    }
+                }
+                break;
             case HDN_ITEMCLICK:
                 {
                     if (header->hwndFrom == ListView_GetHeader(hwnd))
                     {
                         LPNMHEADER header2 = (LPNMHEADER)header;
+                        LVCOLUMN lvColumn;
 
                         if (header2->iItem == context->SortColumn)
                         {
@@ -613,11 +641,25 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         }
                         else
                         {
-                            context->SortColumn = header2->iItem;
-                            context->SortOrder = AscendingSortOrder;
+                            lvColumn.mask = LVCF_SUBITEM;
+
+                            if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
+                            {
+                                context->SortColumn = lvColumn.iSubItem;
+                                context->SortOrder = AscendingSortOrder;
+                            }
                         }
 
                         PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+                    }
+                }
+                break;
+            case HDN_ENDDRAG:
+            case NM_RELEASEDCAPTURE:
+                {
+                    if (header->hwndFrom == ListView_GetHeader(hwnd))
+                    {
+                        PhpRefreshColumns(context);
                     }
                 }
                 break;
@@ -627,6 +669,315 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+static VOID PhpCustomDrawPrePaintItem(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in LPNMLVCUSTOMDRAW CustomDraw
+    )
+{
+    PPH_TREELIST_NODE node;
+    ULONG itemIndex;
+    HDC hdc;
+    HBRUSH backBrush;
+    PPVOID cacheItem;
+
+    itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
+    node = Context->List->Items[itemIndex];
+    hdc = CustomDraw->nmcd.hdc;
+
+    if (node->State == NormalItemState)
+    {
+        if (!node->s.CachedColorValid)
+        {
+            PH_TREELIST_GET_NODE_COLOR getNodeColor;
+
+            getNodeColor.Flags = 0;
+            getNodeColor.Node = node;
+            getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
+            getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
+
+            if (Context->Callback(
+                Context->Handle,
+                TreeListGetNodeColor,
+                &getNodeColor,
+                NULL,
+                Context->Context
+                ))
+            {
+                node->BackColor = getNodeColor.BackColor;
+                node->ForeColor = getNodeColor.ForeColor;
+                node->ColorFlags = getNodeColor.Flags & TLGNC_AUTO_FORECOLOR;
+
+                if (getNodeColor.Flags & TLC_CACHE)
+                    node->s.CachedColorValid = TRUE;
+
+                node->s.DrawForeColor = node->ForeColor;
+            }
+            else
+            {
+                node->BackColor = getNodeColor.BackColor;
+                node->ForeColor = getNodeColor.ForeColor;
+            }
+        }
+
+        if (!node->s.CachedFontValid)
+        {
+            PH_TREELIST_GET_NODE_FONT getNodeFont;
+
+            getNodeFont.Flags = 0;
+            getNodeFont.Node = node;
+            getNodeFont.Font = NULL;
+
+            if (Context->Callback(
+                Context->Handle,
+                TreeListGetNodeFont,
+                &getNodeFont,
+                NULL,
+                Context->Context
+                ))
+            {
+                node->Font = getNodeFont.Font;
+
+                if (getNodeFont.Flags & TLC_CACHE)
+                    node->s.CachedFontValid = TRUE;
+            }
+            else
+            {
+                node->Font = NULL;
+            }
+        }
+
+        if (!node->s.CachedIconValid)
+        {
+            PH_TREELIST_GET_NODE_ICON getNodeIcon;
+
+            getNodeIcon.Flags = 0;
+            getNodeIcon.Node = node;
+            getNodeIcon.Icon = NULL;
+
+            if (Context->Callback(
+                Context->Handle,
+                TreeListGetNodeIcon,
+                &getNodeIcon,
+                NULL,
+                Context->Context
+                ))
+            {
+                node->Icon = getNodeIcon.Icon;
+
+                if (getNodeIcon.Flags & TLC_CACHE)
+                    node->s.CachedIconValid = TRUE;
+            }
+            else
+            {
+                node->Icon = NULL;
+            }
+        }
+    }
+    else if (node->State == NewItemState)
+    {
+        node->s.DrawForeColor = Context->NewColor;
+    }
+    else if (node->State == RemovingItemState)
+    {
+        node->s.DrawForeColor = Context->RemovingColor;
+    }
+
+    if (node->State != NormalItemState ||
+        (node->ColorFlags & TLGNC_AUTO_FORECOLOR))
+    {
+        if (PhGetColorBrightness(node->BackColor) > 100) // slightly less than half
+            node->s.DrawForeColor = RGB(0x00, 0x00, 0x00);
+        else
+            node->s.DrawForeColor = RGB(0xff, 0xff, 0xff);
+    }
+
+    if (
+        node->Selected &&
+        // Don't draw if the explorer style is active.
+        !(Context->ThemeActive && WindowsVersion >= WINDOWS_VISTA)
+        )
+    {
+        if (Context->HasFocus)
+        {
+            SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+            backBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
+        }
+        else
+        {
+            SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
+            backBrush = GetSysColorBrush(COLOR_BTNFACE);
+        }
+    }
+    else
+    {
+        SetTextColor(hdc, node->ForeColor);
+
+        cacheItem = PhGetSimpleHashtableItem(Context->BrushCache, (PVOID)node->BackColor);
+
+        if (cacheItem)
+        {
+            backBrush = (HBRUSH)*cacheItem;
+        }
+        else
+        {
+            backBrush = CreateSolidBrush(node->BackColor);
+
+            if (backBrush)
+            {
+                PhAddSimpleHashtableItem(
+                    Context->BrushCache,
+                    (PVOID)node->BackColor,
+                    (PVOID)backBrush
+                    );
+            }
+        }
+    }
+
+    FillRect(
+        hdc,
+        &CustomDraw->nmcd.rc,
+        backBrush
+        );
+}
+
+static VOID PhpCustomDrawPrePaintSubItem(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in LPNMLVCUSTOMDRAW CustomDraw
+    )
+{
+    PPH_TREELIST_NODE node;
+    ULONG itemIndex;
+    ULONG subItemIndex;
+    HDC hdc;
+    COLORREF backColor;
+    COLORREF foreColor;
+    HFONT font;
+    PH_STRINGREF text;
+    PPH_TREELIST_COLUMN column;
+    RECT textRect;
+    ULONG textFlags;
+
+    itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
+    node = Context->List->Items[itemIndex];
+    subItemIndex = (ULONG)CustomDraw->iSubItem;
+    hdc = CustomDraw->nmcd.hdc;
+
+    backColor = node->BackColor;
+    foreColor = node->s.DrawForeColor;
+    font = node->Font;
+    column = Context->Columns[subItemIndex];
+    textRect = CustomDraw->nmcd.rc;
+    textFlags = column->TextFlags;
+
+    // Initial margins used by default list view
+    textRect.left += 2;
+    textRect.top += 2;
+    textRect.right -= 2;
+    textRect.bottom -= 2;
+
+    if (subItemIndex == 0)
+    {
+        textRect.left += node->Level * 16;
+
+        if (Context->CanAnyExpand)
+        {
+            BOOLEAN drewUsingTheme = FALSE;
+            RECT themeRect;
+
+            if (!node->s.IsLeaf)
+            {
+                // Draw the plus/minus glyph.
+
+                themeRect.left = textRect.left;
+                themeRect.right = themeRect.left + 16;
+                themeRect.top = textRect.top;
+                themeRect.bottom = themeRect.top + 16;
+
+                if (Context->ThemeData)
+                {
+                    if (SUCCEEDED(DrawThemeBackground_I(
+                        Context->ThemeData,
+                        CustomDraw->nmcd.hdc,
+                        TVP_GLYPH,
+                        node->Expanded ? GLPS_OPENED : GLPS_CLOSED,
+                        &themeRect,
+                        NULL
+                        )))
+                        drewUsingTheme = TRUE;
+                }
+
+                if (!drewUsingTheme)
+                {
+                    if (!Context->IconDc)
+                        Context->IconDc = CreateCompatibleDC(CustomDraw->nmcd.hdc);
+
+                    if (node->Expanded)
+                        SelectObject(Context->IconDc, Context->MinusBitmap);
+                    else
+                        SelectObject(Context->IconDc, Context->PlusBitmap);
+
+                    BitBlt(
+                        CustomDraw->nmcd.hdc,
+                        textRect.left + (16 - 9) / 2, // TODO: un-hardcode the 9
+                        textRect.top + (16 - 9) / 2,
+                        9,
+                        9,
+                        Context->IconDc,
+                        0,
+                        0,
+                        SRCCOPY
+                        );
+                }
+            }
+
+            textRect.left += 16;
+        }
+
+        // Draw the icon.
+        if (node->Icon)
+        {
+            DrawIconEx(
+                CustomDraw->nmcd.hdc,
+                textRect.left,
+                textRect.top,
+                node->Icon,
+                16,
+                16,
+                0,
+                NULL,
+                DI_NORMAL
+                );
+
+            textRect.left += 16 + 4; // 4px margin
+        }
+
+        if (textRect.left > textRect.right)
+            textRect.left = textRect.right;
+    }
+    else
+    {
+        // Margins used by default list view
+        textRect.left += 4;
+        textRect.right -= 4;
+    }
+
+    if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
+        textFlags |= DT_END_ELLIPSIS;
+
+    textFlags |= DT_VCENTER;
+
+    if (PhpGetNodeText(Context, node, subItemIndex, &text))
+    {
+        DrawText(
+            CustomDraw->nmcd.hdc,
+            text.Buffer,
+            text.Length / 2,
+            &textRect,
+            textFlags
+            );
+    }
 }
 
 static BOOLEAN PhpIsNodeLeaf(
@@ -686,6 +1037,45 @@ static BOOLEAN PhpGetNodeChildren(
     return FALSE;
 }
 
+static BOOLEAN PhpGetNodeText(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node,
+    __in ULONG Id,
+    __out PPH_STRINGREF Text
+    )
+{
+    PH_TREELIST_GET_NODE_TEXT getNodeText;
+
+    if (Id < Node->TextCacheSize && Node->TextCache[Id].Buffer)
+    {
+        *Text = Node->TextCache[Id];
+        return TRUE;
+    }
+
+    getNodeText.Flags = 0;
+    getNodeText.Node = Node;
+    getNodeText.Id = Id;
+    PhInitializeEmptyStringRef(&getNodeText.Text);
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeListGetNodeText,
+        &getNodeText,
+        NULL,
+        Context->Context
+        ) && getNodeText.Text.Buffer)
+    {
+        *Text = getNodeText.Text;
+
+        if ((getNodeText.Flags & TLC_CACHE) && Id < Node->TextCacheSize)
+            Node->TextCache[Id] = getNodeText.Text;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static VOID PhpInsertNodeChildren(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node,
@@ -696,17 +1086,29 @@ static VOID PhpInsertNodeChildren(
     ULONG numberOfChildren;
     ULONG i;
 
+    if (!Node->Visible)
+        return;
+
     Node->Level = Level;
 
+    Node->s.ViewIndex = Context->List->Count;
     PhAddListItem(Context->List, Node);
 
-    if (Node->Expanded)
+    if (!(Node->s.IsLeaf = PhpIsNodeLeaf(Context, Node)))
     {
-        if (PhpGetNodeChildren(Context, Node, &children, &numberOfChildren))
+        Context->CanAnyExpand = TRUE;
+
+        if (Node->Expanded)
         {
-            for (i = 0; i < numberOfChildren; i++)
+            if (PhpGetNodeChildren(Context, Node, &children, &numberOfChildren))
             {
-                PhpInsertNodeChildren(Context, children[i], Level + 1);
+                for (i = 0; i < numberOfChildren; i++)
+                {
+                    PhpInsertNodeChildren(Context, children[i], Level + 1);
+                }
+
+                if (numberOfChildren == 0)
+                    Node->s.IsLeaf = TRUE;
             }
         }
     }
@@ -734,36 +1136,26 @@ static VOID PhpDeleteColumn(
     __inout PPH_TREELIST_COLUMN Column
     )
 {
+    ListView_DeleteColumn(Context->ListViewHandle, Column->s.ViewIndex);
+    PhpRefreshColumns(Context);
+}
+
+static VOID PhpRefreshColumns(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
     ULONG i;
     LVCOLUMN lvColumn;
-    PH_TREELIST_COLUMN lookupColumn;
     PPH_TREELIST_COLUMN column;
 
-    lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
-
-    // Get the column's attributes and save them in case we need to re-add the column 
-    // later.
-    if (ListView_GetColumn(Context->ListViewHandle, Column->s.ViewIndex, &lvColumn))
-    {
-        Column->Width = lvColumn.cx;
-        Column->DisplayIndex = lvColumn.iOrder;
-    }
-
-    ListView_DeleteColumn(Context->ListViewHandle, Column->s.ViewIndex);
-
-    // Refresh indicies, since they have changed.
-
-    i = Column->s.ViewIndex;
-    lvColumn.mask = LVCF_SUBITEM;
+    i = 0;
+    lvColumn.mask = LVCF_SUBITEM | LVCF_ORDER;
 
     while (ListView_GetColumn(Context->ListViewHandle, i, &lvColumn))
     {
-        lookupColumn.Id = lvColumn.iSubItem;
-
-        if (column = PhGetHashtableEntry(Context->Columns, &lookupColumn))
-        {
-            column->s.ViewIndex = i;
-        }
+        column = Context->Columns[lvColumn.iSubItem];
+        column->s.ViewIndex = i;
+        column->DisplayIndex = lvColumn.iOrder;
 
         i++;
     }
@@ -779,6 +1171,46 @@ static VOID PhpApplyNodeState(
     Node->s.ViewState = State;
 }
 
+static VOID PhpClearBrushCache(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+    ULONG enumerationKey = 0;
+    PPH_KEY_VALUE_PAIR pair;
+
+    while (PhEnumHashtable(Context->BrushCache, &pair, &enumerationKey))
+    {
+        DeleteObject((HGDIOBJ)pair->Value);
+    }
+
+    PhClearHashtable(Context->BrushCache);
+}
+
+static VOID PhpReloadThemeData(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+    if (
+        IsThemeActive_I &&
+        OpenThemeData_I &&
+        CloseThemeData_I &&
+        DrawThemeBackground_I
+        )
+    {
+        Context->ThemeActive = !!IsThemeActive_I();
+
+        if (Context->ThemeData)
+            CloseThemeData_I(Context->ThemeData);
+
+        Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
+    }
+    else
+    {
+        Context->ThemeData = NULL;
+        Context->ThemeActive = FALSE;
+    }
+}
+
 VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     )
@@ -791,6 +1223,19 @@ VOID PhInitializeTreeListNode(
     Node->State = NormalItemState;
 }
 
+VOID PhInvalidateTreeListNode(
+    __inout PPH_TREELIST_NODE Node,
+    __in ULONG Flags
+    )
+{
+    if (Flags & TLIN_COLOR)
+        Node->s.CachedColorValid = FALSE;
+    if (Flags & TLIN_FONT)
+        Node->s.CachedFontValid = FALSE;
+    if (Flags & TLIN_ICON)
+        Node->s.CachedIconValid = FALSE;
+}
+
 BOOLEAN PhAddTreeListColumn(
     __in HWND hwnd,
     __in ULONG Id,
@@ -798,7 +1243,8 @@ BOOLEAN PhAddTreeListColumn(
     __in PWSTR Text,
     __in ULONG Width,
     __in ULONG Alignment,
-    __in ULONG DisplayIndex
+    __in ULONG DisplayIndex,
+    __in ULONG TextFlags
     )
 {
     PH_TREELIST_COLUMN column;
@@ -809,6 +1255,7 @@ BOOLEAN PhAddTreeListColumn(
     column.Width = Width;
     column.Alignment = Alignment;
     column.DisplayIndex = DisplayIndex;
+    column.TextFlags = TextFlags;
 
     return !!TreeList_AddColumn(hwnd, &column);
 }
