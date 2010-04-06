@@ -54,6 +54,26 @@ typedef HRESULT (WINAPI *_SetWindowTheme)(
     __in LPCWSTR pszSubIdList
     );
 
+typedef BOOL (WINAPI *_IsThemeActive)(); 
+
+typedef HTHEME (WINAPI *_OpenThemeData)(
+    __in HWND hwnd,
+    __in LPCWSTR pszClassList
+    );
+
+typedef HRESULT (WINAPI *_CloseThemeData)(
+    __in HTHEME hTheme
+    );
+
+typedef HRESULT (WINAPI *_DrawThemeBackground)(
+    __in HTHEME hTheme,
+    __in HDC hdc,
+    __in int iPartId,
+    __in int iStateId,
+    __in const RECT *pRect,
+    __in const RECT *pClipRect
+    );
+
 typedef HRESULT (WINAPI *_SHAutoComplete)(
     __in HWND hwndEdit,
     __in DWORD dwFlags
@@ -89,6 +109,10 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
 #ifndef GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _RunFileDlg RunFileDlg;
+extern _IsThemeActive IsThemeActive_I;
+extern _OpenThemeData OpenThemeData_I;
+extern _CloseThemeData CloseThemeData_I;
+extern _DrawThemeBackground DrawThemeBackground_I;
 extern _SHAutoComplete SHAutoComplete_I;
 extern _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 extern _SHParseDisplayName SHParseDisplayName_I;

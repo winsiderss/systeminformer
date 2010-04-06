@@ -12,8 +12,11 @@ typedef struct _PHP_TREELIST_CONTEXT
     PVOID Context;
 
     ULONG MaxId;
-    PPH_HASHTABLE Columns;
+    PPH_TREELIST_COLUMN *Columns;
+    ULONG NumberOfColumns;
+    ULONG AllocatedColumns;
     PPH_LIST List; // list of nodes for the list view, in actual display order
+    BOOLEAN CanAnyExpand;
 
     // Sorting
 
@@ -36,6 +39,16 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     LONG EnableRedraw;
     HCURSOR Cursor;
+    BOOLEAN HasFocus;
+
+    // Drawing
+
+    PPH_HASHTABLE BrushCache;
+    HTHEME ThemeData;
+    BOOLEAN ThemeActive;
+    HBITMAP PlusBitmap;
+    HBITMAP MinusBitmap;
+    HDC IconDc;
 } PHP_TREELIST_CONTEXT, *PPHP_TREELIST_CONTEXT;
 
 BOOLEAN NTAPI PhpColumnHashtableCompareFunction(
@@ -61,6 +74,16 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     __in LPARAM lParam
     );
 
+VOID PhpCustomDrawPrePaintItem(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in LPNMLVCUSTOMDRAW CustomDraw
+    );
+
+VOID PhpCustomDrawPrePaintSubItem(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in LPNMLVCUSTOMDRAW CustomDraw
+    );
+
 BOOLEAN PhpIsNodeLeaf(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node
@@ -71,6 +94,13 @@ BOOLEAN PhpGetNodeChildren(
     __in PPH_TREELIST_NODE Node,
     __out PPH_TREELIST_NODE **Children,
     __out PULONG NumberOfChildren
+    );
+
+BOOLEAN PhpGetNodeText(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node,
+    __in ULONG Id,
+    __out PPH_STRINGREF Text
     );
 
 VOID PhpInsertNodeChildren(
@@ -89,9 +119,21 @@ VOID PhpDeleteColumn(
     __inout PPH_TREELIST_COLUMN Column
     );
 
+VOID PhpRefreshColumns(
+    __in PPHP_TREELIST_CONTEXT Context
+    );
+
 VOID PhpApplyNodeState(
     __in PPH_TREELIST_NODE Node,
     __in ULONG State
+    );
+
+VOID PhpClearBrushCache(
+    __in PPHP_TREELIST_CONTEXT Context
+    );
+
+VOID PhpReloadThemeData(
+    __in PPHP_TREELIST_CONTEXT Context
     );
 
 #endif

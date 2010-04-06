@@ -27,6 +27,10 @@
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 _RunFileDlg RunFileDlg;
 _SetWindowTheme SetWindowTheme_I;
+_IsThemeActive IsThemeActive_I;
+_OpenThemeData OpenThemeData_I;
+_CloseThemeData CloseThemeData_I;
+_DrawThemeBackground DrawThemeBackground_I;
 _SHAutoComplete SHAutoComplete_I;
 _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
@@ -43,6 +47,10 @@ VOID PhGuiSupportInitialization()
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
     RunFileDlg = PhGetProcAddress(L"shell32.dll", (PSTR)61);
     SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
+    IsThemeActive_I = PhGetProcAddress(L"uxtheme.dll", "IsThemeActive");
+    OpenThemeData_I = PhGetProcAddress(L"uxtheme.dll", "OpenThemeData");
+    CloseThemeData_I = PhGetProcAddress(L"uxtheme.dll", "CloseThemeData");
+    DrawThemeBackground_I = PhGetProcAddress(L"uxtheme.dll", "DrawThemeBackground");
     SHAutoComplete_I = PhGetProcAddress(L"shlwapi.dll", "SHAutoComplete");
     SHOpenFolderAndSelectItems_I = PhGetProcAddress(L"shell32.dll", "SHOpenFolderAndSelectItems");
     SHParseDisplayName_I = PhGetProcAddress(L"shell32.dll", "SHParseDisplayName");
@@ -70,7 +78,7 @@ HWND PhCreateListViewControl(
     return CreateWindow(
         WC_LISTVIEW,
         L"",
-        WS_CHILD | LVS_REPORT | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
+        WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         3,

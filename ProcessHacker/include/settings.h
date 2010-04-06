@@ -69,6 +69,8 @@ NTSTATUS PhSaveSettings(
 #define EXT extern
 #endif
 
+EXT ULONG PhCsUseColorServiceProcesses;
+EXT ULONG PhCsColorServiceProcesses;
 EXT ULONG PhCsUseColorSuspended;
 EXT ULONG PhCsColorSuspended;
 EXT ULONG PhCsUseColorDotNet;

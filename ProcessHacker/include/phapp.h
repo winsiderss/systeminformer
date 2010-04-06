@@ -73,6 +73,7 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_NAME 0
 #define PHTLC_PID 1
 #define PHTLC_USERNAME 2
+#define PHTLC_MAXIMUM 3
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -83,6 +84,8 @@ typedef struct _PH_PROCESS_NODE
 
     struct _PH_PROCESS_NODE *Parent;
     PPH_LIST Children;
+
+    PH_STRINGREF TextCache[PHTLC_MAXIMUM];
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();
@@ -100,6 +103,10 @@ PPH_PROCESS_NODE PhFindProcessNode(
    );
 
 VOID PhRemoveProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
+
+VOID PhUpdateProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
