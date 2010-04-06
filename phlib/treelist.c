@@ -176,7 +176,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 );
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+#ifdef PH_TREELIST_ENABLE_EXPLORER_STYLE
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+#endif
 
             // Make sure we get to store item state.
             ListView_SetCallbackMask(
@@ -824,8 +826,12 @@ static VOID PhpCustomDrawPrePaintItem(
 
     if (
         node->Selected &&
+#ifdef PH_TREELIST_ENABLE_EXPLORER_STYLE
         // Don't draw if the explorer style is active.
         !(Context->ThemeActive && WindowsVersion >= WINDOWS_VISTA)
+#else
+        TRUE
+#endif
         )
     {
         if (Context->HasFocus)

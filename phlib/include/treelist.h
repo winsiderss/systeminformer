@@ -2,6 +2,7 @@
 #define TREELIST_H
 
 #define PH_TREELIST_CLASSNAME L"PhTreeList"
+//#define PH_TREELIST_ENABLE_EXPLORER_STYLE
 
 typedef struct _PH_TREELIST_COLUMN
 {
