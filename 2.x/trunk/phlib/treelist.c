@@ -89,7 +89,7 @@ VOID PhpInitializeTreeListContext(
 
     Context->OldLvWndProc = NULL;
 
-    Context->EnableRedraw = 0;
+    Context->EnableRedraw = 1;
     Context->Cursor = NULL;
     Context->BrushCache = PhCreateSimpleHashtable(16);
     Context->ThemeData = NULL;
@@ -270,8 +270,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             // with uNewState = 0, deselecting what's meant to be 
                             // selected. Maybe it's by design, but verifying that 
                             // uOldState is correct fixes this problem.
-                            if ((lv->uNewState & LVIS_SELECTED) || lv->uOldState == node->s.ViewState)
+                            if (
+                                // Bug when trying to select an item when the list view doesn't have focus
+                                (lv->uNewState & LVIS_SELECTED) ||
+                                // Primary hack
+                                lv->uOldState == node->s.ViewState
+                                )
+                            {
                                 PhpApplyNodeState(node, lv->uNewState);
+                                ListView_Update(context->ListViewHandle, lv->iItem);
+                            }
                         }
                         else
                         {
@@ -283,6 +291,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                                 PhpApplyNodeState(node, lv->uNewState);
                             }
+
+                            InvalidateRect(context->ListViewHandle, NULL, FALSE);
                         }
                     }
                     break;
@@ -302,6 +312,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                             PhpApplyNodeState(node, losc->uNewState);
                         }
+
+                        ListView_RedrawItems(context->ListViewHandle, indexLow, indexHigh);
                     }
                     return 0;
                 case NM_CUSTOMDRAW:
@@ -337,6 +349,15 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case WM_THEMECHANGED:
         {
             PhpReloadThemeData(context);
+        }
+        break;
+    case WM_SETCURSOR:
+        {
+            if (context->Cursor)
+            {
+                SetCursor(context->Cursor);
+                return TRUE;
+            }
         }
         break;
     case TLM_SETCALLBACK:
@@ -534,6 +555,85 @@ LRESULT CALLBACK PhpTreeListWndProc(
             ListView_Update(context->ListViewHandle, node->s.ViewIndex);
         }
         return TRUE;
+    case TLM_SETCURSOR:
+        {
+            context->Cursor = (HCURSOR)lParam;
+        }
+        return TRUE;
+    case TLM_SETREDRAW:
+        {
+            if (wParam)
+                context->EnableRedraw++;
+            else
+                context->EnableRedraw--;
+
+            if (context->EnableRedraw == 1)
+            {
+                SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
+                InvalidateRect(context->ListViewHandle, NULL, FALSE);
+            }
+            else if (context->EnableRedraw == 0)
+            {
+                SendMessage(context->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+            }
+        }
+        return TRUE;
+    case TLM_SETNEWCOLOR:
+        {
+            context->NewColor = (COLORREF)wParam;
+        }
+        return TRUE;
+    case TLM_SETREMOVINGCOLOR:
+        {
+            context->RemovingColor = (COLORREF)wParam;
+        }
+        return TRUE;
+    case TLM_SETSTATEHIGHLIGHTING:
+        {
+            if (wParam)
+                context->EnableStateHighlighting++;
+            else
+                context->EnableStateHighlighting--;
+        }
+        return TRUE;
+    case TLM_GETSORT:
+        {
+            PULONG sortColumn = (PULONG)wParam;
+            PPH_SORT_ORDER sortOrder = (PPH_SORT_ORDER)lParam;
+
+            if (sortColumn)
+                *sortColumn = context->SortColumn;
+            if (sortOrder)
+                *sortOrder = context->SortOrder;
+        }
+        break;
+    case TLM_SETSORT:
+        {
+            context->SortColumn = (ULONG)wParam;
+            context->SortOrder = (PH_SORT_ORDER)lParam;
+
+            PhSetHeaderSortIcon(
+                ListView_GetHeader(context->ListViewHandle),
+                context->SortColumn,
+                context->SortOrder
+                );
+
+            context->Callback(context->Handle, TreeListSortChanged, NULL, NULL, context->Context);
+        }
+        return TRUE;
+    case TLM_SETTRISTATE:
+        {
+            context->TriState = !!wParam;
+        }
+        return TRUE;
+    case TLM_TICK:
+        {
+            if (context->EnableStateHighlighting > 0)
+            {
+                PhpTreeListTick(context);
+            }
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -682,6 +782,8 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         }
 
                         PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+
+                        context->Callback(context->Handle, TreeListSortChanged, NULL, NULL, context->Context);
                     }
                 }
                 break;
@@ -1015,30 +1117,39 @@ static VOID PhpCustomDrawPrePaintSubItem(
     }
 }
 
-static BOOLEAN PhpIsNodeLeaf(
+static VOID PhpTreeListTick(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+
+}
+
+static BOOLEAN PhpReferenceTreeListNode(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node
     )
 {
-    PH_TREELIST_IS_LEAF isLeaf;
-
-    isLeaf.Flags = 0;
-    isLeaf.Node = Node;
-    isLeaf.IsLeaf = TRUE;
-
-    if (Context->Callback(
+    return Context->Callback(
         Context->Handle,
-        TreeListIsLeaf,
-        &isLeaf,
+        TreeListReferenceNode,
+        Node,
         NULL,
         Context->Context
-        ))
-    {
-        return isLeaf.IsLeaf;
-    }
+        );
+}
 
-    // Doesn't matter, decide when we do the get-children callback.
-    return FALSE;
+static BOOLEAN PhpDereferenceTreeListNode(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node
+    )
+{
+    return Context->Callback(
+        Context->Handle,
+        TreeListDereferenceNode,
+        Node,
+        NULL,
+        Context->Context
+        );
 }
 
 static BOOLEAN PhpGetNodeChildren(
@@ -1069,6 +1180,32 @@ static BOOLEAN PhpGetNodeChildren(
         return TRUE;
     }
 
+    return FALSE;
+}
+
+static BOOLEAN PhpIsNodeLeaf(
+    __in PPHP_TREELIST_CONTEXT Context,
+    __in PPH_TREELIST_NODE Node
+    )
+{
+    PH_TREELIST_IS_LEAF isLeaf;
+
+    isLeaf.Flags = 0;
+    isLeaf.Node = Node;
+    isLeaf.IsLeaf = TRUE;
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeListIsLeaf,
+        &isLeaf,
+        NULL,
+        Context->Context
+        ))
+    {
+        return isLeaf.IsLeaf;
+    }
+
+    // Doesn't matter, decide when we do the get-children callback.
     return FALSE;
 }
 
