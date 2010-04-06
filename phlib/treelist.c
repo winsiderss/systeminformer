@@ -292,7 +292,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 PhpApplyNodeState(node, lv->uNewState);
                             }
 
-                            InvalidateRect(context->ListViewHandle, NULL, FALSE);
+                            ListView_RedrawItems(context->ListViewHandle, 0, context->List->Count - 1);
                         }
                     }
                     break;
@@ -977,6 +977,8 @@ static VOID PhpCustomDrawPrePaintItem(
         &CustomDraw->nmcd.rc,
         backBrush
         );
+
+    GetTextMetrics(hdc, &Context->TextMetrics);
 }
 
 static VOID PhpCustomDrawPrePaintSubItem(
@@ -988,31 +990,36 @@ static VOID PhpCustomDrawPrePaintSubItem(
     ULONG itemIndex;
     ULONG subItemIndex;
     HDC hdc;
-    COLORREF backColor;
-    COLORREF foreColor;
-    HFONT font;
-    PH_STRINGREF text;
-    PPH_TREELIST_COLUMN column;
-    RECT textRect;
-    ULONG textFlags;
+    HFONT font; // font to use
+    PH_STRINGREF text; // text to draw
+    PPH_TREELIST_COLUMN column; // column of sub item
+    RECT origTextRect; // original draw rectangle
+    RECT textRect; // working rectangle, modified as needed
+    ULONG textFlags; // DT_* flags
+    ULONG textVertMargin; // top/bottom margin for text (determined using height of font)
+    ULONG iconVertMargin; // top/bottom margin for icons (determined using height 16)
 
     itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
     node = Context->List->Items[itemIndex];
     subItemIndex = (ULONG)CustomDraw->iSubItem;
     hdc = CustomDraw->nmcd.hdc;
 
-    backColor = node->BackColor;
-    foreColor = node->s.DrawForeColor;
     font = node->Font;
     column = Context->Columns[subItemIndex];
-    textRect = CustomDraw->nmcd.rc;
+    textRect = origTextRect = CustomDraw->nmcd.rc;
     textFlags = column->TextFlags;
 
     // Initial margins used by default list view
     textRect.left += 2;
-    textRect.top += 2;
     textRect.right -= 2;
-    textRect.bottom -= 2;
+
+    // text margin = (height of row - height of font) / 2
+    // icon margin = (height of row - 16) / 2
+    textVertMargin = ((textRect.bottom - textRect.top) - Context->TextMetrics.tmHeight) / 2;
+    iconVertMargin = ((textRect.bottom - textRect.top) - 16) / 2;
+
+    textRect.top += iconVertMargin;
+    textRect.bottom -= iconVertMargin;
 
     if (subItemIndex == 0)
     {
@@ -1107,6 +1114,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
     if (PhpGetNodeText(Context, node, subItemIndex, &text))
     {
+        textRect.top = origTextRect.top + textVertMargin;
+        textRect.bottom = origTextRect.bottom - textVertMargin;
+
         DrawText(
             CustomDraw->nmcd.hdc,
             text.Buffer,
