@@ -110,12 +110,10 @@ HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 
 static HWND TabControlHandle;
-static INT ProcessesTlTabIndex;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
 static INT NetworkTabIndex;
 static HWND ProcessTreeListHandle;
-static HWND ProcessListViewHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
 
@@ -971,10 +969,6 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 PhMainWndTabControlOnNotify(header);
             }
-            else if (header->hwndFrom == ProcessListViewHandle)
-            {
-                PhMainWndProcessListViewOnNotify(header);
-            }
             else if (header->hwndFrom == ServiceListViewHandle)
             {
                 PhMainWndServiceListViewOnNotify(header);
@@ -1091,7 +1085,6 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     }
 
-    REFLECT_MESSAGE(ProcessListViewHandle, uMsg, wParam, lParam);
     REFLECT_MESSAGE(ServiceListViewHandle, uMsg, wParam, lParam);
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -1102,7 +1095,7 @@ VOID PhpReloadListViewFont()
     HFONT fontHandle;
     LOGFONT font;
 
-    if (ProcessListViewHandle && (fontHandle = (HFONT)SendMessage(ProcessListViewHandle, WM_GETFONT, 0, 0)))
+    if (ServiceListViewHandle && (fontHandle = (HFONT)SendMessage(ServiceListViewHandle, WM_GETFONT, 0, 0)))
     {
         if (GetObject(fontHandle, sizeof(LOGFONT), &font))
         {
@@ -1256,7 +1249,7 @@ VOID PhpRefreshUsersMenu()
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
 {
     return PhGetSelectedListViewItemParam(
-        ProcessListViewHandle
+        ProcessTreeListHandle
         );
 }
 
@@ -1266,7 +1259,7 @@ VOID PhpGetSelectedProcesses(
     )
 {
     PhGetSelectedListViewItemParams(
-        ProcessListViewHandle,
+        ProcessTreeListHandle,
         Processes,
         NumberOfProcesses
         );
@@ -1398,35 +1391,21 @@ VOID PhMainWndOnCreate()
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
-    ProcessesTlTabIndex = PhAddTabControlTab(TabControlHandle, 3, L"Processes");
 
     ProcessTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_PROCESSTL);
     BringWindowToTop(ProcessTreeListHandle);
 
-    ProcessListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_PROCESSLV);
-    PhSetListViewStyle(ProcessListViewHandle, TRUE, TRUE);
-    BringWindowToTop(ProcessListViewHandle);
-    PhpReloadListViewFont();
-
     ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
     PhSetListViewStyle(ServiceListViewHandle, TRUE, TRUE);
     BringWindowToTop(ServiceListViewHandle);
+    PhpReloadListViewFont();
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     PhSetListViewStyle(NetworkListViewHandle, TRUE, TRUE);
     BringWindowToTop(NetworkListViewHandle);
 
-    PhSetControlTheme(ProcessListViewHandle, L"explorer");
     PhSetControlTheme(ServiceListViewHandle, L"explorer");
     PhSetControlTheme(NetworkListViewHandle, L"explorer");
-
-    PhAddListViewColumn(ProcessListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-    PhAddListViewColumn(ProcessListViewHandle, 1, 1, 1, LVCFMT_LEFT, 50, L"PID");
-    PhAddListViewColumn(ProcessListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"User Name");
-    PhAddListViewColumn(ProcessListViewHandle, 3, 3, 3, LVCFMT_LEFT, 300, L"File Name");
-    PhAddListViewColumn(ProcessListViewHandle, 4, 4, 4, LVCFMT_LEFT, 300, L"Command Line");
-    PhAddListViewColumn(ProcessListViewHandle, 5, 5, 5, LVCFMT_LEFT, 60, L"CPU");
-    PhAddListViewColumn(ProcessListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Packed");
 
     PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
@@ -1511,15 +1490,9 @@ VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
-    if (selectedIndex == ProcessesTlTabIndex)
+    if (selectedIndex == ProcessesTabIndex)
     {
         *deferHandle = DeferWindowPos(*deferHandle, ProcessTreeListHandle, NULL, 
-            rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER);
-    }
-    else if (selectedIndex == ProcessesTabIndex)
-    {
-        *deferHandle = DeferWindowPos(*deferHandle, ProcessListViewHandle, NULL, 
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
@@ -1559,8 +1532,7 @@ VOID PhMainWndTabControlOnSelectionChanged()
         EndDeferWindowPos(deferHandle);
     }
 
-    ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTlTabIndex ? SW_SHOW : SW_HIDE);
-    ShowWindow(ProcessListViewHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
+    ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(ServiceListViewHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
 }
@@ -1848,7 +1820,7 @@ VOID PhMainWndProcessListViewOnNotify(
 
                 PhShowContextMenu(
                     PhMainWndHandle,
-                    ProcessListViewHandle,
+                    ProcessTreeListHandle,
                     subMenu,
                     itemActivate->ptAction
                     );
@@ -2015,19 +1987,6 @@ VOID PhMainWndOnProcessAdded(
     __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
     )
 {
-    INT lvItemIndex;
-
-    lvItemIndex = PhAddListViewItem(
-        ProcessListViewHandle,
-        MAXINT,
-        ProcessItem->ProcessName->Buffer,
-        ProcessItem
-        );
-    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 1, ProcessItem->ProcessIdString);
-    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 2, PhGetString(ProcessItem->UserName));
-    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 3, PhGetString(ProcessItem->FileName));
-    PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
-
     PhCreateProcessNode(ProcessItem);
 }
 
@@ -2035,17 +1994,6 @@ VOID PhMainWndOnProcessModified(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    INT lvItemIndex;
-
-    lvItemIndex = PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem);
-
-    if (lvItemIndex != -1)
-    {
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 4, PhGetString(ProcessItem->CommandLine));
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 5, ProcessItem->CpuUsageString);
-        PhSetListViewSubItem(ProcessListViewHandle, lvItemIndex, 6, ProcessItem->IsPacked ? L"Yes" : L"No");
-    }
-
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 }
 
@@ -2055,10 +2003,6 @@ VOID PhMainWndOnProcessRemoved(
 {
     PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 
-    PhRemoveListViewItem(
-        ProcessListViewHandle,
-        PhFindListViewItemByParam(ProcessListViewHandle, -1, ProcessItem)
-        );
     // Remove the reference for the process item being displayed.
     PhDereferenceObject(ProcessItem);
 }

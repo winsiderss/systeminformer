@@ -45,9 +45,9 @@ static HANDLE ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
 
-static PPH_HASHTABLE ProcessNodeHashtable;
-static PPH_LIST ProcessNodeList;
-static PPH_LIST ProcessNodeRootList;
+static PPH_HASHTABLE ProcessNodeHashtable; // hashtable of all nodes
+static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enabled
+static PPH_LIST ProcessNodeRootList; // list of root nodes
 
 static HICON StockAppIcon;
 
@@ -77,7 +77,7 @@ VOID PhInitializeProcessTreeList(
         PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MINUS), IMAGE_BITMAP)
         );
 
-    PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
 
@@ -155,6 +155,7 @@ VOID PhCreateProcessNode(
             );
     }
 
+    PhAddHashtableEntry(ProcessNodeHashtable, &processNode);
     PhAddListItem(ProcessNodeList, processNode);
 
     TreeList_NodesStructured(ProcessTreeListHandle);
@@ -164,17 +165,18 @@ PPH_PROCESS_NODE PhFindProcessNode(
    __in HANDLE ProcessId
    )
 {
-    ULONG i;
+    PH_PROCESS_NODE lookupNode;
+    PPH_PROCESS_NODE lookupNodePtr = &lookupNode;
+    PPH_PROCESS_NODE *node;
 
-    for (i = 0; i < ProcessNodeList->Count; i++)
-    {
-        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+    lookupNode.ProcessId = ProcessId;
 
-        if (node->ProcessId == ProcessId)
-            return node;
-    }
+    node = PhGetHashtableEntry(ProcessNodeHashtable, &lookupNodePtr);
 
-    return NULL;
+    if (node)
+        return *node;
+    else
+        return NULL;
 }
 
 VOID PhRemoveProcessNode(
@@ -207,6 +209,10 @@ VOID PhRemoveProcessNode(
         node->Parent = NULL;
         PhAddListItem(ProcessNodeRootList, node);
     }
+
+    // Remove from hashtable/list and cleanup.
+
+    PhRemoveHashtableEntry(ProcessNodeHashtable, &ProcessNode);
 
     if ((index = PhIndexOfListItem(ProcessNodeList, ProcessNode)) != -1)
         PhRemoveListItem(ProcessNodeList, index);

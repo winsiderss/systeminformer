@@ -64,56 +64,76 @@ HWND PhCreateTreeListControl(
         );
 }
 
-VOID PhpInitializeTreeListContext(
-    __out PPHP_TREELIST_CONTEXT Context
+VOID PhpCreateTreeListContext(
+    __out PPHP_TREELIST_CONTEXT *Context
     )
 {
-    Context->Callback = PhTreeListNullCallback;
-    Context->Context = NULL;
+    PPHP_TREELIST_CONTEXT context;
 
-    Context->MaxId = 0;
-    Context->Columns = NULL;
-    Context->NumberOfColumns = 0;
-    Context->AllocatedColumns = 0;
-    Context->List = PhCreateList(64);
-    Context->CanAnyExpand = FALSE;
+    context = PhAllocate(sizeof(PHP_TREELIST_CONTEXT));
 
-    Context->TriState = FALSE;
-    Context->SortColumn = 0;
-    Context->SortOrder = AscendingSortOrder;
+    context->RefCount = 1;
 
-    Context->EnableStateHighlighting = 0;
-    Context->HighlightingDuration = 1000;
-    Context->NewColor = RGB(0x00, 0xff, 0x00);
-    Context->RemovingColor = RGB(0xff, 0x00, 0x00);
+    context->Callback = PhTreeListNullCallback;
+    context->Context = NULL;
 
-    Context->OldLvWndProc = NULL;
+    context->MaxId = 0;
+    context->Columns = NULL;
+    context->NumberOfColumns = 0;
+    context->AllocatedColumns = 0;
+    context->List = PhCreateList(64);
+    context->CanAnyExpand = FALSE;
 
-    Context->EnableRedraw = 1;
-    Context->Cursor = NULL;
-    Context->BrushCache = PhCreateSimpleHashtable(16);
-    Context->ThemeData = NULL;
-    Context->PlusBitmap = NULL;
-    Context->MinusBitmap = NULL;
-    Context->IconDc = NULL;
+    context->TriState = FALSE;
+    context->SortColumn = 0;
+    context->SortOrder = AscendingSortOrder;
+
+    context->EnableStateHighlighting = 0;
+    context->HighlightingDuration = 1000;
+    context->NewColor = RGB(0x00, 0xff, 0x00);
+    context->RemovingColor = RGB(0xff, 0x00, 0x00);
+
+    context->OldLvWndProc = NULL;
+
+    context->EnableRedraw = 1;
+    context->Cursor = NULL;
+    context->BrushCache = PhCreateSimpleHashtable(16);
+    context->ThemeData = NULL;
+    context->PlusBitmap = NULL;
+    context->MinusBitmap = NULL;
+    context->IconDc = NULL;
+
+    *Context = context;
 }
 
-VOID PhpDeleteTreeListContext(
+VOID PhpReferenceTreeListContext(
     __inout PPHP_TREELIST_CONTEXT Context
     )
 {
-    PhpClearBrushCache(Context);
+    Context->RefCount++;
+}
 
-    if (Context->Columns)
-        PhFree(Context->Columns);
+VOID PhpDereferenceTreeListContext(
+    __inout PPHP_TREELIST_CONTEXT Context
+    )
+{
+    if (--Context->RefCount == 0)
+    {
+        PhpClearBrushCache(Context);
 
-    PhDereferenceObject(Context->List);
-    PhDereferenceObject(Context->BrushCache);
+        if (Context->Columns)
+            PhFree(Context->Columns);
 
-    if (Context->ThemeData)
-        CloseThemeData_I(Context->ThemeData);
-    if (Context->IconDc)
-        DeleteDC(Context->IconDc);
+        PhDereferenceObject(Context->List);
+        PhDereferenceObject(Context->BrushCache);
+
+        if (Context->ThemeData)
+            CloseThemeData_I(Context->ThemeData);
+        if (Context->IconDc)
+            DeleteDC(Context->IconDc);
+
+        PhFree(Context);
+    }
 }
 
 static BOOLEAN NTAPI PhpColumnHashtableCompareFunction(
@@ -144,8 +164,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
     if (uMsg == WM_CREATE)
     {
-        context = PhAllocate(sizeof(PHP_TREELIST_CONTEXT));
-        PhpInitializeTreeListContext(context);
+        PhpCreateTreeListContext(&context);
         SetWindowLongPtr(hwnd, 0, (LONG_PTR)context);
     }
 
@@ -190,6 +209,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
             // Hook the list view window procedure.
             context->OldLvWndProc = (WNDPROC)GetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC);
             SetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC, (LONG_PTR)PhpTreeListLvHookWndProc);
+            PhpReferenceTreeListContext(context);
             SetProp(context->ListViewHandle, L"TreeListContext", (HANDLE)context);
 
             PhpReloadThemeData(context);
@@ -199,8 +219,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
         break;
     case WM_DESTROY:
         {
-            PhpDeleteTreeListContext(context);
-            PhFree(context);
+            PhpDereferenceTreeListContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
         break;
@@ -681,6 +700,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     case WM_DESTROY:
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhpDereferenceTreeListContext(context);
             RemoveProp(hwnd, L"TreeListContext");
         }
         break;
