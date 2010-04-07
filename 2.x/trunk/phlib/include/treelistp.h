@@ -5,6 +5,8 @@
 
 typedef struct _PHP_TREELIST_CONTEXT
 {
+    ULONG RefCount;
+
     HWND Handle;
     HWND ListViewHandle;
 
