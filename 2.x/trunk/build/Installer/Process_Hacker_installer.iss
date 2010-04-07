@@ -48,8 +48,8 @@ AppPublisherURL=http://processhacker.sourceforge.net/
 AppSupportURL=http://sourceforge.net/tracker/?group_id=242527
 AppUpdatesURL=http://processhacker.sourceforge.net/
 UninstallDisplayName=Process Hacker {#= simple_app_version}
-DefaultDirName={pf}\Process Hacker
-DefaultGroupName=Process Hacker
+DefaultDirName={pf}\Process Hacker 2
+DefaultGroupName=Process Hacker 2
 VersionInfoCompany=wj32
 VersionInfoCopyright=Licensed under the GNU GPL, v3.
 VersionInfoDescription=Process Hacker {#= simple_app_version} Setup
@@ -80,7 +80,7 @@ PrivilegesRequired=admin
 ShowLanguageDialog=auto
 DisableDirPage=auto
 DisableProgramGroupPage=auto
-;AppMutex=Global\ProcessHackerMutex
+AppMutex=Global\ProcessHacker2Mutant
 ArchitecturesInstallIn64BitMode=x64
 
 
@@ -95,7 +95,7 @@ Name: gr; MessagesFile: Languages\Greek.isl
 
 
 [Messages]
-BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                    Setup v{#= installer_build_number} built on {#= installer_build_date}
+BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                      Setup v{#= installer_build_number} built on {#= installer_build_date}
 
 
 [Files]
@@ -217,10 +217,12 @@ end;
 function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
+  Result := True;
   if CheckForMutexes(installer_mutex_name) then begin
     if not WizardSilent() then
       MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbCriticalError, MB_OK);
     exit;
+    Result := False;
   end;
   CreateMutex(installer_mutex_name);
 end;
