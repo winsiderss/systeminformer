@@ -139,6 +139,24 @@ INT WINAPI WinMain(
     if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)
         PhInitializeKph();
 
+    // Create a mutant for the installer.
+    {
+        HANDLE mutantHandle;
+        OBJECT_ATTRIBUTES oa;
+        UNICODE_STRING mutantName;
+
+        RtlInitUnicodeString(&mutantName, L"\\BaseNamedObjects\\ProcessHacker2Mutant");
+        InitializeObjectAttributes(
+            &oa,
+            &mutantName,
+            0,
+            NULL,
+            NULL
+            );
+
+        NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+    }
+
 #ifdef DEBUG
     dbg.ClientId.UniqueProcess = NtCurrentProcessId();
     dbg.ClientId.UniqueThread = NtCurrentThreadId();
