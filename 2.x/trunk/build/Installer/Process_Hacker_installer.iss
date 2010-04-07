@@ -61,13 +61,12 @@ VersionInfoProductTextVersion={#= simple_app_version}
 MinVersion=0,5.01.2600
 ;AppReadmeFile={app}\README.txt
 LicenseFile=..\..\LICENSE.txt
-;InfoAfterFile=..\..\..\CHANGELOG.txt
 ;InfoBeforeFile=..\..\..\README.txt
 SetupIconFile=Icons\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
 WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
-OutputDir=.
+OutputDir=..\..\bin
 OutputBaseFilename=processhacker-{#= simple_app_version}-setup
 AllowNoIcons=yes
 Compression=lzma/ultra64
@@ -124,9 +123,8 @@ Name: restore_taskmgr; Description: {cm:tsk_RestoreTaskmgr}; GroupDescription: {
 
 [Icons]
 Name: {group}\Process Hacker; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
-Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
-Name: {group}\{cm:sm_Help}\{cm:sm_ReadmeFile}; Filename: {app}\README.txt; Comment: {cm:sm_com_ReadmeFile}; WorkingDir: {app}
+;Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
+;Name: {group}\{cm:sm_Help}\{cm:sm_ReadmeFile}; Filename: {app}\README.txt; Comment: {cm:sm_com_ReadmeFile}; WorkingDir: {app}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker}
 Name: {group}\{cm:UninstallProgram,Process Hacker}; Filename: {uninstallexe}; IconFilename: {app}\uninstall.ico; Comment: {cm:UninstallProgram,Process Hacker}; WorkingDir: {app}
 
@@ -139,7 +137,7 @@ Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker; Fil
 Type: files; Name: {userdesktop}\Process Hacker.lnk; Tasks: NOT desktopicon\user
 Type: files; Name: {commondesktop}\Process Hacker.lnk; Tasks: NOT desktopicon\common
 
-Type: files; Name: {userappdata}\Process Hacker\settings.xml; Tasks: reset_settings
+Type: files; Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker; Tasks: reset_settings
 
 
