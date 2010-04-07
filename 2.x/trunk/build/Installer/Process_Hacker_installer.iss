@@ -116,9 +116,6 @@ Name: startup_task; Description: {cm:tsk_StartupDescr}; GroupDescription: {cm:ts
 Name: startup_task\minimized; Description: {cm:tsk_StartupDescrMin}; GroupDescription: {cm:tsk_Startup}; Check: StartupCheck(); Flags: unchecked
 Name: remove_startup_task; Description: {cm:tsk_RemoveStartup}; GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck(); Flags: unchecked
 
-Name: create_KPH_service; Description: {cm:tsk_CreateKPHService}; GroupDescription: {cm:tsk_Other}; Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
-Name: delete_KPH_service; Description: {cm:tsk_DeleteKPHService}; GroupDescription: {cm:tsk_Other}; Check: KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
-
 Name: reset_settings; Description: {cm:tsk_ResetSettings}; GroupDescription: {cm:tsk_Other}; Check: SettingsExistCheck(); Flags: checkedonce unchecked
 
 Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other}; Check: PHDefaulTaskmgrCheck(); Flags: unchecked
@@ -210,17 +207,16 @@ Procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   // When uninstalling ask user to delete Process Hacker's logs and settings
   // based on whether these files exist only
-  if SettingsExistCheck OR fileExists(ExpandConstant('{app}\Process Hacker Log.txt'))
+  if SettingsExistCheck OR fileExists(ExpandConstant('{app}\Process Hacker Log.txt')) then begin
     if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'),
      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
        CleanUpFiles;
     end;
+  end;
 end;
 
 
 function InitializeSetup(): Boolean;
-var
-  ErrorCode: Integer;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
   if CheckForMutexes(installer_mutex_name) then begin
@@ -229,7 +225,6 @@ begin
     exit;
   end;
   CreateMutex(installer_mutex_name);
-  end;
 end;
 
 
