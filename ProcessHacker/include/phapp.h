@@ -110,6 +110,13 @@ VOID PhUpdateProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+PPH_PROCESS_ITEM PhGetSelectedProcessItem();
+
+VOID PhGetSelectedProcessItems(
+    __out PPH_PROCESS_ITEM **Processes,
+    __out PULONG NumberOfProcesses
+    );
+
 // support
 
 typedef enum _PH_KNOWN_PROCESS_TYPE
@@ -258,6 +265,10 @@ LRESULT CALLBACK PhMainWndProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+VOID PhShowProcessContextMenu(
+    __in POINT Location
     );
 
 // procprp

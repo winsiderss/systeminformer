@@ -20,7 +20,6 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define MAINWND_PRIVATE
 #include <phapp.h>
 #include <settings.h>
 
@@ -434,7 +433,80 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             TreeList_NodesStructured(hwnd);
         }
         return TRUE;
+    case TreeListKeyDown:
+        {
+            switch ((SHORT)Parameter1)
+            {
+            case VK_DELETE:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
+                break;
+            case VK_SHIFT | VK_DELETE:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
+                break;
+            case VK_RETURN:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+                break;
+            }
+        }
+        return TRUE;
+    case TreeListNodeRightClick:
+        {
+            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+
+            PhShowProcessContextMenu(mouseEvent->Location);
+        }
+        return TRUE;
+    case TreeListNodeLeftDoubleClick:
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+        }
+        return TRUE;
     }
 
     return FALSE;
+}
+
+PPH_PROCESS_ITEM PhGetSelectedProcessItem()
+{
+    PPH_PROCESS_ITEM processItem = NULL;
+    ULONG i;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            processItem = node->ProcessItem;
+            break;
+        }
+    }
+
+    return processItem;
+}
+
+VOID PhGetSelectedProcessItems(
+    __out PPH_PROCESS_ITEM **Processes,
+    __out PULONG NumberOfProcesses
+    )
+{
+    PPH_LIST list;
+    ULONG i;
+
+    list = PhCreateList(2);
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddListItem(list, node->ProcessItem);
+        }
+    }
+
+    *Processes = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfProcesses = list->Count;
+
+    PhDereferenceObject(list);
 }
