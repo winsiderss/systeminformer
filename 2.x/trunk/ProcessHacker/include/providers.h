@@ -22,6 +22,8 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING ProcessName;
     ULONG SessionId;
 
+    HANDLE QueryHandle;
+
     PPH_STRING FileName;
     PPH_STRING CommandLine;
 
