@@ -475,7 +475,7 @@ VOID PhSetDesktopWinStaAccess()
 
     // Create a security descriptor with a NULL DACL, 
     // thereby allowing everyone to access the object.
-    InitializeSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION); 
+    RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
 
     if (wsHandle = OpenWindowStation(
         L"WinSta0",
