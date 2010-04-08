@@ -23,8 +23,6 @@
 #ifndef _EX_H
 #define _EX_H
 
-#include "types.h"
-
 /* HACK - version.c dependency */
 #define WINDOWS_XP 51
 #define WINDOWS_SERVER_2003 52

@@ -802,25 +802,13 @@ VOID PhThreadProviderUpdate(
 
             if (threadItem->ThreadHandle)
             {
-                if (PhKphHandle)
-                {
-                    KphGetThreadStartAddress(
-                        PhKphHandle,
-                        threadItem->ThreadHandle,
-                        &startAddress
-                        );
-                }
-
-                if (!startAddress)
-                {
-                    NtQueryInformationThread(
-                        threadItem->ThreadHandle,
-                        ThreadQuerySetWin32StartAddress,
-                        &startAddress,
-                        sizeof(PVOID),
-                        NULL
-                        );
-                }
+                NtQueryInformationThread(
+                    threadItem->ThreadHandle,
+                    ThreadQuerySetWin32StartAddress,
+                    &startAddress,
+                    sizeof(PVOID),
+                    NULL
+                    );
             }
 
             if (!startAddress)

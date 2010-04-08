@@ -23,8 +23,6 @@
 #ifndef _TEST_H
 #define _TEST_H
 
-#include "kph.h"
-
 VOID KphTestPushLock();
 
 #endif

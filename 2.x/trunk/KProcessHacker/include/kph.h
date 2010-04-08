@@ -23,16 +23,23 @@
 #ifndef _KPH_H
 #define _KPH_H
 
-#include "types.h"
+#include <ntifs.h>
+
 #include "debug.h"
 #include "ref.h"
+#include "util.h"
 #include "version.h"
 
+#include "ex.h"
+#include "io.h"
 #include "ke.h"
 #include "mm.h"
+#include "ob.h"
 #include "ps.h"
-#include "trace.h"
+#include "se.h"
 #include "zw.h"
+ 
+#include "trace.h"
 
 #define MAX_UINTEGER(Bits) ((1 << (Bits)) - 1)
 #define BITS_UCHAR 8
@@ -74,7 +81,6 @@ EXT POBJECT_TYPE *ObDirectoryObjectType EQNULL;
 EXT POBJECT_TYPE *ObTypeObjectType EQNULL;
 
 EXT PKSERVICE_TABLE_DESCRIPTOR __KeServiceDescriptorTable EQNULL;
-EXT PVOID __KiFastCallEntry EQNULL;
 EXT _NtClose __NtClose EQNULL;
 EXT _ObGetObjectType ObGetObjectType EQNULL;
 EXT _PsGetProcessJob PsGetProcessJob EQNULL;
@@ -180,8 +186,8 @@ NTSTATUS OpenProcess(
     );
 
 NTSTATUS SetProcessToken(
-    __in HANDLE sourcePid,
-    __in HANDLE targetPid
+    __in HANDLE SourcePid,
+    __in HANDLE TargetPid
     );
 
 /* KProcessHacker */

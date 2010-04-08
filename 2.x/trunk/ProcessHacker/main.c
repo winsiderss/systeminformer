@@ -363,7 +363,7 @@ VOID PhInitializeKph()
     // Append kprocesshacker.sys to the application directory.
     kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, kprocesshacker);
 
-    KphConnect2(&PhKphHandle, L"KProcessHacker", kprocesshackerFileName->Buffer);
+    KphConnect2(&PhKphHandle, L"KProcessHacker2", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);
 #endif
 

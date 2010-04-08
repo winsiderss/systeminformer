@@ -23,8 +23,6 @@
 #ifndef _ZW_H
 #define _ZW_H
 
-#include "types.h"
-
 NTSTATUS NTAPI ZwOpenProcessToken(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,

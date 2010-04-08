@@ -21,8 +21,6 @@
  */
 
 #include "include/kph.h"
-#include "include/ke.h"
-#include "include/ps.h"
 
 VOID NTAPI KphpCaptureStackBackTraceThreadSpecialApc(
     PKAPC Apc,
@@ -1063,14 +1061,20 @@ NTSTATUS KphTerminateProcess(
     {
         /* Otherwise, we'll have to call ZwTerminateProcess - most hooks on this function 
            allow kernel-mode callers through. */
-        OBJECT_ATTRIBUTES objectAttributes = { 0 };
+        OBJECT_ATTRIBUTES oa;
         CLIENT_ID clientId;
         HANDLE newProcessHandle;
         
-        /* We have to open it again because ZwTerminateProcess only accepts kernel handles. */
+        InitializeObjectAttributes(
+            &oa,
+            NULL,
+            OBJ_KERNEL_HANDLE,
+            NULL,
+            NULL
+            );
         clientId.UniqueThread = 0;
         clientId.UniqueProcess = PsGetProcessId(processObject);
-        status = KphOpenProcess(&newProcessHandle, 0x1, &objectAttributes, &clientId, KernelMode);
+        status = KphOpenProcess(&newProcessHandle, PROCESS_TERMINATE, &oa, &clientId, KernelMode);
         ObDereferenceObject(processObject);
         
         if (NT_SUCCESS(status))
@@ -1112,10 +1116,7 @@ NTSTATUS KphTerminateThread(
         ObDereferenceObject(threadObject);
     }
     else
-    {/*
-        ObDereferenceObject(threadObject);
-        status = PspTerminateThreadByPointer(PsGetCurrentThread(), ExitStatus); */
-        /* Leads to bugs, so don't terminate self. */
+    {
         ObDereferenceObject(threadObject);
         return STATUS_CANT_TERMINATE_SELF;
     }

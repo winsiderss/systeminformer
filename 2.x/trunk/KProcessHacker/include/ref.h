@@ -23,8 +23,6 @@
 #ifndef _REF_H
 #define _REF_H
 
-#include "kph.h"
-
 /* Object flags */
 #define KPHOBJ_RAISE_ON_FAIL 0x00000001
 #define KPHOBJ_PAGED_POOL 0x00000002

@@ -21,7 +21,6 @@
  */
 
 #include "include/kph.h"
-#include "include/ob.h"
 
 BOOLEAN KphpQueryProcessHandlesEnumCallback(
     __inout PHANDLE_TABLE_ENTRY HandleTableEntry,
@@ -757,6 +756,20 @@ NTSTATUS ObDuplicateObject(
     {
         if (!(Options & DUPLICATE_CLOSE_SOURCE))
             return STATUS_INVALID_PARAMETER;
+    }
+    
+    /* Closing handles in the current process from kernel-mode is *bad* */
+    /* Example: the handle being closed is a handle to the file object 
+     * on which this very request is being sent. Deadlock.
+     *
+     * If we add the current process check, the handle can't possibly 
+     * be the one the request is being sent on, since system calls 
+     * only operate on handles from the current process.
+     */
+    if (SourceProcess == PsGetCurrentProcess())
+    {
+        if (Options & DUPLICATE_CLOSE_SOURCE)
+            return STATUS_CANT_TERMINATE_SELF;
     }
     
     /* Check if we need to attach to the source process */

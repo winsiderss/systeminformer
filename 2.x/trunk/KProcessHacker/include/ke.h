@@ -23,8 +23,6 @@
 #ifndef _KE_H
 #define _KE_H
 
-#include "types.h"
-
 /* APCs */
 
 typedef enum _KAPC_ENVIRONMENT

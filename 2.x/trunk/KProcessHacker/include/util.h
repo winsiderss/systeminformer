@@ -23,8 +23,6 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-#include "kph.h"
-
 /* Streams
  * 
  * Streams are small buffer management structures. They 

@@ -23,10 +23,6 @@
 #ifndef _REFP_H
 #define _REFP_H
 
-#define _REF_PRIVATE
-#include "ref.h"
-#include "sync.h"
-
 #define TAG_KPHOBJ ('bOhP')
 
 #define KphObjectToObjectHeader(Object) ((PKPH_OBJECT_HEADER)CONTAINING_RECORD((PCHAR)(Object), KPH_OBJECT_HEADER, Body))
