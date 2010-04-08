@@ -1169,7 +1169,7 @@ static VOID PhpCustomDrawPrePaintItem(
     }
     else
     {
-        SetTextColor(hdc, node->ForeColor);
+        SetTextColor(hdc, node->s.DrawForeColor);
 
         cacheItem = PhGetSimpleHashtableItem(Context->BrushCache, (PVOID)node->BackColor);
 

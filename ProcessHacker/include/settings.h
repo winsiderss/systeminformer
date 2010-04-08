@@ -69,10 +69,22 @@ NTSTATUS PhSaveSettings(
 #define EXT extern
 #endif
 
+EXT ULONG PhCsColorNew;
+EXT ULONG PhCsColorRemoved;
 EXT ULONG PhCsUseColorOwnProcesses;
 EXT ULONG PhCsColorOwnProcesses;
+EXT ULONG PhCsUseColorSystemProcesses;
+EXT ULONG PhCsColorSystemProcesses;
 EXT ULONG PhCsUseColorServiceProcesses;
 EXT ULONG PhCsColorServiceProcesses;
+EXT ULONG PhCsUseColorJobProcesses;
+EXT ULONG PhCsColorJobProcesses;
+EXT ULONG PhCsUseColorWow64Processes;
+EXT ULONG PhCsColorWow64Processes;
+EXT ULONG PhCsUseColorPosixProcesses;
+EXT ULONG PhCsColorPosixProcesses;
+EXT ULONG PhCsUseColorDebuggedProcesses;
+EXT ULONG PhCsColorDebuggedProcesses;
 EXT ULONG PhCsUseColorElevatedProcesses;
 EXT ULONG PhCsColorElevatedProcesses;
 EXT ULONG PhCsUseColorSuspended;
