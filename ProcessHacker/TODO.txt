@@ -1,5 +1,4 @@
-* Process tree
-* Column re-ordering
+* Column re-ordering (and save in settings)
 * Column chooser
 
 * Network provider
