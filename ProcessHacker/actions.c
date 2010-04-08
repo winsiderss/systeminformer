@@ -291,6 +291,111 @@ BOOLEAN PhUiTerminateProcesses(
     return success;
 }
 
+BOOLEAN PhpUiTerminateTreeProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in PVOID Processes,
+    __inout PBOOLEAN Success
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_PROCESS_INFORMATION process;
+    HANDLE processHandle;
+    PPH_PROCESS_ITEM processItem;
+
+    // Note:
+    // FALSE should be written to Success if any part of the operation failed.
+    // The return value of this function indicates whether to continue with 
+    // the operation (FALSE if user cancelled).
+
+    // Terminate the process.
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_TERMINATE,
+        Process->ProcessId
+        )))
+    {
+        status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        *Success = FALSE;
+
+        if (!PhpShowErrorProcess(hWnd, L"terminate", Process, status, 0))
+            return FALSE;
+    }
+
+    // Terminate the process' children.
+
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        if (process->InheritedFromUniqueProcessId == Process->ProcessId)
+        {
+            if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
+            {
+                // Check the creation time to make sure it is a descendant.
+                if (processItem->CreateTime.QuadPart >= Process->CreateTime.QuadPart)
+                {
+                    if (!PhpUiTerminateTreeProcess(hWnd, processItem, Processes, Success))
+                    {
+                        PhDereferenceObject(processItem);
+                        return FALSE;
+                    }
+                }
+
+                PhDereferenceObject(processItem);
+            }
+        }
+    } while (process = PH_NEXT_PROCESS(process));
+
+    return TRUE;
+}
+
+BOOLEAN PhUiTerminateTreeProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN success = TRUE;
+    BOOLEAN cont = FALSE;
+    PVOID processes;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"terminate",
+            PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
+            L"Terminating a process tree will cause the process and its descendants to be terminated.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
+    {
+        PhShowStatus(hWnd, L"Unable to enumerate processes", status, 0);
+        return FALSE;
+    }
+
+    PhpUiTerminateTreeProcess(hWnd, Process, processes, &success);
+    PhFree(processes);
+
+    return success;
+}
+
 BOOLEAN PhUiSuspendProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
