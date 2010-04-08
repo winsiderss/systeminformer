@@ -334,7 +334,10 @@ BOOLEAN PhpUiTerminateTreeProcess(
 
     do
     {
-        if (process->InheritedFromUniqueProcessId == Process->ProcessId)
+        if (
+            process->UniqueProcessId != Process->ProcessId &&
+            process->InheritedFromUniqueProcessId == Process->ProcessId
+            )
         {
             if (processItem = PhReferenceProcessItem(process->UniqueProcessId))
             {
