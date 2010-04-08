@@ -87,7 +87,18 @@ typedef enum _PH_TREELIST_MESSAGE
     TreeListGetNodeIcon, // PPH_TREELIST_GET_NODE_ICON Parameter1
 
     // Notifications
-    TreeListSortChanged
+    TreeListSortChanged,
+
+    TreeListSelectionChanged,
+
+    TreeListKeyDown, // SHORT Parameter1 (Virtual key code)
+
+    TreeListHeaderRightClick,
+
+    TreeListNodeLeftClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListNodeRightClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListNodeLeftDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListNodeRightDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
 } PH_TREELIST_MESSAGE;
 
 typedef BOOLEAN (NTAPI *PPH_TREELIST_CALLBACK)(
@@ -152,6 +163,14 @@ typedef struct _PH_TREELIST_GET_NODE_ICON
 
     HICON Icon;
 } PH_TREELIST_GET_NODE_ICON, *PPH_TREELIST_GET_NODE_ICON;
+
+typedef struct _PH_TREELIST_MOUSE_EVENT
+{
+    ULONG Index;
+    ULONG Id;
+    POINT Location;
+    ULONG KeyFlags;
+} PH_TREELIST_MOUSE_EVENT, *PPH_TREELIST_MOUSE_EVENT;
 
 #define TLM_SETCALLBACK (WM_APP + 1201)
 #define TLM_SETCONTEXT (WM_APP + 1202)

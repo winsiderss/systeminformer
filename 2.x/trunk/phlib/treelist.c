@@ -297,6 +297,92 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         }
                     }
                     break;
+                case LVN_ODFINDITEM:
+                    {
+                        NMLVFINDITEM *fi = (NMLVFINDITEM *)hdr;
+                        BOOLEAN stringSearch = FALSE;
+                        BOOLEAN partialSearch;
+                        BOOLEAN wrapSearch = FALSE;
+                        SIZE_T searchLength;
+                        INT startIndex;
+                        INT currentIndex;
+                        INT foundIndex;
+
+                        if (context->List->Count == 0)
+                            return -1;
+
+                        // Only string searches are supported.
+
+                        if (fi->lvfi.flags & (LVFI_PARTIAL | LVFI_SUBSTRING))
+                        {
+                            stringSearch = TRUE;
+                            partialSearch = TRUE;
+                        }
+                        else if (fi->lvfi.flags & LVFI_STRING)
+                        {
+                            stringSearch = TRUE;
+                            partialSearch = FALSE;
+                        }
+
+                        if (fi->lvfi.flags & LVFI_WRAP)
+                        {
+                            if (!stringSearch)
+                            {
+                                stringSearch = TRUE;
+                                partialSearch = FALSE;
+                            }
+
+                            wrapSearch = TRUE;
+                        }
+
+                        if (stringSearch)
+                        {
+                            if (partialSearch)
+                                searchLength = wcslen(fi->lvfi.psz);
+
+                            startIndex = fi->iStart;
+                            currentIndex = startIndex;
+                            foundIndex = -1;
+
+                            do
+                            {
+                                PH_STRINGREF text;
+
+                                if (PhpGetNodeText(context, context->List->Items[currentIndex], 0, &text))
+                                {
+                                    if (partialSearch)
+                                    {
+                                        if (wcsnicmp(text.Buffer, fi->lvfi.psz, searchLength) == 0)
+                                        {
+                                            foundIndex = currentIndex;
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (wcsicmp(text.Buffer, fi->lvfi.psz) == 0)
+                                        {
+                                            foundIndex = currentIndex;
+                                            break;
+                                        }
+                                    }
+                                }
+
+                                currentIndex++;
+
+                                if ((ULONG)currentIndex >= context->List->Count)
+                                {
+                                    if (wrapSearch)
+                                        currentIndex = 0;
+                                    else
+                                        break;
+                                }
+                            } while (currentIndex != startIndex);
+
+                            return foundIndex;
+                        }
+                    }
+                    return -1;
                 case LVN_ITEMCHANGED:
                     {
                         NMLISTVIEW *lv = (NMLISTVIEW *)hdr;
@@ -337,6 +423,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             // on some items may still be active).
                             InvalidateRect(context->ListViewHandle, NULL, TRUE);
                         }
+
+                        context->Callback(hwnd, TreeListSelectionChanged, NULL, NULL, context->Context);
                     }
                     break;
                 case LVN_ODSTATECHANGED:
@@ -357,8 +445,17 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         }
 
                         ListView_RedrawItems(context->ListViewHandle, indexLow, indexHigh);
+
+                        context->Callback(hwnd, TreeListSelectionChanged, NULL, NULL, context->Context);
                     }
                     return 0;
+                case LVN_KEYDOWN:
+                    {
+                        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)hdr;
+
+                        context->Callback(hwnd, TreeListKeyDown, (PVOID)keyDown->wVKey, NULL, context->Context);
+                    }
+                    break;
                 case NM_CUSTOMDRAW:
                     {
                         LPNMLVCUSTOMDRAW customDraw = (LPNMLVCUSTOMDRAW)hdr;
@@ -383,6 +480,46 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             }
                             return CDRF_SKIPDEFAULT;
                         }
+                    }
+                    break;
+                case NM_CLICK:
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)hdr;
+                        PH_TREELIST_MOUSE_EVENT mouseEvent;
+
+                        PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
+                        context->Callback(hwnd, TreeListNodeLeftClick,
+                            context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
+                    }
+                    break;
+                case NM_RCLICK:
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)hdr;
+                        PH_TREELIST_MOUSE_EVENT mouseEvent;
+
+                        PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
+                        context->Callback(hwnd, TreeListNodeRightClick,
+                            context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
+                    }
+                    break;
+                case NM_DBLCLK:
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)hdr;
+                        PH_TREELIST_MOUSE_EVENT mouseEvent;
+
+                        PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
+                        context->Callback(hwnd, TreeListNodeLeftDoubleClick,
+                            context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
+                    }
+                    break;
+                case NM_RDBLCLK:
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)hdr;
+                        PH_TREELIST_MOUSE_EVENT mouseEvent;
+
+                        PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
+                        context->Callback(hwnd, TreeListNodeRightDoubleClick,
+                            context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
                     }
                     break;
                 }
@@ -864,7 +1001,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                 }
                 break;
             case HDN_ENDDRAG:
-            case NM_RELEASEDCAPTURE:
+            case NM_RELEASEDCAPTURE: // necessary for some reason
                 {
                     if (header->hwndFrom == ListView_GetHeader(hwnd))
                     {
@@ -872,6 +1009,11 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
 
                         PhpRefreshColumns(context);
                     }
+                }
+                break;
+            case NM_RCLICK:
+                {
+                    context->Callback(context->Handle, TreeListHeaderRightClick, NULL, NULL, context->Context);
                 }
                 break;
             }
