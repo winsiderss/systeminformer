@@ -115,6 +115,9 @@ Name: startup_task; Description: {cm:tsk_StartupDescr}; GroupDescription: {cm:ts
 Name: startup_task\minimized; Description: {cm:tsk_StartupDescrMin}; GroupDescription: {cm:tsk_Startup}; Check: StartupCheck(); Flags: unchecked
 Name: remove_startup_task; Description: {cm:tsk_RemoveStartup}; GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck(); Flags: unchecked
 
+;Name: create_KPH_service; Description: {cm:tsk_CreateKPHService}; GroupDescription: {cm:tsk_Other}; Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
+;Name: delete_KPH_service; Description: {cm:tsk_DeleteKPHService}; GroupDescription: {cm:tsk_Other}; Check: KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
+
 Name: reset_settings; Description: {cm:tsk_ResetSettings}; GroupDescription: {cm:tsk_Other}; Check: SettingsExistCheck(); Flags: checkedonce unchecked
 
 Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other}; Check: PHDefaulTaskmgrCheck(); Flags: unchecked
@@ -123,6 +126,7 @@ Name: restore_taskmgr; Description: {cm:tsk_RestoreTaskmgr}; GroupDescription: {
 
 [Icons]
 Name: {group}\Process Hacker; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+;Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
 ;Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
 ;Name: {group}\{cm:sm_Help}\{cm:sm_ReadmeFile}; Filename: {app}\README.txt; Comment: {cm:sm_com_ReadmeFile}; WorkingDir: {app}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker}
@@ -194,11 +198,48 @@ begin
 end;
 
 
+// Check if KProcessHacker is installed as a service
+//function KPHServiceCheck(): Boolean;
+//var
+//  dvalue: DWORD;
+//begin
+//  Result := False;
+//  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker', 'Start', dvalue) then begin
+//    if dvalue = 1 then
+//    Result := True;
+//  end;
+//end;
+
+
 Procedure CleanUpFiles();
 begin
   DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
   RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
 end;
+
+
+//Procedure CurStepChanged(CurStep: TSetupStep);
+//begin
+//  case CurStep of ssInstall:
+//  begin
+//    if IsServiceRunning('KProcessHacker') then begin
+//      StopService('KProcessHacker');
+//    end;
+//    if IsTaskSelected('delete_KPH_service') then begin
+//      RemoveService('KProcessHacker');
+//    end;
+//  end;
+//  ssPostInstall:
+//  begin
+//    if (KPHServiceCheck AND NOT IsTaskSelected('delete_KPH_service') OR (IsTaskSelected('create_KPH_service'))) then begin
+//      StopService('KProcessHacker');
+//      RemoveService('KProcessHacker');
+//      InstallService(ExpandConstant('{app}\kprocesshacker.sys'),'KProcessHacker','KProcessHacker','KProcessHacker driver',SERVICE_KERNEL_DRIVER,SERVICE_SYSTEM_START);
+//      StartService('KProcessHacker');
+//    end;
+//  end;
+// end;
+//end;
 
 
 Procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
