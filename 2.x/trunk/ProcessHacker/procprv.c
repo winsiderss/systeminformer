@@ -799,6 +799,11 @@ VOID PhpFillProcessItem(
             NtClose(tokenHandle);
         }
     }
+    else
+    {
+        if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+            ProcessItem->UserName = PhCreateString(L"NT AUTHORITY\\SYSTEM"); // TODO: localize
+    }
 
     NtClose(processHandle);
 }

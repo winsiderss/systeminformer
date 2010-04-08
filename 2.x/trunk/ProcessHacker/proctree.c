@@ -370,8 +370,16 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
             if (!processItem)
                 ; // Dummy
+            else if (PhCsUseColorDebuggedProcesses && processItem->IsBeingDebugged)
+                getNodeColor->BackColor = PhCsColorDebuggedProcesses;
             else if (PhCsUseColorElevatedProcesses && processItem->IsElevated)
                 getNodeColor->BackColor = PhCsColorElevatedProcesses;
+            else if (PhCsUseColorPosixProcesses && processItem->IsPosix)
+                getNodeColor->BackColor = PhCsColorPosixProcesses;
+            else if (PhCsUseColorWow64Processes && processItem->IsWow64)
+                getNodeColor->BackColor = PhCsColorWow64Processes;
+            else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
+                getNodeColor->BackColor = PhCsColorJobProcesses;
             else if (
                 PhCsUseColorPacked &&
                 (processItem->VerifyResult != VrUnknown &&
@@ -379,10 +387,18 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 processItem->VerifyResult != VrTrusted
                 ))
                 getNodeColor->BackColor = PhCsColorPacked;
+            else if (PhCsUseColorDotNet && processItem->IsDotNet)
+                getNodeColor->BackColor = PhCsColorDotNet;
             else if (PhCsUseColorPacked && processItem->IsPacked)
                 getNodeColor->BackColor = PhCsColorPacked;
             else if (PhCsUseColorServiceProcesses && processItem->ServiceList->Count != 0)
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
+            else if (
+                PhCsUseColorSystemProcesses &&
+                processItem->UserName &&
+                PhStringEquals2(processItem->UserName, L"NT AUTHORITY\\SYSTEM", TRUE) // TODO: localize
+                )
+                getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
                 processItem->UserName &&
