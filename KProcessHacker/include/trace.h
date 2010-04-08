@@ -23,8 +23,6 @@
 #ifndef _TRACE_H
 #define _TRACE_H
 
-#include "types.h"
-
 /* Stack Tracing */
 
 /* Sensible limit that may or may not correspond to the actual Windows value. */

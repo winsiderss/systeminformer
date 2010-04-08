@@ -10,13 +10,7 @@ SOURCES= \
     version.c \
     \
     kph.c \
-    handle.c \
-    hook.c \
-    protect.c \
     ref.c \
-    sync.c \
-    sysservice.c \
-    sysservicedata.c \
     test.c \
     trace.c \
     util.c \

@@ -21,7 +21,6 @@
  */
 
 #include "include/kph.h"
-#include "include/mm.h"
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KphReadVirtualMemory)

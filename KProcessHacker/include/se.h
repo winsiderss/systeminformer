@@ -23,12 +23,14 @@
 #ifndef _SE_H
 #define _SE_H
 
-#include "types.h"
-
 extern POBJECT_TYPE *SeTokenObjectType;
 
+#ifdef _X86_
 /* Was 0x38 on Vista, appears to be 0xc8 on 7. */
 #define AUX_ACCESS_DATA_SIZE (0xc8)
+#else
+#define AUX_ACCESS_DATA_SIZE (0xe0)
+#endif
 
 typedef PVOID PAUX_ACCESS_DATA;
 

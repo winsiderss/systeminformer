@@ -92,11 +92,6 @@ NTSTATUS KphNtInit()
     }
     
     /* Scan for functions. */
-    if (KiFastCallEntryScan.Initialized)
-    {
-        __KiFastCallEntry = KvScanProc(&KiFastCallEntryScan);
-        dfprintf("KiFastCallEntry+x: %#x\n", __KiFastCallEntry);
-    }
     if (PsTerminateProcessScan.Initialized)
     {
         __PsTerminateProcess = KvScanProc(&PsTerminateProcessScan);
@@ -348,14 +343,20 @@ NTSTATUS OpenProcess(
     __in HANDLE ProcessId
     )
 {
-    OBJECT_ATTRIBUTES objAttr = { 0 };
+    OBJECT_ATTRIBUTES oa;
     CLIENT_ID clientId;
     
-    objAttr.Length = sizeof(objAttr);
+    InitializeObjectAttributes(
+        &oa,
+        NULL,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL
+        );
     clientId.UniqueThread = 0;
     clientId.UniqueProcess = ProcessId;
     
-    return KphOpenProcess(ProcessHandle, DesiredAccess, &objAttr, &clientId, KernelMode);
+    return KphOpenProcess(ProcessHandle, DesiredAccess, &oa, &clientId, KernelMode);
 }
 
 /* SetProcessToken
@@ -364,19 +365,19 @@ NTSTATUS OpenProcess(
  * primary token of source process.
  */
 NTSTATUS SetProcessToken(
-    __in HANDLE sourcePid,
-    __in HANDLE targetPid
+    __in HANDLE SourcePid,
+    __in HANDLE TargetPid
     )
 {
     NTSTATUS status;
     HANDLE source;
     
-    if (NT_SUCCESS(status = OpenProcess(&source, PROCESS_QUERY_INFORMATION, sourcePid)))
+    if (NT_SUCCESS(status = OpenProcess(&source, PROCESS_QUERY_INFORMATION, SourcePid)))
     {
         HANDLE target;
         
         if (NT_SUCCESS(status = OpenProcess(&target, PROCESS_QUERY_INFORMATION | 
-            PROCESS_SET_INFORMATION, targetPid)))
+            PROCESS_SET_INFORMATION, TargetPid)))
         {
             HANDLE sourceToken;
             
@@ -384,11 +385,17 @@ NTSTATUS SetProcessToken(
                 &sourceToken, UserMode)))
             {
                 HANDLE dupSourceToken;
-                OBJECT_ATTRIBUTES objectAttributes = { 0 };
+                OBJECT_ATTRIBUTES oa;
                 
-                objectAttributes.Length = sizeof(objectAttributes);
+                InitializeObjectAttributes(
+                    &oa,
+                    NULL,
+                    OBJ_KERNEL_HANDLE,
+                    NULL,
+                    NULL
+                    );
                 
-                if (NT_SUCCESS(status = ZwDuplicateToken(sourceToken, TOKEN_ASSIGN_PRIMARY, &objectAttributes,
+                if (NT_SUCCESS(status = ZwDuplicateToken(sourceToken, TOKEN_ASSIGN_PRIMARY, &oa,
                     FALSE, TokenPrimary, &dupSourceToken)))
                 {
                     PROCESS_ACCESS_TOKEN token;
