@@ -548,7 +548,10 @@ LRESULT CALLBACK PhMainWndProc(
 
                     PhpGetSelectedProcesses(&processes, &numberOfProcesses);
                     PhReferenceObjects(processes, numberOfProcesses);
-                    PhUiTerminateProcesses(hWnd, processes, numberOfProcesses);
+
+                    if (PhUiTerminateProcesses(hWnd, processes, numberOfProcesses))
+                        PhDeselectAllProcessItems();
+
                     PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
                 }
@@ -560,7 +563,10 @@ LRESULT CALLBACK PhMainWndProc(
                     if (processItem)
                     {
                         PhReferenceObject(processItem);
-                        PhUiTerminateTreeProcess(hWnd, processItem);
+
+                        if (PhUiTerminateTreeProcess(hWnd, processItem))
+                            PhDeselectAllProcessItems();
+
                         PhDereferenceObject(processItem);
                     }
                 }
@@ -596,7 +602,10 @@ LRESULT CALLBACK PhMainWndProc(
                     if (processItem)
                     {
                         PhReferenceObject(processItem);
-                        PhUiRestartProcess(hWnd, processItem);
+
+                        if (PhUiRestartProcess(hWnd, processItem))
+                            PhDeselectAllProcessItems();
+
                         PhDereferenceObject(processItem);
                     }
                 }

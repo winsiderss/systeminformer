@@ -120,6 +120,8 @@ VOID PhGetSelectedProcessItems(
     __out PULONG NumberOfProcesses
     );
 
+VOID PhDeselectAllProcessItems();
+
 // support
 
 typedef enum _PH_KNOWN_PROCESS_TYPE
