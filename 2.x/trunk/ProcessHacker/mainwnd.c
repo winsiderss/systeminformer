@@ -589,6 +589,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_DEBUG:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhUiDebugProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_REDUCEWORKINGSET:
                 {
                     PPH_PROCESS_ITEM *processes;

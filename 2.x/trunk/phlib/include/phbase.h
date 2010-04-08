@@ -210,6 +210,8 @@ typedef struct _PH_EVENT
     HANDLE EventHandle;
 } PH_EVENT, *PPH_EVENT;
 
+#define PH_EVENT_INIT { PH_EVENT_REFCOUNT_INC, NULL }
+
 VOID PhInitializeEvent(
     __out PPH_EVENT Event
     );
@@ -286,6 +288,8 @@ typedef struct _PH_INITONCE
     LONG State;
     PH_EVENT WakeEvent;
 } PH_INITONCE, *PPH_INITONCE;
+
+#define PH_INITONCE_INIT { PH_INITONCE_UNINITIALIZED, PH_EVENT_INIT }
 
 VOID PhInitializeInitOnce(
     __out PPH_INITONCE InitOnce

@@ -29,6 +29,8 @@ static PWSTR DangerousProcesses[] =
     L"csrss.exe", L"dwm.exe", L"logonui.exe", L"lsass.exe", L"lsm.exe",
     L"services.exe", L"smss.exe", L"wininit.exe", L"winlogon.exe"
 };
+static PPH_STRING DebuggerCommand = NULL;
+static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 
 /**
  * Determines if a process is a system process.
@@ -489,6 +491,108 @@ ErrorExit:
     if (!NT_SUCCESS(status))
     {
         PhpShowErrorProcess(hWnd, L"restart", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+// Contributed by evilpie (#2981421)
+BOOLEAN PhUiDebugProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+    PPH_STRING_BUILDER commandLineBuilder;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"debug",
+            Process->ProcessName->Buffer,
+            L"Debugging a process may result in loss of data.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (PhBeginInitOnce(&DebuggerCommandInitOnce))
+    {
+        HKEY keyHandle;
+        PPH_STRING debugger;
+        ULONG firstIndex;
+        ULONG secondIndex;
+
+        if (RegOpenKey(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug",
+            &keyHandle
+            ) == ERROR_SUCCESS)
+        {
+            debugger = PhQueryRegistryString(keyHandle, L"Debugger");
+
+            if (debugger)
+            {
+                firstIndex = PhStringIndexOfChar(debugger, 0, L'"');
+
+                if (firstIndex != -1)
+                {
+                    firstIndex += 1;
+                    secondIndex = PhStringIndexOfChar(debugger, firstIndex, L'"');
+
+                    if (secondIndex != -1)
+                    {
+                        DebuggerCommand = PhSubstring(debugger, firstIndex, secondIndex - firstIndex);
+                    }
+                }
+
+                PhDereferenceObject(debugger);
+            }
+
+            RegCloseKey(keyHandle);
+        }
+
+        PhEndInitOnce(&DebuggerCommandInitOnce);
+    }
+
+    if (!DebuggerCommand)
+    {
+        PhShowError(hWnd, L"Unable to locate the debugger.");
+        return FALSE;
+    }
+
+    commandLineBuilder = PhCreateStringBuilder(DebuggerCommand->Length + 30);
+
+    PhStringBuilderAppendChar(commandLineBuilder, '"');
+    PhStringBuilderAppend(commandLineBuilder, DebuggerCommand);
+    PhStringBuilderAppendChar(commandLineBuilder, '"');
+    PhStringBuilderAppendFormat(commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
+
+    status = PhCreateProcessWin32(
+        NULL,
+        commandLineBuilder->String->Buffer,
+        NULL,
+        NULL,
+        0,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    PhDereferenceObject(commandLineBuilder);
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"debug", Process, status, 0);
         return FALSE;
     }
 

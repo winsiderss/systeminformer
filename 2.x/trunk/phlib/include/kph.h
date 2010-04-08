@@ -1,7 +1,7 @@
 #ifndef KPH_H
 #define KPH_H
 
-#include <phbase.h>
+#define KPH_SHORT_DEVICE_NAME (L"KProcessHacker2")
 
 #define KPH_DEVICE_TYPE (0x9999)
 #define KPH_DEVICE_NAME (L"\\Device\\KProcessHacker2")
@@ -119,6 +119,15 @@ NTSTATUS KphConnect2(
 
 NTSTATUS KphDisconnect(
     __in HANDLE KphHandle
+    );
+
+NTSTATUS KphInstall(
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName
+    );
+
+NTSTATUS KphUninstall(
+    __in_opt PWSTR DeviceName
     );
 
 NTSTATUS KphGetFeatures(
