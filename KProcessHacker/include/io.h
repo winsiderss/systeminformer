@@ -23,8 +23,6 @@
 #ifndef _IO_H
 #define _IO_H
 
-#include "types.h"
-
 extern POBJECT_TYPE *IoAdapterObjectType;
 extern POBJECT_TYPE *IoControllerObjectType;
 extern POBJECT_TYPE *IoDeviceHandlerObjectType; /* not used anymore */

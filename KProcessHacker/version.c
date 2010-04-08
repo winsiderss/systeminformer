@@ -21,74 +21,12 @@
  */
 
 #define _VERSION_PRIVATE
-#include "include/version.h"
-#include "include/debug.h"
+#include "include/kph.h"
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KvInit)
 #pragma alloc_text(PAGE, KvScanProc)
-#pragma alloc_text(PAGE, KvVerifyPrologue)
 #endif
-
-/*
- * mov      edi, edi
- * push     ebp
- * mov      ebp, esp
- */
-static char StandardPrologue[] = { 0x8b, 0xff, 0x55, 0x8b, 0xec };
-
-/* KiFastCallEntry */
-/*
- * Note that this scan will get the address of 
- * mov      esi, edx
- * within KiFastCallEntry, not the start of KiFastCallEntry. 
- * We will then subtract 7 to get the address of 
- * inc      dword ptr fs:PbSystemCalls
- * See sysservice.c for more details.
- */
-static char KiFastCallEntry51[] =
-{
-    0x8b, 0xf2, 0x8b, 0x5f, 0x0c, 0x33, 0xc9, 0x8a,
-    0x0c, 0x18, 0x8b, 0x3f, 0x8b, 0x1c, 0x87, 0x2b
-};
-static char KiFastCallEntry52[] =
-{
-    0x8b, 0xf2, 0x8b, 0x5f, 0x0c, 0x33, 0xc9, 0x8a,
-    0x0c, 0x18, 0x8b, 0x3f, 0x8b, 0x1c, 0x87, 0x2b
-}; /* same as 5.1 */
-static char KiFastCallEntry60[] =
-{
-    0x8b, 0xf2, 0x33, 0xc9, 0x8b, 0x57, 0x0c, 0x8b,
-    0x3f, 0x8a, 0x0c, 0x10, 0x8b, 0x14, 0x87, 0x2b
-};
-static char KiFastCallEntry61[] =
-{
-    0x8b, 0xf2, 0x33, 0xc9, 0x8b, 0x57, 0x0c, 0x8b,
-    0x3f, 0x8a, 0x0c, 0x10, 0x8b, 0x14, 0x87, 0x2b
-}; /* same as 6.0 */
-/* Below is the scan to find the start of KiFastCallEntry. */
-/* static char KiFastCallEntry[] =
-{
-    0xb9, 0x23, 0x00, 0x00, 0x00, 0x6a, 0x30, 0x0f,
-    0xa1, 0x8e, 0xd9, 0x8e, 0xc1, 0x64, 0x8b, 0x0d
-}; */
-
-/* PsExitSpecialApc */
-static char PsExitSpecialApc51[] =
-{
-    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x64, 0xa1, 0x24,
-    0x01, 0x00, 0x00, 0x8b, 0x45, 0x08, 0xf6, 0x40
-};
-static char PsExitSpecialApc60[] =
-{
-    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8,
-    0x51, 0x8b, 0x45, 0x08, 0xf6, 0x40, 0x28, 0x01
-};
-static char PsExitSpecialApc61[] =
-{
-    0x8b, 0xff, 0x55, 0x8b, 0xec, 0x83, 0xe4, 0xf8,
-    0x51, 0x8b, 0x45, 0x08, 0xf6, 0x40, 0x28, 0x01
-}; /* same as 6.0 */
 
 /* PsTerminateProcess/PspTerminateProcess */
 static char PspTerminateProcess51[] =
@@ -193,9 +131,6 @@ NTSTATUS KvInit()
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
         
         OffEtClientId = 0x1ec;
-        OffEtSpareByteForSs = 0x256; /* Padding, last */
-        OffEtStartAddress = 0x224;
-        OffEtWin32StartAddress = 0x228;
         OffEpJob = 0x134;
         OffEpObjectTable = 0xc4;
         OffEpProtectedProcessOff = 0;
@@ -204,17 +139,7 @@ NTSTATUS KvInit()
         OffOhBody = 0x18;
         OffOtName = 0x40;
         OffOtiGenericMapping = 0x60 + 0x8;
-        OffOtiOpenProcedure = 0x60 + 0x30;
         
-        SsNtContinue = 0x20;
-        
-        /* KiFastCallEntry isn't hooked properly yet. Disabled for now. */
-        /* INIT_SCAN(
-            KiFastCallEntryScan,
-            KiFastCallEntry51,
-            sizeof(KiFastCallEntry51),
-            (ULONG_PTR)__ZwClose, SCAN_LENGTH, -6
-            ); */
         /* We are scanning for PspTerminateProcess which has 
            the same signature as PsTerminateProcess because 
            PsTerminateProcess is simply a wrapper on XP.
@@ -264,9 +189,6 @@ NTSTATUS KvInit()
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
         
         OffEtClientId = 0x1e4;
-        OffEtSpareByteForSs = 0x24f; /* Padding, last */
-        OffEtStartAddress = 0x21c;
-        OffEtWin32StartAddress = 0x220;
         OffEpJob = 0x120;
         OffEpObjectTable = 0xd4;
         OffEpProtectedProcessOff = 0;
@@ -275,17 +197,7 @@ NTSTATUS KvInit()
         OffOhBody = 0x18;
         OffOtName = 0x40;
         OffOtiGenericMapping = 0x60 + 0x8;
-        OffOtiOpenProcedure = 0x60 + 0x30;
         
-        SsNtContinue = 0x22;
-        
-        /* Can't find on ntoskrnl *and* ntkrnlpa. Disabled for now. */
-        /* INIT_SCAN(
-            KiFastCallEntryScan,
-            KiFastCallEntry52,
-            sizeof(KiFastCallEntry52),
-            (ULONG_PTR)__ZwClose, SCAN_LENGTH, -7
-            ); */
         /* We are scanning for PspTerminateProcess which has 
            the same signature as PsTerminateProcess because 
            PsTerminateProcess is simply a wrapper on Server 2003.
@@ -329,9 +241,6 @@ NTSTATUS KvInit()
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         
         OffEtClientId = 0x20c;
-        OffEtSpareByteForSs = 0x26f; /* Padding, second-last */
-        OffEtStartAddress = 0x1f8;
-        OffEtWin32StartAddress = 0x240;
         OffEpJob = 0x10c;
         OffEpObjectTable = 0xdc;
         OffEpProtectedProcessOff = 0x224;
@@ -339,12 +248,6 @@ NTSTATUS KvInit()
         OffEpRundownProtect = 0x98;
         OffOhBody = 0x18;
         
-        INIT_SCAN(
-            KiFastCallEntryScan,
-            KiFastCallEntry60,
-            sizeof(KiFastCallEntry60),
-            (ULONG_PTR)__ZwClose, SCAN_LENGTH, -7
-            );
         INIT_SCAN(
             PsTerminateProcessScan,
             PsTerminateProcess60,
@@ -363,150 +266,18 @@ NTSTATUS KvInit()
         {
             OffOtName = 0x40;
             OffOtiGenericMapping = 0x60 + 0xc;
-            OffOtiOpenProcedure = 0x60 + 0x30;
-            
-            SsNtContinue = 0x36;
         }
         /* SP1 */
         else if (servicePack == 1)
         {
             OffOtName = 0x8;
             OffOtiGenericMapping = 0x28 + 0xc; /* They got rid of the Mutex (an ERESOURCE) */
-            OffOtiOpenProcedure = 0x28 + 0x34;
-            
-            SsNtContinue = 0x37;
         }
         /* SP2 */
         else if (servicePack == 2)
         {
             OffOtName = 0x8;
             OffOtiGenericMapping = 0x28 + 0xc;
-            OffOtiOpenProcedure = 0x28 + 0x34;
-            
-            SsNtAddAtom = 0x8;
-            SsNtAlertResumeThread = 0xd;
-            SsNtAlertThread = 0xe;
-            SsNtAllocateLocallyUniqueId = 0xf;
-            SsNtAllocateUserPhysicalPages = 0x10;
-            SsNtAllocateUuids = 0x11;
-            SsNtAllocateVirtualMemory = 0x12;
-            SsNtApphelpCacheControl = 0x28;
-            SsNtAreMappedFilesTheSame = 0x29;
-            SsNtAssignProcessToJobObject = 0x2a;
-            SsNtCallbackReturn = 0x2b;
-            SsNtCancelDeviceWakeupRequest = 0x2c;
-            SsNtCancelIoFile = 0x2d;
-            SsNtCancelTimer = 0x2e;
-            SsNtClearEvent = 0x2f;
-            SsNtClose = 0x30;
-            SsNtContinue = 0x37;
-            SsNtCreateDebugObject = 0x38;
-            SsNtCreateDirectoryObject = 0x39;
-            SsNtCreateEvent = 0x3a;
-            SsNtCreateEventPair = 0x3b;
-            SsNtCreateFile = 0x3c;
-            SsNtCreateIoCompletion = 0x3d;
-            SsNtCreateJobObject = 0x3e;
-            SsNtCreateJobSet = 0x3f;
-            SsNtCreateKey = 0x40;
-            SsNtCreateKeyedEvent = 0x168;
-            SsNtCreateMailslotFile = 0x42;
-            SsNtCreateMutant = 0x43;
-            SsNtCreateNamedPipeFile = 0x44;
-            SsNtCreatePagingFile = 0x46;
-            SsNtCreatePort = 0x47;
-            SsNtCreatePrivateNamespace = 0x45;
-            SsNtCreateProcess = 0x48;
-            SsNtCreateProcessEx = 0x49;
-            SsNtCreateProfile = 0x4a;
-            SsNtCreateSection = 0x4b;
-            SsNtCreateSemaphore = 0x4c;
-            SsNtCreateSymbolicLinkObject = 0x4d;
-            SsNtCreateThread = 0x4e;
-            SsNtCreateTimer = 0x4f;
-            SsNtCreateToken = 0x50;
-            SsNtCreateUserProcess = 0x17f;
-            SsNtCreateWaitablePort = 0x73;
-            SsNtDebugActiveProcess = 0x74;
-            SsNtDebugContinue = 0x75;
-            SsNtDelayExecution = 0x76;
-            SsNtDeleteAtom = 0x77;
-            SsNtDeleteBootEntry = 0x78;
-            SsNtDeleteDriverEntry = 0x79;
-            SsNtDeleteFile = 0x7a;
-            SsNtDeleteKey = 0x7b;
-            SsNtDeletePrivateNamespace = 0x7c;
-            SsNtDeleteObjectAuditAlarm = 0x7d;
-            SsNtDeleteValueKey = 0x7e;
-            SsNtDeviceIoControlFile = 0x7f;
-            SsNtDisplayString = 0x80;
-            SsNtDuplicateObject = 0x81;
-            SsNtDuplicateToken = 0x82;
-            SsNtEnumerateBootEntries = 0x83;
-            SsNtEnumerateDriverEntries = 0x84;
-            SsNtEnumerateKey = 0x85;
-            SsNtEnumerateSystemEnvironmentValuesEx = 0x86;
-            SsNtEnumerateValueKey = 0x88;
-            SsNtExtendSection = 0x89;
-            SsNtFilterToken = 0x8a;
-            SsNtFindAtom = 0x8b;
-            SsNtFlushBuffersFile = 0x8c;
-            SsNtFlushInstructionCache = 0x8d;
-            SsNtFlushKey = 0x8e;
-            SsNtFlushProcessWriteBuffers = 0x8f;
-            SsNtFlushVirtualMemory = 0x90;
-            SsNtFlushWriteBuffer = 0x91;
-            SsNtFreeUserPhysicalPages = 0x92;
-            SsNtFreeVirtualMemory = 0x93;
-            SsNtFsControlFile = 0x96;
-            SsNtGetContextThread = 0x97;
-            SsNtGetDevicePowerState = 0x98;
-            SsNtGetPlugPlayEvent = 0x9a;
-            SsNtGetWriteWatch = 0x9b;
-            SsNtImpersonateAnonymousToken = 0x9c;
-            SsNtImpersonateClientOfPort = 0x9d;
-            SsNtImpersonateThread = 0x9e;
-            SsNtInitiatePowerAction = 0xa1;
-            SsNtIsProcessInJob = 0xa2;
-            SsNtIsSystemResumeAutomatic = 0xa3;
-            SsNtListenPort = 0xa4;
-            SsNtLoadDriver = 0xa5;
-            SsNtLoadKey = 0xa6;
-            SsNtLoadKey2 = 0xa7;
-            SsNtLockFile = 0xa9;
-            SsNtLockVirtualMemory = 0xac;
-            SsNtMakePermanentObject = 0xad;
-            SsNtMakeTemporaryObject = 0xae;
-            SsNtMapUserPhysicalPages = 0xaf;
-            SsNtMapUserPhysicalPagesScatter = 0xb0;
-            SsNtMapViewOfSection = 0xb1;
-            SsNtModifyBootEntry = 0xb2;
-            SsNtModifyDriverEntry = 0xb3;
-            SsNtNotifyChangeDirectoryFile = 0xb4;
-            SsNtNotifyChangeKey = 0xb5;
-            SsNtNotifyChangeMultipleKeys = 0xb6;
-            SsNtOpenDirectoryObject = 0xb7;
-            SsNtOpenEvent = 0xb8;
-            SsNtOpenEventPair = 0xb9;
-            SsNtOpenFile = 0xba;
-            SsNtOpenIoCompletion = 0xbb;
-            SsNtOpenJobObject = 0xbc;
-            SsNtOpenKey = 0xbd;
-            SsNtOpenKeyedEvent = 0x169;
-            SsNtOpenMutant = 0xbf;
-            SsNtOpenObjectAuditAlarm = 0xc1;
-            SsNtOpenProcess = 0xc2;
-            SsNtOpenProcessToken = 0xc3;
-            SsNtOpenProcessTokenEx = 0xc4;
-            SsNtOpenSection = 0xc5;
-            SsNtOpenSemaphore = 0xc6;
-            SsNtOpenSymbolicLinkObject = 0xc8;
-            SsNtOpenThread = 0xc9;
-            SsNtOpenThreadToken = 0xca;
-            SsNtOpenThreadTokenEx = 0xcb;
-            SsNtOpenTimer = 0xcc;
-            SsNtReadFile = 0x102;
-            SsNtWriteFile = 0x163;
         }
         else
         {
@@ -529,9 +300,6 @@ NTSTATUS KvInit()
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         
         OffEtClientId = 0x22c;
-        OffEtSpareByteForSs = 0x2b4; /* Padding, last */
-        OffEtStartAddress = 0x218;
-        OffEtWin32StartAddress = 0x260;
         OffEpJob = 0x124;
         OffEpObjectTable = 0xf4;
         OffEpProtectedProcessOff = 0x26c;
@@ -540,16 +308,7 @@ NTSTATUS KvInit()
         OffOhBody = 0x18;
         OffOtName = 0x8;
         OffOtiGenericMapping = 0x28 + 0xc;
-        OffOtiOpenProcedure = 0x28 + 0x34;
         
-        SsNtContinue = 0x3c;
-        
-        INIT_SCAN(
-            KiFastCallEntryScan,
-            KiFastCallEntry61,
-            sizeof(KiFastCallEntry61),
-            (ULONG_PTR)__ZwClose, SCAN_LENGTH, -7
-            );
         INIT_SCAN(
             PsTerminateProcessScan,
             PsTerminateProcess61,
@@ -598,14 +357,4 @@ PVOID KvScanProc(
     }
     
     return NULL;
-}
-
-PVOID KvVerifyPrologue(
-    PVOID Address
-    )
-{
-    if (memcmp(Address, StandardPrologue, 5) == 0)
-        return Address;
-    else
-        return NULL;
 }

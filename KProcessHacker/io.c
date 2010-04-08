@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "include/io.h"
+#include "include/kph.h"
 
 VOID KphpCopyInfoUnicodeString(
     __out PVOID Information,

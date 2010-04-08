@@ -23,12 +23,6 @@
 #ifndef _PS_H
 #define _PS_H
 
-#include "types.h"
-#include "ex.h"
-#include "mm.h"
-#include "ob.h"
-#include "se.h"
-
 #define TAG_CAPTURE_STACK_BACKTRACE ('tShP')
 
 #define PROCESS_TERMINATE (0x0001)

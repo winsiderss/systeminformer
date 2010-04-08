@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "include/util.h"
+#include "include/kph.h"
 
 /* KphInitializeStream
  * 

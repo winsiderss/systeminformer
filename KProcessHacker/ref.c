@@ -20,6 +20,9 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define _REF_PRIVATE
+#include "include/kph.h"
+#include "include/ref.h"
 #include "include/refp.h"
 
 /* A list of all objects created by the object manager. */

@@ -23,9 +23,6 @@
 #ifndef _OB_H
 #define _OB_H
 
-#include "types.h"
-#include "ex.h"
-
 #define OBJECT_TO_OBJECT_HEADER(o) \
     CONTAINING_RECORD((o), OBJECT_HEADER, Body)
 
