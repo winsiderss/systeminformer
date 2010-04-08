@@ -256,6 +256,8 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
+
+    if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
 }
 
 BOOLEAN PhpProcessHashtableCompareFunction(
@@ -1031,6 +1033,9 @@ VOID PhProcessProviderUpdate(
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
 
+            // Open a handle to the process for later usage.
+            PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
+
             // Check if process actually has a parent.
             {
                 PSYSTEM_PROCESS_INFORMATION parentProcess;
@@ -1105,16 +1110,16 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
-            newCpuUsage = (FLOAT)(
-                processItem->CpuKernelDelta.Delta +
-                processItem->CpuUserDelta.Delta
-                ) / sysTotalTime;
-
             if (processItem->JustProcessed)
             {
                 processItem->JustProcessed = FALSE;
                 modified = TRUE;
             }
+
+            newCpuUsage = (FLOAT)(
+                processItem->CpuKernelDelta.Delta +
+                processItem->CpuUserDelta.Delta
+                ) / sysTotalTime;
 
             if (processItem->CpuUsage != newCpuUsage)
             {
@@ -1129,6 +1134,20 @@ VOID PhProcessProviderUpdate(
                 else
                 {
                     processItem->CpuUsageString[0] = 0;
+                }
+            }
+
+            // Debugged
+            {
+                BOOLEAN isBeingDebugged;
+
+                if (NT_SUCCESS(PhGetProcessIsBeingDebugged(
+                    processItem->QueryHandle,
+                    &isBeingDebugged
+                    )) && !!processItem->IsBeingDebugged != !!isBeingDebugged)
+                {
+                    processItem->IsBeingDebugged = isBeingDebugged;
+                    modified = TRUE;
                 }
             }
 
