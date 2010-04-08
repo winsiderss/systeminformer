@@ -90,6 +90,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             {
                 PhShowStatus(hwndDlg, L"Unable to retrieve the process' affinity", status, 0);
                 EndDialog(hwndDlg, IDCANCEL);
+                break;
             }
 
             // Disable the CPU checkboxes which aren't part of the system affinity mask, 

@@ -41,6 +41,9 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandAction;
 
     BOOLEAN RunAsServiceMode;
+
+    BOOLEAN InstallKph;
+    BOOLEAN UninstallKph;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 INT PhMainMessageLoop();
@@ -364,6 +367,11 @@ BOOLEAN PhUiResumeProcesses(
     );
 
 BOOLEAN PhUiRestartProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
+BOOLEAN PhUiDebugProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );

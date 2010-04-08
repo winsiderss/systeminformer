@@ -199,6 +199,7 @@ BEGIN
         MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
         MENUITEM "Resume",                      ID_PROCESS_RESUME
         MENUITEM "Restart",                     ID_PROCESS_RESTART
+        MENUITEM "Debug",                       ID_PROCESS_DEBUG
         MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
         MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
@@ -459,6 +460,7 @@ BEGIN
     GROUPBOX        "Credits",IDC_STATIC,7,42,240,95
     LTEXT           "wj32 - Project Manager",IDC_STATIC,15,53,76,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,7,142,50,14
+    LTEXT           "evilpie - Contributor",IDC_STATIC,15,64,64,8
 END
 
 IDD_PROCSERVICES DIALOGEX 0, 0, 240, 260

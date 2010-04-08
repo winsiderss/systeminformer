@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <phbase.h>
 #include <kph.h>
-#include <wchar.h>
 
 typedef struct _KPH_ZWQUERYOBJECT_BUFFER
 {
@@ -109,7 +109,7 @@ NTSTATUS KphConnect2(
     BOOLEAN created = FALSE;
 
     if (!DeviceName)
-        DeviceName = L"KProcessHacker2";
+        DeviceName = KPH_SHORT_DEVICE_NAME;
 
     _snwprintf(fullDeviceName, MAX_PATH, L"\\Device\\%s", DeviceName);
 
@@ -215,6 +215,95 @@ NTSTATUS KphDisconnect(
         );
 
     return NtClose(KphHandle);
+}
+
+NTSTATUS KphInstall(
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    SC_HANDLE scmHandle;
+    SC_HANDLE serviceHandle;
+
+    if (!DeviceName)
+        DeviceName = KPH_SHORT_DEVICE_NAME;
+
+    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
+
+    if (!scmHandle)
+        return NTSTATUS_FROM_WIN32(GetLastError());
+
+    serviceHandle = CreateService(
+        scmHandle,
+        DeviceName,
+        DeviceName,
+        SERVICE_ALL_ACCESS,
+        SERVICE_KERNEL_DRIVER,
+        SERVICE_SYSTEM_START,
+        SERVICE_ERROR_IGNORE,
+        FileName,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        L""
+        );
+
+    if (serviceHandle)
+    {
+        if (!StartService(serviceHandle, 0, NULL))
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        CloseServiceHandle(serviceHandle);
+    }
+    else
+    {
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+    }
+
+    CloseServiceHandle(scmHandle);
+
+    return status;
+}
+
+NTSTATUS KphUninstall(
+    __in_opt PWSTR DeviceName
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    SC_HANDLE scmHandle;
+    SC_HANDLE serviceHandle;
+
+    if (!DeviceName)
+        DeviceName = KPH_SHORT_DEVICE_NAME;
+
+    scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
+
+    if (!scmHandle)
+        return NTSTATUS_FROM_WIN32(GetLastError());
+
+    serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_STOP | DELETE);
+
+    if (serviceHandle)
+    {
+        SERVICE_STATUS serviceStatus;
+
+        ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
+
+        if (!DeleteService(serviceHandle))
+            status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        CloseServiceHandle(serviceHandle);
+    }
+    else
+    {
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+    }
+
+    CloseServiceHandle(scmHandle);
+
+    return status;
 }
 
 NTSTATUS KphpDeviceIoControl(

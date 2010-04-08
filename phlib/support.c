@@ -1080,7 +1080,7 @@ PPH_STRING PhGetApplicationModuleFileName(
     {
         returnLength = GetModuleFileName(ModuleHandle, buffer, bufferSize);
 
-        if (returnLength == 0 && GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER || returnLength >= bufferSize)
         {
             PhFree(buffer);
             bufferSize *= 2;
@@ -1267,7 +1267,7 @@ NTSTATUS PhCreateProcessWin32(
     PROCESS_INFORMATION processInfo;
     ULONG newFlags;
 
-    if (CommandLine)
+    if (CommandLine) // duplicate because CreateProcess modifies the string
         commandLine = PhCreateString(CommandLine);
 
     newFlags = 0;
