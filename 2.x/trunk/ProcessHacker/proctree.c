@@ -438,10 +438,11 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             switch ((SHORT)Parameter1)
             {
             case VK_DELETE:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
-                break;
-            case VK_SHIFT | VK_DELETE:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
+                if (GetKeyState(VK_SHIFT) > 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
+                else
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
+
                 break;
             case VK_RETURN:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
