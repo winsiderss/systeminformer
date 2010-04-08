@@ -75,9 +75,13 @@
  * A spin count is also used before blocking on the keyed 
  * event.
  *
- * Queued locks can also act as condition variables, with 
+ * Queued locks can act as condition variables, with 
  * wait, pulse and pulse all support. Waiters are released 
  * in FIFO order.
+ *
+ * Queued locks can act as wake events. These are designed 
+ * for tiny one-bit locks which share a single event to block 
+ * on. Spurious wake-ups are a part of normal operation.
  */
 
 #include <phbase.h>

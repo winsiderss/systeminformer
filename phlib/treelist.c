@@ -20,6 +20,26 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The tree list is a wrapper around the list view control, in effect 
+ * providing a tree view with columns. The sole reason I created this 
+ * is because other tree list controls out there are MFC-based!
+ *
+ * A callback function must be specified, which recieves requests for 
+ * data and certain notifications. The tree structure is built by 
+ * sending the TreeListGetChildren message recursively, and flattening 
+ * the tree into a list which is then displayed by a list view in 
+ * virtual mode. The list view is custom drawn due to the indenting 
+ * and icon drawing involved. The list view window procedure is also 
+ * hooked in order to trap mouse down events on the plus/minus glyph.
+ *
+ * Currently the entire list is re-created when nodes are added, but 
+ * this is obviously not very efficient and will change.
+ *
+ * PH_STRINGREFs are used in most places to speed up the code, avoiding 
+ * unneeded wcslen calls.
+ */
+
 #include <phgui.h>
 #include <treelist.h>
 #include <treelistp.h>
@@ -212,6 +232,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PhpReferenceTreeListContext(context);
             SetProp(context->ListViewHandle, L"TreeListContext", (HANDLE)context);
 
+            // Open theme data if available.
             PhpReloadThemeData(context);
 
             SendMessage(hwnd, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
@@ -262,16 +283,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         if (ldi->item.mask & LVIF_TEXT)
                         {
                             PH_STRINGREF text;
+                            ULONG bytesToCopy;
 
                             if (PhpGetNodeText(context, node, ldi->item.iSubItem, &text))
                             {
-                                PhCopyUnicodeStringZ(
-                                    text.Buffer,
-                                    min(text.Length / 2, ldi->item.cchTextMax - 1),
-                                    ldi->item.pszText,
-                                    ldi->item.cchTextMax,
-                                    NULL
-                                    );
+                                // Never copy more than cchTextMax - 1 characters.
+                                bytesToCopy = min(text.Length, (ldi->item.cchTextMax - 1) * 2);
+
+                                // Copy and null terminate.
+                                memcpy(ldi->item.pszText, text.Buffer, bytesToCopy);
+                                ldi->item.pszText[bytesToCopy / 2] = 0;
                             }
                         }
                     }
@@ -280,7 +301,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                     {
                         NMLISTVIEW *lv = (NMLISTVIEW *)hdr;
 
-                        if (lv->iItem != -1)
+                        if (lv->iItem != -1) // -1 means all items
                         {
                             PPH_TREELIST_NODE node = context->List->Items[lv->iItem];
 
@@ -311,6 +332,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 PhpApplyNodeState(node, lv->uNewState);
                             }
 
+                            // bErase needs to be TRUE, otherwise the item background 
+                            // colors don't get refreshed properly (the selection highlight 
+                            // on some items may still be active).
                             InvalidateRect(context->ListViewHandle, NULL, TRUE);
                         }
                     }
@@ -409,6 +433,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             if (!PhpGetNodeChildren(context, NULL, &children, &numberOfChildren))
                 return FALSE;
+
+            // At this point we rebuild the entire list.
 
             PhClearList(context->List);
             context->CanAnyExpand = FALSE;
@@ -724,6 +750,8 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
             PPH_TREELIST_NODE node;
             LONG glyphX;
 
+            // Process mouse events taking place on the plus/minus glyph.
+
             htInfo.pt.x = x;
             htInfo.pt.y = y;
 
@@ -777,9 +805,10 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         LVCOLUMN lvColumn;
                         PPH_TREELIST_COLUMN column;
 
+                        // A column has been resized, so update our stored width.
+
                         lvColumn.mask = LVCF_SUBITEM;
 
-                        // Update the width.
                         if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
                         {
                             column = context->Columns[lvColumn.iSubItem];
@@ -794,6 +823,9 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                     {
                         LPNMHEADER header2 = (LPNMHEADER)header;
                         LVCOLUMN lvColumn;
+
+                        // A column has been clicked, so update the sorting 
+                        // information.
 
                         if (header2->iItem == context->SortColumn)
                         {
@@ -836,6 +868,8 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                 {
                     if (header->hwndFrom == ListView_GetHeader(hwnd))
                     {
+                        // Columns have been reordered, so refresh our entire column list.
+
                         PhpRefreshColumns(context);
                     }
                 }
@@ -1069,7 +1103,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     {
         textRect.left += node->Level * 16;
 
-        if (Context->CanAnyExpand)
+        if (Context->CanAnyExpand) // flag is used so we can avoid indenting when it's a flat list
         {
             BOOLEAN drewUsingTheme = FALSE;
             RECT themeRect;
