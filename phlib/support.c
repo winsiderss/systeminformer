@@ -1084,7 +1084,7 @@ PPH_STRING PhGetApplicationModuleFileName(
         {
             PhFree(buffer);
             bufferSize *= 2;
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocate(bufferSize * 2);
         }
         else
         {
