@@ -1,0 +1,29 @@
+TARGETNAME=kprocesshacker
+TARGETTYPE=DRIVER
+TARGETPATH=.\
+
+INCLUDES=$(DDK_INC_PATH)
+LIBS=%BUILD%\lib
+
+SOURCES= \
+    kprocesshacker.c \
+    version.c \
+    \
+    kph.c \
+    handle.c \
+    hook.c \
+    protect.c \
+    ref.c \
+    sync.c \
+    sysservice.c \
+    sysservicedata.c \
+    test.c \
+    trace.c \
+    util.c \
+    \
+    io.c \
+    mm.c \
+    ob.c \
+    ps.c \
+    se.c \
+    resource.rc
