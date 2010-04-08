@@ -625,6 +625,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             SetDlgItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
 
+            if (!processItem->FileName)
+                EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
+
             if (processItem->VerifyResult == VrTrusted)
             {
                 if (processItem->VerifySignerName)
@@ -830,7 +833,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
             case IDC_OPENFILENAME:
                 {
-                    PhShellExploreFile(hwndDlg, processItem->FileName->Buffer);
+                    if (processItem->FileName)
+                        PhShellExploreFile(hwndDlg, processItem->FileName->Buffer);
                 }
                 break;
             case IDC_VIEWPARENTPROCESS:
