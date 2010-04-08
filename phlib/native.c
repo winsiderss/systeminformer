@@ -4331,6 +4331,92 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     return status;
 }
 
+typedef struct _GET_PROCESS_IS_DOT_NET_CONTEXT
+{
+    HANDLE ProcessId;
+    PPH_STRING SectionName;
+    PPH_STRING SectionNameV4;
+    BOOLEAN Found;
+} GET_PROCESS_IS_DOT_NET_CONTEXT, *PGET_PROCESS_IS_DOT_NET_CONTEXT;
+
+BOOLEAN NTAPI PhpGetProcessIsDotNetCallback(
+    __in PPH_STRING Name,
+    __in PPH_STRING TypeName,
+    __in PVOID Context
+    )
+{
+    PGET_PROCESS_IS_DOT_NET_CONTEXT context = Context;
+
+    if (PhStringEquals2(TypeName, L"Section", TRUE) &&
+        (PhStringEquals(Name, context->SectionName, TRUE) ||
+        PhStringEquals(Name, context->SectionNameV4, TRUE))
+        )
+    {
+        context->Found = TRUE;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhGetProcessIsDotNet(
+    __in HANDLE ProcessId,
+    __out PBOOLEAN IsDotNet
+    )
+{
+    // All .NET processes have a handle open to a section named 
+    // \BaseNamedObjects\Cor_Private_IPCBlock(_v4)_<ProcessId>.
+    // This is the same object used by the ICorPublish::GetProcess 
+    // function. Instead of calling that function, we simply check 
+    // for the existence of that section object. This means:
+    // * Better performance.
+    // * No need for admin rights to get .NET status of processes 
+    //   owned by other users.
+
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES oa;
+    UNICODE_STRING directoryName;
+    HANDLE directoryHandle;
+    GET_PROCESS_IS_DOT_NET_CONTEXT context;
+
+    RtlInitUnicodeString(&directoryName, L"\\BaseNamedObjects");
+    InitializeObjectAttributes(
+        &oa,
+        &directoryName,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+    status = NtOpenDirectoryObject(
+        &directoryHandle,
+        DIRECTORY_QUERY,
+        &oa
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    context.ProcessId = ProcessId;
+    context.SectionName = PhFormatString(L"Cor_Private_IPCBlock_%u", (ULONG)ProcessId);
+    context.SectionNameV4 = PhFormatString(L"Cor_Private_IPCBlock_v4_%u", (ULONG)ProcessId);
+    context.Found = FALSE;
+
+    PhEnumDirectoryObjects(
+        directoryHandle,
+        PhpGetProcessIsDotNetCallback,
+        &context
+        );
+
+    PhDereferenceObject(context.SectionName);
+    PhDereferenceObject(context.SectionNameV4);
+
+    NtClose(directoryHandle);
+
+    *IsDotNet = context.Found;
+
+    return status;
+}
+
 /**
  * Enumerates the objects in a directory object.
  *

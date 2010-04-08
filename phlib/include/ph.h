@@ -690,6 +690,11 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     __out PPH_STRING *FileName
     );
 
+NTSTATUS PhGetProcessIsDotNet(
+    __in HANDLE ProcessId,
+    __out PBOOLEAN IsDotNet
+    );
+
 /**
  * A callback function passed to PhEnumDirectoryObjects() 
  * and called for each directory object.
