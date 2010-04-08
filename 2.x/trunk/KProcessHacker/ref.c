@@ -508,27 +508,17 @@ VOID KphpDeferDeleteObjectRoutine(
     __in PVOID Parameter
     )
 {
-    PKPH_OBJECT_HEADER objectHeader = NULL;
+    PKPH_OBJECT_HEADER objectHeader;
+    PKPH_OBJECT_HEADER nextObjectHeader;
     
-    while (TRUE)
+    /* Clear the list and obtain the first object to free. */
+    objectHeader = InterlockedExchangePointer(&KphObjectNextToFree, NULL);
+    
+    while (objectHeader)
     {
-        /* Get the next object to free while replacing the global variable with 
-         * what we needed to free next.
-         */
-        objectHeader = InterlockedExchangePointer(&KphObjectNextToFree, objectHeader);
-        
-        /* If we have an object to free, free it and move on to the 
-         * next object. Otherwise, stop.
-         */
-        if (objectHeader)
-        {
-            KphpFreeObject(objectHeader);
-            objectHeader = objectHeader->NextToFree;
-        }
-        else
-        {
-            break;
-        }
+        nextObjectHeader = objectHeader->NextToFree;
+        KphpFreeObject(objectHeader);
+        objectHeader = nextObjectHeader;
     }
 }
 
