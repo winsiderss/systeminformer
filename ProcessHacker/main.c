@@ -22,9 +22,9 @@
 
 #define MAIN_PRIVATE
 #include <phapp.h>
-#include <treelist.h>
 #include <kph.h>
 #include <settings.h>
+#include <treelist.h>
 
 VOID PhpProcessStartupParameters();
 
@@ -426,6 +426,8 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_COMMANDACTION 8
 #define PH_ARG_RUNASSERVICEMODE 9
 #define PH_ARG_NOKPH 10
+#define PH_ARG_INSTALLKPH 11
+#define PH_ARG_UNINSTALLKPH 12
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -467,6 +469,12 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_NOKPH:
             PhStartupParameters.NoKph = TRUE;
             break;
+        case PH_ARG_INSTALLKPH:
+            PhStartupParameters.InstallKph = TRUE;
+            break;
+        case PH_ARG_UNINSTALLKPH:
+            PhStartupParameters.UninstallKph = TRUE;
+            break;
         }
     }
 
@@ -486,7 +494,9 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
         { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType },
         { PH_ARG_RUNASSERVICEMODE, L"ras", NoArgumentType },
-        { PH_ARG_NOKPH, L"nokph", NoArgumentType }
+        { PH_ARG_NOKPH, L"nokph", NoArgumentType },
+        { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
+        { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -511,11 +521,40 @@ VOID PhpProcessStartupParameters()
             L"-cobject command-object\n"
             L"-caction command-action\n"
             L"-hide\n"
+            L"-installkph\n"
             L"-nokph\n"
             L"-nosettings\n"
             L"-ras\n"
             L"-settings filename\n"
+            L"-uninstallkph\n"
             L"-v\n"
             );
+    }
+
+    if (PhStartupParameters.InstallKph)
+    {
+        NTSTATUS status;
+        PPH_STRING kprocesshackerFileName;
+
+        kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, L"\\kprocesshacker.sys");
+
+        status = KphInstall(L"KProcessHacker2", kprocesshackerFileName->Buffer);
+
+        if (!NT_SUCCESS(status))
+            PhShowStatus(NULL, L"Unable to install KProcessHacker", status, 0);
+
+        RtlExitUserProcess(status);
+    }
+
+    if (PhStartupParameters.UninstallKph)
+    {
+        NTSTATUS status;
+
+        status = KphUninstall(L"KProcessHacker2");
+
+        if (!NT_SUCCESS(status))
+            PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);
+
+        RtlExitUserProcess(status);
     }
 }
