@@ -4106,10 +4106,12 @@ NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     )
 {
+    static ULONG initialBufferSize = 0x4000;
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 2048;
+    ULONG bufferSize;
 
+    bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
     while (TRUE)
@@ -4138,6 +4140,7 @@ NTSTATUS PhEnumProcesses(
         return status;
     }
 
+    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
     *Processes = buffer;
 
     return status;
@@ -4189,10 +4192,12 @@ NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
     )
 {
+    static ULONG initialBufferSize = 0x4000;
     NTSTATUS status;
     PVOID buffer;
-    ULONG bufferSize = 0x1000;
+    ULONG bufferSize;
 
+    bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
     while ((status = NtQuerySystemInformation(
@@ -4219,6 +4224,7 @@ NTSTATUS PhEnumHandles(
         return status;
     }
 
+    if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
     *Handles = (PSYSTEM_HANDLE_INFORMATION)buffer;
 
     return status;
