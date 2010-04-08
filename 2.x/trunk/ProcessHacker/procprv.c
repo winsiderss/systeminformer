@@ -590,6 +590,8 @@ VOID PhpProcessQueryStage2(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
+    PhGetProcessIsDotNet(processId, &Data->IsDotNet);
+
     if (processItem->FileName)
     {
         Data->VerifyResult = PhVerifyFile(
