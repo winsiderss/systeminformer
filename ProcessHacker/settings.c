@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <ph.h>
 #define SETTINGS_PRIVATE
+#include <ph.h>
 #include <settings.h>
 #include <settingsp.h>
 
@@ -59,10 +59,22 @@ VOID PhSettingsInitialization()
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
+    PhpAddIntegerSetting(L"ColorNew", L"00ff7f"); // Chartreuse
+    PhpAddIntegerSetting(L"ColorRemoved", L"283cff");
     PhpAddIntegerSetting(L"UseColorOwnProcesses", L"1");
     PhpAddIntegerSetting(L"ColorOwnProcesses", L"aaffff");
+    PhpAddIntegerSetting(L"UseColorSystemProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorSystemProcesses", L"ffccaa");
     PhpAddIntegerSetting(L"UseColorServiceProcesses", L"1");
     PhpAddIntegerSetting(L"ColorServiceProcesses", L"ffffcc");
+    PhpAddIntegerSetting(L"UseColorJobProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorJobProcesses", L"3f85cd"); // Peru
+    PhpAddIntegerSetting(L"UseColorWow64Processes", L"1");
+    PhpAddIntegerSetting(L"ColorWow64Processes", L"8f8fbc"); // Rosy Brown
+    PhpAddIntegerSetting(L"UseColorPosixProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorPosixProcesses", L"8b3d48"); // Dark Slate Blue
+    PhpAddIntegerSetting(L"UseColorDebuggedProcesses", L"1");
+    PhpAddIntegerSetting(L"ColorDebuggedProcesses", L"ffbbcc");
     PhpAddIntegerSetting(L"UseColorElevatedProcesses", L"1");
     PhpAddIntegerSetting(L"ColorElevatedProcesses", L"00aaff");
     PhpAddIntegerSetting(L"UseColorSuspended", L"1");
@@ -70,7 +82,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"UseColorDotNet", L"1");
     PhpAddIntegerSetting(L"ColorDotNet", L"00ffde");
     PhpAddIntegerSetting(L"UseColorPacked", L"1");
-    PhpAddIntegerSetting(L"ColorPacked", L"8728f5"); // Deep Pink
+    PhpAddIntegerSetting(L"ColorPacked", L"9314ff"); // Deep Pink
     PhpAddIntegerSetting(L"UseColorGuiThreads", L"1");
     PhpAddIntegerSetting(L"ColorGuiThreads", L"77ffff");
     PhpAddIntegerSetting(L"UseColorRelocatedModules", L"1");
@@ -85,10 +97,22 @@ VOID PhpUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
+    UPDATE_INTEGER_CS(ColorNew);
+    UPDATE_INTEGER_CS(ColorRemoved);
     UPDATE_INTEGER_CS(UseColorOwnProcesses);
     UPDATE_INTEGER_CS(ColorOwnProcesses);
+    UPDATE_INTEGER_CS(UseColorSystemProcesses);
+    UPDATE_INTEGER_CS(ColorSystemProcesses);
     UPDATE_INTEGER_CS(UseColorServiceProcesses);
     UPDATE_INTEGER_CS(ColorServiceProcesses);
+    UPDATE_INTEGER_CS(UseColorJobProcesses);
+    UPDATE_INTEGER_CS(ColorJobProcesses);
+    UPDATE_INTEGER_CS(UseColorWow64Processes);
+    UPDATE_INTEGER_CS(ColorWow64Processes);
+    UPDATE_INTEGER_CS(UseColorPosixProcesses);
+    UPDATE_INTEGER_CS(ColorPosixProcesses);
+    UPDATE_INTEGER_CS(UseColorDebuggedProcesses);
+    UPDATE_INTEGER_CS(ColorDebuggedProcesses);
     UPDATE_INTEGER_CS(UseColorElevatedProcesses);
     UPDATE_INTEGER_CS(ColorElevatedProcesses);
     UPDATE_INTEGER_CS(UseColorSuspended);
