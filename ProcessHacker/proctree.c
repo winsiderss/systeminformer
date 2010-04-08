@@ -511,3 +511,18 @@ VOID PhGetSelectedProcessItems(
 
     PhDereferenceObject(list);
 }
+
+VOID PhDeselectAllProcessItems()
+{
+    ULONG i;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        node->Node.Selected = FALSE;
+        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
+    }
+
+    InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
+}
