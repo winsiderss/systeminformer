@@ -155,4 +155,15 @@ VOID PhpReloadThemeData(
     __in PPHP_TREELIST_CONTEXT Context
     );
 
+FORCEINLINE VOID PhpFillTreeListMouseEvent(
+    __out PPH_TREELIST_MOUSE_EVENT MouseEvent,
+    __in LPNMITEMACTIVATE ItemActivate
+    )
+{
+    MouseEvent->Index = ItemActivate->iItem;
+    MouseEvent->Id = ItemActivate->iSubItem;
+    MouseEvent->Location = ItemActivate->ptAction;
+    MouseEvent->KeyFlags = ItemActivate->uKeyFlags;
+}
+
 #endif

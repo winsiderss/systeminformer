@@ -1248,9 +1248,7 @@ VOID PhpRefreshUsersMenu()
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
 {
-    return PhGetSelectedListViewItemParam(
-        ProcessTreeListHandle
-        );
+    return PhGetSelectedProcessItem();
 }
 
 VOID PhpGetSelectedProcesses(
@@ -1258,11 +1256,7 @@ VOID PhpGetSelectedProcesses(
     __out PULONG NumberOfProcesses
     )
 {
-    PhGetSelectedListViewItemParams(
-        ProcessTreeListHandle,
-        Processes,
-        NumberOfProcesses
-        );
+    PhGetSelectedProcessItems(Processes, NumberOfProcesses);
 }
 
 VOID PhpShowProcessProperties(
@@ -1788,67 +1782,36 @@ VOID PhpInitializeProcessMenu(
     }
 }
 
-VOID PhMainWndProcessListViewOnNotify(
-    __in LPNMHDR Header
+VOID PhShowProcessContextMenu(
+    __in POINT Location
     )
 {
-    switch (Header->code)
+    PPH_PROCESS_ITEM *processes;
+    ULONG numberOfProcesses;
+
+    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+
+    if (numberOfProcesses != 0)
     {
-    case NM_DBLCLK:
-        {
-            SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
-        }
-        break;
-    case NM_RCLICK:
-        {
-            LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
-            PPH_PROCESS_ITEM *processes;
-            ULONG numberOfProcesses;
+        HMENU menu;
+        HMENU subMenu;
 
-            PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+        menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESS));
+        subMenu = GetSubMenu(menu, 0);
 
-            if (numberOfProcesses != 0)
-            {
-                HMENU menu;
-                HMENU subMenu;
+        SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
+        PhpInitializeProcessMenu(subMenu, processes, numberOfProcesses);
 
-                menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESS));
-                subMenu = GetSubMenu(menu, 0);
-
-                SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
-                PhpInitializeProcessMenu(subMenu, processes, numberOfProcesses);
-
-                PhShowContextMenu(
-                    PhMainWndHandle,
-                    ProcessTreeListHandle,
-                    subMenu,
-                    itemActivate->ptAction
-                    );
-                DestroyMenu(menu);
-            }
-
-            PhFree(processes);
-        }
-        break;
-    case LVN_KEYDOWN:
-        {
-            LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)Header;
-
-            switch (keyDown->wVKey)
-            {
-            case VK_DELETE:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
-                break;
-            case VK_SHIFT | VK_DELETE:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
-                break;
-            case VK_RETURN:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
-                break;
-            }
-        }
-        break;
+        PhShowContextMenu(
+            PhMainWndHandle,
+            ProcessTreeListHandle,
+            subMenu,
+            Location
+            );
+        DestroyMenu(menu);
     }
+
+    PhFree(processes);
 }
 
 VOID PhpInitializeServiceMenu(
