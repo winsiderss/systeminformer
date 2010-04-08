@@ -270,9 +270,10 @@ VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     );
 
-#define TLIN_COLOR 0x1
-#define TLIN_FONT 0x2
-#define TLIN_ICON 0x4
+#define TLIN_STATE 0x1
+#define TLIN_COLOR 0x2
+#define TLIN_FONT 0x4
+#define TLIN_ICON 0x8
 
 VOID PhInvalidateTreeListNode(
     __inout PPH_TREELIST_NODE Node,

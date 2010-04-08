@@ -1637,6 +1637,16 @@ VOID PhInvalidateTreeListNode(
     __in ULONG Flags
     )
 {
+    if (Flags & TLIN_STATE)
+    {
+        Node->s.ViewState = 0;
+
+        if (Node->Selected)
+            Node->s.ViewState |= LVIS_SELECTED;
+        if (Node->Focused)
+            Node->s.ViewState |= LVIS_FOCUSED;
+    }
+
     if (Flags & TLIN_COLOR)
         Node->s.CachedColorValid = FALSE;
     if (Flags & TLIN_FONT)
