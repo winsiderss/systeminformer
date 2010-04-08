@@ -68,8 +68,9 @@ PVOID PhEnumServices(
     __out PULONG Count
     )
 {
+    static ULONG initialBufferSize = 0x8000;
     PVOID buffer;
-    static ULONG bufferSize = 0x8000;
+    ULONG bufferSize;
     ULONG returnLength;
     ULONG servicesReturned;
 
@@ -78,6 +79,7 @@ PVOID PhEnumServices(
     if (!State)
         State = SERVICE_STATE_ALL;
 
+    bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
     if (!EnumServicesStatusEx(
@@ -118,6 +120,7 @@ PVOID PhEnumServices(
         }
     }
 
+    if (bufferSize <= 0x10000) initialBufferSize = bufferSize;
     *Count = servicesReturned;
 
     return buffer;
