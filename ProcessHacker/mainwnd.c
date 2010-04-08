@@ -553,6 +553,18 @@ LRESULT CALLBACK PhMainWndProc(
                     PhFree(processes);
                 }
                 break;
+            case ID_PROCESS_TERMINATETREE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhUiTerminateTreeProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_SUSPEND:
                 {
                     PPH_PROCESS_ITEM *processes;
@@ -1598,7 +1610,6 @@ VOID PhpInitializeProcessMenu(
         ULONG menuItemsMultiEnabled[] =
         {
             ID_PROCESS_TERMINATE,
-            ID_PROCESS_TERMINATETREE,
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
             ID_PROCESS_REDUCEWORKINGSET

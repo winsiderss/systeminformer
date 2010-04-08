@@ -354,6 +354,11 @@ BOOLEAN PhUiTerminateProcesses(
     __in ULONG NumberOfProcesses
     );
 
+BOOLEAN PhUiTerminateTreeProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process
+    );
+
 BOOLEAN PhUiSuspendProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
