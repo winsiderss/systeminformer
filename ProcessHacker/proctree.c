@@ -244,6 +244,9 @@ VOID PhUpdateProcessNode(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)processItem1->ProcessId, (ULONG_PTR)processItem2->ProcessId); \
+    \
     return PhModifySort(sortResult, ProcessTreeListSortOrder); \
 }
 
