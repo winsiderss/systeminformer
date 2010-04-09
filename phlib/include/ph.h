@@ -1592,6 +1592,11 @@ VOID PhGenerateRandomAlphaString(
     __in ULONG Count
     );
 
+PPH_STRING PhEllipsisString(
+    __in PPH_STRING String,
+    __in ULONG DesiredCount
+    );
+
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format

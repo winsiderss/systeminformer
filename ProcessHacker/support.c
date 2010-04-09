@@ -137,6 +137,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     {
     case ServiceHostProcessType:
         {
+            // svchost.exe -k <GroupName>
+
             static PH_COMMAND_LINE_OPTION options[] =
             {
                 { 1, L"k", MandatoryArgumentType }
@@ -158,6 +160,8 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         break;
     case RunDllAsAppProcessType:
         {
+            // rundll32.exe <DllName>,<ProcedureName> ...
+
             ULONG i;
             ULONG lastIndexOfComma;
             PPH_STRING dllName;
@@ -218,7 +222,96 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         break;
     case ComSurrogateProcessType:
         {
-            // TODO
+            // dllhost.exe /processid:<Guid>
+
+            ULONG i;
+            ULONG indexOfProcessId;
+            PPH_STRING argPart;
+            PPH_STRING guidString;
+            GUID guid;
+            HKEY clsidKeyHandle;
+            HKEY inprocServer32KeyHandle;
+            PPH_STRING fileName;
+
+            i = 0;
+
+            // Get the dllhost.exe part.
+
+            argPart = PhParseCommandLinePart(&CommandLine->sr, &i);
+
+            if (!argPart)
+                return FALSE;
+
+            PhDereferenceObject(argPart);
+
+            // Get the argument part.
+
+            while (i < (ULONG)CommandLine->Length / 2 && CommandLine->Buffer[i] == ' ')
+                i++;
+
+            argPart = PhParseCommandLinePart(&CommandLine->sr, &i);
+
+            if (!argPart)
+                return FALSE;
+
+            PhaDereferenceObject(argPart);
+
+            // Find "/processid:"; the GUID is just after that.
+
+            PhLowerString(argPart);
+            indexOfProcessId = PhStringIndexOfString(argPart, 0, L"/processid:");
+
+            if (indexOfProcessId == -1)
+                return FALSE;
+
+            guidString = PhaSubstring(
+                argPart,
+                indexOfProcessId + 11,
+                guidString->Length / 2 - indexOfProcessId - 11
+                );
+
+            if (!NT_SUCCESS(RtlGUIDFromString(
+                &guidString->us,
+                &guid
+                )))
+                return FALSE;
+
+            KnownCommandLine->ComSurrogate.Guid = guid;
+            KnownCommandLine->ComSurrogate.Name = NULL;
+            KnownCommandLine->ComSurrogate.FileName = NULL;
+
+            // Lookup the GUID in the registry to determine the name and file name.
+
+            if (RegOpenKey(
+                HKEY_CLASSES_ROOT,
+                PhaConcatStrings2(L"CLSID\\", guidString->Buffer)->Buffer,
+                &clsidKeyHandle
+                ) == ERROR_SUCCESS)
+            {
+                KnownCommandLine->ComSurrogate.Name =
+                    PHA_DEREFERENCE(PhQueryRegistryString(clsidKeyHandle, NULL));
+
+                if (RegOpenKey(
+                    clsidKeyHandle,
+                    L"InprocServer32",
+                    &inprocServer32KeyHandle
+                    ) == ERROR_SUCCESS)
+                {
+                    KnownCommandLine->ComSurrogate.FileName =
+                        PHA_DEREFERENCE(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
+
+                    if (fileName = PHA_DEREFERENCE(PhExpandEnvironmentStrings(
+                        KnownCommandLine->ComSurrogate.FileName->Buffer
+                        )))
+                    {
+                        KnownCommandLine->ComSurrogate.FileName = fileName;
+                    }
+
+                    RegCloseKey(inprocServer32KeyHandle);
+                }
+
+                RegCloseKey(clsidKeyHandle);
+            }
         }
         break;
     default:
