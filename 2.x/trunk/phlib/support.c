@@ -540,22 +540,43 @@ VOID PhGenerateRandomAlphaString(
     __in ULONG Count
     )
 {
+    static ULONG seed = 0;
     ULONG i;
-    FILETIME time;
 
     if (Count == 0)
         return;
 
-    GetSystemTimeAsFileTime(&time);
-
-    srand((time.dwHighDateTime * time.dwHighDateTime) ^ time.dwLowDateTime);
-
     for (i = 0; i < Count - 1; i++)
     {
-        Buffer[i] = 'A' + (rand() % 26);
+        Buffer[i] = 'A' + (RtlRandomEx(&seed) % 26);
     }
 
     Buffer[Count - 1] = 0;
+}
+
+PPH_STRING PhEllipsisString(
+    __in PPH_STRING String,
+    __in ULONG DesiredCount
+    )
+{
+    if (
+        (ULONG)String->Length / 2 <= DesiredCount ||
+        DesiredCount < 4
+        )
+    {
+        PhReferenceObject(String);
+        return String;
+    }
+    else
+    {
+        PPH_STRING string;
+
+        string = PhCreateStringEx(NULL, DesiredCount * 2);
+        memcpy(string->Buffer, String->Buffer, (DesiredCount - 3) * 2);
+        memcpy(&string->Buffer[DesiredCount - 3], L"...", 6);
+
+        return string;
+    }
 }
 
 PPH_STRING PhFormatDate(
