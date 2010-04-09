@@ -167,6 +167,123 @@ Condition variables are available using the queued lock. Simply
 declare and initialize a queued lock variable, and use the 
 PhPulse(All)Condition and PhWaitForCondition functions.
 
+Custom locking with low overhead can be built using the wake event, 
+built on the queued lock. Test one or more conditions in a loop and 
+use PhQueueWakeEvent/PhWaitForWakeEvent to block. When a condition is 
+modified use PhSetWakeEvent to wake waiters. If after calling 
+PhQueueWakeEvent it is determined that no blocking should occur, use 
+PhSetWakeEvent.
+
+==== (Lazy) Singletons ====
+
+====== Not thread-safe ======
+    BOOLEAN initialized = FALSE;
+    OBJECT object = NULL;
+    
+    DoSomething()
+    {
+        if (!initialized)
+        {
+            object = Create();
+            initialized = TRUE;
+        }
+        
+        Use(object);
+    }
+
+Disadvantages:
+  * Not thread-safe
+
+====== Thread-safe (locking, double-checked) ======
+    BOOLEAN initialized = FALSE;
+    OBJECT object = NULL;
+    PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
+    
+    DoSomething()
+    {
+        if (!initialized)
+        {
+            PhAcquireQueuedLockExclusiveFast(&lock);
+            
+            if (!initialized)
+            {
+                object = Create();
+                initialized = TRUE;
+            }
+            
+            PhReleaseQueuedLockExclusiveFast(&lock);
+        }
+        
+        Use(object);
+    }
+
+Advantages:
+  * Thread-safe
+Disadvantages:
+  * Lock overhead
+  * More code
+
+====== Thread-safe (PH_INITONCE) ======
+    PH_INITONCE initOnce = PH_INITONCE_INIT;
+    OBJECT object = NULL;
+    
+    DoSomething()
+    {
+        if (PhBeginInitOnce(&initOnce))
+        {
+            object = Create();
+            PhEndInitOnce(&initOnce);
+        }
+        
+        Use(object);
+    }
+
+Advantages:
+  * Less overhead
+  * Less code
+
+====== Thread-safe (custom) ======
+    OBJECT object = NULL;
+    
+    DoSomething()
+    {
+        OBJECT localObject;
+        OBJECT newObject;
+        
+        localObject = object;
+        
+        if (!localObject)
+        {
+            newObject = Create();
+            
+            // Try to store the created object.
+            localObject = InterlockedCompareExchangePointer(
+                &object,
+                newObject,
+                NULL
+                );
+            
+            if (!localObject)
+            {
+                // Success.
+                localObject = newObject;
+            }
+            else
+            {
+                // Someone else already stored the object.
+                Destroy(newObject);
+            }
+        }
+        
+        return localObject;
+    }
+
+Advantages:
+  * Less overhead
+Disadvantages:
+  * More code
+  * Created object may need to be destroyed
+
 ==== Memory management ====
 Use PhAllocate/PhFree to allocate/free memory. For complex objects, 
 use the reference counting system.
