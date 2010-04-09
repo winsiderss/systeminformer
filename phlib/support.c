@@ -2165,15 +2165,28 @@ NTSTATUS PhIsExecutablePacked(
     // An image is packed if:
     //
     // 1. It references fewer than 3 modules, and 
-    // 2. It imports fewer than 5 functions.
+    // 2. It imports fewer than 5 functions, and 
+    // 3. It does not use the Native subsystem.
+    //
+    // Or:
+    //
+    // 1. The function-to-module ratio is lower than 3 
+    //    (on average fewer than 3 functions are imported 
+    //    from each module), and
+    // 2. It references more than 2 modules but fewer than 
+    //    5 modules.
     //
     // Or:
     //
     // 1. The function-to-module ratio is lower than 4 
     //    (on average fewer than 4 functions are imported 
     //    from each module), and
-    // 2. It references more than 3 modules but fewer than 
-    //    30 modules.
+    // 2. It references more than 4 modules but fewer than 
+    //    31 modules.
+    //
+    // Or:
+    //
+    // 1. It does not have a section named ".text".
     //
     // An image is not considered to be packed if it has only 
     // one import from a module named "mscoree.dll".
@@ -2183,8 +2196,11 @@ NTSTATUS PhIsExecutablePacked(
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_IMPORT_DLL importDll;
     ULONG i;
+    ULONG limitNumberOfSections;
+    ULONG limitNumberOfModules;
     ULONG numberOfModules;
     ULONG numberOfFunctions = 0;
+    BOOLEAN hasTextSection = FALSE;
     BOOLEAN isModuleMscoree = FALSE;
     BOOLEAN isPacked;
 
@@ -2198,6 +2214,29 @@ NTSTATUS PhIsExecutablePacked(
     if (!NT_SUCCESS(status))
         return status;
 
+    // Go through the sections and look for the ".text" section.
+
+    limitNumberOfSections = min(mappedImage.NumberOfSections, 64);
+
+    for (i = 0; i < limitNumberOfSections; i++)
+    {
+        CHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+        if (PhGetMappedImageSectionName(
+            &mappedImage.Sections[i],
+            sectionName,
+            IMAGE_SIZEOF_SHORT_NAME + 1,
+            NULL
+            ))
+        {
+            if (STR_IEQUAL(sectionName, ".text"))
+            {
+                hasTextSection = TRUE;
+                break;
+            }
+        }
+    }
+
     status = PhInitializeMappedImageImports(
         &imports,
         &mappedImage
@@ -2209,8 +2248,9 @@ NTSTATUS PhIsExecutablePacked(
     // Get the module and function totals.
 
     numberOfModules = imports.NumberOfDlls;
+    limitNumberOfModules = min(numberOfModules, 64);
 
-    for (i = 0; i < numberOfModules; i++)
+    for (i = 0; i < limitNumberOfModules; i++)
     {
         if (!NT_SUCCESS(status = PhGetMappedImageImportDll(
             &imports,
@@ -2228,9 +2268,20 @@ NTSTATUS PhIsExecutablePacked(
     // Determine if the image is packed.
 
     if (
-        ((numberOfModules < 3 && numberOfFunctions < 5) ||
-        (((FLOAT)numberOfFunctions / numberOfModules) < 4 &&
-        numberOfModules > 3 && numberOfModules < 30)) &&
+        (
+        // Rule 1
+        (numberOfModules < 3 && numberOfFunctions < 5 &&
+        mappedImage.NtHeaders->OptionalHeader.Subsystem != IMAGE_SUBSYSTEM_NATIVE) ||
+        // Rule 2
+        ((numberOfFunctions / numberOfModules) < 3 &&
+        numberOfModules > 2 && numberOfModules < 5) ||
+        // Rule 3
+        ((numberOfFunctions / numberOfModules) < 4 &&
+        numberOfModules > 4 && numberOfModules < 31) ||
+        // Rule 4
+        !hasTextSection
+        ) &&
+        // Additional .NET rule
         !(numberOfModules == 1 && numberOfFunctions == 1 && isModuleMscoree)
         )
     {

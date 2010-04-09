@@ -589,6 +589,7 @@ VOID PhpProcessQueryStage2(
     __inout PPH_PROCESS_QUERY_S2_DATA Data
     )
 {
+    NTSTATUS status;
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
@@ -601,12 +602,24 @@ VOID PhpProcessQueryStage2(
             &Data->VerifySignerName
             );
 
-        PhIsExecutablePacked(
+        status = PhIsExecutablePacked(
             processItem->FileName->Buffer,
             &Data->IsPacked,
             &Data->ImportModules,
             &Data->ImportFunctions
             );
+
+        // If we got an image-related error, the image is packed.
+        if (
+            status == STATUS_INVALID_IMAGE_NOT_MZ ||
+            status == STATUS_INVALID_IMAGE_FORMAT ||
+            status == STATUS_ACCESS_VIOLATION
+            )
+        {
+            Data->IsPacked = TRUE;
+            Data->ImportModules = -1;
+            Data->ImportFunctions = -1;
+        }
     }
 }
 
