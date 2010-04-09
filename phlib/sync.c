@@ -160,6 +160,22 @@ BOOLEAN PhBeginInitOnce(
 {
     LONG oldState;
 
+    // Quick check first.
+
+    oldState = InitOnce->State;
+
+    if (oldState == PH_INITONCE_INITIALIZED)
+    {
+        return FALSE;
+    }
+    else if (oldState == PH_INITONCE_INITIALIZING)
+    {
+        PhWaitForEvent(&InitOnce->WakeEvent, INFINITE);
+        return FALSE;
+    }
+
+    // Initializing path.
+
     oldState = _InterlockedCompareExchange(
         &InitOnce->State,
         PH_INITONCE_INITIALIZING,

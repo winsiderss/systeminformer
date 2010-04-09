@@ -43,14 +43,13 @@ NTSTATUS PhOpenLsaPolicy(
 LSA_HANDLE PhGetLookupPolicyHandle()
 {
     LSA_HANDLE lookupPolicyHandle;
-    LSA_HANDLE newLookupPolicyHandle = NULL;
+    LSA_HANDLE newLookupPolicyHandle;
 
     lookupPolicyHandle = PhLookupPolicyHandle;
-    newLookupPolicyHandle = lookupPolicyHandle;
 
     // If there is no cached handle, open one.
 
-    if (!newLookupPolicyHandle)
+    if (!lookupPolicyHandle)
     {
         if (NT_SUCCESS(PhOpenLsaPolicy(
             &newLookupPolicyHandle,
@@ -68,19 +67,22 @@ LSA_HANDLE PhGetLookupPolicyHandle()
                 NULL
                 );
 
-            if (lookupPolicyHandle)
+            if (!lookupPolicyHandle)
+            {
+                // Success. Use our handle.
+                lookupPolicyHandle = newLookupPolicyHandle;
+            }
+            else
             {
                 // Someone already placed a handle in the 
                 // cache. Close our handle and use their 
                 // handle.
-
                 LsaClose(newLookupPolicyHandle);
-                newLookupPolicyHandle = lookupPolicyHandle;
             }
         }
     }
 
-    return newLookupPolicyHandle;
+    return lookupPolicyHandle;
 }
 
 /**
