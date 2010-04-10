@@ -288,6 +288,13 @@ NTSTATUS PhGetProcessWsCounters(
     __out PPH_PROCESS_WS_COUNTERS WsCounters
     );
 
+typedef struct _PROCESS_HANDLE_INFORMATION *PPROCESS_HANDLE_INFORMATION;
+
+NTSTATUS PhEnumProcessHandles(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_HANDLE_INFORMATION *Handles
+    );
+
 NTSTATUS PhSetProcessAffinityMask(
     __in HANDLE ProcessHandle,
     __in ULONG_PTR AffinityMask
@@ -665,6 +672,10 @@ PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
 
 NTSTATUS PhEnumHandles(
     __out PSYSTEM_HANDLE_INFORMATION *Handles
+    );
+
+NTSTATUS PhEnumHandlesEx(
+    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles
     );
 
 #define PH_FIRST_PAGEFILE(Pagefiles) ( \

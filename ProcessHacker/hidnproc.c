@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <kph.h>
 #include <settings.h>
 #include <hidnproc.h>
 #include <windowsx.h>
@@ -585,49 +586,6 @@ NTSTATUS PhEnumHiddenProcesses(
             Context
             );
     }
-}
-
-NTSTATUS PhEnumProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_HANDLE_INFORMATION *Handles
-    )
-{
-    NTSTATUS status;
-    PVOID buffer;
-    ULONG bufferSize = 2048;
-
-    buffer = PhAllocate(bufferSize);
-
-    while (TRUE)
-    {
-        status = KphQueryProcessHandles(
-            PhKphHandle,
-            ProcessHandle,
-            buffer,
-            bufferSize,
-            &bufferSize
-            );
-
-        if (status == STATUS_BUFFER_TOO_SMALL)
-        {
-            PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    if (!NT_SUCCESS(status))
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    *Handles = buffer;
-
-    return status;
 }
 
 NTSTATUS PhpOpenCsrProcesses(

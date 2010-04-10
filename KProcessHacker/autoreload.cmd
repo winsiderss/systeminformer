@@ -1,2 +1,2 @@
 @echo off
-auto & sc stop kprocesshacker & sc start kprocesshacker
+auto & sc stop kprocesshacker2 & sc start kprocesshacker2
