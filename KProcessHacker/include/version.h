@@ -90,6 +90,7 @@ EXT ULONG OffEpProtectedProcessBit;
 EXT ULONG OffEpRundownProtect;
 EXT ULONG OffOhBody;
 EXT ULONG OffOtName;
+EXT ULONG OffOtIndex;
 EXT ULONG OffOtiGenericMapping;
 
 /* Functions

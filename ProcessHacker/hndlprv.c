@@ -22,6 +22,7 @@
 
 #define HNDLPRV_PRIVATE
 #include <phapp.h>
+#include <kph.h>
 
 VOID NTAPI PhpHandleProviderDeleteProcedure(
     __in PVOID Object,
@@ -130,7 +131,7 @@ VOID PhpHandleProviderDeleteProcedure(
 }
 
 PPH_HANDLE_ITEM PhCreateHandleItem(
-    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO Handle
+    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     )
 {
     PPH_HANDLE_ITEM handleItem;
@@ -256,13 +257,141 @@ __assumeLocked VOID PhpRemoveHandleItem(
     PhDereferenceObject(HandleItem);
 }
 
+NTSTATUS PhpEnumHandlesGeneric(
+    __in HANDLE ProcessId,
+    __in HANDLE ProcessHandle,
+    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles,
+    __out PBOOLEAN FilterNeeded
+    )
+{
+    NTSTATUS status;
+
+    // There are three ways of enumerating handles:
+    // * When KProcessHacker is available, using KphQueryProcessHandles 
+    //   is the most efficient method.
+    // * On Windows XP and later, NtQuerySystemInformation with 
+    //   SystemExtendedHandleInformation can be used.
+    // * Otherwise, NtQuerySystemInformation with SystemHandleInformation 
+    //   can be used.
+
+    if (PhKphHandle)
+    {
+        PPROCESS_HANDLE_INFORMATION handles;
+        PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+        ULONG i;
+
+        // Enumerate handles using KProcessHacker. Unlike with NtQuerySystemInformation, 
+        // this only enumerates handles for a single process and saves a lot of processing.
+
+        if (!NT_SUCCESS(status = PhEnumProcessHandles(ProcessHandle, &handles)))
+            return status;
+
+        convertedHandles = PhAllocate(
+            FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
+            sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * handles->HandleCount
+            );
+
+        convertedHandles->NumberOfHandles = handles->HandleCount;
+
+        for (i = 0; i < handles->HandleCount; i++)
+        {
+            convertedHandles->Handles[i].Object = handles->Handles[i].Object;
+            convertedHandles->Handles[i].UniqueProcessId = (ULONG_PTR)ProcessId;
+            convertedHandles->Handles[i].HandleValue = (ULONG_PTR)handles->Handles[i].Handle;
+            convertedHandles->Handles[i].GrantedAccess = (ULONG)handles->Handles[i].GrantedAccess;
+            convertedHandles->Handles[i].CreatorBackTraceIndex = 0;
+            convertedHandles->Handles[i].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+            convertedHandles->Handles[i].HandleAttributes = handles->Handles[i].HandleAttributes;
+        }
+
+        PhFree(handles);
+
+        *Handles = convertedHandles;
+        *FilterNeeded = FALSE;
+    }
+    else
+    {
+        if (WindowsVersion >= WINDOWS_XP)
+        {
+            PSYSTEM_HANDLE_INFORMATION_EX handles;
+
+            // Enumerate handles using the new method; no conversion 
+            // necessary.
+
+            if (!NT_SUCCESS(status = PhEnumHandlesEx(&handles)))
+                return status;
+
+            *Handles = handles;
+            *FilterNeeded = TRUE;
+        }
+        else
+        {
+            PSYSTEM_HANDLE_INFORMATION handles;
+            PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
+            ULONG count;
+            ULONG allocatedCount;
+            ULONG i;
+
+            // Enumerate handles using the old info class and convert 
+            // the relevant entries to the new format.
+
+            if (!NT_SUCCESS(status = PhEnumHandles(&handles)))
+                return status;
+
+            count = 0;
+            allocatedCount = 100;
+
+            convertedHandles = PhAllocate(
+                FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
+                sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * allocatedCount
+                );
+
+            for (i = 0; i < handles->NumberOfHandles; i++)
+            {
+                if ((HANDLE)handles->Handles[i].UniqueProcessId != ProcessId)
+                    continue;
+
+                if (count == allocatedCount)
+                {
+                    allocatedCount *= 2;
+                    convertedHandles = PhReAlloc(
+                        convertedHandles,
+                        FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
+                        sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * allocatedCount
+                        );
+                }
+
+                convertedHandles->Handles[count].Object = handles->Handles[i].Object;
+                convertedHandles->Handles[count].UniqueProcessId = (ULONG_PTR)handles->Handles[i].UniqueProcessId;
+                convertedHandles->Handles[count].HandleValue = (ULONG_PTR)handles->Handles[i].HandleValue;
+                convertedHandles->Handles[count].GrantedAccess = handles->Handles[i].GrantedAccess;
+                convertedHandles->Handles[count].CreatorBackTraceIndex = handles->Handles[i].CreatorBackTraceIndex;
+                convertedHandles->Handles[count].ObjectTypeIndex = handles->Handles[i].ObjectTypeIndex;
+                convertedHandles->Handles[count].HandleAttributes = (ULONG)handles->Handles[i].HandleAttributes;
+
+                count++;
+            }
+
+            convertedHandles->NumberOfHandles = count;
+
+            PhFree(handles);
+
+            *Handles = convertedHandles;
+            *FilterNeeded = FALSE;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
 VOID PhHandleProviderUpdate(
     __in PVOID Object
     )
 {
     PPH_HANDLE_PROVIDER handleProvider = (PPH_HANDLE_PROVIDER)Object;
-    PSYSTEM_HANDLE_INFORMATION handleInfo;
-    PSYSTEM_HANDLE_TABLE_ENTRY_INFO handles;
+    PSYSTEM_HANDLE_INFORMATION_EX handleInfo;
+    BOOLEAN filterNeeded;
+    PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handles;
     ULONG numberOfHandles;
     ULONG i;
     PPH_KEY_VALUE_PAIR handlePair;
@@ -270,19 +399,40 @@ VOID PhHandleProviderUpdate(
     if (!handleProvider->ProcessHandle)
         return;
 
-    if (!NT_SUCCESS(PhEnumHandles(&handleInfo)))
+    if (!NT_SUCCESS(PhpEnumHandlesGeneric(
+        handleProvider->ProcessId,
+        handleProvider->ProcessHandle,
+        &handleInfo,
+        &filterNeeded
+        )))
         return;
 
     handles = handleInfo->Handles;
     numberOfHandles = handleInfo->NumberOfHandles;
 
     // Make a list of the relevant handles.
-    for (i = 0; i < numberOfHandles; i++)
+    if (filterNeeded)
     {
-        PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = &handles[i];
-
-        if (handle->UniqueProcessId == (USHORT)handleProvider->ProcessId)
+        for (i = 0; i < (ULONG)numberOfHandles; i++)
         {
+            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
+
+            if (handle->UniqueProcessId == (USHORT)handleProvider->ProcessId)
+            {
+                PhAddSimpleHashtableItem(
+                    handleProvider->TempListHashtable,
+                    (PVOID)handle->HandleValue,
+                    handle
+                    );
+            }
+        }
+    }
+    else
+    {
+        for (i = 0; i < (ULONG)numberOfHandles; i++)
+        {
+            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
+
             PhAddSimpleHashtableItem(
                 handleProvider->TempListHashtable,
                 (PVOID)handle->HandleValue,
@@ -296,7 +446,7 @@ VOID PhHandleProviderUpdate(
         PPH_LIST handlesToRemove = NULL;
         ULONG enumerationKey = 0;
         PPH_HANDLE_ITEM *handleItem;
-        PSYSTEM_HANDLE_TABLE_ENTRY_INFO *tempHashtableValue;
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *tempHashtableValue;
 
         while (PhEnumHashtable(handleProvider->HandleHashtable, (PPVOID)&handleItem, &enumerationKey))
         {
@@ -304,7 +454,7 @@ VOID PhHandleProviderUpdate(
 
             // Check if the handle still exists.
 
-            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO *)PhGetSimpleHashtableItem(
+            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhGetSimpleHashtableItem(
                 handleProvider->TempListHashtable,
                 (PVOID)((*handleItem)->Handle)
                 );
@@ -356,7 +506,7 @@ VOID PhHandleProviderUpdate(
 
     while (PhEnumHashtable(handleProvider->TempListHashtable, &handlePair, &i))
     {
-        PSYSTEM_HANDLE_TABLE_ENTRY_INFO handle = handlePair->Value;
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = handlePair->Value;
         PPH_HANDLE_ITEM handleItem;
 
         handleItem = PhpLookupHandleItem(handleProvider, (HANDLE)handle->HandleValue);
