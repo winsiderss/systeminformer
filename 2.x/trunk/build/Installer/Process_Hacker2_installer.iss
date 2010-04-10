@@ -249,9 +249,9 @@ begin
   // When uninstalling ask user to delete Process Hacker's logs and settings
   // based on whether these files exist only
   if CurUninstallStep = usUninstall then begin
-    StopService('KProcessHacker');
-    RemoveService('KProcessHacker');
-  if SettingsExistCheck OR fileExists(ExpandConstant('{app}\Process Hacker Log.txt')) then begin
+    StopService('KProcessHacker2');
+    RemoveService('KProcessHacker2');
+  if SettingsExistCheck then begin
     if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'),
      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
        CleanUpFiles;
