@@ -44,7 +44,7 @@ typedef struct _PHP_OBJECT_SEARCH_RESULT
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
 
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO Info;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Info;
 } PHP_OBJECT_SEARCH_RESULT, *PPHP_OBJECT_SEARCH_RESULT;
 
 INT_PTR CALLBACK PhpFindObjectsDlgProc(      
@@ -418,7 +418,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     __in PVOID Parameter
     )
 {
-    PSYSTEM_HANDLE_INFORMATION handles;
+    PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
     ULONG64 searchPointer;
     BOOLEAN useSearchPointer;
@@ -433,13 +433,13 @@ static NTSTATUS PhpFindObjectsThreadStart(
     // Try to get a search pointer from the search string.
     useSearchPointer = PhStringToInteger64(SearchString->Buffer, 0, &searchPointer);
 
-    if (NT_SUCCESS(PhEnumHandles(&handles)))
+    if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
         processHandleHashtable = PhCreateSimpleHashtable(8);
 
         for (i = 0; i < handles->NumberOfHandles; i++)
         {
-            PSYSTEM_HANDLE_TABLE_ENTRY_INFO handleInfo = &handles->Handles[i];
+            PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handleInfo = &handles->Handles[i];
             PPVOID processHandlePtr;
             HANDLE processHandle;
             PPH_STRING typeName;
