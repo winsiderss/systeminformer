@@ -23,7 +23,7 @@
 ; *Inno Setup QuickStart Pack v5.3.8+: http://www.jrsoftware.org/isdl.php#qsp
 
 
-#define installer_build_number "01"
+#define installer_build_number "02"
 
 #define VerMajor
 #define VerMinor
@@ -87,11 +87,13 @@ ArchitecturesInstallIn64BitMode=x64
 [Languages]
 ; Installer's languages
 Name: en; MessagesFile: compiler:Default.isl
+Name: de; MessagesFile: compiler:Languages\German.isl
 Name: gr; MessagesFile: Languages\Greek.isl
 
 
-; Include the installer's custom messages
+; Include the installer's custom messages and services stuff
 #include "Custom_Messages.iss"
+#include "Services.iss"
 
 
 [Messages]
@@ -125,21 +127,21 @@ Name: restore_taskmgr; Description: {cm:tsk_RestoreTaskmgr}; GroupDescription: {
 
 
 [Icons]
-Name: {group}\Process Hacker; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 ;Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
 ;Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
 ;Name: {group}\{cm:sm_Help}\{cm:sm_ReadmeFile}; Filename: {app}\README.txt; Comment: {cm:sm_com_ReadmeFile}; WorkingDir: {app}
-Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker}
-Name: {group}\{cm:UninstallProgram,Process Hacker}; Filename: {uninstallexe}; IconFilename: {app}\uninstall.ico; Comment: {cm:UninstallProgram,Process Hacker}; WorkingDir: {app}
+Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
+Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Filename: {uninstallexe}; IconFilename: {app}\uninstall.ico; Comment: {cm:UninstallProgram,Process Hacker 2}; WorkingDir: {app}
 
-Name: {commondesktop}\Process Hacker; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\common; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {userdesktop}\Process Hacker; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\user; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker; Filename: {app}\ProcessHacker.exe; Tasks: quicklaunchicon; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\common; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {userdesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\user; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: quicklaunchicon; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 
 
 [InstallDelete]
-Type: files; Name: {userdesktop}\Process Hacker.lnk; Tasks: NOT desktopicon\user
-Type: files; Name: {commondesktop}\Process Hacker.lnk; Tasks: NOT desktopicon\common
+Type: files; Name: {userdesktop}\Process Hacker 2.lnk; Tasks: NOT desktopicon\user
+Type: files; Name: {commondesktop}\Process Hacker 2.lnk; Tasks: NOT desktopicon\common
 
 Type: files; Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker; Tasks: reset_settings
@@ -147,16 +149,16 @@ Type: dirifempty; Name: {userappdata}\Process Hacker; Tasks: reset_settings
 
 [Registry]
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker; ValueData: """{app}\ProcessHacker.exe"""; Tasks: startup_task; Flags: uninsdeletevalue
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker; ValueData: """{app}\ProcessHacker.exe"" -m"; Tasks: startup_task\minimized; Flags: uninsdeletevalue
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker; Tasks: remove_startup_task; Flags: deletevalue uninsdeletevalue
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Tasks: startup_task; Flags: uninsdeletevalue
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"" -m"; Tasks: startup_task\minimized; Flags: uninsdeletevalue
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Tasks: remove_startup_task; Flags: deletevalue uninsdeletevalue
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Tasks: restore_taskmgr reset_settings; Flags: deletevalue uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
 
 
 [Run]
-Filename: {app}\ProcessHacker.exe; Description: {cm:LaunchProgram,Process Hacker}; Flags: nowait postinstall skipifsilent runascurrentuser
+Filename: {app}\ProcessHacker.exe; Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
 Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite}; Flags: nowait postinstall skipifsilent shellexec runascurrentuser unchecked
 
 
@@ -199,16 +201,16 @@ end;
 
 
 // Check if KProcessHacker is installed as a service
-//function KPHServiceCheck(): Boolean;
-//var
-//  dvalue: DWORD;
-//begin
-//  Result := False;
-//  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker', 'Start', dvalue) then begin
-//    if dvalue = 1 then
-//    Result := True;
-//  end;
-//end;
+function KPHServiceCheck(): Boolean;
+var
+  dvalue: DWORD;
+begin
+  Result := False;
+  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dvalue) then begin
+    if dvalue = 1 then
+    Result := True;
+  end;
+end;
 
 
 Procedure CleanUpFiles();
@@ -218,38 +220,43 @@ begin
 end;
 
 
-//Procedure CurStepChanged(CurStep: TSetupStep);
-//begin
-//  case CurStep of ssInstall:
-//  begin
-//    if IsServiceRunning('KProcessHacker') then begin
-//      StopService('KProcessHacker');
-//    end;
-//    if IsTaskSelected('delete_KPH_service') then begin
-//      RemoveService('KProcessHacker');
-//    end;
-//  end;
-//  ssPostInstall:
-//  begin
-//    if (KPHServiceCheck AND NOT IsTaskSelected('delete_KPH_service') OR (IsTaskSelected('create_KPH_service'))) then begin
-//      StopService('KProcessHacker');
-//      RemoveService('KProcessHacker');
-//      InstallService(ExpandConstant('{app}\kprocesshacker.sys'),'KProcessHacker','KProcessHacker','KProcessHacker driver',SERVICE_KERNEL_DRIVER,SERVICE_SYSTEM_START);
-//      StartService('KProcessHacker');
-//    end;
-//  end;
-// end;
-//end;
+Procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  case CurStep of ssInstall:
+  begin
+    if IsServiceRunning('KProcessHacker2') then begin
+      StopService('KProcessHacker2');
+    end;
+    if IsTaskSelected('delete_KPH_service') then begin
+      RemoveService('KProcessHacker2');
+    end;
+  end;
+  ssPostInstall:
+  begin
+    if (KPHServiceCheck AND NOT IsTaskSelected('delete_KPH_service') OR (IsTaskSelected('create_KPH_service'))) then begin
+      StopService('KProcessHacker2');
+      RemoveService('KProcessHacker2');
+      InstallService(ExpandConstant('{app}\kprocesshacker.sys'),'KProcessHacker2','KProcessHacker2','KProcessHacker2 driver',SERVICE_KERNEL_DRIVER,SERVICE_SYSTEM_START);
+      StartService('KProcessHacker2');
+    end;
+  end;
+ end;
+end;
 
 
 Procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   // When uninstalling ask user to delete Process Hacker's logs and settings
   // based on whether these files exist only
+  if CurUninstallStep = usUninstall then begin
+    StopService('KProcessHacker');
+    RemoveService('KProcessHacker');
   if SettingsExistCheck OR fileExists(ExpandConstant('{app}\Process Hacker Log.txt')) then begin
     if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'),
      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
        CleanUpFiles;
+     end;
+      RemoveDir(ExpandConstant('{app}'));
     end;
   end;
 end;
