@@ -1686,6 +1686,13 @@ VOID PhDeleteImageVersionInfo(
     __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
     );
 
+PPH_STRING PhFormatImageVersionInfo(
+    __in_opt PPH_STRING FileName,
+    __in PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    __in_opt PWSTR Indent,
+    __in_opt ULONG LineLimit
+    );
+
 PPH_STRING PhGetFullPath(
     __in PWSTR FileName,
     __out_opt PULONG IndexOfFileName

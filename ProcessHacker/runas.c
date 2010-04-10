@@ -513,14 +513,14 @@ PPH_STRING PhpCEscapeString(
     __in PPH_STRINGREF String
     )
 {
-    PPH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
     WCHAR temp[2];
 
     length = String->Length / 2;
-    stringBuilder = PhCreateStringBuilder(String->Length / 3);
+    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
 
     temp[0] = '\\';
 
@@ -532,16 +532,16 @@ PPH_STRING PhpCEscapeString(
         case '\"':
         case '\'':
             temp[1] = String->Buffer[i];
-            PhStringBuilderAppendEx(stringBuilder, temp, 4);
+            PhStringBuilderAppendEx(&stringBuilder, temp, 4);
             break;
         default:
-            PhStringBuilderAppendChar(stringBuilder, String->Buffer[i]);
+            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
             break;
         }
     }
 
-    string = PhReferenceStringBuilderString(stringBuilder);
-    PhDereferenceObject(stringBuilder);
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }
@@ -558,42 +558,42 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
 {
     PH_STRINGREF stringRef;
     PPH_STRING string;
-    PPH_STRING_BUILDER commandLineBuilder;
+    PH_STRING_BUILDER commandLineBuilder;
 
     if ((!UserName || !Password) && !ProcessIdWithToken)
         return NULL;
 
-    commandLineBuilder = PhCreateStringBuilder(PhApplicationFileName->Length + 70);
+    PhInitializeStringBuilder(&commandLineBuilder, PhApplicationFileName->Length + 70);
 
-    PhStringBuilderAppendChar(commandLineBuilder, '\"');
-    PhStringBuilderAppend(commandLineBuilder, PhApplicationFileName);
-    PhStringBuilderAppend2(commandLineBuilder, L"\" -ras");
+    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+    PhStringBuilderAppend(&commandLineBuilder, PhApplicationFileName);
+    PhStringBuilderAppend2(&commandLineBuilder, L"\" -ras");
 
     PhInitializeStringRef(&stringRef, Program);
     string = PhpCEscapeString(&stringRef);
-    PhStringBuilderAppend2(commandLineBuilder, L" -c \"");
-    PhStringBuilderAppend(commandLineBuilder, string);
-    PhStringBuilderAppendChar(commandLineBuilder, '\"');
+    PhStringBuilderAppend2(&commandLineBuilder, L" -c \"");
+    PhStringBuilderAppend(&commandLineBuilder, string);
+    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
     PhDereferenceObject(string);
 
     if (!ProcessIdWithToken)
     {
         PhInitializeStringRef(&stringRef, UserName);
         string = PhpCEscapeString(&stringRef);
-        PhStringBuilderAppend2(commandLineBuilder, L" -u \"");
-        PhStringBuilderAppend(commandLineBuilder, string);
-        PhStringBuilderAppendChar(commandLineBuilder, '\"');
+        PhStringBuilderAppend2(&commandLineBuilder, L" -u \"");
+        PhStringBuilderAppend(&commandLineBuilder, string);
+        PhStringBuilderAppendChar(&commandLineBuilder, '\"');
         PhDereferenceObject(string);
 
         PhInitializeStringRef(&stringRef, Password);
         string = PhpCEscapeString(&stringRef);
-        PhStringBuilderAppend2(commandLineBuilder, L" -p \"");
-        PhStringBuilderAppend(commandLineBuilder, string);
-        PhStringBuilderAppendChar(commandLineBuilder, '\"');
+        PhStringBuilderAppend2(&commandLineBuilder, L" -p \"");
+        PhStringBuilderAppend(&commandLineBuilder, string);
+        PhStringBuilderAppendChar(&commandLineBuilder, '\"');
         PhDereferenceObject(string);
 
         PhStringBuilderAppendFormat(
-            commandLineBuilder, 
+            &commandLineBuilder, 
             L" -t %u",
             LogonType
             );
@@ -601,21 +601,21 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     else
     {
         PhStringBuilderAppendFormat(
-            commandLineBuilder, 
+            &commandLineBuilder, 
             L" -P %u",
             (ULONG)ProcessIdWithToken
             );
     }
 
     PhStringBuilderAppendFormat(
-        commandLineBuilder,
+        &commandLineBuilder,
         L" -s %u -E %s",
         SessionId,
         ErrorMailslot
         );
 
-    string = PhReferenceStringBuilderString(commandLineBuilder);
-    PhDereferenceObject(commandLineBuilder);
+    string = PhReferenceStringBuilderString(&commandLineBuilder);
+    PhDeleteStringBuilder(&commandLineBuilder);
 
     return string;
 }
@@ -784,24 +784,24 @@ NTSTATUS PhRunAsCommandStart2(
     }
     else
     {
-        PPH_STRING_BUILDER argumentsBuilder;
+        PH_STRING_BUILDER argumentsBuilder;
         PPH_STRING string;
         HANDLE processHandle;
         LARGE_INTEGER timeout;
 
-        argumentsBuilder = PhCreateStringBuilder(100);
+        PhInitializeStringBuilder(&argumentsBuilder, 100);
 
         PhStringBuilderAppend2(
-            argumentsBuilder,
+            &argumentsBuilder,
             L"-c -ctype processhacker -caction runas -cobj \""
             );
 
         string = PhpCEscapeString(&commandLine->sr);
-        PhStringBuilderAppend(argumentsBuilder, string);
+        PhStringBuilderAppend(&argumentsBuilder, string);
         PhDereferenceObject(string);
 
         PhStringBuilderAppendFormat(
-            argumentsBuilder,
+            &argumentsBuilder,
             L"\" -hwnd %Iu -servicename %s",
             (PVOID)hWnd,
             serviceName
@@ -810,7 +810,7 @@ NTSTATUS PhRunAsCommandStart2(
         if (PhShellExecuteEx(
             hWnd,
             PhApplicationFileName->Buffer,
-            argumentsBuilder->String->Buffer,
+            argumentsBuilder.String->Buffer,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
             0,
@@ -839,7 +839,7 @@ NTSTATUS PhRunAsCommandStart2(
             status = STATUS_CANCELLED;
         }
 
-        PhDereferenceObject(argumentsBuilder);
+        PhDeleteStringBuilder(&argumentsBuilder);
     }
 
     PhDereferenceObject(commandLine);

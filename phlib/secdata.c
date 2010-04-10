@@ -525,14 +525,14 @@ PPH_STRING PhGetAccessString(
     __in ULONG NumberOfAccessEntries
     )
 {
-    PPH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     PPH_ACCESS_ENTRY accessEntries;
     PBOOLEAN matched;
     ULONG i;
     ULONG j;
 
-    stringBuilder = PhCreateStringBuilder(10);
+    PhInitializeStringBuilder(&stringBuilder, 10);
 
     // Sort the access entries according to how many access rights they 
     // include.
@@ -554,11 +554,11 @@ PPH_STRING PhGetAccessString(
             )
         {
             if (accessEntries[i].ShortName)
-                PhStringBuilderAppend2(stringBuilder, accessEntries[i].ShortName);
+                PhStringBuilderAppend2(&stringBuilder, accessEntries[i].ShortName);
             else
-                PhStringBuilderAppend2(stringBuilder, accessEntries[i].Name);
+                PhStringBuilderAppend2(&stringBuilder, accessEntries[i].Name);
 
-            PhStringBuilderAppend2(stringBuilder, L", ");
+            PhStringBuilderAppend2(&stringBuilder, L", ");
 
             // Disable equal or more specific entries.
             for (j = i; j < NumberOfAccessEntries; j++)
@@ -570,14 +570,14 @@ PPH_STRING PhGetAccessString(
     }
 
     // Remove the trailing ", ".
-    if (PhStringEndsWith2(stringBuilder->String, L", ", FALSE))
-        PhStringBuilderRemove(stringBuilder, stringBuilder->String->Length / 2 - 2, 2);
+    if (PhStringEndsWith2(stringBuilder.String, L", ", FALSE))
+        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
 
     PhFree(matched);
     PhFree(accessEntries);
 
-    string = PhReferenceStringBuilderString(stringBuilder);
-    PhDereferenceObject(stringBuilder);
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }

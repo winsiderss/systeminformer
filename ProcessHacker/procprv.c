@@ -207,6 +207,125 @@ VOID PhDeleteImageVersionInfo(
     if (ImageVersionInfo->ProductName) PhDereferenceObject(ImageVersionInfo->ProductName);
 }
 
+PPH_STRING PhFormatImageVersionInfo(
+    __in_opt PPH_STRING FileName,
+    __in PPH_IMAGE_VERSION_INFO ImageVersionInfo,
+    __in_opt PWSTR Indent,
+    __in_opt ULONG LineLimit
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG indentLength;
+
+    if (Indent)
+        indentLength = (ULONG)wcslen(Indent) * sizeof(WCHAR);
+    if (LineLimit == 0)
+        LineLimit = MAXULONG32;
+
+    PhInitializeStringBuilder(&stringBuilder, 40);
+
+    // File name
+
+    if (!PhIsStringNullOrEmpty(FileName))
+    {
+        PPH_STRING temp;
+
+        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+
+        temp = PhEllipsisString(FileName, LineLimit);
+        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhDereferenceObject(temp);
+        PhStringBuilderAppendChar(&stringBuilder, '\n');
+    }
+
+    // File description & version
+
+    if (
+        !PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription) &&
+        !PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion)
+        )
+    {
+        PPH_STRING tempDescription = NULL;
+        PPH_STRING tempVersion = NULL;
+        ULONG limitForVersion;
+
+        if (LineLimit != MAXULONG32)
+            limitForVersion = (LineLimit - 1) / 5; // 1/5 space for version (and space character)
+        else
+            limitForVersion = MAXULONG32;
+
+        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription))
+        {
+            tempDescription = PhEllipsisString(
+                ImageVersionInfo->FileDescription,
+                LineLimit - limitForVersion
+                );
+        }
+
+        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion))
+        {
+            tempVersion = PhEllipsisString(
+                ImageVersionInfo->FileVersion,
+                limitForVersion
+                );
+        }
+
+        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+
+        if (tempDescription)
+        {
+            PhStringBuilderAppendEx(
+                &stringBuilder,
+                tempDescription->Buffer,
+                tempDescription->Length
+                );
+
+            if (tempVersion)
+                PhStringBuilderAppendChar(&stringBuilder, ' '); 
+        }
+
+        if (tempVersion)
+        {
+            PhStringBuilderAppendEx(
+                &stringBuilder,
+                tempVersion->Buffer,
+                tempVersion->Length
+                );
+        }
+
+        if (tempDescription)
+            PhDereferenceObject(tempDescription);
+        if (tempVersion)
+            PhDereferenceObject(tempVersion);
+
+        PhStringBuilderAppendChar(&stringBuilder, '\n');
+    }
+
+    // File company
+
+    if (!PhIsStringNullOrEmpty(ImageVersionInfo->CompanyName))
+    {
+        PPH_STRING temp;
+
+        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+
+        temp = PhEllipsisString(ImageVersionInfo->CompanyName, LineLimit);
+        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhDereferenceObject(temp);
+        PhStringBuilderAppendChar(&stringBuilder, '\n');
+    }
+
+    // Remove the extra newline.
+    if (stringBuilder.String->Length != 0)
+        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
     )
