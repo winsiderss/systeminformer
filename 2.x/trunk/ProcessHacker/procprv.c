@@ -233,7 +233,7 @@ PPH_STRING PhFormatImageVersionInfo(
 
         if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
 
-        temp = PhEllipsisString(FileName, LineLimit);
+        temp = PhEllipsisStringPath(FileName, LineLimit);
         PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
         PhDereferenceObject(temp);
         PhStringBuilderAppendChar(&stringBuilder, '\n');
@@ -241,25 +241,32 @@ PPH_STRING PhFormatImageVersionInfo(
 
     // File description & version
 
-    if (
-        !PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription) &&
-        !PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion)
-        )
+    if (!(
+        PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription) &&
+        PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion)
+        ))
     {
         PPH_STRING tempDescription = NULL;
         PPH_STRING tempVersion = NULL;
+        ULONG limitForDescription;
         ULONG limitForVersion;
 
         if (LineLimit != MAXULONG32)
+        {
             limitForVersion = (LineLimit - 1) / 5; // 1/5 space for version (and space character)
+            limitForDescription = LineLimit - limitForVersion;
+        }
         else
+        {
+            limitForDescription = MAXULONG32;
             limitForVersion = MAXULONG32;
+        }
 
         if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription))
         {
             tempDescription = PhEllipsisString(
                 ImageVersionInfo->FileDescription,
-                LineLimit - limitForVersion
+                limitForDescription
                 );
         }
 

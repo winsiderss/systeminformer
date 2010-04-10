@@ -2368,6 +2368,58 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetProviderEnabled(&modulesContext->ProviderRegistration, FALSE);
                 break;
+            case LVN_GETINFOTIP:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)header;
+                        PPH_MODULE_ITEM moduleItem;
+
+                        if (getInfoTip->iSubItem == 0 && PhGetListViewItemParam(
+                            lvHandle,
+                            getInfoTip->iItem,
+                            &moduleItem
+                            ))
+                        {
+                            PPH_STRING toolTip;
+                            ULONG copyIndex;
+                            ULONG bufferRemaining;
+                            ULONG copyLength;
+
+                            toolTip = PHA_DEREFERENCE(PhFormatImageVersionInfo(
+                                moduleItem->FileName,
+                                &moduleItem->VersionInfo,
+                                NULL,
+                                80
+                                ));
+
+                            if (getInfoTip->dwFlags == 0)
+                            {
+                                copyIndex = (ULONG)wcslen(getInfoTip->pszText) + 1; // plus one for newline
+
+                                if (getInfoTip->cchTextMax - copyIndex < 2) // need at least two bytes
+                                    break;
+
+                                bufferRemaining = getInfoTip->cchTextMax - copyIndex - 1;
+                                getInfoTip->pszText[copyIndex - 1] = '\n';
+                            }
+                            else
+                            {
+                                copyIndex = 0;
+                                bufferRemaining = getInfoTip->cchTextMax;
+                            }
+
+                            copyLength = min((ULONG)toolTip->Length / 2, bufferRemaining - 1);
+                            memcpy(
+                                &getInfoTip->pszText[copyIndex],
+                                toolTip->Buffer,
+                                copyLength * 2
+                                );
+                            getInfoTip->pszText[copyIndex + copyLength] = 0;
+                        }
+                    }
+                }
+                break;
             case NM_RCLICK:
                 {
                     if (header->hwndFrom == lvHandle)
