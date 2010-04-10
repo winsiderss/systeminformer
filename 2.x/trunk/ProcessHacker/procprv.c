@@ -945,7 +945,7 @@ VOID PhpFillProcessItem(
     else
     {
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
-            ProcessItem->UserName = PhCreateString(L"NT AUTHORITY\\SYSTEM"); // TODO: localize
+            ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
     }
 
     NtClose(processHandle);
