@@ -30,11 +30,6 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
     PVOID Parameter;
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
-VOID NTAPI PhpStringBuilderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    );
-
 VOID NTAPI PhpListDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -64,7 +59,6 @@ VOID PhpFreeListDeleteProcedure(
 
 PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhAnsiStringType;
-PPH_OBJECT_TYPE PhStringBuilderType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
@@ -128,14 +122,6 @@ BOOLEAN PhInitializeBase()
         L"AnsiString",
         0,
         NULL
-        )))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhStringBuilderType,
-        L"StringBuilder",
-        0,
-        PhpStringBuilderDeleteProcedure
         )))
         return FALSE;
 
@@ -1122,35 +1108,26 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 }
 
 /**
- * Creates a string builder object.
+ * Initializes a string builder object.
  *
+ * \param StringBuilder A string builder object.
  * \param InitialCapacity The number of bytes to allocate 
  * initially.
  */
-PPH_STRING_BUILDER PhCreateStringBuilder(
+VOID PhInitializeStringBuilder(
+    __out PPH_STRING_BUILDER StringBuilder,
     __in ULONG InitialCapacity
     )
 {
-    PPH_STRING_BUILDER stringBuilder;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &stringBuilder,
-        sizeof(PH_STRING_BUILDER),
-        0,
-        PhStringBuilderType,
-        0
-        )))
-        return NULL;
-
-    stringBuilder->AllocatedLength = InitialCapacity;
+    StringBuilder->AllocatedLength = InitialCapacity;
 
     // Allocate a PH_STRING for the string builder. 
     // We will dereference it and allocate a new one 
     // when we need to resize the string.
 
-    stringBuilder->String = PhCreateStringEx(
+    StringBuilder->String = PhCreateStringEx(
         NULL,
-        stringBuilder->AllocatedLength
+        StringBuilder->AllocatedLength
         );
 
     // We will keep modifying the Length field of the 
@@ -1159,22 +1136,22 @@ PPH_STRING_BUILDER PhCreateStringBuilder(
     // 2. The user can simply get a reference to the 
     //    string and use it as-is.
 
-    stringBuilder->String->Length = 0;
+    StringBuilder->String->Length = 0;
 
     // Write the null terminator.
-    stringBuilder->String->Buffer[0] = 0;
-
-    return stringBuilder;
+    StringBuilder->String->Buffer[0] = 0;
 }
 
-VOID NTAPI PhpStringBuilderDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+/**
+ * Frees resources used by a string builder object.
+ *
+ * \param StringBuilder A string builder object.
+ */
+VOID PhDeleteStringBuilder(
+    __inout PPH_STRING_BUILDER StringBuilder
     )
 {
-    PPH_STRING_BUILDER stringBuilder = (PPH_STRING_BUILDER)Object;
-
-    PhDereferenceObject(stringBuilder->String);
+    PhDereferenceObject(StringBuilder->String);
 }
 
 VOID PhpResizeStringBuilder(

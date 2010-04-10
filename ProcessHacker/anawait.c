@@ -27,7 +27,7 @@ typedef struct _ANALYZE_WAIT_CONTEXT
     BOOLEAN Found;
     HANDLE ProcessHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
-    PPH_STRING_BUILDER StringBuilder;
+    PH_STRING_BUILDER StringBuilder;
 
     PVOID PrevParams[4];
 } ANALYZE_WAIT_CONTEXT, *PANALYZE_WAIT_CONTEXT;
@@ -47,7 +47,6 @@ VOID PhUiAnalyzeWaitThread(
     NTSTATUS status;
     HANDLE threadHandle;
     ANALYZE_WAIT_CONTEXT context;
-    PPH_STRING string;
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -61,7 +60,7 @@ VOID PhUiAnalyzeWaitThread(
 
     context.ProcessHandle = SymbolProvider->ProcessHandle;
     context.SymbolProvider = SymbolProvider;
-    context.StringBuilder = PhCreateStringBuilder(10);
+    PhInitializeStringBuilder(&context.StringBuilder, 10);
 
     PhWalkThreadStack(
         threadHandle,
@@ -74,16 +73,14 @@ VOID PhUiAnalyzeWaitThread(
 
     if (context.Found)
     {
-        string = PhReferenceStringBuilderString(context.StringBuilder);
-        PhShowInformationDialog(hWnd, string->Buffer);
-        PhDereferenceObject(string);
+        PhShowInformationDialog(hWnd, context.StringBuilder.String->Buffer);
     }
     else
     {
         PhShowInformation(hWnd, L"The thread does not appear to be waiting.");
     }
 
-    PhDereferenceObject(context.StringBuilder);
+    PhDeleteStringBuilder(&context.StringBuilder);
 }
 
 static PPH_STRING PhapGetHandleString(
@@ -165,7 +162,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     else if (FUNC_MATCH("kernel32.dll!Sleep"))
     {
         PhStringBuilderAppendFormat(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is sleeping. Timeout: %u milliseconds.",
             (ULONG)StackFrame->Params[0]
             );
@@ -187,7 +184,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             if (timeout.QuadPart < 0)
             {
                 PhStringBuilderAppendFormat(
-                    context->StringBuilder,
+                    &context->StringBuilder,
                     L"Thread is sleeping. Timeout: %I64u milliseconds.",
                     -timeout.QuadPart / PH_TIMEOUT_MS
                     );
@@ -200,7 +197,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         else
         {
             PhStringBuilderAppend2(
-                context->StringBuilder,
+                &context->StringBuilder,
                 L"Thread is sleeping."
                 );
         }
@@ -210,11 +207,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = (HANDLE)StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for an I/O control request:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -223,11 +220,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for a FS control request:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -240,11 +237,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             handle = context->PrevParams[1];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is querying an object:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -253,11 +250,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for file I/O:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -266,11 +263,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for an I/O completion port:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -283,11 +280,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for a LPC port:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -304,12 +301,12 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             handle = context->PrevParams[1];
 
         PhStringBuilderAppendFormat(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting (%s) for an event pair:\r\n",
             name->Buffer
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -319,7 +316,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         )
     {
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for a USER message.\r\n"
             );
     }
@@ -328,11 +325,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for a debug event:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -345,13 +342,13 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PVOID key = StackFrame->Params[1];
 
         PhStringBuilderAppendFormat(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting (%s) for a keyed event (key 0x%Ix):\r\n",
             name->Buffer,
             key
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -385,7 +382,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
                 )))
             {
                 PhStringBuilderAppendFormat(
-                    context->StringBuilder,
+                    &context->StringBuilder,
                     L"Thread is waiting (%s, %s) for:\r\n",
                     alertable ? L"alertable" : L"non-alertable",
                     waitType == WaitAll ? L"wait all" : L"wait any"
@@ -394,11 +391,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
                 for (i = 0; i < numberOfHandles; i++)
                 {
                     PhStringBuilderAppend(
-                        context->StringBuilder,
+                        &context->StringBuilder,
                         PhapGetHandleString(context->ProcessHandle, handles[i])
                         );
                     PhStringBuilderAppend2(
-                        context->StringBuilder,
+                        &context->StringBuilder,
                         L"\r\n"
                         );
                 }
@@ -413,7 +410,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
         {
             PhStringBuilderAppend2(
-                context->StringBuilder,
+                &context->StringBuilder,
                 L"Thread is waiting for multiple objects."
                 );
         }
@@ -433,12 +430,12 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         }
 
         PhStringBuilderAppendFormat(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting (%s) for:\r\n",
             alertable ? L"alertable" : L"non-alertable"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }
@@ -447,11 +444,11 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         HANDLE handle = StackFrame->Params[0];
 
         PhStringBuilderAppend2(
-            context->StringBuilder,
+            &context->StringBuilder,
             L"Thread is waiting for work from a worker factory:\r\n"
             );
         PhStringBuilderAppend(
-            context->StringBuilder,
+            &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
     }

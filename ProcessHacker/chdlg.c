@@ -236,17 +236,17 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                     if (context->SavedChoicesSettingName)
                     {
-                        PPH_STRING_BUILDER savedChoices;
+                        PH_STRING_BUILDER savedChoices;
                         ULONG i;
                         ULONG choicesToSave = PH_CHOICE_DIALOG_SAVED_CHOICES;
                         PPH_STRING choice;
 
-                        savedChoices = PhCreateStringBuilder(100);
+                        PhInitializeStringBuilder(&savedChoices, 100);
 
                         // Push the selected choice to the top, then save the others.
 
-                        PhStringBuilderAppend(savedChoices, selectedChoice);
-                        PhStringBuilderAppendChar(savedChoices, '\n');
+                        PhStringBuilderAppend(&savedChoices, selectedChoice);
+                        PhStringBuilderAppendChar(&savedChoices, '\n');
 
                         for (i = 1; i < choicesToSave; i++)
                         {
@@ -264,17 +264,17 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                                 continue;
                             }
 
-                            PhStringBuilderAppend(savedChoices, choice);
+                            PhStringBuilderAppend(&savedChoices, choice);
                             PhDereferenceObject(choice);
 
-                            PhStringBuilderAppendChar(savedChoices, '\n');
+                            PhStringBuilderAppendChar(&savedChoices, '\n');
                         }
 
-                        if (PhStringEndsWith2(savedChoices->String, L"\n", FALSE))
-                            PhStringBuilderRemove(savedChoices, savedChoices->String->Length / 2 - 1, 1);
+                        if (PhStringEndsWith2(savedChoices.String, L"\n", FALSE))
+                            PhStringBuilderRemove(&savedChoices, savedChoices.String->Length / 2 - 1, 1);
 
-                        PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices->String->sr);
-                        PhDereferenceObject(savedChoices);
+                        PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices.String->sr);
+                        PhDeleteStringBuilder(&savedChoices);
                     }
 
                     EndDialog(hwndDlg, IDOK);

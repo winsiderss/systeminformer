@@ -79,12 +79,14 @@ FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
 
 PPH_STRING PhGetDiagnosticsString()
 {
-    PPH_STRING_BUILDER stringBuilder = PhCreateStringBuilder(50);
     PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
 
-    PhStringBuilderAppendFormat(stringBuilder, L"OBJECT INFORMATION\r\n");
+    PhInitializeStringBuilder(&stringBuilder, 50);
 
-#define OBJECT_TYPE_COUNT(Type) PhStringBuilderAppendFormat(stringBuilder, \
+    PhStringBuilderAppendFormat(&stringBuilder, L"OBJECT INFORMATION\r\n");
+
+#define OBJECT_TYPE_COUNT(Type) PhStringBuilderAppendFormat(&stringBuilder, \
     L#Type L": %u objects\r\n", PhpGetObjectTypeObjectCount(Type))
 
     // ref
@@ -93,7 +95,6 @@ PPH_STRING PhGetDiagnosticsString()
     // basesup
     OBJECT_TYPE_COUNT(PhStringType);
     OBJECT_TYPE_COUNT(PhAnsiStringType);
-    OBJECT_TYPE_COUNT(PhStringBuilderType);
     OBJECT_TYPE_COUNT(PhListType);
     OBJECT_TYPE_COUNT(PhPointerListType);
     OBJECT_TYPE_COUNT(PhQueueType);
@@ -110,8 +111,8 @@ PPH_STRING PhGetDiagnosticsString()
     OBJECT_TYPE_COUNT(PhHandleProviderType);
     OBJECT_TYPE_COUNT(PhHandleItemType);
 
-    string = PhReferenceStringBuilderString(stringBuilder);
-    PhDereferenceObject(stringBuilder);
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }

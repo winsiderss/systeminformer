@@ -313,10 +313,10 @@ static PPH_STRING PhpJoinXmlTextNodes(
     __in mxml_node_t *node
     )
 {
-    PPH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
 
-    stringBuilder = PhCreateStringBuilder(10);
+    PhInitializeStringBuilder(&stringBuilder, 10);
 
     while (node)
     {
@@ -325,18 +325,18 @@ static PPH_STRING PhpJoinXmlTextNodes(
             PPH_STRING textString;
 
             if (node->value.text.whitespace)
-                PhStringBuilderAppend2(stringBuilder, L" ");
+                PhStringBuilderAppendChar(&stringBuilder, ' ');
 
             textString = PhCreateStringFromAnsi(node->value.text.string);
-            PhStringBuilderAppend(stringBuilder, textString);
+            PhStringBuilderAppend(&stringBuilder, textString);
             PhDereferenceObject(textString);
         }
 
         node = node->next;
     }
 
-    string = PhReferenceStringBuilderString(stringBuilder);
-    PhDereferenceObject(stringBuilder);
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }
