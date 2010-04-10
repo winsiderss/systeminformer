@@ -1,8 +1,6 @@
 #ifndef HIDNPROC_H
 #define HIDNPROC_H
 
-#include <kph.h>
-
 typedef enum _PH_HIDDEN_PROCESS_METHOD
 {
     BruteForceScanMethod,
@@ -42,11 +40,6 @@ NTSTATUS PhEnumHiddenProcesses(
     __in PH_HIDDEN_PROCESS_METHOD Method,
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
     __in PVOID Context
-    );
-
-NTSTATUS PhEnumProcessHandles(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_HANDLE_INFORMATION *Handles
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK)(

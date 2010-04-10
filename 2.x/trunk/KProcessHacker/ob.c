@@ -636,9 +636,16 @@ BOOLEAN KphpQueryProcessHandlesEnumCallback(
     ULONG i;
     
     handleInfo.Handle = Handle;
-    handleInfo.Object = ObpDecodeObject(HandleTableEntry->Object);
+    handleInfo.Object = (PVOID)KVOFF(ObpDecodeObject(HandleTableEntry->Object), OffOhBody);
     handleInfo.GrantedAccess = ObpDecodeGrantedAccess(HandleTableEntry->GrantedAccess);
+    handleInfo.Reserved1 = 0;
     handleInfo.HandleAttributes = ObpGetHandleAttributes(HandleTableEntry);
+    handleInfo.Reserved2 = 0;
+    
+    if (WindowsVersion >= WINDOWS_7)
+        handleInfo.ObjectTypeIndex = (USHORT)*(PUCHAR)KVOFF(KphGetObjectTypeNt(handleInfo.Object), OffOtIndex);
+    else
+        handleInfo.ObjectTypeIndex = (USHORT)*(PULONG)KVOFF(KphGetObjectTypeNt(handleInfo.Object), OffOtIndex);
     
     /* Increment the index regardless of whether the information will be written; 
        this will allow KphQueryProcessHandles to report the correct return length. */

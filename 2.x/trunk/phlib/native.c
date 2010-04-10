@@ -1504,6 +1504,49 @@ NTSTATUS PhGetProcessWsCounters(
     return status;
 }
 
+NTSTATUS PhEnumProcessHandles(
+    __in HANDLE ProcessHandle,
+    __out PPROCESS_HANDLE_INFORMATION *Handles
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 2048;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = KphQueryProcessHandles(
+            PhKphHandle,
+            ProcessHandle,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    *Handles = buffer;
+
+    return status;
+}
+
 /**
  * Sets a process' affinity mask.
  *
@@ -4226,6 +4269,63 @@ NTSTATUS PhEnumHandles(
 
     if (bufferSize <= 0x100000) initialBufferSize = bufferSize;
     *Handles = (PSYSTEM_HANDLE_INFORMATION)buffer;
+
+    return status;
+}
+
+/**
+ * Enumerates all open handles.
+ *
+ * \param Handles A variable which receives a pointer 
+ * to a structure containing information about all 
+ * opened handles. You must free the structure using 
+ * PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The 
+ * handle information returned by the kernel is too 
+ * large.
+ *
+ * \remarks This function is only available starting 
+ * with Windows XP.
+ */
+NTSTATUS PhEnumHandlesEx(
+    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles
+    )
+{
+    static ULONG initialBufferSize = 0x10000;
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = initialBufferSize;
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQuerySystemInformation(
+        SystemExtendedHandleInformation,
+        buffer,
+        bufferSize,
+        NULL
+        )) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+
+        // Fail if we're resizing the buffer to something 
+        // very large.
+        if (bufferSize > PH_LARGE_BUFFER_SIZE)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x200000) initialBufferSize = bufferSize;
+    *Handles = (PSYSTEM_HANDLE_INFORMATION_EX)buffer;
 
     return status;
 }

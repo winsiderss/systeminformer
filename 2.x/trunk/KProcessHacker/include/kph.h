@@ -125,7 +125,10 @@ typedef struct _PROCESS_HANDLE
     HANDLE Handle;
     PVOID Object;
     ACCESS_MASK GrantedAccess;
+    USHORT ObjectTypeIndex;
+    USHORT Reserved1;
     ULONG HandleAttributes;
+    ULONG Reserved2;
 } PROCESS_HANDLE, *PPROCESS_HANDLE;
 
 typedef struct _PROCESS_HANDLE_INFORMATION

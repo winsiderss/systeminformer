@@ -547,6 +547,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\itemtips.c"
+				>
+			</File>
+			<File
 				RelativePath=".\mxml\mxml-private.h"
 				>
 			</File>

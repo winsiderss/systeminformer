@@ -361,7 +361,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     );
 
 PPH_HANDLE_ITEM PhCreateHandleItem(
-    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO Handle
+    __in_opt PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     );
 
 PPH_HANDLE_ITEM PhReferenceHandleItem(

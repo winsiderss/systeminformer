@@ -138,6 +138,7 @@ NTSTATUS KvInit()
         OffEpRundownProtect = 0x80;
         OffOhBody = 0x18;
         OffOtName = 0x40;
+        OffOtIndex = 0x4c;
         OffOtiGenericMapping = 0x60 + 0x8;
         
         /* We are scanning for PspTerminateProcess which has 
@@ -196,6 +197,7 @@ NTSTATUS KvInit()
         OffEpRundownProtect = 0x90;
         OffOhBody = 0x18;
         OffOtName = 0x40;
+        OffOtIndex = 0x4c;
         OffOtiGenericMapping = 0x60 + 0x8;
         
         /* We are scanning for PspTerminateProcess which has 
@@ -265,18 +267,21 @@ NTSTATUS KvInit()
         if (servicePack == 0)
         {
             OffOtName = 0x40;
+            OffOtIndex = 0x4c;
             OffOtiGenericMapping = 0x60 + 0xc;
         }
         /* SP1 */
         else if (servicePack == 1)
         {
-            OffOtName = 0x8;
-            OffOtiGenericMapping = 0x28 + 0xc; /* They got rid of the Mutex (an ERESOURCE) */
+            OffOtName = 0x8; /* They got rid of Mutex (ERESOURCE) */
+            OffOtIndex = 0x14;
+            OffOtiGenericMapping = 0x28 + 0xc;
         }
         /* SP2 */
         else if (servicePack == 2)
         {
             OffOtName = 0x8;
+            OffOtIndex = 0x14;
             OffOtiGenericMapping = 0x28 + 0xc;
         }
         else
@@ -307,6 +312,7 @@ NTSTATUS KvInit()
         OffEpRundownProtect = 0xb0;
         OffOhBody = 0x18;
         OffOtName = 0x8;
+        OffOtIndex = 0x14; /* Now only a UCHAR, not a ULONG */
         OffOtiGenericMapping = 0x28 + 0xc;
         
         INIT_SCAN(
