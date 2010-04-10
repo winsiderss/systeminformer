@@ -33,7 +33,7 @@
 #expr ParseVersion("..\..\bin\Release32\ProcessHacker.exe", VerMajor, VerMinor, VerRevision, VerBuild)
 #define app_version str(VerMajor) + "." + str(VerMinor) + "." + str(VerRevision) + "." + str(VerBuild)
 #define simple_app_version str(VerMajor) + "." + str(VerMinor)
-#define installer_build_date GetDateTimeString('dd/mm/yyyy', '.', '')
+#define installer_build_date GetDateTimeString('mmm, d yyyy', '', '')
 
 
 [Setup]
@@ -66,7 +66,7 @@ SetupIconFile=Icons\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
 WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
-OutputDir=..\..\bin
+OutputDir=.
 OutputBaseFilename=processhacker-{#= simple_app_version}-setup
 AllowNoIcons=yes
 Compression=lzma/ultra64
@@ -97,7 +97,7 @@ Name: gr; MessagesFile: Languages\Greek.isl
 
 
 [Messages]
-BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                      Setup v{#= installer_build_number} built on {#= installer_build_date}
+BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                  Setup v{#= installer_build_number} built on {#= installer_build_date}
 
 
 [Files]
