@@ -613,7 +613,7 @@ BOOLEAN PhUiDebugProcess(
 {
     NTSTATUS status;
     BOOLEAN cont = FALSE;
-    PPH_STRING_BUILDER commandLineBuilder;
+    PH_STRING_BUILDER commandLineBuilder;
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
@@ -678,16 +678,16 @@ BOOLEAN PhUiDebugProcess(
         return FALSE;
     }
 
-    commandLineBuilder = PhCreateStringBuilder(DebuggerCommand->Length + 30);
+    PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
 
-    PhStringBuilderAppendChar(commandLineBuilder, '"');
-    PhStringBuilderAppend(commandLineBuilder, DebuggerCommand);
-    PhStringBuilderAppendChar(commandLineBuilder, '"');
-    PhStringBuilderAppendFormat(commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
+    PhStringBuilderAppendChar(&commandLineBuilder, '"');
+    PhStringBuilderAppend(&commandLineBuilder, DebuggerCommand);
+    PhStringBuilderAppendChar(&commandLineBuilder, '"');
+    PhStringBuilderAppendFormat(&commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
 
     status = PhCreateProcessWin32(
         NULL,
-        commandLineBuilder->String->Buffer,
+        commandLineBuilder.String->Buffer,
         NULL,
         NULL,
         0,
@@ -696,7 +696,7 @@ BOOLEAN PhUiDebugProcess(
         NULL
         );
 
-    PhDereferenceObject(commandLineBuilder);
+    PhDeleteStringBuilder(&commandLineBuilder);
 
     if (!NT_SUCCESS(status))
     {

@@ -2076,22 +2076,22 @@ VOID PhSetFileDialogFilter(
     else
     {
         OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
-        PPH_STRING_BUILDER filterBuilder;
         PPH_STRING filterString;
+        PH_STRING_BUILDER filterBuilder;
         ULONG i;
 
-        filterBuilder = PhCreateStringBuilder(10);
+        PhInitializeStringBuilder(&filterBuilder, 10);
 
         for (i = 0; i < NumberOfFilters; i++)
         {
-            PhStringBuilderAppend2(filterBuilder, Filters[i].Name);
-            PhStringBuilderAppendChar(filterBuilder, 0);
-            PhStringBuilderAppend2(filterBuilder, Filters[i].Filter);
-            PhStringBuilderAppendChar(filterBuilder, 0);
+            PhStringBuilderAppend2(&filterBuilder, Filters[i].Name);
+            PhStringBuilderAppendChar(&filterBuilder, 0);
+            PhStringBuilderAppend2(&filterBuilder, Filters[i].Filter);
+            PhStringBuilderAppendChar(&filterBuilder, 0);
         }
 
-        filterString = PhReferenceStringBuilderString(filterBuilder);
-        PhDereferenceObject(filterBuilder);
+        filterString = PhReferenceStringBuilderString(&filterBuilder);
+        PhDeleteStringBuilder(&filterBuilder);
 
         if (ofn->lpstrFilter)
             PhFree((PVOID)ofn->lpstrFilter);
@@ -2331,8 +2331,8 @@ PPH_STRING PhParseCommandLinePart(
     __inout PULONG Index
     )
 {
-    PPH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
 
@@ -2343,7 +2343,7 @@ PPH_STRING PhParseCommandLinePart(
     length = CommandLine->Length / 2;
     i = *Index;
 
-    stringBuilder = PhCreateStringBuilder(10);
+    PhInitializeStringBuilder(&stringBuilder, 10);
     inEscape = FALSE;
     inQuote = FALSE;
     endOfValue = FALSE;
@@ -2357,13 +2357,13 @@ PPH_STRING PhParseCommandLinePart(
             case '\\':
             case '\"':
             case '\'':
-                PhStringBuilderAppendChar(stringBuilder, CommandLine->Buffer[i]);
+                PhStringBuilderAppendChar(&stringBuilder, CommandLine->Buffer[i]);
                 break;
             default:
                 // Unknown escape. Append both the backslash and 
                 // escape character.
                 PhStringBuilderAppendEx(
-                    stringBuilder,
+                    &stringBuilder,
                     &CommandLine->Buffer[i - 1],
                     4
                     );
@@ -2394,7 +2394,7 @@ PPH_STRING PhParseCommandLinePart(
                 }
                 else
                 {
-                    PhStringBuilderAppendChar(stringBuilder, CommandLine->Buffer[i]);
+                    PhStringBuilderAppendChar(&stringBuilder, CommandLine->Buffer[i]);
                 }
 
                 break;
@@ -2407,8 +2407,8 @@ PPH_STRING PhParseCommandLinePart(
 
     *Index = i;
 
-    string = PhReferenceStringBuilderString(stringBuilder);
-    PhDereferenceObject(stringBuilder);
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }

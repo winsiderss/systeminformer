@@ -377,6 +377,13 @@ FORCEINLINE PH_STRINGREF PhCreateStringRef(
     return string;
 }
 
+FORCEINLINE BOOLEAN PhIsStringRefNullOrEmpty(
+    __in_opt PPH_STRINGREF String
+    )
+{
+    return !String || String->Length == 0;
+}
+
 FORCEINLINE INT PhStringRefCompare2(
     __in PPH_STRINGREF String1,
     __in PWSTR String2,
@@ -967,10 +974,6 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 
 // stringbuilder
 
-#ifndef BASESUP_PRIVATE
-extern PPH_OBJECT_TYPE PhStringBuilderType;
-#endif
-
 /**
  * A string builder structure.
  * The string builder object allows you to easily
@@ -990,8 +993,13 @@ typedef struct _PH_STRING_BUILDER
     PPH_STRING String;
 } PH_STRING_BUILDER, *PPH_STRING_BUILDER;
 
-PPH_STRING_BUILDER PhCreateStringBuilder(
+VOID PhInitializeStringBuilder(
+    __out PPH_STRING_BUILDER StringBuilder,
     __in ULONG InitialCapacity
+    );
+
+VOID PhDeleteStringBuilder(
+    __inout PPH_STRING_BUILDER StringBuilder
     );
 
 PPH_STRING PhReferenceStringBuilderString(
