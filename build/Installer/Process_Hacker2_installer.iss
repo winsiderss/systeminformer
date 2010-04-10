@@ -69,7 +69,6 @@ WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
 OutputBaseFilename=processhacker-{#= simple_app_version}-setup
 AllowNoIcons=yes
-Compression=lzma/ultra64
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
 DirExistsWarning=no
