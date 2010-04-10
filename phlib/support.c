@@ -561,7 +561,7 @@ PPH_STRING PhEllipsisString(
 {
     if (
         (ULONG)String->Length / 2 <= DesiredCount ||
-        DesiredCount < 4
+        DesiredCount < 3
         )
     {
         PhReferenceObject(String);
@@ -574,6 +574,70 @@ PPH_STRING PhEllipsisString(
         string = PhCreateStringEx(NULL, DesiredCount * 2);
         memcpy(string->Buffer, String->Buffer, (DesiredCount - 3) * 2);
         memcpy(&string->Buffer[DesiredCount - 3], L"...", 6);
+
+        return string;
+    }
+}
+
+PPH_STRING PhEllipsisStringPath(
+    __in PPH_STRING String,
+    __in ULONG DesiredCount
+    )
+{
+    ULONG secondPartIndex;
+
+    secondPartIndex = PhStringLastIndexOfChar(String, 0, L'\\');
+
+    if (secondPartIndex == -1)
+        secondPartIndex = PhStringLastIndexOfChar(String, 0, L'/');
+    if (secondPartIndex == -1)
+        return PhEllipsisString(String, DesiredCount);
+
+    if (
+        (ULONG)String->Length / 2 <= DesiredCount ||
+        DesiredCount < 3
+        )
+    {
+        PhReferenceObject(String);
+        return String;
+    }
+    else
+    {
+        PPH_STRING string;
+        ULONG firstPartCopyLength;
+        ULONG secondPartCopyLength;
+
+        string = PhCreateStringEx(NULL, DesiredCount * 2);
+        secondPartCopyLength = String->Length / 2 - secondPartIndex;
+
+        // Check if we have enough space for the entire second part of the string.
+        if (secondPartCopyLength - 3 <= DesiredCount)
+        {
+            // Yes, copy part of the first part and the entire second part.
+            firstPartCopyLength = DesiredCount - secondPartCopyLength - 3;
+        }
+        else
+        {
+            // No, copy part of both.
+            firstPartCopyLength = (DesiredCount - 3) / 2;
+            secondPartCopyLength = DesiredCount - 3 - firstPartCopyLength;
+        }
+
+        memcpy(
+            string->Buffer,
+            String->Buffer,
+            firstPartCopyLength * 2
+            );
+        memcpy(
+            &string->Buffer[firstPartCopyLength],
+            L"...",
+            6
+            );
+        memcpy(
+            &string->Buffer[firstPartCopyLength + 3],
+            &String->Buffer[secondPartIndex],
+            secondPartCopyLength * 2
+            );
 
         return string;
     }
@@ -898,7 +962,13 @@ PPH_STRING PhGetFileVersionInfoString(
 
     if (VerQueryValue(VersionInfo, SubBlock, &buffer, &length))
     {
-        return PhCreateStringEx((PWSTR)buffer, length * sizeof(WCHAR));
+        PPH_STRING string;
+
+        string = PhCreateStringEx((PWSTR)buffer, length * sizeof(WCHAR));
+        // length may include the null terminator.
+        PhTrimStringToNullTerminator(string);
+
+        return string;
     }
     else
     {
