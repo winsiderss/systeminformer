@@ -8,6 +8,35 @@
 // data
 
 #ifndef DATA_PRIVATE
+
+// SIDs
+
+extern SID PhSeNobodySid;
+
+extern SID PhSeEveryoneSid;
+
+extern SID PhSeLocalSid;
+
+extern SID PhSeCreatorOwnerSid;
+extern SID PhSeCreatorGroupSid;
+
+extern SID PhSeDialupSid;
+extern SID PhSeNetworkSid;
+extern SID PhSeBatchSid;
+extern SID PhSeInteractiveSid;
+extern SID PhSeServiceSid;
+extern SID PhSeAnonymousLogonSid;
+extern SID PhSeProxySid;
+extern SID PhSeAuthenticatedUserSid;
+extern SID PhSeRestrictedCodeSid;
+extern SID PhSeTerminalServerUserSid;
+extern SID PhSeRemoteInteractiveLogonSid;
+extern SID PhSeLocalSystemSid;
+extern SID PhSeLocalServiceSid;
+extern SID PhSeNetworkServiceSid;
+
+// Strings
+
 extern WCHAR *PhKThreadStateNames[MaximumThreadState];
 extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 #endif
@@ -38,9 +67,12 @@ typedef enum _PH_INTEGRITY
     PiUntrusted = 0,
     PiLow = 1,
     PiMedium = 2,
-    PiHigh = 3,
-    PiSystem = 4,
-    PiInstaller = 5
+    PiMediumPlus = 3, // unused
+    PiHigh = 4,
+    PiSystem = 5,
+    PiInstaller = 6,
+    PiProtected = 7, // unused
+    PiSecure = 8 // unused
 } PH_INTEGRITY, *PPH_INTEGRITY;
 
 typedef struct _PH_PROCESS_WS_COUNTERS

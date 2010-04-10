@@ -14,6 +14,7 @@
 
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
+extern PPH_STRING PhLocalSystemName;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern PWSTR PhWindowClassName;
