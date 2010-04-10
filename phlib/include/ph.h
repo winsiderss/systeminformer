@@ -1608,6 +1608,11 @@ PPH_STRING PhEllipsisString(
     __in ULONG DesiredCount
     );
 
+PPH_STRING PhEllipsisStringPath(
+    __in PPH_STRING String,
+    __in ULONG DesiredCount
+    );
+
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format
