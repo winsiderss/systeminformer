@@ -20,7 +20,7 @@
 ;
 ;
 ; Requirements:
-; *Inno Setup QuickStart Pack v5.3.8+: http://www.jrsoftware.org/isdl.php#qsp
+; *Inno Setup QuickStart Pack v5.3.9(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
 #define installer_build_number "02"
@@ -69,6 +69,7 @@ WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
 OutputBaseFilename=processhacker-{#= simple_app_version}-setup
 AllowNoIcons=yes
+Compression=lzma2/max
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
 DirExistsWarning=no
