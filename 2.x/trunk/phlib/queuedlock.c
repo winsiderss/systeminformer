@@ -909,7 +909,7 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
  *
  * \param QueuedLock A queued lock.
  */
-VOID FASTCALL PhfTryWakePushLock(
+VOID FASTCALL PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
