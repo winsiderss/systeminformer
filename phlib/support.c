@@ -1505,9 +1505,9 @@ VOID PhShellExploreFile(
         LPITEMIDLIST item;
         SFGAOF attributes;
 
-        if (SUCCEEDED(SHParseDisplayName(FileName, NULL, &item, 0, &attributes)))
+        if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, &attributes)))
         {
-            SHOpenFolderAndSelectItems(item, 0, NULL, 0);
+            SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
         }
         else
         {

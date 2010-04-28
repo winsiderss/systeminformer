@@ -81,8 +81,8 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-#define PhTryWakePushLock PhfTryWakePushLock
-VOID FASTCALL PhfTryWakePushLock(
+#define PhTryWakeQueuedLock PhfTryWakeQueuedLock
+VOID FASTCALL PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
@@ -182,7 +182,7 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusiveFast(
     // that isn't common.
     if (value & PH_QUEUED_LOCK_WAITERS)
     {
-        PhTryWakePushLock(QueuedLock);
+        PhfTryWakeQueuedLock(QueuedLock);
     }
 }
 
