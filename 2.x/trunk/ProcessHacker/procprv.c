@@ -1202,6 +1202,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
+            // Update VM statistics.
+            processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
+
             // If this is the first run of the provider, queue the 
             // process query tasks. Otherwise, perform stage 1 
             // processing now and queue stage 2 processing.
@@ -1248,6 +1251,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
+
+            // Update VM statistics.
+            processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
 
             if (processItem->JustProcessed)
             {

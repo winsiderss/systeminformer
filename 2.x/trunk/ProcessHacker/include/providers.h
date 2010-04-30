@@ -74,6 +74,8 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoReadDelta;
     PH_UINT64_DELTA IoWriteDelta;
     PH_UINT64_DELTA IoOtherDelta;
+
+    VM_COUNTERS_EX VmCounters;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhInitializeProcessProvider();
