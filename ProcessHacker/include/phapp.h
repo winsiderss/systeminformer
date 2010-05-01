@@ -352,6 +352,34 @@ VOID PhShowDebugConsole();
 
 // actions
 
+BOOLEAN PhUiLockComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiLogoffComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiSleepComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiHibernateComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiRestartComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiShutdownComputer(
+    __in HWND hWnd
+    );
+
+BOOLEAN PhUiPoweroffComputer(
+    __in HWND hWnd
+    );
+
 BOOLEAN PhUiTerminateProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,

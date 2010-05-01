@@ -535,6 +535,39 @@ BOOLEAN PhFindStringSiKeyValuePairs(
     return FALSE;
 }
 
+VOID PhGenerateGuid(
+    __out PGUID Guid
+    )
+{
+    static ULONG seed = 0;
+    // The top/sign bit is always unusable for RtlRandomEx 
+    // (the result is always unsigned), so we'll take the 
+    // bottom 24 bits. We need 128 bits in total, so we'll 
+    // call the function 6 times.
+    ULONG random[6];
+    ULONG i;
+
+    for (i = 0; i < 6; i++)
+        random[i] = RtlRandomEx(&seed);
+
+    // random[0] is usable
+    *(PSHORT)Guid->Data1 = (SHORT)random[0];
+    // top byte from random[0] is usable
+    *((PSHORT)Guid->Data1 + 1) = (SHORT)((random[0] >> 16) | (random[1] & 0xff));
+    // top 2 bytes from random[1] are usable
+    Guid->Data2 = (SHORT)(random[1] >> 8);
+    // random[2] is usable
+    Guid->Data3 = (SHORT)random[2];
+    // top byte from random[2] is usable
+    *(PSHORT)&Guid->Data4[0] = (SHORT)((random[2] >> 16) | (random[3] & 0xff));
+    // top 2 bytes from random[3] are usable
+    *(PSHORT)&Guid->Data4[2] = (SHORT)(random[3] >> 8);
+    // random[4] is usable
+    *(PSHORT)&Guid->Data4[4] = (SHORT)random[4];
+    // top byte from random[4] is usable
+    *(PSHORT)&Guid->Data4[6] = (SHORT)((random[4] >> 16) | (random[5] & 0xff));
+}
+
 VOID PhGenerateRandomAlphaString(
     __out_ecount_z(Count) PWSTR Buffer,
     __in ULONG Count

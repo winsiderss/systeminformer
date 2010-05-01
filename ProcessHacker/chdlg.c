@@ -256,7 +256,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                                 break;
 
                             // Don't save the choice if it's the same as the one 
-                            // entered by the user.
+                            // entered by the user (since we already saved it above).
                             if (PhStringEquals(choice, selectedChoice, FALSE))
                             {
                                 PhDereferenceObject(choice);
