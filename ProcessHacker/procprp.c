@@ -2524,6 +2524,65 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     return FALSE;
 }
 
+INT_PTR CALLBACK PhpProcessMemoryDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            PhSetListViewStyle(lvHandle, TRUE, TRUE);
+            PhSetControlTheme(lvHandle, L"explorer");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Name");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 100, L"Address");
+            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 60, L"Size");
+            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Protection");
+
+            PhSetExtendedListView(lvHandle);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
+                    dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                    dialogItem, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -3675,6 +3734,14 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCMODULES),
         PhpProcessModulesDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+
+    // Memory
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCMEMORY),
+        PhpProcessMemoryDlgProc,
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);

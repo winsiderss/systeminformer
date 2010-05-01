@@ -383,6 +383,38 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         }
                     }
                     return -1;
+                case LVN_GETINFOTIP:
+                    {
+                        LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)hdr;
+                        PH_TREELIST_GET_NODE_TOOLTIP getNodeTooltip;
+                        ULONG copyLength;
+
+                        getNodeTooltip.Flags = 0;
+                        getNodeTooltip.Node = context->List->Items[getInfoTip->iItem];
+                        getNodeTooltip.ExistingText = getInfoTip->dwFlags == 0 ? getInfoTip->pszText : NULL;
+                        PhInitializeEmptyStringRef(&getNodeTooltip.Text);
+
+                        if (context->Callback(
+                            hwnd,
+                            TreeListGetNodeTooltip,
+                            &getNodeTooltip,
+                            NULL,
+                            context->Context
+                            ) && getNodeTooltip.Text.Buffer)
+                        {
+                            copyLength = min(
+                                (ULONG)getNodeTooltip.Text.Length / 2,
+                                (ULONG)getInfoTip->cchTextMax - 1
+                                );
+                            memcpy(
+                                getInfoTip->pszText,
+                                getNodeTooltip.Text.Buffer,
+                                copyLength * 2
+                                );
+                            getInfoTip->pszText[copyLength] = 0;
+                        }
+                    }
+                    break;
                 case LVN_ITEMCHANGED:
                     {
                         NMLISTVIEW *lv = (NMLISTVIEW *)hdr;

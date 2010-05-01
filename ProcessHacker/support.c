@@ -205,6 +205,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             dllName = PhaSubstring(dllName, 0, lastIndexOfComma);
 
             // If the DLL name isn't an absolute path, assume it's in system32.
+            // TODO: Use a proper search function.
 
             if (PhStringIndexOfChar(dllName, 0, ':') == -1)
             {
@@ -212,7 +213,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                     3,
                     ((PPH_STRING)PHA_DEREFERENCE(PhGetSystemDirectory()))->Buffer,
                     L"\\",
-                    dllName
+                    dllName->Buffer
                     );
             }
 

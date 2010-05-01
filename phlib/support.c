@@ -611,16 +611,18 @@ PPH_STRING PhEllipsisStringPath(
         secondPartCopyLength = String->Length / 2 - secondPartIndex;
 
         // Check if we have enough space for the entire second part of the string.
-        if (secondPartCopyLength - 3 <= DesiredCount)
+        if (secondPartCopyLength + 3 <= DesiredCount)
         {
             // Yes, copy part of the first part and the entire second part.
             firstPartCopyLength = DesiredCount - secondPartCopyLength - 3;
         }
         else
         {
-            // No, copy part of both.
+            // No, copy part of both, from the beginning of the first part and 
+            // the end of the second part.
             firstPartCopyLength = (DesiredCount - 3) / 2;
             secondPartCopyLength = DesiredCount - 3 - firstPartCopyLength;
+            secondPartIndex = String->Length / 2 - secondPartCopyLength;
         }
 
         memcpy(
