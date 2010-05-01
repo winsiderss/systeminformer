@@ -118,6 +118,8 @@ VOID PhCreateProcessNode(
     processNode->Node.TextCache = processNode->TextCache;
     processNode->Node.TextCacheSize = PHTLC_MAXIMUM;
 
+    processNode->TooltipText = NULL;
+
     processNode->Children = PhCreateList(1);
 
     // Find this process' parent and add the process to it if we found it.
@@ -226,7 +228,15 @@ VOID PhUpdateProcessNode(
     )
 {
     memset(ProcessNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
+
+    if (ProcessNode->TooltipText)
+    {
+        PhDereferenceObject(ProcessNode->TooltipText);
+        ProcessNode->TooltipText = NULL;
+    }
+
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
+
     TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
@@ -443,6 +453,21 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
 
             getNodeIcon->Flags = TLC_CACHE;
+        }
+        return TRUE;
+    case TreeListGetNodeTooltip:
+        {
+            PPH_TREELIST_GET_NODE_TOOLTIP getNodeTooltip = Parameter1;
+
+            node = (PPH_PROCESS_NODE)getNodeTooltip->Node;
+
+            if (!node->TooltipText)
+                node->TooltipText = PhGetProcessTooltipText(node->ProcessItem);
+
+            if (node->TooltipText)
+                getNodeTooltip->Text = node->TooltipText->sr;
+            else
+                return FALSE;
         }
         return TRUE;
     case TreeListSortChanged:

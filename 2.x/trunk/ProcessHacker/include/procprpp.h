@@ -58,6 +58,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpProcessMemoryDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -118,6 +125,11 @@ typedef struct _PH_MODULES_CONTEXT
     BOOLEAN NeedsRedraw;
     BOOLEAN NeedsSort;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
+
+typedef struct _PH_MEMORY_CONTEXT
+{
+    PPH_LIST MemoryRegions;
+} PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
 #define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
