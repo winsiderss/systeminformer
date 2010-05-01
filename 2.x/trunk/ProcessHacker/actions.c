@@ -32,6 +32,103 @@ static PWSTR DangerousProcesses[] =
 static PPH_STRING DebuggerCommand = NULL;
 static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 
+BOOLEAN PhUiLockComputer(
+    __in HWND hWnd
+    )
+{
+    if (!LockWorkStation())
+        PhShowStatus(hWnd, L"Unable to lock the computer", 0, GetLastError());
+}
+
+BOOLEAN PhUiLogoffComputer(
+    __in HWND hWnd
+    )
+{
+    if (!ExitWindowsEx(EWX_LOGOFF, 0))
+        PhShowStatus(hWnd, L"Unable to logoff the computer", 0, GetLastError());
+}
+
+BOOLEAN PhUiSleepComputer(
+    __in HWND hWnd
+    )
+{
+    NTSTATUS status;
+
+    if (!NT_SUCCESS(status = NtInitiatePowerAction(
+        PowerActionSleep,
+        PowerSystemSleeping1,
+        0,
+        FALSE
+        )))
+        PhShowStatus(hWnd, L"Unable to sleep the computer", status, 0);
+}
+
+BOOLEAN PhUiHibernateComputer(
+    __in HWND hWnd
+    )
+{
+    NTSTATUS status;
+
+    if (!NT_SUCCESS(status = NtInitiatePowerAction(
+        PowerActionHibernate,
+        PowerSystemSleeping1,
+        0,
+        FALSE
+        )))
+        PhShowStatus(hWnd, L"Unable to hibernate the computer", status, 0);
+}
+
+BOOLEAN PhUiRestartComputer(
+    __in HWND hWnd
+    )
+{
+    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+        hWnd,
+        L"restart",
+        L"the computer",
+        NULL,
+        FALSE
+        ))
+    {
+        if (!ExitWindowsEx(EWX_REBOOT, 0))
+            PhShowStatus(hWnd, L"Unable to restart the computer", 0, GetLastError());
+    }
+}
+
+BOOLEAN PhUiShutdownComputer(
+    __in HWND hWnd
+    )
+{
+    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+        hWnd,
+        L"shutdown",
+        L"the computer",
+        NULL,
+        FALSE
+        ))
+    {
+        if (!ExitWindowsEx(EWX_SHUTDOWN, 0))
+            PhShowStatus(hWnd, L"Unable to shutdown the computer", 0, GetLastError());
+    }
+}
+
+BOOLEAN PhUiPoweroffComputer(
+    __in HWND hWnd
+    )
+{
+    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+        hWnd,
+        L"poweroff",
+        L"the computer",
+        NULL,
+        FALSE
+        ))
+    {
+        if (!ExitWindowsEx(EWX_POWEROFF, 0))
+            PhShowStatus(hWnd, L"Unable to poweroff the computer", 0, GetLastError());
+    }
+}
+
 /**
  * Determines if a process is a system process.
  *

@@ -18,6 +18,7 @@
 #define IDB_CROSS                       117
 #define IDB_TICK                        118
 #define IDR_SHUTDOWN                    120
+#define IDR_COMPUTER                    120
 #define IDD_ABOUT                       121
 #define IDR_PROCESS                     123
 #define IDR_SERVICE                     124
@@ -342,6 +343,10 @@
 #define ID_USERS_DUMMY                  40131
 #define ID_MODULE_INSPECT               40132
 #define ID_PROCESS_DEBUG                40133
+#define ID_COMPUTER_PREVENTPOWERSAVING  40134
+#define ID_COMPUTER_FORCEON             40135
+#define ID_FORCEON_SYSTEM               40136
+#define ID_FORCEON_DISPLAY              40137
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -349,7 +354,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        162
-#define _APS_NEXT_COMMAND_VALUE         40134
+#define _APS_NEXT_COMMAND_VALUE         40138
 #define _APS_NEXT_CONTROL_VALUE         1141
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
