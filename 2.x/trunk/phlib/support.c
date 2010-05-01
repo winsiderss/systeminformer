@@ -551,9 +551,9 @@ VOID PhGenerateGuid(
         random[i] = RtlRandomEx(&seed);
 
     // random[0] is usable
-    *(PSHORT)Guid->Data1 = (SHORT)random[0];
+    *(PSHORT)&Guid->Data1 = (SHORT)random[0];
     // top byte from random[0] is usable
-    *((PSHORT)Guid->Data1 + 1) = (SHORT)((random[0] >> 16) | (random[1] & 0xff));
+    *((PSHORT)&Guid->Data1 + 1) = (SHORT)((random[0] >> 16) | (random[1] & 0xff));
     // top 2 bytes from random[1] are usable
     Guid->Data2 = (SHORT)(random[1] >> 8);
     // random[2] is usable
