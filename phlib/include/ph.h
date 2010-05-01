@@ -1630,6 +1630,10 @@ BOOLEAN PhFindStringSiKeyValuePairs(
     __out PWSTR *String
     );
 
+VOID PhGenerateGuid(
+    __out PGUID Guid
+    );
+
 VOID PhGenerateRandomAlphaString(
     __out_ecount_z(Count) PWSTR Buffer,
     __in ULONG Count

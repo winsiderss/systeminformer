@@ -174,10 +174,16 @@ BEGIN
     END
 END
 
-IDR_SHUTDOWN MENU 
+IDR_COMPUTER MENU 
 BEGIN
-    POPUP "Shutdown"
+    POPUP "Computer"
     BEGIN
+        POPUP "Force On"
+        BEGIN
+            MENUITEM "System",                      ID_FORCEON_SYSTEM
+            MENUITEM "Display",                     ID_FORCEON_DISPLAY
+        END
+        MENUITEM SEPARATOR
         MENUITEM "Lock",                        ID_SHUTDOWN_LOCK
         MENUITEM "Logoff",                      ID_SHUTDOWN_LOGOFF
         MENUITEM SEPARATOR
