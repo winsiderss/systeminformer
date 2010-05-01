@@ -85,6 +85,7 @@ typedef enum _PH_TREELIST_MESSAGE
     TreeListGetNodeColor, // PPH_TREELIST_GET_NODE_COLOR Parameter1
     TreeListGetNodeFont, // PPH_TREELIST_GET_NODE_FONT Parameter1
     TreeListGetNodeIcon, // PPH_TREELIST_GET_NODE_ICON Parameter1
+    TreeListGetNodeTooltip, // PPH_TREELIST_GET_NODE_TOOLTIP Parameter1
 
     // Notifications
     TreeListSortChanged,
@@ -163,6 +164,15 @@ typedef struct _PH_TREELIST_GET_NODE_ICON
 
     HICON Icon;
 } PH_TREELIST_GET_NODE_ICON, *PPH_TREELIST_GET_NODE_ICON;
+
+typedef struct _PH_TREELIST_GET_NODE_TOOLTIP
+{
+    ULONG Flags;
+    PPH_TREELIST_NODE Node;
+    PWSTR ExistingText;
+
+    PH_STRINGREF Text;
+} PH_TREELIST_GET_NODE_TOOLTIP, *PPH_TREELIST_GET_NODE_TOOLTIP;
 
 typedef struct _PH_TREELIST_MOUSE_EVENT
 {

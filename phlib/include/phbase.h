@@ -341,8 +341,11 @@ typedef struct _PH_STRINGREF
     {
         struct
         {
+            /** The length, in bytes, of the string. */
             USHORT Length;
+            /** Unused and of an undefined value. */
             USHORT Reserved;
+            /** The buffer containing the contents of the string. */
             PWSTR Buffer;
         };
         UNICODE_STRING us;

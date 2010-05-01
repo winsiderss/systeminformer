@@ -90,6 +90,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_LIST Children;
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
+    PPH_STRING TooltipText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();
@@ -509,6 +510,12 @@ BOOLEAN PhUiSetAttributesHandle(
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM Handle,
     __in ULONG Attributes
+    );
+
+// itemtips
+
+PPH_STRING PhGetProcessTooltipText(
+    __in PPH_PROCESS_ITEM Process
     );
 
 // cmdmode
