@@ -379,6 +379,8 @@ VOID PhUnregisterProvider(
  *
  * \param Registration A pointer to the registration object for 
  * a provider.
+ * \param FutureRunId A variable which receives the run ID of the 
+ * future run.
  *
  * \return TRUE if the operation was successful; FALSE if 
  * the provider is being unregistered, the provider is already 
