@@ -1382,14 +1382,43 @@ NTSTATUS PhCreateProcessWin32(
     __out_opt PHANDLE ThreadHandle
     )
 {
+    return PhCreateProcessWin32Ex(
+        FileName,
+        CommandLine,
+        Environment,
+        CurrentDirectory,
+        NULL,
+        Flags,
+        TokenHandle,
+        NULL,
+        ProcessHandle,
+        ThreadHandle
+        );
+}
+
+NTSTATUS PhCreateProcessWin32Ex(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR CurrentDirectory,
+    __in_opt STARTUPINFO *StartupInfo,
+    __in ULONG Flags,
+    __in_opt HANDLE TokenHandle,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
     static PH_FLAG_MAPPING mappings[] =
     {
         { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
-        { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED }
+        { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
+        { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
+        { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE }
     };
     NTSTATUS status;
     PPH_STRING commandLine = NULL;
-    STARTUPINFO startupInfo = { sizeof(startupInfo) };
+    STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
     ULONG newFlags;
 
@@ -1398,6 +1427,16 @@ NTSTATUS PhCreateProcessWin32(
 
     newFlags = 0;
     PhMapFlags1(&newFlags, Flags, mappings, sizeof(mappings) / sizeof(PH_FLAG_MAPPING));
+
+    if (StartupInfo)
+    {
+        startupInfo = *StartupInfo;
+    }
+    else
+    {
+        memset(&startupInfo, 0, sizeof(STARTUPINFO));
+        startupInfo.cb = sizeof(STARTUPINFO);
+    }
 
     if (!TokenHandle)
     {
@@ -1442,6 +1481,12 @@ NTSTATUS PhCreateProcessWin32(
 
     if (NT_SUCCESS(status))
     {
+        if (ClientId)
+        {
+            ClientId->UniqueProcess = (HANDLE)processInfo.dwProcessId;
+            ClientId->UniqueThread = (HANDLE)processInfo.dwThreadId;
+        }
+
         if (ProcessHandle)
             *ProcessHandle = processInfo.hProcess;
         else
