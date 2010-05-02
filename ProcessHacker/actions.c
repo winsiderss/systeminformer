@@ -36,16 +36,24 @@ BOOLEAN PhUiLockComputer(
     __in HWND hWnd
     )
 {
-    if (!LockWorkStation())
+    if (LockWorkStation())
+        return TRUE;
+    else
         PhShowStatus(hWnd, L"Unable to lock the computer", 0, GetLastError());
+
+    return FALSE;
 }
 
 BOOLEAN PhUiLogoffComputer(
     __in HWND hWnd
     )
 {
-    if (!ExitWindowsEx(EWX_LOGOFF, 0))
+    if (ExitWindowsEx(EWX_LOGOFF, 0))
+        return TRUE;
+    else
         PhShowStatus(hWnd, L"Unable to logoff the computer", 0, GetLastError());
+
+    return FALSE;
 }
 
 BOOLEAN PhUiSleepComputer(
@@ -54,13 +62,17 @@ BOOLEAN PhUiSleepComputer(
 {
     NTSTATUS status;
 
-    if (!NT_SUCCESS(status = NtInitiatePowerAction(
+    if (NT_SUCCESS(status = NtInitiatePowerAction(
         PowerActionSleep,
         PowerSystemSleeping1,
         0,
         FALSE
         )))
+        return TRUE;
+    else
         PhShowStatus(hWnd, L"Unable to sleep the computer", status, 0);
+
+    return FALSE;
 }
 
 BOOLEAN PhUiHibernateComputer(
@@ -69,13 +81,17 @@ BOOLEAN PhUiHibernateComputer(
 {
     NTSTATUS status;
 
-    if (!NT_SUCCESS(status = NtInitiatePowerAction(
+    if (NT_SUCCESS(status = NtInitiatePowerAction(
         PowerActionHibernate,
         PowerSystemSleeping1,
         0,
         FALSE
         )))
+        return TRUE;
+    else
         PhShowStatus(hWnd, L"Unable to hibernate the computer", status, 0);
+
+    return FALSE;
 }
 
 BOOLEAN PhUiRestartComputer(
@@ -90,9 +106,13 @@ BOOLEAN PhUiRestartComputer(
         FALSE
         ))
     {
-        if (!ExitWindowsEx(EWX_REBOOT, 0))
+        if (ExitWindowsEx(EWX_REBOOT, 0))
+            return TRUE;
+        else
             PhShowStatus(hWnd, L"Unable to restart the computer", 0, GetLastError());
     }
+
+    return FALSE;
 }
 
 BOOLEAN PhUiShutdownComputer(
@@ -107,9 +127,13 @@ BOOLEAN PhUiShutdownComputer(
         FALSE
         ))
     {
-        if (!ExitWindowsEx(EWX_SHUTDOWN, 0))
+        if (ExitWindowsEx(EWX_SHUTDOWN, 0))
+            return TRUE;
+        else
             PhShowStatus(hWnd, L"Unable to shutdown the computer", 0, GetLastError());
     }
+
+    return FALSE;
 }
 
 BOOLEAN PhUiPoweroffComputer(
@@ -124,9 +148,13 @@ BOOLEAN PhUiPoweroffComputer(
         FALSE
         ))
     {
-        if (!ExitWindowsEx(EWX_POWEROFF, 0))
+        if (ExitWindowsEx(EWX_POWEROFF, 0))
+            return TRUE;
+        else
             PhShowStatus(hWnd, L"Unable to poweroff the computer", 0, GetLastError());
     }
+
+    return FALSE;
 }
 
 /**

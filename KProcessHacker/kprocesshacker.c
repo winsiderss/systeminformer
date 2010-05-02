@@ -23,6 +23,14 @@
 #include "include/kph.h"
 #include "include/kprocesshacker.h"
 
+typedef struct _KPH_ZWQUERYOBJECT_BUFFER
+{
+    NTSTATUS Status;
+    ULONG ReturnLength;
+    PVOID BufferBase;
+    UCHAR Buffer[1];
+} KPH_ZWQUERYOBJECT_BUFFER, *PKPH_ZWQUERYOBJECT_BUFFER;
+
 #define CHECK_IN_LENGTH \
     if (inLength < sizeof(*args)) \
     { \
@@ -1187,18 +1195,12 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
                 HANDLE Handle;
                 OBJECT_INFORMATION_CLASS ObjectInformationClass;
             } *args = dataBuffer;
-            struct
-            {
-                NTSTATUS Status;
-                ULONG ReturnLength;
-                PVOID BufferBase;
-                CHAR Buffer[1];
-            } *ret = dataBuffer;
+            PKPH_ZWQUERYOBJECT_BUFFER ret = dataBuffer;
             NTSTATUS status2 = STATUS_SUCCESS;
             KPH_ATTACH_STATE attachState;
             BOOLEAN attached;
             
-            if (inLength < sizeof(*args) || outLength < sizeof(*ret) - sizeof(CHAR))
+            if (inLength < sizeof(*args) || outLength < FIELD_OFFSET(KPH_ZWQUERYOBJECT_BUFFER, Buffer))
             {
                 status = STATUS_BUFFER_TOO_SMALL;
                 goto IoControlEnd;
@@ -1221,7 +1223,7 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
                 args->Handle,
                 args->ObjectInformationClass,
                 ret->Buffer,
-                outLength - (sizeof(*ret) - sizeof(CHAR)),
+                outLength - FIELD_OFFSET(KPH_ZWQUERYOBJECT_BUFFER, Buffer),
                 &retLength
                 );
             KphDetachProcess(&attachState);
@@ -1230,9 +1232,9 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
             ret->BufferBase = ret->Buffer;
             
             if (NT_SUCCESS(status2))
-                retLength += sizeof(*ret) - sizeof(CHAR);
+                retLength += FIELD_OFFSET(KPH_ZWQUERYOBJECT_BUFFER, Buffer);
             else
-                retLength = sizeof(*ret) - sizeof(CHAR);
+                retLength = FIELD_OFFSET(KPH_ZWQUERYOBJECT_BUFFER, Buffer);
             
             ret->Status = status2;
         }
