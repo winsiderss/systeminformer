@@ -284,6 +284,25 @@ Disadvantages:
   * More code
   * Created object may need to be destroyed
 
+==== Exceptions (SEH) ====
+The only method of error handling used in Process Hacker is 
+the return value (NTSTATUS, BOOLEAN, etc.). Exceptions are used for 
+exceptional situations which cannot easily be recovered from (e.g. 
+a lock acquire function fails to block, or an object has a negative 
+reference count.
+
+Exceptions to this rule include:
+ * PhAllocate, which raises an exception if it fails to allocate. 
+   Checking the return value of each allocation to increase reliability 
+   is not worth the extra effort involved, as failed allocations are 
+   very rare.
+ * PhProbeAddress, which raises an exception if an address lies 
+   outside of a specified range. Raising an exception makes it 
+   possible to conduct multiple checks in one SEH block.
+ * STATUS_NOT_IMPLEMENTED exceptions triggered by code paths which 
+   should not be reached, purely due to programmer error. assert(FALSE) 
+   could also be used in this case.
+
 ==== Memory management ====
 Use PhAllocate/PhFree to allocate/free memory. For complex objects, 
 use the reference counting system.
