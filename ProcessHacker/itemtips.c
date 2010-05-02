@@ -249,7 +249,7 @@ PPH_STRING PhGetProcessTooltipText(
         {
             PhStringBuilderAppendFormat(
                 &notes,
-                L"    Image is probably packed (%u imports over %u modules)\n",
+                L"    Image is probably packed (%u imports over %u modules).\n",
                 Process->ImportFunctions,
                 Process->ImportModules
                 );
