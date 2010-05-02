@@ -28,7 +28,7 @@ typedef struct _KPH_ZWQUERYOBJECT_BUFFER
     NTSTATUS Status;
     ULONG ReturnLength;
     PVOID BufferBase;
-    CHAR Buffer[1];
+    UCHAR Buffer[1];
 } KPH_ZWQUERYOBJECT_BUFFER, *PKPH_ZWQUERYOBJECT_BUFFER;
 
 NTSTATUS KphpDeviceIoControl(

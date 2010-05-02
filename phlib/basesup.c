@@ -794,7 +794,7 @@ PPH_STRING PhCreateStringEx(
  * \param Buffer A null-terminated ANSI string.
  */
 PPH_STRING PhCreateStringFromAnsi(
-    __in PCHAR Buffer
+    __in PSTR Buffer
     )
 {
     return PhCreateStringFromAnsiEx(
@@ -811,7 +811,7 @@ PPH_STRING PhCreateStringFromAnsi(
  * \param Length The number of bytes to use.
  */
 PPH_STRING PhCreateStringFromAnsiEx(
-    __in PCHAR Buffer,
+    __in PSTR Buffer,
     __in SIZE_T Length
     )
 {

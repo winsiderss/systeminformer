@@ -442,11 +442,11 @@ PPH_STRING PhCreateStringEx(
     );
 
 PPH_STRING PhCreateStringFromAnsi(
-    __in PCHAR Buffer
+    __in PSTR Buffer
     );
 
 PPH_STRING PhCreateStringFromAnsiEx(
-    __in PCHAR Buffer,
+    __in PSTR Buffer,
     __in SIZE_T Length
     );
 
