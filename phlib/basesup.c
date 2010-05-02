@@ -1561,6 +1561,7 @@ VOID PhClearList(
     List->Count = 0;
 }
 
+__success(return != -1)
 /**
  * Locates an item in a list.
  *
@@ -1570,7 +1571,6 @@ VOID PhClearList(
  * \return The index of the item. If the 
  * item was not found, -1 is returned.
  */
-__success(return != -1)
 ULONG PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item

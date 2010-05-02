@@ -289,6 +289,7 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
  * Waits for a wait block to be unblocked.
  *
  * \param WaitBlock A wait block.
+ * \param Timeout A timeout value.
  */
 __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
@@ -310,12 +311,16 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
 
     if (_interlockedbittestandreset((PLONG)&WaitBlock->Flags, PH_QUEUED_WAITER_SPINNING_SHIFT))
     {
-        if (!NT_SUCCESS(status = NtWaitForKeyedEvent(
+        status = NtWaitForKeyedEvent(
             PhQueuedLockKeyedEventHandle,
             WaitBlock,
             FALSE,
             Timeout
-            )))
+            );
+
+        // If an error occurred (timeout is not an error), raise an exception 
+        // as it is nearly impossible to recover from this situation.
+        if (!NT_SUCCESS(status))
             PhRaiseStatus(status);
     }
     else
@@ -1095,7 +1100,7 @@ VOID FASTCALL PhfSetWakeEvent(
  * the wake event using PhfQueueWakeEvent().
  * \param Timeout A timeout value.
  *
- * \param Wake events are subject to spurious wakeups. You 
+ * \remarks Wake events are subject to spurious wakeups. You 
  * should call this function in a loop which checks a 
  * predicate.
  */

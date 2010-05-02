@@ -293,9 +293,6 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
     
     dprintf("IoControl 0x%08x (%s)\n", controlCode, KphpGetControlCodeName(controlCode));
     
-    /* 1-byte packing for KPH input/output structures. */
-    #include <pshpack1.h>
-    
     switch (controlCode)
     {
         /* Get Features
@@ -1516,9 +1513,6 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
         }
         break;
     }
-    
-    /* Restore the old packing. */
-    #include <poppack.h>
     
 IoControlEnd:
     Irp->IoStatus.Information = retLength;
