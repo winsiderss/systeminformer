@@ -224,7 +224,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                     );
                 PHA_DEREFERENCE(jobObjectName);
 
-                if (jobObjectName->Length == 0)
+                if (jobObjectName && jobObjectName->Length == 0)
                     jobObjectName = NULL;
 
                 SetDlgItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(jobObjectName, L"(unnamed job)"));
