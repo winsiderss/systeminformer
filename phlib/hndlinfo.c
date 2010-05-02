@@ -1017,6 +1017,10 @@ NTSTATUS PhGetHandleInformation(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
+    // Exit early if we don't need to get the best object name.
+    if (!BestObjectName)
+        goto CleanupExit;
+
     status = PhpGetBestObjectName(
         ProcessHandle,
         Handle,
