@@ -1782,6 +1782,8 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 #define PH_CREATE_PROCESS_INHERIT_HANDLES 0x1
 #define PH_CREATE_PROCESS_UNICODE_ENVIRONMENT 0x2
 #define PH_CREATE_PROCESS_SUSPENDED 0x4
+#define PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB 0x8
+#define PH_CREATE_PROCESS_NEW_CONSOLE 0x10
 
 NTSTATUS PhCreateProcessWin32(
     __in_opt PWSTR FileName,
@@ -1790,6 +1792,19 @@ NTSTATUS PhCreateProcessWin32(
     __in_opt PWSTR CurrentDirectory,
     __in ULONG Flags,
     __in_opt HANDLE TokenHandle,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    );
+
+NTSTATUS PhCreateProcessWin32Ex(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PWSTR CurrentDirectory,
+    __in_opt STARTUPINFO *StartupInfo,
+    __in ULONG Flags,
+    __in_opt HANDLE TokenHandle,
+    __out_opt PCLIENT_ID ClientId,
     __out_opt PHANDLE ProcessHandle,
     __out_opt PHANDLE ThreadHandle
     );
