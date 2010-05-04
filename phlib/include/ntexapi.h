@@ -422,27 +422,39 @@ NtSetIntervalProfile(
 #define KEYEDEVENT_ALL_ACCESS \
     (STANDARD_RIGHTS_REQUIRED | KEYEDEVENT_WAIT | KEYEDEVENT_WAKE)
 
-typedef NTSTATUS (NTAPI *_NtCreateKeyedEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateKeyedEvent(
     __out PHANDLE KeyedEventHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in ULONG Flags
     );
 
-typedef NTSTATUS (NTAPI *_NtOpenKeyedEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenKeyedEvent(
     __out PHANDLE KeyedEventHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
-typedef NTSTATUS (NTAPI *_NtReleaseKeyedEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReleaseKeyedEvent(
     __in HANDLE KeyedEventHandle,
     __in PVOID KeyValue,
     __in BOOLEAN Alertable,
     __in_opt PLARGE_INTEGER Timeout
     );
 
-typedef NTSTATUS (NTAPI *_NtWaitForKeyedEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForKeyedEvent(
     __in HANDLE KeyedEventHandle,
     __in PVOID KeyValue,
     __in BOOLEAN Alertable,

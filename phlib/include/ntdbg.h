@@ -17,30 +17,45 @@ typedef enum _DEBUGOBJECTINFOCLASS
     MaxDebugObjectInfoClass
 } DEBUGOBJECTINFOCLASS, *PDEBUGOBJECTINFOCLASS;
 
-typedef NTSTATUS (NTAPI *_NtCreateDebugObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateDebugObject(
     __out PHANDLE DebugObjectHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in ULONG Flags
     );
 
-typedef NTSTATUS (NTAPI *_NtDebugActiveProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDebugActiveProcess(
     __in HANDLE ProcessHandle,
     __in HANDLE DebugObjectHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtDebugContinue)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDebugContinue(
     __in HANDLE DebugObjectHandle,
     __in PCLIENT_ID ClientId,
     __in NTSTATUS ContinueStatus
     );
 
-typedef NTSTATUS (NTAPI *_NtRemoveProcessDebug)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtRemoveProcessDebug(
     __in HANDLE ProcessHandle,
     __in HANDLE DebugObjectHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtSetInformationDebugObject)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationDebugObject(
     __in HANDLE DebugObjectHandle,
     __in DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
     __in PVOID DebugInformation,
@@ -48,7 +63,10 @@ typedef NTSTATUS (NTAPI *_NtSetInformationDebugObject)(
     __out_opt PULONG ReturnLength
     );
 
-typedef NTSTATUS (NTAPI *_NtWaitForDebugEvent)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForDebugEvent(
     __in HANDLE DebugObjectHandle,
     __in BOOLEAN Alertable,
     __in_opt PLARGE_INTEGER Timeout,
