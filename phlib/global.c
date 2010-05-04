@@ -33,6 +33,7 @@ HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
 PPH_STRING PhCurrentUserName = NULL;
 BOOLEAN PhElevated;
+TOKEN_ELEVATION_TYPE PhElevationType;
 HANDLE PhHeapHandle;
 HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
@@ -79,6 +80,7 @@ NTSTATUS PhInitializePhLib()
         PTOKEN_USER tokenUser;
 
         PhElevated = TRUE;
+        PhElevationType = TokenElevationTypeDefault;
 
         if (NT_SUCCESS(PhOpenProcessToken(
             &tokenHandle,
@@ -87,7 +89,10 @@ NTSTATUS PhInitializePhLib()
             )))
         {
             if (WINDOWS_HAS_UAC)
+            {
                 PhGetTokenIsElevated(tokenHandle, &PhElevated);
+                PhGetTokenElevationType(tokenHandle, &PhElevationType);
+            }
 
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
