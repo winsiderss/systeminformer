@@ -286,6 +286,28 @@ BOOLEAN PhMainWndInitialization(
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
 
+    // Create the window title.
+    {
+        PH_STRING_BUILDER stringBuilder;
+
+        PhInitializeStringBuilder(&stringBuilder, 50);
+        PhStringBuilderAppend2(&stringBuilder, L"Process Hacker");
+
+        if (PhCurrentUserName)
+        {
+            PhStringBuilderAppend2(&stringBuilder, L" [");
+            PhStringBuilderAppend(&stringBuilder, PhCurrentUserName);
+            PhStringBuilderAppendChar(&stringBuilder, ']');
+        }
+
+        if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
+            PhStringBuilderAppend2(&stringBuilder, L" (Administrator)");
+
+        SetWindowText(PhMainWndHandle, stringBuilder.String->Buffer);
+
+        PhDeleteStringBuilder(&stringBuilder);
+    }
+
     PhReloadSysParameters();
 
     // Initialize child controls.

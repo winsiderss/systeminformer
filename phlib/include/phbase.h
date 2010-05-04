@@ -29,6 +29,7 @@ extern __userSet HFONT PhBoldListViewFont;
 extern __userSet HFONT PhBoldMessageFont;
 extern PPH_STRING PhCurrentUserName;
 extern BOOLEAN PhElevated;
+extern TOKEN_ELEVATION_TYPE PhElevationType;
 extern HANDLE PhHeapHandle;
 extern __userSet HFONT PhIconTitleFont;
 extern HINSTANCE PhInstanceHandle;
