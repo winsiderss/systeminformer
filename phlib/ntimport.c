@@ -40,23 +40,12 @@
 
 BOOLEAN PhInitializeImports()
 {
-    InitProc("ntdll.dll", NtCreateDebugObject);
-    InitProc("ntdll.dll", NtCreateKeyedEvent);
-    InitProc("ntdll.dll", NtDebugActiveProcess);
     InitProc("ntdll.dll", NtGetNextProcess);
     InitProc("ntdll.dll", NtGetNextThread);
-    InitProc("ntdll.dll", NtIsProcessInJob);
-    InitProc("ntdll.dll", NtOpenKeyedEvent);
     InitProc("ntdll.dll", NtQueryInformationEnlistment);
     InitProc("ntdll.dll", NtQueryInformationResourceManager);
     InitProc("ntdll.dll", NtQueryInformationTransaction);
     InitProc("ntdll.dll", NtQueryInformationTransactionManager);
-    InitProc("ntdll.dll", NtReleaseKeyedEvent);
-    InitProc("ntdll.dll", NtRemoveProcessDebug);
-    InitProc("ntdll.dll", NtResumeProcess);
-    InitProc("ntdll.dll", NtSetInformationDebugObject);
-    InitProc("ntdll.dll", NtSuspendProcess);
-    InitProc("ntdll.dll", NtWaitForKeyedEvent);
 
     return TRUE;
 }

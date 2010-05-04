@@ -384,11 +384,17 @@ NtTerminateProcess(
     __in NTSTATUS ExitStatus
     );
 
-typedef NTSTATUS (NTAPI *_NtSuspendProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSuspendProcess(
     __in HANDLE ProcessHandle
     );
 
-typedef NTSTATUS (NTAPI *_NtResumeProcess)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtResumeProcess(
     __in HANDLE ProcessHandle
     );
 
@@ -635,7 +641,10 @@ NtTerminateJobObject(
     __in NTSTATUS ExitStatus
     );
 
-typedef NTSTATUS (NTAPI *_NtIsProcessInJob)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtIsProcessInJob(
     __in HANDLE ProcessHandle,
     __in_opt HANDLE JobHandle
     ); 
