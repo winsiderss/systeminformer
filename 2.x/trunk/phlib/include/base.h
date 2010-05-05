@@ -177,6 +177,22 @@ FORCEINLINE int uintptrcmp(
     PH_BUILTIN_COMPARE(value1, value2);
 }
 
+FORCEINLINE int singlecmp(
+    __in float value1,
+    __in float value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
+}
+
+FORCEINLINE int doublecmp(
+    __in double value1,
+    __in double value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
+}
+
 FORCEINLINE int wcsicmp2(
     __in_opt PWSTR Value1,
     __in_opt PWSTR Value2
