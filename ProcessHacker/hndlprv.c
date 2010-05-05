@@ -408,7 +408,7 @@ VOID PhHandleProviderUpdate(
         return;
 
     handles = handleInfo->Handles;
-    numberOfHandles = handleInfo->NumberOfHandles;
+    numberOfHandles = (ULONG)handleInfo->NumberOfHandles;
 
     // Make a list of the relevant handles.
     if (filterNeeded)
