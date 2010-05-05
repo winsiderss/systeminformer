@@ -435,6 +435,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 lv->uOldState == node->s.ViewState
                                 )
                             {
+                                // FIXME: There is still a bug. Shift select multiple items, and try to 
+                                // deselect the top/bottom item using Ctrl.
                                 PhpApplyNodeState(node, lv->uNewState);
                                 ListView_Update(context->ListViewHandle, lv->iItem);
                             }
@@ -633,6 +635,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
             // Boring array management
             if (context->AllocatedColumns < context->MaxId + 1)
             {
+                ULONG oldAllocatedColumns;
+
+                oldAllocatedColumns = context->AllocatedColumns;
                 context->AllocatedColumns *= 2;
 
                 if (context->AllocatedColumns < context->MaxId + 1)
@@ -640,9 +645,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                 if (context->Columns)
                 {
-                    ULONG oldAllocatedColumns;
-                    
-                    oldAllocatedColumns = context->AllocatedColumns;
                     context->Columns = PhReAlloc(
                         context->Columns,
                         context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
@@ -662,9 +664,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         );
                     memset(context->Columns, 0, context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN));
                 }
-
-                context->Columns[context->NumberOfColumns++] = realColumn;
             }
+
+            context->Columns[context->NumberOfColumns++] = realColumn;
 
             if (realColumn->Visible)
             {
@@ -1700,6 +1702,7 @@ BOOLEAN PhAddTreeListColumn(
 {
     PH_TREELIST_COLUMN column;
 
+    memset(&column, 0, sizeof(PH_TREELIST_COLUMN));
     column.Id = Id;
     column.Visible = Visible;
     column.Text = Text;

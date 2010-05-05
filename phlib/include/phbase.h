@@ -640,6 +640,36 @@ FORCEINLINE INT PhStringCompare2(
 }
 
 /**
+ * Compares two strings, handling NULL strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
+FORCEINLINE INT PhStringCompareWithNull(
+    __in_opt PPH_STRING String1,
+    __in_opt PPH_STRING String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (String1 && String2)
+    {
+        if (!IgnoreCase)
+            return wcscmp(String1->Buffer, String2->Buffer);
+        else
+            return wcsicmp(String1->Buffer, String2->Buffer);
+    }
+    else if (!String1)
+    {
+        return !String2 ? 0 : -1;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+/**
  * Determines whether two strings are equal.
  *
  * \param String1 The first string.

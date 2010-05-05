@@ -14,7 +14,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     PVOID Context;
 
     ULONG MaxId;
-    PPH_TREELIST_COLUMN *Columns;
+    PPH_TREELIST_COLUMN *Columns; // columns, indexed by ID
     ULONG NumberOfColumns;
     ULONG AllocatedColumns;
     PPH_LIST List; // list of nodes for the list view, in actual display order

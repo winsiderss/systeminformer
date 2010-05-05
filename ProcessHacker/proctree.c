@@ -79,6 +79,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 3, DT_RIGHT);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -238,6 +239,12 @@ VOID PhUpdateProcessNode(
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
 
     TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
+
+    if (ProcessTreeListSortOrder != NoSortOrder)
+    {
+        // Force a rebuild to sort the items.
+        TreeList_NodesStructured(ProcessTreeListHandle);
+    }
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
@@ -275,7 +282,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserName)
 {
-    sortResult = wcsicmp2(PhGetString(processItem1->UserName), PhGetString(processItem2->UserName));
+    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Cpu)
+{
+    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
 }
 END_SORT_FUNCTION
 
@@ -318,7 +331,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     {
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Pid),
-                        SORT_FUNCTION(UserName)
+                        SORT_FUNCTION(UserName),
+                        SORT_FUNCTION(Cpu)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -365,6 +379,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHTLC_USERNAME:
                 getNodeText->Text = PhGetStringRefOrEmpty(node->ProcessItem->UserName);
+                break;
+            case PHTLC_CPU:
+                PhInitializeStringRef(&getNodeText->Text, node->ProcessItem->CpuUsageString);
                 break;
             default:
                 return FALSE;
