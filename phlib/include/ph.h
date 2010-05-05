@@ -279,6 +279,11 @@ NTSTATUS PhGetProcessCycleTime(
     __out PULONG64 CycleTime
     );
 
+NTSTATUS PhGetProcessConsoleHostProcessId(
+    __in HANDLE ProcessHandle,
+    __out PHANDLE ConsoleHostProcessId
+    );
+
 #define PH_PROCESS_DEP_ENABLED 0x1
 #define PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED 0x2
 #define PH_PROCESS_DEP_PERMANENT 0x4
