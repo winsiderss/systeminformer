@@ -57,6 +57,8 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     BOOLEAN IsInJob;
     BOOLEAN IsInSignificantJob;
 
+    HANDLE ConsoleHostProcessId;
+
     BOOLEAN IsPosix;
     BOOLEAN IsWow64;
 } PH_PROCESS_QUERY_S1_DATA, *PPH_PROCESS_QUERY_S1_DATA;
@@ -705,6 +707,12 @@ VOID PhpProcessQueryStage1(
         }
     }
 
+    // Console host process
+    if (WINDOWS_HAS_CONSOLE_HOST)
+    {
+        PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
+    }
+
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
@@ -822,6 +830,7 @@ VOID PhpFillProcessItemStage1(
     processItem->ElevationType = Data->ElevationType;
     processItem->IntegrityLevel = Data->IntegrityLevel;
     processItem->JobName = Data->JobName;
+    processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->IsElevated = Data->IsElevated;
     processItem->IsInJob = Data->IsInJob;
     processItem->IsInSignificantJob = Data->IsInSignificantJob;

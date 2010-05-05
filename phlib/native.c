@@ -1000,6 +1000,30 @@ NTSTATUS PhGetProcessCycleTime(
     return status;
 }
 
+NTSTATUS PhGetProcessConsoleHostProcessId(
+    __in HANDLE ProcessHandle,
+    __out PHANDLE ConsoleHostProcessId
+    )
+{
+    NTSTATUS status;
+    PROCESS_CONSOLE_HOST_PROCESS_INFORMATION consoleHostProcessInfo;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessConsoleHostProcess,
+        &consoleHostProcessInfo,
+        sizeof(PROCESS_CONSOLE_HOST_PROCESS_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *ConsoleHostProcessId = (HANDLE)consoleHostProcessInfo.ConsoleHostProcess;
+
+    return status;
+}
+
 NTSTATUS PhGetProcessDepStatus(
     __in HANDLE ProcessHandle,
     __out PULONG DepStatus

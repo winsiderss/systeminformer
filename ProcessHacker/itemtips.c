@@ -255,6 +255,19 @@ PPH_STRING PhGetProcessTooltipText(
                 );
         }
 
+        if (Process->ConsoleHostProcessId)
+        {
+            CLIENT_ID clientId;
+            PPH_STRING clientIdString;
+
+            clientId.UniqueProcess = Process->ConsoleHostProcessId;
+            clientId.UniqueThread = NULL;
+
+            clientIdString = PhGetClientIdName(&clientId);
+            PhStringBuilderAppendFormat(&notes, L"    Console host: %s\n", clientIdString->Buffer);
+            PhDereferenceObject(clientIdString);
+        }
+
         if (Process->IsDotNet)
             PhStringBuilderAppend2(&notes, L"    Process is managed (.NET).\n");
         if (Process->IsElevated)

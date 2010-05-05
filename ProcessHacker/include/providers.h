@@ -17,33 +17,49 @@ extern PH_CALLBACK PhProcessesUpdatedEvent;
 
 typedef struct _PH_PROCESS_ITEM
 {
+    // Basic
+
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     PPH_STRING ProcessName;
     ULONG SessionId;
 
+    LARGE_INTEGER CreateTime;
+
+    // Handles
+
     HANDLE QueryHandle;
+
+    // Parameters
 
     PPH_STRING FileName;
     PPH_STRING CommandLine;
+
+    // File
 
     HICON SmallIcon;
     HICON LargeIcon;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    LARGE_INTEGER CreateTime;
+    // Security
 
     PPH_STRING UserName;
     TOKEN_ELEVATION_TYPE ElevationType;
     PH_INTEGRITY IntegrityLevel;
 
+    // Other
+
     PPH_STRING JobName;
+    HANDLE ConsoleHostProcessId;
+
+    // Signature
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
-
     ULONG ImportFunctions;
     ULONG ImportModules;
+
+    // Flags
 
     ULONG HasParent : 1;
     ULONG IsBeingDebugged : 1;
@@ -54,6 +70,8 @@ typedef struct _PH_PROCESS_ITEM
     ULONG IsPacked : 1;
     ULONG IsPosix : 1;
     ULONG IsWow64 : 1;
+
+    // Misc.
 
     BOOLEAN JustProcessed;
     PH_EVENT Stage1Event;
@@ -66,6 +84,8 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR SessionIdString[PH_INT32_STR_LEN_1];
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
     WCHAR CpuUsageString[PH_INT32_STR_LEN_1];
+
+    // Statistics
 
     FLOAT CpuUsage; // from 0 to 1
 
