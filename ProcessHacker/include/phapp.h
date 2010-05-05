@@ -77,7 +77,8 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_NAME 0
 #define PHTLC_PID 1
 #define PHTLC_USERNAME 2
-#define PHTLC_MAXIMUM 3
+#define PHTLC_CPU 3
+#define PHTLC_MAXIMUM 4
 
 typedef struct _PH_PROCESS_NODE
 {
