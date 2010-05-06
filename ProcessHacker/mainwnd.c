@@ -1613,8 +1613,8 @@ VOID PhpInitializeProcessMenu(
     __in ULONG NumberOfProcesses
     )
 {
-#define MISCELLANEOUS_MENU_INDEX 11
-#define WINDOW_MENU_INDEX 13
+#define MISCELLANEOUS_MENU_INDEX 12
+#define WINDOW_MENU_INDEX 14
 
     if (NumberOfProcesses == 0)
     {
