@@ -26,6 +26,7 @@ typedef struct _PH_TREELIST_COLUMN
     struct
     {
         ULONG ViewIndex; // actual index in header control
+        ULONG ViewX;
     } s;
 } PH_TREELIST_COLUMN, *PPH_TREELIST_COLUMN;
 

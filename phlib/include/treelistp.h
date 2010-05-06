@@ -3,6 +3,8 @@
 
 #define PH_TREELIST_LISTVIEW_ID 4000
 
+#define PH_TREELIST_NEEDS_RECT_HACK (WindowsVersion <= WINDOWS_XP)
+
 typedef struct _PHP_TREELIST_CONTEXT
 {
     ULONG RefCount;
@@ -17,6 +19,8 @@ typedef struct _PHP_TREELIST_CONTEXT
     PPH_TREELIST_COLUMN *Columns; // columns, indexed by ID
     ULONG NumberOfColumns;
     ULONG AllocatedColumns;
+    PPH_TREELIST_COLUMN *ColumnsForViewX; // columns, indexed by display order
+    ULONG AllocatedColumnsForViewX;
     PPH_LIST List; // list of nodes for the list view, in actual display order
     BOOLEAN CanAnyExpand;
 
@@ -46,6 +50,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     // Drawing
 
     TEXTMETRIC TextMetrics;
+    RECT RowRect;
     PPH_HASHTABLE BrushCache;
     HTHEME ThemeData;
     BOOLEAN ThemeActive;
@@ -139,6 +144,10 @@ VOID PhpDeleteColumn(
     );
 
 VOID PhpRefreshColumns(
+    __in PPHP_TREELIST_CONTEXT Context
+    );
+
+VOID PhpRefreshColumnsViewX(
     __in PPHP_TREELIST_CONTEXT Context
     );
 
