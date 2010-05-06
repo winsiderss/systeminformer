@@ -23,6 +23,7 @@
 #define PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kph.h>
+#include <wtsapi32.h>
 
 VOID PhpQueueProcessQueryStage1(
     __in PPH_PROCESS_ITEM ProcessItem
@@ -118,6 +119,9 @@ SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 static PH_UINT64_DELTA PhCpuKernelDelta;
 static PH_UINT64_DELTA PhCpuUserDelta;
 static PH_UINT64_DELTA PhCpuOtherDelta;
+
+static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
+static ULONG PhpWtsNumberOfProcesses;
 
 BOOLEAN PhInitializeProcessProvider()
 {
@@ -893,7 +897,7 @@ VOID PhpFillProcessItem(
         {
             PPH_STRING fileName;
 
-            if (WindowsVersion >= WINDOWS_VISTA)
+            if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
                 status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
             else
                 status = PhGetProcessImageFileName(processHandle, &fileName);
@@ -960,6 +964,27 @@ VOID PhpFillProcessItem(
             ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
         else if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
             ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
+    }
+
+    if (!ProcessItem->UserName)
+    {
+        // In some cases we can get the user SID using WTS.
+
+        if (!PhpWtsProcesses)
+        {
+            WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, 0, 1, &PhpWtsProcesses, &PhpWtsNumberOfProcesses);
+        }
+
+        if (PhpWtsProcesses)
+        {
+            ULONG i;
+
+            for (i = 0; i < PhpWtsNumberOfProcesses; i++)
+            {
+                if (PhpWtsProcesses[i].ProcessId == (ULONG)ProcessItem->ProcessId)
+                    ProcessItem->UserName = PhGetSidFullName(PhpWtsProcesses[i].pUserSid, TRUE, NULL);
+            }
+        }
     }
 
     NtClose(processHandle);
@@ -1339,6 +1364,12 @@ VOID PhProcessProviderUpdate(
 
     PhClearList(pids);
     PhFree(processes);
+
+    if (PhpWtsProcesses)
+    {
+        WTSFreeMemory(PhpWtsProcesses);
+        PhpWtsProcesses = NULL;
+    }
 
     PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
     runCount++;
