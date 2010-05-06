@@ -966,9 +966,9 @@ VOID PhpFillProcessItem(
             ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
     }
 
-    if (!ProcessItem->UserName)
+    if (!ProcessItem->UserName && WindowsVersion <= WINDOWS_XP)
     {
-        // In some cases we can get the user SID using WTS.
+        // In some cases we can get the user SID using WTS (only works on XP and below).
 
         if (!PhpWtsProcesses)
         {
