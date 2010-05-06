@@ -161,8 +161,8 @@ typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
     struct
     {
         GUID Guid;
-        PPH_STRING Name;
-        PPH_STRING FileName;
+        PPH_STRING Name; // optional
+        PPH_STRING FileName; // optional
     } ComSurrogate;
 } PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
 

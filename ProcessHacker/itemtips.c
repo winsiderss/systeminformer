@@ -130,9 +130,14 @@ PPH_STRING PhGetProcessTooltipText(
                     PH_IMAGE_VERSION_INFO versionInfo;
                     PPH_STRING guidString;
 
-                    PhStringBuilderAppend2(&stringBuilder, L"COM target:\n    ");
-                    PhStringBuilderAppend(&stringBuilder, knownCommandLine.ComSurrogate.Name);
-                    PhStringBuilderAppendChar(&stringBuilder, '\n');
+                    PhStringBuilderAppend2(&stringBuilder, L"COM target:\n");
+
+                    if (knownCommandLine.ComSurrogate.Name)
+                    {
+                        PhStringBuilderAppend2(&stringBuilder, L"    ");
+                        PhStringBuilderAppend(&stringBuilder, knownCommandLine.ComSurrogate.Name);
+                        PhStringBuilderAppendChar(&stringBuilder, '\n');
+                    }
 
                     if (guidString = PhFormatGuid(&knownCommandLine.ComSurrogate.Guid))
                     {
@@ -142,7 +147,7 @@ PPH_STRING PhGetProcessTooltipText(
                         PhStringBuilderAppendChar(&stringBuilder, '\n');
                     }
 
-                    if (PhInitializeImageVersionInfo(
+                    if (knownCommandLine.ComSurrogate.FileName && PhInitializeImageVersionInfo(
                         &versionInfo,
                         knownCommandLine.ComSurrogate.FileName->Buffer
                         ))
