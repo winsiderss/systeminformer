@@ -45,6 +45,8 @@
 #include <treelistp.h>
 #include <vsstyle.h>
 
+static HIMAGELIST PhpTreeListDummyImageList;
+
 BOOLEAN PhTreeListInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
@@ -61,7 +63,12 @@ BOOLEAN PhTreeListInitialization()
     c.lpszClassName = PH_TREELIST_CLASSNAME;
     c.hIconSm = NULL;
 
-    return !!RegisterClassEx(&c);
+    if (!RegisterClassEx(&c))
+        return FALSE;
+
+    PhpTreeListDummyImageList = ImageList_Create(16, 16, ILC_COLOR, 1, 1);
+
+    return TRUE;
 }
 
 HWND PhCreateTreeListControl(
@@ -101,6 +108,8 @@ VOID PhpCreateTreeListContext(
     context->Columns = NULL;
     context->NumberOfColumns = 0;
     context->AllocatedColumns = 0;
+    context->ColumnsForViewX = NULL;
+    context->AllocatedColumnsForViewX = 0;
     context->List = PhCreateList(64);
     context->CanAnyExpand = FALSE;
 
@@ -143,6 +152,8 @@ VOID PhpDereferenceTreeListContext(
 
         if (Context->Columns)
             PhFree(Context->Columns);
+        if (Context->ColumnsForViewX)
+            PhFree(Context->ColumnsForViewX);
 
         PhDereferenceObject(Context->List);
         PhDereferenceObject(Context->BrushCache);
@@ -236,6 +247,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PhpReloadThemeData(context);
 
             SendMessage(hwnd, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
+
+            // Make sure we have a minimum size of 16 pixels for each row using this hack.
+            ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);
         }
         break;
     case WM_DESTROY:
@@ -505,10 +519,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             return CDRF_NOTIFYSUBITEMDRAW;
                         case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
                             {
-                                // We sometimes get useless notifications where the 
-                                // rectangle is 0 - just ignore them.
-                                if (customDraw->nmcd.rc.right - customDraw->nmcd.rc.left == 0)
-                                    return CDRF_SKIPDEFAULT;
+                                if (!PH_TREELIST_NEEDS_RECT_HACK)
+                                {
+                                    // We sometimes get useless notifications where the 
+                                    // rectangle is 0 - just ignore them.
+                                    if ((customDraw->nmcd.rc.left | 
+                                        customDraw->nmcd.rc.top |
+                                        customDraw->nmcd.rc.right |
+                                        customDraw->nmcd.rc.bottom) == 0)
+                                        return CDRF_SKIPDEFAULT;
+                                }
 
                                 PhpCustomDrawPrePaintSubItem(context, customDraw);
                             }
@@ -676,6 +696,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
             {
                 realColumn->s.ViewIndex = -1;
             }
+
+            PhpRefreshColumnsViewX(context);
         }
         return TRUE;
     case TLM_SETCOLUMN:
@@ -696,13 +718,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 {
                     if (column->Visible)
                     {
+                        column->DisplayIndex = MAXINT;
                         realColumn->s.ViewIndex = PhpInsertColumn(context, column);
                         // Other attributes already set by insertion.
+                        PhpRefreshColumnsViewX(context);
                         return TRUE;
                     }
                     else
                     {
                         PhpDeleteColumn(context, realColumn);
+                        PhpRefreshColumnsViewX(context);
 
                         return TRUE;
                     }
@@ -740,6 +765,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 }
 
                 ListView_SetColumn(context->ListViewHandle, realColumn->s.ViewIndex, &lvColumn);
+                PhpRefreshColumnsViewX(context);
             }
         }
         return TRUE;
@@ -755,7 +781,10 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 return FALSE;
 
             PhpDeleteColumn(context, realColumn);
+            PhpRefreshColumnsViewX(context);
             context->Columns[column->Id] = NULL;
+
+            context->NumberOfColumns--;
         }
         return TRUE;
     case TLM_SETPLUSMINUS:
@@ -978,13 +1007,15 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
 
                         // A column has been resized, so update our stored width.
 
-                        lvColumn.mask = LVCF_SUBITEM;
+                        lvColumn.mask = LVCF_SUBITEM | LVCF_WIDTH;
 
                         if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
                         {
                             column = context->Columns[lvColumn.iSubItem];
-                            column->Width = header2->pitem->cxy;
+                            column->Width = lvColumn.cx;
                         }
+
+                        PhpRefreshColumnsViewX(context);
                     }
                 }
                 break;
@@ -1042,6 +1073,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         // Columns have been reordered, so refresh our entire column list.
 
                         PhpRefreshColumns(context);
+                        PhpRefreshColumnsViewX(context);
                     }
                 }
                 break;
@@ -1068,10 +1100,12 @@ static VOID PhpCustomDrawPrePaintItem(
     HDC hdc;
     HBRUSH backBrush;
     PPVOID cacheItem;
+    RECT rowRect;
 
     itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
     node = Context->List->Items[itemIndex];
     hdc = CustomDraw->nmcd.hdc;
+    rowRect = CustomDraw->nmcd.rc;
 
     if (node->State == NormalItemState)
     {
@@ -1226,13 +1260,20 @@ static VOID PhpCustomDrawPrePaintItem(
         }
     }
 
+    GetTextMetrics(hdc, &Context->TextMetrics);
+
+    if (PH_TREELIST_NEEDS_RECT_HACK)
+    {
+        // XP doesn't fill in the nmcd.rc field properly, so we have to use this hack.
+        ListView_GetSubItemRect(Context->ListViewHandle, itemIndex, 0, LVIR_BOUNDS, &Context->RowRect);
+        rowRect = Context->RowRect;
+    }
+
     FillRect(
         hdc,
-        &CustomDraw->nmcd.rc,
+        &rowRect,
         backBrush
         );
-
-    GetTextMetrics(hdc, &Context->TextMetrics);
 }
 
 static VOID PhpCustomDrawPrePaintSubItem(
@@ -1260,8 +1301,19 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
     font = node->Font;
     column = Context->Columns[subItemIndex];
-    textRect = origTextRect = CustomDraw->nmcd.rc;
     textFlags = column->TextFlags;
+
+    origTextRect = CustomDraw->nmcd.rc;
+
+    if (PH_TREELIST_NEEDS_RECT_HACK)
+    {
+        origTextRect.left = Context->RowRect.left + column->s.ViewX; // left may be negative if scrolled horizontally
+        origTextRect.top = Context->RowRect.top;
+        origTextRect.right = origTextRect.left + column->Width;
+        origTextRect.bottom = Context->RowRect.bottom;
+    }
+
+    textRect = origTextRect;
 
     // Initial margins used by default list view
     textRect.left += 2;
@@ -1601,6 +1653,39 @@ static VOID PhpRefreshColumns(
         column->DisplayIndex = lvColumn.iOrder;
 
         i++;
+    }
+}
+
+static VOID PhpRefreshColumnsViewX(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+    ULONG i;
+    ULONG x;
+
+    if (Context->AllocatedColumnsForViewX < Context->NumberOfColumns)
+    {
+        if (Context->ColumnsForViewX)
+            PhFree(Context->ColumnsForViewX);
+
+        Context->ColumnsForViewX = PhAllocate(sizeof(PPH_TREELIST_COLUMN) * Context->NumberOfColumns);
+        Context->AllocatedColumnsForViewX = Context->NumberOfColumns;
+    }
+
+    for (i = 0; i < Context->NumberOfColumns; i++)
+    {
+        if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
+            PhRaiseStatus(STATUS_INTERNAL_ERROR);
+
+        Context->ColumnsForViewX[Context->Columns[i]->DisplayIndex] = Context->Columns[i];
+    }
+
+    x = 0;
+
+    for (i = 0; i < Context->AllocatedColumnsForViewX; i++)
+    {
+        Context->ColumnsForViewX[i]->s.ViewX = x;
+        x += Context->ColumnsForViewX[i]->Width;
     }
 }
 

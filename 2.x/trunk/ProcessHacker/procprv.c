@@ -927,7 +927,10 @@ VOID PhpFillProcessItem(
     }
 
     // Token-related information
-    if (processHandle)
+    if (
+        processHandle &&
+        !(WindowsVersion <= WINDOWS_XP && ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+        )
     {
         HANDLE tokenHandle;
 
@@ -954,6 +957,8 @@ VOID PhpFillProcessItem(
     else
     {
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+            ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
+        else if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
             ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
     }
 
