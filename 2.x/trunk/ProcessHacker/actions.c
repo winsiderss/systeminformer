@@ -175,7 +175,7 @@ static BOOLEAN PhpIsDangerousProcess(
     if (ProcessId == SYSTEM_PROCESS_ID)
         return TRUE;
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
     {
         status = PhGetProcessImageFileNameByProcessId(ProcessId, &fileName);
     }
