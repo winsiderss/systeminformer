@@ -514,6 +514,19 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             return CDRF_NOTIFYITEMDRAW;
                         case CDDS_ITEMPREPAINT:
                             {
+                                if (PH_TREELIST_NEEDS_RECT_HACK)
+                                {
+                                    // On XP:
+                                    // When the mouse is hovered over an item we get 
+                                    // useless notifications where CDDS_ITEMPREPAINT 
+                                    // is sent but CDDS_ITEMPREPAINT | CDDS_SUBITEM is 
+                                    // only sent for sub item 0. This screws up the 
+                                    // whole thing, but we can filter them out by checking 
+                                    // the item state.
+                                    if (customDraw->nmcd.uItemState == 0)
+                                        return CDRF_SKIPDEFAULT;
+                                }
+
                                 PhpCustomDrawPrePaintItem(context, customDraw);
                             }
                             return CDRF_NOTIFYSUBITEMDRAW;
@@ -1429,6 +1442,8 @@ static VOID PhpCustomDrawPrePaintSubItem(
     {
         textRect.top = origTextRect.top + textVertMargin;
         textRect.bottom = origTextRect.bottom - textVertMargin;
+
+        wprintf(L"DrawText %d %d %d\n", itemIndex, subItemIndex, CustomDraw->nmcd.uItemState);
 
         DrawText(
             CustomDraw->nmcd.hdc,
