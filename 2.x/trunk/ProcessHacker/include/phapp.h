@@ -381,6 +381,21 @@ BOOLEAN PhUiPoweroffComputer(
     __in HWND hWnd
     );
 
+BOOLEAN PhUiConnectSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    );
+
+BOOLEAN PhUiDisconnectSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    );
+
+BOOLEAN PhUiLogoffSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    );
+
 BOOLEAN PhUiTerminateProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
@@ -586,11 +601,15 @@ VOID PhShowProcessAffinityDialog(
 
 #define PH_CHOICE_DIALOG_SAVED_CHOICES 10
 
+#define PH_CHOICE_DIALOG_CHOICE 0x0
 #define PH_CHOICE_DIALOG_USER_CHOICE 0x1
+#define PH_CHOICE_DIALOG_PASSWORD 0x2
+#define PH_CHOICE_DIALOG_TYPE_MASK 0x3
 
 BOOLEAN PhaChoiceDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Title,
+    __in PWSTR Message,
     __in_opt PWSTR *Choices,
     __in_opt ULONG NumberOfChoices,
     __in_opt PWSTR Option,

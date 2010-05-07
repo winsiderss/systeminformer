@@ -225,6 +225,8 @@
 #define IDC_STATICBL9                   1138
 #define IDC_STATICBL10                  1139
 #define IDC_STATICBL11                  1140
+#define IDC_CHOICESIMPLE                1141
+#define IDC_MESSAGE                     1142
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -347,6 +349,7 @@
 #define ID_COMPUTER_FORCEON             40135
 #define ID_FORCEON_SYSTEM               40136
 #define ID_FORCEON_DISPLAY              40137
+#define ID_USER_CONNECT                 40138
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -354,8 +357,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        162
-#define _APS_NEXT_COMMAND_VALUE         40138
-#define _APS_NEXT_CONTROL_VALUE         1141
+#define _APS_NEXT_COMMAND_VALUE         40139
+#define _APS_NEXT_CONTROL_VALUE         1143
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

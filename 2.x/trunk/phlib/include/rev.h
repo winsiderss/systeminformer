@@ -48,4 +48,14 @@ typedef ULONG (NTAPI *_I_QueryTagInformation)(
     __inout PSC_SERVICE_TAG_QUERY Query
     );
 
+// Winsta
+
+typedef BOOLEAN (NTAPI *_WinStationConnectW)(
+    __in HANDLE ServerHandle,
+    __in ULONG TargetSessionId,
+    __in ULONG CurrentSessionId, // -1 for current session ID
+    __in_opt PWSTR Password,
+    __in BOOLEAN Wait
+    );
+
 #endif

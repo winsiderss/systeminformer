@@ -27,6 +27,7 @@
 typedef struct _CHOICE_DIALOG_CONTEXT
 {
     PWSTR Title;
+    PWSTR Message;
     PWSTR *Choices;
     ULONG NumberOfChoices;
     PWSTR Option;
@@ -48,6 +49,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 BOOLEAN PhaChoiceDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Title,
+    __in PWSTR Message,
     __in_opt PWSTR *Choices,
     __in_opt ULONG NumberOfChoices,
     __in_opt PWSTR Option,
@@ -60,6 +62,7 @@ BOOLEAN PhaChoiceDialog(
     CHOICE_DIALOG_CONTEXT context;
 
     context.Title = Title;
+    context.Message = Message;
     context.Choices = Choices;
     context.NumberOfChoices = NumberOfChoices;
     context.Option = Option;
@@ -89,6 +92,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
     case WM_INITDIALOG:
         {
             PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)lParam;
+            ULONG type;
             ULONG i;
             HWND comboBoxHandle;
             HWND checkBoxHandle;
@@ -100,37 +104,42 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetWindowText(hwndDlg, context->Title);
+            SetWindowText(GetDlgItem(hwndDlg, IDC_MESSAGE), context->Message);
 
-            // Select the combo box to show, depending on whether we allow 
-            // the user to enter a choice. This is because it is impossible to 
-            // change the style of the combo box after it is created.
-            if (!(context->Flags & PH_CHOICE_DIALOG_USER_CHOICE))
+            type = context->Flags & PH_CHOICE_DIALOG_TYPE_MASK;
+
+            // Select the control to show, depending on the type. This is 
+            // because it is impossible to change the style of the combo box 
+            // after it is created.
+            switch (type)
             {
-                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICEUSER), SW_HIDE);
-            }
-            else
-            {
+            case PH_CHOICE_DIALOG_USER_CHOICE:
                 comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICEUSER);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICE), SW_HIDE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICEUSER), SW_SHOW);
+                break;
+            case PH_CHOICE_DIALOG_PASSWORD:
+                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICESIMPLE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICESIMPLE), SW_SHOW);
+
+                // Disable combo box features since it isn't a combo box.
+                context->SavedChoicesSettingName = NULL;
+                break;
+            case PH_CHOICE_DIALOG_CHOICE:
+            default:
+                comboBoxHandle = GetDlgItem(hwndDlg, IDC_CHOICE);
+                ShowWindow(GetDlgItem(hwndDlg, IDC_CHOICE), SW_SHOW);
+                break;
             }
 
             context->ComboBoxHandle = comboBoxHandle;
 
             checkBoxHandle = GetDlgItem(hwndDlg, IDC_OPTION);
 
-            // If we're allowing user choices and a setting name was specified, load 
-            // the saved choices.
-            if (!((context->Flags & PH_CHOICE_DIALOG_USER_CHOICE) && context->SavedChoicesSettingName))
+            if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
-                for (i = 0; i < context->NumberOfChoices; i++)
-                {
-                    ComboBox_AddString(comboBoxHandle, context->Choices[i]);
-                }
-
-                context->SavedChoicesSettingName = NULL; // make sure we don't try to save the choices
+                // Nothing
             }
-            else
+            else if (type == PH_CHOICE_DIALOG_USER_CHOICE && context->SavedChoicesSettingName)
             {
                 PPH_STRING savedChoices = PhGetStringSetting(context->SavedChoicesSettingName);
                 ULONG i;
@@ -156,14 +165,44 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                 PhDereferenceObject(savedChoices);
             }
-
-            // If we failed to choose a default choice based on what was specified, 
-            // select the first one if possible.
-            if ((!(*context->SelectedChoice) || ComboBox_SelectString(
-                comboBoxHandle, -1, (*context->SelectedChoice)->Buffer) == CB_ERR) &&
-                !(context->Flags & PH_CHOICE_DIALOG_USER_CHOICE) && context->NumberOfChoices != 0)
+            else
             {
-                ComboBox_SelectString(comboBoxHandle, -1, context->Choices[0]);
+                for (i = 0; i < context->NumberOfChoices; i++)
+                {
+                    ComboBox_AddString(comboBoxHandle, context->Choices[i]);
+                }
+
+                context->SavedChoicesSettingName = NULL; // make sure we don't try to save the choices
+            }
+
+            SetFocus(comboBoxHandle);
+
+            if (type == PH_CHOICE_DIALOG_PASSWORD)
+            {
+                if (*context->SelectedChoice)
+                    SetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+
+                Edit_SetSel(comboBoxHandle, 0, -1);
+            }
+            else if (type == PH_CHOICE_DIALOG_USER_CHOICE || type == PH_CHOICE_DIALOG_CHOICE)
+            {
+                // If we failed to choose a default choice based on what was specified, 
+                // select the first one if possible, or set the text directly.
+                if (!(*context->SelectedChoice) || ComboBox_SelectString(
+                    comboBoxHandle, -1, (*context->SelectedChoice)->Buffer) == CB_ERR)
+                {
+                    if (type == PH_CHOICE_DIALOG_USER_CHOICE && *context->SelectedChoice)
+                    {
+                        SetWindowText(comboBoxHandle, (*context->SelectedChoice)->Buffer);
+                    }
+                    else if (type == PH_CHOICE_DIALOG_CHOICE && context->NumberOfChoices != 0)
+                    {
+                        ComboBox_SelectString(comboBoxHandle, -1, context->Choices[0]);
+                    }
+                }
+
+                if (type == PH_CHOICE_DIALOG_USER_CHOICE)
+                    ComboBox_SetEditSel(comboBoxHandle, 0, -1);
             }
 
             if (context->Option)

@@ -522,25 +522,19 @@ LRESULT CALLBACK PhMainWndProc(
                     PhFreeFileDialog(fileDialog);
                 }
                 break;
+            case ID_USER_CONNECT:
+                {
+                    PhUiConnectSession(hWnd, SelectedUserSessionId);
+                }
+                break;
             case ID_USER_DISCONNECT:
                 {
-                    if (!WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
-                        PhShowStatus(hWnd, L"Unable to disconnect the session", 0, GetLastError());
+                    PhUiDisconnectSession(hWnd, SelectedUserSessionId);
                 }
                 break;
             case ID_USER_LOGOFF:
                 {
-                    if (PhShowConfirmMessage(
-                        hWnd,
-                        L"logoff",
-                        L"the user",
-                        NULL,
-                        FALSE
-                        ))
-                    {
-                        if (!WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SelectedUserSessionId, FALSE))
-                            PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
-                    }
+                    PhUiLogoffSession(hWnd, SelectedUserSessionId);
                 }
                 break;
             case ID_USER_SENDMESSAGE:
@@ -983,6 +977,7 @@ LRESULT CALLBACK PhMainWndProc(
         {
             switch (LOWORD(wParam))
             {
+            case ID_USER_CONNECT:
             case ID_USER_DISCONNECT:
             case ID_USER_LOGOFF:
             case ID_USER_SENDMESSAGE:
