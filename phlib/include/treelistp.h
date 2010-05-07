@@ -51,7 +51,6 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     TEXTMETRIC TextMetrics;
     RECT RowRect;
-    PPH_HASHTABLE BrushCache;
     HTHEME ThemeData;
     BOOLEAN ThemeActive;
     HBITMAP PlusBitmap;

@@ -126,7 +126,6 @@ VOID PhpCreateTreeListContext(
 
     context->EnableRedraw = 1;
     context->Cursor = NULL;
-    context->BrushCache = PhCreateSimpleHashtable(16);
     context->ThemeData = NULL;
     context->PlusBitmap = NULL;
     context->MinusBitmap = NULL;
@@ -148,15 +147,12 @@ VOID PhpDereferenceTreeListContext(
 {
     if (--Context->RefCount == 0)
     {
-        PhpClearBrushCache(Context);
-
         if (Context->Columns)
             PhFree(Context->Columns);
         if (Context->ColumnsForViewX)
             PhFree(Context->ColumnsForViewX);
 
         PhDereferenceObject(Context->List);
-        PhDereferenceObject(Context->BrushCache);
 
         if (Context->ThemeData)
             CloseThemeData_I(Context->ThemeData);
@@ -1112,7 +1108,6 @@ static VOID PhpCustomDrawPrePaintItem(
     ULONG itemIndex;
     HDC hdc;
     HBRUSH backBrush;
-    PPVOID cacheItem;
     RECT rowRect;
 
     itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
@@ -1251,26 +1246,8 @@ static VOID PhpCustomDrawPrePaintItem(
     else
     {
         SetTextColor(hdc, node->s.DrawForeColor);
-
-        cacheItem = PhGetSimpleHashtableItem(Context->BrushCache, (PVOID)node->BackColor);
-
-        if (cacheItem)
-        {
-            backBrush = (HBRUSH)*cacheItem;
-        }
-        else
-        {
-            backBrush = CreateSolidBrush(node->BackColor);
-
-            if (backBrush)
-            {
-                PhAddSimpleHashtableItem(
-                    Context->BrushCache,
-                    (PVOID)node->BackColor,
-                    (PVOID)backBrush
-                    );
-            }
-        }
+        SetDCBrushColor(hdc, node->BackColor);
+        backBrush = GetStockObject(DC_BRUSH);
     }
 
     GetTextMetrics(hdc, &Context->TextMetrics);
@@ -1712,21 +1689,6 @@ static VOID PhpApplyNodeState(
     Node->Selected = !!(State & LVIS_SELECTED);
     Node->Focused = !!(State & LVIS_FOCUSED);
     Node->s.ViewState = State;
-}
-
-static VOID PhpClearBrushCache(
-    __in PPHP_TREELIST_CONTEXT Context
-    )
-{
-    ULONG enumerationKey = 0;
-    PPH_KEY_VALUE_PAIR pair;
-
-    while (PhEnumHashtable(Context->BrushCache, &pair, &enumerationKey))
-    {
-        DeleteObject((HGDIOBJ)pair->Value);
-    }
-
-    PhClearHashtable(Context->BrushCache);
 }
 
 static VOID PhpReloadThemeData(
