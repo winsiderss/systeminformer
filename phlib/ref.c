@@ -56,7 +56,7 @@ NTSTATUS PhInitializeRef()
     InitializeListHead(&PhDbgObjectListHead);
     PhInitializeQueuedLock(&PhDbgObjectListLock);
 #endif
-    
+
     // Create the fundamental object type.
     status = PhCreateObjectType(
         &PhObjectTypeObject,
@@ -64,10 +64,10 @@ NTSTATUS PhInitializeRef()
         0,
         NULL
         );
-    
+
     if (!NT_SUCCESS(status))
         return status;
-    
+
     // Now that the fundamental object type exists, fix it up.
     PhObjectToObjectHeader(PhObjectTypeObject)->Type = PhObjectTypeObject;
     PhObjectTypeObject->NumberOfObjects = 1;
@@ -88,7 +88,7 @@ NTSTATUS PhInitializeRef()
 
     if (PhpAutoPoolTlsIndex == TLS_OUT_OF_INDEXES)
         return STATUS_INSUFFICIENT_RESOURCES;
-    
+
     return status;
 }
 
@@ -274,7 +274,7 @@ NTSTATUS PhCreateObjectTypeEx(
         PhObjectTypeObject,
         0
         );
-    
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -291,16 +291,16 @@ NTSTATUS PhCreateObjectTypeEx(
     }
 
     *ObjectType = objectType;
-    
+
     return status;
 }
 
 /**
  * Dereferences the specified object.
  * The object will be freed if its reference count reaches 0.
- * 
+ *
  * \param Object A pointer to the object to dereference.
- * 
+ *
  * \return TRUE if the object was freed, otherwise FALSE.
  */
 VOID PhDereferenceObject(
@@ -309,11 +309,11 @@ VOID PhDereferenceObject(
 {
     PPH_OBJECT_HEADER objectHeader;
     LONG newRefCount;
-    
+
     objectHeader = PhObjectToObjectHeader(Object);
     /* Decrement the reference count. */
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
-    
+
     /* Free the object if it has 0 references. */
     if (newRefCount == 0)
     {
@@ -325,9 +325,9 @@ VOID PhDereferenceObject(
  * Dereferences the specified object.
  * The object will be freed in a worker thread if its reference count 
  * reaches 0.
- * 
+ *
  * \param Object A pointer to the object to dereference.
- * 
+ *
  * \return TRUE if the object was freed, otherwise FALSE.
  */
 BOOLEAN PhDereferenceObjectDeferDelete(
@@ -340,11 +340,11 @@ BOOLEAN PhDereferenceObjectDeferDelete(
 /**
  * Dereferences the specified object.
  * The object will be freed if its reference count reaches 0.
- * 
+ *
  * \param Object A pointer to the object to dereference.
  * \param RefCount The number of references to remove.
  * \param DeferDelete Whether to defer deletion of the object.
- * 
+ *
  * \return The new reference count of the object.
  */
 __mayRaise LONG PhDereferenceObjectEx(
@@ -356,17 +356,17 @@ __mayRaise LONG PhDereferenceObjectEx(
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
     LONG newRefCount;
-    
+
     /* Make sure we're not subtracting a negative reference count. */
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
-    
+
     objectHeader = PhObjectToObjectHeader(Object);
-    
+
     /* Decrease the reference count. */
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, -RefCount);
     newRefCount = oldRefCount - RefCount;
-    
+
     /* Free the object if it has 0 references. */
     if (newRefCount == 0)
     {
@@ -384,11 +384,11 @@ __mayRaise LONG PhDereferenceObjectEx(
     {
         PhRaiseStatus(STATUS_INVALID_PARAMETER);
     }
-    
+
     return newRefCount;
 }
 
-/** 
+/**
  * Gets an object's type.
  *
  * \param Object A pointer to an object.
@@ -420,7 +420,7 @@ VOID PhGetObjectTypeInformation(
 
 /**
  * References the specified object.
- * 
+ *
  * \param Object A pointer to the object to reference.
  */
 VOID PhReferenceObject(
@@ -428,18 +428,18 @@ VOID PhReferenceObject(
     )
 {
     PPH_OBJECT_HEADER objectHeader;
-    
+
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increment the reference count. */
     _InterlockedIncrement(&objectHeader->RefCount);
 }
 
-/** 
+/**
  * References the specified object.
- * 
+ *
  * \param Object A pointer to the object to reference.
  * \param RefCount The number of references to add.
- * 
+ *
  * \return The new reference count of the object.
  */
 __mayRaise LONG PhReferenceObjectEx(
@@ -449,27 +449,27 @@ __mayRaise LONG PhReferenceObjectEx(
 {
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
-    
+
     /* Make sure we're not adding a negative reference count. */
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
-    
+
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increase the reference count. */
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
-    
+
     return oldRefCount + RefCount;
 }
 
 /**
  * Attempts to reference an object and fails if it is being 
  * destroyed.
- * 
+ *
  * \param Object The object to reference if it is not being deleted.
- * 
+ *
  * \return TRUE if the object was referenced, FALSE if 
  * it was being deleted and was not referenced.
- * 
+ *
  * \remarks
  * This function is useful if a reference to an object is 
  * held, protected by a mutex, and the delete procedure of 
@@ -483,11 +483,11 @@ BOOLEAN PhReferenceObjectSafe(
 {
     PPH_OBJECT_HEADER objectHeader;
     BOOLEAN result;
-    
+
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increase the reference count only if it isn't 0 (atomically). */
     result = PhpInterlockedIncrementSafe(&objectHeader->RefCount);
-    
+
     return result;
 }
 
@@ -526,7 +526,7 @@ NTSTATUS PhSetSecurityObject(
 
 /**
  * Allocates storage for an object.
- * 
+ *
  * \param ObjectSize The size of the object, excluding the header.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
@@ -547,7 +547,7 @@ VOID PhpDeferDeleteObject(
     )
 {
     PPH_OBJECT_HEADER nextToFree;
-    
+
     /* Add the object to the list while saving the old value, atomically.
      * Note that it is first-in, last-out.
      */
@@ -555,7 +555,7 @@ VOID PhpDeferDeleteObject(
     {
         nextToFree = PhObjectNextToFree;
         ObjectHeader->NextToFree = nextToFree;
-        
+
         /* Attempt to set the global next-to-free variable. */
         if (_InterlockedCompareExchangePointer(
             &PhObjectNextToFree,
@@ -566,12 +566,12 @@ VOID PhpDeferDeleteObject(
             /* Success. */
             break;
         }
-        
+
         /* Someone else changed the next-to-free variable. 
          * Go back and try again.
          */
     }
-    
+
     /* Was the to-free list empty before? If so, we need to queue 
      * a work item.
      */
@@ -581,7 +581,7 @@ VOID PhpDeferDeleteObject(
     }
 }
 
-/** 
+/**
  * Removes and frees objects from the to-free list.
  */
 NTSTATUS PhpDeferDeleteObjectRoutine(
@@ -607,7 +607,7 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
 /**
  * Calls the delete procedure for an object and frees its 
  * allocated storage.
- * 
+ *
  * \param ObjectHeader A pointer to the object header of an allocated object.
  */
 VOID PhpFreeObject(
@@ -622,7 +622,7 @@ VOID PhpFreeObject(
     RemoveEntryList(&ObjectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
-    
+
     /* Call the delete procedure if we have one. */
     if (ObjectHeader->Type->DeleteProcedure)
     {
@@ -631,7 +631,7 @@ VOID PhpFreeObject(
             0
             );
     }
-    
+
     PhFree(ObjectHeader);
 }
 
