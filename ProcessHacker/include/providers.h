@@ -83,19 +83,19 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR SessionIdString[PH_INT32_STR_LEN_1];
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
-    WCHAR CpuUsageString[PH_INT32_STR_LEN_1];
+    WCHAR CpuUsageString[PH_INT32_STR_LEN_1]; // volatile
 
     // Statistics
 
     FLOAT CpuUsage; // from 0 to 1
 
-    PH_UINT64_DELTA CpuKernelDelta;
-    PH_UINT64_DELTA CpuUserDelta;
-    PH_UINT64_DELTA IoReadDelta;
-    PH_UINT64_DELTA IoWriteDelta;
-    PH_UINT64_DELTA IoOtherDelta;
+    PH_UINT64_DELTA CpuKernelDelta; // volatile
+    PH_UINT64_DELTA CpuUserDelta; // volatile
+    PH_UINT64_DELTA IoReadDelta; // volatile
+    PH_UINT64_DELTA IoWriteDelta; // volatile
+    PH_UINT64_DELTA IoOtherDelta; // volatile
 
-    VM_COUNTERS_EX VmCounters;
+    VM_COUNTERS_EX VmCounters; // volatile
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhInitializeProcessProvider();

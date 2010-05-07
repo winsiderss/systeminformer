@@ -325,6 +325,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\graph.c"
+				>
+			</File>
+			<File
 				RelativePath=".\guisup.c"
 				>
 			</File>
@@ -424,6 +428,10 @@
 			</File>
 			<File
 				RelativePath=".\include\fastlock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\graph.h"
 				>
 			</File>
 			<File
