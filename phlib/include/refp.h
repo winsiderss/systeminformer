@@ -118,7 +118,7 @@ typedef struct _PH_OBJECT_TYPE
     GENERIC_MAPPING GenericMapping;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
-/** 
+/**
  * Increments a reference count, but will never increment 
  * from 0 to 1.
  *
@@ -129,21 +129,21 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
     )
 {
     LONG refCount;
-    
+
     /* Here we will attempt to increment the reference count, 
      * making sure that it is not 0.
      */
-    
+
     while (TRUE)
     {
         refCount = *RefCount;
-        
+
         /* Check if the reference count is 0. If it is, the 
          * object is being or about to be deleted.
          */
         if (refCount == 0)
             return FALSE;
-        
+
         /* Try to increment the reference count. */
         if (_InterlockedCompareExchange(
             RefCount,
@@ -154,7 +154,7 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
             /* Success. */
             return TRUE;
         }
-        
+
         /* Someone else changed the reference count before we did. 
          * Go back and try again.
          */
