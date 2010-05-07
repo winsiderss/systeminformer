@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <kph.h>
+#include <wtsapi32.h>
 
 static PWSTR DangerousProcesses[] =
 {
@@ -152,6 +153,88 @@ BOOLEAN PhUiPoweroffComputer(
             return TRUE;
         else
             PhShowStatus(hWnd, L"Unable to poweroff the computer", 0, GetLastError());
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhUiConnectSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    )
+{
+    _WinStationConnectW WinStationConnectW_I;
+    PPH_STRING selectedChoice = NULL;
+
+    WinStationConnectW_I = PhGetProcAddress(L"winsta.dll", "WinStationConnectW");
+
+    if (!WinStationConnectW_I)
+    {
+        PhShowError(hWnd, L"This feature is not supported on your operating system.");
+        return FALSE;
+    }
+
+    // Try once with no password.
+    if (WinStationConnectW_I(NULL, SessionId, -1, L"", TRUE))
+        return TRUE;
+
+    while (PhaChoiceDialog(
+        hWnd,
+        L"Connect to session",
+        L"Password:",
+        NULL,
+        0,
+        NULL,
+        PH_CHOICE_DIALOG_PASSWORD,
+        &selectedChoice,
+        NULL,
+        NULL
+        ))
+    {
+        if (WinStationConnectW_I(NULL, SessionId, -1, selectedChoice->Buffer, TRUE))
+        {
+            return TRUE;
+        }
+        else
+        {
+            if (!PhShowContinueStatus(hWnd, L"Unable to connect to the session", 0, GetLastError()))
+                break;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhUiDisconnectSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    )
+{
+    if (WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, SessionId, FALSE))
+        return TRUE;
+    else
+        PhShowStatus(hWnd, L"Unable to disconnect the session", 0, GetLastError());
+
+    return FALSE;
+}
+
+BOOLEAN PhUiLogoffSession(
+    __in HWND hWnd,
+    __in ULONG SessionId
+    )
+{
+    if (!PhGetIntegerSetting(L"EnableWarnings") || PhShowConfirmMessage(
+        hWnd,
+        L"logoff",
+        L"the user",
+        NULL,
+        FALSE
+        ))
+    {
+        if (WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SessionId, FALSE))
+            return TRUE;
+        else
+            PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());
     }
 
     return FALSE;
@@ -1156,6 +1239,7 @@ BOOLEAN PhUiSetDepStatusProcess(
     while (PhaChoiceDialog(
         hWnd,
         L"DEP",
+        L"DEP status:",
         choices,
         sizeof(choices) / sizeof(PWSTR),
         PhKphHandle ? L"Permanent" : NULL, // if no KPH, SetProcessDEPPolicy determines permanency
@@ -1201,15 +1285,17 @@ BOOLEAN PhUiSetDepStatusProcess(
         }
         else if (status == STATUS_NOT_SUPPORTED)
         {
-            PhShowError(
+            if (PhShowError(
                 hWnd,
                 L"This feature is not supported by your operating system. "
                 L"The minimum supported versions are Windows XP SP3 and Windows Vista SP1."
-                );
+                ) != IDOK)
+                break;
         }
         else
         {
-            PhpShowErrorProcess(hWnd, L"set the DEP status of", Process, status, 0);
+            if (!PhpShowErrorProcess(hWnd, L"set the DEP status of", Process, status, 0))
+                break;
         }
     }
 
@@ -1239,16 +1325,21 @@ BOOLEAN PhUiSetProtectionProcess(
     {
         selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
 
-        while (PhaChoiceDialog(hWnd, L"Protection", choices, sizeof(choices) / sizeof(PWSTR),
+        while (PhaChoiceDialog(hWnd, L"Protection", L"Protection:", choices, sizeof(choices) / sizeof(PWSTR),
             NULL, 0, &selectedChoice, NULL, NULL))
         {
             status = KphSetProcessProtected(PhKphHandle, Process->ProcessId,
                 PhStringEquals2(selectedChoice, L"Protected", FALSE));
 
             if (NT_SUCCESS(status))
+            {
                 return TRUE;
+            }
             else
-                PhpShowErrorProcess(hWnd, L"set the protection of", Process, status, 0);
+            {
+                if (!PhpShowErrorProcess(hWnd, L"set the protection of", Process, status, 0))
+                    break;
+            }
         }
     }
 

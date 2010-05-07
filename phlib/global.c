@@ -31,6 +31,7 @@ HFONT PhApplicationFont;
 PWSTR PhApplicationName = L"Application";
 HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
+ULONG PhCurrentSessionId;
 PPH_STRING PhCurrentUserName = NULL;
 BOOLEAN PhElevated;
 TOKEN_ELEVATION_TYPE PhElevationType;
@@ -93,6 +94,9 @@ NTSTATUS PhInitializePhLib()
                 PhGetTokenIsElevated(tokenHandle, &PhElevated);
                 PhGetTokenElevationType(tokenHandle, &PhElevationType);
             }
+
+            if (!NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId)))
+                PhCurrentSessionId = NtCurrentPeb()->SessionId;
 
             if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
             {
