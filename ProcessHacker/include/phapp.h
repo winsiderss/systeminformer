@@ -140,7 +140,11 @@ VOID PhGetSelectedProcessItems(
     __out PULONG NumberOfProcesses
     );
 
-VOID PhDeselectAllProcessItems();
+VOID PhDeselectAllProcessNodes();
+
+VOID PhSelectAndEnsureVisibleProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
 
 // support
 

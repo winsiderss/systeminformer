@@ -55,6 +55,10 @@ VOID PhpSaveWindowState();
 
 VOID PhpSaveAllSettings();
 
+VOID PhpSelectTabPage(
+    __in ULONG Index
+    );
+
 VOID PhpPrepareForEarlyShutdown();
 
 VOID PhpCancelEarlyShutdown();
@@ -571,7 +575,7 @@ LRESULT CALLBACK PhMainWndProc(
                     PhReferenceObjects(processes, numberOfProcesses);
 
                     if (PhUiTerminateProcesses(hWnd, processes, numberOfProcesses))
-                        PhDeselectAllProcessItems();
+                        PhDeselectAllProcessNodes();
 
                     PhDereferenceObjects(processes, numberOfProcesses);
                     PhFree(processes);
@@ -586,7 +590,7 @@ LRESULT CALLBACK PhMainWndProc(
                         PhReferenceObject(processItem);
 
                         if (PhUiTerminateTreeProcess(hWnd, processItem))
-                            PhDeselectAllProcessItems();
+                            PhDeselectAllProcessNodes();
 
                         PhDereferenceObject(processItem);
                     }
@@ -625,7 +629,7 @@ LRESULT CALLBACK PhMainWndProc(
                         PhReferenceObject(processItem);
 
                         if (PhUiRestartProcess(hWnd, processItem))
-                            PhDeselectAllProcessItems();
+                            PhDeselectAllProcessNodes();
 
                         PhDereferenceObject(processItem);
                     }
@@ -884,6 +888,22 @@ LRESULT CALLBACK PhMainWndProc(
                     if (processItem)
                     {
                         PhSearchOnlineString(hWnd, processItem->ProcessName->Buffer);
+                    }
+                }
+                break;
+            case ID_SERVICE_GOTOPROCESS:
+                {
+                    PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
+                    PPH_PROCESS_NODE processNode;
+
+                    if (serviceItem)
+                    {
+                        if (processNode = PhFindProcessNode(serviceItem->ProcessId))
+                        {
+                            PhpSelectTabPage(ProcessesTabIndex);
+                            SetFocus(ProcessTreeListHandle);
+                            PhSelectAndEnsureVisibleProcessNode(processNode);
+                        }
                     }
                 }
                 break;
@@ -1207,6 +1227,14 @@ VOID PhpSaveAllSettings()
 
     if (PhSettingsFileName)
         PhSaveSettings(PhSettingsFileName->Buffer);
+}
+
+VOID PhpSelectTabPage(
+    __in ULONG Index
+    )
+{
+    TabCtrl_SetCurSel(TabControlHandle, Index);
+    PhMainWndTabControlOnSelectionChanged();
 }
 
 VOID PhpPrepareForEarlyShutdown()
@@ -1880,7 +1908,8 @@ VOID PhpInitializeServiceMenu(
     }
     else if (NumberOfServices == 1)
     {
-        // Nothing
+        if (!Services[0]->ProcessId)
+            PhEnableMenuItem(Menu, ID_SERVICE_GOTOPROCESS, FALSE);
     }
     else
     {
