@@ -2117,7 +2117,7 @@ VOID PhMainWndOnProcessesUpdated()
     {
         TreeList_NodesStructured(ProcessTreeListHandle);
         TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
-        ProcessesNeedsRedraw = TRUE;
+        ProcessesNeedsRedraw = FALSE;
     }
 }
 

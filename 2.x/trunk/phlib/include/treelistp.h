@@ -30,13 +30,6 @@ typedef struct _PHP_TREELIST_CONTEXT
     ULONG SortColumn;
     PH_SORT_ORDER SortOrder;
 
-    // State Highlighting
-
-    LONG EnableStateHighlighting;
-    ULONG HighlightingDuration;
-    COLORREF NewColor;
-    COLORREF RemovingColor;
-
     // List View WndProc Hooking
 
     WNDPROC OldLvWndProc;
@@ -44,6 +37,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     // Misc.
 
     LONG EnableRedraw;
+    BOOLEAN NeedsRestructure;
     HCURSOR Cursor;
     BOOLEAN HasFocus;
 
@@ -126,6 +120,10 @@ VOID PhpInsertNodeChildren(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node,
     __in ULONG Level
+    );
+
+VOID PhpRestructureNodes(
+    __in PPHP_TREELIST_CONTEXT Context
     );
 
 INT PhpInsertColumn(
