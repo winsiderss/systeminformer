@@ -108,10 +108,10 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
-        serviceItem->ProcessId = Information->ServiceStatusProcess.dwProcessId;
+        serviceItem->ProcessId = (HANDLE)Information->ServiceStatusProcess.dwProcessId;
 
         if (serviceItem->ProcessId)
-            PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
+            PhPrintUInt32(serviceItem->ProcessIdString, (ULONG)serviceItem->ProcessId);
     }
 
     return serviceItem;
@@ -489,7 +489,7 @@ VOID PhServiceProviderUpdate(
                 serviceItem->Type != services[i].ServiceStatusProcess.dwServiceType || 
                 serviceItem->State != services[i].ServiceStatusProcess.dwCurrentState ||
                 serviceItem->ControlsAccepted != services[i].ServiceStatusProcess.dwControlsAccepted ||
-                serviceItem->ProcessId != services[i].ServiceStatusProcess.dwProcessId ||
+                serviceItem->ProcessId != (HANDLE)services[i].ServiceStatusProcess.dwProcessId ||
                 serviceItem->NeedsConfigUpdate
                 )
             {
@@ -509,10 +509,10 @@ VOID PhServiceProviderUpdate(
                 serviceItem->Type = services[i].ServiceStatusProcess.dwServiceType;
                 serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
                 serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
-                serviceItem->ProcessId = services[i].ServiceStatusProcess.dwProcessId;
+                serviceItem->ProcessId = (HANDLE)services[i].ServiceStatusProcess.dwProcessId;
 
                 if (serviceItem->ProcessId)
-                    PhPrintUInt32(serviceItem->ProcessIdString, serviceItem->ProcessId);
+                    PhPrintUInt32(serviceItem->ProcessIdString, (ULONG)serviceItem->ProcessId);
                 else
                     serviceItem->ProcessIdString[0] = 0;
 
