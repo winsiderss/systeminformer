@@ -46,6 +46,7 @@ VOID PhShowDebugConsole()
         return;
 
     freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
     freopen("CONIN$", "r", stdin);
     DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL); 
 }

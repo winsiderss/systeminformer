@@ -1420,8 +1420,6 @@ static VOID PhpCustomDrawPrePaintSubItem(
         textRect.top = origTextRect.top + textVertMargin;
         textRect.bottom = origTextRect.bottom - textVertMargin;
 
-        wprintf(L"DrawText %d %d %d\n", itemIndex, subItemIndex, CustomDraw->nmcd.uItemState);
-
         DrawText(
             CustomDraw->nmcd.hdc,
             text.Buffer,

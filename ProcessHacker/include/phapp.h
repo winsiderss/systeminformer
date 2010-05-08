@@ -26,7 +26,22 @@ extern COLORREF PhSysWindowColor;
 
 #endif
 
+// debugging
+
+#ifdef DEBUG
+#define dwprintf(format, ...) fwprintf(stderr, format, __VA_ARGS__)
+#define dwlprintf(format, ...) PhDebugPrintLine(format, __VA_ARGS__)
+#else
+#define dwprintf(format, ...)
+#define dwlprintf(format, ...)
+#endif
+
 // main
+
+VOID PhDebugPrintLine(
+    __in __format_string PWSTR Format,
+    ...
+    );
 
 typedef struct _PH_STARTUP_PARAMETERS
 {
@@ -45,6 +60,8 @@ typedef struct _PH_STARTUP_PARAMETERS
 
     BOOLEAN InstallKph;
     BOOLEAN UninstallKph;
+
+    BOOLEAN Debug;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
 
 INT PhMainMessageLoop();
