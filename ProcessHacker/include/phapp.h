@@ -154,8 +154,6 @@ VOID PhDeselectAllProcessNodes();
 
 VOID PhInvalidateAllProcessNodes();
 
-VOID PhInvalidateAllTextProcessNodes();
-
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
