@@ -268,6 +268,8 @@ VOID PhpRemoveProcessNode(
     PhDereferenceObject(ProcessNode->ProcessItem);
 
     PhFree(ProcessNode);
+
+    TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
 VOID PhUpdateProcessNode(
@@ -283,8 +285,6 @@ VOID PhUpdateProcessNode(
     }
 
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_COLOR | TLIN_ICON);
-
-    TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
 VOID PhTickProcessNodes()
@@ -301,13 +301,13 @@ VOID PhTickProcessNodes()
             memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHTLC_MAXIMUM - 2));
         }
 
-        InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
-
         if (ProcessTreeListSortOrder != NoSortOrder)
         {
             // Force a rebuild to sort the items.
             TreeList_NodesStructured(ProcessTreeListHandle);
         }
+
+        InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
     }
 
     // State highlighting
@@ -331,7 +331,6 @@ VOID PhTickProcessNodes()
             {
                 node->State = NormalItemState;
                 node->Node.UseTempBackColor = FALSE;
-                TreeList_UpdateNode(ProcessTreeListHandle, &node->Node);
             }
             else if (node->State == RemovingItemState)
             {

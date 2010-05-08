@@ -117,14 +117,10 @@ VOID PhpCreateTreeListContext(
     context->SortColumn = 0;
     context->SortOrder = AscendingSortOrder;
 
-    context->EnableStateHighlighting = 0;
-    context->HighlightingDuration = 1000;
-    context->NewColor = RGB(0x00, 0xff, 0x00);
-    context->RemovingColor = RGB(0xff, 0x00, 0x00);
-
     context->OldLvWndProc = NULL;
 
     context->EnableRedraw = 1;
+    context->NeedsRestructure = FALSE;
     context->Cursor = NULL;
     context->ThemeData = NULL;
     context->PlusBitmap = NULL;
@@ -632,24 +628,15 @@ LRESULT CALLBACK PhpTreeListWndProc(
         return TRUE;
     case TLM_NODESSTRUCTURED:
         {
-            PPH_TREELIST_NODE *children;
-            ULONG numberOfChildren;
-            ULONG i;
-
-            if (!PhpGetNodeChildren(context, NULL, &children, &numberOfChildren))
-                return FALSE;
-
-            // At this point we rebuild the entire list.
-
-            PhClearList(context->List);
-            context->CanAnyExpand = FALSE;
-
-            for (i = 0; i < numberOfChildren; i++)
+            if (context->EnableRedraw > 0)
             {
-                PhpInsertNodeChildren(context, children[i], 0);
+                PhpRestructureNodes(context);
             }
-
-            ListView_SetItemCountEx(context->ListViewHandle, context->List->Count, LVSICF_NOSCROLL);
+            else
+            {
+                context->NeedsRestructure = TRUE;
+                return TRUE;
+            }
         }
         return TRUE;
     case TLM_ADDCOLUMN:
@@ -852,6 +839,12 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             if (context->EnableRedraw == 1)
             {
+                if (context->NeedsRestructure)
+                {
+                    PhpRestructureNodes(context);
+                    context->NeedsRestructure = FALSE;
+                }
+
                 SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
                 InvalidateRect(context->ListViewHandle, NULL, TRUE);
             }
@@ -1542,6 +1535,30 @@ static VOID PhpInsertNodeChildren(
             }
         }
     }
+}
+
+static VOID PhpRestructureNodes(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+    PPH_TREELIST_NODE *children;
+    ULONG numberOfChildren;
+    ULONG i;
+
+    if (!PhpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
+        return;
+
+    // At this point we rebuild the entire list.
+
+    PhClearList(Context->List);
+    Context->CanAnyExpand = FALSE;
+
+    for (i = 0; i < numberOfChildren; i++)
+    {
+        PhpInsertNodeChildren(Context, children[i], 0);
+    }
+
+    ListView_SetItemCountEx(Context->ListViewHandle, Context->List->Count, LVSICF_NOSCROLL);
 }
 
 static INT PhpInsertColumn(
