@@ -861,24 +861,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
             }
         }
         return TRUE;
-    case TLM_SETNEWCOLOR:
-        {
-            context->NewColor = (COLORREF)wParam;
-        }
-        return TRUE;
-    case TLM_SETREMOVINGCOLOR:
-        {
-            context->RemovingColor = (COLORREF)wParam;
-        }
-        return TRUE;
-    case TLM_SETSTATEHIGHLIGHTING:
-        {
-            if (wParam)
-                context->EnableStateHighlighting++;
-            else
-                context->EnableStateHighlighting--;
-        }
-        return TRUE;
     case TLM_GETSORT:
         {
             PULONG sortColumn = (PULONG)wParam;
@@ -907,14 +889,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case TLM_SETTRISTATE:
         {
             context->TriState = !!wParam;
-        }
-        return TRUE;
-    case TLM_TICK:
-        {
-            if (context->EnableStateHighlighting > 0)
-            {
-                PhpTreeListTick(context);
-            }
         }
         return TRUE;
     case TLM_ENSUREVISIBLE:
@@ -1128,108 +1102,100 @@ static VOID PhpCustomDrawPrePaintItem(
     hdc = CustomDraw->nmcd.hdc;
     rowRect = CustomDraw->nmcd.rc;
 
-    if (node->State == NormalItemState)
+    if (!node->s.CachedColorValid)
     {
-        if (!node->s.CachedColorValid)
+        PH_TREELIST_GET_NODE_COLOR getNodeColor;
+
+        getNodeColor.Flags = 0;
+        getNodeColor.Node = node;
+        getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
+        getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeListGetNodeColor,
+            &getNodeColor,
+            NULL,
+            Context->Context
+            ))
         {
-            PH_TREELIST_GET_NODE_COLOR getNodeColor;
+            node->BackColor = getNodeColor.BackColor;
+            node->ForeColor = getNodeColor.ForeColor;
+            node->ColorFlags = getNodeColor.Flags & TLGNC_AUTO_FORECOLOR;
 
-            getNodeColor.Flags = 0;
-            getNodeColor.Node = node;
-            getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
-            getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
+            if (getNodeColor.Flags & TLC_CACHE)
+                node->s.CachedColorValid = TRUE;
 
-            if (Context->Callback(
-                Context->Handle,
-                TreeListGetNodeColor,
-                &getNodeColor,
-                NULL,
-                Context->Context
-                ))
-            {
-                node->BackColor = getNodeColor.BackColor;
-                node->ForeColor = getNodeColor.ForeColor;
-                node->ColorFlags = getNodeColor.Flags & TLGNC_AUTO_FORECOLOR;
-
-                if (getNodeColor.Flags & TLC_CACHE)
-                    node->s.CachedColorValid = TRUE;
-
-                node->s.DrawForeColor = node->ForeColor;
-            }
-            else
-            {
-                node->BackColor = getNodeColor.BackColor;
-                node->ForeColor = getNodeColor.ForeColor;
-            }
+            node->s.DrawBackColor = node->BackColor;
+            node->s.DrawForeColor = node->ForeColor;
         }
-
-        if (!node->s.CachedFontValid)
+        else
         {
-            PH_TREELIST_GET_NODE_FONT getNodeFont;
-
-            getNodeFont.Flags = 0;
-            getNodeFont.Node = node;
-            getNodeFont.Font = NULL;
-
-            if (Context->Callback(
-                Context->Handle,
-                TreeListGetNodeFont,
-                &getNodeFont,
-                NULL,
-                Context->Context
-                ))
-            {
-                node->Font = getNodeFont.Font;
-
-                if (getNodeFont.Flags & TLC_CACHE)
-                    node->s.CachedFontValid = TRUE;
-            }
-            else
-            {
-                node->Font = NULL;
-            }
-        }
-
-        if (!node->s.CachedIconValid)
-        {
-            PH_TREELIST_GET_NODE_ICON getNodeIcon;
-
-            getNodeIcon.Flags = 0;
-            getNodeIcon.Node = node;
-            getNodeIcon.Icon = NULL;
-
-            if (Context->Callback(
-                Context->Handle,
-                TreeListGetNodeIcon,
-                &getNodeIcon,
-                NULL,
-                Context->Context
-                ))
-            {
-                node->Icon = getNodeIcon.Icon;
-
-                if (getNodeIcon.Flags & TLC_CACHE)
-                    node->s.CachedIconValid = TRUE;
-            }
-            else
-            {
-                node->Icon = NULL;
-            }
+            node->s.DrawBackColor = node->BackColor = getNodeColor.BackColor;
+            node->s.DrawForeColor = node->ForeColor = getNodeColor.ForeColor;
         }
     }
-    else if (node->State == NewItemState)
+
+    if (node->UseTempBackColor)
+        node->s.DrawBackColor = node->TempBackColor;
+
+    if (!node->s.CachedFontValid)
     {
-        node->s.DrawForeColor = Context->NewColor;
-    }
-    else if (node->State == RemovingItemState)
-    {
-        node->s.DrawForeColor = Context->RemovingColor;
+        PH_TREELIST_GET_NODE_FONT getNodeFont;
+
+        getNodeFont.Flags = 0;
+        getNodeFont.Node = node;
+        getNodeFont.Font = NULL;
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeListGetNodeFont,
+            &getNodeFont,
+            NULL,
+            Context->Context
+            ))
+        {
+            node->Font = getNodeFont.Font;
+
+            if (getNodeFont.Flags & TLC_CACHE)
+                node->s.CachedFontValid = TRUE;
+        }
+        else
+        {
+            node->Font = NULL;
+        }
     }
 
-    if (node->State != NormalItemState ||
-        (node->ColorFlags & TLGNC_AUTO_FORECOLOR))
+    if (!node->s.CachedIconValid)
     {
-        if (PhGetColorBrightness(node->BackColor) > 100) // slightly less than half
+        PH_TREELIST_GET_NODE_ICON getNodeIcon;
+
+        getNodeIcon.Flags = 0;
+        getNodeIcon.Node = node;
+        getNodeIcon.Icon = NULL;
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeListGetNodeIcon,
+            &getNodeIcon,
+            NULL,
+            Context->Context
+            ))
+        {
+            node->Icon = getNodeIcon.Icon;
+
+            if (getNodeIcon.Flags & TLC_CACHE)
+                node->s.CachedIconValid = TRUE;
+        }
+        else
+        {
+            node->Icon = NULL;
+        }
+    }
+
+    if ((node->ColorFlags & TLGNC_AUTO_FORECOLOR) || node->UseTempBackColor)
+    {
+        if (PhGetColorBrightness(node->s.DrawBackColor) > 100) // slightly less than half
             node->s.DrawForeColor = RGB(0x00, 0x00, 0x00);
         else
             node->s.DrawForeColor = RGB(0xff, 0xff, 0xff);
@@ -1259,7 +1225,7 @@ static VOID PhpCustomDrawPrePaintItem(
     else
     {
         SetTextColor(hdc, node->s.DrawForeColor);
-        SetDCBrushColor(hdc, node->BackColor);
+        SetDCBrushColor(hdc, node->s.DrawBackColor);
         backBrush = GetStockObject(DC_BRUSH);
     }
 
@@ -1441,41 +1407,6 @@ static VOID PhpCustomDrawPrePaintSubItem(
             textFlags
             );
     }
-}
-
-static VOID PhpTreeListTick(
-    __in PPHP_TREELIST_CONTEXT Context
-    )
-{
-
-}
-
-static BOOLEAN PhpReferenceTreeListNode(
-    __in PPHP_TREELIST_CONTEXT Context,
-    __in PPH_TREELIST_NODE Node
-    )
-{
-    return Context->Callback(
-        Context->Handle,
-        TreeListReferenceNode,
-        Node,
-        NULL,
-        Context->Context
-        );
-}
-
-static BOOLEAN PhpDereferenceTreeListNode(
-    __in PPHP_TREELIST_CONTEXT Context,
-    __in PPH_TREELIST_NODE Node
-    )
-{
-    return Context->Callback(
-        Context->Handle,
-        TreeListDereferenceNode,
-        Node,
-        NULL,
-        Context->Context
-        );
 }
 
 static BOOLEAN PhpGetNodeChildren(
@@ -1735,8 +1666,6 @@ VOID PhInitializeTreeListNode(
 
     Node->Visible = TRUE;
     Node->Expanded = TRUE;
-
-    Node->State = NormalItemState;
 }
 
 VOID PhInvalidateTreeListNode(

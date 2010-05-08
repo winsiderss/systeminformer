@@ -93,10 +93,6 @@ VOID PhpCustomDrawPrePaintSubItem(
     __in LPNMLVCUSTOMDRAW CustomDraw
     );
 
-VOID PhpTreeListTick(
-    __in PPHP_TREELIST_CONTEXT Context
-    );
-
 BOOLEAN PhpReferenceTreeListNode(
     __in PPHP_TREELIST_CONTEXT Context,
     __in PPH_TREELIST_NODE Node

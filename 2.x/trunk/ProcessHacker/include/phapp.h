@@ -102,6 +102,10 @@ typedef struct _PH_PROCESS_NODE
 {
     PH_TREELIST_NODE Node;
 
+    PH_ITEM_STATE State;
+    HANDLE StateListHandle;
+    ULONG TickCount;
+
     HANDLE ProcessId;
     PPH_PROCESS_ITEM ProcessItem;
 
@@ -121,7 +125,8 @@ VOID PhInitializeProcessTreeList(
     );
 
 VOID PhCreateProcessNode(
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG RunId
     );
 
 PPH_PROCESS_NODE PhFindProcessNode(
@@ -135,6 +140,8 @@ VOID PhRemoveProcessNode(
 VOID PhUpdateProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
+
+VOID PhTickProcessNodes();
 
 PPH_PROCESS_ITEM PhGetSelectedProcessItem();
 
