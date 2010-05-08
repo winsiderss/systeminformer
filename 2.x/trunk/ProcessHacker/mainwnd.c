@@ -458,6 +458,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhShowFindObjectsDialog();
                 }
                 break;
+            case ID_HACKER_OPTIONS:
+                {
+                    PhShowOptionsDialog(hWnd);
+                }
+                break;
             case ID_HACKER_EXIT:
                 ProcessHacker_Destroy(hWnd);
                 break;

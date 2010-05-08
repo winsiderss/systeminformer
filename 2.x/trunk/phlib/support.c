@@ -23,7 +23,7 @@
 #define SUPPORT_PRIVATE
 #include <phgui.h>
 
-WCHAR *PhSizeUnitNames[] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
+WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
 
 /**
