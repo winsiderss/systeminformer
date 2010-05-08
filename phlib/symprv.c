@@ -559,6 +559,9 @@ VOID PhSymbolProviderSetSearchPath(
 {
     PPH_ANSI_STRING searchPath;
 
+    if (!SymSetSearchPath_I)
+        return;
+
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif

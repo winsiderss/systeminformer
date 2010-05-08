@@ -43,6 +43,22 @@ COLORREF PhSysWindowColor;
 static PPH_LIST DialogList;
 static PH_AUTO_POOL BaseAutoPool;
 
+VOID PhDebugPrintLine(
+    __in __format_string PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+    SYSTEMTIME time;
+
+    va_start(argptr, Format);
+    GetSystemTime(&time);
+
+    fwprintf(stderr, L"%u:%u:%u.%u: ", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+    vfwprintf(stderr, Format, argptr);
+    fputwc('\n', stderr);
+}
+
 INT WINAPI WinMain(
     __in HINSTANCE hInstance,
     __in_opt HINSTANCE hPrevInstance,
@@ -50,6 +66,7 @@ INT WINAPI WinMain(
     __in INT nCmdShow
     )
 {
+    ULONG result;
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
 #endif
@@ -185,7 +202,8 @@ INT WINAPI WinMain(
 
     PhDrainAutoPool(&BaseAutoPool);
 
-    return PhMainMessageLoop();
+    result = PhMainMessageLoop();
+    RtlExitUserProcess(result);
 }
 
 INT PhMainMessageLoop()
@@ -431,6 +449,7 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_NOKPH 10
 #define PH_ARG_INSTALLKPH 11
 #define PH_ARG_UNINSTALLKPH 12
+#define PH_ARG_DEBUG 13
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -478,6 +497,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_UNINSTALLKPH:
             PhStartupParameters.UninstallKph = TRUE;
             break;
+        case PH_ARG_DEBUG:
+            PhStartupParameters.Debug = TRUE;
+            break;
         }
     }
 
@@ -499,7 +521,8 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_RUNASSERVICEMODE, L"ras", NoArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
         { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
-        { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType }
+        { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType },
+        { PH_ARG_DEBUG, L"debug", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -523,6 +546,7 @@ VOID PhpProcessStartupParameters()
             L"-ctype command-type\n"
             L"-cobject command-object\n"
             L"-caction command-action\n"
+            L"-debug\n"
             L"-hide\n"
             L"-installkph\n"
             L"-nokph\n"
@@ -559,5 +583,11 @@ VOID PhpProcessStartupParameters()
             PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);
 
         RtlExitUserProcess(status);
+    }
+
+    if (PhStartupParameters.Debug)
+    {
+        // The symbol provider won't work if this is chosen.
+        PhShowDebugConsole();
     }
 }

@@ -151,7 +151,7 @@ mxmlElementGetAttr(mxml_node_t *node,	/* I - Element node */
   */
 
 #ifdef DEBUG
-  puts("    Returning NULL!\n");
+  fputs("    Returning NULL!\n", stderr);
 #endif /* DEBUG */
 
   return (NULL);
