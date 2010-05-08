@@ -78,8 +78,9 @@ VOID PhInitializeProcessTreeList(
 
     PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeListColumn(hwnd, PHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 3, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 2, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PVTMEMORY, TRUE, L"Pvt. Memory", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 4, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -109,7 +110,7 @@ VOID PhCreateProcessNode(
     ULONG i;
 
     processNode = PhAllocate(sizeof(PH_PROCESS_NODE));
-
+    memset(processNode, 0, sizeof(PH_PROCESS_NODE));
     PhInitializeTreeListNode(&processNode->Node);
 
     processNode->ProcessId = ProcessItem->ProcessId;
@@ -118,8 +119,6 @@ VOID PhCreateProcessNode(
     memset(processNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
     processNode->Node.TextCache = processNode->TextCache;
     processNode->Node.TextCacheSize = PHTLC_MAXIMUM;
-
-    processNode->TooltipText = NULL;
 
     processNode->Children = PhCreateList(1);
 
@@ -221,6 +220,9 @@ VOID PhRemoveProcessNode(
 
     PhDereferenceObject(ProcessNode->Children);
 
+    if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
+    if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
+
     TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
@@ -280,15 +282,21 @@ BEGIN_SORT_FUNCTION(Pid)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(UserName)
-{
-    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
-}
-END_SORT_FUNCTION
-
 BEGIN_SORT_FUNCTION(Cpu)
 {
     sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PvtMemory)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.PrivateUsage, processItem2->VmCounters.PrivateUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserName)
+{
+    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -331,8 +339,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     {
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Pid),
-                        SORT_FUNCTION(UserName),
-                        SORT_FUNCTION(Cpu)
+                        SORT_FUNCTION(Cpu),
+                        SORT_FUNCTION(PvtMemory),
+                        SORT_FUNCTION(UserName)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -366,22 +375,29 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
     case TreeListGetNodeText:
         {
             PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
+            PPH_PROCESS_ITEM processItem;
 
             node = (PPH_PROCESS_NODE)getNodeText->Node;
+            processItem = node->ProcessItem;
 
             switch (getNodeText->Id)
             {
             case PHTLC_NAME:
-                getNodeText->Text = node->ProcessItem->ProcessName->sr;
+                getNodeText->Text = processItem->ProcessName->sr;
                 break;
             case PHTLC_PID:
-                PhInitializeStringRef(&getNodeText->Text, node->ProcessItem->ProcessIdString);
-                break;
-            case PHTLC_USERNAME:
-                getNodeText->Text = PhGetStringRefOrEmpty(node->ProcessItem->UserName);
+                PhInitializeStringRef(&getNodeText->Text, processItem->ProcessIdString);
                 break;
             case PHTLC_CPU:
-                PhInitializeStringRef(&getNodeText->Text, node->ProcessItem->CpuUsageString);
+                PhInitializeStringRef(&getNodeText->Text, processItem->CpuUsageString);
+                break;
+            case PHTLC_PVTMEMORY:
+                if (node->PrivateMemoryText) PhDereferenceObject(node->PrivateMemoryText);
+                node->PrivateMemoryText = PhFormatSize(processItem->VmCounters.PrivateUsage, -1);
+                getNodeText->Text = node->PrivateMemoryText->sr;
+                break;
+            case PHTLC_USERNAME:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->UserName);
                 break;
             default:
                 return FALSE;
@@ -583,6 +599,21 @@ VOID PhDeselectAllProcessNodes()
 
         node->Node.Selected = FALSE;
         PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
+    }
+
+    InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
+}
+
+VOID PhInvalidateAllProcessNodes()
+{
+    ULONG i;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
+        PhInvalidateTreeListNode(&node->Node, TLIN_COLOR);
     }
 
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);

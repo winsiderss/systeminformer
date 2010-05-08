@@ -37,7 +37,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     __in LPARAM lParam
     );
 
-static BOOLEAN PressedOkOrApply;
+static BOOLEAN PressedOk;
 
 VOID PhShowOptionsDialog(
     __in HWND ParentWindowHandle
@@ -48,6 +48,7 @@ VOID PhShowOptionsDialog(
     HPROPSHEETPAGE pages[1];
 
     propSheetHeader.dwFlags =
+        PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
         PSH_USECALLBACK;
@@ -65,11 +66,14 @@ VOID PhShowOptionsDialog(
     propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-    PressedOkOrApply = FALSE;
+    PressedOk = FALSE;
     PropertySheet(&propSheetHeader);
 
-    if (PressedOkOrApply)
+    if (PressedOk)
+    {
         ProcessHacker_SaveAllSettings(PhMainWndHandle);
+        PhInvalidateAllProcessNodes();
+    }
 }
 
 INT CALLBACK PhpOptionsPropSheetProc(
@@ -82,9 +86,9 @@ INT CALLBACK PhpOptionsPropSheetProc(
     {
     case PSCB_BUTTONPRESSED:
         {
-            if (lParam == PSBTN_OK || lParam == PSBTN_APPLYNOW)
+            if (lParam == PSBTN_OK)
             {
-                PressedOkOrApply = TRUE;
+                PressedOk = TRUE;
             }
         }
         break;
@@ -135,7 +139,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
         }
         break;
-    case WM_COMMAND:
+    /*case WM_COMMAND:
         {
             switch (LOWORD(wParam))
             {
@@ -153,7 +157,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                 break;
             }
         }
-        break;
+        break;*/
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
