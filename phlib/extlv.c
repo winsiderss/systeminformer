@@ -572,7 +572,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_TICK:
         {
-            if (context->EnableStateHighlighting > 0)
+            if (context->EnableStateHighlighting > 0 && context->TickHashtable->Count != 0)
             {
                 PhListTick(context);
             }

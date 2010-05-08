@@ -41,13 +41,14 @@ typedef struct _PH_TREELIST_NODE
             ULONG Selected : 1;
             ULONG Focused : 1;
             ULONG Expanded : 1;
-            ULONG Spare : 28;
+            ULONG UseTempBackColor : 1;
+            ULONG Spare : 27;
         };
     };
 
-    PH_ITEM_STATE State;
     COLORREF BackColor;
     COLORREF ForeColor;
+    COLORREF TempBackColor;
     ULONG ColorFlags;
     HFONT Font;
     HICON Icon;
@@ -72,14 +73,13 @@ typedef struct _PH_TREELIST_NODE
         BOOLEAN CachedIconValid;
 
         // Temp. Drawing Data
+        COLORREF DrawBackColor;
         COLORREF DrawForeColor;
     } s;
 } PH_TREELIST_NODE, *PPH_TREELIST_NODE;
 
 typedef enum _PH_TREELIST_MESSAGE
 {
-    TreeListReferenceNode, // PPH_TREELIST_NODE Parameter1
-    TreeListDereferenceNode, // PPH_TREELIST_NODE Parameter1
     TreeListGetChildren, // PPH_TREELIST_GET_CHILDREN Parameter1
     TreeListIsLeaf, // PPH_TREELIST_IS_LEAF Parameter1
     TreeListGetNodeText, // PPH_TREELIST_GET_NODE_TEXT Parameter1
@@ -196,14 +196,10 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_UPDATENODE (WM_APP + 1211)
 #define TLM_SETCURSOR (WM_APP + 1212)
 #define TLM_SETREDRAW (WM_APP + 1213)
-#define TLM_SETNEWCOLOR (WM_APP + 1214)
-#define TLM_SETREMOVINGCOLOR (WM_APP + 1215)
-#define TLM_SETSTATEHIGHLIGHTING (WM_APP + 1216)
-#define TLM_GETSORT (WM_APP + 1217)
-#define TLM_SETSORT (WM_APP + 1218)
-#define TLM_SETTRISTATE (WM_APP + 1219)
-#define TLM_TICK (WM_APP + 1220)
-#define TLM_ENSUREVISIBLE (WM_APP + 1221)
+#define TLM_GETSORT (WM_APP + 1214)
+#define TLM_SETSORT (WM_APP + 1215)
+#define TLM_SETTRISTATE (WM_APP + 1216)
+#define TLM_ENSUREVISIBLE (WM_APP + 1217)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -250,15 +246,6 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TreeList_SetRedraw(hWnd, Redraw) \
     SendMessage((hWnd), TLM_SETCURSOR, (WPARAM)(Redraw), 0)
 
-#define TreeList_SetNewColor(hWnd, NewColor) \
-    SendMessage((hWnd), TLM_SETNEWCOLOR, (WPARAM)(NewColor), 0)
-
-#define TreeList_SetRemovingColor(hWnd, RemovingColor) \
-    SendMessage((hWnd), TLM_SETREMOVINGCOLOR, (WPARAM)(RemovingColor), 0)
-
-#define TreeList_SetStateHighlighting(hWnd, StateHighlighting) \
-    SendMessage((hWnd), TLM_SETREMOVINGCOLOR, (WPARAM)(StateHighlighting), 0)
-
 #define TreeList_GetSort(hWnd, Column, Order) \
     SendMessage((hWnd), TLM_GETSORT, (WPARAM)(Column), (LPARAM)(Order))
 
@@ -267,9 +254,6 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 
 #define TreeList_SetTriState(hWnd, TriState) \
     SendMessage((hWnd), TLM_SETTRISTATE, (WPARAM)(TriState), 0)
-
-#define TreeList_Tick(hWnd) \
-    SendMessage((hWnd), TLM_TICK, 0, 0)
 
 #define TreeList_EnsureVisible(hWnd, Node, PartialOk) \
     SendMessage((hWnd), TLM_ENSUREVISIBLE, (WPARAM)(PartialOk), (LPARAM)(Node))
