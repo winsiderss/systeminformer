@@ -40,7 +40,7 @@ BOOLEAN KphpSetHandleGrantedAccessEnumCallback(
 #endif
 
 /* This attribute is now stored in the GrantedAccess field. */
-ULONG ObpAccessProtectCloseBit = 0x80000000;
+ULONG ObpAccessProtectCloseBit = 0x2000000;
 
 /* KphDuplicateObject
  * 

@@ -52,9 +52,9 @@ VOID PhDebugPrintLine(
     SYSTEMTIME time;
 
     va_start(argptr, Format);
-    GetSystemTime(&time);
+    GetLocalTime(&time);
 
-    fwprintf(stderr, L"%u:%u:%u.%u: ", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+    fwprintf(stderr, L"%02u:%02u:%02u.%03u: ", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
     vfwprintf(stderr, Format, argptr);
     fputwc('\n', stderr);
 }
