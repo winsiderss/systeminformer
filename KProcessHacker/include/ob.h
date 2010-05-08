@@ -36,9 +36,10 @@
 #define ObpDecodeObject(Object) \
     ((PVOID)((ULONG_PTR)(Object) & ~OBJ_HANDLE_ATTRIBUTES))
 #define ObpGetHandleAttributes(HandleTableEntry) \
+    (((HandleTableEntry)->ObAttributes & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)) | \
     (((HandleTableEntry)->GrantedAccess & ObpAccessProtectCloseBit) ? \
-    (((HandleTableEntry)->Value & OBJ_HANDLE_ATTRIBUTES) | OBJ_PROTECT_CLOSE) : \
-    ((HandleTableEntry)->Value & (OBJ_INHERIT | OBJ_AUDIT_OBJECT_CLOSE)))
+    OBJ_PROTECT_CLOSE : 0) \
+    )
 
 /* FUNCTION DEFS */
 
@@ -149,17 +150,5 @@ typedef struct _OBJECT_HEADER
     PVOID SecurityDescriptor;
     QUAD Body;
 } OBJECT_HEADER, *POBJECT_HEADER;
-
-typedef struct _HANDLE_TABLE_ENTRY
-{
-    union
-    {
-        PVOID Object;
-        ULONG Value;
-    };
-    ULONG GrantedAccess;
-} HANDLE_TABLE_ENTRY, *PHANDLE_TABLE_ENTRY;
-
-typedef struct _HANDLE_TABLE HANDLE_TABLE, *PHANDLE_TABLE;
 
 #endif
