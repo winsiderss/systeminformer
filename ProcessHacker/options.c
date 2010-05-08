@@ -24,12 +24,20 @@
 #include <settings.h>
 #include <windowsx.h>
 
+INT CALLBACK PhpOptionsPropSheetProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+static BOOLEAN PressedOkOrApply;
 
 VOID PhShowOptionsDialog(
     __in HWND ParentWindowHandle
@@ -41,12 +49,14 @@ VOID PhShowOptionsDialog(
 
     propSheetHeader.dwFlags =
         PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE;
+        PSH_PROPTITLE |
+        PSH_USECALLBACK;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Options";
     propSheetHeader.nPages = 0;
     propSheetHeader.nStartPage = 0;
     propSheetHeader.phpage = pages;
+    propSheetHeader.pfnCallback = PhpOptionsPropSheetProc;
 
     // General page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
@@ -55,11 +65,39 @@ VOID PhShowOptionsDialog(
     propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
+    PressedOkOrApply = FALSE;
     PropertySheet(&propSheetHeader);
+
+    if (PressedOkOrApply)
+        ProcessHacker_SaveAllSettings(PhMainWndHandle);
+}
+
+INT CALLBACK PhpOptionsPropSheetProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case PSCB_BUTTONPRESSED:
+        {
+            if (lParam == PSBTN_OK || lParam == PSBTN_APPLYNOW)
+            {
+                PressedOkOrApply = TRUE;
+            }
+        }
+        break;
+    }
+
+    return 0;
 }
 
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
     Button_SetCheck(GetDlgItem(hwndDlg, Id), PhGetIntegerSetting(Name) ? BST_CHECKED : BST_UNCHECKED)
+#define SetSettingForDlgItemCheck(hwndDlg, Id, Name) \
+    PhSetIntegerSetting(Name, Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED)
+#define DialogChanged PropSheet_Changed(GetParent(hwndDlg), hwndDlg)
 
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     __in HWND hwndDlg,
@@ -83,15 +121,59 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             for (i = 0; i < sizeof(PhSizeUnitNames) / sizeof(PWSTR); i++)
                 ComboBox_AddString(comboBoxHandle, PhSizeUnitNames[i]);
 
-            if (PhMaxSizeUnit == -1) PhMaxSizeUnit = sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1;
-            ComboBox_SelectString(comboBoxHandle, -1, PhSizeUnitNames[PhMaxSizeUnit]);
-
             SetDlgItemText(hwndDlg, IDC_SEARCHENGINE, PHA_GET_STRING_SETTING(L"SearchEngine")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_PEVIEWER, PHA_GET_STRING_SETTING(L"ProgramInspectExecutables")->Buffer);
+
+            if (PhMaxSizeUnit != -1)
+                ComboBox_SetCurSel(comboBoxHandle, PhMaxSizeUnit);
+            else
+                ComboBox_SetCurSel(comboBoxHandle, sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1);
 
             SetDlgItemCheckForSetting(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_SEARCHENGINE:
+            case IDC_PEVIEWER:
+                if (HIWORD(wParam) == EN_CHANGE)
+                    DialogChanged;
+                break;
+            case IDC_MAXSIZEUNIT:
+            case IDC_ALLOWONLYONEINSTANCE:
+            case IDC_ENABLEWARNINGS:
+            case IDC_ENABLEKERNELMODEDRIVER:
+            case IDC_HIDEUNNAMEDHANDLES:
+                DialogChanged;
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_APPLY:
+                {
+                    PhSetStringSetting2(L"SearchEngine", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SEARCHENGINE)->sr));
+                    PhSetStringSetting2(L"ProgramInspectExecutables", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PEVIEWER)->sr));
+                    PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
         }
         break;
     }
