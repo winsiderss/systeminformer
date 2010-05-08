@@ -1036,6 +1036,18 @@ LRESULT CALLBACK PhMainWndProc(
             PhResizingMinimumSize((PRECT)lParam, wParam, 400, 340);
         }
         break;
+    case WM_SETFOCUS:
+        {
+            INT selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+            if (selectedIndex == ProcessesTabIndex)
+                SetFocus(ProcessTreeListHandle);
+            else if (selectedIndex == ServicesTabIndex)
+                SetFocus(ServiceListViewHandle);
+            else if (selectedIndex == NetworkTabIndex)
+                SetFocus(NetworkListViewHandle);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
