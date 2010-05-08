@@ -147,6 +147,8 @@ VOID PhDeselectAllProcessNodes();
 
 VOID PhInvalidateAllProcessNodes();
 
+VOID PhInvalidateAllTextProcessNodes();
+
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
@@ -273,11 +275,12 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
 #define WM_PH_PROCESS_REMOVED (WM_APP + 103)
+#define WM_PH_PROCESSES_UPDATED (WM_APP + 104)
 
-#define WM_PH_SERVICE_ADDED (WM_APP + 104)
-#define WM_PH_SERVICE_MODIFIED (WM_APP + 105)
-#define WM_PH_SERVICE_REMOVED (WM_APP + 106)
-#define WM_PH_SERVICES_UPDATED (WM_APP + 107)
+#define WM_PH_SERVICE_ADDED (WM_APP + 105)
+#define WM_PH_SERVICE_MODIFIED (WM_APP + 106)
+#define WM_PH_SERVICE_REMOVED (WM_APP + 107)
+#define WM_PH_SERVICES_UPDATED (WM_APP + 108)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))

@@ -1308,7 +1308,6 @@ VOID PhProcessProviderUpdate(
             if (processItem->CpuUsage != newCpuUsage)
             {
                 processItem->CpuUsage = newCpuUsage;
-                modified = TRUE;
 
                 if ((newCpuUsage * 100) >= 0.01)
                 {
