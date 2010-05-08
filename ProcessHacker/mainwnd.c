@@ -95,6 +95,8 @@ VOID PhMainWndOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+VOID PhMainWndOnProcessesUpdated();
+
 VOID PhMainWndOnServiceAdded(
     __in ULONG RunId,
     __in PPH_SERVICE_ITEM ServiceItem
@@ -125,6 +127,7 @@ static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
@@ -1143,6 +1146,11 @@ LRESULT CALLBACK PhMainWndProc(
             PhMainWndOnProcessRemoved((PPH_PROCESS_ITEM)lParam);
         }
         break;
+    case WM_PH_PROCESSES_UPDATED:
+        {
+            PhMainWndOnProcessesUpdated();
+        }
+        break;
     case WM_PH_SERVICE_ADDED:
         {
             ULONG runId = (ULONG)wParam;
@@ -1426,6 +1434,14 @@ static VOID NTAPI ProcessRemovedHandler(
     PostMessage(PhMainWndHandle, WM_PH_PROCESS_REMOVED, 0, (LPARAM)processItem);
 }
 
+static VOID NTAPI ProcessesUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+}
+
 static VOID NTAPI ServiceAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -1525,6 +1541,12 @@ VOID PhMainWndOnCreate()
         ProcessRemovedHandler,
         NULL,
         &ProcessRemovedRegistration
+        );
+    PhRegisterCallback(
+        &PhProcessesUpdatedEvent,
+        ProcessesUpdatedHandler,
+        NULL,
+        &ProcessesUpdatedRegistration
         );
 
     PhRegisterCallback(
@@ -2063,6 +2085,13 @@ VOID PhMainWndOnProcessRemoved(
 
     // Remove the reference for the process item being displayed.
     PhDereferenceObject(ProcessItem);
+}
+
+VOID PhMainWndOnProcessesUpdated()
+{
+    // The modified notification is only sent for special cases.
+    // We have to invalidate the text on each update.
+    PhInvalidateAllTextProcessNodes();
 }
 
 VOID PhMainWndOnServiceAdded(

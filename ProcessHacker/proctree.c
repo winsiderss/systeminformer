@@ -619,6 +619,21 @@ VOID PhInvalidateAllProcessNodes()
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
 }
 
+VOID PhInvalidateAllTextProcessNodes()
+{
+    ULONG i;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+
+        // The name and PID never change, so we don't invalidate that.
+        memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHTLC_MAXIMUM - 2));
+    }
+
+    InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
+}
+
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     )
