@@ -233,8 +233,8 @@
 #define IDC_ALLOWONLYONEINSTANCE        1145
 #define IDC_ENABLEWARNINGS              1147
 #define IDC_ENABLEKERNELMODEDRIVER      1149
-#define IDC_CHECK4                      1150
-#define IDC_HIDEHANDLESWITHNONAME       1150
+#define IDC_EDIT1                       1151
+#define IDC_PEVIEWER                    1151
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -366,7 +366,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         40139
-#define _APS_NEXT_CONTROL_VALUE         1151
+#define _APS_NEXT_CONTROL_VALUE         1152
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif
