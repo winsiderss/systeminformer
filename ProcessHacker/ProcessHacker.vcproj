@@ -473,6 +473,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\options.c"
+				>
+			</File>
+			<File
 				RelativePath=".\pagfiles.c"
 				>
 			</File>

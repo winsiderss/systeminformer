@@ -59,6 +59,8 @@ NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     );
 
+#define PHA_GET_STRING_SETTING(Name) ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(Name)))
+
 // Cached settings
 
 #undef EXT

@@ -718,6 +718,12 @@ HPROPSHEETPAGE PhCreateTimerPage(
     __in PVOID Context
     );
 
+// options
+
+VOID PhShowOptionsDialog(
+    __in HWND ParentWindowHandle
+    );
+
 // pagfiles
 
 VOID PhShowPagefilesDialog(

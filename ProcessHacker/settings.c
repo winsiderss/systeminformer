@@ -42,7 +42,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"FirstRun", L"1");
-    PhpAddIntegerSetting(L"AllowMultipleInstances", L"0");
+    PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
@@ -91,6 +91,8 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"ColorProtectedHandles", L"777777");
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
+
+    PhpUpdateCachedSettings();
 }
 
 VOID PhpUpdateCachedSettings()

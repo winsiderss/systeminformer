@@ -153,7 +153,7 @@ INT WINAPI WinMain(
     SetPriorityClass(NtCurrentProcess(), HIGH_PRIORITY_CLASS);
 
     // Activate a previous instance if required.
-    if (!PhGetIntegerSetting(L"AllowMultipleInstances"))
+    if (PhGetIntegerSetting(L"AllowOnlyOneInstance"))
         PhActivatePreviousInstance();
 
     if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)

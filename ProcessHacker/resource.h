@@ -59,6 +59,7 @@
 #define IDB_MINUS                       160
 #define IDB_BITMAP2                     161
 #define IDB_PLUS                        161
+#define IDD_OPTGENERAL                  162
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -227,6 +228,13 @@
 #define IDC_STATICBL11                  1140
 #define IDC_CHOICESIMPLE                1141
 #define IDC_MESSAGE                     1142
+#define IDC_SEARCHENGINE                1143
+#define IDC_MAXSIZEUNIT                 1144
+#define IDC_ALLOWONLYONEINSTANCE        1145
+#define IDC_ENABLEWARNINGS              1147
+#define IDC_ENABLEKERNELMODEDRIVER      1149
+#define IDC_CHECK4                      1150
+#define IDC_HIDEHANDLESWITHNONAME       1150
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -356,9 +364,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        162
+#define _APS_NEXT_RESOURCE_VALUE        164
 #define _APS_NEXT_COMMAND_VALUE         40139
-#define _APS_NEXT_CONTROL_VALUE         1143
+#define _APS_NEXT_CONTROL_VALUE         1151
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif
