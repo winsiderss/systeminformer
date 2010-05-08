@@ -1125,19 +1125,20 @@ static VOID PhpCustomDrawPrePaintItem(
 
             if (getNodeColor.Flags & TLC_CACHE)
                 node->s.CachedColorValid = TRUE;
-
-            node->s.DrawBackColor = node->BackColor;
-            node->s.DrawForeColor = node->ForeColor;
         }
         else
         {
-            node->s.DrawBackColor = node->BackColor = getNodeColor.BackColor;
-            node->s.DrawForeColor = node->ForeColor = getNodeColor.ForeColor;
+            node->BackColor = getNodeColor.BackColor;
+            node->ForeColor = getNodeColor.ForeColor;
         }
     }
 
+    node->s.DrawForeColor = node->ForeColor;
+
     if (node->UseTempBackColor)
         node->s.DrawBackColor = node->TempBackColor;
+    else
+        node->s.DrawBackColor = node->BackColor;
 
     if (!node->s.CachedFontValid)
     {
