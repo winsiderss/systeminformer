@@ -573,7 +573,7 @@ VOID PhGetSelectedProcessItems(
     PhDereferenceObject(list);
 }
 
-VOID PhDeselectAllProcessItems()
+VOID PhDeselectAllProcessNodes()
 {
     ULONG i;
 
@@ -586,4 +586,35 @@ VOID PhDeselectAllProcessItems()
     }
 
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
+}
+
+VOID PhSelectAndEnsureVisibleProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    PPH_PROCESS_NODE processNode;
+    BOOLEAN needsRestructure = FALSE;
+
+    PhDeselectAllProcessNodes();
+
+    // Expand recursively, upwards.
+
+    processNode = ProcessNode->Parent;
+
+    while (processNode)
+    {
+        if (!processNode->Node.Expanded)
+            needsRestructure = TRUE;
+
+        processNode->Node.Expanded = TRUE;
+        processNode = processNode->Parent;
+    }
+
+    ProcessNode->Node.Selected = TRUE;
+    PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_STATE);
+
+    if (needsRestructure)
+        TreeList_NodesStructured(ProcessTreeListHandle);
+
+    TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
 }

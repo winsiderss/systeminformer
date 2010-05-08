@@ -270,6 +270,25 @@ LRESULT CALLBACK PhpTreeListWndProc(
             SendMessage(context->ListViewHandle, WM_SETFONT, wParam, lParam);
         }
         break;
+    case WM_THEMECHANGED:
+        {
+            PhpReloadThemeData(context);
+        }
+        break;
+    case WM_SETCURSOR:
+        {
+            if (context->Cursor)
+            {
+                SetCursor(context->Cursor);
+                return TRUE;
+            }
+        }
+        break;
+    case WM_SETFOCUS:
+        {
+            SetFocus(context->ListViewHandle);
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR hdr = (LPNMHDR)lParam;
@@ -358,6 +377,14 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             {
                                 PH_STRINGREF text;
 
+                                if ((ULONG)currentIndex >= context->List->Count)
+                                {
+                                    if (wrapSearch)
+                                        currentIndex = 0;
+                                    else
+                                        break;
+                                }
+
                                 if (PhpGetNodeText(context, context->List->Items[currentIndex], 0, &text))
                                 {
                                     if (partialSearch)
@@ -379,14 +406,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 }
 
                                 currentIndex++;
-
-                                if ((ULONG)currentIndex >= context->List->Count)
-                                {
-                                    if (wrapSearch)
-                                        currentIndex = 0;
-                                    else
-                                        break;
-                                }
                             } while (currentIndex != startIndex);
 
                             return foundIndex;
@@ -586,20 +605,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
                     }
                     break;
                 }
-            }
-        }
-        break;
-    case WM_THEMECHANGED:
-        {
-            PhpReloadThemeData(context);
-        }
-        break;
-    case WM_SETCURSOR:
-        {
-            if (context->Cursor)
-            {
-                SetCursor(context->Cursor);
-                return TRUE;
             }
         }
         break;
@@ -910,6 +915,14 @@ LRESULT CALLBACK PhpTreeListWndProc(
             {
                 PhpTreeListTick(context);
             }
+        }
+        return TRUE;
+    case TLM_ENSUREVISIBLE:
+        {
+            BOOLEAN partialOk = !!wParam;
+            PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
+
+            ListView_EnsureVisible(context->ListViewHandle, node->s.ViewIndex, partialOk);
         }
         return TRUE;
     }

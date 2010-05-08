@@ -203,6 +203,7 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_SETSORT (WM_APP + 1218)
 #define TLM_SETTRISTATE (WM_APP + 1219)
 #define TLM_TICK (WM_APP + 1220)
+#define TLM_ENSUREVISIBLE (WM_APP + 1221)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -270,6 +271,9 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TreeList_Tick(hWnd) \
     SendMessage((hWnd), TLM_TICK, 0, 0)
 
+#define TreeList_EnsureVisible(hWnd, Node, PartialOk) \
+    SendMessage((hWnd), TLM_ENSUREVISIBLE, (WPARAM)(PartialOk), (LPARAM)(Node))
+
 BOOLEAN PhTreeListInitialization();
 
 HWND PhCreateTreeListControl(
@@ -289,6 +293,11 @@ VOID PhInitializeTreeListNode(
 VOID PhInvalidateTreeListNode(
     __inout PPH_TREELIST_NODE Node,
     __in ULONG Flags
+    );
+
+VOID PhExpandTreeListNode(
+    __inout PPH_TREELIST_NODE Node,
+    __in BOOLEAN Recursive
     );
 
 BOOLEAN PhAddTreeListColumn(

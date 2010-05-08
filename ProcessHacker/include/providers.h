@@ -141,7 +141,7 @@ typedef struct _PH_SERVICE_ITEM
     ULONG Type;
     ULONG State;
     ULONG ControlsAccepted;
-    ULONG ProcessId;
+    HANDLE ProcessId;
 
     // Config
     ULONG StartType;
