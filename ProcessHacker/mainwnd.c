@@ -84,7 +84,8 @@ VOID PhpShowProcessProperties(
     );
 
 VOID PhMainWndOnProcessAdded(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG RunId
     );
 
 VOID PhMainWndOnProcessModified(
@@ -1131,9 +1132,10 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_PROCESS_ADDED:
         {
+            ULONG runId = (ULONG)wParam;
             PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)lParam;
 
-            PhMainWndOnProcessAdded(processItem);
+            PhMainWndOnProcessAdded(processItem, runId);
         }
         break;
     case WM_PH_PROCESS_MODIFIED:
@@ -1409,7 +1411,12 @@ static VOID NTAPI ProcessAddedHandler(
     // Reference the process item so it doesn't get deleted before 
     // we handle the event in the main thread.
     PhReferenceObject(processItem);
-    PostMessage(PhMainWndHandle, WM_PH_PROCESS_ADDED, 0, (LPARAM)processItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_PROCESS_ADDED,
+        (WPARAM)PhGetProviderRunId(&ProcessProviderRegistration),
+        (LPARAM)processItem
+        );
 }
 
 static VOID NTAPI ProcessModifiedHandler(
@@ -2064,10 +2071,11 @@ VOID PhMainWndServiceListViewOnNotify(
 }
 
 VOID PhMainWndOnProcessAdded(
-    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG RunId
     )
 {
-    PhCreateProcessNode(ProcessItem);
+    PhCreateProcessNode(ProcessItem, RunId);
 }
 
 VOID PhMainWndOnProcessModified(
@@ -2092,6 +2100,8 @@ VOID PhMainWndOnProcessesUpdated()
     // The modified notification is only sent for special cases.
     // We have to invalidate the text on each update.
     PhInvalidateAllTextProcessNodes();
+
+    PhTickProcessNodes();
 }
 
 VOID PhMainWndOnServiceAdded(

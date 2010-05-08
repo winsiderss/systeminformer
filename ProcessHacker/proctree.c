@@ -32,6 +32,10 @@ ULONG NTAPI PhpProcessNodeHashtableHashFunction(
     __in PVOID Entry
     );
 
+VOID PhpRemoveProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -48,6 +52,9 @@ static PPH_HASHTABLE ProcessNodeHashtable; // hashtable of all nodes
 static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enabled
 static PPH_LIST ProcessNodeRootList; // list of root nodes
 
+BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
+static PPH_POINTER_LIST ProcessNodeStateList; // list of nodes which need to be processed
+
 static HICON StockAppIcon;
 
 VOID PhProcessTreeListInitialization()
@@ -61,6 +68,7 @@ VOID PhProcessTreeListInitialization()
 
     ProcessNodeList = PhCreateList(40);
     ProcessNodeRootList = PhCreateList(10);
+    ProcessNodeStateList = PhCreatePointerList(4);
 }
 
 VOID PhInitializeProcessTreeList(
@@ -102,7 +110,8 @@ static ULONG NTAPI PhpProcessNodeHashtableHashFunction(
 }
 
 VOID PhCreateProcessNode(
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG RunId
     )
 {
     PPH_PROCESS_NODE processNode;
@@ -113,8 +122,22 @@ VOID PhCreateProcessNode(
     memset(processNode, 0, sizeof(PH_PROCESS_NODE));
     PhInitializeTreeListNode(&processNode->Node);
 
+    if (PhProcessTreeListStateHighlighting && RunId != 1)
+    {
+        processNode->State = NewItemState;
+        processNode->TickCount = GetTickCount();
+        processNode->Node.UseTempBackColor = TRUE;
+        processNode->Node.TempBackColor = PhCsColorNew;
+        processNode->StateListHandle = PhAddPointerListItem(ProcessNodeStateList, processNode);
+    }
+    else
+    {
+        processNode->State = NormalItemState;
+    }
+
     processNode->ProcessId = ProcessItem->ProcessId;
     processNode->ProcessItem = ProcessItem;
+    PhReferenceObject(ProcessItem);
 
     memset(processNode->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
     processNode->Node.TextCache = processNode->TextCache;
@@ -184,6 +207,26 @@ VOID PhRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     )
 {
+    if (PhProcessTreeListStateHighlighting)
+    {
+        ProcessNode->State = RemovingItemState;
+        ProcessNode->TickCount = GetTickCount();
+        ProcessNode->Node.UseTempBackColor = TRUE;
+        ProcessNode->Node.TempBackColor = PhCsColorRemoved;
+        ProcessNode->StateListHandle = PhAddPointerListItem(ProcessNodeStateList, ProcessNode);
+
+        TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
+    }
+    else
+    {
+        PhpRemoveProcessNode(ProcessNode);
+    }
+}
+
+VOID PhpRemoveProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
     ULONG index;
     ULONG i;
 
@@ -223,6 +266,10 @@ VOID PhRemoveProcessNode(
     if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
 
+    PhDereferenceObject(ProcessNode->ProcessItem);
+
+    PhFree(ProcessNode);
+
     TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
@@ -246,6 +293,40 @@ VOID PhUpdateProcessNode(
     {
         // Force a rebuild to sort the items.
         TreeList_NodesStructured(ProcessTreeListHandle);
+    }
+}
+
+VOID PhTickProcessNodes()
+{
+    PPH_PROCESS_NODE node;
+    ULONG enumerationKey = 0;
+    ULONG tickCount;
+    HANDLE stateListHandle;
+
+    if (ProcessNodeStateList->Count == 0)
+        return;
+
+    tickCount = GetTickCount();
+
+    while (PhEnumPointerList(ProcessNodeStateList, &enumerationKey, &node))
+    {
+        if (PhRoundNumber(tickCount - node->TickCount, 100) < 1000)
+            continue;
+
+        stateListHandle = node->StateListHandle;
+
+        if (node->State == NewItemState)
+        {
+            node->State = NormalItemState;
+            node->Node.UseTempBackColor = FALSE;
+            TreeList_UpdateNode(ProcessTreeListHandle, &node->Node);
+        }
+        else if (node->State == RemovingItemState)
+        {
+            PhpRemoveProcessNode(node);
+        }
+
+        PhRemovePointerListItem(ProcessNodeStateList, stateListHandle);
     }
 }
 
