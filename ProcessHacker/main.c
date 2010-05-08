@@ -132,6 +132,9 @@ INT WINAPI WinMain(
                 }
             }
         }
+
+        // Apply the settings.
+        PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     }
 
     if (

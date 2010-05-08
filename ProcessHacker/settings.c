@@ -49,6 +49,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");

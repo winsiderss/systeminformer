@@ -499,7 +499,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             switch ((SHORT)Parameter1)
             {
             case VK_DELETE:
-                if (GetKeyState(VK_SHIFT) > 0)
+                if (GetKeyState(VK_SHIFT) >= 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
                 else
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
