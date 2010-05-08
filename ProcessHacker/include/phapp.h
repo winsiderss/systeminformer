@@ -93,9 +93,10 @@ ATOM PhRegisterWindowClass();
 // Columns
 #define PHTLC_NAME 0
 #define PHTLC_PID 1
-#define PHTLC_USERNAME 2
-#define PHTLC_CPU 3
-#define PHTLC_MAXIMUM 4
+#define PHTLC_CPU 2
+#define PHTLC_PVTMEMORY 3
+#define PHTLC_USERNAME 4
+#define PHTLC_MAXIMUM 5
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -108,6 +109,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_LIST Children;
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
+
+    PPH_STRING PrivateMemoryText;
     PPH_STRING TooltipText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
@@ -141,6 +144,8 @@ VOID PhGetSelectedProcessItems(
     );
 
 VOID PhDeselectAllProcessNodes();
+
+VOID PhInvalidateAllProcessNodes();
 
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
