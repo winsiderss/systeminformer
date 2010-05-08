@@ -891,6 +891,23 @@ BEGIN
     LTEXT           "Text:",IDC_MESSAGE,7,7,185,8,SS_ENDELLIPSIS
 END
 
+IDD_OPTGENERAL DIALOGEX 0, 0, 250, 107
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "General"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Search Engine:",IDC_STATIC,7,8,49,8
+    EDITTEXT        IDC_SEARCHENGINE,61,7,182,12,ES_AUTOHSCROLL
+    LTEXT           "Max. Size Unit:",IDC_STATIC,7,24,49,8
+    COMBOBOX        IDC_MAXSIZEUNIT,61,23,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Allow only one instance",IDC_ALLOWONLYONEINSTANCE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,42,91,10
+    CONTROL         "Enable warnings",IDC_ENABLEWARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,54,68,10
+    CONTROL         "Enable kernel-mode driver",IDC_ENABLEKERNELMODEDRIVER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,66,99,10
+    CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,78,88,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1178,6 +1195,14 @@ BEGIN
         RIGHTMARGIN, 192
         TOPMARGIN, 7
         BOTTOMMARGIN, 66
+    END
+
+    IDD_OPTGENERAL, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 100
     END
 END
 #endif    // APSTUDIO_INVOKED

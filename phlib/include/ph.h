@@ -1403,6 +1403,7 @@ NTSTATUS PhGetThreadServiceTag(
 // support
 
 #ifndef SUPPORT_PRIVATE
+extern WCHAR *PhSizeUnitNames[7];
 extern ULONG PhMaxSizeUnit;
 #endif
 
