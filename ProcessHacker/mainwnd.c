@@ -129,6 +129,7 @@ static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+static BOOLEAN ProcessesNeedsRedraw = FALSE;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
@@ -2075,7 +2076,15 @@ VOID PhMainWndOnProcessAdded(
     __in ULONG RunId
     )
 {
+    if (!ProcessesNeedsRedraw)
+    {
+        TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
+        ProcessesNeedsRedraw = TRUE;
+    }
+
     PhCreateProcessNode(ProcessItem, RunId);
+    // PhCreateProcessNode has its own reference.
+    PhDereferenceObject(ProcessItem);
 }
 
 VOID PhMainWndOnProcessModified(
@@ -2089,19 +2098,27 @@ VOID PhMainWndOnProcessRemoved(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+    if (!ProcessesNeedsRedraw)
+    {
+        TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
+        ProcessesNeedsRedraw = TRUE;
+    }
 
-    // Remove the reference for the process item being displayed.
-    PhDereferenceObject(ProcessItem);
+    PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
 }
 
 VOID PhMainWndOnProcessesUpdated()
 {
     // The modified notification is only sent for special cases.
     // We have to invalidate the text on each update.
-    PhInvalidateAllTextProcessNodes();
-
     PhTickProcessNodes();
+
+    if (ProcessesNeedsRedraw)
+    {
+        TreeList_NodesStructured(ProcessTreeListHandle);
+        TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
+        ProcessesNeedsRedraw = TRUE;
+    }
 }
 
 VOID PhMainWndOnServiceAdded(
