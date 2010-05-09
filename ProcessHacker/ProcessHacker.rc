@@ -104,6 +104,24 @@ BEGIN
     BEGIN
         MENUITEM "Dummy",                       ID_USERS_DUMMY
     END
+    POPUP "&Window"
+    BEGIN
+        MENUITEM "Always On Top",               ID_WINDOW_ALWAYSONTOP
+        POPUP "Opacity"
+        BEGIN
+            MENUITEM "10%",                         ID_OPACITY_10
+            MENUITEM "20%",                         ID_OPACITY_20
+            MENUITEM "30%",                         ID_OPACITY_30
+            MENUITEM "40%",                         ID_OPACITY_40
+            MENUITEM "50%",                         ID_OPACITY_50
+            MENUITEM "60%",                         ID_OPACITY_60
+            MENUITEM "70%",                         ID_OPACITY_70
+            MENUITEM "80%",                         ID_OPACITY_80
+            MENUITEM "90%",                         ID_OPACITY_90
+            MENUITEM "Opaque",                      ID_OPACITY_100
+        END
+        MENUITEM "Close",                       ID_WINDOW_CLOS
+    END
     POPUP "H&elp"
     BEGIN
         MENUITEM "Log\aCtrl+L",                 ID_HELP_LOG
