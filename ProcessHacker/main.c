@@ -405,6 +405,8 @@ BOOLEAN PhInitializeAppSystem()
         return FALSE;
     if (!PhInitializeServiceProvider())
         return FALSE;
+    if (!PhInitializeNetworkProvider())
+        return FALSE;
     if (!PhInitializeModuleProvider())
         return FALSE;
     if (!PhInitializeThreadProvider())

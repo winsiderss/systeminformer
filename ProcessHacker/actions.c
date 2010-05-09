@@ -813,7 +813,6 @@ ErrorExit:
     return TRUE;
 }
 
-// Contributed by evilpie (#2981421)
 BOOLEAN PhUiDebugProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process

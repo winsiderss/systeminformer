@@ -104,6 +104,7 @@ PPH_STRING PhGetDiagnosticsString()
     OBJECT_TYPE_COUNT(PhSymbolProviderType);
     OBJECT_TYPE_COUNT(PhProcessItemType);
     OBJECT_TYPE_COUNT(PhServiceItemType);
+    OBJECT_TYPE_COUNT(PhNetworkItemType);
     OBJECT_TYPE_COUNT(PhModuleProviderType);
     OBJECT_TYPE_COUNT(PhModuleItemType);
     OBJECT_TYPE_COUNT(PhThreadProviderType);

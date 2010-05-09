@@ -467,7 +467,7 @@ BEGIN
     GROUPBOX        "Credits",IDC_STATIC,7,42,240,95
     LTEXT           "wj32 - Project Manager",IDC_STATIC,15,53,76,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,7,142,50,14
-    LTEXT           "evilpie - Contributor",IDC_STATIC,15,64,64,8
+    LTEXT           "evilpie - Developer",IDC_STATIC,15,64,60,8
 END
 
 IDD_PROCSERVICES DIALOGEX 0, 0, 240, 260

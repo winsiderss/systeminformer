@@ -113,6 +113,21 @@ VOID PhMainWndOnServiceRemoved(
 
 VOID PhMainWndOnServicesUpdated();
 
+VOID PhMainWndOnNetworkItemAdded(
+    __in ULONG RunId,
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
+VOID PhMainWndOnNetworkItemModified(
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
+VOID PhMainWndOnNetworkItemRemoved(
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
+VOID PhMainWndOnNetworkItemsUpdated();
+
 HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 
@@ -134,8 +149,14 @@ static BOOLEAN ProcessesNeedsRedraw = FALSE;
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
 static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
-static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration; 
+static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
+
+static PH_PROVIDER_REGISTRATION NetworkProviderRegistration;
+static PH_CALLBACK_REGISTRATION NetworkItemAddedRegistration;
+static PH_CALLBACK_REGISTRATION NetworkItemModifiedRegistration;
+static PH_CALLBACK_REGISTRATION NetworkItemRemovedRegistration;
+static PH_CALLBACK_REGISTRATION NetworkItemsUpdatedRegistration;
 
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
@@ -260,6 +281,7 @@ BOOLEAN PhMainWndInitialization(
     PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
     PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
+    PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &NetworkProviderRegistration);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
     windowRectangle.Size = PhGetIntegerPairSetting(L"MainWindowSize");
@@ -1181,9 +1203,34 @@ LRESULT CALLBACK PhMainWndProc(
             PhMainWndOnServicesUpdated();
         }
         break;
+    case WM_PH_NETWORK_ITEM_ADDED:
+        {
+            ULONG runId = (ULONG)wParam;
+            PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)lParam;
+
+            PhMainWndOnNetworkItemAdded(runId, networkItem);
+            PhDereferenceObject(networkItem);
+        }
+        break;
+    case WM_PH_NETWORK_ITEM_MODIFIED:
+        {
+            PhMainWndOnNetworkItemModified((PPH_NETWORK_ITEM)lParam);
+        }
+        break;
+    case WM_PH_NETWORK_ITEM_REMOVED:
+        {
+            PhMainWndOnNetworkItemRemoved((PPH_NETWORK_ITEM)lParam);
+        }
+        break;
+    case WM_PH_NETWORK_ITEMS_UPDATED:
+        {
+            PhMainWndOnNetworkItemsUpdated();
+        }
+        break;
     }
 
     REFLECT_MESSAGE(ServiceListViewHandle, uMsg, wParam, lParam);
+    REFLECT_MESSAGE(NetworkListViewHandle, uMsg, wParam, lParam);
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
@@ -1497,6 +1544,50 @@ static VOID NTAPI ServicesUpdatedHandler(
     PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
 }
 
+static VOID NTAPI NetworkItemAddedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PhReferenceObject(networkItem);
+    PostMessage(
+        PhMainWndHandle,
+        WM_PH_NETWORK_ITEM_ADDED,
+        PhGetProviderRunId(&NetworkProviderRegistration),
+        (LPARAM)networkItem
+        );
+}
+
+static VOID NTAPI NetworkItemModifiedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_MODIFIED, 0, (LPARAM)networkItem);
+}
+
+static VOID NTAPI NetworkItemRemovedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
+
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEM_REMOVED, 0, (LPARAM)networkItem);
+}
+
+static VOID NTAPI NetworkItemsUpdatedHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
+}
+
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -1522,15 +1613,23 @@ VOID PhMainWndOnCreate()
 
     PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
     PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
-    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 50, L"PID");
+    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_RIGHT, 50, L"PID");
 
-    PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process Name");
+    PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
+    PhAddListViewColumn(NetworkListViewHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Local Address");
+    PhAddListViewColumn(NetworkListViewHandle, 2, 2, 2, LVCFMT_RIGHT, 50, L"Local Port");
+    PhAddListViewColumn(NetworkListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Remote Address");
+    PhAddListViewColumn(NetworkListViewHandle, 4, 4, 4, LVCFMT_RIGHT, 50, L"Remote Port");
+    PhAddListViewColumn(NetworkListViewHandle, 5, 5, 5, LVCFMT_LEFT, 50, L"Protocol");
 
     PhProcessTreeListInitialization();
     PhInitializeProcessTreeList(ProcessTreeListHandle);
 
     PhSetExtendedListView(ServiceListViewHandle);
     ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
+
+    PhSetExtendedListView(NetworkListViewHandle);
+    ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
 
     PhRegisterCallback(
         &PhProcessAddedEvent,
@@ -1580,6 +1679,31 @@ VOID PhMainWndOnCreate()
         ServicesUpdatedHandler,
         NULL,
         &ServicesUpdatedRegistration
+        );
+
+    PhRegisterCallback(
+        &PhNetworkItemAddedEvent,
+        NetworkItemAddedHandler,
+        NULL,
+        &NetworkItemAddedRegistration
+        );
+    PhRegisterCallback(
+        &PhNetworkItemModifiedEvent,
+        NetworkItemModifiedHandler,
+        NULL,
+        &NetworkItemModifiedRegistration
+        );
+    PhRegisterCallback(
+        &PhNetworkItemRemovedEvent,
+        NetworkItemRemovedHandler,
+        NULL,
+        &NetworkItemRemovedRegistration
+        );
+    PhRegisterCallback(
+        &PhNetworkItemsUpdatedEvent,
+        NetworkItemsUpdatedHandler,
+        NULL,
+        &NetworkItemsUpdatedRegistration
         );
 }
 
@@ -1649,6 +1773,16 @@ VOID PhMainWndTabControlOnSelectionChanged()
         HDWP deferHandle = BeginDeferWindowPos(1);
         PhMainWndTabControlOnLayout(&deferHandle);
         EndDeferWindowPos(deferHandle);
+    }
+
+    if (selectedIndex == NetworkTabIndex)
+    {
+        PhSetProviderEnabled(&NetworkProviderRegistration, TRUE);
+        PhBoostProvider(&NetworkProviderRegistration, NULL);
+    }
+    else
+    {
+        PhSetProviderEnabled(&NetworkProviderRegistration, FALSE);
     }
 
     ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
@@ -2168,4 +2302,55 @@ VOID PhMainWndOnServiceRemoved(
 VOID PhMainWndOnServicesUpdated()
 {
     ExtendedListView_Tick(ServiceListViewHandle);
+}
+
+VOID PhMainWndOnNetworkItemAdded(
+    __in ULONG RunId,
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    INT lvItemIndex;
+
+    // Add a reference for the pointer being stored in the list view item.
+    PhReferenceObject(NetworkItem);
+
+    if (RunId == 1) ExtendedListView_SetStateHighlighting(NetworkListViewHandle, FALSE);
+    lvItemIndex = PhAddListViewItem(
+        NetworkListViewHandle,
+        MAXINT,
+        L"Process name",
+        NetworkItem
+        );
+    if (RunId == 1) ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 1, NetworkItem->LocalAddressString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 2, NetworkItem->LocalPortString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3, NetworkItem->RemoteAddressString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 4, NetworkItem->RemotePortString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 5, NetworkItem->ProtocolTypeString);
+}
+
+VOID PhMainWndOnNetworkItemModified(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem);
+}
+
+VOID PhMainWndOnNetworkItemRemoved(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PhRemoveListViewItem(
+        NetworkListViewHandle,
+        PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem)
+        );
+    // Remove the reference we added in PhMainWndOnNetworkItemAdded.
+    PhDereferenceObject(NetworkItem);
+}
+
+VOID PhMainWndOnNetworkItemsUpdated()
+{
+    ExtendedListView_Tick(NetworkListViewHandle);
 }
