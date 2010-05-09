@@ -99,7 +99,7 @@ VOID PhpUpdateCpuInformation();
 PPH_OBJECT_TYPE PhProcessItemType;
 
 PPH_HASHTABLE PhProcessHashtable;
-PH_QUEUED_LOCK PhProcessHashtableLock;
+PH_QUEUED_LOCK PhProcessHashtableLock = PH_QUEUED_LOCK_INIT;
 
 PPH_QUEUE PhProcessQueryDataQueue;
 PH_MUTEX PhProcessQueryDataQueueLock;
@@ -139,7 +139,6 @@ BOOLEAN PhInitializeProcessProvider()
         PhpProcessHashtableHashFunction,
         40
         );
-    PhInitializeQueuedLock(&PhProcessHashtableLock);
 
     PhProcessQueryDataQueue = PhCreateQueue(40);
     PhInitializeMutex(&PhProcessQueryDataQueueLock);

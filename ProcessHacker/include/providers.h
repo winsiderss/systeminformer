@@ -215,6 +215,8 @@ typedef struct _PH_NETWORK_ITEM
     ULONG State;
     HANDLE ProcessId;
 
+    BOOLEAN JustResolved;
+
     PWSTR ProtocolTypeString;
     WCHAR LocalAddressString[65];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
@@ -235,6 +237,10 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
     __in PPH_IP_ENDPOINT LocalEndpoint,
     __in PPH_IP_ENDPOINT RemoteEndpoint,
     __in HANDLE ProcessId
+    );
+
+PPH_STRING PhGetHostNameFromAddress(
+    __in PPH_IP_ADDRESS Address
     );
 
 VOID PhNetworkProviderUpdate(
