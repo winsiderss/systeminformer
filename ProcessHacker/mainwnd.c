@@ -319,6 +319,12 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
+    // Set GWL_EXSTYLE so we can change the opacity
+
+    SetWindowLongPtr(PhMainWndHandle, GWL_EXSTYLE, GetWindowLongPtr(PhMainWndHandle, GWL_EXSTYLE) | WS_EX_LAYERED);
+
+    PhUiSetOpacity(PhMainWndHandle, 100);
+
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
         PhMainWndHandle,
@@ -1061,6 +1067,28 @@ LRESULT CALLBACK PhMainWndProc(
                     PhReferenceObjects(processItems, numberOfProcessItems);
                     PhUiCopyInfoProcess(hWnd, processItems, numberOfProcessItems);
                     PhDereferenceObjects(processItems, numberOfProcessItems);
+                }
+                break;
+            case ID_WINDOW_ALWAYSONTOP:
+                {
+                    //SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+                }
+                break;
+            case ID_OPACITY_10:
+            case ID_OPACITY_20:
+            case ID_OPACITY_30:
+            case ID_OPACITY_40:
+            case ID_OPACITY_50:
+            case ID_OPACITY_60:
+            case ID_OPACITY_70:
+            case ID_OPACITY_80:
+            case ID_OPACITY_90:
+            case ID_OPACITY_100:
+                {
+                    ULONG opacity;
+
+                    opacity = 100 - (ID_OPACITY_100 - id) * 10;
+                    PhUiSetOpacity(hWnd, opacity);
                 }
             }
         }
