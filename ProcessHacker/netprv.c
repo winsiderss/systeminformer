@@ -80,6 +80,12 @@ typedef INT (WSAAPI *_GetNameInfoW)(
     __in INT Flags
     );
 
+typedef struct hostent *(WSAAPI *_gethostbyaddr)(
+    __in_bcount(len) const char *addr,
+    __in int len,
+    __in int type
+    );
+
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -129,6 +135,7 @@ static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 static _GetExtendedTcpTable GetExtendedTcpTable_I;
 static _GetExtendedUdpTable GetExtendedUdpTable_I;
 static _GetNameInfoW GetNameInfoW_I;
+static _gethostbyaddr gethostbyaddr_I;
 
 BOOLEAN PhInitializeNetworkProvider()
 {
@@ -327,6 +334,9 @@ PPH_STRING PhGetHostNameFromAddress(
     socklen_t length;
     PPH_STRING hostName;
 
+    if (!GetNameInfoW_I)
+        return NULL;
+
     if (Address->Type == PH_IPV4_NETWORK_TYPE)
     {
         ipv4Address.sin_family = AF_INET;
@@ -377,6 +387,7 @@ PPH_STRING PhGetHostNameFromAddress(
             ) != 0)
         {
             PhDereferenceObject(hostName);
+
             return NULL;
         }
     }
@@ -500,6 +511,7 @@ VOID PhNetworkProviderUpdate(
         GetExtendedUdpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedUdpTable");
         LoadLibrary(L"ws2_32.dll");
         GetNameInfoW_I = PhGetProcAddress(L"ws2_32.dll", "GetNameInfoW");
+        gethostbyaddr_I = PhGetProcAddress(L"ws2_32.dll", "gethostbyaddr");
     }
 
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
