@@ -361,6 +361,13 @@
 #define ID_USER_CONNECT                 40138
 #define ID_NETWORK_GOTOPROCESS          40139
 #define ID_NETWORK_CLOSE                40140
+#define ID_COPY_COPY                    40141
+#define ID_PROCESS_COPY_ALL             40142
+#define ID_COPY_COPY40143               40143
+#define ID_COPY_COPY40144               40144
+#define ID_COPY_COPY40145               40145
+#define ID_COPY_COPY40146               40146
+#define ID_COPY_COPY40147               40147
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -368,7 +375,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        165
-#define _APS_NEXT_COMMAND_VALUE         40141
+#define _APS_NEXT_COMMAND_VALUE         40148
 #define _APS_NEXT_CONTROL_VALUE         1152
 #define _APS_NEXT_SYMED_VALUE           111
 #endif

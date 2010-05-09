@@ -2129,3 +2129,50 @@ BOOLEAN PhUiSetAttributesHandle(
 
     return TRUE;
 }
+
+BOOLEAN PhUiCopyInfoProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    )
+{
+    ULONG i;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    HGLOBAL globalMemory;
+    PWSTR buffer;
+
+
+    PhInitializeStringBuilder(&stringBuilder, 200);
+
+    OpenClipboard(NULL);
+    EmptyClipboard();
+
+    for (i = 0; i < NumberOfProcesses; i++)
+    {
+        PhStringBuilderAppend(&stringBuilder, Processes[i]->ProcessName);
+        PhStringBuilderAppend2(&stringBuilder, L", ");
+        PhStringBuilderAppend2(&stringBuilder, Processes[i]->ProcessIdString);
+        PhStringBuilderAppend2(&stringBuilder, L", ");
+        PhStringBuilderAppend2(&stringBuilder, Processes[i]->CpuUsageString);
+        PhStringBuilderAppend2(&stringBuilder, L", ");
+        PhStringBuilderAppend(&stringBuilder, PhFormatSize(Processes[i]->VmCounters.PrivateUsage, -1));
+        PhStringBuilderAppend2(&stringBuilder, L", ");
+        PhStringBuilderAppend2(&stringBuilder, PhGetStringOrEmpty(Processes[i]->UserName));
+        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+    
+    globalMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, string->Length * sizeof(WCHAR));
+
+    buffer = GlobalLock(globalMemory);
+    memcpy(buffer, string->Buffer, string->Length * sizeof(WCHAR));
+    GlobalUnlock(globalMemory);
+
+    SetClipboardData(CF_UNICODETEXT, globalMemory);
+    CloseClipboard();
+
+    PhDereferenceObject(string);
+}
