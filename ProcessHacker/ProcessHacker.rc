@@ -253,7 +253,7 @@ IDR_SERVICE MENU
 BEGIN
     POPUP "Service"
     BEGIN
-        MENUITEM "Go to Process",               ID_SERVICE_GOTOPROCESS
+        MENUITEM "&Go to Process",              ID_SERVICE_GOTOPROCESS
         MENUITEM "Start",                       ID_SERVICE_START
         MENUITEM "Continue",                    ID_SERVICE_CONTINUE
         MENUITEM "Pause",                       ID_SERVICE_PAUSE
@@ -292,6 +292,15 @@ BEGIN
         MENUITEM "Logoff",                      ID_USER_LOGOFF
         MENUITEM "Send Message...",             ID_USER_SENDMESSAGE
         MENUITEM "Properties",                  ID_USER_PROPERTIES
+    END
+END
+
+IDR_NETWORK MENU 
+BEGIN
+    POPUP "Network"
+    BEGIN
+        MENUITEM "&Go to Process\aEnter",       ID_NETWORK_GOTOPROCESS
+        MENUITEM "Close",                       ID_NETWORK_CLOSE
     END
 END
 

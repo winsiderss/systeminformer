@@ -190,6 +190,10 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Object;
 
+    if (networkItem->ProcessName)
+        PhDereferenceObject(networkItem->ProcessName);
+    if (networkItem->OwnerName)
+        PhDereferenceObject(networkItem->OwnerName);
     if (networkItem->LocalHostString)
         PhDereferenceObject(networkItem->LocalHostString);
     if (networkItem->RemoteHostString)
@@ -462,6 +466,25 @@ VOID PhpQueueNetworkItemQuery(
     PhQueueWorkQueueItem(&PhNetworkProviderWorkQueue, PhpNetworkItemQueryWorker, data);
 }
 
+VOID PhpUpdateNetworkItemOwner(
+    __in PPH_NETWORK_ITEM NetworkItem,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (*(PULONG64)NetworkItem->OwnerInfo)
+    {
+        PVOID serviceTag;
+        PPH_STRING serviceName;
+
+        // May change in the future...
+        serviceTag = (PVOID)*(PULONG)NetworkItem->OwnerInfo;
+        serviceName = PhGetServiceNameFromTag(NetworkItem->ProcessId, serviceTag);
+
+        if (serviceName)
+            PhSwapReference2(&NetworkItem->OwnerName, serviceName);
+    }
+}
+
 VOID PhNetworkProviderUpdate(
     __in PVOID Object
     )
@@ -570,6 +593,7 @@ VOID PhNetworkProviderUpdate(
         if (!networkItem)
         {
             PPHP_RESOLVE_CACHE_ITEM cacheItem;
+            PPH_PROCESS_ITEM processItem;
 
             // Network item not found, create it.
 
@@ -584,8 +608,6 @@ VOID PhNetworkProviderUpdate(
             memcpy(networkItem->OwnerInfo, connections[i].OwnerInfo, sizeof(ULONGLONG) * PH_NETWORK_OWNER_INFO_SIZE);
 
             // Format various strings.
-
-            networkItem->ProtocolTypeString = PhGetProtocolTypeName(networkItem->ProtocolType);
 
             if (networkItem->LocalEndpoint.Address.Type == PH_IPV4_NETWORK_TYPE)
                 RtlIpv4AddressToString(&networkItem->LocalEndpoint.Address.InAddr, networkItem->LocalAddressString);
@@ -649,6 +671,22 @@ VOID PhNetworkProviderUpdate(
                 }
             }
 
+            // Get process information.
+            if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
+            {
+                networkItem->ProcessName = processItem->ProcessName;
+                PhReferenceObject(processItem->ProcessName);
+                PhpUpdateNetworkItemOwner(networkItem, processItem);
+
+                if (PhTestEvent(&processItem->Stage1Event))
+                {
+                    networkItem->ProcessIcon = processItem->SmallIcon;
+                    networkItem->ProcessIconValid = TRUE;
+                }
+
+                PhDereferenceObject(processItem);
+            }
+
             // Add the network item to the hashtable.
             PhAcquireQueuedLockExclusive(&PhNetworkHashtableLock);
             PhAddHashtableEntry(PhNetworkHashtable, &networkItem);
@@ -660,6 +698,7 @@ VOID PhNetworkProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
+            PPH_PROCESS_ITEM processItem;
 
             if (networkItem->JustResolved)
                 modified = TRUE;
@@ -668,6 +707,29 @@ VOID PhNetworkProviderUpdate(
             {
                 networkItem->State = connections[i].State;
                 modified = TRUE;
+            }
+
+            if (!networkItem->ProcessName || !networkItem->ProcessIconValid)
+            {
+                if (processItem = PhReferenceProcessItem(networkItem->ProcessId))
+                {
+                    if (!networkItem->ProcessName)
+                    {
+                        networkItem->ProcessName = processItem->ProcessName;
+                        PhReferenceObject(processItem->ProcessName);
+                        PhpUpdateNetworkItemOwner(networkItem, processItem);
+                        modified = TRUE;
+                    }
+
+                    if (!networkItem->ProcessIconValid && PhTestEvent(&processItem->Stage1Event))
+                    {
+                        networkItem->ProcessIcon = processItem->SmallIcon;
+                        networkItem->ProcessIconValid = TRUE;
+                        modified = TRUE;
+                    }
+
+                    PhDereferenceObject(processItem);
+                }
             }
 
             networkItem->JustResolved = FALSE;
@@ -701,6 +763,41 @@ PWSTR PhGetProtocolTypeName(
         return L"UDP";
     case PH_UDP6_NETWORK_PROTOCOL:
         return L"UDP6";
+    default:
+        return L"Unknown";
+    }
+}
+
+PWSTR PhGetTcpStateName(
+    __in ULONG State
+    )
+{
+    switch (State)
+    {
+    case MIB_TCP_STATE_CLOSED:
+        return L"Closed";
+    case MIB_TCP_STATE_LISTEN:
+        return L"Listen";
+    case MIB_TCP_STATE_SYN_SENT:
+        return L"SYN Sent";
+    case MIB_TCP_STATE_SYN_RCVD:
+        return L"SYN Received";
+    case MIB_TCP_STATE_ESTAB:
+        return L"Established";
+    case MIB_TCP_STATE_FIN_WAIT1:
+        return L"FIN Wait 1";
+    case MIB_TCP_STATE_FIN_WAIT2:
+        return L"FIN Wait 2";
+    case MIB_TCP_STATE_CLOSE_WAIT:
+        return L"Close Wait";
+    case MIB_TCP_STATE_CLOSING:
+        return L"Closing";
+    case MIB_TCP_STATE_LAST_ACK:
+        return L"Last ACK";
+    case MIB_TCP_STATE_TIME_WAIT:
+        return L"Time Wait";
+    case MIB_TCP_STATE_DELETE_TCB:
+        return L"Delete TCB";
     default:
         return L"Unknown";
     }

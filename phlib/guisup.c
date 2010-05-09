@@ -153,6 +153,29 @@ INT PhFindListViewItemByParam(
     return ListView_FindItem(ListViewHandle, StartIndex, &findInfo);
 }
 
+LOGICAL PhGetListViewItemImageIndex(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __out PINT ImageIndex
+    )
+{
+    LOGICAL result;
+    LVITEM item;
+
+    item.mask = LVIF_IMAGE;
+    item.iItem = Index;
+    item.iSubItem = 0;
+
+    result = ListView_GetItem(ListViewHandle, &item);
+
+    if (!result)
+        return result;
+
+    *ImageIndex = item.iImage;
+
+    return result;
+}
+
 LOGICAL PhGetListViewItemParam(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -511,6 +534,55 @@ VOID PhSetImageListBitmap(
         ImageList_Replace(ImageList, Index, bitmap, NULL);
         DeleteObject(bitmap);
     }
+}
+
+VOID PhInitializeImageListWrapper(
+    __out PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in ULONG Width,
+    __in ULONG Height,
+    __in ULONG Flags
+    )
+{
+    Wrapper->Handle = ImageList_Create(Width, Height, Flags, 0, 10);
+    Wrapper->FreeList = PhCreateList(10);
+}
+
+VOID PhDeleteImageListWrapper(
+    __inout PPH_IMAGE_LIST_WRAPPER Wrapper
+    )
+{
+    ImageList_Destroy(Wrapper->Handle);
+    PhDereferenceObject(Wrapper->FreeList);
+}
+
+INT PhImageListWrapperAddIcon(
+    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in HICON Icon
+    )
+{
+    INT index;
+
+    if (Wrapper->FreeList->Count != 0)
+    {
+        index = (INT)Wrapper->FreeList->Items[Wrapper->FreeList->Count - 1];
+        PhRemoveListItem(Wrapper->FreeList, Wrapper->FreeList->Count - 1);
+    }
+    else
+    {
+        index = -1;
+    }
+
+    return ImageList_ReplaceIcon(Wrapper->Handle, index, Icon);
+}
+
+VOID PhImageListWrapperRemove(
+    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in INT Index
+    )
+{
+    // We don't actually remove the icon; this is to keep the indicies 
+    // stable.
+    PhAddListItem(Wrapper->FreeList, (PVOID)Index);
 }
 
 VOID PhInitializeLayoutManager(

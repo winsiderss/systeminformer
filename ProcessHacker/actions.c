@@ -23,7 +23,12 @@
 #include <phapp.h>
 #include <settings.h>
 #include <kph.h>
+#include <iphlpapi.h>
 #include <wtsapi32.h>
+
+typedef DWORD (WINAPI *_SetTcpEntry)(
+    __in PMIB_TCPROW pTcpRow
+    );
 
 static PWSTR DangerousProcesses[] =
 {
@@ -1498,6 +1503,61 @@ BOOLEAN PhUiDeleteService(
 
     if (!success)
         PhpShowErrorService(hWnd, L"delete", Service, 0, GetLastError());
+
+    return success;
+}
+
+BOOLEAN PhUiCloseConnections(
+    __in HWND hWnd,
+    __in PPH_NETWORK_ITEM *Connections,
+    __in ULONG NumberOfConnections
+    )
+{
+    BOOLEAN success = TRUE;
+    ULONG i;
+    _SetTcpEntry SetTcpEntry_I;
+    MIB_TCPROW tcpRow;
+
+    SetTcpEntry_I = PhGetProcAddress(L"iphlpapi.dll", "SetTcpEntry");
+
+    if (!SetTcpEntry_I)
+    {
+        PhShowError(
+            hWnd,
+            L"This feature is not supported by your operating system."
+            );
+        return FALSE;
+    }
+
+    for (i = 0; i < NumberOfConnections; i++)
+    {
+        if (
+            Connections[i]->ProtocolType != PH_TCP4_NETWORK_PROTOCOL ||
+            Connections[i]->State != MIB_TCP_STATE_ESTAB
+            )
+            continue;
+
+        tcpRow.dwState = MIB_TCP_STATE_DELETE_TCB;
+        tcpRow.dwLocalAddr = Connections[i]->LocalEndpoint.Address.Ipv4;
+        tcpRow.dwLocalPort = _byteswap_ushort((USHORT)Connections[i]->LocalEndpoint.Port);
+        tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
+        tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
+
+        if (SetTcpEntry_I(&tcpRow) != 0)
+        {
+            success = FALSE;
+
+            if (PhShowMessage(
+                hWnd,
+                MB_ICONERROR | MB_OKCANCEL,
+                L"Unable to close the TCP connection (from %s:%u). "
+                L"Make sure Process Hacker is running with administrative privileges.",
+                Connections[i]->LocalAddressString,
+                Connections[i]->LocalEndpoint.Port
+                ) != IDOK)
+                break;
+        }
+    }
 
     return success;
 }
