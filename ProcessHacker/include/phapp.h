@@ -603,6 +603,12 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+BOOLEAN PhUiCopyInfoProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM *Processes,
+    __in ULONG NumberOfProcesses
+    );
+
 // itemtips
 
 PPH_STRING PhGetProcessTooltipText(

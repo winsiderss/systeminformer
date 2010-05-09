@@ -1052,6 +1052,16 @@ LRESULT CALLBACK PhMainWndProc(
                     PhFree(networkItems);
                 }
                 break;
+            case ID_PROCESS_COPY_ALL:
+                {
+                    PPH_PROCESS_ITEM *processItems;
+                    ULONG numberOfProcessItems;
+
+                    PhpGetSelectedProcesses(&processItems, &numberOfProcessItems);
+                    PhReferenceObjects(processItems, numberOfProcessItems);
+                    PhUiCopyInfoProcess(hWnd, processItems, numberOfProcessItems);
+                    PhDereferenceObjects(processItems, numberOfProcessItems);
+                }
             }
         }
         break;
@@ -1888,6 +1898,7 @@ VOID PhpInitializeProcessMenu(
 {
 #define MISCELLANEOUS_MENU_INDEX 12
 #define WINDOW_MENU_INDEX 14
+#define COPY_MENU_INDEX 15
 
     if (NumberOfProcesses == 0)
     {
@@ -1915,8 +1926,7 @@ VOID PhpInitializeProcessMenu(
         {
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
-            ID_PROCESS_RESUME,
-            ID_PROCESS_REDUCEWORKINGSET
+            ID_PROCESS_RESUME
         };
         ULONG i;
 
@@ -1928,6 +1938,10 @@ VOID PhpInitializeProcessMenu(
         {
             EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
         }
+
+        // Enable Copy Menu
+
+        EnableMenuItem(Menu, COPY_MENU_INDEX, MF_ENABLED | MF_BYPOSITION);
     }
 
     // Remove irrelevant menu items.
