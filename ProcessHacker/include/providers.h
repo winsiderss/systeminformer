@@ -193,6 +193,58 @@ VOID PhServiceProviderUpdate(
     __in PVOID Object
     );
 
+// netprv
+
+#ifndef NETPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhNetworkItemType;
+extern PH_CALLBACK PhNetworkItemAddedEvent;
+extern PH_CALLBACK PhNetworkItemModifiedEvent;
+extern PH_CALLBACK PhNetworkItemRemovedEvent;
+extern PH_CALLBACK PhNetworkItemsUpdatedEvent;
+#endif
+
+#include <phnet.h>
+
+#define PH_NETWORK_OWNER_INFO_SIZE 16
+
+typedef struct _PH_NETWORK_ITEM
+{
+    ULONG ProtocolType;
+    PH_IP_ENDPOINT LocalEndpoint;
+    PH_IP_ENDPOINT RemoteEndpoint;
+    ULONG State;
+    HANDLE ProcessId;
+
+    PWSTR ProtocolTypeString;
+    WCHAR LocalAddressString[65];
+    WCHAR LocalPortString[PH_INT32_STR_LEN_1];
+    WCHAR RemoteAddressString[65];
+    WCHAR RemotePortString[PH_INT32_STR_LEN_1];
+    PPH_STRING LocalHostString;
+    PPH_STRING RemoteHostString;
+
+    ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
+} PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
+
+BOOLEAN PhInitializeNetworkProvider();
+
+PPH_NETWORK_ITEM PhCreateNetworkItem();
+
+PPH_NETWORK_ITEM PhReferenceNetworkItem(
+    __in ULONG ProtocolType,
+    __in PPH_IP_ENDPOINT LocalEndpoint,
+    __in PPH_IP_ENDPOINT RemoteEndpoint,
+    __in HANDLE ProcessId
+    );
+
+VOID PhNetworkProviderUpdate(
+    __in PVOID Object
+    );
+
+PWSTR PhGetProtocolTypeName(
+    __in ULONG ProtocolType
+    );
+
 // modprv
 
 #ifndef MODPRV_PRIVATE
