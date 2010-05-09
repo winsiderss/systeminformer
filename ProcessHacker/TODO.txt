@@ -1,8 +1,6 @@
 * Column re-ordering (and save in settings)
 * Column chooser
 
-* Network provider
-
 * Process properties:
 	* Memory provider
 
