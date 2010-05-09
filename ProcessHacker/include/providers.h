@@ -215,9 +215,13 @@ typedef struct _PH_NETWORK_ITEM
     ULONG State;
     HANDLE ProcessId;
 
+    PPH_STRING ProcessName;
+    HICON ProcessIcon;
+    BOOLEAN ProcessIconValid;
+    PPH_STRING OwnerName;
+
     BOOLEAN JustResolved;
 
-    PWSTR ProtocolTypeString;
     WCHAR LocalAddressString[65];
     WCHAR LocalPortString[PH_INT32_STR_LEN_1];
     WCHAR RemoteAddressString[65];
@@ -249,6 +253,10 @@ VOID PhNetworkProviderUpdate(
 
 PWSTR PhGetProtocolTypeName(
     __in ULONG ProtocolType
+    );
+
+PWSTR PhGetTcpStateName(
+    __in ULONG State
     );
 
 // modprv

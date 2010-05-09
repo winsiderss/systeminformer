@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
+#include <iphlpapi.h>
 #include <wtsapi32.h>
 
 typedef BOOL (WINAPI *_FileIconInit)(
@@ -46,6 +47,9 @@ VOID PhMainWndProcessListViewOnNotify(
     __in LPNMHDR Header
     );
 VOID PhMainWndServiceListViewOnNotify(
+    __in LPNMHDR Header
+    );
+VOID PhMainWndNetworkListViewOnNotify(
     __in LPNMHDR Header
     );
 
@@ -77,6 +81,13 @@ PPH_SERVICE_ITEM PhpGetSelectedService();
 VOID PhpGetSelectedServices(
     __out PPH_SERVICE_ITEM **Services,
     __out PULONG NumberOfServices
+    );
+
+PPH_NETWORK_ITEM PhpGetSelectedNetworkItem();
+
+VOID PhpGetSelectedNetworkItems(
+    __out PPH_NETWORK_ITEM **NetworkItems,
+    __out PULONG NumberOfNetworkItems
     );
 
 VOID PhpShowProcessProperties(
@@ -151,12 +162,17 @@ static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
+static BOOLEAN ServicesNeedsRedraw = FALSE;
+static BOOLEAN ServicesNeedsSort = FALSE;
 
 static PH_PROVIDER_REGISTRATION NetworkProviderRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemAddedRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemModifiedRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemRemovedRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemsUpdatedRegistration;
+static BOOLEAN NetworkNeedsRedraw = FALSE;
+static BOOLEAN NetworkNeedsSort = FALSE;
+static PH_IMAGE_LIST_WRAPPER NetworkImageListWrapper;
 
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
@@ -1008,6 +1024,34 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_NETWORK_GOTOPROCESS:
+                {
+                    PPH_NETWORK_ITEM networkItem = PhpGetSelectedNetworkItem();
+                    PPH_PROCESS_NODE processNode;
+
+                    if (networkItem)
+                    {
+                        if (processNode = PhFindProcessNode(networkItem->ProcessId))
+                        {
+                            PhpSelectTabPage(ProcessesTabIndex);
+                            SetFocus(ProcessTreeListHandle);
+                            PhSelectAndEnsureVisibleProcessNode(processNode);
+                        }
+                    }
+                }
+                break;
+            case ID_NETWORK_CLOSE:
+                {
+                    PPH_NETWORK_ITEM *networkItems;
+                    ULONG numberOfNetworkItems;
+
+                    PhpGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
+                    PhReferenceObjects(networkItems, numberOfNetworkItems);
+                    PhUiCloseConnections(hWnd, networkItems, numberOfNetworkItems);
+                    PhDereferenceObjects(networkItems, numberOfNetworkItems);
+                    PhFree(networkItems);
+                }
+                break;
             }
         }
         break;
@@ -1086,6 +1130,10 @@ LRESULT CALLBACK PhMainWndProc(
             else if (header->hwndFrom == ServiceListViewHandle)
             {
                 PhMainWndServiceListViewOnNotify(header);
+            }
+            else if (header->hwndFrom == NetworkListViewHandle)
+            {
+                PhMainWndNetworkListViewOnNotify(header);
             }
             else if (header->code == RFN_VALIDATE && SelectedRunAsAdmin)
             {
@@ -1449,6 +1497,25 @@ VOID PhpGetSelectedServices(
         );
 }
 
+PPH_NETWORK_ITEM PhpGetSelectedNetworkItem()
+{
+    return PhGetSelectedListViewItemParam(
+        NetworkListViewHandle
+        );
+}
+
+VOID PhpGetSelectedNetworkItems(
+    __out PPH_NETWORK_ITEM **NetworkItems,
+    __out PULONG NumberOfNetworkItems
+    )
+{
+    PhGetSelectedListViewItemParams(
+        NetworkListViewHandle,
+        NetworkItems,
+        NumberOfNetworkItems
+        );
+}
+
 static VOID NTAPI ProcessAddedHandler(
     __in PVOID Parameter,
     __in PVOID Context
@@ -1620,7 +1687,9 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(NetworkListViewHandle, 2, 2, 2, LVCFMT_RIGHT, 50, L"Local Port");
     PhAddListViewColumn(NetworkListViewHandle, 3, 3, 3, LVCFMT_LEFT, 120, L"Remote Address");
     PhAddListViewColumn(NetworkListViewHandle, 4, 4, 4, LVCFMT_RIGHT, 50, L"Remote Port");
-    PhAddListViewColumn(NetworkListViewHandle, 5, 5, 5, LVCFMT_LEFT, 50, L"Protocol");
+    PhAddListViewColumn(NetworkListViewHandle, 5, 5, 5, LVCFMT_LEFT, 45, L"Protocol");
+    PhAddListViewColumn(NetworkListViewHandle, 6, 6, 6, LVCFMT_LEFT, 70, L"State");
+    PhAddListViewColumn(NetworkListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Owner");
 
     PhProcessTreeListInitialization();
     PhInitializeProcessTreeList(ProcessTreeListHandle);
@@ -2205,6 +2274,108 @@ VOID PhMainWndServiceListViewOnNotify(
     }
 }
 
+VOID PhpInitializeNetworkMenu(
+    __in HMENU Menu,
+    __in PPH_NETWORK_ITEM *NetworkItems,
+    __in ULONG NumberOfNetworkItems
+    )
+{
+    ULONG i;
+
+    if (NumberOfNetworkItems == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfNetworkItems == 1)
+    {
+        if (!NetworkItems[0]->ProcessId)
+            PhEnableMenuItem(Menu, ID_NETWORK_GOTOPROCESS, FALSE);
+    }
+    else
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, TRUE);
+    }
+
+    // Close
+    if (NumberOfNetworkItems != 0)
+    {
+        BOOLEAN closeOk = TRUE;
+
+        for (i = 0; i < NumberOfNetworkItems; i++)
+        {
+            if (
+                NetworkItems[i]->ProtocolType != PH_TCP4_NETWORK_PROTOCOL ||
+                NetworkItems[i]->State != MIB_TCP_STATE_ESTAB
+                )
+            {
+                closeOk = FALSE;
+                break;
+            }
+        }
+
+        if (!closeOk)
+            PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
+    }
+}
+
+VOID PhMainWndNetworkListViewOnNotify(
+    __in LPNMHDR Header
+    )
+{
+    switch (Header->code)
+    {
+    case NM_DBLCLK:
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_GOTOPROCESS, 0);
+        }
+        break;
+    case NM_RCLICK:
+        {
+            LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
+            PPH_NETWORK_ITEM *networkItems;
+            ULONG numberOfNetworkItems;
+
+            PhpGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
+
+            if (numberOfNetworkItems != 0)
+            {
+                HMENU menu;
+                HMENU subMenu;
+
+                menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK));
+                subMenu = GetSubMenu(menu, 0);
+
+                SetMenuDefaultItem(subMenu, ID_NETWORK_GOTOPROCESS, FALSE);
+                PhpInitializeNetworkMenu(subMenu, networkItems, numberOfNetworkItems);
+
+                PhShowContextMenu(
+                    PhMainWndHandle,
+                    NetworkListViewHandle,
+                    subMenu,
+                    itemActivate->ptAction
+                    );
+                DestroyMenu(menu);
+            }
+
+            PhFree(networkItems);
+        }
+        break;
+    case LVN_KEYDOWN:
+        {
+            LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)Header;
+
+            switch (keyDown->wVKey)
+            {
+            case VK_RETURN:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_GOTOPROCESS, 0);
+                break;
+            }
+        }
+        break;
+    }
+}
+
 VOID PhMainWndOnProcessAdded(
     __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
     __in ULONG RunId
@@ -2262,6 +2433,12 @@ VOID PhMainWndOnServiceAdded(
 {
     INT lvItemIndex;
 
+    if (!ServicesNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
+        ServicesNeedsRedraw = TRUE;
+    }
+
     // Add a reference for the pointer being stored in the list view item.
     PhReferenceObject(ServiceItem);
 
@@ -2275,6 +2452,8 @@ VOID PhMainWndOnServiceAdded(
     if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceItem->ProcessIdString);
+
+    ServicesNeedsSort = TRUE;
 }
 
 VOID PhMainWndOnServiceModified(
@@ -2283,14 +2462,28 @@ VOID PhMainWndOnServiceModified(
 {
     INT lvItemIndex;
 
+    if (!ServicesNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
+        ServicesNeedsRedraw = TRUE;
+    }
+
     lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceModifiedData->Service);
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceModifiedData->Service->ProcessIdString);
+
+    ServicesNeedsSort = TRUE;
 }
 
 VOID PhMainWndOnServiceRemoved(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
+    if (!ServicesNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
+        ServicesNeedsRedraw = TRUE;
+    }
+
     PhRemoveListViewItem(
         ServiceListViewHandle,
         PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceItem)
@@ -2302,6 +2495,50 @@ VOID PhMainWndOnServiceRemoved(
 VOID PhMainWndOnServicesUpdated()
 {
     ExtendedListView_Tick(ServiceListViewHandle);
+
+    if (ServicesNeedsSort)
+    {
+        ExtendedListView_SortItems(ServiceListViewHandle);
+        ServicesNeedsSort = FALSE;
+    }
+
+    if (ServicesNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(ServiceListViewHandle, TRUE);
+        ServicesNeedsRedraw = FALSE;
+    }
+}
+
+PWSTR PhpGetNetworkItemProcessName(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    if (!NetworkItem->ProcessId)
+        return L"Waiting Connections";
+
+    if (NetworkItem->ProcessName)
+        return PhaFormatString(L"%s (%u)", NetworkItem->ProcessName->Buffer, (ULONG)NetworkItem->ProcessId)->Buffer;
+    else
+        return PhaFormatString(L"Unknown Process (%u)", (ULONG)NetworkItem->ProcessId)->Buffer;
+}
+
+VOID PhpSetNetworkItemImageIndex(
+    __in INT ItemIndex,
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    INT imageIndex;
+
+    if (NetworkItem->ProcessIconValid && NetworkItem->ProcessIcon)
+    {
+        imageIndex = PhImageListWrapperAddIcon(&NetworkImageListWrapper, NetworkItem->ProcessIcon);
+    }
+    else
+    {
+        imageIndex = 0;
+    }
+
+    PhSetListViewItemImageIndex(NetworkListViewHandle, ItemIndex, imageIndex);
 }
 
 VOID PhMainWndOnNetworkItemAdded(
@@ -2311,6 +2548,12 @@ VOID PhMainWndOnNetworkItemAdded(
 {
     INT lvItemIndex;
 
+    if (!NetworkNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(NetworkListViewHandle, FALSE);
+        NetworkNeedsRedraw = TRUE;
+    }
+
     // Add a reference for the pointer being stored in the list view item.
     PhReferenceObject(NetworkItem);
 
@@ -2318,7 +2561,7 @@ VOID PhMainWndOnNetworkItemAdded(
     lvItemIndex = PhAddListViewItem(
         NetworkListViewHandle,
         MAXINT,
-        L"Process name",
+        PhpGetNetworkItemProcessName(NetworkItem),
         NetworkItem
         );
     if (RunId == 1) ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
@@ -2328,7 +2571,21 @@ VOID PhMainWndOnNetworkItemAdded(
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3,
         PhGetStringOrDefault(NetworkItem->RemoteHostString, NetworkItem->RemoteAddressString));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 4, NetworkItem->RemotePortString);
-    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 5, NetworkItem->ProtocolTypeString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 5, PhGetProtocolTypeName(NetworkItem->ProtocolType));
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 6,
+        (NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE) ? PhGetTcpStateName(NetworkItem->State) : NULL);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
+
+    if (!NetworkImageListWrapper.Handle)
+    {
+        PhInitializeImageListWrapper(&NetworkImageListWrapper, 16, 16, ILC_COLOR32);
+        PhImageListWrapperAddIcon(&NetworkImageListWrapper, PhGetStockAppIcon());
+        ListView_SetImageList(NetworkListViewHandle, NetworkImageListWrapper.Handle, LVSIL_SMALL);
+    }
+
+    PhpSetNetworkItemImageIndex(lvItemIndex, NetworkItem);
+
+    NetworkNeedsSort = TRUE;
 }
 
 VOID PhMainWndOnNetworkItemModified(
@@ -2336,21 +2593,68 @@ VOID PhMainWndOnNetworkItemModified(
     )
 {
     INT lvItemIndex;
+    INT imageIndex;
+
+    if (!NetworkNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(NetworkListViewHandle, FALSE);
+        NetworkNeedsRedraw = TRUE;
+    }
 
     lvItemIndex = PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 0,
+        PhpGetNetworkItemProcessName(NetworkItem));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 1,
         PhGetStringOrDefault(NetworkItem->LocalHostString, NetworkItem->LocalAddressString));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3,
         PhGetStringOrDefault(NetworkItem->RemoteHostString, NetworkItem->RemoteAddressString));
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 6,
+        (NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE) ? PhGetTcpStateName(NetworkItem->State) : NULL);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
+
+    // Only set a new icon if we didn't have a proper one before.
+    if (PhGetListViewItemImageIndex(
+        NetworkListViewHandle,
+        lvItemIndex,
+        &imageIndex
+        ) && imageIndex == 0)
+    {
+        PhpSetNetworkItemImageIndex(lvItemIndex, NetworkItem);
+    }
+
+    NetworkNeedsSort = TRUE;
 }
 
 VOID PhMainWndOnNetworkItemRemoved(
     __in PPH_NETWORK_ITEM NetworkItem
     )
 {
+    INT lvItemIndex;
+    INT imageIndex;
+
+    if (!NetworkNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(NetworkListViewHandle, FALSE);
+        NetworkNeedsRedraw = TRUE;
+    }
+
+    lvItemIndex = PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem);
+
+    if (PhGetListViewItemImageIndex(
+        NetworkListViewHandle,
+        lvItemIndex,
+        &imageIndex
+        ) && imageIndex != 0)
+    {
+        PhImageListWrapperRemove(&NetworkImageListWrapper, imageIndex);
+        // Set to a generic icon so we don't get random icons popping up due to 
+        // the delay caused by state highlighting.
+        PhSetListViewItemImageIndex(NetworkListViewHandle, lvItemIndex, 0);
+    }
+
     PhRemoveListViewItem(
         NetworkListViewHandle,
-        PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem)
+        lvItemIndex
         );
     // Remove the reference we added in PhMainWndOnNetworkItemAdded.
     PhDereferenceObject(NetworkItem);
@@ -2359,4 +2663,16 @@ VOID PhMainWndOnNetworkItemRemoved(
 VOID PhMainWndOnNetworkItemsUpdated()
 {
     ExtendedListView_Tick(NetworkListViewHandle);
+
+    if (NetworkNeedsSort)
+    {
+        ExtendedListView_SortItems(NetworkListViewHandle);
+        NetworkNeedsSort = FALSE;
+    }
+
+    if (NetworkNeedsRedraw)
+    {
+        ExtendedListView_SetRedraw(NetworkListViewHandle, TRUE);
+        NetworkNeedsRedraw = FALSE;
+    }
 }

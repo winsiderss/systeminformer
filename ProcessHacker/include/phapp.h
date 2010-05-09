@@ -143,6 +143,8 @@ VOID PhUpdateProcessNode(
 
 VOID PhTickProcessNodes();
 
+HICON PhGetStockAppIcon();
+
 PPH_PROCESS_ITEM PhGetSelectedProcessItem();
 
 VOID PhGetSelectedProcessItems(
@@ -535,6 +537,12 @@ BOOLEAN PhUiStopService(
 BOOLEAN PhUiDeleteService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
+    );
+
+BOOLEAN PhUiCloseConnections(
+    __in HWND hWnd,
+    __in PPH_NETWORK_ITEM *Connections,
+    __in ULONG NumberOfConnections
     );
 
 BOOLEAN PhUiTerminateThreads(

@@ -342,6 +342,25 @@ VOID PhTickProcessNodes()
     }
 }
 
+HICON PhGetStockAppIcon()
+{
+    if (!StockAppIcon)
+    {
+        SHFILEINFO fileInfo = { 0 };
+
+        SHGetFileInfo(
+            L".exe",
+            FILE_ATTRIBUTE_NORMAL,
+            &fileInfo,
+            sizeof(SHFILEINFO),
+            SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON
+            );
+        StockAppIcon = fileInfo.hIcon;
+    }
+
+    return StockAppIcon;
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
 
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeListCompare##Column( \
@@ -561,21 +580,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
             else
             {
-                if (!StockAppIcon)
-                {
-                    SHFILEINFO fileInfo = { 0 };
-
-                    SHGetFileInfo(
-                        L".exe",
-                        FILE_ATTRIBUTE_NORMAL,
-                        &fileInfo,
-                        sizeof(SHFILEINFO),
-                        SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON
-                        );
-                    StockAppIcon = fileInfo.hIcon;
-                }
-
-                getNodeIcon->Icon = StockAppIcon;
+                getNodeIcon->Icon = PhGetStockAppIcon();
             }
 
             getNodeIcon->Flags = TLC_CACHE;
@@ -735,6 +740,7 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     }
 
     ProcessNode->Node.Selected = TRUE;
+    ProcessNode->Node.Focused = TRUE;
     PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_STATE);
 
     if (needsRestructure)

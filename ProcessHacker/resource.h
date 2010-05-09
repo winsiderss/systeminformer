@@ -60,6 +60,8 @@
 #define IDB_BITMAP2                     161
 #define IDB_PLUS                        161
 #define IDD_OPTGENERAL                  162
+#define IDR_MENU1                       164
+#define IDR_NETWORK                     164
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -233,7 +235,6 @@
 #define IDC_ALLOWONLYONEINSTANCE        1145
 #define IDC_ENABLEWARNINGS              1147
 #define IDC_ENABLEKERNELMODEDRIVER      1149
-#define IDC_EDIT1                       1151
 #define IDC_PEVIEWER                    1151
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -358,14 +359,16 @@
 #define ID_FORCEON_SYSTEM               40136
 #define ID_FORCEON_DISPLAY              40137
 #define ID_USER_CONNECT                 40138
+#define ID_NETWORK_GOTOPROCESS          40139
+#define ID_NETWORK_CLOSE                40140
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         40139
+#define _APS_NEXT_RESOURCE_VALUE        165
+#define _APS_NEXT_COMMAND_VALUE         40141
 #define _APS_NEXT_CONTROL_VALUE         1152
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
