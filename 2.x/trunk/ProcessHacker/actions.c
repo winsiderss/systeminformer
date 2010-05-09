@@ -2142,11 +2142,10 @@ BOOLEAN PhUiCopyInfoProcess(
     HGLOBAL globalMemory;
     PWSTR buffer;
 
+    
+    // Build string for clipboard
 
     PhInitializeStringBuilder(&stringBuilder, 200);
-
-    OpenClipboard(NULL);
-    EmptyClipboard();
 
     for (i = 0; i < NumberOfProcesses; i++)
     {
@@ -2164,15 +2163,28 @@ BOOLEAN PhUiCopyInfoProcess(
 
     string = PhReferenceStringBuilderString(&stringBuilder);
     PhDeleteStringBuilder(&stringBuilder);
-    
+
     globalMemory = GlobalAlloc(GMEM_MOVEABLE | GMEM_DDESHARE, string->Length * sizeof(WCHAR));
 
     buffer = GlobalLock(globalMemory);
     memcpy(buffer, string->Buffer, string->Length * sizeof(WCHAR));
     GlobalUnlock(globalMemory);
 
+    OpenClipboard(NULL);
+    EmptyClipboard();
+
     SetClipboardData(CF_UNICODETEXT, globalMemory);
     CloseClipboard();
 
     PhDereferenceObject(string);
+}
+
+BOOLEAN PhUiSetOpacity(
+   __in HWND hWnd,
+   __in ULONG Opacity
+   )
+{
+    if (Opacity > 100)
+        Opacity = 100;
+    return SetLayeredWindowAttributes(hWnd, 0, ((0xFF * Opacity) / 100), LWA_ALPHA) != 0;
 }

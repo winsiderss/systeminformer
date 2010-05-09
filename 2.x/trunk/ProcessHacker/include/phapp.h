@@ -865,4 +865,11 @@ HPROPSHEETPAGE PhCreateTokenPage(
     __in_opt DLGPROC HookProc
     );
 
+// window
+
+BOOLEAN PhUiSetOpacity(
+   __in HWND hWnd,
+   __in ULONG Opacity
+   );
+
 #endif
