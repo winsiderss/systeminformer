@@ -287,6 +287,11 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SERVICE_REMOVED (WM_APP + 107)
 #define WM_PH_SERVICES_UPDATED (WM_APP + 108)
 
+#define WM_PH_NETWORK_ITEM_ADDED (WM_APP + 109)
+#define WM_PH_NETWORK_ITEM_MODIFIED (WM_APP + 110)
+#define WM_PH_NETWORK_ITEM_REMOVED (WM_APP + 111)
+#define WM_PH_NETWORK_ITEMS_UPDATED (WM_APP + 112)
+
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
 #define ProcessHacker_Destroy(hWnd) \

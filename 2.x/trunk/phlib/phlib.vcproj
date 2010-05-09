@@ -547,6 +547,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\phnet.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\queuedlock.h"
 				>
 			</File>

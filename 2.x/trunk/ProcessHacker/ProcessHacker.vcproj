@@ -469,6 +469,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\netprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntobjprp.c"
 				>
 			</File>
