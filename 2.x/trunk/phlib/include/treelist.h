@@ -200,6 +200,8 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_SETSORT (WM_APP + 1215)
 #define TLM_SETTRISTATE (WM_APP + 1216)
 #define TLM_ENSUREVISIBLE (WM_APP + 1217)
+#define TLM_SETSELECTIONMARK (WM_APP + 1218)
+#define TLM_SETSTATEALL (WM_APP + 1219)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -257,6 +259,12 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 
 #define TreeList_EnsureVisible(hWnd, Node, PartialOk) \
     SendMessage((hWnd), TLM_ENSUREVISIBLE, (WPARAM)(PartialOk), (LPARAM)(Node))
+
+#define TreeList_SetSelectionMark(hWnd, Index) \
+    SendMessage((hWnd), TLM_SETSELECTIONMARK, (WPARAM)(Index), 0)
+
+#define TreeList_SetStateAll(hWnd, State, Mask) \
+    SendMessage((hWnd), TLM_SETSTATEALL, (WPARAM)(State), (LPARAM)(Mask))
 
 BOOLEAN PhTreeListInitialization();
 

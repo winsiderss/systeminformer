@@ -238,6 +238,12 @@ INT PhFindListViewItemByParam(
     __in PVOID Param
     );
 
+LOGICAL PhGetListViewItemImageIndex(
+    __in HWND ListViewHandle,
+    __in INT Index,
+    __out PINT ImageIndex
+    );
+
 LOGICAL PhGetListViewItemParam(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -336,6 +342,33 @@ VOID PhSetImageListBitmap(
     __in INT Index,
     __in HINSTANCE InstanceHandle,
     __in LPCWSTR BitmapName
+    );
+
+typedef struct _PH_IMAGE_LIST_WRAPPER
+{
+    HIMAGELIST Handle;
+    PPH_LIST FreeList;
+} PH_IMAGE_LIST_WRAPPER, *PPH_IMAGE_LIST_WRAPPER;
+
+VOID PhInitializeImageListWrapper(
+    __out PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in ULONG Width,
+    __in ULONG Height,
+    __in ULONG Flags
+    );
+
+VOID PhDeleteImageListWrapper(
+    __inout PPH_IMAGE_LIST_WRAPPER Wrapper
+    );
+
+INT PhImageListWrapperAddIcon(
+    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in HICON Icon
+    );
+
+VOID PhImageListWrapperRemove(
+    __in PPH_IMAGE_LIST_WRAPPER Wrapper,
+    __in INT Index
     );
 
 #define PH_ANCHOR_LEFT 0x1

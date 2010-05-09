@@ -892,6 +892,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
             ListView_EnsureVisible(context->ListViewHandle, node->s.ViewIndex, partialOk);
         }
         return TRUE;
+    case TLM_SETSELECTIONMARK:
+        {
+            ListView_SetSelectionMark(context->ListViewHandle, (INT)wParam);
+        }
+        return TRUE;
+    case TLM_SETSTATEALL:
+        {
+            ListView_SetItemState(context->ListViewHandle, -1, (UINT)wParam, (UINT)lParam);
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
