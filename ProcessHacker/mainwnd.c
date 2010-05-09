@@ -2322,9 +2322,11 @@ VOID PhMainWndOnNetworkItemAdded(
         NetworkItem
         );
     if (RunId == 1) ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
-    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 1, NetworkItem->LocalAddressString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 1,
+        PhGetStringOrDefault(NetworkItem->LocalHostString, NetworkItem->LocalAddressString));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 2, NetworkItem->LocalPortString);
-    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3, NetworkItem->RemoteAddressString);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3,
+        PhGetStringOrDefault(NetworkItem->RemoteHostString, NetworkItem->RemoteAddressString));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 4, NetworkItem->RemotePortString);
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 5, NetworkItem->ProtocolTypeString);
 }
@@ -2336,6 +2338,10 @@ VOID PhMainWndOnNetworkItemModified(
     INT lvItemIndex;
 
     lvItemIndex = PhFindListViewItemByParam(NetworkListViewHandle, -1, NetworkItem);
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 1,
+        PhGetStringOrDefault(NetworkItem->LocalHostString, NetworkItem->LocalAddressString));
+    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 3,
+        PhGetStringOrDefault(NetworkItem->RemoteHostString, NetworkItem->RemoteAddressString));
 }
 
 VOID PhMainWndOnNetworkItemRemoved(

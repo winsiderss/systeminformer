@@ -122,12 +122,12 @@ PVOID PhReAlloc(
 
 // mutex
 
-#define PH_MUTEX_IS_CRITICAL_SECTION
+//#define PH_MUTEX_IS_CRITICAL_SECTION
 
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
 typedef RTL_CRITICAL_SECTION PH_MUTEX, *PPH_MUTEX;
 #else
-typedef PH_FAST_LOCK PH_MUTEX, *PPH_MUTEX;
+typedef PH_QUEUED_LOCK PH_MUTEX, *PPH_MUTEX;
 #endif
 
 /**
@@ -142,7 +142,7 @@ FORCEINLINE VOID PhInitializeMutex(
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlInitializeCriticalSection(Mutex);
 #else
-    PhInitializeFastLock(Mutex);
+    PhInitializeQueuedLock(Mutex);
 #endif
 }
 
@@ -157,8 +157,6 @@ FORCEINLINE VOID PhDeleteMutex(
 {
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlDeleteCriticalSection(Mutex);
-#else
-    PhDeleteFastLock(Mutex);
 #endif
 }
 
@@ -174,7 +172,7 @@ FORCEINLINE VOID PhAcquireMutex(
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlEnterCriticalSection(Mutex);
 #else
-    PhAcquireFastLockExclusive(Mutex);
+    PhAcquireQueuedLockExclusiveFast(Mutex);
 #endif
 }
 
@@ -190,7 +188,7 @@ FORCEINLINE VOID PhReleaseMutex(
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlLeaveCriticalSection(Mutex);
 #else
-    PhReleaseFastLockExclusive(Mutex);
+    PhReleaseQueuedLockExclusiveFast(Mutex);
 #endif
 }
 
