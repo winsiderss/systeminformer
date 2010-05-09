@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (Australia) resources
+// Englisch (Australien) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 #ifdef _WIN32
@@ -243,7 +243,15 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Close",                       ID_WINDOW_CLOSE
         END
-        MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
+        POPUP "Copy"
+        BEGIN
+            MENUITEM "Copy",                        ID_PROCESS_COPY_ALL
+            MENUITEM "Copy ""Name""",               ID_COPY_COPY40143
+            MENUITEM "Copy ""PID""",                ID_COPY_COPY40144
+            MENUITEM "Copy ""CPU""",                ID_COPY_COPY40145
+            MENUITEM "Copy ""Pvt. Memory""",        ID_COPY_COPY40146
+            MENUITEM "Copy ""User Name""",          ID_COPY_COPY40147
+        END
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
     END
@@ -1246,7 +1254,7 @@ IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
 IDB_MINUS               BITMAP                  "resources\\minus.bmp"
 IDB_PLUS                BITMAP                  "resources\\plus.bmp"
-#endif    // English (Australia) resources
+#endif    // Englisch (Australien) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
