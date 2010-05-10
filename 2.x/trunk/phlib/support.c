@@ -867,14 +867,13 @@ PPH_STRING PhFormatSize(
     }
 
     {
-        PPH_STRING numberString;
+        WCHAR numberString[512]; // perf hack
         PPH_STRING formattedString;
         PPH_STRING processedString;
         PPH_STRING outputString;
 
-        numberString = PhFormatString(L"%f", s);
-        formattedString = PhFormatDecimal(numberString->Buffer, 2, TRUE);
-        PhDereferenceObject(numberString);
+        swprintf_s(numberString, sizeof(numberString) / 2, L"%f", s);
+        formattedString = PhFormatDecimal(numberString, 2, TRUE);
 
         if (!formattedString)
         {
