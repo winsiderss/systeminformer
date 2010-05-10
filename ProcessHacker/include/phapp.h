@@ -74,6 +74,10 @@ VOID PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
+VOID PhApplyUpdateInterval(
+    __in ULONG Interval
+    );
+
 VOID PhActivatePreviousInstance();
 
 VOID PhInitializeCommonControls();

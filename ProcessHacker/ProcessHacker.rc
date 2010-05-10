@@ -89,9 +89,32 @@ BEGIN
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM SEPARATOR
+        MENUITEM "Always on Top",               ID_VIEW_ALWAYSONTOP
+        POPUP "Opacity"
+        BEGIN
+            MENUITEM "10%",                         ID_OPACITY_10
+            MENUITEM "20%",                         ID_OPACITY_20
+            MENUITEM "30%",                         ID_OPACITY_30
+            MENUITEM "40%",                         ID_OPACITY_40
+            MENUITEM "50%",                         ID_OPACITY_50
+            MENUITEM "60%",                         ID_OPACITY_60
+            MENUITEM "70%",                         ID_OPACITY_70
+            MENUITEM "80%",                         ID_OPACITY_80
+            MENUITEM "90%",                         ID_OPACITY_90
+            MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
+        END
+        MENUITEM SEPARATOR
         MENUITEM "Refresh\aF5",                 ID_VIEW_REFRESH
-        MENUITEM "Update Processes",            ID_VIEW_UPDATEPROCESSES
-        MENUITEM "Update Services",             ID_VIEW_UPDATESERVICES
+        POPUP "Update Interval"
+        BEGIN
+            MENUITEM "Fast (0.5s)",                 ID_UPDATEINTERVAL_FAST
+            MENUITEM "Normal (1s)",                 ID_UPDATEINTERVAL_NORMAL
+            MENUITEM "Below Normal (2s)",           ID_UPDATEINTERVAL_BELOWNORMAL
+            MENUITEM "Slow (5s)",                   ID_UPDATEINTERVAL_SLOW
+            MENUITEM "Very Slow (10s)",             ID_UPDATEINTERVAL_VERYSLOW
+        END
+        MENUITEM "Update Processes",            ID_VIEW_UPDATEPROCESSES, CHECKED
+        MENUITEM "Update Services",             ID_VIEW_UPDATESERVICES, CHECKED
     END
     POPUP "&Tools"
     BEGIN
@@ -184,15 +207,15 @@ BEGIN
             MENUITEM "Display",                     ID_FORCEON_DISPLAY
         END
         MENUITEM SEPARATOR
-        MENUITEM "Lock",                        ID_SHUTDOWN_LOCK
-        MENUITEM "Logoff",                      ID_SHUTDOWN_LOGOFF
+        MENUITEM "Lock",                        ID_COMPUTER_LOCK
+        MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
         MENUITEM SEPARATOR
-        MENUITEM "Sleep",                       ID_SHUTDOWN_SLEEP
-        MENUITEM "Hibernate",                   ID_SHUTDOWN_HIBERNATE
+        MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
+        MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
         MENUITEM SEPARATOR
-        MENUITEM "Restart",                     ID_SHUTDOWN_RESTART
-        MENUITEM "Shutdown",                    ID_SHUTDOWN_SHUTDOWN
-        MENUITEM "Poweroff",                    ID_SHUTDOWN_POWEROFF
+        MENUITEM "Restart",                     ID_COMPUTER_RESTART
+        MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
+        MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
     END
 END
 
