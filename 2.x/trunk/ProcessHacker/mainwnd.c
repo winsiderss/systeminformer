@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
+#include <windowsx.h>
 #include <iphlpapi.h>
 #include <wtsapi32.h>
 
@@ -55,9 +56,20 @@ VOID PhMainWndNetworkListViewOnNotify(
 
 VOID PhReloadSysParameters();
 
+VOID PhpInitialLoadSettings();
+
 VOID PhpSaveWindowState();
 
 VOID PhpSaveAllSettings();
+
+VOID PhpSetCheckOpacityMenu(
+    __in BOOLEAN AssumeAllUnchecked,
+    __in ULONG Opacity
+    );
+
+VOID PhpSetWindowOpacity(
+    __in ULONG Opacity
+    );
 
 VOID PhpSelectTabPage(
     __in ULONG Index
@@ -141,6 +153,7 @@ VOID PhMainWndOnNetworkItemsUpdated();
 
 HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
+HMENU PhMainWndMenuHandle;
 
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -290,8 +303,12 @@ BOOLEAN PhMainWndInitialization(
     PhSetIntegerSetting(L"FirstRun", FALSE);
 
     // Initialize the providers.
-    PhInitializeProviderThread(&PhPrimaryProviderThread, 1000);
-    PhInitializeProviderThread(&PhSecondaryProviderThread, 1000);
+    {
+        ULONG interval = PhGetIntegerSetting(L"UpdateInterval");
+
+        PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
+        PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
+    }
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
     PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
@@ -315,6 +332,7 @@ BOOLEAN PhMainWndInitialization(
         PhInstanceHandle,
         NULL
         );
+    PhMainWndMenuHandle = GetMenu(PhMainWndHandle);
 
     if (!PhMainWndHandle)
         return FALSE;
@@ -359,6 +377,8 @@ BOOLEAN PhMainWndInitialization(
 
     // Initialize child controls.
     PhMainWndOnCreate();
+
+    PhpInitialLoadSettings();
 
     PhMainWndTabControlOnSelectionChanged();
 
@@ -513,10 +533,108 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 ProcessHacker_Destroy(hWnd);
                 break;
+            case ID_VIEW_ALWAYSONTOP:
+                {
+                    BOOLEAN topMost;
+
+                    topMost = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, 0) & MF_CHECKED);
+                    SetWindowPos(PhMainWndHandle, topMost ? HWND_TOPMOST : HWND_NOTOPMOST,
+                        0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                    PhSetIntegerSetting(L"MainWindowAlwaysOnTop", topMost);
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_ALWAYSONTOP,
+                        topMost ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
+                break;
+            case ID_OPACITY_10:
+            case ID_OPACITY_20:
+            case ID_OPACITY_30:
+            case ID_OPACITY_40:
+            case ID_OPACITY_50:
+            case ID_OPACITY_60:
+            case ID_OPACITY_70:
+            case ID_OPACITY_80:
+            case ID_OPACITY_90:
+            case ID_OPACITY_OPAQUE:
+                {
+                    ULONG opacity;
+
+                    opacity = 100 - (((ULONG)LOWORD(wParam) - ID_OPACITY_10) + 1) * 10;
+                    PhSetIntegerSetting(L"MainWindowOpacity", opacity);
+                    PhpSetWindowOpacity(opacity);
+                    PhpSetCheckOpacityMenu(TRUE, opacity);
+                }
+                break;
             case ID_VIEW_REFRESH:
                 {
                     PhBoostProvider(&ProcessProviderRegistration, NULL);
                     PhBoostProvider(&ServiceProviderRegistration, NULL);
+                }
+                break;
+            case ID_UPDATEINTERVAL_FAST:
+            case ID_UPDATEINTERVAL_NORMAL:
+            case ID_UPDATEINTERVAL_BELOWNORMAL:
+            case ID_UPDATEINTERVAL_SLOW:
+            case ID_UPDATEINTERVAL_VERYSLOW:
+                {
+                    ULONG interval;
+
+                    switch (LOWORD(wParam))
+                    {
+                    case ID_UPDATEINTERVAL_FAST:
+                        interval = 500;
+                        break;
+                    case ID_UPDATEINTERVAL_NORMAL:
+                        interval = 1000;
+                        break;
+                    case ID_UPDATEINTERVAL_BELOWNORMAL:
+                        interval = 2000;
+                        break;
+                    case ID_UPDATEINTERVAL_SLOW:
+                        interval = 5000;
+                        break;
+                    case ID_UPDATEINTERVAL_VERYSLOW:
+                        interval = 10000;
+                        break;
+                    }
+
+                    PhSetIntegerSetting(L"UpdateInterval", interval);
+                    PhApplyUpdateInterval(interval);
+                    CheckMenuRadioItem(
+                        PhMainWndMenuHandle,
+                        ID_UPDATEINTERVAL_FAST,
+                        ID_UPDATEINTERVAL_VERYSLOW,
+                        LOWORD(wParam),
+                        MF_BYCOMMAND
+                        );
+                }
+                break;
+            case ID_VIEW_UPDATEPROCESSES:
+                {
+                    BOOLEAN updateProcesses;
+
+                    updateProcesses = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATEPROCESSES, 0) & MF_CHECKED);
+                    PhSetProviderEnabled(&ProcessProviderRegistration, updateProcesses);
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_UPDATEPROCESSES,
+                        updateProcesses ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
+                break;
+            case ID_VIEW_UPDATESERVICES:
+                {
+                    BOOLEAN updateServices;
+
+                    updateServices = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATESERVICES, 0) & MF_CHECKED);
+                    PhSetProviderEnabled(&ServiceProviderRegistration, updateServices);
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_UPDATESERVICES,
+                        updateServices ? MF_CHECKED : MF_UNCHECKED
+                        );
                 }
                 break;
             case ID_TOOLS_HIDDENPROCESSES:
@@ -1318,6 +1436,59 @@ VOID PhReloadSysParameters()
     PhpReloadListViewFont();
 }
 
+VOID PhpInitialLoadSettings()
+{
+    ULONG opacity;
+    ULONG intervalId;
+
+    if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
+    {
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_ALWAYSONTOP, MF_CHECKED);
+        SetWindowPos(PhMainWndHandle, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
+    }
+
+    opacity = PhGetIntegerSetting(L"MainWindowOpacity");
+
+    if (opacity != 0)
+        PhpSetWindowOpacity(opacity);
+
+    PhpSetCheckOpacityMenu(TRUE, opacity);
+
+    switch (PhGetIntegerSetting(L"UpdateInterval"))
+    {
+    case 500:
+        intervalId = ID_UPDATEINTERVAL_FAST;
+        break;
+    case 1000:
+        intervalId = ID_UPDATEINTERVAL_NORMAL;
+        break;
+    case 2000:
+        intervalId = ID_UPDATEINTERVAL_BELOWNORMAL;
+        break;
+    case 5000:
+        intervalId = ID_UPDATEINTERVAL_SLOW;
+        break;
+    case 10000:
+        intervalId = ID_UPDATEINTERVAL_VERYSLOW;
+        break;
+    default:
+        intervalId = -1;
+        break;
+    }
+
+    if (intervalId != -1)
+    {
+        CheckMenuRadioItem(
+            PhMainWndMenuHandle,
+            ID_UPDATEINTERVAL_FAST,
+            ID_UPDATEINTERVAL_VERYSLOW,
+            intervalId,
+            MF_BYCOMMAND
+            );
+    }
+}
+
 VOID PhpSaveWindowState()
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
@@ -1345,6 +1516,42 @@ VOID PhpSaveAllSettings()
 
     if (PhSettingsFileName)
         PhSaveSettings(PhSettingsFileName->Buffer);
+}
+
+VOID PhpSetCheckOpacityMenu(
+    __in BOOLEAN AssumeAllUnchecked,
+    __in ULONG Opacity
+    )
+{
+    // The setting is stored backwards - 0 means opaque, 100 means transparent.
+    CheckMenuRadioItem(
+        PhMainWndMenuHandle,
+        ID_OPACITY_10,
+        ID_OPACITY_OPAQUE,
+        ID_OPACITY_10 + (10 - Opacity / 10) - 1,
+        MF_BYCOMMAND
+        );
+}
+
+VOID PhpSetWindowOpacity(
+    __in ULONG Opacity
+    )
+{
+    if (!(GetWindowExStyle(PhMainWndHandle) & WS_EX_LAYERED))
+    {
+        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+    }
+
+    // Disallow opacity values of less than 10%.
+    if (Opacity > 90)
+        return;
+
+    SetLayeredWindowAttributes(
+        PhMainWndHandle,
+        0,
+        (BYTE)(255 * (100 - Opacity) / 100),
+        LWA_ALPHA
+        );
 }
 
 VOID PhpSelectTabPage(
@@ -1375,8 +1582,7 @@ VOID PhpRefreshUsersMenu()
     ULONG j;
     MENUITEMINFO menuItemInfo = { sizeof(MENUITEMINFO) };
 
-    menu = GetMenu(PhMainWndHandle);
-    menu = GetSubMenu(menu, 3);
+    menu = GetSubMenu(PhMainWndMenuHandle, 3);
 
     // Delete all items in the Users menu.
     while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
