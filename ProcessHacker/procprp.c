@@ -326,10 +326,12 @@ BOOLEAN PhAddProcessPropPage(
     propSheetPageHandle = CreatePropertySheetPage(
         &PropPageContext->PropSheetPage
         );
-    PropPageContext->PropContext = PropContext;
     // CreatePropertySheetPage would have sent PSPCB_ADDREF, 
     // which would have added a reference.
     PhDereferenceObject(PropPageContext);
+
+    PropPageContext->PropContext = PropContext;
+    PhReferenceObject(PropContext);
 
     PropContext->PropSheetPages[PropContext->PropSheetHeader.nPages] =
         propSheetPageHandle;
