@@ -70,6 +70,13 @@ typedef DWORD (WINAPI *_GetExtendedUdpTable)(
     __in ULONG Reserved
     );
 
+typedef int (WSAAPI *_WSAStartup)(
+    __in WORD wVersionRequested,
+    __out LPWSADATA lpWSAData
+    );
+
+typedef int (WSAAPI *_WSAGetLastError)();
+
 typedef INT (WSAAPI *_GetNameInfoW)(
     __in_bcount(SockaddrLength) const SOCKADDR *pSockaddr,
     __in socklen_t SockaddrLength,
@@ -132,8 +139,11 @@ PH_MUTEX PhNetworkItemQueryQueueLock;
 static PPH_HASHTABLE PhpResolveCacheHashtable;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
+static BOOLEAN NetworkImportDone = FALSE;
 static _GetExtendedTcpTable GetExtendedTcpTable_I;
 static _GetExtendedUdpTable GetExtendedUdpTable_I;
+static _WSAStartup WSAStartup_I;
+static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
 static _gethostbyaddr gethostbyaddr_I;
 
@@ -435,6 +445,10 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
             PhReleaseQueuedLockExclusiveFast(&PhpResolveCacheHashtableLock);
         }
+        else
+        {
+            dwlprintf(L"resolve failed, error %u", WSAGetLastError_I());
+        }
     }
     else
     {
@@ -504,14 +518,18 @@ VOID PhNetworkProviderUpdate(
     ULONG numberOfConnections;
     ULONG i;
 
-    if (!GetExtendedTcpTable_I || !GetExtendedUdpTable_I || !GetNameInfoW_I)
+    if (!NetworkImportDone)
     {
         LoadLibrary(L"iphlpapi.dll");
         GetExtendedTcpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedTcpTable");
         GetExtendedUdpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedUdpTable");
         LoadLibrary(L"ws2_32.dll");
+        WSAStartup_I = PhGetProcAddress(L"ws2_32.dll", "WSAStartup");
+        WSAGetLastError_I = PhGetProcAddress(L"ws2_32.dll", "WSAGetLastError");
         GetNameInfoW_I = PhGetProcAddress(L"ws2_32.dll", "GetNameInfoW");
         gethostbyaddr_I = PhGetProcAddress(L"ws2_32.dll", "gethostbyaddr");
+
+        NetworkImportDone = TRUE;
     }
 
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))

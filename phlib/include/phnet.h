@@ -23,7 +23,6 @@ typedef struct _PH_IP_ADDRESS
     ULONG Type;
     union
     {
-        ULONG Address[4];
         ULONG Ipv4;
         struct in_addr InAddr;
         UCHAR Ipv6[16];
