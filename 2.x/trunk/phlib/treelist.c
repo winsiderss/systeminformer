@@ -967,7 +967,10 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                 if (
                     !node->s.IsLeaf &&
                     x >= glyphX &&
-                    x < glyphX + 16 + 5 // allow for some extra space
+                    x < glyphX + 16 + 5 && // allow for some extra space
+                    // make sure the click resides in the first column; important when it's getting clipped
+                    context->NumberOfColumns != 0 &&
+                    (ULONG)x < context->ColumnsForViewX[0]->Width
                     )
                 {
                     switch (uMsg)
@@ -1270,6 +1273,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     node = Context->List->Items[itemIndex];
     subItemIndex = (ULONG)CustomDraw->iSubItem;
     hdc = CustomDraw->nmcd.hdc;
+    //wprintf(L"0x%Ix draw subitem %u %u\n", Context, itemIndex, subItemIndex);
 
     font = node->Font;
     column = Context->Columns[subItemIndex];
@@ -1301,7 +1305,22 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
     if (column->DisplayIndex == 0)
     {
+        BOOLEAN needsClip;
+        HRGN oldClipRegion;
+
         textRect.left += node->Level * 16;
+
+        needsClip = column->Width <
+            (ULONG)(textRect.left + (Context->CanAnyExpand ? 16 : 0) + (node->Icon ? 16 : 0));
+
+        if (needsClip)
+        {
+            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
+            GetClipRgn(hdc, oldClipRegion);
+
+            // Clip contents to the first column.
+            IntersectClipRect(hdc, 0, textRect.top, column->Width, textRect.bottom);
+        }
 
         if (Context->CanAnyExpand) // flag is used so we can avoid indenting when it's a flat list
         {
@@ -1380,6 +1399,12 @@ static VOID PhpCustomDrawPrePaintSubItem(
                 );
 
             textRect.left += 16 + 4; // 4px margin
+        }
+
+        if (needsClip)
+        {
+            SelectClipRgn(hdc, oldClipRegion);
+            DeleteObject(oldClipRegion);
         }
 
         if (textRect.left > textRect.right)
