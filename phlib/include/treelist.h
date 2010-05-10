@@ -246,7 +246,7 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
     SendMessage((hWnd), TLM_SETCURSOR, 0, (LPARAM)(Cursor))
 
 #define TreeList_SetRedraw(hWnd, Redraw) \
-    SendMessage((hWnd), TLM_SETCURSOR, (WPARAM)(Redraw), 0)
+    SendMessage((hWnd), TLM_SETREDRAW, (WPARAM)(Redraw), 0)
 
 #define TreeList_GetSort(hWnd, Column, Order) \
     SendMessage((hWnd), TLM_GETSORT, (WPARAM)(Column), (LPARAM)(Order))

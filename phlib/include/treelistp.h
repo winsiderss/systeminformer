@@ -99,7 +99,7 @@ BOOLEAN PhpDereferenceTreeListNode(
 
 BOOLEAN PhpGetNodeChildren(
     __in PPHP_TREELIST_CONTEXT Context,
-    __in PPH_TREELIST_NODE Node,
+    __in_opt PPH_TREELIST_NODE Node,
     __out PPH_TREELIST_NODE **Children,
     __out PULONG NumberOfChildren
     );

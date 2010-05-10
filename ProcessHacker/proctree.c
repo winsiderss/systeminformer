@@ -181,6 +181,8 @@ VOID PhCreateProcessNode(
 
     PhAddHashtableEntry(ProcessNodeHashtable, &processNode);
     PhAddListItem(ProcessNodeList, processNode);
+
+    TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
 PPH_PROCESS_NODE PhFindProcessNode(
@@ -317,6 +319,7 @@ VOID PhTickProcessNodes()
         ULONG enumerationKey = 0;
         ULONG tickCount;
         HANDLE stateListHandle;
+        BOOLEAN redrawDisabled = FALSE;
 
         tickCount = GetTickCount();
 
@@ -334,11 +337,20 @@ VOID PhTickProcessNodes()
             }
             else if (node->State == RemovingItemState)
             {
+                if (!redrawDisabled)
+                {
+                    TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
+                    redrawDisabled = TRUE;
+                }
+
                 PhpRemoveProcessNode(node);
             }
 
             PhRemovePointerListItem(ProcessNodeStateList, stateListHandle);
         }
+
+        if (redrawDisabled)
+            TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
     }
 }
 
