@@ -319,12 +319,6 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    // Set GWL_EXSTYLE so we can change the opacity
-
-    SetWindowLongPtr(PhMainWndHandle, GWL_EXSTYLE, GetWindowLongPtr(PhMainWndHandle, GWL_EXSTYLE) | WS_EX_LAYERED);
-
-    PhUiSetOpacity(PhMainWndHandle, 100);
-
     // Choose a more appropriate rectangle for the window.
     PhAdjustRectangleToWorkingArea(
         PhMainWndHandle,
@@ -1058,38 +1052,6 @@ LRESULT CALLBACK PhMainWndProc(
                     PhFree(networkItems);
                 }
                 break;
-            case ID_PROCESS_COPY_ALL:
-                {
-                    PPH_PROCESS_ITEM *processItems;
-                    ULONG numberOfProcessItems;
-
-                    PhpGetSelectedProcesses(&processItems, &numberOfProcessItems);
-                    PhReferenceObjects(processItems, numberOfProcessItems);
-                    PhUiCopyInfoProcess(hWnd, processItems, numberOfProcessItems);
-                    PhDereferenceObjects(processItems, numberOfProcessItems);
-                }
-                break;
-            case ID_WINDOW_ALWAYSONTOP:
-                {
-                    //SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-                }
-                break;
-            case ID_OPACITY_10:
-            case ID_OPACITY_20:
-            case ID_OPACITY_30:
-            case ID_OPACITY_40:
-            case ID_OPACITY_50:
-            case ID_OPACITY_60:
-            case ID_OPACITY_70:
-            case ID_OPACITY_80:
-            case ID_OPACITY_90:
-            case ID_OPACITY_100:
-                {
-                    ULONG opacity;
-
-                    opacity = 100 - (ID_OPACITY_100 - id) * 10;
-                    PhUiSetOpacity(hWnd, opacity);
-                }
             }
         }
         break;
@@ -1926,7 +1888,6 @@ VOID PhpInitializeProcessMenu(
 {
 #define MISCELLANEOUS_MENU_INDEX 12
 #define WINDOW_MENU_INDEX 14
-#define COPY_MENU_INDEX 15
 
     if (NumberOfProcesses == 0)
     {
@@ -1954,7 +1915,8 @@ VOID PhpInitializeProcessMenu(
         {
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
-            ID_PROCESS_RESUME
+            ID_PROCESS_RESUME,
+            ID_PROCESS_REDUCEWORKINGSET
         };
         ULONG i;
 
@@ -1966,10 +1928,6 @@ VOID PhpInitializeProcessMenu(
         {
             EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
         }
-
-        // Enable Copy Menu
-
-        EnableMenuItem(Menu, COPY_MENU_INDEX, MF_ENABLED | MF_BYPOSITION);
     }
 
     // Remove irrelevant menu items.
