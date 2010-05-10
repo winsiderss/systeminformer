@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Englisch (Australien) resources
+// English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
 #ifdef _WIN32
@@ -103,24 +103,6 @@ BEGIN
     POPUP "&Users"
     BEGIN
         MENUITEM "Dummy",                       ID_USERS_DUMMY
-    END
-    POPUP "&Window"
-    BEGIN
-        MENUITEM "Always On Top",               ID_WINDOW_ALWAYSONTOP
-        POPUP "Opacity"
-        BEGIN
-            MENUITEM "10%",                         ID_OPACITY_10
-            MENUITEM "20%",                         ID_OPACITY_20
-            MENUITEM "30%",                         ID_OPACITY_30
-            MENUITEM "40%",                         ID_OPACITY_40
-            MENUITEM "50%",                         ID_OPACITY_50
-            MENUITEM "60%",                         ID_OPACITY_60
-            MENUITEM "70%",                         ID_OPACITY_70
-            MENUITEM "80%",                         ID_OPACITY_80
-            MENUITEM "90%",                         ID_OPACITY_90
-            MENUITEM "Opaque",                      ID_OPACITY_100
-        END
-        MENUITEM "Close",                       ID_WINDOW_CLOS
     END
     POPUP "H&elp"
     BEGIN
@@ -261,15 +243,7 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Close",                       ID_WINDOW_CLOSE
         END
-        POPUP "Copy"
-        BEGIN
-            MENUITEM "Copy",                        ID_PROCESS_COPY_ALL
-            MENUITEM "Copy ""Name""",               ID_COPY_COPY40143
-            MENUITEM "Copy ""PID""",                ID_COPY_COPY40144
-            MENUITEM "Copy ""CPU""",                ID_COPY_COPY40145
-            MENUITEM "Copy ""Pvt. Memory""",        ID_COPY_COPY40146
-            MENUITEM "Copy ""User Name""",          ID_COPY_COPY40147
-        END
+        MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
     END
@@ -1272,7 +1246,7 @@ IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
 IDB_MINUS               BITMAP                  "resources\\minus.bmp"
 IDB_PLUS                BITMAP                  "resources\\plus.bmp"
-#endif    // Englisch (Australien) resources
+#endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

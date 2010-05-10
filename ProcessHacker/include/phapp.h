@@ -603,12 +603,6 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
-BOOLEAN PhUiCopyInfoProcess(
-    __in HWND hWnd,
-    __in PPH_PROCESS_ITEM *Processes,
-    __in ULONG NumberOfProcesses
-    );
-
 // itemtips
 
 PPH_STRING PhGetProcessTooltipText(
@@ -864,12 +858,5 @@ HPROPSHEETPAGE PhCreateTokenPage(
     __in PVOID Context,
     __in_opt DLGPROC HookProc
     );
-
-// window
-
-BOOLEAN PhUiSetOpacity(
-   __in HWND hWnd,
-   __in ULONG Opacity
-   );
 
 #endif
