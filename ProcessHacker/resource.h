@@ -354,13 +354,38 @@
 #define ID_USERS_DUMMY                  40131
 #define ID_MODULE_INSPECT               40132
 #define ID_PROCESS_DEBUG                40133
-#define ID_COMPUTER_PREVENTPOWERSAVING  40134
 #define ID_COMPUTER_FORCEON             40135
 #define ID_FORCEON_SYSTEM               40136
 #define ID_FORCEON_DISPLAY              40137
 #define ID_USER_CONNECT                 40138
 #define ID_NETWORK_GOTOPROCESS          40139
 #define ID_NETWORK_CLOSE                40140
+#define ID_VIEW_OPACITY                 40141
+#define ID_OPACITY_10                   40142
+#define ID_OPACITY_20                   40143
+#define ID_OPACITY_30                   40144
+#define ID_OPACITY_40                   40145
+#define ID_OPACITY_50                   40146
+#define ID_OPACITY_60                   40147
+#define ID_OPACITY_70                   40148
+#define ID_OPACITY_80                   40149
+#define ID_OPACITY_90                   40150
+#define ID_OPACITY_OPAQUE               40151
+#define ID_VIEW_A                       40152
+#define ID_VIEW_ALWAYSONTOP             40153
+#define ID_VIEW_UPDATEINTERVAL          40154
+#define ID_UPDATEINTERVAL_FAST          40155
+#define ID_UPDATEINTERVAL_NORMAL        40156
+#define ID_UPDATEINTERVAL_BELOWNORMAL   40157
+#define ID_UPDATEINTERVAL_SLOW          40158
+#define ID_UPDATEINTERVAL_VERYSLOW      40159
+#define ID_COMPUTER_LOCK                40160
+#define ID_COMPUTER_LOGOFF              40161
+#define ID_COMPUTER_SLEEP               40162
+#define ID_COMPUTER_HIBERNATE           40163
+#define ID_COMPUTER_RESTART             40164
+#define ID_COMPUTER_SHUTDOWN            40165
+#define ID_COMPUTER_POWEROFF            40166
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -368,7 +393,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        165
-#define _APS_NEXT_COMMAND_VALUE         40141
+#define _APS_NEXT_COMMAND_VALUE         40167
 #define _APS_NEXT_CONTROL_VALUE         1152
 #define _APS_NEXT_SYMED_VALUE           111
 #endif

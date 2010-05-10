@@ -274,6 +274,14 @@ VOID PhUnregisterDialog(
         PhRemoveListItem(DialogList, indexOfDialog);
 }
 
+VOID PhApplyUpdateInterval(
+    __in ULONG Interval
+    )
+{
+    PhSetProviderThreadInterval(&PhPrimaryProviderThread, Interval);
+    PhSetProviderThreadInterval(&PhSecondaryProviderThread, Interval);
+}
+
 VOID PhActivatePreviousInstance()
 {
     HWND hwnd;

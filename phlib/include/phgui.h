@@ -141,6 +141,20 @@ FORCEINLINE VOID PhSetWindowStyle(
     SetWindowLongPtr(Handle, GWL_STYLE, style);
 }
 
+FORCEINLINE VOID PhSetWindowExStyle(
+    __in HWND Handle,
+    __in LONG_PTR Mask,
+    __in LONG_PTR Value
+    )
+{
+    LONG_PTR style;
+
+    style = GetWindowLongPtr(Handle, GWL_EXSTYLE);
+    style &= ~Mask;
+    style |= Value;
+    SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
+}
+
 #ifndef WM_REFLECT
 #define WM_REFLECT 0x2000
 #endif

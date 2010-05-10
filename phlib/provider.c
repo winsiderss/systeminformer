@@ -180,6 +180,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
             if (status == STATUS_ALERTED)
             {
+                assert(registration->Boosting);
                 registration->Boosting = FALSE;
                 providerThread->BoostCount--;
             }
@@ -203,7 +204,18 @@ NTSTATUS NTAPI PhpProviderThreadStart(
         // Re-add the items in the temp list to the main list.
 
         while ((listEntry = RemoveHeadList(&tempListHead)) != &tempListHead)
-            InsertTailList(&providerThread->ListHead, listEntry);
+        {
+            registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
+
+            // We must insert boosted providers at the front of the list in order to maintain 
+            // the condition that boosted providers are always in front of normal providers. 
+            // This occurs when the timer is signaled just before a boosting provider alerts 
+            // our thread.
+            if (!registration->Boosting)
+                InsertTailList(&providerThread->ListHead, listEntry);
+            else
+                InsertHeadList(&providerThread->ListHead, listEntry);
+        }
 
         PhReleaseQueuedLockExclusiveFast(&providerThread->Lock);
 
