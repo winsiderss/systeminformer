@@ -90,6 +90,12 @@
  */
 #define __mayRaise
 
+/**
+ * Indicates that a function requires the specified 
+ * value to be aligned at the specified number of bytes.
+ */
+#define __needsAlign(align)
+
 // Strings
 
 #define PH_INT32_STR_LEN 12

@@ -1746,6 +1746,20 @@ PPH_STRING PhaSubstring(
     __in ULONG Count
     );
 
+// basesupx
+
+VOID FASTCALL PhxfAddInt32(
+    __in __needsAlign(16) PLONG A,
+    __in __needsAlign(16) PLONG B,
+    __in ULONG Count
+    );
+
+VOID FASTCALL PhxfAddInt32U(
+    __in PLONG A,
+    __in PLONG B,
+    __in ULONG Count
+    );
+
 // handle 
 
 struct _PH_HANDLE_TABLE;
