@@ -240,8 +240,23 @@
 #define IDC_PEVIEWER                    1151
 #define IDC_HIGHLIGHTINGDURATIONSPIN    1154
 #define IDC_HIGHLIGHTINGDURATION        1155
-#define IDC_BUTTON2                     1157
 #define IDC_ENABLEALL                   1157
+#define IDC_ZACTIVEPROCESSES_V          1158
+#define IDC_ZTOTALPROCESSES_V           1159
+#define IDC_ZTERMINATEDPROCESSES_V      1160
+#define IDC_ZUSERTIME_V                 1161
+#define IDC_ZKERNELTIME_V               1162
+#define IDC_ZUSERTIMEPERIOD_V           1163
+#define IDC_ZKERNELTIMEPERIOD_V         1164
+#define IDC_ZPAGEFAULTS_V               1165
+#define IDC_ZPEAKPROCESSUSAGE_V         1166
+#define IDC_ZPEAKJOBUSAGE_V             1167
+#define IDC_ZIOREADS_V                  1168
+#define IDC_ZIOREADBYTES_V              1169
+#define IDC_ZIOWRITES_V                 1170
+#define IDC_ZIOWRITEBYTES_V             1171
+#define IDC_ZIOOTHER_V                  1172
+#define IDC_ZIOOTHERBYTES_V             1173
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -400,7 +415,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
 #define _APS_NEXT_COMMAND_VALUE         40167
-#define _APS_NEXT_CONTROL_VALUE         1158
+#define _APS_NEXT_CONTROL_VALUE         1174
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif
