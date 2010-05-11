@@ -309,6 +309,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\basesupx.c"
+				>
+			</File>
+			<File
+				RelativePath=".\circbuf.c"
+				>
+			</File>
+			<File
 				RelativePath=".\data.c"
 				>
 			</File>
@@ -420,6 +428,18 @@
 			>
 			<File
 				RelativePath=".\include\base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\circbuf.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\circbuf_h.h"
+				>
+			</File>
+			<File
+				RelativePath=".\circbuf_i.h"
 				>
 			</File>
 			<File
@@ -572,6 +592,10 @@
 			</File>
 			<File
 				RelativePath=".\include\symprv.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\templ.h"
 				>
 			</File>
 			<File
