@@ -166,6 +166,7 @@ VOID PhpThreadProviderDeleteProcedure(
         while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
         {
             if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
+            if (data->ServiceName) PhDereferenceObject(data->ServiceName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }

@@ -155,7 +155,15 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                 KnownCommandLine
                 );
 
-            return KnownCommandLine->ServiceHost.GroupName != NULL;
+            if (KnownCommandLine->ServiceHost.GroupName)
+            {
+                PhaDereferenceObject(KnownCommandLine->ServiceHost.GroupName);
+                return TRUE;
+            }
+            else
+            {
+                return FALSE;
+            }
         }
         break;
     case RunDllAsAppProcessType:
