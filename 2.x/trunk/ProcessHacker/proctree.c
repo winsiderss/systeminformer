@@ -566,7 +566,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             else if (
                 PhCsUseColorSystemProcesses &&
                 processItem->UserName &&
-                PhStringEquals(processItem->UserName, PhLocalSystemName, TRUE) // TODO: localize
+                PhStringEquals(processItem->UserName, PhLocalSystemName, TRUE)
                 )
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
