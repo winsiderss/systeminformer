@@ -45,7 +45,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
-    PhpAddIntegerSetting(L"UpdateInterval", L"1000");
+    PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
