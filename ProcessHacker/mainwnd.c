@@ -363,6 +363,7 @@ BOOLEAN PhMainWndInitialization(
             PhStringBuilderAppend2(&stringBuilder, L" [");
             PhStringBuilderAppend(&stringBuilder, PhCurrentUserName);
             PhStringBuilderAppendChar(&stringBuilder, ']');
+            if (PhKphHandle) PhStringBuilderAppendChar(&stringBuilder, '+');
         }
 
         if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
