@@ -35,6 +35,13 @@ typedef struct _PH_THREAD_QUERY_DATA
     PPH_STRING ServiceName;
 } PH_THREAD_QUERY_DATA, *PPH_THREAD_QUERY_DATA;
 
+typedef struct _PH_THREAD_SYMBOL_LOAD_CONTEXT
+{
+    HANDLE ProcessId;
+    PPH_THREAD_PROVIDER ThreadProvider;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+} PH_THREAD_SYMBOL_LOAD_CONTEXT, *PPH_THREAD_SYMBOL_LOAD_CONTEXT;
+
 VOID NTAPI PhpThreadProviderDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -185,7 +192,18 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     __in PVOID Context
     )
 {
-    PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Context;
+    PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
+    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
+
+    // If we're loading kernel module symbols for a process other than 
+    // System, ignore modules which are in user space. This may happen 
+    // in Windows 7.
+    if (
+        context->ProcessId == SYSTEM_PROCESS_ID &&
+        context->ThreadProvider->ProcessId != SYSTEM_PROCESS_ID &&
+        (ULONG_PTR)Module->BaseAddress <= PhSystemBasicInformation.MaximumUserModeAddress
+        )
+        return TRUE;
 
     PhSymbolProviderLoadModule(
         symbolProvider,
@@ -202,7 +220,8 @@ static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     __in PVOID Context
     )
 {
-    PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Context;
+    PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
+    PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
 
     if (
         PhStringEquals2(Module->Name, L"ntdll.dll", TRUE) ||
@@ -225,6 +244,10 @@ NTSTATUS PhpThreadProviderLoadSymbols(
     )
 {
     PPH_THREAD_PROVIDER threadProvider = (PPH_THREAD_PROVIDER)Parameter;
+    PH_THREAD_SYMBOL_LOAD_CONTEXT loadContext;
+
+    loadContext.ThreadProvider = threadProvider;
+    loadContext.SymbolProvider = threadProvider->SymbolProvider;
 
     if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
@@ -233,36 +256,39 @@ NTSTATUS PhpThreadProviderLoadSymbols(
             threadProvider->ProcessId == SYSTEM_PROCESS_ID
             )
         {
+            loadContext.ProcessId = threadProvider->ProcessId;
             PhEnumGenericModules(
                 threadProvider->ProcessId,
                 threadProvider->SymbolProvider->ProcessHandle,
                 0,
                 LoadSymbolsEnumGenericModulesCallback,
-                threadProvider->SymbolProvider
+                &loadContext
                 );
         }
         else
         {
             // We can't enumerate the process modules. Load 
             // symbols for ntdll.dll and kernel32.dll.
+            loadContext.ProcessId = NtCurrentProcessId();
             PhEnumGenericModules(
                 NtCurrentProcessId(),
                 NtCurrentProcess(),
                 0,
                 LoadBasicSymbolsEnumGenericModulesCallback,
-                threadProvider->SymbolProvider
+                &loadContext
                 );
         }
 
         // Load kernel module symbols as well.
         if (threadProvider->ProcessId != SYSTEM_PROCESS_ID)
         {
+            loadContext.ProcessId = SYSTEM_PROCESS_ID;
             PhEnumGenericModules(
                 SYSTEM_PROCESS_ID,
                 NULL,
                 0,
                 LoadSymbolsEnumGenericModulesCallback,
-                threadProvider->SymbolProvider
+                &loadContext
                 );
         }
     }
