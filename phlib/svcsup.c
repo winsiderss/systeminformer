@@ -332,7 +332,7 @@ PPH_STRING PhGetServiceNameFromTag(
 {
     PPH_STRING serviceName = NULL;
     _I_QueryTagInformation I_QueryTagInformation;
-    SC_SERVICE_TAG_QUERY query;
+    SC_SERVICE_NAME_FROM_TAG_QUERY query;
 
     I_QueryTagInformation = PhGetProcAddress(L"advapi32.dll", "I_QueryTagInformation");
 
