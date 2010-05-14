@@ -3049,6 +3049,57 @@ NTSTATUS PhGetTimerBasicInformation(
         );
 }
 
+NTSTATUS PhpQueryFileVariableSize(
+    __in HANDLE FileHandle,
+    __in FILE_INFORMATION_CLASS FileInformationClass,
+    __out PPVOID Buffer
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    PVOID buffer;
+    ULONG bufferSize = 0x200;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQueryInformationFile(
+            FileHandle,
+            &isb,
+            buffer,
+            bufferSize,
+            FileInformationClass
+            );
+
+        if (
+            status == STATUS_BUFFER_OVERFLOW ||
+            status == STATUS_BUFFER_TOO_SMALL ||
+            status == STATUS_INFO_LENGTH_MISMATCH
+            )
+        {
+            PhFree(buffer);
+            bufferSize *= 2;
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *Buffer = buffer;
+    }
+    else
+    {
+        PhFree(buffer);
+    }
+
+    return status;
+}
+
 NTSTATUS PhGetFileSize(
     __in HANDLE FileHandle,
     __out PLARGE_INTEGER Size
@@ -4654,6 +4705,123 @@ NTSTATUS PhEnumDirectoryObjects(
     PhFree(buffer);
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS PhEnumDirectoryFile(
+    __in HANDLE FileHandle,
+    __in_opt PPH_STRINGREF SearchPattern,
+    __in PPH_ENUM_DIRECTORY_FILE Callback,
+    __in PVOID Context
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    BOOLEAN firstTime = TRUE;
+    PVOID buffer;
+    ULONG bufferSize = 0x400;
+    ULONG i;
+    BOOLEAN cont;
+
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        // Query the directory, doubling the buffer each time NtQueryDirectoryFile 
+        // fails.
+        while (TRUE)
+        {
+            status = NtQueryDirectoryFile(
+                FileHandle,
+                NULL,
+                NULL,
+                NULL,
+                &isb,
+                buffer,
+                bufferSize,
+                FileDirectoryInformation,
+                FALSE,
+                SearchPattern ? &SearchPattern->us : NULL,
+                firstTime
+                );
+
+            // Our ISB is on the stack, so we have to wait for the operation to 
+            // complete before continuing.
+            if (status == STATUS_PENDING)
+            {
+                NtWaitForSingleObject(FileHandle, FALSE, NULL);
+                status = isb.Status;
+            }
+
+            if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH)
+            {
+                PhFree(buffer);
+                bufferSize *= 2;
+                buffer = PhAllocate(bufferSize);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        // If we don't have any entries to read, exit.
+        if (status == STATUS_NO_MORE_FILES)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        // Read the batch and execute the callback function 
+        // for each file.
+
+        i = 0;
+        cont = TRUE;
+
+        while (TRUE)
+        {
+            PFILE_DIRECTORY_INFORMATION information;
+
+            information = (PFILE_DIRECTORY_INFORMATION)(PTR_ADD_OFFSET(buffer, i));
+
+            if (!Callback(
+                information,
+                Context
+                ))
+            {
+                cont = FALSE;
+                break;
+            }
+
+            if (information->NextEntryOffset != 0)
+                i += information->NextEntryOffset;
+            else
+                break;
+        }
+
+        if (!cont)
+            break;
+
+        firstTime = FALSE;
+    }
+
+    PhFree(buffer);
+
+    return status;
+}
+
+NTSTATUS PhEnumFileStreams(
+    __in HANDLE FileHandle,
+    __out PPVOID Streams
+    )
+{
+    return PhpQueryFileVariableSize(
+        FileHandle,
+        FileStreamInformation,
+        Streams
+        );
 }
 
 /**
