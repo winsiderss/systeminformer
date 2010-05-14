@@ -24,6 +24,24 @@
 #include <settings.h>
 #include <wtsapi32.h>
 
+BOOLEAN PhGetProcessIsSuspended(
+    __in PSYSTEM_PROCESS_INFORMATION Process
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Process->NumberOfThreads; i++)
+    {
+        if (
+            Process->Threads[i].ThreadState != Waiting ||
+            Process->Threads[i].WaitReason != Suspended
+            )
+            return FALSE;
+    }
+
+    return Process->NumberOfThreads != 0;
+}
+
 NTSTATUS PhGetProcessKnownType(
     __in HANDLE ProcessHandle,
     __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
