@@ -69,6 +69,7 @@ typedef struct _PH_PROCESS_ITEM
     ULONG IsInSignificantJob : 1;
     ULONG IsPacked : 1;
     ULONG IsPosix : 1;
+    ULONG IsSuspended : 1;
     ULONG IsWow64 : 1;
 
     // Misc.
