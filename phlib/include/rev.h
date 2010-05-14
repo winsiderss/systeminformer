@@ -2,6 +2,7 @@
  * Process Hacker - 
  *   reverse engineered definitions
  * 
+ * Copyright (C) 2010 evilpie
  * Copyright (C) 2010 wj32
  * 
  * This file is part of Process Hacker.
@@ -34,18 +35,53 @@ typedef enum _SC_SERVICE_TAG_QUERY_TYPE
     ServiceNameTagMappingInformation
 } SC_SERVICE_TAG_QUERY_TYPE, *PSC_SERVICE_TAG_QUERY_TYPE;
 
-typedef struct _SC_SERVICE_TAG_QUERY
+// ServiceNameFromTagInformation
+
+typedef struct _SC_SERVICE_NAME_FROM_TAG_QUERY
 {
     ULONG ProcessId;
     ULONG ServiceTag;
     ULONG Unknown;
     PVOID Buffer;
-} SC_SERVICE_TAG_QUERY, *PSC_SERVICE_TAG_QUERY;
+} SC_SERVICE_NAME_FROM_TAG_QUERY, *PSC_SERVICE_NAME_FROM_TAG_QUERY;
+
+// ServiceNamesReferencingModuleInformation
+
+typedef struct _SC_SERVICE_NAMES_REFERENCING_MODULE_QUERY
+{
+    ULONG ProcessId;
+    PWSTR Module;
+    ULONG Count;
+    PWSTR *ServiceNames;
+} SC_SERVICE_NAMES_REFERENCING_MODULE_QUERY, *PSC_SERVICE_NAMES_REFERENCING_MODULE_QUERY;
+
+// ServiceNameTagMappingInformation
+
+typedef struct _SC_SERVICE_TAG_INFO
+{
+    ULONG ServiceTag;
+    PWSTR ServiceName;
+    ULONG Unknown;
+} SC_SERVICE_TAG_INFO, *PSC_SERVICE_TAG_INFO;
+
+typedef struct _SC_SERVICE_TAG_LIST
+{
+    ULONG Count;
+    PVOID Unknown1;
+    PVOID Unknown2;
+    SC_SERVICE_TAG_INFO Services[1];
+} SC_SERVICE_TAG_LIST, *PSC_SERVICE_TAG_LIST;
+
+typedef struct _SC_SERVICE_NAME_TAG_MAPPING_QUERY
+{
+    ULONG Unknown;
+    PVOID Buffer;
+} SC_SERVICE_NAME_TAG_MAPPING_QUERY, *PSC_SERVICE_NAME_TAG_MAPPING_QUERY;
 
 typedef ULONG (NTAPI *_I_QueryTagInformation)(
     __in PVOID Unknown,
     __in SC_SERVICE_TAG_QUERY_TYPE QueryType,
-    __inout PSC_SERVICE_TAG_QUERY Query
+    __inout PVOID Query
     );
 
 // Winsta
