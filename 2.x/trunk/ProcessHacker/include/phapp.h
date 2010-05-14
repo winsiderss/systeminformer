@@ -166,6 +166,10 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 
 // support
 
+BOOLEAN PhGetProcessIsSuspended(
+    __in PSYSTEM_PROCESS_INFORMATION Process
+    );
+
 typedef enum _PH_KNOWN_PROCESS_TYPE
 {
     UnknownProcessType,

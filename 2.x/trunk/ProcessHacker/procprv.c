@@ -1326,9 +1326,22 @@ VOID PhProcessProviderUpdate(
                 if (NT_SUCCESS(PhGetProcessIsBeingDebugged(
                     processItem->QueryHandle,
                     &isBeingDebugged
-                    )) && !!processItem->IsBeingDebugged != !!isBeingDebugged)
+                    )) && processItem->IsBeingDebugged != isBeingDebugged)
                 {
                     processItem->IsBeingDebugged = isBeingDebugged;
+                    modified = TRUE;
+                }
+            }
+
+            // Suspended
+            {
+                BOOLEAN isSuspended;
+
+                isSuspended = PhGetProcessIsSuspended(process);
+
+                if (processItem->IsSuspended != isSuspended)
+                {
+                    processItem->IsSuspended = isSuspended;
                     modified = TRUE;
                 }
             }
