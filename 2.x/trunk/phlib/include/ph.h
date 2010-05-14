@@ -767,6 +767,31 @@ NTSTATUS PhEnumDirectoryObjects(
     __in PVOID Context
     );
 
+typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_FILE)(
+    __in PFILE_DIRECTORY_INFORMATION Information,
+    __in PVOID Context
+    );
+
+NTSTATUS PhEnumDirectoryFile(
+    __in HANDLE FileHandle,
+    __in_opt PPH_STRINGREF SearchPattern,
+    __in PPH_ENUM_DIRECTORY_FILE Callback,
+    __in PVOID Context
+    );
+
+#define PH_FIRST_STREAM(Streams) ((PFILE_STREAM_INFORMATION)(Streams))
+#define PH_NEXT_STREAM(Stream) ( \
+    ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset ? \
+    (PFILE_STREAM_INFORMATION)((PCHAR)(Stream) + \
+    ((PFILE_STREAM_INFORMATION)(Stream))->NextEntryOffset) : \
+    NULL \
+    )
+
+NTSTATUS PhEnumFileStreams(
+    __in HANDLE FileHandle,
+    __out PPVOID Streams
+    );
+
 VOID PhInitializeDosDeviceNames();
 
 VOID PhRefreshDosDeviceNames();
