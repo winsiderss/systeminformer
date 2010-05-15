@@ -100,13 +100,14 @@ VOID FiPrintHelp()
         L"\t-f          Forces the action to succeed by overwriting files.\n"
         L"\t-L length   Specifies the length for an operation.\n"
         L"\t-N          Specifies that file names are in native format.\n"
-        L"\t-o filename Specifies the output file name.\n"
+        L"\t-o filename Specifies the output file name, or the command line.\n"
         L"\t-p pattern  A search pattern for listings.\n"
         L"\n"
         L"Actions:\n"
         L"copy\n"
         L"del\n"
         L"dir\n"
+        L"execute\n"
         L"mkdir\n"
         L"rename\n"
         L"streams\n"
@@ -297,6 +298,23 @@ int __cdecl main(int argc, char *argv[])
         wprintf(L"Error: file name missing.\n");
         FiPrintHelp();
         return 1;
+    }
+    else if (PhStringEquals2(FiArgAction, L"execute", TRUE))
+    {
+        if (!NT_SUCCESS(status = PhCreateProcessWin32(
+            FiArgFileName->Buffer,
+            PhGetString(FiArgOutput),
+            NULL,
+            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
+            PH_CREATE_PROCESS_NEW_CONSOLE,
+            NULL,
+            NULL,
+            NULL
+            )))
+        {
+            wprintf(L"Error: %s\n", PhGetNtMessage(status)->Buffer);
+            return 1;
+        }
     }
     else if (PhStringEquals2(FiArgAction, L"del", TRUE))
     {
