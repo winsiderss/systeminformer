@@ -1,3 +1,25 @@
+/*
+ * Process Hacker - 
+ *   FiIn
+ * 
+ * Copyright (C) 2010 wj32
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <ph.h>
 
 #define FI_ARG_HELP 1
@@ -5,6 +27,9 @@
 #define FI_ARG_NATIVE 3
 #define FI_ARG_PATTERN 4
 #define FI_ARG_CASESENSITIVE 5
+#define FI_ARG_OUTPUT 6
+#define FI_ARG_FORCE 7
+#define FI_ARG_LENGTH 8
 
 PPH_STRING FiArgFileName;
 BOOLEAN FiArgHelp;
@@ -12,6 +37,9 @@ PPH_STRING FiArgAction;
 BOOLEAN FiArgNative;
 PPH_STRING FiArgPattern;
 BOOLEAN FiArgCaseSensitive;
+PPH_STRING FiArgOutput;
+BOOLEAN FiArgForce;
+ULONG64 FiArgLength = MAXULONG64;
 
 ULONG64 FipDirFileCount;
 ULONG64 FipDirDirCount;
@@ -43,6 +71,15 @@ static BOOLEAN NTAPI FiCommandLineCallback(
         case FI_ARG_CASESENSITIVE:
             FiArgCaseSensitive = TRUE;
             break;
+        case FI_ARG_OUTPUT:
+            PhSwapReference(&FiArgOutput, Value);
+            break;
+        case FI_ARG_FORCE:
+            FiArgForce = TRUE;
+            break;
+        case FI_ARG_LENGTH:
+            PhStringToInteger64(Value->Buffer, 0, (PLONG64)&FiArgLength);
+            break;
         }
     }
     else
@@ -56,12 +93,51 @@ static BOOLEAN NTAPI FiCommandLineCallback(
 VOID FiPrintHelp()
 {
     wprintf(
-        L"fiin [-a action] [-C] [-N] [-p pattern] [filename]\n"
-        L"\t-a action\tThe action to be performed.\n"
-        L"\t-C\tSpecifies that file names are case-sensitive.\n"
-        L"\t-N\tSpecifies that file names are in native format.\n"
-        L"\t-p\tA search pattern for listings.\n"
+        L"FiIn, by wj32.\n"
+        L"fiin [-a action] [-C] [-f] [-L length] [-N] [-o filename] [-p pattern] [filename]\n"
+        L"\t-a action   The action to be performed.\n"
+        L"\t-C          Specifies that file names are case-sensitive.\n"
+        L"\t-f          Forces the action to succeed by overwriting files.\n"
+        L"\t-L length   Specifies the length for an operation.\n"
+        L"\t-N          Specifies that file names are in native format.\n"
+        L"\t-o filename Specifies the output file name.\n"
+        L"\t-p pattern  A search pattern for listings.\n"
+        L"\n"
+        L"Actions:\n"
+        L"copy\n"
+        L"del\n"
+        L"dir\n"
+        L"mkdir\n"
+        L"rename\n"
+        L"streams\n"
+        L"touch\n"
         );
+}
+
+PPH_STRING FiFormatFileName(
+    __in PPH_STRING FileName
+    )
+{
+    if (!FiArgNative)
+    {
+        // If the user specified a drive name, it needs a backslash at the end.
+        if (FileName->Length == 4 && iswalpha(FileName->Buffer[0]) && FileName->Buffer[1] == ':')
+        {
+            return PhFormatString(L"\\??\\%c:\\", FileName->Buffer[0]);
+        }
+
+        return PhFormatString(
+            L"\\??\\%s%s",
+            // HACK to determine if the file name is relative
+            (PhStringIndexOfChar(FileName, 0, ':') < PhStringIndexOfChar(FileName, 0, '\\')) ? L"" :
+            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
+            FileName->Buffer
+            );
+    }
+    else
+    {
+        return PhCreateStringEx(FileName->Buffer, FileName->Length);
+    }
 }
 
 BOOLEAN FiCreateFile(
@@ -84,20 +160,7 @@ BOOLEAN FiCreateFile(
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-    if (!FiArgNative)
-    {
-        fileName = PhFormatString(
-            L"\\??\\%s%s",
-            // HACK to determine if the file name is relative
-            (PhStringIndexOfChar(FileName, 0, ':') < PhStringIndexOfChar(FileName, 0, '\\')) ? L"" :
-            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
-            FileName->Buffer
-            );
-    }
-    else
-    {
-        fileName = PhCreateStringEx(FileName->Buffer, FileName->Length);
-    }//wprintf(L"Result file name: %s\n", fileName->Buffer);
+    fileName = FiFormatFileName(FileName);
 
     InitializeObjectAttributes(
         &oa,
@@ -187,7 +250,10 @@ int __cdecl main(int argc, char *argv[])
         { FI_ARG_ACTION, L"a", MandatoryArgumentType },
         { FI_ARG_NATIVE, L"N", NoArgumentType },
         { FI_ARG_PATTERN, L"p", MandatoryArgumentType },
-        { FI_ARG_CASESENSITIVE, L"C", NoArgumentType }
+        { FI_ARG_CASESENSITIVE, L"C", NoArgumentType },
+        { FI_ARG_OUTPUT, L"o", MandatoryArgumentType },
+        { FI_ARG_FORCE, L"f", NoArgumentType },
+        { FI_ARG_LENGTH, L"L", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
     NTSTATUS status;
@@ -211,6 +277,7 @@ int __cdecl main(int argc, char *argv[])
     }
 
     if (!FiArgFileName && (
+        FiArgAction &&
         PhStringEquals2(FiArgAction, L"dir", TRUE)
         ))
     {
@@ -220,68 +287,210 @@ int __cdecl main(int argc, char *argv[])
             );
     }
 
-    if (!FiArgFileName || !FiArgAction)
+    if (!FiArgAction)
     {
+        FiPrintHelp();
+        return 1;
+    }
+    else if (!FiArgFileName)
+    {
+        wprintf(L"Error: file name missing.\n");
         FiPrintHelp();
         return 1;
     }
     else if (PhStringEquals2(FiArgAction, L"del", TRUE))
     {
-         HANDLE fileHandle;
+        HANDLE fileHandle;
 
-         if (FiCreateFile(
-             &fileHandle,
-             DELETE | SYNCHRONIZE,
-             FiArgFileName,
-             FILE_OPEN,
-             0,
-             FILE_SYNCHRONOUS_IO_NONALERT
-             ))
-         {
-             FILE_DISPOSITION_INFORMATION dispositionInfo;
-             IO_STATUS_BLOCK isb;
+        if (FiCreateFile(
+            &fileHandle,
+            DELETE | SYNCHRONIZE,
+            FiArgFileName,
+            FILE_OPEN,
+            0,
+            FILE_SYNCHRONOUS_IO_NONALERT
+            ))
+        {
+            FILE_DISPOSITION_INFORMATION dispositionInfo;
+            IO_STATUS_BLOCK isb;
 
-             dispositionInfo.DeleteFileW = TRUE;
-             if (!NT_SUCCESS(status = NtSetInformationFile(fileHandle, &isb, &dispositionInfo,
-                 sizeof(FILE_DISPOSITION_INFORMATION), FileDispositionInformation)))
-             {
-                 wprintf(L"Error deleting file: %s\n", PhGetNtMessage(status)->Buffer);
-             }
+            dispositionInfo.DeleteFileW = TRUE;
+            if (!NT_SUCCESS(status = NtSetInformationFile(fileHandle, &isb, &dispositionInfo,
+                sizeof(FILE_DISPOSITION_INFORMATION), FileDispositionInformation)))
+            {
+                wprintf(L"Error deleting file: %s\n", PhGetNtMessage(status)->Buffer);
+            }
 
-             NtClose(fileHandle);
-         }
+            NtClose(fileHandle);
+        }
     }
     else if (PhStringEquals2(FiArgAction, L"touch", TRUE))
     {
-         HANDLE fileHandle;
+        HANDLE fileHandle;
 
-         if (FiCreateFile(
-             &fileHandle,
-             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-             FiArgFileName,
-             FILE_CREATE,
-             0,
-             FILE_SYNCHRONOUS_IO_NONALERT
-             ))
-         {
-             NtClose(fileHandle);
-         }
+        if (FiCreateFile(
+            &fileHandle,
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FiArgFileName,
+            FILE_CREATE,
+            0,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            ))
+        {
+            NtClose(fileHandle);
+        }
     }
     else if (PhStringEquals2(FiArgAction, L"mkdir", TRUE))
     {
-         HANDLE fileHandle;
+        HANDLE fileHandle;
 
-         if (FiCreateFile(
-             &fileHandle,
-             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
-             FiArgFileName,
-             FILE_CREATE,
-             FILE_ATTRIBUTE_DIRECTORY,
-             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
-             ))
-         {
-             NtClose(fileHandle);
-         }
+        if (FiCreateFile(
+            &fileHandle,
+            FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FiArgFileName,
+            FILE_CREATE,
+            FILE_ATTRIBUTE_DIRECTORY,
+            FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            ))
+        {
+            NtClose(fileHandle);
+        }
+    }
+    else if (PhStringEquals2(FiArgAction, L"rename", TRUE))
+    {
+        HANDLE fileHandle;
+        PPH_STRING newFileName;
+
+        if (!FiArgOutput)
+        {
+            wprintf(L"Error: new file name missing.\n");
+            FiPrintHelp();
+            return 1;
+        }
+
+        newFileName = FiFormatFileName(FiArgOutput);
+
+        if (FiCreateFile(
+            &fileHandle,
+            DELETE | SYNCHRONIZE,
+            FiArgFileName,
+            FILE_OPEN,
+            0,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            ))
+        {
+            PFILE_RENAME_INFORMATION renameInfo;
+            ULONG renameInfoSize;
+            IO_STATUS_BLOCK isb;
+
+            renameInfoSize = FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName) + newFileName->Length;
+            renameInfo = PhAllocate(renameInfoSize);
+            renameInfo->ReplaceIfExists = FiArgForce;
+            renameInfo->RootDirectory = NULL;
+            renameInfo->FileNameLength = newFileName->Length;
+            memcpy(renameInfo->FileName, newFileName->Buffer, newFileName->Length);
+
+            status = NtSetInformationFile(fileHandle, &isb, renameInfo, renameInfoSize, FileRenameInformation);
+            PhFree(renameInfo);
+
+            if (!NT_SUCCESS(status))
+            {
+                wprintf(L"Error renaming file: %s\n", PhGetNtMessage(status)->Buffer);
+            }
+
+            NtClose(fileHandle);
+        }
+    }
+    else if (PhStringEquals2(FiArgAction, L"copy", TRUE))
+    {
+        HANDLE fileHandle;
+        HANDLE outFileHandle;
+        LARGE_INTEGER fileSize;
+
+        if (!FiArgOutput)
+        {
+            wprintf(L"Error: output file name missing.\n");
+            FiPrintHelp();
+            return 1;
+        }
+
+        if (FiCreateFile(
+            &fileHandle,
+            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FiArgFileName,
+            FILE_OPEN,
+            0,
+            FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT
+            ) && FiCreateFile(
+            &outFileHandle,
+            FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA | SYNCHRONIZE,
+            FiArgOutput,
+            !FiArgForce ? FILE_CREATE : FILE_OVERWRITE_IF,
+            0,
+            FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT
+            ))
+        {
+#define COPY_BUFFER_SIZE 0x10000
+            IO_STATUS_BLOCK isb;
+            PVOID buffer;
+            ULONG64 bytesToCopy = FiArgLength;
+
+            if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)))
+            {
+                PhSetFileSize(outFileHandle, &fileSize);
+            }
+
+            buffer = PhAllocate(COPY_BUFFER_SIZE);
+
+            while (bytesToCopy)
+            {
+                status = NtReadFile(
+                    fileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    buffer,
+                    bytesToCopy >= COPY_BUFFER_SIZE ? COPY_BUFFER_SIZE : (ULONG)bytesToCopy,
+                    NULL,
+                    NULL
+                    );
+
+                if (status == STATUS_END_OF_FILE)
+                {
+                    break;
+                }
+                else if (!NT_SUCCESS(status))
+                {
+                    wprintf(L"Error reading from file: %s\n", PhGetNtMessage(status)->Buffer);
+                    break;
+                }
+
+                status = NtWriteFile(
+                    outFileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    buffer,
+                    (ULONG)isb.Information, // number of bytes read
+                    NULL,
+                    NULL
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    wprintf(L"Error writing to output file: %s\n", PhGetNtMessage(status)->Buffer);
+                    break;
+                }
+
+                bytesToCopy -= (ULONG)isb.Information;
+            }
+
+            PhFree(buffer);
+            NtClose(fileHandle);
+            NtClose(outFileHandle);
+        }
     }
     else if (PhStringEquals2(FiArgAction, L"dir", TRUE))
     {
@@ -338,7 +547,7 @@ int __cdecl main(int argc, char *argv[])
             FiArgFileName,
             FILE_OPEN,
             0,
-            FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
             if (NT_SUCCESS(PhEnumFileStreams(fileHandle, &streams)))
@@ -369,5 +578,11 @@ int __cdecl main(int argc, char *argv[])
 
             NtClose(fileHandle);
         }
+    }
+    else
+    {
+        wprintf(L"Error: invalid action.\n");
+        FiPrintHelp();
+        return 1;
     }
 }
