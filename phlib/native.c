@@ -952,6 +952,10 @@ NTSTATUS PhGetProcessIsPosix(
     if (!NT_SUCCESS(status))
         return status;
 
+    // No PEB for processes like System.
+    if (!basicInfo.PebBaseAddress)
+        return STATUS_UNSUCCESSFUL;
+
     status = PhReadVirtualMemory(
         ProcessHandle,
         PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ImageSubsystem)),
