@@ -991,6 +991,19 @@ BEGIN
     PUSHBUTTON      "Enable All",IDC_ENABLEALL,140,153,50,14
 END
 
+IDD_CHOOSECOLUMNS DIALOGEX 0, 0, 245, 207
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Choose Columns"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,134,186,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,188,186,50,14
+    LTEXT           "Select the columns that will appear in the list.",IDC_MESSAGE,7,7,231,18
+    LISTBOX         IDC_LIST2,7,31,175,150,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Move Up",IDC_MOVEUP,188,30,50,14
+    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,188,48,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1294,6 +1307,14 @@ BEGIN
         RIGHTMARGIN, 243
         TOPMARGIN, 7
         BOTTOMMARGIN, 167
+    END
+
+    IDD_CHOOSECOLUMNS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 238
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 200
     END
 END
 #endif    // APSTUDIO_INVOKED

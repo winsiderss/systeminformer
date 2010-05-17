@@ -429,6 +429,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\memprv.c"
+				>
+			</File>
+			<File
 				RelativePath=".\modprv.c"
 				>
 			</File>
