@@ -3,7 +3,7 @@
 
 #define PH_TREELIST_LISTVIEW_ID 4000
 
-#define PH_TREELIST_NEEDS_RECT_HACK (WindowsVersion <= WINDOWS_XP)
+#define PH_TREELIST_NEEDS_RECT_HACK (WindowsVersion < WINDOWS_VISTA)
 
 typedef struct _PHP_TREELIST_CONTEXT
 {

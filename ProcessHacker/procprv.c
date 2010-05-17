@@ -581,7 +581,7 @@ VOID PhpProcessQueryStage1(
 
         if (NT_SUCCESS(status))
         {
-            BOOLEAN isPosix;
+            BOOLEAN isPosix = FALSE;
             PPH_STRING commandLine;
             ULONG i;
 

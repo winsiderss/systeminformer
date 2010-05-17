@@ -63,6 +63,7 @@
 #define IDD_OPTHIGHLIGHTING             163
 #define IDR_MENU1                       164
 #define IDR_NETWORK                     164
+#define IDD_CHOOSECOLUMNS               166
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -146,6 +147,7 @@
 #define IDC_LINKEDTOKEN                 1079
 #define IDC_EDITPROTECTION              1079
 #define IDC_DISABLEALL                  1079
+#define IDC_MOVEUP                      1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -257,6 +259,9 @@
 #define IDC_ZIOWRITEBYTES_V             1171
 #define IDC_ZIOOTHER_V                  1172
 #define IDC_ZIOOTHERBYTES_V             1173
+#define IDC_LIST2                       1175
+#define IDC_BUTTON2                     1176
+#define IDC_MOVEDOWN                    1176
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -413,9 +418,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_RESOURCE_VALUE        167
 #define _APS_NEXT_COMMAND_VALUE         40167
-#define _APS_NEXT_CONTROL_VALUE         1174
+#define _APS_NEXT_CONTROL_VALUE         1177
 #define _APS_NEXT_SYMED_VALUE           111
 #endif
 #endif

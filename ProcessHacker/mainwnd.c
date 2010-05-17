@@ -2784,7 +2784,7 @@ VOID PhMainWndOnNetworkItemAdded(
 
     if (!NetworkImageListWrapper.Handle)
     {
-        PhInitializeImageListWrapper(&NetworkImageListWrapper, 16, 16, ILC_COLOR32);
+        PhInitializeImageListWrapper(&NetworkImageListWrapper, 16, 16, ILC_COLOR32 | ILC_MASK);
         PhImageListWrapperAddIcon(&NetworkImageListWrapper, PhGetStockAppIcon());
         ListView_SetImageList(NetworkListViewHandle, NetworkImageListWrapper.Handle, LVSIL_SMALL);
     }

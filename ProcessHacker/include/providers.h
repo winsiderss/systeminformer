@@ -466,4 +466,20 @@ VOID PhHandleProviderUpdate(
     __in PVOID Object
     );
 
+// memprv
+
+#ifndef MEMPRV_PRIVATE
+extern PPH_OBJECT_TYPE PhMemoryItemType;
+#endif
+
+typedef struct _PH_MEMORY_ITEM
+{
+    PVOID BaseAddress;
+    ULONG_PTR Size;
+    ULONG Flags;
+    ULONG Protection;
+
+    PPH_STRING Name;
+} PH_MEMORY_ITEM, *PPH_MEMORY_ITEM;
+
 #endif
