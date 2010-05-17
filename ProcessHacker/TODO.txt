@@ -12,3 +12,5 @@
 * Copy menu
 
 * Dump/view process information
+
+* Fix PhGetFileName with network paths, e.g. \Device\LanmanRedirector.
