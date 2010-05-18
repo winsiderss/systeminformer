@@ -140,7 +140,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             SetWindowText(hwndDlg, title->Buffer);
             PhDereferenceObject(title);
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_THRDSTACK_LIST);
+            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
