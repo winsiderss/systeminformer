@@ -332,6 +332,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         INT startIndex;
                         INT currentIndex;
                         INT foundIndex;
+                        BOOLEAN firstTime = TRUE;
 
                         if (context->List->Count == 0)
                             return -1;
@@ -365,11 +366,12 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             if (partialSearch)
                                 searchLength = wcslen(fi->lvfi.psz);
 
-                            startIndex = fi->iStart;
+                            // We do actually need to check the start index.
+                            startIndex = (ULONG)fi->iStart < context->List->Count ? fi->iStart : 0;
                             currentIndex = startIndex;
                             foundIndex = -1;
 
-                            do
+                            while (TRUE)
                             {
                                 PH_STRINGREF text;
 
@@ -380,6 +382,14 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                     else
                                         break;
                                 }
+
+                                // We use the firstTime variable instead of a simpler check because 
+                                // we want to include the current item in the search. E.g. the 
+                                // current item is the only item beginning with "Z". If the user 
+                                // searches for "Z", we want to return the current item as being 
+                                // found.
+                                if (!firstTime && currentIndex == startIndex)
+                                    break;
 
                                 if (PhpGetNodeText(context, context->List->Items[currentIndex], 0, &text))
                                 {
@@ -402,7 +412,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 }
 
                                 currentIndex++;
-                            } while (currentIndex != startIndex);
+                                firstTime = FALSE;
+                            }
 
                             return foundIndex;
                         }
