@@ -1159,6 +1159,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_NETWORK_VIEWSTACK:
+                {
+                    PPH_NETWORK_ITEM networkItem = PhpGetSelectedNetworkItem();
+
+                    if (networkItem)
+                    {
+                        PhReferenceObject(networkItem);
+                        PhShowNetworkStackDialog(hWnd, networkItem);
+                        PhDereferenceObject(networkItem);
+                    }
+                }
+                break;
             case ID_NETWORK_CLOSE:
                 {
                     PPH_NETWORK_ITEM *networkItems;
@@ -2503,6 +2515,9 @@ VOID PhpInitializeNetworkMenu(
         PhEnableAllMenuItems(Menu, FALSE);
         PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, TRUE);
     }
+
+    if (WindowsVersion >= WINDOWS_VISTA)
+        DeleteMenu(Menu, ID_NETWORK_VIEWSTACK, 0);
 
     // Close
     if (NumberOfNetworkItems != 0)

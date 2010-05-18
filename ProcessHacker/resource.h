@@ -64,6 +64,7 @@
 #define IDR_MENU1                       164
 #define IDR_NETWORK                     164
 #define IDD_CHOOSECOLUMNS               166
+#define IDD_NETSTACK                    167
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -260,7 +261,6 @@
 #define IDC_ZIOOTHER_V                  1172
 #define IDC_ZIOOTHERBYTES_V             1173
 #define IDC_LIST2                       1175
-#define IDC_BUTTON2                     1176
 #define IDC_MOVEDOWN                    1176
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -412,14 +412,15 @@
 #define ID_COMPUTER_RESTART             40164
 #define ID_COMPUTER_SHUTDOWN            40165
 #define ID_COMPUTER_POWEROFF            40166
+#define ID_NETWORK_VIEWSTACK            40167
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        167
-#define _APS_NEXT_COMMAND_VALUE         40167
+#define _APS_NEXT_RESOURCE_VALUE        168
+#define _APS_NEXT_COMMAND_VALUE         40168
 #define _APS_NEXT_CONTROL_VALUE         1177
 #define _APS_NEXT_SYMED_VALUE           111
 #endif

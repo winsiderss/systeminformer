@@ -477,6 +477,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\netstk.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntobjprp.c"
 				>
 			</File>

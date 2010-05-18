@@ -724,6 +724,13 @@ HPROPSHEETPAGE PhCreateJobPage(
     __in_opt DLGPROC HookProc
     );
 
+// netstk
+
+VOID PhShowNetworkStackDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
 // ntobjprp
 
 HPROPSHEETPAGE PhCreateEventPage(
