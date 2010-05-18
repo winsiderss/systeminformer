@@ -128,7 +128,6 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             PNETWORK_STACK_CONTEXT networkStackContext;
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
-            PPVOID stackBackTrace;
             PVOID address;
             ULONG i;
 
@@ -153,13 +152,11 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            stackBackTrace = (PPVOID)networkStackContext->NetworkItem->OwnerInfo;
-
-            for (i = 0; i < sizeof(ULONGLONG) * PH_NETWORK_OWNER_INFO_SIZE / sizeof(PVOID); i++)
+            for (i = 0; i < PH_NETWORK_OWNER_INFO_SIZE; i++)
             {
                 PPH_STRING name;
 
-                address = *stackBackTrace++;
+                address = *(PPVOID)&networkStackContext->NetworkItem->OwnerInfo[i];
 
                 if (!address)
                     break;
