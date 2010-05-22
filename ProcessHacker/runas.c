@@ -793,7 +793,7 @@ NTSTATUS PhRunAsCommandStart2(
 
         PhStringBuilderAppend2(
             &argumentsBuilder,
-            L"-c -ctype processhacker -caction runas -cobj \""
+            L"-c -ctype processhacker -caction runas -cobject \""
             );
 
         string = PhpCEscapeString(&commandLine->sr);
@@ -802,8 +802,7 @@ NTSTATUS PhRunAsCommandStart2(
 
         PhStringBuilderAppendFormat(
             &argumentsBuilder,
-            L"\" -hwnd %Iu -servicename %s",
-            (PVOID)hWnd,
+            L"\" -servicename %s",
             serviceName
             );
 
@@ -991,7 +990,7 @@ VOID PhRunAsServiceStart()
 
     if (!PhParseCommandLine(
         &commandLine,
-        options, 
+        options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
         PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
         PhpRunAsServiceOptionCallback,
@@ -1076,12 +1075,9 @@ NTSTATUS PhCreateProcessAsUser(
     )
 {
     NTSTATUS status;
-    LOGICAL result;
-    ULONG win32Result;
     HANDLE tokenHandle;
     PVOID defaultEnvironment;
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
-    PROCESS_INFORMATION processInfo;
 
     if (!ApplicationName && !CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -1130,19 +1126,34 @@ NTSTATUS PhCreateProcessAsUser(
         if (SessionId != -1)
         {
             HANDLE newTokenHandle;
+            OBJECT_ATTRIBUTES oa;
+            SECURITY_QUALITY_OF_SERVICE securityQos;
 
-            result = DuplicateTokenEx(
+            securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+            securityQos.ImpersonationLevel = SecurityImpersonation;
+            securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+            securityQos.EffectiveOnly = FALSE;
+
+            InitializeObjectAttributes(
+                &oa,
+                NULL,
+                0,
+                NULL,
+                &securityQos
+                );
+
+            status = NtDuplicateToken(
                 tokenHandle,
                 TOKEN_ALL_ACCESS,
-                NULL,
-                SecurityImpersonation,
+                &oa,
+                FALSE,
                 TokenPrimary,
                 &newTokenHandle
                 );
             NtClose(tokenHandle);
 
-            if (!result)
-                return NTSTATUS_FROM_WIN32(GetLastError());
+            if (!NT_SUCCESS(status))
+                return status;
 
             tokenHandle = newTokenHandle;
         }
@@ -1171,20 +1182,18 @@ NTSTATUS PhCreateProcessAsUser(
 
     startupInfo.lpDesktop = L"WinSta0\\Default";
 
-    result = CreateProcessAsUser(
-        tokenHandle,
+    status = PhCreateProcessWin32Ex(
         ApplicationName,
         CommandLine,
-        NULL,
-        NULL,
-        FALSE,
-        CREATE_UNICODE_ENVIRONMENT,
         Environment ? Environment : defaultEnvironment,
         CurrentDirectory,
         &startupInfo,
-        &processInfo
+        PH_CREATE_PROCESS_UNICODE_ENVIRONMENT,
+        tokenHandle,
+        NULL,
+        ProcessHandle,
+        ThreadHandle
         );
-    win32Result = GetLastError();
 
     if (defaultEnvironment)
     {
@@ -1193,18 +1202,5 @@ NTSTATUS PhCreateProcessAsUser(
 
     NtClose(tokenHandle);
 
-    if (result)
-    {
-        if (ProcessHandle)
-            *ProcessHandle = processInfo.hProcess;
-        else
-            NtClose(processInfo.hProcess);
-
-        if (ThreadHandle)
-            *ThreadHandle = processInfo.hThread;
-        else
-            NtClose(processInfo.hThread);
-    }
-
-    return result ? STATUS_SUCCESS : NTSTATUS_FROM_WIN32(win32Result);
+    return status;
 }
