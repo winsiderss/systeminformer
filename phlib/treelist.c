@@ -536,7 +536,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             return CDRF_NOTIFYITEMDRAW;
                         case CDDS_ITEMPREPAINT:
                             {
-                                if (PH_TREELIST_NEEDS_RECT_HACK)
+                                if (PH_TREELIST_USE_HACKAROUNDS)
                                 {
                                     // On XP:
                                     // When the mouse is hovered over an item we get 
@@ -554,7 +554,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             return CDRF_NOTIFYSUBITEMDRAW;
                         case CDDS_ITEMPREPAINT | CDDS_SUBITEM:
                             {
-                                if (!PH_TREELIST_NEEDS_RECT_HACK)
+                                if (!PH_TREELIST_USE_HACKAROUNDS)
                                 {
                                     // We sometimes get useless notifications where the 
                                     // rectangle is 0 - just ignore them.
@@ -1248,7 +1248,7 @@ static VOID PhpCustomDrawPrePaintItem(
 
     GetTextMetrics(hdc, &Context->TextMetrics);
 
-    if (PH_TREELIST_NEEDS_RECT_HACK)
+    if (PH_TREELIST_USE_HACKAROUNDS)
     {
         // XP doesn't fill in the nmcd.rc field properly, so we have to use this hack.
         ListView_GetSubItemRect(Context->ListViewHandle, itemIndex, 0, LVIR_BOUNDS, &Context->RowRect);
@@ -1292,7 +1292,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
     origTextRect = CustomDraw->nmcd.rc;
 
-    if (PH_TREELIST_NEEDS_RECT_HACK)
+    if (PH_TREELIST_USE_HACKAROUNDS)
     {
         origTextRect.left = Context->RowRect.left + column->s.ViewX; // left may be negative if scrolled horizontally
         origTextRect.top = Context->RowRect.top;
