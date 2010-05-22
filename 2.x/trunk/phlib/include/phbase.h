@@ -395,10 +395,23 @@ FORCEINLINE INT PhStringRefCompare2(
     __in BOOLEAN IgnoreCase
     )
 {
+    INT result;
+
     if (!IgnoreCase)
-        return wcsncmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+        result = wcsncmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
     else
-        return wcsnicmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+        result = wcsnicmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+
+    // The above operation is essentially a "starts with" test, which means that we 
+    // must do additional processing.
+    if (result == 0)
+    {
+        return String1->Length / sizeof(WCHAR) - wcslen(String2);
+    }
+    else
+    {
+        return result;
+    }
 }
 
 FORCEINLINE BOOLEAN PhStringRefEquals2(
