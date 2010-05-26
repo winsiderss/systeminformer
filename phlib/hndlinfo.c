@@ -546,6 +546,8 @@ NTSTATUS PhpGetBestObjectName(
                         PhDereferenceObject(publisherName);
                         publisherName = NULL;
                     }
+
+                    RegCloseKey(keyHandle);
                 }
 
                 PhDereferenceObject(keyName);
