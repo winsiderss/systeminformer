@@ -519,7 +519,46 @@ NTSTATUS PhpGetBestObjectName(
 
             if (NT_SUCCESS(status))
             {
-                bestObjectName = PhFormatGuid(&basicInfo.Guid);
+                PPH_STRING guidString;
+                PPH_STRING keyName;
+                HKEY keyHandle;
+                PPH_STRING publisherName = NULL;
+
+                guidString = PhFormatGuid(&basicInfo.Guid);
+
+                // We should perform a lookup on the GUID to get the publisher name.
+
+                keyName = PhConcatStrings2(
+                    L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\",
+                    guidString->Buffer
+                    );
+
+                if (RegOpenKey(
+                    HKEY_LOCAL_MACHINE,
+                    keyName->Buffer,
+                    &keyHandle
+                    ) == ERROR_SUCCESS)
+                {
+                    publisherName = PhQueryRegistryString(keyHandle, NULL);
+
+                    if (publisherName && publisherName->Length == 0)
+                    {
+                        PhDereferenceObject(publisherName);
+                        publisherName = NULL;
+                    }
+                }
+
+                PhDereferenceObject(keyName);
+
+                if (publisherName)
+                {
+                    bestObjectName = publisherName;
+                    PhDereferenceObject(guidString);
+                }
+                else
+                {
+                    bestObjectName = guidString;
+                }
             }
         }
     }
