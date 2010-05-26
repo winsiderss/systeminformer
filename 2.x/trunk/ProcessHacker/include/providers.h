@@ -482,4 +482,23 @@ typedef struct _PH_MEMORY_ITEM
     PPH_STRING Name;
 } PH_MEMORY_ITEM, *PPH_MEMORY_ITEM;
 
+typedef struct _PH_MEMORY_PROVIDER *PPH_MEMORY_PROVIDER;
+
+typedef BOOLEAN (NTAPI *PPH_MEMORY_PROVIDER_CALLBACK)(
+    __in PPH_MEMORY_PROVIDER Provider,
+    __in __assumeRefs(1) PPH_MEMORY_ITEM MemoryItem
+    );
+
+typedef struct _PH_MEMORY_PROVIDER
+{
+    PPH_MEMORY_PROVIDER_CALLBACK Callback;
+
+    HANDLE ProcessId;
+    HANDLE ProcessHandle;
+} PH_MEMORY_PROVIDER, *PPH_MEMORY_PROVIDER;
+
+VOID PhMemoryProviderUpdate(
+    __in PPH_MEMORY_PROVIDER Provider
+    );
+
 #endif

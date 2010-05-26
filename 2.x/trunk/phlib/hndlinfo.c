@@ -501,7 +501,29 @@ NTSTATUS PhpGetBestObjectName(
     NTSTATUS status;
     PPH_STRING bestObjectName = NULL;
 
-    if (PhStringEquals2(TypeName, L"File", TRUE))
+    if (PhStringEquals2(TypeName, L"EtwRegistration", TRUE))
+    {
+        if (PhKphHandle)
+        {
+            ETWREG_BASIC_INFORMATION basicInfo;
+
+            status = KphQueryInformationEtwReg(
+                PhKphHandle,
+                ProcessHandle,
+                Handle,
+                EtwRegBasicInformation,
+                &basicInfo,
+                sizeof(ETWREG_BASIC_INFORMATION),
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                bestObjectName = PhFormatGuid(&basicInfo.Guid);
+            }
+        }
+    }
+    else if (PhStringEquals2(TypeName, L"File", TRUE))
     {
         // Convert the file name to a DOS file name.
         bestObjectName = PhResolveDevicePrefix(ObjectName);
