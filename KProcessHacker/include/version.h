@@ -76,18 +76,22 @@ EXT ACCESS_MASK ThreadAllAccess;
 
 /* Offsets */
 /* Structures
- * Et: ETHREAD
+ * Ege: ETW_GUID_ENTRY
  * Ep: EPROCESS
+ * Ere: ETW_REG_ENTRY
+ * Et: ETHREAD
  * Oh: OBJECT_HEADER
  * Ot: OBJECT_TYPE
  * Oti: OBJECT_TYPE_INITIALIZER, offset measured from an OBJECT_TYPE
  */
-EXT ULONG OffEtClientId;
+EXT ULONG OffEgeGuid;
 EXT ULONG OffEpJob;
 EXT ULONG OffEpObjectTable;
 EXT ULONG OffEpProtectedProcessOff;
 EXT ULONG OffEpProtectedProcessBit;
 EXT ULONG OffEpRundownProtect;
+EXT ULONG OffEreGuidEntry;
+EXT ULONG OffEtClientId;
 EXT ULONG OffOhBody;
 EXT ULONG OffOtName;
 EXT ULONG OffOtIndex;
