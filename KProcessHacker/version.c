@@ -130,12 +130,12 @@ NTSTATUS KvInit()
         ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
         
-        OffEtClientId = 0x1ec;
         OffEpJob = 0x134;
         OffEpObjectTable = 0xc4;
         OffEpProtectedProcessOff = 0;
         OffEpProtectedProcessBit = 0;
         OffEpRundownProtect = 0x80;
+        OffEtClientId = 0x1ec;
         OffOhBody = 0x18;
         OffOtName = 0x40;
         OffOtIndex = 0x4c;
@@ -189,12 +189,12 @@ NTSTATUS KvInit()
         ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3ff;
         
-        OffEtClientId = 0x1e4;
         OffEpJob = 0x120;
         OffEpObjectTable = 0xd4;
         OffEpProtectedProcessOff = 0;
         OffEpProtectedProcessBit = 0;
         OffEpRundownProtect = 0x90;
+        OffEtClientId = 0x1e4;
         OffOhBody = 0x18;
         OffOtName = 0x40;
         OffOtIndex = 0x4c;
@@ -242,12 +242,14 @@ NTSTATUS KvInit()
         ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         
-        OffEtClientId = 0x20c;
+        OffEgeGuid = 0xc;
         OffEpJob = 0x10c;
         OffEpObjectTable = 0xdc;
         OffEpProtectedProcessOff = 0x224;
         OffEpProtectedProcessBit = 0xb;
         OffEpRundownProtect = 0x98;
+        OffEreGuidEntry = 0x8;
+        OffEtClientId = 0x20c;
         OffOhBody = 0x18;
         
         INIT_SCAN(
@@ -304,12 +306,14 @@ NTSTATUS KvInit()
         ProcessAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1fff;
         ThreadAllAccess = STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff;
         
-        OffEtClientId = 0x22c;
+        OffEgeGuid = 0xc;
         OffEpJob = 0x124;
         OffEpObjectTable = 0xf4;
         OffEpProtectedProcessOff = 0x26c;
         OffEpProtectedProcessBit = 0xb;
         OffEpRundownProtect = 0xb0;
+        OffEreGuidEntry = 0x8;
+        OffEtClientId = 0x22c;
         OffOhBody = 0x18;
         OffOtName = 0x8;
         OffOtIndex = 0x14; /* Now only a UCHAR, not a ULONG */

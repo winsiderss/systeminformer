@@ -260,6 +260,8 @@ PCHAR KphpGetControlCodeName(ULONG ControlCode)
             return "KphQueryInformationDriver";
         case KPH_OPENTYPE:
             return "KphOpenType";
+        case KPH_QUERYINFORMATIONETWREG:
+            return "KphQueryInformationEtwReg";
         
         default:
             return "Unknown";
@@ -1505,6 +1507,82 @@ NTSTATUS KphDispatchDeviceControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
             CHECK_IN_LENGTH;
             
             status = KphOpenType(args->TypeHandle, args->ObjectAttributes, UserMode);
+        }
+        break;
+        
+        case KPH_QUERYINFORMATIONETWREG:
+        {
+            struct
+            {
+                HANDLE ProcessHandle;
+                HANDLE EtwRegHandle;
+                ETWREG_INFORMATION_CLASS EtwRegInformationClass;
+                PVOID EtwRegInformation;
+                ULONG EtwRegInformationLength;
+                PULONG ReturnLength;
+            } *args = dataBuffer;
+            ETWREG_BASIC_INFORMATION basicInfo;
+            KPH_ATTACH_STATE attachState;
+            
+            CHECK_IN_LENGTH;
+            
+            if (args->EtwRegInformationClass != EtwRegBasicInformation)
+            {
+                status = STATUS_INVALID_INFO_CLASS;
+                goto IoControlEnd;
+            }
+            
+            status = KphAttachProcessHandle(args->ProcessHandle, &attachState);
+            
+            if (!NT_SUCCESS(status))
+                goto IoControlEnd;
+            
+            if (attachState.Process == PsInitialSystemProcess)
+                MakeKernelHandle(args->EtwRegHandle);
+            
+            status = KphQueryInformationEtwReg(
+                args->EtwRegHandle,
+                EtwRegBasicInformation,
+                &basicInfo,
+                sizeof(ETWREG_BASIC_INFORMATION),
+                NULL,
+                KernelMode
+                );
+            KphDetachProcess(&attachState);
+            
+            if (!NT_SUCCESS(status))
+                goto IoControlEnd;
+            
+            if (
+                args->EtwRegInformation &&
+                args->EtwRegInformationLength >= sizeof(ETWREG_BASIC_INFORMATION)
+                )
+            {
+                __try
+                {
+                    ProbeForWrite(args->EtwRegInformation, args->EtwRegInformationLength, 1);
+                    memcpy(args->EtwRegInformation, &basicInfo, sizeof(ETWREG_BASIC_INFORMATION));
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                    goto IoControlEnd;
+                }
+            }
+            
+            if (args->ReturnLength)
+            {
+                __try
+                {
+                    ProbeForWrite(args->ReturnLength, sizeof(ULONG), 1);
+                    *args->ReturnLength = sizeof(ETWREG_BASIC_INFORMATION);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                    goto IoControlEnd;
+                }
+            }
         }
         break;
         

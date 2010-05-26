@@ -23,4 +23,9 @@
 #define MEMPRV_PRIVATE
 #include <phapp.h>
 
+VOID PhMemoryProviderUpdate(
+    __in PPH_MEMORY_PROVIDER Provider
+    )
+{
 
+}

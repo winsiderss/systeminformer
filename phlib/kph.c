@@ -1728,3 +1728,41 @@ NTSTATUS KphOpenType(
         NULL
         );
 }
+
+NTSTATUS KphQueryInformationEtwReg(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in HANDLE EtwRegHandle,
+    __in ETWREG_INFORMATION_CLASS EtwRegInformationClass,
+    __out_bcount_opt(EtwRegInformationLength) PVOID EtwRegInformation,
+    __in ULONG EtwRegInformationLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    struct
+    {
+        HANDLE ProcessHandle;
+        HANDLE EtwRegHandle;
+        ETWREG_INFORMATION_CLASS EtwRegInformationClass;
+        PVOID EtwRegInformation;
+        ULONG EtwRegInformationLength;
+        PULONG ReturnLength;
+    } args;
+
+    args.ProcessHandle = ProcessHandle;
+    args.EtwRegHandle = EtwRegHandle;
+    args.EtwRegInformationClass = EtwRegInformationClass;
+    args.EtwRegInformation = EtwRegInformation;
+    args.EtwRegInformationLength = EtwRegInformationLength;
+    args.ReturnLength = ReturnLength;
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_QUERYINFORMATIONETWREG,
+        &args,
+        sizeof(args),
+        NULL,
+        0,
+        NULL
+        );
+}

@@ -890,3 +890,128 @@ PHANDLE_TABLE ObReferenceProcessHandleTable(
     
     return handleTable;
 }
+
+/* KphQueryInformationEtwReg
+ * 
+ * Queries information about an ETW registration entry.
+ */
+NTSTATUS KphQueryInformationEtwReg(
+    __in HANDLE EtwRegHandle,
+    __in ETWREG_INFORMATION_CLASS EtwRegInformationClass,
+    __out_bcount_opt(EtwRegInformationLength) PVOID EtwRegInformation,
+    __in ULONG EtwRegInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PVOID etwRegEntry;
+    POBJECT_TYPE objectType;
+    UNICODE_STRING objectTypeName;
+    UNICODE_STRING etwRegistrationName;
+    
+    if (WindowsVersion < WINDOWS_VISTA)
+        return STATUS_NOT_SUPPORTED;
+    
+    if (
+        EtwRegInformationClass < EtwRegBasicInformation || 
+        EtwRegInformationClass >= MaxEtwRegInfoClass
+        )
+        return STATUS_INVALID_INFO_CLASS;
+    
+    /* Probe user input. */
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            if (EtwRegInformation)
+                ProbeForWrite(EtwRegInformation, EtwRegInformationLength, 1);
+            if (ReturnLength)
+                ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+    
+    status = ObReferenceObjectByHandle(
+        EtwRegHandle,
+        0,
+        NULL,
+        KernelMode,
+        &etwRegEntry,
+        NULL
+        );
+    
+    if (!NT_SUCCESS(status))
+        return status;
+    
+    /* HACK: we can't get a pointer to the ETW registration type, so we have 
+     * to check this way.
+     */
+    objectType = KphGetObjectTypeNt(etwRegEntry);
+    objectTypeName = *(PUNICODE_STRING)KVOFF(objectType, OffOtName);
+    RtlInitUnicodeString(&etwRegistrationName, L"EtwRegistration");
+    
+    if (!RtlEqualUnicodeString(&objectTypeName, &etwRegistrationName, TRUE))
+    {
+        ObDereferenceObject(etwRegEntry);
+        return STATUS_OBJECT_TYPE_MISMATCH;
+    }
+    
+    __try
+    {
+        switch (EtwRegInformationClass)
+        {
+            case EtwRegBasicInformation:
+            {
+                if (EtwRegInformation)
+                {
+                    /* Check buffer length. */
+                    if (EtwRegInformationLength == sizeof(ETWREG_BASIC_INFORMATION))
+                    {
+                        PETWREG_BASIC_INFORMATION basicInfo;
+                        PVOID guidEntry;
+                        
+                        basicInfo = (PETWREG_BASIC_INFORMATION)EtwRegInformation;
+                        
+                        guidEntry = *(PVOID *)KVOFF(etwRegEntry, OffEreGuidEntry);
+                        
+                        if (guidEntry)
+                        {
+                            basicInfo->Guid = *(PGUID)KVOFF(guidEntry, OffEgeGuid);
+                        }
+                        else
+                        {
+                            memset(&basicInfo->Guid, 0, sizeof(GUID));
+                        }
+                        
+                        basicInfo->SessionId = 0; // TODO
+                    }
+                    else
+                    {
+                        status = STATUS_INFO_LENGTH_MISMATCH;
+                    }
+                }
+                
+                if (ReturnLength)
+                    *ReturnLength = sizeof(DRIVER_BASIC_INFORMATION);
+            }
+            break;
+            
+            default:
+            {
+                status = STATUS_INVALID_INFO_CLASS;
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        status = GetExceptionCode();
+    }
+    
+    ObDereferenceObject(etwRegEntry);
+    
+    return status;
+}

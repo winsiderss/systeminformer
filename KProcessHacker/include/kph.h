@@ -107,6 +107,20 @@ typedef struct _DRIVER_BASIC_INFORMATION
     ULONG DriverSize;
 } DRIVER_BASIC_INFORMATION, *PDRIVER_BASIC_INFORMATION;
 
+/* ETW registration object information */
+
+typedef enum _ETWREG_INFORMATION_CLASS
+{
+    EtwRegBasicInformation,
+    MaxEtwRegInfoClass
+} ETWREG_INFORMATION_CLASS;
+
+typedef struct _ETWREG_BASIC_INFORMATION
+{
+    GUID Guid;
+    ULONG_PTR SessionId;
+} ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
+
 typedef struct _KPH_ATTACH_STATE
 {
     BOOLEAN Attached;
@@ -332,6 +346,15 @@ NTSTATUS KphQueryInformationDriver(
     __in DRIVER_INFORMATION_CLASS DriverInformationClass,
     __out_bcount_opt(DriverInformationLength) PVOID DriverInformation,
     __in ULONG DriverInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KphQueryInformationEtwReg(
+    __in HANDLE EtwRegHandle,
+    __in ETWREG_INFORMATION_CLASS EtwRegInformationClass,
+    __out_bcount_opt(EtwRegInformationLength) PVOID EtwRegInformation,
+    __in ULONG EtwRegInformationLength,
     __out_opt PULONG ReturnLength,
     __in KPROCESSOR_MODE AccessMode
     );

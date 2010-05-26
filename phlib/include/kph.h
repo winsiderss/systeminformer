@@ -60,6 +60,7 @@
 #define KPH_OPENDRIVER KPH_CTL_CODE(202)
 #define KPH_QUERYINFORMATIONDRIVER KPH_CTL_CODE(203)
 #define KPH_OPENTYPE KPH_CTL_CODE(204)
+#define KPH_QUERYINFORMATIONETWREG KPH_CTL_CODE(205)
 
 // Process handle information
 
@@ -106,6 +107,20 @@ typedef struct _DRIVER_SERVICE_KEY_NAME_INFORMATION
 {
     UNICODE_STRING ServiceKeyName;
 } DRIVER_SERVICE_KEY_NAME_INFORMATION, *PDRIVER_SERVICE_KEY_NAME_INFORMATION;
+
+// ETW registration object information
+
+typedef enum _ETWREG_INFORMATION_CLASS
+{
+    EtwRegBasicInformation,
+    MaxEtwRegInfoClass
+} ETWREG_INFORMATION_CLASS;
+
+typedef struct _ETWREG_BASIC_INFORMATION
+{
+    GUID Guid;
+    ULONG_PTR SessionId;
+} ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
 
 NTSTATUS KphInit();
 
@@ -419,6 +434,16 @@ NTSTATUS KphOpenType(
     __in HANDLE KphHandle,
     __out PHANDLE TypeHandle,
     __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSTATUS KphQueryInformationEtwReg(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in HANDLE EtwRegHandle,
+    __in ETWREG_INFORMATION_CLASS EtwRegInformationClass,
+    __out_bcount_opt(EtwRegInformationLength) PVOID EtwRegInformation,
+    __in ULONG EtwRegInformationLength,
+    __out_opt PULONG ReturnLength
     );
 
 #endif
