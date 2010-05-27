@@ -120,6 +120,8 @@ BOOLEAN NTAPI PhpMemoryProviderEnumGenericModulesCallback(
     module->FileName = NULL;
 
     PhAddSimpleHashtableItem(moduleHashtable, module->BaseAddress, module);
+
+    return TRUE;
 }
 
 VOID PhMemoryProviderUpdate(
