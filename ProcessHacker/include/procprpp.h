@@ -128,7 +128,7 @@ typedef struct _PH_MODULES_CONTEXT
 
 typedef struct _PH_MEMORY_CONTEXT
 {
-    PPH_LIST MemoryRegions;
+    PPH_HASHTABLE MemoryRegions;
 } PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
