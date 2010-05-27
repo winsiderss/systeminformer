@@ -479,6 +479,7 @@ typedef struct _PH_MEMORY_ITEM
     ULONG Flags;
     ULONG Protection;
 
+    WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
     PPH_STRING Name;
 } PH_MEMORY_ITEM, *PPH_MEMORY_ITEM;
 
@@ -492,10 +493,28 @@ typedef BOOLEAN (NTAPI *PPH_MEMORY_PROVIDER_CALLBACK)(
 typedef struct _PH_MEMORY_PROVIDER
 {
     PPH_MEMORY_PROVIDER_CALLBACK Callback;
+    PVOID Context;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+
+    BOOLEAN IgnoreFreeRegions;
 } PH_MEMORY_PROVIDER, *PPH_MEMORY_PROVIDER;
+
+BOOLEAN PhMemoryProviderInitialization();
+
+VOID PhInitializeMemoryProvider(
+    __out PPH_MEMORY_PROVIDER Provider,
+    __in HANDLE ProcessId,
+    __in PPH_MEMORY_PROVIDER_CALLBACK Callback,
+    __in PVOID Context
+    );
+
+VOID PhDeleteMemoryProvider(
+    __inout PPH_MEMORY_PROVIDER Provider
+    );
+
+PPH_MEMORY_ITEM PhCreateMemoryItem();
 
 VOID PhMemoryProviderUpdate(
     __in PPH_MEMORY_PROVIDER Provider
