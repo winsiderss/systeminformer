@@ -421,6 +421,8 @@ BOOLEAN PhInitializeAppSystem()
         return FALSE;
     if (!PhInitializeHandleProvider())
         return FALSE;
+    if (!PhMemoryProviderInitialization())
+        return FALSE;
     if (!PhProcessPropInitialization())
         return FALSE;
 
