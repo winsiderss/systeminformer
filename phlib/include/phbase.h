@@ -406,7 +406,7 @@ FORCEINLINE INT PhStringRefCompare2(
     // must do additional processing.
     if (result == 0)
     {
-        return String1->Length / sizeof(WCHAR) - wcslen(String2);
+        return (INT)String1->Length / sizeof(WCHAR) - (INT)wcslen(String2);
     }
     else
     {
