@@ -147,7 +147,7 @@ static _WSAGetLastError WSAGetLastError_I;
 static _GetNameInfoW GetNameInfoW_I;
 static _gethostbyaddr gethostbyaddr_I;
 
-BOOLEAN PhInitializeNetworkProvider()
+BOOLEAN PhNetworkProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhNetworkItemType,

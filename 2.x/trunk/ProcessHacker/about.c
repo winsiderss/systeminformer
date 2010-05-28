@@ -111,6 +111,7 @@ PPH_STRING PhGetDiagnosticsString()
     OBJECT_TYPE_COUNT(PhThreadItemType);
     OBJECT_TYPE_COUNT(PhHandleProviderType);
     OBJECT_TYPE_COUNT(PhHandleItemType);
+    OBJECT_TYPE_COUNT(PhMemoryItemType);
 
     string = PhReferenceStringBuilderString(&stringBuilder);
     PhDeleteStringBuilder(&stringBuilder);

@@ -2529,6 +2529,90 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     return FALSE;
 }
 
+VOID PhpRefreshProcessMemoryList(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    )
+{
+    PPH_MEMORY_CONTEXT memoryContext = PropPageContext->Context;
+
+    ExtendedListView_SetRedraw(memoryContext->ListViewHandle, FALSE);
+
+    // Get rid of existing memory items.
+    PhDereferenceObjects(memoryContext->MemoryList->Items, memoryContext->MemoryList->Count);
+    PhClearList(memoryContext->MemoryList);
+    ListView_DeleteAllItems(memoryContext->ListViewHandle);
+
+    PhMemoryProviderUpdate(&memoryContext->Provider);
+    ExtendedListView_SortItems(memoryContext->ListViewHandle);
+    ExtendedListView_SetRedraw(memoryContext->ListViewHandle, TRUE);
+}
+
+BOOLEAN NTAPI PhpProcessMemoryCallback(
+    __in PPH_MEMORY_PROVIDER Provider,
+    __in __assumeRefs(1) PPH_MEMORY_ITEM MemoryItem
+    )
+{
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext = Provider->Context;
+    PPH_MEMORY_CONTEXT memoryContext = propPageContext->Context;
+    INT lvItemIndex;
+    PPH_STRING string;
+    PWSTR name;
+    WCHAR protectionString[17];
+
+    PhAddListItem(memoryContext->MemoryList, MemoryItem);
+
+    // Name
+
+    string = NULL;
+
+    if (MemoryItem->Name)
+    {
+        string = PhConcatStrings(
+            4,
+            MemoryItem->Name->Buffer,
+            L" (",
+            PhGetMemoryTypeString(MemoryItem->Flags),
+            L")"
+            );
+        name = string->Buffer;
+    }
+    else if (MemoryItem->Flags & MEM_FREE)
+    {
+        name = L"Free";
+    }
+    else
+    {
+        string = PhConcatStrings(
+            4,
+            PhGetMemoryTypeString(MemoryItem->Flags),
+            L" (",
+            PhGetMemoryStateString(MemoryItem->Flags),
+            L")"
+            );
+        name = string->Buffer;
+    }
+
+    lvItemIndex = PhAddListViewItem(memoryContext->ListViewHandle, MAXINT, name, MemoryItem);
+
+    if (string)
+        PhDereferenceObject(string);
+
+    // Base address
+    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 1, MemoryItem->BaseAddressString);
+
+    // Size
+    string = PhFormatSize(MemoryItem->Size, -1);
+    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 2, string->Buffer);
+    PhDereferenceObject(string);
+
+    // Protection
+    PhGetMemoryProtectionString(MemoryItem->Protection, protectionString);
+    PhSetListViewSubItem(memoryContext->ListViewHandle, lvItemIndex, 3, protectionString);
+
+    return TRUE;
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -2548,7 +2632,19 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PPH_MEMORY_CONTEXT memoryContext;
             HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+            memoryContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_MEMORY_CONTEXT));
+            PhInitializeMemoryProvider(
+                &memoryContext->Provider,
+                processItem->ProcessId,
+                PhpProcessMemoryCallback,
+                propPageContext
+                );
+            memoryContext->MemoryList = PhCreateList(40);
+            memoryContext->ListViewHandle = lvHandle;
 
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -2558,10 +2654,22 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Protection");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetSort(lvHandle, 1, AscendingSortOrder);
+
+            PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
         break;
     case WM_DESTROY:
         {
+            PPH_MEMORY_CONTEXT memoryContext;
+
+            memoryContext = propPageContext->Context;
+
+            PhDereferenceObjects(memoryContext->MemoryList->Items, memoryContext->MemoryList->Count);
+            PhDereferenceObject(memoryContext->MemoryList);
+            PhDeleteMemoryProvider(&memoryContext->Provider);
+            PhFree(memoryContext);
+
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -2581,6 +2689,11 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                 propPageContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_COMMAND:
+        {
+            PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
         }
         break;
     }

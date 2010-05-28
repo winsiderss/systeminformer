@@ -409,17 +409,17 @@ BOOLEAN PhInitializeAppSystem()
 {
     PhApplicationName = L"Process Hacker";
 
-    if (!PhInitializeProcessProvider())
+    if (!PhProcessProviderInitialization())
         return FALSE;
-    if (!PhInitializeServiceProvider())
+    if (!PhServiceProviderInitialization())
         return FALSE;
-    if (!PhInitializeNetworkProvider())
+    if (!PhNetworkProviderInitialization())
         return FALSE;
-    if (!PhInitializeModuleProvider())
+    if (!PhModuleProviderInitialization())
         return FALSE;
-    if (!PhInitializeThreadProvider())
+    if (!PhThreadProviderInitialization())
         return FALSE;
-    if (!PhInitializeHandleProvider())
+    if (!PhHandleProviderInitialization())
         return FALSE;
     if (!PhMemoryProviderInitialization())
         return FALSE;
