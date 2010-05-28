@@ -46,7 +46,7 @@ ULONG NTAPI PhpHandleHashtableHashFunction(
 PPH_OBJECT_TYPE PhHandleProviderType;
 PPH_OBJECT_TYPE PhHandleItemType;
 
-BOOLEAN PhInitializeHandleProvider()
+BOOLEAN PhHandleProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhHandleProviderType,

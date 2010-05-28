@@ -57,7 +57,7 @@ PH_CALLBACK PhServiceModifiedEvent;
 PH_CALLBACK PhServiceRemovedEvent;
 PH_CALLBACK PhServicesUpdatedEvent;
 
-BOOLEAN PhInitializeServiceProvider()
+BOOLEAN PhServiceProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhServiceItemType,
