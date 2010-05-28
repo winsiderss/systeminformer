@@ -99,7 +99,7 @@ typedef struct _PH_PROCESS_ITEM
     VM_COUNTERS_EX VmCounters; // volatile
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
-BOOLEAN PhInitializeProcessProvider();
+BOOLEAN PhProcessProviderInitialization();
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
@@ -168,7 +168,7 @@ typedef enum _PH_SERVICE_CHANGE
     ServiceStopped
 } PH_SERVICE_CHANGE, *PPH_SERVICE_CHANGE;
 
-BOOLEAN PhInitializeServiceProvider();
+BOOLEAN PhServiceProviderInitialization();
 
 PPH_SERVICE_ITEM PhCreateServiceItem(
     __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
@@ -233,7 +233,7 @@ typedef struct _PH_NETWORK_ITEM
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 
-BOOLEAN PhInitializeNetworkProvider();
+BOOLEAN PhNetworkProviderInitialization();
 
 PPH_NETWORK_ITEM PhCreateNetworkItem();
 
@@ -295,7 +295,7 @@ typedef struct _PH_MODULE_PROVIDER
     HANDLE ProcessHandle;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 
-BOOLEAN PhInitializeModuleProvider();
+BOOLEAN PhModuleProviderInitialization();
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     __in HANDLE ProcessId
@@ -378,7 +378,7 @@ typedef struct _PH_THREAD_PROVIDER
     PH_MUTEX QueryQueueLock;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
-BOOLEAN PhInitializeThreadProvider();
+BOOLEAN PhThreadProviderInitialization();
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
     __in HANDLE ProcessId
@@ -443,7 +443,7 @@ typedef struct _PH_HANDLE_PROVIDER
     PPH_HASHTABLE TempListHashtable;
 } PH_HANDLE_PROVIDER, *PPH_HANDLE_PROVIDER;
 
-BOOLEAN PhInitializeHandleProvider();
+BOOLEAN PhHandleProviderInitialization();
 
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     __in HANDLE ProcessId
@@ -515,6 +515,19 @@ VOID PhDeleteMemoryProvider(
     );
 
 PPH_MEMORY_ITEM PhCreateMemoryItem();
+
+VOID PhGetMemoryProtectionString(
+    __in ULONG Protection,
+    __out_ecount(17) PWSTR String
+    );
+
+PWSTR PhGetMemoryStateString(
+    __in ULONG State
+    );
+
+PWSTR PhGetMemoryTypeString(
+    __in ULONG Type
+    );
 
 VOID PhMemoryProviderUpdate(
     __in PPH_MEMORY_PROVIDER Provider

@@ -69,8 +69,9 @@ PPH_OBJECT_TYPE PhThreadProviderType;
 PPH_OBJECT_TYPE PhThreadItemType;
 
 PH_WORK_QUEUE PhThreadProviderWorkQueue;
+PH_INITONCE PhThreadProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 
-BOOLEAN PhInitializeThreadProvider()
+BOOLEAN PhThreadProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhThreadProviderType,
@@ -88,9 +89,21 @@ BOOLEAN PhInitializeThreadProvider()
         )))
         return FALSE;
 
-    PhInitializeWorkQueue(&PhThreadProviderWorkQueue, 0, 1, 1000);
-
     return TRUE;
+}
+
+VOID PhpQueueThreadWorkQueueItem(
+    __in PTHREAD_START_ROUTINE Function,
+    __in PVOID Context
+    )
+{
+    if (PhBeginInitOnce(&PhThreadProviderWorkQueueInitOnce))
+    {
+        PhInitializeWorkQueue(&PhThreadProviderWorkQueue, 0, 1, 1000);
+        PhEndInitOnce(&PhThreadProviderWorkQueueInitOnce);
+    }
+
+    PhQueueWorkQueueItem(&PhThreadProviderWorkQueue, Function, Context);
 }
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
@@ -138,11 +151,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 
     // Begin loading symbols for the process' modules.
     PhReferenceObject(threadProvider);
-    PhQueueWorkQueueItem(
-        &PhThreadProviderWorkQueue,
-        PhpThreadProviderLoadSymbols,
-        threadProvider
-        );
+    PhpQueueThreadWorkQueueItem(PhpThreadProviderLoadSymbols, threadProvider);
 
     return threadProvider;
 }
@@ -534,7 +543,7 @@ VOID PhpQueueThreadQuery(
 
     PhReferenceObject(ThreadProvider);
     PhReferenceObject(ThreadItem);
-    PhQueueGlobalWorkQueueItem(PhpThreadQueryWorker, data);
+    PhpQueueThreadWorkQueueItem(PhpThreadQueryWorker, data);
 }
 
 PPH_STRING PhpGetThreadBasicStartAddress(

@@ -123,7 +123,7 @@ static PH_UINT64_DELTA PhCpuOtherDelta;
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
 
-BOOLEAN PhInitializeProcessProvider()
+BOOLEAN PhProcessProviderInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhProcessItemType,

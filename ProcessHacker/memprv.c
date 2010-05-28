@@ -107,6 +107,95 @@ VOID PhpMemoryItemDeleteProcedure(
         PhDereferenceObject(memoryItem->Name);
 }
 
+VOID PhGetMemoryProtectionString(
+    __in ULONG Protection,
+    __out_ecount(17) PWSTR String
+    )
+{
+    PWSTR string;
+    PWSTR base;
+    ULONG count;
+
+    if (!Protection)
+    {
+        String[0] = 0;
+        return;
+    }
+
+    if (Protection & PAGE_NOACCESS)
+        base = L"NA";
+    else if (Protection & PAGE_READONLY)
+        base = L"R";
+    else if (Protection & PAGE_READWRITE)
+        base = L"RW";
+    else if (Protection & PAGE_WRITECOPY)
+        base = L"WC";
+    else if (Protection & PAGE_EXECUTE)
+        base = L"X";
+    else if (Protection & PAGE_EXECUTE_READ)
+        base = L"RX";
+    else if (Protection & PAGE_EXECUTE_READWRITE)
+        base = L"RWX";
+    else if (Protection & PAGE_EXECUTE_WRITECOPY)
+        base = L"WCX";
+    else
+        base = L"?";
+
+    string = String;
+
+    count = wcslen(base);
+    memcpy(string, base, count * 2);
+    string += count;
+
+    if (Protection & PAGE_GUARD)
+    {
+        memcpy(string, L"+G", 2 * 2);
+        string += 2;
+    }
+
+    if (Protection & PAGE_NOCACHE)
+    {
+        memcpy(string, L"+NC", 3 * 2);
+        string += 3;
+    }
+
+    if (Protection & PAGE_WRITECOMBINE)
+    {
+        memcpy(string, L"+WCM", 4 * 2);
+        string += 4;
+    }
+
+    *string = 0;
+}
+
+PWSTR PhGetMemoryStateString(
+    __in ULONG State
+    )
+{
+    if (State & MEM_COMMIT)
+        return L"Commit";
+    else if (State & MEM_RESERVE)
+        return L"Reserve";
+    else if (State & MEM_FREE)
+        return L"Free";
+    else
+        return L"Unknown";
+}
+
+PWSTR PhGetMemoryTypeString(
+    __in ULONG Type
+    )
+{
+    if (Type & MEM_PRIVATE)
+        return L"Private";
+    else if (Type & MEM_MAPPED)
+        return L"Mapped";
+    else if (Type & MEM_IMAGE)
+        return L"Image";
+    else
+        return L"Unknown";
+}
+
 BOOLEAN NTAPI PhpMemoryProviderEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
     __in PVOID Context
@@ -161,7 +250,7 @@ VOID PhMemoryProviderUpdate(
         )))
     {
         PPH_MEMORY_ITEM memoryItem;
-        PPH_MODULE_INFO module;
+        PPH_MODULE_INFO *module;
         BOOLEAN cont;
 
         if (Provider->IgnoreFreeRegions && basicInfo.Type == MEM_FREE)
@@ -178,10 +267,10 @@ VOID PhMemoryProviderUpdate(
         // Get the associated module.
         if (memoryItem->Flags & MEM_IMAGE)
         {
-            module = *PhGetSimpleHashtableItem(moduleHashtable, memoryItem->BaseAddress);
+            module = (PPH_MODULE_INFO *)PhGetSimpleHashtableItem(moduleHashtable, memoryItem->BaseAddress);
 
             if (module)
-                lastModule = module;
+                lastModule = *module;
 
             if (
                 lastModule &&
@@ -189,8 +278,8 @@ VOID PhMemoryProviderUpdate(
                 (ULONG_PTR)memoryItem->BaseAddress < (ULONG_PTR)lastModule->BaseAddress + lastModule->Size
                 )
             {
-                memoryItem->Name = module->Name;
-                PhReferenceObject(module->Name);
+                memoryItem->Name = lastModule->Name;
+                PhReferenceObject(lastModule->Name);
             }
         }
         // Get the mapped file name.
