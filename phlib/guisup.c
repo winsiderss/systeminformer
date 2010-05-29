@@ -32,6 +32,7 @@ _OpenThemeData OpenThemeData_I;
 _CloseThemeData CloseThemeData_I;
 _DrawThemeBackground DrawThemeBackground_I;
 _SHAutoComplete SHAutoComplete_I;
+_SHCreateShellItem SHCreateShellItem_I;
 _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
 _StrCmpLogicalW StrCmpLogicalW_I;
@@ -52,6 +53,7 @@ VOID PhGuiSupportInitialization()
     CloseThemeData_I = PhGetProcAddress(L"uxtheme.dll", "CloseThemeData");
     DrawThemeBackground_I = PhGetProcAddress(L"uxtheme.dll", "DrawThemeBackground");
     SHAutoComplete_I = PhGetProcAddress(L"shlwapi.dll", "SHAutoComplete");
+    SHCreateShellItem_I = PhGetProcAddress(L"shell32.dll", "SHCreateShellItem");
     SHOpenFolderAndSelectItems_I = PhGetProcAddress(L"shell32.dll", "SHOpenFolderAndSelectItems");
     SHParseDisplayName_I = PhGetProcAddress(L"shell32.dll", "SHParseDisplayName");
     StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
