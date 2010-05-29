@@ -1366,6 +1366,12 @@ VOID PhSymbolProviderSetSearchPath(
 
 // svcsup
 
+#ifndef SVCSUP_PRIVATE
+extern WCHAR *PhServiceTypeStrings[6];
+extern WCHAR *PhServiceStartTypeStrings[5];
+extern WCHAR *PhServiceErrorControlStrings[4];
+#endif
+
 PVOID PhEnumServices(
     __in SC_HANDLE ScManagerHandle,
     __in_opt ULONG Type,

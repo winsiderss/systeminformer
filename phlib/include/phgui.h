@@ -313,6 +313,12 @@ PPH_STRING PhGetWindowText(
     __in HWND hwnd
     );
 
+VOID PhAddComboBoxStrings(
+    __in HWND hWnd,
+    __in PWSTR *Strings,
+    __in ULONG NumberOfStrings
+    );
+
 PPH_STRING PhGetComboBoxString(
     __in HWND hwnd,
     __in INT Index
