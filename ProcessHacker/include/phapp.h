@@ -821,6 +821,12 @@ VOID PhShowSessionProperties(
     __in ULONG SessionId
     );
 
+// srvcr
+
+VOID PhShowCreateServiceDialog(
+    __in HWND ParentWindowHandle
+    );
+
 // srvprp
 
 VOID PhShowServiceProperties(
