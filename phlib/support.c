@@ -2314,7 +2314,38 @@ VOID PhSetFileDialogFileName(
 {
     if (WINDOWS_HAS_IFILEDIALOG)
     {
-        IFileDialog_SetFileName((IFileDialog *)FileDialog, FileName);
+        IShellItem *shellItem = NULL;
+        PWSTR baseName;
+
+        baseName = wcsrchr(FileName, '\\');
+
+        if (baseName && SHParseDisplayName_I && SHCreateShellItem_I)
+        {
+            LPITEMIDLIST item;
+            SFGAOF attributes;
+            PPH_STRING pathName;
+
+            // Remove the base name.
+            pathName = PhCreateStringEx(FileName, (baseName - FileName) * 2);
+
+            if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, &attributes)))
+            {
+                SHCreateShellItem_I(NULL, NULL, item, &shellItem);
+            }
+
+            PhDereferenceObject(pathName);
+        }
+
+        if (shellItem)
+        {
+            IFileDialog_SetFolder((IFileDialog *)FileDialog, shellItem);
+            IFileDialog_SetFileName((IFileDialog *)FileDialog, baseName + 1);
+            IShellItem_Release(shellItem);
+        }
+        else
+        {
+            IFileDialog_SetFileName((IFileDialog *)FileDialog, FileName);
+        }
     }
     else
     {

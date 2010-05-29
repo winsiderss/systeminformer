@@ -255,6 +255,33 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     }
                 }
                 break;
+            case IDC_BROWSE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Executable files (*.exe;*.sys)", L"*.exe;*.sys" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+                    PPH_STRING fileName;
+
+                    fileDialog = PhCreateOpenFileDialog();
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BINARYPATH));
+                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
+                    PhDereferenceObject(fileName);
+
+                    if (PhShowFileDialog(NULL, fileDialog))
+                    {
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        SetDlgItemText(hwndDlg, IDC_BINARYPATH, fileName->Buffer);
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
             }
 
             switch (HIWORD(wParam))
