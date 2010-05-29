@@ -114,18 +114,6 @@ VOID PhShowServiceProperties(
     PropertySheet(&propSheetHeader);
 }
 
-VOID PhpAddComboBoxItems(
-    __in HWND hWnd,
-    __in PWSTR *Items,
-    __in ULONG NumberOfItems
-    )
-{
-    ULONG i;
-
-    for (i = 0; i < NumberOfItems; i++)
-        ComboBox_AddString(hWnd, Items[i]);
-}
-
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -137,11 +125,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            WCHAR *serviceTypeItems[] = { L"Driver", L"FS Driver", L"Own Process", L"Share Process",
-                L"Own Interactive Process", L"Share Interactive Process" };
-            WCHAR *serviceStartTypeItems[] = { L"Disabled", L"Boot Start", L"System Start",
-                L"Auto Start", L"Demand Start" };
-            WCHAR *serviceErrorControlItems[] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             PSERVICE_PROPERTIES_CONTEXT context = (PSERVICE_PROPERTIES_CONTEXT)propSheetPage->lParam;
             PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
@@ -152,12 +135,12 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             SetProp(hwndDlg, L"Context", (HANDLE)context);
 
-            PhpAddComboBoxItems(GetDlgItem(hwndDlg, IDC_TYPE), serviceTypeItems,
-                sizeof(serviceTypeItems) / sizeof(WCHAR *));
-            PhpAddComboBoxItems(GetDlgItem(hwndDlg, IDC_STARTTYPE), serviceStartTypeItems,
-                sizeof(serviceStartTypeItems) / sizeof(WCHAR *));
-            PhpAddComboBoxItems(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), serviceErrorControlItems,
-                sizeof(serviceErrorControlItems) / sizeof(WCHAR *));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
+                sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_STARTTYPE), PhServiceStartTypeStrings,
+                sizeof(PhServiceStartTypeStrings) / sizeof(WCHAR *));
+            PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), PhServiceErrorControlStrings,
+                sizeof(PhServiceErrorControlStrings) / sizeof(WCHAR *));
 
             SetDlgItemText(hwndDlg, IDC_DESCRIPTION, serviceItem->DisplayName->Buffer);
             ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1,

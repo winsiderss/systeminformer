@@ -168,10 +168,11 @@ BOOLEAN PhUiConnectSession(
     __in ULONG SessionId
     )
 {
-    _WinStationConnectW WinStationConnectW_I;
+    static _WinStationConnectW WinStationConnectW_I = NULL;
     PPH_STRING selectedChoice = NULL;
 
-    WinStationConnectW_I = PhGetProcAddress(L"winsta.dll", "WinStationConnectW");
+    if (!WinStationConnectW_I)
+        WinStationConnectW_I = PhGetProcAddress(L"winsta.dll", "WinStationConnectW");
 
     if (!WinStationConnectW_I)
     {

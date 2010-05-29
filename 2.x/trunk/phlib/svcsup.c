@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define SVCSUP_PRIVATE
 #include <ph.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -60,6 +61,12 @@ static PH_KEY_VALUE_PAIR PhpServiceErrorControlPairs[] =
     SIP(L"Severe", SERVICE_ERROR_SEVERE),
     SIP(L"Critical", SERVICE_ERROR_CRITICAL)
 };
+
+WCHAR *PhServiceTypeStrings[6] = { L"Driver", L"FS Driver", L"Own Process", L"Share Process",
+    L"Own Interactive Process", L"Share Interactive Process" };
+WCHAR *PhServiceStartTypeStrings[5] = { L"Disabled", L"Boot Start", L"System Start",
+    L"Auto Start", L"Demand Start" };
+WCHAR *PhServiceErrorControlStrings[4] = { L"Ignore", L"Normal", L"Severe", L"Critical" };
 
 PVOID PhEnumServices(
     __in SC_HANDLE ScManagerHandle,
@@ -330,14 +337,17 @@ PPH_STRING PhGetServiceNameFromTag(
     __in PVOID ServiceTag
     )
 {
+    static _I_QueryTagInformation I_QueryTagInformation = NULL;
     PPH_STRING serviceName = NULL;
-    _I_QueryTagInformation I_QueryTagInformation;
     SC_SERVICE_NAME_FROM_TAG_QUERY query;
 
-    I_QueryTagInformation = PhGetProcAddress(L"advapi32.dll", "I_QueryTagInformation");
-
     if (!I_QueryTagInformation)
-        return NULL;
+    {
+        I_QueryTagInformation = PhGetProcAddress(L"advapi32.dll", "I_QueryTagInformation");
+
+        if (!I_QueryTagInformation)
+            return NULL;
+    }
 
     query.ProcessId = (ULONG)ProcessId;
     query.ServiceTag = (ULONG)ServiceTag;

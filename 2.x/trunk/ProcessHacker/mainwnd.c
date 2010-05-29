@@ -638,6 +638,11 @@ LRESULT CALLBACK PhMainWndProc(
                         );
                 }
                 break;
+            case ID_TOOLS_CREATESERVICE:
+                {
+                    PhShowCreateServiceDialog(hWnd);
+                }
+                break;
             case ID_TOOLS_HIDDENPROCESSES:
                 {
                     PhShowHiddenProcessesDialog();
