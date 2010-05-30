@@ -12,6 +12,9 @@ extern PH_CALLBACK PhProcessRemovedEvent;
 extern PH_CALLBACK PhProcessesUpdatedEvent;
 #endif
 
+#define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
+#define INTERRUPTS_PROCESS_ID ((HANDLE)(LONG_PTR)-3)
+
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
 

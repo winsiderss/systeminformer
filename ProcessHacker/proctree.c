@@ -388,7 +388,7 @@ HICON PhGetStockAppIcon()
 
 #define END_SORT_FUNCTION \
     if (sortResult == 0) \
-        sortResult = uintptrcmp((ULONG_PTR)processItem1->ProcessId, (ULONG_PTR)processItem2->ProcessId); \
+        sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId); \
     \
     return PhModifySort(sortResult, ProcessTreeListSortOrder); \
 }
@@ -402,7 +402,7 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(Pid)
 {
     // Use signed int so DPCs and Interrupts are placed above System Idle Process.
-    sortResult = intcmp((LONG)processItem1->ProcessId, (LONG)processItem2->ProcessId);
+    sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId);
 }
 END_SORT_FUNCTION
 
