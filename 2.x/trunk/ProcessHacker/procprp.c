@@ -288,7 +288,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             switch (LOWORD(wParam))
             {
             case IDOK:
-                // Disable the OK button from working (even though 
+                // Prevent the OK button from working (even though 
                 // it's already hidden). This prevents the Enter 
                 // key from closing the dialog box.
                 return 0;
