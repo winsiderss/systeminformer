@@ -50,9 +50,6 @@
 #define PH_TIMEOUT_MS PH_TICKS_PER_MS
 #define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
 
-#define DPCS_PROCESS_ID ((HANDLE)-2)
-#define INTERRUPTS_PROCESS_ID ((HANDLE)-3)
-
 #define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
 
 #define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
@@ -170,6 +167,14 @@ FORCEINLINE int int64cmp(
 FORCEINLINE int uint64cmp(
     __in unsigned __int64 value1,
     __in unsigned __int64 value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
+}
+
+FORCEINLINE int intptrcmp(
+    __in LONG_PTR value1,
+    __in LONG_PTR value2
     )
 {
     PH_BUILTIN_COMPARE(value1, value2);
