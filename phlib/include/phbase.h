@@ -423,6 +423,18 @@ FORCEINLINE BOOLEAN PhStringRefEquals2(
     return PhStringRefCompare2(String1, String2, IgnoreCase) == 0;
 }
 
+FORCEINLINE BOOLEAN PhStringRefStartsWith(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcsncmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+    else
+        return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+}
+
 /**
  * A Unicode string object.
  */

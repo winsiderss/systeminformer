@@ -24,6 +24,8 @@
 #include <kph.h>
 #include <symprv.h>
 
+#define PH_DOS_DEVICE_PREFIX_LENGTH 64
+
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY Entry,
@@ -32,8 +34,8 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in PVOID Context2
     );
 
-PWSTR PhDosDeviceNames[26];
-PH_QUEUED_LOCK PhDosDeviceNamesLock;
+PH_STRINGREF PhDosDeviceNames[26];
+PH_QUEUED_LOCK PhDosDeviceNamesLock = PH_QUEUED_LOCK_INIT;
 
 /**
  * Opens a process.
@@ -4836,9 +4838,11 @@ VOID PhInitializeDosDeviceNames()
     ULONG i;
 
     for (i = 0; i < 26; i++)
-        PhDosDeviceNames[i] = PhAllocate(64 * sizeof(WCHAR));
-
-    PhInitializeQueuedLock(&PhDosDeviceNamesLock);
+    {
+        PhDosDeviceNames[i].Length = 0;
+        PhDosDeviceNames[i].us.MaximumLength = PH_DOS_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
+        PhDosDeviceNames[i].Buffer = PhAllocate(PH_DOS_DEVICE_PREFIX_LENGTH * sizeof(WCHAR));
+    }
 }
 
 /**
@@ -4846,22 +4850,52 @@ VOID PhInitializeDosDeviceNames()
  */
 VOID PhRefreshDosDeviceNames()
 {
-    WCHAR deviceName[3];
+    WCHAR deviceNameBuffer[7] = L"\\??\\ :";
     ULONG i;
-
-    deviceName[1] = ':';
-    deviceName[2] = 0;
 
     for (i = 0; i < 26; i++)
     {
-        deviceName[0] = (WCHAR)('A' + i);
+        HANDLE linkHandle;
+        OBJECT_ATTRIBUTES oa;
+        UNICODE_STRING deviceName;
 
-        PhAcquireQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+        deviceNameBuffer[4] = (WCHAR)('A' + i);
+        deviceName.Buffer = deviceNameBuffer;
+        deviceName.Length = 6 * sizeof(WCHAR);
 
-        if (!QueryDosDevice(deviceName, PhDosDeviceNames[i], 64))
-            PhDosDeviceNames[i][0] = 0;
+        InitializeObjectAttributes(
+            &oa,
+            &deviceName,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
 
-        PhReleaseQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+        if (NT_SUCCESS(NtOpenSymbolicLinkObject(
+            &linkHandle,
+            SYMBOLIC_LINK_QUERY,
+            &oa
+            )))
+        {
+            PhAcquireQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+
+            if (!NT_SUCCESS(NtQuerySymbolicLinkObject(
+                linkHandle,
+                &PhDosDeviceNames[i].us,
+                NULL
+                )))
+            {
+                PhDosDeviceNames[i].Length = 0;
+            }
+
+            PhReleaseQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+
+            NtClose(linkHandle);
+        }
+        else
+        {
+            PhDosDeviceNames[i].Length = 0;
+        }
     }
 }
 
@@ -4884,29 +4918,27 @@ PPH_STRING PhResolveDevicePrefix(
     // Go through the DOS devices and try to find a matching prefix.
     for (i = 0; i < 26; i++)
     {
-        PWSTR prefix;
-        ULONG prefixLength;
         BOOLEAN isPrefix = FALSE;
+        ULONG prefixLength;
 
         PhAcquireQueuedLockSharedFast(&PhDosDeviceNamesLock);
 
-        prefix = PhDosDeviceNames[i];
-        prefixLength = (ULONG)wcslen(prefix);
+        prefixLength = PhDosDeviceNames[i].Length;
 
-        if (prefixLength > 0)
-            isPrefix = PhStringStartsWith2(Name, prefix, TRUE);
+        if (prefixLength != 0)
+            isPrefix = PhStringRefStartsWith(&Name->sr, &PhDosDeviceNames[i], TRUE);
 
         PhReleaseQueuedLockSharedFast(&PhDosDeviceNamesLock);
 
         if (isPrefix)
         {
-            newName = PhCreateStringEx(NULL, 4 + Name->Length - prefixLength * 2);
+            newName = PhCreateStringEx(NULL, 2 * sizeof(WCHAR) + Name->Length - prefixLength);
             newName->Buffer[0] = (WCHAR)('A' + i);
             newName->Buffer[1] = ':';
             memcpy(
                 &newName->Buffer[2],
-                &Name->Buffer[prefixLength],
-                Name->Length - prefixLength * 2
+                &Name->Buffer[prefixLength / sizeof(WCHAR)],
+                Name->Length - prefixLength
                 );
 
             break;
