@@ -1137,7 +1137,10 @@ BOOLEAN PhpHeadQueryObjectHack()
         PhQueryObjectThreadHandle = CreateThread(NULL, 0, PhpQueryObjectThreadStart, NULL, 0, NULL);
 
         if (!PhQueryObjectThreadHandle)
+        {
+            PhReleaseMutex(&PhQueryObjectMutex);
             return FALSE;
+        }
     }
 
     // Create the events if they don't exist.
@@ -1145,13 +1148,19 @@ BOOLEAN PhpHeadQueryObjectHack()
     if (!PhQueryObjectStartEvent)
     {
         if (!(PhQueryObjectStartEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+        {
+            PhReleaseMutex(&PhQueryObjectMutex);
             return FALSE;
+        }
     }
 
     if (!PhQueryObjectCompletedEvent)
     {
         if (!(PhQueryObjectCompletedEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+        {
+            PhReleaseMutex(&PhQueryObjectMutex);
             return FALSE;
+        }
     }
 
     return TRUE;
