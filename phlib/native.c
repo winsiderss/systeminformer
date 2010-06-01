@@ -24,7 +24,8 @@
 #include <kph.h>
 #include <symprv.h>
 
-#define PH_DOS_DEVICE_PREFIX_LENGTH 64
+#define PH_DEVICE_PREFIX_LENGTH 64
+#define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in HANDLE ProcessHandle,
@@ -34,8 +35,14 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in PVOID Context2
     );
 
-PH_STRINGREF PhDosDeviceNames[26];
-PH_QUEUED_LOCK PhDosDeviceNamesLock = PH_QUEUED_LOCK_INIT;
+PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
+
+PH_STRINGREF PhDevicePrefixes[26];
+PH_QUEUED_LOCK PhDevicePrefixesLock = PH_QUEUED_LOCK_INIT;
+
+PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
+ULONG PhDeviceMupPrefixesCount = 0;
+PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
 
 /**
  * Opens a process.
@@ -4831,24 +4838,112 @@ NTSTATUS PhEnumFileStreams(
 }
 
 /**
- * Initializes the DOS device names module.
+ * Initializes the device prefixes module.
  */
-VOID PhInitializeDosDeviceNames()
+VOID PhInitializeDevicePrefixes()
 {
     ULONG i;
 
     for (i = 0; i < 26; i++)
     {
-        PhDosDeviceNames[i].Length = 0;
-        PhDosDeviceNames[i].us.MaximumLength = PH_DOS_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
-        PhDosDeviceNames[i].Buffer = PhAllocate(PH_DOS_DEVICE_PREFIX_LENGTH * sizeof(WCHAR));
+        PhDevicePrefixes[i].Length = 0;
+        PhDevicePrefixes[i].us.MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
+        PhDevicePrefixes[i].Buffer = PhAllocate(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR));
     }
+}
+
+VOID PhRefreshMupDevicePrefixes()
+{
+    HKEY orderKeyHandle;
+    PPH_STRING providerOrder = NULL;
+    ULONG i;
+    ULONG indexOfComma;
+
+    // The provider names are stored in the ProviderOrder value in this key:
+    // HKLM\System\CurrentControlSet\Control\NetworkProvider\Order
+    // Each name can then be looked up, its device name in the DeviceName value in:
+    // HKLM\System\CurrentControlSet\Services\<ProviderName>\NetworkProvider
+
+    if (RegOpenKey(
+        HKEY_LOCAL_MACHINE,
+        L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order",
+        &orderKeyHandle
+        ) == ERROR_SUCCESS)
+    {
+        providerOrder = PhQueryRegistryString(orderKeyHandle, L"ProviderOrder");
+        RegCloseKey(orderKeyHandle);
+    }
+
+    if (!providerOrder)
+        return;
+
+    PhAcquireQueuedLockExclusiveFast(&PhDeviceMupPrefixesLock);
+
+    for (i = 0; i < PhDeviceMupPrefixesCount; i++)
+    {
+        PhDereferenceObject(PhDeviceMupPrefixes[i]);
+        PhDeviceMupPrefixes[i] = 0;
+    }
+
+    PhDeviceMupPrefixesCount = 0;
+
+    while (i < providerOrder->Length / sizeof(WCHAR))
+    {
+        PPH_STRING serviceName;
+        PPH_STRING serviceKeyName;
+        HKEY networkProviderKeyHandle;
+        PPH_STRING deviceName;
+
+        if (PhDeviceMupPrefixesCount == PH_DEVICE_MUP_PREFIX_MAX_COUNT)
+            break;
+
+        indexOfComma = PhStringIndexOfChar(providerOrder, i, ',');
+
+        if (indexOfComma == -1) // last provider name
+            indexOfComma = providerOrder->Length / sizeof(WCHAR);
+
+        serviceName = PhSubstring(
+            providerOrder,
+            i,
+            indexOfComma - i
+            );
+        serviceKeyName = PhConcatStrings(
+            3,
+            L"System\\CurrentControlSet\\Services\\",
+            serviceName->Buffer,
+            L"\\NetworkProvider"
+            );
+
+        if (RegOpenKey(
+            HKEY_LOCAL_MACHINE,
+            serviceKeyName->Buffer,
+            &networkProviderKeyHandle
+            ) == ERROR_SUCCESS)
+        {
+            if (deviceName = PhQueryRegistryString(networkProviderKeyHandle, L"DeviceName"))
+            {
+                PhDeviceMupPrefixes[PhDeviceMupPrefixesCount] = deviceName;
+                PhDeviceMupPrefixesCount++;
+            }
+
+            RegCloseKey(networkProviderKeyHandle);
+        }
+
+        PhDereferenceObject(serviceKeyName);
+        PhDereferenceObject(serviceName);
+
+        i = indexOfComma + 1;
+    }
+
+    PhReleaseQueuedLockExclusiveFast(&PhDeviceMupPrefixesLock);
+
+    PhDereferenceObject(providerOrder);
 }
 
 /**
  * Refreshes the DOS device names array.
  */
-VOID PhRefreshDosDeviceNames()
+VOID PhRefreshDosDevicePrefixes()
 {
     WCHAR deviceNameBuffer[7] = L"\\??\\ :";
     ULONG i;
@@ -4877,24 +4972,24 @@ VOID PhRefreshDosDeviceNames()
             &oa
             )))
         {
-            PhAcquireQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+            PhAcquireQueuedLockExclusiveFast(&PhDevicePrefixesLock);
 
             if (!NT_SUCCESS(NtQuerySymbolicLinkObject(
                 linkHandle,
-                &PhDosDeviceNames[i].us,
+                &PhDevicePrefixes[i].us,
                 NULL
                 )))
             {
-                PhDosDeviceNames[i].Length = 0;
+                PhDevicePrefixes[i].Length = 0;
             }
 
-            PhReleaseQueuedLockExclusiveFast(&PhDosDeviceNamesLock);
+            PhReleaseQueuedLockExclusiveFast(&PhDevicePrefixesLock);
 
             NtClose(linkHandle);
         }
         else
         {
-            PhDosDeviceNames[i].Length = 0;
+            PhDevicePrefixes[i].Length = 0;
         }
     }
 }
@@ -4915,23 +5010,33 @@ PPH_STRING PhResolveDevicePrefix(
     ULONG i;
     PPH_STRING newName = NULL;
 
+    if (PhBeginInitOnce(&PhDevicePrefixesInitOnce))
+    {
+        PhInitializeDevicePrefixes();
+        PhRefreshDosDevicePrefixes();
+        PhRefreshMupDevicePrefixes();
+
+        PhEndInitOnce(&PhDevicePrefixesInitOnce);
+    }
+
     // Go through the DOS devices and try to find a matching prefix.
     for (i = 0; i < 26; i++)
     {
         BOOLEAN isPrefix = FALSE;
         ULONG prefixLength;
 
-        PhAcquireQueuedLockSharedFast(&PhDosDeviceNamesLock);
+        PhAcquireQueuedLockSharedFast(&PhDevicePrefixesLock);
 
-        prefixLength = PhDosDeviceNames[i].Length;
+        prefixLength = PhDevicePrefixes[i].Length;
 
         if (prefixLength != 0)
-            isPrefix = PhStringRefStartsWith(&Name->sr, &PhDosDeviceNames[i], TRUE);
+            isPrefix = PhStringRefStartsWith(&Name->sr, &PhDevicePrefixes[i], TRUE);
 
-        PhReleaseQueuedLockSharedFast(&PhDosDeviceNamesLock);
+        PhReleaseQueuedLockSharedFast(&PhDevicePrefixesLock);
 
         if (isPrefix)
         {
+            // <letter>:path
             newName = PhCreateStringEx(NULL, 2 * sizeof(WCHAR) + Name->Length - prefixLength);
             newName->Buffer[0] = (WCHAR)('A' + i);
             newName->Buffer[1] = ':';
@@ -4943,6 +5048,57 @@ PPH_STRING PhResolveDevicePrefix(
 
             break;
         }
+    }
+
+    if (i == 26)
+    {
+        // "\Device\Mup" is the UNC provider.
+        if (PhStringStartsWith2(Name, L"\\Device\\Mup", TRUE))
+        {
+#define DEVICE_MUP_LENGTH (11 * sizeof(WCHAR))
+
+            // \path
+            newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - DEVICE_MUP_LENGTH);
+            newName->Buffer[0] = '\\';
+            memcpy(
+                &newName->Buffer[1],
+                &Name->Buffer[DEVICE_MUP_LENGTH / sizeof(WCHAR)],
+                Name->Length - DEVICE_MUP_LENGTH
+                );
+
+            return newName;
+        }
+
+        // Resolve network providers.
+
+        PhAcquireQueuedLockSharedFast(&PhDeviceMupPrefixesLock);
+
+        for (i = 0; i < PhDeviceMupPrefixesCount; i++)
+        {
+            BOOLEAN isPrefix = FALSE;
+            ULONG prefixLength;
+
+            prefixLength = PhDeviceMupPrefixes[i]->Length;
+
+            if (prefixLength != 0)
+                isPrefix = PhStringStartsWith(Name, PhDeviceMupPrefixes[i], TRUE);
+
+            if (isPrefix)
+            {
+                // \path
+                newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
+                newName->Buffer[0] = '\\';
+                memcpy(
+                    &newName->Buffer[1],
+                    &Name->Buffer[prefixLength / sizeof(WCHAR)],
+                    Name->Length - prefixLength
+                    );
+
+                break;
+            }
+        }
+
+        PhReleaseQueuedLockSharedFast(&PhDeviceMupPrefixesLock);
     }
 
     return newName;
@@ -4992,7 +5148,7 @@ PPH_STRING PhGetFileName(
             PhDereferenceObject(systemDirectory);
         }
     }
-    else
+    else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
         PPH_STRING resolvedName;
 

@@ -1089,7 +1089,7 @@ VOID PhProcessProviderUpdate(
     // Pre-update tasks
 
     if (runCount % 2 == 0)
-        PhRefreshDosDeviceNames();
+        PhRefreshDosDevicePrefixes();
 
     PhpUpdatePerfInformation();
     PhpUpdateCpuInformation();
