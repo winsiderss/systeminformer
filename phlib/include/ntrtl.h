@@ -704,40 +704,287 @@ RtlFindMessage(
 
 // Errors
 
-NTSYSCALLAPI
+NTSYSAPI
 ULONG
 NTAPI
 RtlNtStatusToDosError(
     __in NTSTATUS Status
     );
 
+NTSYSAPI
+ULONG
+NTAPI
+RtlNtStatusToDosErrorNoTeb(
+    __in NTSTATUS Status
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetLastNtStatus();
+
+NTSYSAPI
+LONG
+NTAPI
+RtlGetLastWin32Error();
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetLastWin32ErrorAndNtStatusFromNtStatus(
+    __in NTSTATUS Status
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetLastWin32Error(
+    __in LONG Win32Error
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRestoreLastWin32Error(
+    __in LONG Win32Error
+    );
+
+#define RTL_ERRORMODE_NOGPFAULTERRORBOX 0x0020
+#define RTL_ERRORMODE_NOOPENFILEERRORBOX 0x0040
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetThreadErrorMode();
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetThreadErrorMode(
+    __in ULONG NewMode,
+    __out_opt PULONG OldMode
+    );
+
 // Strings
 
-FORCEINLINE VOID RtlInitUnicodeString(
-    __out PUNICODE_STRING DestinationString,
-    __in PWSTR SourceString
+/*
+NTSYSAPI
+VOID
+NTAPI
+RtlInitString(
+    __out PSTRING DestinationString,
+    __in_opt PSTR SourceString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitAnsiString(
+    __out PANSI_STRING DestinationString,
+    __in_opt PSTR SourceString
+    );
+*/
+
+FORCEINLINE VOID RtlInitString(
+    __out PSTRING DestinationString,
+    __in_opt PSTR SourceString
     )
 {
-    DestinationString->MaximumLength = DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR));
+    if (SourceString)
+        DestinationString->MaximumLength = DestinationString->Length = (USHORT)strlen(SourceString);
+    else
+        DestinationString->MaximumLength = DestinationString->Length = 0;
+
+    DestinationString->Buffer = SourceString;
+}
+
+FORCEINLINE VOID RtlInitAnsiString(
+    __out PANSI_STRING DestinationString,
+    __in_opt PSTR SourceString
+    )
+{
+    if (SourceString)
+        DestinationString->MaximumLength = DestinationString->Length = (USHORT)strlen(SourceString);
+    else
+        DestinationString->MaximumLength = DestinationString->Length = 0;
+
     DestinationString->Buffer = SourceString;
 }
 
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlAnsiStringToUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in PANSI_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+RtlInitAnsiStringEx(
+    __out PANSI_STRING DestinationString,
+    __in_opt PSTR SourceString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeAnsiString(
+    __in PANSI_STRING AnsiString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeOemString(
+    __in POEM_STRING OemString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCopyString(
+    __in PSTRING DestinationString,
+    __in_opt PSTRING SourceString
+    );
+
+NTSYSAPI
+CHAR
+NTAPI
+RtlUpperChar(
+    __in CHAR Character
+    );
+
+NTSYSAPI
+LONG
+NTAPI
+RtlCompareString(
+    __in PSTRING String1,
+    __in PSTRING String2,
+    __in BOOLEAN CaseInSensitive
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualString(
+    __in PSTRING String1,
+    __in PSTRING String2,
+    __in BOOLEAN CaseInSensitive
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlPrefixString(
+    __in PSTRING String1,
+    __in PSTRING String2,
+    __in BOOLEAN CaseInSensitive
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlUnicodeStringToAnsiString(
-    __inout PANSI_STRING DestinationString,
-    __in PUNICODE_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
+RtlAppendStringToString(
+    __in PSTRING Destination,
+    __in PSTRING Source
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAppendAsciizToString(
+    __in PSTRING Destination,
+    __in_opt PSTR Source
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlUpperString(
+    __in PSTRING DestinationString,
+    __in PSTRING SourceString
+    );
+
+/*
+NTSYSAPI
+VOID
+NTAPI
+RtlInitUnicodeString(
+    __out PUNICODE_STRING DestinationString,
+    __in_opt PWSTR SourceString
+    );
+*/
+
+FORCEINLINE VOID RtlInitUnicodeString(
+    __out PUNICODE_STRING DestinationString,
+    __in_opt PWSTR SourceString
+    )
+{
+    if (SourceString)
+        DestinationString->MaximumLength = DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR));
+    else
+        DestinationString->MaximumLength = DestinationString->Length = 0;
+
+    DestinationString->Buffer = SourceString;
+}
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitUnicodeStringEx(
+    __out PUNICODE_STRING DestinationString,
+    __in_opt PWSTR SourceString
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCreateUnicodeString(
+    __out PUNICODE_STRING DestinationString,
+    __in PWSTR SourceString
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCreateUnicodeStringFromAsciiz(
+    __out PUNICODE_STRING DestinationString,
+    __in PSTR SourceString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlFreeUnicodeString(
+    __in PUNICODE_STRING UnicodeString
+    );
+
+#define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
+#define RTL_DUPLICATE_UNICODE_STRING_ALLOCATE_NULL_STRING (0x00000002)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDuplicateUnicodeString(
+    __in ULONG Flags,
+    __in PUNICODE_STRING StringIn,
+    __out PUNICODE_STRING StringOut
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCopyUnicodeString(
+    __in PUNICODE_STRING DestinationString,
+    __in PUNICODE_STRING SourceString
+    );
+
+NTSYSAPI
+WCHAR
+NTAPI
+RtlUpcaseUnicodeChar(
+    __in WCHAR SourceCharacter
+    );
+
+NTSYSAPI
+WCHAR
+NTAPI
+RtlDowncaseUnicodeChar(
+    __in WCHAR SourceCharacter
     );
 
 NTSYSAPI
@@ -756,6 +1003,28 @@ RtlEqualUnicodeString(
     __in PUNICODE_STRING String1,
     __in PUNICODE_STRING String2,
     __in BOOLEAN CaseInSensitive
+    );
+
+#define HASH_STRING_ALGORITHM_DEFAULT 0
+#define HASH_STRING_ALGORITHM_X65599 1
+#define HASH_STRING_ALGORITHM_INVALID 0xffffffff
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlHashUnicodeString(
+    __in PUNICODE_STRING String,
+    __in BOOLEAN CaseInSensitive,
+    __in ULONG HashAlgorithm,
+    __out PULONG HashValue
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlValidateUnicodeString(
+    __in ULONG Flags,
+    __in PUNICODE_STRING String
     );
 
 NTSYSAPI
@@ -782,17 +1051,132 @@ RtlFindCharInUnicodeString(
     );
 
 NTSYSAPI
-VOID
+NTSTATUS
 NTAPI
-RtlFreeUnicodeString(
-    __in PUNICODE_STRING UnicodeString
+RtlAppendUnicodeStringToString(
+    __in PUNICODE_STRING Destination,
+    __in PUNICODE_STRING Source
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAppendUnicodeToString(
+    __in PUNICODE_STRING Destination,
+    __in_opt PWSTR Source
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDowncaseUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI
 VOID
 NTAPI
-RtlFreeAnsiString(
-    __in PANSI_STRING AnsiString
+RtlEraseUnicodeString(
+    __inout PUNICODE_STRING String
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAnsiStringToUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in PANSI_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToAnsiString(
+    __inout PANSI_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+WCHAR
+NTAPI
+RtlAnsiCharToUnicodeChar(
+    __inout PUCHAR *SourceCharacter
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeStringToAnsiString(
+    __inout PANSI_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlOemStringToUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in POEM_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToOemString(
+    __inout POEM_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeStringToOemString(
+    __inout POEM_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlOemStringToCountedUnicodeString(
+    __inout PUNICODE_STRING DestinationString,
+    __in POEM_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToCountedOemString(
+    __inout POEM_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeStringToCountedOemString(
+    __inout POEM_STRING DestinationString,
+    __in PUNICODE_STRING SourceString,
+    __in BOOLEAN AllocateDestinationString
     );
 
 NTSYSCALLAPI
@@ -833,6 +1217,96 @@ RtlUnicodeToMultiByteSize(
     __out PULONG BytesInMultiByteString,
     __in PWSTR UnicodeString,
     __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToMultiByteN(
+    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PSTR MultiByteString,
+    __in ULONG MaxBytesInMultiByteString,
+    __out_opt PULONG BytesInMultiByteString,
+    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlOemToUnicodeN(
+    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
+    __in ULONG MaxBytesInUnicodeString,
+    __out_opt PULONG BytesInUnicodeString,
+    __in_bcount(BytesInOemString) PSTR OemString,
+    __in ULONG BytesInOemString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToOemN(
+    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PSTR OemString,
+    __in ULONG MaxBytesInOemString,
+    __out_opt PULONG BytesInOemString,
+    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToOemN(
+    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PSTR OemString,
+    __in ULONG MaxBytesInOemString,
+    __out_opt PULONG BytesInOemString,
+    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlConsoleMultiByteToUnicodeN(
+    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
+    __in ULONG MaxBytesInUnicodeString,
+    __out_opt PULONG BytesInUnicodeString,
+    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
+    __in ULONG BytesInMultiByteString,
+    __out PULONG pdwSpecialChar
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsTextUnicode(
+    __in PVOID Buffer,
+    __in ULONG Size,
+    __inout_opt PULONG Result
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualDomainName(
+    __in PUNICODE_STRING String1,
+    __in PUNICODE_STRING String2
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlEqualComputerName(
+    __in PUNICODE_STRING String1,
+    __in PUNICODE_STRING String2
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDnsHostNameToComputerName(
+    __out PUNICODE_STRING ComputerNameString,
+    __in PCUNICODE_STRING DnsHostNameString,
+    __in BOOLEAN AllocateComputerNameString
     );
 
 NTSYSAPI
@@ -2045,6 +2519,45 @@ RtlSetSecurityObject(
     __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
     __in PGENERIC_MAPPING GenericMapping,
     __in_opt HANDLE Token
+    );
+
+// Misc.
+
+NTSYSCALLAPI
+ULONG32
+NTAPI
+RtlComputeCrc32(
+    __in ULONG32 PartialCrc,
+    __in PVOID Buffer,
+    __in ULONG Length
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlEncodePointer(
+    __in PVOID Ptr
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlDecodePointer(
+    __in PVOID Ptr
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlEncodeSystemPointer(
+    __in PVOID Ptr
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlDecodeSystemPointer(
+    __in PVOID Ptr
     );
 
 #endif

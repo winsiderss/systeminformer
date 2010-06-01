@@ -143,9 +143,6 @@ BOOLEAN PhInitializeSystem()
         return FALSE;
     PhHandleInfoInitialization();
 
-    PhInitializeDosDeviceNames();
-    PhRefreshDosDeviceNames();
-
 #ifdef DEBUG
     InitializeListHead(&PhDbgProviderListHead);
     PhInitializeFastLock(&PhDbgProviderListLock);
