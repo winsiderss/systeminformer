@@ -158,7 +158,7 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
 
                 address = *(PPVOID)&networkStackContext->NetworkItem->OwnerInfo[i];
 
-                if (!address)
+                if ((ULONG_PTR)address < PAGE_SIZE) // stop at an invalid address
                     break;
 
                 name = PhGetSymbolFromAddress(
