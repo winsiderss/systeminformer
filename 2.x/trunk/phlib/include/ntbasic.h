@@ -74,7 +74,11 @@ typedef struct _ANSI_STRING
     USHORT Length;
     USHORT MaximumLength;
     PSTR Buffer;
-} STRING, *PSTRING, ANSI_STRING, *PANSI_STRING;
+} STRING, *PSTRING, ANSI_STRING, *PANSI_STRING, OEM_STRING, *POEM_STRING;
+
+typedef const STRING *PCSTRING;
+typedef const ANSI_STRING *PCANSI_STRING;
+typedef const OEM_STRING *PCOEM_STRING;
 
 typedef struct _UNICODE_STRING
 {
@@ -82,6 +86,8 @@ typedef struct _UNICODE_STRING
     USHORT MaximumLength;
     PWSTR Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
+
+typedef const UNICODE_STRING *PCUNICODE_STRING;
 
 // Valid flags for Attributes field
 

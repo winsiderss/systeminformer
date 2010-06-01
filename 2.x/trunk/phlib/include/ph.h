@@ -792,9 +792,11 @@ NTSTATUS PhEnumFileStreams(
     __out PPVOID Streams
     );
 
-VOID PhInitializeDosDeviceNames();
+VOID PhInitializeDevicePrefixes();
 
-VOID PhRefreshDosDeviceNames();
+VOID PhRefreshMupDevicePrefixes();
+
+VOID PhRefreshDosDevicePrefixes();
 
 PPH_STRING PhResolveDevicePrefix(
     __in PPH_STRING Name
