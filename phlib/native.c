@@ -4882,7 +4882,7 @@ VOID PhRefreshMupDevicePrefixes()
     for (i = 0; i < PhDeviceMupPrefixesCount; i++)
     {
         PhDereferenceObject(PhDeviceMupPrefixes[i]);
-        PhDeviceMupPrefixes[i] = 0;
+        PhDeviceMupPrefixes[i] = NULL;
     }
 
     PhDeviceMupPrefixesCount = 0;
@@ -5175,11 +5175,15 @@ PPH_STRING PhGetFileName(
             }
             else
             {
-                // Just return the supplied file name. Note that we need 
-                // to add a reference.
                 PhReferenceObject(newFileName);
             }
         }
+    }
+    else
+    {
+        // Just return the supplied file name. Note that we need 
+        // to add a reference.
+        PhReferenceObject(newFileName);
     }
 
     return newFileName;
