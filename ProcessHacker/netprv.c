@@ -39,6 +39,7 @@ typedef struct _PH_NETWORK_CONNECTION
 
 typedef struct _PH_NETWORK_ITEM_QUERY_DATA
 {
+    SLIST_ENTRY ListEntry;
     PPH_NETWORK_ITEM NetworkItem;
 
     PH_IP_ADDRESS Address;
@@ -133,8 +134,7 @@ PH_CALLBACK PhNetworkItemsUpdatedEvent;
 
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
-PPH_QUEUE PhNetworkItemQueryQueue;
-PH_MUTEX PhNetworkItemQueryQueueLock;
+SLIST_HEADER PhNetworkItemQueryListHead;
 
 static PPH_HASHTABLE PhpResolveCacheHashtable;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
@@ -169,8 +169,7 @@ BOOLEAN PhNetworkProviderInitialization()
     PhInitializeCallback(&PhNetworkItemRemovedEvent);
     PhInitializeCallback(&PhNetworkItemsUpdatedEvent);
 
-    PhNetworkItemQueryQueue = PhCreateQueue(20);
-    PhInitializeMutex(&PhNetworkItemQueryQueueLock);
+    RtlInitializeSListHead(&PhNetworkItemQueryListHead);
 
     PhpResolveCacheHashtable = PhCreateHashtable(
         sizeof(PHP_RESOLVE_CACHE_ITEM),
@@ -456,9 +455,7 @@ NTSTATUS PhpNetworkItemQueryWorker(
         data->HostString = cacheItem->HostString;
     }
 
-    PhAcquireMutex(&PhNetworkItemQueryQueueLock);
-    PhEnqueueQueueItem(PhNetworkItemQueryQueue, data);
-    PhReleaseMutex(&PhNetworkItemQueryQueueLock);
+    RtlInterlockedPushEntrySList(&PhNetworkItemQueryListHead, &data->ListEntry);
 
     return STATUS_SUCCESS;
 }
@@ -585,13 +582,12 @@ VOID PhNetworkProviderUpdate(
 
     // Go through the queued network item query data.
     {
+        PSLIST_ENTRY entry;
         PPH_NETWORK_ITEM_QUERY_DATA data;
 
-        PhAcquireMutex(&PhNetworkItemQueryQueueLock);
-
-        while (PhDequeueQueueItem(PhNetworkItemQueryQueue, &data))
+        while (entry = RtlInterlockedPopEntrySList(&PhNetworkItemQueryListHead))
         {
-            PhReleaseMutex(&PhNetworkItemQueryQueueLock);
+            data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
 
             if (data->Remote)
                 PhSwapReference2(&data->NetworkItem->RemoteHostString, data->HostString);
@@ -602,10 +598,7 @@ VOID PhNetworkProviderUpdate(
 
             PhDereferenceObject(data->NetworkItem);
             PhFree(data);
-            PhAcquireMutex(&PhNetworkItemQueryQueueLock);
         }
-
-        PhReleaseMutex(&PhNetworkItemQueryQueueLock);
     }
 
     for (i = 0; i < numberOfConnections; i++)
