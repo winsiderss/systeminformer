@@ -50,11 +50,6 @@ VOID NTAPI PhpHashtableDeleteProcedure(
     __in ULONG Flags
     );
 
-VOID PhpFreeListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
-    );
-
 // Types
 
 PPH_OBJECT_TYPE PhStringType;
@@ -63,11 +58,10 @@ PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
-PPH_OBJECT_TYPE PhFreeListType;
 
 // Threads
 
-PPH_FREE_LIST PhpBaseThreadContextFreeList;
+PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
 LIST_ENTRY PhDbgThreadListHead;
@@ -157,18 +151,7 @@ BOOLEAN PhInitializeBase()
         )))
         return FALSE;
 
-    if (!NT_SUCCESS(PhCreateObjectType(
-        &PhFreeListType,
-        L"FreeList",
-        0,
-        PhpFreeListDeleteProcedure
-        )))
-        return FALSE;
-
-    PhpBaseThreadContextFreeList = PhCreateFreeList(
-        sizeof(PHP_BASE_THREAD_CONTEXT),
-        16
-        );
+    PhInitializeFreeList(&PhpBaseThreadContextFreeList, sizeof(PHP_BASE_THREAD_CONTEXT), 16);
 
 #ifdef DEBUG
     PhDbgThreadDbgTlsIndex = TlsAlloc();
@@ -193,7 +176,7 @@ NTSTATUS PhpBaseThreadStart(
 #endif
 
     context = *(PPHP_BASE_THREAD_CONTEXT)Parameter;
-    PhFreeToFreeList(PhpBaseThreadContextFreeList, Parameter);
+    PhFreeToFreeList(&PhpBaseThreadContextFreeList, Parameter);
 
 #ifdef DEBUG
     dbg.ClientId.UniqueProcess = NtCurrentProcessId();
@@ -244,7 +227,7 @@ HANDLE PhCreateThread(
     HANDLE threadHandle;
     PPHP_BASE_THREAD_CONTEXT context;
 
-    context = PhAllocateFromFreeList(PhpBaseThreadContextFreeList);
+    context = PhAllocateFromFreeList(&PhpBaseThreadContextFreeList);
     context->StartAddress = StartAddress;
     context->Parameter = Parameter;
 
@@ -263,7 +246,7 @@ HANDLE PhCreateThread(
     }
     else
     {
-        PhFreeToFreeList(PhpBaseThreadContextFreeList, context);
+        PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
         return NULL;
     }
 }
@@ -2741,51 +2724,42 @@ BOOLEAN PhRemoveSimpleHashtableItem(
 }
 
 /**
- * Creates a free list object.
+ * Initializes a free list object.
  *
+ * \param FreeList A pointer to the free list object.
  * \param Size The number of bytes in each allocation.
  * \param MaximumCount The number of unused allocations 
  * to store.
  */
-PPH_FREE_LIST PhCreateFreeList(
+VOID PhInitializeFreeList(
+    __out PPH_FREE_LIST FreeList,
     __in SIZE_T Size,
     __in ULONG MaximumCount
     )
 {
-    PPH_FREE_LIST freeList;
-
-    if (!NT_SUCCESS(PhCreateObject(
-        &freeList,
-        FIELD_OFFSET(PH_FREE_LIST, List) + MaximumCount * sizeof(PVOID),
-        0,
-        PhFreeListType,
-        0
-        )))
-        return NULL;
-
     // Maximum count of 0 is not allowed.
     if (MaximumCount == 0)
         MaximumCount = 1;
 
-    freeList->Count = 0;
-    PhInitializeQueuedLock(&freeList->Lock);
-
-    freeList->Size = Size;
-    freeList->MaximumCount = MaximumCount;
-
-    return freeList;
+    FreeList->Count = 0;
+    FreeList->MaximumCount = MaximumCount;
+    FreeList->Size = Size;
+    RtlInitializeSListHead(&FreeList->ListHead);
 }
 
-VOID PhpFreeListDeleteProcedure(
-    __in PVOID Object,
-    __in ULONG Flags
+/**
+ * Frees resources used by a free list object.
+ *
+ * \param FreeList A pointer to the free list object.
+ */
+VOID PhDeleteFreeList(
+    __inout PPH_FREE_LIST FreeList
     )
 {
-    PPH_FREE_LIST freeList = (PPH_FREE_LIST)Object;
-    ULONG i;
+    PSLIST_ENTRY listEntry;
 
-    for (i = 0; i < freeList->Count; i++)
-        PhFree(freeList->List[i]);
+    while (listEntry = RtlInterlockedPopEntrySList(&FreeList->ListHead))
+        PhFree(CONTAINING_RECORD(listEntry, PH_FREE_LIST_ENTRY, ListEntry));
 }
 
 /**
@@ -2794,30 +2768,29 @@ VOID PhpFreeListDeleteProcedure(
  * \param FreeList A pointer to a free list object.
  *
  * \return A pointer to the allocated block of 
- * memory.
+ * memory. The memory must be freed using 
+ * PhFreeToFreeList().
  */
 PVOID PhAllocateFromFreeList(
     __inout PPH_FREE_LIST FreeList
     )
 {
-    PVOID memory;
+    PPH_FREE_LIST_ENTRY entry;
+    PSLIST_ENTRY listEntry;
 
-    // TODO: Implement as lock-free singly linked list.
+    listEntry = RtlInterlockedPopEntrySList(&FreeList->ListHead);
 
-    PhAcquireQueuedLockExclusiveFast(&FreeList->Lock);
-
-    if (FreeList->Count != 0)
+    if (listEntry)
     {
-        memory = FreeList->List[--FreeList->Count];
-        PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
-        return memory;
+        _InterlockedDecrement((PLONG)&FreeList->Count);
+        entry = CONTAINING_RECORD(listEntry, PH_FREE_LIST_ENTRY, ListEntry);
     }
     else
     {
-        // No unused allocations. Just allocate.
-        PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
-        return PhAllocate(FreeList->Size);
+        entry = PhAllocate(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size);
     }
+
+    return &entry->Body;
 }
 
 /**
@@ -2831,18 +2804,21 @@ VOID PhFreeToFreeList(
     __in PVOID Memory
     )
 {
-    PhAcquireQueuedLockExclusiveFast(&FreeList->Lock);
+    PPH_FREE_LIST_ENTRY entry;
 
+    entry = CONTAINING_RECORD(Memory, PH_FREE_LIST_ENTRY, Body);
+
+    // We don't enforce Count <= MaximumCount (that would require locking),
+    // but we do check it.
     if (FreeList->Count < FreeList->MaximumCount)
     {
-        FreeList->List[FreeList->Count++] = Memory;
+        RtlInterlockedPushEntrySList(&FreeList->ListHead, &entry->ListEntry);
+        _InterlockedIncrement((PLONG)&FreeList->Count);
     }
     else
     {
-        PhFree(Memory);
+        PhFree(entry);
     }
-
-    PhReleaseQueuedLockExclusiveFast(&FreeList->Lock);
 }
 
 /**
