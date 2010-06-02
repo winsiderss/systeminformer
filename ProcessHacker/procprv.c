@@ -35,6 +35,7 @@ VOID PhpQueueProcessQueryStage2(
 
 typedef struct _PH_PROCESS_QUERY_DATA
 {
+    SLIST_ENTRY ListEntry;
     ULONG Stage;
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PROCESS_QUERY_DATA, *PPH_PROCESS_QUERY_DATA;
@@ -101,8 +102,7 @@ PPH_OBJECT_TYPE PhProcessItemType;
 PPH_HASHTABLE PhProcessHashtable;
 PH_QUEUED_LOCK PhProcessHashtableLock = PH_QUEUED_LOCK_INIT;
 
-PPH_QUEUE PhProcessQueryDataQueue;
-PH_MUTEX PhProcessQueryDataQueueLock;
+SLIST_HEADER PhProcessQueryDataListHead;
 
 PH_CALLBACK PhProcessAddedEvent;
 PH_CALLBACK PhProcessModifiedEvent;
@@ -140,8 +140,7 @@ BOOLEAN PhProcessProviderInitialization()
         40
         );
 
-    PhProcessQueryDataQueue = PhCreateQueue(40);
-    PhInitializeMutex(&PhProcessQueryDataQueueLock);
+    RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
     PhInitializeCallback(&PhProcessAddedEvent);
     PhInitializeCallback(&PhProcessModifiedEvent);
@@ -774,9 +773,7 @@ NTSTATUS PhpProcessQueryStage1Worker(
 
     PhpProcessQueryStage1(data);
 
-    PhAcquireMutex(&PhProcessQueryDataQueueLock);
-    PhEnqueueQueueItem(PhProcessQueryDataQueue, data);
-    PhReleaseMutex(&PhProcessQueryDataQueueLock);
+    RtlInterlockedPushEntrySList(&PhProcessQueryDataListHead, &data->Header.ListEntry);
 
     return STATUS_SUCCESS;
 }
@@ -795,9 +792,7 @@ NTSTATUS PhpProcessQueryStage2Worker(
 
     PhpProcessQueryStage2(data);
 
-    PhAcquireMutex(&PhProcessQueryDataQueueLock);
-    PhEnqueueQueueItem(PhProcessQueryDataQueue, data);
-    PhReleaseMutex(&PhProcessQueryDataQueueLock);
+    RtlInterlockedPushEntrySList(&PhProcessQueryDataListHead, &data->Header.ListEntry);
 
     return STATUS_SUCCESS;
 }
@@ -1166,14 +1161,14 @@ VOID PhProcessProviderUpdate(
     }
 
     // Go through the queued process query data.
+    if (RtlQueryDepthSList(&PhProcessQueryDataListHead) != 0)
     {
+        PSLIST_ENTRY entry;
         PPH_PROCESS_QUERY_DATA data;
 
-        PhAcquireMutex(&PhProcessQueryDataQueueLock);
-
-        while (PhDequeueQueueItem(PhProcessQueryDataQueue, &data))
+        while (entry = RtlInterlockedPopEntrySList(&PhProcessQueryDataListHead))
         {
-            PhReleaseMutex(&PhProcessQueryDataQueueLock);
+            data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
 
             if (data->Stage == 1)
             {
@@ -1189,10 +1184,7 @@ VOID PhProcessProviderUpdate(
 
             PhDereferenceObject(data->ProcessItem);
             PhFree(data);
-            PhAcquireMutex(&PhProcessQueryDataQueueLock);
         }
-
-        PhReleaseMutex(&PhProcessQueryDataQueueLock);
     }
 
     // Look for new processes and update existing ones.
