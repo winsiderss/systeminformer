@@ -1542,23 +1542,29 @@ BOOLEAN PhRemoveSimpleHashtableItem(
 
 // free list
 
-#ifndef BASESUP_PRIVATE
-extern PPH_OBJECT_TYPE PhFreeListType;
-#endif
-
 typedef struct _PH_FREE_LIST
 {
     ULONG Count;
-    PH_QUEUED_LOCK Lock;
-
     ULONG MaximumCount;
     SIZE_T Size;
-    PVOID List[1];
+
+    SLIST_HEADER ListHead;
 } PH_FREE_LIST, *PPH_FREE_LIST;
 
-PPH_FREE_LIST PhCreateFreeList(
+typedef struct _PH_FREE_LIST_ENTRY
+{
+    SLIST_ENTRY ListEntry;
+    QUAD Body;
+} PH_FREE_LIST_ENTRY, *PPH_FREE_LIST_ENTRY;
+
+VOID PhInitializeFreeList(
+    __out PPH_FREE_LIST FreeList,
     __in SIZE_T Size,
     __in ULONG MaximumCount
+    );
+
+VOID PhDeleteFreeList(
+    __inout PPH_FREE_LIST FreeList
     );
 
 PVOID PhAllocateFromFreeList(

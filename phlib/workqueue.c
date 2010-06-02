@@ -32,13 +32,13 @@ NTSTATUS PhpWorkQueueThreadStart(
     __in PVOID Parameter
     );
 
-PPH_FREE_LIST PhWorkQueueItemFreeList;
+PH_FREE_LIST PhWorkQueueItemFreeList;
 PH_WORK_QUEUE PhGlobalWorkQueue;
 PH_INITONCE PhGlobalWorkQueueInitOnce;
 
 VOID PhWorkQueueInitialization()
 {
-    PhWorkQueueItemFreeList = PhCreateFreeList(sizeof(PH_WORK_QUEUE_ITEM), 32);
+    PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
     PhInitializeInitOnce(&PhGlobalWorkQueueInitOnce);
 }
 
@@ -79,7 +79,7 @@ VOID PhDeleteWorkQueue(
 
     // Free all un-executed work items.
     while (PhDequeueQueueItem(WorkQueue->Queue, &workQueueItem))
-        PhFreeToFreeList(PhWorkQueueItemFreeList, workQueueItem);
+        PhFreeToFreeList(&PhWorkQueueItemFreeList, workQueueItem);
 
     PhDereferenceObject(WorkQueue->Queue);
     NtClose(WorkQueue->SemaphoreHandle);
@@ -190,7 +190,7 @@ NTSTATUS PhpWorkQueueThreadStart(
                 PhpExecuteWorkQueueItem(workQueueItem);
                 _InterlockedDecrement(&workQueue->BusyThreads);
 
-                PhFreeToFreeList(PhWorkQueueItemFreeList, workQueueItem);
+                PhFreeToFreeList(&PhWorkQueueItemFreeList, workQueueItem);
             }
         }
         else
@@ -229,7 +229,7 @@ VOID PhQueueWorkQueueItem(
 {
     PPH_WORK_QUEUE_ITEM workQueueItem;
 
-    workQueueItem = PhAllocateFromFreeList(PhWorkQueueItemFreeList);
+    workQueueItem = PhAllocateFromFreeList(&PhWorkQueueItemFreeList);
     PhpInitializeWorkQueueItem(workQueueItem, Function, Context);
 
     // Enqueue the work item.

@@ -23,18 +23,20 @@
 #include <phbase.h>
 #include <handlep.h>
 
-PPH_FREE_LIST PhHandleTableLevel0FreeList;
-PPH_FREE_LIST PhHandleTableLevel1FreeList;
+PH_FREE_LIST PhHandleTableLevel0FreeList;
+PH_FREE_LIST PhHandleTableLevel1FreeList;
 
 VOID PhHandleTableInitialization()
 {
-    PhHandleTableLevel0FreeList = PhCreateFreeList(
+    PhInitializeFreeList(
+        &PhHandleTableLevel0FreeList,
         sizeof(PH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
         64
         );
-    PhHandleTableLevel1FreeList = PhCreateFreeList(
+    PhInitializeFreeList(
+        &PhHandleTableLevel1FreeList,
         sizeof(PPH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES,
-        32
+        64
         );
 }
 
@@ -1003,14 +1005,14 @@ PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
 #ifdef PH_HANDLE_TABLE_SAFE
     __try
     {
-        table = PhAllocateFromFreeList(PhHandleTableLevel0FreeList);
+        table = PhAllocateFromFreeList(&PhHandleTableLevel0FreeList);
     }
     __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_INSUFFICIENT_RESOURCES))
     {
         return NULL;
     }
 #else
-    table = PhAllocateFromFreeList(PhHandleTableLevel0FreeList);
+    table = PhAllocateFromFreeList(&PhHandleTableLevel0FreeList);
 #endif
 
     if (Initialize)
@@ -1036,7 +1038,7 @@ VOID PhpFreeHandleTableLevel0(
     __in PPH_HANDLE_TABLE_ENTRY Table
     )
 {
-    PhFreeToFreeList(PhHandleTableLevel0FreeList, Table);
+    PhFreeToFreeList(&PhHandleTableLevel0FreeList, Table);
 }
 
 PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
@@ -1048,14 +1050,14 @@ PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
 #ifdef PH_HANDLE_TABLE_SAFE
     __try
     {
-        table = PhAllocateFromFreeList(PhHandleTableLevel1FreeList);
+        table = PhAllocateFromFreeList(&PhHandleTableLevel1FreeList);
     }
     __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_INSUFFICIENT_RESOURCES))
     {
         return NULL;
     }
 #else
-    table = PhAllocateFromFreeList(PhHandleTableLevel1FreeList);
+    table = PhAllocateFromFreeList(&PhHandleTableLevel1FreeList);
 #endif
 
     memset(table, 0, sizeof(PPH_HANDLE_TABLE_ENTRY) * PH_HANDLE_TABLE_LEVEL_ENTRIES);
@@ -1067,7 +1069,7 @@ VOID PhpFreeHandleTableLevel1(
     __in PPH_HANDLE_TABLE_ENTRY *Table
     )
 {
-    PhFreeToFreeList(PhHandleTableLevel1FreeList, Table);
+    PhFreeToFreeList(&PhHandleTableLevel1FreeList, Table);
 }
 
 PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
