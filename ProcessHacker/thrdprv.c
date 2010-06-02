@@ -26,6 +26,7 @@
 
 typedef struct _PH_THREAD_QUERY_DATA
 {
+    SLIST_ENTRY ListEntry;
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_THREAD_ITEM ThreadItem;
 
@@ -146,8 +147,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
 
     PhInitializeEvent(&threadProvider->SymbolsLoadedEvent);
     threadProvider->SymbolsLoading = 0;
-    threadProvider->QueryQueue = PhCreateQueue(1);
-    PhInitializeMutex(&threadProvider->QueryQueueLock);
+    RtlInitializeSListHead(&threadProvider->QueryListHead);
 
     // Begin loading symbols for the process' modules.
     PhReferenceObject(threadProvider);
@@ -177,19 +177,19 @@ VOID PhpThreadProviderDeleteProcedure(
 
     // Destroy all queue items.
     {
+        PSLIST_ENTRY entry;
         PPH_THREAD_QUERY_DATA data;
 
-        while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
+        while (entry = RtlInterlockedPopEntrySList(&threadProvider->QueryListHead))
         {
+            data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
+
             if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
             if (data->ServiceName) PhDereferenceObject(data->ServiceName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
         }
     }
-
-    PhDereferenceObject(threadProvider->QueryQueue);
-    PhDeleteMutex(&threadProvider->QueryQueueLock);
 
     // We don't close the process handle because it is owned by 
     // the symbol provider.
@@ -520,9 +520,7 @@ NTSTATUS PhpThreadQueryWorker(
         }
     }
 
-    PhAcquireMutex(&data->ThreadProvider->QueryQueueLock);
-    PhEnqueueQueueItem(data->ThreadProvider->QueryQueue, data);
-    PhReleaseMutex(&data->ThreadProvider->QueryQueueLock);
+    RtlInterlockedPushEntrySList(&data->ThreadProvider->QueryListHead, &data->ListEntry);
 
     PhDereferenceObject(data->ThreadProvider);
 
@@ -753,13 +751,12 @@ VOID PhThreadProviderUpdate(
 
     // Go through the queued thread query data.
     {
+        PSLIST_ENTRY entry;
         PPH_THREAD_QUERY_DATA data;
 
-        PhAcquireMutex(&threadProvider->QueryQueueLock);
-
-        while (PhDequeueQueueItem(threadProvider->QueryQueue, &data))
+        while (entry = RtlInterlockedPopEntrySList(&threadProvider->QueryListHead))
         {
-            PhReleaseMutex(&threadProvider->QueryQueueLock);
+            data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
 
             if (data->StartAddressResolveLevel == PhsrlFunction && data->StartAddressString)
             {
@@ -774,10 +771,7 @@ VOID PhThreadProviderUpdate(
             if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
-            PhAcquireMutex(&threadProvider->QueryQueueLock);
         }
-
-        PhReleaseMutex(&threadProvider->QueryQueueLock);
     }
 
     // Look for new threads and update existing ones.
