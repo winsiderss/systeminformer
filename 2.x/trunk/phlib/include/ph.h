@@ -215,6 +215,11 @@ NTSTATUS PhGetProcessImageFileName(
     __out PPH_STRING *FileName
     );
 
+NTSTATUS PhGetProcessImageFileNameWin32(
+    __in HANDLE ProcessHandle,
+    __out PPH_STRING *FileName
+    );
+
 /**
  * Gets a process' command line.
  *

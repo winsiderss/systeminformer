@@ -634,6 +634,41 @@ NTSTATUS PhGetProcessImageFileName(
 }
 
 /**
+ * Gets the Win32 file name of the process' image.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param FileName A variable which receives a pointer to a 
+ * string containing the file name. You must free the string 
+ * using PhDereferenceObject() when you no longer need it.
+ *
+ * \remarks This function is only available on Windows Vista 
+ * and above.
+ */
+NTSTATUS PhGetProcessImageFileNameWin32(
+    __in HANDLE ProcessHandle,
+    __out PPH_STRING *FileName
+    )
+{
+    NTSTATUS status;
+    PUNICODE_STRING fileName;
+
+    status = PhpQueryProcessVariableSize(
+        ProcessHandle,
+        ProcessImageFileNameWin32,
+        &fileName
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *FileName = PhCreateStringEx(fileName->Buffer, fileName->Length);
+    PhFree(fileName);
+
+    return status;
+}
+
+/**
  * Gets a string stored in a process' parameters structure.
  *
  * \param ProcessHandle A handle to a process. The handle must 
@@ -4864,6 +4899,9 @@ VOID PhRefreshMupDevicePrefixes()
     // Each name can then be looked up, its device name in the DeviceName value in:
     // HKLM\System\CurrentControlSet\Services\<ProviderName>\NetworkProvider
 
+    // Note that we assume the providers only claim their device name. Some providers 
+    // such as DFS claim an extra part, and are not resolved correctly here.
+
     if (RegOpenKey(
         HKEY_LOCAL_MACHINE,
         L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order",
@@ -4886,6 +4924,14 @@ VOID PhRefreshMupDevicePrefixes()
     }
 
     PhDeviceMupPrefixesCount = 0;
+
+    PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\Mup");
+
+    // DFS claims an extra part of file names, which we don't handle.
+    /*if (WindowsVersion >= WINDOWS_VISTA)
+        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\DfsClient");
+    else
+        PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\WinDfs");*/
 
     while (i < providerOrder->Length / sizeof(WCHAR))
     {
@@ -5052,23 +5098,6 @@ PPH_STRING PhResolveDevicePrefix(
 
     if (i == 26)
     {
-        // "\Device\Mup" is the UNC provider.
-        if (PhStringStartsWith2(Name, L"\\Device\\Mup", TRUE))
-        {
-#define DEVICE_MUP_LENGTH (11 * sizeof(WCHAR))
-
-            // \path
-            newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - DEVICE_MUP_LENGTH);
-            newName->Buffer[0] = '\\';
-            memcpy(
-                &newName->Buffer[1],
-                &Name->Buffer[DEVICE_MUP_LENGTH / sizeof(WCHAR)],
-                Name->Length - DEVICE_MUP_LENGTH
-                );
-
-            return newName;
-        }
-
         // Resolve network providers.
 
         PhAcquireQueuedLockSharedFast(&PhDeviceMupPrefixesLock);
