@@ -377,8 +377,7 @@ typedef struct _PH_THREAD_PROVIDER
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PH_EVENT SymbolsLoadedEvent;
     LONG SymbolsLoading;
-    PPH_QUEUE QueryQueue;
-    PH_MUTEX QueryQueueLock;
+    SLIST_HEADER QueryListHead;
 } PH_THREAD_PROVIDER, *PPH_THREAD_PROVIDER;
 
 BOOLEAN PhThreadProviderInitialization();
