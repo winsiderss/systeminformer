@@ -143,7 +143,7 @@ VOID PhGetMemoryProtectionString(
 
     string = String;
 
-    count = wcslen(base);
+    count = (ULONG)wcslen(base);
     memcpy(string, base, count * 2);
     string += count;
 
