@@ -1923,7 +1923,7 @@ typedef struct _PH_WORK_QUEUE
     PH_RUNDOWN_PROTECT RundownProtect;
     BOOLEAN Terminating;
 
-    PPH_QUEUE Queue;
+    LIST_ENTRY QueueListHead;
     PH_QUEUED_LOCK QueueLock;
 
     ULONG MaximumThreads;
