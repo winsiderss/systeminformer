@@ -24,6 +24,7 @@
 
 typedef struct _PH_WORK_QUEUE_ITEM
 {
+    LIST_ENTRY ListEntry;
     PTHREAD_START_ROUTINE Function;
     PVOID Context;
 } PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
@@ -52,7 +53,7 @@ VOID PhInitializeWorkQueue(
     PhInitializeRundownProtection(&WorkQueue->RundownProtect);
     WorkQueue->Terminating = FALSE;
 
-    WorkQueue->Queue = PhCreateQueue(1);
+    InitializeListHead(&WorkQueue->QueueListHead);
     PhInitializeQueuedLock(&WorkQueue->QueueLock);
 
     WorkQueue->MinimumThreads = MinimumThreads;
@@ -70,6 +71,7 @@ VOID PhDeleteWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue
     )
 {
+    PLIST_ENTRY listEntry;
     PPH_WORK_QUEUE_ITEM workQueueItem;
 
     // Wait for all worker threads to exit.
@@ -78,10 +80,16 @@ VOID PhDeleteWorkQueue(
     PhWaitForRundownProtection(&WorkQueue->RundownProtect);
 
     // Free all un-executed work items.
-    while (PhDequeueQueueItem(WorkQueue->Queue, &workQueueItem))
-        PhFreeToFreeList(&PhWorkQueueItemFreeList, workQueueItem);
 
-    PhDereferenceObject(WorkQueue->Queue);
+    listEntry = WorkQueue->QueueListHead.Flink;
+
+    while (listEntry != &WorkQueue->QueueListHead)
+    {
+        workQueueItem = CONTAINING_RECORD(listEntry, PH_WORK_QUEUE_ITEM, ListEntry);
+        listEntry = listEntry->Flink;
+        PhFreeToFreeList(&PhWorkQueueItemFreeList, workQueueItem);
+    }
+
     NtClose(WorkQueue->SemaphoreHandle);
 }
 
@@ -178,14 +186,18 @@ NTSTATUS PhpWorkQueueThreadStart(
 
         if (status == STATUS_WAIT_0)
         {
+            PLIST_ENTRY listEntry;
+
             // Dequeue the work item.
             PhAcquireQueuedLockExclusiveFast(&workQueue->QueueLock);
-            PhDequeueQueueItem(workQueue->Queue, &workQueueItem);
+            listEntry = RemoveHeadList(&workQueue->QueueListHead);
             PhReleaseQueuedLockExclusiveFast(&workQueue->QueueLock);
 
             // Make sure we got work.
-            if (workQueueItem)
+            if (listEntry != &workQueue->QueueListHead)
             {
+                workQueueItem = CONTAINING_RECORD(listEntry, PH_WORK_QUEUE_ITEM, ListEntry);
+
                 _InterlockedIncrement(&workQueue->BusyThreads);
                 PhpExecuteWorkQueueItem(workQueueItem);
                 _InterlockedDecrement(&workQueue->BusyThreads);
@@ -234,7 +246,7 @@ VOID PhQueueWorkQueueItem(
 
     // Enqueue the work item.
     PhAcquireQueuedLockExclusiveFast(&WorkQueue->QueueLock);
-    PhEnqueueQueueItem(WorkQueue->Queue, workQueueItem);
+    InsertTailList(&WorkQueue->QueueListHead, &workQueueItem->ListEntry);
     PhReleaseQueuedLockExclusiveFast(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
     NtReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
