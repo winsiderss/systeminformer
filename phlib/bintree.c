@@ -316,6 +316,55 @@ FORCEINLINE VOID PhpRotateLeftAvlLinks(
     P->Parent = Q;
 }
 
+FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
+    __deref_out PPH_AVL_LINKS *Root
+    )
+{
+    PPH_AVL_LINKS P;
+    PPH_AVL_LINKS Q;
+    PPH_AVL_LINKS R;
+
+    // PhpRotateRightAvlLinks(&(*Root)->Right);
+    // PhpRotateLeftAvlLinks(Root);
+
+    // P is the current root
+    // Q is P.Right
+    // R is Q.Left (P.Right.Left)
+
+    P = *Root;
+    Q = P->Right;
+    R = Q->Left;
+
+    // The new root is R
+
+    *Root = R;
+    R->Parent = P->Parent;
+
+    // Q.Left = R.Right
+
+    Q->Left = R->Right;
+
+    if (Q->Left)
+        Q->Left->Parent = Q;
+
+    // R.Right = Q
+
+    R->Right = Q;
+    Q->Parent = R;
+
+    // P.Right = R.Left
+
+    P->Right = R->Left;
+
+    if (P->Right)
+        P->Right->Parent = P;
+
+    // R.Left = P
+
+    R->Left = P;
+    P->Parent = R;
+}
+
 FORCEINLINE VOID PhpRotateRightAvlLinks(
     __deref_out PPH_AVL_LINKS *Root
     )
@@ -349,7 +398,7 @@ FORCEINLINE VOID PhpRotateRightAvlLinks(
     *Root = P;
     P->Parent = Q->Parent;
 
-    // Q.Left = P->Right (transfer B)
+    // Q.Left = P.Right (transfer B)
 
     Q->Left = P->Right;
 
@@ -362,67 +411,199 @@ FORCEINLINE VOID PhpRotateRightAvlLinks(
     Q->Parent = P;
 }
 
+FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
+    __deref_out PPH_AVL_LINKS *Root
+    )
+{
+    PPH_AVL_LINKS P;
+    PPH_AVL_LINKS Q;
+    PPH_AVL_LINKS R;
+
+    // PhpRotateLeftAvlLinks(&(*Root)->Left);
+    // PhpRotateRightAvlLinks(Root);
+
+    // P is the current root
+    // Q is P.Left
+    // R is Q.Right (P.Left.Right)
+
+    P = *Root;
+    Q = P->Left;
+    R = Q->Right;
+
+    // The new root is R
+
+    *Root = R;
+    R->Parent = P->Parent;
+
+    // Q.Right = R.Left
+
+    Q->Right = R->Left;
+
+    if (Q->Right)
+        Q->Right->Parent = Q;
+
+    // R.Left = Q
+
+    R->Left = Q;
+    Q->Parent = R;
+
+    // P.Left = R.Right
+
+    P->Left = R->Right;
+
+    if (P->Left)
+        P->Left->Parent = P;
+
+    // R.Right = P
+
+    R->Right = P;
+    P->Parent = R;
+}
+
 PPH_AVL_LINKS PhAvlTreeAdd(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Subject
     )
 {
-    PPH_AVL_LINKS links;
+    PPH_AVL_LINKS P;
     INT result;
+    PPH_AVL_LINKS root;
     LONG balance;
 
-    links = PhpSearchAvlTree(Tree, Subject, &result);
+    P = PhpSearchAvlTree(Tree, Subject, &result);
 
     if (result < 0)
-        links->Left = Subject;
+        P->Left = Subject;
     else if (result > 0)
-        links->Right = Subject;
+        P->Right = Subject;
     else
-        return links;
+        return P;
 
-    Subject->Parent = links;
+    Subject->Parent = P;
     Subject->Left = NULL;
     Subject->Right = NULL;
     Subject->Balance = 0;
 
     // Balance the tree.
 
-    links = Subject;
+    P = Subject;
+    root = Tree->Root.Right;
 
-    while (TRUE)
+    while (P != root)
     {
-        if (links->Parent->Left == links)
+        // In this implementation, the balance factor is the right height minus left height.
+
+        if (P->Parent->Left == P)
             balance = -1;
         else
             balance = 1;
 
-        links = links->Parent;
+        P = P->Parent;
 
-        if (links == &Tree->Root)
-            break;
-
-        if (links->Balance == 0)
+        if (P->Balance == 0)
         {
             // The balance becomes -1 or 1. Rotations are not needed 
             // yet, but we should keep tracing upwards.
 
-            links->Balance = balance;
+            P->Balance = balance;
         }
-        else if (links->Balance != balance)
+        else if (P->Balance != balance)
         {
             // The balance is opposite the new balance, so it now 
             // becomes 0.
 
-            links->Balance = 0;
+            P->Balance = 0;
 
             break;
         }
         else
         {
+            PPH_AVL_LINKS *ref;
+            PPH_AVL_LINKS Q;
+            PPH_AVL_LINKS R;
+
             // The balance is the same as the new balance, meaning 
             // it now becomes -2 or 2. Rotations are needed.
 
+            if (P->Parent->Left == P)
+                ref = &P->Parent->Left;
+            else
+                ref = &P->Parent->Right;
 
+            if (P->Balance == -1)
+            {
+                Q = P->Left;
+
+                if (Q->Balance == -1)
+                {
+                    PhpRotateRightAvlLinks(ref);
+
+                    P->Balance = 0;
+                    Q->Balance = 0;
+                }
+                else
+                {
+                    PhpRotateRightTwiceAvlLinks(ref);
+
+                    R = Q->Right;
+
+                    if (R->Balance == -1)
+                    {
+                        P->Balance = 1;
+                        Q->Balance = 0;
+                    }
+                    else if (R->Balance == 1)
+                    {
+                        P->Balance = 0;
+                        Q->Balance = -1;
+                    }
+                    else
+                    {
+                        P->Balance = 0;
+                        Q->Balance = 0;
+                    }
+
+                    R->Balance = 0;
+                }
+            }
+            else
+            {
+                PPH_AVL_LINKS Q;
+
+                Q = P->Right;
+
+                if (Q->Balance == 1)
+                {
+                    PhpRotateLeftAvlLinks(ref);
+
+                    P->Balance = 0;
+                    Q->Balance = 0;
+                }
+                else
+                {
+                    PhpRotateLeftTwiceAvlLinks(ref);
+
+                    R = Q->Left;
+
+                    if (R->Balance == -1)
+                    {
+                        P->Balance = 0;
+                        Q->Balance = 1;
+                    }
+                    else if (R->Balance == 1)
+                    {
+                        P->Balance = -1;
+                        Q->Balance = 0;
+                    }
+                    else
+                    {
+                        P->Balance = 0;
+                        Q->Balance = 0;
+                    }
+
+                    R->Balance = 0;
+                }
+            }
 
             break;
         }
