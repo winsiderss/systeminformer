@@ -107,6 +107,427 @@ FORCEINLINE VOID InsertHeadList(
     (Entry)->Next = (ListHead)->Next; \
     (ListHead)->Next = (Entry)
 
+// AVL and splay trees
+
+typedef enum _TABLE_SEARCH_RESULT
+{
+    TableEmptyTree,
+    TableFoundNode,
+    TableInsertAsLeft,
+    TableInsertAsRight
+} TABLE_SEARCH_RESULT;
+
+typedef enum _RTL_GENERIC_COMPARE_RESULTS
+{
+    GenericLessThan,
+    GenericGreaterThan,
+    GenericEqual
+} RTL_GENERIC_COMPARE_RESULTS;
+
+struct _RTL_AVL_TABLE;
+
+typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_AVL_COMPARE_ROUTINE)(
+    __in struct _RTL_AVL_TABLE *Table,
+    __in PVOID FirstStruct,
+    __in PVOID SecondStruct
+    );
+
+typedef PVOID (NTAPI *PRTL_AVL_ALLOCATE_ROUTINE)(
+    __in struct _RTL_AVL_TABLE *Table,
+    __in CLONG ByteSize
+    );
+
+typedef VOID (NTAPI *PRTL_AVL_FREE_ROUTINE)(
+    __in struct _RTL_AVL_TABLE *Table,
+    __in __post_invalid PVOID Buffer
+    );
+
+typedef NTSTATUS (NTAPI *PRTL_AVL_MATCH_FUNCTION)(
+    __in struct _RTL_AVL_TABLE *Table,
+    __in PVOID UserData,
+    __in PVOID MatchData
+    );
+
+typedef struct _RTL_BALANCED_LINKS
+{
+    struct _RTL_BALANCED_LINKS *Parent;
+    struct _RTL_BALANCED_LINKS *LeftChild;
+    struct _RTL_BALANCED_LINKS *RightChild;
+    CHAR Balance;
+    UCHAR Reserved[3];
+} RTL_BALANCED_LINKS, *PRTL_BALANCED_LINKS;
+
+typedef struct _RTL_AVL_TABLE
+{
+    RTL_BALANCED_LINKS BalancedRoot;
+    PVOID OrderedPointer;
+    ULONG WhichOrderedElement;
+    ULONG NumberGenericTableElements;
+    ULONG DepthOfTree;
+    PRTL_BALANCED_LINKS RestartKey;
+    ULONG DeleteCount;
+    PRTL_AVL_COMPARE_ROUTINE CompareRoutine;
+    PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine;
+    PRTL_AVL_FREE_ROUTINE FreeRoutine;
+    PVOID TableContext;
+} RTL_AVL_TABLE, *PRTL_AVL_TABLE;
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeGenericTableAvl(
+    __out PRTL_AVL_TABLE Table,
+    __in PRTL_AVL_COMPARE_ROUTINE CompareRoutine,
+    __in PRTL_AVL_ALLOCATE_ROUTINE AllocateRoutine,
+    __in PRTL_AVL_FREE_ROUTINE FreeRoutine,
+    __in_opt PVOID TableContext
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlInsertElementGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in CLONG BufferSize,
+    __out_opt PBOOLEAN NewElement
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlInsertElementGenericTableFullAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in CLONG BufferSize,
+    __out_opt PBOOLEAN NewElement,
+    __in PVOID NodeOrParent,
+    __in TABLE_SEARCH_RESULT SearchResult
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlDeleteElementGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in PVOID Buffer
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlLookupElementGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in PVOID Buffer
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlLookupElementGenericTableFullAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in PVOID Buffer,
+    __out PVOID *NodeOrParent,
+    __out TABLE_SEARCH_RESULT *SearchResult
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlEnumerateGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in BOOLEAN Restart
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlEnumerateGenericTableWithoutSplayingAvl(
+    __in PRTL_AVL_TABLE Table,
+    __inout PVOID *RestartKey
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlLookupFirstMatchingElementGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in PVOID Buffer,
+    __out PVOID *RestartKey
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlEnumerateGenericTableLikeADirectory(
+    __in PRTL_AVL_TABLE Table,
+    __in_opt PRTL_AVL_MATCH_FUNCTION MatchFunction,
+    __in_opt PVOID MatchData,
+    __in ULONG NextFlag,
+    __inout PVOID *RestartKey,
+    __inout PULONG DeleteCount,
+    __in PVOID Buffer
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlGetElementGenericTableAvl(
+    __in PRTL_AVL_TABLE Table,
+    __in ULONG I
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlNumberGenericTableElementsAvl(
+    __in PRTL_AVL_TABLE Table
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsGenericTableEmptyAvl(
+    __in PRTL_AVL_TABLE Table
+    );
+
+typedef struct _RTL_SPLAY_LINKS
+{
+    struct _RTL_SPLAY_LINKS *Parent;
+    struct _RTL_SPLAY_LINKS *LeftChild;
+    struct _RTL_SPLAY_LINKS *RightChild;
+} RTL_SPLAY_LINKS, *PRTL_SPLAY_LINKS;
+
+#define RtlInitializeSplayLinks(Links) \
+    { \
+        PRTL_SPLAY_LINKS _SplayLinks; \
+        _SplayLinks = (PRTL_SPLAY_LINKS)(Links); \
+        _SplayLinks->Parent = _SplayLinks; \
+        _SplayLinks->LeftChild = NULL; \
+        _SplayLinks->RightChild = NULL; \
+    }
+
+#define RtlParent(Links) ((PRTL_SPLAY_LINKS)(Links)->Parent)
+#define RtlLeftChild(Links) ((PRTL_SPLAY_LINKS)(Links)->LeftChild)
+#define RtlRightChild(Links) ((PRTL_SPLAY_LINKS)(Links)->RightChild)
+#define RtlIsRoot(Links) ((RtlParent(Links) == (PRTL_SPLAY_LINKS)(Links)))
+#define RtlIsLeftChild(Links) ((RtlLeftChild(RtlParent(Links)) == (PRTL_SPLAY_LINKS)(Links)))
+#define RtlIsRightChild(Links) ((RtlRightChild(RtlParent(Links)) == (PRTL_SPLAY_LINKS)(Links)))
+
+#define RtlInsertAsLeftChild(ParentLinks, ChildLinks) \
+    { \
+        PRTL_SPLAY_LINKS _SplayParent; \
+        PRTL_SPLAY_LINKS _SplayChild; \
+        _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
+        _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
+        _SplayParent->LeftChild = _SplayChild; \
+        _SplayChild->Parent = _SplayParent; \
+    }
+
+#define RtlInsertAsRightChild(ParentLinks, ChildLinks) \
+    { \
+        PRTL_SPLAY_LINKS _SplayParent; \
+        PRTL_SPLAY_LINKS _SplayChild; \
+        _SplayParent = (PRTL_SPLAY_LINKS)(ParentLinks); \
+        _SplayChild = (PRTL_SPLAY_LINKS)(ChildLinks); \
+        _SplayParent->RightChild = _SplayChild; \
+        _SplayChild->Parent = _SplayParent; \
+    }
+
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlSplay(
+    __inout PRTL_SPLAY_LINKS Links
+    );
+
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlDelete(
+    __in PRTL_SPLAY_LINKS Links
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlDeleteNoSplay(
+    __in PRTL_SPLAY_LINKS Links,
+    __inout PRTL_SPLAY_LINKS *Root
+    );
+
+__checkReturn
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlSubtreeSuccessor(
+    __in PRTL_SPLAY_LINKS Links
+    );
+
+__checkReturn
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlSubtreePredecessor(
+    __in PRTL_SPLAY_LINKS Links
+    );
+
+__checkReturn
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlRealSuccessor(
+    __in PRTL_SPLAY_LINKS Links
+    );
+
+__checkReturn
+NTSYSAPI
+PRTL_SPLAY_LINKS
+NTAPI
+RtlRealPredecessor(
+    __in PRTL_SPLAY_LINKS Links
+    );
+
+struct _RTL_GENERIC_TABLE;
+
+typedef RTL_GENERIC_COMPARE_RESULTS (NTAPI *PRTL_GENERIC_COMPARE_ROUTINE)(
+    __in struct _RTL_GENERIC_TABLE *Table,
+    __in PVOID FirstStruct,
+    __in PVOID SecondStruct
+    );
+
+typedef PVOID (NTAPI *PRTL_GENERIC_ALLOCATE_ROUTINE)(
+    __in struct _RTL_GENERIC_TABLE *Table,
+    __in CLONG ByteSize
+    );
+
+typedef VOID (NTAPI *PRTL_GENERIC_FREE_ROUTINE)(
+    __in struct _RTL_GENERIC_TABLE *Table,
+    __in __post_invalid PVOID Buffer
+    );
+
+typedef struct _RTL_GENERIC_TABLE
+{
+    PRTL_SPLAY_LINKS TableRoot;
+    LIST_ENTRY InsertOrderList;
+    PLIST_ENTRY OrderedPointer;
+    ULONG WhichOrderedElement;
+    ULONG NumberGenericTableElements;
+    PRTL_GENERIC_COMPARE_ROUTINE CompareRoutine;
+    PRTL_GENERIC_ALLOCATE_ROUTINE AllocateRoutine;
+    PRTL_GENERIC_FREE_ROUTINE FreeRoutine;
+    PVOID TableContext;
+} RTL_GENERIC_TABLE, *PRTL_GENERIC_TABLE;
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeGenericTable(
+    __out PRTL_GENERIC_TABLE Table,
+    __in PRTL_GENERIC_COMPARE_ROUTINE CompareRoutine,
+    __in PRTL_GENERIC_ALLOCATE_ROUTINE AllocateRoutine,
+    __in PRTL_GENERIC_FREE_ROUTINE FreeRoutine,
+    __in_opt PVOID TableContext
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlInsertElementGenericTable(
+    __in PRTL_GENERIC_TABLE Table,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in CLONG BufferSize,
+    __out_opt PBOOLEAN NewElement
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlInsertElementGenericTableFull(
+    __in PRTL_GENERIC_TABLE Table,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in CLONG BufferSize,
+    __out_opt PBOOLEAN NewElement,
+    __in PVOID NodeOrParent,
+    __in TABLE_SEARCH_RESULT SearchResult
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlDeleteElementGenericTable(
+    __in PRTL_GENERIC_TABLE Table,
+    __in PVOID Buffer
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlLookupElementGenericTable(
+    __in PRTL_GENERIC_TABLE Table,
+    __in PVOID Buffer
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlLookupElementGenericTableFull(
+    __in PRTL_GENERIC_TABLE Table,
+    __in PVOID Buffer,
+    __out PVOID *NodeOrParent,
+    __out TABLE_SEARCH_RESULT *SearchResult
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlEnumerateGenericTable(
+    __in PRTL_GENERIC_TABLE Table,
+    __in BOOLEAN Restart
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlEnumerateGenericTableWithoutSplaying(
+    __in PRTL_GENERIC_TABLE Table,
+    __inout PVOID *RestartKey
+    );
+
+__checkReturn
+NTSYSAPI
+PVOID
+NTAPI
+RtlGetElementGenericTable(
+    __in PRTL_GENERIC_TABLE Table,
+    __in ULONG I
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlNumberGenericTableElements(
+    __in PRTL_GENERIC_TABLE Table
+    );
+
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsGenericTableEmpty(
+    __in PRTL_GENERIC_TABLE Table
+    );
+
 // Synchronization
 
 NTSYSAPI
