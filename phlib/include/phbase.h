@@ -1791,6 +1791,51 @@ VOID FASTCALL PhxfAddInt32U(
     __in ULONG Count
     );
 
+// bintree
+
+typedef struct _PH_BINARY_LINKS
+{
+    struct _PH_BINARY_LINKS *Parent;
+    struct _PH_BINARY_LINKS *Left;
+    struct _PH_BINARY_LINKS *Right;
+} PH_BINARY_LINKS, *PPH_BINARY_LINKS;
+
+struct _PH_BINARY_TREE;
+
+typedef INT (NTAPI *PPH_BINARY_TREE_COMPARE_FUNCTION)(
+    __in struct _PH_BINARY_TREE *Tree,
+    __in PPH_BINARY_LINKS Links1,
+    __in PPH_BINARY_LINKS Links2
+    );
+
+typedef struct _PH_BINARY_TREE
+{
+    PH_BINARY_LINKS Root;
+    PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction;
+    PVOID Context;
+} PH_BINARY_TREE, *PPH_BINARY_TREE;
+
+VOID PhInitializeBinaryTree(
+    __out PPH_BINARY_TREE Tree,
+    __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction,
+    __in PVOID Context
+    );
+
+PPH_BINARY_LINKS PhBinaryTreeAdd(
+    __inout PPH_BINARY_TREE Tree,
+    __out PPH_BINARY_LINKS Subject
+    );
+
+BOOLEAN PhBinaryTreeRemove(
+    __inout PPH_BINARY_TREE Tree,
+    __inout PPH_BINARY_LINKS Subject
+    );
+
+PPH_BINARY_LINKS PhBinaryTreeSearch(
+    __in PPH_BINARY_TREE Tree,
+    __in PPH_BINARY_LINKS Subject
+    );
+
 // handle 
 
 struct _PH_HANDLE_TABLE;
