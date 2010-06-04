@@ -1810,7 +1810,7 @@ typedef INT (NTAPI *PPH_BINARY_TREE_COMPARE_FUNCTION)(
 
 typedef struct _PH_BINARY_TREE
 {
-    PH_BINARY_LINKS Root;
+    PH_BINARY_LINKS Root; // Right contains real root
     PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction;
     PVOID Context;
 } PH_BINARY_TREE, *PPH_BINARY_TREE;
@@ -1834,6 +1834,50 @@ BOOLEAN PhBinaryTreeRemove(
 PPH_BINARY_LINKS PhBinaryTreeSearch(
     __in PPH_BINARY_TREE Tree,
     __in PPH_BINARY_LINKS Subject
+    );
+
+typedef struct _PH_AVL_LINKS
+{
+    struct _PH_AVL_LINKS *Parent;
+    struct _PH_AVL_LINKS *Left;
+    struct _PH_AVL_LINKS *Right;
+    LONG Balance;
+} PH_AVL_LINKS, *PPH_AVL_LINKS;
+
+struct _PH_AVL_TREE;
+
+typedef INT (NTAPI *PPH_AVL_TREE_COMPARE_FUNCTION)(
+    __in struct _PH_AVL_TREE *Tree,
+    __in PPH_AVL_LINKS Links1,
+    __in PPH_AVL_LINKS Links2
+    );
+
+typedef struct _PH_AVL_TREE
+{
+    PH_AVL_LINKS Root; // Right contains real root
+    PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction;
+    PVOID Context;
+} PH_AVL_TREE, *PPH_AVL_TREE;
+
+VOID PhInitializeAvlTree(
+    __out PPH_AVL_TREE Tree,
+    __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction,
+    __in PVOID Context
+    );
+
+PPH_AVL_LINKS PhAvlTreeAdd(
+    __inout PPH_AVL_TREE Tree,
+    __out PPH_AVL_LINKS Subject
+    );
+
+BOOLEAN PhAvlTreeRemove(
+    __inout PPH_AVL_TREE Tree,
+    __inout PPH_AVL_LINKS Subject
+    );
+
+PPH_AVL_LINKS PhAvlTreeSearch(
+    __in PPH_AVL_TREE Tree,
+    __in PPH_AVL_LINKS Subject
     );
 
 // handle 
