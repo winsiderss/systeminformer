@@ -313,6 +313,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\bintree.c"
+				>
+			</File>
+			<File
 				RelativePath=".\circbuf.c"
 				>
 			</File>

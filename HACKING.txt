@@ -158,6 +158,7 @@ PH_POINTER_LIST     Array                   Non-intrusive
 LIST_ENTRY          Stack                   Intrusive
 PH_QUEUE            Queue                   Non-intrusive
 LIST_ENTRY          Queue                   Intrusive
+PH_BINARY_LINKS     Binary tree             Intrusive
 RTL_AVL_TABLE       Binary tree (AVL)       Non-intrusive
 RTL_GENERIC_TABLE   Binary tree (splay)     Non-intrusive
 PH_HASHTABLE        Hashtable               Non-intrusive
