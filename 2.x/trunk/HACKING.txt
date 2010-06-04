@@ -146,6 +146,23 @@ Every thread start routine must have the following signature:
 
 Thread creation is done through the PhCreateThread function.
 
+==== Collections ====
+The collections available are summarized below:
+
+Name                Use                     Type
+------------------- ----------------------- ---------------
+PH_LIST             Array                   Non-intrusive
+LIST_ENTRY          Doubly linked list      Intrusive
+SLIST_ENTRY         Singly linked list      Intrusive
+PH_POINTER_LIST     Array                   Non-intrusive
+LIST_ENTRY          Stack                   Intrusive
+PH_QUEUE            Queue                   Non-intrusive
+LIST_ENTRY          Queue                   Intrusive
+RTL_AVL_TABLE       Binary tree (AVL)       Non-intrusive
+RTL_GENERIC_TABLE   Binary tree (splay)     Non-intrusive
+PH_HASHTABLE        Hashtable               Non-intrusive
+PH_CIRCULAR_BUFFER  Circular buffer         Non-intrusive
+
 ==== Synchronization ====
 The queued lock should be used for all synchronization, due to its 
 small size and good performance. The *Fast variants of the acquire/release 
