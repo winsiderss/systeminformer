@@ -1826,7 +1826,7 @@ PPH_BINARY_LINKS PhBinaryTreeAdd(
     __out PPH_BINARY_LINKS Subject
     );
 
-BOOLEAN PhBinaryTreeRemove(
+VOID PhBinaryTreeRemove(
     __inout PPH_BINARY_TREE Tree,
     __inout PPH_BINARY_LINKS Subject
     );
@@ -1870,7 +1870,7 @@ PPH_AVL_LINKS PhAvlTreeAdd(
     __out PPH_AVL_LINKS Subject
     );
 
-BOOLEAN PhAvlTreeRemove(
+VOID PhAvlTreeRemove(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Subject
     );
