@@ -160,6 +160,7 @@ PH_QUEUE            Queue                   Non-intrusive
 LIST_ENTRY          Queue                   Intrusive
 PH_BINARY_LINKS     Binary tree             Intrusive
 RTL_AVL_TABLE       Binary tree (AVL)       Non-intrusive
+PH_AVL_LINKS        Binary tree (AVL)       Intrusive
 RTL_GENERIC_TABLE   Binary tree (splay)     Non-intrusive
 PH_HASHTABLE        Hashtable               Non-intrusive
 PH_CIRCULAR_BUFFER  Circular buffer         Non-intrusive
