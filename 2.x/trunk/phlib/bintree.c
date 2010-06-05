@@ -24,15 +24,13 @@
 
 VOID PhInitializeBinaryTree(
     __out PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction,
-    __in PVOID Context
+    __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction
     )
 {
     Tree->Root.Parent = NULL;
     Tree->Root.Left = NULL;
     Tree->Root.Right = NULL;
     Tree->CompareFunction = CompareFunction;
-    Tree->Context = Context;
 }
 
 FORCEINLINE PPH_BINARY_LINKS PhpSearchBinaryTree(
@@ -55,7 +53,7 @@ FORCEINLINE PPH_BINARY_LINKS PhpSearchBinaryTree(
 
     while (TRUE)
     {
-        result = Tree->CompareFunction(Tree, Subject, links);
+        result = Tree->CompareFunction(Subject, links);
 
         if (result == 0)
         {
@@ -192,8 +190,7 @@ PPH_BINARY_LINKS PhBinaryTreeSearch(
 
 VOID PhInitializeAvlTree(
     __out PPH_AVL_TREE Tree,
-    __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction,
-    __in PVOID Context
+    __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
     )
 {
     Tree->Root.Parent = NULL;
@@ -201,7 +198,6 @@ VOID PhInitializeAvlTree(
     Tree->Root.Right = NULL;
     Tree->Root.Balance = 0;
     Tree->CompareFunction = CompareFunction;
-    Tree->Context = Context;
 }
 
 FORCEINLINE PPH_AVL_LINKS PhpSearchAvlTree(
@@ -224,7 +220,7 @@ FORCEINLINE PPH_AVL_LINKS PhpSearchAvlTree(
 
     while (TRUE)
     {
-        result = Tree->CompareFunction(Tree, Subject, links);
+        result = Tree->CompareFunction(Subject, links);
 
         if (result == 0)
         {
