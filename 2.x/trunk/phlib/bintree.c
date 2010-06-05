@@ -55,7 +55,7 @@ FORCEINLINE PPH_BINARY_LINKS PhpSearchBinaryTree(
 
     while (TRUE)
     {
-        result = Tree->CompareFunction(Tree, links, Subject);
+        result = Tree->CompareFunction(Tree, Subject, links);
 
         if (result == 0)
         {
@@ -118,7 +118,7 @@ PPH_BINARY_LINKS PhBinaryTreeAdd(
     return NULL;
 }
 
-BOOLEAN PhBinaryTreeRemove(
+VOID PhBinaryTreeRemove(
     __inout PPH_BINARY_TREE Tree,
     __inout PPH_BINARY_LINKS Subject
     )
@@ -145,11 +145,9 @@ BOOLEAN PhBinaryTreeRemove(
     }
     else
     {
-        LONG useLeft;
-
         // We replace the node with either its in-order successor or 
         // its in-order predecessor. This is done by copying the links.
-        if (useLeft & 0x9) // this may give us slightly random values, which is what we want
+        if ((ULONG_PTR)Subject & 0x6) // this may give us slightly random values, which is what we want
         {
             child = Subject->Left;
 
@@ -174,8 +172,6 @@ BOOLEAN PhBinaryTreeRemove(
         if (child->Right)
             child->Right->Parent = child;
     }
-
-    return TRUE;
 }
 
 PPH_BINARY_LINKS PhBinaryTreeSearch(
@@ -228,7 +224,7 @@ FORCEINLINE PPH_AVL_LINKS PhpSearchAvlTree(
 
     while (TRUE)
     {
-        result = Tree->CompareFunction(Tree, links, Subject);
+        result = Tree->CompareFunction(Tree, Subject, links);
 
         if (result == 0)
         {
@@ -321,6 +317,26 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
     PPH_AVL_LINKS Q;
     PPH_AVL_LINKS R;
 
+    //     P
+    //  |     |
+    //  A     Q
+    //      |   |
+    //      R   D
+    //     | |
+    //     B C
+    //
+    // becomes
+    //
+    //     R
+    //  |     |
+    //  P     Q
+    // | |   | |
+    // A B   C D
+    //
+    // P, Q, and R must exist.
+    // B and C may not exist.
+    // A and D are not affected.
+
     // PhpRotateRightAvlLinks(&(*Root)->Right);
     // PhpRotateLeftAvlLinks(Root);
 
@@ -337,7 +353,7 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
     *Root = R;
     R->Parent = P->Parent;
 
-    // Q.Left = R.Right
+    // Q.Left = R.Right (transfer C)
 
     Q->Left = R->Right;
 
@@ -349,7 +365,7 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
     R->Right = Q;
     Q->Parent = R;
 
-    // P.Right = R.Left
+    // P.Right = R.Left (transfer B)
 
     P->Right = R->Left;
 
@@ -416,6 +432,26 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
     PPH_AVL_LINKS Q;
     PPH_AVL_LINKS R;
 
+    //       P
+    //    |     |
+    //    Q     D
+    //  |   |
+    //  A   R
+    //     | |
+    //     B C
+    //
+    // becomes
+    //
+    //     R
+    //  |     |
+    //  Q     P
+    // | |   | |
+    // A B   C D
+    //
+    // P, Q, and R must exist.
+    // B and C may not exist.
+    // A and D are not affected.
+
     // PhpRotateLeftAvlLinks(&(*Root)->Left);
     // PhpRotateRightAvlLinks(Root);
 
@@ -432,7 +468,7 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
     *Root = R;
     R->Parent = P->Parent;
 
-    // Q.Right = R.Left
+    // Q.Right = R.Left (transfer B)
 
     Q->Right = R->Left;
 
@@ -444,7 +480,7 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
     R->Left = Q;
     Q->Parent = R;
 
-    // P.Left = R.Right
+    // P.Left = R.Right (transfer C)
 
     P->Left = R->Right;
 
@@ -465,6 +501,8 @@ ULONG PhpRebalanceAvlLinks(
     PPH_AVL_LINKS Q;
     PPH_AVL_LINKS R;
 
+    P = *Root;
+
     if (P->Balance == -1)
     {
         Q = P->Left;
@@ -484,9 +522,9 @@ ULONG PhpRebalanceAvlLinks(
         {
             // Left-right
 
-            PhpRotateRightTwiceAvlLinks(Root);
-
             R = Q->Right;
+
+            PhpRotateRightTwiceAvlLinks(Root);
 
             if (R->Balance == -1)
             {
@@ -510,11 +548,35 @@ ULONG PhpRebalanceAvlLinks(
         }
         else
         {
-            // Special (only happens when removing)
+            // Special (only occurs when removing)
+
+            //    D
+            //  |   |
+            //  B   E
+            // | |
+            // A C
+            //
+            // Removing E results in:
+            //
+            //    D
+            //  |
+            //  B
+            // | |
+            // A C
+            //
+            // which is unbalanced. Rotating right at B results in:
+            //
+            //   B
+            // |   |
+            // A   D
+            //    |
+            //    C
+            //
+            // The same applies for the mirror case.
 
             PhpRotateRightAvlLinks(Root);
 
-            Q->Balance = 0;
+            Q->Balance = 1;
 
             return 3;
         }
@@ -540,9 +602,9 @@ ULONG PhpRebalanceAvlLinks(
         {
             // Right-left
 
-            PhpRotateLeftTwiceAvlLinks(Root);
-
             R = Q->Left;
+
+            PhpRotateLeftTwiceAvlLinks(Root);
 
             if (R->Balance == -1)
             {
@@ -566,11 +628,11 @@ ULONG PhpRebalanceAvlLinks(
         }
         else
         {
-            // Special (only happens when removing)
+            // Special (only occurs when removing)
 
             PhpRotateLeftAvlLinks(Root);
 
-            Q->Balance = 0;
+            Q->Balance = -1;
 
             return 3;
         }
@@ -654,7 +716,7 @@ PPH_AVL_LINKS PhAvlTreeAdd(
     return NULL;
 }
 
-BOOLEAN PhAvlTreeRemove(
+VOID PhAvlTreeRemove(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Subject
     )
@@ -771,8 +833,6 @@ BOOLEAN PhAvlTreeRemove(
         if (newSubject->Right)
             newSubject->Right->Parent = newSubject;
     }
-
-    return TRUE;
 }
 
 PPH_AVL_LINKS PhAvlTreeSearch(
