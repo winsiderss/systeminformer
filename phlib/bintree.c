@@ -30,6 +30,7 @@ VOID PhInitializeBinaryTree(
     Tree->Root.Parent = NULL;
     Tree->Root.Left = NULL;
     Tree->Root.Right = NULL;
+    Tree->Count = 0;
     Tree->CompareFunction = CompareFunction;
 }
 
@@ -113,6 +114,8 @@ PPH_BINARY_LINKS PhBinaryTreeAdd(
     Subject->Left = NULL;
     Subject->Right = NULL;
 
+    Tree->Count++;
+
     return NULL;
 }
 
@@ -170,6 +173,8 @@ VOID PhBinaryTreeRemove(
         if (child->Right)
             child->Right->Parent = child;
     }
+
+    Tree->Count--;
 }
 
 PPH_BINARY_LINKS PhBinaryTreeSearch(
@@ -197,6 +202,8 @@ VOID PhInitializeAvlTree(
     Tree->Root.Left = NULL;
     Tree->Root.Right = NULL;
     Tree->Root.Balance = 0;
+    Tree->Count = 0;
+
     Tree->CompareFunction = CompareFunction;
 }
 
@@ -709,6 +716,8 @@ PPH_AVL_LINKS PhAvlTreeAdd(
         }
     }
 
+    Tree->Count++;
+
     return NULL;
 }
 
@@ -829,6 +838,8 @@ VOID PhAvlTreeRemove(
         if (newSubject->Right)
             newSubject->Right->Parent = newSubject;
     }
+
+    Tree->Count--;
 }
 
 PPH_AVL_LINKS PhAvlTreeSearch(
