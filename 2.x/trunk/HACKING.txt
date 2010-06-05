@@ -9,67 +9,6 @@ platform. Also make sure you have installed and set up the Windows
 SDK v7.0 properly on your system. (For more details see here:
 http://tinyurl.com/m92f7e)
 
-== Code structure ==
-Abstraction layers and their modules:
-
-* Base (base.h)
-
-* PH Base (phbase.h)
-  * NT definitions and imports (ntimport.h, ntimport.c)
-  * Object manager (ref.h, ref.c)
-  * Fast resource lock (fastlock.h, fastlock.c)
-  * Queued resource lock (queuedlock.h, queuedlock.c)
-  * Base support (basesup.c)
-    * Heap
-    * Mutex
-    * Event
-    * Rundown Protection
-    * String
-    * ANSI String
-    * String Builder
-    * List
-    * Pointer List
-    * Queue
-    * Hashtable
-    * Callback
-    * Callback Sync
-  * Base support with auto-dereference support (basesupa.c)
-    * String
-  * Work Queue (workqueue.c)
-
-* PH (ph.h)
-  * KProcessHacker (kph.h, kph.c)
-  * NT object support (native.c)
-  * LSA support (lsa.c)
-  * Mapped images (mapimg.c)
-  * Handle information (hndlinfo.c)
-  * Image verification (verify.c)
-  * Provider (provider.c)
-  * Symbol provider (symprv.c)
-  * Process provider (procprv.c)
-  * Service provider (srvprv.c)
-  * Module provider (modprv.c)
-  * Thread provider (thrdprv.c)
-  * Handle provider (hndlprv.c)
-  * General support (support.c)
-
-* PH GUI (phgui.h)
-  * Main (main.c)
-  * GUI support (guisup.c)
-    * List view
-    * Tab control
-    * Menu
-    * Layout manager
-
-* PH Application (phapp.h)
-  * Settings (settings.h, settings.c)
-  * Main window (mainwnd.c)
-  * Process properties (procprp.c)
-  * Security editor (secedit.c)
-  * Object security data (secdata.c)
-  * UI actions (actions.c)
-  * ...
-
 == Conventions ==
 
 ==== Names ====
@@ -87,7 +26,7 @@ All names must have an appropriate prefix (with some exceptions):
     "Ph" -> "Php", "Pha" -> "Phap".
   * Functions and global variables without a prefix must be declared 
     "static".
-    * "static" names must have a private prefix.
+    * "static" names must not have a public prefix.
     * Names with a private prefix do not have to be "static".
   * Structures without a prefix must be declared in a ".c" file. 
     Structures declared in a ".c" file may or may not have a prefix.
