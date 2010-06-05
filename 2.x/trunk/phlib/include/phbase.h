@@ -1810,6 +1810,8 @@ typedef INT (NTAPI *PPH_BINARY_TREE_COMPARE_FUNCTION)(
 typedef struct _PH_BINARY_TREE
 {
     PH_BINARY_LINKS Root; // Right contains real root
+    ULONG Count;
+
     PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction;
 } PH_BINARY_TREE, *PPH_BINARY_TREE;
 
@@ -1851,6 +1853,8 @@ typedef INT (NTAPI *PPH_AVL_TREE_COMPARE_FUNCTION)(
 typedef struct _PH_AVL_TREE
 {
     PH_AVL_LINKS Root; // Right contains real root
+    ULONG Count;
+
     PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction;
 } PH_AVL_TREE, *PPH_AVL_TREE;
 
