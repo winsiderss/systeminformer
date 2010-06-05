@@ -127,29 +127,21 @@ BOOLEAN PhBinaryTreeRemove(
     PPH_BINARY_LINKS child;
 
     if (Subject->Parent->Left == Subject)
-    {
         replace = &Subject->Parent->Left;
-    }
-    else if (Subject->Parent->Right == Subject)
-    {
-        replace = &Subject->Parent->Right;
-    }
     else
-    {
-        assert(FALSE);
-    }
+        replace = &Subject->Parent->Right;
 
-    if (!Subject->Left && !Subject->Right)
+    if (!Subject->Right)
     {
-        *replace = NULL;
+        *replace = Subject->Left;
+
+        if (Subject->Left)
+            Subject->Left->Parent = Subject->Parent;
     }
     else if (!Subject->Left)
     {
         *replace = Subject->Right;
-    }
-    else if (!Subject->Right)
-    {
-        *replace = Subject->Left;
+        Subject->Right->Parent = Subject->Parent; // we know Right exists
     }
     else
     {
@@ -176,6 +168,11 @@ BOOLEAN PhBinaryTreeRemove(
         child->Left = Subject->Left;
         child->Right = Subject->Right;
         *replace = child;
+
+        if (child->Left)
+            child->Left->Parent = child;
+        if (child->Right)
+            child->Right->Parent = child;
     }
 
     return TRUE;
@@ -460,13 +457,133 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
     P->Parent = R;
 }
 
+ULONG PhpRebalanceAvlLinks(
+    __deref_out PPH_AVL_LINKS *Root
+    )
+{
+    PPH_AVL_LINKS P;
+    PPH_AVL_LINKS Q;
+    PPH_AVL_LINKS R;
+
+    if (P->Balance == -1)
+    {
+        Q = P->Left;
+
+        if (Q->Balance == -1)
+        {
+            // Left-left
+
+            PhpRotateRightAvlLinks(Root);
+
+            P->Balance = 0;
+            Q->Balance = 0;
+
+            return 1;
+        }
+        else if (Q->Balance == 1)
+        {
+            // Left-right
+
+            PhpRotateRightTwiceAvlLinks(Root);
+
+            R = Q->Right;
+
+            if (R->Balance == -1)
+            {
+                P->Balance = 1;
+                Q->Balance = 0;
+            }
+            else if (R->Balance == 1)
+            {
+                P->Balance = 0;
+                Q->Balance = -1;
+            }
+            else
+            {
+                P->Balance = 0;
+                Q->Balance = 0;
+            }
+
+            R->Balance = 0;
+
+            return 2;
+        }
+        else
+        {
+            // Special (only happens when removing)
+
+            PhpRotateRightAvlLinks(Root);
+
+            Q->Balance = 0;
+
+            return 3;
+        }
+    }
+    else
+    {
+        PPH_AVL_LINKS Q;
+
+        Q = P->Right;
+
+        if (Q->Balance == 1)
+        {
+            // Right-right
+
+            PhpRotateLeftAvlLinks(Root);
+
+            P->Balance = 0;
+            Q->Balance = 0;
+
+            return 1;
+        }
+        else if (Q->Balance == -1)
+        {
+            // Right-left
+
+            PhpRotateLeftTwiceAvlLinks(Root);
+
+            R = Q->Left;
+
+            if (R->Balance == -1)
+            {
+                P->Balance = 0;
+                Q->Balance = 1;
+            }
+            else if (R->Balance == 1)
+            {
+                P->Balance = -1;
+                Q->Balance = 0;
+            }
+            else
+            {
+                P->Balance = 0;
+                Q->Balance = 0;
+            }
+
+            R->Balance = 0;
+
+            return 2;
+        }
+        else
+        {
+            // Special (only happens when removing)
+
+            PhpRotateLeftAvlLinks(Root);
+
+            Q->Balance = 0;
+
+            return 3;
+        }
+    }
+}
+
 PPH_AVL_LINKS PhAvlTreeAdd(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Subject
     )
 {
-    PPH_AVL_LINKS P;
     INT result;
+    PPH_AVL_LINKS P;
     PPH_AVL_LINKS root;
     LONG balance;
 
@@ -519,8 +636,6 @@ PPH_AVL_LINKS PhAvlTreeAdd(
         else
         {
             PPH_AVL_LINKS *ref;
-            PPH_AVL_LINKS Q;
-            PPH_AVL_LINKS R;
 
             // The balance is the same as the new balance, meaning 
             // it now becomes -2 or 2. Rotations are needed.
@@ -530,80 +645,7 @@ PPH_AVL_LINKS PhAvlTreeAdd(
             else
                 ref = &P->Parent->Right;
 
-            if (P->Balance == -1)
-            {
-                Q = P->Left;
-
-                if (Q->Balance == -1)
-                {
-                    PhpRotateRightAvlLinks(ref);
-
-                    P->Balance = 0;
-                    Q->Balance = 0;
-                }
-                else
-                {
-                    PhpRotateRightTwiceAvlLinks(ref);
-
-                    R = Q->Right;
-
-                    if (R->Balance == -1)
-                    {
-                        P->Balance = 1;
-                        Q->Balance = 0;
-                    }
-                    else if (R->Balance == 1)
-                    {
-                        P->Balance = 0;
-                        Q->Balance = -1;
-                    }
-                    else
-                    {
-                        P->Balance = 0;
-                        Q->Balance = 0;
-                    }
-
-                    R->Balance = 0;
-                }
-            }
-            else
-            {
-                PPH_AVL_LINKS Q;
-
-                Q = P->Right;
-
-                if (Q->Balance == 1)
-                {
-                    PhpRotateLeftAvlLinks(ref);
-
-                    P->Balance = 0;
-                    Q->Balance = 0;
-                }
-                else
-                {
-                    PhpRotateLeftTwiceAvlLinks(ref);
-
-                    R = Q->Left;
-
-                    if (R->Balance == -1)
-                    {
-                        P->Balance = 0;
-                        Q->Balance = 1;
-                    }
-                    else if (R->Balance == 1)
-                    {
-                        P->Balance = -1;
-                        Q->Balance = 0;
-                    }
-                    else
-                    {
-                        P->Balance = 0;
-                        Q->Balance = 0;
-                    }
-
-                    R->Balance = 0;
-                }
-            }
+            PhpRebalanceAvlLinks(ref);
 
             break;
         }
@@ -617,6 +659,119 @@ BOOLEAN PhAvlTreeRemove(
     __inout PPH_AVL_LINKS Subject
     )
 {
+    PPH_AVL_LINKS newSubject;
+    PPH_AVL_LINKS *replace;
+    PPH_AVL_LINKS P;
+    PPH_AVL_LINKS root;
+    LONG balance;
+
+    if (!Subject->Left || !Subject->Right)
+    {
+        newSubject = Subject;
+    }
+    else if (Subject->Balance < 0) // pick the side depending on the balance to minimize rebalances
+    {
+        newSubject = Subject->Right;
+
+        while (newSubject->Left)
+            newSubject = newSubject->Left;
+    }
+    else
+    {
+        newSubject = Subject->Left;
+
+        while (newSubject->Right)
+            newSubject = newSubject->Right;
+    }
+
+    if (newSubject->Parent->Left == newSubject)
+    {
+        replace = &newSubject->Parent->Left;
+        balance = -1;
+    }
+    else
+    {
+        replace = &newSubject->Parent->Right;
+        balance = 1;
+    }
+
+    if (!newSubject->Right)
+    {
+        *replace = newSubject->Left;
+
+        if (newSubject->Left)
+            newSubject->Left->Parent = newSubject->Parent;
+    }
+    else
+    {
+        *replace = newSubject->Right;
+        newSubject->Right->Parent = newSubject->Parent; // we know Right exists
+    }
+
+    P = newSubject->Parent;
+    root = &Tree->Root;
+
+    while (P != root)
+    {
+        if (P->Balance == balance)
+        {
+            // The balance is cancelled by the remove operation and becomes 0. 
+            // Rotations are not needed yet, but we should keep tracing upwards.
+
+            P->Balance = 0;
+        }
+        else if (P->Balance == 0)
+        {
+            // The balance is 0, so it now becomes -1 or 1.
+
+            P->Balance = -balance;
+
+            break;
+        }
+        else
+        {
+            PPH_AVL_LINKS *ref;
+
+            // The balance is the same as the new balance, meaning 
+            // it now becomes -2 or 2. Rotations are needed.
+
+            if (P->Parent->Left == P)
+                ref = &P->Parent->Left;
+            else
+                ref = &P->Parent->Right;
+
+            // We can stop tracing if we have a special case rotation.
+            if (PhpRebalanceAvlLinks(ref) == 3)
+                break;
+        }
+
+        if (P->Parent->Left == P)
+            balance = -1;
+        else
+            balance = 1;
+
+        P = P->Parent;
+    }
+
+    if (newSubject != Subject)
+    {
+        // Replace the subject with the new subject.
+
+        newSubject->Parent = Subject->Parent;
+        newSubject->Left = Subject->Left;
+        newSubject->Right = Subject->Right;
+
+        if (Subject->Parent->Left == Subject)
+            newSubject->Parent->Left = newSubject;
+        else
+            newSubject->Parent->Right = newSubject;
+
+        if (newSubject->Left)
+            newSubject->Left->Parent = newSubject;
+        if (newSubject->Right)
+            newSubject->Right->Parent = newSubject;
+    }
+
     return TRUE;
 }
 
