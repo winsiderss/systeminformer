@@ -100,6 +100,14 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoOtherDelta; // volatile
 
     VM_COUNTERS_EX VmCounters; // volatile
+
+    PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
+    PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 IoWriteHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 IoOtherHistory;
+    PH_CIRCULAR_BUFFER_SIZE_T PrivateMemoryHistory; // in pages
+    PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory; // in pages
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhProcessProviderInitialization();

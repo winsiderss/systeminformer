@@ -168,14 +168,6 @@ INT CALLBACK PhpPropSheetProc(
             WNDPROC oldWndProc;
             PPH_LAYOUT_MANAGER layoutManager;
 
-            // Disable multiple rows.
-            // TODO: Add support for multiple rows
-            PhSetWindowStyle(
-                PropSheet_GetTabControl(hwndDlg),
-                TCS_MULTILINE | TCS_SINGLELINE,
-                TCS_SINGLELINE
-                );
-
             oldWndProc = (WNDPROC)GetWindowLongPtr(hwndDlg, GWLP_WNDPROC);
             SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)PhpPropSheetWndProc);
             SetProp(hwndDlg, L"OldWndProc", (HANDLE)oldWndProc);
@@ -207,6 +199,8 @@ LRESULT CALLBACK PhpPropSheetWndProc(
 
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             RemoveProp(hwnd, L"OldWndProc");
+
+            RemoveProp(hwnd, L"TabPageItem");
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
@@ -243,46 +237,6 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             }
         }
         break;
-    case WM_SHOWWINDOW:
-        {
-            if (!GetProp(hwnd, L"LayoutInitialized"))
-            {
-                PPH_LAYOUT_MANAGER layoutManager;
-
-                layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
-
-                PhAddLayoutItem(layoutManager, PropSheet_GetTabControl(hwnd),
-                    NULL, PH_ANCHOR_ALL);
-                PhAddLayoutItem(layoutManager, GetDlgItem(hwnd, IDCANCEL),
-                    NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-                // Hide the OK button.
-                ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
-                // Set the Cancel button's text to "Close".
-                SetDlgItemText(hwnd, IDCANCEL, L"Close");
-
-                {
-                    PH_RECTANGLE windowRectangle;
-
-                    windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
-                    windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
-                    PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
-
-                    MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
-                        windowRectangle.Width, windowRectangle.Height, FALSE);
-
-                    // Implement cascading by saving an offsetted rectangle.
-                    windowRectangle.Left += 20;
-                    windowRectangle.Top += 20;
-
-                    PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
-                    PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
-                }
-
-                SetProp(hwnd, L"LayoutInitialized", (HANDLE)TRUE);
-            }
-        }
-        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))
@@ -311,6 +265,64 @@ LRESULT CALLBACK PhpPropSheetWndProc(
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+BOOLEAN PhpInitializePropSheetLayoutStage1(
+    __in HWND hwnd
+    )
+{
+    if (!GetProp(hwnd, L"LayoutInitialized"))
+    {
+        PPH_LAYOUT_MANAGER layoutManager;
+        HWND tabControlHandle;
+        PPH_LAYOUT_ITEM tabControlItem;
+        PPH_LAYOUT_ITEM tabPageItem;
+
+        layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwnd, L"LayoutManager");
+
+        tabControlHandle = PropSheet_GetTabControl(hwnd);
+        tabControlItem = PhAddLayoutItem(layoutManager, tabControlHandle,
+            NULL, PH_ANCHOR_ALL);
+        tabPageItem = PhAddLayoutItem(layoutManager, tabControlHandle,
+            NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
+
+        SetProp(hwnd, L"TabPageItem", (HANDLE)tabPageItem);
+
+        PhAddLayoutItem(layoutManager, GetDlgItem(hwnd, IDCANCEL),
+            NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+        // Hide the OK button.
+        ShowWindow(GetDlgItem(hwnd, IDOK), SW_HIDE);
+        // Set the Cancel button's text to "Close".
+        SetDlgItemText(hwnd, IDCANCEL, L"Close");
+
+        SetProp(hwnd, L"LayoutInitialized", (HANDLE)TRUE);
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhpInitializePropSheetLayoutStage2(
+    __in HWND hwnd
+    )
+{
+    PH_RECTANGLE windowRectangle;
+
+    windowRectangle.Position = PhGetIntegerPairSetting(L"ProcPropPosition");
+    windowRectangle.Size = PhGetIntegerPairSetting(L"ProcPropSize");
+    PhAdjustRectangleToWorkingArea(hwnd, &windowRectangle);
+
+    MoveWindow(hwnd, windowRectangle.Left, windowRectangle.Top,
+        windowRectangle.Width, windowRectangle.Height, FALSE);
+
+    // Implement cascading by saving an offsetted rectangle.
+    windowRectangle.Left += 20;
+    windowRectangle.Top += 20;
+
+    PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
+    PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
 }
 
 BOOLEAN PhAddProcessPropPage(
@@ -462,35 +474,57 @@ PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
 {
     HWND parent;
     PPH_LAYOUT_MANAGER layoutManager;
+    PPH_LAYOUT_ITEM realParentItem;
+    BOOLEAN doLayoutStage2;
+    PPH_LAYOUT_ITEM item;
 
     parent = GetParent(hwnd);
     layoutManager = (PPH_LAYOUT_MANAGER)GetProp(parent, L"LayoutManager");
 
-    // Use the hack if the control is a child of the dialog.
-    if (ParentItem && ParentItem->ParentItem == &layoutManager->RootItem)
+    doLayoutStage2 = PhpInitializePropSheetLayoutStage1(parent);
+
+    if (ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT)
+        realParentItem = ParentItem;
+    else
+        realParentItem = (PPH_LAYOUT_ITEM)GetProp(parent, L"TabPageItem");
+
+    // Use the HACK if the control is a direct child of the dialog.
+    if (ParentItem && ParentItem != PH_PROP_PAGE_TAB_CONTROL_PARENT &&
+        // We detect if ParentItem is the layout item for the dialog 
+        // by looking at its parent.
+        (ParentItem->ParentItem == &layoutManager->RootItem || 
+        (ParentItem->ParentItem->Anchor & PH_LAYOUT_TAB_CONTROL)))
     {
-        RECT dialogSize;
         RECT dialogRect;
+        RECT dialogSize;
         RECT margin;
 
-        GetWindowRect(hwnd, &dialogRect);
         // MAKE SURE THESE NUMBERS ARE CORRECT.
         dialogSize.right = 240;
         dialogSize.bottom = 260;
         MapDialogRect(hwnd, &dialogSize);
+
+        // Get the original dialog rectangle.
+        GetWindowRect(hwnd, &dialogRect);
         dialogRect.right = dialogRect.left + dialogSize.right;
         dialogRect.bottom = dialogRect.top + dialogSize.bottom;
 
+        // Calculate the margin from the original rectangle.
         GetWindowRect(Handle, &margin);
         margin = PhMapRect(margin, dialogRect);
         PhConvertRect(&margin, &dialogRect);
 
-        return PhAddLayoutItemEx(layoutManager, Handle, ParentItem, Anchor, margin);
+        item = PhAddLayoutItemEx(layoutManager, Handle, realParentItem, Anchor, margin);
     }
     else
     {
-        return PhAddLayoutItem(layoutManager, Handle, ParentItem, Anchor);
+        item = PhAddLayoutItem(layoutManager, Handle, realParentItem, Anchor);
     }
+
+    if (doLayoutStage2)
+        PhpInitializePropSheetLayoutStage2(parent);
+
+    return item;
 }
 
 VOID PhpDoPropPageLayout(
@@ -784,7 +818,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
@@ -912,6 +947,68 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 }
                 break;
             }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    LPPROPSHEETPAGE propSheetPage;
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PPH_PROCESS_ITEM processItem;
+
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+        &propSheetPage, &propPageContext, &processItem))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
     }
@@ -1490,7 +1587,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
@@ -1997,7 +2095,8 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
 
                 // This is a big violation of abstraction...
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USER),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USERSID),
@@ -2287,7 +2386,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
@@ -2679,7 +2779,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
@@ -2775,7 +2876,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
@@ -3092,7 +3194,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
@@ -3452,7 +3555,8 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
 
                 // This is a big violation of abstraction...
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
@@ -3683,7 +3787,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg, NULL, PH_ANCHOR_ALL);
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
@@ -3830,6 +3935,22 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     newPage = PhCreateProcessPropPageContext(
         MAKEINTRESOURCE(IDD_PROCGENERAL),
         PhpProcessGeneralDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+
+    // Statistics
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCSTATISTICS),
+        PhpProcessStatisticsDlgProc,
+        NULL
+        );
+    PhAddProcessPropPage(PropContext, newPage);
+
+    // Performance
+    newPage = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_PROCPERFORMANCE),
+        PhpProcessPerformanceDlgProc,
         NULL
         );
     PhAddProcessPropPage(PropContext, newPage);

@@ -3,6 +3,7 @@
 
 #include <phgui.h>
 #include <treelist.h>
+#include <circbuf.h>
 #include <providers.h>
 #include "resource.h"
 
