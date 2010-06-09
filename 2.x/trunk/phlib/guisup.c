@@ -611,6 +611,7 @@ VOID PhInitializeLayoutManager(
     GetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect);
     Manager->RootItem.OrigRect = Manager->RootItem.Rect;
     Manager->RootItem.ParentItem = NULL;
+    Manager->RootItem.LayoutParentItem = NULL;
     Manager->RootItem.LayoutNumber = 0;
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
@@ -628,10 +629,13 @@ VOID PhDeleteLayoutManager(
     PhDereferenceObject(Manager->List);
 }
 
+// HACK: The maths below is all horribly broken, especially the HACK for multiline tab 
+// controls.
+
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
+    __in_opt PPH_LAYOUT_ITEM ParentItem,
     __in ULONG Anchor
     )
 {
@@ -649,13 +653,23 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
     layoutItem->Margin = layoutItem->Rect;
     PhConvertRect(&layoutItem->Margin, &layoutItem->ParentItem->Rect);
 
+    if (layoutItem->ParentItem != layoutItem->LayoutParentItem)
+    {
+        // Fix the margin because the item has a dummy parent. They share 
+        // the same layout parent item.
+        layoutItem->Margin.top -= layoutItem->ParentItem->Rect.top;
+        layoutItem->Margin.left -= layoutItem->ParentItem->Rect.left;
+        layoutItem->Margin.right = layoutItem->ParentItem->Margin.right;
+        layoutItem->Margin.bottom = layoutItem->ParentItem->Margin.bottom;
+    }
+
     return layoutItem;
 }
 
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
+    __in_opt PPH_LAYOUT_ITEM ParentItem,
     __in ULONG Anchor,
     __in RECT Margin
     )
@@ -673,10 +687,24 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     item->DeferHandle = NULL;
     item->Anchor = Anchor;
 
-    item->ParentItem->NumberOfChildren++;
+    item->LayoutParentItem = item->ParentItem;
+
+    while ((item->LayoutParentItem->Anchor & PH_LAYOUT_DUMMY_MASK) &&
+        item->LayoutParentItem->LayoutParentItem)
+    {
+        item->LayoutParentItem = item->LayoutParentItem->LayoutParentItem;
+    }
+
+    item->LayoutParentItem->NumberOfChildren++;
 
     GetWindowRect(Handle, &item->Rect);
-    MapWindowPoints(NULL, item->ParentItem->Handle, (POINT *)&item->Rect, 2);
+    MapWindowPoints(NULL, item->LayoutParentItem->Handle, (POINT *)&item->Rect, 2);
+
+    if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
+    {
+        // We want to convert the tab control rectangle to the tab page display rectangle.
+        TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
+    }
 
     item->Margin = Margin;
 
@@ -693,6 +721,7 @@ VOID PhpLayoutItemLayout(
     )
 {
     RECT rect;
+    BOOLEAN hasDummyParent;
 
     if (Item->NumberOfChildren > 0 && !Item->DeferHandle)
         Item->DeferHandle = BeginDeferWindowPos(Item->NumberOfChildren);
@@ -706,66 +735,86 @@ VOID PhpLayoutItemLayout(
 
     PhpLayoutItemLayout(Manager, Item->ParentItem);
 
+    if (Item->ParentItem != Item->LayoutParentItem)
+    {
+        PhpLayoutItemLayout(Manager, Item->LayoutParentItem);
+        hasDummyParent = TRUE;
+    }
+    else
+    {
+        hasDummyParent = FALSE;
+    }
+
     GetWindowRect(Item->Handle, &Item->Rect);
-    MapWindowPoints(NULL, Item->ParentItem->Handle, (POINT *)&Item->Rect, 2);
+    MapWindowPoints(NULL, Item->LayoutParentItem->Handle, (POINT *)&Item->Rect, 2);
 
-    // Convert right/bottom into margins to make the calculations 
-    // easier.
-    rect = Item->Rect;
-    PhConvertRect(&rect, &Item->ParentItem->Rect);
-
-    if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
+    if (Item->Anchor & PH_LAYOUT_TAB_CONTROL)
     {
-        // TODO
-        PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
-    }
-    else if (Item->Anchor & PH_ANCHOR_RIGHT)
-    {
-        if (Item->Anchor & PH_ANCHOR_LEFT)
-        {
-            rect.left = Item->Margin.left;
-            rect.right = Item->Margin.right;
-        }
-        else
-        {
-            ULONG diff = Item->Margin.right - rect.right;
-
-            rect.left -= diff;
-            rect.right += diff;
-        }
+        // We want to convert the tab control rectangle to the tab page display rectangle.
+        TabCtrl_AdjustRect(Item->Handle, FALSE, &Item->Rect);
     }
 
-    if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
+    if (!(Item->Anchor & PH_LAYOUT_DUMMY_MASK))
     {
-        // TODO
-        PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
-    }
-    else if (Item->Anchor & PH_ANCHOR_BOTTOM)
-    {
-        if (Item->Anchor & PH_ANCHOR_TOP)
+        // Convert right/bottom into margins to make the calculations 
+        // easier.
+        rect = Item->Rect;
+        PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
+
+        if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
         {
-            rect.top = Item->Margin.top;
-            rect.bottom = Item->Margin.bottom;
+            // TODO
+            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
         }
-        else
+        else if (Item->Anchor & PH_ANCHOR_RIGHT)
         {
-            ULONG diff = Item->Margin.bottom - rect.bottom;
+            if (Item->Anchor & PH_ANCHOR_LEFT)
+            {
+                rect.left = (hasDummyParent ? Item->ParentItem->Rect.left : 0) + Item->Margin.left;
+                rect.right = Item->Margin.right;
+            }
+            else
+            {
+                ULONG diff = Item->Margin.right - rect.right;
 
-            rect.top -= diff;
-            rect.bottom += diff;
+                rect.left -= diff;
+                rect.right += diff;
+            }
         }
+
+        if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
+        {
+            // TODO
+            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+        }
+        else if (Item->Anchor & PH_ANCHOR_BOTTOM)
+        {
+            if (Item->Anchor & PH_ANCHOR_TOP)
+            {
+                // tab control hack
+                rect.top = (hasDummyParent ? Item->ParentItem->Rect.top : 0) + Item->Margin.top;
+                rect.bottom = Item->Margin.bottom;
+            }
+            else
+            {
+                ULONG diff = Item->Margin.bottom - rect.bottom;
+
+                rect.top -= diff;
+                rect.bottom += diff;
+            }
+        }
+
+        // Convert the right/bottom back into co-ordinates.
+        PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
+        Item->Rect = rect;
+
+        Item->LayoutParentItem->DeferHandle = DeferWindowPos(
+            Item->LayoutParentItem->DeferHandle, Item->Handle,
+            NULL, rect.left, rect.top,
+            rect.right - rect.left, rect.bottom - rect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER
+            );
     }
-
-    // Convert the right/bottom back into co-ordinates.
-    PhConvertRect(&rect, &Item->ParentItem->Rect);
-    Item->Rect = rect;
-
-    Item->ParentItem->DeferHandle = DeferWindowPos(
-        Item->ParentItem->DeferHandle, Item->Handle,
-        NULL, rect.left, rect.top,
-        rect.right - rect.left, rect.bottom - rect.top,
-        SWP_NOACTIVATE | SWP_NOZORDER
-        );
 
     Item->LayoutNumber = Manager->LayoutNumber;
 }
@@ -797,7 +846,7 @@ VOID PhLayoutManagerLayout(
             item->DeferHandle = NULL;
         }
 
-        if (item->Anchor & PH_FORCE_INVALIDATE)
+        if (item->Anchor & PH_LAYOUT_FORCE_INVALIDATE)
         {
             InvalidateRect(item->Handle, NULL, FALSE);
         }
