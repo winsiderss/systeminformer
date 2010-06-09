@@ -13,6 +13,7 @@
 #define IDD_THRDSTACK                   108
 #define IDR_THREAD                      110
 #define IDR_HANDLE                      111
+#define IDC_LAYOUTDUMMY                 111
 #define IDR_MODULE                      112
 #define IDD_TERMINATOR                  114
 #define IDB_CROSS                       117
@@ -66,6 +67,8 @@
 #define IDD_CHOOSECOLUMNS               166
 #define IDD_NETSTACK                    167
 #define IDD_CREATESERVICE               168
+#define IDD_PROCPERFORMANCE             169
+#define IDD_PROCSTATISTICS              170
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -264,7 +267,6 @@
 #define IDC_LIST2                       1175
 #define IDC_MOVEDOWN                    1176
 #define IDC_DISPLAYNAME                 1179
-#define IDC_DISPLAYNAME2                1180
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -422,9 +424,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        169
+#define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40168
 #define _APS_NEXT_CONTROL_VALUE         1181
-#define _APS_NEXT_SYMED_VALUE           111
+#define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif

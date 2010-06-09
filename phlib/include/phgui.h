@@ -405,12 +405,16 @@ VOID PhImageListWrapperRemove(
 #define PH_ANCHOR_BOTTOM 0x8
 #define PH_ANCHOR_ALL 0xf
 
-#define PH_FORCE_INVALIDATE 0x1000
+#define PH_LAYOUT_FORCE_INVALIDATE 0x1000 // invalidate the control when it is resized
+#define PH_LAYOUT_TAB_CONTROL 0x2000 // this is a dummy item, a hack for the tab control
+
+#define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // determines which items don't get resized at all; just dummy
 
 typedef struct _PH_LAYOUT_ITEM
 {
     HWND Handle;
-    struct _PH_LAYOUT_ITEM *ParentItem;
+    struct _PH_LAYOUT_ITEM *ParentItem; // for rectangle calculation
+    struct _PH_LAYOUT_ITEM *LayoutParentItem; // for actual resizing
     ULONG LayoutNumber;
     ULONG NumberOfChildren;
     HDWP DeferHandle;
@@ -441,14 +445,14 @@ VOID PhDeleteLayoutManager(
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
+    __in_opt PPH_LAYOUT_ITEM ParentItem,
     __in ULONG Anchor
     );
 
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
-    __in PPH_LAYOUT_ITEM ParentItem,
+    __in_opt PPH_LAYOUT_ITEM ParentItem,
     __in ULONG Anchor,
     __in RECT Margin
     );

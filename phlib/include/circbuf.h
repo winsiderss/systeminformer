@@ -12,6 +12,14 @@
 #include "circbuf_h.h"
 
 #undef T
+#define T PVOID
+#include "circbuf_h.h"
+
+#undef T
+#define T SIZE_T
+#include "circbuf_h.h"
+
+#undef T
 #define T FLOAT
 #include "circbuf_h.h"
 
