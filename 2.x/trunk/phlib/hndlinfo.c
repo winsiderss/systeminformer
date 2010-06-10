@@ -1147,7 +1147,13 @@ BOOLEAN PhpHeadQueryObjectHack()
 
     if (!PhQueryObjectStartEvent)
     {
-        if (!(PhQueryObjectStartEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+        if (!NT_SUCCESS(NtCreateEvent(
+            &PhQueryObjectStartEvent,
+            EVENT_ALL_ACCESS,
+            NULL,
+            SynchronizationEvent,
+            FALSE
+            )))
         {
             PhReleaseMutex(&PhQueryObjectMutex);
             return FALSE;
@@ -1156,7 +1162,13 @@ BOOLEAN PhpHeadQueryObjectHack()
 
     if (!PhQueryObjectCompletedEvent)
     {
-        if (!(PhQueryObjectCompletedEvent = CreateEvent(NULL, FALSE, FALSE, NULL)))
+        if (!NT_SUCCESS(NtCreateEvent(
+            &PhQueryObjectCompletedEvent,
+            EVENT_ALL_ACCESS,
+            NULL,
+            SynchronizationEvent,
+            FALSE
+            )))
         {
             PhReleaseMutex(&PhQueryObjectMutex);
             return FALSE;
