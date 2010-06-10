@@ -235,7 +235,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_NT(status);
 
-    sdLength = GetSecurityDescriptorLength(securityDescriptor);
+    sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
     newSd = LocalAlloc(0, sdLength);
     memcpy(newSd, securityDescriptor, sdLength);
     PhFree(securityDescriptor);
@@ -409,7 +409,7 @@ NTSTATUS PhGetSeObjectSecurity(
 
     *SecurityDescriptor = PhAllocateCopy(
         securityDescriptor,
-        GetSecurityDescriptorLength(securityDescriptor)
+        RtlLengthSecurityDescriptor(securityDescriptor)
         );
     LocalFree(securityDescriptor);
 
@@ -425,7 +425,7 @@ NTSTATUS PhSetSeObjectSecurity(
 {
     ULONG win32Result;
     SECURITY_INFORMATION securityInformation = 0;
-    BOOL dummy;
+    BOOLEAN dummy;
     PSID owner = NULL;
     PSID group = NULL;
     PACL dacl = NULL;
@@ -433,25 +433,25 @@ NTSTATUS PhSetSeObjectSecurity(
 
     if (SecurityInformation & OWNER_SECURITY_INFORMATION)
     {
-        if (GetSecurityDescriptorOwner(SecurityDescriptor, &owner, &dummy))
+        if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &dummy)))
             securityInformation |= OWNER_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & GROUP_SECURITY_INFORMATION)
     {
-        if (GetSecurityDescriptorGroup(SecurityDescriptor, &group, &dummy))
+        if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &dummy)))
             securityInformation |= GROUP_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & DACL_SECURITY_INFORMATION)
     {
-        if (GetSecurityDescriptorDacl(SecurityDescriptor, &dummy, &dacl, &dummy))
+        if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &dummy, &dacl, &dummy)))
             securityInformation |= DACL_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & SACL_SECURITY_INFORMATION)
     {
-        if (GetSecurityDescriptorSacl(SecurityDescriptor, &dummy, &sacl, &dummy))
+        if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &dummy, &sacl, &dummy)))
             securityInformation |= SACL_SECURITY_INFORMATION;
     }
 

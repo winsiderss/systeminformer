@@ -255,6 +255,7 @@ typedef struct _STOPWATCH
 {
     LARGE_INTEGER StartCounter;
     LARGE_INTEGER EndCounter;
+    LARGE_INTEGER Frequency;
 } STOPWATCH, *PSTOPWATCH;
 
 static VOID PhInitializeStopwatch(
@@ -269,14 +270,14 @@ static VOID PhStartStopwatch(
     __inout PSTOPWATCH Stopwatch
     )
 {
-    QueryPerformanceCounter(&Stopwatch->StartCounter);
+    NtQueryPerformanceCounter(&Stopwatch->StartCounter, &Stopwatch->Frequency);
 }
 
 static VOID PhStopStopwatch(
     __inout PSTOPWATCH Stopwatch
     )
 {
-    QueryPerformanceCounter(&Stopwatch->EndCounter);
+    NtQueryPerformanceCounter(&Stopwatch->EndCounter, NULL);
 }
 
 static ULONG PhGetMillisecondsStopwatch(
@@ -285,7 +286,7 @@ static ULONG PhGetMillisecondsStopwatch(
 {
     LARGE_INTEGER countsPerMs;
 
-    QueryPerformanceFrequency(&countsPerMs);
+    countsPerMs = Stopwatch->Frequency;
     countsPerMs.QuadPart /= 1000;
 
     return (ULONG)((Stopwatch->EndCounter.QuadPart - Stopwatch->StartCounter.QuadPart) /
