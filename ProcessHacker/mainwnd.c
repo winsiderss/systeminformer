@@ -210,6 +210,7 @@ BOOLEAN PhMainWndInitialization(
         {
             PhSetTokenPrivilege(tokenHandle, L"SeDebugPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeIncreaseBasePriorityPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege(tokenHandle, L"SeIncreaseWorkingSetPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeLoadDriverPrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
             PhSetTokenPrivilege(tokenHandle, L"SeShutdownPrivilege", NULL, SE_PRIVILEGE_ENABLED);

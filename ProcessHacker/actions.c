@@ -933,7 +933,6 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
     for (i = 0; i < NumberOfProcesses; i++)
     {
         NTSTATUS status;
-        ULONG win32Result = 0;
         HANDLE processHandle;
 
         if (NT_SUCCESS(status = PhOpenProcess(
@@ -942,17 +941,27 @@ BOOLEAN PhUiReduceWorkingSetProcesses(
             Processes[i]->ProcessId
             )))
         {
-            if (!SetProcessWorkingSetSize(processHandle, -1, -1))
-                win32Result = GetLastError();
+            QUOTA_LIMITS quotaLimits;
+
+            memset(&quotaLimits, 0, sizeof(QUOTA_LIMITS));
+            quotaLimits.MinimumWorkingSetSize = -1;
+            quotaLimits.MaximumWorkingSetSize = -1;
+
+            status = NtSetInformationProcess(
+                processHandle,
+                ProcessQuotaLimits,
+                &quotaLimits,
+                sizeof(QUOTA_LIMITS)
+                );
 
             NtClose(processHandle);
         }
 
-        if (!NT_SUCCESS(status) || win32Result)
+        if (!NT_SUCCESS(status))
         {
             success = FALSE;
 
-            if (!PhpShowErrorProcess(hWnd, L"reduce the working set of", Processes[i], status, win32Result))
+            if (!PhpShowErrorProcess(hWnd, L"reduce the working set of", Processes[i], status, 0))
                 break;
         }
     }
