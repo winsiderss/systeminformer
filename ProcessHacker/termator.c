@@ -562,12 +562,21 @@ static NTSTATUS NTAPI TerminatorM1(
         )))
     {
         PVOID pageOfGarbage;
+        SIZE_T pageSize;
         PVOID baseAddress;
         MEMORY_BASIC_INFORMATION basicInfo;
 
-        pageOfGarbage = VirtualAlloc(NULL, PAGE_SIZE, MEM_COMMIT, PAGE_READONLY);
+        pageOfGarbage = NULL;
+        pageSize = PAGE_SIZE;
 
-        if (!pageOfGarbage)
+        if (!NT_SUCCESS(NtAllocateVirtualMemory(
+            NtCurrentProcess(),
+            &pageOfGarbage,
+            0,
+            &pageSize,
+            MEM_COMMIT,
+            PAGE_READONLY
+            )))
         {
             NtClose(processHandle);
             return STATUS_INSUFFICIENT_RESOURCES;
@@ -575,12 +584,14 @@ static NTSTATUS NTAPI TerminatorM1(
 
         baseAddress = (PVOID)0;
 
-        while (VirtualQueryEx(
+        while (NT_SUCCESS(NtQueryVirtualMemory(
             processHandle,
             baseAddress,
+            MemoryBasicInformation,
             &basicInfo,
-            sizeof(MEMORY_BASIC_INFORMATION)
-            ))
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            )))
         {
             ULONG i;
 
@@ -603,7 +614,14 @@ static NTSTATUS NTAPI TerminatorM1(
             baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
         }
 
-        VirtualFree(pageOfGarbage, 0, MEM_RELEASE); 
+        // Size needs to be zero if we're freeing.
+        pageSize = 0;
+        NtFreeVirtualMemory(
+            NtCurrentProcess(),
+            &pageOfGarbage,
+            &pageSize,
+            MEM_RELEASE
+            );
 
         NtClose(processHandle);
     }
@@ -630,14 +648,25 @@ static NTSTATUS NTAPI TerminatorM2(
 
         baseAddress = (PVOID)0;
 
-        while (VirtualQueryEx(
+        while (NT_SUCCESS(NtQueryVirtualMemory(
             processHandle,
             baseAddress,
+            MemoryBasicInformation,
             &basicInfo,
-            sizeof(MEMORY_BASIC_INFORMATION)
-            ))
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            )))
         {
-            VirtualProtectEx(processHandle, baseAddress, basicInfo.RegionSize, PAGE_NOACCESS, &oldProtect);
+            SIZE_T regionSize;
+
+            regionSize = basicInfo.RegionSize;
+            NtProtectVirtualMemory(
+                processHandle,
+                &basicInfo.BaseAddress,
+                &regionSize,
+                PAGE_NOACCESS,
+                &oldProtect
+                );
             baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
         }
 
