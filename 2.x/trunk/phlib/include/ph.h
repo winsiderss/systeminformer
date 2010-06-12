@@ -1214,9 +1214,9 @@ VERIFY_RESULT PhVerifyFile(
 
 // provider
 
-#ifndef PROVIDER_PRIVATE
+#if !defined(PROVIDER_PRIVATE) && defined(DEBUG)
 extern LIST_ENTRY PhDbgProviderListHead;
-extern PH_FAST_LOCK PhDbgProviderListLock;
+extern PH_QUEUED_LOCK PhDbgProviderListLock;
 #endif
 
 typedef enum _PH_PROVIDER_THREAD_STATE

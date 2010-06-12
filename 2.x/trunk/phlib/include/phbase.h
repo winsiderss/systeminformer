@@ -91,12 +91,10 @@ typedef struct _PHP_BASE_THREAD_DBG
 } PHP_BASE_THREAD_DBG, *PPHP_BASE_THREAD_DBG;
 #endif
 
-#ifndef BASESUP_PRIVATE
-#ifdef DEBUG
+#if !defined(BASESUP_PRIVATE) && defined(DEBUG)
 extern ULONG PhDbgThreadDbgTlsIndex;
 extern LIST_ENTRY PhDbgThreadListHead;
-extern PH_FAST_LOCK PhDbgThreadListLock;
-#endif
+extern PH_QUEUED_LOCK PhDbgThreadListLock;
 #endif
 
 HANDLE PhCreateThread(
@@ -2005,8 +2003,16 @@ NTSTATUS PhSetInformationHandleTable(
 
 // workqueue
 
+#if !defined(WORKQUEUE_PRIVATE) && defined(DEBUG)
+extern LIST_ENTRY PhDbgWorkQueueListHead;
+extern PH_QUEUED_LOCK PhDbgWorkQueueListLock;
+#endif
+
 typedef struct _PH_WORK_QUEUE
 {
+#ifdef DEBUG
+    LIST_ENTRY DbgListEntry;
+#endif
     PH_RUNDOWN_PROTECT RundownProtect;
     BOOLEAN Terminating;
 
@@ -2022,6 +2028,13 @@ typedef struct _PH_WORK_QUEUE
     ULONG CurrentThreads;
     ULONG BusyThreads;
 } PH_WORK_QUEUE, *PPH_WORK_QUEUE;
+
+typedef struct _PH_WORK_QUEUE_ITEM
+{
+    LIST_ENTRY ListEntry;
+    PTHREAD_START_ROUTINE Function;
+    PVOID Context;
+} PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
 
 VOID PhWorkQueueInitialization();
 

@@ -20,14 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define WORKQUEUE_PRIVATE
 #include <phbase.h>
-
-typedef struct _PH_WORK_QUEUE_ITEM
-{
-    LIST_ENTRY ListEntry;
-    PTHREAD_START_ROUTINE Function;
-    PVOID Context;
-} PH_WORK_QUEUE_ITEM, *PPH_WORK_QUEUE_ITEM;
 
 NTSTATUS PhpWorkQueueThreadStart(
     __in PVOID Parameter
@@ -36,11 +30,19 @@ NTSTATUS PhpWorkQueueThreadStart(
 PH_FREE_LIST PhWorkQueueItemFreeList;
 PH_WORK_QUEUE PhGlobalWorkQueue;
 PH_INITONCE PhGlobalWorkQueueInitOnce;
+#ifdef DEBUG
+LIST_ENTRY PhDbgWorkQueueListHead;
+PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
+#endif
 
 VOID PhWorkQueueInitialization()
 {
     PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
     PhInitializeInitOnce(&PhGlobalWorkQueueInitOnce);
+
+#ifdef DEBUG
+    InitializeListHead(&PhDbgWorkQueueListHead);
+#endif
 }
 
 VOID PhInitializeWorkQueue(
@@ -65,6 +67,12 @@ VOID PhInitializeWorkQueue(
     NtCreateSemaphore(&WorkQueue->SemaphoreHandle, SEMAPHORE_ALL_ACCESS, NULL, 0, MAXLONG);
     WorkQueue->CurrentThreads = 0;
     WorkQueue->BusyThreads = 0;
+
+#ifdef DEBUG
+    PhAcquireQueuedLockExclusive(&PhDbgWorkQueueListLock);
+    InsertTailList(&PhDbgWorkQueueListHead, &WorkQueue->DbgListEntry);
+    PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
+#endif
 }
 
 VOID PhDeleteWorkQueue(
@@ -73,6 +81,12 @@ VOID PhDeleteWorkQueue(
 {
     PLIST_ENTRY listEntry;
     PPH_WORK_QUEUE_ITEM workQueueItem;
+
+#ifdef DEBUG
+    PhAcquireQueuedLockExclusive(&PhDbgWorkQueueListLock);
+    RemoveEntryList(&WorkQueue->DbgListEntry);
+    PhReleaseQueuedLockExclusive(&PhDbgWorkQueueListLock);
+#endif
 
     // Wait for all worker threads to exit.
     WorkQueue->Terminating = TRUE;

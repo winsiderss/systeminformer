@@ -937,7 +937,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #ifdef DEBUG
             PLIST_ENTRY currentEntry;
 
-            PhAcquireFastLockShared(&PhDbgThreadListLock);
+            PhAcquireQueuedLockShared(&PhDbgThreadListLock);
 
             currentEntry = PhDbgThreadListHead.Flink;
 
@@ -955,7 +955,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 currentEntry = currentEntry->Flink;
             }
 
-            PhReleaseFastLockShared(&PhDbgThreadListLock);
+            PhReleaseQueuedLockShared(&PhDbgThreadListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
@@ -965,7 +965,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #ifdef DEBUG
             PLIST_ENTRY currentEntry;
 
-            PhAcquireFastLockShared(&PhDbgProviderListLock);
+            PhAcquireQueuedLockShared(&PhDbgProviderListLock);
 
             currentEntry = PhDbgProviderListHead.Flink;
 
@@ -1017,7 +1017,61 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 currentEntry = currentEntry->Flink;
             }
 
-            PhReleaseFastLockShared(&PhDbgProviderListLock);
+            PhReleaseQueuedLockShared(&PhDbgProviderListLock);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"workqueues"))
+        {
+#ifdef DEBUG
+            PLIST_ENTRY currentEntry;
+
+            PhAcquireQueuedLockShared(&PhDbgWorkQueueListLock);
+
+            currentEntry = PhDbgWorkQueueListHead.Flink;
+
+            while (currentEntry != &PhDbgWorkQueueListHead)
+            {
+                PPH_WORK_QUEUE workQueue;
+                PLIST_ENTRY workQueueItemEntry;
+
+                workQueue = CONTAINING_RECORD(currentEntry, PH_WORK_QUEUE, DbgListEntry);
+
+                wprintf(L"Work queue at %s\n", PhpGetSymbolForAddress(workQueue));
+                wprintf(L"Maximum threads: %u\n", workQueue->MaximumThreads);
+                wprintf(L"Minimum threads: %u\n", workQueue->MinimumThreads);
+                wprintf(L"No work timeout: %d\n", workQueue->NoWorkTimeout);
+
+                wprintf(L"Current threads: %u\n", workQueue->CurrentThreads);
+                wprintf(L"Busy threads: %u\n", workQueue->BusyThreads);
+
+                PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
+
+                // List the items backwards.
+                workQueueItemEntry = workQueue->QueueListHead.Blink;
+
+                while (workQueueItemEntry != &workQueue->QueueListHead)
+                {
+                    PPH_WORK_QUEUE_ITEM workQueueItem;
+
+                    workQueueItem = CONTAINING_RECORD(workQueueItemEntry, PH_WORK_QUEUE_ITEM, ListEntry);
+
+                    wprintf(L"\tWork queue item at %Ix\n", workQueueItem);
+                    wprintf(L"\t\tFunction: %s\n", PhpGetSymbolForAddress(workQueueItem->Function));
+                    wprintf(L"\t\tContext: %Ix\n", workQueueItem->Context);
+
+                    workQueueItemEntry = workQueueItemEntry->Blink;
+                }
+
+                PhReleaseQueuedLockExclusive(&workQueue->QueueLock);
+
+                wprintf(L"\n");
+
+                currentEntry = currentEntry->Flink;
+            }
+
+            PhReleaseQueuedLockShared(&PhDbgWorkQueueListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
