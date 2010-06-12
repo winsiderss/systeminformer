@@ -106,7 +106,7 @@ VOID FASTCALL PhfWaitForCondition(
 #define PhQueueWakeEvent PhfQueueWakeEvent
 VOID FASTCALL PhfQueueWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent,
-    __inout PPH_QUEUED_WAIT_BLOCK WaitBlock
+    __out PPH_QUEUED_WAIT_BLOCK WaitBlock
     );
 
 #define PhSetWakeEvent PhfSetWakeEvent
