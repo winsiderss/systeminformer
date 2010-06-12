@@ -28,6 +28,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "config.h"
 #include "mxml.h"
 
@@ -84,8 +85,8 @@ mxmlElementDeleteAttr(mxml_node_t *node,/* I - Element */
       * Delete this attribute...
       */
 
-      free(attr->name);
-      free(attr->value);
+      PhFree(attr->name);
+      PhFree(attr->value);
 
       i --;
       if (i > 0)
@@ -188,12 +189,12 @@ mxmlElementSetAttr(mxml_node_t *node,	/* I - Element node */
     return;
 
   if (value)
-    valuec = strdup(value);
+    valuec = PhDuplicateAnsiStringZSafe((char *)value);
   else
     valuec = NULL;
 
   if (mxml_set_attr(node, name, valuec))
-    free(valuec);
+    PhFree(valuec);
 }
 
 
@@ -243,7 +244,7 @@ mxmlElementSetAttrf(mxml_node_t *node,	/* I - Element node */
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);
   else if (mxml_set_attr(node, name, value))
-    free(value);
+    PhFree(value);
 }
 
 
@@ -274,7 +275,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
       */
 
       if (attr->value)
-        free(attr->value);
+        PhFree(attr->value);
 
       attr->value = value;
 
@@ -286,9 +287,9 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   */
 
   if (node->value.element.num_attrs == 0)
-    attr = malloc(sizeof(mxml_attr_t));
+    attr = PhAllocateSafe(sizeof(mxml_attr_t));
   else
-    attr = realloc(node->value.element.attrs,
+    attr = PhReAllocSafe(node->value.element.attrs,
                    (node->value.element.num_attrs + 1) * sizeof(mxml_attr_t));
 
   if (!attr)
@@ -301,7 +302,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   node->value.element.attrs = attr;
   attr += node->value.element.num_attrs;
 
-  if ((attr->name = strdup(name)) == NULL)
+  if ((attr->name = PhDuplicateAnsiStringZSafe((char *)name)) == NULL)
   {
     mxml_error("Unable to allocate memory for attribute '%s' in element %s!",
                name, node->value.element.name);

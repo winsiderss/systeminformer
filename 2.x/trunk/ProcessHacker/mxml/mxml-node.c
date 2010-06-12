@@ -38,6 +38,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "config.h"
 #include "mxml.h"
 
@@ -232,19 +233,19 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
   {
     case MXML_ELEMENT :
         if (node->value.element.name)
-	  free(node->value.element.name);
+	  PhFree(node->value.element.name);
 
 	if (node->value.element.num_attrs)
 	{
 	  for (i = 0; i < node->value.element.num_attrs; i ++)
 	  {
 	    if (node->value.element.attrs[i].name)
-	      free(node->value.element.attrs[i].name);
+	      PhFree(node->value.element.attrs[i].name);
 	    if (node->value.element.attrs[i].value)
-	      free(node->value.element.attrs[i].value);
+	      PhFree(node->value.element.attrs[i].value);
 	  }
 
-          free(node->value.element.attrs);
+          PhFree(node->value.element.attrs);
 	}
         break;
     case MXML_INTEGER :
@@ -252,14 +253,14 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
         break;
     case MXML_OPAQUE :
         if (node->value.opaque)
-	  free(node->value.opaque);
+	  PhFree(node->value.opaque);
         break;
     case MXML_REAL :
        /* Nothing to do */
         break;
     case MXML_TEXT :
         if (node->value.text.string)
-	  free(node->value.text.string);
+	  PhFree(node->value.text.string);
         break;
     case MXML_CUSTOM :
         if (node->value.custom.data &&
@@ -274,7 +275,7 @@ mxmlDelete(mxml_node_t *node)		/* I - Node to delete */
   * Free this node...
   */
 
-  free(node);
+  PhFree(node);
 }
 
 
@@ -390,7 +391,7 @@ mxmlNewElement(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   */
 
   if ((node = mxml_new(parent, MXML_ELEMENT)) != NULL)
-    node->value.element.name = _strdup(name);
+    node->value.element.name = PhDuplicateAnsiStringZSafe((char *)name);
 
   return (node);
 }
@@ -459,7 +460,7 @@ mxmlNewOpaque(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   */
 
   if ((node = mxml_new(parent, MXML_OPAQUE)) != NULL)
-    node->value.opaque = _strdup(opaque);
+    node->value.opaque = PhDuplicateAnsiStringZSafe((char *)opaque);
 
   return (node);
 }
@@ -532,7 +533,7 @@ mxmlNewText(mxml_node_t *parent,	/* I - Parent node or MXML_NO_PARENT */
   if ((node = mxml_new(parent, MXML_TEXT)) != NULL)
   {
     node->value.text.whitespace = whitespace;
-    node->value.text.string     = _strdup(string);
+    node->value.text.string     = PhDuplicateAnsiStringZSafe((char *)string);
   }
 
   return (node);
@@ -740,7 +741,7 @@ mxml_new(mxml_node_t *parent,		/* I - Parent node */
   * Allocate memory for the node...
   */
 
-  if ((node = calloc(1, sizeof(mxml_node_t))) == NULL)
+  if ((node = PhAllocateExSafe(sizeof(mxml_node_t), HEAP_ZERO_MEMORY)) == NULL)
   {
 #if DEBUG > 1
     fputs("    returning NULL\n", stderr);

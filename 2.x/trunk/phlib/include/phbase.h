@@ -109,14 +109,41 @@ __mayRaise PVOID PhAllocate(
     __in SIZE_T Size
     );
 
+PVOID PhAllocateSafe(
+    __in SIZE_T Size
+    );
+
+PVOID PhAllocateExSafe(
+    __in SIZE_T Size,
+    __in ULONG Flags
+    );
+
 VOID PhFree(
     __in __post_invalid PVOID Memory
     );
 
-PVOID PhReAlloc(
+__mayRaise PVOID PhReAlloc(
     __in PVOID Memory,
     __in SIZE_T Size
     );
+
+PVOID PhReAllocSafe(
+    __in PVOID Memory,
+    __in SIZE_T Size
+    );
+
+FORCEINLINE PVOID PhAllocateCopy(
+    __in PVOID Data,
+    __in ULONG Size
+    )
+{
+    PVOID copy;
+
+    copy = PhAllocate(Size);
+    memcpy(copy, Data, Size);
+
+    return copy;
+}
 
 // mutex
 
@@ -308,6 +335,14 @@ VOID PhEndInitOnce(
 #ifndef BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhStringType;
 #endif
+
+PSTR PhDuplicateAnsiStringZ(
+    __in PSTR String
+    );
+
+PSTR PhDuplicateAnsiStringZSafe(
+    __in PSTR String
+    );
 
 BOOLEAN PhCopyAnsiStringZ(
     __in PSTR InputBuffer,
