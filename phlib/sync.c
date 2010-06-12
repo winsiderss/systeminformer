@@ -162,17 +162,8 @@ BOOLEAN PhBeginInitOnce(
 
     // Quick check first.
 
-    oldState = InitOnce->State;
-
-    if (oldState == PH_INITONCE_INITIALIZED)
-    {
+    if (InitOnce->State == PH_INITONCE_INITIALIZED)
         return FALSE;
-    }
-    else if (oldState == PH_INITONCE_INITIALIZING)
-    {
-        PhWaitForEvent(&InitOnce->WakeEvent, INFINITE);
-        return FALSE;
-    }
 
     // Initializing path.
 

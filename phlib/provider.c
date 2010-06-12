@@ -48,7 +48,7 @@
 
 #ifdef DEBUG
 LIST_ENTRY PhDbgProviderListHead;
-PH_FAST_LOCK PhDbgProviderListLock;
+PH_QUEUED_LOCK PhDbgProviderListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
 /**
@@ -72,9 +72,9 @@ VOID PhInitializeProviderThread(
     ProviderThread->BoostCount = 0;
 
 #ifdef DEBUG
-    PhAcquireFastLockExclusive(&PhDbgProviderListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
     InsertTailList(&PhDbgProviderListHead, &ProviderThread->DbgListEntry);
-    PhReleaseFastLockExclusive(&PhDbgProviderListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgProviderListLock);
 #endif
 }
 
@@ -90,9 +90,9 @@ VOID PhDeleteProviderThread(
     // Nothing
 
 #ifdef DEBUG
-    PhAcquireFastLockExclusive(&PhDbgProviderListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgProviderListLock);
     RemoveEntryList(&ProviderThread->DbgListEntry);
-    PhReleaseFastLockExclusive(&PhDbgProviderListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgProviderListLock);
 #endif
 }
 

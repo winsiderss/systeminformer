@@ -617,6 +617,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
         break;
     case TLM_SETCALLBACK:
         {
+            if (!lParam)
+                lParam = (LPARAM)PhTreeListNullCallback;
+
             context->Callback = (PPH_TREELIST_CALLBACK)lParam;
         }
         return TRUE;

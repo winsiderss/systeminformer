@@ -145,7 +145,6 @@ BOOLEAN PhInitializeSystem()
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgProviderListHead);
-    PhInitializeFastLock(&PhDbgProviderListLock);
 #endif
 
     return TRUE;
