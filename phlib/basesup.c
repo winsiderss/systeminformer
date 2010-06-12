@@ -65,7 +65,7 @@ PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
 LIST_ENTRY PhDbgThreadListHead;
-PH_FAST_LOCK PhDbgThreadListLock;
+PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 #endif
 
 // Data
@@ -156,7 +156,6 @@ BOOLEAN PhInitializeBase()
 #ifdef DEBUG
     PhDbgThreadDbgTlsIndex = TlsAlloc();
     InitializeListHead(&PhDbgThreadListHead);
-    PhInitializeFastLock(&PhDbgThreadListLock);
 #endif
 
     PhWorkQueueInitialization();
@@ -186,9 +185,9 @@ NTSTATUS PhpBaseThreadStart(
     dbg.Parameter = context.Parameter;
     dbg.CurrentAutoPool = NULL;
 
-    PhAcquireFastLockExclusive(&PhDbgThreadListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
-    PhReleaseFastLockExclusive(&PhDbgThreadListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
 
     TlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
@@ -203,9 +202,9 @@ NTSTATUS PhpBaseThreadStart(
     // De-initialization code
 
 #ifdef DEBUG
-    PhAcquireFastLockExclusive(&PhDbgThreadListLock);
+    PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
     RemoveEntryList(&dbg.ListEntry);
-    PhReleaseFastLockExclusive(&PhDbgThreadListLock);
+    PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
 #endif
 
     return status;
