@@ -277,6 +277,38 @@ __mayRaise PVOID PhAllocate(
 }
 
 /**
+ * Allocates a block of memory.
+ *
+ * \param Size The number of bytes to allocate.
+ *
+ * \return A pointer to the allocated block of 
+ * memory, or NULL if the block could not be allocated.
+ */
+PVOID PhAllocateSafe(
+    __in SIZE_T Size
+    )
+{
+    return RtlAllocateHeap(PhHeapHandle, 0, Size);
+}
+
+/**
+ * Allocates a block of memory.
+ *
+ * \param Size The number of bytes to allocate.
+ * \param Flags Flags controlling the allocation.
+ *
+ * \return A pointer to the allocated block of 
+ * memory, or NULL if the block could not be allocated.
+ */
+PVOID PhAllocateExSafe(
+    __in SIZE_T Size,
+    __in ULONG Flags
+    )
+{
+    return RtlAllocateHeap(PhHeapHandle, Flags, Size);
+}
+
+/**
  * Frees a block of memory allocated with 
  * PhAllocate().
  *
@@ -300,8 +332,40 @@ VOID PhFree(
  * \return A pointer to the new block of memory. 
  * The existing contents of the memory block are 
  * copied to the new block.
+ *
+ * \remarks If the function fails to allocate 
+ * the block of memory, it raises a 
+ * STATUS_INSUFFICIENT_RESOURCES exception.
  */
-PVOID PhReAlloc(
+__mayRaise PVOID PhReAlloc(
+    __in PVOID Memory,
+    __in SIZE_T Size
+    )
+{
+    PVOID memory;
+
+    memory = RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
+
+    if (!memory)
+        PhRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+
+    return memory;
+}
+
+/**
+ * Re-allocates a block of memory originally 
+ * allocated with PhAllocate().
+ *
+ * \param Memory A pointer to a block of memory.
+ * \param Size The new size of the memory block, 
+ * in bytes.
+ *
+ * \return A pointer to the new block of memory, 
+ * or NULL if the block could not be allocated.
+ * The existing contents of the memory block are 
+ * copied to the new block.
+ */
+PVOID PhReAllocSafe(
     __in PVOID Memory,
     __in SIZE_T Size
     )
@@ -477,6 +541,40 @@ VOID PhResetEvent(
 
     if (PhTestEvent(Event))
         Event->Value = PH_EVENT_REFCOUNT_INC;
+}
+
+PSTR PhDuplicateAnsiStringZ(
+    __in PSTR String
+    )
+{
+    PSTR newString;
+    SIZE_T length;
+
+    length = strlen(String) + 1; // include the null terminator
+
+    newString = PhAllocate(length);
+    memcpy(newString, String, length);
+
+    return newString;
+}
+
+PSTR PhDuplicateAnsiStringZSafe(
+    __in PSTR String
+    )
+{
+    PSTR newString;
+    SIZE_T length;
+
+    length = strlen(String) + 1; // include the null terminator
+
+    newString = PhAllocateSafe(length);
+
+    if (!newString)
+        return NULL;
+
+    memcpy(newString, String, length);
+
+    return newString;
 }
 
 /**

@@ -2007,17 +2007,4 @@ BOOLEAN PhParseCommandLine(
     __in PVOID Context
     );
 
-FORCEINLINE PVOID PhAllocateCopy(
-    __in PVOID Data,
-    __in ULONG Size
-    )
-{
-    PVOID copy;
-
-    copy = PhAllocate(Size);
-    memcpy(copy, Data, Size);
-
-    return copy;
-}
-
 #endif

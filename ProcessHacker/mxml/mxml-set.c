@@ -31,6 +31,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "config.h"
 #include "mxml.h"
 
@@ -95,7 +96,7 @@ mxmlSetCDATA(mxml_node_t *node,		/* I - Node to set */
   */
 
   if (node->value.element.name)
-    free(node->value.element.name);
+    PhFree(node->value.element.name);
 
   node->value.element.name = _mxml_strdupf("![CDATA[%s]]", data);
 
@@ -125,9 +126,9 @@ mxmlSetElement(mxml_node_t *node,	/* I - Node to set */
   */
 
   if (node->value.element.name)
-    free(node->value.element.name);
+    PhFree(node->value.element.name);
 
-  node->value.element.name = _strdup(name);
+  node->value.element.name = PhDuplicateAnsiStringZSafe((char *)name);
 
   return (0);
 }
@@ -182,9 +183,9 @@ mxmlSetOpaque(mxml_node_t *node,	/* I - Node to set */
   */
 
   if (node->value.opaque)
-    free(node->value.opaque);
+    PhFree(node->value.opaque);
 
-  node->value.opaque = _strdup(opaque);
+  node->value.opaque = PhDuplicateAnsiStringZSafe((char *)opaque);
 
   return (0);
 }
@@ -240,10 +241,10 @@ mxmlSetText(mxml_node_t *node,		/* I - Node to set */
   */
 
   if (node->value.text.string)
-    free(node->value.text.string);
+    PhFree(node->value.text.string);
 
   node->value.text.whitespace = whitespace;
-  node->value.text.string     = _strdup(string);
+  node->value.text.string     = PhDuplicateAnsiStringZSafe((char *)string);
 
   return (0);
 }
@@ -276,7 +277,7 @@ mxmlSetTextf(mxml_node_t *node,		/* I - Node to set */
   */
 
   if (node->value.text.string)
-    free(node->value.text.string);
+    PhFree(node->value.text.string);
 
   va_start(ap, format);
 
