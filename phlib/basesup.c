@@ -2307,10 +2307,6 @@ PPH_HASHTABLE PhCreateHashtable(
     hashtable->FreeEntry = -1;
     hashtable->NextEntry = 0;
 
-#ifdef PH_HASHTABLE_ENABLE_STATS
-    hashtable->TotalCollisions = 0;
-#endif
-
     return hashtable;
 }
 
