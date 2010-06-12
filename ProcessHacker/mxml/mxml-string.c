@@ -28,6 +28,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "config.h"
 
 /*
@@ -80,7 +81,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
     * Hey, the formatted string fits in the tiny buffer, so just dup that...
     */
 
-    return (_strdup(temp));
+    return (PhDuplicateAnsiStringZSafe(temp));
   }
 
  /*
@@ -88,7 +89,7 @@ _mxml_vstrdupf(const char *format,	/* I - Printf-style format string */
   * buffer...
   */
 
-  if ((buffer = calloc(1, bytes + 1)) != NULL)
+  if ((buffer = PhAllocateExSafe(bytes + 1, HEAP_ZERO_MEMORY)) != NULL)
     _vsnprintf(buffer, bytes + 1, format, ap);
 
  /*

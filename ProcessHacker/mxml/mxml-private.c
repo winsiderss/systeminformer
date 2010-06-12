@@ -28,6 +28,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "mxml-private.h"
 
 
@@ -213,12 +214,12 @@ DllMain(HINSTANCE hinst,		/* I - DLL module handle */
 
     case DLL_THREAD_DETACH :		/* Called when a thread terminates */
         if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) != NULL)
-          free(global);
+          PhFree(global);
         break; 
 
     case DLL_PROCESS_DETACH :		/* Called when library is unloaded */
         if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) != NULL)
-          free(global);
+          PhFree(global);
 
         TlsFree(_mxml_tls_index); 
         break; 
@@ -243,7 +244,7 @@ _mxml_global(void)
 
   if ((global = (_mxml_global_t *)TlsGetValue(_mxml_tls_index)) == NULL)
   {
-    global = (_mxml_global_t *)calloc(1, sizeof(_mxml_global_t));
+    global = (_mxml_global_t *)PhAllocateExSafe(sizeof(_mxml_global_t), HEAP_ZERO_MEMORY);
 
     global->num_entity_cbs = 1;
     global->entity_cbs[0]  = _mxml_entity_cb;

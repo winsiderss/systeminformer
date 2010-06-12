@@ -32,6 +32,7 @@
  * Include necessary headers...
  */
 
+#include <phbase.h>
 #include "config.h"
 #include "mxml.h"
 
@@ -66,12 +67,12 @@ mxmlIndexDelete(mxml_index_t *ind)	/* I - Index to delete */
   */
 
   if (ind->attr)
-    free(ind->attr);
+    PhFree(ind->attr);
 
   if (ind->alloc_nodes)
-    free(ind->nodes);
+    PhFree(ind->nodes);
 
-  free(ind);
+  PhFree(ind);
 }
 
 
@@ -320,7 +321,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   * Create a new index...
   */
 
-  if ((ind = calloc(1, sizeof(mxml_index_t))) == NULL)
+  if ((ind = PhAllocateExSafe(sizeof(mxml_index_t), HEAP_ZERO_MEMORY)) == NULL)
   {
     mxml_error("Unable to allocate %d bytes for index - %s",
                sizeof(mxml_index_t), strerror(errno));
@@ -328,7 +329,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
   }
 
   if (attr)
-    ind->attr = strdup(attr);
+    ind->attr = PhDuplicateAnsiStringZSafe((char *)attr);
 
   if (!element && !attr)
     current = node;
@@ -340,9 +341,9 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
     if (ind->num_nodes >= ind->alloc_nodes)
     {
       if (!ind->alloc_nodes)
-        temp = malloc(64 * sizeof(mxml_node_t *));
+        temp = PhAllocateSafe(64 * sizeof(mxml_node_t *));
       else
-        temp = realloc(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
+        temp = PhReAllocSafe(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
 
       if (!temp)
       {
