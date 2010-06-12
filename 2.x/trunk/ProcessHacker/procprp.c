@@ -500,7 +500,7 @@ PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
         RECT margin;
 
         // MAKE SURE THESE NUMBERS ARE CORRECT.
-        dialogSize.right = 240;
+        dialogSize.right = 260;
         dialogSize.bottom = 260;
         MapDialogRect(hwnd, &dialogSize);
 

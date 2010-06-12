@@ -267,6 +267,20 @@
 #define IDC_LIST2                       1175
 #define IDC_MOVEDOWN                    1176
 #define IDC_DISPLAYNAME                 1179
+#define IDC_ZPRIORITY_V                 1181
+#define IDC_ZCYCLES_V                   1182
+#define IDC_ZTOTALTIME_V                1185
+#define IDC_ZPRIVATEBYTES_V             1186
+#define IDC_ZWORKINGSET_V               1187
+#define IDC_ZPEAKWORKINGSET_V           1188
+#define IDC_ZVIRTUALSIZE_V              1189
+#define IDC_ZPEAKVIRTUALSIZE_V          1190
+#define IDC_ZPEAKPAGEFILEUSAGE_V        1191
+#define IDC_ZPAGEPRIORITY_V             1192
+#define IDC_ZIOPRIORITY_V               1194
+#define IDC_ZHANDLES_V                  1195
+#define IDC_ZGDIHANDLES_V               1196
+#define IDC_ZUSERHANDLES_V              1197
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -426,7 +440,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40168
-#define _APS_NEXT_CONTROL_VALUE         1181
+#define _APS_NEXT_CONTROL_VALUE         1198
 #define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif
