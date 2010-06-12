@@ -980,6 +980,21 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -1009,6 +1024,21 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
     case WM_DESTROY:
         {
             PhpPropPageDlgProcDestroy(hwndDlg);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!propPageContext->LayoutInitialized)
+            {
+                PPH_LAYOUT_ITEM dialogItem;
+
+                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                    PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+
+                PhpDoPropPageLayout(hwndDlg);
+
+                propPageContext->LayoutInitialized = TRUE;
+            }
         }
         break;
     }
