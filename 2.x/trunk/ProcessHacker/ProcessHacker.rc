@@ -1478,6 +1478,8 @@ IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
 IDB_MINUS               BITMAP                  "resources\\minus.bmp"
 IDB_PLUS                BITMAP                  "resources\\plus.bmp"
+IDB_BRICKS              BITMAP                  "resources\\bricks.bmp"
+IDB_APPLICATION         BITMAP                  "resources\\application.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
