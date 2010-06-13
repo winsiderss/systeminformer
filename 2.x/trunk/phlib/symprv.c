@@ -308,6 +308,7 @@ PPH_STRING PhGetSymbolFromAddress(
     )
 {
     PSYMBOL_INFO symbolInfo;
+    UCHAR symbolInfoBuffer[sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN];
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
     ULONG64 displacement;
@@ -333,7 +334,7 @@ PPH_STRING PhGetSymbolFromAddress(
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif
 
-    symbolInfo = PhAllocate(sizeof(SYMBOL_INFO) + PH_MAX_SYMBOL_NAME_LEN);
+    symbolInfo = (PSYMBOL_INFO)symbolInfoBuffer;
     memset(symbolInfo, 0, sizeof(SYMBOL_INFO));
     symbolInfo->SizeOfStruct = sizeof(SYMBOL_INFO);
     symbolInfo->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
@@ -466,8 +467,6 @@ CleanupExit:
         PhDereferenceObject(modBaseName);
     if (symbolName)
         PhDereferenceObject(symbolName);
-
-    PhFree(symbolInfo);
 
     return symbol;
 }

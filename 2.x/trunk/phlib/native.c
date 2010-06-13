@@ -4878,12 +4878,17 @@ NTSTATUS PhEnumFileStreams(
 VOID PhInitializeDevicePrefixes()
 {
     ULONG i;
+    PUCHAR buffer;
+
+    // Allocate one buffer for all 26 prefixes to reduce overhead.
+    buffer = PhAllocate(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR) * 26);
 
     for (i = 0; i < 26; i++)
     {
         PhDevicePrefixes[i].Length = 0;
         PhDevicePrefixes[i].us.MaximumLength = PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
-        PhDevicePrefixes[i].Buffer = PhAllocate(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR));
+        PhDevicePrefixes[i].Buffer = (PWSTR)buffer;
+        buffer += PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR);
     }
 }
 
