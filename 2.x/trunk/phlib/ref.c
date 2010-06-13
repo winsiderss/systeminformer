@@ -575,10 +575,10 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     if (ObjectType->Flags & PHOBJTYPE_USE_FREE_LIST)
     {
 #ifdef PHOBJ_STRICT_CHECKS
-        if (ObjectType->FreeList.Size != ObjectSize)
+        if (ObjectType->FreeList.Size != PhpAddObjectHeaderSize(ObjectSize))
             PhRaiseStatus(STATUS_INVALID_PARAMETER);
 #else
-        assert(ObjectType->FreeList.Size == ObjectSize);
+        assert(ObjectType->FreeList.Size == PhpAddObjectHeaderSize(ObjectSize));
 #endif
 
         objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
