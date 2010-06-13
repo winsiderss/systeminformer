@@ -978,7 +978,9 @@ VOID PhpUpdateProcessStatistics(
     SetDlgItemText(hwndDlg, IDC_ZTOTALTIME_V, timeSpan);
 
     SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PrivateUsage, -1)))->Buffer); // private bytes
+        PhFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)))->Buffer); // private bytes (same as PrivateUsage)
+    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)))->Buffer); // peak private bytes
     SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
         PhFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)))->Buffer); // working set
     SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
@@ -987,8 +989,6 @@ VOID PhpUpdateProcessStatistics(
         PhFormatSize(ProcessItem->VmCounters.VirtualSize, -1)))->Buffer); // virtual size
     SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, ((PPH_STRING)PHA_DEREFERENCE(
         PhFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)))->Buffer); // peak virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPEAKPAGEFILEUSAGE_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)))->Buffer); // peak pagefile usage
     SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, ((PPH_STRING)PHA_DEREFERENCE(
         PhFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)))->Buffer); // page faults
 
