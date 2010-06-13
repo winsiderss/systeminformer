@@ -58,7 +58,6 @@
 #define IDB_FOLDER                      158
 #define IDB_MAGNIFIER                   159
 #define IDB_MINUS                       160
-#define IDB_BITMAP2                     161
 #define IDB_PLUS                        161
 #define IDD_OPTGENERAL                  162
 #define IDD_OPTHIGHLIGHTING             163
@@ -69,6 +68,8 @@
 #define IDD_CREATESERVICE               168
 #define IDD_PROCPERFORMANCE             169
 #define IDD_PROCSTATISTICS              170
+#define IDB_BRICKS                      170
+#define IDB_APPLICATION                 171
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -442,7 +443,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        170
+#define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         40168
 #define _APS_NEXT_CONTROL_VALUE         1201
 #define _APS_NEXT_SYMED_VALUE           112

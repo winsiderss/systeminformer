@@ -27,12 +27,13 @@
 
 static PH_KEY_VALUE_PAIR PhpServiceStatePairs[] =
 {
-    SIP(L"Running", SERVICE_RUNNING),
-    SIP(L"Paused", SERVICE_PAUSED),
+    SIP(L"Stopped", SERVICE_STOPPED),
     SIP(L"Start Pending", SERVICE_START_PENDING),
+    SIP(L"Stop Pending", SERVICE_STOP_PENDING),
+    SIP(L"Running", SERVICE_RUNNING),
     SIP(L"Continue Pending", SERVICE_CONTINUE_PENDING),
     SIP(L"Pause Pending", SERVICE_PAUSE_PENDING),
-    SIP(L"Stop Pending", SERVICE_STOP_PENDING)
+    SIP(L"Paused", SERVICE_PAUSED)
 };
 
 static PH_KEY_VALUE_PAIR PhpServiceTypePairs[] =
