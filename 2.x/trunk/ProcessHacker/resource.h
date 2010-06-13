@@ -276,6 +276,7 @@
 #define IDC_ZVIRTUALSIZE_V              1189
 #define IDC_ZPEAKVIRTUALSIZE_V          1190
 #define IDC_ZPEAKPAGEFILEUSAGE_V        1191
+#define IDC_ZPEAKPRIVATEBYTES_V         1191
 #define IDC_ZPAGEPRIORITY_V             1192
 #define IDC_ZIOPRIORITY_V               1194
 #define IDC_ZHANDLES_V                  1195
