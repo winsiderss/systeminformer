@@ -282,6 +282,9 @@
 #define IDC_ZHANDLES_V                  1195
 #define IDC_ZGDIHANDLES_V               1196
 #define IDC_ZUSERHANDLES_V              1197
+#define IDC_GROUPCPU                    1198
+#define IDC_GROUPPRIVATEBYTES           1199
+#define IDC_GROUPIO                     1200
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -441,7 +444,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        170
 #define _APS_NEXT_COMMAND_VALUE         40168
-#define _APS_NEXT_CONTROL_VALUE         1198
+#define _APS_NEXT_CONTROL_VALUE         1201
 #define _APS_NEXT_SYMED_VALUE           112
 #endif
 #endif
