@@ -508,6 +508,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"dumpautopool\n"
                 L"threads\n"
                 L"provthreads\n"
+                L"workqueues\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
