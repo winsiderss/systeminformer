@@ -103,6 +103,8 @@ static ULONG PhpPrimeNumbers[] =
  */
 BOOLEAN PhInitializeBase()
 {
+    PH_OBJECT_TYPE_PARAMETERS parameters;
+
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhStringType,
         L"String",
@@ -119,11 +121,15 @@ BOOLEAN PhInitializeBase()
         )))
         return FALSE;
 
-    if (!NT_SUCCESS(PhCreateObjectType(
+    parameters.FreeListSize = sizeof(PH_LIST);
+    parameters.FreeListCount = 128;
+
+    if (!NT_SUCCESS(PhCreateObjectTypeEx(
         &PhListType,
         L"List",
-        0,
-        PhpListDeleteProcedure
+        PHOBJTYPE_USE_FREE_LIST,
+        PhpListDeleteProcedure,
+        &parameters
         )))
         return FALSE;
 
@@ -143,11 +149,15 @@ BOOLEAN PhInitializeBase()
         )))
         return FALSE;
 
-    if (!NT_SUCCESS(PhCreateObjectType(
+    parameters.FreeListSize = sizeof(PH_HASHTABLE);
+    parameters.FreeListCount = 64;
+
+    if (!NT_SUCCESS(PhCreateObjectTypeEx(
         &PhHashtableType,
         L"Hashtable",
-        0,
-        PhpHashtableDeleteProcedure
+        PHOBJTYPE_USE_FREE_LIST,
+        PhpHashtableDeleteProcedure,
+        &parameters
         )))
         return FALSE;
 
