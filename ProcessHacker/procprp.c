@@ -75,10 +75,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     propContext->PropSheetPages =
         PhAllocate(sizeof(HPROPSHEETPAGE) * PH_PROCESS_PROPCONTEXT_MAXPAGES);
 
-    if (
-        ProcessItem->ProcessId != DPCS_PROCESS_ID &&
-        ProcessItem->ProcessId != INTERRUPTS_PROCESS_ID
-        )
+    if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
         propContext->Title = PhFormatString(
             L"%s (%u)",
@@ -954,6 +951,127 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     return FALSE;
 }
 
+static VOID NTAPI StatisticsUpdateHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
+
+    PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
+}
+
+VOID PhpUpdateProcessStatistics(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1];
+
+    SetDlgItemInt(hwndDlg, IDC_ZPRIORITY_V, ProcessItem->BasePriority, TRUE); // priority
+    PhPrintTimeSpan(timeSpan, ProcessItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM); // kernel time
+    SetDlgItemText(hwndDlg, IDC_ZKERNELTIME_V, timeSpan);
+    PhPrintTimeSpan(timeSpan, ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // user time
+    SetDlgItemText(hwndDlg, IDC_ZUSERTIME_V, timeSpan);
+    PhPrintTimeSpan(timeSpan,
+        ProcessItem->KernelTime.QuadPart + ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // total time
+    SetDlgItemText(hwndDlg, IDC_ZTOTALTIME_V, timeSpan);
+
+    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.PrivateUsage, -1)))->Buffer); // private bytes
+    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)))->Buffer); // working set
+    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)))->Buffer); // peak working set
+    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.VirtualSize, -1)))->Buffer); // virtual size
+    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)))->Buffer); // peak virtual size
+    SetDlgItemText(hwndDlg, IDC_ZPEAKPAGEFILEUSAGE_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)))->Buffer); // peak pagefile usage
+    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)))->Buffer); // page faults
+
+    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)))->Buffer); // reads
+    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)))->Buffer); // read bytes
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)))->Buffer); // writes
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)))->Buffer); // write bytes
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)))->Buffer); // other
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)))->Buffer); // read bytes
+
+    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, ((PPH_STRING)PHA_DEREFERENCE(
+        PhFormatUInt64(ProcessItem->NumberOfHandles, TRUE)))->Buffer); // handles
+
+    // Optional information
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        PPH_STRING gdiHandles = NULL;
+        PPH_STRING userHandles = NULL;
+        PPH_STRING cycles = NULL;
+        ULONG pagePriority = -1;
+        ULONG ioPriority = -1;
+
+        if (ProcessItem->QueryHandle)
+        {
+            ULONG64 cycleTime;
+
+            gdiHandles = PHA_DEREFERENCE(PhFormatUInt64(
+                GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE)); // GDI handles
+            userHandles = PHA_DEREFERENCE(PhFormatUInt64(
+                GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE)); // USER handles
+
+            if (WINDOWS_HAS_CYCLE_TIME &&
+                NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
+            {
+                cycles = PHA_DEREFERENCE(PhFormatUInt64(cycleTime, TRUE));
+            }
+
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                PhGetProcessPagePriority(ProcessItem->QueryHandle, &pagePriority);
+                PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority); 
+            }
+        }
+
+        SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, PhGetStringOrDefault(gdiHandles, L"Unknown"));
+        SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, PhGetStringOrDefault(userHandles, L"Unknown"));
+        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V,
+            PhGetStringOrDefault(cycles, WINDOWS_HAS_CYCLE_TIME ? L"Unknown" : L"N/A"));
+
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (pagePriority != -1)
+                SetDlgItemInt(hwndDlg, IDC_ZPAGEPRIORITY_V, pagePriority, FALSE);
+            else
+                SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
+
+            if (ioPriority != -1)
+                SetDlgItemInt(hwndDlg, IDC_ZIOPRIORITY_V, ioPriority, FALSE);
+            else
+                SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"Unknown");
+        }
+        else
+        {
+            SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
+            SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
+        }
+    }
+    else
+    {
+        SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
+    }
+}
+
 INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -964,19 +1082,44 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
+    PPH_STATISTICS_CONTEXT statisticsContext;
 
-    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
+    {
+        statisticsContext = (PPH_STATISTICS_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
         return FALSE;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
+            statisticsContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                StatisticsUpdateHandler,
+                statisticsContext,
+                &statisticsContext->ProcessesUpdatedRegistration
+                );
+            statisticsContext->WindowHandle = hwndDlg;
+
+            PhpUpdateProcessStatistics(hwndDlg, processItem);
         }
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(
+                &PhProcessesUpdatedEvent,
+                &statisticsContext->ProcessesUpdatedRegistration
+                );
+            PhFree(statisticsContext);
+
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -995,9 +1138,24 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             }
         }
         break;
+    case WM_PH_STATISTICS_UPDATE:
+        {
+            PhpUpdateProcessStatistics(hwndDlg, processItem);
+        }
+        break;
     }
 
     return FALSE;
+}
+
+static VOID NTAPI PerformanceUpdateHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_PERFORMANCE_CONTEXT performanceContext = (PPH_PERFORMANCE_CONTEXT)Context;
+
+    PostMessage(performanceContext->WindowHandle, WM_PH_PERFORMANCE_UPDATE, 0, 0);
 }
 
 INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
@@ -1010,19 +1168,42 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
+    PPH_PERFORMANCE_CONTEXT performanceContext;
 
-    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
+    {
+        performanceContext = (PPH_PERFORMANCE_CONTEXT)propPageContext->Context;
+    }
+    else
+    {
         return FALSE;
+    }
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
+            performanceContext = propPageContext->Context =
+                PhAllocate(sizeof(PH_PERFORMANCE_CONTEXT));
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                PerformanceUpdateHandler,
+                performanceContext,
+                &performanceContext->ProcessesUpdatedRegistration
+                );
+            performanceContext->WindowHandle = hwndDlg;
         }
         break;
     case WM_DESTROY:
         {
+            PhUnregisterCallback(
+                &PhProcessesUpdatedEvent,
+                &performanceContext->ProcessesUpdatedRegistration
+                );
+            PhFree(performanceContext);
+
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -1039,6 +1220,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                 propPageContext->LayoutInitialized = TRUE;
             }
+        }
+        break;
+    case WM_PH_PERFORMANCE_UPDATE:
+        {
+
         }
         break;
     }
@@ -1410,7 +1596,7 @@ VOID PhpUpdateThreadDetails(
 
         contextSwitches = PHA_DEREFERENCE(PhFormatUInt64(threadItem->ContextSwitchesDelta.Value, TRUE));
 
-        if (WINDOWS_HAS_THREAD_CYCLES)
+        if (WINDOWS_HAS_CYCLE_TIME)
             cycles = PHA_DEREFERENCE(PhFormatUInt64(threadItem->CyclesDelta.Value, TRUE));
 
         if (threadItem->State != Waiting)
@@ -1538,7 +1724,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             threadsContext->NeedsSort = FALSE;
 
             // Use Cycles instead of Context Switches on Vista.
-            if (WINDOWS_HAS_THREAD_CYCLES)
+            if (WINDOWS_HAS_CYCLE_TIME)
                 threadsContext->UseCycleTime = TRUE;
 
             // Initialize the list.

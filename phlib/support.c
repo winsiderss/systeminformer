@@ -830,7 +830,7 @@ PPH_STRING PhFormatDecimal(
  *
  * \param Size The size value.
  * \param MaxSizeUnit The largest unit of size to 
- * use, or -1 for no limit.
+ * use, -1 to use PhMaxSizeUnit, or -2 for no limit.
  * \li \c 0 Bytes.
  * \li \c 1 Kilobytes.
  * \li \c 2 Megabytes.
