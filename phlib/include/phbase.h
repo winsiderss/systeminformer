@@ -4,7 +4,23 @@
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "version.lib")
 
-#include <base.h>
+// nonstandard extension used : nameless struct/union
+#pragma warning(disable: 4201)
+// nonstandard extension used : bit field types other than int
+#pragma warning(disable: 4214)
+// 'function': attributes not present on previous declaration
+#pragma warning(disable: 4985)
+// 'function': was declared deprecated
+#pragma warning(disable: 4996)
+
+#ifndef UNICODE
+#define UNICODE
+#endif
+
+#include <ntwin.h>
+#include <ntbasic.h>
+#include <phnt.h>
+#include <phsup.h>
 #include <ntimport.h>
 #include <ref.h>
 #include <fastlock.h>

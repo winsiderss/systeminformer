@@ -1,6 +1,8 @@
 #ifndef NTWIN
 #define NTWIN
 
+// This header file provides access to Win32, plus NTSTATUS values.
+
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_NO_STATUS
 #include <windows.h>

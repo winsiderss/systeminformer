@@ -1,26 +1,12 @@
 #ifndef BASE_H
 #define BASE_H
 
-#ifndef UNICODE
-#define UNICODE
-#endif
+// This header file provides some useful definitions specific to phlib.
 
-#include <ntbasic.h>
 #include <intrin.h>
 #include <wchar.h>
 #include <assert.h>
 #include <stdio.h>
-
-// nonstandard extension used : nameless struct/union
-#pragma warning(disable: 4201)
-// nonstandard extension used : bit field types other than int
-#pragma warning(disable: 4214)
-// 'function': attributes not present on previous declaration
-#pragma warning(disable: 4985)
-// 'function': was declared deprecated
-#pragma warning(disable: 4996)
-
-#define FASTCALL __fastcall
 
 #define SIMPLE_EXCEPTION_FILTER(Condition) \
     ((Condition) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
