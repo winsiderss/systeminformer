@@ -1187,7 +1187,10 @@ LRESULT CALLBACK PhMainWndProc(
 
                     PhpGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
                     PhReferenceObjects(networkItems, numberOfNetworkItems);
-                    PhUiCloseConnections(hWnd, networkItems, numberOfNetworkItems);
+
+                    if (PhUiCloseConnections(hWnd, networkItems, numberOfNetworkItems))
+                        PhSetStateAllListViewItems(NetworkListViewHandle, 0, LVIS_SELECTED);
+
                     PhDereferenceObjects(networkItems, numberOfNetworkItems);
                     PhFree(networkItems);
                 }
