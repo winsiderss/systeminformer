@@ -23,8 +23,6 @@
 #ifndef REF_H
 #define REF_H
 
-#include <phbase.h>
-
 // Configuration
 
 #define PHOBJ_SMALL_OBJECT_SIZE 48
@@ -58,12 +56,6 @@ typedef VOID (NTAPI *PPH_TYPE_DELETE_PROCEDURE)(
 
 struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
-
-struct _PH_AUTO_POOL;
-typedef struct _PH_AUTO_POOL *PPH_AUTO_POOL;
-
-struct _PH_FAST_LOCK;
-typedef struct _PH_FAST_LOCK PH_FAST_LOCK, *PPH_FAST_LOCK;
 
 struct _PH_QUEUED_LOCK;
 typedef struct _PH_QUEUED_LOCK PH_QUEUED_LOCK, *PPH_QUEUED_LOCK;
@@ -235,7 +227,7 @@ typedef struct _PH_AUTO_POOL
     ULONG DynamicAllocated;
     PPVOID DynamicObjects;
 
-    PPH_AUTO_POOL NextPool;
+    struct _PH_AUTO_POOL *NextPool;
 } PH_AUTO_POOL, *PPH_AUTO_POOL;
 
 VOID PhInitializeAutoPool(

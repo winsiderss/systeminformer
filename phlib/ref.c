@@ -23,7 +23,7 @@
 // This code was initially ported from KProcessHacker.
 
 #define REF_PRIVATE
-#include <ref.h>
+#include <phbase.h>
 #include <refp.h>
 
 /** The type object type. */

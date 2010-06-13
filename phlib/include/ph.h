@@ -39,6 +39,7 @@ extern SID PhSeNetworkServiceSid;
 
 extern WCHAR *PhKThreadStateNames[MaximumThreadState];
 extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
+
 #endif
 
 // native
