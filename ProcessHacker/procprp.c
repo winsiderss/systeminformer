@@ -256,7 +256,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 500);
+            PhResizingMinimumSize((PRECT)lParam, wParam, 460, 500);
         }
         break;
     }
