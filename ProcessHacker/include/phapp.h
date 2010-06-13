@@ -397,6 +397,12 @@ BOOLEAN PhShowProcessProperties(
     __in PPH_PROCESS_PROPCONTEXT Context
     );
 
+// notifico
+
+VOID PhAddNotifyIcon();
+
+VOID PhRemoveNotifyIcon();
+
 // dbgcon
 
 VOID PhShowDebugConsole();
