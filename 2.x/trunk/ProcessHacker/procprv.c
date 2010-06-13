@@ -109,7 +109,7 @@ PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
 PH_CALLBACK PhProcessesUpdatedEvent;
 
-ULONG PhStatisticsSampleCount = 600;
+ULONG PhStatisticsSampleCount = 500;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;

@@ -481,6 +481,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\notifico.c"
+				>
+			</File>
+			<File
 				RelativePath=".\ntobjprp.c"
 				>
 			</File>
