@@ -10,6 +10,8 @@ extern PH_CALLBACK PhProcessAddedEvent;
 extern PH_CALLBACK PhProcessModifiedEvent;
 extern PH_CALLBACK PhProcessRemovedEvent;
 extern PH_CALLBACK PhProcessesUpdatedEvent;
+
+extern ULONG PhStatisticsSampleCount;
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
@@ -119,8 +121,8 @@ typedef struct _PH_PROCESS_ITEM
     PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoWriteHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoOtherHistory;
-    PH_CIRCULAR_BUFFER_SIZE_T PrivateMemoryHistory; // in pages
-    PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory; // in pages
+    PH_CIRCULAR_BUFFER_SIZE_T PrivateBytesHistory;
+    PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhProcessProviderInitialization();

@@ -109,6 +109,8 @@ PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
 PH_CALLBACK PhProcessesUpdatedEvent;
 
+ULONG PhStatisticsSampleCount = 600;
+
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
@@ -362,6 +364,15 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     if (!PH_IS_FAKE_PROCESS_ID(ProcessId))
         PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
 
+    // Create the statistics buffers.
+    PhInitializeCircularBuffer_FLOAT(&processItem->CpuKernelHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_FLOAT(&processItem->CpuUserHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&processItem->IoReadHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&processItem->IoWriteHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&processItem->IoOtherHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
+
     return processItem;
 }
 
@@ -372,6 +383,14 @@ VOID PhpProcessItemDeleteProcedure(
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Object;
     ULONG i;
+
+    PhDeleteCircularBuffer_FLOAT(&processItem->CpuKernelHistory);
+    PhDeleteCircularBuffer_FLOAT(&processItem->CpuUserHistory);
+    PhDeleteCircularBuffer_ULONG64(&processItem->IoReadHistory);
+    PhDeleteCircularBuffer_ULONG64(&processItem->IoWriteHistory);
+    PhDeleteCircularBuffer_ULONG64(&processItem->IoOtherHistory);
+    PhDeleteCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory);
+    PhDeleteCircularBuffer_SIZE_T(&processItem->WorkingSetHistory);
 
     for (i = 0; i < processItem->ServiceList->Count; i++)
         PhDereferenceObject(processItem->ServiceList->Items[i]);
@@ -1287,6 +1306,8 @@ VOID PhProcessProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
+            FLOAT kernelCpuUsage;
+            FLOAT userCpuUsage;
             FLOAT newCpuUsage;
 
             // Update the deltas.
@@ -1295,6 +1316,13 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
+
+            PhCircularBufferAdd_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
+            PhCircularBufferAdd_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
+            PhCircularBufferAdd_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
+
+            PhCircularBufferAdd_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
+            PhCircularBufferAdd_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
@@ -1308,10 +1336,13 @@ VOID PhProcessProviderUpdate(
                 modified = TRUE;
             }
 
-            newCpuUsage = (FLOAT)(
-                processItem->CpuKernelDelta.Delta +
-                processItem->CpuUserDelta.Delta
-                ) / sysTotalTime;
+            kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+            userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
+
+            PhCircularBufferAdd_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
+            PhCircularBufferAdd_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
+
+            newCpuUsage = kernelCpuUsage + userCpuUsage;
 
             if (processItem->CpuUsage != newCpuUsage)
             {
