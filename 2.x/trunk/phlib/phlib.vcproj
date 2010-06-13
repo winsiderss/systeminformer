@@ -431,10 +431,6 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath=".\include\base.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\circbuf.h"
 				>
 			</File>
@@ -572,6 +568,14 @@
 			</File>
 			<File
 				RelativePath=".\include\phnet.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phnt.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phsup.h"
 				>
 			</File>
 			<File

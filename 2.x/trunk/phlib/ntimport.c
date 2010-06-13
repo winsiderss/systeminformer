@@ -21,7 +21,6 @@
  */
 
 #define NTIMPORT_PRIVATE
-#include <ntimport.h>
 #include <ph.h>
 
 #define GetProc(DllName, ProcName) GetProcAddress(GetModuleHandle(L##DllName), (ProcName))

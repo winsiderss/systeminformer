@@ -1,7 +1,7 @@
 #ifndef NTBASIC_H
 #define NTBASIC_H
 
-#include <ntwin.h>
+// This header file provides basic NT types not included in Win32.
 
 // Basic types
 
@@ -46,6 +46,10 @@ typedef USHORT RTL_ATOM, *PRTL_ATOM;
 
 #define NT_NTWIN32(Status) (NT_FACILITY(Status) == FACILITY_NTWIN32)
 #define WIN32_FROM_NTSTATUS(Status) (((ULONG)(Status)) & 0xffff)
+
+// Functions
+
+#define FASTCALL __fastcall
 
 // Synchronization enumerations
 
