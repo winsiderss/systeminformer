@@ -427,10 +427,7 @@ static BOOLEAN PhpShowErrorProcess(
     __in_opt ULONG Win32Result
     )
 {
-    if (
-        Process->ProcessId != DPCS_PROCESS_ID &&
-        Process->ProcessId != INTERRUPTS_PROCESS_ID
-        )
+    if (!PH_IS_FAKE_PROCESS_ID(Process->ProcessId))
     {
         return PhShowContinueStatus(
             hWnd,

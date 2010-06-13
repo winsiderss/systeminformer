@@ -682,7 +682,7 @@ VOID PhThreadProviderUpdate(
         }
 
         // Get the cycle times if we're on Vista.
-        if (WINDOWS_HAS_THREAD_CYCLES)
+        if (WINDOWS_HAS_CYCLE_TIME)
         {
             idleThreadCycleTimes = PhAllocate(
                 sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
@@ -816,7 +816,7 @@ VOID PhThreadProviderUpdate(
             }
 
             // Get the cycle count.
-            if (WINDOWS_HAS_THREAD_CYCLES)
+            if (WINDOWS_HAS_CYCLE_TIME)
             {
                 ULONG64 cycles;
 
@@ -994,7 +994,7 @@ VOID PhThreadProviderUpdate(
             }
 
             // Update the cycle count.
-            if (WINDOWS_HAS_THREAD_CYCLES)
+            if (WINDOWS_HAS_CYCLE_TIME)
             {
                 ULONG64 cycles;
                 ULONG64 oldDelta;

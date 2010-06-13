@@ -142,14 +142,6 @@ typedef struct _PH_MODULES_CONTEXT
     BOOLEAN NeedsSort;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
-typedef struct _PH_MEMORY_CONTEXT
-{
-    PH_MEMORY_PROVIDER Provider;
-
-    PPH_LIST MemoryList;
-    HWND ListViewHandle;
-} PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
-
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
 #define WM_PH_HANDLE_MODIFIED (WM_APP + 222)
 #define WM_PH_HANDLE_REMOVED (WM_APP + 223)
@@ -182,5 +174,31 @@ typedef struct _PH_SERVICES_CONTEXT
 
     HWND WindowHandle;
 } PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
+
+typedef struct _PH_MEMORY_CONTEXT
+{
+    PH_MEMORY_PROVIDER Provider;
+
+    PPH_LIST MemoryList;
+    HWND ListViewHandle;
+} PH_MEMORY_CONTEXT, *PPH_MEMORY_CONTEXT;
+
+#define WM_PH_STATISTICS_UPDATE (WM_APP + 231)
+
+typedef struct _PH_STATISTICS_CONTEXT
+{
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
+    HWND WindowHandle;
+} PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
+
+#define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
+
+typedef struct _PH_PERFORMANCE_CONTEXT
+{
+    PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+
+    HWND WindowHandle;
+} PH_PERFORMANCE_CONTEXT, *PPH_PERFORMANCE_CONTEXT;
 
 #endif

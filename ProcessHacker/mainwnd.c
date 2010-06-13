@@ -2124,10 +2124,7 @@ VOID PhpInitializeProcessMenu(
 
         // If the user selected a fake process, disable all but 
         // a few menu items.
-        if (
-            Processes[0]->ProcessId == DPCS_PROCESS_ID ||
-            Processes[0]->ProcessId == INTERRUPTS_PROCESS_ID
-            )
+        if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
         {
             PhEnableAllMenuItems(Menu, FALSE);
             EnableMenuItem(Menu, ID_PROCESS_PROPERTIES, MF_ENABLED);

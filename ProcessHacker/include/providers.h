@@ -15,6 +15,13 @@ extern PH_CALLBACK PhProcessesUpdatedEvent;
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
 #define INTERRUPTS_PROCESS_ID ((HANDLE)(LONG_PTR)-3)
 
+// DPCs, Interrupts and System Idle Process are not real.
+// Non-"real" processes can never be opened.
+#define PH_IS_REAL_PROCESS_ID(ProcessId) ((LONG_PTR)(ProcessId) > 0)
+
+// DPCs and Interrupts are fake, but System Idle Process is not.
+#define PH_IS_FAKE_PROCESS_ID(ProcessId) ((LONG_PTR)(ProcessId) < 0)
+
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
 
@@ -89,7 +96,12 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
     WCHAR CpuUsageString[PH_INT32_STR_LEN_1]; // volatile
 
-    // Statistics
+    // Dynamic
+
+    KPRIORITY BasePriority;
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    ULONG NumberOfHandles;
 
     FLOAT CpuUsage; // from 0 to 1
 
@@ -100,6 +112,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoOtherDelta; // volatile
 
     VM_COUNTERS_EX VmCounters; // volatile
+    IO_COUNTERS IoCounters; // volatile
 
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
     PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
