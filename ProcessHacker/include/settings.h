@@ -104,7 +104,6 @@ EXT ULONG PhCsColorProtectedHandles;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
 
-#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) \
-    (PhSetIntegerSetting(L#Name, (Value)), PhCs##Name = (Value))
+#define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
 
 #endif

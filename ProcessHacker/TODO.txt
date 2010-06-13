@@ -12,3 +12,5 @@
 * Copy menu
 
 * Dump/view process information
+
+* Make settings based on atoms instead of strings
