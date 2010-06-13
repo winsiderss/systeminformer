@@ -359,7 +359,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     processItem->ProcessId = ProcessId;
 
-    if (ProcessId != DPCS_PROCESS_ID && ProcessId != INTERRUPTS_PROCESS_ID)
+    if (!PH_IS_FAKE_PROCESS_ID(ProcessId))
         PhPrintUInt32(processItem->ProcessIdString, (ULONG)ProcessId);
 
     return processItem;
@@ -984,6 +984,17 @@ VOID PhpFillProcessItem(
     NtClose(processHandle);
 }
 
+FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
+    __inout PPH_PROCESS_ITEM ProcessItem,
+    __in PSYSTEM_PROCESS_INFORMATION Process
+    )
+{
+    ProcessItem->BasePriority = Process->BasePriority;
+    ProcessItem->KernelTime = Process->KernelTime;
+    ProcessItem->UserTime = Process->UserTime;
+    ProcessItem->NumberOfHandles = Process->HandleCount;
+}
+
 VOID PhpUpdatePerfInformation()
 {
     ULONG returnLength;
@@ -1225,6 +1236,8 @@ VOID PhProcessProviderUpdate(
                 }
             }
 
+            PhpUpdateDynamicInfoProcessItem(processItem, process);
+
             // Initialize the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
             PhUpdateDelta(&processItem->CpuUserDelta, process->UserTime.QuadPart);
@@ -1232,8 +1245,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
-            // Update VM statistics.
+            // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
+            processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
 
             // If this is the first run of the provider, queue the 
             // process query tasks. Otherwise, perform stage 1 
@@ -1282,8 +1296,11 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
-            // Update VM statistics.
+            PhpUpdateDynamicInfoProcessItem(processItem, process);
+
+            // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
+            processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
 
             if (processItem->JustProcessed)
             {
