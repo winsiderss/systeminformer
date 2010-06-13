@@ -177,6 +177,7 @@ static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 static BOOLEAN ServicesNeedsRedraw = FALSE;
 static BOOLEAN ServicesNeedsSort = FALSE;
+static HIMAGELIST ServiceImageList;
 
 static PH_PROVIDER_REGISTRATION NetworkProviderRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemAddedRegistration;
@@ -1915,8 +1916,18 @@ VOID PhMainWndOnCreate()
     PhSetControlTheme(NetworkListViewHandle, L"explorer");
 
     PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-    PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Display Name");
-    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_RIGHT, 50, L"PID");
+    PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 180, L"Display Name");
+    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 110, L"Type");
+    PhAddListViewColumn(ServiceListViewHandle, 3, 3, 3, LVCFMT_LEFT, 70, L"Status");
+    PhAddListViewColumn(ServiceListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Start Type");
+    PhAddListViewColumn(ServiceListViewHandle, 5, 5, 5, LVCFMT_RIGHT, 50, L"PID");
+
+    ServiceImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 2);
+    ImageList_Add(ServiceImageList, LoadImage(PhInstanceHandle,
+        MAKEINTRESOURCE(IDB_APPLICATION), IMAGE_BITMAP, 16, 16, LR_SHARED), NULL);
+    ImageList_Add(ServiceImageList, LoadImage(PhInstanceHandle,
+        MAKEINTRESOURCE(IDB_BRICKS), IMAGE_BITMAP, 16, 16, LR_SHARED), NULL);
+    ListView_SetImageList(ServiceListViewHandle, ServiceImageList, LVSIL_SMALL);
 
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
     PhAddListViewColumn(NetworkListViewHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Local Address");
@@ -2663,6 +2674,21 @@ VOID PhMainWndOnProcessesUpdated()
     }
 }
 
+VOID PhpSetServiceItemImageIndex(
+    __in INT ItemIndex,
+    __in PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    INT index;
+
+    if (ServiceItem->Type != SERVICE_KERNEL_DRIVER && ServiceItem->Type != SERVICE_FILE_SYSTEM_DRIVER)
+        index = 0;
+    else
+        index = 1;
+
+    PhSetListViewItemImageIndex(ServiceListViewHandle, ItemIndex, index);
+}
+
 VOID PhMainWndOnServiceAdded(
     __in ULONG RunId,
     __in PPH_SERVICE_ITEM ServiceItem
@@ -2688,7 +2714,12 @@ VOID PhMainWndOnServiceAdded(
         );
     if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
     PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceItem->ProcessIdString);
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, PhGetServiceTypeString(ServiceItem->Type));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 3, PhGetServiceStateString(ServiceItem->State));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 4, PhGetServiceStartTypeString(ServiceItem->StartType));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 5, ServiceItem->ProcessIdString);
+
+    PhpSetServiceItemImageIndex(lvItemIndex, ServiceItem);
 
     ServicesNeedsSort = TRUE;
 }
@@ -2706,7 +2737,13 @@ VOID PhMainWndOnServiceModified(
     }
 
     lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceModifiedData->Service);
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, ServiceModifiedData->Service->ProcessIdString);
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, PhGetServiceTypeString(ServiceModifiedData->Service->Type));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 3, PhGetServiceStateString(ServiceModifiedData->Service->State));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 4, PhGetServiceStartTypeString(ServiceModifiedData->Service->StartType));
+    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 5, ServiceModifiedData->Service->ProcessIdString);
+
+    if (ServiceModifiedData->Service->Type != ServiceModifiedData->OldService.Type)
+        PhpSetServiceItemImageIndex(lvItemIndex, ServiceModifiedData->Service);
 
     ServicesNeedsSort = TRUE;
 }
