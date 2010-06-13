@@ -56,6 +56,13 @@
 typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
+/** Reserved. */
+#define PHOBJ_LOCK_BIT 0x1
+/** The object was allocated from the small free list. */
+#define PHOBJ_FROM_SMALL_FREE_LIST 0x2
+/** The object was allocated from the type free list. */
+#define PHOBJ_FROM_TYPE_FREE_LIST 0x4
+
 /**
  * The object header contains object manager information 
  * including the reference count of an object and its 
@@ -66,7 +73,7 @@ typedef struct _PH_OBJECT_HEADER
     /** The reference count of the object. */
     LONG RefCount;
 
-    /** Reserved. */
+    /** Internal flags. */
     ULONG Flags;
 
     union
@@ -98,22 +105,20 @@ typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
     ULONG Flags;
-
     /** The number of bytes at which the pointer to the 
      * object's security descriptor is stored. */
     UCHAR OffsetOfSecurityDescriptor;
     UCHAR Reserved1;
     UCHAR Reserved2;
     UCHAR Reserved3;
-
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
-
     /** The name of the type. */
     PWSTR Name;
-
     /** The total number of objects of this type that are alive. */
     ULONG NumberOfObjects;
+    /** A free list to use when allocating for this type. */
+    PH_FREE_LIST FreeList;
 
     GENERIC_MAPPING GenericMapping;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
@@ -162,7 +167,13 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
 }
 
 PPH_OBJECT_HEADER PhpAllocateObject(
-    __in SIZE_T ObjectSize
+    __in PPH_OBJECT_TYPE ObjectType,
+    __in SIZE_T ObjectSize,
+    __in ULONG Flags
+    );
+
+VOID PhpFreeObject(
+    __in PPH_OBJECT_HEADER ObjectHeader
     );
 
 VOID PhpDeferDeleteObject(
@@ -171,10 +182,6 @@ VOID PhpDeferDeleteObject(
 
 NTSTATUS PhpDeferDeleteObjectRoutine(
     __in PVOID Parameter
-    );
-
-VOID PhpFreeObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
     );
 
 #endif
