@@ -2849,10 +2849,17 @@ VOID PhDeleteFreeList(
     __inout PPH_FREE_LIST FreeList
     )
 {
+    PPH_FREE_LIST_ENTRY entry;
     PSLIST_ENTRY listEntry;
 
-    while (listEntry = RtlInterlockedPopEntrySList(&FreeList->ListHead))
-        PhFree(CONTAINING_RECORD(listEntry, PH_FREE_LIST_ENTRY, ListEntry));
+    listEntry = RtlInterlockedFlushSList(&FreeList->ListHead);
+
+    while (listEntry)
+    {
+        entry = CONTAINING_RECORD(listEntry, PH_FREE_LIST_ENTRY, ListEntry);
+        listEntry = listEntry->Next;
+        PhFree(entry);
+    }
 }
 
 /**
