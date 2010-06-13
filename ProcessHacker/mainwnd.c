@@ -427,11 +427,13 @@ LRESULT CALLBACK PhMainWndProc(
     )
 {
     switch (uMsg)
-    { 
+    {
     case WM_DESTROY:
         {
             if (!PhMainWndExiting)
                 PhpSaveAllSettings();
+
+            PhRemoveNotifyIcon();
 
             PostQuitMessage(0);
         }
@@ -1880,6 +1882,15 @@ static VOID NTAPI NetworkItemsUpdatedHandler(
     PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
 }
 
+static NTSTATUS PhpDelayedLoadFunction(
+    __in PVOID Parameter
+    )
+{
+    PhAddNotifyIcon();
+
+    return STATUS_SUCCESS;
+}
+
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -1999,6 +2010,8 @@ VOID PhMainWndOnCreate()
         NULL,
         &NetworkItemsUpdatedRegistration
         );
+
+    PhQueueGlobalWorkQueueItem(PhpDelayedLoadFunction, NULL);
 }
 
 VOID PhMainWndOnLayout(HDWP *deferHandle)
