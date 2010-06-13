@@ -25,13 +25,22 @@
 
 #include <phbase.h>
 
+// Configuration
+
+#define PHOBJ_SMALL_OBJECT_SIZE 48
+#define PHOBJ_SMALL_OBJECT_COUNT 512
+
+//#define PHOBJ_STRICT_CHECKS
+#define PHOBJ_ALLOCATE_NEVER_NULL
+
 /* Object flags */
 #define PHOBJ_RAISE_ON_FAIL 0x00000001
 #define PHOBJ_VALID_FLAGS 0x00000001
 
 /* Object type flags */
-#define PHOBJTYPE_SECURED 0x00000001
-#define PHOBJTYPE_VALID_FLAGS 0x00000001
+#define PHOBJTYPE_USE_FREE_LIST 0x00000001
+#define PHOBJTYPE_SECURED 0x00000002
+#define PHOBJTYPE_VALID_FLAGS 0x00000003
 
 /* Object type callbacks */
 
@@ -81,6 +90,9 @@ extern PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook;
 
 typedef struct _PH_OBJECT_TYPE_PARAMETERS
 {
+    SIZE_T FreeListSize;
+    ULONG FreeListCount;
+
     UCHAR OffsetOfSecurityDescriptor;
     GENERIC_MAPPING GenericMapping;
 } PH_OBJECT_TYPE_PARAMETERS, *PPH_OBJECT_TYPE_PARAMETERS;
@@ -97,7 +109,7 @@ __mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
-    __in_opt PPH_OBJECT_TYPE ObjectType,
+    __in PPH_OBJECT_TYPE ObjectType,
     __in_opt LONG AdditionalReferences
     );
 

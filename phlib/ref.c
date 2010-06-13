@@ -34,6 +34,9 @@ BOOLEAN PhObjectDeinitializing = FALSE;
 /** The next object to delete. */
 PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
+/** Free list for small objects. */
+PH_FREE_LIST PhObjectSmallFreeList;
+
 /** The allocated memory object type. */
 PPH_OBJECT_TYPE PhAllocType = NULL;
 
@@ -51,13 +54,24 @@ PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 NTSTATUS PhInitializeRef()
 {
     NTSTATUS status = STATUS_SUCCESS;
+    PH_OBJECT_TYPE dummyObjectType;
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgObjectListHead);
     PhInitializeQueuedLock(&PhDbgObjectListLock);
 #endif
 
+    PhInitializeFreeList(
+        &PhObjectSmallFreeList,
+        PhpAddObjectHeaderSize(PHOBJ_SMALL_OBJECT_SIZE),
+        PHOBJ_SMALL_OBJECT_COUNT
+        );
+
     // Create the fundamental object type.
+
+    memset(&dummyObjectType, 0, sizeof(PH_OBJECT_TYPE));
+    PhObjectTypeObject = &dummyObjectType; // PhCreateObject expects an object type.
+
     status = PhCreateObjectType(
         &PhObjectTypeObject,
         L"Type",
@@ -108,40 +122,43 @@ __mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
-    __in_opt PPH_OBJECT_TYPE ObjectType,
+    __in PPH_OBJECT_TYPE ObjectType,
     __in_opt LONG AdditionalReferences
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
     PPH_OBJECT_HEADER objectHeader;
 
+#ifdef PHOBJ_STRICT_CHECKS
     /* Check the flags. */
     if ((Flags & PHOBJ_VALID_FLAGS) != Flags) /* Valid flag mask */
     {
         status = STATUS_INVALID_PARAMETER_3;
-    }
-    /* The object type is only optional if the fundamental object type 
-     * hasn't been created. */
-    else if (!ObjectType && PhObjectTypeObject)
-    {
-        status = STATUS_INVALID_PARAMETER_4;
     }
     /* Make sure the additional reference count isn't negative. */
     else if (AdditionalReferences < 0)
     {
         status = STATUS_INVALID_PARAMETER_5;
     }
+#else
+    assert(!((Flags & PHOBJ_VALID_FLAGS) != Flags));
+    assert(!(!ObjectType && PhObjectTypeObject));
+    assert(!(AdditionalReferences < 0));
+#endif
 
     if (NT_SUCCESS(status))
     {
         /* Allocate storage for the object. Note that this includes 
          * the object header followed by the object body. */
-        objectHeader = PhpAllocateObject(ObjectSize);
+        objectHeader = PhpAllocateObject(ObjectType, ObjectSize, Flags);
 
+#ifndef PHOBJ_ALLOCATE_NEVER_NULL
         if (!objectHeader)
             status = STATUS_INSUFFICIENT_RESOURCES;
+#endif
     }
 
+#ifndef PHOBJ_ALLOCATE_NEVER_NULL
     if (!NT_SUCCESS(status))
     {
         if (!(Flags & PHOBJ_RAISE_ON_FAIL))
@@ -149,16 +166,14 @@ __mayRaise NTSTATUS PhCreateObject(
         else
             PhRaiseStatus(status);
     }
+#endif
 
     /* Object type statistics. */
-    if (ObjectType)
-    {
-        _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
-    }
+    _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
 
     /* Initialize the object header. */
     objectHeader->RefCount = 1 + AdditionalReferences;
-    objectHeader->Flags = 0;
+    // objectHeader->Flags is initialized by PhpAllocateObject.
     objectHeader->Size = ObjectSize;
     objectHeader->Type = ObjectType;
 
@@ -263,7 +278,7 @@ NTSTATUS PhCreateObjectTypeEx(
     /* Check the flags. */
     if ((Flags & PHOBJTYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
         return STATUS_INVALID_PARAMETER_3;
-    if ((Flags & PHOBJTYPE_SECURED) && !Parameters)
+    if ((Flags & (PHOBJTYPE_USE_FREE_LIST | PHOBJTYPE_SECURED)) && !Parameters)
         return STATUS_INVALID_PARAMETER_MIX;
 
     /* Create the type object. */
@@ -286,8 +301,20 @@ NTSTATUS PhCreateObjectTypeEx(
 
     if (Parameters)
     {
-        objectType->OffsetOfSecurityDescriptor = Parameters->OffsetOfSecurityDescriptor;
-        objectType->GenericMapping = Parameters->GenericMapping;
+        if (Flags & PHOBJTYPE_USE_FREE_LIST)
+        {
+            PhInitializeFreeList(
+                &objectType->FreeList,
+                PhpAddObjectHeaderSize(Parameters->FreeListSize),
+                Parameters->FreeListCount
+                );
+        }
+
+        if (Flags & PHOBJTYPE_SECURED)
+        {
+            objectType->OffsetOfSecurityDescriptor = Parameters->OffsetOfSecurityDescriptor;
+            objectType->GenericMapping = Parameters->GenericMapping;
+        }
     }
 
     *ObjectType = objectType;
@@ -357,9 +384,13 @@ __mayRaise LONG PhDereferenceObjectEx(
     LONG oldRefCount;
     LONG newRefCount;
 
+#ifdef PHOBJ_STRICT_CHECKS
     /* Make sure we're not subtracting a negative reference count. */
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+#else
+    assert(!(RefCount < 0));
+#endif
 
     objectHeader = PhObjectToObjectHeader(Object);
 
@@ -450,9 +481,13 @@ __mayRaise LONG PhReferenceObjectEx(
     PPH_OBJECT_HEADER objectHeader;
     LONG oldRefCount;
 
+#ifdef PHOBJ_STRICT_CHECKS
     /* Make sure we're not adding a negative reference count. */
     if (RefCount < 0)
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+#else
+    assert(!(RefCount < 0));
+#endif
 
     objectHeader = PhObjectToObjectHeader(Object);
     /* Increase the reference count. */
@@ -530,10 +565,79 @@ NTSTATUS PhSetSecurityObject(
  * \param ObjectSize The size of the object, excluding the header.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
-    __in SIZE_T ObjectSize
+    __in PPH_OBJECT_TYPE ObjectType,
+    __in SIZE_T ObjectSize,
+    __in ULONG Flags
     )
 {
-    return PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
+    PPH_OBJECT_HEADER objectHeader;
+
+    if (ObjectType->Flags & PHOBJTYPE_USE_FREE_LIST)
+    {
+#ifdef PHOBJ_STRICT_CHECKS
+        if (ObjectType->FreeList.Size != ObjectSize)
+            PhRaiseStatus(STATUS_INVALID_PARAMETER);
+#else
+        assert(ObjectType->FreeList.Size == ObjectSize);
+#endif
+
+        objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
+        objectHeader->Flags = PHOBJ_FROM_TYPE_FREE_LIST;
+    }
+    else if (ObjectSize <= PHOBJ_SMALL_OBJECT_SIZE)
+    {
+        objectHeader = PhAllocateFromFreeList(&PhObjectSmallFreeList);
+        objectHeader->Flags = PHOBJ_FROM_SMALL_FREE_LIST;
+    }
+    else
+    {
+        objectHeader = PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
+        objectHeader->Flags = 0;
+    }
+
+    return objectHeader;
+}
+
+/**
+ * Calls the delete procedure for an object and frees its 
+ * allocated storage.
+ *
+ * \param ObjectHeader A pointer to the object header of an allocated object.
+ */
+VOID PhpFreeObject(
+    __in PPH_OBJECT_HEADER ObjectHeader
+    )
+{
+    /* Object type statistics. */
+    _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
+
+#ifdef DEBUG
+    PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
+    RemoveEntryList(&ObjectHeader->ObjectListEntry);
+    PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
+#endif
+
+    /* Call the delete procedure if we have one. */
+    if (ObjectHeader->Type->DeleteProcedure)
+    {
+        ObjectHeader->Type->DeleteProcedure(
+            PhObjectHeaderToObject(ObjectHeader),
+            0
+            );
+    }
+
+    if (ObjectHeader->Flags & PHOBJ_FROM_TYPE_FREE_LIST)
+    {
+        PhFreeToFreeList(&ObjectHeader->Type->FreeList, ObjectHeader);
+    }
+    else if (ObjectHeader->Flags & PHOBJ_FROM_SMALL_FREE_LIST)
+    {
+        PhFreeToFreeList(&PhObjectSmallFreeList, ObjectHeader);
+    }
+    else
+    {
+        PhFree(ObjectHeader);
+    }
 }
 
 /**
@@ -602,37 +706,6 @@ NTSTATUS PhpDeferDeleteObjectRoutine(
     }
 
     return STATUS_SUCCESS;
-}
-
-/**
- * Calls the delete procedure for an object and frees its 
- * allocated storage.
- *
- * \param ObjectHeader A pointer to the object header of an allocated object.
- */
-VOID PhpFreeObject(
-    __in PPH_OBJECT_HEADER ObjectHeader
-    )
-{
-    /* Object type statistics. */
-    _InterlockedDecrement(&ObjectHeader->Type->NumberOfObjects);
-
-#ifdef DEBUG
-    PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    RemoveEntryList(&ObjectHeader->ObjectListEntry);
-    PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
-#endif
-
-    /* Call the delete procedure if we have one. */
-    if (ObjectHeader->Type->DeleteProcedure)
-    {
-        ObjectHeader->Type->DeleteProcedure(
-            PhObjectHeaderToObject(ObjectHeader),
-            0
-            );
-    }
-
-    PhFree(ObjectHeader);
 }
 
 /**
