@@ -1876,11 +1876,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         !PhKphHandle
                         )
                     {
-                        PhUiTerminateThreads(hwndDlg, threads, numberOfThreads);
+                        if (PhUiTerminateThreads(hwndDlg, threads, numberOfThreads))
+                            PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
                     }
                     else
                     {
-                        PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
+                        if (PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads))
+                            PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
                     }
 
                     PhDereferenceObjects(threads, numberOfThreads);
@@ -1894,7 +1896,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                     PhGetSelectedListViewItemParams(lvHandle, &threads, &numberOfThreads);
                     PhReferenceObjects(threads, numberOfThreads);
-                    PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads);
+
+                    if (PhUiForceTerminateThreads(hwndDlg, processItem->ProcessId, threads, numberOfThreads))
+                        PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
+
                     PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
                 }
@@ -2624,7 +2629,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     if (moduleItem)
                     {
                         PhReferenceObject(moduleItem);
-                        PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem);
+
+                        if (PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem))
+                            PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
+
                         PhDereferenceObject(moduleItem);
                     }
                 }
@@ -3434,7 +3442,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                     PhGetSelectedListViewItemParams(lvHandle, &handles, &numberOfHandles);
                     PhReferenceObjects(handles, numberOfHandles);
-                    PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam);
+
+                    if (PhUiCloseHandles(hwndDlg, processItem->ProcessId, handles, numberOfHandles, !!lParam))
+                        PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
+
                     PhDereferenceObjects(handles, numberOfHandles);
                     PhFree(handles);
                 }

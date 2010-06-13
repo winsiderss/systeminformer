@@ -355,6 +355,12 @@ VOID PhEnableAllMenuItems(
     __in BOOLEAN Enable
     );
 
+VOID PhSetStateAllListViewItems(
+    __in HWND hWnd,
+    __in ULONG State,
+    __in ULONG Mask
+    );
+
 PVOID PhGetSelectedListViewItemParam(
     __in HWND hWnd
     );

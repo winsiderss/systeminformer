@@ -469,6 +469,26 @@ VOID PhEnableAllMenuItems(
     }
 }
 
+VOID PhSetStateAllListViewItems(
+    __in HWND hWnd,
+    __in ULONG State,
+    __in ULONG Mask
+    )
+{
+    ULONG i;
+    ULONG count;
+
+    count = ListView_GetItemCount(hWnd);
+
+    if (count == -1)
+        return;
+
+    for (i = 0; i < count; i++)
+    {
+        ListView_SetItemState(hWnd, i, State, Mask);
+    }
+}
+
 PVOID PhGetSelectedListViewItemParam(
     __in HWND hWnd
     )
