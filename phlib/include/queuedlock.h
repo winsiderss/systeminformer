@@ -61,27 +61,22 @@ FORCEINLINE VOID PhInitializeQueuedLock(
     QueuedLock->Value = 0;
 }
 
-#define PhAcquireQueuedLockExclusive PhfAcquireQueuedLockExclusive
 VOID FASTCALL PhfAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-#define PhAcquireQueuedLockShared PhfAcquireQueuedLockShared
 VOID FASTCALL PhfAcquireQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-#define PhReleaseQueuedLockExclusive PhfReleaseQueuedLockExclusive
 VOID FASTCALL PhfReleaseQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-#define PhReleaseQueuedLockShared PhfReleaseQueuedLockShared
 VOID FASTCALL PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-#define PhTryWakeQueuedLock PhfTryWakeQueuedLock
 VOID FASTCALL PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
@@ -109,7 +104,6 @@ VOID FASTCALL PhfQueueWakeEvent(
     __out PPH_QUEUED_WAIT_BLOCK WaitBlock
     );
 
-#define PhSetWakeEvent PhfSetWakeEvent
 VOID FASTCALL PhfSetWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent
     );
@@ -123,7 +117,7 @@ NTSTATUS FASTCALL PhfWaitForWakeEvent(
 
 // Inline functions
 
-FORCEINLINE VOID PhAcquireQueuedLockExclusiveFast(
+FORCEINLINE VOID PhAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -134,11 +128,11 @@ FORCEINLINE VOID PhAcquireQueuedLockExclusiveFast(
 #endif
     {
         // Owned bit was already set. Slow path.
-        PhAcquireQueuedLockExclusive(QueuedLock);
+        PhfAcquireQueuedLockExclusive(QueuedLock);
     }
 }
 
-FORCEINLINE VOID PhAcquireQueuedLockSharedFast(
+FORCEINLINE VOID PhAcquireQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -148,7 +142,7 @@ FORCEINLINE VOID PhAcquireQueuedLockSharedFast(
         (PVOID)0
         ) != 0)
     {
-        PhAcquireQueuedLockShared(QueuedLock);
+        PhfAcquireQueuedLockShared(QueuedLock);
     }
 }
 
@@ -170,7 +164,7 @@ FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     }
 }
 
-FORCEINLINE VOID PhReleaseQueuedLockExclusiveFast(
+FORCEINLINE VOID PhReleaseQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -186,7 +180,7 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusiveFast(
     }
 }
 
-FORCEINLINE VOID PhReleaseQueuedLockSharedFast(
+FORCEINLINE VOID PhReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
@@ -200,7 +194,7 @@ FORCEINLINE VOID PhReleaseQueuedLockSharedFast(
         (PVOID)value
         ) != value)
     {
-        PhReleaseQueuedLockShared(QueuedLock);
+        PhfReleaseQueuedLockShared(QueuedLock);
     }
 }
 
@@ -216,8 +210,8 @@ FORCEINLINE VOID PhAcquireReleaseQueuedLockExclusive(
 
     if (owned)
     {
-        PhAcquireQueuedLockExclusiveFast(QueuedLock);
-        PhReleaseQueuedLockExclusiveFast(QueuedLock);
+        PhAcquireQueuedLockExclusive(QueuedLock);
+        PhReleaseQueuedLockExclusive(QueuedLock);
     }
 }
 
@@ -237,12 +231,12 @@ FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
     return owned;
 }
 
-FORCEINLINE VOID PhSetWakeEventFast(
+FORCEINLINE VOID PhSetWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent
     )
 {
     if (WakeEvent->Value)
-        PhSetWakeEvent(WakeEvent);
+        PhfSetWakeEvent(WakeEvent);
 }
 
 #endif

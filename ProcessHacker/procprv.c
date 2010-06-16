@@ -454,14 +454,14 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 {
     PPH_PROCESS_ITEM processItem;
 
-    PhAcquireQueuedLockSharedFast(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
 
     processItem = PhpLookupProcessItem(ProcessId);
 
     if (processItem)
         PhReferenceObject(processItem);
 
-    PhReleaseQueuedLockSharedFast(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
 
     return processItem;
 }
@@ -1178,14 +1178,14 @@ VOID PhProcessProviderUpdate(
         // Lock only if we have something to do.
         if (processesToRemove)
         {
-            PhAcquireQueuedLockExclusiveFast(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
 
             for (i = 0; i < processesToRemove->Count; i++)
             {
                 PhpRemoveProcessItem((PPH_PROCESS_ITEM)processesToRemove->Items[i]);
             }
 
-            PhReleaseQueuedLockExclusiveFast(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
             PhDereferenceObject(processesToRemove);
         }
     }
@@ -1291,9 +1291,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateProcessItemServices(processItem);
 
             // Add the process item to the hashtable.
-            PhAcquireQueuedLockExclusiveFast(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
             PhAddHashtableEntry(PhProcessHashtable, &processItem);
-            PhReleaseQueuedLockExclusiveFast(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);

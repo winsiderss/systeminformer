@@ -3015,9 +3015,9 @@ VOID PhRegisterCallbackEx(
     Registration->Unregistering = FALSE;
     Registration->Flags = Flags;
 
-    PhAcquireQueuedLockExclusiveFast(&Callback->ListLock);
+    PhAcquireQueuedLockExclusive(&Callback->ListLock);
     InsertTailList(&Callback->ListHead, &Registration->ListEntry);
-    PhReleaseQueuedLockExclusiveFast(&Callback->ListLock);
+    PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
 /**
@@ -3038,7 +3038,7 @@ VOID PhUnregisterCallback(
 {
     Registration->Unregistering = TRUE;
 
-    PhAcquireQueuedLockExclusiveFast(&Callback->ListLock);
+    PhAcquireQueuedLockExclusive(&Callback->ListLock);
 
     // Wait for the callback to be unbusy.
     while (Registration->Busy)
@@ -3046,7 +3046,7 @@ VOID PhUnregisterCallback(
 
     RemoveEntryList(&Registration->ListEntry);
 
-    PhReleaseQueuedLockExclusiveFast(&Callback->ListLock);
+    PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
 /**
@@ -3063,7 +3063,7 @@ VOID PhInvokeCallback(
 {
     PLIST_ENTRY listEntry;
 
-    PhAcquireQueuedLockSharedFast(&Callback->ListLock);
+    PhAcquireQueuedLockShared(&Callback->ListLock);
 
     listEntry = Callback->ListHead.Flink;
 
@@ -3083,12 +3083,12 @@ VOID PhInvokeCallback(
 
         // Execute the callback function.
 
-        PhReleaseQueuedLockSharedFast(&Callback->ListLock);
+        PhReleaseQueuedLockShared(&Callback->ListLock);
         registration->Function(
             Parameter,
             registration->Context
             );
-        PhAcquireQueuedLockSharedFast(&Callback->ListLock);
+        PhAcquireQueuedLockShared(&Callback->ListLock);
 
         busy = _InterlockedDecrement(&registration->Busy);
 
@@ -3102,7 +3102,7 @@ VOID PhInvokeCallback(
         listEntry = listEntry->Flink;
     }
 
-    PhReleaseQueuedLockSharedFast(&Callback->ListLock);
+    PhReleaseQueuedLockShared(&Callback->ListLock);
 }
 
 VOID PhPrintTimeSpan(

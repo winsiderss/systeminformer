@@ -1016,7 +1016,7 @@ VOID FASTCALL PhfWaitForCondition(
 
             if (Lock)
             {
-                PhReleaseQueuedLockExclusiveFast(Lock);
+                PhReleaseQueuedLockExclusive(Lock);
             }
 
             PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
