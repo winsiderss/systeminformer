@@ -415,7 +415,7 @@ PPH_STRING PhStdGetClientIdName(
 
     if (tickCount - lastProcessesTickCount >= 2000)
     {
-        PhAcquireQueuedLockExclusiveFast(&cachedProcessesLock);
+        PhAcquireQueuedLockExclusive(&cachedProcessesLock);
 
         // Re-check the tick count.
         if (tickCount - lastProcessesTickCount >= 2000)
@@ -435,12 +435,12 @@ PPH_STRING PhStdGetClientIdName(
             lastProcessesTickCount = tickCount;
         }
 
-        PhReleaseQueuedLockExclusiveFast(&cachedProcessesLock);
+        PhReleaseQueuedLockExclusive(&cachedProcessesLock);
     }
 
     // Get a lock on the process list and get a name for the client ID.
 
-    PhAcquireQueuedLockSharedFast(&cachedProcessesLock);
+    PhAcquireQueuedLockShared(&cachedProcessesLock);
 
     if (!processes)
     {
@@ -485,7 +485,7 @@ PPH_STRING PhStdGetClientIdName(
         }
     }
 
-    PhReleaseQueuedLockSharedFast(&cachedProcessesLock);
+    PhReleaseQueuedLockShared(&cachedProcessesLock);
 
     return name;
 }

@@ -477,7 +477,7 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
 
         while (freeValue == PH_HANDLE_VALUE_INVALID)
         {
-            PhAcquireQueuedLockExclusiveFast(&HandleTable->Lock);
+            PhAcquireQueuedLockExclusive(&HandleTable->Lock);
 
             // Check again to see if we have free handles.
 

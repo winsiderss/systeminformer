@@ -219,14 +219,14 @@ PPH_HANDLE_ITEM PhReferenceHandleItem(
 {
     PPH_HANDLE_ITEM handleItem;
 
-    PhAcquireQueuedLockSharedFast(&HandleProvider->HandleHashtableLock);
+    PhAcquireQueuedLockShared(&HandleProvider->HandleHashtableLock);
 
     handleItem = PhpLookupHandleItem(HandleProvider, Handle);
 
     if (handleItem)
         PhReferenceObject(handleItem);
 
-    PhReleaseQueuedLockSharedFast(&HandleProvider->HandleHashtableLock);
+    PhReleaseQueuedLockShared(&HandleProvider->HandleHashtableLock);
 
     return handleItem;
 }
@@ -238,14 +238,14 @@ VOID PhDereferenceAllHandleItems(
     ULONG enumerationKey = 0;
     PPH_HANDLE_ITEM *handleItem;
 
-    PhAcquireQueuedLockExclusiveFast(&HandleProvider->HandleHashtableLock);
+    PhAcquireQueuedLockExclusive(&HandleProvider->HandleHashtableLock);
 
     while (PhEnumHashtable(HandleProvider->HandleHashtable, (PPVOID)&handleItem, &enumerationKey))
     {
         PhDereferenceObject(*handleItem);
     }
 
-    PhReleaseQueuedLockExclusiveFast(&HandleProvider->HandleHashtableLock);
+    PhReleaseQueuedLockExclusive(&HandleProvider->HandleHashtableLock);
 }
 
 __assumeLocked VOID PhpRemoveHandleItem(
@@ -485,7 +485,7 @@ VOID PhHandleProviderUpdate(
 
         if (handlesToRemove)
         {
-            PhAcquireQueuedLockExclusiveFast(&handleProvider->HandleHashtableLock);
+            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashtableLock);
 
             for (i = 0; i < handlesToRemove->Count; i++)
             {
@@ -495,7 +495,7 @@ VOID PhHandleProviderUpdate(
                     );
             }
 
-            PhReleaseQueuedLockExclusiveFast(&handleProvider->HandleHashtableLock);
+            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashtableLock);
             PhDereferenceObject(handlesToRemove);
         }
     }
@@ -533,9 +533,9 @@ VOID PhHandleProviderUpdate(
             }
 
             // Add the handle item to the hashtable.
-            PhAcquireQueuedLockExclusiveFast(&handleProvider->HandleHashtableLock);
+            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashtableLock);
             PhAddHashtableEntry(handleProvider->HandleHashtable, &handleItem);
-            PhReleaseQueuedLockExclusiveFast(&handleProvider->HandleHashtableLock);
+            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashtableLock);
 
             // Raise the handle added event.
             PhInvokeCallback(&handleProvider->HandleAddedEvent, handleItem);

@@ -213,7 +213,7 @@ FORCEINLINE VOID PhAcquireMutex(
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlEnterCriticalSection(Mutex);
 #else
-    PhAcquireQueuedLockExclusiveFast(Mutex);
+    PhAcquireQueuedLockExclusive(Mutex);
 #endif
 }
 
@@ -229,7 +229,7 @@ FORCEINLINE VOID PhReleaseMutex(
 #ifdef PH_MUTEX_IS_CRITICAL_SECTION
     RtlLeaveCriticalSection(Mutex);
 #else
-    PhReleaseQueuedLockExclusiveFast(Mutex);
+    PhReleaseQueuedLockExclusive(Mutex);
 #endif
 }
 
@@ -298,27 +298,92 @@ typedef struct _PH_RUNDOWN_PROTECT
     ULONG_PTR Value;
 } PH_RUNDOWN_PROTECT, *PPH_RUNDOWN_PROTECT;
 
+#define PH_RUNDOWN_PROTECT_INIT { 0 }
+
 typedef struct _PH_RUNDOWN_WAIT_BLOCK
 {
     ULONG_PTR Count;
     PH_EVENT WakeEvent;
 } PH_RUNDOWN_WAIT_BLOCK, *PPH_RUNDOWN_WAIT_BLOCK;
 
-VOID PhInitializeRundownProtection(
+VOID FASTCALL PhfInitializeRundownProtection(
     __out PPH_RUNDOWN_PROTECT Protection
     );
 
-BOOLEAN PhAcquireRundownProtection(
+BOOLEAN FASTCALL PhfAcquireRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
-VOID PhReleaseRundownProtection(
+VOID FASTCALL PhfReleaseRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
-VOID PhWaitForRundownProtection(
+VOID FASTCALL PhfWaitForRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
+
+FORCEINLINE VOID PhInitializeRundownProtection(
+    __out PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    Protection->Value = 0;
+}
+
+FORCEINLINE BOOLEAN PhAcquireRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+
+    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&Protection->Value,
+        (PVOID)(value + PH_RUNDOWN_REF_INC),
+        (PVOID)value
+        ) == value)
+    {
+        return TRUE;
+    }
+    else
+    {
+        return PhfAcquireRundownProtection(Protection);
+    }
+}
+
+FORCEINLINE VOID PhReleaseRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+
+    value = Protection->Value & ~PH_RUNDOWN_ACTIVE; // fail fast path when rundown is active
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&Protection->Value,
+        (PVOID)(value - PH_RUNDOWN_REF_INC),
+        (PVOID)value
+        ) != value)
+    {
+        PhfReleaseRundownProtection(Protection);
+    }
+}
+
+FORCEINLINE VOID PhWaitForRundownProtection(
+    __inout PPH_RUNDOWN_PROTECT Protection
+    )
+{
+    ULONG_PTR value;
+
+    value = (ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&Protection->Value,
+        (PVOID)PH_RUNDOWN_ACTIVE,
+        (PVOID)0
+        );
+
+    if (value != 0 && value != PH_RUNDOWN_ACTIVE)
+        PhfWaitForRundownProtection(Protection);
+}
 
 // one-time initialization
 
@@ -334,17 +399,29 @@ typedef struct _PH_INITONCE
 
 #define PH_INITONCE_INIT { PH_INITONCE_UNINITIALIZED, PH_EVENT_INIT }
 
-VOID PhInitializeInitOnce(
+#define PhInitializeInitOnce PhfInitializeInitOnce
+VOID FASTCALL PhfInitializeInitOnce(
     __out PPH_INITONCE InitOnce
     );
 
-BOOLEAN PhBeginInitOnce(
+BOOLEAN FASTCALL PhfBeginInitOnce(
     __inout PPH_INITONCE InitOnce
     );
 
-VOID PhEndInitOnce(
+#define PhEndInitOnce PhfEndInitOnce
+VOID FASTCALL PhfEndInitOnce(
     __inout PPH_INITONCE InitOnce
     );
+
+FORCEINLINE BOOLEAN PhBeginInitOnce(
+    __inout PPH_INITONCE InitOnce
+    )
+{
+    if (InitOnce->State == PH_INITONCE_INITIALIZED)
+        return FALSE;
+    else
+        return PhfBeginInitOnce(InitOnce);
+}
 
 // string
 

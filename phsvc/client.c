@@ -59,9 +59,9 @@ PPHSVC_CLIENT PhSvcCreateClient(
 
     client->HandleTable = handleTable;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSvcClientListLock);
+    PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     InsertTailList(&PhSvcClientListHead, &client->ListEntry);
-    PhReleaseQueuedLockExclusiveFast(&PhSvcClientListLock);
+    PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
 
     return client;
 }
@@ -73,9 +73,9 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
 {
     PPHSVC_CLIENT client = (PPHSVC_CLIENT)Object;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSvcClientListLock);
+    PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     RemoveEntryList(&client->ListEntry);
-    PhReleaseQueuedLockExclusiveFast(&PhSvcClientListLock);
+    PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
 
     PhDestroyHandleTable(client->HandleTable);
 }
@@ -87,7 +87,7 @@ PPHSVC_CLIENT PhSvcReferenceClientByClientId(
     PLIST_ENTRY listEntry;
     PPHSVC_CLIENT client = NULL;
 
-    PhAcquireQueuedLockSharedFast(&PhSvcClientListLock);
+    PhAcquireQueuedLockShared(&PhSvcClientListLock);
 
     listEntry = PhSvcClientListHead.Flink;
 
@@ -122,7 +122,7 @@ PPHSVC_CLIENT PhSvcReferenceClientByClientId(
             client = NULL;
     }
 
-    PhReleaseQueuedLockSharedFast(&PhSvcClientListLock);
+    PhReleaseQueuedLockShared(&PhSvcClientListLock);
 
     return client;
 }

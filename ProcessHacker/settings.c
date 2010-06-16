@@ -354,7 +354,7 @@ __mayRaise ULONG PhGetIntegerSetting(
     PPH_SETTING setting;
     ULONG value;
 
-    PhAcquireQueuedLockSharedFast(&PhSettingsLock);
+    PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -367,7 +367,7 @@ __mayRaise ULONG PhGetIntegerSetting(
         setting = NULL;
     }
 
-    PhReleaseQueuedLockSharedFast(&PhSettingsLock);
+    PhReleaseQueuedLockShared(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -382,7 +382,7 @@ __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     PPH_SETTING setting;
     PH_INTEGER_PAIR value;
 
-    PhAcquireQueuedLockSharedFast(&PhSettingsLock);
+    PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -398,7 +398,7 @@ __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
         setting = NULL;
     }
 
-    PhReleaseQueuedLockSharedFast(&PhSettingsLock);
+    PhReleaseQueuedLockShared(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -413,7 +413,7 @@ __mayRaise PPH_STRING PhGetStringSetting(
     PPH_SETTING setting;
     PPH_STRING value;
 
-    PhAcquireQueuedLockSharedFast(&PhSettingsLock);
+    PhAcquireQueuedLockShared(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -436,7 +436,7 @@ __mayRaise PPH_STRING PhGetStringSetting(
         setting = NULL;
     }
 
-    PhReleaseQueuedLockSharedFast(&PhSettingsLock);
+    PhReleaseQueuedLockShared(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -454,7 +454,7 @@ __mayRaise VOID PhSetIntegerSetting(
 {
     PPH_SETTING setting;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -463,7 +463,7 @@ __mayRaise VOID PhSetIntegerSetting(
         setting->Value = (PVOID)Value;
     }
 
-    PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -476,7 +476,7 @@ __mayRaise VOID PhSetIntegerPairSetting(
 {
     PPH_SETTING setting;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -486,7 +486,7 @@ __mayRaise VOID PhSetIntegerPairSetting(
         setting->Value = PhAllocateCopy(&Value, sizeof(PH_INTEGER_PAIR));
     }
 
-    PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -499,7 +499,7 @@ __mayRaise VOID PhSetStringSetting(
 {
     PPH_SETTING setting;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -509,7 +509,7 @@ __mayRaise VOID PhSetStringSetting(
         setting->Value = PhCreateString(Value);
     }
 
-    PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -522,7 +522,7 @@ __mayRaise VOID PhSetStringSetting2(
 {
     PPH_SETTING setting;
 
-    PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
     setting = PhpLookupSetting(Name);
 
@@ -532,7 +532,7 @@ __mayRaise VOID PhSetStringSetting2(
         setting->Value = PhCreateStringEx(Value->Buffer, Value->Length);
     }
 
-    PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
     if (!setting)
         PhRaiseStatus(STATUS_NOT_FOUND);
@@ -589,7 +589,7 @@ NTSTATUS PhLoadSettings(
 
             settingValue = PhpJoinXmlTextNodes(currentNode->child);
 
-            PhAcquireQueuedLockExclusiveFast(&PhSettingsLock);
+            PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
             {
                 PPH_SETTING setting;
@@ -616,7 +616,7 @@ NTSTATUS PhLoadSettings(
                 }
             }
 
-            PhReleaseQueuedLockExclusiveFast(&PhSettingsLock);
+            PhReleaseQueuedLockExclusive(&PhSettingsLock);
 
             PhDereferenceObject(settingValue);
             PhDereferenceObject(settingName);
@@ -643,7 +643,7 @@ NTSTATUS PhSaveSettings(
 
     topNode = mxmlNewElement(MXML_NO_PARENT, "settings");
 
-    PhAcquireQueuedLockSharedFast(&PhSettingsLock);
+    PhAcquireQueuedLockShared(&PhSettingsLock);
 
     while (PhEnumHashtable(PhSettingsHashtable, &setting, &enumerationKey))
     {
@@ -671,7 +671,7 @@ NTSTATUS PhSaveSettings(
         PhDereferenceObject(settingValueAnsi);
     }
 
-    PhReleaseQueuedLockSharedFast(&PhSettingsLock);
+    PhReleaseQueuedLockShared(&PhSettingsLock);
 
     // Create the directory if it does not exist.
     {

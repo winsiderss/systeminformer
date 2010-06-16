@@ -261,7 +261,7 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
     lookupNetworkItem.RemoteEndpoint = *RemoteEndpoint;
     lookupNetworkItem.ProcessId = ProcessId;
 
-    PhAcquireQueuedLockSharedFast(&PhNetworkHashtableLock);
+    PhAcquireQueuedLockShared(&PhNetworkHashtableLock);
 
     networkItemPtr = (PPH_NETWORK_ITEM *)PhGetHashtableEntry(
         PhNetworkHashtable,
@@ -278,7 +278,7 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
         networkItem = NULL;
     }
 
-    PhReleaseQueuedLockSharedFast(&PhNetworkHashtableLock);
+    PhReleaseQueuedLockShared(&PhNetworkHashtableLock);
 
     return networkItem;
 }
@@ -416,9 +416,9 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
     // Last minute check of the cache.
 
-    PhAcquireQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+    PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
     cacheItem = PhpLookupResolveCacheItem(&data->Address);
-    PhReleaseQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+    PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
     if (!cacheItem)
     {
@@ -428,7 +428,7 @@ NTSTATUS PhpNetworkItemQueryWorker(
         {
             // Update the cache.
 
-            PhAcquireQueuedLockExclusiveFast(&PhpResolveCacheHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhpResolveCacheHashtableLock);
 
             cacheItem = PhpLookupResolveCacheItem(&data->Address);
 
@@ -442,7 +442,7 @@ NTSTATUS PhpNetworkItemQueryWorker(
                 PhAddHashtableEntry(PhpResolveCacheHashtable, &cacheItem);
             }
 
-            PhReleaseQueuedLockExclusiveFast(&PhpResolveCacheHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
         }
         else
         {
@@ -661,9 +661,9 @@ VOID PhNetworkProviderUpdate(
 
             // Local
             {
-                PhAcquireQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+                PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->LocalEndpoint.Address);
-                PhReleaseQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+                PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
                 if (cacheItem)
                 {
@@ -679,9 +679,9 @@ VOID PhNetworkProviderUpdate(
             // Remote
             if (!PhIsIpAddressNull(&networkItem->RemoteEndpoint.Address))
             {
-                PhAcquireQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+                PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->RemoteEndpoint.Address);
-                PhReleaseQueuedLockSharedFast(&PhpResolveCacheHashtableLock);
+                PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
                 if (cacheItem)
                 {
