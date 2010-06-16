@@ -958,7 +958,8 @@ static VOID NTAPI StatisticsUpdateHandler(
 {
     PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
 
-    PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
+    if (statisticsContext->Enabled)
+        PostMessage(statisticsContext->WindowHandle, WM_PH_STATISTICS_UPDATE, 0, 0);
 }
 
 VOID PhpUpdateProcessStatistics(
@@ -1108,6 +1109,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
             statisticsContext->WindowHandle = hwndDlg;
+            statisticsContext->Enabled = TRUE;
 
             PhpUpdateProcessStatistics(hwndDlg, processItem);
         }
@@ -1135,6 +1137,21 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 PhpDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                statisticsContext->Enabled = TRUE;
+                break;
+            case PSN_KILLACTIVE:
+                statisticsContext->Enabled = FALSE;
+                break;
             }
         }
         break;
