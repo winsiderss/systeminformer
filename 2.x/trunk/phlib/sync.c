@@ -22,14 +22,14 @@
 
 #include <phbase.h>
 
-VOID PhInitializeRundownProtection(
+VOID FASTCALL PhfInitializeRundownProtection(
     __out PPH_RUNDOWN_PROTECT Protection
     )
 {
     Protection->Value = 0;
 }
 
-BOOLEAN PhAcquireRundownProtection(
+BOOLEAN FASTCALL PhfAcquireRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -54,7 +54,7 @@ BOOLEAN PhAcquireRundownProtection(
     }
 }
 
-VOID PhReleaseRundownProtection(
+VOID FASTCALL PhfReleaseRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -95,7 +95,7 @@ VOID PhReleaseRundownProtection(
     }
 }
 
-VOID PhWaitForRundownProtection(
+VOID FASTCALL PhfWaitForRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     )
 {
@@ -146,7 +146,7 @@ VOID PhWaitForRundownProtection(
     }
 }
 
-VOID PhInitializeInitOnce(
+VOID FASTCALL PhfInitializeInitOnce(
     __out PPH_INITONCE InitOnce
     )
 {
@@ -154,7 +154,7 @@ VOID PhInitializeInitOnce(
     PhInitializeEvent(&InitOnce->WakeEvent);
 }
 
-BOOLEAN PhBeginInitOnce(
+BOOLEAN FASTCALL PhfBeginInitOnce(
     __inout PPH_INITONCE InitOnce
     )
 {
@@ -188,7 +188,7 @@ BOOLEAN PhBeginInitOnce(
     }
 }
 
-VOID PhEndInitOnce(
+VOID FASTCALL PhfEndInitOnce(
     __inout PPH_INITONCE InitOnce
     )
 {

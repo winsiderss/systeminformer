@@ -167,7 +167,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             BOOLEAN terminate = FALSE;
 
             // Lock and re-check.
-            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
 
             // Check the minimum as well.
             if (
@@ -179,7 +179,7 @@ NTSTATUS PhpWorkQueueThreadStart(
                 terminate = TRUE;
             }
 
-            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
 
             if (terminate)
                 break;
@@ -191,9 +191,9 @@ NTSTATUS PhpWorkQueueThreadStart(
         if (workQueue->Terminating)
         {
             // The work queue is being deleted.
-            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
             workQueue->CurrentThreads--;
-            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
 
             break;
         }
@@ -203,9 +203,9 @@ NTSTATUS PhpWorkQueueThreadStart(
             PLIST_ENTRY listEntry;
 
             // Dequeue the work item.
-            PhAcquireQueuedLockExclusiveFast(&workQueue->QueueLock);
+            PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
             listEntry = RemoveHeadList(&workQueue->QueueListHead);
-            PhReleaseQueuedLockExclusiveFast(&workQueue->QueueLock);
+            PhReleaseQueuedLockExclusive(&workQueue->QueueLock);
 
             // Make sure we got work.
             if (listEntry != &workQueue->QueueListHead)
@@ -226,7 +226,7 @@ NTSTATUS PhpWorkQueueThreadStart(
             // No work arrived before the timeout passed (or some error occurred).
             // Terminate the thread.
 
-            PhAcquireQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhAcquireQueuedLockExclusive(&workQueue->StateLock);
 
             // Check the minimum.
             if (workQueue->CurrentThreads > workQueue->MinimumThreads)
@@ -235,7 +235,7 @@ NTSTATUS PhpWorkQueueThreadStart(
                 terminate = TRUE;
             }
 
-            PhReleaseQueuedLockExclusiveFast(&workQueue->StateLock);
+            PhReleaseQueuedLockExclusive(&workQueue->StateLock);
 
             if (terminate)
                 break;
@@ -259,9 +259,9 @@ VOID PhQueueWorkQueueItem(
     PhpInitializeWorkQueueItem(workQueueItem, Function, Context);
 
     // Enqueue the work item.
-    PhAcquireQueuedLockExclusiveFast(&WorkQueue->QueueLock);
+    PhAcquireQueuedLockExclusive(&WorkQueue->QueueLock);
     InsertTailList(&WorkQueue->QueueListHead, &workQueueItem->ListEntry);
-    PhReleaseQueuedLockExclusiveFast(&WorkQueue->QueueLock);
+    PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
     NtReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
 
@@ -273,14 +273,14 @@ VOID PhQueueWorkQueueItem(
         )
     {
         // Lock and re-check.
-        PhAcquireQueuedLockExclusiveFast(&WorkQueue->StateLock);
+        PhAcquireQueuedLockExclusive(&WorkQueue->StateLock);
 
         if (WorkQueue->CurrentThreads < WorkQueue->MaximumThreads)
         {
             PhpCreateWorkQueueThread(WorkQueue);
         }
 
-        PhReleaseQueuedLockExclusiveFast(&WorkQueue->StateLock);
+        PhReleaseQueuedLockExclusive(&WorkQueue->StateLock);
     }
 }
 

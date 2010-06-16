@@ -4920,7 +4920,7 @@ VOID PhRefreshMupDevicePrefixes()
     if (!providerOrder)
         return;
 
-    PhAcquireQueuedLockExclusiveFast(&PhDeviceMupPrefixesLock);
+    PhAcquireQueuedLockExclusive(&PhDeviceMupPrefixesLock);
 
     for (i = 0; i < PhDeviceMupPrefixesCount; i++)
     {
@@ -4986,7 +4986,7 @@ VOID PhRefreshMupDevicePrefixes()
         i = indexOfComma + 1;
     }
 
-    PhReleaseQueuedLockExclusiveFast(&PhDeviceMupPrefixesLock);
+    PhReleaseQueuedLockExclusive(&PhDeviceMupPrefixesLock);
 
     PhDereferenceObject(providerOrder);
 }
@@ -5023,7 +5023,7 @@ VOID PhRefreshDosDevicePrefixes()
             &oa
             )))
         {
-            PhAcquireQueuedLockExclusiveFast(&PhDevicePrefixesLock);
+            PhAcquireQueuedLockExclusive(&PhDevicePrefixesLock);
 
             if (!NT_SUCCESS(NtQuerySymbolicLinkObject(
                 linkHandle,
@@ -5034,7 +5034,7 @@ VOID PhRefreshDosDevicePrefixes()
                 PhDevicePrefixes[i].Length = 0;
             }
 
-            PhReleaseQueuedLockExclusiveFast(&PhDevicePrefixesLock);
+            PhReleaseQueuedLockExclusive(&PhDevicePrefixesLock);
 
             NtClose(linkHandle);
         }
@@ -5076,14 +5076,14 @@ PPH_STRING PhResolveDevicePrefix(
         BOOLEAN isPrefix = FALSE;
         ULONG prefixLength;
 
-        PhAcquireQueuedLockSharedFast(&PhDevicePrefixesLock);
+        PhAcquireQueuedLockShared(&PhDevicePrefixesLock);
 
         prefixLength = PhDevicePrefixes[i].Length;
 
         if (prefixLength != 0)
             isPrefix = PhStringRefStartsWith(&Name->sr, &PhDevicePrefixes[i], TRUE);
 
-        PhReleaseQueuedLockSharedFast(&PhDevicePrefixesLock);
+        PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
 
         if (isPrefix)
         {
@@ -5105,7 +5105,7 @@ PPH_STRING PhResolveDevicePrefix(
     {
         // Resolve network providers.
 
-        PhAcquireQueuedLockSharedFast(&PhDeviceMupPrefixesLock);
+        PhAcquireQueuedLockShared(&PhDeviceMupPrefixesLock);
 
         for (i = 0; i < PhDeviceMupPrefixesCount; i++)
         {
@@ -5132,7 +5132,7 @@ PPH_STRING PhResolveDevicePrefix(
             }
         }
 
-        PhReleaseQueuedLockSharedFast(&PhDeviceMupPrefixesLock);
+        PhReleaseQueuedLockShared(&PhDeviceMupPrefixesLock);
     }
 
     return newName;

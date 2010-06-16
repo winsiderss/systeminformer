@@ -49,7 +49,7 @@ FORCEINLINE VOID PhpLockHandleTableShared(
     __in ULONG Index
     )
 {
-    PhAcquireQueuedLockSharedFast(&HandleTable->Locks[Index]);
+    PhAcquireQueuedLockShared(&HandleTable->Locks[Index]);
 }
 
 FORCEINLINE VOID PhpUnlockHandleTableShared(
@@ -57,7 +57,7 @@ FORCEINLINE VOID PhpUnlockHandleTableShared(
     __in ULONG Index
     )
 {
-    PhReleaseQueuedLockSharedFast(&HandleTable->Locks[Index]);
+    PhReleaseQueuedLockShared(&HandleTable->Locks[Index]);
 }
 
 // Handle values work by specifying indicies into each 

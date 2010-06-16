@@ -190,7 +190,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         serviceList = PhCreateList(Process->ServiceList->Count);
 
-        PhAcquireQueuedLockExclusiveFast(&Process->ServiceListLock);
+        PhAcquireQueuedLockExclusive(&Process->ServiceListLock);
 
         while (PhEnumPointerList(
             Process->ServiceList,
@@ -202,7 +202,7 @@ PPH_STRING PhGetProcessTooltipText(
             PhAddListItem(serviceList, serviceItem);
         }
 
-        PhReleaseQueuedLockExclusiveFast(&Process->ServiceListLock);
+        PhReleaseQueuedLockExclusive(&Process->ServiceListLock);
 
         qsort(serviceList->Items, serviceList->Count, sizeof(PPH_SERVICE_ITEM), ServiceForTooltipCompare);
 
