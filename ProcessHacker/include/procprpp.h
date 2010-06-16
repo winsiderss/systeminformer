@@ -190,6 +190,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+    BOOLEAN Enabled;
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 
 #define WM_PH_PERFORMANCE_UPDATE (WM_APP + 241)
