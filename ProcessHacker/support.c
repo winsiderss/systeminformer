@@ -447,3 +447,37 @@ VOID PhShellExecuteUserString(
 
     PhDereferenceObject(executeString);
 }
+
+VOID PhCopyListViewInfoTip(
+    __inout LPNMLVGETINFOTIP GetInfoTip,
+    __in PPH_STRINGREF Tip
+    )
+{
+    ULONG copyIndex;
+    ULONG bufferRemaining;
+    ULONG copyLength;
+
+    if (GetInfoTip->dwFlags == 0)
+    {
+        copyIndex = (ULONG)wcslen(GetInfoTip->pszText) + 1; // plus one for newline
+
+        if (GetInfoTip->cchTextMax - copyIndex < 2) // need at least two bytes
+            return;
+
+        bufferRemaining = GetInfoTip->cchTextMax - copyIndex - 1;
+        GetInfoTip->pszText[copyIndex - 1] = '\n';
+    }
+    else
+    {
+        copyIndex = 0;
+        bufferRemaining = GetInfoTip->cchTextMax;
+    }
+
+    copyLength = min((ULONG)Tip->Length / 2, bufferRemaining - 1);
+    memcpy(
+        &GetInfoTip->pszText[copyIndex],
+        Tip->Buffer,
+        copyLength * 2
+        );
+    GetInfoTip->pszText[copyIndex + copyLength] = 0;
+}

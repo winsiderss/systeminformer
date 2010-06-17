@@ -2728,9 +2728,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             ))
                         {
                             PPH_STRING toolTip;
-                            ULONG copyIndex;
-                            ULONG bufferRemaining;
-                            ULONG copyLength;
 
                             toolTip = PHA_DEREFERENCE(PhFormatImageVersionInfo(
                                 moduleItem->FileName,
@@ -2739,29 +2736,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                                 80
                                 ));
 
-                            if (getInfoTip->dwFlags == 0)
-                            {
-                                copyIndex = (ULONG)wcslen(getInfoTip->pszText) + 1; // plus one for newline
-
-                                if (getInfoTip->cchTextMax - copyIndex < 2) // need at least two bytes
-                                    break;
-
-                                bufferRemaining = getInfoTip->cchTextMax - copyIndex - 1;
-                                getInfoTip->pszText[copyIndex - 1] = '\n';
-                            }
-                            else
-                            {
-                                copyIndex = 0;
-                                bufferRemaining = getInfoTip->cchTextMax;
-                            }
-
-                            copyLength = min((ULONG)toolTip->Length / 2, bufferRemaining - 1);
-                            memcpy(
-                                &getInfoTip->pszText[copyIndex],
-                                toolTip->Buffer,
-                                copyLength * 2
-                                );
-                            getInfoTip->pszText[copyIndex + copyLength] = 0;
+                            PhCopyListViewInfoTip(getInfoTip, &toolTip->sr);
                         }
                     }
                 }
