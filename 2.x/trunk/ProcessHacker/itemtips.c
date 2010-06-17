@@ -302,3 +302,83 @@ PPH_STRING PhGetProcessTooltipText(
 
     return tooltipText;
 }
+
+PPH_STRING PhGetServiceTooltipText(
+    __in PPH_SERVICE_ITEM Service
+    )
+{
+    PPH_STRING tooltipText;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING tempString;
+    SC_HANDLE serviceHandle;
+
+    PhInitializeStringBuilder(&stringBuilder, 200);
+
+    if (serviceHandle = PhOpenService(Service->Name->Buffer, SERVICE_QUERY_CONFIG))
+    {
+        //LPQUERY_SERVICE_CONFIG config;
+
+        // File information
+        // (Disabled for now because of file name resolution issues)
+
+        /*if (config = PhGetServiceConfig(serviceHandle))
+        {
+            PPH_STRING fileName;
+            PPH_STRING newFileName;
+            PH_IMAGE_VERSION_INFO versionInfo;
+
+            fileName = PhCreateString(config->lpBinaryPathName);
+            newFileName = PhGetFileName(fileName);
+            PhDereferenceObject(fileName);
+            fileName = newFileName;
+
+            if (PhInitializeImageVersionInfo(
+                &versionInfo,
+                fileName->Buffer
+                ))
+            {
+                tempString = PhFormatImageVersionInfo(
+                    fileName,
+                    &versionInfo,
+                    L"    ",
+                    76
+                    );
+
+                if (!PhIsStringNullOrEmpty(tempString))
+                {
+                    PhStringBuilderAppend2(&stringBuilder, L"File:\n");
+                    PhStringBuilderAppend(&stringBuilder, tempString);
+                    PhStringBuilderAppendChar(&stringBuilder, '\n');
+                }
+
+                if (tempString)
+                    PhDereferenceObject(tempString);
+
+                PhDeleteImageVersionInfo(&versionInfo);
+            }
+
+            PhDereferenceObject(fileName);
+            PhFree(config);
+        }*/
+
+        // Description
+
+        if (tempString = PhGetServiceDescription(serviceHandle))
+        {
+            PhStringBuilderAppend(&stringBuilder, tempString);
+            PhStringBuilderAppendChar(&stringBuilder, '\n');
+            PhDereferenceObject(tempString);
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+
+    // Remove the trailing newline.
+    if (stringBuilder.String->Length != 0)
+        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+    tooltipText = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return tooltipText;
+}
