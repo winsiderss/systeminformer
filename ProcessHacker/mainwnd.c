@@ -2520,6 +2520,25 @@ VOID PhMainWndServiceListViewOnNotify(
             }
         }
         break;
+    case LVN_GETINFOTIP:
+        {
+            LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)Header;
+            PPH_SERVICE_ITEM serviceItem;
+
+            if (getInfoTip->iSubItem == 0 && PhGetListViewItemParam(
+                ServiceListViewHandle,
+                getInfoTip->iItem,
+                &serviceItem
+                ))
+            {
+                PPH_STRING tip;
+
+                tip = PhGetServiceTooltipText(serviceItem);
+                PhCopyListViewInfoTip(getInfoTip, &tip->sr);  
+                PhDereferenceObject(tip);
+            }
+        }
+        break;
     }
 }
 
