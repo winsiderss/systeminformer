@@ -562,7 +562,9 @@ NTSTATUS PhSetSecurityObject(
 /**
  * Allocates storage for an object.
  *
+ * \param ObjectType The type of the object.
  * \param ObjectSize The size of the object, excluding the header.
+ * \param Flags A combination of flags specifying how the object is to be allocated.
  */
 PPH_OBJECT_HEADER PhpAllocateObject(
     __in PPH_OBJECT_TYPE ObjectType,
