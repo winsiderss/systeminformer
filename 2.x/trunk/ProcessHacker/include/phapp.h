@@ -234,6 +234,11 @@ VOID PhShellExecuteUserString(
     __in BOOLEAN UseShellExecute
     );
 
+VOID PhCopyListViewInfoTip(
+    __inout LPNMLVGETINFOTIP GetInfoTip,
+    __in PPH_STRINGREF Tip
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
