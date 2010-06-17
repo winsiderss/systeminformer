@@ -629,6 +629,10 @@ PPH_STRING PhGetProcessTooltipText(
     __in PPH_PROCESS_ITEM Process
     );
 
+PPH_STRING PhGetServiceTooltipText(
+    __in PPH_SERVICE_ITEM Service
+    );
+
 // cmdmode
 
 NTSTATUS PhCommandModeStart();
