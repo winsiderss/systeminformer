@@ -39,12 +39,17 @@
 
 BOOLEAN PhInitializeImports()
 {
+#if !(PHNT_VERSION >= PHNT_WS03)
     InitProc("ntdll.dll", NtGetNextProcess);
     InitProc("ntdll.dll", NtGetNextThread);
+#endif
+
+#if !(PHNT_VERSION >= PHNT_VISTA)
     InitProc("ntdll.dll", NtQueryInformationEnlistment);
     InitProc("ntdll.dll", NtQueryInformationResourceManager);
     InitProc("ntdll.dll", NtQueryInformationTransaction);
     InitProc("ntdll.dll", NtQueryInformationTransactionManager);
+#endif
 
     return TRUE;
 }

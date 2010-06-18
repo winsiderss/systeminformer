@@ -9,7 +9,9 @@
 #define PHNT_VISTA 60
 #define PHNT_WIN7 61
 
+#ifndef PHNT_VERSION
 #define PHNT_VERSION PHNT_WINXP
+#endif
 
 // Note: definitions marked with an asterisk have been 
 // reverse-engineered.

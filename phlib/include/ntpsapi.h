@@ -418,6 +418,18 @@ NtQueryInformationProcess(
     __out_opt PULONG ReturnLength
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetNextProcess(
+    __in HANDLE ProcessHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Flags,
+    __out PHANDLE NewProcessHandle
+    );
+#else
 typedef NTSTATUS (NTAPI *_NtGetNextProcess)(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -425,7 +437,21 @@ typedef NTSTATUS (NTAPI *_NtGetNextProcess)(
     __in ULONG Flags,
     __out PHANDLE NewProcessHandle
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetNextThread(
+    __in HANDLE ProcessHandle,
+    __in HANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Flags,
+    __out PHANDLE NewThreadHandle
+    );
+#else
 typedef NTSTATUS (NTAPI *_NtGetNextThread)(
     __in HANDLE ProcessHandle,
     __in HANDLE ThreadHandle,
@@ -434,6 +460,7 @@ typedef NTSTATUS (NTAPI *_NtGetNextThread)(
     __in ULONG Flags,
     __out PHANDLE NewThreadHandle
     );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
