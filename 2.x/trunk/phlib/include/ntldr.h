@@ -1,6 +1,8 @@
 #ifndef NTLDR_H
 #define NTLDR_H
 
+// DLLs
+
 #define LDRP_STATIC_LINK 0x00000002
 #define LDRP_IMAGE_DLL 0x00000004
 #define LDRP_LOAD_IN_PROGRESS 0x00001000
@@ -65,6 +67,132 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LARGE_INTEGER LoadTime;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
+typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
+    __in PVOID DllHandle,
+    __in ULONG Reason,
+    __in_opt PCONTEXT Context
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrLoadDll(
+    __in_opt PWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out PVOID *DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnloadDll(
+    __in PVOID DllHandle
+    );
+
+#define LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT 0x00000001
+#define LDR_GET_DLL_HANDLE_EX_PIN 0x00000002
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandleEx(
+    __in ULONG Flags,
+    __in_opt PCWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out_opt PVOID *DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandle(
+    __in_opt PWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out PVOID *DllHandle
+    );
+
+#define LDR_ADDREF_DLL_PIN 0x00000001
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrAddRefDll(
+    __in ULONG Flags,
+    __in PVOID DllHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetProcedureAddress(
+    __in PVOID DllHandle,
+    __in_opt PANSI_STRING ProcedureName,
+    __in_opt ULONG ProcedureNumber,
+    __out PVOID *ProcedureAddress
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrRelocateImage(
+    __in PVOID NewBase,
+    __in PSTR LoaderName,
+    __in NTSTATUS Success,
+    __in NTSTATUS Conflict,
+    __in NTSTATUS Invalid
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrRelocateImageWithBias(
+    __in PVOID NewBase,
+    __in LONGLONG Bias,
+    __in PSTR LoaderName,
+    __in NTSTATUS Success,
+    __in NTSTATUS Conflict,
+    __in NTSTATUS Invalid
+    );
+
+NTSYSAPI
+PIMAGE_BASE_RELOCATION
+NTAPI
+LdrProcessRelocationBlock(
+    __in ULONG_PTR VA,
+    __in ULONG SizeOfBlock,
+    __in PUSHORT NextOffset,
+    __in LONG_PTR Diff
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+LdrVerifyMappedImageMatchesChecksum(
+    __in PVOID BaseAddress,
+    __in SIZE_T NumberOfBytes,
+    __in ULONG FileLength
+    );
+
+typedef VOID (NTAPI *PLDR_IMPORT_MODULE_CALLBACK)(
+    __in PVOID Parameter,
+    __in PSTR ModuleName
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrVerifyImageMatchesChecksum(
+    __in HANDLE ImageFileHandle,
+    __in_opt PLDR_IMPORT_MODULE_CALLBACK ImportCallbackRoutine,
+    __in PVOID ImportCallbackParameter,
+    __out_opt PUSHORT ImageCharacteristics
+    );
+
+// Module information
+
 typedef struct _RTL_PROCESS_MODULE_INFORMATION
 {
     HANDLE Section;
@@ -84,42 +212,5 @@ typedef struct _RTL_PROCESS_MODULES
     ULONG NumberOfModules;
     RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrLoadDll(
-    __in_opt PWSTR DllPath,
-    __in_opt PULONG DllCharacteristics,
-    __in PUNICODE_STRING DllName,
-    __out PVOID *DllHandle
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrGetDllHandle(
-    __in_opt PWSTR DllPath,
-    __in_opt PULONG DllCharacteristics,
-    __in PUNICODE_STRING DllName,
-    __out PVOID *DllHandle
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrUnloadDll(
-    __in PVOID DllHandle
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrGetProcedureAddress(
-    __in PVOID DllHandle,
-    __in_opt PANSI_STRING ProcedureName,
-    __in_opt ULONG ProcedureNumber,
-    __out PVOID *ProcedureAddress
-    );
 
 #endif

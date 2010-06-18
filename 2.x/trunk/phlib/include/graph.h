@@ -37,9 +37,18 @@ typedef struct _PH_GRAPH_DRAW_INFO
     COLORREF TextBoxColor;
 } PH_GRAPH_DRAW_INFO, *PPH_GRAPH_DRAW_INFO;
 
+#define PH_GRAPH_CLASSNAME L"PhGraph"
+
+BOOLEAN PhGraphControlInitialization();
+
 VOID PhDrawGraph(
     __in HDC hdc,
     __in PPH_GRAPH_DRAW_INFO DrawInfo
+    );
+
+HWND PhCreateGraphControl(
+    __in HWND ParentHandle,
+    __in INT_PTR Id
     );
 
 #endif

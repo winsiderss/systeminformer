@@ -122,7 +122,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_CIRCULAR_BUFFER_ULONG64 IoWriteHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoOtherHistory;
     PH_CIRCULAR_BUFFER_SIZE_T PrivateBytesHistory;
-    PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
+    //PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
 BOOLEAN PhProcessProviderInitialization();

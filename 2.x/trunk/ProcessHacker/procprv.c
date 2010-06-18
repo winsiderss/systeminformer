@@ -371,7 +371,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     PhInitializeCircularBuffer_ULONG64(&processItem->IoWriteHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG64(&processItem->IoOtherHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, PhStatisticsSampleCount);
-    PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
+    //PhInitializeCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, PhStatisticsSampleCount);
 
     return processItem;
 }
@@ -390,7 +390,7 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteCircularBuffer_ULONG64(&processItem->IoWriteHistory);
     PhDeleteCircularBuffer_ULONG64(&processItem->IoOtherHistory);
     PhDeleteCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory);
-    PhDeleteCircularBuffer_SIZE_T(&processItem->WorkingSetHistory);
+    //PhDeleteCircularBuffer_SIZE_T(&processItem->WorkingSetHistory);
 
     for (i = 0; i < processItem->ServiceList->Count; i++)
         PhDereferenceObject(processItem->ServiceList->Items[i]);
@@ -1322,7 +1322,7 @@ VOID PhProcessProviderUpdate(
             PhCircularBufferAdd_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
 
             PhCircularBufferAdd_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
-            PhCircularBufferAdd_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
+            //PhCircularBufferAdd_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 

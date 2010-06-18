@@ -23,6 +23,40 @@
 #include <phgui.h>
 #include <graph.h>
 
+typedef struct _PHP_GRAPH_CONTEXT
+{
+    PH_GRAPH_DRAW_INFO DrawInfo;
+} PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
+
+LRESULT CALLBACK PhpGraphWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+BOOLEAN PhGraphControlInitialization()
+{
+    WNDCLASSEX c = { sizeof(c) };
+
+    c.style = 0;
+    c.lpfnWndProc = PhpGraphWndProc;
+    c.cbClsExtra = 0;
+    c.cbWndExtra = sizeof(PVOID);
+    c.hInstance = PhInstanceHandle;
+    c.hIcon = NULL;
+    c.hCursor = LoadCursor(NULL, IDC_ARROW);
+    c.hbrBackground = NULL;
+    c.lpszMenuName = NULL;
+    c.lpszClassName = PH_GRAPH_CLASSNAME;
+    c.hIconSm = NULL;
+
+    if (!RegisterClassEx(&c))
+        return FALSE;
+
+    return TRUE;
+}
+
 VOID PhDrawGraph(
     __in HDC hdc,
     __in PPH_GRAPH_DRAW_INFO DrawInfo
@@ -194,4 +228,111 @@ VOID PhDrawGraph(
             Polyline(hdc, points, 2);
         }
     }
+}
+
+HWND PhCreateGraphControl(
+    __in HWND ParentHandle,
+    __in INT_PTR Id
+    )
+{
+    return CreateWindow(
+        PH_GRAPH_CLASSNAME,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+        0,
+        0,
+        3,
+        3,
+        ParentHandle,
+        (HMENU)Id,
+        PhInstanceHandle,
+        NULL
+        );
+}
+
+VOID PhpCreateGraphContext(
+    __out PPHP_GRAPH_CONTEXT *Context
+    )
+{
+    PPHP_GRAPH_CONTEXT context;
+
+    context = PhAllocate(sizeof(PHP_GRAPH_CONTEXT));
+
+    context->DrawInfo.Width = 3;
+    context->DrawInfo.Height = 3;
+    context->DrawInfo.Flags = PH_GRAPH_USE_GRID;
+    context->DrawInfo.Step = 2;
+    context->DrawInfo.BackColor = RGB(0x00, 0x00, 0x00);
+    context->DrawInfo.LineDataCount = 0;
+    context->DrawInfo.LineData1 = NULL;
+    context->DrawInfo.LineData2 = NULL;
+    context->DrawInfo.LineColor1 = RGB(0x00, 0xff, 0x00);
+    context->DrawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
+    context->DrawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
+    context->DrawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
+    context->DrawInfo.GridColor = RGB(0x00, 0xaa, 0x00);
+    context->DrawInfo.GridWidth = 12;
+    context->DrawInfo.GridHeight = 12;
+    context->DrawInfo.GridStart = 0;
+
+    *Context = context;
+}
+
+VOID PhpDeleteGraphContext(
+    __inout PPHP_GRAPH_CONTEXT Context
+    )
+{
+    PhFree(Context);
+}
+
+LRESULT CALLBACK PhpGraphWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PPHP_GRAPH_CONTEXT context;
+
+    context = (PPHP_GRAPH_CONTEXT)GetWindowLongPtr(hwnd, 0);
+
+    if (uMsg == WM_CREATE)
+    {
+        PhpCreateGraphContext(&context);
+        SetWindowLongPtr(hwnd, 0, (LONG_PTR)context);
+    }
+
+    if (!context)
+        return DefWindowProc(hwnd, uMsg, wParam, lParam);
+
+    switch (uMsg)
+    {
+    case WM_CREATE:
+        {
+
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhpDeleteGraphContext(context);
+            SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
+        }
+        break;
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paintStruct;
+            HDC hdc;
+
+            if (hdc = BeginPaint(hwnd, &paintStruct))
+            {
+                PhDrawGraph(hdc, &context->DrawInfo);
+                EndPaint(hwnd, &paintStruct);
+            }
+        }
+        break;
+    case WM_ERASEBKGND:
+        return 1;
+    }
+
+    return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }

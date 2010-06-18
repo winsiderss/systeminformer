@@ -13,6 +13,45 @@ typedef enum _POWER_STATE_TYPE
     DevicePowerState
 } POWER_STATE_TYPE, *PPOWER_STATE_TYPE;
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+typedef struct _SYSTEM_POWER_STATE_CONTEXT
+{
+    union
+    {
+        struct
+        {
+            ULONG Reserved1 : 8;
+            ULONG TargetSystemState : 4;
+            ULONG EffectiveSystemState : 4;
+            ULONG CurrentSystemState : 4;
+            ULONG IgnoreHibernationPath : 1;
+            ULONG PseudoTransition : 1;
+            ULONG Reserved2 : 10;
+        };
+        ULONG ContextAsUlong;
+    };
+} SYSTEM_POWER_STATE_CONTEXT, *PSYSTEM_POWER_STATE_CONTEXT;
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+typedef struct _COUNTED_REASON_CONTEXT
+{
+    ULONG Version;
+    ULONG Flags;
+    union
+    {
+        struct
+        {
+            UNICODE_STRING ResourceFileName;
+            USHORT ResourceReasonId;
+            ULONG StringCount;
+            PUNICODE_STRING __field_ecount(StringCount) ReasonStrings;
+        };
+        UNICODE_STRING SimpleString;
+    };
+} COUNTED_REASON_CONTEXT, *PCOUNTED_REASON_CONTEXT;
+#endif
+
 typedef enum
 {
     PowerStateSleeping1 = 0,
