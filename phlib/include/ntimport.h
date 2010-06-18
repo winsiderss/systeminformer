@@ -12,12 +12,17 @@
 // Only functions appearing in Windows XP and below may be 
 // imported normally. The other functions are imported here.
 
-EXT _NtGetNextProcess NtGetNextProcess EQNULL; // WS03
-EXT _NtGetNextThread NtGetNextThread EQNULL; // WS03
-EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment EQNULL; // VISTA
-EXT _NtQueryInformationResourceManager NtQueryInformationResourceManager EQNULL; // VISTA
-EXT _NtQueryInformationTransaction NtQueryInformationTransaction EQNULL; // VISTA
-EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager EQNULL; // VISTA
+#if !(PHNT_VERSION >= PHNT_WS03)
+EXT _NtGetNextProcess NtGetNextProcess EQNULL;
+EXT _NtGetNextThread NtGetNextThread EQNULL;
+#endif
+
+#if !(PHNT_VERSION >= PHNT_VISTA)
+EXT _NtQueryInformationEnlistment NtQueryInformationEnlistment EQNULL;
+EXT _NtQueryInformationResourceManager NtQueryInformationResourceManager EQNULL;
+EXT _NtQueryInformationTransaction NtQueryInformationTransaction EQNULL;
+EXT _NtQueryInformationTransactionManager NtQueryInformationTransactionManager EQNULL;
+#endif
 
 BOOLEAN PhInitializeImports();
 

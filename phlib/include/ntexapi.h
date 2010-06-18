@@ -314,6 +314,27 @@ typedef VOID (NTAPI *PTIMER_APC_ROUTINE)(
     __in LONG TimerHighValue
     );
 
+typedef enum _TIMER_SET_INFORMATION_CLASS
+{
+    TimerSetCoalescableTimer,
+    MaxTimerInfoClass
+} TIMER_SET_INFORMATION_CLASS;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+struct _COUNTED_REASON_CONTEXT;
+
+typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
+{
+    __in LARGE_INTEGER DueTime;
+    __in_opt PTIMER_APC_ROUTINE TimerApcRoutine;
+    __in_opt PVOID TimerContext;
+    __in_opt struct _COUNTED_REASON_CONTEXT *WakeContext;
+    __in_opt ULONG Period;
+    __in ULONG TolerableDelay;
+    __out_opt PBOOLEAN PreviousState;
+} TIMER_SET_COALESCABLE_TIMER_INFO, *PTIMER_SET_COALESCABLE_TIMER_INFO;
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -345,6 +366,18 @@ NtSetTimer(
     __in_opt LONG Period,
     __out_opt PBOOLEAN PreviousState
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetTimerEx(
+    __in HANDLE TimerHandle,
+    __in TIMER_SET_INFORMATION_CLASS TimerSetInformationClass,
+    __inout_bcount_opt(TimerSetInformationLength) PVOID TimerSetInformation,
+    __in ULONG TimerSetInformationLength
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

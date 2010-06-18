@@ -11,13 +11,18 @@
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
-    __in PLIST_ENTRY ListHead
+    __out PLIST_ENTRY ListHead
     )
 {
     ListHead->Flink = ListHead->Blink = ListHead;
 }
 
-#define IsListEmpty(ListHead) ((ListHead)->Flink == (ListHead))
+__checkReturn FORCEINLINE BOOLEAN IsListEmpty(
+    __in PLIST_ENTRY ListHead
+    )
+{
+    return ListHead->Flink == ListHead;
+}
 
 FORCEINLINE BOOLEAN RemoveEntryList(
     __in PLIST_ENTRY Entry
@@ -31,11 +36,11 @@ FORCEINLINE BOOLEAN RemoveEntryList(
     Blink->Flink = Flink;
     Flink->Blink = Blink;
 
-    return (BOOLEAN)(Flink == Blink);
+    return Flink == Blink;
 }
 
 FORCEINLINE PLIST_ENTRY RemoveHeadList(
-    __in PLIST_ENTRY ListHead
+    __inout PLIST_ENTRY ListHead
     )
 {
     PLIST_ENTRY Flink;
@@ -50,7 +55,7 @@ FORCEINLINE PLIST_ENTRY RemoveHeadList(
 }
 
 FORCEINLINE PLIST_ENTRY RemoveTailList(
-    __in PLIST_ENTRY ListHead
+    __inout PLIST_ENTRY ListHead
     )
 {
     PLIST_ENTRY Blink;
@@ -65,8 +70,8 @@ FORCEINLINE PLIST_ENTRY RemoveTailList(
 }
 
 FORCEINLINE VOID InsertTailList(
-    __in PLIST_ENTRY ListHead,
-    __in PLIST_ENTRY Entry
+    __inout PLIST_ENTRY ListHead,
+    __inout PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Blink;
@@ -79,8 +84,8 @@ FORCEINLINE VOID InsertTailList(
 }
 
 FORCEINLINE VOID InsertHeadList(
-    __in PLIST_ENTRY ListHead,
-    __in PLIST_ENTRY Entry
+    __inout PLIST_ENTRY ListHead,
+    __inout PLIST_ENTRY Entry
     )
 {
     PLIST_ENTRY Flink;
@@ -92,20 +97,41 @@ FORCEINLINE VOID InsertHeadList(
     ListHead->Flink = Entry;
 }
 
-#define PopEntryList(ListHead) \
-    (ListHead)->Next; \
-    { \
-        PSINGLE_LIST_ENTRY FirstEntry; \
-        FirstEntry = (ListHead)->Next; \
-        if (FirstEntry != NULL) \
-        { \
-            (ListHead)->Next = FirstEntry->Next; \
-        } \
-    }
+FORCEINLINE VOID AppendTailList(
+    __inout PLIST_ENTRY ListHead,
+    __inout PLIST_ENTRY ListToAppend
+    )
+{
+    PLIST_ENTRY ListEnd = ListHead->Blink;
 
-#define PushEntryList(ListHead,Entry) \
-    (Entry)->Next = (ListHead)->Next; \
-    (ListHead)->Next = (Entry)
+    ListHead->Blink->Flink = ListToAppend;
+    ListHead->Blink = ListToAppend->Blink;
+    ListToAppend->Blink->Flink = ListHead;
+    ListToAppend->Blink = ListEnd;
+}
+
+FORCEINLINE PSINGLE_LIST_ENTRY PopEntryList(
+    __inout PSINGLE_LIST_ENTRY ListHead
+    )
+{
+    PSINGLE_LIST_ENTRY FirstEntry;
+
+    FirstEntry = ListHead->Next;
+
+    if (FirstEntry)
+        ListHead->Next = FirstEntry->Next;
+
+    return FirstEntry;
+}
+
+FORCEINLINE VOID PushEntryList(
+    __inout PSINGLE_LIST_ENTRY ListHead,
+    __inout PSINGLE_LIST_ENTRY Entry
+    )
+{
+    Entry->Next = ListHead->Next;
+    ListHead->Next = Entry;
+}
 
 // AVL and splay trees
 
@@ -527,6 +553,292 @@ NTAPI
 RtlIsGenericTableEmpty(
     __in PRTL_GENERIC_TABLE Table
     );
+
+// Hash tables
+
+#define RTL_HASH_ALLOCATED_HEADER 0x00000001
+#define RTL_HASH_RESERVED_SIGNATURE 0
+
+typedef struct _RTL_DYNAMIC_HASH_TABLE_ENTRY
+{
+    LIST_ENTRY Linkage;
+    ULONG_PTR Signature;
+} RTL_DYNAMIC_HASH_TABLE_ENTRY, *PRTL_DYNAMIC_HASH_TABLE_ENTRY;
+
+#define HASH_ENTRY_KEY(x) ((x)->Signature)
+
+typedef struct _RTL_DYNAMIC_HASH_TABLE_CONTEXT
+{
+    PLIST_ENTRY ChainHead;
+    PLIST_ENTRY PrevLinkage;
+    ULONG_PTR Signature;
+} RTL_DYNAMIC_HASH_TABLE_CONTEXT, *PRTL_DYNAMIC_HASH_TABLE_CONTEXT;
+
+typedef struct _RTL_DYNAMIC_HASH_TABLE_ENUMERATOR
+{
+    RTL_DYNAMIC_HASH_TABLE_ENTRY HashEntry;
+    PLIST_ENTRY ChainHead;
+    ULONG BucketIndex;
+} RTL_DYNAMIC_HASH_TABLE_ENUMERATOR, *PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR;
+
+typedef struct _RTL_DYNAMIC_HASH_TABLE
+{
+    // Entries initialized at creation.
+    ULONG Flags;
+    ULONG Shift;
+
+    // Entries used in bucket computation.
+    ULONG TableSize;
+    ULONG Pivot;
+    ULONG DivisorMask;
+
+    // Counters.
+    ULONG NumEntries;
+    ULONG NonEmptyBuckets;
+    ULONG NumEnumerators;
+
+    // The directory. This field is for internal use only.
+    PVOID Directory;
+} RTL_DYNAMIC_HASH_TABLE, *PRTL_DYNAMIC_HASH_TABLE;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+VOID
+RtlInitHashTableContext(
+    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    )
+{
+    Context->ChainHead = NULL;
+    Context->PrevLinkage = NULL;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+VOID
+RtlInitHashTableContextFromEnumerator(
+    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context,
+    __in PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    )
+{
+    Context->ChainHead = Enumerator->ChainHead;
+    Context->PrevLinkage = Enumerator->HashEntry.Linkage.Blink;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+VOID
+RtlReleaseHashTableContext(
+    __inout PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    )
+{
+    UNREFERENCED_PARAMETER(Context);
+    return;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+ULONG
+RtlTotalBucketsHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    )
+{
+    return HashTable->TableSize;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+ULONG
+RtlNonEmptyBucketsHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    )
+{
+    return HashTable->NonEmptyBuckets;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+ULONG
+RtlEmptyBucketsHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    )
+{
+    return HashTable->TableSize - HashTable->NonEmptyBuckets;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+ULONG
+RtlTotalEntriesHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    )
+{
+    return HashTable->NumEntries;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+FORCEINLINE
+ULONG
+RtlActiveEnumeratorsHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    )
+{
+    return HashTable->NumEnumerators;
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+__checkReturn
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCreateHashTable(
+    __deref_inout_opt PRTL_DYNAMIC_HASH_TABLE *HashTable,
+    __in ULONG Shift,
+    __in __reserved ULONG Flags
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+VOID
+NTAPI
+RtlDeleteHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlInsertEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __in PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
+    __in ULONG_PTR Signature,
+    __inout_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlRemoveEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __in PRTL_DYNAMIC_HASH_TABLE_ENTRY Entry,
+    __inout_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+__checkReturn
+NTSYSAPI
+PRTL_DYNAMIC_HASH_TABLE_ENTRY
+NTAPI
+RtlLookupEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __in ULONG_PTR Signature,
+    __out_opt PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+__checkReturn
+NTSYSAPI
+PRTL_DYNAMIC_HASH_TABLE_ENTRY
+NTAPI
+RtlGetNextEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __in PRTL_DYNAMIC_HASH_TABLE_CONTEXT Context
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlInitEnumerationHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __out PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+__checkReturn
+NTSYSAPI
+PRTL_DYNAMIC_HASH_TABLE_ENTRY
+NTAPI
+RtlEnumerateEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+VOID
+NTAPI
+RtlEndEnumerationHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlInitWeakEnumerationHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __out PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+__checkReturn
+NTSYSAPI
+PRTL_DYNAMIC_HASH_TABLE_ENTRY
+NTAPI
+RtlWeaklyEnumerateEntryHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+VOID
+NTAPI
+RtlEndWeakEnumerationHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable,
+    __inout PRTL_DYNAMIC_HASH_TABLE_ENUMERATOR Enumerator
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlExpandHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlContractHashTable(
+    __in PRTL_DYNAMIC_HASH_TABLE HashTable
+    );
+#endif
 
 // Synchronization
 
