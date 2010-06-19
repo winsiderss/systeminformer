@@ -1,6 +1,9 @@
 #ifndef NTCM_H
 #define NTCM_H
 
+// This header file provides configuration manager definitions.
+// Source: NT headers
+
 typedef enum _PNP_VETO_TYPE
 {
     PNP_VetoTypeUnknown, // unspecified

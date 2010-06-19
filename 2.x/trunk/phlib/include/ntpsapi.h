@@ -1,6 +1,9 @@
 #ifndef NTPSAPI_H
 #define NTPSAPI_H
 
+// This header file provides process manager definitions.
+// Source: NT headers
+
 // MS has decided to leave this one access right out 
 // of the headers...
 #ifndef THREAD_ALERT

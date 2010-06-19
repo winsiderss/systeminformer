@@ -1,6 +1,9 @@
 #ifndef NTPOAPI_H
 #define NTPOAPI_H
 
+// This header file provides power manager definitions.
+// Source: NT headers
+
 typedef union _POWER_STATE
 {
     SYSTEM_POWER_STATE SystemState;

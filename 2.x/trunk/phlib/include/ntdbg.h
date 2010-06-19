@@ -1,6 +1,9 @@
 #ifndef NTDBG_H
 #define NTDBG_H
 
+// This header file provides debugging definitions.
+// Source: NT headers
+
 #define DEBUG_READ_EVENT 0x0001
 #define DEBUG_PROCESS_ASSIGN 0x0002
 #define DEBUG_SET_INFORMATION 0x0004

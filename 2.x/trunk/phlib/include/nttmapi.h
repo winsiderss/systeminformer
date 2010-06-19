@@ -1,5 +1,8 @@
-#ifndef NTKTMAPI_H
-#define NTKTMAPI_H
+#ifndef NTTMAPI_H
+#define NTTMAPI_H
+
+// This header file provides transaction manager definitions.
+// Source: NT headers
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI

@@ -1,6 +1,9 @@
 #ifndef NTOBAPI_H
 #define NTOBAPI_H
 
+// This header file provides object manager definitions.
+// Source: NT headers
+
 #define OBJECT_TYPE_CREATE 0x0001
 #define OBJECT_TYPE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
 
