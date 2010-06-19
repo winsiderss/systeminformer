@@ -2840,10 +2840,14 @@ VOID PhInitializeFreeList(
     __in ULONG MaximumCount
     )
 {
-    RtlInitializeSListHead(&FreeList->ListHead);
+    // Maximum count of 0 is not allowed.
+    if (MaximumCount == 0)
+        MaximumCount = 1;
+
     FreeList->Count = 0;
     FreeList->MaximumCount = MaximumCount;
     FreeList->Size = Size;
+    RtlInitializeSListHead(&FreeList->ListHead);
 }
 
 /**
@@ -2875,8 +2879,7 @@ VOID PhDeleteFreeList(
  *
  * \return A pointer to the allocated block of 
  * memory. The memory must be freed using 
- * PhFreeToFreeList(). On 64-bit systems the block 
- * is guaranteed to be 16 byte aligned.
+ * PhFreeToFreeList().
  */
 PVOID PhAllocateFromFreeList(
     __inout PPH_FREE_LIST FreeList
@@ -2894,15 +2897,7 @@ PVOID PhAllocateFromFreeList(
     }
     else
     {
-#ifdef _M_IX86
         entry = PhAllocate(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size);
-#else
-        PVOID allocationBase;
-
-        allocationBase = PhAllocate(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) + FreeList->Size + 0xf);
-        entry = PTR_ALIGN(allocationBase, 0x10);
-        entry->AllocationBase = allocationBase;
-#endif
     }
 
     return &entry->Body;
@@ -2932,11 +2927,7 @@ VOID PhFreeToFreeList(
     }
     else
     {
-#ifdef _M_IX86
         PhFree(entry);
-#else
-        PhFree(entry->AllocationBase);
-#endif
     }
 }
 

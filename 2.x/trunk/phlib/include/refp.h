@@ -92,35 +92,10 @@ typedef struct _PH_OBJECT_HEADER
     LIST_ENTRY ObjectListEntry;
 #endif
 
-#ifdef _M_IX86
-    // There are 4 + 4 + 4 + 4 = 16 bytes before Body.
+    /** The body of the object. For use by the \ref PhObjectToObjectHeader 
+     * and \ref PhObjectHeaderToObject macros. */
     QUAD Body;
-#else
-    // There are 4 + 4 + 8 + 8 = 24 bytes before Body.
-    // 16 byte alignment requires Body to be at 32 bytes, 
-    // so the inclusion of AllocationBase does not waste 
-    // any space.
-    PVOID AllocationBase;
-    OCTO Body;
-#endif
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
-
-#ifndef DEBUG
-#ifdef _M_IX86
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0xc);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x10);
-#else
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0x10);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, AllocationBase) == 0x18);
-C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x20);
-#endif
-#endif
 
 /**
  * An object type specifies a kind of object and 
