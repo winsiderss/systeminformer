@@ -1,6 +1,9 @@
 #ifndef NTXCAPI_H
 #define NTXCAPI_H
 
+// This header file provides exceptions definitions.
+// Source: NT headers
+
 NTSYSAPI
 BOOLEAN
 NTAPI

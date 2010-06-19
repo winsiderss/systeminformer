@@ -1,6 +1,9 @@
 #ifndef NTLPCAPI_H
 #define NTLPCAPI_H
 
+// This header file provides local inter-process communication definitions.
+// Source: NT headers
+
 #define PORT_CONNECT 0x0001
 #define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1)
 

@@ -1,6 +1,9 @@
 #ifndef NTKEAPI_H
 #define NTKEAPI_H
 
+// This header file provides kernel definitions.
+// Source: NT headers
+
 typedef enum _KTHREAD_STATE
 {
     Initialized,

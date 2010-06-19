@@ -1,6 +1,9 @@
 #ifndef NTLDR_H
 #define NTLDR_H
 
+// This header file provides loader definitions.
+// Source: NT headers
+
 // DLLs
 
 #define LDRP_STATIC_LINK 0x00000002

@@ -22,7 +22,6 @@
 #include <ntexapi.h>
 #include <ntioapi.h>
 #include <ntkeapi.h>
-#include <ntktmapi.h>
 #include <ntlpcapi.h>
 #include <ntmmapi.h>
 #include <ntobapi.h>
@@ -32,6 +31,8 @@
 #include <ntregapi.h>
 #include <ntrtl.h>
 #include <ntseapi.h>
+#include <nttmapi.h>
+#include <nttp.h>
 #include <ntxcapi.h>
 
 #include <ntlsa.h>

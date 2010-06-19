@@ -1,6 +1,9 @@
 #ifndef NTREGAPI_H
 #define NTREGAPI_H
 
+// This header file provides configuration manager definitions.
+// Source: NT headers
+
 // Boot condition flags (NtInitializeRegistry)
 
 #define REG_INIT_BOOT_SM 0x0000 
