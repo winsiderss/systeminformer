@@ -148,30 +148,6 @@ PVOID PhReAllocSafe(
     __in SIZE_T Size
     );
 
-FORCEINLINE PVOID PhAllocateAligned(
-    __in SIZE_T Size,
-    __in ULONG Align,
-    __in SIZE_T AllocationBaseOffset
-    )
-{
-    PVOID memory;
-    PVOID allocationBase;
-
-    allocationBase = PhAllocate(Size + Align - 1);
-    memory = PTR_ALIGN(allocationBase, Align);
-    *(PPVOID)PTR_ADD_OFFSET(memory, AllocationBaseOffset) = allocationBase;
-
-    return memory;
-}
-
-FORCEINLINE VOID PhFreeAligned(
-    __in __post_invalid PVOID Memory,
-    __in SIZE_T AllocationBaseOffset
-    )
-{
-    PhFree(*(PPVOID)PTR_ADD_OFFSET(Memory, AllocationBaseOffset));
-}
-
 FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
     __in ULONG Size
@@ -1694,22 +1670,17 @@ BOOLEAN PhRemoveSimpleHashtableItem(
 
 typedef struct _PH_FREE_LIST
 {
-    SLIST_HEADER ListHead;
-
     ULONG Count;
     ULONG MaximumCount;
     SIZE_T Size;
+
+    SLIST_HEADER ListHead;
 } PH_FREE_LIST, *PPH_FREE_LIST;
 
 typedef struct _PH_FREE_LIST_ENTRY
 {
     SLIST_ENTRY ListEntry;
-#ifdef _M_IX86
     QUAD Body;
-#else
-    PVOID AllocationBase;
-    OCTO Body;
-#endif
 } PH_FREE_LIST_ENTRY, *PPH_FREE_LIST_ENTRY;
 
 VOID PhInitializeFreeList(

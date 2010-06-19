@@ -117,8 +117,6 @@ NTSTATUS PhInitializeRef()
  * \param ObjectType The type of the object.
  * \param AdditionalReferences The number of references to add to the object. The 
  * object will initially have a reference count of 1 + AdditionalReferences.
- *
- * \remarks On 64-bit systems the object is guaranteed to be 16 byte aligned.
  */
 __mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
@@ -576,10 +574,6 @@ PPH_OBJECT_HEADER PhpAllocateObject(
 {
     PPH_OBJECT_HEADER objectHeader;
 
-    // Objects (and their headers) are required to be 16 byte aligned.
-    // If we are using a free list no additional work is needed because they 
-    // return 16 byte aligned allocations. Otherwise, manual alignment is needed.
-
     if (ObjectType->Flags & PHOBJTYPE_USE_FREE_LIST)
     {
 #ifdef PHOBJ_STRICT_CHECKS
@@ -599,18 +593,8 @@ PPH_OBJECT_HEADER PhpAllocateObject(
     }
     else
     {
-#ifdef _M_IX86
         objectHeader = PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
         objectHeader->Flags = 0;
-#else
-        PVOID allocationBase;
-
-        allocationBase = PhAllocate(PhpAddObjectHeaderSize(ObjectSize) + 0xf);
-        objectHeader = PTR_ALIGN(allocationBase, 0x10);
-        objectHeader->AllocationBase = allocationBase;
-
-        objectHeader->Flags = 0;
-#endif
     }
 
     return objectHeader;
@@ -654,11 +638,7 @@ VOID PhpFreeObject(
     }
     else
     {
-#ifdef _M_IX86
         PhFree(ObjectHeader);
-#else
-        PhFree(ObjectHeader->AllocationBase);
-#endif
     }
 }
 
