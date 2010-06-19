@@ -39,7 +39,7 @@ typedef struct _PH_NETWORK_CONNECTION
 
 typedef struct _PH_NETWORK_ITEM_QUERY_DATA
 {
-    SLIST_ENTRY ListEntry;
+    SINGLE_LIST_ENTRY ListEntry;
     PPH_NETWORK_ITEM NetworkItem;
 
     PH_IP_ADDRESS Address;
@@ -134,7 +134,8 @@ PH_CALLBACK PhNetworkItemsUpdatedEvent;
 
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
-SLIST_HEADER PhNetworkItemQueryListHead;
+SINGLE_LIST_ENTRY PhNetworkItemQueryListHead = { NULL };
+PH_QUEUED_LOCK PhNetworkItemQueryListLock = PH_QUEUED_LOCK_INIT;
 
 static PPH_HASHTABLE PhpResolveCacheHashtable;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
@@ -168,8 +169,6 @@ BOOLEAN PhNetworkProviderInitialization()
     PhInitializeCallback(&PhNetworkItemModifiedEvent);
     PhInitializeCallback(&PhNetworkItemRemovedEvent);
     PhInitializeCallback(&PhNetworkItemsUpdatedEvent);
-
-    RtlInitializeSListHead(&PhNetworkItemQueryListHead);
 
     PhpResolveCacheHashtable = PhCreateHashtable(
         sizeof(PHP_RESOLVE_CACHE_ITEM),
@@ -455,7 +454,9 @@ NTSTATUS PhpNetworkItemQueryWorker(
         data->HostString = cacheItem->HostString;
     }
 
-    RtlInterlockedPushEntrySList(&PhNetworkItemQueryListHead, &data->ListEntry);
+    PhAcquireQueuedLockExclusive(&PhNetworkItemQueryListLock);
+    PushEntryList(&PhNetworkItemQueryListHead, &data->ListEntry);
+    PhReleaseQueuedLockExclusive(&PhNetworkItemQueryListLock);
 
     return STATUS_SUCCESS;
 }
@@ -582,12 +583,17 @@ VOID PhNetworkProviderUpdate(
 
     // Go through the queued network item query data.
     {
-        PSLIST_ENTRY entry;
+        PSINGLE_LIST_ENTRY entry;
         PPH_NETWORK_ITEM_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&PhNetworkItemQueryListHead))
+        PhAcquireQueuedLockExclusive(&PhNetworkItemQueryListLock);
+        entry = FlushEntriesList(&PhNetworkItemQueryListHead);
+        PhReleaseQueuedLockExclusive(&PhNetworkItemQueryListLock);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
+            entry = data->ListEntry.Next;
 
             if (data->Remote)
                 PhSwapReference2(&data->NetworkItem->RemoteHostString, data->HostString);

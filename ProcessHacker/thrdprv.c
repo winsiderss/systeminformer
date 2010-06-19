@@ -27,6 +27,9 @@
 typedef struct _PH_THREAD_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
+#ifdef _M_X64
+    PVOID AllocationBase;
+#endif
     PPH_THREAD_PROVIDER ThreadProvider;
     PPH_THREAD_ITEM ThreadItem;
 
@@ -537,7 +540,11 @@ VOID PhpQueueThreadQuery(
 {
     PPH_THREAD_QUERY_DATA data;
 
+#ifdef _M_IX86
     data = PhAllocate(sizeof(PH_THREAD_QUERY_DATA));
+#else
+    data = PhAllocateAligned(sizeof(PH_THREAD_QUERY_DATA), 16, FIELD_OFFSET(PH_THREAD_QUERY_DATA, AllocationBase));
+#endif
     memset(data, 0, sizeof(PH_THREAD_QUERY_DATA));
     data->ThreadProvider = ThreadProvider;
     data->ThreadItem = ThreadItem;
@@ -757,9 +764,12 @@ VOID PhThreadProviderUpdate(
         PSLIST_ENTRY entry;
         PPH_THREAD_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&threadProvider->QueryListHead))
+        entry = RtlInterlockedFlushSList(&threadProvider->QueryListHead);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
+            entry = data->ListEntry.Next;
 
             if (data->StartAddressResolveLevel == PhsrlFunction && data->StartAddressString)
             {
@@ -773,7 +783,11 @@ VOID PhThreadProviderUpdate(
 
             if (data->StartAddressString) PhDereferenceObject(data->StartAddressString);
             PhDereferenceObject(data->ThreadItem);
+#ifdef _M_IX86
             PhFree(data);
+#else
+            PhFreeAligned(data, FIELD_OFFSET(PH_THREAD_QUERY_DATA, AllocationBase));
+#endif
         }
     }
 
