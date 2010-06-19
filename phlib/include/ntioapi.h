@@ -1,6 +1,9 @@
 #ifndef NTIOAPI_H
 #define NTIOAPI_H
 
+// This header file provides I/O definitions.
+// Source: NT headers
+
 // Create disposition
 
 #define FILE_SUPERSEDE 0x00000000

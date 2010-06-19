@@ -491,10 +491,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\include\ntktmapi.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\ntldr.h"
 				>
 			</File>
@@ -544,6 +540,14 @@
 			</File>
 			<File
 				RelativePath=".\include\ntseapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\nttmapi.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\nttp.h"
 				>
 			</File>
 			<File

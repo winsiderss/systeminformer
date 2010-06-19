@@ -1,6 +1,9 @@
 #ifndef NTEXAPI_H
 #define NTEXAPI_H
 
+// This header file provides executive definitions.
+// Source: NT headers
+
 #include <ntkeapi.h>
 
 // Thread execution

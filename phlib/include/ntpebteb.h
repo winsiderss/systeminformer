@@ -1,6 +1,9 @@
 #ifndef NTPEBTEB_H
 #define NTPEBTEB_H
 
+// This header file provides process and thread environment block definitions.
+// Source: NT headers
+
 #include <ntldr.h>
 #include <ntrtl.h>
 

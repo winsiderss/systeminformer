@@ -1,6 +1,9 @@
 #ifndef NTRTL_H
 #define NTRTL_H
 
+// This header file provides run-time library definitions.
+// Source: NT headers
+
 #include <ntldr.h>
 
 // Defines for forwarded ntdll functions
@@ -840,7 +843,7 @@ RtlContractHashTable(
     );
 #endif
 
-// Synchronization
+// Critical sections
 
 NTSYSAPI
 NTSTATUS
@@ -914,10 +917,100 @@ RtlSetCriticalSectionSpinCount(
     __in ULONG SpinCount
     );
 
+// Slim reader-writer locks and condition variables
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
 NTSYSAPI
-ULONG
+VOID
 NTAPI
-RtlGetCurrentProcessorNumber();
+RtlInitializeSRWLock(
+    __out PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlAcquireSRWLockExclusive(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlAcquireSRWLockShared(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlReleaseSRWLockExclusive(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlReleaseSRWLockShared(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTryAcquireSRWLockExclusive(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlTryAcquireSRWLockShared(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeConditionVariable(
+    __out PRTL_CONDITION_VARIABLE ConditionVariable
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableCS(
+    __inout PRTL_CONDITION_VARIABLE ConditionVariable,
+    __inout PRTL_CRITICAL_SECTION CriticalSection,
+    __in_opt PLARGE_INTEGER Timeout
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSleepConditionVariableSRW(
+    __inout PRTL_CONDITION_VARIABLE ConditionVariable,
+    __inout PRTL_SRWLOCK SRWLock,
+    __in_opt PLARGE_INTEGER Timeout,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeConditionVariable(
+    __inout PRTL_CONDITION_VARIABLE ConditionVariable
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlWakeAllConditionVariable(
+    __inout PRTL_CONDITION_VARIABLE ConditionVariable
+    );
+
+#endif
 
 // PEB
 
@@ -1123,6 +1216,77 @@ RtlWow64SetThreadContext(
     __in HANDLE ThreadHandle,
     __in PWOW64_CONTEXT ThreadContext
     );
+#endif
+
+// Thread context
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+
+NTSYSAPI
+ULONG   
+NTAPI
+RtlCopyExtendedContext(
+    __out PCONTEXT_EX Destination,
+    __in ULONG ContextFlags,
+    __in PCONTEXT_EX Source
+    );
+
+NTSYSAPI
+ULONG   
+NTAPI
+RtlInitializeExtendedContext(
+    __out PVOID Context,
+    __in ULONG ContextFlags,
+    __out PCONTEXT_EX* ContextEx
+    );
+
+NTSYSAPI
+ULONG64
+NTAPI
+RtlGetEnabledExtendedFeatures(
+    __in ULONG64 FeatureMask
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetExtendedContextLength(
+    __in ULONG ContextFlags,
+    __out PULONG ContextLength
+    );
+
+NTSYSAPI
+ULONG64
+NTAPI
+RtlGetExtendedFeaturesMask(
+    __in PCONTEXT_EX ContextEx
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlLocateExtendedFeature(
+    __in PCONTEXT_EX ContextEx,
+    __in ULONG FeatureId,
+    __out_opt PULONG Length
+    );
+
+NTSYSAPI
+PCONTEXT
+NTAPI
+RtlLocateLegacyContext(
+    __in PCONTEXT_EX ContextEx,
+    __out_opt PULONG Length
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlSetExtendedFeaturesMask(
+    __out PCONTEXT_EX ContextEx,
+    __in ULONG64 FeatureMask
+    );
+
 #endif
 
 // Heaps
@@ -2775,6 +2939,30 @@ RtlCreateServiceSid(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateVirtualAccountSid(
+    __in PUNICODE_STRING Name,
+    __in ULONG BaseSubAuthority,
+    __out_bcount(*SidLength) PSID Sid,
+    __inout PULONG SidLength
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlReplaceSidInSd(
+    __inout PSECURITY_DESCRIPTOR SecurityDescriptor,
+    __in PSID OldSid,
+    __in PSID NewSid,
+    __out ULONG *NumChanges
+    );
+#endif
+
 #define MAX_UNICODE_STACK_BUFFER_LENGTH 256
 
 NTSYSAPI
@@ -3205,7 +3393,7 @@ RtlAddCompoundAce(
 
 // Security objects
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNewSecurityObject(
@@ -3217,14 +3405,14 @@ RtlNewSecurityObject(
     __in PGENERIC_MAPPING GenericMapping
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDeleteSecurityObject(
     __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCopySecurityDescriptor(
@@ -3232,7 +3420,7 @@ RtlCopySecurityDescriptor(
     __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQuerySecurityObject(
@@ -3243,7 +3431,7 @@ RtlQuerySecurityObject(
      __out PULONG ReturnLength
      );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlSetSecurityObject(
@@ -3256,7 +3444,12 @@ RtlSetSecurityObject(
 
 // Misc.
 
-NTSYSCALLAPI
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetCurrentProcessorNumber();
+
+NTSYSAPI
 ULONG32
 NTAPI
 RtlComputeCrc32(
