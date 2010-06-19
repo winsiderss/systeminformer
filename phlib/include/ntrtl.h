@@ -3442,6 +3442,35 @@ RtlSetSecurityObject(
     __in_opt HANDLE Token
     );
 
+// Private namespaces
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlCreateBoundaryDescriptor(
+    __in PUNICODE_STRING Name,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlDeleteBoundaryDescriptor(
+    __in PVOID BoundaryDescriptor
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddSIDToBoundaryDescriptor(
+    __inout PVOID *BoundaryDescriptor,
+    __in PSID RequiredSid
+    );
+
+#endif
+
 // Misc.
 
 NTSYSAPI

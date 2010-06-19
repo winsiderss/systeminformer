@@ -2,7 +2,7 @@
 #define NTOBAPI_H
 
 // This header file provides object manager definitions.
-// Source: NT headers
+// Source: NT headers, reverse engineering
 
 #define OBJECT_TYPE_CREATE 0x0001
 #define OBJECT_TYPE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
@@ -236,6 +236,39 @@ NtQueryDirectoryObject(
     __inout PULONG Context,
     __out_opt PULONG ReturnLength
     );
+
+// Private namespaces
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreatePrivateNamespace(
+    __out PHANDLE DirectoryHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in PVOID BoundaryDescriptor
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenPrivateNamespace(
+    __out PHANDLE DirectoryHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in PVOID BoundaryDescriptor
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDeletePrivateNamespace(
+    __in HANDLE DirectoryHandle
+    );
+
+#endif
 
 // Symbolic links
 
