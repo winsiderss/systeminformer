@@ -10,6 +10,14 @@ typedef struct _QUAD
     double DoNotUseThisField;
 } QUAD, *PQUAD, UQUAD, *PUQUAD;
 
+// The two types below aren't in NT, but they are useful.
+
+typedef struct DECLSPEC_ALIGN(16) _OCTO
+{
+    double DoNotUseThisField1;
+    double DoNotUseThisField2;
+} OCTO, *POCTO, UOCTO, *PUOCTO;
+
 typedef PVOID *PPVOID;
 
 typedef ULONG LOGICAL;

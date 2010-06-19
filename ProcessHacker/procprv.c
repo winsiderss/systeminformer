@@ -36,6 +36,9 @@ VOID PhpQueueProcessQueryStage2(
 typedef struct _PH_PROCESS_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
+#ifdef _M_X64
+    PVOID AllocationBase;
+#endif
     ULONG Stage;
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PROCESS_QUERY_DATA, *PPH_PROCESS_QUERY_DATA;
@@ -785,7 +788,11 @@ NTSTATUS PhpProcessQueryStage1Worker(
     PPH_PROCESS_QUERY_S1_DATA data;
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
+#ifdef _M_IX86
     data = PhAllocate(sizeof(PH_PROCESS_QUERY_S1_DATA));
+#else
+    data = PhAllocateAligned(sizeof(PH_PROCESS_QUERY_S1_DATA), 16, FIELD_OFFSET(PH_PROCESS_QUERY_DATA, AllocationBase));
+#endif
     memset(data, 0, sizeof(PH_PROCESS_QUERY_S1_DATA));
     data->Header.Stage = 1;
     data->Header.ProcessItem = processItem;
@@ -804,7 +811,11 @@ NTSTATUS PhpProcessQueryStage2Worker(
     PPH_PROCESS_QUERY_S2_DATA data;
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
 
+#ifdef _M_IX86
     data = PhAllocate(sizeof(PH_PROCESS_QUERY_S2_DATA));
+#else
+    data = PhAllocateAligned(sizeof(PH_PROCESS_QUERY_S2_DATA), 16, FIELD_OFFSET(PH_PROCESS_QUERY_DATA, AllocationBase));
+#endif
     memset(data, 0, sizeof(PH_PROCESS_QUERY_S2_DATA));
     data->Header.Stage = 2;
     data->Header.ProcessItem = processItem;
@@ -1196,9 +1207,12 @@ VOID PhProcessProviderUpdate(
         PSLIST_ENTRY entry;
         PPH_PROCESS_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&PhProcessQueryDataListHead))
+        entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
+            entry = data->ListEntry.Next;
 
             if (data->Stage == 1)
             {
@@ -1213,7 +1227,11 @@ VOID PhProcessProviderUpdate(
             }
 
             PhDereferenceObject(data->ProcessItem);
+#ifdef _M_IX86
             PhFree(data);
+#else
+            PhFreeAligned(data, FIELD_OFFSET(PH_PROCESS_QUERY_DATA, AllocationBase));
+#endif
         }
     }
 

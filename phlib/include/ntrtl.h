@@ -136,6 +136,18 @@ FORCEINLINE VOID PushEntryList(
     ListHead->Next = Entry;
 }
 
+FORCEINLINE PSINGLE_LIST_ENTRY FlushEntriesList(
+    __inout PSINGLE_LIST_ENTRY ListHead
+    )
+{
+    PSINGLE_LIST_ENTRY FirstEntry;
+
+    FirstEntry = ListHead->Next;
+    ListHead->Next = NULL;
+
+    return FirstEntry;
+}
+
 // AVL and splay trees
 
 typedef enum _TABLE_SEARCH_RESULT
