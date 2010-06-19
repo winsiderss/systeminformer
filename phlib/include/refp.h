@@ -94,8 +94,24 @@ typedef struct _PH_OBJECT_HEADER
 
     /** The body of the object. For use by the \ref PhObjectToObjectHeader 
      * and \ref PhObjectHeaderToObject macros. */
-    QUAD Body;
+    QUAD_PTR Body;
 } PH_OBJECT_HEADER, *PPH_OBJECT_HEADER;
+
+#ifndef DEBUG
+#ifdef _M_IX86
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0xc);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x10);
+#else
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, RefCount) == 0x0);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Flags) == 0x4);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, NextToFree) == 0x8);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Type) == 0x10);
+C_ASSERT(FIELD_OFFSET(PH_OBJECT_HEADER, Body) == 0x20);
+#endif
+#endif
 
 /**
  * An object type specifies a kind of object and 

@@ -270,7 +270,9 @@ HANDLE PhCreateThread(
  *
  * \remarks If the function fails to allocate 
  * the block of memory, it raises a 
- * STATUS_INSUFFICIENT_RESOURCES exception.
+ * STATUS_INSUFFICIENT_RESOURCES exception. The 
+ * block is guaranteed to be aligned at 
+ * MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 __mayRaise PVOID PhAllocate(
     __in SIZE_T Size
@@ -2378,6 +2380,9 @@ VOID PhpResizeHashtable(
  * the hashtable. This pointer is valid until 
  * the hashtable is modified. If the hashtable 
  * already contained an equal entry, NULL is returned.
+ *
+ * \remarks Entries are only guaranteed to be 8 byte 
+ * aligned, even on 64-bit systems.
  */
 PVOID PhAddHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
@@ -2840,14 +2845,10 @@ VOID PhInitializeFreeList(
     __in ULONG MaximumCount
     )
 {
-    // Maximum count of 0 is not allowed.
-    if (MaximumCount == 0)
-        MaximumCount = 1;
-
+    RtlInitializeSListHead(&FreeList->ListHead);
     FreeList->Count = 0;
     FreeList->MaximumCount = MaximumCount;
     FreeList->Size = Size;
-    RtlInitializeSListHead(&FreeList->ListHead);
 }
 
 /**
@@ -2879,7 +2880,8 @@ VOID PhDeleteFreeList(
  *
  * \return A pointer to the allocated block of 
  * memory. The memory must be freed using 
- * PhFreeToFreeList().
+ * PhFreeToFreeList(). The block is guaranteed to be 
+ * aligned at MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 PVOID PhAllocateFromFreeList(
     __inout PPH_FREE_LIST FreeList
