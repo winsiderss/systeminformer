@@ -1,9 +1,6 @@
 #ifndef NTOBAPI_H
 #define NTOBAPI_H
 
-// This header file provides object manager definitions.
-// Source: NT headers, reverse engineering
-
 #define OBJECT_TYPE_CREATE 0x0001
 #define OBJECT_TYPE_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | 0x1)
 
@@ -241,6 +238,8 @@ NtQueryDirectoryObject(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// begin_rev
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -267,6 +266,8 @@ NTAPI
 NtDeletePrivateNamespace(
     __in HANDLE DirectoryHandle
     );
+
+// end_rev
 
 #endif
 

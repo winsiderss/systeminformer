@@ -3,9 +3,7 @@
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
-// This header file provides thread pool definitions.
-// Source: Windows SDK, reverse engineering
-
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -15,6 +13,7 @@ TpAllocPool(
     __in __reserved PVOID Reserved
     );
 
+// winbase:CloseThreadpool
 NTSYSAPI
 VOID
 NTAPI
@@ -22,6 +21,7 @@ TpReleasePool(
     __inout PTP_POOL Pool
     );
 
+// winbase:SetThreadpoolThreadMaximum
 NTSYSAPI
 VOID
 NTAPI
@@ -30,6 +30,7 @@ TpSetPoolMaxThreads(
     __in LONG MaxThreads
     );
 
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -39,6 +40,7 @@ TpSetPoolMinThreads(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -49,6 +51,7 @@ TpQueryPoolStackInformation(
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -58,6 +61,7 @@ TpSetPoolStackInformation(
     );
 #endif
 
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -66,6 +70,7 @@ TpAllocCleanupGroup(
     __out PTP_CLEANUP_GROUP *CleanupGroupReturn
     );
 
+// winbase:CloseThreadpoolCleanupGroup
 NTSYSAPI
 VOID
 NTAPI
@@ -73,6 +78,7 @@ TpReleaseCleanupGroup(
     __inout PTP_CLEANUP_GROUP CleanupGroup
     );
 
+// winbase:CloseThreadpoolCleanupGroupMembers
 NTSYSAPI
 VOID
 NTAPI
@@ -82,6 +88,7 @@ TpReleaseCleanupGroupMembers(
     __inout_opt PVOID CleanupParameter
     );
 
+// winbase:SetEventWhenCallbackReturns
 NTSYSAPI
 VOID
 NTAPI
@@ -90,6 +97,7 @@ TpCallbackSetEventOnCompletion(
     __in HANDLE Event
     );
 
+// winbase:ReleaseSemaphoreWhenCallbackReturns
 NTSYSAPI
 VOID
 NTAPI
@@ -99,6 +107,7 @@ TpCallbackReleaseSemaphoreOnCompletion(
     __in LONG ReleaseCount
     );
 
+// winbase:ReleaseMutexWhenCallbackReturns
 NTSYSAPI
 VOID
 NTAPI
@@ -107,6 +116,7 @@ TpCallbackReleaseMutexOnCompletion(
     __in HANDLE Mutex
     );
 
+// winbase:LeaveCriticalSectionWhenCallbackReturns
 NTSYSAPI
 VOID
 NTAPI
@@ -115,6 +125,7 @@ TpCallbackLeaveCriticalSectionOnCompletion(
     __inout PRTL_CRITICAL_SECTION CriticalSection
     );
 
+// winbase:FreeLibraryWhenCallbackReturns
 NTSYSAPI
 VOID
 NTAPI
@@ -123,6 +134,7 @@ TpCallbackUnloadDllOnCompletion(
     __in PVOID DllHandle
     );
 
+// winbase:CallbackMayRunLong
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -130,6 +142,7 @@ TpCallbackMayRunLong(
     __inout PTP_CALLBACK_INSTANCE Instance
     );
 
+// winbase:DisassociateCurrentThreadFromCallback
 NTSYSAPI
 VOID
 NTAPI
@@ -137,6 +150,7 @@ TpDisassociateCallback(
     __inout PTP_CALLBACK_INSTANCE Instance
     );
 
+// winbase:TrySubmitThreadpoolCallback
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -147,6 +161,7 @@ TpSimpleTryPost(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -158,6 +173,7 @@ TpAllocWork(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+// winbase:CloseThreadpoolWork
 NTSYSAPI
 VOID
 NTAPI
@@ -165,6 +181,7 @@ TpReleaseWork(
     __inout PTP_WORK Work
     );
 
+// winbase:SubmitThreadpoolWork
 NTSYSAPI
 VOID
 NTAPI
@@ -172,6 +189,7 @@ TpPostWork(
     __inout PTP_WORK Work
     );
 
+// winbase:WaitForThreadpoolWorkCallbacks
 NTSYSAPI
 VOID
 NTAPI
@@ -180,6 +198,7 @@ TpWaitForWork(
     __in LOGICAL CancelPendingCallbacks
     );
 
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -191,6 +210,7 @@ TpAllocTimer(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+// winbase:CloseThreadpoolTimer
 NTSYSAPI
 VOID
 NTAPI
@@ -198,6 +218,7 @@ TpReleaseTimer(
     __inout PTP_TIMER Timer
     );
 
+// winbase:SetThreadpoolTimer
 NTSYSAPI
 VOID
 NTAPI
@@ -208,6 +229,7 @@ TpSetTimer(
     __in_opt LONG WindowLength
     );
 
+// winbase:IsThreadpoolTimerSet
 NTSYSAPI
 LOGICAL
 NTAPI
@@ -215,6 +237,7 @@ TpIsTimerSet(
     __in PTP_TIMER Timer
     );
 
+// winbase:WaitForThreadpoolTimerCallbacks
 NTSYSAPI
 VOID
 NTAPI
@@ -223,6 +246,7 @@ TpWaitForTimer(
     __in LOGICAL CancelPendingCallbacks
     );
 
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -234,6 +258,7 @@ TpAllocWait(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+// winbase:CloseThreadpoolWait
 NTSYSAPI
 VOID
 NTAPI
@@ -241,6 +266,7 @@ TpReleaseWait(
     __inout PTP_WAIT Wait
     );
 
+// winbase:SetThreadpoolWait
 NTSYSAPI
 VOID
 NTAPI
@@ -250,6 +276,7 @@ TpSetWait(
     __in_opt PLARGE_INTEGER Timeout
     );
 
+// winbase:WaitForThreadpoolWaitCallbacks
 NTSYSAPI
 VOID
 NTAPI
@@ -258,6 +285,7 @@ TpWaitForWait(
     __in LOGICAL CancelPendingCallbacks
     );
 
+// rev
 typedef VOID (NTAPI *PTP_IO_CALLBACK)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
@@ -266,6 +294,7 @@ typedef VOID (NTAPI *PTP_IO_CALLBACK)(
     __in PTP_IO Io
     );
 
+// rev
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -278,6 +307,7 @@ TpAllocIoCompletion(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+// winbase:CloseThreadpoolIo
 NTSYSAPI
 VOID
 NTAPI
@@ -285,6 +315,7 @@ TpReleaseIoCompletion(
     __inout PTP_IO Io
     );
 
+// winbase:StartThreadpoolIo
 NTSYSAPI
 VOID
 NTAPI
@@ -292,6 +323,7 @@ TpStartAsyncIoOperation(
     __inout PTP_IO Io
     );
 
+// winbase:CancelThreadpoolIo
 NTSYSAPI
 VOID
 NTAPI
@@ -299,6 +331,7 @@ TpCancelAsyncIoOperation(
     __inout PTP_IO Io
     );
 
+// winbase:WaitForThreadpoolIoCallbacks
 NTSYSAPI
 VOID
 NTAPI
@@ -307,14 +340,18 @@ TpWaitForIoCompletion(
     __in LOGICAL CancelPendingCallbacks
     );
 
+// begin_rev
+
 typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
 
+// unsure
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
     __in PTP_ALPC Alpc // ?
     );
 
+// unsure
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
@@ -333,6 +370,7 @@ TpAllocAlpcCompletion(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -343,6 +381,7 @@ TpAllocAlpcCompletionEx(
     __inout_opt PVOID Context,
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
+#endif
 
 NTSYSAPI
 VOID
@@ -358,6 +397,9 @@ TpWaitForAlpcCompletion(
     __inout PTP_ALPC Alpc
     );
 
+// end_rev
+
+// rev
 NTSYSAPI
 VOID
 NTAPI

@@ -1,9 +1,6 @@
 #ifndef NTLSA_H
 #define NTLSA_H
 
-// This header file provides local security authority definitions.
-// Source: NT headers
-
 #define _NTDEF_
 #include <ntsecapi.h>
 

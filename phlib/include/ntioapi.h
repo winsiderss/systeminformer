@@ -1,9 +1,6 @@
 #ifndef NTIOAPI_H
 #define NTIOAPI_H
 
-// This header file provides I/O definitions.
-// Source: NT headers
-
 // Create disposition
 
 #define FILE_SUPERSEDE 0x00000000
@@ -970,6 +967,30 @@ NtCancelIoFile(
     __in HANDLE FileHandle,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelIoFileEx(
+    __in HANDLE FileHandle,
+    __in PIO_STATUS_BLOCK UserIosb,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCancelSynchronousIoFile(
+    __in HANDLE ThreadHandle,
+    __in ULONG Flags,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

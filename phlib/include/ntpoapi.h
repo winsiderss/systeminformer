@@ -1,9 +1,6 @@
 #ifndef NTPOAPI_H
 #define NTPOAPI_H
 
-// This header file provides power manager definitions.
-// Source: NT headers
-
 typedef union _POWER_STATE
 {
     SYSTEM_POWER_STATE SystemState;
@@ -17,6 +14,7 @@ typedef enum _POWER_STATE_TYPE
 } POWER_STATE_TYPE, *PPOWER_STATE_TYPE;
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+// wdm
 typedef struct _SYSTEM_POWER_STATE_CONTEXT
 {
     union
@@ -37,6 +35,7 @@ typedef struct _SYSTEM_POWER_STATE_CONTEXT
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// wdm
 typedef struct _COUNTED_REASON_CONTEXT
 {
     ULONG Version;

@@ -1,11 +1,6 @@
 #ifndef NTSEAPI_H
 #define NTSEAPI_H
 
-// This header file provides security manager definitions.
-// Source: NT headers
-
-// System calls
-
 // Tokens
 
 NTSYSCALLAPI

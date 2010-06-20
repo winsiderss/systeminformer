@@ -13,9 +13,6 @@
 #define PHNT_VERSION PHNT_WINXP
 #endif
 
-// Note: definitions marked with an asterisk have been 
-// reverse-engineered.
-
 #include <ntbasic.h>
 #include <ntcm.h>
 #include <ntdbg.h>

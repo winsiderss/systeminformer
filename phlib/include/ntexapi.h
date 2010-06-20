@@ -1,9 +1,6 @@
 #ifndef NTEXAPI_H
 #define NTEXAPI_H
 
-// This header file provides executive definitions.
-// Source: NT headers
-
 #include <ntkeapi.h>
 
 // Thread execution
@@ -317,6 +314,8 @@ typedef VOID (NTAPI *PTIMER_APC_ROUTINE)(
     __in LONG TimerHighValue
     );
 
+// begin_ntddk
+
 typedef enum _TIMER_SET_INFORMATION_CLASS
 {
     TimerSetCoalescableTimer,
@@ -337,6 +336,8 @@ typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
     __out_opt PBOOLEAN PreviousState;
 } TIMER_SET_COALESCABLE_TIMER_INFO, *PTIMER_SET_COALESCABLE_TIMER_INFO;
 #endif
+
+// end_ntddk
 
 NTSYSCALLAPI
 NTSTATUS
@@ -371,6 +372,7 @@ NtSetTimer(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// ntddk:ZwSetTimerEx
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1143,9 +1145,9 @@ typedef struct _SYSTEM_LOOKASIDE_INFORMATION
     ULONG Size;
 } SYSTEM_LOOKASIDE_INFORMATION, *PSYSTEM_LOOKASIDE_INFORMATION;
 
-/* * */
-
 // Common structure used by a few info classes
+
+// begin_rev
 
 typedef enum _SYSTEM_EXTENDED_INFORMATION_TYPE
 {
@@ -1164,8 +1166,9 @@ typedef struct _SYSTEM_EXTENDED_INFORMATION
     ULONG BufferSize;
 } SYSTEM_EXTENDED_INFORMATION, *PSYSTEM_EXTENDED_INFORMATION;
 
-/* * */
+// end_rev
 
+// rev
 typedef enum _SYSTEM_PREFETCHER_INFORMATION_CLASS
 {
     PrefetcherCompletedTraceInformation = 1,
@@ -1173,8 +1176,7 @@ typedef enum _SYSTEM_PREFETCHER_INFORMATION_CLASS
     PrefetcherBootLoaderTraceInformation = 4
 } SYSTEM_PREFETCHER_INFORMATION_CLASS;
 
-/* * */
-
+// rev
 typedef enum _SYSTEM_SUPERFETCH_INFORMATION_CLASS
 {
     SuperfetchCompletedTraceInformation = 1,
@@ -1188,14 +1190,14 @@ typedef enum _SYSTEM_SUPERFETCH_INFORMATION_CLASS
     SuperfetchUnknownInformation20 = 20 // size 8
 } SYSTEM_SUPERFETCH_INFORMATION_CLASS;
 
-/* * */
-
+// rev
 typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
 {
     HANDLE ProcessId;
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
 
+// msdn
 typedef struct _SYSTEM_VHD_BOOT_INFORMATION
 {
     BOOLEAN OsDiskIsVhd;
@@ -1203,9 +1205,7 @@ typedef struct _SYSTEM_VHD_BOOT_INFORMATION
     WCHAR OsVhdParentVolume[ANYSIZE_ARRAY];
 } SYSTEM_VHD_BOOT_INFORMATION, *PSYSTEM_VHD_BOOT_INFORMATION;
 
-/* * */
-/* http://www.msuiche.net/2009/04/01/low-priority-io-count-information-systemlowpriorityinformation/ */
-
+// http://www.msuiche.net/2009/04/01/low-priority-io-count-information-systemlowpriorityinformation/
 typedef struct _SYSTEM_LOW_PRIORITY_IO_INFORMATION
 {
     ULONG IoLowPriorityReadOperationCount;
@@ -1220,8 +1220,7 @@ typedef struct _SYSTEM_LOW_PRIORITY_IO_INFORMATION
     ULONG IoBlanketBoostCount;
 } SYSTEM_LOW_PRIORITY_IO_INFORMATION, *PSYSTEM_LOW_PRIORITY_IO_INFORMATION;
 
-/* * */
-
+// symbols
 typedef enum _TPM_BOOT_ENTROPY_RESULT_CODE
 {
     TpmBootEntropyStructureUninitialized,
@@ -1234,6 +1233,7 @@ typedef enum _TPM_BOOT_ENTROPY_RESULT_CODE
 // Contents of KeLoaderBlock->Extension->TpmBootEntropyResult (TPM_BOOT_ENTROPY_LDR_RESULT).
 // EntropyData is truncated to 40 bytes.
 
+// symbols
 typedef struct _SYSTEM_TPM_BOOT_ENTROPY_INFORMATION
 {
     ULONGLONG Policy;
@@ -1244,8 +1244,7 @@ typedef struct _SYSTEM_TPM_BOOT_ENTROPY_INFORMATION
     UCHAR EntropyData[40];
 } SYSTEM_TPM_BOOT_ENTROPY_INFORMATION, *PSYSTEM_TPM_BOOT_ENTROPY_INFORMATION;
 
-/* * */
-
+// rev
 typedef struct _SYSTEM_MEMORY_COMMITMENT_INFORMATION
 {
     ULONG AvailablePages;
