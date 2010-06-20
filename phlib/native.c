@@ -3912,9 +3912,11 @@ NTSTATUS PhDuplicateObject(
     __in ULONG Options
     )
 {
+    NTSTATUS status;
+
     if (PhKphHandle)
     {
-        return KphDuplicateObject(
+        status = KphDuplicateObject(
             PhKphHandle,
             SourceProcessHandle,
             SourceHandle,
@@ -3924,19 +3926,22 @@ NTSTATUS PhDuplicateObject(
             HandleAttributes,
             Options
             );
+
+        // If KPH couldn't duplicate the handle, pass through to 
+        // NtDuplicateObject. This is for special objects like ALPC ports.
+        if (status != STATUS_NOT_SUPPORTED)
+            return status;
     }
-    else
-    {
-        return NtDuplicateObject(
-            SourceProcessHandle,
-            SourceHandle,
-            TargetProcessHandle,
-            TargetHandle,
-            DesiredAccess,
-            HandleAttributes,
-            Options
-            );
-    }
+
+    return NtDuplicateObject(
+        SourceProcessHandle,
+        SourceHandle,
+        TargetProcessHandle,
+        TargetHandle,
+        DesiredAccess,
+        HandleAttributes,
+        Options
+        );
 }
 
 NTSTATUS PhpEnumProcessModules(
