@@ -1796,8 +1796,12 @@ PPH_STRING PhGetSystemDirectory();
 
 PPH_STRING PhGetSystemRoot();
 
-PPH_STRING PhGetApplicationModuleFileName(
-    __in HMODULE ModuleHandle,
+PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
+    __in PVOID DllHandle
+    );
+
+PPH_STRING PhGetDllFileName(
+    __in PVOID DllHandle,
     __out_opt PULONG IndexOfFileName
     );
 

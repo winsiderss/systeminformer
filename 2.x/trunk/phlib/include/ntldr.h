@@ -90,6 +90,16 @@ LdrUnloadDll(
     __in PVOID DllHandle
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandle(
+    __in_opt PWSTR DllPath,
+    __in_opt PULONG DllCharacteristics,
+    __in PUNICODE_STRING DllName,
+    __out PVOID *DllHandle
+    );
+
 #define LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT 0x00000001
 #define LDR_GET_DLL_HANDLE_EX_PIN 0x00000002
 
@@ -102,16 +112,6 @@ LdrGetDllHandleEx(
     __in_opt PULONG DllCharacteristics,
     __in PUNICODE_STRING DllName,
     __out_opt PVOID *DllHandle
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrGetDllHandle(
-    __in_opt PWSTR DllPath,
-    __in_opt PULONG DllCharacteristics,
-    __in PUNICODE_STRING DllName,
-    __out PVOID *DllHandle
     );
 
 #define LDR_ADDREF_DLL_PIN 0x00000001
@@ -132,6 +132,32 @@ LdrGetProcedureAddress(
     __in_opt PANSI_STRING ProcedureName,
     __in_opt ULONG ProcedureNumber,
     __out PVOID *ProcedureAddress
+    );
+
+#define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
+#define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
+
+#define LDR_LOCK_LOADER_LOCK_DISPOSITION_INVALID 0
+#define LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_ACQUIRED 1
+#define LDR_LOCK_LOADER_LOCK_DISPOSITION_LOCK_NOT_ACQUIRED 2
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrLockLoaderLock(
+    __in ULONG Flags,
+    __out_opt ULONG *Disposition,
+    __out PVOID *Cookie
+    );
+
+#define LDR_UNLOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnlockLoaderLock(
+    __in ULONG Flags,
+    __inout PVOID Cookie
     );
 
 NTSYSAPI

@@ -5200,7 +5200,7 @@ PPH_STRING PhGetFileName(
         else
         {
             // We didn't find a match.
-            // If the file name starts with a backslash, prepend the system drive.
+            // If the file name starts with "\Windows", prepend the system drive.
             if (PhStringStartsWith2(newFileName, L"\\Windows", TRUE))
             {
                 PPH_STRING systemDirectory = PhGetSystemDirectory();
