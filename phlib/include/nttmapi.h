@@ -1,8 +1,7 @@
 #ifndef NTTMAPI_H
 #define NTTMAPI_H
 
-// This header file provides transaction manager definitions.
-// Source: NT headers
+// begin_wdm
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
@@ -483,5 +482,7 @@ NtPropagationFailed(
     __in NTSTATUS PropStatus
     );
 #endif
+
+// end_wdm
 
 #endif

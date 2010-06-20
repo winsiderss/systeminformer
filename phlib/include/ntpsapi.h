@@ -1,9 +1,6 @@
 #ifndef NTPSAPI_H
 #define NTPSAPI_H
 
-// This header file provides process manager definitions.
-// Source: NT headers
-
 // MS has decided to leave this one access right out 
 // of the headers...
 #ifndef THREAD_ALERT
@@ -166,6 +163,7 @@ typedef struct _PROCESS_BASIC_INFORMATION
 } PROCESS_BASIC_INFORMATION;
 typedef PROCESS_BASIC_INFORMATION *PPROCESS_BASIC_INFORMATION;
 
+// ntddk
 typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 {
     SIZE_T Size; // set to sizeof structure on input
@@ -278,7 +276,7 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
     PROCESS_HANDLE_TRACING_ENTRY HandleTrace[1];
 } PROCESS_HANDLE_TRACING_QUERY, *PPROCESS_HANDLE_TRACING_QUERY;
 
-/* * */
+// begin_rev
 
 #ifndef PROCESS_AFFINITY_ENABLE_AUTO_UPDATE
 #define PROCESS_AFFINITY_ENABLE_AUTO_UPDATE 0x1
@@ -290,7 +288,9 @@ typedef struct _PROCESS_AFFINITY_UPDATE_MODE_INFORMATION
     ULONG AffinityUpdateMode;
 } PROCESS_AFFINITY_UPDATE_MODE_INFORMATION, *PPROCESS_AFFINITY_UPDATE_MODE_INFORMATION;
 
-/* * */
+// end_rev
+
+// begin_rev
 
 #define PROCESS_MEMORY_VM_TOP_DOWN 0x1
 
@@ -299,13 +299,15 @@ typedef struct _PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION
     ULONG MemoryAllocationMode;
 } PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION, *PPROCESS_MEMORY_ALLOCATION_MODE_INFORMATION;
 
-/* * */
+// end_rev
 
+// rev
 typedef struct _PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
 {
     ULONG_PTR ConsoleHostProcess;
 } PROCESS_CONSOLE_HOST_PROCESS_INFORMATION, *PPROCESS_CONSOLE_HOST_PROCESS_INFORMATION;
 
+// rev
 typedef struct _PROCESS_CYCLE_TIME_INFORMATION
 {
     ULARGE_INTEGER AccumulatedCycles;
@@ -324,6 +326,7 @@ typedef struct _THREAD_BASIC_INFORMATION
     LONG BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
+// rev
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
     ULARGE_INTEGER AccumulatedCycles;
