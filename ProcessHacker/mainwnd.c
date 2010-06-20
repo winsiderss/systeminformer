@@ -275,7 +275,7 @@ BOOLEAN PhMainWndInitialization(
             PPH_STRING dbghelpFolder;
             PPH_STRING symsrvPath;
 
-            fullDbghelpPath = PhGetApplicationModuleFileName(dbghelpModule, &indexOfFileName);
+            fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
 
             if (fullDbghelpPath)
             {

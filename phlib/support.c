@@ -1037,7 +1037,7 @@ PPH_STRING PhGetFullPath(
     bufferSize = 0x80;
     buffer = PhAllocate(bufferSize * 2);
 
-    returnLength = GetFullPathName(FileName, bufferSize, buffer, &filePart);
+    returnLength = RtlGetFullPathName_U(FileName, bufferSize, buffer, &filePart);
 
     if (returnLength > bufferSize)
     {
@@ -1045,7 +1045,7 @@ PPH_STRING PhGetFullPath(
         bufferSize = returnLength;
         buffer = PhAllocate(bufferSize * 2);
 
-        returnLength = GetFullPathName(FileName, bufferSize, buffer, &filePart);
+        returnLength = RtlGetFullPathName_U(FileName, bufferSize, buffer, &filePart);
     }
 
     if (returnLength == 0)
@@ -1188,71 +1188,76 @@ PPH_STRING PhGetSystemRoot()
     return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
 }
 
-PPH_STRING PhGetApplicationModuleFileName(
-    __in HMODULE ModuleHandle,
+PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
+    __in PVOID DllHandle
+    )
+{
+    PLDR_DATA_TABLE_ENTRY result = NULL;
+    PLDR_DATA_TABLE_ENTRY entry;
+    PLIST_ENTRY listHead;
+    PLIST_ENTRY listEntry;
+
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    listHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
+    listEntry = listHead->Flink;
+
+    while (listEntry != listHead)
+    {
+        entry = CONTAINING_RECORD(listEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+
+        if (entry->DllBase == DllHandle)
+        {
+            result = entry;
+            break;
+        }
+
+        listEntry = listEntry->Flink;
+    }
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    return result;
+}
+
+PPH_STRING PhGetDllFileName(
+    __in PVOID DllHandle,
     __out_opt PULONG IndexOfFileName
     )
 {
+    PLDR_DATA_TABLE_ENTRY entry;
     PPH_STRING fileName;
-    PVOID buffer;
-    ULONG bufferSize;
-    ULONG returnLength;
+    PPH_STRING newFileName;
+    ULONG indexOfFileName;
 
-    bufferSize = 0x40;
-    buffer = PhAllocate(bufferSize * 2);
+    entry = PhFindLoaderEntry(DllHandle);
 
-    while (TRUE)
-    {
-        returnLength = GetModuleFileName(ModuleHandle, buffer, bufferSize);
-
-        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER || returnLength >= bufferSize)
-        {
-            PhFree(buffer);
-            bufferSize *= 2;
-            buffer = PhAllocate(bufferSize * 2);
-        }
-        else
-        {
-            // Success or a non-buffer-related error occurred.
-            break;
-        }
-    }
-
-    if (returnLength == 0)
-    {
-        PhFree(buffer);
+    if (!entry)
         return NULL;
-    }
 
-    fileName = PhGetFullPath((PWSTR)buffer, IndexOfFileName);
+    fileName = PhCreateStringEx(entry->FullDllName.Buffer, entry->FullDllName.Length);
+    newFileName = PhGetFileName(fileName);
+    PhDereferenceObject(fileName);
+    fileName = newFileName;
 
-    if (!fileName)
+    if (IndexOfFileName)
     {
-        ULONG indexOfFileName;
+        indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
 
-        fileName = PhCreateString((PWSTR)buffer);
+        if (indexOfFileName != -1)
+            indexOfFileName++;
+        else
+            indexOfFileName = -1;
 
-        if (IndexOfFileName)
-        {
-            indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
-
-            if (indexOfFileName != -1)
-                indexOfFileName++;
-            else
-                indexOfFileName = -1;
-
-            *IndexOfFileName = indexOfFileName;
-        }
+        *IndexOfFileName = indexOfFileName;
     }
-
-    PhFree(buffer);
 
     return fileName;
 }
 
 PPH_STRING PhGetApplicationFileName()
 {
-    return PhGetApplicationModuleFileName(GetModuleHandle(NULL), NULL);
+    return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
 }
 
 PPH_STRING PhGetApplicationDirectory()
@@ -1261,7 +1266,7 @@ PPH_STRING PhGetApplicationDirectory()
     ULONG indexOfFileName;
     PPH_STRING path = NULL;
 
-    fileName = PhGetApplicationModuleFileName(GetModuleHandle(NULL), &indexOfFileName);
+    fileName = PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, &indexOfFileName);
 
     if (fileName)
     {
