@@ -10,7 +10,7 @@ NTSTATUS
 NTAPI
 TpAllocPool(
     __out PTP_POOL *PoolReturn,
-    __in __reserved PVOID Reserved
+    __reserved PVOID Reserved
     );
 
 // winbase:CloseThreadpool
