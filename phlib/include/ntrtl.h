@@ -1838,12 +1838,14 @@ RtlDetermineDosPathNameType_U(
     __in PWSTR DosFileName
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 RTL_PATH_TYPE
 NTAPI
 RtlDetermineDosPathNameType_Ustr(
     __in PUNICODE_STRING String
     );
+#endif
 
 NTSYSAPI
 ULONG
@@ -1864,6 +1866,7 @@ RtlGetFullPathName_U(
 
 // missing:RtlGetFullPathName_UEx
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 ULONG
 NTAPI
@@ -1875,7 +1878,9 @@ RtlGetFullPathName_Ustr(
     __out_opt PBOOLEAN InvalidName,
     __out RTL_PATH_TYPE *PathType
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1889,6 +1894,7 @@ RtlGetFullPathName_UstrEx(
     __out RTL_PATH_TYPE *InputPathType,
     __out_opt SIZE_T *BytesRequired
     );
+#endif
 
 NTSYSAPI
 ULONG
@@ -1920,6 +1926,7 @@ RtlDosPathNameToNtPathName_U(
     __reserved PVOID Reserved
     );
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1929,7 +1936,9 @@ RtlDosPathNameToNtPathName_U_WithStatus(
     __out_opt PWSTR *FilePart,
     __reserved PVOID Reserved
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1939,7 +1948,9 @@ RtlDosPathNameToRelativeNtPathName_U(
     __out_opt PWSTR *FilePart,
     __out_opt PRTL_RELATIVE_NAME_U RelativeName
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1949,13 +1960,16 @@ RtlDosPathNameToRelativeNtPathName_U_WithStatus(
     __out_opt PWSTR *FilePart,
     __out_opt PRTL_RELATIVE_NAME_U RelativeName
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
 VOID
 NTAPI
 RtlReleaseRelativeName(
     __inout PRTL_RELATIVE_NAME_U RelativeName
     );
+#endif
 
 NTSYSAPI
 ULONG
