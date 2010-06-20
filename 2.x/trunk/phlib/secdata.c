@@ -384,6 +384,26 @@ ACCESS_ENTRIES(WindowStation)
     { L"Exit windows", WINSTA_EXITWINDOWS, FALSE, TRUE }
 };
 
+ACCESS_ENTRIES(WmiGuid)
+{
+    { L"Full control", WMIGUID_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", WMIGUID_GENERIC_READ, TRUE, FALSE },
+    { L"Write", WMIGUID_GENERIC_WRITE, TRUE, FALSE },
+    { L"Execute", WMIGUID_GENERIC_EXECUTE, TRUE, FALSE },
+    { L"Query information", WMIGUID_QUERY, FALSE, TRUE },
+    { L"Set information", WMIGUID_SET, FALSE, TRUE },
+    { L"Get notifications", WMIGUID_NOTIFICATION, FALSE, TRUE },
+    { L"Read description", WMIGUID_READ_DESCRIPTION, FALSE, TRUE },
+    { L"Execute", WMIGUID_EXECUTE, FALSE, TRUE },
+    { L"Create real-time logs", TRACELOG_CREATE_REALTIME, FALSE, TRUE, L"Create real-time" },
+    { L"Create on disk logs", TRACELOG_CREATE_ONDISK, FALSE, TRUE, L"Create on disk" },
+    { L"Enable provider GUIDs", TRACELOG_GUID_ENABLE, FALSE, TRUE, L"Enable GUIDs" },
+    { L"Access kernel logger", TRACELOG_ACCESS_KERNEL_LOGGER, FALSE, TRUE },
+    { L"Log events", TRACELOG_LOG_EVENT, FALSE, TRUE },
+    { L"Access real-time events", TRACELOG_ACCESS_REALTIME, FALSE, TRUE, L"Access real-time" },
+    { L"Register provider GUIDs", TRACELOG_REGISTER_GUIDS, FALSE, TRUE, L"Register GUIDs" }
+};
+
 PH_SPECIFIC_TYPE PhSpecificTypes[] =
 {
     ACCESS_ENTRY(AlpcPort, TRUE),
@@ -416,7 +436,8 @@ PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(TmTx, FALSE),
     ACCESS_ENTRY(Token, FALSE),
     ACCESS_ENTRY(Type, FALSE),
-    ACCESS_ENTRY(WindowStation, FALSE)
+    ACCESS_ENTRY(WindowStation, FALSE),
+    ACCESS_ENTRY(WmiGuid, TRUE)
 };
 
 BOOLEAN PhGetAccessEntries(
