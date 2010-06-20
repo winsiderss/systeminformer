@@ -1,9 +1,6 @@
 #ifndef NTRTL_H
 #define NTRTL_H
 
-// This header file provides run-time library definitions.
-// Source: NT headers
-
 #include <ntldr.h>
 
 // Defines for forwarded ntdll functions
@@ -559,6 +556,8 @@ RtlIsGenericTableEmpty(
 
 // Hash tables
 
+// begin_ntddk
+
 #define RTL_HASH_ALLOCATED_HEADER 0x00000001
 #define RTL_HASH_RESERVED_SIGNATURE 0
 
@@ -843,6 +842,8 @@ RtlContractHashTable(
     );
 #endif
 
+// end_ntddk
+
 // Critical sections
 
 NTSYSAPI
@@ -921,6 +922,7 @@ RtlSetCriticalSectionSpinCount(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// winbase:InitializeSRWLock
 NTSYSAPI
 VOID
 NTAPI
@@ -928,6 +930,7 @@ RtlInitializeSRWLock(
     __out PRTL_SRWLOCK SRWLock
     );
 
+// winbase:AcquireSRWLockExclusive
 NTSYSAPI
 VOID
 NTAPI
@@ -935,6 +938,7 @@ RtlAcquireSRWLockExclusive(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:AcquireSRWLockShared
 NTSYSAPI
 VOID
 NTAPI
@@ -942,6 +946,7 @@ RtlAcquireSRWLockShared(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:ReleaseSRWLockExclusive
 NTSYSAPI
 VOID
 NTAPI
@@ -949,6 +954,7 @@ RtlReleaseSRWLockExclusive(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:ReleaseSRWLockShared
 NTSYSAPI
 VOID
 NTAPI
@@ -956,6 +962,7 @@ RtlReleaseSRWLockShared(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:TryAcquireSRWLockExclusive
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -963,6 +970,7 @@ RtlTryAcquireSRWLockExclusive(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:TryAcquireSRWLockShared
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -970,6 +978,7 @@ RtlTryAcquireSRWLockShared(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+// winbase:InitializeConditionVariable
 NTSYSAPI
 VOID
 NTAPI
@@ -977,6 +986,7 @@ RtlInitializeConditionVariable(
     __out PRTL_CONDITION_VARIABLE ConditionVariable
     );
 
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -986,6 +996,7 @@ RtlSleepConditionVariableCS(
     __in_opt PLARGE_INTEGER Timeout
     );
 
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -996,6 +1007,7 @@ RtlSleepConditionVariableSRW(
     __in ULONG Flags
     );
 
+// winbase:WakeConditionVariable
 NTSYSAPI
 VOID
 NTAPI
@@ -1003,6 +1015,7 @@ RtlWakeConditionVariable(
     __inout PRTL_CONDITION_VARIABLE ConditionVariable
     );
 
+// winbase:WakeAllConditionVariable
 NTSYSAPI
 VOID
 NTAPI
@@ -1199,6 +1212,7 @@ RtlCreateUserThread(
     );
 
 #ifdef _M_X64
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1209,6 +1223,7 @@ RtlWow64GetThreadContext(
 #endif
 
 #ifdef _M_X64
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1216,77 +1231,6 @@ RtlWow64SetThreadContext(
     __in HANDLE ThreadHandle,
     __in PWOW64_CONTEXT ThreadContext
     );
-#endif
-
-// Thread context
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-
-NTSYSAPI
-ULONG   
-NTAPI
-RtlCopyExtendedContext(
-    __out PCONTEXT_EX Destination,
-    __in ULONG ContextFlags,
-    __in PCONTEXT_EX Source
-    );
-
-NTSYSAPI
-ULONG   
-NTAPI
-RtlInitializeExtendedContext(
-    __out PVOID Context,
-    __in ULONG ContextFlags,
-    __out PCONTEXT_EX* ContextEx
-    );
-
-NTSYSAPI
-ULONG64
-NTAPI
-RtlGetEnabledExtendedFeatures(
-    __in ULONG64 FeatureMask
-    );
-
-NTSYSAPI
-ULONG
-NTAPI
-RtlGetExtendedContextLength(
-    __in ULONG ContextFlags,
-    __out PULONG ContextLength
-    );
-
-NTSYSAPI
-ULONG64
-NTAPI
-RtlGetExtendedFeaturesMask(
-    __in PCONTEXT_EX ContextEx
-    );
-
-NTSYSAPI
-PVOID
-NTAPI
-RtlLocateExtendedFeature(
-    __in PCONTEXT_EX ContextEx,
-    __in ULONG FeatureId,
-    __out_opt PULONG Length
-    );
-
-NTSYSAPI
-PCONTEXT
-NTAPI
-RtlLocateLegacyContext(
-    __in PCONTEXT_EX ContextEx,
-    __out_opt PULONG Length
-    );
-
-NTSYSAPI
-VOID
-NTAPI
-RtlSetExtendedFeaturesMask(
-    __out PCONTEXT_EX ContextEx,
-    __in ULONG64 FeatureMask
-    );
-
 #endif
 
 // Heaps
@@ -1492,7 +1436,7 @@ RtlValidateHeap(
 // Transactions
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-/* * */
+// rev
 NTSYSAPI
 HANDLE
 NTAPI
@@ -1500,7 +1444,7 @@ RtlGetCurrentTransaction();
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-/* * */
+// rev
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -2222,6 +2166,44 @@ RtlGUIDFromString(
     __out PGUID Guid
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// ntifs
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNormalizeString(
+    __in ULONG NormForm,
+    __in PCWSTR SourceString,
+    __in LONG SourceStringLength,
+    __out_ecount_part(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
+    __inout PLONG DestinationStringLength
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// ntifs
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIsNormalizedString(
+    __in ULONG NormForm,
+    __in PCWSTR SourceString,
+    __in LONG SourceStringLength,
+    __out PBOOLEAN Normalized
+    );
+#endif
+
+// ntifs:FsRtlIsNameInExpression
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsNameInExpression(
+    __in PUNICODE_STRING Expression,
+    __in PUNICODE_STRING Name,
+    __in BOOLEAN IgnoreCase,
+    __in_opt PWCH UpcaseTable
+    );
+
 // Random
 
 NTSYSAPI
@@ -2939,6 +2921,42 @@ RtlCreateServiceSid(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev unsure
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSidDominates(
+    __in PSID Sid1,
+    __in PSID Sid2,
+    __out PBOOLEAN Result
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev unsure
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSidEqualLevel(
+    __in PSID Sid1,
+    __in PSID Sid2,
+    __out PBOOLEAN Result
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev unsure
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSidIsHigherLevel(
+    __in PSID Sid1,
+    __in PSID Sid2,
+    __out PBOOLEAN Result
+    );
+#endif
+
 #if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSAPI
 NTSTATUS
@@ -3264,6 +3282,14 @@ RtlGetAce(
     );
 
 NTSYSAPI
+BOOLEAN
+NTAPI
+RtlFirstFreeAce(
+    __in PACL Acl,
+    __out PVOID *FirstFree
+    );
+
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddAccessAllowedAce(
@@ -3372,14 +3398,6 @@ RtlAddAuditAccessObjectAce(
     );
 
 NTSYSAPI
-BOOLEAN
-NTAPI
-RtlFirstFreeAce(
-    __in PACL Acl,
-    __out PVOID *FirstFree
-    );
-
-NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAddCompoundAce(
@@ -3390,6 +3408,21 @@ RtlAddCompoundAce(
     __in PSID ServerSid,
     __in PSID ClientSid
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddMandatoryAce(
+    __inout PACL Acl,
+    __in ULONG AceRevision,
+    __in ULONG AceFlags,
+    __in ULONG MandatoryPolicy,
+    __in UCHAR AceType,
+    __in PSID LabelSid
+    );
+#endif
 
 // Security objects
 
@@ -3446,6 +3479,8 @@ RtlSetSecurityObject(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// begin_rev
+
 NTSYSAPI
 PVOID
 NTAPI
@@ -3468,6 +3503,18 @@ RtlAddSIDToBoundaryDescriptor(
     __inout PVOID *BoundaryDescriptor,
     __in PSID RequiredSid
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAddIntegrityLabelToBoundaryDescriptor(
+    __inout PVOID *BoundaryDescriptor,
+    __in PSID IntegrityLabel
+    );
+#endif
+
+// end_rev
 
 #endif
 

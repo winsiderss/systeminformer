@@ -1,9 +1,6 @@
 #ifndef NTPNPAPI_H
 #define NTPNPAPI_H
 
-// This header file provides plug and play definitions.
-// Source: NT headers
-
 typedef enum _PLUGPLAY_EVENT_CATEGORY
 {
     HardwareProfileChangeEvent,

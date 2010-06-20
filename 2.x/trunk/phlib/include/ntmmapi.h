@@ -1,9 +1,6 @@
 #ifndef NTMMAPI_H
 #define NTMMAPI_H
 
-// This header file provides memory manager definitions.
-// Source: NT headers
-
 typedef enum _MEMORY_INFORMATION_CLASS
 {
     MemoryBasicInformation,

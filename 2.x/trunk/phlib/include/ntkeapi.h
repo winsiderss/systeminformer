@@ -1,9 +1,6 @@
 #ifndef NTKEAPI_H
 #define NTKEAPI_H
 
-// This header file provides kernel definitions.
-// Source: NT headers
-
 typedef enum _KTHREAD_STATE
 {
     Initialized,
@@ -119,5 +116,13 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtYieldExecution();
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// winnt:FlushProcessWriteBuffers
+NTSYSCALLAPI
+VOID
+NTAPI
+NtFlushProcessWriteBuffers();
+#endif
 
 #endif
