@@ -1,5 +1,5 @@
-#ifndef CIRCBUF_H
-#define CIRCBUF_H
+#ifndef _PH_CIRCBUF_H
+#define _PH_CIRCBUF_H
 
 #define PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
 

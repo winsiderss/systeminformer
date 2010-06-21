@@ -1,5 +1,5 @@
-#ifndef TREELIST_H
-#define TREELIST_H
+#ifndef _PH_TREELIST_H
+#define _PH_TREELIST_H
 
 #define PH_TREELIST_CLASSNAME L"PhTreeList"
 //#define PH_TREELIST_ENABLE_EXPLORER_STYLE

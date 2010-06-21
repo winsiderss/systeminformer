@@ -1,5 +1,5 @@
-#ifndef FASTLOCK_H
-#define FASTLOCK_H
+#ifndef _PH_FASTLOCK_H
+#define _PH_FASTLOCK_H
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 

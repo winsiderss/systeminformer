@@ -1,5 +1,5 @@
-#ifndef PHNT_H
-#define PHNT_H
+#ifndef _PH_PHNT_H
+#define _PH_PHNT_H
 
 // This header file provides access to NT APIs.
 
@@ -34,6 +34,7 @@
 
 #include <ntlsa.h>
 #include <ntmisc.h>
+#include <winsta.h>
 
 #include <rev.h>
 

@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REFP_H
-#define REFP_H
+#ifndef _PH_REFP_H
+#define _PH_REFP_H
 
 /**
  * Gets a pointer to the object header for an object.

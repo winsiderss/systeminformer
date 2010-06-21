@@ -1,5 +1,5 @@
-#ifndef KPH_H
-#define KPH_H
+#ifndef _PH_KPH_H
+#define _PH_KPH_H
 
 #define KPH_SHORT_DEVICE_NAME (L"KProcessHacker2")
 
