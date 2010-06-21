@@ -1,5 +1,5 @@
-#ifndef HANDLEP_H
-#define HANDLEP_H
+#ifndef _PH_HANDLEP_H
+#define _PH_HANDLEP_H
 
 #define PH_HANDLE_TABLE_ENTRY_TYPE 0x1
 #define PH_HANDLE_TABLE_ENTRY_IN_USE 0x0

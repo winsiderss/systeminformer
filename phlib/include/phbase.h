@@ -1,5 +1,5 @@
-#ifndef PHBASE_H
-#define PHBASE_H
+#ifndef _PH_PHBASE_H
+#define _PH_PHBASE_H
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "version.lib")

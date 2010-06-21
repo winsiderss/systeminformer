@@ -1,5 +1,5 @@
-#ifndef GRAPH_H
-#define GRAPH_H
+#ifndef _PH_GRAPH_H
+#define _PH_GRAPH_H
 
 #define PH_GRAPH_USE_GRID 0x1
 #define PH_GRAPH_USE_LINE_2 0x10

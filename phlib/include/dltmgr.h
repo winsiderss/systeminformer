@@ -1,5 +1,5 @@
-#ifndef DLTMGR_H
-#define DLTMGR_H
+#ifndef _PH_DLTMGR_H
+#define _PH_DLTMGR_H
 
 typedef struct _PH_SINGLE_DELTA
 {

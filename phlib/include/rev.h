@@ -21,8 +21,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REV_H
-#define REV_H
+#ifndef _PH_REV_H
+#define _PH_REV_H
 
 // This file consists entirely of reverse-engineered code.
 

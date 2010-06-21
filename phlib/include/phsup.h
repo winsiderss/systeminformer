@@ -1,5 +1,5 @@
-#ifndef BASE_H
-#define BASE_H
+#ifndef _PH_PHSUP_H
+#define _PH_PHSUP_H
 
 // This header file provides some useful definitions specific to phlib.
 

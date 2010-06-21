@@ -1,5 +1,5 @@
-#ifndef VERIFY_H
-#define VERIFY_H
+#ifndef _PH_VERIFYP_H
+#define _PH_VERIFYP_H
 
 #include <wintrust.h>
 #include <softpub.h>

@@ -1,5 +1,5 @@
-#ifndef PH_H
-#define PH_H
+#ifndef _PH_PH_H
+#define _PH_PH_H
 
 #include <phbase.h>
 #include <stdarg.h>
