@@ -34,7 +34,6 @@
 
 #include <ntlsa.h>
 #include <ntmisc.h>
-#include <winsta.h>
 
 #include <rev.h>
 
