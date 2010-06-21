@@ -1,5 +1,5 @@
-#ifndef PHNET_H
-#define PHNET_H
+#ifndef _PH_PHNET_H
+#define _PH_PHNET_H
 
 #include <inaddr.h>
 #include <in6addr.h>

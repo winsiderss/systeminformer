@@ -20,8 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef REF_H
-#define REF_H
+#ifndef _PH_REF_H
+#define _PH_REF_H
 
 // Configuration
 

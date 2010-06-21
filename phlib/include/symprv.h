@@ -1,5 +1,5 @@
-#ifndef SYMPRVP_H
-#define SYMPRVP_H
+#ifndef _PH_SYMPRV_H
+#define _PH_SYMPRV_H
 
 #include <dbghelp.h>
 

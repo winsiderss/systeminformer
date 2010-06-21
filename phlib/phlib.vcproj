@@ -622,6 +622,10 @@
 				RelativePath=".\include\verifyp.h"
 				>
 			</File>
+			<File
+				RelativePath=".\include\winsta.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

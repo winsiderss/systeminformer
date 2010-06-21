@@ -138,10 +138,10 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                     switch (clientAddress->AddressFamily)
                     {
                     case AF_INET:
-                        RtlIpv4AddressToString((struct in_addr *)&clientAddress->Address, clientAddressString);
+                        RtlIpv4AddressToString((struct in_addr *)&clientAddress->Address[2], clientAddressString);
                         break;
                     case AF_INET6:
-                        RtlIpv6AddressToString((struct in6_addr *)&clientAddress->Address, clientAddressString);
+                        RtlIpv6AddressToString((struct in6_addr *)&clientAddress->Address[2], clientAddressString);
                         break;
                     }
 

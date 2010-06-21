@@ -1,5 +1,5 @@
-#ifndef PHGUI_H
-#define PHGUI_H
+#ifndef _PH_PHGUI_H
+#define _PH_PHGUI_H
 
 #include <ph.h>
 #include <commctrl.h>

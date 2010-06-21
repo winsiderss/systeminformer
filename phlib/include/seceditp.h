@@ -1,5 +1,5 @@
-#ifndef SECEDITP_H
-#define SECEDITP_H
+#ifndef _PH_SECEDITP_H
+#define _PH_SECEDITP_H
 
 #include <aclui.h>
 
