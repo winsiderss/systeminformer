@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <kph.h>
+#include <winsta.h>
 #include <iphlpapi.h>
 #include <wtsapi32.h>
 
