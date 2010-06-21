@@ -1835,7 +1835,7 @@ NTSTATUS PhInjectDllProcess(
     }
     else
     {
-        if (!CreateRemoteThread(
+        if (!(threadHandle = CreateRemoteThread(
             ProcessHandle,
             NULL,
             0,
@@ -1843,7 +1843,7 @@ NTSTATUS PhInjectDllProcess(
             baseAddress,
             0,
             NULL
-            ))
+            )))
         {
             status = NTSTATUS_FROM_WIN32(GetLastError());
             goto FreeExit;
