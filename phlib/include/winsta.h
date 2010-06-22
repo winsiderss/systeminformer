@@ -451,6 +451,18 @@ typedef struct _TS_COUNTER
 
 #define LOGONID_CURRENT (-1)
 
+HANDLE
+NTAPI
+WinStationOpenServerW(
+    __in PWSTR ServerName
+    );
+
+BOOLEAN
+NTAPI
+WinStationCloseServer(
+    __in HANDLE ServerHandle
+    );
+
 BOOLEAN
 NTAPI
 WinStationServerPing(
