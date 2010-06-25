@@ -25,7 +25,12 @@
 
 typedef struct _PHP_GRAPH_CONTEXT
 {
+    HWND Handle;
     PH_GRAPH_DRAW_INFO DrawInfo;
+    HDC BufferedContext;
+    HBITMAP BufferedOldBitmap;
+    HBITMAP BufferedBitmap;
+    RECT BufferedContextRect;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -91,6 +96,7 @@ VOID PhDrawGraph(
 
     // Draw the data.
 
+    if (DrawInfo->LineData1)
     {
         ULONG x = width - DrawInfo->Step;
         ULONG index = 0;
@@ -133,7 +139,7 @@ VOID PhDrawGraph(
             Polyline(hdc, points, 2);
 
             // Draw line 2 (either stacked or overlayed).
-            if (flags & PH_GRAPH_USE_LINE_2)
+            if (DrawInfo->LineData2 && (flags & PH_GRAPH_USE_LINE_2))
             {
                 if (flags & PH_GRAPH_OVERLAY_LINE_2)
                 {
@@ -258,6 +264,7 @@ VOID PhpCreateGraphContext(
 
     context = PhAllocate(sizeof(PHP_GRAPH_CONTEXT));
 
+    memset(&context->DrawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
     context->DrawInfo.Width = 3;
     context->DrawInfo.Height = 3;
     context->DrawInfo.Flags = PH_GRAPH_USE_GRID;
@@ -275,6 +282,8 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.GridHeight = 12;
     context->DrawInfo.GridStart = 0;
 
+    context->BufferedContext = NULL;
+
     *Context = context;
 }
 
@@ -283,6 +292,33 @@ VOID PhpDeleteGraphContext(
     )
 {
     PhFree(Context);
+}
+
+static VOID PhpCreateBufferedContext(
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    HDC hdc;
+
+    if (Context->BufferedContext)
+    {
+        // The original bitmap must be selected back into the context, otherwise 
+        // the bitmap can't be deleted.
+        SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
+        DeleteObject(Context->BufferedBitmap);
+        DeleteDC(Context->BufferedContext);
+    }
+
+    GetClientRect(Context->Handle, &Context->BufferedContextRect);
+
+    hdc = GetDC(Context->Handle);
+    Context->BufferedContext = CreateCompatibleDC(hdc);
+    Context->BufferedBitmap = CreateCompatibleBitmap(
+        hdc,
+        Context->BufferedContextRect.right,
+        Context->BufferedContextRect.bottom
+        );
+    Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
 }
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -309,7 +345,7 @@ LRESULT CALLBACK PhpGraphWndProc(
     {
     case WM_CREATE:
         {
-
+            context->Handle = hwnd;
         }
         break;
     case WM_DESTROY:
@@ -318,20 +354,71 @@ LRESULT CALLBACK PhpGraphWndProc(
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
         break;
+    case WM_SIZE:
+        {
+            // Force a re-create of the buffered context.
+            PhpCreateBufferedContext(context);
+            SendMessage(hwnd, GCM_DRAW, 0, 0);
+        }
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
+            RECT clientRect;
             HDC hdc;
 
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                PhDrawGraph(hdc, &context->DrawInfo);
+                GetClientRect(hwnd, &clientRect);
+
+                if (context->BufferedContext)
+                {
+                    BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, context->BufferedContext, 0, 0, SRCCOPY);
+                }
+
                 EndPaint(hwnd, &paintStruct);
             }
         }
         break;
     case WM_ERASEBKGND:
         return 1;
+    case GCM_GETDRAWINFO:
+        {
+            PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)lParam;
+
+            memcpy(drawInfo, &context->DrawInfo, sizeof(PH_GRAPH_DRAW_INFO));
+        }
+        return TRUE;
+    case GCM_SETDRAWINFO:
+        {
+            PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)lParam;
+            ULONG width;
+            ULONG height;
+
+            width = context->DrawInfo.Width;
+            height = context->DrawInfo.Height;
+            memcpy(&context->DrawInfo, drawInfo, sizeof(PH_GRAPH_DRAW_INFO));
+            context->DrawInfo.Width = width;
+            context->DrawInfo.Height = height;
+        }
+        return TRUE;
+    case GCM_DRAW:
+        {
+            if (!context->BufferedContext)
+                PhpCreateBufferedContext(context);
+
+            context->DrawInfo.Width = context->BufferedContextRect.right;
+            context->DrawInfo.Height = context->BufferedContextRect.bottom;
+            PhDrawGraph(context->BufferedContext, &context->DrawInfo);
+        }
+        return TRUE;
+    case GCM_MOVEGRID:
+        {
+            LONG increment = (LONG)wParam;
+
+            context->DrawInfo.GridStart += increment;
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

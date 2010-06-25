@@ -24,6 +24,7 @@
 #include <procprpp.h>
 #include <kph.h>
 #include <settings.h>
+#include <graph.h>
 #include <windowsx.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
@@ -1211,6 +1212,13 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 &performanceContext->ProcessesUpdatedRegistration
                 );
             performanceContext->WindowHandle = hwndDlg;
+
+            performanceContext->CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
+            ShowWindow(performanceContext->CpuGraphHandle, SW_SHOW);
+            MoveWindow(performanceContext->CpuGraphHandle, 20, 20, 500, 250, FALSE);
+
+            //performanceContext->PrivateBytesGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
+            //performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
         }
         break;
     case WM_DESTROY:
@@ -1241,7 +1249,31 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
         break;
     case WM_PH_PERFORMANCE_UPDATE:
         {
+            RECT clientRect;
+            PH_GRAPH_DRAW_INFO drawInfo;
+            PFLOAT cpuKernelHistory;
+            PFLOAT cpuUserHistory;
 
+            // CPU
+
+            GetClientRect(performanceContext->CpuGraphHandle, &clientRect);
+            Graph_GetDrawInfo(performanceContext->CpuGraphHandle, &drawInfo);
+            drawInfo.Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+            drawInfo.LineDataCount = min(processItem->CpuKernelHistory.Count, PH_GRAPH_DATA_COUNT(drawInfo.Width, drawInfo.Step));
+
+            cpuKernelHistory = PhAllocate(drawInfo.LineDataCount * sizeof(FLOAT));
+            cpuUserHistory = PhAllocate(drawInfo.LineDataCount * sizeof(FLOAT));
+            drawInfo.LineData1 = cpuKernelHistory;
+            drawInfo.LineData2 = cpuUserHistory;
+            PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory, cpuKernelHistory, drawInfo.LineDataCount);
+            PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory, cpuUserHistory, drawInfo.LineDataCount);
+
+            Graph_SetDrawInfo(performanceContext->CpuGraphHandle, &drawInfo);
+            Graph_Draw(performanceContext->CpuGraphHandle);
+            InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
+
+            PhFree(cpuKernelHistory);
+            PhFree(cpuUserHistory);
         }
         break;
     }

@@ -200,6 +200,10 @@ typedef struct _PH_PERFORMANCE_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
     HWND WindowHandle;
+
+    HWND CpuGraphHandle;
+    HWND PrivateBytesGraphHandle;
+    HWND IoGraphHandle;
 } PH_PERFORMANCE_CONTEXT, *PPH_PERFORMANCE_CONTEXT;
 
 #endif

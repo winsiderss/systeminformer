@@ -82,6 +82,9 @@ FORCEINLINE VOID T___(PhCircularBufferAdd, T)(
     size = Buffer->Size;
     Buffer->Data[Buffer->Index = (((Buffer->Index - 1) % size) + size) % size] = Value;
 #endif
+
+    if (Buffer->Count < Buffer->Size)
+        Buffer->Count++;
 }
 
 #endif
