@@ -25,6 +25,7 @@
 #include <kph.h>
 #include <settings.h>
 #include <treelist.h>
+#include <graph.h>
 
 VOID PhpProcessStartupParameters();
 
@@ -193,6 +194,7 @@ INT WINAPI WinMain(
 
     PhGuiSupportInitialization();
     PhTreeListInitialization();
+    PhGraphControlInitialization();
     PhSecurityEditorInitialization();
 
     DialogList = PhCreateList(1);
