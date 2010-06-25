@@ -51,4 +51,20 @@ HWND PhCreateGraphControl(
     __in INT_PTR Id
     );
 
+#define GCM_GETDRAWINFO (WM_APP + 1301)
+#define GCM_SETDRAWINFO (WM_APP + 1302)
+#define GCM_DRAW (WM_APP + 1303)
+#define GCM_MOVEGRID (WM_APP + 1304)
+
+#define Graph_GetDrawInfo(hWnd, DrawInfo) \
+    SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
+#define Graph_SetDrawInfo(hWnd, DrawInfo) \
+    SendMessage((hWnd), GCM_SETDRAWINFO, 0, (LPARAM)(DrawInfo))
+#define Graph_Draw(hWnd) \
+    SendMessage((hWnd), GCM_DRAW, 0, 0)
+#define Graph_MoveGrid(hWnd, Increment) \
+    SendMessage((hWnd), GCM_MOVEGRID, (WPARAM)(Increment), 0)
+
+#define PH_GRAPH_DATA_COUNT(Width, Step) ((Width) / (Step))
+
 #endif
