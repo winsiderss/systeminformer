@@ -1497,7 +1497,7 @@ FORCEINLINE RECT PhRectangleToRect(
     rect.left = Rectangle.Left;
     rect.top = Rectangle.Top;
     rect.right = Rectangle.Left + Rectangle.Width;
-    rect.top = Rectangle.Top + Rectangle.Height;
+    rect.bottom = Rectangle.Top + Rectangle.Height;
 
     return rect;
 }
