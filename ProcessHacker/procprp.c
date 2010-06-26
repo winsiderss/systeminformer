@@ -1401,7 +1401,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 // Scale the data.
                                 PhxfDivideSingle2U(
                                     performanceContext->PrivateBytesData,
-                                    processItem->VmCounters.PeakPagefileUsage,
+                                    (FLOAT)processItem->VmCounters.PeakPagefileUsage,
                                     drawInfo->LineDataCount
                                     );
                             }
@@ -1458,7 +1458,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         if (!performanceContext->IoDataValid)
                         {
                             ULONG i;
-                            ULONG64 max = 0;
+                            FLOAT max = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
@@ -1480,12 +1480,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                                 PhxfDivideSingle2U(
                                     performanceContext->IoReadOtherData,
-                                    (FLOAT)max,
+                                    max,
                                     drawInfo->LineDataCount
                                     );
                                 PhxfDivideSingle2U(
                                     performanceContext->IoWriteData,
-                                    (FLOAT)max,
+                                    max,
                                     drawInfo->LineDataCount
                                     );
                             }
