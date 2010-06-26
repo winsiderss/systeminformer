@@ -94,21 +94,21 @@ VOID FASTCALL PhxfAddInt32U(
             if (Count >= 1)
             {
                 *A++ += *B++;
-                Count++;
+                Count--;
             }
             __fallthrough;
         case 0x8:
             if (Count >= 1)
             {
                 *A++ += *B++;
-                Count++;
+                Count--;
             }
             __fallthrough;
         case 0xc:
             if (Count >= 1)
             {
                 *A++ += *B++;
-                Count++;
+                Count--;
             }
             break;
         }
@@ -139,6 +139,167 @@ VOID FASTCALL PhxfAddInt32U(
         __fallthrough;
     case 0x1:
         *A++ += *B++;
+        break;
+    }
+}
+
+VOID FASTCALL PhxpfDivideSingleFallback(
+    __in PFLOAT A,
+    __in PFLOAT B,
+    __in ULONG Count
+    )
+{
+    while (Count--)
+        *A++ /= *B++;
+}
+
+VOID FASTCALL PhxfDivideSingleU(
+    __in PFLOAT A,
+    __in PFLOAT B,
+    __in ULONG Count
+    )
+{
+    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
+    {
+        PhxpfDivideSingleFallback(A, B, Count);
+        return;
+    }
+
+    if ((ULONG_PTR)A & 0xf)
+    {
+        // Fix mis-alignment for A.
+        switch ((ULONG_PTR)A & 0xf)
+        {
+        case 0x4:
+            if (Count >= 1)
+            {
+                *A++ /= *B++;
+                Count--;
+            }
+            __fallthrough;
+        case 0x8:
+            if (Count >= 1)
+            {
+                *A++ /= *B++;
+                Count--;
+            }
+            __fallthrough;
+        case 0xc:
+            if (Count >= 1)
+            {
+                *A++ /= *B++;
+                Count--;
+            }
+            break;
+        }
+    }
+
+    while (Count >= 4)
+    {
+        __m128 a;
+        __m128 b;
+
+        a = _mm_load_ps(A);
+        b = _mm_loadu_ps(B);
+        a = _mm_div_ps(a, b);
+        _mm_store_ps(A, a);
+
+        A += 4;
+        B += 4;
+        Count -= 4;
+    }
+
+    switch (Count & 0x3)
+    {
+    case 0x3:
+        *A++ /= *B++;
+        __fallthrough;
+    case 0x2:
+        *A++ /= *B++;
+        __fallthrough;
+    case 0x1:
+        *A++ /= *B++;
+        break;
+    }
+}
+
+VOID FASTCALL PhxpfDivideSingle2Fallback(
+    __in PFLOAT A,
+    __in FLOAT B,
+    __in ULONG Count
+    )
+{
+    while (Count--)
+        *A++ /= B;
+}
+
+VOID FASTCALL PhxfDivideSingle2U(
+    __in PFLOAT A,
+    __in FLOAT B,
+    __in ULONG Count
+    )
+{
+    __m128 b;
+
+    if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
+    {
+        PhxpfDivideSingle2Fallback(A, B, Count);
+        return;
+    }
+
+    if ((ULONG_PTR)A & 0xf)
+    {
+        // Fix mis-alignment for A.
+        switch ((ULONG_PTR)A & 0xf)
+        {
+        case 0x4:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            __fallthrough;
+        case 0x8:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            __fallthrough;
+        case 0xc:
+            if (Count >= 1)
+            {
+                *A++ /= B;
+                Count--;
+            }
+            break;
+        }
+    }
+
+    b = _mm_load1_ps(&B);
+
+    while (Count >= 4)
+    {
+        __m128 a;
+
+        a = _mm_load_ps(A);
+        a = _mm_div_ps(a, b);
+        _mm_store_ps(A, a);
+
+        A += 4;
+        Count -= 4;
+    }
+
+    switch (Count & 0x3)
+    {
+    case 0x3:
+        *A++ /= B;
+        __fallthrough;
+    case 0x2:
+        *A++ /= B;
+        __fallthrough;
+    case 0x1:
+        *A++ /= B;
         break;
     }
 }

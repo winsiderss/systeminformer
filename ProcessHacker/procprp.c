@@ -1217,20 +1217,44 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->CpuUserData = NULL;
             performanceContext->CpuDataCount = 0;
             performanceContext->CpuDataValid = FALSE;
+            performanceContext->CpuText = NULL;
+
+            performanceContext->PrivateBytesData = NULL;
+            performanceContext->PrivateBytesDataCount = 0;
+            performanceContext->PrivateBytesDataValid = FALSE;
+            performanceContext->PrivateBytesText = NULL;
+
+            performanceContext->IoReadOtherData = NULL;
+            performanceContext->IoWriteData = NULL;
+            performanceContext->IoDataCount = 0;
+            performanceContext->IoDataValid = FALSE;
+            performanceContext->IoText = NULL;
 
             performanceContext->CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
             ShowWindow(performanceContext->CpuGraphHandle, SW_SHOW);
-            MoveWindow(performanceContext->CpuGraphHandle, 20, 20, 500, 250, FALSE);
             BringWindowToTop(performanceContext->CpuGraphHandle);
 
-            //performanceContext->PrivateBytesGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
-            //performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            performanceContext->PrivateBytesGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
+            ShowWindow(performanceContext->PrivateBytesGraphHandle, SW_SHOW);
+            BringWindowToTop(performanceContext->PrivateBytesGraphHandle);
+
+            performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            ShowWindow(performanceContext->IoGraphHandle, SW_SHOW);
+            BringWindowToTop(performanceContext->IoGraphHandle);
         }
         break;
     case WM_DESTROY:
         {
             if (performanceContext->CpuKernelData) PhFree(performanceContext->CpuKernelData);
             if (performanceContext->CpuUserData) PhFree(performanceContext->CpuUserData);
+            if (performanceContext->CpuText) PhDereferenceObject(performanceContext->CpuText);
+
+            if (performanceContext->PrivateBytesData) PhFree(performanceContext->PrivateBytesData);
+            if (performanceContext->PrivateBytesText) PhDereferenceObject(performanceContext->PrivateBytesText);
+
+            if (performanceContext->IoReadOtherData) PhFree(performanceContext->IoReadOtherData);
+            if (performanceContext->IoWriteData) PhFree(performanceContext->IoWriteData);
+            if (performanceContext->IoText) PhDereferenceObject(performanceContext->IoText);
 
             PhUnregisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -1270,19 +1294,29 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
                         HDC hdc;
-                        PH_STRINGREF stringRef;
                         RECT margin = { 5, 5, 5, 5 };
                         RECT padding = { 3, 3, 3, 3 };
+
+                        if (performanceContext->CpuText) PhDereferenceObject(performanceContext->CpuText);
+
+                        performanceContext->CpuText = PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
+                            processItem->CpuUsage * 100,
+                            processItem->CpuKernelUsage * 100,
+                            processItem->CpuUserUsage * 100
+                            );
+
+                        hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
+                        SelectObject(hdc, PhApplicationFont);
+                        PhSetGraphText(hdc, drawInfo, &performanceContext->CpuText->sr,
+                            &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineDataCount = min(processItem->CpuKernelHistory.Count,
                             PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
-
-                        hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
-                        PhInitializeStringRef(&stringRef, L"hello");
-                        SelectObject(hdc, PhApplicationFont);
-                        PhSetGraphText(hdc, drawInfo,
-                            &stringRef, &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
+                        drawInfo->LineColor2 = RGB(0xff, 0x00, 0x00);
+                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x00);
+                        drawInfo->LineBackColor2 = RGB(0x77, 0x00, 0x00);
 
                         // Do we need to allocate or re-allocate the data buffers?
                         if (performanceContext->CpuDataCount < drawInfo->LineDataCount)
@@ -1311,8 +1345,153 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 performanceContext->CpuUserData, drawInfo->LineDataCount);
                             performanceContext->CpuDataValid = TRUE;
                         }
+                    }
+                    else if (header->hwndFrom == performanceContext->PrivateBytesGraphHandle)
+                    {
+                        HDC hdc;
+                        RECT margin = { 5, 5, 5, 5 };
+                        RECT padding = { 3, 3, 3, 3 };
 
-                        return TRUE;
+                        if (performanceContext->PrivateBytesText) PhDereferenceObject(performanceContext->PrivateBytesText);
+
+                        performanceContext->PrivateBytesText = PhConcatStrings2(
+                            L"WS: ",
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->VmCounters.PagefileUsage, -1)))->Buffer
+                            );
+
+                        hdc = Graph_GetBufferedContext(performanceContext->PrivateBytesGraphHandle);
+                        SelectObject(hdc, PhApplicationFont);
+                        PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateBytesText->sr,
+                            &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        drawInfo->LineDataCount = min(processItem->PrivateBytesHistory.Count,
+                            PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
+                        drawInfo->LineColor1 = RGB(0xff, 0x77, 0x00);
+                        drawInfo->LineBackColor1 = RGB(0x77, 0x33, 0x00);
+
+                        // Do we need to allocate or re-allocate the data buffers?
+                        if (performanceContext->PrivateBytesDataCount < drawInfo->LineDataCount)
+                        {
+                            if (performanceContext->PrivateBytesData) PhFree(performanceContext->PrivateBytesData);
+
+                            performanceContext->PrivateBytesDataCount *= 2;
+
+                            if (performanceContext->PrivateBytesDataCount < drawInfo->LineDataCount)
+                                performanceContext->PrivateBytesDataCount = drawInfo->LineDataCount;
+
+                            performanceContext->PrivateBytesData = PhAllocate(performanceContext->PrivateBytesDataCount * sizeof(FLOAT));
+
+                            drawInfo->LineData1 = performanceContext->PrivateBytesData;
+                            performanceContext->PrivateBytesDataValid = FALSE;
+                        }
+
+                        if (!performanceContext->PrivateBytesDataValid)
+                        {
+                            ULONG i;
+
+                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                performanceContext->PrivateBytesData[i] =
+                                    (FLOAT)PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, i);
+                            }
+
+                            if (processItem->VmCounters.PeakPagefileUsage != 0)
+                            {
+                                // Scale the data.
+                                PhxfDivideSingle2U(
+                                    performanceContext->PrivateBytesData,
+                                    processItem->VmCounters.PeakPagefileUsage,
+                                    drawInfo->LineDataCount
+                                    );
+                            }
+
+                            performanceContext->PrivateBytesDataValid = TRUE;
+                        }
+                    }
+                    else if (header->hwndFrom == performanceContext->IoGraphHandle)
+                    {
+                        HDC hdc;
+                        RECT margin = { 5, 5, 5, 5 };
+                        RECT padding = { 3, 3, 3, 3 };
+
+                        if (performanceContext->IoText) PhDereferenceObject(performanceContext->IoText);
+
+                        performanceContext->IoText = PhFormatString(
+                            L"R+O: %s, W: %s",
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)))->Buffer,
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->IoWriteDelta.Delta, -1)))->Buffer
+                            );
+
+                        hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
+                        SelectObject(hdc, PhApplicationFont);
+                        PhSetGraphText(hdc, drawInfo, &performanceContext->IoText->sr,
+                            &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2 | PH_GRAPH_OVERLAY_LINE_2;
+                        drawInfo->LineDataCount = min(processItem->IoReadHistory.Count,
+                            PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
+                        drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
+                        drawInfo->LineColor2 = RGB(0x77, 0x00, 0xff);
+                        drawInfo->LineBackColor1 = RGB(0x77, 0x77, 0x00);
+                        drawInfo->LineBackColor2 = RGB(0x33, 0x00, 0x77);
+
+                        // Do we need to allocate or re-allocate the data buffers?
+                        if (performanceContext->IoDataCount < drawInfo->LineDataCount)
+                        {
+                            if (performanceContext->IoReadOtherData) PhFree(performanceContext->IoReadOtherData);
+                            if (performanceContext->IoWriteData) PhFree(performanceContext->IoWriteData);
+
+                            performanceContext->IoDataCount *= 2;
+
+                            if (performanceContext->IoDataCount < drawInfo->LineDataCount)
+                                performanceContext->IoDataCount = drawInfo->LineDataCount;
+
+                            performanceContext->IoReadOtherData = PhAllocate(performanceContext->IoDataCount * sizeof(FLOAT));
+                            performanceContext->IoWriteData = PhAllocate(performanceContext->IoDataCount * sizeof(FLOAT));
+
+                            drawInfo->LineData1 = performanceContext->IoReadOtherData;
+                            drawInfo->LineData2 = performanceContext->IoWriteData;
+                            performanceContext->IoDataValid = FALSE;
+                        }
+
+                        if (!performanceContext->IoDataValid)
+                        {
+                            ULONG i;
+                            ULONG64 max = 0;
+
+                            for (i = 0; i < drawInfo->LineDataCount; i++)
+                            {
+                                performanceContext->IoReadOtherData[i] =
+                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, i) +
+                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, i);
+                                performanceContext->IoWriteData[i] =
+                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, i);
+
+                                if (max < performanceContext->IoReadOtherData[i])
+                                    max = performanceContext->IoReadOtherData[i];
+                                if (max < performanceContext->IoWriteData[i])
+                                    max = performanceContext->IoWriteData[i];
+                            }
+
+                            if (max != 0)
+                            {
+                                // Scale the data.
+
+                                PhxfDivideSingle2U(
+                                    performanceContext->IoReadOtherData,
+                                    (FLOAT)max,
+                                    drawInfo->LineDataCount
+                                    );
+                                PhxfDivideSingle2U(
+                                    performanceContext->IoWriteData,
+                                    (FLOAT)max,
+                                    drawInfo->LineDataCount
+                                    );
+                            }
+
+                            performanceContext->IoDataValid = TRUE;
+                        }
                     }
                 }
                 break;
@@ -1331,6 +1510,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             LONG between = 3;
             LONG width;
             LONG height;
+
+            // Scaling needs to be re-done.
+            performanceContext->IoDataValid = FALSE;
 
             GetClientRect(hwndDlg, &clientRect);
             width = clientRect.right - margin.left - margin.right;
@@ -1353,8 +1535,29 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             deferHandle = DeferWindowPos(deferHandle, privateBytesGroupBox, NULL, margin.left, margin.top + height + between,
                 width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                performanceContext->PrivateBytesGraphHandle,
+                NULL,
+                margin.left + innerMargin.left,
+                margin.top + height + between + innerMargin.top,
+                width - innerMargin.left - innerMargin.right,
+                height - innerMargin.top - innerMargin.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+
             deferHandle = DeferWindowPos(deferHandle, ioGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
                 width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                performanceContext->IoGraphHandle,
+                NULL,
+                margin.left + innerMargin.left,
+                margin.top + (height + between) * 2 + innerMargin.top,
+                width - innerMargin.left - innerMargin.right,
+                height - innerMargin.top - innerMargin.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
 
             EndDeferWindowPos(deferHandle);
         }
@@ -1365,6 +1568,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
             Graph_Draw(performanceContext->CpuGraphHandle);
             InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
+
+            performanceContext->PrivateBytesDataValid = FALSE;
+            Graph_MoveGrid(performanceContext->PrivateBytesGraphHandle, 1);
+            Graph_Draw(performanceContext->PrivateBytesGraphHandle);
+            InvalidateRect(performanceContext->PrivateBytesGraphHandle, NULL, FALSE);
+
+            performanceContext->IoDataValid = FALSE;
+            Graph_MoveGrid(performanceContext->IoGraphHandle, 1);
+            Graph_Draw(performanceContext->IoGraphHandle);
+            InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
         }
         break;
     }
