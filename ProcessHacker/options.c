@@ -119,6 +119,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+            // HACK
+            SetWindowText(GetParent(hwndDlg), L"Options"); // so the title isn't "Options Properties"
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
 
