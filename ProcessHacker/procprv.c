@@ -1165,6 +1165,8 @@ VOID PhProcessProviderUpdate(
             // Check if the process still exists.
             if (PhIndexOfListItem(pids, (*processItem)->ProcessId) == -1)
             {
+                (*processItem)->State |= PH_PROCESS_ITEM_REMOVED;
+
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
 
