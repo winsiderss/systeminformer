@@ -1949,6 +1949,18 @@ VOID FASTCALL PhxfAddInt32U(
     __in ULONG Count
     );
 
+VOID FASTCALL PhxfDivideSingleU(
+    __in PFLOAT A,
+    __in PFLOAT B,
+    __in ULONG Count
+    );
+
+VOID FASTCALL PhxfDivideSingle2U(
+    __in PFLOAT A,
+    __in FLOAT B,
+    __in ULONG Count
+    );
+
 // bintree
 
 typedef struct _PH_BINARY_LINKS

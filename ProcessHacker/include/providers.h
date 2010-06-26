@@ -105,6 +105,8 @@ typedef struct _PH_PROCESS_ITEM
     LARGE_INTEGER UserTime;
     ULONG NumberOfHandles;
 
+    FLOAT CpuKernelUsage;
+    FLOAT CpuUserUsage;
     FLOAT CpuUsage; // from 0 to 1
 
     PH_UINT64_DELTA CpuKernelDelta; // volatile

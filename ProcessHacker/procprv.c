@@ -1339,6 +1339,8 @@ VOID PhProcessProviderUpdate(
             kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
             userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
 
+            processItem->CpuKernelUsage = kernelCpuUsage;
+            processItem->CpuUserUsage = userCpuUsage;
             PhCircularBufferAdd_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhCircularBufferAdd_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
