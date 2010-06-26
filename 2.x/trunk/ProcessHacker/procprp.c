@@ -1564,20 +1564,23 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
         break;
     case WM_PH_PERFORMANCE_UPDATE:
         {
-            performanceContext->CpuDataValid = FALSE;
-            Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
-            Graph_Draw(performanceContext->CpuGraphHandle);
-            InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
+            if (!(processItem->State & PH_PROCESS_ITEM_REMOVED))
+            {
+                performanceContext->CpuDataValid = FALSE;
+                Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
+                Graph_Draw(performanceContext->CpuGraphHandle);
+                InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
 
-            performanceContext->PrivateBytesDataValid = FALSE;
-            Graph_MoveGrid(performanceContext->PrivateBytesGraphHandle, 1);
-            Graph_Draw(performanceContext->PrivateBytesGraphHandle);
-            InvalidateRect(performanceContext->PrivateBytesGraphHandle, NULL, FALSE);
+                performanceContext->PrivateBytesDataValid = FALSE;
+                Graph_MoveGrid(performanceContext->PrivateBytesGraphHandle, 1);
+                Graph_Draw(performanceContext->PrivateBytesGraphHandle);
+                InvalidateRect(performanceContext->PrivateBytesGraphHandle, NULL, FALSE);
 
-            performanceContext->IoDataValid = FALSE;
-            Graph_MoveGrid(performanceContext->IoGraphHandle, 1);
-            Graph_Draw(performanceContext->IoGraphHandle);
-            InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
+                performanceContext->IoDataValid = FALSE;
+                Graph_MoveGrid(performanceContext->IoGraphHandle, 1);
+                Graph_Draw(performanceContext->IoGraphHandle);
+                InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
+            }
         }
         break;
     }

@@ -24,11 +24,15 @@ extern ULONG PhStatisticsSampleCount;
 // DPCs and Interrupts are fake, but System Idle Process is not.
 #define PH_IS_FAKE_PROCESS_ID(ProcessId) ((LONG_PTR)(ProcessId) < 0)
 
+#define PH_PROCESS_ITEM_REMOVED 0x1
+
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
 
 typedef struct _PH_PROCESS_ITEM
 {
+    ULONG State;
+
     // Basic
 
     HANDLE ProcessId;
