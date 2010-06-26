@@ -205,6 +205,18 @@ typedef struct _PH_PERFORMANCE_CONTEXT
     PFLOAT CpuUserData;
     ULONG CpuDataCount;
     BOOLEAN CpuDataValid;
+    PPH_STRING CpuText;
+
+    PFLOAT PrivateBytesData;
+    ULONG PrivateBytesDataCount;
+    BOOLEAN PrivateBytesDataValid;
+    PPH_STRING PrivateBytesText;
+
+    PFLOAT IoReadOtherData;
+    PFLOAT IoWriteData;
+    ULONG IoDataCount;
+    BOOLEAN IoDataValid;
+    PPH_STRING IoText;
 
     HWND CpuGraphHandle;
     HWND PrivateBytesGraphHandle;

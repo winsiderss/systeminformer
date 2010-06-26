@@ -343,8 +343,8 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.GridWidth = 12;
     context->DrawInfo.GridHeight = 12;
     context->DrawInfo.GridStart = 0;
-    context->DrawInfo.TextColor = RGB(0x77, 0xff, 0x77);
-    context->DrawInfo.TextBoxColor = RGB(0x00, 0x33, 0x00);
+    context->DrawInfo.TextColor = RGB(0x00, 0xff, 0x00);
+    context->DrawInfo.TextBoxColor = RGB(0x00, 0x22, 0x00);
 
     context->BufferedContext = NULL;
 
@@ -495,7 +495,7 @@ LRESULT CALLBACK PhpGraphWndProc(
         }
         return TRUE;
     case GCM_GETBUFFEREDCONTEXT:
-        return context->BufferedContext;
+        return (LRESULT)context->BufferedContext;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

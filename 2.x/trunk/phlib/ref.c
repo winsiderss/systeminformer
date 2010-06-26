@@ -340,6 +340,7 @@ VOID PhDereferenceObject(
     objectHeader = PhObjectToObjectHeader(Object);
     /* Decrement the reference count. */
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
+    assert(newRefCount >= 0);
 
     /* Free the object if it has 0 references. */
     if (newRefCount == 0)
