@@ -1213,9 +1213,15 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 );
             performanceContext->WindowHandle = hwndDlg;
 
+            performanceContext->CpuKernelData = NULL;
+            performanceContext->CpuUserData = NULL;
+            performanceContext->CpuDataCount = 0;
+            performanceContext->CpuDataValid = FALSE;
+
             performanceContext->CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
             ShowWindow(performanceContext->CpuGraphHandle, SW_SHOW);
             MoveWindow(performanceContext->CpuGraphHandle, 20, 20, 500, 250, FALSE);
+            BringWindowToTop(performanceContext->CpuGraphHandle);
 
             //performanceContext->PrivateBytesGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
             //performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
@@ -1223,6 +1229,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
         break;
     case WM_DESTROY:
         {
+            if (performanceContext->CpuKernelData) PhFree(performanceContext->CpuKernelData);
+            if (performanceContext->CpuUserData) PhFree(performanceContext->CpuUserData);
+
             PhUnregisterCallback(
                 &PhProcessesUpdatedEvent,
                 &performanceContext->ProcessesUpdatedRegistration
@@ -1247,33 +1256,115 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case GCN_GETDRAWINFO:
+                {
+                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+                    if (header->hwndFrom == performanceContext->CpuGraphHandle)
+                    {
+                        HDC hdc;
+                        PH_STRINGREF stringRef;
+                        RECT margin = { 5, 5, 5, 5 };
+                        RECT padding = { 3, 3, 3, 3 };
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->LineDataCount = min(processItem->CpuKernelHistory.Count,
+                            PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
+
+                        hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
+                        PhInitializeStringRef(&stringRef, L"hello");
+                        SelectObject(hdc, PhApplicationFont);
+                        PhSetGraphText(hdc, drawInfo,
+                            &stringRef, &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        // Do we need to allocate or re-allocate the data buffers?
+                        if (performanceContext->CpuDataCount < drawInfo->LineDataCount)
+                        {
+                            if (performanceContext->CpuKernelData) PhFree(performanceContext->CpuKernelData);
+                            if (performanceContext->CpuUserData) PhFree(performanceContext->CpuUserData);
+
+                            performanceContext->CpuDataCount *= 2;
+
+                            if (performanceContext->CpuDataCount < drawInfo->LineDataCount)
+                                performanceContext->CpuDataCount = drawInfo->LineDataCount;
+
+                            performanceContext->CpuKernelData = PhAllocate(performanceContext->CpuDataCount * sizeof(FLOAT));
+                            performanceContext->CpuUserData = PhAllocate(performanceContext->CpuDataCount * sizeof(FLOAT));
+
+                            drawInfo->LineData1 = performanceContext->CpuKernelData;
+                            drawInfo->LineData2 = performanceContext->CpuUserData;
+                            performanceContext->CpuDataValid = FALSE;
+                        }
+
+                        if (!performanceContext->CpuDataValid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory,
+                                performanceContext->CpuKernelData, drawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
+                                performanceContext->CpuUserData, drawInfo->LineDataCount);
+                            performanceContext->CpuDataValid = TRUE;
+                        }
+
+                        return TRUE;
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_SIZE:
+        {
+            HDWP deferHandle;
+            HWND cpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCPU);
+            HWND privateBytesGroupBox = GetDlgItem(hwndDlg, IDC_GROUPPRIVATEBYTES);
+            HWND ioGroupBox = GetDlgItem(hwndDlg, IDC_GROUPIO);
+            RECT clientRect;
+            RECT margin = { 13, 13, 13, 13 };
+            RECT innerMargin = { 10, 20, 10, 10 };
+            LONG between = 3;
+            LONG width;
+            LONG height;
+
+            GetClientRect(hwndDlg, &clientRect);
+            width = clientRect.right - margin.left - margin.right;
+            height = (clientRect.bottom - margin.top - margin.bottom - between * 2) / 3;
+
+            deferHandle = BeginDeferWindowPos(6);
+
+            deferHandle = DeferWindowPos(deferHandle, cpuGroupBox, NULL, margin.left, margin.top,
+                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                performanceContext->CpuGraphHandle,
+                NULL,
+                margin.left + innerMargin.left,
+                margin.top + innerMargin.top,
+                width - innerMargin.left - innerMargin.right,
+                height - innerMargin.top - innerMargin.bottom,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+
+            deferHandle = DeferWindowPos(deferHandle, privateBytesGroupBox, NULL, margin.left, margin.top + height + between,
+                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(deferHandle, ioGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
+                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+
+            EndDeferWindowPos(deferHandle);
+        }
+        break;
     case WM_PH_PERFORMANCE_UPDATE:
         {
-            RECT clientRect;
-            PH_GRAPH_DRAW_INFO drawInfo;
-            PFLOAT cpuKernelHistory;
-            PFLOAT cpuUserHistory;
-
-            // CPU
-
-            GetClientRect(performanceContext->CpuGraphHandle, &clientRect);
-            Graph_GetDrawInfo(performanceContext->CpuGraphHandle, &drawInfo);
-            drawInfo.Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-            drawInfo.LineDataCount = min(processItem->CpuKernelHistory.Count, PH_GRAPH_DATA_COUNT(drawInfo.Width, drawInfo.Step));
-
-            cpuKernelHistory = PhAllocate(drawInfo.LineDataCount * sizeof(FLOAT));
-            cpuUserHistory = PhAllocate(drawInfo.LineDataCount * sizeof(FLOAT));
-            drawInfo.LineData1 = cpuKernelHistory;
-            drawInfo.LineData2 = cpuUserHistory;
-            PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory, cpuKernelHistory, drawInfo.LineDataCount);
-            PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory, cpuUserHistory, drawInfo.LineDataCount);
-
-            Graph_SetDrawInfo(performanceContext->CpuGraphHandle, &drawInfo);
+            performanceContext->CpuDataValid = FALSE;
+            Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
             Graph_Draw(performanceContext->CpuGraphHandle);
             InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
-
-            PhFree(cpuKernelHistory);
-            PhFree(cpuUserHistory);
         }
         break;
     }
