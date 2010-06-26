@@ -12,6 +12,12 @@ extern PH_CALLBACK PhProcessRemovedEvent;
 extern PH_CALLBACK PhProcessesUpdatedEvent;
 
 extern ULONG PhStatisticsSampleCount;
+
+extern PH_UINT64_DELTA PhCpuKernelDelta;
+extern PH_UINT64_DELTA PhCpuUserDelta;
+extern PH_UINT64_DELTA PhCpuOtherDelta;
+
+extern PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)

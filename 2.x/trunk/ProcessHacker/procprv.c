@@ -118,9 +118,12 @@ SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 
-static PH_UINT64_DELTA PhCpuKernelDelta;
-static PH_UINT64_DELTA PhCpuUserDelta;
-static PH_UINT64_DELTA PhCpuOtherDelta;
+PH_UINT64_DELTA PhCpuKernelDelta;
+PH_UINT64_DELTA PhCpuUserDelta;
+PH_UINT64_DELTA PhCpuOtherDelta;
+
+BOOLEAN PhProcessStatisticsInitialized = FALSE;
+PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
@@ -1014,6 +1017,11 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->NumberOfHandles = Process->HandleCount;
 }
 
+VOID PhpInitializeProcessStatistics()
+{
+    PhInitializeCircularBuffer_ULONG(&PhTimeHistory, PhStatisticsSampleCount);
+}
+
 VOID PhpUpdatePerfInformation()
 {
     ULONG returnLength;
@@ -1115,6 +1123,12 @@ VOID PhProcessProviderUpdate(
 
     if (runCount % 2 == 0)
         PhRefreshDosDevicePrefixes();
+
+    if (!PhProcessStatisticsInitialized)
+    {
+        PhpInitializeProcessStatistics();
+        PhProcessStatisticsInitialized = TRUE;
+    }
 
     PhpUpdatePerfInformation();
     PhpUpdateCpuInformation();
@@ -1424,6 +1438,15 @@ VOID PhProcessProviderUpdate(
     {
         WTSFreeMemory(PhpWtsProcesses);
         PhpWtsProcesses = NULL;
+    }
+
+    {
+        LARGE_INTEGER systemTime;
+        ULONG secondsSince1980;
+
+        NtQuerySystemTime(&systemTime);
+        RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
+        PhCircularBufferAdd_ULONG(&PhTimeHistory, secondsSince1980);
     }
 
     PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
