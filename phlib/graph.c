@@ -70,7 +70,7 @@ VOID PhDrawGraph(
     ULONG width;
     ULONG height;
     ULONG flags;
-    ULONG step;
+    LONG step;
     RECT rect;
     POINT points[4];
     HPEN nullPen;
@@ -98,7 +98,7 @@ VOID PhDrawGraph(
 
     if (DrawInfo->LineData1)
     {
-        ULONG x = width - DrawInfo->Step;
+        LONG x = width - step;
         ULONG index = 0;
 
         SelectObject(hdc, dcBrush);
@@ -204,6 +204,7 @@ VOID PhDrawGraph(
         ULONG y = height / DrawInfo->GridHeight;
         ULONG i;
         ULONG pos;
+        ULONG gridStart;
 
         SetDCPenColor(hdc, DrawInfo->GridColor);
         SelectObject(hdc, dcPen);
@@ -212,10 +213,11 @@ VOID PhDrawGraph(
 
         points[0].y = 0;
         points[1].y = height;
+        gridStart = (DrawInfo->GridStart * DrawInfo->Step) % DrawInfo->GridWidth;
 
         for (i = 0; i <= x; i++)
         {
-            pos = width - (i * DrawInfo->GridWidth + DrawInfo->GridStart);
+            pos = width - (i * DrawInfo->GridWidth + gridStart);
             points[0].x = pos;
             points[1].x = pos;
             Polyline(hdc, points, 2);
@@ -234,6 +236,66 @@ VOID PhDrawGraph(
             Polyline(hdc, points, 2);
         }
     }
+
+    // Draw the text.
+    if (DrawInfo->Text.Buffer)
+    {
+        // Fill in the text box.
+        SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
+        FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
+
+        // Draw the text.
+        SetTextColor(hdc, DrawInfo->TextColor);
+        SetBkMode(hdc, TRANSPARENT);
+        DrawText(hdc, DrawInfo->Text.Buffer, DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP);
+    }
+}
+
+VOID PhSetGraphText(
+    __in HDC hdc,
+    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in PPH_STRINGREF Text,
+    __in PRECT Margin,
+    __in PRECT Padding,
+    __in ULONG Align
+    )
+{
+    SIZE textSize;
+    PH_RECTANGLE boxRectangle;
+    PH_RECTANGLE textRectangle;
+
+    DrawInfo->Text = *Text;
+    GetTextExtentPoint32(hdc, Text->Buffer, Text->Length / 2, &textSize);
+
+    // Calculate the box rectangle.
+
+    boxRectangle.Width = textSize.cx + Padding->left + Padding->right;
+    boxRectangle.Height = textSize.cy + Padding->top + Padding->bottom;
+
+    if (Align & PH_ALIGN_LEFT)
+        boxRectangle.Left = Margin->left;
+    else if (Align & PH_ALIGN_RIGHT)
+        boxRectangle.Left = DrawInfo->Width - boxRectangle.Width - Margin->right;
+    else
+        boxRectangle.Left = (DrawInfo->Width - boxRectangle.Width) / 2;
+
+    if (Align & PH_ALIGN_TOP)
+        boxRectangle.Top = Margin->top;
+    else if (Align & PH_ALIGN_BOTTOM)
+        boxRectangle.Top = DrawInfo->Height - boxRectangle.Height - Margin->bottom;
+    else
+        boxRectangle.Top = (DrawInfo->Height - boxRectangle.Height) / 2;
+
+    // Calculate the text rectangle.
+
+    textRectangle.Left = boxRectangle.Left + Padding->left;
+    textRectangle.Top = boxRectangle.Top + Padding->top;
+    textRectangle.Width = textSize.cx;
+    textRectangle.Height = textSize.cy;
+
+    // Save the rectangles.
+    DrawInfo->TextRect = PhRectangleToRect(textRectangle);
+    DrawInfo->TextBoxRect = PhRectangleToRect(boxRectangle);
 }
 
 HWND PhCreateGraphControl(
@@ -281,6 +343,8 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.GridWidth = 12;
     context->DrawInfo.GridHeight = 12;
     context->DrawInfo.GridStart = 0;
+    context->DrawInfo.TextColor = RGB(0x77, 0xff, 0x77);
+    context->DrawInfo.TextBoxColor = RGB(0x00, 0x33, 0x00);
 
     context->BufferedContext = NULL;
 
@@ -409,6 +473,17 @@ LRESULT CALLBACK PhpGraphWndProc(
 
             context->DrawInfo.Width = context->BufferedContextRect.right;
             context->DrawInfo.Height = context->BufferedContextRect.bottom;
+
+            {
+                PH_GRAPH_GETDRAWINFO getDrawInfo;
+
+                getDrawInfo.Header.hwndFrom = hwnd;
+                getDrawInfo.Header.code = GCN_GETDRAWINFO;
+                getDrawInfo.DrawInfo = &context->DrawInfo;
+
+                SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
+            }
+
             PhDrawGraph(context->BufferedContext, &context->DrawInfo);
         }
         return TRUE;
@@ -419,6 +494,8 @@ LRESULT CALLBACK PhpGraphWndProc(
             context->DrawInfo.GridStart += increment;
         }
         return TRUE;
+    case GCM_GETBUFFEREDCONTEXT:
+        return context->BufferedContext;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

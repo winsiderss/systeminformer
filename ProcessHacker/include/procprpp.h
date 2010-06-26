@@ -201,6 +201,11 @@ typedef struct _PH_PERFORMANCE_CONTEXT
 
     HWND WindowHandle;
 
+    PFLOAT CpuKernelData;
+    PFLOAT CpuUserData;
+    ULONG CpuDataCount;
+    BOOLEAN CpuDataValid;
+
     HWND CpuGraphHandle;
     HWND PrivateBytesGraphHandle;
     HWND IoGraphHandle;

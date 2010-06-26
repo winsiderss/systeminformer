@@ -30,7 +30,7 @@ typedef struct _PH_GRAPH_DRAW_INFO
     ULONG GridStart;
 
     // Text
-    PWSTR Text;
+    PH_STRINGREF Text;
     RECT TextRect;
     RECT TextBoxRect;
     COLORREF TextColor;
@@ -46,15 +46,27 @@ VOID PhDrawGraph(
     __in PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
+VOID PhSetGraphText(
+    __in HDC hdc,
+    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in PPH_STRINGREF Text,
+    __in PRECT Margin,
+    __in PRECT Padding,
+    __in ULONG Align
+    );
+
 HWND PhCreateGraphControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
     );
 
+// Messages
+
 #define GCM_GETDRAWINFO (WM_APP + 1301)
 #define GCM_SETDRAWINFO (WM_APP + 1302)
 #define GCM_DRAW (WM_APP + 1303)
 #define GCM_MOVEGRID (WM_APP + 1304)
+#define GCM_GETBUFFEREDCONTEXT (WM_APP + 1305)
 
 #define Graph_GetDrawInfo(hWnd, DrawInfo) \
     SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
@@ -64,7 +76,19 @@ HWND PhCreateGraphControl(
     SendMessage((hWnd), GCM_DRAW, 0, 0)
 #define Graph_MoveGrid(hWnd, Increment) \
     SendMessage((hWnd), GCM_MOVEGRID, (WPARAM)(Increment), 0)
+#define Graph_GetBufferedContext(hWnd) \
+    ((HDC)SendMessage((hWnd), GCM_GETBUFFEREDCONTEXT, 0, 0))
 
-#define PH_GRAPH_DATA_COUNT(Width, Step) ((Width) / (Step))
+// Notifications
+
+#define GCN_GETDRAWINFO (WM_APP + 1351)
+
+typedef struct _PH_GRAPH_GETDRAWINFO
+{
+    NMHDR Header;
+    PPH_GRAPH_DRAW_INFO DrawInfo;
+} PH_GRAPH_GETDRAWINFO, *PPH_GRAPH_GETDRAWINFO;
+
+#define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step)) // round up in division
 
 #endif
