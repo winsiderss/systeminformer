@@ -1868,20 +1868,6 @@ RtlGetFullPathName_U(
 
 #if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
-ULONG
-NTAPI
-RtlGetFullPathName_Ustr(
-    __in PUNICODE_STRING FileName,
-    __in ULONG Size,
-    __in PWSTR Buffer,
-    __out_opt PWSTR *ShortName,
-    __out_opt PBOOLEAN InvalidName,
-    __out RTL_PATH_TYPE *PathType
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WS03)
-NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetFullPathName_UstrEx(
@@ -1923,7 +1909,7 @@ RtlDosPathNameToNtPathName_U(
     __in PWSTR DosFileName,
     __out PUNICODE_STRING NtFileName,
     __out_opt PWSTR *FilePart,
-    __reserved PVOID Reserved
+    __out_opt PRTL_RELATIVE_NAME_U RelativeName
     );
 
 #if (PHNT_VERSION >= PHNT_WS03)

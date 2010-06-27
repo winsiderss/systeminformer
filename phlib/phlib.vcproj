@@ -325,6 +325,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\error.c"
+				>
+			</File>
+			<File
 				RelativePath=".\extlv.c"
 				>
 			</File>
