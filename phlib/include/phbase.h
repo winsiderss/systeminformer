@@ -1972,6 +1972,12 @@ VOID FASTCALL PhxfDivideSingle2U(
     __in ULONG Count
     );
 
+// error
+
+NTSTATUS PhDosErrorToNtStatus(
+    __in ULONG DosError
+    );
+
 // bintree
 
 typedef struct _PH_BINARY_LINKS

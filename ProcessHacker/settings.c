@@ -542,22 +542,25 @@ NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     )
 {
-    FILE *settingsFile;
+    HANDLE fileHandle;
     mxml_node_t *topNode;
     mxml_node_t *currentNode;
 
-    settingsFile = _wfopen(FileName, L"r");
+    fileHandle = CreateFile(
+        FileName,
+        FILE_GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+        );
 
-    if (!settingsFile)
-    {
-        if (errno == ENOENT)
-            return STATUS_NO_SUCH_FILE;
-        else
-            return STATUS_UNSUCCESSFUL;
-    }
+    if (fileHandle == INVALID_HANDLE_VALUE)
+        return PhDosErrorToNtStatus(GetLastError());
 
-    topNode = mxmlLoadFile(NULL, settingsFile, MXML_NO_CALLBACK);
-    fclose(settingsFile);
+    topNode = mxmlLoadFd(NULL, fileHandle, MXML_NO_CALLBACK);
+    NtClose(fileHandle);
 
     if (!topNode)
         return STATUS_UNSUCCESSFUL;
@@ -636,7 +639,7 @@ NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     )
 {
-    FILE *settingsFile;
+    HANDLE fileHandle;
     mxml_node_t *topNode;
     ULONG enumerationKey = 0;
     PPH_SETTING setting;
@@ -694,17 +697,29 @@ NTSTATUS PhSaveSettings(
         }
     }
 
-    settingsFile = _wfopen(FileName, L"w");
+    fileHandle = CreateFile(
+        FileName,
+        FILE_GENERIC_WRITE,
+        FILE_SHARE_READ,
+        NULL,
+        CREATE_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+        );
 
-    if (!settingsFile)
+    if (fileHandle == INVALID_HANDLE_VALUE)
     {
+        NTSTATUS status;
+
+        status = PhDosErrorToNtStatus(GetLastError());
         mxmlDelete(topNode);
-        return STATUS_UNSUCCESSFUL;
+
+        return status;
     }
 
-    mxmlSaveFile(topNode, settingsFile, MXML_NO_CALLBACK);
+    mxmlSaveFd(topNode, fileHandle, MXML_NO_CALLBACK);
     mxmlDelete(topNode);
-    fclose(settingsFile);
+    NtClose(fileHandle);
 
     return STATUS_SUCCESS;
 }
