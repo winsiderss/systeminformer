@@ -124,12 +124,30 @@ INT WINAPI WinMain(
                 // If we didn't find the file, it will be created. Otherwise, 
                 // there was probably a parsing error and we don't want to 
                 // change anything.
-                if (!NT_SUCCESS(status) && status != STATUS_NO_SUCH_FILE)
+                if (!NT_SUCCESS(status))
                 {
-                    // Pretend we don't have a settings store so bad things 
-                    // don't happen.
-                    PhDereferenceObject(PhSettingsFileName);
-                    PhSettingsFileName = NULL;
+                    if (status == STATUS_FILE_CORRUPT_ERROR && PhShowMessage(
+                        NULL,
+                        MB_ICONWARNING | MB_YESNO,
+                        L"Process Hacker's settings file is corrupt. Do you want to reset it?\n"
+                        L"If you select No, the settings system will not function properly."
+                        ) == IDYES)
+                    {
+                        DeleteFile(PhSettingsFileName->Buffer);
+                    }
+                    else
+                    {
+                        if (
+                            PhStartupParameters.SettingsFileName &&
+                            status != STATUS_FILE_CORRUPT_ERROR
+                            )
+                            PhShowStatus(NULL, L"Unable to open Process Hacker's settings file", status, 0);
+
+                        // Pretend we don't have a settings store so bad things 
+                        // don't happen.
+                        PhDereferenceObject(PhSettingsFileName);
+                        PhSettingsFileName = NULL;
+                    }
                 }
             }
         }

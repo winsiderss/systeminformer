@@ -577,12 +577,12 @@ NTSTATUS PhLoadSettings(
     NtClose(fileHandle);
 
     if (!topNode)
-        return STATUS_UNSUCCESSFUL;
+        return STATUS_FILE_CORRUPT_ERROR;
 
     if (!topNode->child)
     {
         mxmlDelete(topNode);
-        return STATUS_UNSUCCESSFUL;
+        return STATUS_FILE_CORRUPT_ERROR;
     }
 
     currentNode = topNode->child;
