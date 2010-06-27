@@ -39,6 +39,133 @@ static PWSTR DangerousProcesses[] =
 static PPH_STRING DebuggerCommand = NULL;
 static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 
+HRESULT CALLBACK PhpElevateActionCallbackProc(
+    __in HWND hwnd,
+    __in UINT uNotification,
+    __in WPARAM wParam,
+    __in LPARAM lParam,
+    __in LONG_PTR dwRefData
+    )
+{
+    switch (uNotification)
+    {
+    case TDN_CREATED:
+        SendMessage(hwnd, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
+        break;
+    }
+
+    return S_OK;
+}
+
+BOOLEAN PhpShowErrorAndElevateAction(
+    __in HWND hWnd,
+    __in PWSTR Message,
+    __in NTSTATUS Status,
+    __in PWSTR Command,
+    __out PBOOLEAN Success
+    )
+{
+    PH_ACTION_ELEVATION_LEVEL elevationLevel;
+    INT button = IDNO;
+
+    if (
+        !(Status == STATUS_ACCESS_DENIED ||
+        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED))
+        )
+        return FALSE;
+
+    if (!WINDOWS_HAS_UAC || PhElevated)
+        return FALSE;
+
+    elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
+
+    if (elevationLevel == NeverElevateAction)
+        return FALSE;
+
+    if (elevationLevel == PromptElevateAction && TaskDialogIndirect_I)
+    {
+        TASKDIALOGCONFIG config = { sizeof(config) };
+        TASKDIALOG_BUTTON buttons[1];
+
+        config.hwndParent = hWnd;
+        config.hInstance = PhInstanceHandle;
+        config.dwFlags = TDF_USE_COMMAND_LINKS;
+        config.pszWindowTitle = L"Process Hacker";
+        config.pszMainIcon = TD_ERROR_ICON;
+        config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
+        config.pszContent = PhaConcatStrings(
+            3,
+            L"Unable to perform the action: ",
+            ((PPH_STRING)PHA_DEREFERENCE(PhGetNtMessage(Status)))->Buffer,
+            L"\nDo you want Process Hacker to elevate the action?"
+            )->Buffer;
+        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+
+        buttons[0].nButtonID = IDYES;
+        buttons[0].pszButtonText = L"Elevate\nPrompt for credentials and elevate the action.";
+
+        config.cButtons = 1;
+        config.pButtons = buttons;
+        config.nDefaultButton = IDYES;
+
+        config.pfCallback = PhpElevateActionCallbackProc;
+
+        if (TaskDialogIndirect_I(
+            &config,
+            &button,
+            NULL,
+            NULL
+            ) != S_OK)
+        {
+            return FALSE;
+        }
+    }
+
+    if (elevationLevel == AlwaysElevateAction || button == IDYES)
+    {
+        NTSTATUS status;
+        HANDLE processHandle;
+        LARGE_INTEGER timeout;
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        if (PhShellExecuteEx(
+            hWnd,
+            PhApplicationFileName->Buffer,
+            Command,
+            SW_SHOW,
+            PH_SHELL_EXECUTE_ADMIN,
+            0,
+            &processHandle
+            ))
+        {
+            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+            status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
+
+            if (
+                status == STATUS_WAIT_0 &&
+                NT_SUCCESS(status = PhGetProcessBasicInformation(processHandle, &basicInfo))
+                )
+            {
+                status = basicInfo.ExitStatus; 
+            }
+
+            NtClose(processHandle);
+
+            if (NT_SUCCESS(status))
+            {
+                *Success = TRUE;
+            }
+            else
+            {
+                *Success = FALSE;
+                PhShowStatus(hWnd, Message, status, 0);
+            }
+        }
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiLockComputer(
     __in HWND hWnd
     )
@@ -1408,7 +1535,22 @@ BOOLEAN PhUiStartService(
     }
 
     if (!success)
-        PhpShowErrorService(hWnd, L"start", Service, 0, GetLastError());
+    {
+        NTSTATUS status;
+
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        if (!PhpShowErrorAndElevateAction(
+            hWnd,
+            PhaConcatStrings2(L"Unable to start ", Service->Name->Buffer)->Buffer,
+            status,
+            PhaConcatStrings(3, L"-e -c -ctype service -caction start -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            &success
+            ))
+        {
+            PhpShowErrorService(hWnd, L"start", Service, status, 0);
+        }
+    }
 
     return success;
 }
@@ -1434,7 +1576,22 @@ BOOLEAN PhUiContinueService(
     }
 
     if (!success)
-        PhpShowErrorService(hWnd, L"continue", Service, 0, GetLastError());
+    {
+        NTSTATUS status;
+
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        if (!PhpShowErrorAndElevateAction(
+            hWnd,
+            PhaConcatStrings2(L"Unable to continue ", Service->Name->Buffer)->Buffer,
+            status,
+            PhaConcatStrings(3, L"-e -c -ctype service -caction continue -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            &success
+            ))
+        {
+            PhpShowErrorService(hWnd, L"continue", Service, status, 0);
+        }
+    }
 
     return success;
 }
@@ -1460,7 +1617,22 @@ BOOLEAN PhUiPauseService(
     }
 
     if (!success)
-        PhpShowErrorService(hWnd, L"pause", Service, 0, GetLastError());
+    {
+        NTSTATUS status;
+
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        if (!PhpShowErrorAndElevateAction(
+            hWnd,
+            PhaConcatStrings2(L"Unable to pause ", Service->Name->Buffer)->Buffer,
+            status,
+            PhaConcatStrings(3, L"-e -c -ctype service -caction pause -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            &success
+            ))
+        {
+            PhpShowErrorService(hWnd, L"pause", Service, status, 0);
+        }
+    }
 
     return success;
 }
@@ -1486,7 +1658,22 @@ BOOLEAN PhUiStopService(
     }
 
     if (!success)
-        PhpShowErrorService(hWnd, L"stop", Service, 0, GetLastError());
+    {
+        NTSTATUS status;
+
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        if (!PhpShowErrorAndElevateAction(
+            hWnd,
+            PhaConcatStrings2(L"Unable to stop ", Service->Name->Buffer)->Buffer,
+            status,
+            PhaConcatStrings(3, L"-e -c -ctype service -caction stop -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            &success
+            ))
+        {
+            PhpShowErrorService(hWnd, L"stop", Service, status, 0);
+        }
+    }
 
     return success;
 }
@@ -1521,7 +1708,22 @@ BOOLEAN PhUiDeleteService(
     }
 
     if (!success)
-        PhpShowErrorService(hWnd, L"delete", Service, 0, GetLastError());
+    {
+        NTSTATUS status;
+
+        status = NTSTATUS_FROM_WIN32(GetLastError());
+
+        if (!PhpShowErrorAndElevateAction(
+            hWnd,
+            PhaConcatStrings2(L"Unable to delete ", Service->Name->Buffer)->Buffer,
+            status,
+            PhaConcatStrings(3, L"-e -c -ctype service -caction delete -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            &success
+            ))
+        {
+            PhpShowErrorService(hWnd, L"delete", Service, status, 0);
+        }
+    }
 
     return success;
 }

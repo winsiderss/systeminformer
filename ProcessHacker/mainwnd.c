@@ -1133,7 +1133,10 @@ LRESULT CALLBACK PhMainWndProc(
                     if (serviceItem)
                     {
                         PhReferenceObject(serviceItem);
-                        PhUiDeleteService(hWnd, serviceItem);
+
+                        if (PhUiDeleteService(hWnd, serviceItem))
+                            PhSetStateAllListViewItems(ServiceListViewHandle, 0, LVIS_SELECTED);
+
                         PhDereferenceObject(serviceItem);
                     }
                 }
