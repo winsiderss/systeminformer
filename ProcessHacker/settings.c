@@ -250,11 +250,11 @@ static BOOLEAN PhpSettingFromString(
         }
     case IntegerSettingType:
         {
-            ULONG integer;
+            ULONG64 integer;
 
-            if (swscanf(String->Buffer, L"%x", &integer) != EOF)
+            if (PhStringToInteger64(&String->sr, 16, &integer))
             {
-                *Value = (PVOID)integer;
+                *Value = (PVOID)(ULONG)integer;
                 return TRUE;
             }
             else
@@ -265,9 +265,22 @@ static BOOLEAN PhpSettingFromString(
     case IntegerPairSettingType:
         {
             PH_INTEGER_PAIR integerPair;
+            LONG64 x;
+            LONG64 y;
+            ULONG indexOfComma;
+            PH_STRINGREF xString;
+            PH_STRINGREF yString;
 
-            if (swscanf(String->Buffer, L"%u,%u", &integerPair.X, &integerPair.Y) != EOF)
+            indexOfComma = PhStringIndexOfChar(String, 0, ',');
+            xString.Buffer = String->Buffer; // start
+            xString.Length = (USHORT)(indexOfComma * 2);
+            yString.Buffer = &String->Buffer[indexOfComma + 1]; // after the comma
+            yString.Length = (USHORT)(String->Length - xString.Length - 2);
+
+            if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
             {
+                integerPair.X = (LONG)x;
+                integerPair.Y = (LONG)y;
                 *Value = PhAllocateCopy(&integerPair, sizeof(PH_INTEGER_PAIR));
                 return TRUE;
             }

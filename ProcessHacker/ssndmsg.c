@@ -124,7 +124,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                         &icon
                         );
                     PhStringToInteger64(
-                        PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TIMEOUT)->Buffer,
+                        &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TIMEOUT)->sr,
                         10,
                         &timeout
                         );

@@ -221,6 +221,7 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 {
     WCHAR integerString[11];
     ULONG64 size;
+    PH_STRINGREF string;
     PWSTR digit;
     PSTR slash;
 
@@ -241,19 +242,19 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
     Member->Data = PTR_ADD_OFFSET(Header, sizeof(IMAGE_ARCHIVE_MEMBER_HEADER));
     Member->Type = NormalArchiveMemberType;
 
-    // Read the size string, null terminate it after the last digit and parse it.
+    // Read the size string, terminate it after the last digit and parse it.
 
     if (!PhCopyUnicodeStringZFromAnsi(Header->Size, 10, integerString, 11, NULL))
         return STATUS_INVALID_PARAMETER;
 
-    digit = integerString;
+    string.Buffer = integerString;
+    string.Length = 0;
+    digit = string.Buffer;
 
-    while (iswdigit(*digit))
-        digit++;
+    while (iswdigit(*digit++))
+        string.Length += sizeof(WCHAR);
 
-    *digit = 0;
-
-    if (!PhStringToInteger64(integerString, 10, &size))
+    if (!PhStringToInteger64(&string, 10, &size))
         return STATUS_INVALID_PARAMETER;
 
     Member->Size = (ULONG)size;
@@ -332,7 +333,8 @@ NTSTATUS PhpGetMappedArchiveMemberFromHeader(
 
             if (!PhCopyUnicodeStringZFromAnsi(slash + 1, -1, integerString, 11, NULL))
                 return STATUS_INVALID_PARAMETER;
-            if (!PhStringToInteger64(integerString, 10, &offset64))
+            PhInitializeStringRef(&string, integerString);
+            if (!PhStringToInteger64(&string, 10, &offset64))
                 return STATUS_INVALID_PARAMETER;
 
             offset = (ULONG)offset64;
