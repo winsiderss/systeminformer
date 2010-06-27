@@ -2011,53 +2011,6 @@ BOOLEAN PhPeekQueueItem(
     return TRUE;
 }
 
-ULONG PhGetPrimeNumber(
-    __in ULONG Minimum
-    )
-{
-    ULONG i, j;
-
-    for (i = 0; i < sizeof(PhpPrimeNumbers) / sizeof(ULONG); i++)
-    {
-        if (PhpPrimeNumbers[i] >= Minimum)
-            return PhpPrimeNumbers[i];
-    }
-
-    for (i = Minimum | 1; i < MAXLONG; i += 2)
-    {
-        ULONG sqrtI = (ULONG)sqrt(i);
-
-        for (j = 3; j <= sqrtI; j += 2)
-        {
-            if (i % j == 0)
-            {
-                // Not a prime.
-                continue;
-            }
-        }
-
-        // Success.
-        return i;
-    }
-
-    return Minimum;
-}
-
-ULONG PhRoundUpToPowerOfTwo(
-    __in ULONG Number
-    )
-{
-    Number--;
-    Number |= Number >> 1;
-    Number |= Number >> 2;
-    Number |= Number >> 4;
-    Number |= Number >> 8;
-    Number |= Number >> 16;
-    Number++;
-
-    return Number;
-}
-
 FORCEINLINE ULONG PhpValidateHash(
     __in ULONG Hash
     )
@@ -2937,47 +2890,51 @@ VOID PhInvokeCallback(
     PhReleaseQueuedLockShared(&Callback->ListLock);
 }
 
-VOID PhPrintTimeSpan(
-    __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
-    __in ULONG64 Ticks,
-    __in_opt ULONG Mode
+ULONG PhGetPrimeNumber(
+    __in ULONG Minimum
     )
 {
-    switch (Mode)
+    ULONG i, j;
+
+    for (i = 0; i < sizeof(PhpPrimeNumbers) / sizeof(ULONG); i++)
     {
-    case PH_TIMESPAN_HMSM:
-        _snwprintf(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            L"%02I64u:%02I64u:%02I64u.%03I64u",
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks),
-            PH_TICKS_PARTIAL_MS(Ticks)
-            );
-        break;
-    case PH_TIMESPAN_DHMS:
-        _snwprintf(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            L"%I64u:%02I64u:%02I64u:%02I64u",
-            PH_TICKS_PARTIAL_DAYS(Ticks),
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks)
-            );
-        break;
-    default:
-        _snwprintf(
-            Destination,
-            PH_TIMESPAN_STR_LEN,
-            L"%02I64u:%02I64u:%02I64u",
-            PH_TICKS_PARTIAL_HOURS(Ticks),
-            PH_TICKS_PARTIAL_MIN(Ticks),
-            PH_TICKS_PARTIAL_SEC(Ticks)
-            );
-        break;
+        if (PhpPrimeNumbers[i] >= Minimum)
+            return PhpPrimeNumbers[i];
     }
+
+    for (i = Minimum | 1; i < MAXLONG; i += 2)
+    {
+        ULONG sqrtI = (ULONG)sqrt(i);
+
+        for (j = 3; j <= sqrtI; j += 2)
+        {
+            if (i % j == 0)
+            {
+                // Not a prime.
+                continue;
+            }
+        }
+
+        // Success.
+        return i;
+    }
+
+    return Minimum;
+}
+
+ULONG PhRoundUpToPowerOfTwo(
+    __in ULONG Number
+    )
+{
+    Number--;
+    Number |= Number >> 1;
+    Number |= Number >> 2;
+    Number |= Number >> 4;
+    Number |= Number >> 8;
+    Number |= Number >> 16;
+    Number++;
+
+    return Number;
 }
 
 /**
@@ -3019,6 +2976,27 @@ ULONG64 PhExponentiate64(
 
         Exponent >>= 1;
         Base *= Base;
+    }
+
+    return result;
+}
+
+/*
+ * Calculates the binary logarithm of a number.
+ *
+ * \return The floor of the binary logarithm of the number. 
+ * This is the same as the position of the highest set bit.
+ */
+ULONG PhLog2(
+    __in ULONG Exponent
+    )
+{
+    ULONG result = 0;
+
+    while (Exponent)
+    {
+        result++;
+        Exponent >>= 1;
     }
 
     return result;
@@ -3160,4 +3138,47 @@ BOOLEAN PhStringToInteger64(
     *Integer = sign * result;
 
     return TRUE;
+}
+
+VOID PhPrintTimeSpan(
+    __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
+    __in ULONG64 Ticks,
+    __in_opt ULONG Mode
+    )
+{
+    switch (Mode)
+    {
+    case PH_TIMESPAN_HMSM:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%02I64u:%02I64u:%02I64u.%03I64u",
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks),
+            PH_TICKS_PARTIAL_MS(Ticks)
+            );
+        break;
+    case PH_TIMESPAN_DHMS:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%I64u:%02I64u:%02I64u:%02I64u",
+            PH_TICKS_PARTIAL_DAYS(Ticks),
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks)
+            );
+        break;
+    default:
+        _snwprintf(
+            Destination,
+            PH_TIMESPAN_STR_LEN,
+            L"%02I64u:%02I64u:%02I64u",
+            PH_TICKS_PARTIAL_HOURS(Ticks),
+            PH_TICKS_PARTIAL_MIN(Ticks),
+            PH_TICKS_PARTIAL_SEC(Ticks)
+            );
+        break;
+    }
 }
