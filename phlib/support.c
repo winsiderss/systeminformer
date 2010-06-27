@@ -683,9 +683,8 @@ PPH_STRING PhFormatDate(
     __in_opt PWSTR Format
     )
 {
-    PPH_STRING string = NULL;
+    PPH_STRING string;
     ULONG bufferSize;
-    PVOID buffer;
 
     bufferSize = GetDateFormat(
         LOCALE_USER_DEFAULT,
@@ -695,21 +694,22 @@ PPH_STRING PhFormatDate(
         NULL,
         0
         );
-    buffer = PhAllocate(bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (GetDateFormat(
+    if (!GetDateFormat(
         LOCALE_USER_DEFAULT,
         0,
         Date,
         Format,
-        buffer,
+        string->Buffer,
         bufferSize
         ))
     {
-        string = PhCreateString(buffer);
+        PhDereferenceObject(string);
+        return NULL;
     }
 
-    PhFree(buffer);
+    PhTrimStringToNullTerminator(string);
 
     return string;
 }
@@ -719,9 +719,8 @@ PPH_STRING PhFormatTime(
     __in_opt PWSTR Format
     )
 {
-    PPH_STRING string = NULL;
+    PPH_STRING string;
     ULONG bufferSize;
-    PVOID buffer;
 
     bufferSize = GetTimeFormat(
         LOCALE_USER_DEFAULT,
@@ -731,21 +730,22 @@ PPH_STRING PhFormatTime(
         NULL,
         0
         );
-    buffer = PhAllocate(bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (GetTimeFormat(
+    if (!GetTimeFormat(
         LOCALE_USER_DEFAULT,
         0,
         Time,
         Format,
-        buffer,
+        string->Buffer,
         bufferSize
         ))
     {
-        string = PhCreateString(buffer);
+        PhDereferenceObject(string);
+        return NULL;
     }
 
-    PhFree(buffer);
+    PhTrimStringToNullTerminator(string);
 
     return string;
 }
@@ -768,10 +768,9 @@ PPH_STRING PhFormatDecimal(
     __in BOOLEAN GroupDigits
     )
 {
-    PPH_STRING string = NULL;
+    PPH_STRING string;
     NUMBERFMT format;
     ULONG bufferSize;
-    PVOID buffer;
     WCHAR decimalSeparator[4];
     WCHAR thousandSeparator[4];
 
@@ -806,21 +805,22 @@ PPH_STRING PhFormatDecimal(
         NULL,
         0
         );
-    buffer = PhAllocate(bufferSize * 2);
+    string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (GetNumberFormat(
+    if (!GetNumberFormat(
         LOCALE_USER_DEFAULT,
         0,
         Value,
         &format,
-        buffer,
+        string->Buffer,
         bufferSize
         ))
     {
-        string = PhCreateString(buffer);
+        PhDereferenceObject(string);
+        return NULL;
     }
 
-    PhFree(buffer);
+    PhTrimStringToNullTerminator(string);
 
     return string;
 }
@@ -1029,39 +1029,38 @@ PPH_STRING PhGetFullPath(
     )
 {
     PPH_STRING fullPath;
-    PVOID buffer;
     ULONG bufferSize;
     ULONG returnLength;
     PWSTR filePart;
 
     bufferSize = 0x80;
-    buffer = PhAllocate(bufferSize * 2);
+    fullPath = PhCreateStringEx(NULL, bufferSize * 2);
 
-    returnLength = RtlGetFullPathName_U(FileName, bufferSize, buffer, &filePart);
+    returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
 
     if (returnLength > bufferSize)
     {
-        PhFree(buffer);
+        PhDereferenceObject(fullPath);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize * 2);
+        fullPath = PhCreateStringEx(NULL, bufferSize * 2);
 
-        returnLength = RtlGetFullPathName_U(FileName, bufferSize, buffer, &filePart);
+        returnLength = RtlGetFullPathName_U(FileName, bufferSize, fullPath->Buffer, &filePart);
     }
 
     if (returnLength == 0)
     {
-        PhFree(buffer);
+        PhDereferenceObject(fullPath);
         return NULL;
     }
 
-    fullPath = PhCreateString(buffer);
+    PhTrimStringToNullTerminator(fullPath);
 
     if (IndexOfFileName)
     {
         if (filePart)
         {
             // The path points to a file.
-            *IndexOfFileName = (ULONG)(filePart - (PWSTR)buffer);
+            *IndexOfFileName = (ULONG)(filePart - fullPath->Buffer);
         }
         else
         {
@@ -1069,8 +1068,6 @@ PPH_STRING PhGetFullPath(
             *IndexOfFileName = -1;
         }
     }
-
-    PhFree(buffer);
 
     return fullPath;
 }
@@ -1082,49 +1079,43 @@ PPH_STRING PhExpandEnvironmentStrings(
     NTSTATUS status;
     PPH_STRING string;
     UNICODE_STRING sourceString;
-    UNICODE_STRING destinationString;
-    PVOID buffer;
     ULONG bufferLength;
 
     RtlInitUnicodeString(&sourceString, String);
 
     bufferLength = 0x40;
-    buffer = PhAllocate(bufferLength);
-    destinationString.Length = 0;
-    destinationString.MaximumLength = (USHORT)bufferLength;
-    destinationString.Buffer = buffer;
+    string = PhCreateStringEx(NULL, bufferLength);
+    string->us.Length = 0;
 
     status = RtlExpandEnvironmentStrings_U(
         NULL,
         &sourceString,
-        &destinationString, 
+        &string->us, 
         &bufferLength
         );
 
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferLength);
-        destinationString.Length = 0;
-        destinationString.MaximumLength = (USHORT)bufferLength;
-        destinationString.Buffer = buffer;
+        PhDereferenceObject(string);
+        string = PhCreateStringEx(NULL, bufferLength);
+        string->us.Length = 0;
 
         status = RtlExpandEnvironmentStrings_U(
             NULL,
             &sourceString,
-            &destinationString,
+            &string->us,
             &bufferLength
             );
     }
 
     if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        PhDereferenceObject(string);
         return NULL;
     }
 
-    string = PhCreateStringEx(destinationString.Buffer, destinationString.Length);
-    PhFree(buffer);
+    string->Buffer[string->Length / 2] = 0; // make sure there is a null terminator
+    string->us.MaximumLength = string->us.Length;
 
     return string;
 }
@@ -1153,32 +1144,30 @@ PPH_STRING PhGetBaseName(
 PPH_STRING PhGetSystemDirectory()
 {
     PPH_STRING systemDirectory;
-    PVOID buffer;
     ULONG bufferSize;
     ULONG returnLength;
 
     bufferSize = 0x40;
-    buffer = PhAllocate(bufferSize * 2);
+    systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
 
-    returnLength = GetSystemDirectory(buffer, bufferSize);
+    returnLength = GetSystemDirectory(systemDirectory->Buffer, bufferSize);
 
     if (returnLength > bufferSize)
     {
-        PhFree(buffer);
+        PhDereferenceObject(systemDirectory);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize * 2);
+        systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
 
-        returnLength = GetSystemDirectory(buffer, bufferSize);
+        returnLength = GetSystemDirectory(systemDirectory->Buffer, bufferSize);
     }
 
     if (returnLength == 0)
     {
-        PhFree(buffer);
+        PhDereferenceObject(systemDirectory);
         return NULL;
     }
 
-    systemDirectory = PhCreateString(buffer);
-    PhFree(buffer);
+    PhTrimStringToNullTerminator(systemDirectory);
 
     return systemDirectory;
 }
