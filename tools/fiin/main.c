@@ -78,7 +78,7 @@ static BOOLEAN NTAPI FiCommandLineCallback(
             FiArgForce = TRUE;
             break;
         case FI_ARG_LENGTH:
-            PhStringToInteger64(Value->Buffer, 0, (PLONG64)&FiArgLength);
+            PhStringToInteger64(&Value->sr, 0, (PLONG64)&FiArgLength);
             break;
         }
     }

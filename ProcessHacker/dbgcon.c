@@ -703,6 +703,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         {
 #ifdef DEBUG
             PWSTR objectAddress = wcstok_s(NULL, delims, &context);
+            PH_STRINGREF objectAddressString;
             ULONG64 address;
 
             if (!objectAddress)
@@ -711,7 +712,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 goto EndCommand;
             }
 
-            if (PhStringToInteger64(objectAddress, 16, &address))
+            PhInitializeStringRef(&objectAddressString, objectAddress);
+
+            if (PhStringToInteger64(&objectAddressString, 16, &address))
             {
                 PPH_OBJECT_HEADER objectHeader = (PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address);
                 PVOID stackBackTrace[16];
@@ -888,12 +891,15 @@ NTSTATUS PhpDebugConsoleThreadStart(
         else if (WSTR_IEQUAL(command, L"dumpobj"))
         {
             PWSTR addressString = wcstok_s(NULL, delims, &context);
+            PH_STRINGREF addressStringRef;
             ULONG64 address;
 
             if (!addressString)
                 goto EndCommand;
 
-            if (PhStringToInteger64(addressString, 16, &address))
+            PhInitializeStringRef(&addressStringRef, addressString);
+
+            if (PhStringToInteger64(&addressStringRef, 16, &address))
             {
                 PhpDumpObjectInfo((PPH_OBJECT_HEADER)PhObjectToObjectHeader((PVOID)address));
             }
@@ -901,12 +907,15 @@ NTSTATUS PhpDebugConsoleThreadStart(
         else if (WSTR_IEQUAL(command, L"dumpautopool"))
         {
             PWSTR addressString = wcstok_s(NULL, delims, &context);
+            PH_STRINGREF addressStringRef;
             ULONG64 address;
 
             if (!addressString)
                 goto EndCommand;
 
-            if (PhStringToInteger64(addressString, 16, &address))
+            PhInitializeStringRef(&addressStringRef, addressString);
+
+            if (PhStringToInteger64(&addressStringRef, 16, &address))
             {
                 PPH_AUTO_POOL userAutoPool = (PPH_AUTO_POOL)address;
                 ULONG i;

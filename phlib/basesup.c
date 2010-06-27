@@ -3034,41 +3034,30 @@ ULONG64 PhExponentiate64(
  * \param Integer The resulting integer.
  */
 BOOLEAN PhpStringToInteger64(
-    __in PWSTR String,
+    __in PPH_STRINGREF String,
     __in ULONG Base,
     __out PLONG64 Integer
     )
 {
     LONG64 result;
     ULONG length;
-    BOOLEAN negative = FALSE;
     ULONG i;
 
     if (Base > 70)
         return FALSE;
 
-    length = (ULONG)wcslen(String);
-
-    if (length > 0 && String[0] == '-')
-    {
-        negative = TRUE;
-        length--;
-    }
-
+    length = String->Length / sizeof(WCHAR);
     result = 0;
 
     for (i = 0; i < length; i++)
     {
         WCHAR c; 
 
-        c = towlower(String[length - i - 1]);
+        c = towlower(String->Buffer[length - i - 1]);
         result += PhpCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
     }
 
-    if (!negative)
-        *Integer = result;
-    else
-        *Integer = -result;
+    *Integer = result;
 
     return TRUE;
 }
@@ -3098,70 +3087,77 @@ BOOLEAN PhpStringToInteger64(
  * used.
  */
 BOOLEAN PhStringToInteger64(
-    __in PWSTR String,
+    __in PPH_STRINGREF String,
     __in_opt ULONG Base,
     __out PLONG64 Integer
     )
 {
     LONG64 result;
-    BOOLEAN negative = FALSE;
+    PH_STRINGREF string;
+    LONG64 sign = 1;
     ULONG base;
 
-    // If the user specified a base, don't perform any 
+    string = *String;
+
+    if (string.Length != 0 && (string.Buffer[0] == '-' || string.Buffer[0] == '+'))
+    {
+        if (string.Buffer[0] == '-')
+            sign = -1;
+
+        string.Buffer += 1;
+        string.Length -= sizeof(WCHAR);
+    }
+
+    // If the caller specified a base, don't perform any 
     // additional processing.
+
     if (Base)
-        return PhpStringToInteger64(String, Base, Integer);
-
-    // Note that we don't need to check the length of 
-    // the string, because the null terminator will take 
-    // care of things.
-
-    if (String[0] == '-')
     {
-        negative = TRUE;
-        String++;
+        base = Base;
     }
-
-    base = 10;
-
-    if (String[0] == '0')
+    else
     {
-        switch (towlower(String[1]))
+        base = 10;
+
+        if (string.Length >= 2 * sizeof(WCHAR) && string.Buffer[0] == '0')
         {
-        case 'x':
-            base = 16;
-            break;
-        case 'o':
-            base = 8;
-            break;
-        case 'b':
-            base = 2;
-            break;
-        case 't': // ternary
-            base = 3;
-            break;
-        case 'q': // quaternary
-            base = 4;
-            break;
-        case 'w': // base 12
-            base = 12;
-            break;
-        case 'r': // base 32
-            base = 32;
-            break;
-        }
+            switch (towlower(string.Buffer[1]))
+            {
+            case 'x':
+                base = 16;
+                break;
+            case 'o':
+                base = 8;
+                break;
+            case 'b':
+                base = 2;
+                break;
+            case 't': // ternary
+                base = 3;
+                break;
+            case 'q': // quaternary
+                base = 4;
+                break;
+            case 'w': // base 12
+                base = 12;
+                break;
+            case 'r': // base 32
+                base = 32;
+                break;
+            }
 
-        if (base != 10)
-            String += 2;
+            if (base != 10)
+            {
+                string.Buffer += 2;
+                string.Length -= 2 * sizeof(WCHAR);
+            }
+        }
     }
 
-    if (!PhpStringToInteger64(String, base, &result))
+    if (!PhpStringToInteger64(&string, base, &result))
         return FALSE;
 
-    if (!negative)
-        *Integer = result;
-    else
-        *Integer = -result;
+    *Integer = sign * result;
 
     return TRUE;
 }
