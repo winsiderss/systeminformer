@@ -76,10 +76,18 @@ static VOID PhpPrintObjectInfo(
     __in LONG RefToSubtract
     )
 {
+    WCHAR c = ' ';
+
     wprintf(L"%Ix", PhObjectHeaderToObject(ObjectHeader));
 
     wprintf(L"\t% 20s", ObjectHeader->Type->Name);
-    wprintf(L"\t%d", ObjectHeader->RefCount - RefToSubtract);
+
+    if (ObjectHeader->Flags & PHOBJ_FROM_SMALL_FREE_LIST)
+        c = 'f';
+    else if (ObjectHeader->Flags & PHOBJ_FROM_TYPE_FREE_LIST)
+        c = 'F';
+
+    wprintf(L"\t%4d %c", ObjectHeader->RefCount - RefToSubtract, c);
 
     if (!ObjectHeader->Type)
     {
@@ -97,14 +105,33 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
     }
+    else if (ObjectHeader->Type == PhListType)
+    {
+        wprintf(L"\tCount: %u", ((PPH_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
+    }
+    else if (ObjectHeader->Type == PhPointerListType)
+    {
+        wprintf(L"\tCount: %u", ((PPH_POINTER_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
+    }
+    else if (ObjectHeader->Type == PhQueueType)
+    {
+        wprintf(L"\tCount: %u", ((PPH_QUEUE)PhObjectHeaderToObject(ObjectHeader))->Count);
+    }
+    else if (ObjectHeader->Type == PhHashtableType)
+    {
+        wprintf(L"\tCount: %u", ((PPH_HASHTABLE)PhObjectHeaderToObject(ObjectHeader))->Count);
+    }
     else if (ObjectHeader->Type == PhProcessItemType)
     {
-        wprintf(L"\tPID: %u",
-            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessId);
+        wprintf(
+            L"\t%.28s (%Id)",
+            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessName->Buffer,
+            (ULONG)((PPH_PROCESS_ITEM)PhObjectHeaderToObject(ObjectHeader))->ProcessId
+            );
     }
     else if (ObjectHeader->Type == PhServiceItemType)
     {
-        wprintf(L"\tName: %s",
+        wprintf(L"\t%s",
             (ULONG)((PPH_SERVICE_ITEM)PhObjectHeaderToObject(ObjectHeader))->Name->Buffer);
     }
     else if (ObjectHeader->Type == PhThreadItemType)
