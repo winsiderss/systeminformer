@@ -1182,19 +1182,22 @@ NTSTATUS PhpTailQueryObjectHack(
     __out_opt PULONG ReturnLength
     )
 {
-    ULONG waitResult;
+    NTSTATUS status;
+    LARGE_INTEGER timeout;
 
     PhQueryObjectContext.Initialized = TRUE;
+
     // Allow the worker thread to start.
-    SetEvent(PhQueryObjectStartEvent);
+    NtSetEvent(PhQueryObjectStartEvent, NULL);
     // Wait for the work to complete, with a timeout of 1 second.
-    waitResult = WaitForSingleObject(PhQueryObjectCompletedEvent, 1000);
+    timeout.QuadPart = -1000 * PH_TIMEOUT_MS;
+    status = NtWaitForSingleObject(PhQueryObjectCompletedEvent, FALSE, &timeout);
+
     PhQueryObjectContext.Initialized = FALSE;
 
     // Return normally if the work was completed.
-    if (waitResult == STATUS_WAIT_0)
+    if (status == STATUS_WAIT_0)
     {
-        NTSTATUS status;
         ULONG returnLength;
 
         status = PhQueryObjectContext.Status;
@@ -1208,11 +1211,11 @@ NTSTATUS PhpTailQueryObjectHack(
         return status;
     }
     // Kill the worker thread if it took too long.
-    // else if (waitResult == WAIT_TIMEOUT)
+    // else if (status == STATUS_TIMEOUT)
     else
     {
         // Kill the thread.
-        if (TerminateThread(PhQueryObjectThreadHandle, 1))
+        if (NT_SUCCESS(NtTerminateThread(PhQueryObjectThreadHandle, STATUS_TIMEOUT)))
         {
             PhQueryObjectThreadHandle = NULL;
 
@@ -1291,7 +1294,7 @@ NTSTATUS PhpQueryObjectThreadStart(
     while (TRUE)
     {
         // Wait for work.
-        if (WaitForSingleObject(PhQueryObjectStartEvent, INFINITE) != STATUS_WAIT_0)
+        if (NtWaitForSingleObject(PhQueryObjectStartEvent, FALSE, NULL) != STATUS_WAIT_0)
             continue;
 
         // Make sure we actually have work.
@@ -1327,7 +1330,7 @@ NTSTATUS PhpQueryObjectThreadStart(
             }
 
             // Work done.
-            SetEvent(PhQueryObjectCompletedEvent);
+            NtSetEvent(PhQueryObjectCompletedEvent, NULL);
         }
     }
 

@@ -279,22 +279,33 @@ typedef struct _PH_EVENT
 
 #define PH_EVENT_INIT { PH_EVENT_REFCOUNT_INC, NULL }
 
-VOID PhInitializeEvent(
+VOID FASTCALL PhfInitializeEvent(
     __out PPH_EVENT Event
     );
 
-VOID PhSetEvent(
+#define PhSetEvent PhfSetEvent
+VOID FASTCALL PhfSetEvent(
     __inout PPH_EVENT Event
     );
 
-BOOLEAN PhWaitForEvent(
+#define PhWaitForEvent PhfWaitForEvent
+BOOLEAN FASTCALL PhfWaitForEvent(
     __inout PPH_EVENT Event,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     );
 
-VOID PhResetEvent(
+#define PhResetEvent PhfResetEvent
+VOID FASTCALL PhfResetEvent(
     __inout PPH_EVENT Event
     );
+
+FORCEINLINE VOID PhInitializeEvent(
+    __out PPH_EVENT Event
+    )
+{
+    Event->Value = PH_EVENT_REFCOUNT_INC;
+    Event->EventHandle = NULL;
+}
 
 /**
  * Determines whether an event object is set.

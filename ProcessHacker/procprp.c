@@ -4482,7 +4482,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     // Wait for stage 1 to be processed.
-    PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, INFINITE);
+    PhWaitForEvent(&PropContext->ProcessItem->Stage1Event, NULL);
     // Refresh the icon which may have been updated due to 
     // stage 1.
     PhRefreshProcessPropContext(PropContext);

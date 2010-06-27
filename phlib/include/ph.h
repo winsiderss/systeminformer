@@ -361,19 +361,19 @@ NTSTATUS PhSetProcessDepStatus(
 NTSTATUS PhSetProcessDepStatusInvasive(
     __in HANDLE ProcessHandle,
     __in ULONG DepStatus,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     );
 
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
     __in PWSTR FileName,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     );
 
 NTSTATUS PhUnloadDllProcess(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     );
 
 NTSTATUS PhGetThreadBasicInformation(
