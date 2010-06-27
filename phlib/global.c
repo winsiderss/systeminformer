@@ -113,26 +113,18 @@ NTSTATUS PhInitializePhLib()
 
 VOID PhInitializeSystemInformation()
 {
-    ULONG returnLength;
-
     if (!NT_SUCCESS(NtQuerySystemInformation(
         SystemBasicInformation,
         &PhSystemBasicInformation,
         sizeof(SYSTEM_BASIC_INFORMATION),
-        &returnLength
+        NULL
         )))
     {
-        SYSTEM_INFO systemInfo;
-
-        GetSystemInfo(&systemInfo);
-
-        PhSystemBasicInformation.Reserved = systemInfo.dwOemId;
-        PhSystemBasicInformation.PageSize = systemInfo.dwPageSize;
-        PhSystemBasicInformation.MinimumUserModeAddress = (ULONG_PTR)systemInfo.lpMinimumApplicationAddress;
-        PhSystemBasicInformation.MaximumUserModeAddress = (ULONG_PTR)systemInfo.lpMaximumApplicationAddress;
-        PhSystemBasicInformation.ActiveProcessorsAffinityMask = systemInfo.dwActiveProcessorMask;
-        PhSystemBasicInformation.NumberOfProcessors = (CCHAR)systemInfo.dwNumberOfProcessors;
-        PhSystemBasicInformation.AllocationGranularity = systemInfo.dwAllocationGranularity;
+        PhShowWarning(
+            NULL,
+            L"Unable to query basic system information. "
+            L"Some functionality may not work as expected."
+            );
     }
 }
 
@@ -152,14 +144,25 @@ BOOLEAN PhInitializeSystem()
 
 VOID PhInitializeWindowsVersion()
 {
-    OSVERSIONINFOEX version;
+    RTL_OSVERSIONINFOEXW versionInfo;
     ULONG majorVersion;
     ULONG minorVersion;
 
-    version.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-    GetVersionEx((POSVERSIONINFO)&version);
-    majorVersion = version.dwMajorVersion;
-    minorVersion = version.dwMinorVersion;
+    versionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
+
+    if (!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&versionInfo)))
+    {
+        PhShowWarning(
+            NULL,
+            L"Unable to determine the Windows version. "
+            L"Some functionality may not work as expected."
+            );
+        WindowsVersion = WINDOWS_NEW;
+        return;
+    }
+
+    majorVersion = versionInfo.dwMajorVersion;
+    minorVersion = versionInfo.dwMinorVersion;
 
     if (majorVersion == 5 && minorVersion < 1 || majorVersion < 5)
     {

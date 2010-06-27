@@ -21,7 +21,7 @@
 
 #define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
 
-#define PH_TICKS_PER_NS ((LONGLONG)1 * 10)
+#define PH_TICKS_PER_NS ((LONG64)1 * 10)
 #define PH_TICKS_PER_MS (PH_TICKS_PER_NS * 1000)
 #define PH_TICKS_PER_SEC (PH_TICKS_PER_MS * 1000)
 #define PH_TICKS_PER_MIN (PH_TICKS_PER_SEC * 60)
@@ -39,7 +39,7 @@
 
 #define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
 
-#define PhRaiseStatus(Status) RaiseException(Status, 0, 0, NULL)
+#define PhRaiseStatus(Status) RtlRaiseStatus(Status)
 
 // Annotations
 
@@ -313,6 +313,19 @@ FORCEINLINE VOID PhProbeAddress(
             )
             PhRaiseStatus(STATUS_ACCESS_VIOLATION);
     }
+}
+
+FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
+    __out PLARGE_INTEGER Timeout,
+    __in ULONG Milliseconds
+    )
+{
+    if (Milliseconds == INFINITE)
+        return NULL;
+
+    Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
+
+    return Timeout;
 }
 
 #ifdef _M_IX86

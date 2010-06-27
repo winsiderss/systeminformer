@@ -1552,7 +1552,9 @@ BOOLEAN PhShellExecuteEx(
         {
             if (!(Flags & PH_SHELL_EXECUTE_PUMP_MESSAGES))
             {
-                WaitForSingleObject(info.hProcess, Timeout);
+                LARGE_INTEGER timeout;
+
+                NtWaitForSingleObject(info.hProcess, FALSE, PhTimeoutFromMilliseconds(&timeout, Timeout));
             }
             else
             {

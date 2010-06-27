@@ -291,6 +291,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     WINTRUST_CATALOG_INFO catalogInfo = { 0 };
     GUID driverActionVerify = DRIVER_ACTION_VERIFY;
     HANDLE fileHandle;
+    LARGE_INTEGER fileSize;
     PBYTE fileHash = NULL;
     ULONG fileHashLength;
     PWSTR fileHashTag = NULL;
@@ -311,8 +312,9 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     if (fileHandle == INVALID_HANDLE_VALUE)
         return VrNoSignature;
 
-    // Don't try to hash files over 64 MB in size.
-    if (GetFileSize(fileHandle, NULL) > 64 * 1024 * 1024)
+    // Don't try to hash files over 32 MB in size.
+    if (!NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) ||
+        (fileSize.QuadPart > 32 * 1024 * 1024))
     {
         NtClose(fileHandle);
         return VrNoSignature;

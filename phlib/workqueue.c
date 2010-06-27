@@ -159,6 +159,7 @@ NTSTATUS PhpWorkQueueThreadStart(
     while (TRUE)
     {
         NTSTATUS status;
+        LARGE_INTEGER timeout;
         PPH_WORK_QUEUE_ITEM workQueueItem = NULL;
 
         // Check if we have more threads than the limit.
@@ -186,7 +187,11 @@ NTSTATUS PhpWorkQueueThreadStart(
         }
 
         // Wait for work.
-        status = (NTSTATUS)WaitForSingleObject(workQueue->SemaphoreHandle, workQueue->NoWorkTimeout);
+        status = NtWaitForSingleObject(
+            workQueue->SemaphoreHandle,
+            FALSE,
+            PhTimeoutFromMilliseconds(&timeout, workQueue->NoWorkTimeout)
+            );
 
         if (workQueue->Terminating)
         {

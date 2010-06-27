@@ -1116,10 +1116,13 @@ BOOLEAN PhUiInjectDllProcess(
         Process->ProcessId
         )))
     {
+        LARGE_INTEGER timeout;
+
+        timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
         status = PhInjectDllProcess(
             processHandle,
             fileName->Buffer,
-            5000
+            &timeout
             );
 
         NtClose(processHandle);
@@ -1285,9 +1288,16 @@ BOOLEAN PhUiSetDepStatusProcess(
             )))
         {
             if (PhKphHandle)
+            {
                 status = PhSetProcessDepStatus(processHandle, depStatus);
+            }
             else
-                status = PhSetProcessDepStatusInvasive(processHandle, depStatus, 5000);
+            {
+                LARGE_INTEGER timeout;
+
+                timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+                status = PhSetProcessDepStatusInvasive(processHandle, depStatus, &timeout);
+            }
 
             NtClose(processHandle);
         }
@@ -1924,10 +1934,13 @@ BOOLEAN PhUiUnloadModule(
             ProcessId
             )))
         {
+            LARGE_INTEGER timeout;
+
+            timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
             status = PhUnloadDllProcess(
                 processHandle,
                 Module->BaseAddress,
-                5000
+                &timeout
                 );
 
             NtClose(processHandle);
