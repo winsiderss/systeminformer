@@ -16,6 +16,10 @@
  * GNU General Public License for more details.
  */
 
+// This release of Mini-XML has been modified for Process Hacker in the following ways:
+// * Memory allocations are done through Process Hacker's PhAllocate*/PhFree* functions.
+// * The file descriptor functions now use file handles.
+
 /*
  * Prevent multiple inclusion...
  */
@@ -216,7 +220,7 @@ extern mxml_node_t	*mxmlIndexFind(mxml_index_t *ind,
 extern mxml_index_t	*mxmlIndexNew(mxml_node_t *node, const char *element,
 			              const char *attr);
 extern mxml_node_t	*mxmlIndexReset(mxml_index_t *ind);
-extern mxml_node_t	*mxmlLoadFd(mxml_node_t *top, int fd,
+extern mxml_node_t	*mxmlLoadFd(mxml_node_t *top, HANDLE fd,
 			            mxml_type_t (*cb)(mxml_node_t *));
 extern mxml_node_t	*mxmlLoadFile(mxml_node_t *top, FILE *fp,
 			              mxml_type_t (*cb)(mxml_node_t *));
@@ -243,13 +247,13 @@ extern void		mxmlRemove(mxml_node_t *node);
 extern int		mxmlRetain(mxml_node_t *node);
 extern char		*mxmlSaveAllocString(mxml_node_t *node,
 			        	     mxml_save_cb_t cb);
-extern int		mxmlSaveFd(mxml_node_t *node, int fd,
+extern int		mxmlSaveFd(mxml_node_t *node, HANDLE fd,
 			           mxml_save_cb_t cb);
 extern int		mxmlSaveFile(mxml_node_t *node, FILE *fp,
 			             mxml_save_cb_t cb);
 extern int		mxmlSaveString(mxml_node_t *node, char *buffer,
 			               int bufsize, mxml_save_cb_t cb);
-extern mxml_node_t	*mxmlSAXLoadFd(mxml_node_t *top, int fd,
+extern mxml_node_t	*mxmlSAXLoadFd(mxml_node_t *top, HANDLE fd,
 			               mxml_type_t (*cb)(mxml_node_t *),
 			               mxml_sax_cb_t sax, void *sax_data);
 extern mxml_node_t	*mxmlSAXLoadFile(mxml_node_t *top, FILE *fp,

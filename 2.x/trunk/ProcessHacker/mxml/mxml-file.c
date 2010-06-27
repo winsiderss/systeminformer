@@ -84,7 +84,7 @@ typedef int (*_mxml_putc_cb_t)(int, void *);
 
 typedef struct _mxml_fdbuf_s		/**** File descriptor buffer ****/
 {
-  int		fd;			/* File descriptor */
+  HANDLE		fd;			/* File descriptor */
   unsigned char	*current,		/* Current position in buffer */
 		*end,			/* End of buffer */
 		buffer[8192];		/* Character buffer */
@@ -150,7 +150,7 @@ static int		mxml_write_ws(mxml_node_t *node, void *p,
 
 mxml_node_t *				/* O - First node or NULL if the file could not be read. */
 mxmlLoadFd(mxml_node_t    *top,		/* I - Top node */
-           int            fd,		/* I - File descriptor to read from */
+           HANDLE         fd,		/* I - File descriptor to read from */
            mxml_load_cb_t cb)		/* I - Callback function or MXML_NO_CALLBACK */
 {
   _mxml_fdbuf_t	buf;			/* File descriptor buffer */
@@ -304,7 +304,7 @@ mxmlSaveAllocString(
 
 int					/* O - 0 on success, -1 on error. */
 mxmlSaveFd(mxml_node_t    *node,	/* I - Node to write */
-           int            fd,		/* I - File descriptor to write to */
+           HANDLE         fd,		/* I - File descriptor to write to */
 	   mxml_save_cb_t cb)		/* I - Whitespace callback or MXML_NO_CALLBACK */
 {
   int		col;			/* Final column */
@@ -459,7 +459,7 @@ mxmlSaveString(mxml_node_t    *node,	/* I - Node to write */
 
 mxml_node_t *				/* O - First node or NULL if the file could not be read. */
 mxmlSAXLoadFd(mxml_node_t    *top,	/* I - Top node */
-              int            fd,	/* I - File descriptor to read from */
+              HANDLE         fd,	/* I - File descriptor to read from */
               mxml_load_cb_t cb,	/* I - Callback function or MXML_NO_CALLBACK */
               mxml_sax_cb_t  sax_cb,	/* I - SAX callback or MXML_NO_CALLBACK */
               void           *sax_data)	/* I - SAX user data */
@@ -1035,86 +1035,51 @@ mxml_fd_putc(int  ch,			/* I - Character */
 /*
  * 'mxml_fd_read()' - Read a buffer of data from a file descriptor.
  */
+/* wj32: modified to use file handles */
 
 static int				/* O - 0 on success, -1 on error */
 mxml_fd_read(_mxml_fdbuf_t *buf)		/* I - File descriptor buffer */
 {
-  int	bytes;				/* Bytes read... */
+    IO_STATUS_BLOCK isb;
 
+    if (!buf)
+        return -1;
 
- /*
-  * Range check input...
-  */
+    if (!NT_SUCCESS(NtReadFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, sizeof(buf->buffer), NULL, NULL)))
+        return -1;
 
-  if (!buf)
-    return (-1);
+    if (isb.Information == 0) // check bytes read
+        return -1;
 
- /*
-  * Read from the file descriptor...
-  */
+    buf->current = buf->buffer;
+    buf->end = buf->buffer + isb.Information;
 
-  while ((bytes = _lread(buf->fd, buf->buffer, sizeof(buf->buffer))) < 0)
-#ifdef EINTR
-    if (errno != EAGAIN && errno != EINTR)
-#else
-    if (errno != EAGAIN)
-#endif /* EINTR */
-      return (-1);
-
-  if (bytes == 0)
-    return (-1);
-
- /*
-  * Update the pointers and return success...
-  */
-
-  buf->current = buf->buffer;
-  buf->end     = buf->buffer + bytes;
-
-  return (0);
+    return 0;
 }
 
 
 /*
  * 'mxml_fd_write()' - Write a buffer of data to a file descriptor.
  */
+/* wj32: modified to use file handles */
 
 static int				/* O - 0 on success, -1 on error */
 mxml_fd_write(_mxml_fdbuf_t *buf)	/* I - File descriptor buffer */
 {
-  int		bytes;			/* Bytes written */
-  unsigned char	*ptr;			/* Pointer into buffer */
+    IO_STATUS_BLOCK isb;
 
+    if (!buf)
+        return 1;
 
- /*
-  * Range check...
-  */
+    if (buf->current == buf->buffer)
+        return 0;
 
-  if (!buf)
-    return (-1);
+    if (!NT_SUCCESS(NtWriteFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, buf->current - buf->buffer, NULL, NULL)))
+        return -1;
 
- /*
-  * Return 0 if there is nothing to write...
-  */
+    buf->current = buf->buffer;
 
-  if (buf->current == buf->buffer)
-    return (0);
-
- /*
-  * Loop until we have written everything...
-  */
-
-  for (ptr = buf->buffer; ptr < buf->current; ptr += bytes)
-    if ((bytes = _lwrite(buf->fd, ptr, (UINT)(buf->current - ptr))) < 0)
-      return (-1);
-
- /*
-  * All done, reset pointers and return success...
-  */
-
-  buf->current = buf->buffer;
-
-  return (0);
+    return 0;
 }
 
 
