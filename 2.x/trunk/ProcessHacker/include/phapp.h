@@ -414,6 +414,13 @@ VOID PhShowDebugConsole();
 
 // actions
 
+typedef enum _PH_ACTION_ELEVATION_LEVEL
+{
+    NeverElevateAction = 0,
+    PromptElevateAction = 1,
+    AlwaysElevateAction = 2
+} PH_ACTION_ELEVATION_LEVEL;
+
 BOOLEAN PhUiLockComputer(
     __in HWND hWnd
     );

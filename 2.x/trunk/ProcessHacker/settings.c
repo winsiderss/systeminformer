@@ -48,6 +48,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");

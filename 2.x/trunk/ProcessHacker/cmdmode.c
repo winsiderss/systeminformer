@@ -87,6 +87,80 @@ NTSTATUS PhCommandModeStart()
                 );
         }
     }
+    else if (PhStringEquals2(PhStartupParameters.CommandType, L"service", TRUE))
+    {
+        SC_HANDLE serviceHandle;
+        SERVICE_STATUS serviceStatus;
+
+        if (!PhStartupParameters.CommandObject)
+            return STATUS_INVALID_PARAMETER;
+
+        if (PhStringEquals2(PhStartupParameters.CommandAction, L"start", TRUE))
+        {
+            if (!(serviceHandle = PhOpenService(
+                PhStartupParameters.CommandObject->Buffer,
+                SERVICE_START
+                )))
+                return NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (!StartService(serviceHandle, 0, NULL))
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            CloseServiceHandle(serviceHandle);
+        }
+        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"continue", TRUE))
+        {
+            if (!(serviceHandle = PhOpenService(
+                PhStartupParameters.CommandObject->Buffer,
+                SERVICE_PAUSE_CONTINUE
+                )))
+                return NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (!ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            CloseServiceHandle(serviceHandle);
+        }
+        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"pause", TRUE))
+        {
+            if (!(serviceHandle = PhOpenService(
+                PhStartupParameters.CommandObject->Buffer,
+                SERVICE_PAUSE_CONTINUE
+                )))
+                return NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (!ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            CloseServiceHandle(serviceHandle);
+        }
+        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"stop", TRUE))
+        {
+            if (!(serviceHandle = PhOpenService(
+                PhStartupParameters.CommandObject->Buffer,
+                SERVICE_STOP
+                )))
+                return NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            CloseServiceHandle(serviceHandle);
+        }
+        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"delete", TRUE))
+        {
+            if (!(serviceHandle = PhOpenService(
+                PhStartupParameters.CommandObject->Buffer,
+                DELETE
+                )))
+                return NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (!DeleteService(serviceHandle))
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            CloseServiceHandle(serviceHandle);
+        }
+    }
 
     return status;
 }
