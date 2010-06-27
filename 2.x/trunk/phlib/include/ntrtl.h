@@ -3912,6 +3912,24 @@ RtlAddIntegrityLabelToBoundaryDescriptor(
 
 #endif
 
+// Version
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetVersion(
+    __out PRTL_OSVERSIONINFOW lpVersionInformation
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlVerifyVersionInfo(
+    __in PRTL_OSVERSIONINFOEXW VersionInfo,
+    __in ULONG TypeMask,
+    __in ULONGLONG ConditionMask
+    );
+
 // Misc.
 
 NTSYSAPI

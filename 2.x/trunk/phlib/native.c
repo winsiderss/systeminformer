@@ -1707,7 +1707,7 @@ NTSTATUS PhSetProcessDepStatus(
 NTSTATUS PhSetProcessDepStatusInvasive(
     __in HANDLE ProcessHandle,
     __in ULONG DepStatus,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -1762,7 +1762,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
         return status;
 
     // Wait for the thread to finish.
-    WaitForSingleObject(threadHandle, Timeout);
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
     NtClose(threadHandle);
 
     return status;
@@ -1785,7 +1785,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
     __in PWSTR FileName,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -1851,7 +1851,7 @@ NTSTATUS PhInjectDllProcess(
     }
 
     // Wait for the thread to finish.
-    WaitForSingleObject(threadHandle, Timeout);
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
     NtClose(threadHandle);
 
 FreeExit:
@@ -1880,7 +1880,7 @@ FreeExit:
 NTSTATUS PhUnloadDllProcess(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in ULONG Timeout
+    __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
@@ -1930,7 +1930,9 @@ NTSTATUS PhUnloadDllProcess(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (WaitForSingleObject(threadHandle, Timeout) == STATUS_WAIT_0)
+    status = NtWaitForSingleObject(threadHandle, FALSE, Timeout);
+
+    if (status == STATUS_WAIT_0)
     {
         status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
 
@@ -1941,10 +1943,6 @@ NTSTATUS PhUnloadDllProcess(
             else
                 status = basicInfo.ExitStatus != 0 ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
         }
-    }
-    else
-    {
-        status = STATUS_TIMEOUT;
     }
 
     NtClose(threadHandle);

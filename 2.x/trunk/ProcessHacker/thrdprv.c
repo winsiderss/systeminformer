@@ -485,7 +485,7 @@ NTSTATUS PhpThreadQueryWorker(
 
     // We can't resolve the start address until symbols have 
     // been loaded.
-    PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, INFINITE);
+    PhWaitForEvent(&data->ThreadProvider->SymbolsLoadedEvent, NULL);
 
     data->StartAddressString = PhGetSymbolFromAddress(
         data->ThreadProvider->SymbolProvider,
@@ -853,7 +853,7 @@ VOID PhThreadProviderUpdate(
             threadItem->PriorityWin32 = GetThreadPriority(threadItem->ThreadHandle);
             threadItem->PriorityWin32String = PhGetThreadPriorityWin32String(threadItem->PriorityWin32);
 
-            if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
+            if (PhTestEvent(&threadProvider->SymbolsLoadedEvent))
             {
                 threadItem->StartAddressString = PhpGetThreadBasicStartAddress(
                     threadProvider,
@@ -925,7 +925,7 @@ VOID PhThreadProviderUpdate(
             // tried to get the start address. Try again.
             if (threadItem->StartAddressResolveLevel == PhsrlAddress)
             {
-                if (PhWaitForEvent(&threadProvider->SymbolsLoadedEvent, 0))
+                if (PhTestEvent(&threadProvider->SymbolsLoadedEvent))
                 {
                     PPH_STRING newStartAddressString;
 

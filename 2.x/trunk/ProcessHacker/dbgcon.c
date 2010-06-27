@@ -426,7 +426,7 @@ static VOID PhpTestRwLock(
     }
 
     PhStartStopwatch(&stopwatch);
-    WaitForMultipleObjects(RW_PROCESSORS, threadHandles, TRUE, INFINITE);
+    NtWaitForMultipleObjects(RW_PROCESSORS, threadHandles, WaitAll, FALSE, NULL);
     PhStopStopwatch(&stopwatch);
 
     for (i = 0; i < RW_PROCESSORS; i++)

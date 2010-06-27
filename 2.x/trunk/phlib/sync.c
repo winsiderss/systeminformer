@@ -22,6 +22,178 @@
 
 #include <phbase.h>
 
+/**
+ * Initializes an event object.
+ *
+ * \param Event A pointer to an event object.
+ */
+VOID FASTCALL PhfInitializeEvent(
+    __out PPH_EVENT Event
+    )
+{
+    Event->Value = PH_EVENT_REFCOUNT_INC;
+    Event->EventHandle = NULL;
+}
+
+FORCEINLINE VOID PhpDereferenceEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    ULONG value;
+
+    value = _InterlockedExchangeAdd(&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
+
+    // See if the reference count has become 0.
+    if ((value >> PH_EVENT_REFCOUNT_SHIFT) == 0)
+    {
+        if (Event->EventHandle)
+        {
+            NtClose(Event->EventHandle);
+            Event->EventHandle = NULL;
+        }
+    }
+}
+
+FORCEINLINE VOID PhpReferenceEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    _InterlockedExchangeAdd(&Event->Value, PH_EVENT_REFCOUNT_INC);
+}
+
+/**
+ * Sets an event object.
+ * Any threads waiting on the event will be released.
+ *
+ * \param Event A pointer to an event object.
+ *
+ * \remarks This function is thread-safe with regards to
+ * calls to PhSetEvent() and PhWaitForEvent().
+ */
+VOID FASTCALL PhfSetEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    ULONG value;
+    HANDLE eventHandle;
+
+    // Try to set the bit.
+    do
+    {
+        value = Event->Value;
+
+        // Has the event already been set?
+        if (value & PH_EVENT_SET)
+            return;
+    } while (_InterlockedCompareExchange(
+        &Event->Value,
+        value + PH_EVENT_SET,
+        value
+        ) != value);
+
+    // Do an up-to-date read.
+    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
+
+    if (eventHandle)
+    {
+        NtSetEvent(eventHandle, NULL);
+    }
+
+    PhpDereferenceEvent(Event);
+}
+
+/**
+ * Waits for an event object to be set.
+ *
+ * \param Event A pointer to an event object.
+ * \param Timeout The timeout value.
+ *
+ * \return TRUE if the event object was set before the 
+ * timeout period expired, otherwise FALSE.
+ *
+ * \remarks This function is thread-safe with regards to
+ * calls to PhSetEvent() and PhWaitForEvent(). To test 
+ * the event, use PhTestEvent() instead of using a timeout 
+ * of zero.
+ */
+BOOLEAN FASTCALL PhfWaitForEvent(
+    __inout PPH_EVENT Event,
+    __in_opt PLARGE_INTEGER Timeout
+    )
+{
+    BOOLEAN result;
+    ULONG value;
+    HANDLE eventHandle;
+
+    value = Event->Value;
+
+    // Shortcut: if the event is set, return immediately.
+    if (value & PH_EVENT_SET)
+        return TRUE;
+
+    // Shortcut: if the timeout is 0, return immediately 
+    // if the event isn't set.
+    if (Timeout && Timeout->QuadPart == 0)
+        return FALSE;
+
+    // Prevent the event from being invalidated.
+    PhpReferenceEvent(Event);
+
+    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
+
+    // Don't bother creating an event if we already have one.
+    if (!eventHandle)
+    {
+        NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+        assert(eventHandle);
+
+        // Try to set the event handle to our event.
+        if (_InterlockedCompareExchangePointer(
+            &Event->EventHandle,
+            eventHandle,
+            NULL
+            ) != NULL)
+        {
+            // Someone else set the event before we did.
+            NtClose(eventHandle);
+        }
+    }
+
+    // Essential: check the event one last time to see if 
+    // it is set.
+    if (!(*(volatile ULONG *)(&Event->Value) & PH_EVENT_SET))
+    {
+        result = NtWaitForSingleObject(Event->EventHandle, FALSE, Timeout) == STATUS_WAIT_0;
+    }
+    else
+    {
+        result = TRUE;
+    }
+
+    PhpDereferenceEvent(Event);
+
+    return result;
+}
+
+/**
+ * Resets an event's state.
+ *
+ * \param Event A pointer to an event object.
+ *
+ * \remarks This function is not thread-safe.
+ * Make sure no other threads are using the 
+ * event when you call this function.
+ */
+VOID FASTCALL PhfResetEvent(
+    __inout PPH_EVENT Event
+    )
+{
+    assert(!Event->EventHandle);
+
+    if (PhTestEvent(Event))
+        Event->Value = PH_EVENT_REFCOUNT_INC;
+}
+
 VOID FASTCALL PhfInitializeRundownProtection(
     __out PPH_RUNDOWN_PROTECT Protection
     )
@@ -139,7 +311,7 @@ VOID FASTCALL PhfWaitForRundownProtection(
             ) == value)
         {
             if (count != 0)
-                PhWaitForEvent(&waitBlock.WakeEvent, INFINITE);
+                PhWaitForEvent(&waitBlock.WakeEvent, NULL);
 
             break;
         }
@@ -180,7 +352,7 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
     case PH_INITONCE_INITIALIZED:
         return FALSE;
     case PH_INITONCE_INITIALIZING:
-        PhWaitForEvent(&InitOnce->WakeEvent, INFINITE);
+        PhWaitForEvent(&InitOnce->WakeEvent, NULL);
         return FALSE;
     default:
         assert(FALSE);
