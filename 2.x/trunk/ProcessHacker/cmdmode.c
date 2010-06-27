@@ -41,7 +41,7 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
         switch (Option->Id)
         {
         case PH_COMMAND_OPTION_HWND:
-            if (PhStringToInteger64(Value->Buffer, 10, &integer))
+            if (PhStringToInteger64(&Value->sr, 10, &integer))
                 CommandModeWindowHandle = (HWND)integer;
             break;
         case PH_COMMAND_OPTION_RUNASSERVICENAME:

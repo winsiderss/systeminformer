@@ -431,7 +431,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     PhLowerString(SearchString);
 
     // Try to get a search pointer from the search string.
-    useSearchPointer = PhStringToInteger64(SearchString->Buffer, 0, &searchPointer);
+    useSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &searchPointer);
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {

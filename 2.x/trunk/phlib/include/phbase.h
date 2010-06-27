@@ -1897,7 +1897,7 @@ ULONG64 PhExponentiate64(
     );
 
 BOOLEAN PhStringToInteger64(
-    __in PWSTR String,
+    __in PPH_STRINGREF String,
     __in_opt ULONG Base,
     __out PLONG64 Integer
     );

@@ -924,15 +924,15 @@ BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
             PhSwapReference(&RunAsServiceParameters.FileName, Value);
             break;
         case PH_RUNAS_OPTION_LOGONTYPE:
-            if (PhStringToInteger64(Value->Buffer, 10, &integer))
+            if (PhStringToInteger64(&Value->sr, 10, &integer))
                 RunAsServiceParameters.LogonType = (ULONG)integer;
             break;
         case PH_RUNAS_OPTION_SESSIONID:
-            if (PhStringToInteger64(Value->Buffer, 10, &integer))
+            if (PhStringToInteger64(&Value->sr, 10, &integer))
                 RunAsServiceParameters.SessionId = (ULONG)integer;
             break;
         case PH_RUNAS_OPTION_PROCESSID:
-            if (PhStringToInteger64(Value->Buffer, 10, &integer))
+            if (PhStringToInteger64(&Value->sr, 10, &integer))
                 RunAsServiceParameters.ProcessId = (ULONG)integer;
             break;
         case PH_RUNAS_OPTION_ERRORMAILSLOT:
