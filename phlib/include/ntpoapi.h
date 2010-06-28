@@ -35,6 +35,7 @@ typedef struct _SYSTEM_POWER_STATE_CONTEXT
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+/** \cond NEVER */ // disable doxygen warning
 // wdm
 typedef struct _COUNTED_REASON_CONTEXT
 {
@@ -52,6 +53,7 @@ typedef struct _COUNTED_REASON_CONTEXT
         UNICODE_STRING SimpleString;
     };
 } COUNTED_REASON_CONTEXT, *PCOUNTED_REASON_CONTEXT;
+/** \endcond */
 #endif
 
 typedef enum
