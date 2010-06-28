@@ -72,19 +72,33 @@ PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 
 static ULONG PhpCharToInteger[] =
 {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 37, 38, 39, 40, 41,
-    42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 52,
-    53, 54, 55, 56, 57, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 59, 60, 61, 62, 63, 64, 10, 11, 12, 13, 14,
-    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-    33, 34, 35, 65, 66, 67, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0 - 15 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 16 - 31 */
+    36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, /* ' ' - '/' */
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, /* '0' - '9' */
+    52, 53, 54, 55, 56, 57, 58, /* ':' - '@' */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 'A' - 'Z' */
+    59, 60, 61, 62, 63, 64, /* '[' - '`' */
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, /* 'a' - 'z' */
+    65, 66, 67, 68, 0, /* '{' - 127 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 128 - 143 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 144 - 159 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 160 - 175 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 176 - 191 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 192 - 207 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 208 - 223 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 224 - 239 */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 240 - 255 */
 };
+
+static CHAR PhpIntegerToChar[] =
+"0123456789" /* 0 - 9 */
+"abcdefghijklmnopqrstuvwxyz" /* 10 - 35 */
+" !\"#$%&'()*+,-./" /* 36 - 51 */
+":;<=>?@" /* 52 - 58 */
+"[\\]^_`" /* 59 - 64 */
+"{|}~" /* 65 - 68 */
+;
 
 static ULONG PhpPrimeNumbers[] =
 {
@@ -3008,7 +3022,7 @@ ULONG PhLog2(
  * \param String The string to process.
  * \param Base The base which the string uses to 
  * represent the integer. The maximum value is 
- * 70.
+ * 69.
  * \param Integer The resulting integer.
  */
 BOOLEAN PhpStringToInteger64(
@@ -3020,9 +3034,6 @@ BOOLEAN PhpStringToInteger64(
     LONG64 result;
     ULONG length;
     ULONG i;
-
-    if (Base > 70)
-        return FALSE;
 
     length = String->Length / sizeof(WCHAR);
     result = 0;
@@ -3046,7 +3057,7 @@ BOOLEAN PhpStringToInteger64(
  * \param String The string to process.
  * \param Base The base which the string uses to 
  * represent the integer. The maximum value is 
- * 70. If the parameter is 0, the base is inferred 
+ * 69. If the parameter is 0, the base is inferred 
  * from the string.
  * \param Integer The resulting integer.
  *
@@ -3074,6 +3085,9 @@ BOOLEAN PhStringToInteger64(
     PH_STRINGREF string;
     LONG64 sign = 1;
     ULONG base;
+
+    if (Base > 69)
+        return FALSE;
 
     string = *String;
 
@@ -3138,6 +3152,146 @@ BOOLEAN PhStringToInteger64(
     *Integer = sign * result;
 
     return TRUE;
+}
+
+/**
+ * Converts an integer to a string.
+ *
+ * \param Integer The integer to process.
+ * \param Base The base which the integer is 
+ * represented with. The maximum value is 
+ * 69. The base cannot be 1.
+ * \param Prefix A character to add to the 
+ * beginning of the string, except when \a Integer 
+ * is 0.
+ *
+ * \return The resulting string.
+ */
+PPH_STRING PhpIntegerToString64(
+    __in ULONG64 Integer,
+    __in ULONG Base,
+    __in_opt WCHAR Prefix
+    )
+{
+    PPH_STRING string;
+    ULONG allocatedLength;
+    ULONG shift;
+    ULONG mask;
+
+    if (Integer == 0)
+        return PhCreateString(L"0");
+
+    allocatedLength = 16 * sizeof(WCHAR);
+    string = PhCreateStringEx(NULL, allocatedLength);
+    string->Length = 0;
+
+    // For power-of-two bases we can use optimized arithmetic.
+    switch (Base)
+    {
+    case 2:
+        shift = 1;
+    case 4:
+        shift = 2;
+    case 8:
+        shift = 3;
+    case 16:
+        shift = 4;
+    case 32:
+        shift = 5;
+    case 64:
+        shift = 6;
+    default:
+        shift = 0;
+    }
+
+    if (shift)
+        mask = Base - 1;
+
+    while (Integer)
+    {
+        ULONG64 r;
+
+        if (shift)
+        {
+            r = Integer & mask;
+            Integer >>= shift;
+        }
+        else
+        {
+            r = Integer % Base;
+            Integer /= Base;
+        }
+
+        // Resize the string if necessary.
+        if (string->Length == allocatedLength - sizeof(WCHAR)) // ensure there is space for the prefix
+        {
+            PPH_STRING newString;
+
+            allocatedLength *= 2;
+            newString = PhCreateStringEx(NULL, allocatedLength);
+            memcpy(newString->Buffer, string->Buffer, string->Length);
+            newString->Length = string->Length;
+
+            PhDereferenceObject(string);
+            string = newString;
+        }
+
+        string->Buffer[string->Length / sizeof(WCHAR)] = PhpIntegerToChar[(ULONG)r];
+        string->Length += sizeof(WCHAR);
+    }
+
+    // Add the prefix if necessary.
+    if (Prefix)
+    {
+        string->Buffer[string->Length / sizeof(WCHAR)] = Prefix;
+        string->Length += sizeof(WCHAR);
+    }
+
+    // Reverse the string.
+    PhReverseStringRef(&string->sr);
+    // Null-terminate the string.
+    string->Buffer[string->Length / sizeof(WCHAR)] = 0;
+
+    return string;
+}
+
+/**
+ * Converts an integer to a string.
+ *
+ * \param Integer The integer to process.
+ * \param Base The base which the integer is 
+ * represented with. The maximum value is 
+ * 69. The base cannot be 1. If the parameter is 0,
+ * the base used is 10.
+ * \param Signed TRUE if \a Integer is a signed value, 
+ * otherwise FALSE.
+ *
+ * \return The resulting string, or NULL if an error 
+ * occurred.
+ */
+PPH_STRING PhIntegerToString64(
+    __in LONG64 Integer,
+    __in_opt ULONG Base,
+    __in BOOLEAN Signed
+    )
+{
+    WCHAR prefix;
+
+    if (Base == 1 || Base > 69)
+        return NULL;
+
+    if (!Base)
+        Base = 10;
+
+    prefix = 0;
+
+    if (Signed && Integer < 0)
+    {
+        prefix = '-';
+        Integer = -Integer;
+    }
+
+    return PhpIntegerToString64(Integer, Base, prefix);
 }
 
 VOID PhPrintTimeSpan(
