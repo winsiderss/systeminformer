@@ -596,8 +596,29 @@ FORCEINLINE BOOLEAN PhStringRefStartsWith(
         return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
 }
 
+FORCEINLINE VOID PhReverseStringRef(
+    __in PPH_STRINGREF String
+    )
+{
+    ULONG i;
+    ULONG j;
+    WCHAR t;
+
+    for (i = 0, j = String->Length / sizeof(WCHAR) - 1; i <= j; i++, j--)
+    {
+        t = String->Buffer[i];
+        String->Buffer[i] = String->Buffer[j];
+        String->Buffer[j] = t;
+    }
+}
+
 /**
  * A Unicode string object.
+ *
+ * \remarks The \a Length never includes the null terminator. Every 
+ * string must have a null terminator at the end, for compatibility 
+ * reasons. Thus the invariant is:
+ * \code Buffer[Length / sizeof(WCHAR)] = 0 \endcode
  */
 typedef struct _PH_STRING
 {
@@ -1891,6 +1912,12 @@ BOOLEAN PhStringToInteger64(
     __in PPH_STRINGREF String,
     __in_opt ULONG Base,
     __out PLONG64 Integer
+    );
+
+PPH_STRING PhIntegerToString64(
+    __in LONG64 Integer,
+    __in_opt ULONG Base,
+    __in BOOLEAN Signed
     );
 
 #define PH_TIMESPAN_STR_LEN 30
