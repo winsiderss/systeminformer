@@ -1218,27 +1218,33 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->CpuDataCount = 0;
             performanceContext->CpuDataValid = FALSE;
             performanceContext->CpuText = NULL;
+            performanceContext->CpuTooltipText = NULL;
 
             performanceContext->PrivateBytesData = NULL;
             performanceContext->PrivateBytesDataCount = 0;
             performanceContext->PrivateBytesDataValid = FALSE;
             performanceContext->PrivateBytesText = NULL;
+            performanceContext->PrivateBytesTooltipText = NULL;
 
             performanceContext->IoReadOtherData = NULL;
             performanceContext->IoWriteData = NULL;
             performanceContext->IoDataCount = 0;
             performanceContext->IoDataValid = FALSE;
             performanceContext->IoText = NULL;
+            performanceContext->IoTooltipText = NULL;
 
             performanceContext->CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
+            Graph_SetTooltip(performanceContext->CpuGraphHandle, TRUE);
             ShowWindow(performanceContext->CpuGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->CpuGraphHandle);
 
             performanceContext->PrivateBytesGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PRIVATEBYTES);
+            Graph_SetTooltip(performanceContext->PrivateBytesGraphHandle, TRUE);
             ShowWindow(performanceContext->PrivateBytesGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->PrivateBytesGraphHandle);
 
             performanceContext->IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
             ShowWindow(performanceContext->IoGraphHandle, SW_SHOW);
             BringWindowToTop(performanceContext->IoGraphHandle);
         }
@@ -1248,13 +1254,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             if (performanceContext->CpuKernelData) PhFree(performanceContext->CpuKernelData);
             if (performanceContext->CpuUserData) PhFree(performanceContext->CpuUserData);
             if (performanceContext->CpuText) PhDereferenceObject(performanceContext->CpuText);
+            if (performanceContext->CpuTooltipText) PhDereferenceObject(performanceContext->CpuTooltipText);
 
             if (performanceContext->PrivateBytesData) PhFree(performanceContext->PrivateBytesData);
             if (performanceContext->PrivateBytesText) PhDereferenceObject(performanceContext->PrivateBytesText);
+            if (performanceContext->PrivateBytesTooltipText) PhDereferenceObject(performanceContext->PrivateBytesTooltipText);
 
             if (performanceContext->IoReadOtherData) PhFree(performanceContext->IoReadOtherData);
             if (performanceContext->IoWriteData) PhFree(performanceContext->IoWriteData);
             if (performanceContext->IoText) PhDereferenceObject(performanceContext->IoText);
+            if (performanceContext->IoTooltipText) PhDereferenceObject(performanceContext->IoTooltipText);
 
             PhUnregisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -1495,6 +1504,75 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     }
                 }
                 break;
+            case GCN_GETTOOLTIPTEXT:
+                {
+                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
+
+                    if (
+                        header->hwndFrom == performanceContext->CpuGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        FLOAT cpuKernel;
+                        FLOAT cpuUser;
+
+                        if (performanceContext->CpuTooltipText) PhDereferenceObject(performanceContext->CpuTooltipText);
+
+                        cpuKernel = PhCircularBufferGet_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
+                        cpuUser = PhCircularBufferGet_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
+                        performanceContext->CpuTooltipText = PhFormatString(
+                            L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
+                            (cpuKernel + cpuUser) * 100,
+                            cpuKernel * 100,
+                            cpuUser * 100,
+                            ((PPH_STRING)PHA_DEREFERENCE(PhGetProcessItemTimeString(processItem, getTooltipText->Index)))->Buffer
+                            );
+
+                        getTooltipText->Text = performanceContext->CpuTooltipText->sr;
+                    }
+                    else if (
+                        header->hwndFrom == performanceContext->IoGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        ULONG64 ioRead;
+                        ULONG64 ioWrite;
+                        ULONG64 ioOther;
+
+                        if (performanceContext->IoTooltipText) PhDereferenceObject(performanceContext->IoTooltipText);
+
+                        ioRead = PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
+                        ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
+                        ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
+                        performanceContext->IoTooltipText = PhFormatString(
+                            L"R+O: %s\nW: %s\n%s",
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(ioRead + ioOther, -1)))->Buffer,
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(ioWrite, -1)))->Buffer,
+                            ((PPH_STRING)PHA_DEREFERENCE(PhGetProcessItemTimeString(processItem, getTooltipText->Index)))->Buffer
+                            );
+
+                        getTooltipText->Text = performanceContext->IoTooltipText->sr;
+                    }
+                    else if (
+                        header->hwndFrom == performanceContext->PrivateBytesGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        SIZE_T privateBytes;
+
+                        if (performanceContext->PrivateBytesTooltipText) PhDereferenceObject(performanceContext->PrivateBytesTooltipText);
+
+                        privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
+                        performanceContext->PrivateBytesTooltipText = PhFormatString(
+                            L"Private Bytes: %s\n%s",
+                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(privateBytes, -1)))->Buffer,
+                            ((PPH_STRING)PHA_DEREFERENCE(PhGetProcessItemTimeString(processItem, getTooltipText->Index)))->Buffer
+                            );
+
+                        getTooltipText->Text = performanceContext->PrivateBytesTooltipText->sr;
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1569,16 +1647,19 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 performanceContext->CpuDataValid = FALSE;
                 Graph_MoveGrid(performanceContext->CpuGraphHandle, 1);
                 Graph_Draw(performanceContext->CpuGraphHandle);
+                Graph_UpdateTooltip(performanceContext->CpuGraphHandle);
                 InvalidateRect(performanceContext->CpuGraphHandle, NULL, FALSE);
 
                 performanceContext->PrivateBytesDataValid = FALSE;
                 Graph_MoveGrid(performanceContext->PrivateBytesGraphHandle, 1);
                 Graph_Draw(performanceContext->PrivateBytesGraphHandle);
+                Graph_UpdateTooltip(performanceContext->PrivateBytesGraphHandle);
                 InvalidateRect(performanceContext->PrivateBytesGraphHandle, NULL, FALSE);
 
                 performanceContext->IoDataValid = FALSE;
                 Graph_MoveGrid(performanceContext->IoGraphHandle, 1);
                 Graph_Draw(performanceContext->IoGraphHandle);
+                Graph_UpdateTooltip(performanceContext->IoGraphHandle);
                 InvalidateRect(performanceContext->IoGraphHandle, NULL, FALSE);
             }
         }

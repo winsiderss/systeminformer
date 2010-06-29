@@ -122,8 +122,9 @@ PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
 PH_UINT64_DELTA PhCpuOtherDelta;
 
-BOOLEAN PhProcessStatisticsInitialized = FALSE;
-PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
+static BOOLEAN PhProcessStatisticsInitialized = FALSE;
+static ULONG PhTimeSequenceNumber = 0;
+static PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
@@ -1101,6 +1102,42 @@ PWSTR PhGetProcessPriorityClassWin32String(
     }
 }
 
+PPH_STRING PhGetProcessItemTimeString(
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG Index
+    )
+{
+    ULONG secondsSince1980;
+    ULONG index;
+    LARGE_INTEGER time;
+    SYSTEMTIME systemTime;
+    PPH_STRING dateString;
+    PPH_STRING timeString;
+    PPH_STRING dateAndTimeString;
+
+    // The sequence number is used to synchronize statistics when a process exits, since 
+    // that process' history is not updated anymore.
+    index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
+
+    if (index >= PhTimeHistory.Count)
+    {
+        // The data point is too far into the past.
+        return PhCreateString(L"Unknown time");
+    }
+
+    secondsSince1980 = PhCircularBufferGet_ULONG(&PhTimeHistory, index);
+    RtlSecondsSince1980ToTime(secondsSince1980, &time);
+    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+
+    dateString = PhFormatDate(&systemTime, NULL);
+    timeString = PhFormatTime(&systemTime, NULL);
+    dateAndTimeString = PhConcatStrings(3, dateString->Buffer, L" ", timeString->Buffer);
+    PhDereferenceObject(dateString);
+    PhDereferenceObject(timeString);
+
+    return dateAndTimeString;
+}
+
 VOID PhProcessProviderUpdate(
     __in PVOID Object
     )
@@ -1247,6 +1284,7 @@ VOID PhProcessProviderUpdate(
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
+            processItem->SequenceNumber = PhTimeSequenceNumber + 1;
 
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
@@ -1333,6 +1371,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
+            processItem->SequenceNumber++;
             PhCircularBufferAdd_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
             PhCircularBufferAdd_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
             PhCircularBufferAdd_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
@@ -1450,5 +1489,6 @@ VOID PhProcessProviderUpdate(
     }
 
     PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
+    PhTimeSequenceNumber++;
     runCount++;
 }
