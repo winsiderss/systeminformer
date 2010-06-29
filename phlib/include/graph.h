@@ -67,6 +67,8 @@ HWND PhCreateGraphControl(
 #define GCM_DRAW (WM_APP + 1303)
 #define GCM_MOVEGRID (WM_APP + 1304)
 #define GCM_GETBUFFEREDCONTEXT (WM_APP + 1305)
+#define GCM_SETTOOLTIP (WM_APP + 1306)
+#define GCM_UPDATETOOLTIP (WM_APP + 1307)
 
 #define Graph_GetDrawInfo(hWnd, DrawInfo) \
     SendMessage((hWnd), GCM_GETDRAWINFO, 0, (LPARAM)(DrawInfo))
@@ -78,16 +80,30 @@ HWND PhCreateGraphControl(
     SendMessage((hWnd), GCM_MOVEGRID, (WPARAM)(Increment), 0)
 #define Graph_GetBufferedContext(hWnd) \
     ((HDC)SendMessage((hWnd), GCM_GETBUFFEREDCONTEXT, 0, 0))
+#define Graph_SetTooltip(hWnd, Enable) \
+    ((HDC)SendMessage((hWnd), GCM_SETTOOLTIP, (WPARAM)(Enable), 0))
+#define Graph_UpdateTooltip(hWnd) \
+    ((HDC)SendMessage((hWnd), GCM_UPDATETOOLTIP, 0, 0))
 
 // Notifications
 
 #define GCN_GETDRAWINFO (WM_APP + 1351)
+#define GCN_GETTOOLTIPTEXT (WM_APP + 1352)
 
 typedef struct _PH_GRAPH_GETDRAWINFO
 {
     NMHDR Header;
     PPH_GRAPH_DRAW_INFO DrawInfo;
 } PH_GRAPH_GETDRAWINFO, *PPH_GRAPH_GETDRAWINFO;
+
+typedef struct _PH_GRAPH_GETTOOLTIPTEXT
+{
+    NMHDR Header;
+    ULONG Index;
+    ULONG TotalCount;
+
+    PH_STRINGREF Text;
+} PH_GRAPH_GETTOOLTIPTEXT, *PPH_GRAPH_GETTOOLTIPTEXT;
 
 #define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step)) // round up in division
 

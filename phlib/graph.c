@@ -27,10 +27,14 @@ typedef struct _PHP_GRAPH_CONTEXT
 {
     HWND Handle;
     PH_GRAPH_DRAW_INFO DrawInfo;
+
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
     HBITMAP BufferedBitmap;
     RECT BufferedContextRect;
+
+    HWND TooltipHandle;
+    BOOLEAN TooltipVisible;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -348,6 +352,9 @@ VOID PhpCreateGraphContext(
 
     context->BufferedContext = NULL;
 
+    context->TooltipHandle = NULL;
+    context->TooltipVisible = FALSE;
+
     *Context = context;
 }
 
@@ -383,6 +390,45 @@ static VOID PhpCreateBufferedContext(
         Context->BufferedContextRect.bottom
         );
     Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
+}
+
+static VOID PhpUpdateTooltip(
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    POINT point;
+    RECT windowRect;
+
+    GetCursorPos(&point);
+    GetWindowRect(Context->Handle, &windowRect);
+
+    if (
+        point.x < windowRect.left || point.x >= windowRect.right ||
+        point.y < windowRect.top || point.y >= windowRect.bottom
+        )
+        return;
+
+    if (!Context->TooltipVisible)
+    {
+        TOOLINFO toolInfo = { sizeof(toolInfo) };
+        TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
+
+        toolInfo.hwnd = Context->Handle;
+        toolInfo.uId = 1;
+
+        // this must go *before* SendMessage; our TTN_GETDISPINFO might reset TooltipVisible
+        Context->TooltipVisible = TRUE;
+        SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
+
+        trackMouseEvent.dwFlags = TME_LEAVE;
+        trackMouseEvent.hwndTrack = Context->Handle;
+        TrackMouseEvent(&trackMouseEvent);
+    }
+
+    // Add an offset to fix the case where the user moves the mouse to the bottom-right.
+    point.x += 12;
+    point.y += 12;
+    SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
 }
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -446,6 +492,73 @@ LRESULT CALLBACK PhpGraphWndProc(
         break;
     case WM_ERASEBKGND:
         return 1;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case TTN_GETDISPINFO:
+                {
+                    LPNMTTDISPINFO dispInfo = (LPNMTTDISPINFO)header;
+                    POINT point;
+                    RECT clientRect;
+                    PH_GRAPH_GETTOOLTIPTEXT getTooltipText;
+
+                    GetCursorPos(&point);
+                    MapWindowPoints(NULL, hwnd, &point, 1);
+                    GetClientRect(hwnd, &clientRect);
+
+                    getTooltipText.Header.hwndFrom = hwnd;
+                    getTooltipText.Header.code = GCN_GETTOOLTIPTEXT;
+                    getTooltipText.Index = (clientRect.right - point.x) / context->DrawInfo.Step;
+                    getTooltipText.TotalCount = context->DrawInfo.LineDataCount;
+                    getTooltipText.Text.Buffer = NULL;
+                    getTooltipText.Text.Length = 0;
+
+                    SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getTooltipText);
+
+                    if (getTooltipText.Text.Buffer)
+                    {
+                        ULONG copyLength;
+
+                        copyLength = min(getTooltipText.Text.Length, sizeof(dispInfo->szText) - sizeof(WCHAR));
+                        memcpy(dispInfo->szText, getTooltipText.Text.Buffer, copyLength);
+                        dispInfo->szText[copyLength / sizeof(WCHAR)] = 0;
+                    }
+
+                    if (dispInfo->szText[0] == 0)
+                    {
+                        // No text, so the tooltip will be closed. Update our boolean.
+                        context->TooltipVisible = FALSE;
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if (context->TooltipHandle)
+            {
+                PhpUpdateTooltip(context);
+            }
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            if (context->TooltipHandle)
+            {
+                TOOLINFO toolInfo = { sizeof(toolInfo) };
+
+                toolInfo.hwnd = hwnd;
+                toolInfo.uId = 1;
+
+                SendMessage(context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
+                context->TooltipVisible = FALSE;
+            }
+        }
+        break;
     case GCM_GETDRAWINFO:
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)lParam;
@@ -496,6 +609,63 @@ LRESULT CALLBACK PhpGraphWndProc(
         return TRUE;
     case GCM_GETBUFFEREDCONTEXT:
         return (LRESULT)context->BufferedContext;
+    case GCM_SETTOOLTIP:
+        {
+            if (wParam)
+            {
+                TOOLINFO toolInfo = { sizeof(toolInfo) };
+
+                context->TooltipHandle = CreateWindow(
+                    TOOLTIPS_CLASS,
+                    L"",
+                    WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+                    CW_USEDEFAULT,
+                    CW_USEDEFAULT,
+                    CW_USEDEFAULT,
+                    CW_USEDEFAULT,
+                    NULL,
+                    NULL,
+                    PhInstanceHandle,
+                    NULL
+                    );
+                SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
+                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
+                toolInfo.uFlags = TTF_ABSOLUTE | TTF_TRACK;
+                toolInfo.hwnd = hwnd;
+                toolInfo.uId = 1;
+                toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+                SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+                SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXINT); // allow newlines (-1 doesn't work)
+            }
+            else
+            {
+                DestroyWindow(context->TooltipHandle);
+                context->TooltipHandle = NULL;
+            }
+        }
+        return TRUE;
+    case GCM_UPDATETOOLTIP:
+        {
+            if (!context->TooltipHandle)
+                return FALSE;
+
+            if (context->TooltipVisible)
+            {
+                TOOLINFO toolInfo = { sizeof(toolInfo) };
+
+                toolInfo.hwnd = hwnd;
+                toolInfo.uId = 1;
+                toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+
+                SendMessage(context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+            }
+            else
+            {
+                PhpUpdateTooltip(context);
+            }
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
