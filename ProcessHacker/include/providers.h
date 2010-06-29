@@ -16,8 +16,6 @@ extern ULONG PhStatisticsSampleCount;
 extern PH_UINT64_DELTA PhCpuKernelDelta;
 extern PH_UINT64_DELTA PhCpuUserDelta;
 extern PH_UINT64_DELTA PhCpuOtherDelta;
-
-extern PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
@@ -128,6 +126,7 @@ typedef struct _PH_PROCESS_ITEM
     VM_COUNTERS_EX VmCounters; // volatile
     IO_COUNTERS IoCounters; // volatile
 
+    ULONG SequenceNumber;
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;
     PH_CIRCULAR_BUFFER_FLOAT CpuUserHistory;
     PH_CIRCULAR_BUFFER_ULONG64 IoReadHistory;
@@ -153,6 +152,11 @@ PPH_STRING PhGetClientIdName(
 
 PWSTR PhGetProcessPriorityClassWin32String(
     __in ULONG PriorityClassWin32
+    );
+
+PPH_STRING PhGetProcessItemTimeString(
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG Index
     );
 
 VOID PhProcessProviderUpdate(
