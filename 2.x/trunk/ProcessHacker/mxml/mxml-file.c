@@ -1074,7 +1074,7 @@ mxml_fd_write(_mxml_fdbuf_t *buf)	/* I - File descriptor buffer */
     if (buf->current == buf->buffer)
         return 0;
 
-    if (!NT_SUCCESS(NtWriteFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, buf->current - buf->buffer, NULL, NULL)))
+    if (!NT_SUCCESS(NtWriteFile(buf->fd, NULL, NULL, NULL, &isb, buf->buffer, (ULONG)(buf->current - buf->buffer), NULL, NULL)))
         return -1;
 
     buf->current = buf->buffer;
