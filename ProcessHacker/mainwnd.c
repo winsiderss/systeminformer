@@ -58,6 +58,10 @@ VOID PhReloadSysParameters();
 
 VOID PhpInitialLoadSettings();
 
+NTSTATUS PhpDelayedLoadFunction(
+    __in PVOID Parameter
+    );
+
 VOID PhpSaveWindowState();
 
 VOID PhpSaveAllSettings();
@@ -385,6 +389,7 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndOnCreate();
 
     PhpInitialLoadSettings();
+    PhQueueGlobalWorkQueueItem(PhpDelayedLoadFunction, NULL);
 
     PhMainWndTabControlOnSelectionChanged();
 
@@ -1406,35 +1411,7 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_DELAYED_LOAD_COMPLETED:
         {
-            ULONG id;
-            ULONG i;
-
-            for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-            {
-                if (NotifyIconMask & i)
-                {
-                    switch (i)
-                    {
-                    case PH_ICON_CPU_HISTORY:
-                        id = ID_TRAYICONS_CPUHISTORY;
-                        break;
-                    case PH_ICON_IO_HISTORY:
-                        id = ID_TRAYICONS_IOHISTORY;
-                        break;
-                    case PH_ICON_COMMIT_HISTORY:
-                        id = ID_TRAYICONS_COMMITHISTORY;
-                        break;
-                    case PH_ICON_PHYSICAL_HISTORY:
-                        id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
-                        break;
-                    case PH_ICON_CPU_USAGE:
-                        id = ID_TRAYICONS_CPUUSAGE;
-                        break;
-                    }
-
-                    CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
-                }
-            }
+            // Nothing
         }
         break;
     case WM_PH_PROCESS_ADDED:
@@ -1558,6 +1535,7 @@ VOID PhpInitialLoadSettings()
 {
     ULONG opacity;
     ULONG id;
+    ULONG i;
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
@@ -1605,6 +1583,53 @@ VOID PhpInitialLoadSettings()
             MF_BYCOMMAND
             );
     }
+
+    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+        {
+            switch (i)
+            {
+            case PH_ICON_CPU_HISTORY:
+                id = ID_TRAYICONS_CPUHISTORY;
+                break;
+            case PH_ICON_IO_HISTORY:
+                id = ID_TRAYICONS_IOHISTORY;
+                break;
+            case PH_ICON_COMMIT_HISTORY:
+                id = ID_TRAYICONS_COMMITHISTORY;
+                break;
+            case PH_ICON_PHYSICAL_HISTORY:
+                id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
+                break;
+            case PH_ICON_CPU_USAGE:
+                id = ID_TRAYICONS_CPUUSAGE;
+                break;
+            }
+
+            CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
+        }
+    }
+}
+
+static NTSTATUS PhpDelayedLoadFunction(
+    __in PVOID Parameter
+    )
+{
+    ULONG i;
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+            PhAddNotifyIcon(i);
+    }
+
+    DelayedLoadCompleted = TRUE;
+    //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
+
+    return STATUS_SUCCESS;
 }
 
 VOID PhpSaveWindowState()
@@ -1624,9 +1649,7 @@ VOID PhpSaveAllSettings()
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
 
-    // This setting is loaded delayed, so we need to check if it has been loaded.
-    if (DelayedLoadCompleted)
-        PhSetIntegerSetting(L"IconMask", NotifyIconMask);
+    PhSetIntegerSetting(L"IconMask", NotifyIconMask);
 
     GetWindowPlacement(PhMainWndHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
@@ -1983,26 +2006,6 @@ static VOID NTAPI NetworkItemsUpdatedHandler(
     PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);
 }
 
-static NTSTATUS PhpDelayedLoadFunction(
-    __in PVOID Parameter
-    )
-{
-    ULONG i;
-
-    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
-
-    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
-    {
-        if (NotifyIconMask & i)
-            PhAddNotifyIcon(i);
-    }
-
-    DelayedLoadCompleted = TRUE;
-    PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
-
-    return STATUS_SUCCESS;
-}
-
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
@@ -2132,8 +2135,6 @@ VOID PhMainWndOnCreate()
         NULL,
         &NetworkItemsUpdatedRegistration
         );
-
-    PhQueueGlobalWorkQueueItem(PhpDelayedLoadFunction, NULL);
 }
 
 VOID PhMainWndOnLayout(HDWP *deferHandle)
