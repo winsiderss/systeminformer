@@ -621,6 +621,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\resources\black.ico"
+				>
+			</File>
+			<File
 				RelativePath=".\resources\bricks.bmp"
 				>
 			</File>
@@ -638,6 +642,10 @@
 			</File>
 			<File
 				RelativePath=".\resources\folder.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\icon1.ico"
 				>
 			</File>
 			<File

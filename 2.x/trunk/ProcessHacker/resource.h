@@ -73,6 +73,7 @@
 #define IDD_PROCSTATISTICS              170
 #define IDB_BRICKS                      170
 #define IDB_APPLICATION                 171
+#define IDI_BLACK                       172
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -440,14 +441,15 @@
 #define ID_COMPUTER_SHUTDOWN            40165
 #define ID_COMPUTER_POWEROFF            40166
 #define ID_NETWORK_VIEWSTACK            40167
+#define ID_TRAYICONS_IOHISTORY          40168
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        172
-#define _APS_NEXT_COMMAND_VALUE         40168
+#define _APS_NEXT_RESOURCE_VALUE        173
+#define _APS_NEXT_COMMAND_VALUE         40169
 #define _APS_NEXT_CONTROL_VALUE         1201
 #define _APS_NEXT_SYMED_VALUE           115
 #endif

@@ -155,6 +155,9 @@ HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
 
+static BOOLEAN DelayedLoadCompleted = FALSE;
+static ULONG NotifyIconMask;
+
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
@@ -431,10 +434,16 @@ LRESULT CALLBACK PhMainWndProc(
     {
     case WM_DESTROY:
         {
+            ULONG i;
+
             if (!PhMainWndExiting)
                 PhpSaveAllSettings();
 
-            PhRemoveNotifyIcon();
+            for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+            {
+                if (NotifyIconMask & i)
+                    PhRemoveNotifyIcon(i);
+            }
 
             PostQuitMessage(0);
         }
@@ -537,6 +546,54 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_HACKER_EXIT:
                 ProcessHacker_Destroy(hWnd);
+                break;
+            case ID_TRAYICONS_CPUHISTORY:
+            case ID_TRAYICONS_CPUUSAGE:
+            case ID_TRAYICONS_IOHISTORY:
+            case ID_TRAYICONS_COMMITHISTORY:
+            case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+                {
+                    ULONG i;
+                    BOOLEAN enable;
+
+                    switch (LOWORD(wParam))
+                    {
+                        case ID_TRAYICONS_CPUHISTORY:
+                            i = PH_ICON_CPU_HISTORY;
+                            break;
+                        case ID_TRAYICONS_CPUUSAGE:
+                            i = PH_ICON_CPU_USAGE;
+                            break;
+                        case ID_TRAYICONS_IOHISTORY:
+                            i = PH_ICON_IO_HISTORY;
+                            break;
+                        case ID_TRAYICONS_COMMITHISTORY:
+                            i = PH_ICON_COMMIT_HISTORY;
+                            break;
+                        case ID_TRAYICONS_PHYSICALMEMORYHISTORY:
+                            i = PH_ICON_PHYSICAL_HISTORY;
+                            break;
+                    }
+
+                    enable = !(GetMenuState(PhMainWndMenuHandle, LOWORD(wParam), 0) & MF_CHECKED);
+
+                    if (enable)
+                    {
+                        NotifyIconMask |= i;
+                        PhAddNotifyIcon(i);
+                    }
+                    else
+                    {
+                        NotifyIconMask &= ~i;
+                        PhRemoveNotifyIcon(i);
+                    }
+
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        LOWORD(wParam),
+                        enable ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
                 break;
             case ID_VIEW_ALWAYSONTOP:
                 {
@@ -1347,6 +1404,39 @@ LRESULT CALLBACK PhMainWndProc(
             PhpCancelEarlyShutdown();
         }
         break;
+    case WM_PH_DELAYED_LOAD_COMPLETED:
+        {
+            ULONG id;
+            ULONG i;
+
+            for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+            {
+                if (NotifyIconMask & i)
+                {
+                    switch (i)
+                    {
+                    case PH_ICON_CPU_HISTORY:
+                        id = ID_TRAYICONS_CPUHISTORY;
+                        break;
+                    case PH_ICON_IO_HISTORY:
+                        id = ID_TRAYICONS_IOHISTORY;
+                        break;
+                    case PH_ICON_COMMIT_HISTORY:
+                        id = ID_TRAYICONS_COMMITHISTORY;
+                        break;
+                    case PH_ICON_PHYSICAL_HISTORY:
+                        id = ID_TRAYICONS_PHYSICALMEMORYHISTORY;
+                        break;
+                    case PH_ICON_CPU_USAGE:
+                        id = ID_TRAYICONS_CPUUSAGE;
+                        break;
+                    }
+
+                    CheckMenuItem(PhMainWndMenuHandle, id, MF_CHECKED);
+                }
+            }
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;
@@ -1467,7 +1557,7 @@ VOID PhReloadSysParameters()
 VOID PhpInitialLoadSettings()
 {
     ULONG opacity;
-    ULONG intervalId;
+    ULONG id;
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
     {
@@ -1486,32 +1576,32 @@ VOID PhpInitialLoadSettings()
     switch (PhGetIntegerSetting(L"UpdateInterval"))
     {
     case 500:
-        intervalId = ID_UPDATEINTERVAL_FAST;
+        id = ID_UPDATEINTERVAL_FAST;
         break;
     case 1000:
-        intervalId = ID_UPDATEINTERVAL_NORMAL;
+        id = ID_UPDATEINTERVAL_NORMAL;
         break;
     case 2000:
-        intervalId = ID_UPDATEINTERVAL_BELOWNORMAL;
+        id = ID_UPDATEINTERVAL_BELOWNORMAL;
         break;
     case 5000:
-        intervalId = ID_UPDATEINTERVAL_SLOW;
+        id = ID_UPDATEINTERVAL_SLOW;
         break;
     case 10000:
-        intervalId = ID_UPDATEINTERVAL_VERYSLOW;
+        id = ID_UPDATEINTERVAL_VERYSLOW;
         break;
     default:
-        intervalId = -1;
+        id = -1;
         break;
     }
 
-    if (intervalId != -1)
+    if (id != -1)
     {
         CheckMenuRadioItem(
             PhMainWndMenuHandle,
             ID_UPDATEINTERVAL_FAST,
             ID_UPDATEINTERVAL_VERYSLOW,
-            intervalId,
+            id,
             MF_BYCOMMAND
             );
     }
@@ -1533,6 +1623,10 @@ VOID PhpSaveAllSettings()
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
+
+    // This setting is loaded delayed, so we need to check if it has been loaded.
+    if (DelayedLoadCompleted)
+        PhSetIntegerSetting(L"IconMask", NotifyIconMask);
 
     GetWindowPlacement(PhMainWndHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
@@ -1893,7 +1987,18 @@ static NTSTATUS PhpDelayedLoadFunction(
     __in PVOID Parameter
     )
 {
-    PhAddNotifyIcon();
+    ULONG i;
+
+    NotifyIconMask = PhGetIntegerSetting(L"IconMask");
+
+    for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
+    {
+        if (NotifyIconMask & i)
+            PhAddNotifyIcon(i);
+    }
+
+    DelayedLoadCompleted = TRUE;
+    PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
 
     return STATUS_SUCCESS;
 }

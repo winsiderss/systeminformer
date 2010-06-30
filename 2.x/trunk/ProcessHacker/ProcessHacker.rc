@@ -55,6 +55,7 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
+IDI_BLACK               ICON                    "resources\\black.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -84,7 +85,7 @@ BEGIN
         BEGIN
             MENUITEM "CPU History",                 ID_TRAYICONS_CPUHISTORY
             MENUITEM "CPU Usage",                   ID_TRAYICONS_CPUUSAGE
-            MENUITEM "I/O History",                 ID_TRAYICONS_I
+            MENUITEM "I/O History",                 ID_TRAYICONS_IOHISTORY
             MENUITEM "Commit History",              ID_TRAYICONS_COMMITHISTORY
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END

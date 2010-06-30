@@ -38,29 +38,30 @@ VOID PhSettingsInitialization()
         );
     PhInitializeQueuedLock(&PhSettingsLock);
 
-    PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
-    PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
-    PhpAddIntegerSetting(L"MainWindowState", L"1");
-    PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
-    PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
-    PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
-    PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
-    PhpAddIntegerSetting(L"EnableKph", L"1");
-    PhpAddIntegerSetting(L"EnableWarnings", L"1");
-    PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
-    PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
+    PhpAddIntegerSetting(L"EnableKph", L"1");
+    PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddIntegerSetting(L"FirstRun", L"1");
+    PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
+    PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
+    PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
+    PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
+    PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");
+    PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
+    PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
-    PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
+    PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
-    PhpAddStringSetting(L"ProcPropPage", L"General");
-    PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
+    PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
+    PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
 
     // Colors are specified with R in the lowest byte, then G, then B.
     // So: bbggrr.
