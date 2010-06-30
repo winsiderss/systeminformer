@@ -1437,7 +1437,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         PhSetGraphText(hdc, drawInfo, &performanceContext->IoText->sr,
                             &margin, &padding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
 
-                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2 | PH_GRAPH_OVERLAY_LINE_2;
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineDataCount = min(processItem->IoReadHistory.Count,
                             PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
                         drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
@@ -1477,10 +1477,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 performanceContext->IoWriteData[i] =
                                     (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, i);
 
-                                if (max < performanceContext->IoReadOtherData[i])
-                                    max = performanceContext->IoReadOtherData[i];
-                                if (max < performanceContext->IoWriteData[i])
-                                    max = performanceContext->IoWriteData[i];
+                                if (max < performanceContext->IoReadOtherData[i] + performanceContext->IoWriteData[i])
+                                    max = performanceContext->IoReadOtherData[i] + performanceContext->IoWriteData[i];
                             }
 
                             if (max != 0)
