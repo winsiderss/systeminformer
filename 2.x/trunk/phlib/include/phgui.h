@@ -413,6 +413,7 @@ VOID PhImageListWrapperRemove(
 
 #define PH_LAYOUT_FORCE_INVALIDATE 0x1000 // invalidate the control when it is resized
 #define PH_LAYOUT_TAB_CONTROL 0x2000 // this is a dummy item, a hack for the tab control
+#define PH_LAYOUT_IMMEDIATE_RESIZE 0x4000 // needed for the tab control hack
 
 #define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // determines which items don't get resized at all; just dummy
 
