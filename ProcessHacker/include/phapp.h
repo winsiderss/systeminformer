@@ -292,6 +292,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SAVE_ALL_SETTINGS (WM_APP + 122)
 #define WM_PH_PREPARE_FOR_EARLY_SHUTDOWN (WM_APP + 123)
 #define WM_PH_CANCEL_EARLY_SHUTDOWN (WM_APP + 124)
+#define WM_PH_DELAYED_LOAD_COMPLETED (WM_APP + 125)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -404,9 +405,21 @@ BOOLEAN PhShowProcessProperties(
 
 // notifico
 
-VOID PhAddNotifyIcon();
+#define PH_ICON_MINIMUM 0x1
+#define PH_ICON_CPU_HISTORY 0x1
+#define PH_ICON_IO_HISTORY 0x2
+#define PH_ICON_COMMIT_HISTORY 0x4
+#define PH_ICON_PHYSICAL_HISTORY 0x8
+#define PH_ICON_CPU_USAGE 0x10
+#define PH_ICON_MAXIMUM 0x20
 
-VOID PhRemoveNotifyIcon();
+VOID PhAddNotifyIcon(
+    __in ULONG Id
+    );
+
+VOID PhRemoveNotifyIcon(
+    __in ULONG Id
+    );
 
 // dbgcon
 
