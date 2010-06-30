@@ -828,12 +828,25 @@ VOID PhpLayoutItemLayout(
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
         Item->Rect = rect;
 
-        Item->LayoutParentItem->DeferHandle = DeferWindowPos(
-            Item->LayoutParentItem->DeferHandle, Item->Handle,
-            NULL, rect.left, rect.top,
-            rect.right - rect.left, rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER
-            );
+        if (!(Item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE))
+        {
+            Item->LayoutParentItem->DeferHandle = DeferWindowPos(
+                Item->LayoutParentItem->DeferHandle, Item->Handle,
+                NULL, rect.left, rect.top,
+                rect.right - rect.left, rect.bottom - rect.top,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+        }
+        else
+        {
+            // This is needed for tab controls, so that TabCtrl_AdjustRect will give us an up-to-date result.
+            SetWindowPos(
+                Item->Handle,
+                NULL, rect.left, rect.top,
+                rect.right - rect.left, rect.bottom - rect.top,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
+        }
     }
 
     Item->LayoutNumber = Manager->LayoutNumber;
