@@ -280,7 +280,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
 
         tabControlHandle = PropSheet_GetTabControl(hwnd);
         tabControlItem = PhAddLayoutItem(layoutManager, tabControlHandle,
-            NULL, PH_ANCHOR_ALL);
+            NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
         tabPageItem = PhAddLayoutItem(layoutManager, tabControlHandle,
             NULL, PH_LAYOUT_TAB_CONTROL); // dummy item to fix multiline tab control
 
