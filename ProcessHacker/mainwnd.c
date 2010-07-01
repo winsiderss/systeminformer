@@ -2015,13 +2015,24 @@ VOID PhpAddIconProcesses(
     processList = PhCreateList(numberOfProcessItems);
     PhAddListItems(processList, processItems, numberOfProcessItems);
 
-    // Remove non-real processes, those with zero CPU usage, and those running as other users.
+    // Remove non-real processes.
+    for (i = 0; i < processList->Count; i++)
+    {
+        processItem = processList->Items[i];
+
+        if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+        {
+            PhRemoveListItem(processList, i);
+            i--;
+        }
+    }
+
+    // Remove processes with zero CPU usage and those running as other users.
     for (i = 0; i < processList->Count && processList->Count > NumberOfProcesses; i++)
     {
         processItem = processList->Items[i];
 
         if (
-            !PH_IS_REAL_PROCESS_ID(processItem->ProcessId) ||
             processItem->CpuUsage == 0 ||
             !PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
             )
