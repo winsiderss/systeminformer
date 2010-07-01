@@ -83,7 +83,17 @@ VOID PhpPrepareForEarlyShutdown();
 
 VOID PhpCancelEarlyShutdown();
 
+BOOLEAN PhpProcessComputerCommand(
+    __in ULONG Id
+    );
+
 VOID PhpRefreshUsersMenu();
+
+VOID PhpAddIconProcesses(
+    __in HMENU Menu,
+    __in ULONG NumberOfProcesses,
+    __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
+    );
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
@@ -159,8 +169,11 @@ HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
 
+static BOOLEAN NeedsMaximize = FALSE;
+
 static BOOLEAN DelayedLoadCompleted = FALSE;
 static ULONG NotifyIconMask;
+static HBITMAP *IconProcessBitmaps;
 
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
@@ -401,14 +414,26 @@ BOOLEAN PhMainWndInitialization(
 
     UpdateWindow(PhMainWndHandle);
 
+    if (PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden"))
+        ShowCommand = SW_HIDE;
+    if (PhStartupParameters.ShowVisible)
+        ShowCommand = SW_SHOW;
+
     if (PhGetIntegerSetting(L"MainWindowState") == SW_MAXIMIZE)
     {
-        ShowWindow(PhMainWndHandle, SW_SHOWMAXIMIZED);
+        if (ShowCommand != SW_HIDE)
+        {
+            ShowCommand = SW_MAXIMIZE;
+        }
+        else
+        {
+            // We can't maximize it while having it hidden. Set it as pending.
+            NeedsMaximize = TRUE;
+        }
     }
-    else
-    {
+
+    if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
-    }
 
     // Register for WTS notifications.
     {
@@ -548,6 +573,15 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     PhShowOptionsDialog(hWnd);
                 }
+                break;
+            case ID_COMPUTER_LOCK:
+            case ID_COMPUTER_LOGOFF:
+            case ID_COMPUTER_SLEEP:
+            case ID_COMPUTER_HIBERNATE:
+            case ID_COMPUTER_RESTART:
+            case ID_COMPUTER_SHUTDOWN:
+            case ID_COMPUTER_POWEROFF:
+                PhpProcessComputerCommand(LOWORD(wParam));
                 break;
             case ID_HACKER_EXIT:
                 ProcessHacker_Destroy(hWnd);
@@ -1263,15 +1297,39 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            if (NeedsMaximize)
+            {
+                ShowWindow(hWnd, SW_MAXIMIZE);
+                NeedsMaximize = FALSE;
+            }
+        }
+        break;
     case WM_SYSCOMMAND:
         {
             switch (wParam)
             {
+            case SC_CLOSE:
+                {
+                    if (PhGetIntegerSetting(L"HideOnClose"))
+                    {
+                        ShowWindow(hWnd, SW_HIDE);
+                        return 0;
+                    }
+                }
+                break;
             case SC_MINIMIZE:
                 {
                     // Save the current window state because we 
                     // may not have a chance to later.
                     PhpSaveWindowState();
+
+                    if (PhGetIntegerSetting(L"HideOnMinimize"))
+                    {
+                        ShowWindow(hWnd, SW_HIDE);
+                        return 0;
+                    }
                 }
                 break;
             }
@@ -1371,6 +1429,11 @@ LRESULT CALLBACK PhMainWndProc(
         {
             if (!PhMainWndExiting)
             {
+                if (!IsWindowVisible(hWnd))
+                {
+                    ShowWindow(hWnd, SW_SHOW);
+                }
+
                 if (IsIconic(hWnd))
                 {
                     ShowWindow(hWnd, SW_RESTORE);
@@ -1412,6 +1475,88 @@ LRESULT CALLBACK PhMainWndProc(
     case WM_PH_DELAYED_LOAD_COMPLETED:
         {
             // Nothing
+        }
+        break;
+    case WM_PH_NOTIFY_ICON_MESSAGE:
+        {
+            switch (LOWORD(lParam))
+            {
+            case WM_LBUTTONDBLCLK:
+                {
+                    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                }
+                break;
+            case WM_RBUTTONUP:
+                {
+#define PROCESSES_MENU_INDEX 3
+                    POINT point;
+                    HMENU iconMenu;
+                    HMENU menu;
+                    ULONG numberOfProcesses;
+                    ULONG id;
+                    ULONG i;
+
+                    iconMenu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON));
+                    menu = GetSubMenu(iconMenu, 0);
+
+                    // Add processes to the menu.
+                    numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
+                    IconProcessBitmaps = PhAllocate(sizeof(HBITMAP) * numberOfProcesses);
+                    memset(IconProcessBitmaps, 0, sizeof(HBITMAP) * numberOfProcesses);
+                    PhpAddIconProcesses(GetSubMenu(menu, PROCESSES_MENU_INDEX), numberOfProcesses, IconProcessBitmaps);
+
+                    GetCursorPos(&point);
+                    SetForegroundWindow(hWnd); // window must be foregrounded so menu will disappear properly
+                    id = (ULONG)TrackPopupMenu(
+                        menu,
+                        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+                        point.x,
+                        point.y,
+                        0,
+                        hWnd,
+                        NULL
+                        );
+
+                    // Destroy the bitmaps.
+                    for (i = 0; i < numberOfProcesses; i++)
+                    {
+                        if (IconProcessBitmaps[i])
+                            DeleteObject(IconProcessBitmaps[i]);
+                    }
+
+                    PhFree(IconProcessBitmaps);
+
+                    if (!PhpProcessComputerCommand(id))
+                    {
+                        switch (id)
+                        {
+                        case ID_ICON_SHOWHIDEPROCESSHACKER:
+                            SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                            break;
+                        case ID_ICON_SYSTEMINFORMATION:
+                            SendMessage(hWnd, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                            break;
+                        case ID_ICON_EXIT:
+                            SendMessage(hWnd, WM_COMMAND, ID_HACKER_EXIT, 0);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_PH_TOGGLE_VISIBLE:
+        {
+            if (IsWindowVisible(PhMainWndHandle))
+            {
+                ShowWindow(PhMainWndHandle, SW_HIDE);
+            }
+            else
+            {
+                ShowWindow(PhMainWndHandle, SW_SHOW);
+                SetForegroundWindow(PhMainWndHandle);
+            }
         }
         break;
     case WM_PH_PROCESS_ADDED:
@@ -1718,6 +1863,38 @@ VOID PhpCancelEarlyShutdown()
     PhMainWndExiting = FALSE;
 }
 
+BOOLEAN PhpProcessComputerCommand(
+    __in ULONG Id
+    )
+{
+    switch (Id)
+    {
+    case ID_COMPUTER_LOCK:
+        PhUiLockComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_LOGOFF:
+        PhUiLogoffComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_SLEEP:
+        PhUiSleepComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_HIBERNATE:
+        PhUiHibernateComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_RESTART:
+        PhUiRestartComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_SHUTDOWN:
+        PhUiShutdownComputer(PhMainWndHandle);
+        return TRUE;
+    case ID_COMPUTER_POWEROFF:
+        PhUiPoweroffComputer(PhMainWndHandle);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID PhpRefreshUsersMenu()
 {
     HMENU menu;
@@ -1796,6 +1973,125 @@ VOID PhpRefreshUsersMenu()
     }
 
     DrawMenuBar(PhMainWndHandle);
+}
+
+static int __cdecl IconProcessesCpuUsageCompare(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
+    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
+
+    return -singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+}
+
+static int __cdecl IconProcessesNameCompare(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
+    PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
+
+    return PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+}
+
+VOID PhpAddIconProcesses(
+    __in HMENU Menu,
+    __in ULONG NumberOfProcesses,
+    __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
+    )
+{
+    ULONG i;
+    PPH_PROCESS_ITEM *processItems;
+    ULONG numberOfProcessItems;
+    PPH_LIST processList;
+    PPH_PROCESS_ITEM processItem;
+    HDC mainWndDc;
+    HDC hdc;
+
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+    processList = PhCreateList(numberOfProcessItems);
+    PhAddListItems(processList, processItems, numberOfProcessItems);
+
+    // Remove non-real processes, those with zero CPU usage, and those running as other users.
+    for (i = 0; i < processList->Count && processList->Count > NumberOfProcesses; i++)
+    {
+        processItem = processList->Items[i];
+
+        if (
+            !PH_IS_REAL_PROCESS_ID(processItem->ProcessId) ||
+            processItem->CpuUsage == 0 ||
+            !PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
+            )
+        {
+            PhRemoveListItem(processList, i);
+            i--;
+        }
+    }
+
+    // Sort the processes by CPU usage and remove the extra processes at the end of the list.
+    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesCpuUsageCompare);
+
+    if (processList->Count > NumberOfProcesses)
+    {
+        PhRemoveListItems(processList, NumberOfProcesses, processList->Count - NumberOfProcesses);
+    }
+
+    // Lastly, sort by name.
+    qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesNameCompare);
+
+    // Delete everything in the target menu.
+    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) ;
+
+    // Add the processes.
+
+    mainWndDc = GetDC(PhMainWndHandle);
+    hdc = CreateCompatibleDC(mainWndDc);
+
+    for (i = 0; i < processList->Count; i++)
+    {
+        MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+        HMENU subMenu;
+        RECT rect;
+        HBITMAP iconBitmap;
+        HBITMAP oldBitmap;
+        CLIENT_ID clientId;
+
+        processItem = processList->Items[i];
+
+        subMenu = CreateMenu();
+
+        iconBitmap = CreateCompatibleBitmap(mainWndDc, 16, 16);
+        oldBitmap = SelectObject(hdc, iconBitmap);
+
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = 16;
+        rect.bottom = 16;
+        FillRect(hdc, &rect, GetStockObject(WHITE_BRUSH)); // TODO: Add alpha support
+        DrawIconEx(hdc, 0, 0, processItem->SmallIcon, 16, 16, 0, NULL, DI_NORMAL);
+
+        SelectObject(hdc, oldBitmap); // essential; can't delete the bitmap while it is selected into the context
+
+        menuItemInfo.fMask = MIIM_BITMAP | MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
+        menuItemInfo.hbmpItem = iconBitmap;
+        menuItemInfo.dwItemData = (ULONG_PTR)processItem->ProcessId;
+        clientId.UniqueProcess = processItem->ProcessId;
+        clientId.UniqueThread = NULL;
+        menuItemInfo.dwTypeData = ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer;
+        menuItemInfo.hSubMenu = subMenu;
+        InsertMenuItem(Menu, i, TRUE, &menuItemInfo);
+
+        Bitmaps[i] = iconBitmap;
+    }
+
+    DeleteDC(hdc);
+
+    PhDereferenceObject(processList);
+    PhDereferenceObjects(processItems, numberOfProcessItems);
+    PhFree(processItems);
 }
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
