@@ -470,6 +470,40 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     return processItem;
 }
 
+VOID PhEnumProcessItems(
+    __out_opt PPH_PROCESS_ITEM **ProcessItems,
+    __out PULONG NumberOfProcessItems
+    )
+{
+    PPH_PROCESS_ITEM *processItems;
+    PPH_PROCESS_ITEM *processItem;
+    ULONG numberOfProcessItems;
+    ULONG enumerationKey = 0;
+    ULONG i = 0;
+
+    if (!ProcessItems)
+    {
+        *NumberOfProcessItems = PhProcessHashtable->Count;
+        return;
+    }
+
+    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+
+    numberOfProcessItems = PhProcessHashtable->Count;
+    processItems = PhAllocate(sizeof(PPH_PROCESS_ITEM) * numberOfProcessItems);
+
+    while (PhEnumHashtable(PhProcessHashtable, (PPVOID)&processItem, &enumerationKey))
+    {
+        PhReferenceObject(*processItem);
+        processItems[i++] = *processItem;
+    }
+
+    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+
+    *ProcessItems = processItems;
+    *NumberOfProcessItems = numberOfProcessItems;
+}
+
 __assumeLocked VOID PhpRemoveProcessItem(
     __in PPH_PROCESS_ITEM ProcessItem
     )
