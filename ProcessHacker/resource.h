@@ -73,7 +73,9 @@
 #define IDD_PROCSTATISTICS              170
 #define IDB_BRICKS                      170
 #define IDB_APPLICATION                 171
+#define IDD_OPTADVANCED                 171
 #define IDI_BLACK                       172
+#define IDR_ICON                        173
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -247,7 +249,10 @@
 #define IDC_SEARCHENGINE                1143
 #define IDC_MAXSIZEUNIT                 1144
 #define IDC_ALLOWONLYONEINSTANCE        1145
+#define IDC_HIDEONCLOSE                 1146
 #define IDC_ENABLEWARNINGS              1147
+#define IDC_HIDEONMINIMIZE              1147
+#define IDC_STARTHIDDEN                 1148
 #define IDC_ENABLEKERNELMODEDRIVER      1149
 #define IDC_PEVIEWER                    1151
 #define IDC_HIGHLIGHTINGDURATIONSPIN    1154
@@ -442,14 +447,23 @@
 #define ID_COMPUTER_POWEROFF            40166
 #define ID_NETWORK_VIEWSTACK            40167
 #define ID_TRAYICONS_IOHISTORY          40168
+#define ID_ICON_EXIT                    40169
+#define ID_ICON_SHOW                    40170
+#define ID_ICON_SHOWHIDEPROCESSHACKER   40171
+#define ID_ICON_SYSTEMINFORMATION       40172
+#define ID_ICON_NOTIFICATIONS           40173
+#define ID_ICON_PROCESSES               40174
+#define ID_ICON_SHUTDOWN                40175
+#define ID_ICON_COMPUTER                40176
+#define ID_PROCESSES_DUMMY              40177
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        173
-#define _APS_NEXT_COMMAND_VALUE         40169
+#define _APS_NEXT_RESOURCE_VALUE        174
+#define _APS_NEXT_COMMAND_VALUE         40178
 #define _APS_NEXT_CONTROL_VALUE         1201
 #define _APS_NEXT_SYMED_VALUE           115
 #endif

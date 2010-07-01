@@ -9,8 +9,9 @@ VOID PhAddNotifyIcon(
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
 
     notifyIcon.hWnd = PhMainWndHandle;
-    notifyIcon.uFlags = NIF_ICON | NIF_TIP;
     notifyIcon.uID = Id;
+    notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
 
     wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName);
 

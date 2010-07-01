@@ -146,6 +146,11 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     __in HANDLE ProcessId
     );
 
+VOID PhEnumProcessItems(
+    __out_opt PPH_PROCESS_ITEM **ProcessItems,
+    __out PULONG NumberOfProcessItems
+    );
+
 PPH_STRING PhGetClientIdName(
     __in PCLIENT_ID ClientId
     );

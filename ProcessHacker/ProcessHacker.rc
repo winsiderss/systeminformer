@@ -76,6 +76,18 @@ BEGIN
         MENUITEM "Find Handles or DLLs...\aCtrl+F", ID_HACKER_FINDHANDLESORDLLS
         MENUITEM "Options...",                  ID_HACKER_OPTIONS
         MENUITEM SEPARATOR
+        POPUP "Computer"
+        BEGIN
+            MENUITEM "Lock",                        ID_COMPUTER_LOCK
+            MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
+            MENUITEM SEPARATOR
+            MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
+            MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
+            MENUITEM SEPARATOR
+            MENUITEM "Restart",                     ID_COMPUTER_RESTART
+            MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
+            MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
+        END
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
     POPUP "&View"
@@ -202,12 +214,6 @@ IDR_COMPUTER MENU
 BEGIN
     POPUP "Computer"
     BEGIN
-        POPUP "Force On"
-        BEGIN
-            MENUITEM "System",                      ID_FORCEON_SYSTEM
-            MENUITEM "Display",                     ID_FORCEON_DISPLAY
-        END
-        MENUITEM SEPARATOR
         MENUITEM "Lock",                        ID_COMPUTER_LOCK
         MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
         MENUITEM SEPARATOR
@@ -326,6 +332,34 @@ BEGIN
         MENUITEM "&Go to Process\aEnter",       ID_NETWORK_GOTOPROCESS
         MENUITEM "View Stack",                  ID_NETWORK_VIEWSTACK
         MENUITEM "Close",                       ID_NETWORK_CLOSE
+    END
+END
+
+IDR_ICON MENU 
+BEGIN
+    POPUP "Icon"
+    BEGIN
+        MENUITEM "Show/Hide Process Hacker",    ID_ICON_SHOWHIDEPROCESSHACKER
+        MENUITEM "System Information",          ID_ICON_SYSTEMINFORMATION
+        MENUITEM "Notifications",               ID_ICON_NOTIFICATIONS
+        POPUP "Processes"
+        BEGIN
+            MENUITEM "Dummy",                       ID_PROCESSES_DUMMY
+        END
+        MENUITEM SEPARATOR
+        POPUP "Computer"
+        BEGIN
+            MENUITEM "Lock",                        ID_COMPUTER_LOCK
+            MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
+            MENUITEM SEPARATOR
+            MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
+            MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
+            MENUITEM SEPARATOR
+            MENUITEM "Restart",                     ID_COMPUTER_RESTART
+            MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
+            MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
+        END
+        MENUITEM "Exit",                        ID_ICON_EXIT
     END
 END
 
@@ -972,12 +1006,11 @@ BEGIN
     COMBOBOX        IDC_MAXSIZEUNIT,61,37,39,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Allow only one instance",IDC_ALLOWONLYONEINSTANCE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,91,10
-    CONTROL         "Enable warnings",IDC_ENABLEWARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,68,10
-    CONTROL         "Enable kernel-mode driver",IDC_ENABLEKERNELMODEDRIVER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,99,10
-    CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,88,10
     LTEXT           "PE Viewer:",IDC_STATIC,7,23,35,8
     EDITTEXT        IDC_PEVIEWER,61,22,182,12,ES_AUTOHSCROLL
+    CONTROL         "Hide when closed",IDC_HIDEONCLOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,71,10
+    CONTROL         "Hide when minimized",IDC_HIDEONMINIMIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,81,10
+    CONTROL         "Start hidden",IDC_STARTHIDDEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,55,10
 END
 
 IDD_OPTHIGHLIGHTING DIALOGEX 0, 0, 250, 174
@@ -1102,6 +1135,17 @@ BEGIN
     RTEXT           "Static",IDC_ZHANDLES_V,193,102,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZGDIHANDLES_V,193,112,54,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZUSERHANDLES_V,193,122,54,8,SS_ENDELLIPSIS
+END
+
+IDD_OPTADVANCED DIALOGEX 0, 0, 250, 56
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Advanced"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Enable warnings",IDC_ENABLEWARNINGS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,68,10
+    CONTROL         "Enable kernel-mode driver",IDC_ENABLEKERNELMODEDRIVER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,99,10
+    CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,88,10
 END
 
 
@@ -1447,6 +1491,14 @@ BEGIN
         RIGHTMARGIN, 253
         TOPMARGIN, 7
         BOTTOMMARGIN, 253
+    END
+
+    IDD_OPTADVANCED, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 49
     END
 END
 #endif    // APSTUDIO_INVOKED
