@@ -4,8 +4,6 @@
 * Process properties:
 	* Memory provider
 
-* Statistics collection (partially done)
-* Graph controls
 * System information window
 * Complete main menu items
 

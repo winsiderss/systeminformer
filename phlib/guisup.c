@@ -414,6 +414,21 @@ UINT PhShowContextMenu2(
         );
 }
 
+VOID PhSetMenuItemBitmap(
+    __in HMENU Menu,
+    __in ULONG Item,
+    __in BOOLEAN ByPosition,
+    __in HBITMAP Bitmap
+    )
+{
+    MENUITEMINFO info = { sizeof(info) };
+
+    info.fMask = MIIM_BITMAP;
+    info.hbmpItem = Bitmap;
+
+    SetMenuItemInfo(Menu, Item, ByPosition, &info);
+}
+
 VOID PhSetRadioCheckMenuItem(
     __in HMENU Menu,
     __in ULONG Id,

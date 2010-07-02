@@ -338,6 +338,13 @@ UINT PhShowContextMenu2(
     __in POINT point
     );
 
+VOID PhSetMenuItemBitmap(
+    __in HMENU Menu,
+    __in ULONG Item,
+    __in BOOLEAN ByPosition,
+    __in HBITMAP Bitmap
+    );
+
 VOID PhSetRadioCheckMenuItem(
     __in HMENU Menu,
     __in ULONG Id,
@@ -497,6 +504,14 @@ FORCEINLINE VOID PhResizingMinimumSize(
             Rect->top = Rect->bottom - MinimumHeight;
     }
 }
+
+// icotobmp
+
+HBITMAP PhIconToBitmap(
+    __in HICON Icon,
+    __in ULONG Width,
+    __in ULONG Height
+    );
 
 // extlv
 

@@ -13,9 +13,37 @@ extern PH_CALLBACK PhProcessesUpdatedEvent;
 
 extern ULONG PhStatisticsSampleCount;
 
+extern FLOAT PhCpuKernelUsage;
+extern FLOAT PhCpuUserUsage;
+extern PFLOAT PhCpusKernelUsage;
+extern PFLOAT PhCpusUserUsage;
+
 extern PH_UINT64_DELTA PhCpuKernelDelta;
 extern PH_UINT64_DELTA PhCpuUserDelta;
 extern PH_UINT64_DELTA PhCpuOtherDelta;
+
+extern PPH_UINT64_DELTA PhCpusKernelDelta;
+extern PPH_UINT64_DELTA PhCpusUserDelta;
+extern PPH_UINT64_DELTA PhCpusOtherDelta;
+
+extern PH_UINT64_DELTA PhIoReadDelta;
+extern PH_UINT64_DELTA PhIoWriteDelta;
+extern PH_UINT64_DELTA PhIoOtherDelta;
+
+extern PH_CIRCULAR_BUFFER_FLOAT PhCpuKernelHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT PhCpuUserHistory;
+//extern PH_CIRCULAR_BUFFER_FLOAT PhCpuOtherHistory;
+
+extern PPH_CIRCULAR_BUFFER_FLOAT PhCpusKernelHistory;
+extern PPH_CIRCULAR_BUFFER_FLOAT PhCpusUserHistory;
+//extern PPH_CIRCULAR_BUFFER_FLOAT PhCpusOtherHistory;
+
+extern PH_CIRCULAR_BUFFER_ULONG64 PhIoReadHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 PhIoWriteHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 PhIoOtherHistory;
+
+extern PH_CIRCULAR_BUFFER_ULONG PhCommitHistory;
+extern PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
@@ -157,6 +185,12 @@ PPH_STRING PhGetClientIdName(
 
 PWSTR PhGetProcessPriorityClassWin32String(
     __in ULONG PriorityClassWin32
+    );
+
+BOOLEAN PhGetProcessItemTime(
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG Index,
+    __out PLARGE_INTEGER Time
     );
 
 PPH_STRING PhGetProcessItemTimeString(
