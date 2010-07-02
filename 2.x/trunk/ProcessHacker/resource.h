@@ -19,8 +19,12 @@
 #define IDC_PRIVATEBYTES                113
 #define IDD_TERMINATOR                  114
 #define IDC_IO                          114
+#define ID_ICONPROCESS_TERMINATE        115
+#define ID_ICONPROCESS_SUSPEND          116
 #define IDB_CROSS                       117
+#define ID_ICONPROCESS_RESUME           117
 #define IDB_TICK                        118
+#define ID_ICONPROCESS_PROPERTIES       118
 #define IDR_SHUTDOWN                    120
 #define IDR_COMPUTER                    120
 #define IDD_ABOUT                       121
@@ -465,6 +469,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        174
 #define _APS_NEXT_COMMAND_VALUE         40178
 #define _APS_NEXT_CONTROL_VALUE         1201
-#define _APS_NEXT_SYMED_VALUE           115
+#define _APS_NEXT_SYMED_VALUE           119
 #endif
 #endif

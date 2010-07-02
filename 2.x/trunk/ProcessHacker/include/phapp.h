@@ -423,6 +423,27 @@ VOID PhRemoveNotifyIcon(
     __in ULONG Id
     );
 
+VOID PhModifyNotifyIcon(
+    __in ULONG Id,
+    __in ULONG Flags,
+    __in PWSTR Text,
+    __in HICON Icon
+    );
+
+HICON PhBitmapToIcon(
+    __in HBITMAP Bitmap
+    );
+
+VOID PhUpdateIconCpuHistory();
+
+VOID PhUpdateIconIoHistory();
+
+VOID PhUpdateIconCommitHistory();
+
+VOID PhUpdateIconPhysicalHistory();
+
+VOID PhUpdateIconCpuUsage();
+
 // dbgcon
 
 VOID PhShowDebugConsole();
