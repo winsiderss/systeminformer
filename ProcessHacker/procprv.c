@@ -118,19 +118,55 @@ SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
 
+FLOAT PhCpuKernelUsage;
+FLOAT PhCpuUserUsage;
+PFLOAT PhCpusKernelUsage;
+PFLOAT PhCpusUserUsage;
+
 PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
 PH_UINT64_DELTA PhCpuOtherDelta;
 
+PPH_UINT64_DELTA PhCpusKernelDelta;
+PPH_UINT64_DELTA PhCpusUserDelta;
+PPH_UINT64_DELTA PhCpusOtherDelta;
+
+PH_UINT64_DELTA PhIoReadDelta;
+PH_UINT64_DELTA PhIoWriteDelta;
+PH_UINT64_DELTA PhIoOtherDelta;
+
 static BOOLEAN PhProcessStatisticsInitialized = FALSE;
 static ULONG PhTimeSequenceNumber = 0;
 static PH_CIRCULAR_BUFFER_ULONG PhTimeHistory;
+
+PH_CIRCULAR_BUFFER_FLOAT PhCpuKernelHistory;
+PH_CIRCULAR_BUFFER_FLOAT PhCpuUserHistory;
+//PH_CIRCULAR_BUFFER_FLOAT PhCpuOtherHistory;
+
+PPH_CIRCULAR_BUFFER_FLOAT PhCpusKernelHistory;
+PPH_CIRCULAR_BUFFER_FLOAT PhCpusUserHistory;
+//PPH_CIRCULAR_BUFFER_FLOAT PhCpusOtherHistory;
+
+PH_CIRCULAR_BUFFER_ULONG64 PhIoReadHistory;
+PH_CIRCULAR_BUFFER_ULONG64 PhIoWriteHistory;
+PH_CIRCULAR_BUFFER_ULONG64 PhIoOtherHistory;
+
+PH_CIRCULAR_BUFFER_ULONG PhCommitHistory;
+PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
+
+PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory;
+PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory;
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
 
 BOOLEAN PhProcessProviderInitialization()
 {
+    PFLOAT usageBuffer;
+    PPH_UINT64_DELTA deltaBuffer;
+    PPH_CIRCULAR_BUFFER_FLOAT historyBuffer;
+    ULONG i;
+
     if (!NT_SUCCESS(PhCreateObjectType(
         &PhProcessItemType,
         L"ProcessItem",
@@ -171,13 +207,42 @@ BOOLEAN PhProcessProviderInitialization()
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
         (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
+    usageBuffer = PhAllocate(
+        sizeof(FLOAT) *
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        2
+        );
+    deltaBuffer = PhAllocate(
+        sizeof(PH_UINT64_DELTA) *
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        3
+        );
+    historyBuffer = PhAllocate(
+        sizeof(PH_CIRCULAR_BUFFER_FLOAT) *
+        (ULONG)PhSystemBasicInformation.NumberOfProcessors *
+        2
+        );
+
+    PhCpusKernelUsage = usageBuffer;
+    PhCpusUserUsage = PhCpusKernelUsage + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+    PhCpusKernelDelta = deltaBuffer;
+    PhCpusUserDelta = PhCpusKernelDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+    PhCpusOtherDelta = PhCpusUserDelta + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+
+    PhCpusKernelHistory = historyBuffer;
+    PhCpusUserHistory = PhCpusKernelHistory + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
 
     PhInitializeDelta(&PhCpuKernelDelta);
     PhInitializeDelta(&PhCpuUserDelta);
     PhInitializeDelta(&PhCpuOtherDelta);
 
-    PhpUpdatePerfInformation();
-    PhpUpdateCpuInformation();
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        PhInitializeDelta(&PhCpusKernelDelta[i]);
+        PhInitializeDelta(&PhCpusUserDelta[i]);
+        PhInitializeDelta(&PhCpusOtherDelta[i]);
+    }
 
     return TRUE;
 }
@@ -1052,11 +1117,6 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->NumberOfHandles = Process->HandleCount;
 }
 
-VOID PhpInitializeProcessStatistics()
-{
-    PhInitializeCircularBuffer_ULONG(&PhTimeHistory, PhStatisticsSampleCount);
-}
-
 VOID PhpUpdatePerfInformation()
 {
     ULONG returnLength;
@@ -1067,12 +1127,19 @@ VOID PhpUpdatePerfInformation()
         sizeof(SYSTEM_PERFORMANCE_INFORMATION),
         &returnLength
         );
+
+    PhUpdateDelta(&PhIoReadDelta, PhPerfInformation.IoReadTransferCount.QuadPart);
+    PhUpdateDelta(&PhIoWriteDelta, PhPerfInformation.IoWriteTransferCount.QuadPart);
+    PhUpdateDelta(&PhIoOtherDelta, PhPerfInformation.IoOtherTransferCount.QuadPart);
 }
 
-VOID PhpUpdateCpuInformation()
+VOID PhpUpdateCpuInformation(
+    __out PULONG64 TotalTime
+    )
 {
     ULONG returnLength;
     ULONG i;
+    ULONG64 totalTime;
 
     NtQuerySystemInformation(
         SystemProcessorPerformanceInformation,
@@ -1102,6 +1169,27 @@ VOID PhpUpdateCpuInformation()
         PhCpuTotals.InterruptTime.QuadPart += cpuInfo->InterruptTime.QuadPart;
         PhCpuTotals.KernelTime.QuadPart += cpuInfo->KernelTime.QuadPart;
         PhCpuTotals.UserTime.QuadPart += cpuInfo->UserTime.QuadPart;
+
+        PhUpdateDelta(&PhCpusKernelDelta[i], cpuInfo->KernelTime.QuadPart);
+        PhUpdateDelta(&PhCpusUserDelta[i], cpuInfo->UserTime.QuadPart);
+        PhUpdateDelta(&PhCpusOtherDelta[i],
+            cpuInfo->IdleTime.QuadPart +
+            cpuInfo->DpcTime.QuadPart +
+            cpuInfo->InterruptTime.QuadPart
+            );
+
+        totalTime = PhCpusKernelDelta[i].Delta + PhCpusUserDelta[i].Delta + PhCpusOtherDelta[i].Delta;
+
+        if (totalTime != 0)
+        {
+            PhCpusKernelUsage[i] = (FLOAT)PhCpusKernelDelta[i].Delta / totalTime;
+            PhCpusUserUsage[i] = (FLOAT)PhCpusUserDelta[i].Delta / totalTime;
+        }
+        else
+        {
+            PhCpusKernelUsage[i] = 0;
+            PhCpusUserUsage[i] = 0;
+        }
     }
 
     PhUpdateDelta(&PhCpuKernelDelta, PhCpuTotals.KernelTime.QuadPart);
@@ -1111,6 +1199,78 @@ VOID PhpUpdateCpuInformation()
         PhCpuTotals.DpcTime.QuadPart +
         PhCpuTotals.InterruptTime.QuadPart
         );
+
+    totalTime = PhCpuKernelDelta.Delta + PhCpuUserDelta.Delta + PhCpuOtherDelta.Delta;
+
+    if (totalTime != 0)
+    {
+        PhCpuKernelUsage = (FLOAT)PhCpuKernelDelta.Delta / totalTime;
+        PhCpuUserUsage = (FLOAT)PhCpuUserDelta.Delta / totalTime;
+    }
+    else
+    {
+        PhCpuKernelUsage = 0;
+        PhCpuUserUsage = 0;
+    }
+
+    *TotalTime = totalTime;
+}
+
+VOID PhpInitializeProcessStatistics()
+{
+    ULONG i;
+
+    PhInitializeCircularBuffer_ULONG(&PhTimeHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_FLOAT(&PhCpuKernelHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_FLOAT(&PhCpuUserHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhIoReadHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhIoWriteHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhIoOtherHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG(&PhCommitHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG(&PhPhysicalHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG(&PhMaxCpuHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG(&PhMaxIoHistory, PhStatisticsSampleCount);
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        PhInitializeCircularBuffer_FLOAT(&PhCpusKernelHistory[i], PhStatisticsSampleCount);
+        PhInitializeCircularBuffer_FLOAT(&PhCpusUserHistory[i], PhStatisticsSampleCount);
+    }
+}
+
+VOID PhpUpdateSystemHistory()
+{
+    ULONG i;
+    LARGE_INTEGER systemTime;
+    ULONG secondsSince1980;
+
+    // CPU
+    PhCircularBufferAdd_FLOAT(&PhCpuKernelHistory, PhCpuKernelUsage);
+    PhCircularBufferAdd_FLOAT(&PhCpuUserHistory, PhCpuUserUsage);
+
+    // CPUs
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        PhCircularBufferAdd_FLOAT(&PhCpusKernelHistory[i], PhCpusKernelUsage[i]);
+        PhCircularBufferAdd_FLOAT(&PhCpusUserHistory[i], PhCpusUserUsage[i]);
+    }
+
+    // I/O
+    PhCircularBufferAdd_ULONG64(&PhIoReadHistory, PhIoReadDelta.Delta);
+    PhCircularBufferAdd_ULONG64(&PhIoWriteHistory, PhIoWriteDelta.Delta);
+    PhCircularBufferAdd_ULONG64(&PhIoOtherHistory, PhIoOtherDelta.Delta);
+
+    // Memory
+    PhCircularBufferAdd_ULONG(&PhCommitHistory, PhPerfInformation.CommittedPages);
+    PhCircularBufferAdd_ULONG(&PhPhysicalHistory,
+        PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages
+        );
+
+    // Time
+    NtQuerySystemTime(&systemTime);
+    RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
+    PhCircularBufferAdd_ULONG(&PhTimeHistory, secondsSince1980);
+    PhTimeSequenceNumber++;
 }
 
 PWSTR PhGetProcessPriorityClassWin32String(
@@ -1136,18 +1296,15 @@ PWSTR PhGetProcessPriorityClassWin32String(
     }
 }
 
-PPH_STRING PhGetProcessItemTimeString(
+BOOLEAN PhGetProcessItemTime(
     __in PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG Index
+    __in ULONG Index,
+    __out PLARGE_INTEGER Time
     )
 {
     ULONG secondsSince1980;
     ULONG index;
     LARGE_INTEGER time;
-    SYSTEMTIME systemTime;
-    PPH_STRING dateString;
-    PPH_STRING timeString;
-    PPH_STRING dateAndTimeString;
 
     // The sequence number is used to synchronize statistics when a process exits, since 
     // that process' history is not updated anymore.
@@ -1156,20 +1313,44 @@ PPH_STRING PhGetProcessItemTimeString(
     if (index >= PhTimeHistory.Count)
     {
         // The data point is too far into the past.
-        return PhCreateString(L"Unknown time");
+        return FALSE;
     }
 
     secondsSince1980 = PhCircularBufferGet_ULONG(&PhTimeHistory, index);
     RtlSecondsSince1980ToTime(secondsSince1980, &time);
-    PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-    dateString = PhFormatDate(&systemTime, NULL);
-    timeString = PhFormatTime(&systemTime, NULL);
-    dateAndTimeString = PhConcatStrings(3, dateString->Buffer, L" ", timeString->Buffer);
-    PhDereferenceObject(dateString);
-    PhDereferenceObject(timeString);
+    *Time = time;
 
-    return dateAndTimeString;
+    return TRUE;
+}
+
+PPH_STRING PhGetProcessItemTimeString(
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in ULONG Index
+    )
+{
+    LARGE_INTEGER time;
+    SYSTEMTIME systemTime;
+    PPH_STRING dateString;
+    PPH_STRING timeString;
+    PPH_STRING dateAndTimeString;
+
+    if (PhGetProcessItemTime(ProcessItem, Index, &time))
+    {
+        PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+
+        dateString = PhFormatDate(&systemTime, NULL);
+        timeString = PhFormatTime(&systemTime, NULL);
+        dateAndTimeString = PhConcatStrings(3, dateString->Buffer, L" ", timeString->Buffer);
+        PhDereferenceObject(dateString);
+        PhDereferenceObject(timeString);
+
+        return dateAndTimeString;
+    }
+    else
+    {
+        return PhCreateString(L"Unknown time");
+    }
 }
 
 VOID PhProcessProviderUpdate(
@@ -1189,6 +1370,10 @@ VOID PhProcessProviderUpdate(
     PSYSTEM_PROCESS_INFORMATION process;
 
     ULONG64 sysTotalTime;
+    FLOAT maxCpuValue = 0;
+    HANDLE maxCpuProcessId = NULL;
+    ULONG64 maxIoValue = 0;
+    HANDLE maxIoProcessId = NULL;
 
     // Pre-update tasks
 
@@ -1202,12 +1387,15 @@ VOID PhProcessProviderUpdate(
     }
 
     PhpUpdatePerfInformation();
-    PhpUpdateCpuInformation();
+    PhpUpdateCpuInformation(&sysTotalTime);
 
-    sysTotalTime =
-        PhCpuKernelDelta.Delta +
-        PhCpuUserDelta.Delta +
-        PhCpuOtherDelta.Delta;
+    // History cannot be updated on the first run because the deltas are invalid.
+    // For example, the I/O "deltas" will be huge because they are currently the 
+    // raw accumulated values.
+    if (runCount != 0)
+    {
+        PhpUpdateSystemHistory();
+    }
 
     // Get the process list.
 
@@ -1318,7 +1506,7 @@ VOID PhProcessProviderUpdate(
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
-            processItem->SequenceNumber = PhTimeSequenceNumber + 1;
+            processItem->SequenceNumber = PhTimeSequenceNumber;
 
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
@@ -1425,8 +1613,16 @@ VOID PhProcessProviderUpdate(
                 modified = TRUE;
             }
 
-            kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
-            userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
+            if (sysTotalTime != 0)
+            {
+                kernelCpuUsage = (FLOAT)processItem->CpuKernelDelta.Delta / sysTotalTime;
+                userCpuUsage = (FLOAT)processItem->CpuUserDelta.Delta / sysTotalTime;
+            }
+            else
+            {
+                kernelCpuUsage = 0;
+                userCpuUsage = 0;
+            }
 
             processItem->CpuKernelUsage = kernelCpuUsage;
             processItem->CpuUserUsage = userCpuUsage;
@@ -1447,6 +1643,24 @@ VOID PhProcessProviderUpdate(
                 else
                 {
                     processItem->CpuUsageString[0] = 0;
+                }
+            }
+
+            // Max. values
+
+            if (processItem->ProcessId != NULL)
+            {
+                if (maxCpuValue < newCpuUsage)
+                {
+                    maxCpuValue = newCpuUsage;
+                    maxCpuProcessId = processItem->ProcessId;
+                }
+
+                // I/O for Other is not included because it is too generic.
+                if (maxIoValue < processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta)
+                {
+                    maxIoValue = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta;
+                    maxIoProcessId = processItem->ProcessId;
                 }
             }
 
@@ -1513,16 +1727,14 @@ VOID PhProcessProviderUpdate(
         PhpWtsProcesses = NULL;
     }
 
+    if (runCount != 0)
     {
-        LARGE_INTEGER systemTime;
-        ULONG secondsSince1980;
+        // Post-update history
 
-        NtQuerySystemTime(&systemTime);
-        RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
-        PhCircularBufferAdd_ULONG(&PhTimeHistory, secondsSince1980);
+        PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessId);
+        PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessId);
     }
 
     PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
-    PhTimeSequenceNumber++;
     runCount++;
 }

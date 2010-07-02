@@ -389,6 +389,7 @@ static VOID PhpCreateBufferedContext(
         Context->BufferedContextRect.right,
         Context->BufferedContextRect.bottom
         );
+    ReleaseDC(Context->Handle, hdc);
     Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
 }
 
@@ -398,6 +399,7 @@ static VOID PhpUpdateTooltip(
 {
     POINT point;
     RECT windowRect;
+    HWND hwnd;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -406,6 +408,11 @@ static VOID PhpUpdateTooltip(
         point.x < windowRect.left || point.x >= windowRect.right ||
         point.y < windowRect.top || point.y >= windowRect.bottom
         )
+        return;
+
+    hwnd = WindowFromPoint(point);
+
+    if (hwnd != Context->Handle)
         return;
 
     if (!Context->TooltipVisible)
@@ -618,7 +625,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
                     L"",
-                    WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+                    WS_POPUP | TTS_NOPREFIX,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,

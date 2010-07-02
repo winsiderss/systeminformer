@@ -357,6 +357,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\icotobmp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\kph.c"
 				>
 			</File>

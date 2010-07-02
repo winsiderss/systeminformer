@@ -188,6 +188,7 @@ static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedForIconsRegistration;
 static BOOLEAN ProcessesNeedsRedraw = FALSE;
 
 static PH_PROVIDER_REGISTRATION ServiceProviderRegistration;
@@ -208,6 +209,7 @@ static BOOLEAN NetworkNeedsRedraw = FALSE;
 static BOOLEAN NetworkNeedsSort = FALSE;
 static PH_IMAGE_LIST_WRAPPER NetworkImageListWrapper;
 
+static HANDLE SelectedIconProcessId;
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
@@ -524,7 +526,7 @@ LRESULT CALLBACK PhMainWndProc(
                     ProcessHacker_PrepareForEarlyShutdown(hWnd);
 
                     if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
-                        L"", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+                        L"-v", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
                     {
                         ProcessHacker_Destroy(hWnd);
                     }
@@ -1355,6 +1357,21 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_ICONPROCESS_TERMINATE:
+            case ID_ICONPROCESS_SUSPEND:
+            case ID_ICONPROCESS_RESUME:
+            case ID_ICONPROCESS_PROPERTIES:
+                {
+                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+                    menuItemInfo.fMask = MIIM_DATA;
+
+                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
+                    {
+                        SelectedIconProcessId = (HANDLE)menuItemInfo.dwItemData;
+                    }
+                }
+                break;
             }
         }
         break;
@@ -1516,6 +1533,7 @@ LRESULT CALLBACK PhMainWndProc(
                         hWnd,
                         NULL
                         );
+                    DestroyMenu(iconMenu);
 
                     // Destroy the bitmaps.
                     for (i = 0; i < numberOfProcesses; i++)
@@ -1535,6 +1553,39 @@ LRESULT CALLBACK PhMainWndProc(
                             break;
                         case ID_ICON_SYSTEMINFORMATION:
                             SendMessage(hWnd, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                            break;
+                        case ID_ICONPROCESS_TERMINATE:
+                        case ID_ICONPROCESS_SUSPEND:
+                        case ID_ICONPROCESS_RESUME:
+                        case ID_ICONPROCESS_PROPERTIES:
+                            {
+                                PPH_PROCESS_ITEM processItem;
+
+                                if (processItem = PhReferenceProcessItem(SelectedIconProcessId))
+                                {
+                                    switch (id)
+                                    {
+                                        case ID_ICONPROCESS_TERMINATE:
+                                            PhUiTerminateProcesses(hWnd, &processItem, 1);
+                                            break;
+                                        case ID_ICONPROCESS_SUSPEND:
+                                            PhUiSuspendProcesses(hWnd, &processItem, 1);
+                                            break;
+                                        case ID_ICONPROCESS_RESUME:
+                                            PhUiResumeProcesses(hWnd, &processItem, 1);
+                                            break;
+                                        case ID_ICONPROCESS_PROPERTIES:
+                                            ProcessHacker_ShowProcessProperties(hWnd, processItem);
+                                            break;
+                                    }
+
+                                    PhDereferenceObject(processItem);
+                                }
+                                else
+                                {
+                                    PhShowError(hWnd, L"The process does not exist.");
+                                }
+                            }
                             break;
                         case ID_ICON_EXIT:
                             SendMessage(hWnd, WM_COMMAND, ID_HACKER_EXIT, 0);
@@ -1770,6 +1821,9 @@ static NTSTATUS PhpDelayedLoadFunction(
         if (NotifyIconMask & i)
             PhAddNotifyIcon(i);
     }
+
+    // Make sure we get closed late in the shutdown process.
+    SetProcessShutdownParameters(0x100, 0);
 
     DelayedLoadCompleted = TRUE;
     //PostMessage(PhMainWndHandle, WM_PH_DELAYED_LOAD_COMPLETED, 0, 0);
@@ -2008,8 +2062,6 @@ VOID PhpAddIconProcesses(
     ULONG numberOfProcessItems;
     PPH_LIST processList;
     PPH_PROCESS_ITEM processItem;
-    HDC mainWndDc;
-    HDC hdc;
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
     processList = PhCreateList(numberOfProcessItems);
@@ -2058,33 +2110,40 @@ VOID PhpAddIconProcesses(
 
     // Add the processes.
 
-    mainWndDc = GetDC(PhMainWndHandle);
-    hdc = CreateCompatibleDC(mainWndDc);
-
     for (i = 0; i < processList->Count; i++)
     {
         MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
         HMENU subMenu;
-        RECT rect;
         HBITMAP iconBitmap;
-        HBITMAP oldBitmap;
         CLIENT_ID clientId;
 
         processItem = processList->Items[i];
 
         subMenu = CreateMenu();
 
-        iconBitmap = CreateCompatibleBitmap(mainWndDc, 16, 16);
-        oldBitmap = SelectObject(hdc, iconBitmap);
+        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
+        menuItemInfo.dwItemData = (ULONG_PTR)processItem->ProcessId;
 
-        rect.left = 0;
-        rect.top = 0;
-        rect.right = 16;
-        rect.bottom = 16;
-        FillRect(hdc, &rect, GetStockObject(WHITE_BRUSH)); // TODO: Add alpha support
-        DrawIconEx(hdc, 0, 0, processItem->SmallIcon, 16, 16, 0, NULL, DI_NORMAL);
+        // Terminate
+        menuItemInfo.wID = ID_ICONPROCESS_TERMINATE;
+        menuItemInfo.dwTypeData = L"Terminate";
+        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
+        // Terminate
+        menuItemInfo.wID = ID_ICONPROCESS_SUSPEND;
+        menuItemInfo.dwTypeData = L"Suspend";
+        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
+        // Terminate
+        menuItemInfo.wID = ID_ICONPROCESS_RESUME;
+        menuItemInfo.dwTypeData = L"Resume";
+        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
+        // Terminate
+        menuItemInfo.wID = ID_ICONPROCESS_PROPERTIES;
+        menuItemInfo.dwTypeData = L"Properties";
+        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
 
-        SelectObject(hdc, oldBitmap); // essential; can't delete the bitmap while it is selected into the context
+        // Menu icons only work properly on Vista and above.
+        if (WindowsVersion >= WINDOWS_VISTA)
+            iconBitmap = PhIconToBitmap(processItem->SmallIcon ? processItem->SmallIcon : PhGetStockAppIcon(), 16, 16);
 
         menuItemInfo.fMask = MIIM_BITMAP | MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
         menuItemInfo.hbmpItem = iconBitmap;
@@ -2097,8 +2156,6 @@ VOID PhpAddIconProcesses(
 
         Bitmaps[i] = iconBitmap;
     }
-
-    DeleteDC(hdc);
 
     PhDereferenceObject(processList);
     PhDereferenceObjects(processItems, numberOfProcessItems);
@@ -2220,6 +2277,26 @@ static VOID NTAPI ProcessesUpdatedHandler(
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
+}
+
+static VOID NTAPI ProcessesUpdatedForIconsHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    // We do icon updating on the provider thread so we don't block the main GUI when 
+    // explorer is not responding.
+
+    if (NotifyIconMask & PH_ICON_CPU_HISTORY)
+        PhUpdateIconCpuHistory();
+    if (NotifyIconMask & PH_ICON_IO_HISTORY)
+        PhUpdateIconIoHistory();
+    if (NotifyIconMask & PH_ICON_COMMIT_HISTORY)
+        PhUpdateIconCommitHistory();
+    if (NotifyIconMask & PH_ICON_PHYSICAL_HISTORY)
+        PhUpdateIconPhysicalHistory();
+    if (NotifyIconMask & PH_ICON_CPU_USAGE)
+        PhUpdateIconCpuUsage();
 }
 
 static VOID NTAPI ServiceAddedHandler(
@@ -2391,6 +2468,12 @@ VOID PhMainWndOnCreate()
         ProcessesUpdatedHandler,
         NULL,
         &ProcessesUpdatedRegistration
+        );
+    PhRegisterCallback(
+        &PhProcessesUpdatedEvent,
+        ProcessesUpdatedForIconsHandler,
+        NULL,
+        &ProcessesUpdatedForIconsRegistration
         );
 
     PhRegisterCallback(
