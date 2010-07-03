@@ -187,7 +187,7 @@ FORCEINLINE VOID PhSwapReference(
 
 FORCEINLINE VOID PhSwapReference2(
     __inout PPVOID ObjectReference,
-    __in PVOID NewObject
+    __in __assumeRefs(1) PVOID NewObject
     )
 {
     PVOID oldObject;

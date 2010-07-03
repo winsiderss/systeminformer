@@ -536,6 +536,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"threads\n"
                 L"provthreads\n"
                 L"workqueues\n"
+                L"procrecords\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
@@ -1112,6 +1113,36 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #else
             wprintf(commandDebugOnly);
 #endif
+        }
+        else if (WSTR_IEQUAL(command, L"procrecords"))
+        {
+            PPH_PROCESS_RECORD record;
+            ULONG i;
+            SYSTEMTIME systemTime;
+            PPH_PROCESS_RECORD startRecord;
+
+            PhAcquireQueuedLockShared(&PhProcessRecordListLock);
+
+            for (i = 0; i < PhProcessRecordList->Count; i++)
+            {
+                record = (PPH_PROCESS_RECORD)PhProcessRecordList->Items[i];
+
+                PhLargeIntegerToLocalSystemTime(&systemTime, &record->CreateTime);
+                wprintf(L"Records for %s %s:\n",
+                    ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(&systemTime, NULL)))->Buffer,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(&systemTime, NULL)))->Buffer
+                    );
+
+                startRecord = record;
+
+                do
+                {
+                    wprintf(L"\t%s (%u) (refs: %d)\n", record->ProcessName->Buffer, (ULONG)record->ProcessId, record->RefCount);
+                    record = CONTAINING_RECORD(record->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+                } while (record != startRecord);
+            }
+
+            PhReleaseQueuedLockShared(&PhProcessRecordListLock);
         }
         else
         {

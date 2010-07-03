@@ -11,6 +11,9 @@ extern PH_CALLBACK PhProcessModifiedEvent;
 extern PH_CALLBACK PhProcessRemovedEvent;
 extern PH_CALLBACK PhProcessesUpdatedEvent;
 
+extern PPH_LIST PhProcessRecordList;
+extern PH_QUEUED_LOCK PhProcessRecordListLock;
+
 extern ULONG PhStatisticsSampleCount;
 
 extern FLOAT PhCpuKernelUsage;
@@ -56,14 +59,20 @@ extern PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
 // DPCs and Interrupts are fake, but System Idle Process is not.
 #define PH_IS_FAKE_PROCESS_ID(ProcessId) ((LONG_PTR)(ProcessId) < 0)
 
+// The process item has been removed.
 #define PH_PROCESS_ITEM_REMOVED 0x1
+// An extra reference has been added to the process record due for the statistics system.
+#define PH_PROCESS_ITEM_RECORD_STAT_REF 0x2
 
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
 
+typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;
+
 typedef struct _PH_PROCESS_ITEM
 {
     ULONG State;
+    PPH_PROCESS_RECORD Record;
 
     // Basic
 
@@ -164,7 +173,31 @@ typedef struct _PH_PROCESS_ITEM
     //PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
+typedef struct _PH_PROCESS_RECORD
+{
+    LIST_ENTRY ListEntry;
+    LONG RefCount;
+
+    HANDLE ProcessId;
+    HANDLE ParentProcessId;
+    ULONG SessionId;
+    LARGE_INTEGER CreateTime;
+
+    PPH_STRING ProcessName;
+    /*PPH_STRING FileName;
+    PPH_STRING CommandLine;
+    PPH_STRING UserName;*/
+} PH_PROCESS_RECORD, *PPH_PROCESS_RECORD;
+
 BOOLEAN PhProcessProviderInitialization();
+
+PPH_STRING PhGetClientIdName(
+    __in PCLIENT_ID ClientId
+    );
+
+PWSTR PhGetProcessPriorityClassWin32String(
+    __in ULONG PriorityClassWin32
+    );
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
@@ -177,14 +210,6 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 VOID PhEnumProcessItems(
     __out_opt PPH_PROCESS_ITEM **ProcessItems,
     __out PULONG NumberOfProcessItems
-    );
-
-PPH_STRING PhGetClientIdName(
-    __in PCLIENT_ID ClientId
-    );
-
-PWSTR PhGetProcessPriorityClassWin32String(
-    __in ULONG PriorityClassWin32
     );
 
 BOOLEAN PhGetProcessItemTime(
@@ -200,6 +225,19 @@ PPH_STRING PhGetProcessItemTimeString(
 
 VOID PhProcessProviderUpdate(
     __in PVOID Object
+    );
+
+VOID PhReferenceProcessRecord(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    );
+
+VOID PhDereferenceProcessRecord(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    );
+
+PPH_PROCESS_RECORD PhFindProcessRecord(
+    __in_opt HANDLE ProcessId,
+    __in PLARGE_INTEGER Time
     );
 
 // srvprv
