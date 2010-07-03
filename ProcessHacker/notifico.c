@@ -177,7 +177,7 @@ VOID PhUpdateIconCpuHistory()
         }
     }
 
-    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetString(maxCpuText));
+    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
     PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
     PhDereferenceObject(text);
     if (maxCpuText) PhDereferenceObject(maxCpuText);
