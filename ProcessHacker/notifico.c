@@ -2,6 +2,24 @@
 #include <graph.h>
 
 static HICON BlackIcon = NULL;
+static HBITMAP BlackIconMask = NULL;
+
+HICON PhpGetBlackIcon()
+{
+    if (!BlackIcon)
+    {
+        ICONINFO iconInfo;
+
+        BlackIcon = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_BLACK), IMAGE_ICON, 16, 16, 0);
+
+        GetIconInfo(BlackIcon, &iconInfo);
+
+        BlackIconMask = iconInfo.hbmMask;
+        DeleteObject(iconInfo.hbmColor);
+    }
+
+    return BlackIcon;
+}
 
 VOID PhAddNotifyIcon(
     __in ULONG Id
@@ -16,12 +34,7 @@ VOID PhAddNotifyIcon(
 
     wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName);
 
-    if (!BlackIcon)
-    {
-        BlackIcon = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_BLACK), IMAGE_ICON, 16, 16, 0);
-    }
-
-    notifyIcon.hIcon = BlackIcon;
+    notifyIcon.hIcon = PhpGetBlackIcon();
 
     Shell_NotifyIcon(NIM_ADD, &notifyIcon);
 }
@@ -41,8 +54,8 @@ VOID PhRemoveNotifyIcon(
 VOID PhModifyNotifyIcon(
     __in ULONG Id,
     __in ULONG Flags,
-    __in PWSTR Text,
-    __in HICON Icon
+    __in_opt PWSTR Text,
+    __in_opt HICON Icon
     )
 {
     NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
@@ -51,7 +64,9 @@ VOID PhModifyNotifyIcon(
     notifyIcon.uID = Id;
     notifyIcon.uFlags = Flags;
 
-    wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text);
+    if (Text)
+        wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text);
+
     notifyIcon.hIcon = Icon;
 
     Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
@@ -63,13 +78,37 @@ HICON PhBitmapToIcon(
 {
     ICONINFO iconInfo;
 
+    PhpGetBlackIcon();
+
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = NULL;
+    iconInfo.hbmMask = BlackIconMask;
     iconInfo.hbmColor = Bitmap;
 
     return CreateIconIndirect(&iconInfo);
+}
+
+static VOID PhpBeginBitmap(
+    __in ULONG Width,
+    __in ULONG Height,
+    __out HBITMAP *Bitmap,
+    __out HDC *Hdc,
+    __out HBITMAP *OldBitmap
+    )
+{
+    HDC screenHdc;
+    HDC hdc;
+    HBITMAP bitmap;
+
+    screenHdc = GetDC(NULL);
+    hdc = CreateCompatibleDC(screenHdc);
+    bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
+    ReleaseDC(NULL, screenHdc);
+
+    *Bitmap = bitmap;
+    *Hdc = hdc;
+    *OldBitmap = SelectObject(hdc, bitmap);
 }
 
 VOID PhUpdateIconCpuHistory()
@@ -79,10 +118,10 @@ VOID PhUpdateIconCpuHistory()
         16,
         16,
         PH_GRAPH_USE_LINE_2,
-        1,
+        2,
         RGB(0x00, 0x00, 0x00),
 
-        0,
+        16,
         NULL,
         NULL,
         0,
@@ -90,6 +129,37 @@ VOID PhUpdateIconCpuHistory()
         0,
         0
     };
+    FLOAT lineData1[9];
+    FLOAT lineData2[9];
+    HBITMAP bitmap;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HICON icon;
+    PPH_STRING text;
+
+    PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, min(9, PhCpuKernelHistory.Count));
+    PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, lineData2, min(9, PhCpuUserHistory.Count));
+
+    drawInfo.LineDataCount = 9;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineData2 = lineData2;
+    drawInfo.LineColor1 = RGB(0x00, 0xff, 0x00);
+    drawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
+    drawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
+    drawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
+
+    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+    PhDrawGraph(hdc, &drawInfo);
+
+    SelectObject(hdc, oldBitmap);
+    DeleteDC(hdc);
+
+    icon = PhBitmapToIcon(bitmap);
+    DeleteObject(bitmap);
+
+    text = PhFormatString(L"CPU usage: %.2f%%", (PhCpuKernelUsage + PhCpuUserUsage) * 100);
+    PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+    PhDereferenceObject(text);
 }
 
 VOID PhUpdateIconIoHistory()
