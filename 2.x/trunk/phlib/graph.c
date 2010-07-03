@@ -175,14 +175,18 @@ VOID PhDrawGraph(
                 h0 = (ULONG)((1 - f0) * height);
                 h1 = (ULONG)((1 - f1) * height);
 
-                points[0].y = h1;
-                points[1].y = h0;
-
-                if (!(flags & PH_GRAPH_OVERLAY_LINE_2))
+                if (flags & PH_GRAPH_OVERLAY_LINE_2)
+                {
+                    points[0].y = h1;
+                    points[1].y = h0;
+                }
+                else
                 {
                     // Fix the bottom points so we don't fill in the line 1 area.
                     points[2].y = points[1].y; // p2.y = h0(line1)
                     points[3].y = points[0].y; // p3.y = h1(line1)
+                    points[0].y = h1;
+                    points[1].y = h0;
                 }
 
                 SetDCBrushColor(hdc, DrawInfo->LineBackColor2);

@@ -426,8 +426,8 @@ VOID PhRemoveNotifyIcon(
 VOID PhModifyNotifyIcon(
     __in ULONG Id,
     __in ULONG Flags,
-    __in PWSTR Text,
-    __in HICON Icon
+    __in_opt PWSTR Text,
+    __in_opt HICON Icon
     );
 
 HICON PhBitmapToIcon(
