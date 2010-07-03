@@ -129,18 +129,23 @@ VOID PhUpdateIconCpuHistory()
         0,
         0
     };
+    ULONG lineDataCount;
     FLOAT lineData1[9];
     FLOAT lineData2[9];
     HBITMAP bitmap;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
+    HANDLE maxCpuProcessId;
+    PPH_PROCESS_ITEM maxCpuProcessItem;
+    PPH_STRING maxCpuText = NULL;
     PPH_STRING text;
 
-    PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, min(9, PhCpuKernelHistory.Count));
-    PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, lineData2, min(9, PhCpuUserHistory.Count));
+    lineDataCount = min(9, PhCpuKernelHistory.Count);
+    PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
+    PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, lineData2, lineDataCount);
 
-    drawInfo.LineDataCount = 9;
+    drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
     drawInfo.LineColor1 = RGB(0x00, 0xff, 0x00);
@@ -157,9 +162,25 @@ VOID PhUpdateIconCpuHistory()
     icon = PhBitmapToIcon(bitmap);
     DeleteObject(bitmap);
 
-    text = PhFormatString(L"CPU usage: %.2f%%", (PhCpuKernelUsage + PhCpuUserUsage) * 100);
+    maxCpuProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxCpuHistory, 0);
+
+    if (maxCpuProcessId != NULL)
+    {
+        if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
+        {
+            maxCpuText = PhFormatString(
+                L"\n%s: %.2f%%",
+                maxCpuProcessItem->ProcessName->Buffer,
+                maxCpuProcessItem->CpuUsage * 100
+                );
+            PhDereferenceObject(maxCpuProcessItem);
+        }
+    }
+
+    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetString(maxCpuText));
     PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
     PhDereferenceObject(text);
+    if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
 VOID PhUpdateIconIoHistory()
