@@ -80,6 +80,7 @@
 #define IDD_OPTADVANCED                 171
 #define IDI_BLACK                       172
 #define IDR_ICON                        173
+#define IDD_SYSINFO_PANEL               174
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -299,6 +300,38 @@
 #define IDC_GROUPCPU                    1198
 #define IDC_GROUPPRIVATEBYTES           1199
 #define IDC_GROUPIO                     1200
+#define IDC_ZPROCESSES_V                1201
+#define IDC_ZTHREADS_V                  1202
+#define IDC_ONEGRAPHPERCPU              1202
+#define IDC_ALWAYSONTOP                 1203
+#define IDC_ZUPTIME_V                   1204
+#define IDC_GROUPPHYSICAL               1204
+#define IDC_ZCOMMITCURRENT_V            1205
+#define IDC_ZCOMMITPEAK_V               1206
+#define IDC_ZCOMMITLIMIT_V              1207
+#define IDC_ZPHYSICALCURRENT_V          1208
+#define IDC_ZPHYSICALSYSTEMCACHE_V      1209
+#define IDC_ZPHYSICALTOTAL_V            1210
+#define IDC_ZFILECACHECURRENT_V         1211
+#define IDC_ZFILECACHEPEAK_V            1212
+#define IDC_ZFILECACHEMINIMUM_V         1213
+#define IDC_ZFILECACHEMAXIMUM_V         1214
+#define IDC_ZPAGEDPHYSICAL_V            1215
+#define IDC_ZPAGEDVIRTUAL_V             1216
+#define IDC_ZPAGEDALLOCS_V              1217
+#define IDC_ZPAGEDFREES_V               1218
+#define IDC_ZPAGEDLIMIT_V               1219
+#define IDC_ZNONPAGEDUSAGE_V            1220
+#define IDC_ZNONPAGEDALLOCS_V           1221
+#define IDC_ZNONPAGEDFREES_V            1222
+#define IDC_ZNONPAGEDLIMIT_V            1223
+#define IDC_ZPAGEFAULTSTOTAL_V          1224
+#define IDC_ZPAGEFAULTSCOPYONWRITE_V    1225
+#define IDC_ZPAGEFAULTSTRANSITION_V     1226
+#define IDC_ZPAGEFAULTSCACHE_V          1227
+#define IDC_ZCONTEXTSWITCHES_V          1228
+#define IDC_ZINTERRUPTS_V               1229
+#define IDC_ZSYSTEMCALLS_V              1230
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -466,9 +499,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        174
+#define _APS_NEXT_RESOURCE_VALUE        175
 #define _APS_NEXT_COMMAND_VALUE         40178
-#define _APS_NEXT_CONTROL_VALUE         1201
+#define _APS_NEXT_CONTROL_VALUE         1205
 #define _APS_NEXT_SYMED_VALUE           119
 #endif
 #endif

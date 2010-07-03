@@ -1593,29 +1593,37 @@ VOID PhProcessProviderUpdate(
     {
         // Post-update history
 
-        PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
-        PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+        // Note that we need to add a reference to the records of these processes, to 
+        // make it possible for others to get the name of a max. CPU or I/O process.
 
-        // We need to add a reference to the records of these processes, to 
-        // make it possible for others to get the name of a max. CPU or I/O 
-        // process.
-
-        if (
-            maxCpuProcessItem &&
-            !(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF)
-            )
+        if (maxCpuProcessItem)
         {
-            PhReferenceProcessRecord(maxCpuProcessItem->Record);
-            maxCpuProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+            PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+
+            if (!(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
+            {
+                PhReferenceProcessRecord(maxCpuProcessItem->Record);
+                maxCpuProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+            }
+        }
+        else
+        {
+            PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
         }
 
-        if (
-            maxIoProcessItem &&
-            !(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF)
-            )
+        if (maxIoProcessItem)
         {
-            PhReferenceProcessRecord(maxIoProcessItem->Record);
-            maxIoProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+            PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+
+            if (!(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
+            {
+                PhReferenceProcessRecord(maxIoProcessItem->Record);
+                maxIoProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+            }
+        }
+        else
+        {
+            PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)NULL);
         }
     }
 
