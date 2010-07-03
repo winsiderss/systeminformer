@@ -141,6 +141,8 @@ VOID PhUpdateIconCpuHistory()
     PPH_STRING maxCpuText = NULL;
     PPH_STRING text;
 
+    // Icon
+
     lineDataCount = min(9, PhCpuKernelHistory.Count);
     PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, lineData1, lineDataCount);
     PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, lineData2, lineDataCount);
@@ -162,6 +164,8 @@ VOID PhUpdateIconCpuHistory()
     icon = PhBitmapToIcon(bitmap);
     DeleteObject(bitmap);
 
+    // Text
+
     maxCpuProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxCpuHistory, 0);
 
     if (maxCpuProcessId != NULL)
@@ -178,7 +182,10 @@ VOID PhUpdateIconCpuHistory()
     }
 
     text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+
     PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+
+    DestroyIcon(icon);
     PhDereferenceObject(text);
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }

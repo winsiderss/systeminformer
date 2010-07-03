@@ -538,6 +538,9 @@ LRESULT CALLBACK PhpGraphWndProc(
         break;
     case WM_DESTROY:
         {
+            if (context->TooltipHandle)
+                DestroyWindow(context->TooltipHandle);
+
             PhpDeleteGraphContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
