@@ -33,6 +33,14 @@ VOID PhpQueueProcessQueryStage2(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+PPH_PROCESS_RECORD PhpCreateProcessRecord(
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhpAddProcessRecord(
+    __inout PPH_PROCESS_RECORD ProcessRecord
+    );
+
 typedef struct _PH_PROCESS_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
@@ -108,6 +116,9 @@ PH_CALLBACK PhProcessAddedEvent;
 PH_CALLBACK PhProcessModifiedEvent;
 PH_CALLBACK PhProcessRemovedEvent;
 PH_CALLBACK PhProcessesUpdatedEvent;
+
+PPH_LIST PhProcessRecordList;
+PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 500;
 
@@ -189,6 +200,8 @@ BOOLEAN PhProcessProviderInitialization()
     PhInitializeCallback(&PhProcessRemovedEvent);
     PhInitializeCallback(&PhProcessesUpdatedEvent);
 
+    PhProcessRecordList = PhCreateList(40);
+
     RtlInitUnicodeString(
         &PhDpcsProcessInformation.ImageName,
         L"DPCs"
@@ -247,165 +260,71 @@ BOOLEAN PhProcessProviderInitialization()
     return TRUE;
 }
 
-BOOLEAN PhInitializeImageVersionInfo(
-    __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    __in PWSTR FileName
+PPH_STRING PhGetClientIdName(
+    __in PCLIENT_ID ClientId
     )
 {
-    PVOID versionInfo;
-    ULONG langCodePage;
+    PPH_STRING name;
+    PPH_STRING processName = NULL;
+    PPH_PROCESS_ITEM processItem;
 
-    versionInfo = PhGetFileVersionInfo(FileName);
+    processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
-    if (!versionInfo)
-        return FALSE;
-
-    langCodePage = PhGetFileVersionInfoLangCodePage(versionInfo);
-
-    ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"CompanyName");
-    ImageVersionInfo->FileDescription = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileDescription");
-    ImageVersionInfo->FileVersion = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileVersion");
-    ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"ProductName");
-
-    PhFree(versionInfo);
-
-    return TRUE;
-}
-
-VOID PhDeleteImageVersionInfo(
-    __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
-    )
-{
-    if (ImageVersionInfo->CompanyName) PhDereferenceObject(ImageVersionInfo->CompanyName);
-    if (ImageVersionInfo->FileDescription) PhDereferenceObject(ImageVersionInfo->FileDescription);
-    if (ImageVersionInfo->FileVersion) PhDereferenceObject(ImageVersionInfo->FileVersion);
-    if (ImageVersionInfo->ProductName) PhDereferenceObject(ImageVersionInfo->ProductName);
-}
-
-PPH_STRING PhFormatImageVersionInfo(
-    __in_opt PPH_STRING FileName,
-    __in PPH_IMAGE_VERSION_INFO ImageVersionInfo,
-    __in_opt PWSTR Indent,
-    __in_opt ULONG LineLimit
-    )
-{
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
-    ULONG indentLength;
-
-    if (Indent)
-        indentLength = (ULONG)wcslen(Indent) * sizeof(WCHAR);
-    if (LineLimit == 0)
-        LineLimit = MAXULONG32;
-
-    PhInitializeStringBuilder(&stringBuilder, 40);
-
-    // File name
-
-    if (!PhIsStringNullOrEmpty(FileName))
+    if (processItem)
     {
-        PPH_STRING temp;
-
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
-
-        temp = PhEllipsisStringPath(FileName, LineLimit);
-        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
-        PhDereferenceObject(temp);
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
+        processName = processItem->ProcessName;
+        PhReferenceObject(processName);
+        PhDereferenceObject(processItem);
     }
 
-    // File description & version
-
-    if (!(
-        PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription) &&
-        PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion)
-        ))
+    if (ClientId->UniqueThread)
     {
-        PPH_STRING tempDescription = NULL;
-        PPH_STRING tempVersion = NULL;
-        ULONG limitForDescription;
-        ULONG limitForVersion;
-
-        if (LineLimit != MAXULONG32)
+        if (processName)
         {
-            limitForVersion = (LineLimit - 1) / 5; // 1/5 space for version (and space character)
-            limitForDescription = LineLimit - limitForVersion;
+            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
         else
         {
-            limitForDescription = MAXULONG32;
-            limitForVersion = MAXULONG32;
+            name = PhFormatString(L"Non-existent process (%u): %u",
+                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
-
-        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription))
-        {
-            tempDescription = PhEllipsisString(
-                ImageVersionInfo->FileDescription,
-                limitForDescription
-                );
-        }
-
-        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion))
-        {
-            tempVersion = PhEllipsisString(
-                ImageVersionInfo->FileVersion,
-                limitForVersion
-                );
-        }
-
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
-
-        if (tempDescription)
-        {
-            PhStringBuilderAppendEx(
-                &stringBuilder,
-                tempDescription->Buffer,
-                tempDescription->Length
-                );
-
-            if (tempVersion)
-                PhStringBuilderAppendChar(&stringBuilder, ' '); 
-        }
-
-        if (tempVersion)
-        {
-            PhStringBuilderAppendEx(
-                &stringBuilder,
-                tempVersion->Buffer,
-                tempVersion->Length
-                );
-        }
-
-        if (tempDescription)
-            PhDereferenceObject(tempDescription);
-        if (tempVersion)
-            PhDereferenceObject(tempVersion);
-
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
     }
-
-    // File company
-
-    if (!PhIsStringNullOrEmpty(ImageVersionInfo->CompanyName))
+    else
     {
-        PPH_STRING temp;
-
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
-
-        temp = PhEllipsisString(ImageVersionInfo->CompanyName, LineLimit);
-        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
-        PhDereferenceObject(temp);
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
+        if (processName)
+            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
+        else
+            name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
     }
 
-    // Remove the extra newline.
-    if (stringBuilder.String->Length != 0)
-        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+    if (processName)
+        PhDereferenceObject(processName);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
+    return name;
+}
 
-    return string;
+PWSTR PhGetProcessPriorityClassWin32String(
+    __in ULONG PriorityClassWin32
+    )
+{
+    switch (PriorityClassWin32)
+    {
+    case REALTIME_PRIORITY_CLASS:
+        return L"Real Time";
+    case HIGH_PRIORITY_CLASS:
+        return L"High";
+    case ABOVE_NORMAL_PRIORITY_CLASS:
+        return L"Above Normal";
+    case NORMAL_PRIORITY_CLASS:
+        return L"Normal";
+    case BELOW_NORMAL_PRIORITY_CLASS:
+        return L"Below Normal";
+    case IDLE_PRIORITY_CLASS:
+        return L"Idle";
+    default:
+        return L"Unknown";
+    }
 }
 
 PPH_PROCESS_ITEM PhCreateProcessItem(
@@ -476,6 +395,8 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
 
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
+
+    if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
 }
 
 BOOLEAN PhpProcessHashtableCompareFunction(
@@ -575,50 +496,6 @@ __assumeLocked VOID PhpRemoveProcessItem(
 {
     PhRemoveHashtableEntry(PhProcessHashtable, &ProcessItem);
     PhDereferenceObject(ProcessItem);
-}
-
-PPH_STRING PhGetClientIdName(
-    __in PCLIENT_ID ClientId
-    )
-{
-    PPH_STRING name;
-    PPH_STRING processName = NULL;
-    PPH_PROCESS_ITEM processItem;
-
-    processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
-
-    if (processItem)
-    {
-        processName = processItem->ProcessName;
-        PhReferenceObject(processName);
-        PhDereferenceObject(processItem);
-    }
-
-    if (ClientId->UniqueThread)
-    {
-        if (processName)
-        {
-            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
-                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
-        }
-        else
-        {
-            name = PhFormatString(L"Non-existent process (%u): %u",
-                (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
-        }
-    }
-    else
-    {
-        if (processName)
-            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
-        else
-            name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
-    }
-
-    if (processName)
-        PhDereferenceObject(processName);
-
-    return name;
 }
 
 VOID PhpProcessQueryStage1(
@@ -1273,29 +1150,6 @@ VOID PhpUpdateSystemHistory()
     PhTimeSequenceNumber++;
 }
 
-PWSTR PhGetProcessPriorityClassWin32String(
-    __in ULONG PriorityClassWin32
-    )
-{
-    switch (PriorityClassWin32)
-    {
-    case REALTIME_PRIORITY_CLASS:
-        return L"Real Time";
-    case HIGH_PRIORITY_CLASS:
-        return L"High";
-    case ABOVE_NORMAL_PRIORITY_CLASS:
-        return L"Above Normal";
-    case NORMAL_PRIORITY_CLASS:
-        return L"Normal";
-    case BELOW_NORMAL_PRIORITY_CLASS:
-        return L"Below Normal";
-    case IDLE_PRIORITY_CLASS:
-        return L"Idle";
-    default:
-        return L"Unknown";
-    }
-}
-
 BOOLEAN PhGetProcessItemTime(
     __in PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index,
@@ -1371,9 +1225,9 @@ VOID PhProcessProviderUpdate(
 
     ULONG64 sysTotalTime;
     FLOAT maxCpuValue = 0;
-    HANDLE maxCpuProcessId = NULL;
+    PPH_PROCESS_ITEM maxCpuProcessItem = NULL;
     ULONG64 maxIoValue = 0;
-    HANDLE maxIoProcessId = NULL;
+    PPH_PROCESS_ITEM maxIoProcessItem = NULL;
 
     // Pre-update tasks
 
@@ -1503,10 +1357,18 @@ VOID PhProcessProviderUpdate(
 
         if (!processItem)
         {
+            PPH_PROCESS_RECORD processRecord;
+
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
             PhpFillProcessItem(processItem, process);
             processItem->SequenceNumber = PhTimeSequenceNumber;
+
+            // Create and add a process record. (This will have to be moved when the CommandLine/UserName 
+            // fields are enabled.)
+            processRecord = PhpCreateProcessRecord(processItem);
+            PhpAddProcessRecord(processRecord);
+            processItem->Record = processRecord;
 
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
@@ -1653,14 +1515,14 @@ VOID PhProcessProviderUpdate(
                 if (maxCpuValue < newCpuUsage)
                 {
                     maxCpuValue = newCpuUsage;
-                    maxCpuProcessId = processItem->ProcessId;
+                    maxCpuProcessItem = processItem;
                 }
 
                 // I/O for Other is not included because it is too generic.
                 if (maxIoValue < processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta)
                 {
                     maxIoValue = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta;
-                    maxIoProcessId = processItem->ProcessId;
+                    maxIoProcessItem = processItem;
                 }
             }
 
@@ -1731,10 +1593,312 @@ VOID PhProcessProviderUpdate(
     {
         // Post-update history
 
-        PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessId);
-        PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessId);
+        PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+        PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+
+        // We need to add a reference to the records of these processes, to 
+        // make it possible for others to get the name of a max. CPU or I/O 
+        // process.
+
+        if (
+            maxCpuProcessItem &&
+            !(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF)
+            )
+        {
+            PhReferenceProcessRecord(maxCpuProcessItem->Record);
+            maxCpuProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+        }
+
+        if (
+            maxIoProcessItem &&
+            !(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF)
+            )
+        {
+            PhReferenceProcessRecord(maxIoProcessItem->Record);
+            maxIoProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+        }
     }
 
     PhInvokeCallback(&PhProcessesUpdatedEvent, NULL);
     runCount++;
+}
+
+PPH_PROCESS_RECORD PhpCreateProcessRecord(
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_PROCESS_RECORD processRecord;
+
+    processRecord = PhAllocate(sizeof(PH_PROCESS_RECORD));
+    InitializeListHead(&processRecord->ListEntry);
+    processRecord->RefCount = 1;
+
+    processRecord->ProcessId = ProcessItem->ProcessId;
+    processRecord->ParentProcessId = ProcessItem->ParentProcessId;
+    processRecord->SessionId = ProcessItem->SessionId;
+    processRecord->CreateTime = ProcessItem->CreateTime;
+
+    PhReferenceObject(ProcessItem->ProcessName);
+    processRecord->ProcessName = ProcessItem->ProcessName;
+
+    /*if (ProcessItem->FileName)
+    {
+        PhReferenceObject(ProcessItem->FileName);
+        processRecord->FileName = ProcessItem->FileName;
+    }
+
+    if (ProcessItem->CommandLine)
+    {
+        PhReferenceObject(ProcessItem->CommandLine);
+        processRecord->CommandLine = ProcessItem->CommandLine;
+    }
+
+    if (ProcessItem->UserName)
+    {
+        PhReferenceObject(ProcessItem->UserName);
+        processRecord->UserName = ProcessItem->UserName;
+    }*/
+
+    return processRecord;
+}
+
+PPH_PROCESS_RECORD PhpSearchProcessRecordList(
+    __in PLARGE_INTEGER Time,
+    __out_opt PULONG Index,
+    __out_opt PULONG InsertIndex
+    )
+{
+    PPH_PROCESS_RECORD processRecord;
+    ULONG low;
+    ULONG high;
+    ULONG i;
+    BOOLEAN found = FALSE;
+    INT comparison;
+
+    if (PhProcessRecordList->Count == 0)
+    {
+        if (Index)
+            *Index = 0;
+        if (InsertIndex)
+            *InsertIndex = 0;
+
+        return NULL;
+    }
+
+    low = 0;
+    high = PhProcessRecordList->Count - 1;
+
+    // Do a binary search.
+    do
+    {
+        i = (low + high) / 2;
+        processRecord = (PPH_PROCESS_RECORD)PhProcessRecordList->Items[i];
+
+        comparison = uint64cmp(Time->QuadPart, processRecord->CreateTime.QuadPart);
+
+        if (comparison == 0)
+        {
+            found = TRUE;
+            break;
+        }
+        else if (comparison < 0)
+        {
+            high = i - 1;
+        }
+        else
+        {
+            low = i + 1;
+        }
+    } while (low <= high);
+
+    if (Index)
+        *Index = i;
+
+    if (found)
+    {
+        return processRecord;
+    }
+    else
+    {
+        if (InsertIndex)
+            *InsertIndex = i + (comparison > 0);
+
+        return NULL;
+    }
+}
+
+VOID PhpAddProcessRecord(
+    __inout PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    PPH_PROCESS_RECORD processRecord;
+    ULONG insertIndex;
+
+    PhAcquireQueuedLockExclusive(&PhProcessRecordListLock);
+
+    processRecord = PhpSearchProcessRecordList(&ProcessRecord->CreateTime, NULL, &insertIndex);
+
+    if (!processRecord)
+    {
+        // Insert the process record, keeping the list sorted.
+        PhInsertListItem(PhProcessRecordList, insertIndex, ProcessRecord);
+    }
+    else
+    {
+        // Link the process record with the existing one that we found.
+        InsertTailList(&processRecord->ListEntry, &ProcessRecord->ListEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
+}
+
+VOID PhReferenceProcessRecord(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    _InterlockedIncrement(&ProcessRecord->RefCount);
+}
+
+VOID PhDereferenceProcessRecord(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    ULONG i;
+    PPH_PROCESS_RECORD headProcessRecord;
+
+    if (_InterlockedDecrement(&ProcessRecord->RefCount) == 0)
+    {
+        // Remove the record from the global list.
+
+        PhAcquireQueuedLockExclusive(&PhProcessRecordListLock);
+
+        headProcessRecord = PhpSearchProcessRecordList(&ProcessRecord->CreateTime, &i, NULL);
+        assert(headProcessRecord);
+
+        // Unlink the record from the list.
+        RemoveEntryList(&ProcessRecord->ListEntry);
+
+        if (ProcessRecord == headProcessRecord)
+        {
+            // Remove the slot completely, or choose a new head record.
+            if (IsListEmpty(&headProcessRecord->ListEntry))
+                PhRemoveListItem(PhProcessRecordList, i);
+            else
+                PhProcessRecordList->Items[i] = CONTAINING_RECORD(headProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+        }
+
+        PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
+
+        PhDereferenceObject(ProcessRecord->ProcessName);   
+        /*PhDereferenceObject(ProcessRecord->FileName);
+        PhDereferenceObject(ProcessRecord->CommandLine);
+        PhDereferenceObject(ProcessRecord->UserName);*/
+        PhFree(ProcessRecord);
+    }
+}
+
+PPH_PROCESS_RECORD PhpFindProcessRecord(
+    __in PPH_PROCESS_RECORD ProcessRecord,
+    __in HANDLE ProcessId
+    )
+{
+    PPH_PROCESS_RECORD startProcessRecord;
+
+    startProcessRecord = ProcessRecord;
+
+    do
+    {
+        if (ProcessRecord->ProcessId == ProcessId)
+            return ProcessRecord;
+
+        ProcessRecord = CONTAINING_RECORD(ProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+    } while (ProcessRecord != startProcessRecord);
+
+    return NULL;
+}
+
+/**
+ * Finds a process record.
+ *
+ * \param ProcessId The ID of the process.
+ * \param Time A time in which the process was active.
+ *
+ * \return The newest record older than \a Time, or NULL 
+ * if the record could not be found. You must call 
+ * PhDereferenceProcessRecord() when you no longer need 
+ * the record.
+ */
+PPH_PROCESS_RECORD PhFindProcessRecord(
+    __in_opt HANDLE ProcessId,
+    __in PLARGE_INTEGER Time
+    )
+{
+    PPH_PROCESS_RECORD processRecord;
+    ULONG i;
+    BOOLEAN found;
+
+    if (PhProcessRecordList->Count == 0)
+        return NULL;
+
+    PhAcquireQueuedLockShared(&PhProcessRecordListLock);
+
+    processRecord = PhpSearchProcessRecordList(Time, &i, NULL);
+
+    if (!processRecord)
+    {
+        // This is expected. Now we search backwards to find the newest matching element 
+        // older than the given time.
+
+        found = FALSE;
+
+        while (i > 0)
+        {
+            i--;
+            processRecord = (PPH_PROCESS_RECORD)PhProcessRecordList->Items[i];
+
+            if (processRecord->CreateTime.QuadPart < Time->QuadPart)
+            {
+                if (ProcessId)
+                {
+                    processRecord = PhpFindProcessRecord(processRecord, ProcessId);
+
+                    if (processRecord)
+                        found = TRUE;
+                }
+                else
+                {
+                    found = TRUE;
+                }
+
+                if (found)
+                    break;
+            }
+        }
+    }
+    else
+    {
+        if (ProcessId)
+        {
+            processRecord = PhpFindProcessRecord(processRecord, ProcessId);
+
+            if (processRecord)
+                found = TRUE;
+            else
+                found = FALSE;
+        }
+        else
+        {
+            found = TRUE;
+        }
+    }
+
+    if (found)
+        PhReferenceProcessRecord(processRecord);
+
+    PhReleaseQueuedLockShared(&PhProcessRecordListLock);
+
+    if (found)
+        return processRecord;
+    else
+        return NULL;
 }

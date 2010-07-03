@@ -633,7 +633,7 @@ ULONG PhpLookupMappedImageExportName(
     ULONG low = 0;
     ULONG high = Exports->ExportDirectory->NumberOfNames - 1;
 
-    while (low <= high)
+    do
     {
         ULONG i;
         PSTR name;
@@ -656,11 +656,11 @@ ULONG PhpLookupMappedImageExportName(
 
         if (comparison == 0)
             return i;
-        else if (comparison > 0)
-            low = i + 1;
-        else
+        else if (comparison < 0)
             high = i - 1;
-    }
+        else
+            low = i + 1;
+    } while (low <= high);
 
     return -1;
 }
