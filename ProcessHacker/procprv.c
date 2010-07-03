@@ -165,8 +165,11 @@ PH_CIRCULAR_BUFFER_ULONG64 PhIoOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG PhCommitHistory;
 PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
 
-PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory;
-PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory;
+PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory; // ID of max. CPU process
+PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory; // ID of max. I/O process
+PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
+PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
+PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
@@ -1107,6 +1110,9 @@ VOID PhpInitializeProcessStatistics()
     PhInitializeCircularBuffer_ULONG(&PhPhysicalHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG(&PhMaxCpuHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG(&PhMaxIoHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, PhStatisticsSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&PhMaxIoWriteHistory, PhStatisticsSampleCount);
 
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
@@ -1599,6 +1605,7 @@ VOID PhProcessProviderUpdate(
         if (maxCpuProcessItem)
         {
             PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+            PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
 
             if (!(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
             {
@@ -1609,11 +1616,15 @@ VOID PhProcessProviderUpdate(
         else
         {
             PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
+            PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, 0);
         }
 
         if (maxIoProcessItem)
         {
             PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+            PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory,
+                maxIoProcessItem->IoReadDelta.Delta + maxIoProcessItem->IoOtherDelta.Delta);
+            PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, maxIoProcessItem->IoWriteDelta.Delta);
 
             if (!(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
             {
@@ -1624,6 +1635,8 @@ VOID PhProcessProviderUpdate(
         else
         {
             PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)NULL);
+            PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory, 0);
+            PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, 0);
         }
     }
 
