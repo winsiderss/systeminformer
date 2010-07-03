@@ -436,12 +436,10 @@ VOID PhpDeleteGraphContext(
     PhFree(Context);
 }
 
-static VOID PhpCreateBufferedContext(
+static VOID PhpDeleteBufferedContext(
     __in PPHP_GRAPH_CONTEXT Context
     )
 {
-    HDC hdc;
-
     if (Context->BufferedContext)
     {
         // The original bitmap must be selected back into the context, otherwise 
@@ -450,6 +448,15 @@ static VOID PhpCreateBufferedContext(
         DeleteObject(Context->BufferedBitmap);
         DeleteDC(Context->BufferedContext);
     }
+}
+
+static VOID PhpCreateBufferedContext(
+    __in PPHP_GRAPH_CONTEXT Context
+    )
+{
+    HDC hdc;
+
+    PhpDeleteBufferedContext(Context);
 
     GetClientRect(Context->Handle, &Context->BufferedContextRect);
 
@@ -541,6 +548,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (context->TooltipHandle)
                 DestroyWindow(context->TooltipHandle);
 
+            PhpDeleteBufferedContext(context);
             PhpDeleteGraphContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
