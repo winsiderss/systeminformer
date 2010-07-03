@@ -47,6 +47,12 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhIoOtherHistory;
 
 extern PH_CIRCULAR_BUFFER_ULONG PhCommitHistory;
 extern PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
+
+extern PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory;
+extern PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory;
+extern PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
+extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
