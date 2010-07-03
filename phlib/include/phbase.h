@@ -515,6 +515,14 @@ typedef struct _PH_STRINGREF
     };
 } PH_STRINGREF, *PPH_STRINGREF;
 
+typedef struct _PH_RELATIVE_STRINGREF
+{
+    /** The length, in bytes, of the string. */
+    ULONG Length;
+    /** A user-defined offset. */
+    ULONG Offset;
+} PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
+
 FORCEINLINE VOID PhInitializeStringRef(
     __out PPH_STRINGREF String,
     __in PWSTR Buffer
