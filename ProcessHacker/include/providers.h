@@ -16,6 +16,10 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 
 extern ULONG PhStatisticsSampleCount;
 
+extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
+extern PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
+extern SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
+
 extern FLOAT PhCpuKernelUsage;
 extern FLOAT PhCpuUserUsage;
 extern PFLOAT PhCpusKernelUsage;
