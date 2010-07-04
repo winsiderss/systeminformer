@@ -836,6 +836,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhShowSessionProperties(hWnd, SelectedUserSessionId);
                 }
                 break;
+            case ID_HELP_DONATE:
+                {
+                    PhShellExecute(hWnd, L"https://sourceforge.net/project/project_donations.php?group_id=242527", NULL);
+                }
+                break;
             case ID_HELP_DEBUGCONSOLE:
                 {
                     PhShowDebugConsole();
