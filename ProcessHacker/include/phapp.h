@@ -322,6 +322,16 @@ extern BOOLEAN PhMainWndExiting;
 #define ProcessHacker_CancelEarlyShutdown(hWnd) \
     SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
 
+#define PH_NOTIFY_MINIMUM 0x1
+#define PH_NOTIFY_PROCESS_CREATE 0x1
+#define PH_NOTIFY_PROCESS_DELETE 0x2
+#define PH_NOTIFY_SERVICE_CREATE 0x4
+#define PH_NOTIFY_SERVICE_DELETE 0x8
+#define PH_NOTIFY_SERVICE_START 0x10
+#define PH_NOTIFY_SERVICE_STOP 0x20
+#define PH_NOTIFY_MAXIMUM 0x40
+#define PH_NOTIFY_VALID_MASK 0x3f
+
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
     );
@@ -428,6 +438,14 @@ VOID PhModifyNotifyIcon(
     __in ULONG Flags,
     __in_opt PWSTR Text,
     __in_opt HICON Icon
+    );
+
+VOID PhShowBalloonTipNotifyIcon(
+    __in ULONG Id,
+    __in PWSTR Title,
+    __in PWSTR Text,
+    __in ULONG Timeout,
+    __in ULONG Flags
     );
 
 HICON PhBitmapToIcon(

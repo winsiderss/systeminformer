@@ -341,7 +341,18 @@ BEGIN
     BEGIN
         MENUITEM "Show/Hide Process Hacker",    ID_ICON_SHOWHIDEPROCESSHACKER
         MENUITEM "System Information",          ID_ICON_SYSTEMINFORMATION
-        MENUITEM "Notifications",               ID_ICON_NOTIFICATIONS
+        POPUP "Notifications"
+        BEGIN
+            MENUITEM "Enable All",                  ID_NOTIFICATIONS_ENABLEALL
+            MENUITEM "Disable All",                 ID_NOTIFICATIONS_DISABLEALL
+            MENUITEM SEPARATOR
+            MENUITEM "New Processes",               ID_NOTIFICATIONS_NEWPROCESSES
+            MENUITEM "Terminated Processes",        ID_NOTIFICATIONS_TERMINATEDPROCESSES
+            MENUITEM "New Services",                ID_NOTIFICATIONS_NEWSERVICES
+            MENUITEM "Started Services",            ID_NOTIFICATIONS_STARTEDSERVICES
+            MENUITEM "Stopped Services",            ID_NOTIFICATIONS_STOPPEDSERVICES
+            MENUITEM "Deleted Services",            ID_NOTIFICATIONS_DELETEDSERVICES
+        END
         POPUP "Processes"
         BEGIN
             MENUITEM "Dummy",                       ID_PROCESSES_DUMMY

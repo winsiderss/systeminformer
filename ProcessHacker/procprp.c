@@ -2455,27 +2455,27 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         switch (id)
                         {
-                            case ID_PRIORITY_TIMECRITICAL:
-                                threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
-                                break;
-                            case ID_PRIORITY_HIGHEST:
-                                threadPriorityWin32 = THREAD_PRIORITY_HIGHEST;
-                                break;
-                            case ID_PRIORITY_ABOVENORMAL:
-                                threadPriorityWin32 = THREAD_PRIORITY_ABOVE_NORMAL;
-                                break;
-                            case ID_PRIORITY_NORMAL:
-                                threadPriorityWin32 = THREAD_PRIORITY_NORMAL;
-                                break;
-                            case ID_PRIORITY_BELOWNORMAL:
-                                threadPriorityWin32 = THREAD_PRIORITY_BELOW_NORMAL;
-                                break;
-                            case ID_PRIORITY_LOWEST:
-                                threadPriorityWin32 = THREAD_PRIORITY_LOWEST;
-                                break;
-                            case ID_PRIORITY_IDLE:
-                                threadPriorityWin32 = THREAD_PRIORITY_IDLE;
-                                break;
+                        case ID_PRIORITY_TIMECRITICAL:
+                            threadPriorityWin32 = THREAD_PRIORITY_TIME_CRITICAL;
+                            break;
+                        case ID_PRIORITY_HIGHEST:
+                            threadPriorityWin32 = THREAD_PRIORITY_HIGHEST;
+                            break;
+                        case ID_PRIORITY_ABOVENORMAL:
+                            threadPriorityWin32 = THREAD_PRIORITY_ABOVE_NORMAL;
+                            break;
+                        case ID_PRIORITY_NORMAL:
+                            threadPriorityWin32 = THREAD_PRIORITY_NORMAL;
+                            break;
+                        case ID_PRIORITY_BELOWNORMAL:
+                            threadPriorityWin32 = THREAD_PRIORITY_BELOW_NORMAL;
+                            break;
+                        case ID_PRIORITY_LOWEST:
+                            threadPriorityWin32 = THREAD_PRIORITY_LOWEST;
+                            break;
+                        case ID_PRIORITY_IDLE:
+                            threadPriorityWin32 = THREAD_PRIORITY_IDLE;
+                            break;
                         }
 
                         PhReferenceObject(threadItem);
@@ -2497,18 +2497,18 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         switch (id)
                         {
-                            case ID_I_0:
-                                ioPriority = 0;
-                                break;
-                            case ID_I_1:
-                                ioPriority = 1;
-                                break;
-                            case ID_I_2:
-                                ioPriority = 2;
-                                break;
-                            case ID_I_3:
-                                ioPriority = 3;
-                                break;
+                        case ID_I_0:
+                            ioPriority = 0;
+                            break;
+                        case ID_I_1:
+                            ioPriority = 1;
+                            break;
+                        case ID_I_2:
+                            ioPriority = 2;
+                            break;
+                        case ID_I_3:
+                            ioPriority = 3;
+                            break;
                         }
 
                         PhReferenceObject(threadItem);
