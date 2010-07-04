@@ -182,27 +182,250 @@ VOID PhUpdateIconCpuHistory()
     }
 
     text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    if (maxCpuText) PhDereferenceObject(maxCpuText);
 
     PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
     DestroyIcon(icon);
     PhDereferenceObject(text);
-    if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
 VOID PhUpdateIconIoHistory()
 {
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        PH_GRAPH_USE_LINE_2,
+        2,
+        RGB(0x00, 0x00, 0x00),
 
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG lineDataCount;
+    FLOAT lineData1[9];
+    FLOAT lineData2[9];
+    FLOAT max;
+    ULONG i;
+    HBITMAP bitmap;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HICON icon;
+    HANDLE maxIoProcessId;
+    PPH_PROCESS_ITEM maxIoProcessItem;
+    PPH_STRING readString;
+    PPH_STRING writeString;
+    PPH_STRING otherString;
+    PPH_STRING maxIoText = NULL;
+    PPH_STRING text;
+
+    // Icon
+
+    lineDataCount = min(9, PhIoReadHistory.Count);
+    max = 1024 * 1024; // minimum scaling of 1 MB.
+
+    for (i = 0; i < lineDataCount; i++)
+    {
+        lineData1[i] =
+            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoReadHistory, i) +
+            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoOtherHistory, i);
+        lineData2[i] =
+            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoWriteHistory, i);
+
+        if (max < lineData1[i] + lineData2[i])
+            max = lineData1[i] + lineData2[i];
+    }
+
+    PhxfDivideSingle2U(lineData1, max, lineDataCount);
+    PhxfDivideSingle2U(lineData2, max, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineData2 = lineData2;
+    drawInfo.LineColor1 = RGB(0xff, 0xff, 0x00);
+    drawInfo.LineColor2 = RGB(0x77, 0x00, 0xff);
+    drawInfo.LineBackColor1 = RGB(0x77, 0x77, 0x00);
+    drawInfo.LineBackColor2 = RGB(0x33, 0x00, 0x77);
+
+    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+    PhDrawGraph(hdc, &drawInfo);
+
+    SelectObject(hdc, oldBitmap);
+    DeleteDC(hdc);
+
+    icon = PhBitmapToIcon(bitmap);
+    DeleteObject(bitmap);
+
+    // Text
+
+    maxIoProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxIoHistory, 0);
+
+    if (maxIoProcessId != NULL)
+    {
+        if (maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId))
+        {
+            maxIoText = PhConcatStrings2(L"\n", maxIoProcessItem->ProcessName->Buffer);
+            PhDereferenceObject(maxIoProcessItem);
+        }
+    }
+
+    readString = PhFormatSize(PhIoReadDelta.Delta, -1);
+    writeString = PhFormatSize(PhIoWriteDelta.Delta, -1);
+    otherString = PhFormatSize(PhIoOtherDelta.Delta, -1);
+    text = PhFormatString(
+        L"R: %s\nW: %s\nO: %s%s",
+        readString->Buffer,
+        writeString->Buffer,
+        otherString->Buffer,
+        PhGetStringOrEmpty(maxIoText)
+        );
+    PhDereferenceObject(readString);
+    PhDereferenceObject(writeString);
+    PhDereferenceObject(otherString);
+    if (maxIoText) PhDereferenceObject(maxIoText);
+
+    PhModifyNotifyIcon(PH_ICON_IO_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+
+    DestroyIcon(icon);
+    PhDereferenceObject(text);
 }
 
 VOID PhUpdateIconCommitHistory()
 {
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
 
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG lineDataCount;
+    FLOAT lineData1[9];
+    ULONG i;
+    HBITMAP bitmap;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HICON icon;
+    PPH_STRING commitString;
+    FLOAT commitFraction;
+    PPH_STRING text;
+
+    // Icon
+
+    lineDataCount = min(9, PhCommitHistory.Count);
+
+    for (i = 0; i < lineDataCount; i++)
+        lineData1[i] = (FLOAT)PhCircularBufferGet_ULONG(&PhCommitHistory, i);
+
+    PhxfDivideSingle2U(lineData1, (FLOAT)PhPerfInformation.CommitLimit, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = RGB(0xff, 0x77, 0x00);
+    drawInfo.LineBackColor1 = RGB(0x77, 0x33, 0x00);
+
+    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+    PhDrawGraph(hdc, &drawInfo);
+
+    SelectObject(hdc, oldBitmap);
+    DeleteDC(hdc);
+
+    icon = PhBitmapToIcon(bitmap);
+    DeleteObject(bitmap);
+
+    // Text
+
+    commitString = PhFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1);
+    commitFraction = (FLOAT)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+    text = PhFormatString(L"Commit: %s (%.2f%%)", commitString->Buffer, commitFraction * 100);
+    PhDereferenceObject(commitString);
+
+    PhModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+
+    DestroyIcon(icon);
+    PhDereferenceObject(text);
 }
 
 VOID PhUpdateIconPhysicalHistory()
 {
+    static PH_GRAPH_DRAW_INFO drawInfo =
+    {
+        16,
+        16,
+        0,
+        2,
+        RGB(0x00, 0x00, 0x00),
 
+        16,
+        NULL,
+        NULL,
+        0,
+        0,
+        0,
+        0
+    };
+    ULONG lineDataCount;
+    FLOAT lineData1[9];
+    ULONG i;
+    HBITMAP bitmap;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HICON icon;
+    ULONG physicalUsage;
+    PPH_STRING physicalString;
+    FLOAT physicalFraction;
+    PPH_STRING text;
+
+    // Icon
+
+    lineDataCount = min(9, PhCommitHistory.Count);
+
+    for (i = 0; i < lineDataCount; i++)
+        lineData1[i] = (FLOAT)PhCircularBufferGet_ULONG(&PhPhysicalHistory, i);
+
+    PhxfDivideSingle2U(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
+
+    drawInfo.LineDataCount = lineDataCount;
+    drawInfo.LineData1 = lineData1;
+    drawInfo.LineColor1 = RGB(0x00, 0xff, 0xff);
+    drawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x77);
+
+    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+    PhDrawGraph(hdc, &drawInfo);
+
+    SelectObject(hdc, oldBitmap);
+    DeleteDC(hdc);
+
+    icon = PhBitmapToIcon(bitmap);
+    DeleteObject(bitmap);
+
+    // Text
+
+    physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+    physicalString = PhFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1);
+    physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
+    text = PhFormatString(L"Physical Memory: %s (%.2f%%)", physicalString->Buffer, physicalFraction * 100);
+    PhDereferenceObject(physicalString);
+
+    PhModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
+
+    DestroyIcon(icon);
+    PhDereferenceObject(text);
 }
 
 VOID PhUpdateIconCpuUsage()

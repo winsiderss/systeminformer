@@ -1051,17 +1051,6 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
-            case ID_PROCESS_PROPERTIES:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        // No reference needed; no messages pumped.
-                        PhpShowProcessProperties(processItem);
-                    }
-                }
-                break;
             case ID_PRIORITY_REALTIME:
             case ID_PRIORITY_HIGH:
             case ID_PRIORITY_ABOVENORMAL:
@@ -1147,6 +1136,17 @@ LRESULT CALLBACK PhMainWndProc(
                     if (IsWindow(SelectedProcessWindowHandle))
                     {
                         PostMessage(SelectedProcessWindowHandle, WM_CLOSE, 0, 0);
+                    }
+                }
+                break;
+            case ID_PROCESS_PROPERTIES:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        // No reference needed; no messages pumped.
+                        PhpShowProcessProperties(processItem);
                     }
                 }
                 break;
