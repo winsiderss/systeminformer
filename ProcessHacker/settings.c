@@ -50,6 +50,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
+    PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
     PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%

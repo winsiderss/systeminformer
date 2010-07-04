@@ -69,6 +69,32 @@ VOID PhModifyNotifyIcon(
 
     notifyIcon.hIcon = Icon;
 
+    if (!Shell_NotifyIcon(NIM_MODIFY, &notifyIcon))
+    {
+        // Explorer probably died and we lost our icon. Try to add the icon, and try again.
+        PhAddNotifyIcon(Id);
+        Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
+    }
+}
+
+VOID PhShowBalloonTipNotifyIcon(
+    __in ULONG Id,
+    __in PWSTR Title,
+    __in PWSTR Text,
+    __in ULONG Timeout,
+    __in ULONG Flags
+    )
+{
+    NOTIFYICONDATA notifyIcon = { NOTIFYICONDATA_V3_SIZE };
+
+    notifyIcon.hWnd = PhMainWndHandle;
+    notifyIcon.uID = Id;
+    notifyIcon.uFlags = NIF_INFO;
+    wcscpy_s(notifyIcon.szInfoTitle, sizeof(notifyIcon.szInfoTitle) / sizeof(WCHAR), Title);
+    wcscpy_s(notifyIcon.szInfo, sizeof(notifyIcon.szInfo) / sizeof(WCHAR), Text);
+    notifyIcon.uTimeout = Timeout;
+    notifyIcon.dwInfoFlags = Flags;
+
     Shell_NotifyIcon(NIM_MODIFY, &notifyIcon);
 }
 
@@ -97,14 +123,19 @@ static VOID PhpBeginBitmap(
     __out HBITMAP *OldBitmap
     )
 {
-    HDC screenHdc;
-    HDC hdc;
-    HBITMAP bitmap;
+    static BOOLEAN initialized = FALSE;
+    static HDC hdc;
+    static HBITMAP bitmap;
 
-    screenHdc = GetDC(NULL);
-    hdc = CreateCompatibleDC(screenHdc);
-    bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
-    ReleaseDC(NULL, screenHdc);
+    if (!initialized)
+    {
+        HDC screenHdc;
+
+        screenHdc = GetDC(NULL);
+        hdc = CreateCompatibleDC(screenHdc);
+        bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
+        ReleaseDC(NULL, screenHdc);
+    }
 
     *Bitmap = bitmap;
     *Hdc = hdc;
@@ -159,10 +190,7 @@ VOID PhUpdateIconCpuHistory()
     PhDrawGraph(hdc, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    DeleteDC(hdc);
-
     icon = PhBitmapToIcon(bitmap);
-    DeleteObject(bitmap);
 
     // Text
 
@@ -257,10 +285,7 @@ VOID PhUpdateIconIoHistory()
     PhDrawGraph(hdc, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    DeleteDC(hdc);
-
     icon = PhBitmapToIcon(bitmap);
-    DeleteObject(bitmap);
 
     // Text
 
@@ -343,10 +368,7 @@ VOID PhUpdateIconCommitHistory()
     PhDrawGraph(hdc, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    DeleteDC(hdc);
-
     icon = PhBitmapToIcon(bitmap);
-    DeleteObject(bitmap);
 
     // Text
 
@@ -409,10 +431,7 @@ VOID PhUpdateIconPhysicalHistory()
     PhDrawGraph(hdc, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
-    DeleteDC(hdc);
-
     icon = PhBitmapToIcon(bitmap);
-    DeleteObject(bitmap);
 
     // Text
 
