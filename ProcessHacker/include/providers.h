@@ -19,6 +19,9 @@ extern ULONG PhStatisticsSampleCount;
 extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 extern PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 extern SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
+extern ULONG PhTotalProcesses;
+extern ULONG PhTotalThreads;
+extern ULONG PhTotalHandles;
 
 extern FLOAT PhCpuKernelUsage;
 extern FLOAT PhCpuUserUsage;

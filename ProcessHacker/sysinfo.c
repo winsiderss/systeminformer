@@ -21,10 +21,13 @@
  */
 
 #include <phapp.h>
+#include <kph.h>
 #include <settings.h>
 #include <windowsx.h>
 
 #define WM_PH_SYSINFO_ACTIVATE (WM_APP + 150)
+#define WM_PH_SYSINFO_UPDATE (WM_APP + 151)
+#define WM_PH_SYSINFO_PANEL_UPDATE (WM_APP + 160)
 
 NTSTATUS PhpSysInfoThreadStart(
     __in PVOID Parameter
@@ -49,9 +52,14 @@ HWND PhSysInfoWindowHandle = NULL;
 HWND PhSysInfoPanelWindowHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
+static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static BOOLEAN OneGraphPerCpu;
 static BOOLEAN AlwaysOnTop;
+
+static BOOLEAN MmAddressesInitialized = FALSE;
+static PSIZE_T MmSizeOfPagedPoolInBytes = NULL;
+static PSIZE_T MmMaximumNonPagedPoolInBytes = NULL;
 
 VOID PhShowSystemInformationDialog()
 {
@@ -69,6 +77,61 @@ VOID PhShowSystemInformationDialog()
     SendMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_ACTIVATE, 0, 0);
 }
 
+static NTSTATUS PhpLoadMmAddresses(
+    __in PVOID Parameter
+    )
+{
+    PRTL_PROCESS_MODULES kernelModules;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    PPH_STRING kernelFileName;
+    PPH_STRING newFileName;
+    PH_SYMBOL_INFORMATION symbolInfo;
+
+    if (NT_SUCCESS(PhEnumKernelModules(&kernelModules)))
+    {
+        if (kernelModules->NumberOfModules >= 1)
+        {
+            symbolProvider = PhCreateSymbolProvider(NULL);
+
+            kernelFileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
+            newFileName = PhGetFileName(kernelFileName);
+            PhDereferenceObject(kernelFileName);
+
+            PhSymbolProviderLoadModule(
+                symbolProvider,
+                newFileName->Buffer,
+                (ULONG64)kernelModules->Modules[0].ImageBase,
+                kernelModules->Modules[0].ImageSize
+                );
+            PhDereferenceObject(newFileName);
+
+            if (PhGetSymbolFromName(
+                symbolProvider,
+                L"MmSizeOfPagedPoolInBytes",
+                &symbolInfo
+                ))
+            {
+                MmSizeOfPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+            }
+
+            if (PhGetSymbolFromName(
+                symbolProvider,
+                L"MmMaximumNonPagedPoolInBytes",
+                &symbolInfo
+                ))
+            {
+                MmMaximumNonPagedPoolInBytes = (PSIZE_T)symbolInfo.Address;
+            }
+
+            PhDereferenceObject(symbolProvider);
+        }
+
+        PhFree(kernelModules);
+    }
+
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpSysInfoThreadStart(
     __in PVOID Parameter
     )
@@ -78,6 +141,12 @@ static NTSTATUS PhpSysInfoThreadStart(
     MSG message;
 
     PhInitializeAutoPool(&autoPool);
+
+    if (!MmAddressesInitialized && PhKphHandle)
+    {
+        PhQueueGlobalWorkQueueItem(PhpLoadMmAddresses, NULL);
+        MmAddressesInitialized = TRUE;
+    }
 
     PhSysInfoWindowHandle = CreateDialog(
         PhInstanceHandle,
@@ -124,6 +193,14 @@ static VOID PhpSetOneGraphPerCpu()
     PhLayoutManagerLayout(&WindowLayoutManager);
 }
 
+static VOID NTAPI SysInfoUpdateHandler(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PostMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_UPDATE, 0, 0);
+}
+
 INT_PTR CALLBACK PhpSysInfoDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -153,12 +230,24 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 );
             MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
                 windowRectangle.Width, windowRectangle.Height, FALSE);
+
+            PhRegisterCallback(
+                &PhProcessesUpdatedEvent,
+                SysInfoUpdateHandler,
+                NULL,
+                &ProcessesUpdatedRegistration
+                );
         }
         break;
     case WM_DESTROY:
         {
             WINDOWPLACEMENT placement = { sizeof(placement) };
             PH_RECTANGLE windowRectangle;
+
+            PhUnregisterCallback(
+                &PhProcessesUpdatedEvent,
+                &ProcessesUpdatedRegistration
+                );
 
             PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
             PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
@@ -206,6 +295,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhAddLayoutItemEx(&WindowLayoutManager, PhSysInfoPanelWindowHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT, margin);
 
             PhLayoutManagerLayout(&WindowLayoutManager);
+
+            SendMessage(hwndDlg, WM_PH_SYSINFO_UPDATE, 0, 0);
         }
         break;
     case WM_SIZE:
@@ -251,9 +342,50 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             BringWindowToTop(hwndDlg);
         }
         break;
+    case WM_PH_SYSINFO_UPDATE:
+        {
+            SendMessage(PhSysInfoPanelWindowHandle, WM_PH_SYSINFO_PANEL_UPDATE, 0, 0);
+        }
+        break;
     }
 
     return FALSE;
+}
+
+static VOID PhpGetPoolLimits(
+    __out PSIZE_T Paged,
+    __out PSIZE_T NonPaged
+    )
+{
+    SIZE_T paged = 0;
+    SIZE_T nonPaged = 0;
+
+    if (MmSizeOfPagedPoolInBytes)
+    {
+        KphUnsafeReadVirtualMemory(
+            PhKphHandle,
+            NtCurrentProcess(),
+            MmSizeOfPagedPoolInBytes,
+            &paged,
+            sizeof(SIZE_T),
+            NULL
+            );
+    }
+
+    if (MmMaximumNonPagedPoolInBytes)
+    {
+        KphUnsafeReadVirtualMemory(
+            PhKphHandle,
+            NtCurrentProcess(),
+            MmMaximumNonPagedPoolInBytes,
+            &nonPaged,
+            sizeof(SIZE_T),
+            NULL
+            );
+    }
+
+    *Paged = paged;
+    *NonPaged = nonPaged;
 }
 
 INT_PTR CALLBACK PhpSysInfoPanelDlgProc(      
@@ -273,6 +405,141 @@ INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
     case WM_DESTROY:
         {
 
+        }
+        break;
+    case WM_PH_SYSINFO_PANEL_UPDATE:
+        {
+            WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1] = L"Unknown";
+            SYSTEM_TIMEOFDAY_INFORMATION timeOfDayInfo;
+            SYSTEM_FILECACHE_INFORMATION fileCacheInfo;
+            PWSTR pagedLimit;
+            PWSTR nonPagedLimit;
+
+            if (!NT_SUCCESS(NtQuerySystemInformation(
+                SystemFileCacheInformation,
+                &fileCacheInfo,
+                sizeof(SYSTEM_FILECACHE_INFORMATION),
+                NULL
+                )))
+            {
+                memset(&fileCacheInfo, 0, sizeof(SYSTEM_FILECACHE_INFORMATION));
+            }
+
+            // System
+
+            SetDlgItemText(hwndDlg, IDC_ZPROCESSES_V, PhaFormatUInt64(PhTotalProcesses, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZTHREADS_V, PhaFormatUInt64(PhTotalThreads, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, PhaFormatUInt64(PhTotalHandles, TRUE)->Buffer);
+
+            if (NT_SUCCESS(NtQuerySystemInformation(
+                SystemTimeOfDayInformation,
+                &timeOfDayInfo,
+                sizeof(SYSTEM_TIMEOFDAY_INFORMATION),
+                NULL
+                )))
+            {
+                PhPrintTimeSpan(
+                    timeSpan,
+                    timeOfDayInfo.CurrentTime.QuadPart - timeOfDayInfo.BootTime.QuadPart,
+                    PH_TIMESPAN_DHMS
+                    );
+            }
+
+            SetDlgItemText(hwndDlg, IDC_ZUPTIME_V, timeSpan);
+
+            // Commit Charge
+
+            SetDlgItemText(hwndDlg, IDC_ZCOMMITCURRENT_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZCOMMITPEAK_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.PeakCommitment, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZCOMMITLIMIT_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE), -1)->Buffer);
+
+            // Physical Memory
+
+            SetDlgItemText(hwndDlg, IDC_ZPHYSICALCURRENT_V,
+                PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPHYSICALSYSTEMCACHE_V,
+                PhaFormatSize(UInt32x32To64(fileCacheInfo.CurrentSizeIncludingTransitionInPages, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPHYSICALTOTAL_V,
+                PhaFormatSize(UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE), -1)->Buffer);
+
+            // Kernel Pools
+
+            SetDlgItemText(hwndDlg, IDC_ZPAGEDPHYSICAL_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.ResidentPagedPoolPage, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEDVIRTUAL_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.PagedPoolPages, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEDALLOCS_V,
+                PhaFormatUInt64(PhPerfInformation.PagedPoolAllocs, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEDFREES_V,
+                PhaFormatUInt64(PhPerfInformation.PagedPoolFrees, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDUSAGE_V,
+                PhaFormatSize(UInt32x32To64(PhPerfInformation.NonPagedPoolPages, PAGE_SIZE), -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDALLOCS_V,
+                PhaFormatUInt64(PhPerfInformation.NonPagedPoolAllocs, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDFREES_V,
+                PhaFormatUInt64(PhPerfInformation.NonPagedPoolFrees, TRUE)->Buffer);
+
+            if (MmAddressesInitialized)
+            {
+                SIZE_T paged;
+                SIZE_T nonPaged;
+
+                PhpGetPoolLimits(&paged, &nonPaged);
+                pagedLimit = PhaFormatSize(paged, -1)->Buffer;
+                nonPagedLimit = PhaFormatSize(nonPaged, -1)->Buffer;
+            }
+            else
+            {
+                if (!PhKphHandle)
+                {
+                    pagedLimit = nonPagedLimit = L"no driver";
+                }
+                else
+                {
+                    pagedLimit = nonPagedLimit = L"no symbols";
+                }
+            }
+
+            SetDlgItemText(hwndDlg, IDC_ZPAGEDLIMIT_V, pagedLimit);
+            SetDlgItemText(hwndDlg, IDC_ZNONPAGEDLIMIT_V, nonPagedLimit);
+
+            // Page Faults
+
+            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSTOTAL_V,
+                PhaFormatUInt64(PhPerfInformation.PageFaultCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSCOPYONWRITE_V,
+                PhaFormatUInt64(PhPerfInformation.CopyOnWriteCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSTRANSITION_V,
+                PhaFormatUInt64(PhPerfInformation.TransitionCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTSCACHE_V,
+                PhaFormatUInt64(fileCacheInfo.PageFaultCount, TRUE)->Buffer);
+
+            // I/O
+
+            SetDlgItemText(hwndDlg, IDC_ZIOREADS_V,
+                PhaFormatUInt64(PhPerfInformation.IoReadOperationCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V,
+                PhaFormatSize(PhPerfInformation.IoReadTransferCount.QuadPart, -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V,
+                PhaFormatUInt64(PhPerfInformation.IoWriteOperationCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V,
+                PhaFormatSize(PhPerfInformation.IoWriteTransferCount.QuadPart, -1)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V,
+                PhaFormatUInt64(PhPerfInformation.IoOtherOperationCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V,
+                PhaFormatSize(PhPerfInformation.IoOtherTransferCount.QuadPart, -1)->Buffer);
+
+            // CPU
+
+            SetDlgItemText(hwndDlg, IDC_ZCONTEXTSWITCHES_V,
+                PhaFormatUInt64(PhPerfInformation.ContextSwitches, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZINTERRUPTS_V,
+                PhaFormatUInt64(PhCpuTotals.InterruptCount, TRUE)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_ZSYSTEMCALLS_V,
+                PhaFormatUInt64(PhPerfInformation.SystemCalls, TRUE)->Buffer);
         }
         break;
     }

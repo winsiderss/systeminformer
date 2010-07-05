@@ -1337,6 +1337,14 @@ typedef enum _PH_SYMBOL_RESOLVE_LEVEL
     PhsrlInvalid
 } PH_SYMBOL_RESOLVE_LEVEL, *PPH_SYMBOL_RESOLVE_LEVEL;
 
+typedef struct _PH_SYMBOL_INFORMATION
+{
+    ULONG64 Address;
+    ULONG64 ModuleBase;
+    ULONG Index;
+    ULONG Size;
+} PH_SYMBOL_INFORMATION, *PPH_SYMBOL_INFORMATION;
+
 BOOLEAN PhSymbolProviderInitialization();
 
 VOID PhSymbolProviderDynamicImport();
@@ -1358,6 +1366,12 @@ PPH_STRING PhGetSymbolFromAddress(
     __out_opt PPH_STRING *FileName,
     __out_opt PPH_STRING *SymbolName,
     __out_opt PULONG64 Displacement
+    );
+
+BOOLEAN PhGetSymbolFromName(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in PWSTR Name,
+    __out PPH_SYMBOL_INFORMATION Information
     );
 
 BOOLEAN PhSymbolProviderLoadModule(

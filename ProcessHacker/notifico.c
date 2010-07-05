@@ -135,6 +135,8 @@ static VOID PhpBeginBitmap(
         hdc = CreateCompatibleDC(screenHdc);
         bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
         ReleaseDC(NULL, screenHdc);
+
+        initialized = TRUE;
     }
 
     *Bitmap = bitmap;
