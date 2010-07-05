@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <kph.h>
 #include <settings.h>
+#include <graph.h>
 #include <windowsx.h>
 
 #define WM_PH_SYSINFO_ACTIVATE (WM_APP + 150)
@@ -56,6 +57,14 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static BOOLEAN OneGraphPerCpu;
 static BOOLEAN AlwaysOnTop;
+
+static HWND CpuGraphHandle;
+static HWND IoGraphHandle;
+static HWND PhysicalGraphHandle;
+
+static PH_GRAPH_STATE CpuGraphState;
+static PH_GRAPH_STATE IoGraphState;
+static PH_GRAPH_STATE PhysicalGraphState;
 
 static BOOLEAN MmAddressesInitialized = FALSE;
 static PSIZE_T MmSizeOfPagedPoolInBytes = NULL;
@@ -219,7 +228,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ONEGRAPHPERCPU), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             windowRectangle.Position = PhGetIntegerPairSetting(L"SysInfoWindowPosition");
             windowRectangle.Size = PhGetIntegerPairSetting(L"SysInfoWindowSize");
@@ -230,6 +238,26 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 );
             MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
                 windowRectangle.Width, windowRectangle.Height, FALSE);
+
+            PhInitializeGraphState(&CpuGraphState);
+            PhInitializeGraphState(&IoGraphState);
+            PhInitializeGraphState(&PhysicalGraphState);
+
+            CpuGraphHandle = PhCreateGraphControl(hwndDlg, IDC_CPU);
+            Graph_SetTooltip(CpuGraphHandle, TRUE);
+            ShowWindow(CpuGraphHandle, SW_SHOW);
+            MoveWindow(CpuGraphHandle, 0, 0, 400, 100, FALSE);
+            BringWindowToTop(CpuGraphHandle);
+
+            IoGraphHandle = PhCreateGraphControl(hwndDlg, IDC_IO);
+            Graph_SetTooltip(IoGraphHandle, TRUE);
+            //ShowWindow(IoGraphHandle, SW_SHOW);
+            BringWindowToTop(IoGraphHandle);
+
+            PhysicalGraphHandle = PhCreateGraphControl(hwndDlg, IDC_PHYSICAL);
+            Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+            //ShowWindow(PhysicalGraphHandle, SW_SHOW);
+            BringWindowToTop(PhysicalGraphHandle);
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -248,6 +276,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 &PhProcessesUpdatedEvent,
                 &ProcessesUpdatedRegistration
                 );
+
+            PhDeleteGraphState(&CpuGraphState);
+            PhDeleteGraphState(&IoGraphState);
+            PhDeleteGraphState(&PhysicalGraphState);
 
             PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
             PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
@@ -332,6 +364,236 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case GCN_GETDRAWINFO:
+                {
+                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+                    if (header->hwndFrom == CpuGraphHandle)
+                    {
+                        HDC hdc;
+
+                        PhSwapReference(&CpuGraphState.TooltipText,
+                            PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
+                            (PhCpuKernelUsage + PhCpuUserUsage) * 100,
+                            PhCpuKernelUsage * 100,
+                            PhCpuUserUsage * 100
+                            ));
+
+                        hdc = Graph_GetBufferedContext(CpuGraphHandle);
+                        SelectObject(hdc, PhApplicationFont);
+                        PhSetGraphText(hdc, drawInfo, &CpuGraphState.TooltipText->sr,
+                            &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
+                        drawInfo->LineColor2 = RGB(0xff, 0x00, 0x00);
+                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x00);
+                        drawInfo->LineBackColor2 = RGB(0x77, 0x00, 0x00);
+
+                        PhGraphStateGetDrawInfo(
+                            &CpuGraphState,
+                            getDrawInfo,
+                            PhCpuKernelHistory.Count
+                            );
+
+                        if (!CpuGraphState.Valid)
+                        {
+                            PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory,
+                                CpuGraphState.Data1, drawInfo->LineDataCount);
+                            PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory,
+                                CpuGraphState.Data2, drawInfo->LineDataCount);
+                            CpuGraphState.Valid = TRUE;
+                        }
+                    }
+                    else if (header->hwndFrom == IoGraphHandle)
+                    {
+                        //HDC hdc;
+
+                        //PhSwapReference(&performanceContext->IoGraphState.TooltipText,
+                        //    PhFormatString(
+                        //    L"R+O: %s, W: %s",
+                        //    PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
+                        //    PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
+                        //    ));
+
+                        //hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
+                        //SelectObject(hdc, PhApplicationFont);
+                        //PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.TooltipText->sr,
+                        //    &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        //drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
+                        //drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
+                        //drawInfo->LineColor2 = RGB(0x77, 0x00, 0xff);
+                        //drawInfo->LineBackColor1 = RGB(0x77, 0x77, 0x00);
+                        //drawInfo->LineBackColor2 = RGB(0x33, 0x00, 0x77);
+
+                        //PhGraphStateGetDrawInfo(
+                        //    &performanceContext->IoGraphState,
+                        //    getDrawInfo,
+                        //    processItem->IoReadHistory.Count
+                        //    );
+
+                        //if (!performanceContext->IoGraphState.Valid)
+                        //{
+                        //    ULONG i;
+                        //    FLOAT max = 0;
+
+                        //    for (i = 0; i < drawInfo->LineDataCount; i++)
+                        //    {
+                        //        FLOAT data1;
+                        //        FLOAT data2;
+
+                        //        performanceContext->IoGraphState.Data1[i] = data1 =
+                        //            (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, i) +
+                        //            (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, i);
+                        //        performanceContext->IoGraphState.Data2[i] = data2 =
+                        //            (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, i);
+
+                        //        if (max < data1 + data2)
+                        //            max = data1 + data2;
+                        //    }
+
+                        //    if (max != 0)
+                        //    {
+                        //        // Scale the data.
+
+                        //        PhxfDivideSingle2U(
+                        //            performanceContext->IoGraphState.Data1,
+                        //            max,
+                        //            drawInfo->LineDataCount
+                        //            );
+                        //        PhxfDivideSingle2U(
+                        //            performanceContext->IoGraphState.Data2,
+                        //            max,
+                        //            drawInfo->LineDataCount
+                        //            );
+                        //    }
+
+                        //    performanceContext->IoGraphState.Valid = TRUE;
+                        //}
+                    }
+                    else if (header->hwndFrom == PhysicalGraphHandle)
+                    {
+                        //HDC hdc;
+
+                        //PhSwapReference(&performanceContext->PrivateGraphState.TooltipText,
+                        //    PhConcatStrings2(
+                        //    L"WS: ",
+                        //    PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
+                        //    ));
+
+                        //hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
+                        //SelectObject(hdc, PhApplicationFont);
+                        //PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.TooltipText->sr,
+                        //    &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+
+                        //drawInfo->Flags = PH_GRAPH_USE_GRID;
+                        //drawInfo->LineColor1 = RGB(0xff, 0x77, 0x00);
+                        //drawInfo->LineBackColor1 = RGB(0x77, 0x33, 0x00);
+
+                        //PhGraphStateGetDrawInfo(
+                        //    &performanceContext->PrivateGraphState,
+                        //    getDrawInfo,
+                        //    processItem->PrivateBytesHistory.Count
+                        //    );
+
+                        //if (!performanceContext->PrivateGraphState.Valid)
+                        //{
+                        //    ULONG i;
+
+                        //    for (i = 0; i < drawInfo->LineDataCount; i++)
+                        //    {
+                        //        performanceContext->PrivateGraphState.Data1[i] =
+                        //            (FLOAT)PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, i);
+                        //    }
+
+                        //    if (processItem->VmCounters.PeakPagefileUsage != 0)
+                        //    {
+                        //        // Scale the data.
+                        //        PhxfDivideSingle2U(
+                        //            performanceContext->PrivateGraphState.Data1,
+                        //            (FLOAT)processItem->VmCounters.PeakPagefileUsage,
+                        //            drawInfo->LineDataCount
+                        //            );
+                        //    }
+
+                        //    performanceContext->PrivateGraphState.Valid = TRUE;
+                        //}
+                    }
+                }
+                break;
+            case GCN_GETTOOLTIPTEXT:
+                {
+                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
+
+                    if (
+                        header->hwndFrom == CpuGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        FLOAT cpuKernel;
+                        FLOAT cpuUser;
+
+                        cpuKernel = PhCircularBufferGet_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
+                        cpuUser = PhCircularBufferGet_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
+
+                        PhSwapReference(&CpuGraphState.TooltipText, PhFormatString(
+                            L"%.2f%% (K: %.2f%%, U: %.2f%%)",
+                            (cpuKernel + cpuUser) * 100,
+                            cpuKernel * 100,
+                            cpuUser * 100
+                            ));
+                        getTooltipText->Text = CpuGraphState.TooltipText->sr;
+                    }
+                    else if (
+                        header->hwndFrom == IoGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        //ULONG64 ioRead;
+                        //ULONG64 ioWrite;
+                        //ULONG64 ioOther;
+
+                        //ioRead = PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
+                        //ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
+                        //ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
+
+                        //PhSwapReference(&performanceContext->IoGraphState.TooltipText, PhFormatString(
+                        //    L"R+O: %s\nW: %s\n%s",
+                        //    PhaFormatSize(ioRead + ioOther, -1)->Buffer,
+                        //    PhaFormatSize(ioWrite, -1)->Buffer,
+                        //    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                        //    ));
+                        //getTooltipText->Text = performanceContext->IoGraphState.TooltipText->sr;
+                    }
+                    else if (
+                        header->hwndFrom == PhysicalGraphHandle &&
+                        getTooltipText->Index < getTooltipText->TotalCount
+                        )
+                    {
+                        //SIZE_T privateBytes;
+
+                        //privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
+
+                        //PhSwapReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
+                        //    L"Private Bytes: %s\n%s",
+                        //    PhaFormatSize(privateBytes, -1)->Buffer,
+                        //    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                        //    ));
+                        //getTooltipText->Text = performanceContext->PrivateGraphState.TooltipText->sr;
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_PH_SYSINFO_ACTIVATE:
         {
             if (IsIconic(hwndDlg))
@@ -344,6 +606,24 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
         break;
     case WM_PH_SYSINFO_UPDATE:
         {
+            CpuGraphState.Valid = FALSE;
+            Graph_MoveGrid(CpuGraphHandle, 1);
+            Graph_Draw(CpuGraphHandle);
+            Graph_UpdateTooltip(CpuGraphHandle);
+            InvalidateRect(CpuGraphHandle, NULL, FALSE);
+
+            IoGraphState.Valid = FALSE;
+            Graph_MoveGrid(IoGraphHandle, 1);
+            Graph_Draw(IoGraphHandle);
+            Graph_UpdateTooltip(IoGraphHandle);
+            InvalidateRect(IoGraphHandle, NULL, FALSE);
+
+            PhysicalGraphState.Valid = FALSE;
+            Graph_MoveGrid(PhysicalGraphHandle, 1);
+            Graph_Draw(PhysicalGraphHandle);
+            Graph_UpdateTooltip(PhysicalGraphHandle);
+            InvalidateRect(PhysicalGraphHandle, NULL, FALSE);
+
             SendMessage(PhSysInfoPanelWindowHandle, WM_PH_SYSINFO_PANEL_UPDATE, 0, 0);
         }
         break;

@@ -201,28 +201,12 @@ typedef struct _PH_PERFORMANCE_CONTEXT
 
     HWND WindowHandle;
 
-    PFLOAT CpuKernelData;
-    PFLOAT CpuUserData;
-    ULONG CpuDataCount;
-    BOOLEAN CpuDataValid;
-    PPH_STRING CpuText;
-    PPH_STRING CpuTooltipText;
-
-    PFLOAT PrivateBytesData;
-    ULONG PrivateBytesDataCount;
-    BOOLEAN PrivateBytesDataValid;
-    PPH_STRING PrivateBytesText;
-    PPH_STRING PrivateBytesTooltipText;
-
-    PFLOAT IoReadOtherData;
-    PFLOAT IoWriteData;
-    ULONG IoDataCount;
-    BOOLEAN IoDataValid;
-    PPH_STRING IoText;
-    PPH_STRING IoTooltipText;
+    PH_GRAPH_STATE CpuGraphState;
+    PH_GRAPH_STATE PrivateGraphState;
+    PH_GRAPH_STATE IoGraphState;
 
     HWND CpuGraphHandle;
-    HWND PrivateBytesGraphHandle;
+    HWND PrivateGraphHandle;
     HWND IoGraphHandle;
 } PH_PERFORMANCE_CONTEXT, *PPH_PERFORMANCE_CONTEXT;
 

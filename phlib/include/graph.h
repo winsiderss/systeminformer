@@ -1,6 +1,13 @@
 #ifndef _PH_GRAPH_H
 #define _PH_GRAPH_H
 
+// Graph drawing
+
+#ifndef GRAPH_PRIVATE
+extern RECT PhNormalGraphTextMargin;
+extern RECT PhNormalGraphTextPadding;
+#endif
+
 #define PH_GRAPH_USE_GRID 0x1
 #define PH_GRAPH_USE_LINE_2 0x10
 #define PH_GRAPH_OVERLAY_LINE_2 0x20
@@ -36,6 +43,8 @@ typedef struct _PH_GRAPH_DRAW_INFO
     COLORREF TextColor;
     COLORREF TextBoxColor;
 } PH_GRAPH_DRAW_INFO, *PPH_GRAPH_DRAW_INFO;
+
+// Graph control
 
 #define PH_GRAPH_CLASSNAME L"PhGraph"
 
@@ -106,5 +115,31 @@ typedef struct _PH_GRAPH_GETTOOLTIPTEXT
 } PH_GRAPH_GETTOOLTIPTEXT, *PPH_GRAPH_GETTOOLTIPTEXT;
 
 #define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step) + 1) // round up in division
+
+// Graph control state
+
+typedef struct _PH_GRAPH_STATE
+{
+    PFLOAT Data1;
+    PFLOAT Data2;
+    ULONG AllocatedCount;
+    BOOLEAN Valid;
+    PPH_STRING Text;
+    PPH_STRING TooltipText;
+} PH_GRAPH_STATE, *PPH_GRAPH_STATE;
+
+VOID PhInitializeGraphState(
+    __out PPH_GRAPH_STATE State
+    );
+
+VOID PhDeleteGraphState(
+    __inout PPH_GRAPH_STATE State
+    );
+
+VOID PhGraphStateGetDrawInfo(
+    __inout PPH_GRAPH_STATE State,
+    __in PPH_GRAPH_GETDRAWINFO GetDrawInfo,
+    __in ULONG DataCount
+    );
 
 #endif

@@ -25,6 +25,7 @@
 #define ID_ICONPROCESS_RESUME           117
 #define IDB_TICK                        118
 #define ID_ICONPROCESS_PROPERTIES       118
+#define IDC_PHYSICAL                    119
 #define IDR_SHUTDOWN                    120
 #define IDR_COMPUTER                    120
 #define IDD_ABOUT                       121
@@ -508,6 +509,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        176
 #define _APS_NEXT_COMMAND_VALUE         40189
 #define _APS_NEXT_CONTROL_VALUE         1206
-#define _APS_NEXT_SYMED_VALUE           119
+#define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif

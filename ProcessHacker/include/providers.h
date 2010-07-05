@@ -225,14 +225,14 @@ VOID PhEnumProcessItems(
     __out PULONG NumberOfProcessItems
     );
 
-BOOLEAN PhGetProcessItemTime(
-    __in PPH_PROCESS_ITEM ProcessItem,
+BOOLEAN PhGetStatisticsTime(
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index,
     __out PLARGE_INTEGER Time
     );
 
-PPH_STRING PhGetProcessItemTimeString(
-    __in PPH_PROCESS_ITEM ProcessItem,
+PPH_STRING PhGetStatisticsTimeString(
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index
     );
 
