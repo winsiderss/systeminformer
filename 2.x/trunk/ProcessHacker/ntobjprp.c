@@ -485,7 +485,7 @@ static VOID PhpRefreshSectionPageInfo(
             else if (basicInfo.AllocationAttributes & SEC_RESERVE)
                 sectionType = L"Reserve";
 
-            sectionSize = PHA_DEREFERENCE(PhFormatSize(basicInfo.MaximumSize.QuadPart, -1));
+            sectionSize = PhaFormatSize(basicInfo.MaximumSize.QuadPart, -1);
         }
 
         SetDlgItemText(hwndDlg, IDC_TYPE, sectionType);
