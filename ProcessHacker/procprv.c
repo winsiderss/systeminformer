@@ -1156,8 +1156,8 @@ VOID PhpUpdateSystemHistory()
     PhTimeSequenceNumber++;
 }
 
-BOOLEAN PhGetProcessItemTime(
-    __in PPH_PROCESS_ITEM ProcessItem,
+BOOLEAN PhGetStatisticsTime(
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index,
     __out PLARGE_INTEGER Time
     )
@@ -1166,14 +1166,22 @@ BOOLEAN PhGetProcessItemTime(
     ULONG index;
     LARGE_INTEGER time;
 
-    // The sequence number is used to synchronize statistics when a process exits, since 
-    // that process' history is not updated anymore.
-    index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
-
-    if (index >= PhTimeHistory.Count)
+    if (ProcessItem)
     {
-        // The data point is too far into the past.
-        return FALSE;
+        // The sequence number is used to synchronize statistics when a process exits, since 
+        // that process' history is not updated anymore.
+        index = PhTimeSequenceNumber - ProcessItem->SequenceNumber + Index;
+
+        if (index >= PhTimeHistory.Count)
+        {
+            // The data point is too far into the past.
+            return FALSE;
+        }
+    }
+    else
+    {
+        // Assume the index is valid.
+        index = Index;
     }
 
     secondsSince1980 = PhCircularBufferGet_ULONG(&PhTimeHistory, index);
@@ -1184,8 +1192,8 @@ BOOLEAN PhGetProcessItemTime(
     return TRUE;
 }
 
-PPH_STRING PhGetProcessItemTimeString(
-    __in PPH_PROCESS_ITEM ProcessItem,
+PPH_STRING PhGetStatisticsTimeString(
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index
     )
 {
@@ -1195,7 +1203,7 @@ PPH_STRING PhGetProcessItemTimeString(
     PPH_STRING timeString;
     PPH_STRING dateAndTimeString;
 
-    if (PhGetProcessItemTime(ProcessItem, Index, &time))
+    if (PhGetStatisticsTime(ProcessItem, Index, &time))
     {
         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
