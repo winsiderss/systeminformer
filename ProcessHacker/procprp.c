@@ -732,8 +732,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             }
             else
             {
-                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS, ((PPH_STRING)PHA_DEREFERENCE(PhFormatString(
-                    L"Non-existent process (%u)", (ULONG)processItem->ParentProcessId)))->Buffer);
+                SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
+                    PhaFormatString(L"Non-existent process (%u)", (ULONG)processItem->ParentProcessId)->Buffer);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), FALSE);
             }
 
@@ -979,36 +979,36 @@ VOID PhpUpdateProcessStatistics(
         ProcessItem->KernelTime.QuadPart + ProcessItem->UserTime.QuadPart, PH_TIMESPAN_HMSM); // total time
     SetDlgItemText(hwndDlg, IDC_ZTOTALTIME_V, timeSpan);
 
-    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)))->Buffer); // private bytes (same as PrivateUsage)
-    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)))->Buffer); // peak private bytes
-    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)))->Buffer); // working set
-    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)))->Buffer); // peak working set
-    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.VirtualSize, -1)))->Buffer); // virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)))->Buffer); // peak virtual size
-    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)))->Buffer); // page faults
+    SetDlgItemText(hwndDlg, IDC_ZPRIVATEBYTES_V, 
+        PhaFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)->Buffer); // private bytes (same as PrivateUsage)
+    SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V, 
+        PhaFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)->Buffer); // peak private bytes
+    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, 
+        PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer); // working set
+    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, 
+        PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer); // peak working set
+    SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V, 
+        PhaFormatSize(ProcessItem->VmCounters.VirtualSize, -1)->Buffer); // virtual size
+    SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, 
+        PhaFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)->Buffer); // peak virtual size
+    SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, 
+        PhaFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)->Buffer); // page faults
 
-    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)))->Buffer); // reads
-    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)))->Buffer); // read bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)))->Buffer); // writes
-    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)))->Buffer); // write bytes
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)))->Buffer); // other
-    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)))->Buffer); // read bytes
+    SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, 
+        PhaFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)->Buffer); // reads
+    SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, 
+        PhaFormatSize(ProcessItem->IoCounters.ReadTransferCount, -1)->Buffer); // read bytes
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, 
+        PhaFormatUInt64(ProcessItem->IoCounters.WriteOperationCount, TRUE)->Buffer); // writes
+    SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, 
+        PhaFormatSize(ProcessItem->IoCounters.WriteTransferCount, -1)->Buffer); // write bytes
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, 
+        PhaFormatUInt64(ProcessItem->IoCounters.OtherOperationCount, TRUE)->Buffer); // other
+    SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, 
+        PhaFormatSize(ProcessItem->IoCounters.OtherTransferCount, -1)->Buffer); // read bytes
 
-    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, ((PPH_STRING)PHA_DEREFERENCE(
-        PhFormatUInt64(ProcessItem->NumberOfHandles, TRUE)))->Buffer); // handles
+    SetDlgItemText(hwndDlg, IDC_ZHANDLES_V, 
+        PhaFormatUInt64(ProcessItem->NumberOfHandles, TRUE)->Buffer); // handles
 
     // Optional information
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
@@ -1023,15 +1023,13 @@ VOID PhpUpdateProcessStatistics(
         {
             ULONG64 cycleTime;
 
-            gdiHandles = PHA_DEREFERENCE(PhFormatUInt64(
-                GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE)); // GDI handles
-            userHandles = PHA_DEREFERENCE(PhFormatUInt64(
-                GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE)); // USER handles
+            gdiHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE); // GDI handles
+            userHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE); // USER handles
 
             if (WINDOWS_HAS_CYCLE_TIME &&
                 NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
             {
-                cycles = PHA_DEREFERENCE(PhFormatUInt64(cycleTime, TRUE));
+                cycles = PhaFormatUInt64(cycleTime, TRUE);
             }
 
             if (WindowsVersion >= WINDOWS_VISTA)
@@ -1365,7 +1363,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         performanceContext->PrivateBytesText = PhConcatStrings2(
                             L"WS: ",
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->VmCounters.PagefileUsage, -1)))->Buffer
+                            PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
                             );
 
                         hdc = Graph_GetBufferedContext(performanceContext->PrivateBytesGraphHandle);
@@ -1428,8 +1426,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         performanceContext->IoText = PhFormatString(
                             L"R+O: %s, W: %s",
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)))->Buffer,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(processItem->IoWriteDelta.Delta, -1)))->Buffer
+                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
+                            PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
                             );
 
                         hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
@@ -1544,8 +1542,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
                         performanceContext->IoTooltipText = PhFormatString(
                             L"R+O: %s\nW: %s\n%s",
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(ioRead + ioOther, -1)))->Buffer,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(ioWrite, -1)))->Buffer,
+                            PhaFormatSize(ioRead + ioOther, -1)->Buffer,
+                            PhaFormatSize(ioWrite, -1)->Buffer,
                             ((PPH_STRING)PHA_DEREFERENCE(PhGetProcessItemTimeString(processItem, getTooltipText->Index)))->Buffer
                             );
 
@@ -1563,7 +1561,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
                         performanceContext->PrivateBytesTooltipText = PhFormatString(
                             L"Private Bytes: %s\n%s",
-                            ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(privateBytes, -1)))->Buffer,
+                            PhaFormatSize(privateBytes, -1)->Buffer,
                             ((PPH_STRING)PHA_DEREFERENCE(PhGetProcessItemTimeString(processItem, getTooltipText->Index)))->Buffer
                             );
 
@@ -2029,10 +2027,10 @@ VOID PhpUpdateThreadDetails(
         PhPrintTimeSpan(kernelTime, threadItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
         PhPrintTimeSpan(userTime, threadItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
 
-        contextSwitches = PHA_DEREFERENCE(PhFormatUInt64(threadItem->ContextSwitchesDelta.Value, TRUE));
+        contextSwitches = PhaFormatUInt64(threadItem->ContextSwitchesDelta.Value, TRUE);
 
         if (WINDOWS_HAS_CYCLE_TIME)
-            cycles = PHA_DEREFERENCE(PhFormatUInt64(threadItem->CyclesDelta.Value, TRUE));
+            cycles = PhaFormatUInt64(threadItem->CyclesDelta.Value, TRUE);
 
         if (threadItem->State != Waiting)
         {

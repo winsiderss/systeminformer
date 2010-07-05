@@ -985,9 +985,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                     // DynamicCharged contains the number of bytes allocated.
                     // DynamicAvailable contains the number of bytes free.
-                    memoryUsed = PHA_DEREFERENCE(PhFormatSize(
-                        statistics.DynamicCharged - statistics.DynamicAvailable, -1));
-                    memoryAvailable = PHA_DEREFERENCE(PhFormatSize(statistics.DynamicCharged, -1));
+                    memoryUsed = PhaFormatSize(statistics.DynamicCharged - statistics.DynamicAvailable, -1);
+                    memoryAvailable = PhaFormatSize(statistics.DynamicCharged, -1);
                 }
 
                 NtClose(tokenHandle);
