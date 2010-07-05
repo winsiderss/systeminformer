@@ -925,6 +925,10 @@ VOID PhShowProcessTerminatorDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+// sysinfo
+
+VOID PhShowSystemInformationDialog();
+
 // thrdstk
 
 VOID PhShowThreadStackDialog(
