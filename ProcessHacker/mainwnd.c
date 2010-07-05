@@ -599,6 +599,9 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_HACKER_EXIT:
                 ProcessHacker_Destroy(hWnd);
                 break;
+            case ID_VIEW_SYSTEMINFORMATION:
+                PhShowSystemInformationDialog();
+                break;
             case ID_TRAYICONS_CPUHISTORY:
             case ID_TRAYICONS_CPUUSAGE:
             case ID_TRAYICONS_IOHISTORY:

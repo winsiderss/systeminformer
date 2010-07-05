@@ -4679,7 +4679,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     while (result = GetMessage(&message, NULL, 0, 0))
     {
         if (result == -1)
-            return STATUS_UNSUCCESSFUL;
+            break;
 
         if (!PropSheet_IsDialogMessage(hwnd, &message))
         {

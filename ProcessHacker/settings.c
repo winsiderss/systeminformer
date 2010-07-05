@@ -66,6 +66,10 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddIntegerSetting(L"StartHidden", L"0");
+    PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
+    PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
+    PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
+    PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
 
     // Colors are specified with R in the lowest byte, then G, then B.
