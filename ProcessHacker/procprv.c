@@ -125,6 +125,9 @@ ULONG PhStatisticsSampleCount = 500;
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
 SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuTotals;
+ULONG PhTotalProcesses;
+ULONG PhTotalThreads;
+ULONG PhTotalHandles;
 
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
@@ -999,13 +1002,11 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
 
 VOID PhpUpdatePerfInformation()
 {
-    ULONG returnLength;
-
     NtQuerySystemInformation(
         SystemPerformanceInformation,
         &PhPerfInformation,
         sizeof(SYSTEM_PERFORMANCE_INFORMATION),
-        &returnLength
+        NULL
         );
 
     PhUpdateDelta(&PhIoReadDelta, PhPerfInformation.IoReadTransferCount.QuadPart);
@@ -1017,7 +1018,6 @@ VOID PhpUpdateCpuInformation(
     __out PULONG64 TotalTime
     )
 {
-    ULONG returnLength;
     ULONG i;
     ULONG64 totalTime;
 
@@ -1026,7 +1026,7 @@ VOID PhpUpdateCpuInformation(
         PhCpuInformation,
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
         (ULONG)PhSystemBasicInformation.NumberOfProcessors,
-        &returnLength
+        NULL
         );
 
     // Zero the CPU totals.
@@ -1259,6 +1259,10 @@ VOID PhProcessProviderUpdate(
 
     // Get the process list.
 
+    PhTotalProcesses = 0;
+    PhTotalThreads = 0;
+    PhTotalHandles = 0;
+
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
 
@@ -1271,6 +1275,10 @@ VOID PhProcessProviderUpdate(
 
     do
     {
+        PhTotalProcesses++;
+        PhTotalThreads += process->NumberOfThreads;
+        PhTotalHandles += process->HandleCount;
+
         if (process->UniqueProcessId == SYSTEM_IDLE_PROCESS_ID)
         {
             process->KernelTime = PhCpuTotals.IdleTime;
