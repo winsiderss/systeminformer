@@ -147,17 +147,16 @@ PPH_STRING PhpGetGdiHandleInformation(
         }
         break;
     case GDI_CLIENT_EXTPEN_TYPE:
-    case GDI_CLIENT_PEN_TYPE:
         {
-            LOGPEN pen;
+            EXTLOGPEN pen;
 
-            if (GetObject(handle, sizeof(LOGPEN), &pen))
+            if (GetObject(handle, sizeof(EXTLOGPEN), &pen))
             {
                 return PhFormatString(
-                    L"Style: %u, Width: %u, Color: 0x%08x",
-                    pen.lopnStyle,
-                    pen.lopnWidth.x,
-                    _byteswap_ulong(pen.lopnColor)
+                    L"Style: 0x%x, Width: %u, Color: 0x%08x",
+                    pen.elpPenStyle,
+                    pen.elpWidth,
+                    _byteswap_ulong(pen.elpColor)
                     );
             }
         }
@@ -185,6 +184,21 @@ PPH_STRING PhpGetGdiHandleInformation(
                 return PhFormatString(
                     L"Entries: %u",
                     (ULONG)count
+                    );
+            }
+        }
+        break;
+    case GDI_CLIENT_PEN_TYPE:
+        {
+            LOGPEN pen;
+
+            if (GetObject(handle, sizeof(LOGPEN), &pen))
+            {
+                return PhFormatString(
+                    L"Style: %u, Width: %u, Color: 0x%08x",
+                    pen.lopnStyle,
+                    pen.lopnWidth.x,
+                    _byteswap_ulong(pen.lopnColor)
                     );
             }
         }
