@@ -541,6 +541,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sysinfo.c"
+				>
+			</File>
+			<File
 				RelativePath=".\termator.c"
 				>
 			</File>

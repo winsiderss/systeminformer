@@ -1721,16 +1721,25 @@ PPH_STRING PhFormatUInt64(
     __in BOOLEAN GroupDigits
     );
 
+#define PhaFormatUInt64(Value, GroupDigits) \
+    ((PPH_STRING)PHA_DEREFERENCE(PhFormatUInt64((Value), (GroupDigits))))
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
     __in BOOLEAN GroupDigits
     );
 
+#define PhaFormatDecimal(Value, FractionalDigits, GroupDigits) \
+    ((PPH_STRING)PHA_DEREFERENCE(PhFormatDecimal((Value), (FractionalDigits), (GroupDigits))))
+
 PPH_STRING PhFormatSize(
     __in ULONG64 Size,
     __in ULONG MaxSizeUnit
     );
+
+#define PhaFormatSize(Size, MaxSizeUnit) \
+    ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize((Size), (MaxSizeUnit))))
 
 PPH_STRING PhFormatGuid(
     __in PGUID Guid

@@ -507,21 +507,14 @@ static VOID PhpRefreshJobStatisticsInfo(
         PhPrintTimeSpan(timeSpan, basicAndIo.BasicInfo.ThisPeriodTotalKernelTime.QuadPart, PH_TIMESPAN_HMSM);
         SetDlgItemText(hwndDlg, IDC_ZKERNELTIMEPERIOD_V, timeSpan);
 
-        SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatUInt64(basicAndIo.BasicInfo.TotalPageFaultCount, TRUE)))->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, PhaFormatUInt64(basicAndIo.BasicInfo.TotalPageFaultCount, TRUE)->Buffer);
 
-        SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatUInt64(basicAndIo.IoInfo.ReadOperationCount, TRUE)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatSize(basicAndIo.IoInfo.ReadTransferCount, -1)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatUInt64(basicAndIo.IoInfo.WriteOperationCount, TRUE)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatSize(basicAndIo.IoInfo.WriteTransferCount, -1)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatUInt64(basicAndIo.IoInfo.OtherOperationCount, TRUE)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatSize(basicAndIo.IoInfo.OtherTransferCount, -1)))->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, PhaFormatUInt64(basicAndIo.IoInfo.ReadOperationCount, TRUE)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOREADBYTES_V, PhaFormatSize(basicAndIo.IoInfo.ReadTransferCount, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOWRITES_V, PhaFormatUInt64(basicAndIo.IoInfo.WriteOperationCount, TRUE)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOWRITEBYTES_V, PhaFormatSize(basicAndIo.IoInfo.WriteTransferCount, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOOTHER_V, PhaFormatUInt64(basicAndIo.IoInfo.OtherOperationCount, TRUE)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZIOOTHERBYTES_V, PhaFormatSize(basicAndIo.IoInfo.OtherTransferCount, -1)->Buffer);
     }
     else
     {
@@ -549,10 +542,8 @@ static VOID PhpRefreshJobStatisticsInfo(
         &extendedLimitInfo
         )))
     {
-        SetDlgItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatSize(extendedLimitInfo.PeakProcessMemoryUsed, -1)))->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, ((PPH_STRING)PHA_DEREFERENCE(
-            PhFormatSize(extendedLimitInfo.PeakJobMemoryUsed, -1)))->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZPEAKPROCESSUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakProcessMemoryUsed, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZPEAKJOBUSAGE_V, PhaFormatSize(extendedLimitInfo.PeakJobMemoryUsed, -1)->Buffer);
     }
     else
     {
