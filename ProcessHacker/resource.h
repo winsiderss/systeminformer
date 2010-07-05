@@ -81,6 +81,7 @@
 #define IDI_BLACK                       172
 #define IDR_ICON                        173
 #define IDD_SYSINFO_PANEL               174
+#define IDD_GDIHANDLES                  175
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -312,7 +313,6 @@
 #define IDC_ZPHYSICALCURRENT_V          1208
 #define IDC_ZPHYSICALSYSTEMCACHE_V      1209
 #define IDC_ZPHYSICALTOTAL_V            1210
-#define IDC_ZFILECACHECURRENT_V         1211
 #define IDC_ZPAGEDPHYSICAL_V            1215
 #define IDC_ZPAGEDVIRTUAL_V             1216
 #define IDC_ZPAGEDALLOCS_V              1217
@@ -498,15 +498,16 @@
 #define ID_NOTIFICATIONS_STARTEDSERVICES 40183
 #define ID_NOTIFICATIONS_STOPPEDSERVICES 40184
 #define ID_NOTIFICATIONS_DELETEDSERVICES 40185
+#define ID_MISCELLANEOUS_GDIHANDLES     40188
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        175
-#define _APS_NEXT_COMMAND_VALUE         40188
-#define _APS_NEXT_CONTROL_VALUE         1205
+#define _APS_NEXT_RESOURCE_VALUE        176
+#define _APS_NEXT_COMMAND_VALUE         40189
+#define _APS_NEXT_CONTROL_VALUE         1206
 #define _APS_NEXT_SYMED_VALUE           119
 #endif
 #endif

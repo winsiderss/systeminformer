@@ -245,6 +245,7 @@ BEGIN
         POPUP "Miscellaneous"
         BEGIN
             MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
+            MENUITEM "GDI Handles",                 ID_MISCELLANEOUS_GDIHANDLES
             MENUITEM "Heaps",                       ID_MISCELLANEOUS_HEAPS
             MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
             POPUP "I/O Priority"
@@ -1240,6 +1241,16 @@ BEGIN
     RTEXT           "Static",IDC_ZSYSTEMCALLS_V,326,99,54,8,SS_ENDELLIPSIS
 END
 
+IDD_GDIHANDLES DIALOGEX 0, 0, 351, 307
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "GDI Handles"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,294,286,50,14
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,337,275
+    PUSHBUTTON      "Refresh",IDC_REFRESH,240,286,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1591,6 +1602,14 @@ BEGIN
         RIGHTMARGIN, 243
         TOPMARGIN, 7
         BOTTOMMARGIN, 49
+    END
+
+    IDD_GDIHANDLES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 344
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 300
     END
 END
 #endif    // APSTUDIO_INVOKED

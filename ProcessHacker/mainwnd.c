@@ -1017,6 +1017,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_MISCELLANEOUS_GDIHANDLES:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhShowGdiHandlesDialog(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_MISCELLANEOUS_HEAPS:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
@@ -2811,7 +2823,7 @@ VOID PhpInitializeProcessMenu(
 
         // Remove I/O priority.
         miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
-        DeleteMenu(miscMenu, 3, MF_BYPOSITION);
+        DeleteMenu(miscMenu, 4, MF_BYPOSITION);
     }
 
     // Virtualization

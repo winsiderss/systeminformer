@@ -487,6 +487,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntgdi.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntimport.h"
 				>
 			</File>

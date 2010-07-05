@@ -755,6 +755,13 @@ BOOLEAN PhaChoiceDialog(
 
 VOID PhShowFindObjectsDialog();
 
+// gdihndl
+
+VOID PhShowGdiHandlesDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 // heapinfo
 
 VOID PhShowProcessHeapsDialog(
