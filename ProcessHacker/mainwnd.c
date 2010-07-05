@@ -477,14 +477,18 @@ LRESULT CALLBACK PhMainWndProc(
     {
     case WM_DESTROY:
         {
+            ULONG mask;
             ULONG i;
 
             if (!PhMainWndExiting)
                 PhpSaveAllSettings();
 
+            mask = NotifyIconMask;
+            NotifyIconMask = 0; // prevent further icon updating
+
             for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
             {
-                if (NotifyIconMask & i)
+                if (mask & i)
                     PhRemoveNotifyIcon(i);
             }
 
