@@ -19,6 +19,8 @@ typedef struct _PH_SETTING
 
 VOID PhSettingsInitialization();
 
+VOID PhUpdateCachedSettings();
+
 __mayRaise ULONG PhGetIntegerSetting(
     __in PWSTR Name
     );
@@ -103,6 +105,7 @@ EXT ULONG PhCsUseColorProtectedHandles;
 EXT ULONG PhCsColorProtectedHandles;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
+EXT ULONG PhCsGraphShowText;
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
 

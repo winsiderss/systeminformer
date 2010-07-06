@@ -3,6 +3,8 @@
 
 // procprv
 
+#define PH_RECORD_MAX_USAGE
+
 #ifndef PROCPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhProcessItemType;
 
@@ -57,9 +59,11 @@ extern PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
 
 extern PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory;
 extern PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory;
+#ifdef PH_RECORD_MAX_USAGE
 extern PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
+#endif
 #endif
 
 #define DPCS_PROCESS_ID ((HANDLE)(LONG_PTR)-2)
@@ -74,7 +78,7 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 // The process item has been removed.
 #define PH_PROCESS_ITEM_REMOVED 0x1
-// An extra reference has been added to the process record due for the statistics system.
+// An extra reference has been added to the process record for the statistics system.
 #define PH_PROCESS_ITEM_RECORD_STAT_REF 0x2
 
 #define PH_INTEGRITY_STR_LEN 10
@@ -186,15 +190,22 @@ typedef struct _PH_PROCESS_ITEM
     //PH_CIRCULAR_BUFFER_SIZE_T WorkingSetHistory;
 } PH_PROCESS_ITEM, *PPH_PROCESS_ITEM;
 
+// The process itself is dead.
+#define PH_PROCESS_RECORD_DEAD 0x1
+// An extra reference has been added to the process record for the statistics system.
+#define PH_PROCESS_RECORD_STAT_REF 0x2
+
 typedef struct _PH_PROCESS_RECORD
 {
     LIST_ENTRY ListEntry;
     LONG RefCount;
+    ULONG Flags;
 
     HANDLE ProcessId;
     HANDLE ParentProcessId;
     ULONG SessionId;
     LARGE_INTEGER CreateTime;
+    LARGE_INTEGER ExitTime;
 
     PPH_STRING ProcessName;
     /*PPH_STRING FileName;
@@ -252,6 +263,8 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
     __in_opt HANDLE ProcessId,
     __in PLARGE_INTEGER Time
     );
+
+VOID PhPurgeProcessRecords();
 
 // srvprv
 
