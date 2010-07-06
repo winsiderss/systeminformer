@@ -1212,6 +1212,10 @@ NTSTATUS PhCreateFileWin32(
     __in ULONG CreateOptions
     );
 
+NTSTATUS PhDeleteFileWin32(
+    __in PWSTR FileName
+    );
+
 #define PH_FILE_STREAM_HANDLE_UNOWNED 0x1
 #define PH_FILE_STREAM_ASYNCHRONOUS 0x2
 

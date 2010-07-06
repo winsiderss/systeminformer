@@ -122,6 +122,31 @@ NTSTATUS PhCreateFileWin32(
     return status;
 }
 
+NTSTATUS PhDeleteFileWin32(
+    __in PWSTR FileName
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        DELETE,
+        0,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DELETE_ON_CLOSE
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    NtClose(fileHandle);
+
+    return status;
+}
+
 NTSTATUS PhCreateFileStream(
     __out PPH_FILE_STREAM *FileStream,
     __in PWSTR FileName,

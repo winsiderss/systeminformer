@@ -133,7 +133,7 @@ INT WINAPI WinMain(
                         L"If you select No, the settings system will not function properly."
                         ) == IDYES)
                     {
-                        DeleteFile(PhSettingsFileName->Buffer);
+                        PhDeleteFileWin32(PhSettingsFileName->Buffer);
                     }
                     else
                     {
