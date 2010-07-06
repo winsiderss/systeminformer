@@ -111,7 +111,7 @@ typedef struct _PH_GRAPH_GETTOOLTIPTEXT
     ULONG Index;
     ULONG TotalCount;
 
-    PH_STRINGREF Text;
+    PH_STRINGREF Text; // must be null-terminated
 } PH_GRAPH_GETTOOLTIPTEXT, *PPH_GRAPH_GETTOOLTIPTEXT;
 
 #define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step) + 1) // round up in division
