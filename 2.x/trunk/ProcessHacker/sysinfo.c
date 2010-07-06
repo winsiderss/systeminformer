@@ -752,8 +752,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = RGB(0xff, 0x77, 0x00);
-                        drawInfo->LineBackColor1 = RGB(0x77, 0x33, 0x00);
+                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0xff);
+                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x77);
 
                         PhGraphStateGetDrawInfo(
                             &PhysicalGraphState,
