@@ -296,6 +296,15 @@ VOID PhSetListViewSubItem(
     __in PWSTR Text
     );
 
+BOOLEAN PhLoadListViewColumnSettings(
+    __in HWND ListViewHandle,
+    __in PPH_STRING Settings
+    );
+
+PPH_STRING PhSaveListViewColumnSettings(
+    __in HWND ListViewHandle
+    );
+
 HWND PhCreateTabControl(
     __in HWND ParentHandle
     );
