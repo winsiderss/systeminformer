@@ -50,7 +50,13 @@
 #define MAX_ULONG MAX_UINTEGER(BITS_ULONG)
 
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
-#define KERNEL_HANDLE_BIT ((ULONG_PTR)1 << (sizeof(HANDLE) * 8 - 1))
+
+#ifdef _X86_
+#define KERNEL_HANDLE_BIT (0x80000000)
+#else
+#define KERNEL_HANDLE_BIT (0xffffffff80000000)
+#endif
+
 #define IsKernelHandle(Handle) ((LONG_PTR)(Handle) < 0)
 #define MakeKernelHandle(Handle) ((ULONG_PTR)(Handle) |= KERNEL_HANDLE_BIT)
 
