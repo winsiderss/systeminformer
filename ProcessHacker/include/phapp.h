@@ -239,6 +239,16 @@ VOID PhCopyListViewInfoTip(
     __in PPH_STRINGREF Tip
     );
 
+VOID PhLoadListViewColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    );
+
+VOID PhSaveListViewColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(

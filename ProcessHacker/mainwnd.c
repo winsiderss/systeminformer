@@ -1764,6 +1764,9 @@ VOID PhpInitialLoadSettings()
     }
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
+
+    PhLoadListViewColumnsFromSetting(L"ServiceListViewColumns", ServiceListViewHandle);
+    PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
 
 static NTSTATUS PhpDelayedLoadFunction(
@@ -1803,6 +1806,9 @@ VOID PhpSaveAllSettings()
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
+
+    PhSaveListViewColumnsToSetting(L"ServiceListViewColumns", ServiceListViewHandle);
+    PhSaveListViewColumnsToSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 
     PhSetIntegerSetting(L"IconMask", NotifyIconMask);
     PhSetIntegerSetting(L"IconNotifyMask", NotifyIconNotifyMask);
