@@ -361,6 +361,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\iosup.c"
+				>
+			</File>
+			<File
 				RelativePath=".\kph.c"
 				>
 			</File>

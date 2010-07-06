@@ -130,6 +130,8 @@ VOID PhInitializeSystemInformation()
 
 BOOLEAN PhInitializeSystem()
 {
+    if (!PhIoSupportInitialization())
+        return FALSE;
     PhVerifyInitialization();
     if (!PhSymbolProviderInitialization())
         return FALSE;

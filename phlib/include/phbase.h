@@ -148,6 +148,15 @@ PVOID PhReAllocSafe(
     __in SIZE_T Size
     );
 
+PVOID PhAllocatePage(
+    __in SIZE_T Size,
+    __out_opt PSIZE_T NewSize
+    );
+
+VOID PhFreePage(
+    __in PVOID Memory
+    );
+
 FORCEINLINE PVOID PhAllocateAligned(
     __in SIZE_T Size,
     __in ULONG Align,
