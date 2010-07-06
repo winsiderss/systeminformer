@@ -399,6 +399,51 @@ PVOID PhReAllocSafe(
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 }
 
+PVOID PhAllocatePage(
+    __in SIZE_T Size,
+    __out_opt PSIZE_T NewSize
+    )
+{
+    PVOID baseAddress;
+
+    baseAddress = NULL;
+
+    if (NT_SUCCESS(NtAllocateVirtualMemory(
+        NtCurrentProcess(),
+        &baseAddress,
+        0,
+        &Size,
+        MEM_COMMIT,
+        PAGE_READWRITE
+        )))
+    {
+        if (NewSize)
+            *NewSize = Size;
+
+        return baseAddress;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+VOID PhFreePage(
+    __in PVOID Memory
+    )
+{
+    SIZE_T size;
+
+    size = 0;
+
+    NtFreeVirtualMemory(
+        NtCurrentProcess(),
+        &Memory,
+        &size,
+        MEM_RELEASE
+        );
+}
+
 PSTR PhDuplicateAnsiStringZ(
     __in PSTR String
     )
