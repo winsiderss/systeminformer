@@ -1732,6 +1732,8 @@ VOID PhpInitialLoadSettings()
             );
     }
 
+    PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
+
     NotifyIconMask = PhGetIntegerSetting(L"IconMask");
 
     for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)

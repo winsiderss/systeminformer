@@ -120,7 +120,7 @@ PH_CALLBACK PhProcessesUpdatedEvent;
 PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
-ULONG PhStatisticsSampleCount = 500;
+ULONG PhStatisticsSampleCount = 512;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
