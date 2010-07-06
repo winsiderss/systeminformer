@@ -68,7 +68,7 @@ VOID PhShowHiddenProcessesDialog()
     if (!IsWindowVisible(PhHiddenProcessesWindowHandle))
         ShowWindow(PhHiddenProcessesWindowHandle, SW_SHOW);
     else
-        BringWindowToTop(PhHiddenProcessesWindowHandle);
+        SetForegroundWindow(PhHiddenProcessesWindowHandle);
 }
 
 static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(      
