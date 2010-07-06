@@ -170,9 +170,11 @@ PH_CIRCULAR_BUFFER_ULONG PhPhysicalHistory;
 
 PH_CIRCULAR_BUFFER_ULONG PhMaxCpuHistory; // ID of max. CPU process
 PH_CIRCULAR_BUFFER_ULONG PhMaxIoHistory; // ID of max. I/O process
+#ifdef PH_RECORD_MAX_USAGE
 PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
+#endif
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
@@ -1110,9 +1112,11 @@ VOID PhpInitializeProcessStatistics()
     PhInitializeCircularBuffer_ULONG(&PhPhysicalHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG(&PhMaxCpuHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG(&PhMaxIoHistory, PhStatisticsSampleCount);
+#ifdef PH_RECORD_MAX_USAGE
     PhInitializeCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, PhStatisticsSampleCount);
     PhInitializeCircularBuffer_ULONG64(&PhMaxIoWriteHistory, PhStatisticsSampleCount);
+#endif
 
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
@@ -1247,6 +1251,8 @@ VOID PhProcessProviderUpdate(
 
     if (runCount % 2 == 0)
         PhRefreshDosDevicePrefixes();
+    if (runCount % 512 == 0) // yes, a very long time
+        PhPurgeProcessRecords();
 
     if (!PhProcessStatisticsInitialized)
     {
@@ -1314,7 +1320,21 @@ VOID PhProcessProviderUpdate(
             // Check if the process still exists.
             if (PhIndexOfListItem(pids, (*processItem)->ProcessId) == -1)
             {
-                (*processItem)->State |= PH_PROCESS_ITEM_REMOVED;
+                PPH_PROCESS_ITEM processItem2;
+
+                processItem2 = *processItem;
+                processItem2->State |= PH_PROCESS_ITEM_REMOVED;
+
+                if (processItem2->QueryHandle)
+                {
+                    KERNEL_USER_TIMES times;
+
+                    if (NT_SUCCESS(PhGetProcessTimes(processItem2->QueryHandle, &times)))
+                    {
+                        processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
+                        processItem2->Record->ExitTime = times.ExitTime;
+                    }
+                }
 
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
@@ -1621,38 +1641,48 @@ VOID PhProcessProviderUpdate(
         if (maxCpuProcessItem)
         {
             PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+#ifdef PH_RECORD_MAX_USAGE
             PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
+#endif
 
             if (!(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
             {
                 PhReferenceProcessRecord(maxCpuProcessItem->Record);
                 maxCpuProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+                maxCpuProcessItem->Record->Flags |= PH_PROCESS_RECORD_STAT_REF;
             }
         }
         else
         {
             PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
+#ifdef PH_RECORD_MAX_USAGE
             PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, 0);
+#endif
         }
 
         if (maxIoProcessItem)
         {
             PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+#ifdef PH_RECORD_MAX_USAGE
             PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory,
                 maxIoProcessItem->IoReadDelta.Delta + maxIoProcessItem->IoOtherDelta.Delta);
             PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, maxIoProcessItem->IoWriteDelta.Delta);
+#endif
 
             if (!(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
             {
                 PhReferenceProcessRecord(maxIoProcessItem->Record);
                 maxIoProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
+                maxIoProcessItem->Record->Flags |= PH_PROCESS_RECORD_STAT_REF;
             }
         }
         else
         {
             PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)NULL);
+#ifdef PH_RECORD_MAX_USAGE
             PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory, 0);
             PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, 0);
+#endif
         }
     }
 
@@ -1669,11 +1699,13 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     processRecord = PhAllocate(sizeof(PH_PROCESS_RECORD));
     InitializeListHead(&processRecord->ListEntry);
     processRecord->RefCount = 1;
+    processRecord->Flags = 0;
 
     processRecord->ProcessId = ProcessItem->ProcessId;
     processRecord->ParentProcessId = ProcessItem->ParentProcessId;
     processRecord->SessionId = ProcessItem->SessionId;
     processRecord->CreateTime = ProcessItem->CreateTime;
+    processRecord->ExitTime.QuadPart = 0;
 
     PhReferenceObject(ProcessItem->ProcessName);
     processRecord->ProcessName = ProcessItem->ProcessName;
@@ -1888,9 +1920,8 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
 
         found = FALSE;
 
-        while (i > 0)
+        while (TRUE)
         {
-            i--;
             processRecord = (PPH_PROCESS_RECORD)PhProcessRecordList->Items[i];
 
             if (processRecord->CreateTime.QuadPart < Time->QuadPart)
@@ -1910,7 +1941,12 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
                 if (found)
                     break;
             }
-        }
+
+            if (i == 0)
+                break;
+
+            i--;
+        };
     }
     else
     {
@@ -1938,4 +1974,61 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
         return processRecord;
     else
         return NULL;
+}
+
+VOID PhPurgeProcessRecords()
+{
+    PPH_PROCESS_RECORD processRecord;
+    PPH_PROCESS_RECORD startProcessRecord;
+    ULONG i;
+    LARGE_INTEGER threshold;
+    PPH_LIST derefList = NULL;
+
+    if (PhProcessRecordList->Count == 0)
+        return;
+
+    // Get the oldest statistics time.
+    PhGetStatisticsTime(NULL, PhTimeHistory.Count - 1, &threshold);
+
+    PhAcquireQueuedLockShared(&PhProcessRecordListLock);
+
+    for (i = 0; i < PhProcessRecordList->Count; i++)
+    {
+        processRecord = PhProcessRecordList->Items[i];
+        startProcessRecord = processRecord;
+
+        do
+        {
+            ULONG requiredFlags;
+
+            requiredFlags = PH_PROCESS_RECORD_DEAD | PH_PROCESS_RECORD_STAT_REF;
+
+            if ((processRecord->Flags & requiredFlags) == requiredFlags)
+            {
+                // Check if the process exit time is before the oldest statistics time. 
+                // If so we can dereference the process record.
+                if (processRecord->ExitTime.QuadPart < threshold.QuadPart)
+                {
+                    if (!derefList)
+                        derefList = PhCreateList(2);
+
+                    PhAddListItem(derefList, processRecord);
+                }
+            }
+
+            processRecord = CONTAINING_RECORD(processRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+        } while (processRecord != startProcessRecord);
+    }
+
+    PhReleaseQueuedLockShared(&PhProcessRecordListLock);
+
+    if (derefList)
+    {
+        for (i = 0; i < derefList->Count; i++)
+        {
+            PhDereferenceProcessRecord(derefList->Items[i]);
+        }
+
+        PhDereferenceObject(derefList);
+    }
 }

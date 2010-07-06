@@ -211,6 +211,11 @@ NTSTATUS PhGetProcessExtendedBasicInformation(
     __out PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
     );
 
+NTSTATUS PhGetProcessTimes(
+    __in HANDLE ProcessHandle,
+    __out PKERNEL_USER_TIMES Times
+    );
+
 NTSTATUS PhGetProcessImageFileName(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *FileName

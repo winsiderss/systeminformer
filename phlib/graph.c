@@ -385,7 +385,7 @@ HWND PhCreateGraphControl(
     return CreateWindow(
         PH_GRAPH_CLASSNAME,
         L"",
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+        WS_CHILD | WS_CLIPSIBLINGS,
         0,
         0,
         3,

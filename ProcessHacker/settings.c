@@ -107,10 +107,12 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"UseColorInheritHandles", L"1");
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
 
-    PhpUpdateCachedSettings();
+    PhpAddIntegerSetting(L"GraphShowText", L"1");
+
+    PhUpdateCachedSettings();
 }
 
-VOID PhpUpdateCachedSettings()
+VOID PhUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
@@ -146,6 +148,7 @@ VOID PhpUpdateCachedSettings()
     UPDATE_INTEGER_CS(ColorProtectedHandles);
     UPDATE_INTEGER_CS(UseColorInheritHandles);
     UPDATE_INTEGER_CS(ColorInheritHandles);
+    UPDATE_INTEGER_CS(GraphShowText);
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
@@ -654,7 +657,7 @@ NTSTATUS PhLoadSettings(
 
     mxmlDelete(topNode);
 
-    PhpUpdateCachedSettings();
+    PhUpdateCachedSettings();
 
     return STATUS_SUCCESS;
 }

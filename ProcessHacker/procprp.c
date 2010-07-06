@@ -1211,6 +1211,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 );
             performanceContext->WindowHandle = hwndDlg;
 
+            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix 
+            // the drawing issue that arises when using WS_CLIPCHILDREN. However 
+            // in removing the flicker from the graphs the group boxes will now flicker. 
+            // It's a good tradeoff since no one stares at the group boxes.
+            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+
             PhInitializeGraphState(&performanceContext->CpuGraphState);
             PhInitializeGraphState(&performanceContext->PrivateGraphState);
             PhInitializeGraphState(&performanceContext->IoGraphState);
@@ -1274,19 +1280,22 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                     if (header->hwndFrom == performanceContext->CpuGraphHandle)
                     {
-                        HDC hdc;
+                        if (PhCsGraphShowText)
+                        {
+                            HDC hdc;
 
-                        PhSwapReference(&performanceContext->CpuGraphState.TooltipText,
-                            PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
-                            processItem->CpuUsage * 100,
-                            processItem->CpuKernelUsage * 100,
-                            processItem->CpuUserUsage * 100
-                            ));
+                            PhSwapReference2(&performanceContext->CpuGraphState.TooltipText,
+                                PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
+                                processItem->CpuUsage * 100,
+                                processItem->CpuKernelUsage * 100,
+                                processItem->CpuUserUsage * 100
+                                ));
 
-                        hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
-                        SelectObject(hdc, PhApplicationFont);
-                        PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.TooltipText->sr,
-                            &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                            hdc = Graph_GetBufferedContext(performanceContext->CpuGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.TooltipText->sr,
+                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
@@ -1311,18 +1320,21 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     }
                     else if (header->hwndFrom == performanceContext->PrivateGraphHandle)
                     {
-                        HDC hdc;
+                        if (PhCsGraphShowText)
+                        {
+                            HDC hdc;
 
-                        PhSwapReference(&performanceContext->PrivateGraphState.TooltipText,
-                            PhConcatStrings2(
-                            L"WS: ",
-                            PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
-                            ));
+                            PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText,
+                                PhConcatStrings2(
+                                L"Private Bytes: ",
+                                PhaFormatSize(processItem->VmCounters.PagefileUsage, -1)->Buffer
+                                ));
 
-                        hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
-                        SelectObject(hdc, PhApplicationFont);
-                        PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.TooltipText->sr,
-                            &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                            hdc = Graph_GetBufferedContext(performanceContext->PrivateGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.TooltipText->sr,
+                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
                         drawInfo->LineColor1 = RGB(0xff, 0x77, 0x00);
@@ -1359,19 +1371,22 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                     }
                     else if (header->hwndFrom == performanceContext->IoGraphHandle)
                     {
-                        HDC hdc;
+                        if (PhCsGraphShowText)
+                        {
+                            HDC hdc;
 
-                        PhSwapReference(&performanceContext->IoGraphState.TooltipText,
-                            PhFormatString(
-                            L"R+O: %s, W: %s",
-                            PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
-                            PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
-                            ));
+                            PhSwapReference2(&performanceContext->IoGraphState.TooltipText,
+                                PhFormatString(
+                                L"R+O: %s, W: %s",
+                                PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer,
+                                PhaFormatSize(processItem->IoWriteDelta.Delta, -1)->Buffer
+                                ));
 
-                        hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
-                        SelectObject(hdc, PhApplicationFont);
-                        PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.TooltipText->sr,
-                            &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                            hdc = Graph_GetBufferedContext(performanceContext->IoGraphHandle);
+                            SelectObject(hdc, PhApplicationFont);
+                            PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.TooltipText->sr,
+                                &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
@@ -1441,7 +1456,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         cpuKernel = PhCircularBufferGet_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
                         cpuUser = PhCircularBufferGet_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
-                        PhSwapReference(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
+                        PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                             L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
                             (cpuKernel + cpuUser) * 100,
                             cpuKernel * 100,
@@ -1459,7 +1474,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                         privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
-                        PhSwapReference(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
+                        PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
                             L"Private Bytes: %s\n%s",
                             PhaFormatSize(privateBytes, -1)->Buffer,
                             ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
@@ -1479,10 +1494,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
                         ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
 
-                        PhSwapReference(&performanceContext->IoGraphState.TooltipText, PhFormatString(
-                            L"R+O: %s\nW: %s\n%s",
-                            PhaFormatSize(ioRead + ioOther, -1)->Buffer,
+                        PhSwapReference2(&performanceContext->IoGraphState.TooltipText, PhFormatString(
+                            L"R: %s\nW: %s\nO: %s\n%s",
+                            PhaFormatSize(ioRead, -1)->Buffer,
                             PhaFormatSize(ioWrite, -1)->Buffer,
+                            PhaFormatSize(ioOther, -1)->Buffer,
                             ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
                             ));
                         getTooltipText->Text = performanceContext->IoGraphState.TooltipText->sr;
