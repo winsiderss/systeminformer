@@ -190,19 +190,19 @@ NTSTATUS PhMapViewOfEntireFile(
     // Open the file if we weren't supplied a file handle.
     if (!FileHandle)
     {
-        FileHandle = CreateFile(
+        status = PhCreateFileWin32(
+            &FileHandle,
             FileName,
             (FILE_EXECUTE | FILE_READ_ATTRIBUTES | FILE_READ_DATA) |
             (!ReadOnly ? (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA) : 0),
+            0,
             FILE_SHARE_READ,
-            NULL,
-            OPEN_EXISTING,
-            FILE_ATTRIBUTE_NORMAL,
-            NULL
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             );
 
-        if (FileHandle == INVALID_HANDLE_VALUE)
-            return NTSTATUS_FROM_WIN32(GetLastError());
+        if (!NT_SUCCESS(status))
+            return status;
 
         openedFile = TRUE;
     }
