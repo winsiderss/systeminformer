@@ -30,7 +30,9 @@ typedef struct THREAD_STACK_CONTEXT
     HANDLE ThreadHandle;
     HWND ListViewHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
+
     ULONG Index;
+    PPH_LIST List;
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
 
 INT_PTR CALLBACK PhpThreadStackDlgProc(      
@@ -104,6 +106,7 @@ VOID PhShowThreadStackDialog(
     }
 
     threadStackContext.ThreadHandle = threadHandle;
+    threadStackContext.List = PhCreateList(10);
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -112,6 +115,8 @@ VOID PhShowThreadStackDialog(
         PhpThreadStackDlgProc,
         (LPARAM)&threadStackContext
         );
+
+    PhDereferenceObject(threadStackContext.List);
 
     if (threadStackContext.ThreadHandle)
         NtClose(threadStackContext.ThreadHandle);
@@ -211,6 +216,75 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case LVN_GETINFOTIP:
+                {
+                    LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)header;
+                    HWND lvHandle;
+                    PTHREAD_STACK_CONTEXT threadStackContext;
+
+                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+                    threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        PPH_THREAD_STACK_FRAME stackFrame;
+
+                        if (PhGetListViewItemParam(lvHandle, getInfoTip->iItem, &stackFrame))
+                        {
+                            PH_STRING_BUILDER stringBuilder;
+                            PPH_STRING fileName;
+                            PH_SYMBOL_LINE_INFORMATION lineInfo;
+
+                            PhInitializeStringBuilder(&stringBuilder, 40);
+
+                            // There are no params for kernel-mode stack traces.
+                            if ((ULONG_PTR)stackFrame->PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
+                            {
+                                PhStringBuilderAppendFormat(
+                                    &stringBuilder,
+                                    L"Parameters: 0x%Ix, 0x%Ix, 0x%Ix, 0x%Ix\n",
+                                    stackFrame->Params[0],
+                                    stackFrame->Params[1],
+                                    stackFrame->Params[2],
+                                    stackFrame->Params[3]
+                                    );
+                            }
+
+                            if (PhGetLineFromAddress(
+                                threadStackContext->SymbolProvider,
+                                (ULONG64)stackFrame->PcAddress,
+                                &fileName,
+                                NULL,
+                                &lineInfo
+                                ))
+                            {
+                                PhStringBuilderAppendFormat(
+                                    &stringBuilder,
+                                    L"File: %s: line %u\n",
+                                    fileName->Buffer,
+                                    lineInfo.LineNumber
+                                    );
+                                PhDereferenceObject(fileName);
+                            }
+
+                            if (stringBuilder.String->Length != 0)
+                                PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+                            PhCopyListViewInfoTip(getInfoTip, &stringBuilder.String->sr);
+                            PhDeleteStringBuilder(&stringBuilder);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_SIZE:
         {
             PPH_LAYOUT_MANAGER layoutManager;
@@ -238,6 +312,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PPH_STRING symbol;
     INT lvItemIndex;
     WCHAR integerString[PH_INT32_STR_LEN_1];
+    PPH_THREAD_STACK_FRAME stackFrame;
 
     symbol = PhGetSymbolFromAddress(
         threadStackContext->SymbolProvider,
@@ -248,9 +323,12 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         NULL
         );
 
-    PhPrintUInt32(integerString, threadStackContext->Index++); 
+    PhPrintUInt32(integerString, threadStackContext->Index++);
+
+    stackFrame = PhAllocateCopy(StackFrame, sizeof(PH_THREAD_STACK_FRAME));
+    PhAddListItem(threadStackContext->List, stackFrame);
     lvItemIndex = PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
-        integerString, NULL);
+        integerString, stackFrame);
 
     if (symbol)
     {
@@ -272,8 +350,14 @@ static NTSTATUS PhpRefreshThreadStack(
     )
 {
     NTSTATUS status;
+    ULONG i;
 
     ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
+
+    for (i = 0; i < ThreadStackContext->List->Count; i++)
+        PhFree(ThreadStackContext->List->Items[i]);
+
+    PhClearList(ThreadStackContext->List);
 
     SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
     ThreadStackContext->Index = 0;

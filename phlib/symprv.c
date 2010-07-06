@@ -54,6 +54,7 @@ _SymCleanup SymCleanup_I;
 _SymEnumSymbolsW SymEnumSymbolsW_I;
 _SymFromAddrW SymFromAddrW_I;
 _SymFromNameW SymFromNameW_I;
+_SymGetLineFromAddrW64 SymGetLineFromAddrW64_I;
 _SymLoadModule64 SymLoadModule64_I;
 _SymGetOptions SymGetOptions_I;
 _SymSetOptions SymSetOptions_I;
@@ -93,6 +94,7 @@ VOID PhSymbolProviderDynamicImport()
     SymEnumSymbolsW_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW");
     SymFromAddrW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW");
     SymFromNameW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromNameW");
+    SymGetLineFromAddrW64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddrW64");
     SymLoadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymLoadModule64");
     SymGetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymGetOptions");
     SymSetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymSetOptions");
@@ -261,6 +263,59 @@ static INT PhpSymbolModuleCompareFunction(
         return 1;
     else
         return 0;
+}
+
+BOOLEAN PhGetLineFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out PPH_STRING *FileName,
+    __out_opt PULONG Displacement,
+    __out_opt PPH_SYMBOL_LINE_IINFORMATION Information
+    )
+{
+    IMAGEHLP_LINEW64 line;
+    BOOL result;
+    ULONG displacement;
+    PPH_STRING fileName;
+
+    if (!SymGetLineFromAddrW64_I)
+        return FALSE;
+
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PhpRegisterSymbolProvider(SymbolProvider);
+#endif
+
+    line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+
+    PhAcquireMutex(&PhSymMutex);
+
+    result = SymGetLineFromAddrW64_I(
+        SymbolProvider->ProcessHandle,
+        Address,
+        &displacement,
+        &line
+        );
+
+    if (result)
+        fileName = PhCreateString(line.FileName);
+
+    PhReleaseMutex(&PhSymMutex);
+
+    if (!result)
+        return FALSE;
+
+    *FileName = fileName;
+
+    if (Displacement)
+        *Displacement = displacement;
+
+    if (Information)
+    {
+        Information->LineNumber = line.LineNumber;
+        Information->Address = line.Address;
+    }
+
+    return TRUE;
 }
 
 ULONG64 PhGetModuleFromAddress(
@@ -479,9 +534,9 @@ BOOLEAN PhGetSymbolFromName(
     __out PPH_SYMBOL_INFORMATION Information
     )
 {
-    BOOLEAN result;
     PSYMBOL_INFOW symbolInfo;
     UCHAR symbolInfoBuffer[FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2];
+    BOOL result;
 
     if (!SymFromNameW_I)
         return FALSE;
@@ -498,19 +553,22 @@ BOOLEAN PhGetSymbolFromName(
     // Get the symbol information.
 
     PhAcquireMutex(&PhSymMutex);
-    result = !!SymFromNameW_I(
+    result = SymFromNameW_I(
         SymbolProvider->ProcessHandle,
         Name,
         symbolInfo
         );
     PhReleaseMutex(&PhSymMutex);
 
+    if (!result)
+        return FALSE;
+
     Information->Address = symbolInfo->Address;
     Information->ModuleBase = symbolInfo->ModBase;
     Information->Index = symbolInfo->Index;
     Information->Size = symbolInfo->Size;
 
-    return result;
+    return TRUE;
 }
 
 BOOLEAN PhSymbolProviderLoadModule(
