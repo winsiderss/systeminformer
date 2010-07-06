@@ -162,7 +162,7 @@ static NTSTATUS PhpSysInfoThreadStart(
     PhSysInfoWindowHandle = CreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SYSINFO),
-        PhMainWndHandle,
+        NULL,
         PhpSysInfoDlgProc
         );
 
@@ -936,7 +936,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             else
                 ShowWindow(hwndDlg, SW_SHOW);
 
-            BringWindowToTop(hwndDlg);
+            SetForegroundWindow(hwndDlg);
         }
         break;
     case WM_PH_SYSINFO_UPDATE:
