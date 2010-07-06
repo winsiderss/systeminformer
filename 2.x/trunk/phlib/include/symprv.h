@@ -34,6 +34,13 @@ typedef BOOL (WINAPI *_SymFromNameW)(
     __inout PSYMBOL_INFOW Symbol
     );
 
+typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
+    __in HANDLE hProcess,
+    __in DWORD64 dwAddr,
+    __out PDWORD pdwDisplacement,
+    __out PIMAGEHLP_LINEW64 Line
+    );
+
 typedef DWORD64 (WINAPI *_SymLoadModule64)(
     __in HANDLE hProcess,
     __in_opt HANDLE hFile,
