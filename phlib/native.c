@@ -602,6 +602,27 @@ NTSTATUS PhGetProcessExtendedBasicInformation(
 }
 
 /**
+ * Gets time information for a process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must have 
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param KernelUserTimes A variable which receives the information.
+ */
+NTSTATUS PhGetProcessTimes(
+    __in HANDLE ProcessHandle,
+    __out PKERNEL_USER_TIMES Times
+    )
+{
+    return NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessTimes,
+        Times,
+        sizeof(KERNEL_USER_TIMES),
+        NULL
+        );
+}
+
+/**
  * Gets the file name of the process' image.
  *
  * \param ProcessHandle A handle to a process. The handle must 

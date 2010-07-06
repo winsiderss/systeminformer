@@ -406,12 +406,9 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
         {
             entry.ProcessId = (HANDLE)pid;
 
-            if (NT_SUCCESS(status2 = NtQueryInformationProcess(
+            if (NT_SUCCESS(status2 = PhGetProcessTimes(
                 processHandle,
-                ProcessTimes,
-                &times,
-                sizeof(KERNEL_USER_TIMES),
-                NULL
+                &times
                 )) &&
                 NT_SUCCESS(status2 = PhGetProcessImageFileName(
                 processHandle,
@@ -487,12 +484,9 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
         Handle
         )))
     {
-        if (NT_SUCCESS(status = NtQueryInformationProcess(
+        if (NT_SUCCESS(status = PhGetProcessTimes(
             processHandle,
-            ProcessTimes,
-            &times,
-            sizeof(KERNEL_USER_TIMES),
-            NULL
+            &times
             )) &&
             NT_SUCCESS(status = PhGetProcessImageFileName(
             processHandle,
