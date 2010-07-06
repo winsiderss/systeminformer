@@ -1,10 +1,6 @@
 * Column re-ordering (and save in settings)
 * Column chooser
 
-* Process properties:
-	* Memory provider
-
-* System information window
 * Complete main menu items
 
 * Copy menu

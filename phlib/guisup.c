@@ -259,6 +259,102 @@ VOID PhSetListViewSubItem(
     ListView_SetItem(ListViewHandle, &item);
 }
 
+BOOLEAN PhLoadListViewColumnSettings(
+    __in HWND ListViewHandle,
+    __in PPH_STRING Settings
+    )
+{
+    ULONG i;
+    ULONG length;
+    ULONG columnIndex;
+    ULONG indexOfComma;
+    ULONG indexOfPipe;
+    PH_STRINGREF stringRef;
+    ULONG64 integer;
+    LVCOLUMN lvColumn;
+
+    if (Settings->Length == 0)
+        return FALSE;
+
+    i = 0;
+    length = (ULONG)Settings->Length / 2;
+    columnIndex = 0;
+    lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
+
+    while (i < length)
+    {
+        indexOfComma = PhStringIndexOfChar(Settings, i, ',');
+
+        if (indexOfComma == -1)
+            return FALSE;
+
+        indexOfPipe = PhStringIndexOfChar(Settings, i, '|');
+
+        if (indexOfPipe == -1) // last pair in string
+            indexOfPipe = Settings->Length / 2;
+
+        // Order
+
+        stringRef.Buffer = &Settings->Buffer[i];
+        stringRef.Length = (USHORT)((indexOfComma - i) * 2);
+
+        if (!PhStringToInteger64(&stringRef, 10, &integer))
+            return FALSE;
+
+        lvColumn.iOrder = (ULONG)integer;
+
+        // Width
+
+        stringRef.Buffer = &Settings->Buffer[indexOfComma + 1];
+        stringRef.Length = (USHORT)((indexOfPipe - indexOfComma - 1) * 2);
+
+        if (!PhStringToInteger64(&stringRef, 10, &integer))
+            return FALSE;
+
+        lvColumn.cx = (ULONG)integer;
+
+        ListView_SetColumn(ListViewHandle, columnIndex, &lvColumn);
+
+        i = indexOfPipe + 1;
+        columnIndex++;
+    }
+
+    return TRUE;
+}
+
+PPH_STRING PhSaveListViewColumnSettings(
+    __in HWND ListViewHandle
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    ULONG i = 0;
+    LVCOLUMN lvColumn;
+
+    PhInitializeStringBuilder(&stringBuilder, 20);
+
+    lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
+
+    while (ListView_GetColumn(ListViewHandle, i, &lvColumn))
+    {
+        PhStringBuilderAppendFormat(
+            &stringBuilder,
+            L"%u,%u|",
+            lvColumn.iOrder,
+            lvColumn.cx
+            );
+        i++;
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
 HWND PhCreateTabControl(
     __in HWND ParentHandle
     )

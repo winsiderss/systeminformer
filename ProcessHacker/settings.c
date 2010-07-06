@@ -58,6 +58,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
+    PhpAddStringSetting(L"NetworkListViewColumns", L"");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
@@ -66,6 +67,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
+    PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
@@ -287,6 +289,10 @@ static BOOLEAN PhpSettingFromString(
             PH_STRINGREF yString;
 
             indexOfComma = PhStringIndexOfChar(String, 0, ',');
+
+            if (indexOfComma == -1)
+                return FALSE;
+
             xString.Buffer = String->Buffer; // start
             xString.Length = (USHORT)(indexOfComma * 2);
             yString.Buffer = &String->Buffer[indexOfComma + 1]; // after the comma

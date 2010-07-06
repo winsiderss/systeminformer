@@ -481,3 +481,27 @@ VOID PhCopyListViewInfoTip(
         );
     GetInfoTip->pszText[copyIndex + copyLength] = 0;
 }
+
+VOID PhLoadListViewColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    )
+{
+    PPH_STRING string;
+
+    string = PhGetStringSetting(Name);
+    PhLoadListViewColumnSettings(ListViewHandle, string);
+    PhDereferenceObject(string);
+}
+
+VOID PhSaveListViewColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    )
+{
+    PPH_STRING string;
+
+    string = PhSaveListViewColumnSettings(ListViewHandle);
+    PhSetStringSetting2(Name, &string->sr);
+    PhDereferenceObject(string);
+}
