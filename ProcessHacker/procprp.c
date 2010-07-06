@@ -2110,6 +2110,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Service");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ThreadListViewColumns", lvHandle);
             ExtendedListView_SetContext(lvHandle, threadsContext);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpThreadTidCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
@@ -2163,6 +2164,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
             PhDereferenceObject(threadsContext->Provider);
             PhFree(threadsContext);
+
+            PhSaveListViewColumnsToSetting(L"ThreadListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -2926,6 +2929,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 160, L"Description");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ModuleListViewColumns", lvHandle);
             ExtendedListView_SetTriState(lvHandle, TRUE);
             ExtendedListView_SetTriStateCompareFunction(lvHandle, PhpModuleTriStateCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
@@ -2967,6 +2971,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhDereferenceObject(modulesContext->Provider);
             PhFree(modulesContext);
+
+            PhSaveListViewColumnsToSetting(L"ModuleListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -3323,6 +3329,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Protection");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"MemoryListViewColumns", lvHandle);
             ExtendedListView_SetSort(lvHandle, 1, AscendingSortOrder);
 
             PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
@@ -3338,6 +3345,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhDereferenceObject(memoryContext->MemoryList);
             PhDeleteMemoryProvider(&memoryContext->Provider);
             PhFree(memoryContext);
+
+            PhSaveListViewColumnsToSetting(L"MemoryListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -3402,6 +3411,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Value");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"EnvironmentListViewColumns", lvHandle);
 
             if (NT_SUCCESS(PhOpenProcess(
                 &processHandle,
@@ -3436,6 +3446,7 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"EnvironmentListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -3710,6 +3721,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"HandleListViewColumns", lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHandleTypeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHandleNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);
@@ -3753,6 +3765,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhDereferenceObject(handlesContext->Provider);
             PhDereferenceObject(handlesContext->HandleList);
             PhFree(handlesContext);
+
+            PhSaveListViewColumnsToSetting(L"HandleListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -4318,6 +4332,7 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"ProcessServiceListViewColumns", lvHandle);
 
             for (i = 0; i < servicesContext->NumberOfServices; i++)
             {
@@ -4349,6 +4364,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 );
 
             PhFree(servicesContext);
+
+            PhSaveListViewColumnsToSetting(L"ProcessServiceListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
