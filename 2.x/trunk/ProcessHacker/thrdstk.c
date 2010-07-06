@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <settings.h>
 
 typedef struct THREAD_STACK_CONTEXT
 {
@@ -29,6 +30,7 @@ typedef struct THREAD_STACK_CONTEXT
     HANDLE ThreadHandle;
     HWND ListViewHandle;
     PPH_SYMBOL_PROVIDER SymbolProvider;
+    ULONG Index;
 } THREAD_STACK_CONTEXT, *PTHREAD_STACK_CONTEXT;
 
 INT_PTR CALLBACK PhpThreadStackDlgProc(      
@@ -130,8 +132,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PPH_STRING title;
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
-
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PH_INTEGER_PAIR size;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
@@ -141,9 +142,11 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhDereferenceObject(title);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 30, L" ");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Name");
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
+            PhLoadListViewColumnsFromSetting(L"ThreadStackListViewColumns", lvHandle);
 
             threadStackContext->ListViewHandle = lvHandle;
 
@@ -158,6 +161,10 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            size = PhGetIntegerPairSetting(L"ThreadStackWindowSize");
+            SetWindowPos(hwndDlg, NULL, 0, 0, size.X, size.Y, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+
             PhpRefreshThreadStack(threadStackContext);
         }
         break;
@@ -165,12 +172,20 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         {
             PPH_LAYOUT_MANAGER layoutManager;
             PTHREAD_STACK_CONTEXT threadStackContext;
+            WINDOWPLACEMENT windowPlacement = { sizeof(windowPlacement) };
+            PH_RECTANGLE windowRectangle;
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+
+            PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+
+            GetWindowPlacement(hwndDlg, &windowPlacement);
+            windowRectangle = PhRectToRectangle(windowPlacement.rcNormalPosition);
+            PhSetIntegerPairSetting(L"ThreadStackWindowSize", windowRectangle.Size);
 
             RemoveProp(hwndDlg, L"Context");
             RemoveProp(hwndDlg, L"LayoutManager");
@@ -221,6 +236,8 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
 {
     PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)Context;
     PPH_STRING symbol;
+    INT lvItemIndex;
+    WCHAR integerString[PH_INT32_STR_LEN_1];
 
     symbol = PhGetSymbolFromAddress(
         threadStackContext->SymbolProvider,
@@ -231,16 +248,20 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
         NULL
         );
 
+    PhPrintUInt32(integerString, threadStackContext->Index++); 
+    lvItemIndex = PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
+        integerString, NULL);
+
     if (symbol)
     {
-        PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
-            symbol->Buffer, NULL);
+        PhSetListViewSubItem(threadStackContext->ListViewHandle, lvItemIndex, 1,
+            symbol->Buffer);
         PhDereferenceObject(symbol);
     }
     else
     {
-        PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
-            L"???", NULL);
+        PhSetListViewSubItem(threadStackContext->ListViewHandle, lvItemIndex, 1,
+            L"???");
     }
 
     return TRUE;
@@ -255,6 +276,7 @@ static NTSTATUS PhpRefreshThreadStack(
     ListView_DeleteAllItems(ThreadStackContext->ListViewHandle);
 
     SendMessage(ThreadStackContext->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+    ThreadStackContext->Index = 0;
     status = PhWalkThreadStack(
         ThreadStackContext->ThreadHandle,
         ThreadStackContext->SymbolProvider->ProcessHandle,

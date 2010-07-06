@@ -45,7 +45,9 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
+    PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddIntegerSetting(L"FirstRun", L"1");
+    PhpAddStringSetting(L"HandleListViewColumns", L"");
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
@@ -58,7 +60,10 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"MainWindowSize", L"800,600");
     PhpAddIntegerSetting(L"MainWindowState", L"1");
     PhpAddIntegerSetting(L"MaxSizeUnit", L"6");
+    PhpAddStringSetting(L"MemoryListViewColumns", L"");
+    PhpAddStringSetting(L"ModuleListViewColumns", L"");
     PhpAddStringSetting(L"NetworkListViewColumns", L"");
+    PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
@@ -73,6 +78,9 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
     PhpAddIntegerPairSetting(L"SysInfoWindowPosition", L"200,200");
     PhpAddIntegerPairSetting(L"SysInfoWindowSize", L"620,590");
+    PhpAddStringSetting(L"ThreadListViewColumns", L"");
+    PhpAddStringSetting(L"ThreadStackListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"ThreadStackWindowSize", L"420,380");
     PhpAddIntegerSetting(L"UpdateInterval", L"3e8"); // 1000ms
 
     // Colors are specified with R in the lowest byte, then G, then B.
