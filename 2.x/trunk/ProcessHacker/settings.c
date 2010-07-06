@@ -584,22 +584,23 @@ NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     )
 {
+    NTSTATUS status;
     HANDLE fileHandle;
     mxml_node_t *topNode;
     mxml_node_t *currentNode;
 
-    fileHandle = CreateFile(
+    status = PhCreateFileWin32(
+        &fileHandle,
         FileName,
         FILE_GENERIC_READ,
+        0,
         FILE_SHARE_READ | FILE_SHARE_DELETE,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
 
-    if (fileHandle == INVALID_HANDLE_VALUE)
-        return PhDosErrorToNtStatus(GetLastError());
+    if (!NT_SUCCESS(status))
+        return status;
 
     topNode = mxmlLoadFd(NULL, fileHandle, MXML_NO_CALLBACK);
     NtClose(fileHandle);
@@ -681,6 +682,7 @@ NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     )
 {
+    NTSTATUS status;
     HANDLE fileHandle;
     mxml_node_t *topNode;
     ULONG enumerationKey = 0;
@@ -739,23 +741,19 @@ NTSTATUS PhSaveSettings(
         }
     }
 
-    fileHandle = CreateFile(
+    status = PhCreateFileWin32(
+        &fileHandle,
         FileName,
         FILE_GENERIC_WRITE,
+        0,
         FILE_SHARE_READ,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
 
-    if (fileHandle == INVALID_HANDLE_VALUE)
+    if (!NT_SUCCESS(status))
     {
-        NTSTATUS status;
-
-        status = PhDosErrorToNtStatus(GetLastError());
         mxmlDelete(topNode);
-
         return status;
     }
 

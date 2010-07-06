@@ -1198,6 +1198,49 @@ NTSTATUS PhGetMappedArchiveImportEntry(
     __out PPH_MAPPED_ARCHIVE_IMPORT_ENTRY Entry
     );
 
+// iosup
+
+BOOLEAN PhIoSupportInitialization();
+
+NTSTATUS PhCreateFileWin32(
+    __out PHANDLE FileHandle,
+    __in PWSTR FileName,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt ULONG FileAttributes,
+    __in ULONG ShareAccess,
+    __in ULONG CreateDisposition,
+    __in ULONG CreateOptions
+    );
+
+#define PH_FILE_STREAM_HANDLE_UNOWNED 0x1
+#define PH_FILE_STREAM_ASYNCHRONOUS 0x2
+
+typedef struct _PH_FILE_STREAM
+{
+    HANDLE FileHandle;
+    ULONG Flags;
+    LARGE_INTEGER Position;
+
+    PVOID Buffer;
+    ULONG BufferLength;
+    ULONG BufferUsed;
+} PH_FILE_STREAM, *PPH_FILE_STREAM;
+
+NTSTATUS PhCreateFileStream(
+    __out PPH_FILE_STREAM *FileStream,
+    __in PWSTR FileName,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG ShareMode,
+    __in ULONG CreateDisposition,
+    __in ULONG Flags
+    );
+
+PPH_FILE_STREAM PhCreateFileStream2(
+    __in HANDLE FileHandle,
+    __in ULONG Flags,
+    __in ULONG BufferLength
+    );
+
 // verify
 
 typedef enum _VERIFY_RESULT
