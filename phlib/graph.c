@@ -613,17 +613,15 @@ LRESULT CALLBACK PhpGraphWndProc(
 
                     if (getTooltipText.Text.Buffer)
                     {
-                        ULONG copyLength;
-
-                        copyLength = min(getTooltipText.Text.Length, sizeof(dispInfo->szText) - sizeof(WCHAR));
-                        memcpy(dispInfo->szText, getTooltipText.Text.Buffer, copyLength);
-                        dispInfo->szText[copyLength / sizeof(WCHAR)] = 0;
+                        dispInfo->lpszText = getTooltipText.Text.Buffer;
                     }
-
-                    if (dispInfo->szText[0] == 0)
+                    else
                     {
-                        // No text, so the tooltip will be closed. Update our boolean.
-                        context->TooltipVisible = FALSE;
+                        if (dispInfo->lpszText[0] == 0)
+                        {
+                            // No text, so the tooltip will be closed. Update our boolean.
+                            context->TooltipVisible = FALSE;
+                        }
                     }
                 }
                 break;
