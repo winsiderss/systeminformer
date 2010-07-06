@@ -125,19 +125,19 @@ BOOLEAN PhpCreateProcessMiniDumpWithProgress(
         return FALSE;
     }
 
-    context.FileHandle = CreateFile(
+    status = PhCreateFileWin32(
+        &context.FileHandle,
         FileName,
         FILE_GENERIC_WRITE,
         0,
-        NULL,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
+        0,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         );
 
-    if (context.FileHandle == INVALID_HANDLE_VALUE)
+    if (!NT_SUCCESS(status))
     {
-        PhShowStatus(hWnd, L"Unable to access the dump file", 0, GetLastError());
+        PhShowStatus(hWnd, L"Unable to access the dump file", status, 0);
         NtClose(context.ProcessHandle);
         return FALSE;
     }

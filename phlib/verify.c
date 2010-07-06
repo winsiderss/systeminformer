@@ -299,17 +299,15 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     HANDLE catInfoHandle = NULL;
     ULONG i;
 
-    fileHandle = CreateFile(
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
         FileName,
         GENERIC_READ,
+        0,
         FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL
-        );
-
-    if (fileHandle == INVALID_HANDLE_VALUE)
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
         return VrNoSignature;
 
     // Don't try to hash files over 32 MB in size.
