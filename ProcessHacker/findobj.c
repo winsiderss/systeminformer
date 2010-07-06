@@ -84,7 +84,7 @@ VOID PhShowFindObjectsDialog()
     if (!IsWindowVisible(PhFindObjectsWindowHandle))
         ShowWindow(PhFindObjectsWindowHandle, SW_SHOW);
     else
-        BringWindowToTop(PhFindObjectsWindowHandle);
+        SetForegroundWindow(PhFindObjectsWindowHandle);
 }
 
 VOID PhpInitializeFindObjMenu(
