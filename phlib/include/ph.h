@@ -1350,12 +1350,26 @@ typedef struct _PH_SYMBOL_INFORMATION
     ULONG Size;
 } PH_SYMBOL_INFORMATION, *PPH_SYMBOL_INFORMATION;
 
+typedef struct _PH_SYMBOL_LINE_INFORMATION
+{
+    ULONG LineNumber;
+    ULONG64 Address;
+} PH_SYMBOL_LINE_INFORMATION, *PPH_SYMBOL_LINE_IINFORMATION;
+
 BOOLEAN PhSymbolProviderInitialization();
 
 VOID PhSymbolProviderDynamicImport();
 
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     __in_opt HANDLE ProcessId
+    );
+
+BOOLEAN PhGetLineFromAddress(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider,
+    __in ULONG64 Address,
+    __out PPH_STRING *FileName,
+    __out_opt PULONG Displacement,
+    __out_opt PPH_SYMBOL_LINE_IINFORMATION Information
     );
 
 ULONG64 PhGetModuleFromAddress(
