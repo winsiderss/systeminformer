@@ -486,7 +486,6 @@ static VOID PhpUpdateTooltip(
     RECT windowRect;
     HWND hwnd;
     TOOLINFO toolInfo = { sizeof(toolInfo) };
-    RECT clientRect;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -527,40 +526,69 @@ static VOID PhpUpdateTooltip(
     point.x += 12;
     point.y += 12;
 
-    if (WindowsVersion >= WINDOWS_VISTA)
+    SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+}
+
+static LRESULT CALLBACK PhpTooltipWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    WNDPROC oldWndProc;
+
+    oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
+
+    switch (uMsg)
     {
-        LONG size;
-        LONG width;
-        LONG height;
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
-        size = (LONG)SendMessage(Context->TooltipHandle, TTM_GETBUBBLESIZE, 0, (LPARAM)&toolInfo);
-        width = LOWORD(size);
-        height = HIWORD(size);
+            RemoveProp(hwnd, L"OldWndProc");
+            RemoveProp(hwnd, L"Context");
+        }
+        break;
+    case WM_MOVE:
+        {
+            PPHP_GRAPH_CONTEXT context;
+            TOOLINFO toolInfo = { sizeof(toolInfo) };
+            RECT windowRect;
+            BOOLEAN needsMove;
 
-        // Make sure the tooltip isn't off-screen.
-        if (point.x + width > Context->MonitorInfo.rcWork.right)
-            point.x = Context->MonitorInfo.rcWork.right - width;
-        if (point.y + height > Context->MonitorInfo.rcWork.bottom)
-            point.y = Context->MonitorInfo.rcWork.bottom - height;
+            if (CallWindowProc(oldWndProc, hwnd, TTM_GETCURRENTTOOL, 0, (LPARAM)&toolInfo))
+            {
+                context = (PPHP_GRAPH_CONTEXT)GetProp(hwnd, L"Context");
 
-        SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+                GetWindowRect(hwnd, &windowRect);
+                needsMove = FALSE;
+
+                // Make sure the tooltip isn't off-screen.
+                if (windowRect.right > context->MonitorInfo.rcWork.right)
+                {
+                    windowRect.left = context->MonitorInfo.rcWork.right - (windowRect.right - windowRect.left);
+                    needsMove = TRUE;
+                }
+
+                if (windowRect.bottom >context->MonitorInfo.rcWork.bottom)
+                {
+                    windowRect.top = context->MonitorInfo.rcWork.bottom - (windowRect.bottom - windowRect.left);
+                    needsMove = TRUE;
+                }
+
+                if (needsMove)
+                {
+                    SetWindowPos(hwnd, HWND_TOPMOST, windowRect.left, windowRect.top,
+                        windowRect.right - windowRect.left, windowRect.bottom - windowRect.top,
+                        SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOOWNERZORDER);
+                }
+            }
+        }
+        break;
     }
-    else
-    {
-        // Use hackarounds for buggy XP shit.
-        // XP comctl32 crashes when using TTM_GETBUBBLESIZE.
-        // Using this means that the tooltip doesn't update properly.
 
-        GetClientRect(Context->TooltipHandle, &clientRect);
-
-        // Make sure the tooltip isn't off-screen.
-        if (point.x + clientRect.right > Context->MonitorInfo.rcWork.right)
-            point.x = Context->MonitorInfo.rcWork.right - clientRect.right;
-        if (point.y + clientRect.bottom > Context->MonitorInfo.rcWork.bottom)
-            point.y = Context->MonitorInfo.rcWork.bottom - clientRect.bottom;
-
-        SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
-    }
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -748,6 +776,7 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (wParam)
             {
                 TOOLINFO toolInfo = { sizeof(toolInfo) };
+                WNDPROC oldWndProc;
 
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
@@ -762,6 +791,11 @@ LRESULT CALLBACK PhpGraphWndProc(
                     PhInstanceHandle,
                     NULL
                     );
+                oldWndProc = (WNDPROC)GetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC);
+                SetProp(context->TooltipHandle, L"OldWndProc", (HANDLE)oldWndProc);
+                SetProp(context->TooltipHandle, L"Context", (HANDLE)context);
+                SetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC, (LONG_PTR)PhpTooltipWndProc);
+
                 SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
