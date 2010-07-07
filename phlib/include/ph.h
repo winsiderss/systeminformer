@@ -1219,18 +1219,48 @@ NTSTATUS PhDeleteFileWin32(
     __in PWSTR FileName
     );
 
+// Core flags (PhCreateFileStream2)
+/** Indicates that the file stream object should not close the file handle 
+ * upon deletion. */
 #define PH_FILE_STREAM_HANDLE_UNOWNED 0x1
-#define PH_FILE_STREAM_ASYNCHRONOUS 0x2
+/** Indicates that the file stream object should not buffer I/O operations.
+ * Note that this does not prevent the operating system from buffering I/O. */
+#define PH_FILE_STREAM_UNBUFFERED 0x2
+/** Indicates that the file handle supports asynchronous operations. 
+ * The file handle must not have been opened with FILE_SYNCHRONOUS_IO_ALERT 
+ * or FILE_SYNCHRONOUS_IO_NONALERT. */
+#define PH_FILE_STREAM_ASYNCHRONOUS 0x4
+/** Indicates that the file stream object should maintain the file position 
+ * and not use the file object's own file position. */
+#define PH_FILE_STREAM_OWN_POSITION 0x8
+
+// Internal flags
+/** Indicates that at least one write has been issued to the file handle. */
+#define PH_FILE_STREAM_WRITTEN 0x00010000
+
+// Higher-level flags (PhCreateFileStream)
+#define PH_FILE_STREAM_APPEND 0x01000000
+
+// Seek
+typedef enum _PH_SEEK_ORIGIN
+{
+    SeekStart,
+    SeekCurrent,
+    SeekEnd
+} PH_SEEK_ORIGIN;
 
 typedef struct _PH_FILE_STREAM
 {
     HANDLE FileHandle;
     ULONG Flags;
-    LARGE_INTEGER Position;
+    LARGE_INTEGER Position; // file object position, *not* the actual position
 
     PVOID Buffer;
     ULONG BufferLength;
-    ULONG BufferUsed;
+
+    ULONG ReadPosition; // read position in buffer
+    ULONG ReadLength; // how much available to read from buffer
+    ULONG WritePosition; // write position in buffer
 } PH_FILE_STREAM, *PPH_FILE_STREAM;
 
 NTSTATUS PhCreateFileStream(
@@ -1242,10 +1272,53 @@ NTSTATUS PhCreateFileStream(
     __in ULONG Flags
     );
 
-PPH_FILE_STREAM PhCreateFileStream2(
+NTSTATUS PhCreateFileStream2(
+    __out PPH_FILE_STREAM *FileStream,
     __in HANDLE FileHandle,
     __in ULONG Flags,
     __in ULONG BufferLength
+    );
+
+VOID PhFileStreamVerify(
+    __in PPH_FILE_STREAM FileStream
+    );
+
+NTSTATUS PhFileStreamRead(
+    __inout PPH_FILE_STREAM FileStream,
+    __out_bcount(Length) PVOID Buffer,
+    __in ULONG Length,
+    __out_opt PULONG ReadLength
+    );
+
+NTSTATUS PhFileStreamWrite(
+    __inout PPH_FILE_STREAM FileStream,
+    __in_bcount(Length) PVOID Buffer,
+    __in ULONG Length
+    );
+
+NTSTATUS PhFileStreamFlush(
+    __inout PPH_FILE_STREAM FileStream,
+    __in BOOLEAN Full
+    );
+
+NTSTATUS PhFileStreamSeek(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PLARGE_INTEGER Offset,
+    __in PH_SEEK_ORIGIN Origin
+    );
+
+NTSTATUS PhFileStreamLock(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PLARGE_INTEGER Position,
+    __in PLARGE_INTEGER Length,
+    __in BOOLEAN Wait,
+    __in BOOLEAN Shared
+    );
+
+NTSTATUS PhFileStreamUnlock(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PLARGE_INTEGER Position,
+    __in PLARGE_INTEGER Length
     );
 
 // verify
