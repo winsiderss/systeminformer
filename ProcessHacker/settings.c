@@ -64,6 +64,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"ModuleListViewColumns", L"");
     PhpAddStringSetting(L"NetworkListViewColumns", L"");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
+    PhpAddStringSetting(L"ProcessTreeListColumns", L"");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
@@ -126,6 +127,8 @@ VOID PhSettingsInitialization()
 VOID PhUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
+
+    UPDATE_INTEGER_CS(UpdateInterval);
 
     UPDATE_INTEGER_CS(ColorNew);
     UPDATE_INTEGER_CS(ColorRemoved);

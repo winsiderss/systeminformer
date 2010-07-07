@@ -714,6 +714,38 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PhpRefreshColumnsViewX(context);
         }
         return TRUE;
+    case TLM_REMOVECOLUMN:
+        {
+            PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
+            PPH_TREELIST_COLUMN realColumn;
+
+            if (
+                column->Id >= context->AllocatedColumns ||
+                !(realColumn = context->Columns[column->Id])
+                )
+                return FALSE;
+
+            PhpDeleteColumn(context, realColumn);
+            PhpRefreshColumnsViewX(context);
+            context->Columns[column->Id] = NULL;
+
+            context->NumberOfColumns--;
+        }
+        return TRUE;
+    case TLM_GETCOLUMN:
+        {
+            PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
+            PPH_TREELIST_COLUMN realColumn;
+
+            if (
+                column->Id >= context->AllocatedColumns ||
+                !(realColumn = context->Columns[column->Id])
+                )
+                return FALSE;
+
+            memcpy(column, realColumn, sizeof(PH_TREELIST_COLUMN));
+        }
+        return TRUE;
     case TLM_SETCOLUMN:
         {
             ULONG mask = (ULONG)wParam;
@@ -732,11 +764,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 {
                     if (column->Visible)
                     {
-                        column->DisplayIndex = MAXINT;
-                        realColumn->s.ViewIndex = PhpInsertColumn(context, column);
-                        // Other attributes already set by insertion.
-                        PhpRefreshColumnsViewX(context);
-                        return TRUE;
+                        realColumn->DisplayIndex = MAXINT;
+                        realColumn->s.ViewIndex = PhpInsertColumn(context, realColumn);
+                        // Set other attributes below.
                     }
                     else
                     {
@@ -781,24 +811,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 ListView_SetColumn(context->ListViewHandle, realColumn->s.ViewIndex, &lvColumn);
                 PhpRefreshColumnsViewX(context);
             }
-        }
-        return TRUE;
-    case TLM_REMOVECOLUMN:
-        {
-            PPH_TREELIST_COLUMN column = (PPH_TREELIST_COLUMN)lParam;
-            PPH_TREELIST_COLUMN realColumn;
-
-            if (
-                column->Id >= context->AllocatedColumns ||
-                !(realColumn = context->Columns[column->Id])
-                )
-                return FALSE;
-
-            PhpDeleteColumn(context, realColumn);
-            PhpRefreshColumnsViewX(context);
-            context->Columns[column->Id] = NULL;
-
-            context->NumberOfColumns--;
         }
         return TRUE;
     case TLM_SETPLUSMINUS:
@@ -915,6 +927,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
             ListView_SetItemState(context->ListViewHandle, -1, (UINT)wParam, (UINT)lParam);
         }
         return TRUE;
+    case TLM_GETCOLUMNCOUNT:
+        return context->NumberOfColumns;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1623,6 +1637,8 @@ static INT PhpInsertColumn(
     lvColumn.iSubItem = Column->Id;
     lvColumn.iOrder = Column->DisplayIndex;
 
+    Column->Visible = TRUE;
+
     return ListView_InsertColumn(Context->ListViewHandle, MAXINT, &lvColumn);
 }
 
@@ -1631,6 +1647,7 @@ static VOID PhpDeleteColumn(
     __inout PPH_TREELIST_COLUMN Column
     )
 {
+    Column->Visible = FALSE;
     ListView_DeleteColumn(Context->ListViewHandle, Column->s.ViewIndex);
     PhpRefreshColumns(Context);
 }
@@ -1780,6 +1797,186 @@ BOOLEAN PhAddTreeListColumn(
     column.TextFlags = TextFlags;
 
     return !!TreeList_AddColumn(hwnd, &column);
+}
+
+BOOLEAN PhLoadTreeListColumnSettings(
+    __in HWND TreeListHandle,
+    __in PPH_STRING Settings
+    )
+{
+    BOOLEAN result = FALSE;
+    ULONG i;
+    ULONG count;
+    ULONG total;
+    ULONG length;
+    ULONG indexOfComma;
+    ULONG indexOfComma2;
+    ULONG indexOfPipe;
+    PH_STRINGREF stringRef;
+    ULONG64 integer;
+    PPH_HASHTABLE columnHashtable;
+    PPH_KEY_VALUE_PAIR pair;
+
+    // This is one of those functions where you wish you could use C#.
+
+    if (Settings->Length == 0)
+        return FALSE;
+
+    columnHashtable = PhCreateSimpleHashtable(20);
+
+    i = 0;
+    length = (ULONG)Settings->Length / 2;
+
+    while (i < length)
+    {
+        PPH_TREELIST_COLUMN column;
+        ULONG id;
+        ULONG displayIndex;
+        ULONG width;
+
+        indexOfComma = PhStringIndexOfChar(Settings, i, ',');
+
+        if (indexOfComma == -1)
+            goto CleanupExit;
+
+        indexOfPipe = PhStringIndexOfChar(Settings, i, '|');
+
+        if (indexOfPipe == -1) // last pair in string
+            indexOfPipe = Settings->Length / 2;
+
+        indexOfComma2 = PhStringIndexOfChar(Settings, indexOfComma + 1, ',');
+
+        if (indexOfComma2 == -1 || indexOfComma2 > indexOfPipe)
+            goto CleanupExit;
+
+        // Id
+
+        stringRef.Buffer = &Settings->Buffer[i];
+        stringRef.Length = (USHORT)((indexOfComma - i) * 2);
+
+        if (!PhStringToInteger64(&stringRef, 10, &integer))
+            goto CleanupExit;
+
+        id = (ULONG)integer;
+
+        // Display Index
+
+        stringRef.Buffer = &Settings->Buffer[indexOfComma + 1];
+        stringRef.Length = (USHORT)((indexOfComma2 - indexOfComma - 1) * 2);
+
+        if (!PhStringToInteger64(&stringRef, 10, &integer))
+            goto CleanupExit;
+
+        displayIndex = (ULONG)integer;
+
+        // Width
+
+        stringRef.Buffer = &Settings->Buffer[indexOfComma2 + 1];
+        stringRef.Length = (USHORT)((indexOfPipe - indexOfComma2 - 1) * 2);
+
+        if (!PhStringToInteger64(&stringRef, 10, &integer))
+            goto CleanupExit;
+
+        width = (ULONG)integer;
+
+        column = PhAllocate(sizeof(PH_TREELIST_COLUMN));
+        column->Id = id;
+        column->DisplayIndex = displayIndex;
+        column->Width = width;
+        PhAddSimpleHashtableItem(columnHashtable, (PVOID)column->Id, column);
+
+        i = indexOfPipe + 1;
+    }
+
+    // Hide all the columns.
+    i = 0;
+    count = 0;
+    total = TreeList_GetColumnCount(TreeListHandle);
+
+    while (count < total)
+    {
+        PH_TREELIST_COLUMN setColumn;
+        PPH_TREELIST_COLUMN *columnPtr;
+
+        setColumn.Id = i;
+
+        columnPtr = (PPH_TREELIST_COLUMN *)PhGetSimpleHashtableItem(columnHashtable, (PVOID)i);
+
+        if (columnPtr)
+        {
+            setColumn.Width = (*columnPtr)->Width;
+            setColumn.DisplayIndex = (*columnPtr)->DisplayIndex;
+            setColumn.Visible = TRUE;
+            TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE | TLCM_WIDTH | TLCM_DISPLAYINDEX);
+        }
+        else
+        {
+            setColumn.Visible = FALSE;
+            TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE);
+        }
+
+        i++;
+        count++;
+    }
+
+    result = TRUE;
+
+CleanupExit:
+
+    i = 0;
+
+    while (PhEnumHashtable(columnHashtable, &pair, &i))
+        PhFree(pair->Value);
+
+    PhDereferenceObject(columnHashtable);
+
+    return result;
+}
+
+PPH_STRING PhSaveTreeListColumnSettings(
+    __in HWND TreeListHandle
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
+    ULONG i = 0;
+    ULONG count = 0;
+    ULONG total;
+    PH_TREELIST_COLUMN column;
+
+    total = TreeList_GetColumnCount(TreeListHandle);
+
+    PhInitializeStringBuilder(&stringBuilder, 20);
+
+    while (count < total)
+    {
+        column.Id = i;
+
+        if (
+            TreeList_GetColumn(TreeListHandle, &column) &&
+            column.Visible
+            )
+        {
+            PhStringBuilderAppendFormat(
+                &stringBuilder,
+                L"%u,%u,%u|",
+                i,
+                column.DisplayIndex,
+                column.Width
+                );
+        }
+
+        i++;
+        count++;
+    }
+
+    if (stringBuilder.String->Length != 0)
+        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
 }
 
 __callback BOOLEAN NTAPI PhTreeListNullCallback(

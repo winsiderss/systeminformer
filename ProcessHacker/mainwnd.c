@@ -341,6 +341,11 @@ BOOLEAN PhMainWndInitialization(
     {
         ULONG interval = PhGetIntegerSetting(L"UpdateInterval");
 
+        if (interval == 0)
+        {
+            PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, 1000);
+        }
+
         PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
         PhInitializeProviderThread(&PhSecondaryProviderThread, interval);
     }
@@ -721,7 +726,7 @@ LRESULT CALLBACK PhMainWndProc(
                         break;
                     }
 
-                    PhSetIntegerSetting(L"UpdateInterval", interval);
+                    PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
                     PhApplyUpdateInterval(interval);
                     CheckMenuRadioItem(
                         PhMainWndMenuHandle,
@@ -1765,6 +1770,7 @@ VOID PhpInitialLoadSettings()
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
+    PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
     PhLoadListViewColumnsFromSetting(L"ServiceListViewColumns", ServiceListViewHandle);
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
@@ -1807,6 +1813,7 @@ VOID PhpSaveAllSettings()
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
 
+    PhSaveTreeListColumnsToSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
     PhSaveListViewColumnsToSetting(L"ServiceListViewColumns", ServiceListViewHandle);
     PhSaveListViewColumnsToSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 
