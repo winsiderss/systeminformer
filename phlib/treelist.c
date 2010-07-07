@@ -1335,6 +1335,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     {
         BOOLEAN needsClip;
         HRGN oldClipRegion;
+        HRGN newClipRegion;
 
         textRect.left += node->Level * 16;
 
@@ -1343,11 +1344,18 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
         if (needsClip)
         {
-            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
-            GetClipRgn(hdc, oldClipRegion);
-
-            // Clip contents to the first column.
-            IntersectClipRect(hdc, 0, textRect.top, column->Width, textRect.bottom);
+            if (!PH_TREELIST_USE_HACKAROUNDS)
+            {
+                oldClipRegion = CreateRectRgn(0, 0, 0, 0);
+                GetClipRgn(hdc, oldClipRegion);
+                // Clip contents to the first column.
+                IntersectClipRect(hdc, 0, textRect.top, column->Width, textRect.bottom);
+            }
+            else
+            {
+                newClipRegion = CreateRectRgn(0, textRect.top, column->Width, textRect.bottom);
+                oldClipRegion = SelectObject(hdc, newClipRegion);
+            }
         }
 
         if (Context->CanAnyExpand) // flag is used so we can avoid indenting when it's a flat list
@@ -1433,6 +1441,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
         {
             SelectClipRgn(hdc, oldClipRegion);
             DeleteObject(oldClipRegion);
+
+            if (PH_TREELIST_USE_HACKAROUNDS)
+                DeleteObject(newClipRegion);
         }
 
         if (textRect.left > textRect.right)

@@ -486,9 +486,7 @@ static VOID PhpUpdateTooltip(
     RECT windowRect;
     HWND hwnd;
     TOOLINFO toolInfo = { sizeof(toolInfo) };
-    LONG size;
-    LONG width;
-    LONG height;
+    RECT clientRect;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -525,21 +523,44 @@ static VOID PhpUpdateTooltip(
             );
     }
 
-    size = (LONG)SendMessage(Context->TooltipHandle, TTM_GETBUBBLESIZE, 0, (LPARAM)&toolInfo);
-    width = LOWORD(size);
-    height = HIWORD(size);
-
     // Add an offset to fix the case where the user moves the mouse to the bottom-right.
     point.x += 12;
     point.y += 12;
 
-    // Make sure the tooltip isn't off-screen.
-    if (point.x + width > Context->MonitorInfo.rcWork.right)
-        point.x = Context->MonitorInfo.rcWork.right - width;
-    if (point.y + height > Context->MonitorInfo.rcWork.bottom)
-        point.y = Context->MonitorInfo.rcWork.bottom - height;
+    if (WindowsVersion >= WINDOWS_VISTA)
+    {
+        LONG size;
+        LONG width;
+        LONG height;
 
-    SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+        size = (LONG)SendMessage(Context->TooltipHandle, TTM_GETBUBBLESIZE, 0, (LPARAM)&toolInfo);
+        width = LOWORD(size);
+        height = HIWORD(size);
+
+        // Make sure the tooltip isn't off-screen.
+        if (point.x + width > Context->MonitorInfo.rcWork.right)
+            point.x = Context->MonitorInfo.rcWork.right - width;
+        if (point.y + height > Context->MonitorInfo.rcWork.bottom)
+            point.y = Context->MonitorInfo.rcWork.bottom - height;
+
+        SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+    }
+    else
+    {
+        // Use hackarounds for buggy XP shit.
+        // XP comctl32 crashes when using TTM_GETBUBBLESIZE.
+        // Using this means that the tooltip doesn't update properly.
+
+        GetClientRect(Context->TooltipHandle, &clientRect);
+
+        // Make sure the tooltip isn't off-screen.
+        if (point.x + clientRect.right > Context->MonitorInfo.rcWork.right)
+            point.x = Context->MonitorInfo.rcWork.right - clientRect.right;
+        if (point.y + clientRect.bottom > Context->MonitorInfo.rcWork.bottom)
+            point.y = Context->MonitorInfo.rcWork.bottom - clientRect.bottom;
+
+        SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
+    }
 }
 
 LRESULT CALLBACK PhpGraphWndProc(
