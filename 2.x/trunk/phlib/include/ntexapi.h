@@ -674,19 +674,19 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCovInformation, // ExpCovQueryInformation
     SystemNotImplemented24,
     SystemNotImplemented25,
-    SystemPartitionInformation,
-    SystemSystemDiskInformation, // this and SystemPartitionInformation both call IoQuerySystemDeviceName
+    SystemPartitionDeviceNameInformation,
+    SystemDiskDeviceNameInformation, // this and SystemPartitionInformation both call IoQuerySystemDeviceName
     SystemPerformanceDistributionInformation, // 100
     SystemNumaProximityNodeInformation,
     SystemTimeZoneInformation2,
     SystemCodeIntegrityInformation, // SeCodeIntegrityQueryInformation
-    SystemNotImplemented26,
+    SystemProcessorMicroCodeUpdateInformation,
     SystemProcessorBrandStringInformation, // HalDispatchTable -> HalpGetProcessorBrandString, info class 23
     SystemVaInformation, // MmQuerySystemVaInformation
     SystemLogicalProcessorRelationshipInformation, // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTime, // array of ULARGE_INTEGERs, one for each processor
     SystemStoreInformation, // SmQueryStoreInformation
-    SystemNotImplemented27, // 110
+    SystemRegistryAppendStringInformation, // 110
     SystemNotImplemented28,
     SystemVhdBootInformation,
     SystemCpuQuotaInformation, // PsQueryCpuQuotaInformation
