@@ -193,8 +193,8 @@ NTSTATUS PhMapViewOfEntireFile(
         status = PhCreateFileWin32(
             &FileHandle,
             FileName,
-            (FILE_EXECUTE | FILE_READ_ATTRIBUTES | FILE_READ_DATA) |
-            (!ReadOnly ? (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA) : 0),
+            ((FILE_EXECUTE | FILE_READ_ATTRIBUTES | FILE_READ_DATA) |
+            (!ReadOnly ? (FILE_APPEND_DATA | FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA) : 0)) | SYNCHRONIZE,
             0,
             FILE_SHARE_READ,
             FILE_OPEN,
