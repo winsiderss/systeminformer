@@ -842,20 +842,24 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        FLOAT cpuKernel;
-                        FLOAT cpuUser;
+                        if (CpuGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            FLOAT cpuKernel;
+                            FLOAT cpuUser;
 
-                        cpuKernel = PhCircularBufferGet_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
-                        cpuUser = PhCircularBufferGet_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
+                            cpuKernel = PhCircularBufferGet_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
+                            cpuUser = PhCircularBufferGet_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
-                            L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
-                            (cpuKernel + cpuUser) * 100,
-                            cpuKernel * 100,
-                            cpuUser * 100,
-                            PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
+                                L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
+                                (cpuKernel + cpuUser) * 100,
+                                cpuKernel * 100,
+                                cpuUser * 100,
+                                PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = CpuGraphState.TooltipText->sr;
                     }
                     else if (
@@ -863,22 +867,26 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        ULONG64 ioRead;
-                        ULONG64 ioWrite;
-                        ULONG64 ioOther;
+                        if (IoGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            ULONG64 ioRead;
+                            ULONG64 ioWrite;
+                            ULONG64 ioOther;
 
-                        ioRead = PhCircularBufferGet_ULONG64(&PhIoReadHistory, getTooltipText->Index);
-                        ioWrite = PhCircularBufferGet_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
-                        ioOther = PhCircularBufferGet_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
+                            ioRead = PhCircularBufferGet_ULONG64(&PhIoReadHistory, getTooltipText->Index);
+                            ioWrite = PhCircularBufferGet_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
+                            ioOther = PhCircularBufferGet_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
-                            L"R: %s\nW: %s\nO: %s%s\n%s",
-                            PhaFormatSize(ioRead, -1)->Buffer,
-                            PhaFormatSize(ioWrite, -1)->Buffer,
-                            PhaFormatSize(ioOther, -1)->Buffer,
-                            PhGetStringOrEmpty(PhapGetMaxIoString(getTooltipText->Index)),
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
+                                L"R: %s\nW: %s\nO: %s%s\n%s",
+                                PhaFormatSize(ioRead, -1)->Buffer,
+                                PhaFormatSize(ioWrite, -1)->Buffer,
+                                PhaFormatSize(ioOther, -1)->Buffer,
+                                PhGetStringOrEmpty(PhapGetMaxIoString(getTooltipText->Index)),
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = IoGraphState.TooltipText->sr;
                     }
                     else if (
@@ -886,15 +894,19 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        ULONG usedPages;
+                        if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            ULONG usedPages;
 
-                        usedPages = PhCircularBufferGet_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+                            usedPages = PhCircularBufferGet_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
-                            L"Physical Memory: %s\n%s",
-                            PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
+                                L"Physical Memory: %s\n%s",
+                                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = PhysicalGraphState.TooltipText->sr;
                     }
                     else if (
@@ -904,23 +916,27 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                     {
                         for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
                         {
-                            FLOAT cpuKernel;
-                            FLOAT cpuUser;
-
                             if (header->hwndFrom != CpusGraphHandle[i])
                                 continue;
 
-                            cpuKernel = PhCircularBufferGet_FLOAT(&PhCpusKernelHistory[i], getTooltipText->Index);
-                            cpuUser = PhCircularBufferGet_FLOAT(&PhCpusUserHistory[i], getTooltipText->Index);
+                            if (CpusGraphState[i].TooltipIndex != getTooltipText->Index)
+                            {
+                                FLOAT cpuKernel;
+                                FLOAT cpuUser;
 
-                            PhSwapReference2(&CpusGraphState[i].TooltipText, PhFormatString(
-                                L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
-                                (cpuKernel + cpuUser) * 100,
-                                cpuKernel * 100,
-                                cpuUser * 100,
-                                PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
-                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
-                                ));
+                                cpuKernel = PhCircularBufferGet_FLOAT(&PhCpusKernelHistory[i], getTooltipText->Index);
+                                cpuUser = PhCircularBufferGet_FLOAT(&PhCpusUserHistory[i], getTooltipText->Index);
+
+                                PhSwapReference2(&CpusGraphState[i].TooltipText, PhFormatString(
+                                    L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
+                                    (cpuKernel + cpuUser) * 100,
+                                    cpuKernel * 100,
+                                    cpuUser * 100,
+                                    PhGetStringOrEmpty(PhapGetMaxCpuString(getTooltipText->Index)),
+                                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(NULL, getTooltipText->Index)))->Buffer
+                                    ));
+                            }
+
                             getTooltipText->Text = CpusGraphState[i].TooltipText->sr;
                         }
                     }
@@ -944,18 +960,21 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             ULONG i;
 
             CpuGraphState.Valid = FALSE;
+            CpuGraphState.TooltipIndex = -1;
             Graph_MoveGrid(CpuGraphHandle, 1);
             Graph_Draw(CpuGraphHandle);
             Graph_UpdateTooltip(CpuGraphHandle);
             InvalidateRect(CpuGraphHandle, NULL, FALSE);
 
             IoGraphState.Valid = FALSE;
+            IoGraphState.TooltipIndex = -1;
             Graph_MoveGrid(IoGraphHandle, 1);
             Graph_Draw(IoGraphHandle);
             Graph_UpdateTooltip(IoGraphHandle);
             InvalidateRect(IoGraphHandle, NULL, FALSE);
 
             PhysicalGraphState.Valid = FALSE;
+            PhysicalGraphState.TooltipIndex = -1;
             Graph_MoveGrid(PhysicalGraphHandle, 1);
             Graph_Draw(PhysicalGraphHandle);
             Graph_UpdateTooltip(PhysicalGraphHandle);
@@ -964,6 +983,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
             {
                 CpusGraphState[i].Valid = FALSE;
+                CpusGraphState[i].TooltipIndex = -1;
                 Graph_MoveGrid(CpusGraphHandle[i], 1);
                 Graph_Draw(CpusGraphHandle[i]);
                 Graph_UpdateTooltip(CpusGraphHandle[i]);

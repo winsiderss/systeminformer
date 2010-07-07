@@ -36,6 +36,7 @@ typedef struct _PHP_GRAPH_CONTEXT
 
     HWND TooltipHandle;
     BOOLEAN TooltipVisible;
+    MONITORINFO MonitorInfo;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
 LRESULT CALLBACK PhpGraphWndProc(
@@ -429,6 +430,8 @@ VOID PhpCreateGraphContext(
 
     context->TooltipHandle = NULL;
     context->TooltipVisible = FALSE;
+    memset(&context->MonitorInfo, 0, sizeof(MONITORINFO));
+    context->MonitorInfo.cbSize = sizeof(MONITORINFO);
 
     *Context = context;
 }
@@ -482,6 +485,10 @@ static VOID PhpUpdateTooltip(
     POINT point;
     RECT windowRect;
     HWND hwnd;
+    TOOLINFO toolInfo = { sizeof(toolInfo) };
+    LONG size;
+    LONG width;
+    LONG height;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -497,13 +504,12 @@ static VOID PhpUpdateTooltip(
     if (hwnd != Context->Handle)
         return;
 
+    toolInfo.hwnd = Context->Handle;
+    toolInfo.uId = 1;
+
     if (!Context->TooltipVisible)
     {
-        TOOLINFO toolInfo = { sizeof(toolInfo) };
         TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
-
-        toolInfo.hwnd = Context->Handle;
-        toolInfo.uId = 1;
 
         // this must go *before* SendMessage; our TTN_GETDISPINFO might reset TooltipVisible
         Context->TooltipVisible = TRUE;
@@ -512,11 +518,27 @@ static VOID PhpUpdateTooltip(
         trackMouseEvent.dwFlags = TME_LEAVE;
         trackMouseEvent.hwndTrack = Context->Handle;
         TrackMouseEvent(&trackMouseEvent);
+
+        GetMonitorInfo(
+            MonitorFromWindow(Context->TooltipHandle, MONITOR_DEFAULTTONEAREST),
+            &Context->MonitorInfo
+            );
     }
+
+    size = (LONG)SendMessage(Context->TooltipHandle, TTM_GETBUBBLESIZE, 0, (LPARAM)&toolInfo);
+    width = LOWORD(size);
+    height = HIWORD(size);
 
     // Add an offset to fix the case where the user moves the mouse to the bottom-right.
     point.x += 12;
     point.y += 12;
+
+    // Make sure the tooltip isn't off-screen.
+    if (point.x + width > Context->MonitorInfo.rcWork.right)
+        point.x = Context->MonitorInfo.rcWork.right - width;
+    if (point.y + height > Context->MonitorInfo.rcWork.bottom)
+        point.y = Context->MonitorInfo.rcWork.bottom - height;
+
     SendMessage(Context->TooltipHandle, TTM_TRACKPOSITION, 0, MAKELONG(point.x, point.y));
 }
 
@@ -772,6 +794,7 @@ VOID PhInitializeGraphState(
     State->Valid = FALSE;
     State->Text = NULL;
     State->TooltipText = NULL;
+    State->TooltipIndex = -1;
 }
 
 VOID PhDeleteGraphState(

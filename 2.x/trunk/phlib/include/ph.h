@@ -37,6 +37,9 @@ extern SID PhSeNetworkServiceSid;
 
 // Strings
 
+extern CHAR PhIntegerToChar[16];
+extern CHAR PhIntegerToCharUpper[16];
+
 extern WCHAR *PhKThreadStateNames[MaximumThreadState];
 extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 

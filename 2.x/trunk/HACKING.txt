@@ -106,14 +106,13 @@ PH_CIRCULAR_BUFFER  Circular buffer         Non-intrusive
 
 ==== Synchronization ====
 The queued lock should be used for all synchronization, due to its 
-small size and good performance. The *Fast variants of the acquire/release 
-functions should be used whenever possible, because they make 
-non-contended acquires up to twice as fast. Although the queued lock 
+small size and good performance. Although the queued lock 
 is a reader-writer lock, it can be used as a mutex simply by using 
 the exclusive acquire/release functions.
 
 For mutexes with blocking expected, the PH_MUTEX is an alternative. 
-Currently the PH_MUTEX is the same as RTL_CRITICAL_SECTION.
+Currently the PH_MUTEX is the same as PH_QUEUED_LOCK, although it was 
+RTL_CRITICAL_SECTION originally.
 
 Events can be used through PH_EVENT. This object does not create a 
 kernel event object until needed, and testing its state is very 

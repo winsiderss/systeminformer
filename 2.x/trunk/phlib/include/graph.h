@@ -120,12 +120,14 @@ typedef struct _PH_GRAPH_GETTOOLTIPTEXT
 
 typedef struct _PH_GRAPH_STATE
 {
-    PFLOAT Data1;
-    PFLOAT Data2;
+    PFLOAT Data1; // invalidate by setting Valid to FALSE
+    PFLOAT Data2; // invalidate by setting Valid to FALSE
     ULONG AllocatedCount;
-    BOOLEAN Valid;
+    BOOLEAN Valid; // indicates the data is valid
     PPH_STRING Text;
-    PPH_STRING TooltipText;
+
+    PPH_STRING TooltipText; // invalidate by setting TooltipIndex to -1
+    ULONG TooltipIndex; // indicates the tooltip text is valid for this index
 } PH_GRAPH_STATE, *PPH_GRAPH_STATE;
 
 VOID PhInitializeGraphState(
