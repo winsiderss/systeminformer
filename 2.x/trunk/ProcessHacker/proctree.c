@@ -544,9 +544,16 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 {
                     ULONG64 number;
 
-                    number = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta;
-                    number *= 1000;
-                    number /= PhCsUpdateInterval;
+                    if (processItem->IoReadDelta.Delta != processItem->IoReadDelta.Value)
+                    {
+                        number = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta;
+                        number *= 1000;
+                        number /= PhCsUpdateInterval;
+                    }
+                    else
+                    {
+                        number = 0;
+                    }
 
                     if (number != 0)
                     {
