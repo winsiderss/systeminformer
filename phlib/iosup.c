@@ -204,7 +204,7 @@ NTSTATUS PhCreateFileStream(
             SeekEnd
             )))
         {
-            NtClose(fileHandle);
+            PhDereferenceObject(fileStream);
             return status;
         }
     }
@@ -263,6 +263,8 @@ VOID NTAPI PhpFileStreamDeleteProcedure(
     )
 {
     PPH_FILE_STREAM fileStream = (PPH_FILE_STREAM)Object;
+
+    PhFileStreamFlush(fileStream, FALSE);
 
     if (!(fileStream->Flags & PH_FILE_STREAM_HANDLE_UNOWNED))
         NtClose(fileStream->FileHandle);
@@ -621,6 +623,8 @@ NTSTATUS PhFileStreamWrite(
             );
         FileStream->WritePosition = Length;
     }
+
+    return status;
 }
 
 NTSTATUS PhpFileStreamFlushRead(
@@ -866,4 +870,48 @@ NTSTATUS PhFileStreamUnlock(
         Length,
         0
         );
+}
+
+NTSTATUS PhFileStreamWriteStringAsAnsi(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PPH_STRINGREF String
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    PWSTR buffer;
+    ULONG length;
+    PH_STRINGREF block;
+    ANSI_STRING ansiString;
+
+    buffer = String->Buffer;
+    length = String->Length;
+
+    while (length != 0)
+    {
+        block.Buffer = buffer;
+        block.Length = PH_FILE_STREAM_STRING_BLOCK_SIZE;
+
+        if (block.Length > length)
+            block.Length = (USHORT)length;
+
+        if (!NT_SUCCESS(status = RtlUnicodeStringToAnsiString(
+            &ansiString,
+            &block.us,
+            TRUE
+            )))
+            return status;
+
+        PhFileStreamWrite(
+            FileStream,
+            ansiString.Buffer,
+            ansiString.Length
+            );
+
+        RtlFreeAnsiString(&ansiString);
+
+        buffer += block.Length / sizeof(WCHAR);
+        length -= block.Length;
+    }
+
+    return status;
 }

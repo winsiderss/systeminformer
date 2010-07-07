@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <windowsx.h>
 
 static INT_PTR CALLBACK PhpInformationDlgProc(      
     __in HWND hwndDlg,
@@ -48,6 +49,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
+            SetProp(hwndDlg, L"String", (HANDLE)string);
         }
         break;
     case WM_DESTROY:
@@ -57,6 +59,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
+            RemoveProp(hwndDlg, L"String");
             RemoveProp(hwndDlg, L"LayoutManager");
         }
         break;
@@ -67,6 +70,76 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDC_COPY:
+                {
+                    HWND editControl;
+                    LONG selStart;
+                    LONG selEnd;
+                    PWSTR buffer;
+                    PH_STRINGREF string;
+
+                    editControl = GetDlgItem(hwndDlg, IDC_TEXT);
+                    SendMessage(editControl, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+                    buffer = (PWSTR)GetProp(hwndDlg, L"String");
+
+                    if (selStart == selEnd)
+                    {
+                        // Select and copy the entire string.
+                        PhInitializeStringRef(&string, buffer);
+                        Edit_SetSel(editControl, 0, -1);
+                    }
+                    else
+                    {
+                        string.Buffer = buffer + selStart;
+                        string.Length = (USHORT)((selEnd - selStart) * 2);
+                    }
+
+                    PhSetClipboardString(hwndDlg, &string);
+                    SetFocus(editControl);
+                }
+                break;
+            case IDC_SAVE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Text files (*.txt)", L"*.txt" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+
+                    fileDialog = PhCreateSaveFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    {
+                        NTSTATUS status;
+                        PPH_STRING fileName;
+                        PPH_FILE_STREAM fileStream;
+
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        PhaDereferenceObject(fileName);
+
+                        if (NT_SUCCESS(status = PhCreateFileStream(
+                            &fileStream,
+                            fileName->Buffer,
+                            FILE_GENERIC_WRITE,
+                            FILE_SHARE_READ,
+                            FILE_OVERWRITE_IF,
+                            0
+                            )))
+                        {
+                            PH_STRINGREF string;
+
+                            PhInitializeStringRef(&string, (PWSTR)GetProp(hwndDlg, L"String"));
+                            PhFileStreamWriteStringAsAnsi(fileStream, &string);
+                            PhDereferenceObject(fileStream);
+                        }
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
                 break;
             }
         }

@@ -1321,6 +1321,13 @@ NTSTATUS PhFileStreamUnlock(
     __in PLARGE_INTEGER Length
     );
 
+#define PH_FILE_STREAM_STRING_BLOCK_SIZE (PAGE_SIZE / 2)
+
+NTSTATUS PhFileStreamWriteStringAsAnsi(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PPH_STRINGREF String
+    );
+
 // verify
 
 typedef enum _VERIFY_RESULT

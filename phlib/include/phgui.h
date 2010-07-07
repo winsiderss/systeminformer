@@ -421,6 +421,11 @@ VOID PhImageListWrapperRemove(
     __in INT Index
     );
 
+VOID PhSetClipboardString(
+    __in HWND hWnd,
+    __in PPH_STRINGREF String
+    );
+
 #define PH_ANCHOR_LEFT 0x1
 #define PH_ANCHOR_TOP 0x2
 #define PH_ANCHOR_RIGHT 0x4
