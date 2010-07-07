@@ -73,6 +73,8 @@ NTSTATUS PhSaveSettings(
 #define EXT extern
 #endif
 
+EXT ULONG PhCsUpdateInterval;
+
 EXT ULONG PhCsColorNew;
 EXT ULONG PhCsColorRemoved;
 EXT ULONG PhCsUseColorOwnProcesses;

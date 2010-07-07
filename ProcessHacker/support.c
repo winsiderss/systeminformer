@@ -505,3 +505,27 @@ VOID PhSaveListViewColumnsToSetting(
     PhSetStringSetting2(Name, &string->sr);
     PhDereferenceObject(string);
 }
+
+VOID PhLoadTreeListColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
+    )
+{
+    PPH_STRING string;
+
+    string = PhGetStringSetting(Name);
+    PhLoadTreeListColumnSettings(TreeListHandle, string);
+    PhDereferenceObject(string);
+}
+
+VOID PhSaveTreeListColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
+    )
+{
+    PPH_STRING string;
+
+    string = PhSaveTreeListColumnSettings(TreeListHandle);
+    PhSetStringSetting2(Name, &string->sr);
+    PhDereferenceObject(string);
+}

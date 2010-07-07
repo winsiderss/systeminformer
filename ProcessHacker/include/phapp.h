@@ -99,9 +99,45 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_NAME 0
 #define PHTLC_PID 1
 #define PHTLC_CPU 2
-#define PHTLC_PVTMEMORY 3
-#define PHTLC_USERNAME 4
-#define PHTLC_MAXIMUM 5
+#define PHTLC_IOTOTAL 3
+#define PHTLC_PVTMEMORY 4
+#define PHTLC_USERNAME 5
+#define PHTLC_DESCRIPTION 6
+
+#define PHTLC_COMPANYNAME 7
+#define PHTLC_FILENAME 8
+#define PHTLC_COMMANDLINE 9
+
+#define PHTLC_PEAKPVTMEMORY 10
+#define PHTLC_WORKINGSET 11
+#define PHTLC_PEAKWORKINGSET 12
+#define PHTLC_PRIVATEWS 13
+#define PHTLC_SHAREDWS 14
+#define PHTLC_SHAREABLEWS 15
+#define PHTLC_VIRTUALSIZE 16
+#define PHTLC_PEAKVIRTUALSIZE 17
+#define PHTLC_PAGEFAULTS 18
+#define PHTLC_SESSIONID 19
+#define PHTLC_PRIORITYCLASS 20
+#define PHTLC_BASEPRIORITY 21
+
+#define PHTLC_THREADS 22
+#define PHTLC_HANDLES 23
+#define PHTLC_GDIHANDLES 24
+#define PHTLC_USERHANDLES 25
+#define PHTLC_IORO 26
+#define PHTLC_IOW 27
+#define PHTLC_INTEGRITY 28
+#define PHTLC_IOPRIORITY 29
+#define PHTLC_PAGEPRIORITY 30
+#define PHTLC_STARTTIME 31
+#define PHTLC_TOTALCPUTIME 32
+#define PHTLC_KERNELCPUTIME 33
+#define PHTLC_USERCPUTIME 34
+#define PHTLC_VERIFICATIONSTATUS 35
+#define PHTLC_VERIFIEDSIGNER 36
+
+#define PHTLC_MAXIMUM 37
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -119,8 +155,10 @@ typedef struct _PH_PROCESS_NODE
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
 
-    PPH_STRING PrivateMemoryText;
     PPH_STRING TooltipText;
+
+    PPH_STRING IoTotalText;
+    PPH_STRING PrivateMemoryText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();
@@ -247,6 +285,16 @@ VOID PhLoadListViewColumnsFromSetting(
 VOID PhSaveListViewColumnsToSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle
+    );
+
+VOID PhLoadTreeListColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
+    );
+
+VOID PhSaveTreeListColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
     );
 
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
