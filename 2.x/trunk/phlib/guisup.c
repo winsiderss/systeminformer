@@ -730,6 +730,48 @@ VOID PhImageListWrapperRemove(
     PhAddListItem(Wrapper->FreeList, (PVOID)Index);
 }
 
+VOID PhpSetClipboardData(
+    __in HWND hWnd,
+    __in ULONG Format,
+    __in HANDLE Data
+    )
+{
+    if (OpenClipboard(hWnd))
+    {
+        if (!EmptyClipboard())
+            goto Fail;
+
+        if (!SetClipboardData(Format, Data))
+            goto Fail;
+
+        CloseClipboard();
+
+        return;
+    }
+
+Fail:
+    GlobalFree(Data);
+}
+
+VOID PhSetClipboardString(
+    __in HWND hWnd,
+    __in PPH_STRINGREF String
+    )
+{
+    HANDLE data;
+    PVOID memory;
+
+    data = GlobalAlloc(GMEM_MOVEABLE, String->Length + 2);
+    memory = GlobalLock(data);
+
+    memcpy(memory, String->Buffer, String->Length);
+    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
+
+    GlobalUnlock(memory);
+
+    PhpSetClipboardData(hWnd, CF_UNICODETEXT, data);
+}
+
 VOID PhInitializeLayoutManager(
     __out PPH_LAYOUT_MANAGER Manager,
     __in HWND RootWindowHandle
