@@ -202,6 +202,7 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_ENSUREVISIBLE (WM_APP + 1217)
 #define TLM_SETSELECTIONMARK (WM_APP + 1218)
 #define TLM_SETSTATEALL (WM_APP + 1219)
+#define TLM_GETCOLUMNCOUNT (WM_APP + 1220)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -230,8 +231,8 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLCM_ALIGNMENT 0x8
 #define TLCM_DISPLAYINDEX 0x10
 
-#define TreeList_GetColumn(hWnd, Column, Mask) \
-    SendMessage((hWnd), TLM_GETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
+#define TreeList_GetColumn(hWnd, Column) \
+    SendMessage((hWnd), TLM_GETCOLUMN, 0, (LPARAM)(Column))
 
 #define TreeList_SetColumn(hWnd, Column, Mask) \
     SendMessage((hWnd), TLM_SETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
@@ -265,6 +266,9 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 
 #define TreeList_SetStateAll(hWnd, State, Mask) \
     SendMessage((hWnd), TLM_SETSTATEALL, (WPARAM)(State), (LPARAM)(Mask))
+
+#define TreeList_GetColumnCount(hWnd) \
+    ((ULONG)SendMessage((hWnd), TLM_GETCOLUMNCOUNT, 0, 0))
 
 BOOLEAN PhTreeListInitialization();
 
@@ -301,6 +305,15 @@ BOOLEAN PhAddTreeListColumn(
     __in ULONG Alignment,
     __in ULONG DisplayIndex,
     __in ULONG TextFlags
+    );
+
+BOOLEAN PhLoadTreeListColumnSettings(
+    __in HWND TreeListHandle,
+    __in PPH_STRING Settings
+    );
+
+PPH_STRING PhSaveTreeListColumnSettings(
+    __in HWND TreeListHandle
     );
 
 __callback BOOLEAN NTAPI PhTreeListNullCallback(

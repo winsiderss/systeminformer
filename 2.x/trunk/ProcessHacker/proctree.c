@@ -87,8 +87,10 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 2, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHTLC_PVTMEMORY, TRUE, L"Pvt. Memory", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_IOTOTAL, TRUE, L"I/O Total", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PVTMEMORY, TRUE, L"Pvt. Memory", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 5, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_DESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, 6, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -264,8 +266,10 @@ VOID PhpRemoveProcessNode(
 
     PhDereferenceObject(ProcessNode->Children);
 
-    if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
+
+    if (ProcessNode->IoTotalText) PhDereferenceObject(ProcessNode->IoTotalText);
+    if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
 
     PhDereferenceObject(ProcessNode->ProcessItem);
 
@@ -412,6 +416,15 @@ BEGIN_SORT_FUNCTION(Cpu)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(IoTotal)
+{
+    sortResult = uint64cmp(
+        processItem1->IoReadDelta.Delta + processItem1->IoWriteDelta.Delta + processItem1->IoOtherDelta.Delta,
+        processItem2->IoReadDelta.Delta + processItem2->IoWriteDelta.Delta + processItem2->IoOtherDelta.Delta
+        );
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(PvtMemory)
 {
     sortResult = uintptrcmp(processItem1->VmCounters.PrivateUsage, processItem2->VmCounters.PrivateUsage);
@@ -421,6 +434,16 @@ END_SORT_FUNCTION
 BEGIN_SORT_FUNCTION(UserName)
 {
     sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Description)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.FileDescription,
+        processItem2->VersionInfo.FileDescription,
+        TRUE
+        );
 }
 END_SORT_FUNCTION
 
@@ -464,8 +487,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Pid),
                         SORT_FUNCTION(Cpu),
+                        SORT_FUNCTION(IoTotal),
                         SORT_FUNCTION(PvtMemory),
-                        SORT_FUNCTION(UserName)
+                        SORT_FUNCTION(UserName),
+                        SORT_FUNCTION(Description)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -515,13 +540,34 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             case PHTLC_CPU:
                 PhInitializeStringRef(&getNodeText->Text, processItem->CpuUsageString);
                 break;
+            case PHTLC_IOTOTAL:
+                {
+                    ULONG64 number;
+
+                    number = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta;
+                    number *= 1000;
+                    number /= PhCsUpdateInterval;
+
+                    if (number != 0)
+                    {
+                        PhSwapReference2(&node->IoTotalText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        getNodeText->Text = node->IoTotalText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
+                }
+                break;
             case PHTLC_PVTMEMORY:
-                if (node->PrivateMemoryText) PhDereferenceObject(node->PrivateMemoryText);
-                node->PrivateMemoryText = PhFormatSize(processItem->VmCounters.PrivateUsage, -1);
+                PhSwapReference2(&node->PrivateMemoryText, PhFormatSize(processItem->VmCounters.PrivateUsage, -1));
                 getNodeText->Text = node->PrivateMemoryText->sr;
                 break;
             case PHTLC_USERNAME:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->UserName);
+                break;
+            case PHTLC_DESCRIPTION:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileDescription);
                 break;
             default:
                 return FALSE;
