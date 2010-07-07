@@ -29,6 +29,9 @@ SID PhSeNetworkServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY
 
 // Strings
 
+CHAR PhIntegerToChar[16] = "0123456789abcdef";
+CHAR PhIntegerToCharUpper[16] = "0123456789ABCDEF";
+
 WCHAR *PhKThreadStateNames[MaximumThreadState] =
 {
     L"Initialized",

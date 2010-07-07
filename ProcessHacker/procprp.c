@@ -1450,19 +1450,23 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        FLOAT cpuKernel;
-                        FLOAT cpuUser;
+                        if (performanceContext->CpuGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            FLOAT cpuKernel;
+                            FLOAT cpuUser;
 
-                        cpuKernel = PhCircularBufferGet_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
-                        cpuUser = PhCircularBufferGet_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
+                            cpuKernel = PhCircularBufferGet_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
+                            cpuUser = PhCircularBufferGet_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
-                            L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
-                            (cpuKernel + cpuUser) * 100,
-                            cpuKernel * 100,
-                            cpuUser * 100,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
+                                L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
+                                (cpuKernel + cpuUser) * 100,
+                                cpuKernel * 100,
+                                cpuUser * 100,
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = performanceContext->CpuGraphState.TooltipText->sr;
                     }
                     else if (
@@ -1470,15 +1474,19 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        SIZE_T privateBytes;
+                        if (performanceContext->PrivateGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            SIZE_T privateBytes;
 
-                        privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
+                            privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
-                            L"Private Bytes: %s\n%s",
-                            PhaFormatSize(privateBytes, -1)->Buffer,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
+                                L"Private Bytes: %s\n%s",
+                                PhaFormatSize(privateBytes, -1)->Buffer,
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = performanceContext->PrivateGraphState.TooltipText->sr;
                     }
                     else if (
@@ -1486,21 +1494,25 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
-                        ULONG64 ioRead;
-                        ULONG64 ioWrite;
-                        ULONG64 ioOther;
+                        if (performanceContext->IoGraphState.TooltipIndex != getTooltipText->Index)
+                        {
+                            ULONG64 ioRead;
+                            ULONG64 ioWrite;
+                            ULONG64 ioOther;
 
-                        ioRead = PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
-                        ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
-                        ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
+                            ioRead = PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
+                            ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
+                            ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
 
-                        PhSwapReference2(&performanceContext->IoGraphState.TooltipText, PhFormatString(
-                            L"R: %s\nW: %s\nO: %s\n%s",
-                            PhaFormatSize(ioRead, -1)->Buffer,
-                            PhaFormatSize(ioWrite, -1)->Buffer,
-                            PhaFormatSize(ioOther, -1)->Buffer,
-                            ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
-                            ));
+                            PhSwapReference2(&performanceContext->IoGraphState.TooltipText, PhFormatString(
+                                L"R: %s\nW: %s\nO: %s\n%s",
+                                PhaFormatSize(ioRead, -1)->Buffer,
+                                PhaFormatSize(ioWrite, -1)->Buffer,
+                                PhaFormatSize(ioOther, -1)->Buffer,
+                                ((PPH_STRING)PHA_DEREFERENCE(PhGetStatisticsTimeString(processItem, getTooltipText->Index)))->Buffer
+                                ));
+                        }
+
                         getTooltipText->Text = performanceContext->IoGraphState.TooltipText->sr;
                     }
                 }
@@ -1522,8 +1534,11 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             LONG height;
 
             performanceContext->CpuGraphState.Valid = FALSE;
+            performanceContext->CpuGraphState.TooltipIndex = -1;
             performanceContext->PrivateGraphState.Valid = FALSE;
+            performanceContext->PrivateGraphState.TooltipIndex = -1;
             performanceContext->IoGraphState.Valid = FALSE;
+            performanceContext->IoGraphState.TooltipIndex = -1;
 
             GetClientRect(hwndDlg, &clientRect);
             width = clientRect.right - margin.left - margin.right;

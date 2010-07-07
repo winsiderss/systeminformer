@@ -89,44 +89,35 @@ PPH_STRING PhpGetCertNameString(
     )
 {
     PPH_STRING string;
-    PVOID buffer;
-    ULONG bufferSize = 0x100;
-    ULONG returnLength;
+    ULONG bufferSize;
 
-    buffer = PhAllocate(bufferSize * 2);
-
-    returnLength = CertNameToStr_I(
+    // CertNameToStr doesn't give us the correct buffer size unless we 
+    // don't provide a buffer at all.
+    bufferSize = CertNameToStr_I(
         X509_ASN_ENCODING,
         Blob,
         CERT_X500_NAME_STR,
-        buffer,
+        NULL,
+        0
+        );
+
+    string = PhCreateStringEx(NULL, bufferSize * sizeof(WCHAR));
+    CertNameToStr_I(
+        X509_ASN_ENCODING,
+        Blob,
+        CERT_X500_NAME_STR,
+        string->Buffer,
         bufferSize
         );
 
-    if (returnLength > bufferSize)
-    {
-        PhFree(buffer);
-        bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize * 2);
-
-        returnLength = CertNameToStr_I(
-            X509_ASN_ENCODING,
-            Blob,
-            CERT_X500_NAME_STR,
-            buffer,
-            bufferSize
-            );
-    }
-
-    string = PhCreateString((PWSTR)buffer);
-    PhFree(buffer);
+    PhTrimStringToNullTerminator(string);
 
     return string;
 }
 
 PPH_STRING PhpGetX500Value(
     __in PPH_STRING String,
-    __in PWSTR KeyName
+    __in PPH_STRINGREF KeyName
     )
 {
     WCHAR keyNamePlusEquals[10];
@@ -134,8 +125,10 @@ PPH_STRING PhpGetX500Value(
     ULONG startIndex;
     ULONG endIndex;
 
-    keyNameLength = (ULONG)wcslen(KeyName);
-    wcsncpy(keyNamePlusEquals, KeyName, 8);
+    keyNameLength = KeyName->Length / sizeof(WCHAR);
+    assert(!(keyNameLength > sizeof(keyNamePlusEquals) / sizeof(WCHAR) - 2));
+
+    memcpy(keyNamePlusEquals, KeyName->Buffer, KeyName->Length);
     keyNamePlusEquals[keyNameLength] = '=';
     keyNamePlusEquals[keyNameLength + 1] = 0;
 
@@ -186,6 +179,7 @@ PPH_STRING PhpGetSignerNameFromStateData(
     PCRYPT_PROVIDER_CERT cert;
     PCCERT_CONTEXT certContext;
     PCERT_INFO certInfo;
+    PH_STRINGREF keyName;
     PPH_STRING name;
     PPH_STRING value;
 
@@ -231,10 +225,14 @@ PPH_STRING PhpGetSignerNameFromStateData(
 
     // 7. Subject X.500 string -> CN or OU value
 
-    value = PhpGetX500Value(name, L"CN");
+    PhInitializeStringRef(&keyName, L"CN");
+    value = PhpGetX500Value(name, &keyName);
 
     if (!value)
-        value = PhpGetX500Value(name, L"OU");
+    {
+        PhInitializeStringRef(&keyName, L"OU");
+        value = PhpGetX500Value(name, &keyName);
+    }
 
     PhDereferenceObject(name);
 
@@ -292,7 +290,7 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     GUID driverActionVerify = DRIVER_ACTION_VERIFY;
     HANDLE fileHandle;
     LARGE_INTEGER fileSize;
-    PBYTE fileHash = NULL;
+    PUCHAR fileHash = NULL;
     ULONG fileHashLength;
     PWSTR fileHashTag = NULL;
     HANDLE catAdminHandle = NULL;
@@ -302,9 +300,9 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     if (!NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         FileName,
-        GENERIC_READ,
+        FILE_GENERIC_READ,
         0,
-        FILE_SHARE_READ,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
@@ -319,11 +317,12 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
     }
 
     fileHashLength = 256;
-    fileHash = (PBYTE)PhAllocate(fileHashLength);
+    fileHash = PhAllocate(fileHashLength);
 
     if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
     {
-        fileHash = (PBYTE)PhReAlloc(fileHash, fileHashLength);
+        PhFree(fileHash);
+        fileHash = PhAllocate(fileHashLength);
 
         if (!CryptCATAdminCalcHashFromFileHandle(fileHandle, &fileHashLength, fileHash, 0))
         {
@@ -341,10 +340,15 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
         return VrNoSignature;
     }
 
-    fileHashTag = (PWSTR)PhAllocate((fileHashLength * 2 + 1) * sizeof(WCHAR));
+    fileHashTag = PhAllocate((fileHashLength * 2 + 1) * sizeof(WCHAR));
 
     for (i = 0; i < fileHashLength; i++)
-        wsprintfW(&fileHashTag[i * 2], L"%02X", fileHash[i]);
+    {
+        fileHashTag[i * 2] = PhIntegerToCharUpper[fileHash[i] >> 4];
+        fileHashTag[i * 2 + 1] = PhIntegerToCharUpper[fileHash[i] & 0xf];
+    }
+
+    fileHashTag[fileHashLength * 2] = 0;
 
     catInfoHandle = CryptCATAdminEnumCatalogFromHash(
         catAdminHandle,
