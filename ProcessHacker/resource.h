@@ -310,6 +310,8 @@
 #define IDC_GROUPPHYSICAL               1204
 #define IDC_ZCOMMITCURRENT_V            1205
 #define IDC_ZCOMMITPEAK_V               1206
+#define IDC_BUTTON2                     1206
+#define IDC_COPY                        1206
 #define IDC_ZCOMMITLIMIT_V              1207
 #define IDC_ZPHYSICALCURRENT_V          1208
 #define IDC_ZPHYSICALSYSTEMCACHE_V      1209
@@ -508,7 +510,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        176
 #define _APS_NEXT_COMMAND_VALUE         40189
-#define _APS_NEXT_CONTROL_VALUE         1206
+#define _APS_NEXT_CONTROL_VALUE         1207
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif
