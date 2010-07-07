@@ -471,6 +471,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\iosupp.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\kph.h"
 				>
 			</File>
