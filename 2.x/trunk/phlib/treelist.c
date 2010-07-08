@@ -101,6 +101,8 @@ VOID PhpCreateTreeListContext(
 
     context->RefCount = 1;
 
+    context->LvRecursionGuard = 0;
+
     context->Callback = PhTreeListNullCallback;
     context->Context = NULL;
 
@@ -110,6 +112,8 @@ VOID PhpCreateTreeListContext(
     context->AllocatedColumns = 0;
     context->ColumnsForViewX = NULL;
     context->AllocatedColumnsForViewX = 0;
+    context->ColumnsForDraw = NULL;
+    context->AllocatedColumnsForDraw = 0;
     context->List = PhCreateList(64);
     context->CanAnyExpand = FALSE;
 
@@ -147,6 +151,8 @@ VOID PhpDereferenceTreeListContext(
             PhFree(Context->Columns);
         if (Context->ColumnsForViewX)
             PhFree(Context->ColumnsForViewX);
+        if (Context->ColumnsForDraw)
+            PhFree(Context->ColumnsForDraw);
 
         PhDereferenceObject(Context->List);
 
@@ -711,7 +717,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 realColumn->s.ViewIndex = -1;
             }
 
-            PhpRefreshColumnsViewX(context);
+            PhpRefreshColumnsLookup(context);
         }
         return TRUE;
     case TLM_REMOVECOLUMN:
@@ -726,7 +732,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 return FALSE;
 
             PhpDeleteColumn(context, realColumn);
-            PhpRefreshColumnsViewX(context);
+            PhpRefreshColumnsLookup(context);
             context->Columns[column->Id] = NULL;
 
             context->NumberOfColumns--;
@@ -764,14 +770,14 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 {
                     if (column->Visible)
                     {
-                        realColumn->DisplayIndex = MAXINT;
+                        realColumn->DisplayIndex = Header_GetItemCount(ListView_GetHeader(context->ListViewHandle));
                         realColumn->s.ViewIndex = PhpInsertColumn(context, realColumn);
                         // Set other attributes below.
                     }
                     else
                     {
                         PhpDeleteColumn(context, realColumn);
-                        PhpRefreshColumnsViewX(context);
+                        PhpRefreshColumnsLookup(context);
 
                         return TRUE;
                     }
@@ -809,7 +815,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 }
 
                 ListView_SetColumn(context->ListViewHandle, realColumn->s.ViewIndex, &lvColumn);
-                PhpRefreshColumnsViewX(context);
+                PhpRefreshColumnsLookup(context);
             }
         }
         return TRUE;
@@ -947,6 +953,9 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     context = (PPHP_TREELIST_CONTEXT)GetProp(hwnd, L"TreeListContext");
     oldWndProc = context->OldLvWndProc;
 
+    if (context->LvRecursionGuard > 0)
+        return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
     switch (uMsg)
     {
     case WM_DESTROY:
@@ -1044,7 +1053,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                             column->Width = lvColumn.cx;
                         }
 
-                        PhpRefreshColumnsViewX(context);
+                        PhpRefreshColumnsLookup(context);
                     }
                 }
                 break;
@@ -1102,7 +1111,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         // Columns have been reordered, so refresh our entire column list.
 
                         PhpRefreshColumns(context);
-                        PhpRefreshColumnsViewX(context);
+                        PhpRefreshColumnsLookup(context);
                     }
                 }
                 break;
@@ -1299,12 +1308,12 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
     itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
     node = Context->List->Items[itemIndex];
-    subItemIndex = (ULONG)CustomDraw->iSubItem;
     hdc = CustomDraw->nmcd.hdc;
     //wprintf(L"0x%Ix draw subitem %u %u\n", Context, itemIndex, subItemIndex);
 
     font = node->Font;
-    column = Context->Columns[subItemIndex];
+    column = Context->ColumnsForDraw[(ULONG)CustomDraw->iSubItem];
+    subItemIndex = column->Id;
     textFlags = column->TextFlags;
 
     origTextRect = CustomDraw->nmcd.rc;
@@ -1684,7 +1693,7 @@ static VOID PhpRefreshColumns(
     }
 }
 
-static VOID PhpRefreshColumnsViewX(
+static VOID PhpRefreshColumnsLookup(
     __in PPHP_TREELIST_CONTEXT Context
     )
 {
@@ -1700,12 +1709,29 @@ static VOID PhpRefreshColumnsViewX(
         Context->AllocatedColumnsForViewX = Context->NumberOfColumns;
     }
 
+    if (Context->AllocatedColumnsForDraw < Context->NumberOfColumns)
+    {
+        if (Context->ColumnsForDraw)
+            PhFree(Context->ColumnsForDraw);
+
+        Context->ColumnsForDraw = PhAllocate(sizeof(PPH_TREELIST_COLUMN) * Context->NumberOfColumns);
+        Context->AllocatedColumnsForDraw = Context->NumberOfColumns;
+    }
+
     for (i = 0; i < Context->NumberOfColumns; i++)
     {
-        if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
-            PhRaiseStatus(STATUS_INTERNAL_ERROR);
+        if (Context->Columns[i]->Visible && Context->Columns[i]->DisplayIndex != -1)
+        {
+            if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
+                PhRaiseStatus(STATUS_INTERNAL_ERROR);
 
-        Context->ColumnsForViewX[Context->Columns[i]->DisplayIndex] = Context->Columns[i];
+            Context->ColumnsForViewX[Context->Columns[i]->DisplayIndex] = Context->Columns[i];
+        }
+
+        if (Context->Columns[i]->s.ViewIndex != -1)
+        {
+            Context->ColumnsForDraw[Context->Columns[i]->s.ViewIndex] = Context->Columns[i];
+        }
     }
 
     x = 0;

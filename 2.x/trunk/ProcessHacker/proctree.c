@@ -692,6 +692,32 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
         }
         return TRUE;
+    case TreeListHeaderRightClick:
+        {
+            HMENU menu;
+            HMENU subMenu;
+            POINT point;
+
+            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESSHEADER));
+            subMenu = GetSubMenu(menu, 0);
+            GetCursorPos(&point);
+
+            if ((UINT)TrackPopupMenu(
+                subMenu,
+                TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
+                point.x,
+                point.y,
+                0,
+                hwnd,
+                NULL
+                ) == ID_HEADER_CHOOSECOLUMNS)
+            {
+                PhShowChooseColumnsDialog(hwnd, hwnd);
+            }
+
+            DestroyMenu(menu);
+        }
+        return TRUE;
     case TreeListNodeRightClick:
         {
             PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;

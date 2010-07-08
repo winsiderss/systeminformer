@@ -787,6 +787,13 @@ VOID PhShowProcessAffinityDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+// chcol
+
+VOID PhShowChooseColumnsDialog(
+    __in HWND ParentWindowHandle,
+    __in HWND TreeListHandle
+    );
+
 // chdlg
 
 #define PH_CHOICE_DIALOG_SAVED_CHOICES 10
