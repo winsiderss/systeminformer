@@ -451,5 +451,114 @@ VOID PhUpdateIconPhysicalHistory()
 
 VOID PhUpdateIconCpuUsage()
 {
+    HBITMAP bitmap;
+    HDC hdc;
+    HBITMAP oldBitmap;
+    HICON icon;
+    HANDLE maxCpuProcessId;
+    PPH_PROCESS_ITEM maxCpuProcessItem;
+    PPH_STRING maxCpuText = NULL;
+    PPH_STRING text;
 
+    // Icon
+
+    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+
+    // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
+    {
+        FLOAT k = PhCpuKernelUsage;
+        FLOAT u = PhCpuUserUsage;
+        LONG kl = (LONG)(k * 16);
+        LONG ul = (LONG)(u * 16);
+        RECT rect;
+        HBRUSH dcBrush;
+        HBRUSH dcPen;
+        POINT points[2];
+
+        dcBrush = GetStockObject(DC_BRUSH);
+        dcPen = GetStockObject(DC_PEN);
+        rect.left = 0;
+        rect.top = 0;
+        rect.right = 16;
+        rect.bottom = 16;
+        SetDCBrushColor(hdc, RGB(0x00, 0x00, 0x00));
+        FillRect(hdc, &rect, dcBrush);
+
+        // Draw the base line.
+        if (kl + ul == 0)
+        {
+            SelectObject(hdc, dcPen);
+            SetDCPenColor(hdc, RGB(0xff, 0x00, 0x00));
+            points[0].x = 0;
+            points[0].y = 15;
+            points[1].x = 16;
+            points[1].y = 15;
+            Polyline(hdc, points, 2);
+        }
+        else
+        {
+            rect.left = 0;
+            rect.top = 16 - ul - kl;
+            rect.right = 16;
+            rect.bottom = 16 - kl;
+            SetDCBrushColor(hdc, RGB(0x77, 0x00, 0x00));
+            FillRect(hdc, &rect, dcBrush);
+
+            points[0].x = 0;
+            points[0].y = 15 - ul - kl;
+            if (points[0].y < 0) points[0].y = 0;
+            points[1].x = 16;
+            points[1].y = points[0].y;
+            SelectObject(hdc, dcPen);
+            SetDCPenColor(hdc, RGB(0xff, 0x00, 0x00));
+            Polyline(hdc, points, 2);
+
+            if (kl != 0)
+            {
+                rect.left = 0;
+                rect.top = 16 - kl;
+                rect.right = 16;
+                rect.bottom = 16;
+                SetDCBrushColor(hdc, RGB(0x00, 0x77, 0x00));
+                FillRect(hdc, &rect, dcBrush);
+
+                points[0].x = 0;
+                points[0].y = 15 - kl;
+                if (points[0].y < 0) points[0].y = 0;
+                points[1].x = 16;
+                points[1].y = points[0].y;
+                SelectObject(hdc, dcPen);
+                SetDCPenColor(hdc, RGB(0x00, 0xff, 0x00));
+                Polyline(hdc, points, 2);
+            }
+        }
+    }
+
+    SelectObject(hdc, oldBitmap);
+    icon = PhBitmapToIcon(bitmap);
+
+    // Text
+
+    maxCpuProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxCpuHistory, 0);
+
+    if (maxCpuProcessId != NULL)
+    {
+        if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
+        {
+            maxCpuText = PhFormatString(
+                L"\n%s: %.2f%%",
+                maxCpuProcessItem->ProcessName->Buffer,
+                maxCpuProcessItem->CpuUsage * 100
+                );
+            PhDereferenceObject(maxCpuProcessItem);
+        }
+    }
+
+    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
+    if (maxCpuText) PhDereferenceObject(maxCpuText);
+
+    PhModifyNotifyIcon(PH_ICON_CPU_USAGE, NIF_TIP | NIF_ICON, text->Buffer, icon);
+
+    DestroyIcon(icon);
+    PhDereferenceObject(text);
 }
