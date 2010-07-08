@@ -175,7 +175,10 @@ INT WINAPI WinMain(
     SetPriorityClass(NtCurrentProcess(), HIGH_PRIORITY_CLASS);
 
     // Activate a previous instance if required.
-    if (PhGetIntegerSetting(L"AllowOnlyOneInstance"))
+    if (
+        PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+        !PhStartupParameters.ShowOptions
+        )
         PhActivatePreviousInstance();
 
     if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)
@@ -214,6 +217,13 @@ INT WINAPI WinMain(
     PhTreeListInitialization();
     PhGraphControlInitialization();
     PhSecurityEditorInitialization();
+
+    if (PhStartupParameters.ShowOptions)
+    {
+        // Elevated options dialog for changing the value of Replace Task Manager with Process Hacker.
+        PhShowOptionsDialog(PhStartupParameters.WindowHandle);
+        RtlExitUserProcess(STATUS_SUCCESS);
+    }
 
     DialogList = PhCreateList(1);
 
@@ -485,6 +495,9 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_INSTALLKPH 11
 #define PH_ARG_UNINSTALLKPH 12
 #define PH_ARG_DEBUG 13
+#define PH_ARG_HWND 14
+#define PH_ARG_POINT 15
+#define PH_ARG_SHOWOPTIONS 16
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -492,6 +505,8 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in PVOID Context
     )
 {
+    ULONG64 integer;
+
     if (Option)
     {
         switch (Option->Id)
@@ -535,6 +550,58 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_DEBUG:
             PhStartupParameters.Debug = TRUE;
             break;
+        case PH_ARG_HWND:
+            if (PhStringToInteger64(&Value->sr, 16, &integer))
+                PhStartupParameters.WindowHandle = (HWND)(ULONG_PTR)integer;
+            break;
+        case PH_ARG_POINT:
+            {
+                ULONG indexOfComma;
+
+                indexOfComma = PhStringIndexOfChar(Value, 0, ',');
+
+                if (indexOfComma != -1)
+                {
+                    LONG64 x;
+                    LONG64 y;
+                    PH_STRINGREF xString;
+                    PH_STRINGREF yString;
+
+                    xString.Buffer = Value->Buffer; // start
+                    xString.Length = (USHORT)(indexOfComma * 2);
+                    yString.Buffer = &Value->Buffer[indexOfComma + 1]; // after the comma
+                    yString.Length = (USHORT)(Value->Length - xString.Length - 2);
+
+                    if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
+                    {
+                        PhStartupParameters.Point.x = (LONG)x;
+                        PhStartupParameters.Point.y = (LONG)y;
+                    }
+                }
+            }
+            break;
+        case PH_ARG_SHOWOPTIONS:
+            PhStartupParameters.ShowOptions = TRUE;
+            break;
+        }
+    }
+    else
+    {
+        if (Value)
+        {
+            PPH_STRING lowerValue;
+
+            lowerValue = PhDuplicateString(Value);
+            PhLowerString(lowerValue);
+
+            if (PhStringIndexOfString(lowerValue, 0, L"taskmgr.exe") != -1)
+            {
+                // User probably has Process Hacker replacing Task Manager. Force 
+                // the main window to start visible.
+                PhStartupParameters.ShowVisible = TRUE;
+            }
+
+            PhDereferenceObject(lowerValue);
         }
     }
 
@@ -557,7 +624,10 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
         { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
         { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType },
-        { PH_ARG_DEBUG, L"debug", NoArgumentType }
+        { PH_ARG_DEBUG, L"debug", NoArgumentType },
+        { PH_ARG_HWND, L"hwnd", MandatoryArgumentType },
+        { PH_ARG_POINT, L"point", MandatoryArgumentType },
+        { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -569,7 +639,7 @@ VOID PhpProcessStartupParameters()
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
+        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
         PhpCommandLineOptionCallback,
         NULL
         ))

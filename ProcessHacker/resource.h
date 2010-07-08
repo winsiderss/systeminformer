@@ -168,6 +168,7 @@
 #define IDC_EDITPROTECTION              1079
 #define IDC_DISABLEALL                  1079
 #define IDC_MOVEUP                      1079
+#define IDC_CHANGE                      1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -319,8 +320,9 @@
 #define IDC_ZPHYSICALSYSTEMCACHE_V      1209
 #define IDC_SHOW                        1209
 #define IDC_ZPHYSICALTOTAL_V            1210
-#define IDC_BUTTON3                     1210
 #define IDC_HIDE                        1210
+#define IDC_CHECK1                      1211
+#define IDC_REPLACETASKMANAGER          1211
 #define IDC_ZPAGEDPHYSICAL_V            1215
 #define IDC_ZPAGEDVIRTUAL_V             1216
 #define IDC_ZPAGEDALLOCS_V              1217
@@ -516,7 +518,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        178
 #define _APS_NEXT_COMMAND_VALUE         40190
-#define _APS_NEXT_CONTROL_VALUE         1211
+#define _APS_NEXT_CONTROL_VALUE         1212
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif
