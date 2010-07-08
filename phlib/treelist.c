@@ -314,9 +314,13 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         if (ldi->item.mask & LVIF_TEXT)
                         {
                             PH_STRINGREF text;
+                            ULONG id;
                             ULONG bytesToCopy;
 
-                            if (PhpGetNodeText(context, node, ldi->item.iSubItem, &text))
+                            // iSubItem is actually the column index, not the ID as it should be.
+                            id = context->ColumnsForDraw[ldi->item.iSubItem]->Id;
+
+                            if (PhpGetNodeText(context, node, id, &text))
                             {
                                 // Never copy more than cchTextMax - 1 characters.
                                 bytesToCopy = min(text.Length, (ldi->item.cchTextMax - 1) * 2);
@@ -1672,8 +1676,9 @@ static VOID PhpDeleteColumn(
     __inout PPH_TREELIST_COLUMN Column
     )
 {
-    Column->Visible = FALSE;
     ListView_DeleteColumn(Context->ListViewHandle, Column->s.ViewIndex);
+    Column->Visible = FALSE;
+    Column->s.ViewIndex = -1;
     PhpRefreshColumns(Context);
 }
 

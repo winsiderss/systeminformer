@@ -201,6 +201,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                     // Apply visiblity settings.
 
+                    TreeList_SetRedraw(context->TreeListHandle, FALSE);
+
                     for (i = 0; i < context->Columns->Count; i++)
                     {
                         PPH_TREELIST_COLUMN column = context->Columns->Items[i];
@@ -222,6 +224,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         if (column->Visible)
                             TreeList_SetColumn(context->TreeListHandle, column, TLCM_DISPLAYINDEX);
                     }
+
+                    TreeList_SetRedraw(context->TreeListHandle, TRUE);
 
                     PhDereferenceObject(activeList);
 

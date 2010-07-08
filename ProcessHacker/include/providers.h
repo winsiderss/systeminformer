@@ -163,9 +163,11 @@ typedef struct _PH_PROCESS_ITEM
     // Dynamic
 
     KPRIORITY BasePriority;
+    ULONG PriorityClassWin32;
     LARGE_INTEGER KernelTime;
     LARGE_INTEGER UserTime;
     ULONG NumberOfHandles;
+    ULONG NumberOfThreads;
 
     FLOAT CpuKernelUsage;
     FLOAT CpuUserUsage;
