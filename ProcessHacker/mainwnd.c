@@ -432,7 +432,7 @@ BOOLEAN PhMainWndInitialization(
 
     UpdateWindow(PhMainWndHandle);
 
-    if (PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden"))
+    if ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(L"StartHidden")) && NotifyIconMask != 0)
         ShowCommand = SW_HIDE;
     if (PhStartupParameters.ShowVisible)
         ShowCommand = SW_SHOW;
@@ -511,6 +511,12 @@ LRESULT CALLBACK PhMainWndProc(
 
             switch (id)
             {
+            case ID_ESC_EXIT:
+                {
+                    if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
+                        ShowWindow(hWnd, SW_HIDE);
+                }
+                break;
             case ID_HACKER_RUN:
                 {
                     if (RunFileDlg)
@@ -1354,7 +1360,7 @@ LRESULT CALLBACK PhMainWndProc(
             {
             case SC_CLOSE:
                 {
-                    if (PhGetIntegerSetting(L"HideOnClose"))
+                    if (PhGetIntegerSetting(L"HideOnClose") && NotifyIconMask != 0)
                     {
                         ShowWindow(hWnd, SW_HIDE);
                         return 0;
@@ -1367,7 +1373,7 @@ LRESULT CALLBACK PhMainWndProc(
                     // may not have a chance to later.
                     PhpSaveWindowState();
 
-                    if (PhGetIntegerSetting(L"HideOnMinimize"))
+                    if (PhGetIntegerSetting(L"HideOnMinimize") && NotifyIconMask != 0)
                     {
                         ShowWindow(hWnd, SW_HIDE);
                         return 0;
