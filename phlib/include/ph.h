@@ -1328,6 +1328,23 @@ NTSTATUS PhFileStreamWriteStringAsAnsi(
     __in PPH_STRINGREF String
     );
 
+NTSTATUS PhFileStreamWriteStringAsAnsi2(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PWSTR String
+    );
+
+NTSTATUS PhFileStreamWriteStringFormat_V(
+    __inout PPH_FILE_STREAM FileStream,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
+    );
+
+NTSTATUS PhFileStreamWriteStringFormat(
+    __inout PPH_FILE_STREAM FileStream,
+    __in __format_string PWSTR Format,
+    ...
+    );
+
 // verify
 
 typedef enum _VERIFY_RESULT

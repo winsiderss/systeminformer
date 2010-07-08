@@ -258,6 +258,79 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     }
                 }
                 break;
+            case IDC_SAVE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Text files (*.txt)", L"*.txt" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+
+                    fileDialog = PhCreateSaveFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    {
+                        NTSTATUS status;
+                        PPH_STRING fileName;
+                        PPH_FILE_STREAM fileStream;
+
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        PhaDereferenceObject(fileName);
+
+                        if (NT_SUCCESS(status = PhCreateFileStream(
+                            &fileStream,
+                            fileName->Buffer,
+                            FILE_GENERIC_WRITE,
+                            FILE_SHARE_READ,
+                            FILE_OVERWRITE_IF,
+                            0
+                            )))
+                        {
+                            PhWritePhTextHeader(fileStream);
+                            PhFileStreamWriteStringAsAnsi2(fileStream, L"Method: ");
+                            PhFileStreamWriteStringAsAnsi2(fileStream,
+                                ProcessesMethod == BruteForceScanMethod ? L"Brute Force\r\n" : L"CSR Handles\r\n");
+                            PhFileStreamWriteStringFormat(
+                                fileStream,
+                                L"Hidden: %u\r\nTerminated: %u\r\n\r\n",
+                                NumberOfHiddenProcesses,
+                                NumberOfTerminatedProcesses
+                                );
+
+                            if (ProcessesList)
+                            {
+                                ULONG i;
+
+                                for (i = 0; i < ProcessesList->Count; i++)
+                                {
+                                    PPH_HIDDEN_PROCESS_ENTRY entry = ProcessesList->Items[i];
+
+                                    if (entry->Type == HiddenProcess)
+                                        PhFileStreamWriteStringAsAnsi2(fileStream, L"[HIDDEN] ");
+                                    else if (entry->Type == TerminatedProcess)
+                                        PhFileStreamWriteStringAsAnsi2(fileStream, L"[Terminated] ");
+                                    else if (entry->Type != NormalProcess)
+                                        continue;
+
+                                    PhFileStreamWriteStringFormat(
+                                        fileStream,
+                                        L"%s (%u)\r\n",
+                                        entry->FileName->Buffer,
+                                        (ULONG)entry->ProcessId
+                                        );
+                                }
+                            }
+
+                            PhDereferenceObject(fileStream);
+                        }
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
             }
         }
         break;

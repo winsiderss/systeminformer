@@ -339,6 +339,12 @@ VOID PhSaveTreeListColumnsToSetting(
     __in HWND TreeListHandle
     );
 
+PPH_STRING PhGetPhVersion();
+
+VOID PhWritePhTextHeader(
+    __inout PPH_FILE_STREAM FileStream
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
