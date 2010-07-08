@@ -203,6 +203,7 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_SETSELECTIONMARK (WM_APP + 1218)
 #define TLM_SETSTATEALL (WM_APP + 1219)
 #define TLM_GETCOLUMNCOUNT (WM_APP + 1220)
+#define TLM_SCROLL (WM_APP + 1221)
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -269,6 +270,9 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 
 #define TreeList_GetColumnCount(hWnd) \
     ((ULONG)SendMessage((hWnd), TLM_GETCOLUMNCOUNT, 0, 0))
+
+#define TreeList_Scroll(hWnd, X, Y) \
+    SendMessage((hWnd), TLM_SCROLL, (WPARAM)(X), (LPARAM)(Y))
 
 BOOLEAN PhTreeListInitialization();
 
