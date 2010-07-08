@@ -483,6 +483,10 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 {
                     RECT windowRect;
 
+                    // Save the options so they don't get "overwritten" when 
+                    // WM_PH_CHILD_EXIT gets sent.
+                    PhpAdvancedPageSave(hwndDlg);
+
                     GetWindowRect(GetParent(hwndDlg), &windowRect);
                     WindowHandleForElevate = hwndDlg;
                     PhCreateThread(0, PhpElevateAdvancedThreadStart, PhFormatString(
