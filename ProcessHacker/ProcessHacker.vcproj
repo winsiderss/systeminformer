@@ -377,6 +377,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\chcol.c"
+				>
+			</File>
+			<File
 				RelativePath=".\chdlg.c"
 				>
 			</File>

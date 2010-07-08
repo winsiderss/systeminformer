@@ -333,6 +333,11 @@ PPH_STRING PhGetComboBoxString(
     __in INT Index
     );
 
+PPH_STRING PhGetListBoxString(
+    __in HWND hwnd,
+    __in INT Index
+    );
+
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,

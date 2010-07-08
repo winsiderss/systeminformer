@@ -470,6 +470,42 @@ PPH_STRING PhGetComboBoxString(
     }
 }
 
+PPH_STRING PhGetListBoxString(
+    __in HWND hwnd,
+    __in INT Index
+    )
+{
+    PPH_STRING string;
+    ULONG length;
+
+    if (Index == -1)
+    {
+        Index = ListBox_GetCurSel(hwnd);
+
+        if (Index == -1)
+            return NULL;
+    }
+
+    length = ListBox_GetTextLen(hwnd, Index);
+
+    if (length == LB_ERR)
+        return NULL;
+    if (length == 0)
+        return PhCreateString(L"");
+
+    string = PhCreateStringEx(NULL, length * 2);
+
+    if (ListBox_GetText(hwnd, Index, string->Buffer) != LB_ERR)
+    {
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+}
+
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,

@@ -481,8 +481,11 @@ NTSTATUS PhFileStreamRead(
         }
     }
 
-    if (ReadLength)
-        *ReadLength = readLength;
+    if (NT_SUCCESS(status))
+    {
+        if (ReadLength)
+            *ReadLength = readLength;
+    }
 
     return status;
 }
