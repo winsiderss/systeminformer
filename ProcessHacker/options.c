@@ -24,6 +24,8 @@
 #include <settings.h>
 #include <windowsx.h>
 
+#define WM_PH_CHILD_EXIT (WM_APP + 301)
+
 INT CALLBACK PhpOptionsPropSheetProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -44,7 +46,13 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     __in LPARAM lParam
     );
 
+static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
+static POINT StartLocation;
+
+static PPH_STRING OldTaskMgrDebugger;
+static BOOLEAN OldReplaceTaskMgr;
+static HWND WindowHandleForElevate;
 
 VOID PhShowOptionsDialog(
     __in HWND ParentWindowHandle
@@ -58,20 +66,26 @@ VOID PhShowOptionsDialog(
         PSH_NOAPPLYNOW |
         PSH_NOCONTEXTHELP |
         PSH_PROPTITLE |
-        PSH_USECALLBACK;
+        PSH_USECALLBACK |
+        PSH_USEPSTARTPAGE;
     propSheetHeader.hwndParent = ParentWindowHandle;
     propSheetHeader.pszCaption = L"Options";
     propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
+    propSheetHeader.pStartPage = !PhStartupParameters.ShowOptions ? L"General" : L"Advanced";
     propSheetHeader.phpage = pages;
     propSheetHeader.pfnCallback = PhpOptionsPropSheetProc;
 
-    // General page
-    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGENERAL);
-    propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
-    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    if (!PhStartupParameters.ShowOptions)
+    {
+        // Disable all pages other than Advanced.
+        // General page
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGENERAL);
+        propSheetPage.pfnDlgProc = PhpOptionsGeneralDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
     // Advanced page
     memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
     propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
@@ -79,13 +93,31 @@ VOID PhShowOptionsDialog(
     propSheetPage.pfnDlgProc = PhpOptionsAdvancedDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
+    PageInit = FALSE;
     PressedOk = FALSE;
+
+    if (PhStartupParameters.ShowOptions)
+        StartLocation = PhStartupParameters.Point;
+    else
+        StartLocation.x = MINLONG;
+
+    OldTaskMgrDebugger = NULL;
+
     PropertySheet(&propSheetHeader);
 
     if (PressedOk)
     {
-        ProcessHacker_SaveAllSettings(PhMainWndHandle);
-        PhInvalidateAllProcessNodes();
+        if (!PhStartupParameters.ShowOptions)
+        {
+            ProcessHacker_SaveAllSettings(PhMainWndHandle);
+            PhInvalidateAllProcessNodes();
+        }
+        else
+        {
+            // Main window not available.
+            if (PhSettingsFileName)
+                PhSaveSettings(PhSettingsFileName->Buffer);
+        }
     }
 }
 
@@ -110,6 +142,30 @@ INT CALLBACK PhpOptionsPropSheetProc(
     return 0;
 }
 
+static VOID PhpPageInit(
+    __in HWND hwndDlg
+    )
+{
+    if (!PageInit)
+    {
+        // HACK
+
+        if (StartLocation.x == MINLONG)
+        {
+            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
+        }
+        else
+        {
+            SetWindowPos(GetParent(hwndDlg), NULL, StartLocation.x, StartLocation.y, 0, 0,
+                SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
+        }
+
+        SetWindowText(GetParent(hwndDlg), L"Options"); // so the title isn't "Options Properties"
+
+        PageInit = TRUE;
+    }
+}
+
 #define SetDlgItemCheckForSetting(hwndDlg, Id, Name) \
     Button_SetCheck(GetDlgItem(hwndDlg, Id), PhGetIntegerSetting(Name) ? BST_CHECKED : BST_UNCHECKED)
 #define SetSettingForDlgItemCheck(hwndDlg, Id, Name) \
@@ -130,10 +186,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             HWND comboBoxHandle;
             ULONG i;
 
-            // HACK
-            PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
-            // HACK
-            SetWindowText(GetParent(hwndDlg), L"Options"); // so the title isn't "Options Properties"
+            PhpPageInit(hwndDlg);
 
             comboBoxHandle = GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT);
 
@@ -200,6 +253,199 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     return FALSE;
 }
 
+static BOOLEAN PathMatchesPh(
+    __in PPH_STRING Path
+    )
+{
+    BOOLEAN match = FALSE;
+
+    if (PhStringEquals(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
+    {
+        match = TRUE;
+    }
+    // Allow for a quoted value.
+    else if (
+        OldTaskMgrDebugger->Length == PhApplicationFileName->Length + 4 &&
+        OldTaskMgrDebugger->Buffer[0] == '"' &&
+        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / 2 - 1] == '"'
+        )
+    {
+        PPH_STRING valueInside;
+
+        valueInside = PhSubstring(OldTaskMgrDebugger, 1, OldTaskMgrDebugger->Length / 2 - 2);
+
+        if (PhStringEquals(valueInside, PhApplicationFileName, TRUE))
+            match = TRUE;
+
+        PhDereferenceObject(valueInside);
+    }
+
+    return match;
+}
+
+VOID PhpAdvancedPageLoad(
+    __in HWND hwndDlg
+    )
+{
+    HWND changeButton;
+
+    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
+
+    // Replace Task Manager
+
+    changeButton = GetDlgItem(hwndDlg, IDC_CHANGE);
+
+    if (PhElevated)
+    {
+        ShowWindow(changeButton, SW_HIDE);
+    }
+    else
+    {
+        SendMessage(changeButton, BCM_SETSHIELD, 0, TRUE);
+    }
+
+    {
+        HKEY keyHandle;
+        HKEY taskmgrKeyHandle = NULL;
+        ULONG disposition;
+        BOOLEAN success = FALSE;
+        BOOLEAN alreadyReplaced = FALSE;
+
+        // See if we can write to the key.
+        if (RegOpenKeyEx(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+            0,
+            KEY_CREATE_SUB_KEY,
+            &keyHandle
+            ) == ERROR_SUCCESS)
+        {
+            if (RegCreateKeyEx(
+                keyHandle,
+                L"taskmgr.exe",
+                0,
+                NULL,
+                0,
+                KEY_READ | KEY_WRITE,
+                NULL,
+                &taskmgrKeyHandle,
+                &disposition
+                ) == ERROR_SUCCESS)
+            {
+                success = TRUE;
+            }
+
+            RegCloseKey(keyHandle);
+        }
+
+        if (taskmgrKeyHandle || RegOpenKeyEx(
+            HKEY_LOCAL_MACHINE,
+            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe",
+            0,
+            KEY_READ,
+            &taskmgrKeyHandle
+            ) == ERROR_SUCCESS)
+        {
+            if (OldTaskMgrDebugger)
+                PhDereferenceObject(OldTaskMgrDebugger);
+
+            if (OldTaskMgrDebugger = PhQueryRegistryString(taskmgrKeyHandle, L"Debugger"))
+            {
+                alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
+            }
+
+            RegCloseKey(taskmgrKeyHandle);
+        }
+
+        if (!success)
+            EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER), FALSE);
+
+        OldReplaceTaskMgr = alreadyReplaced;
+        Button_SetCheck(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER), alreadyReplaced ? BST_CHECKED : BST_UNCHECKED);
+    }
+}
+
+VOID PhpAdvancedPageSave(
+    __in HWND hwndDlg
+    )
+{
+    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
+
+    // Replace Task Manager
+    if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)))
+    {
+        HKEY taskmgrKeyHandle;
+        ULONG win32Result = 0;
+        BOOLEAN replaceTaskMgr;
+
+        replaceTaskMgr = Button_GetCheck(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)) == BST_CHECKED;
+
+        if (OldReplaceTaskMgr != replaceTaskMgr)
+        {
+            if ((win32Result = RegOpenKeyEx(
+                HKEY_LOCAL_MACHINE,
+                L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe",
+                0,
+                KEY_WRITE,
+                &taskmgrKeyHandle
+                )) == ERROR_SUCCESS)
+            {
+                if (replaceTaskMgr)
+                {
+                    PPH_STRING quotedFileName;
+
+                    quotedFileName = PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\"");
+                    win32Result = RegSetValueEx(
+                        taskmgrKeyHandle,
+                        L"Debugger",
+                        0,
+                        REG_SZ,
+                        (PBYTE)quotedFileName->Buffer,
+                        quotedFileName->Length + 2
+                        );
+                    PhDereferenceObject(quotedFileName);
+                }
+                else
+                {
+                    RegDeleteValue(taskmgrKeyHandle, L"Debugger");
+                }
+
+                if (win32Result != 0)
+                    PhShowStatus(hwndDlg, L"Unable to replace Task Manager", 0, win32Result);
+
+                RegCloseKey(taskmgrKeyHandle);
+            }
+        }
+    }
+}
+
+NTSTATUS PhpElevateAdvancedThreadStart(
+    __in PVOID Parameter
+    )
+{
+    PPH_STRING arguments;
+
+    arguments = Parameter;
+    PhShellExecuteEx(
+        WindowHandleForElevate,
+        PhApplicationFileName->Buffer,
+        arguments->Buffer,
+        SW_SHOW,
+        PH_SHELL_EXECUTE_ADMIN,
+        INFINITE,
+        NULL
+        );
+    PhDereferenceObject(arguments);
+
+    PostMessage(WindowHandleForElevate, WM_PH_CHILD_EXIT, 0, 0);
+
+    return STATUS_SUCCESS;
+}
+
 INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -211,9 +457,43 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
+            PhpPageInit(hwndDlg);
+            PhpAdvancedPageLoad(hwndDlg);
+
+            if (PhStartupParameters.ShowOptions)
+            {
+                // Disable all controls except for Replace Task Manager.
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEWARNINGS), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEKERNELMODEDRIVER), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES), FALSE);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (OldTaskMgrDebugger)
+                PhDereferenceObject(OldTaskMgrDebugger);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_CHANGE:
+                {
+                    RECT windowRect;
+
+                    GetWindowRect(GetParent(hwndDlg), &windowRect);
+                    WindowHandleForElevate = hwndDlg;
+                    PhCreateThread(0, PhpElevateAdvancedThreadStart, PhFormatString(
+                        L"-showoptions -hwnd %Ix -point %u,%u",
+                        (ULONG_PTR)GetParent(hwndDlg),
+                        windowRect.left + 20,
+                        windowRect.top + 20
+                        ));
+                }
+                break;
+            }
         }
         break;
     case WM_NOTIFY:
@@ -224,14 +504,16 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
             {
             case PSN_APPLY:
                 {
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEWARNINGS, L"EnableWarnings");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
-
+                    PhpAdvancedPageSave(hwndDlg);
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }
                 return TRUE;
             }
+        }
+        break;
+    case WM_PH_CHILD_EXIT:
+        {
+            PhpAdvancedPageLoad(hwndDlg);
         }
         break;
     }

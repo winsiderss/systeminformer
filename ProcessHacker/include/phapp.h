@@ -51,6 +51,10 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING SettingsFileName;
     BOOLEAN ShowHidden;
     BOOLEAN ShowVisible;
+    BOOLEAN ShowOptions;
+
+    HWND WindowHandle;
+    POINT Point;
 
     BOOLEAN CommandMode;
     PPH_STRING CommandType;
