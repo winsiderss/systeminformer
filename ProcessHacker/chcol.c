@@ -166,7 +166,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
             PhDereferenceObject(displayOrderList);
 
-            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
+            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveList);
             SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
         }
         break;
@@ -292,7 +292,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             INT sel = ListBox_GetCurSel(context->ActiveList);
                             INT count = ListBox_GetCount(context->ActiveList);
 
-                            EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != -1);
+                            EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != -1 && count != 1);
                             EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEUP), sel != 0 && sel != -1);
                             EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), sel != count - 1 && sel != -1);
                         }
@@ -322,7 +322,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
                         ListBox_SetCurSel(context->InactiveList, sel);
 
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_SHOW), sel != -1);
+                        SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveList);
+                        SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
                     }
                 }
                 break;
@@ -335,20 +336,24 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     sel = ListBox_GetCurSel(context->ActiveList);
                     count = ListBox_GetCount(context->ActiveList);
 
-                    if (string = PhGetListBoxString(context->ActiveList, sel))
+                    if (count != 1)
                     {
-                        ListBox_DeleteString(context->ActiveList, sel);
-                        ListBox_AddString(context->InactiveList, string->Buffer);
-                        PhDereferenceObject(string);
+                        if (string = PhGetListBoxString(context->ActiveList, sel))
+                        {
+                            ListBox_DeleteString(context->ActiveList, sel);
+                            ListBox_AddString(context->InactiveList, string->Buffer);
+                            PhDereferenceObject(string);
 
-                        count--;
+                            count--;
 
-                        if (sel >= count - 1)
-                            sel = count - 1;
+                            if (sel >= count - 1)
+                                sel = count - 1;
 
-                        ListBox_SetCurSel(context->ActiveList, sel);
+                            ListBox_SetCurSel(context->ActiveList, sel);
 
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_HIDE), sel != -1);
+                            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_INACTIVE, LBN_SELCHANGE), (LPARAM)context->InactiveList);
+                            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_ACTIVE, LBN_SELCHANGE), (LPARAM)context->ActiveList);
+                        }
                     }
                 }
                 break;

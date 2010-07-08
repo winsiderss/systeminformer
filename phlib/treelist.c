@@ -1484,7 +1484,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
         textFlags |= DT_END_ELLIPSIS;
 
-    textFlags |= DT_VCENTER;
+    textFlags |= DT_NOPREFIX | DT_VCENTER;
 
     if (PhpGetNodeText(Context, node, subItemIndex, &text))
     {
