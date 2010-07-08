@@ -321,7 +321,6 @@
 #define IDC_SHOW                        1209
 #define IDC_ZPHYSICALTOTAL_V            1210
 #define IDC_HIDE                        1210
-#define IDC_CHECK1                      1211
 #define IDC_REPLACETASKMANAGER          1211
 #define IDC_ZPAGEDPHYSICAL_V            1215
 #define IDC_ZPAGEDVIRTUAL_V             1216
@@ -510,6 +509,7 @@
 #define ID_NOTIFICATIONS_DELETEDSERVICES 40185
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
 #define ID_HEADER_CHOOSECOLUMNS         40189
+#define ID_ESC_EXIT                     40190
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -517,7 +517,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        178
-#define _APS_NEXT_COMMAND_VALUE         40190
+#define _APS_NEXT_COMMAND_VALUE         40192
 #define _APS_NEXT_CONTROL_VALUE         1212
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
