@@ -918,3 +918,44 @@ NTSTATUS PhFileStreamWriteStringAsAnsi(
 
     return status;
 }
+
+NTSTATUS PhFileStreamWriteStringAsAnsi2(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PWSTR String
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, String);
+
+    return PhFileStreamWriteStringAsAnsi(FileStream, &string);
+}
+
+NTSTATUS PhFileStreamWriteStringFormat_V(
+    __inout PPH_FILE_STREAM FileStream,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+
+    string = PhFormatString_V(Format, ArgPtr);
+    status = PhFileStreamWriteStringAsAnsi(FileStream, &string->sr);
+    PhDereferenceObject(string);
+
+    return status;
+}
+
+NTSTATUS PhFileStreamWriteStringFormat(
+    __inout PPH_FILE_STREAM FileStream,
+    __in __format_string PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+
+    va_start(argptr, Format);
+
+    return PhFileStreamWriteStringFormat_V(FileStream, Format, argptr);
+}

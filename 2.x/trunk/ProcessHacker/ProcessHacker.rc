@@ -408,12 +408,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Process Hacker"
-            VALUE "FileVersion", "2, 0, 0, 0"
+            VALUE "FileVersion", "2.0"
             VALUE "InternalName", "Process Hacker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", "2, 0, 0, 0"
+            VALUE "ProductVersion", "2.0"
         END
     END
     BLOCK "VarFileInfo"
