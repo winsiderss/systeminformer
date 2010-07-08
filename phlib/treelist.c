@@ -944,6 +944,13 @@ LRESULT CALLBACK PhpTreeListWndProc(
             ListView_Scroll(context->ListViewHandle, wParam, lParam);
         }
         return TRUE;
+    case TLM_SETCOLUMNORDERARRAY:
+        {
+            ListView_SetColumnOrderArray(context->ListViewHandle, wParam, lParam);
+            PhpRefreshColumns(context);
+            PhpRefreshColumnsLookup(context);
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1857,6 +1864,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
     __in PPH_STRING Settings
     )
 {
+#define ORDER_LIMIT 100
     BOOLEAN result = FALSE;
     ULONG i;
     ULONG count;
@@ -1869,6 +1877,8 @@ BOOLEAN PhLoadTreeListColumnSettings(
     ULONG64 integer;
     PPH_HASHTABLE columnHashtable;
     PPH_KEY_VALUE_PAIR pair;
+    INT orderArray[ORDER_LIMIT];
+    INT maxOrder;
 
     // This is one of those functions where you wish you could use C#.
 
@@ -1879,6 +1889,9 @@ BOOLEAN PhLoadTreeListColumnSettings(
 
     i = 0;
     length = (ULONG)Settings->Length / 2;
+
+    memset(orderArray, 0, sizeof(orderArray));
+    maxOrder = 0;
 
     while (i < length)
     {
@@ -1941,7 +1954,8 @@ BOOLEAN PhLoadTreeListColumnSettings(
         i = indexOfPipe + 1;
     }
 
-    // Hide all the columns.
+    // Set visibility and width.
+
     i = 0;
     count = 0;
     total = TreeList_GetColumnCount(TreeListHandle);
@@ -1953,24 +1967,53 @@ BOOLEAN PhLoadTreeListColumnSettings(
 
         setColumn.Id = i;
 
-        columnPtr = (PPH_TREELIST_COLUMN *)PhGetSimpleHashtableItem(columnHashtable, (PVOID)i);
+        if (TreeList_GetColumn(TreeListHandle, &setColumn))
+        {
+            columnPtr = (PPH_TREELIST_COLUMN *)PhGetSimpleHashtableItem(columnHashtable, (PVOID)i);
 
-        if (columnPtr)
-        {
-            setColumn.Width = (*columnPtr)->Width;
-            setColumn.DisplayIndex = (*columnPtr)->DisplayIndex;
-            setColumn.Visible = TRUE;
-            TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE | TLCM_WIDTH | TLCM_DISPLAYINDEX);
-        }
-        else
-        {
-            setColumn.Visible = FALSE;
-            TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE);
+            if (columnPtr)
+            {
+                setColumn.Width = (*columnPtr)->Width;
+                setColumn.Visible = TRUE;
+                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE | TLCM_WIDTH);
+
+                TreeList_GetColumn(TreeListHandle, &setColumn); // get the ViewIndex for use in the second pass
+                (*columnPtr)->s.ViewIndex = setColumn.s.ViewIndex;
+            }
+            else
+            {
+                setColumn.Visible = FALSE;
+                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE);
+            }
+
+            count++;
         }
 
         i++;
-        count++;
     }
+
+    i = 0;
+
+    // Do a second pass to create the order array. This is because the ViewIndex of each column 
+    // were unstable in the previous pass since we were both adding and removing columns.
+    while (PhEnumHashtable(columnHashtable, &pair, &i))
+    {
+        PPH_TREELIST_COLUMN column;
+
+        column = pair->Value;
+
+        if (column->DisplayIndex < ORDER_LIMIT)
+        {
+            orderArray[column->DisplayIndex] = column->s.ViewIndex;
+
+            if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                maxOrder = column->DisplayIndex + 1;
+        }
+    }
+
+    // Set the order array.
+
+    TreeList_SetColumnOrderArray(TreeListHandle, maxOrder, orderArray);
 
     result = TRUE;
 
