@@ -223,9 +223,11 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                             TreeList_SetColumn(context->TreeListHandle, column, TLCM_DISPLAYINDEX);
                     }
 
-                    InvalidateRect(context->TreeListHandle, NULL, TRUE);
-
                     PhDereferenceObject(activeList);
+
+                    // Force a refresh of the scrollbars.
+                    TreeList_Scroll(context->TreeListHandle, 0, 0);
+                    InvalidateRect(context->TreeListHandle, NULL, TRUE);
 
                     EndDialog(hwndDlg, IDOK);
                 }

@@ -84,6 +84,7 @@ VOID PhInitializeProcessTreeList(
         PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MINUS), IMAGE_BITMAP)
         );
 
+    // Default columns
     PhAddTreeListColumn(hwnd, PHTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 2, DT_RIGHT);
@@ -91,6 +92,11 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_PVTMEMORY, TRUE, L"Pvt. Memory", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeListColumn(hwnd, PHTLC_DESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, 6, 0);
+
+    PhAddTreeListColumn(hwnd, PHTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeListColumn(hwnd, PHTLC_COMMANDLINE, FALSE, L"Command Line", 180, PH_ALIGN_LEFT, -1, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -447,6 +453,46 @@ BEGIN_SORT_FUNCTION(Description)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CompanyName)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.CompanyName,
+        processItem2->VersionInfo.CompanyName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Version)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.FileVersion,
+        processItem2->VersionInfo.FileVersion,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileName)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->FileName,
+        processItem2->FileName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CommandLine)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->CommandLine,
+        processItem2->CommandLine,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -490,7 +536,11 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(IoTotal),
                         SORT_FUNCTION(PvtMemory),
                         SORT_FUNCTION(UserName),
-                        SORT_FUNCTION(Description)
+                        SORT_FUNCTION(Description),
+                        SORT_FUNCTION(CompanyName),
+                        SORT_FUNCTION(Version),
+                        SORT_FUNCTION(FileName),
+                        SORT_FUNCTION(CommandLine)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -575,6 +625,18 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHTLC_DESCRIPTION:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileDescription);
+                break;
+            case PHTLC_COMPANYNAME:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.CompanyName);
+                break;
+            case PHTLC_VERSION:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileVersion);
+                break;
+            case PHTLC_FILENAME:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->FileName);
+                break;
+            case PHTLC_COMMANDLINE:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
                 break;
             default:
                 return FALSE;
