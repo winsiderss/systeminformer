@@ -935,6 +935,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
         return TRUE;
     case TLM_GETCOLUMNCOUNT:
         return context->NumberOfColumns;
+    case TLM_SCROLL:
+        {
+            ListView_Scroll(context->ListViewHandle, wParam, lParam);
+        }
+        return TRUE;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1067,39 +1072,39 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         // A column has been clicked, so update the sorting 
                         // information.
 
-                        if (header2->iItem == context->SortColumn)
+                        lvColumn.mask = LVCF_SUBITEM;
+
+                        if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
                         {
-                            if (context->TriState)
+                            if (lvColumn.iSubItem == context->SortColumn)
                             {
-                                if (context->SortOrder == AscendingSortOrder)
-                                    context->SortOrder = DescendingSortOrder;
-                                else if (context->SortOrder == DescendingSortOrder)
-                                    context->SortOrder = NoSortOrder;
+                                if (context->TriState)
+                                {
+                                    if (context->SortOrder == AscendingSortOrder)
+                                        context->SortOrder = DescendingSortOrder;
+                                    else if (context->SortOrder == DescendingSortOrder)
+                                        context->SortOrder = NoSortOrder;
+                                    else
+                                        context->SortOrder = AscendingSortOrder;
+                                }
                                 else
-                                    context->SortOrder = AscendingSortOrder;
+                                {
+                                    if (context->SortOrder == AscendingSortOrder)
+                                        context->SortOrder = DescendingSortOrder;
+                                    else
+                                        context->SortOrder = AscendingSortOrder;
+                                }
                             }
                             else
-                            {
-                                if (context->SortOrder == AscendingSortOrder)
-                                    context->SortOrder = DescendingSortOrder;
-                                else
-                                    context->SortOrder = AscendingSortOrder;
-                            }
-                        }
-                        else
-                        {
-                            lvColumn.mask = LVCF_SUBITEM;
-
-                            if (ListView_GetColumn(hwnd, header2->iItem, &lvColumn))
                             {
                                 context->SortColumn = lvColumn.iSubItem;
                                 context->SortOrder = AscendingSortOrder;
                             }
+
+                            PhSetHeaderSortIcon(ListView_GetHeader(hwnd), header2->iItem, context->SortOrder);
+
+                            context->Callback(context->Handle, TreeListSortChanged, NULL, NULL, context->Context);
                         }
-
-                        PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
-
-                        context->Callback(context->Handle, TreeListSortChanged, NULL, NULL, context->Context);
                     }
                 }
                 break;
@@ -1718,6 +1723,9 @@ static VOID PhpRefreshColumnsLookup(
         Context->AllocatedColumnsForDraw = Context->NumberOfColumns;
     }
 
+    memset(Context->ColumnsForViewX, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForViewX);
+    memset(Context->ColumnsForDraw, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForDraw);
+
     for (i = 0; i < Context->NumberOfColumns; i++)
     {
         if (Context->Columns[i]->Visible && Context->Columns[i]->DisplayIndex != -1)
@@ -1738,6 +1746,9 @@ static VOID PhpRefreshColumnsLookup(
 
     for (i = 0; i < Context->AllocatedColumnsForViewX; i++)
     {
+        if (!Context->ColumnsForViewX[i])
+            break;
+
         Context->ColumnsForViewX[i]->s.ViewX = x;
         x += Context->ColumnsForViewX[i]->Width;
     }
