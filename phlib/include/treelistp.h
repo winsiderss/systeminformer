@@ -11,6 +11,7 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     HWND Handle;
     HWND ListViewHandle;
+    LONG LvRecursionGuard; // unused
 
     PPH_TREELIST_CALLBACK Callback;
     PVOID Context;
@@ -19,8 +20,16 @@ typedef struct _PHP_TREELIST_CONTEXT
     PPH_TREELIST_COLUMN *Columns; // columns, indexed by ID
     ULONG NumberOfColumns;
     ULONG AllocatedColumns;
+
+    // We have to deal with three kinds of indicies here:
+    // * Display index
+    // * Id
+    // * Index (in the list view)
+
     PPH_TREELIST_COLUMN *ColumnsForViewX; // columns, indexed by display order
     ULONG AllocatedColumnsForViewX;
+    PPH_TREELIST_COLUMN *ColumnsForDraw; // columns, indexed by index
+    ULONG AllocatedColumnsForDraw;
     PPH_LIST List; // list of nodes for the list view, in actual display order
     BOOLEAN CanAnyExpand;
 
@@ -140,7 +149,7 @@ VOID PhpRefreshColumns(
     __in PPHP_TREELIST_CONTEXT Context
     );
 
-VOID PhpRefreshColumnsViewX(
+VOID PhpRefreshColumnsLookup(
     __in PPHP_TREELIST_CONTEXT Context
     );
 
