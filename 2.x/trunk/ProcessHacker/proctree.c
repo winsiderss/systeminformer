@@ -425,116 +425,6 @@ HICON PhGetStockAppIcon()
     return StockAppIcon;
 }
 
-#define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
-
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeListCompare##Column( \
-    __in const void *_elem1, \
-    __in const void *_elem2 \
-    ) \
-{ \
-    PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)_elem1; \
-    PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)_elem2; \
-    PPH_PROCESS_ITEM processItem1 = node1->ProcessItem; \
-    PPH_PROCESS_ITEM processItem2 = node2->ProcessItem; \
-    int sortResult = 0;
-
-#define END_SORT_FUNCTION \
-    if (sortResult == 0) \
-        sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId); \
-    \
-    return PhModifySort(sortResult, ProcessTreeListSortOrder); \
-}
-
-BEGIN_SORT_FUNCTION(Name)
-{
-    sortResult = PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Pid)
-{
-    // Use signed int so DPCs and Interrupts are placed above System Idle Process.
-    sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Cpu)
-{
-    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(IoTotal)
-{
-    sortResult = uint64cmp(
-        processItem1->IoReadDelta.Delta + processItem1->IoWriteDelta.Delta + processItem1->IoOtherDelta.Delta,
-        processItem2->IoReadDelta.Delta + processItem2->IoWriteDelta.Delta + processItem2->IoOtherDelta.Delta
-        );
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(PvtMemory)
-{
-    sortResult = uintptrcmp(processItem1->VmCounters.PrivateUsage, processItem2->VmCounters.PrivateUsage);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(UserName)
-{
-    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Description)
-{
-    sortResult = PhStringCompareWithNull(
-        processItem1->VersionInfo.FileDescription,
-        processItem2->VersionInfo.FileDescription,
-        TRUE
-        );
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(CompanyName)
-{
-    sortResult = PhStringCompareWithNull(
-        processItem1->VersionInfo.CompanyName,
-        processItem2->VersionInfo.CompanyName,
-        TRUE
-        );
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(Version)
-{
-    sortResult = PhStringCompareWithNull(
-        processItem1->VersionInfo.FileVersion,
-        processItem2->VersionInfo.FileVersion,
-        TRUE
-        );
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(FileName)
-{
-    sortResult = PhStringCompareWithNull(
-        processItem1->FileName,
-        processItem2->FileName,
-        TRUE
-        );
-}
-END_SORT_FUNCTION
-
-BEGIN_SORT_FUNCTION(CommandLine)
-{
-    sortResult = PhStringCompareWithNull(
-        processItem1->CommandLine,
-        processItem2->CommandLine,
-        TRUE
-        );
-}
-END_SORT_FUNCTION
-
 VOID PhpUpdateProcessNodeWsCounters(
     __in PPH_PROCESS_NODE ProcessNode
     )
@@ -610,6 +500,303 @@ VOID PhpUpdateProcessNodeIoPagePriority(
     }
 }
 
+#define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
+
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeListCompare##Column( \
+    __in const void *_elem1, \
+    __in const void *_elem2 \
+    ) \
+{ \
+    PPH_PROCESS_NODE node1 = *(PPH_PROCESS_NODE *)_elem1; \
+    PPH_PROCESS_NODE node2 = *(PPH_PROCESS_NODE *)_elem2; \
+    PPH_PROCESS_ITEM processItem1 = node1->ProcessItem; \
+    PPH_PROCESS_ITEM processItem2 = node2->ProcessItem; \
+    int sortResult = 0;
+
+#define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId); \
+    \
+    return PhModifySort(sortResult, ProcessTreeListSortOrder); \
+}
+
+BEGIN_SORT_FUNCTION(Name)
+{
+    sortResult = PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Pid)
+{
+    // Use signed int so DPCs and Interrupts are placed above System Idle Process.
+    sortResult = intptrcmp((LONG_PTR)processItem1->ProcessId, (LONG_PTR)processItem2->ProcessId);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Cpu)
+{
+    sortResult = singlecmp(processItem1->CpuUsage, processItem2->CpuUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoTotal)
+{
+    sortResult = uint64cmp(
+        processItem1->IoReadDelta.Delta + processItem1->IoWriteDelta.Delta + processItem1->IoOtherDelta.Delta,
+        processItem2->IoReadDelta.Delta + processItem2->IoWriteDelta.Delta + processItem2->IoOtherDelta.Delta
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PvtMemory)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.PagefileUsage, processItem2->VmCounters.PagefileUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserName)
+{
+    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Description)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.FileDescription,
+        processItem2->VersionInfo.FileDescription,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CompanyName)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.CompanyName,
+        processItem2->VersionInfo.CompanyName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Version)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VersionInfo.FileVersion,
+        processItem2->VersionInfo.FileVersion,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileName)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->FileName,
+        processItem2->FileName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CommandLine)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->CommandLine,
+        processItem2->CommandLine,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PeakPvtMemory)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.PeakPagefileUsage, processItem2->VmCounters.PeakPagefileUsage);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(WorkingSet)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.WorkingSetSize, processItem2->VmCounters.WorkingSetSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PeakWorkingSet)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.PeakWorkingSetSize, processItem2->VmCounters.PeakWorkingSetSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PrivateWs)
+{
+    PhpUpdateProcessNodeWsCounters(node1);
+    PhpUpdateProcessNodeWsCounters(node2);
+    sortResult = uintcmp(node1->WsCounters.NumberOfPrivatePages, node2->WsCounters.NumberOfPrivatePages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(SharedWs)
+{
+    PhpUpdateProcessNodeWsCounters(node1);
+    PhpUpdateProcessNodeWsCounters(node2);
+    sortResult = uintcmp(node1->WsCounters.NumberOfSharedPages, node2->WsCounters.NumberOfSharedPages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ShareableWs)
+{
+    PhpUpdateProcessNodeWsCounters(node1);
+    PhpUpdateProcessNodeWsCounters(node2);
+    sortResult = uintcmp(node1->WsCounters.NumberOfShareablePages, node2->WsCounters.NumberOfShareablePages);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(VirtualSize)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.VirtualSize, processItem2->VmCounters.VirtualSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PeakVirtualSize)
+{
+    sortResult = uintptrcmp(processItem1->VmCounters.PeakVirtualSize, processItem2->VmCounters.PeakVirtualSize);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PageFaults)
+{
+    sortResult = uintcmp(processItem1->VmCounters.PageFaultCount, processItem2->VmCounters.PageFaultCount);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(SessionId)
+{
+    sortResult = uintcmp(processItem1->SessionId, processItem2->SessionId);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PriorityClass)
+{
+    sortResult = intcmp(processItem1->BasePriority, processItem2->BasePriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(BasePriority)
+{
+    sortResult = intcmp(processItem1->BasePriority, processItem2->BasePriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Threads)
+{
+    sortResult = uintcmp(processItem1->NumberOfThreads, processItem2->NumberOfThreads);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Handles)
+{
+    sortResult = uintcmp(processItem1->NumberOfHandles, processItem2->NumberOfHandles);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(GdiHandles)
+{
+    sortResult = uintcmp(node1->GdiHandles, node2->GdiHandles);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserHandles)
+{
+    sortResult = uintcmp(node1->UserHandles, node2->UserHandles);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoRo)
+{
+    sortResult = uint64cmp(
+        processItem1->IoReadDelta.Delta + processItem1->IoOtherDelta.Delta,
+        processItem2->IoReadDelta.Delta + processItem2->IoOtherDelta.Delta
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoW)
+{
+    sortResult = uint64cmp(
+        processItem1->IoWriteDelta.Delta,
+        processItem2->IoWriteDelta.Delta
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Integrity)
+{
+    sortResult = uintcmp(processItem1->IntegrityLevel, processItem2->IntegrityLevel);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoPriority)
+{
+    sortResult = uintcmp(node1->IoPriority, node2->IoPriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PagePriority)
+{
+    sortResult = uintcmp(node1->PagePriority, node2->PagePriority);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(StartTime)
+{
+    sortResult = int64cmp(processItem1->CreateTime.QuadPart, processItem2->CreateTime.QuadPart);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(TotalCpuTime)
+{
+    sortResult = uint64cmp(
+        processItem1->KernelTime.QuadPart + processItem1->UserTime.QuadPart,
+        processItem2->KernelTime.QuadPart + processItem2->UserTime.QuadPart
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(KernelCpuTime)
+{
+    sortResult = uint64cmp(
+        processItem1->KernelTime.QuadPart,
+        processItem2->KernelTime.QuadPart
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(UserCpuTime)
+{
+    sortResult = uint64cmp(
+        processItem1->UserTime.QuadPart,
+        processItem2->UserTime.QuadPart
+        );
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(VerificationStatus)
+{
+    sortResult = intcmp(processItem1->VerifyResult == VrTrusted, processItem2->VerifyResult == VrTrusted);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(VerifiedSigner)
+{
+    sortResult = PhStringCompareWithNull(
+        processItem1->VerifySignerName,
+        processItem2->VerifySignerName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -657,7 +844,34 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(CompanyName),
                         SORT_FUNCTION(Version),
                         SORT_FUNCTION(FileName),
-                        SORT_FUNCTION(CommandLine)
+                        SORT_FUNCTION(CommandLine),
+                        SORT_FUNCTION(PeakPvtMemory),
+                        SORT_FUNCTION(WorkingSet),
+                        SORT_FUNCTION(PeakWorkingSet),
+                        SORT_FUNCTION(PrivateWs),
+                        SORT_FUNCTION(SharedWs),
+                        SORT_FUNCTION(ShareableWs),
+                        SORT_FUNCTION(VirtualSize),
+                        SORT_FUNCTION(PeakVirtualSize),
+                        SORT_FUNCTION(PageFaults),
+                        SORT_FUNCTION(SessionId),
+                        SORT_FUNCTION(PriorityClass),
+                        SORT_FUNCTION(BasePriority),
+                        SORT_FUNCTION(Threads),
+                        SORT_FUNCTION(Handles),
+                        SORT_FUNCTION(GdiHandles),
+                        SORT_FUNCTION(UserHandles),
+                        SORT_FUNCTION(IoRo),
+                        SORT_FUNCTION(IoW),
+                        SORT_FUNCTION(Integrity),
+                        SORT_FUNCTION(IoPriority),
+                        SORT_FUNCTION(PagePriority),
+                        SORT_FUNCTION(StartTime),
+                        SORT_FUNCTION(TotalCpuTime),
+                        SORT_FUNCTION(KernelCpuTime),
+                        SORT_FUNCTION(UserCpuTime),
+                        SORT_FUNCTION(VerificationStatus),
+                        SORT_FUNCTION(VerifiedSigner)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
