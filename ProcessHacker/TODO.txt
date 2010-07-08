@@ -1,10 +1,7 @@
-* Column re-ordering (and save in settings)
-* Column chooser
-
 * Complete main menu items
-
 * Copy menu
+* Complete memory list
+* Add memory editing
 
 * Dump/view process information
-
 * Make settings based on atoms instead of strings
