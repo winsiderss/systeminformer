@@ -142,6 +142,10 @@ ATOM PhRegisterWindowClass();
 
 #define PHTLC_MAXIMUM 38
 
+#define PHPN_WSCOUNTERS 0x1
+#define PHPN_GDIUSERHANDLES 0x2
+#define PHPN_IOPAGEPRIORITY 0x4
+
 typedef struct _PH_PROCESS_NODE
 {
     PH_TREELIST_NODE Node;
@@ -158,10 +162,45 @@ typedef struct _PH_PROCESS_NODE
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
 
+    // If the user has selected certain columns we need extra information 
+    // that isn't retrieved by the process provider.
+    ULONG ValidMask;
+
+    // WS counters
+    PH_PROCESS_WS_COUNTERS WsCounters;
+    // GDI, USER handles
+    ULONG GdiHandles;
+    ULONG UserHandles;
+    // I/O, Page priority
+    ULONG IoPriority;
+    ULONG PagePriority;
+
     PPH_STRING TooltipText;
 
     PPH_STRING IoTotalText;
     PPH_STRING PrivateMemoryText;
+    PPH_STRING PeakPrivateMemoryText;
+    PPH_STRING WorkingSetText;
+    PPH_STRING PeakWorkingSetText;
+    PPH_STRING PrivateWsText;
+    PPH_STRING SharedWsText;
+    PPH_STRING ShareableWsText;
+    PPH_STRING VirtualSizeText;
+    PPH_STRING PeakVirtualSizeText;
+    PPH_STRING PageFaultsText;
+    WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
+    WCHAR ThreadsText[PH_INT32_STR_LEN_1];
+    WCHAR HandlesText[PH_INT32_STR_LEN_1];
+    WCHAR GdiHandlesText[PH_INT32_STR_LEN_1];
+    WCHAR UserHandlesText[PH_INT32_STR_LEN_1];
+    PPH_STRING IoRoText;
+    PPH_STRING IoWText;
+    WCHAR IoPriorityText[PH_INT32_STR_LEN_1];
+    WCHAR PagePriorityText[PH_INT32_STR_LEN_1];
+    PPH_STRING StartTimeText;
+    WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();

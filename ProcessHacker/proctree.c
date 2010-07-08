@@ -98,6 +98,35 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
     PhAddTreeListColumn(hwnd, PHTLC_COMMANDLINE, FALSE, L"Command Line", 180, PH_ALIGN_LEFT, -1, 0);
 
+    PhAddTreeListColumn(hwnd, PHTLC_PEAKPVTMEMORY, FALSE, L"Peak Pvt. Memory", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_WORKINGSET, FALSE, L"Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PEAKWORKINGSET, FALSE, L"Peak Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PRIVATEWS, FALSE, L"Private WS", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_SHAREDWS, FALSE, L"Shared WS", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_SHAREABLEWS, FALSE, L"Shareable WS", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_VIRTUALSIZE, FALSE, L"Virtual Size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PEAKVIRTUALSIZE, FALSE, L"Peak Virtual Size", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PAGEFAULTS, FALSE, L"Page Faults", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_SESSIONID, FALSE, L"Session ID", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PRIORITYCLASS, FALSE, L"Priority Class", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_BASEPRIORITY, FALSE, L"Base Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+
+    PhAddTreeListColumn(hwnd, PHTLC_THREADS, FALSE, L"Threads", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_HANDLES, FALSE, L"Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_GDIHANDLES, FALSE, L"GDI Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_USERHANDLES, FALSE, L"USER Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_IORO, FALSE, L"I/O R+O", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_IOW, FALSE, L"I/O W", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_INTEGRITY, FALSE, L"Integrity", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_IOPRIORITY, FALSE, L"I/O Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_PAGEPRIORITY, FALSE, L"Page Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_STARTTIME, FALSE, L"Start Time", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_TOTALCPUTIME, FALSE, L"Total CPU Time", 90, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_KERNELCPUTIME, FALSE, L"Kernel CPU Time", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_USERCPUTIME, FALSE, L"User CPU Time", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
+
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
 }
@@ -276,6 +305,18 @@ VOID PhpRemoveProcessNode(
 
     if (ProcessNode->IoTotalText) PhDereferenceObject(ProcessNode->IoTotalText);
     if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
+    if (ProcessNode->PeakPrivateMemoryText) PhDereferenceObject(ProcessNode->PeakPrivateMemoryText);
+    if (ProcessNode->WorkingSetText) PhDereferenceObject(ProcessNode->WorkingSetText);
+    if (ProcessNode->PeakWorkingSetText) PhDereferenceObject(ProcessNode->PeakWorkingSetText);
+    if (ProcessNode->PrivateWsText) PhDereferenceObject(ProcessNode->PrivateWsText);
+    if (ProcessNode->SharedWsText) PhDereferenceObject(ProcessNode->SharedWsText);
+    if (ProcessNode->ShareableWsText) PhDereferenceObject(ProcessNode->ShareableWsText);
+    if (ProcessNode->VirtualSizeText) PhDereferenceObject(ProcessNode->VirtualSizeText);
+    if (ProcessNode->PeakVirtualSizeText) PhDereferenceObject(ProcessNode->PeakVirtualSizeText);
+    if (ProcessNode->PageFaultsText) PhDereferenceObject(ProcessNode->PageFaultsText);
+    if (ProcessNode->IoRoText) PhDereferenceObject(ProcessNode->IoRoText);
+    if (ProcessNode->IoWText) PhDereferenceObject(ProcessNode->IoWText);
+    if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
 
     PhDereferenceObject(ProcessNode->ProcessItem);
 
@@ -311,6 +352,7 @@ VOID PhTickProcessNodes()
 
             // The name and PID never change, so we don't invalidate that.
             memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHTLC_MAXIMUM - 2));
+            node->ValidMask = 0;
         }
 
         if (ProcessTreeListSortOrder != NoSortOrder)
@@ -493,6 +535,81 @@ BEGIN_SORT_FUNCTION(CommandLine)
 }
 END_SORT_FUNCTION
 
+VOID PhpUpdateProcessNodeWsCounters(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_WSCOUNTERS))
+    {
+        BOOLEAN success = FALSE;
+        HANDLE processHandle;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            ProcessNode->ProcessItem->ProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhGetProcessWsCounters(
+                processHandle,
+                &ProcessNode->WsCounters
+                )))
+                success = TRUE;
+
+            NtClose(processHandle);
+        }
+
+        if (!success)
+            memset(&ProcessNode->WsCounters, 0, sizeof(PH_PROCESS_WS_COUNTERS));
+
+        ProcessNode->ValidMask |= PHPN_WSCOUNTERS;
+    }
+}
+
+VOID PhpUpdateProcessNodeGdiUserHandles(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_GDIUSERHANDLES))
+    {
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            ProcessNode->GdiHandles = GetGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_GDIOBJECTS);
+            ProcessNode->UserHandles = GetGuiResources(ProcessNode->ProcessItem->QueryHandle, GR_USEROBJECTS);
+        }
+        else
+        {
+            ProcessNode->GdiHandles = 0;
+            ProcessNode->UserHandles = 0;
+        }
+
+        ProcessNode->ValidMask |= PHPN_GDIUSERHANDLES;
+    }
+}
+
+VOID PhpUpdateProcessNodeIoPagePriority(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_IOPAGEPRIORITY))
+    {
+        if (ProcessNode->ProcessItem->QueryHandle)
+        {
+            if (!NT_SUCCESS(PhGetProcessIoPriority(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->IoPriority)))
+                ProcessNode->IoPriority = 0;
+            if (!NT_SUCCESS(PhGetProcessPagePriority(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->PagePriority)))
+                ProcessNode->PagePriority = 0;
+        }
+        else
+        {
+            ProcessNode->IoPriority = 0;
+            ProcessNode->PagePriority = 0;
+        }
+
+        ProcessNode->ValidMask |= PHPN_IOPAGEPRIORITY;
+    }
+}
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -594,7 +711,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 {
                     ULONG64 number;
 
-                    if (processItem->IoReadDelta.Delta != processItem->IoReadDelta.Value)
+                    if (processItem->IoReadDelta.Delta != processItem->IoReadDelta.Value) // delta is wrong on first run of process provider
                     {
                         number = processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta;
                         number *= 1000;
@@ -617,7 +734,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 }
                 break;
             case PHTLC_PVTMEMORY:
-                PhSwapReference2(&node->PrivateMemoryText, PhFormatSize(processItem->VmCounters.PrivateUsage, -1));
+                PhSwapReference2(&node->PrivateMemoryText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
                 getNodeText->Text = node->PrivateMemoryText->sr;
                 break;
             case PHTLC_USERNAME:
@@ -637,6 +754,175 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHTLC_COMMANDLINE:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
+                break;
+            case PHTLC_PEAKPVTMEMORY:
+                PhSwapReference2(&node->PeakPrivateMemoryText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
+                getNodeText->Text = node->PeakPrivateMemoryText->sr;
+                break;
+            case PHTLC_WORKINGSET:
+                PhSwapReference2(&node->WorkingSetText, PhFormatSize(processItem->VmCounters.WorkingSetSize, -1));
+                getNodeText->Text = node->WorkingSetText->sr;
+                break;
+            case PHTLC_PEAKWORKINGSET:
+                PhSwapReference2(&node->PeakWorkingSetText, PhFormatSize(processItem->VmCounters.PeakWorkingSetSize, -1));
+                getNodeText->Text = node->PeakWorkingSetText->sr;
+                break;
+            case PHTLC_PRIVATEWS:
+                PhpUpdateProcessNodeWsCounters(node);
+                PhSwapReference2(&node->PrivateWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfPrivatePages, PAGE_SIZE), -1));
+                getNodeText->Text = node->PrivateWsText->sr;
+                break;
+            case PHTLC_SHAREDWS:
+                PhpUpdateProcessNodeWsCounters(node);
+                PhSwapReference2(&node->SharedWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfSharedPages, PAGE_SIZE), -1));
+                getNodeText->Text = node->SharedWsText->sr;
+                break;
+            case PHTLC_SHAREABLEWS:
+                PhpUpdateProcessNodeWsCounters(node);
+                PhSwapReference2(&node->ShareableWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfShareablePages, PAGE_SIZE), -1));
+                getNodeText->Text = node->ShareableWsText->sr;
+                break;
+            case PHTLC_VIRTUALSIZE:
+                PhSwapReference2(&node->VirtualSizeText, PhFormatSize(processItem->VmCounters.VirtualSize, -1));
+                getNodeText->Text = node->VirtualSizeText->sr;
+                break;
+            case PHTLC_PEAKVIRTUALSIZE:
+                PhSwapReference2(&node->PeakVirtualSizeText, PhFormatSize(processItem->VmCounters.PeakVirtualSize, -1));
+                getNodeText->Text = node->PeakVirtualSizeText->sr;
+                break;
+            case PHTLC_PAGEFAULTS:
+                PhSwapReference2(&node->PageFaultsText, PhFormatUInt64(processItem->VmCounters.PageFaultCount, TRUE));
+                getNodeText->Text = node->PageFaultsText->sr;
+                break;
+            case PHTLC_SESSIONID:
+                PhInitializeStringRef(&getNodeText->Text, processItem->SessionIdString);
+                break;
+            case PHTLC_PRIORITYCLASS:
+                PhInitializeStringRef(&getNodeText->Text, PhGetProcessPriorityClassWin32String(processItem->PriorityClassWin32));
+                break;
+            case PHTLC_BASEPRIORITY:
+                PhPrintInt32(node->BasePriorityText, processItem->BasePriority);
+                PhInitializeStringRef(&getNodeText->Text, node->BasePriorityText);
+                break;
+            case PHTLC_THREADS:
+                PhPrintUInt32(node->ThreadsText, processItem->NumberOfThreads);
+                PhInitializeStringRef(&getNodeText->Text, node->ThreadsText);
+                break;
+            case PHTLC_HANDLES:
+                PhPrintUInt32(node->HandlesText, processItem->NumberOfHandles);
+                PhInitializeStringRef(&getNodeText->Text, node->HandlesText);
+                break;
+            case PHTLC_GDIHANDLES:
+                PhpUpdateProcessNodeGdiUserHandles(node);
+                PhPrintUInt32(node->GdiHandlesText, node->GdiHandles);
+                PhInitializeStringRef(&getNodeText->Text, node->GdiHandlesText);
+                break;
+            case PHTLC_USERHANDLES:
+                PhpUpdateProcessNodeGdiUserHandles(node);
+                PhPrintUInt32(node->UserHandlesText, node->UserHandles);
+                PhInitializeStringRef(&getNodeText->Text, node->UserHandlesText);
+                break;
+            case PHTLC_IORO:
+                {
+                    ULONG64 number;
+
+                    if (processItem->IoReadDelta.Delta != processItem->IoReadDelta.Value)
+                    {
+                        number = processItem->IoReadDelta.Delta + processItem->IoOtherDelta.Delta;
+                        number *= 1000;
+                        number /= PhCsUpdateInterval;
+                    }
+                    else
+                    {
+                        number = 0;
+                    }
+
+                    if (number != 0)
+                    {
+                        PhSwapReference2(&node->IoRoText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        getNodeText->Text = node->IoRoText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
+                }
+                break;
+            case PHTLC_IOW:
+                {
+                    ULONG64 number;
+
+                    if (processItem->IoReadDelta.Delta != processItem->IoReadDelta.Value)
+                    {
+                        number = processItem->IoWriteDelta.Delta;
+                        number *= 1000;
+                        number /= PhCsUpdateInterval;
+                    }
+                    else
+                    {
+                        number = 0;
+                    }
+
+                    if (number != 0)
+                    {
+                        PhSwapReference2(&node->IoWText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        getNodeText->Text = node->IoWText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
+                }
+                break;
+            case PHTLC_INTEGRITY:
+                PhInitializeStringRef(&getNodeText->Text, processItem->IntegrityString);
+                break;
+            case PHTLC_IOPRIORITY:
+                PhpUpdateProcessNodeIoPagePriority(node);
+                PhPrintUInt32(node->IoPriorityText, node->IoPriority);
+                PhInitializeStringRef(&getNodeText->Text, node->IoPriorityText);
+                break;
+            case PHTLC_PAGEPRIORITY:
+                PhpUpdateProcessNodeIoPagePriority(node);
+                PhPrintUInt32(node->PagePriorityText, node->PagePriority);
+                PhInitializeStringRef(&getNodeText->Text, node->PagePriorityText);
+                break;
+            case PHTLC_STARTTIME:
+                {
+                    SYSTEMTIME systemTime;
+
+                    if (processItem->CreateTime.QuadPart != 0)
+                    {
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &processItem->CreateTime);
+                        PhSwapReference2(&node->StartTimeText, PhFormatDateTime(&systemTime));
+                        getNodeText->Text = node->StartTimeText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
+                }
+                break;
+            case PHTLC_TOTALCPUTIME:
+                PhPrintTimeSpan(node->TotalCpuTimeText,
+                    processItem->KernelTime.QuadPart + processItem->UserTime.QuadPart,
+                    PH_TIMESPAN_HMSM);
+                PhInitializeStringRef(&getNodeText->Text, node->TotalCpuTimeText);
+                break;
+            case PHTLC_KERNELCPUTIME:
+                PhPrintTimeSpan(node->KernelCpuTimeText, processItem->KernelTime.QuadPart, PH_TIMESPAN_HMSM);
+                PhInitializeStringRef(&getNodeText->Text, node->KernelCpuTimeText);
+                break;
+            case PHTLC_USERCPUTIME:
+                PhPrintTimeSpan(node->UserCpuTimeText, processItem->UserTime.QuadPart, PH_TIMESPAN_HMSM);
+                PhInitializeStringRef(&getNodeText->Text, node->UserCpuTimeText);
+                break;
+            case PHTLC_VERIFICATIONSTATUS:
+                PhInitializeStringRef(&getNodeText->Text,
+                    processItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
+                break;
+            case PHTLC_VERIFIEDSIGNER:
+                getNodeText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
                 break;
             default:
                 return FALSE;
@@ -867,6 +1153,7 @@ VOID PhInvalidateAllProcessNodes()
 
         memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
         PhInvalidateTreeListNode(&node->Node, TLIN_COLOR);
+        node->ValidMask = 0;
     }
 
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);

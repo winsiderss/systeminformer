@@ -1867,16 +1867,23 @@ PPH_STRING PhFormatTime(
     __in_opt PWSTR Format
     );
 
-FORCEINLINE PPH_STRING PhaFormatDateTime(
+FORCEINLINE PPH_STRING PhFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
     )
 {
-    return PhaConcatStrings(
+    return PhConcatStrings(
         3,
         ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(DateTime, NULL)))->Buffer,
         L" ",
         ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(DateTime, NULL)))->Buffer
         );
+}
+
+FORCEINLINE PPH_STRING PhaFormatDateTime(
+    __in_opt PSYSTEMTIME DateTime
+    )
+{
+    return PHA_DEREFERENCE(PhFormatDateTime(DateTime));
 }
 
 PPH_STRING PhFormatUInt64(

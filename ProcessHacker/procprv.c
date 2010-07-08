@@ -997,9 +997,11 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     )
 {
     ProcessItem->BasePriority = Process->BasePriority;
+    ProcessItem->PriorityClassWin32 = GetPriorityClass(ProcessItem->QueryHandle);
     ProcessItem->KernelTime = Process->KernelTime;
     ProcessItem->UserTime = Process->UserTime;
     ProcessItem->NumberOfHandles = Process->HandleCount;
+    ProcessItem->NumberOfThreads = Process->NumberOfThreads;
 }
 
 VOID PhpUpdatePerfInformation()
