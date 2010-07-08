@@ -189,9 +189,15 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 break;
             case IDOK:
                 {
+#define ORDER_LIMIT 100
                     PPH_LIST activeList;
                     ULONG activeCount;
                     ULONG i;
+                    INT orderArray[ORDER_LIMIT];
+                    INT maxOrder;
+
+                    memset(orderArray, 0, sizeof(orderArray));
+                    maxOrder = 0;
 
                     activeCount = ListBox_GetCount(context->ActiveList);
                     activeList = PhCreateList(activeCount);
@@ -206,6 +212,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     for (i = 0; i < context->Columns->Count; i++)
                     {
                         PPH_TREELIST_COLUMN column = context->Columns->Items[i];
+                        PH_TREELIST_COLUMN tempColumn;
                         ULONG index;
 
                         index = IndexOfStringInList(activeList, column->Text);
@@ -213,17 +220,33 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         column->DisplayIndex = index; // the active list box order is the actual display order
 
                         TreeList_SetColumn(context->TreeListHandle, column, TLCM_VISIBLE);
+
+                        // Get the ViewIndex for use in the second pass.
+                        tempColumn.Id = column->Id;
+                        TreeList_GetColumn(context->TreeListHandle, &tempColumn);
+                        column->s.ViewIndex = tempColumn.s.ViewIndex;
                     }
 
-                    // Apply display order.
-
+                    // Do a second pass to create the order array. This is because the ViewIndex of each column 
+                    // were unstable in the previous pass since we were both adding and removing columns.
                     for (i = 0; i < context->Columns->Count; i++)
                     {
                         PPH_TREELIST_COLUMN column = context->Columns->Items[i];
 
                         if (column->Visible)
-                            TreeList_SetColumn(context->TreeListHandle, column, TLCM_DISPLAYINDEX);
+                        {
+                            if (column->DisplayIndex < ORDER_LIMIT)
+                            {
+                                orderArray[column->DisplayIndex] = column->s.ViewIndex;
+
+                                if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                                    maxOrder = column->DisplayIndex + 1;
+                            }
+                        }
                     }
+
+                    // Apply display order.
+                    TreeList_SetColumnOrderArray(context->TreeListHandle, maxOrder, orderArray);
 
                     TreeList_SetRedraw(context->TreeListHandle, TRUE);
 

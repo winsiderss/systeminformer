@@ -264,6 +264,7 @@ BOOLEAN PhLoadListViewColumnSettings(
     __in PPH_STRING Settings
     )
 {
+#define ORDER_LIMIT 50
     ULONG i;
     ULONG length;
     ULONG columnIndex;
@@ -272,6 +273,8 @@ BOOLEAN PhLoadListViewColumnSettings(
     PH_STRINGREF stringRef;
     ULONG64 integer;
     LVCOLUMN lvColumn;
+    INT orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
+    INT maxOrder;
 
     if (Settings->Length == 0)
         return FALSE;
@@ -279,7 +282,10 @@ BOOLEAN PhLoadListViewColumnSettings(
     i = 0;
     length = (ULONG)Settings->Length / 2;
     columnIndex = 0;
-    lvColumn.mask = LVCF_WIDTH | LVCF_ORDER;
+    lvColumn.mask = LVCF_WIDTH;
+
+    memset(orderArray, 0, sizeof(orderArray));
+    maxOrder = 0;
 
     while (i < length)
     {
@@ -301,7 +307,13 @@ BOOLEAN PhLoadListViewColumnSettings(
         if (!PhStringToInteger64(&stringRef, 10, &integer))
             return FALSE;
 
-        lvColumn.iOrder = (ULONG)integer;
+        if ((INT)integer >= 0 && (INT)integer < ORDER_LIMIT)
+        {
+            orderArray[(INT)integer] = columnIndex;
+
+            if (maxOrder < (INT)integer + 1)
+                maxOrder = (INT)integer + 1;
+        }
 
         // Width
 
@@ -318,6 +330,8 @@ BOOLEAN PhLoadListViewColumnSettings(
         i = indexOfPipe + 1;
         columnIndex++;
     }
+
+    ListView_SetColumnOrderArray(ListViewHandle, maxOrder, orderArray);
 
     return TRUE;
 }
