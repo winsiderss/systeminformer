@@ -533,19 +533,14 @@ VOID PhSaveTreeListColumnsToSetting(
 PPH_STRING PhGetPhVersion()
 {
     PPH_STRING version = NULL;
-    PPH_STRING fileName;
     PH_IMAGE_VERSION_INFO versionInfo;
 
-    fileName = PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
-
-    if (PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer))
+    if (PhInitializeImageVersionInfo(&versionInfo, PhApplicationFileName->Buffer))
     {
         PhReferenceObject(versionInfo.FileVersion);
         version = versionInfo.FileVersion;
         PhDeleteImageVersionInfo(&versionInfo);
     }
-
-    PhDereferenceObject(fileName);
 
     return version;
 }
