@@ -46,8 +46,14 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
+    PhpAddStringSetting(L"FindObjListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
+    PhpAddIntegerPairSetting(L"FindObjWindowSize", L"550,420");
     PhpAddIntegerSetting(L"FirstRun", L"1");
     PhpAddStringSetting(L"HandleListViewColumns", L"");
+    PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
+    PhpAddIntegerPairSetting(L"HiddenProcessesWindowSize", L"520,400");
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
@@ -55,6 +61,9 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
     PhpAddIntegerSetting(L"LogEntries", L"200"); // 512
+    PhpAddStringSetting(L"LogListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"LogWindowPosition", L"300,300");
+    PhpAddIntegerPairSetting(L"LogWindowSize", L"450,500");
     PhpAddIntegerSetting(L"MainWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"MainWindowOpacity", L"0"); // means 100%
     PhpAddIntegerPairSetting(L"MainWindowPosition", L"100,100");

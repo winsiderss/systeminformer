@@ -5281,6 +5281,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         Module->FullDllName.Length
         );
 
+    moduleInfo.Type = PH_MODULE_TYPE_MODULE;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
@@ -5330,6 +5331,11 @@ VOID PhpRtlModulesToGenericModules(
         }
 
         fileName = PhCreateStringFromAnsi(module->FullPathName);
+
+        if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
+            moduleInfo.Type = PH_MODULE_TYPE_WOW64_MODULE;
+        else
+            moduleInfo.Type = PH_MODULE_TYPE_KERNEL_MODULE;
 
         moduleInfo.BaseAddress = module->ImageBase;
         moduleInfo.Size = module->ImageSize;
@@ -5400,6 +5406,7 @@ VOID PhpEnumGenericMappedFiles(
             newFileName = PhGetFileName(fileName);
             PhDereferenceObject(fileName);
 
+            moduleInfo.Type = PH_MODULE_TYPE_MAPPED_FILE;
             moduleInfo.BaseAddress = baseAddress;
             moduleInfo.Size = (ULONG)basicInfo.RegionSize;
             moduleInfo.EntryPoint = NULL;

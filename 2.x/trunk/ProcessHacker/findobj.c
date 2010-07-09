@@ -69,6 +69,9 @@ static PPH_LIST SearchResults = NULL;
 static ULONG SearchResultsAddIndex;
 static PH_MUTEX SearchResultsLock;
 
+static ULONG64 SearchPointer;
+static BOOLEAN UseSearchPointer;
+
 VOID PhShowFindObjectsDialog()
 {
     if (!PhFindObjectsWindowHandle)
@@ -143,6 +146,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             PhRegisterDialog(hwndDlg);
 
+            PhLoadWindowPlacementFromSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
@@ -151,6 +156,13 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", lvHandle);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(L"FindObjWindowPosition", L"FindObjWindowSize", hwndDlg);
+            PhSaveListViewColumnsToSetting(L"FindObjListViewColumns", PhFindObjectsListViewHandle);
         }
         break;
     case WM_SHOWWINDOW:
@@ -239,6 +251,70 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     SendMessage(hwndDlg, WM_CLOSE, 0, 0);
                 }
                 break;
+            case ID_OBJECT_CLOSE:
+                {
+                    PPHP_OBJECT_SEARCH_RESULT *results;
+                    ULONG numberOfResults;
+                    ULONG i;
+
+                    PhGetSelectedListViewItemParams(
+                        PhFindObjectsListViewHandle,
+                        &results,
+                        &numberOfResults
+                        );
+
+                    if (numberOfResults != 0 && PhShowConfirmMessage(
+                        hwndDlg,
+                        L"close",
+                        numberOfResults == 1 ? L"the selected handle" : L"the selected handles",
+                        L"Closing handles may cause system instability and data corruption.",
+                        FALSE
+                        ))
+                    {
+                        for (i = 0; i < numberOfResults; i++)
+                        {
+                            NTSTATUS status;
+                            HANDLE processHandle;
+
+                            if (results[i]->ResultType != HandleSearchResult)
+                                continue;
+
+                            if (NT_SUCCESS(status = PhOpenProcess(
+                                &processHandle,
+                                PROCESS_DUP_HANDLE,
+                                results[i]->ProcessId
+                                )))
+                            {
+                                if (NT_SUCCESS(status = PhDuplicateObject(
+                                    processHandle,
+                                    results[i]->Handle,
+                                    NULL,
+                                    NULL,
+                                    0,
+                                    0,
+                                    DUPLICATE_CLOSE_SOURCE
+                                    )))
+                                {
+                                    PhRemoveListViewItem(PhFindObjectsListViewHandle,
+                                        PhFindListViewItemByParam(PhFindObjectsListViewHandle, 0, results[i]));
+                                }
+                            }
+
+                            if (!NT_SUCCESS(status))
+                            {
+                                if (!PhShowContinueStatus(hwndDlg,
+                                    PhaFormatString(L"Unable to close \"%s\"", results[i]->Name->Buffer)->Buffer,
+                                    status,
+                                    0
+                                    ))
+                                    break;
+                            }
+                        }
+                    }
+
+                    PhFree(results);
+                }
+                break;
             case ID_OBJECT_PROCESSPROPERTIES:
                 {
                     PPHP_OBJECT_SEARCH_RESULT result =
@@ -263,22 +339,30 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                     if (result)
                     {
-                        PPH_HANDLE_ITEM handleItem;
+                        if (result->ResultType == HandleSearchResult)
+                        {
+                            PPH_HANDLE_ITEM handleItem;
 
-                        handleItem = PhCreateHandleItem(&result->Info);
+                            handleItem = PhCreateHandleItem(&result->Info);
 
-                        handleItem->BestObjectName = handleItem->ObjectName = result->Name;
-                        PhReferenceObjectEx(result->Name, 2);
+                            handleItem->BestObjectName = handleItem->ObjectName = result->Name;
+                            PhReferenceObjectEx(result->Name, 2);
 
-                        handleItem->TypeName = result->TypeName;
-                        PhReferenceObject(result->TypeName);
+                            handleItem->TypeName = result->TypeName;
+                            PhReferenceObject(result->TypeName);
 
-                        PhShowHandleProperties(
-                            hwndDlg,
-                            result->ProcessId,
-                            handleItem
-                            );
-                        PhDereferenceObject(handleItem);
+                            PhShowHandleProperties(
+                                hwndDlg,
+                                result->ProcessId,
+                                handleItem
+                                );
+                            PhDereferenceObject(handleItem);
+                        }
+                        else
+                        {
+                            // DLL or Mapped File. Just show file properties.
+                            PhShellProperties(hwndDlg, result->Name->Buffer);
+                        }
                     }
                 }
                 break;
@@ -334,6 +418,21 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         }
 
                         PhFree(results);
+                    }
+                }
+                break;
+            case LVN_KEYDOWN:
+                {
+                    if (header->hwndFrom == PhFindObjectsListViewHandle)
+                    {
+                        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)header;
+
+                        switch (keyDown->wVKey)
+                        {
+                        case VK_DELETE:
+                            SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_CLOSE, 0);
+                            break;
+                        }
                     }
                 }
                 break;
@@ -414,14 +513,57 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
     return FALSE;
 }
 
+static BOOLEAN NTAPI EnumModulesCallback(
+    __in PPH_MODULE_INFO Module,
+    __in PVOID Context
+    )
+{
+    PPH_STRING lowerFileName;
+
+    lowerFileName = PhDuplicateString(Module->FileName);
+    PhLowerString(lowerFileName);
+
+    if (
+        PhStringIndexOfString(lowerFileName, 0, SearchString->Buffer) != -1 ||
+        (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer)
+        )
+    {
+        PPHP_OBJECT_SEARCH_RESULT searchResult;
+
+        searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
+        searchResult->ProcessId = (HANDLE)Context;
+        searchResult->ResultType = Module->Type == PH_MODULE_TYPE_MAPPED_FILE ? MappedFileSearchResult : ModuleSearchResult;
+        searchResult->Handle = (HANDLE)Module->BaseAddress;
+        searchResult->TypeName = PhCreateString(Module->Type == PH_MODULE_TYPE_MAPPED_FILE ? L"Mapped File" : L"DLL");
+        PhReferenceObject(Module->FileName);
+        searchResult->Name = Module->FileName;
+        PhPrintPointer(searchResult->HandleString, Module->BaseAddress);
+        memset(&searchResult->Info, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
+
+        PhAcquireMutex(&SearchResultsLock);
+
+        PhAddListItem(SearchResults, searchResult);
+
+        // Update the search results in batches of 40.
+        if (SearchResults->Count % 40 == 0)
+            PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
+
+        PhReleaseMutex(&SearchResultsLock);
+    }
+
+    PhDereferenceObject(lowerFileName);
+
+    return TRUE;
+}
+
 static NTSTATUS PhpFindObjectsThreadStart(
     __in PVOID Parameter
     )
 {
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PPH_HASHTABLE processHandleHashtable;
-    ULONG64 searchPointer;
-    BOOLEAN useSearchPointer;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
     ULONG i;
 
     // Refuse to search with no filter.
@@ -431,7 +573,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
     PhLowerString(SearchString);
 
     // Try to get a search pointer from the search string.
-    useSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &searchPointer);
+    UseSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &SearchPointer);
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -498,7 +640,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
                 if (
                     PhStringIndexOfString(lowerBestObjectName, 0, SearchString->Buffer) != -1 ||
-                    (useSearchPointer && handleInfo->Object == (PVOID)searchPointer)
+                    (UseSearchPointer && handleInfo->Object == (PVOID)SearchPointer)
                     )
                 {
                     PPHP_OBJECT_SEARCH_RESULT searchResult;
@@ -543,6 +685,24 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
         PhDereferenceObject(processHandleHashtable);
         PhFree(handles);
+    }
+
+    if (NT_SUCCESS(PhEnumProcesses(&processes)))
+    {
+        process = PH_FIRST_PROCESS(processes);
+
+        do
+        {
+            PhEnumGenericModules(
+                process->UniqueProcessId,
+                NULL,
+                PH_ENUM_GENERIC_MAPPED_FILES,
+                EnumModulesCallback,
+                (PVOID)process->UniqueProcessId
+                );
+        } while (process = PH_NEXT_PROCESS(process));
+
+        PhFree(processes);
     }
 
 Exit:

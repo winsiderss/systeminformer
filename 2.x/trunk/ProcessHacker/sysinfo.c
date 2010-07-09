@@ -326,7 +326,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PH_RECTANGLE windowRectangle;
             ULONG processors;
             ULONG i;
 
@@ -342,15 +341,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            windowRectangle.Position = PhGetIntegerPairSetting(L"SysInfoWindowPosition");
-            windowRectangle.Size = PhGetIntegerPairSetting(L"SysInfoWindowSize");
-
-            PhAdjustRectangleToWorkingArea(
-                hwndDlg,
-                &windowRectangle
-                );
-            MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
-                windowRectangle.Width, windowRectangle.Height, FALSE);
+            PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
 
             PhInitializeGraphState(&CpuGraphState);
             PhInitializeGraphState(&IoGraphState);
@@ -393,8 +384,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
         break;
     case WM_DESTROY:
         {
-            WINDOWPLACEMENT placement = { sizeof(placement) };
-            PH_RECTANGLE windowRectangle;
             ULONG i;
 
             PhUnregisterCallback(
@@ -412,11 +401,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhSetIntegerSetting(L"SysInfoWindowAlwaysOnTop", AlwaysOnTop);
             PhSetIntegerSetting(L"SysInfoWindowOneGraphPerCpu", OneGraphPerCpu);
 
-            GetWindowPlacement(hwndDlg, &placement);
-            windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
-
-            PhSetIntegerPairSetting(L"SysInfoWindowPosition", windowRectangle.Position);
-            PhSetIntegerPairSetting(L"SysInfoWindowSize", windowRectangle.Size);
+            PhSaveWindowPlacementToSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
 
             PhDeleteLayoutManager(&WindowLayoutManager);
             PostQuitMessage(0);

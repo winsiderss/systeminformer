@@ -80,6 +80,66 @@ static VOID PhpUpdateLogList()
     }
 }
 
+static PPH_STRING PhpGetStringForSelectedLogEntries(
+    __in BOOLEAN All
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG i;
+
+    if (ListViewCount == 0)
+        return PhCreateString(L"");
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    i = ListViewCount - 1;
+
+    while (TRUE)
+    {
+        PPH_LOG_ENTRY entry;
+        SYSTEMTIME systemTime;
+        PPH_STRING string;
+
+        if (!All)
+        {
+            // The list view displays the items in reverse order...
+            if (!(ListView_GetItemState(ListViewHandle, ListViewCount - i - 1, LVIS_SELECTED) & LVIS_SELECTED))
+            {
+                goto ContinueLoop;
+            }
+        }
+
+        entry = PhCircularBufferGet_PVOID(&PhLogBuffer, i);
+
+        if (!entry)
+            goto ContinueLoop;
+
+        PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
+        string = PhFormatDateTime(&systemTime);
+        PhStringBuilderAppend(&stringBuilder, string);
+        PhDereferenceObject(string);
+        PhStringBuilderAppend2(&stringBuilder, L": ");
+
+        string = PhFormatLogEntry(entry);
+        PhStringBuilderAppend(&stringBuilder, string);
+        PhDereferenceObject(string);
+        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+
+ContinueLoop:
+
+        if (i == 0)
+            break;
+
+        i--;
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
 INT_PTR CALLBACK PhpLogDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -96,6 +156,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
             PhSetControlTheme(ListViewHandle, L"explorer");
             PhAddListViewColumn(ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
             PhAddListViewColumn(ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 260, L"Message");
+            PhLoadListViewColumnsFromSetting(L"LogListViewColumns", ListViewHandle);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL,
@@ -106,8 +167,12 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_AUTOSCROLL), NULL,
+                PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_CLEAR), NULL,
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
+            PhLoadWindowPlacementFromSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_AUTOSCROLL), BST_CHECKED);
 
@@ -118,6 +183,9 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"LogListViewColumns", ListViewHandle);
+            PhSaveWindowPlacementToSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
+
             PhDeleteLayoutManager(&WindowLayoutManager);
 
             PhUnregisterCallback(&PhLoggedCallback, &LoggedRegistration);
@@ -141,12 +209,72 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 break;
             case IDC_COPY:
                 {
+                    PPH_STRING string;
+                    ULONG selectedCount;
 
+                    selectedCount = ListView_GetSelectedCount(ListViewHandle);
+
+                    if (selectedCount == 0)
+                    {
+                        // User didn't select anything, so copy all items.
+                        string = PhpGetStringForSelectedLogEntries(TRUE);
+                        PhSetStateAllListViewItems(ListViewHandle, LVIS_SELECTED, LVIS_SELECTED);
+                    }
+                    else
+                    {
+                        string = PhpGetStringForSelectedLogEntries(FALSE);
+                    }
+
+                    PhSetClipboardString(hwndDlg, &string->sr);
+                    PhDereferenceObject(string);
+
+                    SetFocus(ListViewHandle);
                 }
                 break;
             case IDC_SAVE:
                 {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Text files (*.txt)", L"*.txt" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
 
+                    fileDialog = PhCreateSaveFileDialog();
+
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFileName(fileDialog, L"Process Hacker Log.txt");
+
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    {
+                        NTSTATUS status;
+                        PPH_STRING fileName;
+                        PPH_FILE_STREAM fileStream;
+                        PPH_STRING string;
+
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        PhaDereferenceObject(fileName);
+
+                        if (NT_SUCCESS(status = PhCreateFileStream(
+                            &fileStream,
+                            fileName->Buffer,
+                            FILE_GENERIC_WRITE,
+                            FILE_SHARE_READ,
+                            FILE_OVERWRITE_IF,
+                            0
+                            )))
+                        {
+                            PhWritePhTextHeader(fileStream);
+
+                            string = PhpGetStringForSelectedLogEntries(TRUE);
+                            PhFileStreamWriteStringAsAnsi(fileStream, &string->sr);
+                            PhDereferenceObject(string);
+
+                            PhDereferenceObject(fileStream);
+                        }
+                    }
+
+                    PhFreeFileDialog(fileDialog);
                 }
                 break;
             }
@@ -173,8 +301,9 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING dateTime;
 
                             PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
-                            dateTime = PhaFormatDateTime(&systemTime);
+                            dateTime = PhFormatDateTime(&systemTime);
                             wcscpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer);
+                            PhDereferenceObject(dateTime);
                         }
                     }
                     else if (dispInfo->item.iSubItem == 1)
@@ -200,7 +329,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 250);
+            PhResizingMinimumSize((PRECT)lParam, wParam, 450, 250);
         }
         break;
     case WM_PH_LOG_UPDATED:

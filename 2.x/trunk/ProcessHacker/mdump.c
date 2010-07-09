@@ -75,6 +75,7 @@ BOOLEAN PhUiCreateDumpFileProcess(
 
     fileDialog = PhCreateSaveFileDialog();
     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+    PhSetFileDialogFileName(fileDialog, PhaConcatStrings2(Process->ProcessName->Buffer, L".dmp")->Buffer);
 
     if (!PhShowFileDialog(hWnd, fileDialog))
     {
