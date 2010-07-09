@@ -420,6 +420,7 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndOnCreate();
 
     PhpInitialLoadSettings();
+    PhLogInitialization();
     PhQueueGlobalWorkQueueItem(PhpDelayedLoadFunction, NULL);
 
     PhMainWndTabControlOnSelectionChanged();
@@ -852,6 +853,11 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_USER_PROPERTIES:
                 {
                     PhShowSessionProperties(hWnd, SelectedUserSessionId);
+                }
+                break;
+            case ID_HELP_LOG:
+                {
+                    PhShowLogDialog();
                 }
                 break;
             case ID_HELP_DONATE:
@@ -3341,26 +3347,31 @@ VOID PhMainWndOnProcessAdded(
 
     PhCreateProcessNode(ProcessItem, RunId);
 
-    if (RunId != 1 && (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE))
+    if (RunId != 1)
     {
-        PPH_PROCESS_ITEM parentProcess;
-        PPH_STRING parentName = NULL;
+        PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_CREATE, ProcessItem->ProcessId, ProcessItem->ProcessName);
 
-        if (parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId))
+        if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
         {
-            parentName = parentProcess->ProcessName;
-            PhReferenceObject(parentName);
-            PhDereferenceObject(parentProcess);
-        }
+            PPH_PROCESS_ITEM parentProcess;
+            PPH_STRING parentName = NULL;
 
-        PhpShowIconNotification(L"Process Created", PhaFormatString(
-            L"The process %s (%u) was created by %s (%u)",
-            ProcessItem->ProcessName->Buffer,
-            (ULONG)ProcessItem->ProcessId,
-            PhGetStringOrDefault(parentName, L"Unknown Process"),
-            (ULONG)ProcessItem->ParentProcessId
-            )->Buffer, NIIF_INFO);
-        if (parentName) PhDereferenceObject(parentName);
+            if (parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId))
+            {
+                parentName = parentProcess->ProcessName;
+                PhReferenceObject(parentName);
+                PhDereferenceObject(parentProcess);
+            }
+
+            PhpShowIconNotification(L"Process Created", PhaFormatString(
+                L"The process %s (%u) was created by %s (%u)",
+                ProcessItem->ProcessName->Buffer,
+                (ULONG)ProcessItem->ProcessId,
+                PhGetStringOrDefault(parentName, L"Unknown Process"),
+                (ULONG)ProcessItem->ParentProcessId
+                )->Buffer, NIIF_INFO);
+            if (parentName) PhDereferenceObject(parentName);
+        }
     }
 
     // PhCreateProcessNode has its own reference.
@@ -3383,6 +3394,8 @@ VOID PhMainWndOnProcessRemoved(
         TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
         ProcessesNeedsRedraw = TRUE;
     }
+
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName);
 
     if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {
@@ -3458,13 +3471,18 @@ VOID PhMainWndOnServiceAdded(
 
     ServicesNeedsSort = TRUE;
 
-    if (RunId != 1 && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE))
+    if (RunId != 1)
     {
-        PhpShowIconNotification(L"Service Created", PhaFormatString(
-            L"The service %s (%s) has been created.",
-            ServiceItem->Name->Buffer,
-            ServiceItem->DisplayName->Buffer
-            )->Buffer, NIIF_INFO);
+        PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName);
+
+        if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
+        {
+            PhpShowIconNotification(L"Service Created", PhaFormatString(
+                L"The service %s (%s) has been created.",
+                ServiceItem->Name->Buffer,
+                ServiceItem->DisplayName->Buffer
+                )->Buffer, NIIF_INFO);
+        }
     }
 }
 
@@ -3473,6 +3491,8 @@ VOID PhMainWndOnServiceModified(
     )
 {
     INT lvItemIndex;
+    PH_SERVICE_CHANGE serviceChange;
+    UCHAR logEntryType;
 
     if (!ServicesNeedsRedraw)
     {
@@ -3491,12 +3511,34 @@ VOID PhMainWndOnServiceModified(
 
     ServicesNeedsSort = TRUE;
 
+    serviceChange = PhGetServiceChange(ServiceModifiedData);
+
+    switch (serviceChange)
+    {
+    case ServiceStarted:
+        logEntryType = PH_LOG_ENTRY_SERVICE_START;
+        break;
+    case ServiceStopped:
+        logEntryType = PH_LOG_ENTRY_SERVICE_STOP;
+        break;
+    case ServiceContinued:
+        logEntryType = PH_LOG_ENTRY_SERVICE_CONTINUE;
+        break;
+    case ServicePaused:
+        logEntryType = PH_LOG_ENTRY_SERVICE_PAUSE;
+        break;
+    default:
+        logEntryType = 0;
+        break;
+    }
+
+    if (logEntryType != 0)
+        PhLogServiceEntry(logEntryType, ServiceModifiedData->Service->Name, ServiceModifiedData->Service->DisplayName);
+
     if (NotifyIconNotifyMask & (PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP))
     {
-        PH_SERVICE_CHANGE serviceChange;
         PPH_SERVICE_ITEM serviceItem;
 
-        serviceChange = PhGetServiceChange(ServiceModifiedData);
         serviceItem = ServiceModifiedData->Service;
 
         if (serviceChange == ServiceStarted && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
@@ -3532,6 +3574,8 @@ VOID PhMainWndOnServiceRemoved(
         ServiceListViewHandle,
         PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceItem)
         );
+
+    PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
 
     if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
     {

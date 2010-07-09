@@ -119,6 +119,12 @@ HANDLE PhCreateThread(
     __in PVOID Parameter
     );
 
+// misc. system
+
+VOID PhQuerySystemTime(
+    __out PLARGE_INTEGER SystemTime
+    );
+
 // heap
 
 __mayRaise PVOID PhAllocate(

@@ -425,6 +425,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\log.c"
+				>
+			</File>
+			<File
+				RelativePath=".\logwnd.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>

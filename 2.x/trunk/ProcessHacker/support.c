@@ -563,7 +563,7 @@ VOID PhWritePhTextHeader(
         PhDereferenceObject(version);
     }
 
-    NtQuerySystemTime(&time);
+    PhQuerySystemTime(&time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
     dateString = PhFormatDate(&systemTime, NULL);
