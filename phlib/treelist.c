@@ -1369,17 +1369,39 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
         if (needsClip)
         {
+            // HACK
             if (!PH_TREELIST_USE_HACKAROUNDS)
             {
                 oldClipRegion = CreateRectRgn(0, 0, 0, 0);
-                GetClipRgn(hdc, oldClipRegion);
+
+                if (GetClipRgn(hdc, oldClipRegion) != 1)
+                {
+                    DeleteObject(oldClipRegion);
+                    oldClipRegion = NULL;
+                }
+
                 // Clip contents to the first column.
                 IntersectClipRect(hdc, 0, textRect.top, column->Width, textRect.bottom);
             }
             else
             {
-                newClipRegion = CreateRectRgn(0, textRect.top, column->Width, textRect.bottom);
-                oldClipRegion = SelectObject(hdc, newClipRegion);
+                RECT clipRect;
+
+                clipRect.left = 0;
+                clipRect.top = textRect.top;
+                clipRect.right = column->Width;
+                clipRect.bottom = textRect.bottom;
+
+                // GetClipRgn/SelectClipRgn doesn't restore the old clipping region properly. 
+                // Just create a huge clipping region to "restore".
+                oldClipRegion = CreateRectRgn(0, 0, 1 << 26, 1 << 26);
+
+                // CreateRectRgn accepts logical coordinates, yet LPtoDP seems to be the only way to 
+                // get this working. I don't know :(.
+                LPtoDP(hdc, (POINT *)&clipRect, 2);
+                newClipRegion = CreateRectRgn(clipRect.left, clipRect.top, clipRect.right, clipRect.bottom);
+                SelectClipRgn(hdc, newClipRegion);
+                DeleteObject(newClipRegion);
             }
         }
 
@@ -1462,13 +1484,10 @@ static VOID PhpCustomDrawPrePaintSubItem(
             textRect.left += 16 + 4; // 4px margin
         }
 
-        if (needsClip)
+        if (needsClip && oldClipRegion)
         {
             SelectClipRgn(hdc, oldClipRegion);
             DeleteObject(oldClipRegion);
-
-            if (PH_TREELIST_USE_HACKAROUNDS)
-                DeleteObject(newClipRegion);
         }
 
         if (textRect.left > textRect.right)
