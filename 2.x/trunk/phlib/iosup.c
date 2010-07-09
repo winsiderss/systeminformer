@@ -69,7 +69,7 @@ NTSTATUS PhCreateFileWin32(
         NULL,
         NULL
         ))
-        return STATUS_NO_SUCH_FILE;
+        return STATUS_OBJECT_NAME_NOT_FOUND;
 
     InitializeObjectAttributes(
         &oa,
