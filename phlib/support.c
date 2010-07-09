@@ -2770,6 +2770,7 @@ BOOLEAN PhParseCommandLine(
     ULONG j;
     ULONG length;
     BOOLEAN cont;
+    BOOLEAN wasFirst;
 
     PH_STRINGREF optionName;
     PPH_COMMAND_LINE_OPTION option = NULL;
@@ -2782,6 +2783,7 @@ BOOLEAN PhParseCommandLine(
 
     i = 0;
     length = CommandLine->Length / 2;
+    wasFirst = TRUE;
 
     while (TRUE)
     {
@@ -2855,13 +2857,34 @@ BOOLEAN PhParseCommandLine(
 
                 option = NULL;
             }
+
+            wasFirst = FALSE;
         }
         else
         {
+            // If PH_COMMAND_LINE_CALLBACK_ALL_MAIN was not specified:
+            // Value with no option. This becomes our "main argument". 
+            // If we had a previous "main argument", replace it with 
+            // this one.
+
+            if (mainArgumentValue)
+                PhDereferenceObject(mainArgumentValue);
+
+            mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
+
+            if ((Flags & PH_COMMAND_LINE_IGNORE_FIRST_PART) && wasFirst)
+            {
+                if (mainArgumentValue)
+                {
+                    PhDereferenceObject(mainArgumentValue);
+                    mainArgumentValue = NULL;
+                }
+            }
+
             if (Flags & PH_COMMAND_LINE_CALLBACK_ALL_MAIN)
             {
-                mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
-
+                // This makes PH_COMMAND_LINE_CALLBACK_ALL_MAIN cooperate with 
+                // PH_COMMAND_LINE_IGNORE_FIRST_PART.
                 if (mainArgumentValue)
                 {
                     cont = Callback(NULL, mainArgumentValue, Context);
@@ -2872,32 +2895,13 @@ BOOLEAN PhParseCommandLine(
                         break;
                 }
             }
-            else
-            {
-                BOOLEAN wasFirst;
 
-                // Value with no option. This becomes our "main argument". 
-                // If we had a previous "main argument", replace it with 
-                // this one.
-
-                if (mainArgumentValue)
-                    PhDereferenceObject(mainArgumentValue);
-
-                wasFirst = i == 0;
-                mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
-
-                if ((Flags & PH_COMMAND_LINE_IGNORE_FIRST_PART) && wasFirst)
-                {
-                    if (mainArgumentValue)
-                    {
-                        PhDereferenceObject(mainArgumentValue);
-                        mainArgumentValue = NULL;
-                    }
-                }
-            }
+            wasFirst = FALSE;
         }
     }
 
+    // If PH_COMMAND_LINE_CALLBACK_ALL_MAIN is enabled this won't run 
+    // because mainArgumentValue is set to NULL after processing.
     if (mainArgumentValue)
     {
         Callback(NULL, mainArgumentValue, Context);

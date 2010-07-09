@@ -639,7 +639,7 @@ VOID PhpProcessStartupParameters()
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
+        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
         PhpCommandLineOptionCallback,
         NULL
         ))

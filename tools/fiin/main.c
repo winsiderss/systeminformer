@@ -84,7 +84,10 @@ static BOOLEAN NTAPI FiCommandLineCallback(
     }
     else
     {
-        PhSwapReference(&FiArgFileName, Value);
+        if (!FiArgAction)
+            PhSwapReference(&FiArgAction, Value);
+        else if (!FiArgFileName)
+            PhSwapReference(&FiArgFileName, Value);
     }
 
     return TRUE;
@@ -94,8 +97,8 @@ VOID FiPrintHelp()
 {
     wprintf(
         L"FiIn, by wj32.\n"
-        L"fiin [-a action] [-C] [-f] [-L length] [-N] [-o filename] [-p pattern] [filename]\n"
-        L"\t-a action   The action to be performed.\n"
+        L"fiin action [-C] [-f] [-L length] [-N] [-o filename] [-p pattern] [filename]\n"
+        L"\taction      The action to be performed.\n"
         L"\t-C          Specifies that file names are case-sensitive.\n"
         L"\t-f          Forces the action to succeed by overwriting files.\n"
         L"\t-L length   Specifies the length for an operation.\n"
@@ -121,19 +124,26 @@ PPH_STRING FiFormatFileName(
 {
     if (!FiArgNative)
     {
-        // If the user specified a drive name, it needs a backslash at the end.
-        if (FileName->Length == 4 && iswalpha(FileName->Buffer[0]) && FileName->Buffer[1] == ':')
-        {
-            return PhFormatString(L"\\??\\%c:\\", FileName->Buffer[0]);
-        }
+        PPH_STRING fileName;
+        UNICODE_STRING fileNameUs;
 
-        return PhFormatString(
-            L"\\??\\%s%s",
-            // HACK to determine if the file name is relative
-            (PhStringIndexOfChar(FileName, 0, ':') < PhStringIndexOfChar(FileName, 0, '\\')) ? L"" :
-            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
-            FileName->Buffer
-            );
+        if (RtlDosPathNameToNtPathName_U(
+            FileName->Buffer,
+            &fileNameUs,
+            NULL,
+            NULL
+            ))
+        {
+            fileName = PhCreateStringEx(fileNameUs.Buffer, fileNameUs.Length);
+            RtlFreeHeap(RtlProcessHeap(), 0, fileNameUs.Buffer);
+
+            return fileName;
+        }
+        else
+        {
+            // Fallback method.
+            return PhConcatStrings2(L"\\??\\", FileName->Buffer);
+        }
     }
     else
     {
@@ -152,7 +162,6 @@ BOOLEAN FiCreateFile(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-    PPH_STRING fileName;
     OBJECT_ATTRIBUTES oa;
     IO_STATUS_BLOCK isb;
 
@@ -161,11 +170,30 @@ BOOLEAN FiCreateFile(
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-    fileName = FiFormatFileName(FileName);
+    if (!(FiArgNative))
+    {
+        status = PhCreateFileWin32(
+            FileHandle,
+            FileName->Buffer,
+            DesiredAccess,
+            FileAttributes,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            CreateDisposition,
+            Options
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            wprintf(L"Error creating/opening file: %s\n", PhGetNtMessage(status)->Buffer);
+            return FALSE;
+        }
+
+        return TRUE;
+    }
 
     InitializeObjectAttributes(
         &oa,
-        &fileName->us,
+        &FileName->us,
         (!FiArgCaseSensitive ? OBJ_CASE_INSENSITIVE : 0),
         NULL,
         NULL
@@ -184,8 +212,6 @@ BOOLEAN FiCreateFile(
         NULL,
         0
         );
-
-    PhDereferenceObject(fileName);
 
     if (!NT_SUCCESS(status))
     {
@@ -268,7 +294,7 @@ int __cdecl main(int argc, char *argv[])
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_FIRST_PART,
+        PH_COMMAND_LINE_IGNORE_FIRST_PART | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
         FiCommandLineCallback,
         NULL
         ) || FiArgHelp)
@@ -424,6 +450,7 @@ int __cdecl main(int argc, char *argv[])
         HANDLE fileHandle;
         HANDLE outFileHandle;
         LARGE_INTEGER fileSize;
+        FILE_BASIC_INFORMATION basicInfo;
 
         if (!FiArgOutput)
         {
@@ -506,6 +533,25 @@ int __cdecl main(int argc, char *argv[])
             }
 
             PhFree(buffer);
+
+            // Copy basic attributes over.
+            if (NT_SUCCESS(NtQueryInformationFile(
+                fileHandle,
+                &isb,
+                &basicInfo,
+                sizeof(FILE_BASIC_INFORMATION),
+                FileBasicInformation
+                )))
+            {
+                NtSetInformationFile(
+                    outFileHandle,
+                    &isb,
+                    &basicInfo,
+                    sizeof(FILE_BASIC_INFORMATION),
+                    FileBasicInformation
+                    );
+            }
+
             NtClose(fileHandle);
             NtClose(outFileHandle);
         }
@@ -599,7 +645,7 @@ int __cdecl main(int argc, char *argv[])
     }
     else
     {
-        wprintf(L"Error: invalid action.\n");
+        wprintf(L"Error: invalid action \"%s\".\n", FiArgAction->Buffer);
         FiPrintHelp();
         return 1;
     }
