@@ -71,7 +71,6 @@ BEGIN
         MENUITEM "Run As...",                   ID_HACKER_RUNAS
         MENUITEM "Show Details for All Processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
         MENUITEM SEPARATOR
-        MENUITEM "Open...\aCtrl+O",             ID_HACKER_OPEN
         MENUITEM "Save...\aCtrl+S",             ID_HACKER_SAVE
         MENUITEM "Find Handles or DLLs...\aCtrl+F", ID_HACKER_FINDHANDLESORDLLS
         MENUITEM "Options...",                  ID_HACKER_OPTIONS
