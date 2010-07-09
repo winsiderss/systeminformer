@@ -32,6 +32,13 @@ typedef BOOL (WINAPI *_FileIconInit)(
     __in BOOL RestoreCache
     );
 
+typedef HRESULT (WINAPI *_LoadIconMetric)(
+    __in HINSTANCE hinst,
+    __in PCWSTR pszName,
+    __in int lims,
+    __out HICON *phico
+    );
+
 typedef BOOL (WINAPI *_WTSRegisterSessionNotification)(
     __in HWND hWnd,
     __in DWORD dwFlags
@@ -413,6 +420,32 @@ BOOLEAN PhMainWndInitialization(
 
         PhDeleteStringBuilder(&stringBuilder);
     }
+
+    // Fix some menu items.
+    if (PhElevated)
+    {
+        DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASADMINISTRATOR, 0);
+        DeleteMenu(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, 0);
+    }
+    else
+    {
+        _LoadIconMetric loadIconMetric;
+        HICON shieldIcon;
+        MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+        loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
+
+        if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
+        {
+            menuItemInfo.fMask = MIIM_BITMAP;
+            menuItemInfo.hbmpItem = PhIconToBitmap(shieldIcon, 16, 16);
+            DestroyIcon(shieldIcon);
+
+            SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
+        }
+    }
+
+    DrawMenuBar(PhMainWndHandle);
 
     PhReloadSysParameters();
 

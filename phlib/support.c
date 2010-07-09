@@ -2508,6 +2508,12 @@ VOID PhSetFileDialogFileName(
     {
         OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
 
+        if (wcschr(FileName, '/'))
+        {
+            // It refuses to take any filenames with a slash.
+            return;
+        }
+
         PhFree((PVOID)ofn->lpstrFile);
         ofn->nMaxFile = (ULONG)wcslen(FileName) + 1;
         ofn->lpstrFile = PhAllocateCopy(FileName, ofn->nMaxFile * 2);
