@@ -613,12 +613,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                         fileName = PhGetFileDialogFileName(saveFileDialog);
 
-                        PhShowMessage(
-                            hWnd,
-                            MB_ICONINFORMATION,
-                            L"You selected:\n\n%s",
-                            fileName->Buffer
-                            );
+                        PhShowError(hWnd, L"This feature has not been implemented yet.");
 
                         PhDereferenceObject(fileName);
                     }
