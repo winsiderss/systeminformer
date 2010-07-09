@@ -107,12 +107,15 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
             PhRegisterDialog(hwndDlg);
 
+            PhLoadWindowPlacementFromSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
+
             PhSetListViewStyle(lvHandle, TRUE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 320, L"Process");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"PID");
 
             PhSetExtendedListView(lvHandle);
+            PhLoadListViewColumnsFromSetting(L"HiddenProcessesListViewColumns", lvHandle);
             ExtendedListView_AddFallbackColumn(lvHandle, 0);
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpHiddenProcessesColorFunction);
@@ -122,6 +125,12 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
             ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_METHOD), -1, L"CSR Handles");
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_TERMINATE), FALSE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhSaveWindowPlacementToSetting(L"HiddenProcessesWindowPosition", L"HiddenProcessesWindowSize", hwndDlg);
+            PhSaveListViewColumnsToSetting(L"HiddenProcessesListViewColumns", PhHiddenProcessesListViewHandle);
         }
         break;
     case WM_CLOSE:
@@ -270,6 +279,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
 
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFileName(fileDialog, L"Hidden Processes.txt");
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {

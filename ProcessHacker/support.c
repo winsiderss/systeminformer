@@ -482,6 +482,41 @@ VOID PhCopyListViewInfoTip(
     GetInfoTip->pszText[copyIndex + copyLength] = 0;
 }
 
+VOID PhLoadWindowPlacementFromSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    )
+{
+    PH_RECTANGLE windowRectangle;
+
+    windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
+    windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
+
+    PhAdjustRectangleToWorkingArea(
+        WindowHandle,
+        &windowRectangle
+        );
+    MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
+        windowRectangle.Width, windowRectangle.Height, FALSE);
+}
+
+VOID PhSaveWindowPlacementToSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    )
+{
+    WINDOWPLACEMENT placement = { sizeof(placement) };
+    PH_RECTANGLE windowRectangle;
+
+    GetWindowPlacement(WindowHandle, &placement);
+    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
+
+    PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
+    PhSetIntegerPairSetting(SizeSettingName, windowRectangle.Size);
+}
+
 VOID PhLoadListViewColumnsFromSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle

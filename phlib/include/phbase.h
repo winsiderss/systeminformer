@@ -125,6 +125,20 @@ VOID PhQuerySystemTime(
     __out PLARGE_INTEGER SystemTime
     );
 
+VOID PhQueryTimeZoneBias(
+    __out PLARGE_INTEGER TimeZoneBias
+    );
+
+VOID PhSystemTimeToLocalTime(
+    __in PLARGE_INTEGER SystemTime,
+    __out PLARGE_INTEGER LocalTime
+    );
+
+VOID PhLocalTimeToSystemTime(
+    __in PLARGE_INTEGER LocalTime,
+    __out PLARGE_INTEGER SystemTime
+    );
+
 // heap
 
 __mayRaise PVOID PhAllocate(

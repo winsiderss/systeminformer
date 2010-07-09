@@ -820,8 +820,14 @@ PPH_STRING PhGetFileName(
     __in PPH_STRING FileName
     );
 
+#define PH_MODULE_TYPE_MODULE 1
+#define PH_MODULE_TYPE_MAPPED_FILE 2
+#define PH_MODULE_TYPE_WOW64_MODULE 3
+#define PH_MODULE_TYPE_KERNEL_MODULE 4
+
 typedef struct _PH_MODULE_INFO
 {
+    ULONG Type;
     PVOID BaseAddress;
     ULONG Size;
     PVOID EntryPoint;
@@ -1888,12 +1894,19 @@ FORCEINLINE PPH_STRING PhFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
     )
 {
-    return PhConcatStrings(
-        3,
-        ((PPH_STRING)PHA_DEREFERENCE(PhFormatTime(DateTime, NULL)))->Buffer,
-        L" ",
-        ((PPH_STRING)PHA_DEREFERENCE(PhFormatDate(DateTime, NULL)))->Buffer
-        );
+    PPH_STRING dateTimeString;
+    PPH_STRING timeString;
+    PPH_STRING dateString;
+
+    timeString = PhFormatTime(DateTime, NULL);
+    dateString = PhFormatDate(DateTime, NULL);
+
+    dateTimeString = PhConcatStrings(3, timeString->Buffer, L" ", dateString->Buffer);
+
+    PhDereferenceObject(dateString);
+    PhDereferenceObject(timeString);
+
+    return dateTimeString;
 }
 
 FORCEINLINE PPH_STRING PhaFormatDateTime(

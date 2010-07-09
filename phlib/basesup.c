@@ -276,6 +276,9 @@ HANDLE PhCreateThread(
 
 /**
  * Gets the current system time (UTC).
+ *
+ * \remarks Use this function instead of NtQuerySystemTime() 
+ * because no system calls are involved.
  */
 VOID PhQuerySystemTime(
     __out PLARGE_INTEGER SystemTime
@@ -286,6 +289,59 @@ VOID PhQuerySystemTime(
         SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
         SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
     } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+}
+
+VOID PhQueryTimeZoneBias(
+    __out PLARGE_INTEGER TimeZoneBias
+    )
+{
+    do
+    {
+        TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
+        TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
+    } while (TimeZoneBias->HighPart != USER_SHARED_DATA->TimeZoneBias.High2Time);
+}
+
+/**
+ * Converts system time to local time.
+ *
+ * \param SystemTime A UTC time value.
+ * \param LocalTime A variable which receives the local time value. 
+ * This may be the same variable as \a SystemTime.
+ *
+ * \remarks Use this function instead of RtlSystemTimeToLocalTime() 
+ * because no system calls are involved.
+ */
+VOID PhSystemTimeToLocalTime(
+    __in PLARGE_INTEGER SystemTime,
+    __out PLARGE_INTEGER LocalTime
+    )
+{
+    LARGE_INTEGER timeZoneBias;
+
+    PhQueryTimeZoneBias(&timeZoneBias);
+    LocalTime->QuadPart = SystemTime->QuadPart - timeZoneBias.QuadPart;
+}
+
+/**
+ * Converts local time to system time.
+ *
+ * \param LocalTime A local time value.
+ * \param SystemTime A variable which receives the UTC time value. 
+ * This may be the same variable as \a LocalTime.
+ *
+ * \remarks Use this function instead of RtlLocalTimeToSystemTime() 
+ * because no system calls are involved.
+ */
+VOID PhLocalTimeToSystemTime(
+    __in PLARGE_INTEGER LocalTime,
+    __out PLARGE_INTEGER SystemTime
+    )
+{
+    LARGE_INTEGER timeZoneBias;
+
+    PhQueryTimeZoneBias(&timeZoneBias);
+    SystemTime->QuadPart = LocalTime->QuadPart + timeZoneBias.QuadPart;
 }
 
 /**
