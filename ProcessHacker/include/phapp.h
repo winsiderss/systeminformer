@@ -323,6 +323,18 @@ VOID PhCopyListViewInfoTip(
     __in PPH_STRINGREF Tip
     );
 
+VOID PhLoadWindowPlacementFromSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    );
+
+VOID PhSaveWindowPlacementToSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    );
+
 VOID PhLoadListViewColumnsFromSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle

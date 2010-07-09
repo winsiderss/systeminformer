@@ -111,6 +111,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                     fileDialog = PhCreateSaveFileDialog();
 
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFileName(fileDialog, L"Information.txt");
 
                     if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
