@@ -56,43 +56,26 @@ NTSTATUS PhCreateFileWin32(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-    UNICODE_STRING bufferFileName;
-    RTL_RELATIVE_NAME_U relativeName;
     UNICODE_STRING fileName;
-    HANDLE rootDirectory;
     OBJECT_ATTRIBUTES oa;
     IO_STATUS_BLOCK isb;
 
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-    status = RtlDosPathNameToNtPathName_U(
+    if (!RtlDosPathNameToNtPathName_U(
         FileName,
-        &bufferFileName,
+        &fileName,
         NULL,
-        &relativeName
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    if (relativeName.RelativeName.Length != 0)
-    {
-        // We're using a relative name.
-        fileName = relativeName.RelativeName;
-        rootDirectory = relativeName.ContainingDirectory;
-    }
-    else
-    {
-        fileName = bufferFileName;
-        rootDirectory = NULL;
-    }
+        NULL
+        ))
+        return STATUS_NO_SUCH_FILE;
 
     InitializeObjectAttributes(
         &oa,
         &fileName,
         OBJ_CASE_INSENSITIVE,
-        rootDirectory,
+        NULL,
         NULL
         );
 
@@ -110,7 +93,7 @@ NTSTATUS PhCreateFileWin32(
         0
         );
 
-    RtlFreeHeap(RtlProcessHeap(), 0, bufferFileName.Buffer);
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
 
     if (NT_SUCCESS(status))
         *FileHandle = fileHandle;

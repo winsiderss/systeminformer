@@ -1920,7 +1920,7 @@ RtlDosPathNameToNtPathName_U_WithStatus(
     __in PCWSTR DosFileName,
     __out PUNICODE_STRING NtFileName,
     __out_opt PWSTR *FilePart,
-    __reserved PVOID Reserved
+    __out_opt PRTL_RELATIVE_NAME_U RelativeName
     );
 #endif
 
