@@ -276,6 +276,30 @@ VOID PhpRefreshGdiHandles(
     ExtendedListView_SetRedraw(lvHandle, TRUE);
 }
 
+INT NTAPI PhpGdiHandleHandleCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_GDI_HANDLE_ITEM item1 = Item1;
+    PPH_GDI_HANDLE_ITEM item2 = Item2;
+
+    return uintcmp(item1->Handle, item2->Handle);
+}
+
+INT NTAPI PhpGdiHandleObjectCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_GDI_HANDLE_ITEM item1 = Item1;
+    PPH_GDI_HANDLE_ITEM item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->Object, (ULONG_PTR)item2->Object);
+}
+
 INT_PTR CALLBACK PhpGdiHandlesDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -302,6 +326,8 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 200, L"Information");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpGdiHandleHandleCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpGdiHandleObjectCompareFunction);
             ExtendedListView_AddFallbackColumn(lvHandle, 0);
             ExtendedListView_AddFallbackColumn(lvHandle, 1);
 
