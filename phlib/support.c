@@ -2509,7 +2509,8 @@ VOID PhSetFileDialogFileName(
         OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
 
         PhFree((PVOID)ofn->lpstrFile);
-        ofn->lpstrFile = PhAllocateCopy(FileName, ((ULONG)wcslen(FileName) + 1) * 2);
+        ofn->nMaxFile = (ULONG)wcslen(FileName) + 1;
+        ofn->lpstrFile = PhAllocateCopy(FileName, ofn->nMaxFile * 2);
     }
 }
 
