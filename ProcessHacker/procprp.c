@@ -3303,6 +3303,30 @@ BOOLEAN NTAPI PhpProcessMemoryCallback(
     return TRUE;
 }
 
+INT NTAPI PhpMemoryAddressCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_MEMORY_ITEM item1 = Item1;
+    PPH_MEMORY_ITEM item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
+}
+
+INT NTAPI PhpMemorySizeCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPH_MEMORY_ITEM item1 = Item1;
+    PPH_MEMORY_ITEM item2 = Item2;
+
+    return uintptrcmp(item1->Size, item2->Size);
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -3344,6 +3368,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 60, L"Protection");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpMemoryAddressCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpMemorySizeCompareFunction);
             PhLoadListViewColumnsFromSetting(L"MemoryListViewColumns", lvHandle);
             ExtendedListView_SetSort(lvHandle, 1, AscendingSortOrder);
 

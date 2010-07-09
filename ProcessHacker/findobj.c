@@ -120,6 +120,18 @@ VOID PhpInitializeFindObjMenu(
     PhEnableMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
 }
 
+INT NTAPI PhpObjectHandleCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in PVOID Context
+    )
+{
+    PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
+    PPHP_OBJECT_SEARCH_RESULT item2 = Item2;
+
+    return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
+}
+
 static INT_PTR CALLBACK PhpFindObjectsDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -156,6 +168,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpObjectHandleCompareFunction);
             PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", lvHandle);
         }
         break;
