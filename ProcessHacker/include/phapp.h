@@ -572,6 +572,77 @@ VOID PhUpdateIconPhysicalHistory();
 
 VOID PhUpdateIconCpuUsage();
 
+// log
+
+#define PH_LOG_ENTRY_PROCESS_FIRST 1
+#define PH_LOG_ENTRY_PROCESS_CREATE 1
+#define PH_LOG_ENTRY_PROCESS_DELETE 2
+#define PH_LOG_ENTRY_PROCESS_LAST 2
+
+#define PH_LOG_ENTRY_SERVICE_FIRST 3
+#define PH_LOG_ENTRY_SERVICE_CREATE 3
+#define PH_LOG_ENTRY_SERVICE_DELETE 4
+#define PH_LOG_ENTRY_SERVICE_START 5
+#define PH_LOG_ENTRY_SERVICE_STOP 6
+#define PH_LOG_ENTRY_SERVICE_CONTINUE 7
+#define PH_LOG_ENTRY_SERVICE_PAUSE 8
+#define PH_LOG_ENTRY_SERVICE_LAST 8
+
+#define PH_LOG_ENTRY_MESSAGE 9
+
+typedef struct _PH_LOG_ENTRY
+{
+    UCHAR Type;
+    UCHAR Reserved1;
+    USHORT Flags;
+    LARGE_INTEGER Time;
+    union
+    {
+        struct
+        {
+            HANDLE ProcessId;
+            PPH_STRING Name;
+        } Process;
+        struct
+        {
+            PPH_STRING Name;
+            PPH_STRING DisplayName;
+        } Service;
+        PPH_STRING Message;
+    };
+    UCHAR Buffer[1];
+} PH_LOG_ENTRY, *PPH_LOG_ENTRY;
+
+#ifndef LOG_PRIVATE
+PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
+PH_CALLBACK PhLoggedCallback;
+#endif
+
+VOID PhLogInitialization();
+
+VOID PhClearLogEntries();
+
+VOID PhLogProcessEntry(
+    __in UCHAR Type,
+    __in HANDLE ProcessId,
+    __in PPH_STRING Name
+    );
+
+VOID PhLogServiceEntry(
+    __in UCHAR Type,
+    __in PPH_STRING Name,
+    __in PPH_STRING DisplayName
+    );
+
+VOID PhLogMessageEntry(
+    __in UCHAR Type,
+    __in PPH_STRING Message
+    );
+
+PPH_STRING PhFormatLogEntry(
+    __in PPH_LOG_ENTRY Entry
+    );
+
 // dbgcon
 
 VOID PhShowDebugConsole();
@@ -924,6 +995,10 @@ HPROPSHEETPAGE PhCreateJobPage(
     __in PVOID Context,
     __in_opt DLGPROC HookProc
     );
+
+// logwnd
+
+VOID PhShowLogDialog();
 
 // netstk
 

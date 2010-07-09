@@ -1156,7 +1156,7 @@ VOID PhpUpdateSystemHistory()
         );
 
     // Time
-    NtQuerySystemTime(&systemTime);
+    PhQuerySystemTime(&systemTime);
     RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
     PhCircularBufferAdd_ULONG(&PhTimeHistory, secondsSince1980);
     PhTimeSequenceNumber++;
@@ -1712,13 +1712,13 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     PhReferenceObject(ProcessItem->ProcessName);
     processRecord->ProcessName = ProcessItem->ProcessName;
 
-    /*if (ProcessItem->FileName)
+    if (ProcessItem->FileName)
     {
         PhReferenceObject(ProcessItem->FileName);
         processRecord->FileName = ProcessItem->FileName;
     }
 
-    if (ProcessItem->CommandLine)
+    /*if (ProcessItem->CommandLine)
     {
         PhReferenceObject(ProcessItem->CommandLine);
         processRecord->CommandLine = ProcessItem->CommandLine;
@@ -1861,9 +1861,9 @@ VOID PhDereferenceProcessRecord(
         PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
 
         PhDereferenceObject(ProcessRecord->ProcessName);   
-        /*PhDereferenceObject(ProcessRecord->FileName);
-        PhDereferenceObject(ProcessRecord->CommandLine);
-        PhDereferenceObject(ProcessRecord->UserName);*/
+        if (ProcessRecord->FileName) PhDereferenceObject(ProcessRecord->FileName);
+        /*if (ProcessRecord->CommandLine) PhDereferenceObject(ProcessRecord->CommandLine);
+        if (ProcessRecord->UserName) PhDereferenceObject(ProcessRecord->UserName);*/
         PhFree(ProcessRecord);
     }
 }

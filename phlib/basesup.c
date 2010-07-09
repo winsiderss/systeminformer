@@ -275,6 +275,20 @@ HANDLE PhCreateThread(
 }
 
 /**
+ * Gets the current system time (UTC).
+ */
+VOID PhQuerySystemTime(
+    __out PLARGE_INTEGER SystemTime
+    )
+{
+    do
+    {
+        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
+        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+    } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+}
+
+/**
  * Allocates a block of memory.
  *
  * \param Size The number of bytes to allocate.

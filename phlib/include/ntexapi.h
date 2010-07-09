@@ -1508,14 +1508,11 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
 
 #else
 
-    while (TRUE)
+    do
     {
         tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
         tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
-
-        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
-            break;
-    }
+    } while (tickCount.HighPart != (ULONG)USER_SHARED_DATA->TickCount.High2Time);
 
 #endif
 
