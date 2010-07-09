@@ -87,4 +87,31 @@ FORCEINLINE VOID T___(PhCircularBufferAdd, T)(
         Buffer->Count++;
 }
 
+FORCEINLINE T T___(PhCircularBufferAdd2, T)(
+    __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
+    __in T Value
+    )
+{
+    LONG index;
+    T oldValue;
+
+#ifdef PH_CIRCULAR_BUFFER_POWER_OF_TWO_SIZE
+    index = ((Buffer->Index - 1) & Buffer->SizeMinusOne);
+#else
+    ULONG size;
+
+    size = Buffer->Size;
+    index = (((Buffer->Index - 1) % size) + size) % size;
+#endif
+
+    Buffer->Index = index;
+    oldValue = Buffer->Data[index];
+    Buffer->Data[index] = Value;
+
+    if (Buffer->Count < Buffer->Size)
+        Buffer->Count++;
+
+    return oldValue;
+}
+
 #endif
