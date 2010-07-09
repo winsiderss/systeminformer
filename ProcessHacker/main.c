@@ -124,7 +124,7 @@ INT WINAPI WinMain(
                 // If we didn't find the file, it will be created. Otherwise, 
                 // there was probably a parsing error and we don't want to 
                 // change anything.
-                if (!NT_SUCCESS(status))
+                if (!NT_SUCCESS(status) && status != STATUS_NO_SUCH_FILE && status != STATUS_OBJECT_NAME_NOT_FOUND)
                 {
                     if (status == STATUS_FILE_CORRUPT_ERROR && PhShowMessage(
                         NULL,
