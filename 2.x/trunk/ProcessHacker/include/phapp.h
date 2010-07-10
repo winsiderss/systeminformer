@@ -318,6 +318,10 @@ VOID PhShellExecuteUserString(
     __in BOOLEAN UseShellExecute
     );
 
+VOID PhLoadSymbolProviderOptions(
+    __inout PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip

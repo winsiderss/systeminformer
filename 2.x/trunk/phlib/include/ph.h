@@ -1558,9 +1558,14 @@ BOOLEAN PhSymbolProviderLoadModule(
     __in ULONG Size
     );
 
+VOID PhSymbolProviderSetOptions(
+    __in ULONG Mask,
+    __in ULONG Value
+    );
+
 VOID PhSymbolProviderSetSearchPath(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR SearchPath
+    __in PWSTR Path
     );
 
 // svcsup

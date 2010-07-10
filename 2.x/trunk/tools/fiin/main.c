@@ -358,7 +358,7 @@ int __cdecl main(int argc, char *argv[])
             FILE_DISPOSITION_INFORMATION dispositionInfo;
             IO_STATUS_BLOCK isb;
 
-            dispositionInfo.DeleteFileW = TRUE;
+            dispositionInfo.DeleteFile = TRUE;
             if (!NT_SUCCESS(status = NtSetInformationFile(fileHandle, &isb, &dispositionInfo,
                 sizeof(FILE_DISPOSITION_INFORMATION), FileDispositionInformation)))
             {
