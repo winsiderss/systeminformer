@@ -261,6 +261,8 @@ NTSTATUS PhpThreadProviderLoadSymbols(
     loadContext.ThreadProvider = threadProvider;
     loadContext.SymbolProvider = threadProvider->SymbolProvider;
 
+    PhLoadSymbolProviderOptions(threadProvider->SymbolProvider);
+
     if (threadProvider->ProcessId != SYSTEM_IDLE_PROCESS_ID)
     {
         if (

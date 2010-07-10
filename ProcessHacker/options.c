@@ -46,6 +46,13 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static POINT StartLocation;
@@ -60,7 +67,7 @@ VOID PhShowOptionsDialog(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[2];
+    HPROPSHEETPAGE pages[3];
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -92,6 +99,16 @@ VOID PhShowOptionsDialog(
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTADVANCED);
     propSheetPage.pfnDlgProc = PhpOptionsAdvancedDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    if (!PhStartupParameters.ShowOptions)
+    {
+        // Symbols page
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTSYMBOLS);
+        propSheetPage.pfnDlgProc = PhpOptionsSymbolsDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 
     PageInit = FALSE;
     PressedOk = FALSE;
@@ -207,25 +224,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
         }
         break;
-    /*case WM_COMMAND:
-        {
-            switch (LOWORD(wParam))
-            {
-            case IDC_SEARCHENGINE:
-            case IDC_PEVIEWER:
-                if (HIWORD(wParam) == EN_CHANGE)
-                    DialogChanged;
-                break;
-            case IDC_MAXSIZEUNIT:
-            case IDC_ALLOWONLYONEINSTANCE:
-            case IDC_ENABLEWARNINGS:
-            case IDC_ENABLEKERNELMODEDRIVER:
-            case IDC_HIDEUNNAMEDHANDLES:
-                DialogChanged;
-                break;
-            }
-        }
-        break;*/
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
@@ -518,6 +516,82 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     case WM_PH_CHILD_EXIT:
         {
             PhpAdvancedPageLoad(hwndDlg);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PhpPageInit(hwndDlg);
+
+            SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, PHA_GET_STRING_SETTING(L"DbgHelpPath")->Buffer);
+            SetDlgItemText(hwndDlg, IDC_DBGHELPSEARCHPATH, PHA_GET_STRING_SETTING(L"DbgHelpSearchPath")->Buffer);
+
+            SetDlgItemCheckForSetting(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_BROWSE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"dbghelp.dll", L"dbghelp.dll" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+                    PPH_STRING fileName;
+
+                    fileDialog = PhCreateOpenFileDialog();
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH));
+                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
+                    PhDereferenceObject(fileName);
+
+                    if (PhShowFileDialog(NULL, fileDialog))
+                    {
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, fileName->Buffer);
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_APPLY:
+                {
+                    PhSetStringSetting2(L"DbgHelpPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH)->sr));
+                    PhSetStringSetting2(L"DbgHelpSearchPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
         }
         break;
     }

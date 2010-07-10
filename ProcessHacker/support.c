@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <wtsapi32.h>
+#include <dbghelp.h>
 
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process
@@ -446,6 +447,25 @@ VOID PhShellExecuteUserString(
     }
 
     PhDereferenceObject(executeString);
+}
+
+VOID PhLoadSymbolProviderOptions(
+    __inout PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+    PPH_STRING searchPath;
+
+    PhSymbolProviderSetOptions(
+        SYMOPT_UNDNAME,
+        PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
+        );
+
+    searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
+
+    if (searchPath->Length != 0)
+        PhSymbolProviderSetSearchPath(SymbolProvider, searchPath->Buffer);
+
+    PhDereferenceObject(searchPath);
 }
 
 VOID PhCopyListViewInfoTip(

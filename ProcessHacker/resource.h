@@ -85,6 +85,7 @@
 #define IDD_GDIHANDLES                  175
 #define IDR_PROCESSHEADER               177
 #define IDD_LOG                         178
+#define IDD_OPTSYMBOLS                  179
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -325,11 +326,14 @@
 #define IDC_HIDE                        1210
 #define IDC_REPLACETASKMANAGER          1211
 #define IDC_ZPAGEDPHYSICAL_V            1215
-#define IDC_CHECK1                      1215
 #define IDC_AUTOSCROLL                  1215
 #define IDC_ZPAGEDVIRTUAL_V             1216
+#define IDC_UNDECORATESYMBOLS           1216
 #define IDC_ZPAGEDALLOCS_V              1217
+#define IDC_DBGHELPPATH                 1217
 #define IDC_ZPAGEDFREES_V               1218
+#define IDC_EDIT2                       1218
+#define IDC_DBGHELPSEARCHPATH           1218
 #define IDC_ZPAGEDLIMIT_V               1219
 #define IDC_ZNONPAGEDUSAGE_V            1220
 #define IDC_ZNONPAGEDALLOCS_V           1221
@@ -522,7 +526,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        179
 #define _APS_NEXT_COMMAND_VALUE         40194
-#define _APS_NEXT_CONTROL_VALUE         1216
+#define _APS_NEXT_CONTROL_VALUE         1219
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif
