@@ -623,7 +623,7 @@ VOID PhWritePhTextHeader(
 
     dateString = PhFormatDate(&systemTime, NULL);
     timeString = PhFormatTime(&systemTime, NULL);
-    PhFileStreamWriteStringFormat(FileStream, L"\r\n%s %s\r\n", dateString->Buffer, timeString->Buffer);
+    PhFileStreamWriteStringFormat(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
     PhDereferenceObject(dateString);
     PhDereferenceObject(timeString);
 }

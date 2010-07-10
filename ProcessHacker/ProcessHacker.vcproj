@@ -389,6 +389,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\cpysave.c"
+				>
+			</File>
+			<File
 				RelativePath=".\dbgcon.c"
 				>
 			</File>

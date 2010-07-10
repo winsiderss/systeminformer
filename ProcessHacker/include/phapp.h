@@ -249,6 +249,10 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+VOID PhWriteProcessTree(
+    __inout PPH_FILE_STREAM FileStream
+    );
+
 // support
 
 BOOLEAN PhGetProcessIsSuspended(
@@ -953,6 +957,15 @@ BOOLEAN PhaChoiceDialog(
     __inout PPH_STRING *SelectedChoice,
     __inout_opt PBOOLEAN SelectedOption,
     __in_opt PWSTR SavedChoicesSettingName
+    );
+
+// cpysave
+
+PPH_LIST PhGetProcessTreeListText(
+    __in HWND TreeListHandle,
+    __in ULONG NumberOfNodes,
+    __in PPH_LIST RootNodes,
+    __in BOOLEAN UseTabs
     );
 
 // findobj
