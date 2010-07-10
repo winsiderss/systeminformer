@@ -951,6 +951,18 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PhpRefreshColumnsLookup(context);
         }
         return TRUE;
+    case TLM_GETNODETEXT:
+        {
+            PPH_TL_GETNODETEXT getNodeText = (PPH_TL_GETNODETEXT)lParam;
+
+            return PhpGetNodeText(
+                context,
+                getNodeText->Node,
+                getNodeText->Id,
+                &getNodeText->Text
+                );
+        }
+        break;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

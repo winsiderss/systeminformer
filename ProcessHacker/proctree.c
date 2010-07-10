@@ -1434,3 +1434,30 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 
     TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
 }
+
+VOID PhWriteProcessTree(
+    __inout PPH_FILE_STREAM FileStream
+    )
+{
+    PPH_LIST lines;
+    ULONG i;
+
+    lines = PhGetProcessTreeListText(
+        ProcessTreeListHandle,
+        ProcessNodeList->Count,
+        ProcessNodeRootList,
+        TRUE
+        );
+
+    for (i = 0; i < lines->Count; i++)
+    {
+        PPH_STRING line;
+
+        line = lines->Items[i];
+        PhFileStreamWriteStringAsAnsi(FileStream, &line->sr);
+        PhDereferenceObject(line);
+        PhFileStreamWriteStringAsAnsi2(FileStream, L"\r\n");
+    }
+
+    PhDereferenceObject(lines);
+}

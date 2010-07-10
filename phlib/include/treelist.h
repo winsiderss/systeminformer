@@ -205,6 +205,14 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_GETCOLUMNCOUNT (WM_APP + 1220)
 #define TLM_SCROLL (WM_APP + 1221)
 #define TLM_SETCOLUMNORDERARRAY (WM_APP + 1222)
+#define TLM_GETNODETEXT (WM_APP + 1223)
+
+typedef struct _PH_TL_GETNODETEXT
+{
+    PPH_TREELIST_NODE Node;
+    ULONG Id;
+    PH_STRINGREF Text;
+} PH_TL_GETNODETEXT, *PPH_TL_GETNODETEXT;
 
 #define TreeList_SetCallback(hWnd, Callback) \
     SendMessage((hWnd), TLM_SETCALLBACK, 0, (LPARAM)(Callback))
@@ -277,6 +285,9 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 
 #define TreeList_SetColumnOrderArray(hWnd, Count, Array) \
     SendMessage((hWnd), TLM_SETCOLUMNORDERARRAY, (WPARAM)(Count), (LPARAM)(Array))
+
+#define TreeList_GetNodeText(hWnd, GetNodeText) \
+    SendMessage((hWnd), TLM_GETNODETEXT, 0, (LPARAM)(GetNodeText))
 
 BOOLEAN PhTreeListInitialization();
 
