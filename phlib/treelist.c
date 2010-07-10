@@ -963,6 +963,18 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 );
         }
         break;
+    case TLM_GETVISIBLENODECOUNT:
+        return context->List->Count;
+    case TLM_GETVISIBLENODE:
+        {
+            ULONG index = (ULONG)wParam;
+
+            if (index >= context->List->Count)
+                return (LRESULT)NULL;
+
+            return (LRESULT)context->List->Items[index];
+        }
+        break;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);

@@ -249,6 +249,8 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+VOID PhCopyProcessTree();
+
 VOID PhWriteProcessTree(
     __inout PPH_FILE_STREAM FileStream
     );
@@ -961,7 +963,11 @@ BOOLEAN PhaChoiceDialog(
 
 // cpysave
 
-PPH_LIST PhGetProcessTreeListText(
+PPH_STRING PhGetProcessTreeListText(
+    __in HWND TreeListHandle
+    );
+
+PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
