@@ -73,6 +73,7 @@ NTSTATUS PhSaveSettings(
 #define EXT extern
 #endif
 
+EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;
