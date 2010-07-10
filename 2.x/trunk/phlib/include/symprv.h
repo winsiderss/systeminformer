@@ -13,12 +13,27 @@ typedef BOOL (WINAPI *_SymCleanup)(
     __in HANDLE hProcess
     );
 
+typedef BOOL (WINAPI *_SymEnumSymbols)(
+    __in HANDLE hProcess,
+    __in ULONG64 BaseOfDll,
+    __in_opt PCSTR Mask,
+    __in PSYM_ENUMERATESYMBOLS_CALLBACK EnumSymbolsCallback,
+    __in_opt const PVOID UserContext
+    );
+
 typedef BOOL (WINAPI *_SymEnumSymbolsW)(
     __in HANDLE hProcess,
     __in ULONG64 BaseOfDll,
     __in_opt PCWSTR Mask,
     __in PSYM_ENUMERATESYMBOLS_CALLBACKW EnumSymbolsCallback,
     __in_opt const PVOID UserContext
+    );
+
+typedef BOOL (WINAPI *_SymFromAddr)(
+    __in HANDLE hProcess,
+    __in DWORD64 Address,
+    __out_opt PDWORD64 Displacement,
+    __inout PSYMBOL_INFO Symbol
     );
 
 typedef BOOL (WINAPI *_SymFromAddrW)(
@@ -28,10 +43,23 @@ typedef BOOL (WINAPI *_SymFromAddrW)(
     __inout PSYMBOL_INFOW Symbol
     );
 
+typedef BOOL (WINAPI *_SymFromName)(
+    __in HANDLE hProcess,
+    __in PCSTR Name,
+    __inout PSYMBOL_INFO Symbol
+    );
+
 typedef BOOL (WINAPI *_SymFromNameW)(
     __in HANDLE hProcess,
     __in PCWSTR Name,
     __inout PSYMBOL_INFOW Symbol
+    );
+
+typedef BOOL (WINAPI *_SymGetLineFromAddr64)(
+    __in HANDLE hProcess,
+    __in DWORD64 dwAddr,
+    __out PDWORD pdwDisplacement,
+    __out PIMAGEHLP_LINE64 Line
     );
 
 typedef BOOL (WINAPI *_SymGetLineFromAddrW64)(
@@ -56,10 +84,21 @@ typedef DWORD (WINAPI *_SymSetOptions)(
     __in DWORD SymOptions
     );
 
+typedef BOOL (WINAPI *_SymGetSearchPath)(
+    __in HANDLE hProcess,
+    __out PSTR SearchPath,
+    __in DWORD SearchPathLength
+    );
+
 typedef BOOL (WINAPI *_SymGetSearchPathW)(
     __in HANDLE hProcess,
     __out PWSTR SearchPath,
     __in DWORD SearchPathLength
+    );
+
+typedef BOOL (WINAPI *_SymSetSearchPath)(
+    __in HANDLE hProcess,
+    __in_opt PCSTR SearchPath
     );
 
 typedef BOOL (WINAPI *_SymSetSearchPathW)(
