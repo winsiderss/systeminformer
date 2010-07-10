@@ -1722,7 +1722,8 @@ VOID PhpInitializeThreadMenu(
             ID_THREAD_TERMINATE,
             ID_THREAD_FORCETERMINATE,
             ID_THREAD_SUSPEND,
-            ID_THREAD_RESUME
+            ID_THREAD_RESUME,
+            ID_THREAD_COPY
         };
         ULONG i;
 
@@ -2487,6 +2488,11 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     }
                 }
                 break;
+            case ID_THREAD_COPY:
+                {
+                    PhCopyListView(lvHandle);
+                }
+                break;
             case IDC_OPENSTARTMODULE:
                 {
                     PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
@@ -2562,6 +2568,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         switch (keyDown->wVKey)
                         {
+                        case 'C':
+                            if (GetKeyState(VK_CONTROL) < 0)
+                                SendMessage(hwndDlg, WM_COMMAND, ID_THREAD_COPY, 0);
+                            break;
                         case VK_DELETE:
                             SendMessage(hwndDlg, WM_COMMAND, ID_THREAD_TERMINATE, 0);
                             break;
@@ -2810,8 +2820,8 @@ VOID PhpInitializeModuleMenu(
     }
     else
     {
-        // None of the menu items work with multiple items.
         PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_MODULE_COPY, TRUE);
     }
 }
 
@@ -3090,12 +3100,19 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     }
                 }
                 break;
+            case ID_MODULE_COPY:
+                {
+                    PhCopyListView(lvHandle);
+                }
+                break;
             }
         }
         break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
+
+            PhHandleListViewNotifyForCopy(lParam, lvHandle);
 
             switch (header->code)
             {
@@ -3525,6 +3542,11 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
     }
 
     return FALSE;
@@ -3598,6 +3620,7 @@ VOID PhpInitializeHandleMenu(
         PhEnableAllMenuItems(Menu, FALSE);
 
         EnableMenuItem(Menu, ID_HANDLE_CLOSE, MF_ENABLED);
+        EnableMenuItem(Menu, ID_HANDLE_COPY, MF_ENABLED);
     }
 
     // Remove irrelevant menu items.
@@ -3910,6 +3933,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     }
                 }
                 break;
+            case ID_HANDLE_COPY:
+                {
+                    PhCopyListView(lvHandle);
+                }
+                break;
             case IDC_HIDEUNNAMEDHANDLES:
                 {
                     BOOLEAN hide = Button_GetCheck(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES)) == BST_CHECKED;
@@ -4037,6 +4065,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         switch (keyDown->wVKey)
                         {
+                        case 'C':
+                            if (GetKeyState(VK_CONTROL) < 0)
+                                SendMessage(hwndDlg, WM_COMMAND, ID_HANDLE_COPY, 0);
+                            break;
                         case VK_DELETE:
                             // Pass a 1 in lParam to indicate that warnings should be 
                             // enabled.
@@ -4502,6 +4534,8 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
+
+            PhHandleListViewNotifyForCopy(lParam, lvHandle);
 
             switch (header->code)
             {

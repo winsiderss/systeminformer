@@ -333,6 +333,15 @@ VOID PhCopyListViewInfoTip(
     __in PPH_STRINGREF Tip
     );
 
+VOID PhCopyListView(
+    __in HWND ListViewHandle
+    );
+
+VOID PhHandleListViewNotifyForCopy(
+    __in LPARAM lParam,
+    __in HWND ListViewHandle
+    );
+
 VOID PhLoadWindowPlacementFromSetting(
     __in PWSTR PositionSettingName,
     __in PWSTR SizeSettingName,
@@ -972,6 +981,10 @@ PPH_LIST PhGetProcessTreeListLines(
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
     __in BOOLEAN UseTabs
+    );
+
+PPH_STRING PhGetListViewText(
+    __in HWND ListViewHandle
     );
 
 // findobj

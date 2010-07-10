@@ -502,6 +502,36 @@ VOID PhCopyListViewInfoTip(
     GetInfoTip->pszText[copyIndex + copyLength] = 0;
 }
 
+VOID PhCopyListView(
+    __in HWND ListViewHandle
+    )
+{
+    PPH_STRING text;
+
+    text = PhGetListViewText(ListViewHandle);
+    PhSetClipboardString(ListViewHandle, &text->sr);
+    PhDereferenceObject(text);
+}
+
+VOID PhHandleListViewNotifyForCopy(
+    __in LPARAM lParam,
+    __in HWND ListViewHandle
+    )
+{
+    if (((LPNMHDR)lParam)->hwndFrom == ListViewHandle)
+    {
+        LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)lParam;
+
+        switch (keyDown->wVKey)
+        {
+        case 'C':
+            if (GetKeyState(VK_CONTROL) < 0)
+                PhCopyListView(ListViewHandle);
+            break;
+        }
+    }
+}
+
 VOID PhLoadWindowPlacementFromSetting(
     __in PWSTR PositionSettingName,
     __in PWSTR SizeSettingName,
