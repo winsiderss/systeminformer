@@ -630,8 +630,14 @@ ULONG PhpLookupMappedImageExportName(
     __in PSTR Name
     )
 {
-    ULONG low = 0;
-    ULONG high = Exports->ExportDirectory->NumberOfNames - 1;
+    ULONG low;
+    ULONG high;
+
+    if (Exports->ExportDirectory->NumberOfNames == 0)
+        return -1;
+
+    low = 0;
+    high = Exports->ExportDirectory->NumberOfNames - 1;
 
     do
     {
