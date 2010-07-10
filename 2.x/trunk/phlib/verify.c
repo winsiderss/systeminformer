@@ -380,6 +380,8 @@ VERIFY_RESULT PhpVerifyFileFromCatalog(
 
             if (WindowsVersion >= WINDOWS_VISTA)
                 trustData.dwProvFlags |= WTD_CACHE_ONLY_URL_RETRIEVAL;
+            else
+                trustData.dwProvFlags |= WTD_REVOCATION_CHECK_NONE;
 
             status = WinVerifyTrust_I(NULL, &driverActionVerify, &trustData);
 
