@@ -2154,6 +2154,8 @@ VOID PhpAddIconProcesses(
         // Menu icons only work properly on Vista and above.
         if (WindowsVersion >= WINDOWS_VISTA)
             iconBitmap = PhIconToBitmap(processItem->SmallIcon ? processItem->SmallIcon : PhGetStockAppIcon(), 16, 16);
+        else
+            iconBitmap = NULL;
 
         menuItemInfo.fMask = MIIM_BITMAP | MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
         menuItemInfo.hbmpItem = iconBitmap;
