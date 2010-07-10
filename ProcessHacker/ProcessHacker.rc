@@ -1282,6 +1282,19 @@ BEGIN
     CONTROL         "Auto-scroll",IDC_AUTOSCROLL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,61,284,50,10
 END
 
+IDD_OPTSYMBOLS DIALOGEX 0, 0, 250, 75
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Symbols"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Undecorate symbols",IDC_UNDECORATESYMBOLS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,38,81,10
+    LTEXT           "Dbghelp.dll path:",IDC_STATIC,7,9,56,8
+    EDITTEXT        IDC_DBGHELPPATH,66,8,123,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BROWSE,193,7,50,14
+    LTEXT           "Search path:",IDC_STATIC,7,24,42,8
+    EDITTEXT        IDC_DBGHELPSEARCHPATH,66,23,177,12,ES_AUTOHSCROLL
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1649,6 +1662,14 @@ BEGIN
         RIGHTMARGIN, 306
         TOPMARGIN, 7
         BOTTOMMARGIN, 296
+    END
+
+    IDD_OPTSYMBOLS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 68
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -103,6 +103,7 @@ static NTSTATUS PhpLoadMmAddresses(
         if (kernelModules->NumberOfModules >= 1)
         {
             symbolProvider = PhCreateSymbolProvider(NULL);
+            PhLoadSymbolProviderOptions(symbolProvider);
 
             kernelFileName = PhCreateStringFromAnsi(kernelModules->Modules[0].FullPathName);
             newFileName = PhGetFileName(kernelFileName);

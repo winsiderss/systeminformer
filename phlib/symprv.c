@@ -782,9 +782,33 @@ BOOLEAN PhSymbolProviderLoadModule(
     return TRUE;
 }
 
+VOID PhSymbolProviderSetOptions(
+    __in ULONG Mask,
+    __in ULONG Value
+    )
+{
+    ULONG options;
+
+    if (!SymGetOptions_I || !SymSetOptions_I)
+        return;
+
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
+    PhpRegisterSymbolProvider(SymbolProvider);
+#endif
+
+    PhAcquireMutex(&PhSymMutex);
+
+    options = SymGetOptions_I();
+    options &= ~Mask;
+    options |= Value;
+    SymSetOptions_I(options);
+
+    PhReleaseMutex(&PhSymMutex);
+}
+
 VOID PhSymbolProviderSetSearchPath(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
-    __in PWSTR SearchPath
+    __in PWSTR Path
     )
 {
     if (!SymSetSearchPathW_I && !SymSetSearchPath_I)
@@ -798,15 +822,15 @@ VOID PhSymbolProviderSetSearchPath(
 
     if (SymSetSearchPathW_I)
     {
-        SymSetSearchPathW_I(SymbolProvider->ProcessHandle, SearchPath);
+        SymSetSearchPathW_I(SymbolProvider->ProcessHandle, Path);
     }
     else if (SymSetSearchPath_I)
     {
-        PPH_ANSI_STRING searchPath;
+        PPH_ANSI_STRING path;
 
-        searchPath = PhCreateAnsiStringFromUnicode(SearchPath);
-        SymSetSearchPath_I(SymbolProvider->ProcessHandle, searchPath->Buffer);
-        PhDereferenceObject(searchPath);
+        path = PhCreateAnsiStringFromUnicode(Path);
+        SymSetSearchPath_I(SymbolProvider->ProcessHandle, path->Buffer);
+        PhDereferenceObject(path);
     }
 
     PhReleaseMutex(&PhSymMutex);
