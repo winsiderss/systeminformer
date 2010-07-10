@@ -634,6 +634,9 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             HANDLE processHandle = NULL;
             PPH_STRING curdir = NULL;
             PROCESS_BASIC_INFORMATION basicInfo;
+#ifdef _M_X64
+            PVOID peb32;
+#endif
             SYSTEMTIME startTime;
             CLIENT_ID clientId;
             BOOLEAN isProtected;
@@ -754,8 +757,22 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             if (processHandle)
             {
                 PhGetProcessBasicInformation(processHandle, &basicInfo);
+#ifdef _M_X64
+                if (processItem->IsWow64)
+                {
+                    PhGetProcessPeb32(processHandle, &peb32);
+                    SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
+                        PhaFormatString(L"0x%Ix (32-bit: 0x%x)", basicInfo.PebBaseAddress, (ULONG)peb32)->Buffer);
+                }
+                else
+                {
+#endif
+
                 SetDlgItemText(hwndDlg, IDC_PEBADDRESS,
                     PhaFormatString(L"0x%Ix", basicInfo.PebBaseAddress)->Buffer);
+#ifdef _M_X64
+                }
+#endif
             }
 
             // Protected
