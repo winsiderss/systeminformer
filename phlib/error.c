@@ -43,3 +43,25 @@ NTSTATUS PhDosErrorToNtStatus(
     default: return NTSTATUS_FROM_WIN32(DosError);
     }
 }
+
+BOOLEAN PhNtStatusFileNotFound(
+    __in NTSTATUS Status
+    )
+{
+    switch (Status)
+    {
+    case STATUS_NO_SUCH_FILE:
+        return TRUE;
+    case STATUS_OBJECT_NAME_INVALID:
+        return TRUE;
+    case STATUS_OBJECT_NAME_NOT_FOUND:
+        return TRUE;
+    case STATUS_OBJECT_NO_LONGER_EXISTS:
+        return TRUE;
+    case STATUS_OBJECT_PATH_INVALID:
+        return TRUE;
+    case STATUS_OBJECT_PATH_NOT_FOUND:
+        return TRUE;
+    default: return FALSE;
+    }
+}
