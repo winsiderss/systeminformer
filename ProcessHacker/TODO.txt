@@ -1,4 +1,3 @@
-* Complete main menu items
 * Copy menu
 * Complete memory list
 * Add memory editing
