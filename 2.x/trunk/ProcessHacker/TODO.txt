@@ -1,4 +1,4 @@
-* Copy menu
+* Add bigstring object for strings bigger than 32k characters
 * Complete memory list
 * Add memory editing
 
