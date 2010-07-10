@@ -47,6 +47,11 @@ typedef struct _INITIAL_TEB
     PVOID StackAllocationBase;
 } INITIAL_TEB, *PINITIAL_TEB;
 
+typedef struct _WOW64_PROCESS
+{
+    PVOID Wow64;
+} WOW64_PROCESS, *PWOW64_PROCESS;
+
 #include <ntpebteb.h>
 
 typedef enum _PROCESS_INFORMATION_CLASS
