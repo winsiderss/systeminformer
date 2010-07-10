@@ -122,7 +122,8 @@ NTSTATUS KphConnect2(
     if (
         status != STATUS_NO_SUCH_DEVICE &&
         status != STATUS_NO_SUCH_FILE &&
-        status != STATUS_OBJECT_NAME_NOT_FOUND
+        status != STATUS_OBJECT_NAME_NOT_FOUND &&
+        status != STATUS_OBJECT_PATH_NOT_FOUND
         )
         return status;
 

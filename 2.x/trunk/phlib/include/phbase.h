@@ -2046,6 +2046,10 @@ NTSTATUS PhDosErrorToNtStatus(
     __in ULONG DosError
     );
 
+BOOLEAN PhNtStatusFileNotFound(
+    __in NTSTATUS Status
+    );
+
 // bintree
 
 typedef struct _PH_BINARY_LINKS
