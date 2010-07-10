@@ -219,6 +219,36 @@ VOID PhCreateProcessNode(
     PhAddHashtableEntry(ProcessNodeHashtable, &processNode);
     PhAddListItem(ProcessNodeList, processNode);
 
+    if (PhCsCollapseServicesOnStart)
+    {
+        static BOOLEAN servicesFound = FALSE;
+        static PPH_STRING servicesFileName = NULL;
+
+        if (!servicesFound)
+        {
+            if (!servicesFileName)
+            {
+                PPH_STRING systemDirectory;
+
+                systemDirectory = PhGetSystemDirectory();
+                servicesFileName = PhConcatStrings2(systemDirectory->Buffer, L"\\services.exe");
+                PhDereferenceObject(systemDirectory);
+            }
+
+            // If this process is services.exe, collapse the node and free the string.
+            if (
+                ProcessItem->FileName &&
+                PhStringEquals(ProcessItem->FileName, servicesFileName, TRUE)
+                )
+            {
+                processNode->Node.Expanded = FALSE;
+                PhDereferenceObject(servicesFileName);
+                servicesFileName = NULL;
+                servicesFound = TRUE;
+            }
+        }
+    }
+
     TreeList_NodesStructured(ProcessTreeListHandle);
 }
 

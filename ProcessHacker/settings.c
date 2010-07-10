@@ -39,6 +39,7 @@ VOID PhSettingsInitialization()
     PhInitializeQueuedLock(&PhSettingsLock);
 
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
+    PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
     PhpAddStringSetting(L"DbgHelpPath", L"dbghelp.dll");
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
@@ -138,6 +139,7 @@ VOID PhUpdateCachedSettings()
 {
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
+    UPDATE_INTEGER_CS(CollapseServicesOnStart);
     UPDATE_INTEGER_CS(UpdateInterval);
 
     UPDATE_INTEGER_CS(ColorNew);
