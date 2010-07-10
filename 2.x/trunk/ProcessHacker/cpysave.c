@@ -298,3 +298,90 @@ PPH_LIST PhGetProcessTreeListLines(
 
     return lines;
 }
+
+VOID PhpMapDisplayIndexListView(
+    __in HWND ListViewHandle,
+    __out_ecount(Count) PULONG DisplayToId,
+    __in ULONG Count,
+    __out PULONG NumberOfColumns
+    )
+{
+    LVCOLUMN lvColumn;
+    ULONG i;
+    ULONG count;
+
+    count = 0;
+    lvColumn.mask = LVCF_ORDER;
+
+    for (i = 0; i < Count; i++)
+    {
+        if (ListView_GetColumn(ListViewHandle, i, &lvColumn))
+        {
+            ULONG displayIndex;
+
+            displayIndex = (ULONG)lvColumn.iOrder;
+            assert(displayIndex < Count);
+            DisplayToId[displayIndex] = i;
+
+            count++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    *NumberOfColumns = count;
+}
+
+PPH_STRING PhGetListViewText(
+    __in HWND ListViewHandle
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG displayToId[100];
+    ULONG rows;
+    ULONG columns;
+    ULONG i;
+    ULONG j;
+
+    PhpMapDisplayIndexListView(ListViewHandle, displayToId, 100, &columns);
+    rows = ListView_GetItemCount(ListViewHandle);
+
+    PhInitializeStringBuilder(&stringBuilder, 200);
+
+    for (i = 0; i < rows; i++)
+    {
+        if (!(ListView_GetItemState(ListViewHandle, i, LVIS_SELECTED) & LVIS_SELECTED))
+            continue;
+
+        for (j = 0; j < columns; j++)
+        {
+            LVITEM lvItem;
+            WCHAR buffer[512];
+
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = i;
+            lvItem.iSubItem = j;
+            lvItem.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
+            lvItem.pszText = buffer;
+
+            if (ListView_GetItem(ListViewHandle, &lvItem))
+                PhStringBuilderAppend2(&stringBuilder, buffer);
+
+            PhStringBuilderAppend2(&stringBuilder, L", ");
+        }
+
+        // Remove the trailing comma and space.
+        if (stringBuilder.String->Length != 0)
+            PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+
+        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}

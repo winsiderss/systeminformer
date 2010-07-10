@@ -213,6 +213,19 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                         );
                 }
                 break;
+            case IDC_COPY:
+                {
+                    HWND lvHandle;
+
+                    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+
+                    if (ListView_GetSelectedCount(lvHandle) == 0)
+                        PhSetStateAllListViewItems(lvHandle, LVIS_SELECTED, LVIS_SELECTED);
+
+                    PhCopyListView(lvHandle);
+                    SetFocus(lvHandle);
+                }
+                break;
             }
         }
         break;

@@ -1353,6 +1353,11 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_SERVICE_COPY:
+                {
+                    PhCopyListView(ServiceListViewHandle);
+                }
+                break;
             case ID_NETWORK_GOTOPROCESS:
                 {
                     PPH_NETWORK_ITEM networkItem = PhpGetSelectedNetworkItem();
@@ -1394,6 +1399,11 @@ LRESULT CALLBACK PhMainWndProc(
 
                     PhDereferenceObjects(networkItems, numberOfNetworkItems);
                     PhFree(networkItems);
+                }
+                break;
+            case ID_NETWORK_COPY:
+                {
+                    PhCopyListView(NetworkListViewHandle);
                 }
                 break;
             }
@@ -3121,8 +3131,8 @@ VOID PhpInitializeServiceMenu(
     }
     else
     {
-        // None of the menu items work with multiple items.
         PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_SERVICE_COPY, TRUE);
     }
 
     if (NumberOfServices == 1)
@@ -3225,6 +3235,10 @@ VOID PhMainWndServiceListViewOnNotify(
 
             switch (keyDown->wVKey)
             {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_COPY, 0);
+                break;
             case VK_DELETE:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_DELETE, 0);
                 break;
@@ -3277,6 +3291,7 @@ VOID PhpInitializeNetworkMenu(
     {
         PhEnableAllMenuItems(Menu, FALSE);
         PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, TRUE);
+        PhEnableMenuItem(Menu, ID_NETWORK_COPY, TRUE);
     }
 
     if (WindowsVersion >= WINDOWS_VISTA)
@@ -3352,6 +3367,10 @@ VOID PhMainWndNetworkListViewOnNotify(
 
             switch (keyDown->wVKey)
             {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_COPY, 0);
+                break;
             case VK_RETURN:
                 SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_GOTOPROCESS, 0);
                 break;

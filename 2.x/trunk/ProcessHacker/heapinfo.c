@@ -277,6 +277,11 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+        }
+        break;
     }
 
     REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);

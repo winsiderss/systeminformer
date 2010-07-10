@@ -519,6 +519,13 @@
 #define ID_HEADER_CHOOSECOLUMNS         40189
 #define ID_ESC_EXIT                     40190
 #define ID_PROCESS_COPY                 40194
+#define ID_THREAD_COPY                  40195
+#define ID_PRIVILEGE_COPY               40196
+#define ID_NETWORK_COPY                 40197
+#define ID_SERVICE_COPY                 40198
+#define ID_MODULE_COPY                  40199
+#define ID_HANDLE_COPY                  40200
+#define ID_OBJECT_COPY                  40201
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -526,7 +533,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        179
-#define _APS_NEXT_COMMAND_VALUE         40195
+#define _APS_NEXT_COMMAND_VALUE         40202
 #define _APS_NEXT_CONTROL_VALUE         1220
 #define _APS_NEXT_SYMED_VALUE           120
 #endif

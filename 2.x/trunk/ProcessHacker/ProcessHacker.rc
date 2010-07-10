@@ -181,6 +181,8 @@ BEGIN
             MENUITEM "2",                           ID_I_2
             MENUITEM "3",                           ID_I_3
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_THREAD_COPY
     END
 END
 
@@ -192,6 +194,7 @@ BEGIN
         MENUITEM "Protected",                   ID_HANDLE_PROTECTED
         MENUITEM "Inherit",                     ID_HANDLE_INHERIT
         MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_HANDLE_COPY
         MENUITEM "Prope&rties",                 ID_HANDLE_PROPERTIES
     END
 END
@@ -205,6 +208,7 @@ BEGIN
         MENUITEM "Inspect",                     ID_MODULE_INSPECT
         MENUITEM "Search Online",               ID_MODULE_SEARCHONLINE
         MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
+        MENUITEM "Copy\aCtrl+C",                ID_MODULE_COPY
         MENUITEM "Properties",                  ID_MODULE_PROPERTIES
     END
 END
@@ -290,6 +294,8 @@ BEGIN
         MENUITEM "Pause",                       ID_SERVICE_PAUSE
         MENUITEM "Stop",                        ID_SERVICE_STOP
         MENUITEM "Delete\aDel",                 ID_SERVICE_DELETE
+        MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_SERVICE_COPY
         MENUITEM "Properties\aEnter",           ID_SERVICE_PROPERTIES
     END
 END
@@ -301,6 +307,8 @@ BEGIN
         MENUITEM "Enable",                      ID_PRIVILEGE_ENABLE
         MENUITEM "Disable",                     ID_PRIVILEGE_DISABLE
         MENUITEM "Remove",                      ID_PRIVILEGE_REMOVE
+        MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_PRIVILEGE_COPY
     END
 END
 
@@ -311,6 +319,8 @@ BEGIN
         MENUITEM "Close\aDel",                  ID_OBJECT_CLOSE
         MENUITEM "Process Properties",          ID_OBJECT_PROCESSPROPERTIES
         MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
+        MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_OBJECT_COPY
     END
 END
 
@@ -333,6 +343,8 @@ BEGIN
         MENUITEM "&Go to Process\aEnter",       ID_NETWORK_GOTOPROCESS
         MENUITEM "View Stack",                  ID_NETWORK_VIEWSTACK
         MENUITEM "Close",                       ID_NETWORK_CLOSE
+        MENUITEM SEPARATOR
+        MENUITEM "Copy\aCtrl+C",                ID_NETWORK_COPY
     END
 END
 
@@ -530,6 +542,7 @@ BEGIN
     CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,247,196
     PUSHBUTTON      "Close",IDOK,204,207,50,14
     PUSHBUTTON      "Refresh",IDC_REFRESH,150,207,50,14
+    PUSHBUTTON      "Copy",IDC_COPY,96,207,50,14
 END
 
 IDD_TERMINATOR DIALOGEX 0, 0, 283, 273
