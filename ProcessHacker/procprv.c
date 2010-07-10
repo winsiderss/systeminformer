@@ -1320,6 +1320,8 @@ VOID PhProcessProviderUpdate(
         while (PhEnumHashtable(PhProcessHashtable, (PPVOID)&processItem, &enumerationKey))
         {
             // Check if the process still exists.
+            // TODO: Check CreateTime as well; between updates a process may terminate and 
+            // get replaced by another one with the same PID.
             if (PhIndexOfListItem(pids, (*processItem)->ProcessId) == -1)
             {
                 PPH_PROCESS_ITEM processItem2;
