@@ -1138,6 +1138,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 do
                 {
                     wprintf(L"\t%s (%u) (refs: %d)\n", record->ProcessName->Buffer, (ULONG)record->ProcessId, record->RefCount);
+
+                    if (record->FileName)
+                        wprintf(L"\t\t%s\n", record->FileName->Buffer);
+
                     record = CONTAINING_RECORD(record->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
                 } while (record != startRecord);
             }
