@@ -206,6 +206,8 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_SCROLL (WM_APP + 1221)
 #define TLM_SETCOLUMNORDERARRAY (WM_APP + 1222)
 #define TLM_GETNODETEXT (WM_APP + 1223)
+#define TLM_GETVISIBLENODECOUNT (WM_APP + 1224)
+#define TLM_GETVISIBLENODE (WM_APP + 1225)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -288,6 +290,12 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_GetNodeText(hWnd, GetNodeText) \
     SendMessage((hWnd), TLM_GETNODETEXT, 0, (LPARAM)(GetNodeText))
+
+#define TreeList_GetVisibleNodeCount(hWnd) \
+    ((ULONG)SendMessage((hWnd), TLM_GETVISIBLENODECOUNT, 0, 0))
+
+#define TreeList_GetVisibleNode(hWnd, Index) \
+    ((PPH_TREELIST_NODE)SendMessage((hWnd), TLM_GETVISIBLENODE, (WPARAM)(Index), 0))
 
 BOOLEAN PhTreeListInitialization();
 

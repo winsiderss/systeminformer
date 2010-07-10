@@ -22,6 +22,92 @@
 
 #include <phapp.h>
 
+VOID PhpMapDisplayIndexTreeList(
+    __in HWND TreeListHandle,
+    __out_ecount(PHTLC_MAXIMUM) PULONG DisplayToId,
+    __out_ecount_opt(PHTLC_MAXIMUM) PWSTR *DisplayToText,
+    __out PULONG NumberOfColumns
+    )
+{
+    PH_TREELIST_COLUMN column;
+    ULONG i;
+    ULONG count;
+
+    count = 0;
+
+    for (i = 0; i < PHTLC_MAXIMUM; i++)
+    {
+        column.Id = i;
+
+        if (TreeList_GetColumn(TreeListHandle, &column))
+        {
+            if (column.Visible)
+            {
+                assert(column.DisplayIndex < PHTLC_MAXIMUM);
+
+                DisplayToId[column.DisplayIndex] = i;
+
+                if (DisplayToText)
+                    DisplayToText[column.DisplayIndex] = column.Text;
+
+                count++;
+            }
+        }
+    }
+
+    *NumberOfColumns = count;
+}
+
+PPH_STRING PhGetProcessTreeListText(
+    __in HWND TreeListHandle
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG displayToId[PHTLC_MAXIMUM];
+    ULONG rows;
+    ULONG columns;
+    ULONG i;
+    ULONG j;
+
+    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, NULL, &columns);
+    rows = TreeList_GetVisibleNodeCount(TreeListHandle);
+
+    PhInitializeStringBuilder(&stringBuilder, 200);
+
+    for (i = 0; i < rows; i++)
+    {
+        PH_TL_GETNODETEXT getNodeText;
+
+        getNodeText.Node = TreeList_GetVisibleNode(TreeListHandle, i);
+        assert(getNodeText.Node);
+
+        if (!getNodeText.Node->Selected)
+            continue;
+
+        for (j = 0; j < columns; j++)
+        {
+            getNodeText.Id = displayToId[j];
+            PhInitializeEmptyStringRef(&getNodeText.Text);
+            TreeList_GetNodeText(TreeListHandle, &getNodeText);
+
+            PhStringBuilderAppendEx(&stringBuilder, getNodeText.Text.Buffer, getNodeText.Text.Length);
+            PhStringBuilderAppend2(&stringBuilder, L", ");
+        }
+
+        // Remove the trailing comma and space.
+        if (stringBuilder.String->Length != 0)
+            PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+
+        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
 VOID PhpPopulateTableWithProcessNodes(
     __in HWND TreeListHandle,
     __in PPH_PROCESS_NODE Node,
@@ -79,7 +165,7 @@ VOID PhpPopulateTableWithProcessNodes(
     }
 }
 
-PPH_LIST PhGetProcessTreeListText(
+PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
@@ -110,28 +196,9 @@ PPH_LIST PhGetProcessTreeListText(
     PhInitializeAutoPool(&autoPool);
 
     rows = NumberOfNodes + 1;
-    columns = 0;
 
     // Create the display index to ID map.
-    {
-        PH_TREELIST_COLUMN column;
-
-        for (i = 0; i < PHTLC_MAXIMUM; i++)
-        {
-            column.Id = i;
-
-            if (TreeList_GetColumn(TreeListHandle, &column))
-            {
-                if (column.Visible)
-                {
-                    assert(column.DisplayIndex < PHTLC_MAXIMUM);
-                    displayToId[column.DisplayIndex] = i;
-                    displayToText[column.DisplayIndex] = column.Text;
-                    columns++;
-                }
-            }
-        }
-    }
+    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, displayToText, &columns);
 
     // Create the rows.
 

@@ -1255,6 +1255,11 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_COPY:
+                {
+                    PhCopyProcessTree();
+                }
+                break;
             case ID_SERVICE_GOTOPROCESS:
                 {
                     PPH_SERVICE_ITEM serviceItem = PhpGetSelectedService();
@@ -2873,7 +2878,8 @@ VOID PhpInitializeProcessMenu(
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
-            ID_PROCESS_REDUCEWORKINGSET
+            ID_PROCESS_REDUCEWORKINGSET,
+            ID_PROCESS_COPY
         };
         ULONG i;
 
