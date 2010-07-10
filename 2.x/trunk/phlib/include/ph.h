@@ -263,6 +263,11 @@ NTSTATUS PhGetProcessIsWow64(
     __out PBOOLEAN IsWow64
     );
 
+NTSTATUS PhGetProcessPeb32(
+    __in HANDLE ProcessHandle,
+    __out PPVOID Peb32
+    );
+
 NTSTATUS PhGetProcessIsBeingDebugged(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsBeingDebugged

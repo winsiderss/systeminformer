@@ -862,19 +862,55 @@ NTSTATUS PhGetProcessIsWow64(
     )
 {
     NTSTATUS status;
-    PVOID wow64;
+    WOW64_PROCESS wow64;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessWow64Information,
         &wow64,
-        sizeof(PVOID),
+        sizeof(WOW64_PROCESS),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *IsWow64 = !!wow64;
+        *IsWow64 = !!wow64.Wow64;
+    }
+
+    return status;
+}
+
+/**
+ * Gets a process' WOW64 PEB address.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \param Peb32 A variable which receives the base address 
+ * of the process' WOW64 PEB. If the process is 64-bit, 
+ * the variable receives NULL.
+ *
+ * \remarks Do not use this function under a 32-bit 
+ * environment.
+ */
+NTSTATUS PhGetProcessPeb32(
+    __in HANDLE ProcessHandle,
+    __out PPVOID Peb32
+    )
+{
+    NTSTATUS status;
+    WOW64_PROCESS wow64;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessWow64Information,
+        &wow64,
+        sizeof(WOW64_PROCESS),
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *Peb32 = wow64.Wow64;
     }
 
     return status;
