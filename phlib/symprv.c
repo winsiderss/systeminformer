@@ -51,14 +51,20 @@ PH_MUTEX PhSymMutex;
 
 _SymInitialize SymInitialize_I;
 _SymCleanup SymCleanup_I;
+_SymEnumSymbols SymEnumSymbols_I;
 _SymEnumSymbolsW SymEnumSymbolsW_I;
+_SymFromAddr SymFromAddr_I;
 _SymFromAddrW SymFromAddrW_I;
+_SymFromName SymFromName_I;
 _SymFromNameW SymFromNameW_I;
+_SymGetLineFromAddr64 SymGetLineFromAddr64_I;
 _SymGetLineFromAddrW64 SymGetLineFromAddrW64_I;
 _SymLoadModule64 SymLoadModule64_I;
 _SymGetOptions SymGetOptions_I;
 _SymSetOptions SymSetOptions_I;
+_SymGetSearchPath SymGetSearchPath_I;
 _SymGetSearchPathW SymGetSearchPathW_I;
+_SymSetSearchPath SymSetSearchPath_I;
 _SymSetSearchPathW SymSetSearchPathW_I;
 _SymUnloadModule64 SymUnloadModule64_I;
 _SymFunctionTableAccess64 SymFunctionTableAccess64_I;
@@ -89,17 +95,26 @@ VOID PhSymbolProviderDynamicImport()
     // The user should have loaded dbghelp.dll and symsrv.dll 
     // already. If not, it's not our problem.
 
+    // The Unicode versions aren't available in dbghelp.dll 5.1, so 
+    // we fallback on the ANSI versions.
+
     SymInitialize_I = PhGetProcAddress(L"dbghelp.dll", "SymInitialize");
     SymCleanup_I = PhGetProcAddress(L"dbghelp.dll", "SymCleanup");
-    SymEnumSymbolsW_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW");
-    SymFromAddrW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW");
-    SymFromNameW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromNameW");
-    SymGetLineFromAddrW64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddrW64");
+    if (!(SymEnumSymbolsW_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW")))
+        SymEnumSymbols_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbols");
+    if (!(SymFromAddrW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW")))
+        SymFromAddr_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddr");
+    if (!(SymFromNameW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromNameW")))
+        SymFromName_I = PhGetProcAddress(L"dbghelp.dll", "SymFromName");
+    if (!(SymGetLineFromAddrW64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddrW64")))
+        SymGetLineFromAddr64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddr64");
     SymLoadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymLoadModule64");
     SymGetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymGetOptions");
     SymSetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymSetOptions");
-    SymGetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW");
-    SymSetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW");
+    if (!(SymGetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW")))
+        SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPath");
+    if (!(SymSetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW")))
+        SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPath");
     SymUnloadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymUnloadModule64");
     SymFunctionTableAccess64_I = PhGetProcAddress(L"dbghelp.dll", "SymFunctionTableAccess64");
     SymGetModuleBase64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetModuleBase64");
@@ -278,7 +293,7 @@ BOOLEAN PhGetLineFromAddress(
     ULONG displacement;
     PPH_STRING fileName;
 
-    if (!SymGetLineFromAddrW64_I)
+    if (!SymGetLineFromAddrW64_I && !SymGetLineFromAddr64_I)
         return FALSE;
 
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
@@ -289,15 +304,38 @@ BOOLEAN PhGetLineFromAddress(
 
     PhAcquireMutex(&PhSymMutex);
 
-    result = SymGetLineFromAddrW64_I(
-        SymbolProvider->ProcessHandle,
-        Address,
-        &displacement,
-        &line
-        );
+    if (SymGetLineFromAddrW64_I)
+    {
+        result = SymGetLineFromAddrW64_I(
+            SymbolProvider->ProcessHandle,
+            Address,
+            &displacement,
+            &line
+            );
 
-    if (result)
-        fileName = PhCreateString(line.FileName);
+        if (result)
+            fileName = PhCreateString(line.FileName);
+    }
+    else
+    {
+        IMAGEHLP_LINE64 lineA;
+
+        lineA.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+
+        result = SymGetLineFromAddr64_I(
+            SymbolProvider->ProcessHandle,
+            Address,
+            &displacement,
+            &lineA
+            );
+
+        if (result)
+        {
+            fileName = PhCreateStringFromAnsi(lineA.FileName);
+            line.LineNumber = lineA.LineNumber;
+            line.Address = lineA.Address;
+        }
+    }
 
     PhReleaseMutex(&PhSymMutex);
 
@@ -355,6 +393,42 @@ ULONG64 PhGetModuleFromAddress(
     return 0;
 }
 
+VOID PhpSymbolInfoAnsiToUnicode(
+    __out PSYMBOL_INFOW SymbolInfoW,
+    __in PSYMBOL_INFO SymbolInfoA
+    )
+{
+    SymbolInfoW->TypeIndex = SymbolInfoA->TypeIndex;
+    SymbolInfoW->Index = SymbolInfoA->Index;
+    SymbolInfoW->Size = SymbolInfoA->Size;
+    SymbolInfoW->ModBase = SymbolInfoA->ModBase;
+    SymbolInfoW->Flags = SymbolInfoA->Flags;
+    SymbolInfoW->Value = SymbolInfoA->Value;
+    SymbolInfoW->Address = SymbolInfoA->Address;
+    SymbolInfoW->Register = SymbolInfoA->Register;
+    SymbolInfoW->Scope = SymbolInfoA->Scope;
+    SymbolInfoW->Tag = SymbolInfoA->Tag;
+    SymbolInfoW->NameLen = 0;
+
+    if (SymbolInfoA->NameLen != 0 && SymbolInfoW->MaxNameLen != 0)
+    {
+        ULONG copyCount;
+
+        copyCount = min(SymbolInfoA->NameLen, SymbolInfoW->MaxNameLen - 1);
+
+        if (PhCopyUnicodeStringZFromAnsi(
+            SymbolInfoA->Name,
+            copyCount,
+            SymbolInfoW->Name,
+            SymbolInfoW->MaxNameLen,
+            NULL
+            ))
+        {
+            SymbolInfoW->NameLen = copyCount;
+        }
+    }
+}
+
 PPH_STRING PhGetSymbolFromAddress(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in ULONG64 Address,
@@ -374,7 +448,7 @@ PPH_STRING PhGetSymbolFromAddress(
     ULONG64 modBase;
     PPH_STRING symbolName = NULL;
 
-    if (!SymFromAddrW_I)
+    if (!SymFromAddrW_I && !SymFromAddr_I)
         return NULL;
 
     if (Address == 0)
@@ -399,17 +473,41 @@ PPH_STRING PhGetSymbolFromAddress(
     // Get the symbol name.
 
     PhAcquireMutex(&PhSymMutex);
+
     // Note that we don't care whether this call 
     // succeeds or not, based on the assumption that 
     // it will not write to the symbolInfo structure 
     // if it fails. We've already zeroed the structure, 
     // so we can deal with it.
-    SymFromAddrW_I(
-        SymbolProvider->ProcessHandle,
-        Address,
-        &displacement,
-        symbolInfo
-        );
+
+    if (SymFromAddrW_I)
+    {
+        SymFromAddrW_I(
+            SymbolProvider->ProcessHandle,
+            Address,
+            &displacement,
+            symbolInfo
+            );
+    }
+    else if (SymFromAddr_I)
+    {
+        UCHAR buffer[FIELD_OFFSET(SYMBOL_INFO, Name) + PH_MAX_SYMBOL_NAME_LEN];
+        PSYMBOL_INFO symbolInfoA;
+
+        symbolInfoA = (PSYMBOL_INFO)buffer;
+        memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
+        symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+
+        SymFromAddr_I(
+            SymbolProvider->ProcessHandle,
+            Address,
+            &displacement,
+            symbolInfoA
+            );
+        PhpSymbolInfoAnsiToUnicode(symbolInfo, symbolInfoA);
+    }
+
     PhReleaseMutex(&PhSymMutex);
 
     // Find the module name.
@@ -538,7 +636,7 @@ BOOLEAN PhGetSymbolFromName(
     UCHAR symbolInfoBuffer[FIELD_OFFSET(SYMBOL_INFOW, Name) + PH_MAX_SYMBOL_NAME_LEN * 2];
     BOOL result;
 
-    if (!SymFromNameW_I)
+    if (!SymFromNameW_I && !SymFromName_I)
         return FALSE;
 
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
@@ -553,11 +651,44 @@ BOOLEAN PhGetSymbolFromName(
     // Get the symbol information.
 
     PhAcquireMutex(&PhSymMutex);
-    result = SymFromNameW_I(
-        SymbolProvider->ProcessHandle,
-        Name,
-        symbolInfo
-        );
+
+    if (SymFromNameW_I)
+    {
+        result = SymFromNameW_I(
+            SymbolProvider->ProcessHandle,
+            Name,
+            symbolInfo
+            );
+    }
+    else if (SymFromName_I)
+    {
+        UCHAR buffer[FIELD_OFFSET(SYMBOL_INFO, Name) + PH_MAX_SYMBOL_NAME_LEN];
+        PSYMBOL_INFO symbolInfoA;
+        PPH_ANSI_STRING name;
+
+        symbolInfoA = (PSYMBOL_INFO)buffer;
+        memset(symbolInfoA, 0, sizeof(SYMBOL_INFO));
+        symbolInfoA->SizeOfStruct = sizeof(SYMBOL_INFO);
+        symbolInfoA->MaxNameLen = PH_MAX_SYMBOL_NAME_LEN - 1;
+
+        name = PhCreateAnsiStringFromUnicode(Name);
+
+        if (result = SymFromName_I(
+            SymbolProvider->ProcessHandle,
+            name->Buffer,
+            symbolInfoA
+            ))
+        {
+            PhpSymbolInfoAnsiToUnicode(symbolInfo, symbolInfoA);
+        }
+
+        PhDereferenceObject(name);
+    }
+    else
+    {
+        result = FALSE;
+    }
+
     PhReleaseMutex(&PhSymMutex);
 
     if (!result)
@@ -656,7 +787,7 @@ VOID PhSymbolProviderSetSearchPath(
     __in PWSTR SearchPath
     )
 {
-    if (!SymSetSearchPathW_I)
+    if (!SymSetSearchPathW_I && !SymSetSearchPath_I)
         return;
 
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
@@ -664,7 +795,20 @@ VOID PhSymbolProviderSetSearchPath(
 #endif
 
     PhAcquireMutex(&PhSymMutex);
-    SymSetSearchPathW_I(SymbolProvider->ProcessHandle, SearchPath);
+
+    if (SymSetSearchPathW_I)
+    {
+        SymSetSearchPathW_I(SymbolProvider->ProcessHandle, SearchPath);
+    }
+    else if (SymSetSearchPath_I)
+    {
+        PPH_ANSI_STRING searchPath;
+
+        searchPath = PhCreateAnsiStringFromUnicode(SearchPath);
+        SymSetSearchPath_I(SymbolProvider->ProcessHandle, searchPath->Buffer);
+        PhDereferenceObject(searchPath);
+    }
+
     PhReleaseMutex(&PhSymMutex);
 }
 
