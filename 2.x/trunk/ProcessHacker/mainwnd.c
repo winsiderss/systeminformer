@@ -603,22 +603,37 @@ LRESULT CALLBACK PhMainWndProc(
                         { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
                         { L"All files (*.*)", L"*.*" }
                     };
-                    PVOID saveFileDialog = PhCreateSaveFileDialog();
+                    PVOID fileDialog = PhCreateSaveFileDialog();
 
-                    PhSetFileDialogFilter(saveFileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                    PhSetFileDialogFileName(fileDialog, L"Process Hacker.txt");
 
-                    if (PhShowFileDialog(hWnd, saveFileDialog))
+                    if (PhShowFileDialog(hWnd, fileDialog))
                     {
+                        NTSTATUS status;
                         PPH_STRING fileName;
+                        PPH_FILE_STREAM fileStream;
 
-                        fileName = PhGetFileDialogFileName(saveFileDialog);
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        PhaDereferenceObject(fileName);
 
-                        PhShowError(hWnd, L"This feature has not been implemented yet.");
+                        if (NT_SUCCESS(status = PhCreateFileStream(
+                            &fileStream,
+                            fileName->Buffer,
+                            FILE_GENERIC_WRITE,
+                            FILE_SHARE_READ,
+                            FILE_OVERWRITE_IF,
+                            0
+                            )))
+                        {
+                            PhWritePhTextHeader(fileStream);
+                            PhWriteProcessTree(fileStream);
 
-                        PhDereferenceObject(fileName);
+                            PhDereferenceObject(fileStream);
+                        }
                     }
 
-                    PhFreeFileDialog(saveFileDialog);
+                    PhFreeFileDialog(fileDialog);
                 }
                 break;
             case ID_HACKER_FINDHANDLESORDLLS:
