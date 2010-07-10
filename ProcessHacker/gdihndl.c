@@ -355,6 +355,11 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
     }
 
     return FALSE;

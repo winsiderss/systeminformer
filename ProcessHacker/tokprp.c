@@ -628,6 +628,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
                     ExtendedListView_SortItems(tokenPageContext->PrivilegesListViewHandle);
                 }
                 break;
+            case ID_PRIVILEGE_COPY:
+                {
+                    PhCopyListView(tokenPageContext->PrivilegesListViewHandle);
+                }
+                break;
             case IDC_ADVANCED:
                 {
                     PhpShowTokenAdvancedProperties(hwndDlg, tokenPageContext);
@@ -639,6 +644,9 @@ INT_PTR CALLBACK PhpTokenPageProc(
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
+
+            PhHandleListViewNotifyForCopy(lParam, tokenPageContext->GroupsListViewHandle);
+            PhHandleListViewNotifyForCopy(lParam, tokenPageContext->PrivilegesListViewHandle);
 
             switch (header->code)
             {

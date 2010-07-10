@@ -414,6 +414,12 @@ INT_PTR CALLBACK PhpJobPageProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_PROCESSES));
+            PhHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIMITS));
+        }
+        break;
     }
 
     return FALSE;

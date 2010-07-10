@@ -106,6 +106,7 @@ VOID PhpInitializeFindObjMenu(
     else
     {
         PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_OBJECT_COPY, TRUE);
     }
 
     for (i = 0; i < NumberOfResults; i++)
@@ -379,6 +380,11 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     }
                 }
                 break;
+            case ID_OBJECT_COPY:
+                {
+                    PhCopyListView(PhFindObjectsListViewHandle);
+                }
+                break;
             }
         }
         break;
@@ -442,6 +448,10 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                         switch (keyDown->wVKey)
                         {
+                        case 'C':
+                            if (GetKeyState(VK_CONTROL) < 0)
+                                SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_COPY, 0);
+                            break;
                         case VK_DELETE:
                             SendMessage(hwndDlg, WM_COMMAND, ID_OBJECT_CLOSE, 0);
                             break;
