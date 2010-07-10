@@ -1113,7 +1113,7 @@ INT_PTR CALLBACK PhpSysInfoPanelDlgProc(
             SetDlgItemText(hwndDlg, IDC_ZNONPAGEDFREES_V,
                 PhaFormatUInt64(PhPerfInformation.NonPagedPoolFrees, TRUE)->Buffer);
 
-            if (MmAddressesInitialized)
+            if (MmAddressesInitialized && (MmSizeOfPagedPoolInBytes || MmMaximumNonPagedPoolInBytes))
             {
                 SIZE_T paged;
                 SIZE_T nonPaged;
