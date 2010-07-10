@@ -1271,6 +1271,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
         {
             switch ((SHORT)Parameter1)
             {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_COPY, 0);
+                break;
             case VK_DELETE:
                 if (GetKeyState(VK_SHIFT) >= 0)
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
@@ -1435,6 +1439,15 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
 }
 
+VOID PhCopyProcessTree()
+{
+    PPH_STRING text;
+
+    text = PhGetProcessTreeListText(ProcessTreeListHandle);
+    PhSetClipboardString(ProcessTreeListHandle, &text->sr);
+    PhDereferenceObject(text);
+}
+
 VOID PhWriteProcessTree(
     __inout PPH_FILE_STREAM FileStream
     )
@@ -1442,7 +1455,7 @@ VOID PhWriteProcessTree(
     PPH_LIST lines;
     ULONG i;
 
-    lines = PhGetProcessTreeListText(
+    lines = PhGetProcessTreeListLines(
         ProcessTreeListHandle,
         ProcessNodeList->Count,
         ProcessNodeRootList,

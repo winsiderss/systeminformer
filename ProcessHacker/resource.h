@@ -334,7 +334,6 @@
 #define IDC_ZPAGEDFREES_V               1218
 #define IDC_DBGHELPSEARCHPATH           1218
 #define IDC_ZPAGEDLIMIT_V               1219
-#define IDC_CHECK1                      1219
 #define IDC_COLLAPSESERVICES            1219
 #define IDC_ZNONPAGEDUSAGE_V            1220
 #define IDC_ZNONPAGEDALLOCS_V           1221
@@ -519,6 +518,7 @@
 #define ID_MISCELLANEOUS_GDIHANDLES     40188
 #define ID_HEADER_CHOOSECOLUMNS         40189
 #define ID_ESC_EXIT                     40190
+#define ID_PROCESS_COPY                 40194
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -526,7 +526,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        179
-#define _APS_NEXT_COMMAND_VALUE         40194
+#define _APS_NEXT_COMMAND_VALUE         40195
 #define _APS_NEXT_CONTROL_VALUE         1220
 #define _APS_NEXT_SYMED_VALUE           120
 #endif

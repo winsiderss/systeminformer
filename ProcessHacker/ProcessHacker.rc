@@ -276,6 +276,7 @@ BEGIN
         MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
+        MENUITEM "Copy\aCtrl+C",                ID_PROCESS_COPY
     END
 END
 
