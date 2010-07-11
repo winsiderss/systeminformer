@@ -1344,6 +1344,12 @@ NTSTATUS PhFileStreamWriteStringAsAnsi2(
     __in PWSTR String
     );
 
+NTSTATUS PhFileStreamWriteStringAsAnsiEx(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
 NTSTATUS PhFileStreamWriteStringFormat_V(
     __inout PPH_FILE_STREAM FileStream,
     __in __format_string PWSTR Format,
