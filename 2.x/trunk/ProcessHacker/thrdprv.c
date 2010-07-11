@@ -691,7 +691,7 @@ VOID PhThreadProviderUpdate(
                 );
 
             if (!NT_SUCCESS(NtQuerySystemInformation(
-                SystemProcessorIdleCycleTime,
+                SystemProcessorIdleCycleTimeInformation,
                 idleThreadCycleTimes,
                 sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
                 NULL

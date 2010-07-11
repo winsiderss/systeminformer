@@ -574,6 +574,11 @@ NtAllocateUuids(
 
 // System Information
 
+// begin_rev
+// source:http://www.7747.net/Article/200905/38047.html
+// source:GetProcessorSystemCycleTime
+// source:http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx
+
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
     SystemBasicInformation,
@@ -659,7 +664,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryListInformation, // 80
     SystemFileCacheInformationEx,
     SystemNotImplemented19,
-    SystemProcessorIdleCycleTime, // array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
+    SystemProcessorIdleCycleTimeInformation, // array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
     SystemVerifierInformation2,
     SystemNotImplemented20,
     SystemRefTraceInformation, // ObQueryRefTraceInformation
@@ -676,7 +681,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemNotImplemented25,
     SystemPartitionDeviceNameInformation,
     SystemDiskDeviceNameInformation, // this and SystemPartitionInformation both call IoQuerySystemDeviceName
-    SystemPerformanceDistributionInformation, // 100
+    SystemProcessorPerformanceDistribution, // 100
     SystemNumaProximityNodeInformation,
     SystemTimeZoneInformation2,
     SystemCodeIntegrityInformation, // SeCodeIntegrityQueryInformation
@@ -684,7 +689,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorBrandStringInformation, // HalDispatchTable -> HalpGetProcessorBrandString, info class 23
     SystemVaInformation, // MmQuerySystemVaInformation
     SystemLogicalProcessorRelationshipInformation, // KeQueryLogicalProcessorRelationship
-    SystemProcessorCycleTime, // array of ULARGE_INTEGERs, one for each processor
+    SystemProcessorCycleTimeInformation, // array of ULARGE_INTEGERs, one for each processor
     SystemStoreInformation, // SmQueryStoreInformation
     SystemRegistryAppendStringInformation, // 110
     SystemNotImplemented28,
@@ -702,6 +707,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryCommitmentInformation,
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
+
+// end_rev
 
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
