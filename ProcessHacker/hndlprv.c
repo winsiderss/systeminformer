@@ -354,7 +354,7 @@ NTSTATUS PhpEnumHandlesGeneric(
                 if (count == allocatedCount)
                 {
                     allocatedCount *= 2;
-                    convertedHandles = PhReAlloc(
+                    convertedHandles = PhReAllocate(
                         convertedHandles,
                         FIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles) +
                         sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX) * allocatedCount

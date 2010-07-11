@@ -105,6 +105,10 @@ static VOID PhpPrintObjectInfo(
     {
         wprintf(L"\t%.32S", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
     }
+    else if (ObjectHeader->Type == PhFullStringType)
+    {
+        wprintf(L"\t%.32s", ((PPH_FULL_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+    }
     else if (ObjectHeader->Type == PhListType)
     {
         wprintf(L"\tCount: %u", ((PPH_LIST)PhObjectHeaderToObject(ObjectHeader))->Count);
@@ -162,6 +166,10 @@ static VOID PhpDumpObjectInfo(
         else if (ObjectHeader->Type == PhAnsiStringType)
         {
             wprintf(L"%S\n", ((PPH_ANSI_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
+        }
+        else if (ObjectHeader->Type == PhFullStringType)
+        {
+            wprintf(L"%s\n", ((PPH_FULL_STRING)PhObjectHeaderToObject(ObjectHeader))->Buffer);
         }
         else if (ObjectHeader->Type == PhHashtableType)
         {

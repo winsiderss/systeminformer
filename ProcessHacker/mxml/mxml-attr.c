@@ -289,7 +289,7 @@ mxml_set_attr(mxml_node_t *node,	/* I - Element node */
   if (node->value.element.num_attrs == 0)
     attr = PhAllocateSafe(sizeof(mxml_attr_t));
   else
-    attr = PhReAllocSafe(node->value.element.attrs,
+    attr = PhReAllocateSafe(node->value.element.attrs,
                    (node->value.element.num_attrs + 1) * sizeof(mxml_attr_t));
 
   if (!attr)

@@ -642,7 +642,7 @@ mxml_add_char(int  ch,			/* I  - Character to add */
     else
       (*bufsize) += 1024;
 
-    if ((newbuffer = PhReAllocSafe(*buffer, *bufsize)) == NULL)
+    if ((newbuffer = PhReAllocateSafe(*buffer, *bufsize)) == NULL)
     {
       PhFree(*buffer);
 

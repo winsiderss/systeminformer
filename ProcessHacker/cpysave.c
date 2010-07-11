@@ -58,12 +58,11 @@ VOID PhpMapDisplayIndexTreeList(
     *NumberOfColumns = count;
 }
 
-PPH_STRING PhGetProcessTreeListText(
+PPH_FULL_STRING PhGetProcessTreeListText(
     __in HWND TreeListHandle
     )
 {
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
+    PPH_FULL_STRING string;
     ULONG displayToId[PHTLC_MAXIMUM];
     ULONG rows;
     ULONG columns;
@@ -73,7 +72,7 @@ PPH_STRING PhGetProcessTreeListText(
     PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, NULL, &columns);
     rows = TreeList_GetVisibleNodeCount(TreeListHandle);
 
-    PhInitializeStringBuilder(&stringBuilder, 200);
+    string = PhCreateFullString2(0x100);
 
     for (i = 0; i < rows; i++)
     {
@@ -91,19 +90,16 @@ PPH_STRING PhGetProcessTreeListText(
             PhInitializeEmptyStringRef(&getNodeText.Text);
             TreeList_GetNodeText(TreeListHandle, &getNodeText);
 
-            PhStringBuilderAppendEx(&stringBuilder, getNodeText.Text.Buffer, getNodeText.Text.Length);
-            PhStringBuilderAppend2(&stringBuilder, L", ");
+            PhFullStringAppendEx(string, getNodeText.Text.Buffer, getNodeText.Text.Length);
+            PhFullStringAppend2(string, L", ");
         }
 
         // Remove the trailing comma and space.
-        if (stringBuilder.String->Length != 0)
-            PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+        if (string->Length != 0)
+            PhFullStringRemove(string, string->Length / 2 - 2, 2);
 
-        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+        PhFullStringAppend2(string, L"\r\n");
     }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }
@@ -334,12 +330,11 @@ VOID PhpMapDisplayIndexListView(
     *NumberOfColumns = count;
 }
 
-PPH_STRING PhGetListViewText(
+PPH_FULL_STRING PhGetListViewText(
     __in HWND ListViewHandle
     )
 {
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
+    PPH_FULL_STRING string;
     ULONG displayToId[100];
     ULONG rows;
     ULONG columns;
@@ -349,7 +344,7 @@ PPH_STRING PhGetListViewText(
     PhpMapDisplayIndexListView(ListViewHandle, displayToId, 100, &columns);
     rows = ListView_GetItemCount(ListViewHandle);
 
-    PhInitializeStringBuilder(&stringBuilder, 200);
+    string = PhCreateFullString2(0x100);
 
     for (i = 0; i < rows; i++)
     {
@@ -368,20 +363,17 @@ PPH_STRING PhGetListViewText(
             lvItem.pszText = buffer;
 
             if (ListView_GetItem(ListViewHandle, &lvItem))
-                PhStringBuilderAppend2(&stringBuilder, buffer);
+                PhFullStringAppend2(string, buffer);
 
-            PhStringBuilderAppend2(&stringBuilder, L", ");
+            PhFullStringAppend2(string, L", ");
         }
 
         // Remove the trailing comma and space.
-        if (stringBuilder.String->Length != 0)
-            PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+        if (string->Length != 0)
+            PhFullStringRemove(string, string->Length / 2 - 2, 2);
 
-        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+        PhFullStringAppend2(string, L"\r\n");
     }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }

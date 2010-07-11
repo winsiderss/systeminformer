@@ -431,6 +431,12 @@ VOID PhSetClipboardString(
     __in PPH_STRINGREF String
     );
 
+VOID PhSetClipboardStringEx(
+    __in HWND hWnd,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
 #define PH_ANCHOR_LEFT 0x1
 #define PH_ANCHOR_TOP 0x2
 #define PH_ANCHOR_RIGHT 0x4

@@ -1493,10 +1493,10 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 
 VOID PhCopyProcessTree()
 {
-    PPH_STRING text;
+    PPH_FULL_STRING text;
 
     text = PhGetProcessTreeListText(ProcessTreeListHandle);
-    PhSetClipboardString(ProcessTreeListHandle, &text->sr);
+    PhSetClipboardStringEx(ProcessTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
 

@@ -30,6 +30,11 @@ typedef struct _PHP_BASE_THREAD_CONTEXT
     PVOID Parameter;
 } PHP_BASE_THREAD_CONTEXT, *PPHP_BASE_THREAD_CONTEXT;
 
+VOID NTAPI PhpFullStringDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    );
+
 VOID NTAPI PhpListDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -54,6 +59,7 @@ VOID NTAPI PhpHashtableDeleteProcedure(
 
 PPH_OBJECT_TYPE PhStringType;
 PPH_OBJECT_TYPE PhAnsiStringType;
+PPH_OBJECT_TYPE PhFullStringType;
 PPH_OBJECT_TYPE PhListType;
 PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
@@ -132,6 +138,18 @@ BOOLEAN PhInitializeBase()
         L"AnsiString",
         0,
         NULL
+        )))
+        return FALSE;
+
+    parameters.FreeListSize = sizeof(PH_FULL_STRING);
+    parameters.FreeListCount = 32;
+
+    if (!NT_SUCCESS(PhCreateObjectTypeEx(
+        &PhFullStringType,
+        L"FullString",
+        PHOBJTYPE_USE_FREE_LIST,
+        PhpFullStringDeleteProcedure,
+        &parameters
         )))
         return FALSE;
 
@@ -433,7 +451,7 @@ VOID PhFree(
  * the block of memory, it raises a 
  * STATUS_INSUFFICIENT_RESOURCES exception.
  */
-__mayRaise PVOID PhReAlloc(
+__mayRaise PVOID PhReAllocate(
     __in PVOID Memory,
     __in SIZE_T Size
     )
@@ -461,7 +479,7 @@ __mayRaise PVOID PhReAlloc(
  * The existing contents of the memory block are 
  * copied to the new block.
  */
-PVOID PhReAllocSafe(
+PVOID PhReAllocateSafe(
     __in PVOID Memory,
     __in SIZE_T Size
     )
@@ -1159,6 +1177,260 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
 }
 
 /**
+ * Creates a string object from an existing 
+ * null-terminated string.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ */
+PPH_FULL_STRING PhCreateFullString(
+    __in PWSTR Buffer
+    )
+{
+    SIZE_T length;
+
+    length = wcslen(Buffer) * sizeof(WCHAR);
+
+    return PhCreateFullStringEx(Buffer, length, length);
+}
+
+/**
+ * Creates a string object.
+ *
+ * \param InitialCapacity The number of bytes to allocate 
+ * for the string. This should not include space for a null 
+ * terminator.
+ */
+PPH_FULL_STRING PhCreateFullString2(
+    __in SIZE_T InitialCapacity
+    )
+{
+    return PhCreateFullStringEx(NULL, 0, InitialCapacity);
+}
+
+/**
+ * Creates a string object using a specified length.
+ *
+ * \param Buffer A null-terminated Unicode string.
+ * \param Length The length, in bytes, of the string.
+ * \param InitialCapacity The number of bytes to allocate 
+ * for the string. This should not include space for a null 
+ * terminator. If the specified value is less than \a Length, 
+ * \a Length bytes are still allocated.
+ */
+PPH_FULL_STRING PhCreateFullStringEx(
+    __in_opt PWSTR Buffer,
+    __in SIZE_T Length,
+    __in_opt SIZE_T InitialCapacity
+    )
+{
+    PPH_FULL_STRING string;
+
+    if (!NT_SUCCESS(PhCreateObject(
+        &string,
+        sizeof(PH_FULL_STRING), // null terminator
+        0,
+        PhFullStringType,
+        0
+        )))
+        return NULL;
+
+    if (InitialCapacity < Length)
+        InitialCapacity = Length;
+
+    string->Length = Length;
+    string->AllocatedLength = InitialCapacity;
+    string->Buffer = PhAllocate(string->AllocatedLength + sizeof(WCHAR));
+    string->Buffer[Length / sizeof(WCHAR)] = 0;
+
+    if (Buffer)
+    {
+        memcpy(string->Buffer, Buffer, Length);
+    }
+
+    return string;
+}
+
+VOID NTAPI PhpFullStringDeleteProcedure(
+    __in PVOID Object,
+    __in ULONG Flags
+    )
+{
+    PPH_FULL_STRING string = (PPH_FULL_STRING)Object;
+
+    PhFree(string->Buffer);
+}
+
+FORCEINLINE VOID PhpWriteFullStringNullTerminator(
+    __in PPH_FULL_STRING String
+    )
+{
+    String->Buffer[String->Length / sizeof(WCHAR)] = 0;
+}
+
+/**
+ * Resizes a string object.
+ *
+ * \param String A string object.
+ * \param NewLength The new required length of the string object. 
+ * This should not include space for a null terminator.
+ * \param Growing TRUE to use sizing logic for growing strings, 
+ * otherwise FALSE to resize to the exact specified length.
+ */
+VOID PhResizeFullString(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T NewLength,
+    __in BOOLEAN Growing
+    )
+{
+    if (Growing)
+    {
+        assert(NewLength >= String->AllocatedLength);
+
+        // Double the string size. If that still isn't 
+        // enough room, just use the new length.
+        String->AllocatedLength *= 2;
+
+        if (String->AllocatedLength < NewLength)
+            String->AllocatedLength = NewLength;
+    }
+    else
+    {
+        String->AllocatedLength = NewLength;
+
+        // This check only applies when we're shortening the string.
+        if (String->Length > String->AllocatedLength)
+            String->Length = String->AllocatedLength;
+    }
+
+    // Resize the buffer.
+    String->Buffer = PhReAllocate(String->Buffer, String->AllocatedLength + sizeof(WCHAR));
+    // Make sure we have a null terminator.
+    PhpWriteFullStringNullTerminator(String);
+}
+
+/**
+ * Appends a string to the end of a string.
+ *
+ * \param String A string object.
+ * \param ShortString The string to append.
+ */
+VOID PhFullStringAppend(
+    __inout PPH_FULL_STRING String,
+    __in PPH_STRING ShortString
+    )
+{
+    PhFullStringAppendEx(
+        String,
+        ShortString->Buffer,
+        ShortString->Length
+        );
+}
+
+/**
+ * Appends a string to the end of a string.
+ *
+ * \param String A string object.
+ * \param StringZ The string to append.
+ */
+VOID PhFullStringAppend2(
+    __inout PPH_FULL_STRING String,
+    __in PWSTR StringZ
+    )
+{
+    PhFullStringAppendEx(
+        String,
+        StringZ,
+        wcslen(StringZ) * sizeof(WCHAR)
+        );
+}
+
+/**
+ * Appends a string to the end of a string.
+ *
+ * \param String A string object.
+ * \param Buffer The string to append.
+ * \param Length The number of bytes to append.
+ */
+VOID PhFullStringAppendEx(
+    __inout PPH_FULL_STRING String,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    )
+{
+    if (Length == 0)
+        return;
+
+    // Resize the string is necessary.
+    if (String->AllocatedLength < String->Length + Length)
+        PhResizeFullString(String, String->Length + Length, TRUE);
+
+    memcpy(
+        &String->Buffer[String->Length / sizeof(WCHAR)],
+        Buffer,
+        Length
+        );
+    String->Length += Length;
+    PhpWriteFullStringNullTerminator(String);
+}
+
+/**
+ * Appends a character to the end of a string.
+ *
+ * \param String A string object.
+ * \param Character The character to append.
+ */
+VOID PhFullStringAppendChar(
+    __inout PPH_FULL_STRING String,
+    __in WCHAR Character
+    )
+{
+    if (String->AllocatedLength < String->Length + sizeof(WCHAR))
+        PhResizeFullString(String, String->Length + sizeof(WCHAR), TRUE);
+
+    String->Buffer[String->Length / sizeof(WCHAR)] = Character;
+    String->Length += sizeof(WCHAR);
+    PhpWriteFullStringNullTerminator(String);
+}
+
+/**
+ * Appends a formatted string to the end of a string.
+ *
+ * \param String A string object.
+ * \param Format The format-control string.
+ */
+VOID PhFullStringAppendFormat(
+    __inout PPH_FULL_STRING String,
+    __in __format_string PWSTR Format,
+    ...
+    )
+{
+    va_list argptr;
+    PPH_STRING string;
+
+    va_start(argptr, Format);
+    string = PhFormatString_V(Format, argptr);
+    PhFullStringAppend(String, string);
+    PhDereferenceObject(string);
+}
+
+VOID PhFullStringRemove(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T StartIndex,
+    __in SIZE_T Count
+    )
+{
+    // Overwrite the removed part with the part behind it.
+
+    memmove(
+        &String->Buffer[StartIndex],
+        &String->Buffer[StartIndex + Count],
+        String->Length - (Count + StartIndex) * sizeof(WCHAR)
+        );
+    String->Length -= Count * sizeof(WCHAR);
+    PhpWriteFullStringNullTerminator(String);
+}
+
+/**
  * Initializes a string builder object.
  *
  * \param StringBuilder A string builder object.
@@ -1495,7 +1767,7 @@ VOID PhStringBuilderRemove(
     // Overwrite the removed part with the part 
     // behind it.
 
-    memcpy(
+    memmove(
         &StringBuilder->String->Buffer[StartIndex],
         &StringBuilder->String->Buffer[StartIndex + Count],
         StringBuilder->String->Length - (Count + StartIndex) * sizeof(WCHAR)
@@ -1561,7 +1833,7 @@ VOID PhAddListItem(
     if (List->Count == List->AllocatedCount)
     {
         List->AllocatedCount *= 2;
-        List->Items = PhReAlloc(List->Items, List->AllocatedCount * sizeof(PVOID));
+        List->Items = PhReAllocate(List->Items, List->AllocatedCount * sizeof(PVOID));
     }
 
     List->Items[List->Count++] = Item;
@@ -1588,7 +1860,7 @@ VOID PhAddListItems(
         if (List->AllocatedCount < List->Count + Count)
             List->AllocatedCount = List->Count + Count;
 
-        List->Items = PhReAlloc(List->Items, List->AllocatedCount * sizeof(PVOID));
+        List->Items = PhReAllocate(List->Items, List->AllocatedCount * sizeof(PVOID));
     }
 
     memcpy(
@@ -1677,7 +1949,7 @@ VOID PhInsertListItems(
         if (List->AllocatedCount < List->Count + Count)
             List->AllocatedCount = List->Count + Count;
 
-        List->Items = PhReAlloc(List->Items, List->AllocatedCount * sizeof(PVOID));
+        List->Items = PhReAllocate(List->Items, List->AllocatedCount * sizeof(PVOID));
     }
 
     if (Index < List->Count)
@@ -1907,7 +2179,7 @@ HANDLE PhAddPointerListItem(
         if (PointerList->NextEntry == PointerList->AllocatedCount)
         {
             PointerList->AllocatedCount *= 2;
-            PointerList->Items = PhReAlloc(PointerList->Items, PointerList->AllocatedCount * sizeof(PVOID));
+            PointerList->Items = PhReAllocate(PointerList->Items, PointerList->AllocatedCount * sizeof(PVOID));
         }
 
         index = PointerList->NextEntry++;
@@ -2262,7 +2534,7 @@ VOID PhpResizeHashtable(
 
     // Re-allocate the entries.
     Hashtable->AllocatedEntries = Hashtable->AllocatedBuckets;
-    Hashtable->Entries = PhReAlloc(
+    Hashtable->Entries = PhReAllocate(
         Hashtable->Entries,
         PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize) * Hashtable->AllocatedEntries
         );
