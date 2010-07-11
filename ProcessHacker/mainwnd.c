@@ -1608,9 +1608,16 @@ LRESULT CALLBACK PhMainWndProc(
         {
             switch (LOWORD(lParam))
             {
+            case WM_LBUTTONDOWN:
+                {
+                    if (PhGetIntegerSetting(L"IconSingleClick"))
+                        SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                }
+                break;
             case WM_LBUTTONDBLCLK:
                 {
-                    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                    if (!PhGetIntegerSetting(L"IconSingleClick"))
+                        SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0);
                 }
                 break;
             case WM_RBUTTONUP:
