@@ -126,7 +126,7 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING JobName;
     HANDLE ConsoleHostProcessId;
 
-    // Signature
+    // Signature, Packed
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;

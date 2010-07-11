@@ -21,7 +21,7 @@
  */
 
 #define SETTINGS_PRIVATE
-#include <ph.h>
+#include <phapp.h>
 #include <settings.h>
 #include <settingsp.h>
 
@@ -45,6 +45,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
+    PhpAddIntegerSetting(L"EnableProcDb", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");
@@ -141,6 +142,7 @@ VOID PhUpdateCachedSettings()
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
     UPDATE_INTEGER_CS(CollapseServicesOnStart);
+    UPDATE_INTEGER_CS(EnableProcDb);
     UPDATE_INTEGER_CS(UpdateInterval);
 
     UPDATE_INTEGER_CS(ColorNew);
@@ -371,38 +373,6 @@ static PVOID PhpLookupSetting(
         );
 
     return setting;
-}
-
-static PPH_STRING PhpJoinXmlTextNodes(
-    __in mxml_node_t *node
-    )
-{
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, 10);
-
-    while (node)
-    {
-        if (node->type == MXML_TEXT)
-        {
-            PPH_STRING textString;
-
-            if (node->value.text.whitespace)
-                PhStringBuilderAppendChar(&stringBuilder, ' ');
-
-            textString = PhCreateStringFromAnsi(node->value.text.string);
-            PhStringBuilderAppend(&stringBuilder, textString);
-            PhDereferenceObject(textString);
-        }
-
-        node = node->next;
-    }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
 }
 
 __mayRaise ULONG PhGetIntegerSetting(
@@ -649,7 +619,7 @@ NTSTATUS PhLoadSettings(
         {
             PPH_STRING settingValue;
 
-            settingValue = PhpJoinXmlTextNodes(currentNode->child);
+            settingValue = PhJoinXmlTextNodes(currentNode->child);
 
             PhAcquireQueuedLockExclusive(&PhSettingsLock);
 

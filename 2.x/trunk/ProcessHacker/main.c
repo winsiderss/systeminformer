@@ -32,6 +32,7 @@ VOID PhpProcessStartupParameters();
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 PPH_STRING PhLocalSystemName = NULL;
+PPH_STRING PhProcDbFileName = NULL;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters;
 PWSTR PhWindowClassName = L"ProcessHacker";

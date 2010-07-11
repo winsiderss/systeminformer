@@ -1945,6 +1945,16 @@ ULONG PhLog2(
     __in ULONG Exponent
     );
 
+BOOLEAN PhHexStringToBuffer(
+    __in PPH_STRING String,
+    __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
+    );
+
+PPH_STRING PhBufferToHexString(
+    __in PUCHAR Buffer,
+    __in ULONG Length
+    );
+
 BOOLEAN PhStringToInteger64(
     __in PPH_STRINGREF String,
     __in_opt ULONG Base,

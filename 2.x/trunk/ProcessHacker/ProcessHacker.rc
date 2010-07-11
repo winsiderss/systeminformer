@@ -279,6 +279,7 @@ BEGIN
         END
         MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
+        MENUITEM "Mark as Safe",                ID_PROCESS_MARKASSAFE
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
         MENUITEM "Copy\aCtrl+C",                ID_PROCESS_COPY
     END
@@ -1055,6 +1056,7 @@ BEGIN
     CONTROL         "Start hidden",IDC_STARTHIDDEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,55,10
     CONTROL         "Collapse services on start",IDC_COLLAPSESERVICES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,141,55,98,10
     CONTROL         "Single-click tray icons",IDC_ICONSINGLECLICK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,141,67,83,10
+    CONTROL         "Enable process database",IDC_ENABLEPROCDB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,141,79,96,10
 END
 
 IDD_OPTHIGHLIGHTING DIALOGEX 0, 0, 250, 174
