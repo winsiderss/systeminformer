@@ -863,43 +863,7 @@ NTSTATUS PhFileStreamWriteStringAsAnsi(
     __in PPH_STRINGREF String
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
-    PWSTR buffer;
-    ULONG length;
-    PH_STRINGREF block;
-    ANSI_STRING ansiString;
-
-    buffer = String->Buffer;
-    length = String->Length;
-
-    while (length != 0)
-    {
-        block.Buffer = buffer;
-        block.Length = PH_FILE_STREAM_STRING_BLOCK_SIZE;
-
-        if (block.Length > length)
-            block.Length = (USHORT)length;
-
-        if (!NT_SUCCESS(status = RtlUnicodeStringToAnsiString(
-            &ansiString,
-            &block.us,
-            TRUE
-            )))
-            return status;
-
-        PhFileStreamWrite(
-            FileStream,
-            ansiString.Buffer,
-            ansiString.Length
-            );
-
-        RtlFreeAnsiString(&ansiString);
-
-        buffer += block.Length / sizeof(WCHAR);
-        length -= block.Length;
-    }
-
-    return status;
+    return PhFileStreamWriteStringAsAnsiEx(FileStream, String->Buffer, String->Length);
 }
 
 NTSTATUS PhFileStreamWriteStringAsAnsi2(
@@ -912,6 +876,46 @@ NTSTATUS PhFileStreamWriteStringAsAnsi2(
     PhInitializeStringRef(&string, String);
 
     return PhFileStreamWriteStringAsAnsi(FileStream, &string);
+}
+
+NTSTATUS PhFileStreamWriteStringAsAnsiEx(
+    __inout PPH_FILE_STREAM FileStream,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    UNICODE_STRING block;
+    ANSI_STRING ansiString;
+
+    while (Length != 0)
+    {
+        block.Buffer = Buffer;
+        block.Length = PH_FILE_STREAM_STRING_BLOCK_SIZE;
+
+        if (block.Length > Length)
+            block.Length = (USHORT)Length;
+
+        if (!NT_SUCCESS(status = RtlUnicodeStringToAnsiString(
+            &ansiString,
+            &block,
+            TRUE
+            )))
+            return status;
+
+        PhFileStreamWrite(
+            FileStream,
+            ansiString.Buffer,
+            ansiString.Length
+            );
+
+        RtlFreeAnsiString(&ansiString);
+
+        Buffer += block.Length / sizeof(WCHAR);
+        Length -= block.Length;
+    }
+
+    return status;
 }
 
 NTSTATUS PhFileStreamWriteStringFormat_V(
