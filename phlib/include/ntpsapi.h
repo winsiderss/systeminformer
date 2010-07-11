@@ -54,6 +54,8 @@ typedef struct _WOW64_PROCESS
 
 #include <ntpebteb.h>
 
+// source:http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx
+
 typedef enum _PROCESS_INFORMATION_CLASS
 {
     ProcessBasicInformation, // 0
@@ -103,7 +105,7 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessImageFileMapping,
     ProcessAffinityUpdateMode,
     ProcessMemoryAllocationMode,
-    ProcessGroupInformation,
+    ProcessGroupInformation, // array of USHORTs, list of groups assigned to process 
     ProcessTokenVirtualizationEnabled,
     ProcessConsoleHostProcess,
     ProcessWindowInformation, // 50
@@ -141,8 +143,8 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadTebInformation,
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
-    ThreadWow64Context,
-    ThreadGroupInformation, // 30
+    ThreadWow64Context, // WOW64_CONTEXT
+    ThreadGroupInformation, // 30, GROUP_AFFINITY
     ThreadUmsInformation,
     ThreadCounterProfiling,
     ThreadIdealProcessorEx,
