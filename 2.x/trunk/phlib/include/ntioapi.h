@@ -748,8 +748,8 @@ typedef struct _FILE_FS_ATTRIBUTE_INFORMATION
 typedef struct _FILE_FS_DRIVER_PATH_INFORMATION
 {
     BOOLEAN DriverInPath;
-    ULONG   DriverNameLength;
-    WCHAR   DriverName[1];
+    ULONG DriverNameLength;
+    WCHAR DriverName[1];
 } FILE_FS_DRIVER_PATH_INFORMATION, *PFILE_FS_DRIVER_PATH_INFORMATION;
 
 typedef struct _FILE_FS_VOLUME_FLAGS_INFORMATION
