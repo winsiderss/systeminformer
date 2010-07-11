@@ -40,6 +40,8 @@ typedef struct _RUNAS_DIALOG_CONTEXT
 {
     HANDLE ProcessId;
     PPH_LIST SessionIdList;
+    PPH_LIST DesktopList;
+    PPH_STRING CurrentWinStaName;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
 typedef struct _RUNAS_SERVICE_PARAMETERS
@@ -52,6 +54,7 @@ typedef struct _RUNAS_SERVICE_PARAMETERS
     PPH_STRING CurrentDirectory;
     PPH_STRING CommandLine;
     PPH_STRING FileName;
+    PPH_STRING DesktopName;
     PPH_STRING ErrorMailslot;
 } RUNAS_SERVICE_PARAMETERS, *PRUNAS_SERVICE_PARAMETERS;
 
@@ -94,6 +97,7 @@ VOID PhShowRunAsDialog(
 
     context.ProcessId = ProcessId;
     context.SessionIdList = NULL;
+    context.DesktopList = NULL;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -141,6 +145,47 @@ static BOOLEAN IsServiceAccount(
     {
         return FALSE;
     }
+}
+
+static PPH_STRING GetCurrentWinStaName()
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, 0x200);
+
+    if (GetUserObjectInformation(
+        GetProcessWindowStation(),
+        UOI_NAME,
+        string->Buffer,
+        string->Length + 2,
+        NULL
+        ))
+    {
+        PhTrimStringToNullTerminator(string);
+        return string;
+    }
+    else
+    {
+        PhDereferenceObject(string);
+        return PhCreateString(L"WinSta0"); // assume the current window station is WinSta0
+    }
+}
+
+static BOOL CALLBACK EnumDesktopsCallback(
+    __in PWSTR DesktopName,
+    __in LPARAM Context
+    )
+{
+    PRUNAS_DIALOG_CONTEXT context = (PRUNAS_DIALOG_CONTEXT)Context;
+
+    PhAddListItem(context->DesktopList, PhConcatStrings(
+        3,
+        context->CurrentWinStaName->Buffer,
+        L"\\",
+        DesktopName
+        ));
+
+    return TRUE;
 }
 
 INT_PTR CALLBACK PhpRunAsDlgProc(
@@ -199,7 +244,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             }
 
             if (NT_SUCCESS(PhGetProcessSessionId(NtCurrentProcess(), &sessionId)))
-                SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE); 
+                SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+
+            SetDlgItemText(hwndDlg, IDC_DESKTOP, L"WinSta0\\Default");
 
             SetDlgItemText(hwndDlg, IDC_PROGRAM,
                 ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsProgram")))->Buffer);
@@ -220,6 +267,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         {
             if (context->SessionIdList)
                 PhDereferenceObject(context->SessionIdList);
+            if (context->DesktopList)
+                PhDereferenceObject(context->DesktopList);
         }
         break;
     case WM_COMMAND:
@@ -237,6 +286,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     PPH_STRING password;
                     PPH_STRING logonTypeString;
                     ULONG logonType;
+                    PPH_STRING desktopName;
 
                     program = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM);
                     userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
@@ -246,6 +296,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         password = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PASSWORD);
                     else
                         password = NULL;
+
+                    desktopName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DESKTOP);
 
                     if (PhFindIntegerSiKeyValuePairs(
                         PhpLogonTypePairs,
@@ -261,7 +313,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PhGetStringOrEmpty(password),
                             logonType,
                             context->ProcessId,
-                            GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE)
+                            GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE),
+                            desktopName->Buffer
                             );
                     }
                     else
@@ -455,6 +508,65 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
                 }
                 break;
+            case IDC_DESKTOPS:
+                {
+                    HMENU desktopsMenu;
+                    ULONG i;
+                    RECT buttonRect;
+                    POINT point;
+                    UINT selectedItem;
+
+                    desktopsMenu = CreatePopupMenu();
+
+                    if (!context->DesktopList)
+                        context->DesktopList = PhCreateList(10);
+                    else
+                        PhClearList(context->DesktopList);
+
+                    context->CurrentWinStaName = GetCurrentWinStaName();
+
+                    EnumDesktops(GetProcessWindowStation(), EnumDesktopsCallback, (LPARAM)context); 
+
+                    for (i = 0; i < context->DesktopList->Count; i++)
+                    {
+                        AppendMenu(
+                            desktopsMenu,
+                            MF_STRING,
+                            1 + i,
+                            ((PPH_STRING)context->DesktopList->Items[i])->Buffer
+                            );
+                    }
+
+                    GetClientRect(GetDlgItem(hwndDlg, IDC_DESKTOPS), &buttonRect);
+                    point.x = buttonRect.right;
+                    point.y = 0;
+
+                    selectedItem = PhShowContextMenu2(
+                        hwndDlg,
+                        GetDlgItem(hwndDlg, IDC_DESKTOPS),
+                        desktopsMenu,
+                        point
+                        );
+
+                    if (selectedItem != 0)
+                    {
+                        SetDlgItemText(
+                            hwndDlg,
+                            IDC_DESKTOP,
+                            ((PPH_STRING)context->DesktopList->Items[selectedItem - 1])->Buffer
+                            );
+                    }
+
+                    for (i = 0; i < context->DesktopList->Count; i++)
+                    {
+                        PhDereferenceObject(context->DesktopList->Items[i]);
+                    }
+
+                    PhDereferenceObject(context->CurrentWinStaName);
+
+                    DestroyMenu(desktopsMenu);
+                }
+                break;
             }
         }
         break;
@@ -553,6 +665,7 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     __in_opt ULONG LogonType,
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
+    __in PWSTR DesktopName,
     __in PWSTR ErrorMailslot
     )
 {
@@ -572,6 +685,13 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     PhInitializeStringRef(&stringRef, Program);
     string = PhpCEscapeString(&stringRef);
     PhStringBuilderAppend2(&commandLineBuilder, L" -c \"");
+    PhStringBuilderAppend(&commandLineBuilder, string);
+    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+    PhDereferenceObject(string);
+
+    PhInitializeStringRef(&stringRef, DesktopName);
+    string = PhpCEscapeString(&stringRef);
+    PhStringBuilderAppend2(&commandLineBuilder, L" -D \"");
     PhStringBuilderAppend(&commandLineBuilder, string);
     PhStringBuilderAppendChar(&commandLineBuilder, '\"');
     PhDereferenceObject(string);
@@ -739,6 +859,8 @@ CleanupExit:
  * to duplicate the token.
  * \param SessionId The ID of the session to run the program 
  * under.
+ * \param DesktopName The window station and desktop to run the 
+ * program under.
  *
  * \retval STATUS_CANCELLED The user cancelled the operation.
  *
@@ -754,7 +876,8 @@ NTSTATUS PhRunAsCommandStart2(
     __in_opt PWSTR Password,
     __in_opt ULONG LogonType,
     __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId
+    __in ULONG SessionId,
+    __in PWSTR DesktopName
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -772,6 +895,7 @@ NTSTATUS PhRunAsCommandStart2(
         LogonType,
         ProcessIdWithToken,
         SessionId,
+        DesktopName,
         serviceName
         );
 
@@ -898,6 +1022,7 @@ VOID PhpRunAsServiceExit(
 #define PH_RUNAS_OPTION_PROCESSID 7
 #define PH_RUNAS_OPTION_ERRORMAILSLOT 8
 #define PH_RUNAS_OPTION_CURRENTDIRECTORY 9
+#define PH_RUNAS_OPTION_DESKTOPNAME 10
 
 BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -941,6 +1066,9 @@ BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
         case PH_RUNAS_OPTION_CURRENTDIRECTORY:
             PhSwapReference(&RunAsServiceParameters.CurrentDirectory, Value);
             break;
+        case PH_RUNAS_OPTION_DESKTOPNAME:
+            PhSwapReference(&RunAsServiceParameters.DesktopName, Value);
+            break;
         }
     }
 
@@ -959,7 +1087,8 @@ VOID PhRunAsServiceStart()
         { PH_RUNAS_OPTION_SESSIONID, L"s", MandatoryArgumentType },
         { PH_RUNAS_OPTION_PROCESSID, L"P", MandatoryArgumentType },
         { PH_RUNAS_OPTION_ERRORMAILSLOT, L"E", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_CURRENTDIRECTORY, L"d", MandatoryArgumentType }
+        { PH_RUNAS_OPTION_CURRENTDIRECTORY, L"d", MandatoryArgumentType },
+        { PH_RUNAS_OPTION_DESKTOPNAME, L"D", MandatoryArgumentType }
     };
     NTSTATUS status;
     PH_STRINGREF commandLine;
@@ -1037,6 +1166,7 @@ VOID PhRunAsServiceStart()
         RunAsServiceParameters.LogonType,
         (HANDLE)RunAsServiceParameters.ProcessId,
         RunAsServiceParameters.SessionId,
+        PhGetString(RunAsServiceParameters.DesktopName),
         NULL,
         NULL
         );
@@ -1070,6 +1200,7 @@ NTSTATUS PhCreateProcessAsUser(
     __in_opt ULONG LogonType,
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
+    __in_opt PWSTR DesktopName,
     __out_opt PHANDLE ProcessHandle,
     __out_opt PHANDLE ThreadHandle
     )
@@ -1180,7 +1311,10 @@ NTSTATUS PhCreateProcessAsUser(
         CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
     }
 
-    startupInfo.lpDesktop = L"WinSta0\\Default";
+    if (DesktopName)
+        startupInfo.lpDesktop = DesktopName;
+    else
+        startupInfo.lpDesktop = L"WinSta0\\Default";
 
     status = PhCreateProcessWin32Ex(
         ApplicationName,
