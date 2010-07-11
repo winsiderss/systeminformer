@@ -347,11 +347,17 @@ NTSTATUS PhLoadProcDb(
                 goto ContinueLoop;
             if (!PhStringToInteger64(&flagsString->sr, 16, &flags))
                 goto ContinueLoop;
-            if (hashString->Length / sizeof(WCHAR) != PH_PROCDB_HASH_SIZE * 2)
-                goto ContinueLoop;
 
-            PhHexStringToBuffer(hashString, hash);
-            PhStringToInteger64(&desiredPriorityWin32String->sr, 16, &desiredPriorityWin32);
+            if (hashString)
+            {
+                if (hashString->Length / sizeof(WCHAR) != PH_PROCDB_HASH_SIZE * 2)
+                    goto ContinueLoop;
+
+                PhHexStringToBuffer(hashString, hash);
+            }
+
+            if (desiredPriorityWin32String)
+                PhStringToInteger64(&desiredPriorityWin32String->sr, 16, &desiredPriorityWin32);
 
             if (((ULONG)flags & PH_PROCDB_ENTRY_MATCH_HASH) && !hashString)
                 goto ContinueLoop;
