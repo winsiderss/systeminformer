@@ -2194,6 +2194,11 @@ NTSTATUS PhIsExecutablePacked(
     __out_opt PULONG NumberOfFunctions
     );
 
+NTSTATUS PhMd5File(
+    __in PWSTR FileName,
+    __out_bcount(16) PUCHAR Digest
+    );
+
 typedef enum _PH_COMMAND_LINE_OPTION_TYPE
 {
     NoArgumentType,

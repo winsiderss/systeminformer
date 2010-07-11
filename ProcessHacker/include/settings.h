@@ -74,6 +74,7 @@ NTSTATUS PhSaveSettings(
 #endif
 
 EXT ULONG PhCsCollapseServicesOnStart;
+EXT ULONG PhCsEnableProcDb;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;

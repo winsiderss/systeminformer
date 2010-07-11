@@ -1862,7 +1862,7 @@ VOID PhDereferenceProcessRecord(
 
         PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
 
-        PhDereferenceObject(ProcessRecord->ProcessName);   
+        PhDereferenceObject(ProcessRecord->ProcessName);
         if (ProcessRecord->FileName) PhDereferenceObject(ProcessRecord->FileName);
         /*if (ProcessRecord->CommandLine) PhDereferenceObject(ProcessRecord->CommandLine);
         if (ProcessRecord->UserName) PhDereferenceObject(ProcessRecord->UserName);*/

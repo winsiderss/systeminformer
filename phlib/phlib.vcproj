@@ -479,6 +479,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\md5.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntbasic.h"
 				>
 			</File>
@@ -620,6 +624,10 @@
 			</File>
 			<File
 				RelativePath=".\include\seceditp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\sha.h"
 				>
 			</File>
 			<File

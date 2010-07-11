@@ -517,6 +517,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\procdb.c"
+				>
+			</File>
+			<File
 				RelativePath=".\procprp.c"
 				>
 			</File>
@@ -608,6 +612,10 @@
 			</File>
 			<File
 				RelativePath=".\include\phapp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\procdb.h"
 				>
 			</File>
 			<File

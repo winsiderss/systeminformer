@@ -3131,6 +3131,49 @@ ULONG PhLog2(
     return result;
 }
 
+BOOLEAN PhHexStringToBuffer(
+    __in PPH_STRING String,
+    __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
+    )
+{
+    ULONG i;
+    ULONG length;
+
+    // The string must have an even length.
+    if ((String->Length / sizeof(WCHAR)) & 1)
+        return FALSE;
+
+    length = String->Length / sizeof(WCHAR) / 2;
+
+    for (i = 0; i < length; i++)
+    {
+        Buffer[i] =
+            (UCHAR)(PhpCharToInteger[(UCHAR)String->Buffer[i * 2]] << 4) +
+            (UCHAR)PhpCharToInteger[(UCHAR)String->Buffer[i * 2 + 1]];
+    }
+
+    return TRUE;
+}
+
+PPH_STRING PhBufferToHexString(
+    __in PUCHAR Buffer,
+    __in ULONG Length
+    )
+{
+    PPH_STRING string;
+    ULONG i;
+
+    string = PhCreateStringEx(NULL, Length * 2 * sizeof(WCHAR));
+
+    for (i = 0; i < Length; i++)
+    {
+        string->Buffer[i * 2] = PhpIntegerToChar[Buffer[i] >> 4];
+        string->Buffer[i * 2 + 1] = PhpIntegerToChar[Buffer[i] & 0xf];
+    }
+
+    return string;
+}
+
 /**
  * Converts a string to an integer.
  *
