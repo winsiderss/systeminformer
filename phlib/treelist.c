@@ -689,7 +689,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                 if (context->Columns)
                 {
-                    context->Columns = PhReAlloc(
+                    context->Columns = PhReAllocate(
                         context->Columns,
                         context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
                         );

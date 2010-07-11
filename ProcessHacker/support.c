@@ -539,10 +539,10 @@ VOID PhCopyListView(
     __in HWND ListViewHandle
     )
 {
-    PPH_STRING text;
+    PPH_FULL_STRING text;
 
     text = PhGetListViewText(ListViewHandle);
-    PhSetClipboardString(ListViewHandle, &text->sr);
+    PhSetClipboardStringEx(ListViewHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
 

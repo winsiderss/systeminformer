@@ -985,7 +985,7 @@ BOOLEAN PhaChoiceDialog(
 
 // cpysave
 
-PPH_STRING PhGetProcessTreeListText(
+PPH_FULL_STRING PhGetProcessTreeListText(
     __in HWND TreeListHandle
     );
 
@@ -996,7 +996,7 @@ PPH_LIST PhGetProcessTreeListLines(
     __in BOOLEAN UseTabs
     );
 
-PPH_STRING PhGetListViewText(
+PPH_FULL_STRING PhGetListViewText(
     __in HWND ListViewHandle
     );
 

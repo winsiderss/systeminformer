@@ -343,7 +343,7 @@ mxmlIndexNew(mxml_node_t *node,		/* I - XML node tree */
       if (!ind->alloc_nodes)
         temp = PhAllocateSafe(64 * sizeof(mxml_node_t *));
       else
-        temp = PhReAllocSafe(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
+        temp = PhReAllocateSafe(ind->nodes, (ind->alloc_nodes + 64) * sizeof(mxml_node_t *));
 
       if (!temp)
       {

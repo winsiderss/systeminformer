@@ -808,14 +808,23 @@ VOID PhSetClipboardString(
     __in PPH_STRINGREF String
     )
 {
+    PhSetClipboardStringEx(hWnd, String->Buffer, String->Length);
+}
+
+VOID PhSetClipboardStringEx(
+    __in HWND hWnd,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    )
+{
     HANDLE data;
     PVOID memory;
 
-    data = GlobalAlloc(GMEM_MOVEABLE, String->Length + 2);
+    data = GlobalAlloc(GMEM_MOVEABLE, Length + 2);
     memory = GlobalLock(data);
 
-    memcpy(memory, String->Buffer, String->Length);
-    *(PWCHAR)((PCHAR)memory + String->Length) = 0;
+    memcpy(memory, Buffer, Length);
+    *(PWCHAR)((PCHAR)memory + Length) = 0;
 
     GlobalUnlock(memory);
 

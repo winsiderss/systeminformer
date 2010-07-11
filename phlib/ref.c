@@ -862,7 +862,7 @@ __mayRaise VOID PhaDereferenceObject(
     if (autoPool->DynamicCount == autoPool->DynamicAllocated)
     {
         autoPool->DynamicAllocated *= 2;
-        autoPool->DynamicObjects = PhReAlloc(
+        autoPool->DynamicObjects = PhReAllocate(
             autoPool->DynamicObjects,
             sizeof(PVOID) * autoPool->DynamicAllocated
             );
