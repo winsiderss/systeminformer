@@ -158,12 +158,12 @@ VOID PhFree(
     __in __post_invalid PVOID Memory
     );
 
-__mayRaise PVOID PhReAlloc(
+__mayRaise PVOID PhReAllocate(
     __in PVOID Memory,
     __in SIZE_T Size
     );
 
-PVOID PhReAllocSafe(
+PVOID PhReAllocateSafe(
     __in PVOID Memory,
     __in SIZE_T Size
     );
@@ -1251,6 +1251,82 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
     __in SIZE_T Length
     );
 
+// full string
+
+#ifndef BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhFullStringType;
+#endif
+
+/**
+ * A full Unicode string object.
+ *
+ * \remarks This string object is similar to PH_STRING except 
+ * that the length is not restricted to 16 bits. Unlike 
+ * PH_STRING and PH_ANSI_STRING, this object is mutable.
+ */
+typedef struct _PH_FULL_STRING
+{
+    /** The length, in bytes, of the string. */
+    SIZE_T Length;
+    /** The allocated length of the string, in bytes, not including the null terminator. */
+    SIZE_T AllocatedLength;
+    /** The buffer containing the contents of the string. */
+    PWSTR Buffer;
+} PH_FULL_STRING, *PPH_FULL_STRING;
+
+PPH_FULL_STRING PhCreateFullString(
+    __in PWSTR Buffer
+    );
+
+PPH_FULL_STRING PhCreateFullString2(
+    __in SIZE_T InitialCapacity
+    );
+
+PPH_FULL_STRING PhCreateFullStringEx(
+    __in_opt PWSTR Buffer,
+    __in SIZE_T Length,
+    __in_opt SIZE_T InitialCapacity
+    );
+
+VOID PhResizeFullString(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T NewLength,
+    __in BOOLEAN Growing
+    );
+
+VOID PhFullStringAppend(
+    __inout PPH_FULL_STRING String,
+    __in PPH_STRING ShortString
+    );
+
+VOID PhFullStringAppend2(
+    __inout PPH_FULL_STRING String,
+    __in PWSTR StringZ
+    );
+
+VOID PhFullStringAppendEx(
+    __inout PPH_FULL_STRING String,
+    __in PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
+VOID PhFullStringAppendChar(
+    __inout PPH_FULL_STRING String,
+    __in WCHAR Character
+    );
+
+VOID PhFullStringAppendFormat(
+    __inout PPH_FULL_STRING String,
+    __in __format_string PWSTR Format,
+    ...
+    );
+
+VOID PhFullStringRemove(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T StartIndex,
+    __in SIZE_T Count
+    );
+
 // stringbuilder
 
 /**
@@ -1261,7 +1337,7 @@ PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
  */
 typedef struct _PH_STRING_BUILDER
 {
-    /** Allocated length of the string. */
+    /** Allocated length of the string, not including the null terminator. */
     ULONG AllocatedLength;
     /**
      * The constructed string.
