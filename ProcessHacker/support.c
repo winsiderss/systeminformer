@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include "mxml/mxml.h"
 #include <wtsapi32.h>
 #include <dbghelp.h>
 
@@ -376,6 +377,38 @@ PPH_STRING PhGetSessionInformationString(
     {
         return NULL;
     }
+}
+
+PPH_STRING PhJoinXmlTextNodes(
+    __in mxml_node_t *node
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+
+    PhInitializeStringBuilder(&stringBuilder, 10);
+
+    while (node)
+    {
+        if (node->type == MXML_TEXT)
+        {
+            PPH_STRING textString;
+
+            if (node->value.text.whitespace)
+                PhStringBuilderAppendChar(&stringBuilder, ' ');
+
+            textString = PhCreateStringFromAnsi(node->value.text.string);
+            PhStringBuilderAppend(&stringBuilder, textString);
+            PhDereferenceObject(textString);
+        }
+
+        node = node->next;
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
 }
 
 VOID PhSearchOnlineString(

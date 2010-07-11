@@ -22,6 +22,7 @@
 
 #define SUPPORT_PRIVATE
 #include <phgui.h>
+#include <md5.h>
 
 WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
@@ -2666,6 +2667,81 @@ NTSTATUS PhIsExecutablePacked(
 
 CleanupExit:
     PhUnloadMappedImage(&mappedImage);
+
+    return status;
+}
+
+NTSTATUS PhMd5File(
+    __in PWSTR FileName,
+    __out_bcount(16) PUCHAR Digest
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    LARGE_INTEGER fileSize;
+    IO_STATUS_BLOCK isb;
+
+    if (NT_SUCCESS(status = PhCreateFileWin32(
+        &fileHandle,
+        FileName,
+        FILE_GENERIC_READ,
+        0,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        // Don't try to hash files over 16 MB in size.
+        if (
+            NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)) &&
+            fileSize.QuadPart < 16 * 1024 * 1024
+            )
+        {
+            MD5_CTX context;
+            UCHAR buffer[4096];
+            ULONG64 bytesRemaining;
+
+            bytesRemaining = fileSize.QuadPart;
+
+            MD5Init(&context);
+
+            while (bytesRemaining)
+            {
+                status = NtReadFile(
+                    fileHandle,
+                    NULL,
+                    NULL,
+                    NULL,
+                    &isb,
+                    buffer,
+                    sizeof(buffer),
+                    NULL,
+                    NULL
+                    );
+
+                if (!NT_SUCCESS(status))
+                    break;
+
+                MD5Update(&context, buffer, sizeof(buffer)); 
+
+                bytesRemaining -= (ULONG)isb.Information;
+            }
+
+            if (status == STATUS_END_OF_FILE)
+                status = STATUS_SUCCESS;
+
+            MD5Final(&context);
+
+            if (NT_SUCCESS(status))
+                memcpy(Digest, context.digest, 16);
+        }
+        else
+        {
+            status = STATUS_FILE_TOO_LARGE;
+        }
+
+        NtClose(fileHandle);
+    }
 
     return status;
 }

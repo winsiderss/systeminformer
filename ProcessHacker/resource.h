@@ -163,7 +163,6 @@
 #define IDC_BROWSE                      1070
 #define IDC_USERNAME                    1071
 #define IDC_SESSIONS                    1074
-#define IDC_SESSIONS2                   1075
 #define IDC_DESKTOPS                    1075
 #define IDC_PROGRESS                    1076
 #define IDC_PROGRESSTEXT                1077
@@ -342,6 +341,7 @@
 #define IDC_ZNONPAGEDALLOCS_V           1221
 #define IDC_DESKTOP                     1221
 #define IDC_ZNONPAGEDFREES_V            1222
+#define IDC_ENABLEPROCDB                1222
 #define IDC_ZNONPAGEDLIMIT_V            1223
 #define IDC_ZPAGEFAULTSTOTAL_V          1224
 #define IDC_ZPAGEFAULTSCOPYONWRITE_V    1225
@@ -530,6 +530,10 @@
 #define ID_MODULE_COPY                  40199
 #define ID_HANDLE_COPY                  40200
 #define ID_OBJECT_COPY                  40201
+#define ID_PROCESS_MARKASSAFE           40202
+#define ID_PRIORITY_PERMANENT           40203
+#define ID_PRIORITY_RESTORE             40204
+#define ID_PRIORITY_SAVE                40205
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -537,8 +541,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        179
-#define _APS_NEXT_COMMAND_VALUE         40202
-#define _APS_NEXT_CONTROL_VALUE         1222
+#define _APS_NEXT_COMMAND_VALUE         40206
+#define _APS_NEXT_CONTROL_VALUE         1223
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif

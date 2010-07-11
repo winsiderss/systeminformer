@@ -5,6 +5,7 @@
 #include <treelist.h>
 #include <circbuf.h>
 #include <providers.h>
+#include <procdb.h>
 #include "resource.h"
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
@@ -16,6 +17,7 @@
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern PPH_STRING PhLocalSystemName;
+extern PPH_STRING PhProcDbFileName;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern PWSTR PhWindowClassName;
@@ -143,8 +145,9 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_USERCPUTIME 35
 #define PHTLC_VERIFICATIONSTATUS 36
 #define PHTLC_VERIFIEDSIGNER 37
+#define PHTLC_SAFE 38
 
-#define PHTLC_MAXIMUM 38
+#define PHTLC_MAXIMUM 39
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
@@ -165,6 +168,8 @@ typedef struct _PH_PROCESS_NODE
     PPH_LIST Children;
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
+
+    PPH_PROCDB_ENTRY DbEntry;
 
     // If the user has selected certain columns we need extra information 
     // that isn't retrieved by the process provider.
@@ -213,7 +218,7 @@ VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     );
 
-VOID PhCreateProcessNode(
+PPH_PROCESS_NODE PhCreateProcessNode(
     __in PPH_PROCESS_ITEM ProcessItem,
     __in ULONG RunId
     );
@@ -310,6 +315,12 @@ PPH_STRING PhGetSessionInformationString(
     __in HANDLE ServerHandle,
     __in ULONG SessionId,
     __in ULONG InformationClass
+    );
+
+typedef struct mxml_node_s mxml_node_t;
+
+PPH_STRING PhJoinXmlTextNodes(
+    __in mxml_node_t *node
     );
 
 VOID PhSearchOnlineString(
@@ -462,6 +473,8 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
 #define ProcessHacker_CancelEarlyShutdown(hWnd) \
     SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
+#define ProcessHacker_ToggleVisible(hWnd) \
+    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
