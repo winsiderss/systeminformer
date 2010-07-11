@@ -606,7 +606,7 @@ NTSTATUS PhGetProcessExtendedBasicInformation(
  *
  * \param ProcessHandle A handle to a process. The handle must have 
  * PROCESS_QUERY_LIMITED_INFORMATION access.
- * \param KernelUserTimes A variable which receives the information.
+ * \param Times A variable which receives the information.
  */
 NTSTATUS PhGetProcessTimes(
     __in HANDLE ProcessHandle,

@@ -22,6 +22,7 @@ typedef ULONG GDI_HANDLE_BUFFER[GDI_HANDLE_BUFFER_SIZE];
 #define TLS_MINIMUM_AVAILABLE 64
 #define TLS_EXPANSION_SLOTS 1024
 
+// symbols
 typedef struct _PEB_LDR_DATA
 {
     ULONG Length;

@@ -4,6 +4,7 @@
 #include <ntldr.h>
 #include <ntrtl.h>
 
+// symbols
 typedef struct _PEB
 {
     BOOLEAN InheritedAddressSpace;
