@@ -1701,15 +1701,15 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     PPH_PROCESS_RECORD processRecord;
 
     processRecord = PhAllocate(sizeof(PH_PROCESS_RECORD));
+    memset(processRecord, 0, sizeof(PH_PROCESS_RECORD));
+
     InitializeListHead(&processRecord->ListEntry);
     processRecord->RefCount = 1;
-    processRecord->Flags = 0;
 
     processRecord->ProcessId = ProcessItem->ProcessId;
     processRecord->ParentProcessId = ProcessItem->ParentProcessId;
     processRecord->SessionId = ProcessItem->SessionId;
     processRecord->CreateTime = ProcessItem->CreateTime;
-    processRecord->ExitTime.QuadPart = 0;
 
     PhReferenceObject(ProcessItem->ProcessName);
     processRecord->ProcessName = ProcessItem->ProcessName;
