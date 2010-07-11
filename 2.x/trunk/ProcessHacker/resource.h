@@ -336,6 +336,8 @@
 #define IDC_ZPAGEDLIMIT_V               1219
 #define IDC_COLLAPSESERVICES            1219
 #define IDC_ZNONPAGEDUSAGE_V            1220
+#define IDC_CHECK1                      1220
+#define IDC_ICONSINGLECLICK             1220
 #define IDC_ZNONPAGEDALLOCS_V           1221
 #define IDC_ZNONPAGEDFREES_V            1222
 #define IDC_ZNONPAGEDLIMIT_V            1223
@@ -534,7 +536,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        179
 #define _APS_NEXT_COMMAND_VALUE         40202
-#define _APS_NEXT_CONTROL_VALUE         1220
+#define _APS_NEXT_CONTROL_VALUE         1221
 #define _APS_NEXT_SYMED_VALUE           120
 #endif
 #endif
