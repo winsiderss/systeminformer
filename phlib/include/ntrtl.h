@@ -4017,6 +4017,102 @@ RtlDeleteTimerQueueEx(
     __in HANDLE Event
     );
 
+// Registry access
+
+// begin_wdm
+
+#define RTL_REGISTRY_ABSOLUTE 0
+#define RTL_REGISTRY_SERVICES 1 // \Registry\Machine\System\CurrentControlSet\Services
+#define RTL_REGISTRY_CONTROL 2 // \Registry\Machine\System\CurrentControlSet\Control
+#define RTL_REGISTRY_WINDOWS_NT 3 // \Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion
+#define RTL_REGISTRY_DEVICEMAP 4 // \Registry\Machine\Hardware\DeviceMap
+#define RTL_REGISTRY_USER 5 // \Registry\User\CurrentUser
+#define RTL_REGISTRY_MAXIMUM 6
+#define RTL_REGISTRY_HANDLE 0x40000000
+#define RTL_REGISTRY_OPTIONAL 0x80000000
+
+// end_wdm
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateRegistryKey(
+    __in ULONG RelativeTo,
+    __in PWSTR Path
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCheckRegistryKey(
+    __in ULONG RelativeTo,
+    __in PWSTR Path
+    );
+
+// begin_wdm
+
+typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
+    __in PWSTR ValueName,
+    __in ULONG ValueType,
+    __in PVOID ValueData,
+    __in ULONG ValueLength,
+    __in PVOID Context,
+    __in PVOID EntryContext
+    );
+
+typedef struct _RTL_QUERY_REGISTRY_TABLE
+{
+    PRTL_QUERY_REGISTRY_ROUTINE QueryRoutine;
+    ULONG Flags;
+    PWSTR Name;
+    PVOID EntryContext;
+    ULONG DefaultType;
+    PVOID DefaultData;
+    ULONG DefaultLength;
+} RTL_QUERY_REGISTRY_TABLE, *PRTL_QUERY_REGISTRY_TABLE;
+
+#define RTL_QUERY_REGISTRY_SUBKEY 0x00000001
+#define RTL_QUERY_REGISTRY_TOPKEY 0x00000002
+#define RTL_QUERY_REGISTRY_REQUIRED 0x00000004
+#define RTL_QUERY_REGISTRY_NOVALUE 0x00000008
+#define RTL_QUERY_REGISTRY_NOEXPAND 0x00000010
+#define RTL_QUERY_REGISTRY_DIRECT 0x00000020
+#define RTL_QUERY_REGISTRY_DELETE 0x00000040
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryRegistryValues(
+    __in ULONG RelativeTo,
+    __in PWSTR Path,
+    __in PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    __in PVOID Context,
+    __in_opt PVOID Environment
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWriteRegistryValue(
+    __in ULONG RelativeTo,
+    __in PWSTR Path,
+    __in PWSTR ValueName,
+    __in ULONG ValueType,
+    __in PVOID ValueData,
+    __in ULONG ValueLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteRegistryValue(
+    __in ULONG RelativeTo,
+    __in PWSTR Path,
+    __in PWSTR ValueName
+    );
+
+// end_wdm
+
 // Misc.
 
 NTSYSAPI
