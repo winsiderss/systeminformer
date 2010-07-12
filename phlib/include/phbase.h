@@ -2103,25 +2103,25 @@ PPH_STRING PhaSubstring(
 // basesupx
 
 VOID FASTCALL PhxfAddInt32(
-    __in __needsAlign(16) PLONG A,
+    __inout __needsAlign(16) PLONG A,
     __in __needsAlign(16) PLONG B,
     __in ULONG Count
     );
 
 VOID FASTCALL PhxfAddInt32U(
-    __in PLONG A,
+    __inout PLONG A,
     __in PLONG B,
     __in ULONG Count
     );
 
 VOID FASTCALL PhxfDivideSingleU(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in PFLOAT B,
     __in ULONG Count
     );
 
 VOID FASTCALL PhxfDivideSingle2U(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in FLOAT B,
     __in ULONG Count
     );

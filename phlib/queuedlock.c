@@ -1023,9 +1023,9 @@ VOID FASTCALL PhfWaitForCondition(
 
             if (Lock)
             {
-                // Don't use the fast variant; it is extremely likely 
+                // Don't use the inline variant; it is extremely likely 
                 // that the lock is still owned.
-                PhAcquireQueuedLockExclusive(Lock);
+                PhfAcquireQueuedLockExclusive(Lock);
             }
 
             break;
