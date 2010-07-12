@@ -94,7 +94,7 @@ VOID PhHandleInfoInitialization()
 
         if (stringSid)
         {
-            HkcuPrefix = PhConcatStrings2(L"\\REGISTRY\\USER\\", stringSid->Buffer);
+            HkcuPrefix = PhConcatStrings2(L"\\Registry\\User\\", stringSid->Buffer);
             HkcucrPrefix = PhConcatStrings2(HkcuPrefix->Buffer, L"_Classes");
         }
         else
@@ -355,11 +355,11 @@ PPH_STRING PhFormatNativeKeyName(
     __in PPH_STRING Name
     )
 {
-#define HKLM_PREFIX L"\\REGISTRY\\MACHINE"
+#define HKLM_PREFIX L"\\Registry\\Machine"
 #define HKLM_PREFIX_LENGTH 17
-#define HKCR_PREFIX L"\\REGISTRY\\MACHINE\\SOFTWARE\\CLASSES"
+#define HKCR_PREFIX L"\\Registry\\Machine\\Software\\Classes"
 #define HKCR_PREFIX_LENGTH 34
-#define HKU_PREFIX L"\\REGISTRY\\USER"
+#define HKU_PREFIX L"\\Registry\\User"
 #define HKU_PREFIX_LENGTH 14
 
     PPH_STRING newName;
