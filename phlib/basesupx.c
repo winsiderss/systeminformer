@@ -23,7 +23,7 @@
 #include <phbase.h>
 
 VOID FASTCALL PhxpfAddInt32Fallback(
-    __in PLONG A,
+    __inout PLONG A,
     __in PLONG B,
     __in ULONG Count
     )
@@ -33,7 +33,7 @@ VOID FASTCALL PhxpfAddInt32Fallback(
 }
 
 VOID FASTCALL PhxfAddInt32(
-    __in __needsAlign(16) PLONG A,
+    __inout __needsAlign(16) PLONG A,
     __in __needsAlign(16) PLONG B,
     __in ULONG Count
     )
@@ -74,7 +74,7 @@ VOID FASTCALL PhxfAddInt32(
 }
 
 VOID FASTCALL PhxfAddInt32U(
-    __in PLONG A,
+    __inout PLONG A,
     __in PLONG B,
     __in ULONG Count
     )
@@ -144,7 +144,7 @@ VOID FASTCALL PhxfAddInt32U(
 }
 
 VOID FASTCALL PhxpfDivideSingleFallback(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in PFLOAT B,
     __in ULONG Count
     )
@@ -154,7 +154,7 @@ VOID FASTCALL PhxpfDivideSingleFallback(
 }
 
 VOID FASTCALL PhxfDivideSingleU(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in PFLOAT B,
     __in ULONG Count
     )
@@ -224,7 +224,7 @@ VOID FASTCALL PhxfDivideSingleU(
 }
 
 VOID FASTCALL PhxpfDivideSingle2Fallback(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in FLOAT B,
     __in ULONG Count
     )
@@ -234,7 +234,7 @@ VOID FASTCALL PhxpfDivideSingle2Fallback(
 }
 
 VOID FASTCALL PhxfDivideSingle2U(
-    __in PFLOAT A,
+    __inout PFLOAT A,
     __in FLOAT B,
     __in ULONG Count
     )

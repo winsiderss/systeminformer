@@ -153,6 +153,7 @@ typedef enum _THREAD_INFORMATION_CLASS
 } THREAD_INFORMATION_CLASS;
 
 // Use with both ProcessPagePriority and ThreadPagePriority
+// ntddk
 typedef struct _PAGE_PRIORITY_INFORMATION
 {
     ULONG PagePriority;
