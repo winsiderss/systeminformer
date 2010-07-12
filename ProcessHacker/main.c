@@ -26,6 +26,7 @@
 #include <settings.h>
 #include <treelist.h>
 #include <graph.h>
+#include <hexedit.h>
 
 VOID PhpProcessStartupParameters();
 
@@ -211,6 +212,7 @@ INT WINAPI WinMain(
     PhGuiSupportInitialization();
     PhTreeListInitialization();
     PhGraphControlInitialization();
+    PhHexEditInitialization();
     PhSecurityEditorInitialization();
 
     if (PhStartupParameters.ShowOptions)
