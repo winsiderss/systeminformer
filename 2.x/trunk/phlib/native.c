@@ -3801,7 +3801,7 @@ NTSTATUS PhpUnloadDriver(
 
     if ((win32Result = RegCreateKey(
         HKEY_LOCAL_MACHINE,
-        L"SYSTEM\\CurrentControlSet\\Services",
+        L"System\\CurrentControlSet\\Services",
         &servicesKeyHandle
         )) != ERROR_SUCCESS)
     {
@@ -3842,7 +3842,7 @@ NTSTATUS PhpUnloadDriver(
     }
 
     servicePath = PhConcatStrings2(
-        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Services\\",
+        L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\",
         ServiceKeyName->Buffer
         );
     status = NtUnloadDriver(&servicePath->us);
