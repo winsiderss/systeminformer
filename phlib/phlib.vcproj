@@ -353,6 +353,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hexedit.c"
+				>
+			</File>
+			<File
 				RelativePath=".\hndlinfo.c"
 				>
 			</File>
@@ -468,6 +472,14 @@
 			</File>
 			<File
 				RelativePath=".\include\handlep.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\hexedit.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\hexeditp.h"
 				>
 			</File>
 			<File
