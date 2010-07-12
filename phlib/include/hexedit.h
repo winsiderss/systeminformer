@@ -5,6 +5,11 @@
 
 BOOLEAN PhHexEditInitialization();
 
+HWND PhCreateHexEditControl(
+    __in HWND ParentHandle,
+    __in INT_PTR Id
+    );
+
 #define HEM_SETBUFFER (WM_APP + 1401)
 #define HEM_SETDATA (WM_APP + 1402)
 #define HEM_GETBUFFER (WM_APP + 1403)

@@ -30,7 +30,7 @@ BOOLEAN PhHexEditInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = WS_HSCROLL | WS_VSCROLL;
+    c.style = 0;
     c.lpfnWndProc = PhpHexEditWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
@@ -48,6 +48,26 @@ BOOLEAN PhHexEditInitialization()
     return TRUE;
 }
 
+HWND PhCreateHexEditControl(
+    __in HWND ParentHandle,
+    __in INT_PTR Id
+    )
+{
+    return CreateWindow(
+        PH_HEXEDIT_CLASSNAME,
+        L"",
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VSCROLL,
+        0,
+        0,
+        3,
+        3,
+        ParentHandle,
+        (HMENU)Id,
+        PhInstanceHandle,
+        NULL
+        );
+}
+
 VOID PhpCreateHexEditContext(
     __out PPHP_HEXEDIT_CONTEXT *Context
     )
@@ -59,7 +79,7 @@ VOID PhpCreateHexEditContext(
     context->Data = NULL;
     context->Length = 0;
     context->TopIndex = 0;
-    context->BytesPerRow = 8;
+    context->BytesPerRow = 16;
     context->LinesPerPage = 1;
 
     context->ShowHex = TRUE;
@@ -91,6 +111,9 @@ VOID PhpFreeHexEditContext(
     __inout __post_invalid PPHP_HEXEDIT_CONTEXT Context
     )
 {
+    if (!Context->UserBuffer && Context->Data)
+        PhFree(Context->Data);
+
     if (Context->Font) DeleteObject(Context->Font);
     PhFree(Context);
 }
@@ -212,9 +235,39 @@ LRESULT CALLBACK PhpHexEditWndProc(
                     break;
                 case SB_THUMBTRACK:
                     context->TopIndex = currentPosition * context->BytesPerRow;
-                        REDRAW_WINDOW(hwnd);
+                    REDRAW_WINDOW(hwnd);
                     break;
                 }
+
+                SetScrollPos(hwnd, SB_VERT, context->TopIndex / context->BytesPerRow, TRUE);
+
+                if (!context->NoAddressChange)
+                    context->CurrentAddress += context->TopIndex - originalTopIndex;
+
+                PhpHexEditRepositionCaret(hwnd, context, context->CurrentAddress);
+            }
+        }
+        break;
+    case WM_MOUSEWHEEL:
+        {
+            SHORT wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+
+            if (context->Data)
+            {
+                LONG originalTopIndex = context->TopIndex;
+
+                context->TopIndex += context->BytesPerRow * -wheelDelta / WHEEL_DELTA;
+
+                if (context->TopIndex < 0)
+                    context->TopIndex = 0;
+
+                if (context->Length >= context->BytesPerRow)
+                {
+                    if (context->TopIndex > context->Length - context->BytesPerRow)
+                        context->TopIndex = context->Length - context->BytesPerRow;
+                }
+
+                REDRAW_WINDOW(hwnd);
 
                 SetScrollPos(hwnd, SB_VERT, context->TopIndex / context->BytesPerRow, TRUE);
 
@@ -234,8 +287,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = LOWORD(lParam);
-            cursorPos.y = HIWORD(lParam);
+            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
+            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
 
             SetFocus(hwnd);
 
@@ -310,8 +363,8 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG flags = (ULONG)wParam;
             POINT cursorPos;
 
-            cursorPos.x = LOWORD(lParam);
-            cursorPos.y = HIWORD(lParam);
+            cursorPos.x = (LONG)(SHORT)LOWORD(lParam);
+            cursorPos.y = (LONG)(SHORT)HIWORD(lParam);
 
             if (
                 context->Data &&
@@ -364,7 +417,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
         {
             ULONG c = (ULONG)wParam;
 
-            if (context->Data)
+            if (!context->Data)
                 goto DefaultHandler;
             if (c == '\t')
                 goto DefaultHandler;
@@ -782,7 +835,7 @@ FORCEINLINE VOID PhpPrintAscii(
     if (*N == Context->BytesPerRow)
     {
         *N = 0;
-        *X = Context->HexOffset;
+        *X = Context->AsciiOffset;
         *Y += Context->LineHeight;
     }
 }
@@ -1188,9 +1241,11 @@ VOID PhpHexEditCalculatePosition(
         return;
     }
 
+    X--; // fix selection problem
+
     xp = Context->AsciiOffset / Context->NullWidth + Context->BytesPerRow;
 
-    if (Context->ShowAscii && X < xp)
+    if (Context->ShowAscii && X * Context->NullWidth >= Context->AsciiOffset && X < xp)
     {
         Context->CurrentAddress = Context->TopIndex +
             Context->BytesPerRow * Y +
@@ -1585,6 +1640,9 @@ VOID PhpHexEditSetBuffer(
     Context->CurrentMode = EDIT_HIGH;
     Context->TopIndex = 0;
     Context->Update = TRUE;
+
+    Context->UserBuffer = TRUE;
+    Context->AllowLengthChange = FALSE;
 }
 
 VOID PhpHexEditSetData(
@@ -1598,4 +1656,6 @@ VOID PhpHexEditSetData(
     Context->Data = PhAllocate(Length);
     memcpy(Context->Data, Data, Length);
     PhpHexEditSetBuffer(hwnd, Context, Context->Data, Length);
+    Context->UserBuffer = FALSE;
+    Context->AllowLengthChange = TRUE;
 }

@@ -36,15 +36,13 @@ INT NTAPI PhpProcDbByHashCompareFunction(
     );
 
 LIST_ENTRY PhProcDbListHead;
-PH_AVL_TREE PhProcDbByFileName;
-PH_AVL_TREE PhProcDbByHash;
+PH_AVL_TREE PhProcDbByFileName = PH_AVL_TREE_INIT(PhpProcDbByFileNameCompareFunction);
+PH_AVL_TREE PhProcDbByHash = PH_AVL_TREE_INIT(PhpProcDbByHashCompareFunction);
 PH_QUEUED_LOCK PhProcDbLock = PH_QUEUED_LOCK_INIT;
 
 VOID PhProcDbInitialization()
 {
     InitializeListHead(&PhProcDbListHead);
-    PhInitializeAvlTree(&PhProcDbByFileName, PhpProcDbByFileNameCompareFunction);
-    PhInitializeAvlTree(&PhProcDbByHash, PhpProcDbByHashCompareFunction);
 
     if (PhCsEnableProcDb)
     {
