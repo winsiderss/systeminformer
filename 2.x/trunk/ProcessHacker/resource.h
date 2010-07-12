@@ -28,6 +28,7 @@
 #define IDC_PHYSICAL                    119
 #define IDR_SHUTDOWN                    120
 #define IDR_COMPUTER                    120
+#define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
 #define IDR_PROCESS                     123
 #define IDR_SERVICE                     124
@@ -86,6 +87,8 @@
 #define IDR_PROCESSHEADER               177
 #define IDD_LOG                         178
 #define IDD_OPTSYMBOLS                  179
+#define IDD_MEMEDIT                     180
+#define IDR_MEMORY                      181
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -344,7 +347,9 @@
 #define IDC_ENABLEPROCDB                1222
 #define IDC_ZNONPAGEDLIMIT_V            1223
 #define IDC_ZPAGEFAULTSTOTAL_V          1224
+#define IDC_REREAD                      1224
 #define IDC_ZPAGEFAULTSCOPYONWRITE_V    1225
+#define IDC_WRITE                       1225
 #define IDC_ZPAGEFAULTSTRANSITION_V     1226
 #define IDC_ZPAGEFAULTSCACHE_V          1227
 #define IDC_ZCONTEXTSWITCHES_V          1228
@@ -534,15 +539,25 @@
 #define ID_PRIORITY_PERMANENT           40203
 #define ID_PRIORITY_RESTORE             40204
 #define ID_PRIORITY_SAVE                40205
+#define ID_MEMORY_R                     40206
+#define ID_MEMORY_READ                  40207
+#define ID_MEMORY_SAVE                  40208
+#define ID_MEMORY_CHANGEPROTECTION      40209
+#define ID_MEMORY_FREE                  40210
+#define ID_MEMORY_DECOMMIT              40211
+#define ID_MEMORY_READ40212             40212
+#define ID_MEMORY_COPY                  40213
+#define ID_MEMORY_READWRITEMEMORY       40214
+#define ID_MEMORY_READWRITEADDRESS      40215
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        179
-#define _APS_NEXT_COMMAND_VALUE         40206
-#define _APS_NEXT_CONTROL_VALUE         1223
-#define _APS_NEXT_SYMED_VALUE           120
+#define _APS_NEXT_RESOURCE_VALUE        182
+#define _APS_NEXT_COMMAND_VALUE         40216
+#define _APS_NEXT_CONTROL_VALUE         1227
+#define _APS_NEXT_SYMED_VALUE           121
 #endif
 #endif

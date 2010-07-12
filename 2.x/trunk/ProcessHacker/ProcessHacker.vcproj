@@ -449,6 +449,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\memedit.c"
+				>
+			</File>
+			<File
 				RelativePath=".\memprv.c"
 				>
 			</File>

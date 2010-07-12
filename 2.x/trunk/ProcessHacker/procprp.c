@@ -3361,6 +3361,28 @@ INT NTAPI PhpMemorySizeCompareFunction(
     return uintptrcmp(item1->Size, item2->Size);
 }
 
+VOID PhpInitializeMemoryMenu(
+    __in HMENU Menu,
+    __in HANDLE ProcessId,
+    __in PPH_MEMORY_ITEM *MemoryItems,
+    __in ULONG NumberOfMemoryItems
+    )
+{
+    if (NumberOfMemoryItems == 0)
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+    }
+    else if (NumberOfMemoryItems == 1)
+    {
+        // Nothing
+    }
+    else
+    {
+        PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_MEMORY_COPY, TRUE);
+    }
+}
+
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -3371,17 +3393,19 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
+    HWND lvHandle;
 
     if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
         return FALSE;
+
+    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
             PPH_MEMORY_CONTEXT memoryContext;
-            HWND lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             memoryContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_MEMORY_CONTEXT));
@@ -3421,7 +3445,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             PhDeleteMemoryProvider(&memoryContext->Provider);
             PhFree(memoryContext);
 
-            PhSaveListViewColumnsToSetting(L"MemoryListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
+            PhSaveListViewColumnsToSetting(L"MemoryListViewColumns", lvHandle);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -3436,7 +3460,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
                 PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhpAddPropPageLayoutItem(hwndDlg, lvHandle,
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhpDoPropPageLayout(hwndDlg);
@@ -3447,7 +3471,87 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
         break;
     case WM_COMMAND:
         {
-            PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+            switch (LOWORD(wParam))
+            {
+            case ID_MEMORY_READWRITEMEMORY:
+                {
+                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (memoryItem)
+                    {
+                        if (memoryItem->Flags & MEM_COMMIT)
+                        {
+                            PH_SHOWMEMORYEDITOR showMemoryEditor;
+
+                            showMemoryEditor.ProcessId = processItem->ProcessId;
+                            showMemoryEditor.BaseAddress = memoryItem->BaseAddress;
+                            showMemoryEditor.RegionSize = memoryItem->Size;
+                            ProcessHacker_ShowMemoryEditor(PhMainWndHandle, &showMemoryEditor);
+                        }
+                        else
+                        {
+                            PhShowError(hwndDlg, L"Unable to edit the memory region because it is not committed.");
+                        }
+                    }
+                }
+                break;
+            case IDC_REFRESH:
+                PhpRefreshProcessMemoryList(hwndDlg, propPageContext);
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            PhHandleListViewNotifyForCopy(lParam, lvHandle);
+
+            switch (header->code)
+            {
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        SendMessage(hwndDlg, WM_COMMAND, ID_MEMORY_READWRITEMEMORY, 0);
+                    }
+                }
+                break;
+            case NM_RCLICK:
+                {
+                    if (header->hwndFrom == lvHandle)
+                    {
+                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                        PPH_MEMORY_ITEM *memoryItems;
+                        ULONG numberOfMemoryItems;
+
+                        PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
+
+                        if (numberOfMemoryItems != 0)
+                        {
+                            HMENU menu;
+                            HMENU subMenu;
+
+                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY));
+                            subMenu = GetSubMenu(menu, 0);
+
+                            SetMenuDefaultItem(subMenu, ID_MEMORY_READWRITEMEMORY, FALSE);
+                            PhpInitializeMemoryMenu(subMenu, processItem->ProcessId, memoryItems, numberOfMemoryItems);
+
+                            PhShowContextMenu(
+                                hwndDlg,
+                                lvHandle,
+                                subMenu,
+                                itemActivate->ptAction
+                                );
+                            DestroyMenu(menu);
+                        }
+
+                        PhFree(memoryItems);
+                    }
+                }
+                break;
+            }
         }
         break;
     }

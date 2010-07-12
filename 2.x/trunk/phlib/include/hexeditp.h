@@ -10,6 +10,7 @@ typedef struct _PHP_HEXEDIT_CONTEXT
 {
     PUCHAR Data;
     LONG Length;
+    BOOLEAN UserBuffer;
     LONG TopIndex; // index of first visible byte on screen
 
     LONG CurrentAddress;
