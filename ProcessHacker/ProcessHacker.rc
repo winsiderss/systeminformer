@@ -396,6 +396,21 @@ BEGIN
     END
 END
 
+IDR_MEMORY MENU 
+BEGIN
+    POPUP "Memory"
+    BEGIN
+        MENUITEM "Read/Write Memory",           ID_MEMORY_READWRITEMEMORY
+        MENUITEM "Save...",                     ID_MEMORY_SAVE
+        MENUITEM "Change Protection...",        ID_MEMORY_CHANGEPROTECTION
+        MENUITEM "Free",                        ID_MEMORY_FREE
+        MENUITEM "Decommit",                    ID_MEMORY_DECOMMIT
+        MENUITEM SEPARATOR
+        MENUITEM "Read/Write Address...",       ID_MEMORY_READWRITEADDRESS
+        MENUITEM "Copy",                        ID_MEMORY_COPY
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1316,6 +1331,18 @@ BEGIN
     EDITTEXT        IDC_DBGHELPSEARCHPATH,66,23,177,12,ES_AUTOHSCROLL
 END
 
+IDD_MEMEDIT DIALOGEX 0, 0, 441, 269
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_APPWINDOW
+CAPTION "Memory"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDOK,384,248,50,14
+    PUSHBUTTON      "Write",IDC_WRITE,60,248,50,14
+    PUSHBUTTON      "Re-read",IDC_REREAD,7,248,50,14
+    PUSHBUTTON      "Save...",IDC_SAVE,331,248,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1691,6 +1718,14 @@ BEGIN
         RIGHTMARGIN, 243
         TOPMARGIN, 7
         BOTTOMMARGIN, 68
+    END
+
+    IDD_MEMEDIT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 434
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 262
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -1668,6 +1668,17 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
+    case WM_PH_SHOW_MEMORY_EDITOR:
+        {
+            PPH_SHOWMEMORYEDITOR showMemoryEditor = (PPH_SHOWMEMORYEDITOR)lParam;
+
+            PhShowMemoryEditorDialog(
+                showMemoryEditor->ProcessId,
+                showMemoryEditor->BaseAddress,
+                showMemoryEditor->RegionSize
+                );
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;

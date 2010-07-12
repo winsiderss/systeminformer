@@ -447,6 +447,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_DELAYED_LOAD_COMPLETED (WM_APP + 125)
 #define WM_PH_NOTIFY_ICON_MESSAGE (WM_APP + 126)
 #define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
+#define WM_PH_SHOW_MEMORY_EDITOR (WM_APP + 128)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -475,6 +476,15 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
 #define ProcessHacker_ToggleVisible(hWnd) \
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
+#define ProcessHacker_ShowMemoryEditor(hWnd, ShowMemoryEditor) \
+    SendMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
+
+typedef struct _PH_SHOWMEMORYEDITOR
+{
+    HANDLE ProcessId;
+    PVOID BaseAddress;
+    SIZE_T RegionSize;
+} PH_SHOWMEMORYEDITOR, *PPH_SHOWMEMORYEDITOR;
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
@@ -1060,6 +1070,14 @@ HPROPSHEETPAGE PhCreateJobPage(
 // logwnd
 
 VOID PhShowLogDialog();
+
+// memedit
+
+VOID PhShowMemoryEditorDialog(
+    __in HANDLE ProcessId,
+    __in PVOID BaseAddress,
+    __in SIZE_T RegionSize
+    );
 
 // netstk
 

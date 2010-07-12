@@ -2160,6 +2160,8 @@ typedef struct _PH_BINARY_TREE
     PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction;
 } PH_BINARY_TREE, *PPH_BINARY_TREE;
 
+#define PH_BINARY_TREE_INIT(CompareFunction) { { NULL, NULL, NULL }, 0, CompareFunction }
+
 VOID PhInitializeBinaryTree(
     __out PPH_BINARY_TREE Tree,
     __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction
@@ -2203,6 +2205,8 @@ typedef struct _PH_AVL_TREE
     PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction;
 } PH_AVL_TREE, *PPH_AVL_TREE;
 
+#define PH_AVL_TREE_INIT(CompareFunction) { { NULL, NULL, NULL, 0 }, 0, CompareFunction }
+
 VOID PhInitializeAvlTree(
     __out PPH_AVL_TREE Tree,
     __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
@@ -2223,7 +2227,7 @@ PPH_AVL_LINKS PhAvlTreeSearch(
     __in PPH_AVL_LINKS Subject
     );
 
-// handle 
+// handle
 
 struct _PH_HANDLE_TABLE;
 typedef struct _PH_HANDLE_TABLE *PPH_HANDLE_TABLE;
