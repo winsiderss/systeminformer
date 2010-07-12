@@ -436,8 +436,8 @@ VOID PhpCreateGraphContext(
     *Context = context;
 }
 
-VOID PhpDeleteGraphContext(
-    __inout PPHP_GRAPH_CONTEXT Context
+VOID PhpFreeGraphContext(
+    __inout __post_invalid PPHP_GRAPH_CONTEXT Context
     )
 {
     PhFree(Context);
@@ -624,7 +624,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 DestroyWindow(context->TooltipHandle);
 
             PhpDeleteBufferedContext(context);
-            PhpDeleteGraphContext(context);
+            PhpFreeGraphContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
         break;
