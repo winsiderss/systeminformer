@@ -3916,6 +3916,107 @@ RtlVerifyVersionInfo(
     __in ULONGLONG ConditionMask
     );
 
+// Thread pool (old)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRegisterWait(
+    __out PHANDLE WaitHandle,
+    __in HANDLE Handle,
+    __in WAITORTIMERCALLBACKFUNC Function,
+    __in PVOID Context,
+    __in ULONG Milliseconds,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeregisterWait(
+    __in HANDLE WaitHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeregisterWaitEx(
+    __in HANDLE WaitHandle,
+    __in HANDLE Event
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueueWorkItem(
+    __in WORKERCALLBACKFUNC Function,
+    __in PVOID Context,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetIoCompletionCallback(
+    __in HANDLE FileHandle,
+    __in APC_CALLBACK_FUNCTION CompletionProc,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateTimerQueue(
+    __out PHANDLE TimerQueueHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateTimer(
+    __in HANDLE TimerQueueHandle,
+    __out PHANDLE Handle,
+    __in WAITORTIMERCALLBACKFUNC Function,
+    __in PVOID Context,
+    __in ULONG DueTime,
+    __in ULONG Period,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpdateTimer(
+    __in HANDLE TimerQueueHandle,
+    __in HANDLE TimerHandle,
+    __in ULONG DueTime,
+    __in ULONG Period
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteTimer(
+    __in HANDLE TimerQueueHandle,
+    __in HANDLE TimerToCancel,
+    __in HANDLE Event
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteTimerQueue(
+    __in HANDLE TimerQueueHandle
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteTimerQueueEx(
+    __in HANDLE TimerQueueHandle,
+    __in HANDLE Event
+    );
+
 // Misc.
 
 NTSYSAPI
