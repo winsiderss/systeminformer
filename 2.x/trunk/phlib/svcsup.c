@@ -198,7 +198,7 @@ PPH_STRING PhGetServiceDescription(
     if (QueryServiceConfig2(
         ServiceHandle,
         SERVICE_CONFIG_DESCRIPTION,
-        buffer,
+        (BYTE *)buffer,
         returnLength,
         &returnLength
         ))
@@ -212,6 +212,47 @@ PPH_STRING PhGetServiceDescription(
     PhFree(buffer);
 
     return description;
+}
+
+BOOLEAN PhGetServiceDelayedAutoStart(
+    __in SC_HANDLE ServiceHandle,
+    __out PBOOLEAN DelayedAutoStart
+    )
+{
+    SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
+    ULONG returnLength;
+
+    if (QueryServiceConfig2(
+        ServiceHandle,
+        SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+        (BYTE *)&delayedAutoStartInfo,
+        sizeof(SERVICE_DELAYED_AUTO_START_INFO),
+        &returnLength
+        ))
+    {
+        *DelayedAutoStart = !!delayedAutoStartInfo.fDelayedAutostart;
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+BOOLEAN PhSetServiceDelayedAutoStart(
+    __in SC_HANDLE ServiceHandle,
+    __in BOOLEAN DelayedAutoStart
+    )
+{
+    SERVICE_DELAYED_AUTO_START_INFO delayedAutoStartInfo;
+
+    delayedAutoStartInfo.fDelayedAutostart = DelayedAutoStart;
+
+    return !!ChangeServiceConfig2(
+        ServiceHandle,
+        SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+        &delayedAutoStartInfo
+        );
 }
 
 PWSTR PhGetServiceStateString(
