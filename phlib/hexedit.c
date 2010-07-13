@@ -185,10 +185,15 @@ LRESULT CALLBACK PhpHexEditWndProc(
     case WM_VSCROLL:
         {
             SHORT scrollRequest = LOWORD(wParam);
-            SHORT currentPosition = HIWORD(wParam);
+            LONG currentPosition;
             LONG originalTopIndex;
+            SCROLLINFO scrollInfo = { sizeof(scrollInfo) };
 
             originalTopIndex = context->TopIndex;
+
+            scrollInfo.fMask = SIF_TRACKPOS;
+            GetScrollInfo(hwnd, SB_VERT, &scrollInfo);
+            currentPosition = scrollInfo.nTrackPos;
 
             if (context->Data)
             {
