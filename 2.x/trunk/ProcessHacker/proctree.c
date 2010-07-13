@@ -1196,7 +1196,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
                 break;
             case PHTLC_SAFE:
-                if (PhCsEnableProcDb)
+                if (PhProcDbInitialized)
                 {
                     if (PhpIsProcessNodeSafe(node))
                         PhInitializeStringRef(&getNodeText->Text, L"Safe");
@@ -1443,7 +1443,7 @@ VOID PhInvalidateAllProcessNodes()
         PhInvalidateTreeListNode(&node->Node, TLIN_COLOR);
         node->ValidMask = 0;
 
-        if (PhCsEnableProcDb)
+        if (PhProcDbInitialized)
         {
             if (node->DbEntry)
             {
