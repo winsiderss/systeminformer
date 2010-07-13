@@ -137,6 +137,9 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                             PhFileStreamWriteStringAsAnsi(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }
+
+                        if (!NT_SUCCESS(status))
+                            PhShowStatus(hwndDlg, L"Unable to create the file", status, 0);
                     }
 
                     PhFreeFileDialog(fileDialog);

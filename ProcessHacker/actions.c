@@ -2196,6 +2196,77 @@ BOOLEAN PhUiUnloadModule(
     return TRUE;
 }
 
+BOOLEAN PhUiFreeMemory(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_MEMORY_ITEM MemoryItem,
+    __in BOOLEAN Free
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+    HANDLE processHandle;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            Free ? L"free" : L"decommit",
+            L"the memory region",
+            Free ?
+            L"Freeing memory regions may cause the process to crash." :
+            L"Decommitting memory regions may cause the process to crash.",
+            TRUE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_VM_OPERATION,
+        ProcessId
+        )))
+    {
+        PVOID baseAddress;
+        SIZE_T regionSize;
+
+        baseAddress = MemoryItem->BaseAddress;
+
+        // The size needs to be 0 if we're freeing.
+        if (Free)
+            regionSize = 0;
+        else
+            regionSize = MemoryItem->Size;
+
+        status = NtFreeVirtualMemory(
+            processHandle,
+            &baseAddress,
+            &regionSize,
+            Free ? MEM_RELEASE : MEM_DECOMMIT
+            );
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(
+            hWnd,
+            Free ? L"Unable to free the memory region" : L"Unable to decommit the memory region",
+            status,
+            0
+            );
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 static BOOLEAN PhpShowErrorHandle(
     __in HWND hWnd,
     __in PWSTR Verb,

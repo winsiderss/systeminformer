@@ -3337,6 +3337,24 @@ BOOLEAN NTAPI PhpProcessMemoryCallback(
     return TRUE;
 }
 
+VOID PhpUpdateMemoryItemInListView(
+    __in HANDLE ListViewHandle,
+    __in PPH_MEMORY_ITEM MemoryItem
+    )
+{
+    INT lvItemIndex;
+
+    lvItemIndex = PhFindListViewItemByParam(ListViewHandle, -1, MemoryItem);
+
+    if (lvItemIndex != -1)
+    {
+        WCHAR protectionString[17];
+
+        PhGetMemoryProtectionString(MemoryItem->Protection, protectionString);
+        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, protectionString);
+    }
+}
+
 INT NTAPI PhpMemoryAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
@@ -3379,8 +3397,11 @@ VOID PhpInitializeMemoryMenu(
     else
     {
         PhEnableAllMenuItems(Menu, FALSE);
+        PhEnableMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
         PhEnableMenuItem(Menu, ID_MEMORY_COPY, TRUE);
     }
+
+    PhEnableMenuItem(Menu, ID_MEMORY_READWRITEADDRESS, TRUE);
 }
 
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
@@ -3481,18 +3502,225 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     {
                         if (memoryItem->Flags & MEM_COMMIT)
                         {
-                            PH_SHOWMEMORYEDITOR showMemoryEditor;
+                            PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
 
-                            showMemoryEditor.ProcessId = processItem->ProcessId;
-                            showMemoryEditor.BaseAddress = memoryItem->BaseAddress;
-                            showMemoryEditor.RegionSize = memoryItem->Size;
-                            ProcessHacker_ShowMemoryEditor(PhMainWndHandle, &showMemoryEditor);
+                            showMemoryEditor->ProcessId = processItem->ProcessId;
+                            showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
+                            showMemoryEditor->RegionSize = memoryItem->Size;
+                            showMemoryEditor->SelectOffset = -1;
+                            ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
                         }
                         else
                         {
                             PhShowError(hwndDlg, L"Unable to edit the memory region because it is not committed.");
                         }
                     }
+                }
+                break;
+            case ID_MEMORY_SAVE:
+                {
+                    NTSTATUS status;
+                    HANDLE processHandle;
+                    PPH_MEMORY_ITEM *memoryItems;
+                    ULONG numberOfMemoryItems;
+
+                    if (!NT_SUCCESS(status = PhOpenProcess(
+                        &processHandle,
+                        PROCESS_VM_READ,
+                        processItem->ProcessId
+                        )))
+                    {
+                        PhShowStatus(hwndDlg, L"Unable to open the process", status, 0);
+                        break;
+                    }
+
+                    PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
+
+                    if (numberOfMemoryItems != 0)
+                    {
+                        static PH_FILETYPE_FILTER filters[] =
+                        {
+                            { L"Binary files (*.bin)", L"*.bin" },
+                            { L"All files (*.*)", L"*.*" }
+                        };
+                        PVOID fileDialog;
+
+                        fileDialog = PhCreateSaveFileDialog();
+
+                        PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+                        PhSetFileDialogFileName(fileDialog, PhaConcatStrings2(processItem->ProcessName->Buffer, L".bin")->Buffer);
+
+                        if (PhShowFileDialog(hwndDlg, fileDialog))
+                        {
+                            PPH_STRING fileName;
+                            PPH_FILE_STREAM fileStream;
+                            PVOID buffer;
+                            ULONG i;
+                            ULONG_PTR offset;
+
+                            fileName = PhGetFileDialogFileName(fileDialog);
+                            PhaDereferenceObject(fileName);
+
+                            if (NT_SUCCESS(status = PhCreateFileStream(
+                                &fileStream,
+                                fileName->Buffer,
+                                FILE_GENERIC_WRITE,
+                                FILE_SHARE_READ,
+                                FILE_OVERWRITE_IF,
+                                0
+                                )))
+                            {
+                                buffer = PhAllocatePage(PAGE_SIZE, NULL);
+
+                                // Go through each selected memory item and append the region contents 
+                                // to the file.
+                                for (i = 0; i < numberOfMemoryItems; i++)
+                                {
+                                    PPH_MEMORY_ITEM memoryItem = memoryItems[i];
+
+                                    if (!(memoryItem->Flags & MEM_COMMIT))
+                                        continue;
+
+                                    for (offset = 0; offset < memoryItem->Size; offset += PAGE_SIZE)
+                                    {
+                                        if (NT_SUCCESS(PhReadVirtualMemory(
+                                            processHandle,
+                                            PTR_ADD_OFFSET(memoryItem->BaseAddress, offset),
+                                            buffer,
+                                            PAGE_SIZE,
+                                            NULL
+                                            )))
+                                        {
+                                            PhFileStreamWrite(fileStream, buffer, PAGE_SIZE);
+                                        }
+                                    }
+                                }
+
+                                PhFreePage(buffer);
+
+                                PhDereferenceObject(fileStream);
+                            }
+
+                            if (!NT_SUCCESS(status))
+                                PhShowStatus(hwndDlg, L"Unable to create the file", status, 0);
+                        }
+
+                        PhFreeFileDialog(fileDialog);
+                    }
+
+                    PhFree(memoryItems);
+                    NtClose(processHandle);
+                }
+                break;
+            case ID_MEMORY_CHANGEPROTECTION:
+                {
+                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (memoryItem)
+                    {
+                        PhReferenceObject(memoryItem);
+
+                        PhShowMemoryProtectDialog(hwndDlg, processItem, memoryItem);
+                        PhpUpdateMemoryItemInListView(lvHandle, memoryItem);
+
+                        PhDereferenceObject(memoryItem);
+                    }
+                }
+                break;
+            case ID_MEMORY_FREE:
+                {
+                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (memoryItem)
+                    {
+                        PhReferenceObject(memoryItem);
+                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryItem, TRUE);
+                        PhDereferenceObject(memoryItem);
+                        // TODO: somehow update the list
+                    }
+                }
+                break;
+            case ID_MEMORY_DECOMMIT:
+                {
+                    PPH_MEMORY_ITEM memoryItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (memoryItem)
+                    {
+                        PhReferenceObject(memoryItem);
+                        PhUiFreeMemory(hwndDlg, processItem->ProcessId, memoryItem, FALSE);
+                        PhDereferenceObject(memoryItem);
+                    }
+                }
+                break;
+            case ID_MEMORY_READWRITEADDRESS:
+                {
+                    PPH_MEMORY_CONTEXT memoryContext = propPageContext->Context;
+                    PPH_STRING selectedChoice = NULL;
+
+                    while (PhaChoiceDialog(
+                        hwndDlg,
+                        L"Read/Write Address",
+                        L"Enter an address:",
+                        NULL,
+                        0,
+                        NULL,
+                        PH_CHOICE_DIALOG_USER_CHOICE,
+                        &selectedChoice,
+                        NULL,
+                        L"MemoryReadWriteAddressChoices"
+                        ))
+                    {
+                        ULONG64 address64;
+                        ULONG_PTR address;
+
+                        if (selectedChoice->Length == 0)
+                            continue;
+
+                        if (PhStringToInteger64(&selectedChoice->sr, 0, &address64))
+                        {
+                            ULONG i;
+                            PPH_MEMORY_ITEM memoryItem = NULL;
+                            BOOLEAN found = FALSE;
+
+                            address = (ULONG_PTR)address64;
+
+                            for (i = 0; i < memoryContext->MemoryList->Count; i++)
+                            {
+                                memoryItem = memoryContext->MemoryList->Items[i];
+
+                                // Dumb linear search.
+                                if (
+                                    address >= (ULONG_PTR)memoryItem->BaseAddress &&
+                                    address < (ULONG_PTR)memoryItem->BaseAddress + memoryItem->Size
+                                    )
+                                {
+                                    found = TRUE;
+                                    break;
+                                }
+                            }
+
+                            if (found)
+                            {
+                                PPH_SHOWMEMORYEDITOR showMemoryEditor = PhAllocate(sizeof(PH_SHOWMEMORYEDITOR));
+
+                                showMemoryEditor->ProcessId = processItem->ProcessId;
+                                showMemoryEditor->BaseAddress = memoryItem->BaseAddress;
+                                showMemoryEditor->RegionSize = memoryItem->Size;
+                                showMemoryEditor->SelectOffset = (ULONG)(address - (ULONG_PTR)memoryItem->BaseAddress);
+                                ProcessHacker_ShowMemoryEditor(PhMainWndHandle, showMemoryEditor);
+                                break;
+                            }
+                            else
+                            {
+                                PhShowError(hwndDlg, L"Unable to find the memory region for the selected address.");
+                            }
+                        }
+                    }
+                }
+                break;
+            case ID_MEMORY_COPY:
+                {
+                    PhCopyListView(lvHandle);
                 }
                 break;
             case IDC_REFRESH:
@@ -3527,7 +3755,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                         PhGetSelectedListViewItemParams(lvHandle, &memoryItems, &numberOfMemoryItems);
 
-                        if (numberOfMemoryItems != 0)
+                        // Allow menu to show when there are no items selected so 
+                        // the user can use Read/Write Address.
+                        //if (numberOfMemoryItems != 0)
                         {
                             HMENU menu;
                             HMENU subMenu;
