@@ -20,6 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define PROCDB_PRIVATE
 #include <phapp.h>
 #include <settings.h>
 #include <md5.h>
@@ -34,6 +35,8 @@ INT NTAPI PhpProcDbByHashCompareFunction(
     __in PPH_AVL_LINKS Links1,
     __in PPH_AVL_LINKS Links2
     );
+
+BOOLEAN PhProcDbInitialized = FALSE;
 
 LIST_ENTRY PhProcDbListHead;
 PH_AVL_TREE PhProcDbByFileName = PH_AVL_TREE_INIT(PhpProcDbByFileNameCompareFunction);
@@ -84,6 +87,8 @@ VOID PhProcDbInitialization()
                 PhDereferenceObject(systemDirectory);
             }
         }
+
+        PhProcDbInitialized = TRUE;
     }
 }
 
