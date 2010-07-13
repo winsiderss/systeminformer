@@ -411,6 +411,17 @@ BEGIN
     END
 END
 
+IDR_MEMFILTER MENU 
+BEGIN
+    POPUP "Filter"
+    BEGIN
+        MENUITEM "Contains...",                 ID_FILTER_CONTAINS
+        MENUITEM "Contains (case-insensitive)...", ID_FILTER_CONTAINS_CASEINSENSITIVE
+        MENUITEM "Regex...",                    ID_FILTER_REGEX
+        MENUITEM "Regex (case-insensitive)...", ID_FILTER_REGEX_CASEINSENSITIVE
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1357,6 +1368,16 @@ BEGIN
     EDITTEXT        IDC_VALUE,161,135,102,12,ES_AUTOHSCROLL
 END
 
+IDD_MEMRESULTS DIALOGEX 0, 0, 282, 266
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Results"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,225,245,50,14
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,268,235
+    PUSHBUTTON      "Filter",IDC_FILTER,7,245,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1748,6 +1769,14 @@ BEGIN
         RIGHTMARGIN, 263
         TOPMARGIN, 7
         BOTTOMMARGIN, 164
+    END
+
+    IDD_MEMRESULTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 259
     END
 END
 #endif    // APSTUDIO_INVOKED

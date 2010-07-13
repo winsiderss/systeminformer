@@ -169,6 +169,18 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             NTSTATUS status;
             RECT rect;
 
+            {
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(context->ProcessId))
+                {
+                    SetWindowText(hwndDlg, PhaFormatString(L"%s (%u) (0x%Ix - 0x%Ix)",
+                        processItem->ProcessName->Buffer, (ULONG)context->ProcessId,
+                        context->BaseAddress, (ULONG_PTR)context->BaseAddress + context->RegionSize)->Buffer);
+                    PhDereferenceObject(processItem);
+                }
+            }
+
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
 
             if (context->RegionSize > 1024 * 1024 * 1024) // 1 GB
