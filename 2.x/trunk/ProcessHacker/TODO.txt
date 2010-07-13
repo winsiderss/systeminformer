@@ -1,3 +1,4 @@
 * Memory searching/string scanning
+* Ability to add comments to processes
 * Dump/view process information
 * Make settings based on atoms instead of strings
