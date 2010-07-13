@@ -397,6 +397,90 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pcre\pcre_chartables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_compile.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_config.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_dfa_exec.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_exec.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_fullinfo.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_get.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_globals.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_info.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_maketables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_newline.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_ord2utf8.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_refcount.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_study.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_tables.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_try_flipped.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_ucd.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_valid_utf8.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_version.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_xclass.c"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcreposix.c"
+				>
+			</File>
+			<File
 				RelativePath=".\provider.c"
 				>
 			</File>
@@ -464,6 +548,10 @@
 			</File>
 			<File
 				RelativePath=".\circbuf_i.h"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\config.h"
 				>
 			</File>
 			<File
@@ -603,6 +691,18 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pcre\pcre.h"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcre_internal.h"
+				>
+			</File>
+			<File
+				RelativePath=".\pcre\pcreposix.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ph.h"
 				>
 			</File>
@@ -667,6 +767,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\pcre\ucp.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\verifyp.h"
 				>
 			</File>
@@ -681,6 +785,10 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
+		<File
+			RelativePath=".\pcre\pcre_printint.src"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
