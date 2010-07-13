@@ -1,5 +1,3 @@
-* Complete memory list
-* Add memory editing
-
+* Memory searching/string scanning
 * Dump/view process information
 * Make settings based on atoms instead of strings
