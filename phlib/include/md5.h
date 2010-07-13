@@ -9,17 +9,17 @@ typedef struct
     UCHAR digest[16];
 } MD5_CTX;
 
-VOID NTAPI MD5Init(
+VOID MD5Init(
     __out MD5_CTX *Context
     );
 
-VOID NTAPI MD5Update(
+VOID MD5Update(
     __inout MD5_CTX *Context,
     __in_bcount(Length) UCHAR *Input,
     __in ULONG Length
     );
 
-VOID NTAPI MD5Final(
+VOID MD5Final(
     __inout MD5_CTX *Context
     );
 
