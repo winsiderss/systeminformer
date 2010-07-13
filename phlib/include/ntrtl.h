@@ -1711,13 +1711,75 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
 #define RTL_USER_PROC_IMAGE_KEY_MISSING 0x00004000
 #define RTL_USER_PROC_OPTIN_PROCESS 0x00020000
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateProcessParameters(
+    __out PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
+    __in PUNICODE_STRING ImagePathName,
+    __in_opt PUNICODE_STRING DllPath,
+    __in_opt PUNICODE_STRING CurrentDirectory,
+    __in_opt PUNICODE_STRING CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PUNICODE_STRING WindowTitle,
+    __in_opt PUNICODE_STRING DesktopInfo,
+    __in_opt PUNICODE_STRING ShellInfo,
+    __in_opt PUNICODE_STRING RuntimeData
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDestroyProcessParameters(
+    __in __post_invalid ProcessParameters
+    );
+
+NTSYSAPI
+PRTL_USER_PROCESS_PARAMETERS
+NTAPI
+RtlNormalizeProcessParams(
+    __inout PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    );
+
+NTSYSAPI
+PRTL_USER_PROCESS_PARAMETERS
+NTAPI
+RtlDeNormalizeProcessParams(
+    __inout PRTL_USER_PROCESS_PARAMETERS ProcessParameters
+    );
+
+typedef struct _RTL_USER_PROCESS_INFORMATION
+{
+    ULONG Length;
+    HANDLE Process;
+    HANDLE Thread;
+    CLIENT_ID ClientId;
+    SECTION_IMAGE_INFORMATION ImageInformation;
+} RTL_USER_PROCESS_INFORMATION, *PRTL_USER_PROCESS_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateUserProcess(
+    __in PUNICODE_STRING NtImagePathName,
+    __in ULONG Attributes,
+    __in PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
+    __in_opt PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    __in_opt HANDLE ParentProcess,
+    __in BOOLEAN InheritHandles,
+    __in_opt HANDLE DebugPort,
+    __in_opt HANDLE ExceptionPort,
+    __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    );
+
 // Threads
 
 typedef NTSTATUS (NTAPI *PUSER_THREAD_START_ROUTINE)(
     __in PVOID ThreadParameter
     );
 
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateUserThread(
@@ -1735,7 +1797,7 @@ RtlCreateUserThread(
 
 #ifdef _M_X64
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWow64GetThreadContext(
@@ -1746,7 +1808,7 @@ RtlWow64GetThreadContext(
 
 #ifdef _M_X64
 // rev
-NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
 NTAPI
 RtlWow64SetThreadContext(
