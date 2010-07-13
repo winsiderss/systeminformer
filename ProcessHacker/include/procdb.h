@@ -1,6 +1,10 @@
 #ifndef PROCDB_H
 #define PROCDB_H
 
+#ifndef PROCDB_PRIVATE
+extern BOOLEAN PhProcDbInitialized;
+#endif
+
 #define PH_PROCDB_HASH_SIZE 16
 
 #define PH_PROCDB_ENTRY_MATCH_HASH 0x1

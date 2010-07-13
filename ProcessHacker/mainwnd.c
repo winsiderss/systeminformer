@@ -3123,7 +3123,7 @@ VOID PhpInitializeProcessMenu(
         EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
     }
 
-    if (PhCsEnableProcDb)
+    if (PhProcDbInitialized)
     {
         if (NumberOfProcesses == 1)
         {
@@ -3170,7 +3170,7 @@ VOID PhpInitializeProcessMenu(
         DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
     }
 
-    if (!PhCsEnableProcDb)
+    if (!PhProcDbInitialized)
         DeleteMenu(Menu, ID_PROCESS_MARKASSAFE, 0);
 }
 
@@ -3538,7 +3538,7 @@ VOID PhMainWndOnProcessAdded(
         }
     }
 
-    if (PhCsEnableProcDb)
+    if (PhProcDbInitialized)
     {
         if (ProcessItem->FileName)
         {
