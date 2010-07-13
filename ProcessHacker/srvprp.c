@@ -28,6 +28,8 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     PPH_SERVICE_ITEM ServiceItem;
     BOOLEAN Ready;
     BOOLEAN Dirty;
+
+    BOOLEAN OldDelayedStart;
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
@@ -81,6 +83,7 @@ VOID PhShowServiceProperties(
 
     // General
 
+    memset(&context, 0, sizeof(SERVICE_PROPERTIES_CONTEXT));
     context.ServiceItem = ServiceItem;
     context.Ready = FALSE;
     context.Dirty = FALSE;
@@ -112,6 +115,23 @@ VOID PhShowServiceProperties(
     }
 
     PropertySheet(&propSheetHeader);
+}
+
+static VOID PhpRefreshControls(
+    __in HWND hwndDlg
+    )
+{
+    if (
+        WindowsVersion >= WINDOWS_VISTA &&
+        PhStringEquals2(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_STARTTYPE), L"Auto Start", FALSE)
+        )
+    {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), TRUE);
+    }
+    else
+    {
+        EnableWindow(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), FALSE);
+    }
 }
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(      
@@ -156,6 +176,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             {
                 LPQUERY_SERVICE_CONFIG config;
                 PPH_STRING description;
+                BOOLEAN delayedStart;
 
                 if (config = PhGetServiceConfig(serviceHandle))
                 {
@@ -170,6 +191,17 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 {
                     SetDlgItemText(hwndDlg, IDC_DESCRIPTION, description->Buffer);
                     PhDereferenceObject(description);
+                }
+
+                if (
+                    WindowsVersion >= WINDOWS_VISTA &&
+                    PhGetServiceDelayedAutoStart(serviceHandle, &delayedStart)
+                    )
+                {
+                    context->OldDelayedStart = delayedStart;
+
+                    if (delayedStart)
+                        Button_SetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART), BST_CHECKED);
                 }
 
                 CloseServiceHandle(serviceHandle);
@@ -218,6 +250,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 PhDereferenceObject(keyName);
             }
 
+            PhpRefreshControls(hwndDlg);
+
             context->Ready = TRUE;
         }
         break;
@@ -228,6 +262,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_COMMAND:
         {
+            PSERVICE_PROPERTIES_CONTEXT context = 
+                (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+
             switch (LOWORD(wParam))
             {
             case IDC_PASSWORD:
@@ -236,6 +273,11 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     {
                         Button_SetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK), BST_CHECKED);
                     }
+                }
+                break;
+            case IDC_DELAYEDSTART:
+                {
+                    context->Dirty = TRUE;
                 }
                 break;
             case IDC_BROWSE:
@@ -272,8 +314,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             case EN_CHANGE:
             case CBN_SELCHANGE:
                 {
-                    PSERVICE_PROPERTIES_CONTEXT context = 
-                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PhpRefreshControls(hwndDlg);
 
                     if (context->Ready)
                         context->Dirty = TRUE;
@@ -360,6 +401,18 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             NULL
                             ))
                         {
+                            if (WindowsVersion >= WINDOWS_VISTA)
+                            {
+                                BOOLEAN newDelayedStart;
+
+                                newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+
+                                if (newDelayedStart != context->OldDelayedStart)
+                                {
+                                    PhSetServiceDelayedAutoStart(serviceHandle, newDelayedStart);
+                                }
+                            }
+
                             PhMarkNeedsConfigUpdateServiceItem(serviceItem);
                         }
                         else
