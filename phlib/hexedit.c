@@ -1532,7 +1532,7 @@ VOID PhpHexEditPasteEdit(
         if (memory)
         {
             PUCHAR p = GlobalLock(memory);
-            ULONG length = GlobalSize(memory);
+            ULONG length = (ULONG)GlobalSize(memory);
             ULONG paste;
             ULONG oldCurrentAddress = Context->CurrentAddress;
 
