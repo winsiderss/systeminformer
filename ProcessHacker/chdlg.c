@@ -148,16 +148,17 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                 i = 0;
 
-                // Split the saved choices using the newline character.
+                // Split the saved choices using the backtick character.
                 while (i < (ULONG)savedChoices->Length / 2)
                 {
-                    indexOfNewLine = PhStringIndexOfChar(savedChoices, i, '\n');
+                    indexOfNewLine = PhStringIndexOfChar(savedChoices, i, '`');
 
                     if (indexOfNewLine == -1)
                         indexOfNewLine = savedChoices->Length / 2;
 
-                    savedChoice = PhSubstring(savedChoices, i, indexOfNewLine);
-                    ComboBox_AddString(comboBoxHandle, savedChoice->Buffer);
+                    savedChoice = PhSubstring(savedChoices, i, indexOfNewLine - i);
+                    if (savedChoice->Length != 0)
+                        ComboBox_InsertString(comboBoxHandle, -1, savedChoice->Buffer);
                     PhDereferenceObject(savedChoice);
 
                     i = indexOfNewLine + 1;
@@ -284,12 +285,15 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                         // Push the selected choice to the top, then save the others.
 
-                        PhStringBuilderAppend(&savedChoices, selectedChoice);
-                        PhStringBuilderAppendChar(&savedChoices, '\n');
+                        if (selectedChoice->Length != 0)
+                        {
+                            PhStringBuilderAppend(&savedChoices, selectedChoice);
+                            PhStringBuilderAppendChar(&savedChoices, '`');
+                        }
 
                         for (i = 1; i < choicesToSave; i++)
                         {
-                            choice = PhGetComboBoxString(context->ComboBoxHandle, i);
+                            choice = PhGetComboBoxString(context->ComboBoxHandle, i - 1);
 
                             if (!choice)
                                 break;
@@ -306,10 +310,10 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                             PhStringBuilderAppend(&savedChoices, choice);
                             PhDereferenceObject(choice);
 
-                            PhStringBuilderAppendChar(&savedChoices, '\n');
+                            PhStringBuilderAppendChar(&savedChoices, '`');
                         }
 
-                        if (PhStringEndsWith2(savedChoices.String, L"\n", FALSE))
+                        if (PhStringEndsWith2(savedChoices.String, L"`", FALSE))
                             PhStringBuilderRemove(&savedChoices, savedChoices.String->Length / 2 - 1, 1);
 
                         PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices.String->sr);

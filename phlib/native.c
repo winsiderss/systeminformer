@@ -467,17 +467,38 @@ NTSTATUS PhReadVirtualMemory(
     __out_opt PSIZE_T NumberOfBytesRead
     )
 {
+    NTSTATUS status;
+
     // KphReadVirtualMemory is much slower than 
     // NtReadVirtualMemory, so we'll stick to 
-    // the using the original system call.
+    // the using the original system call whenever possible.
 
-    return NtReadVirtualMemory(
+    status = NtReadVirtualMemory(
         ProcessHandle,
         BaseAddress,
         Buffer,
         BufferSize,
         NumberOfBytesRead
         );
+
+    if (status == STATUS_ACCESS_DENIED && BufferSize <= MAXULONG32)
+    {
+        ULONG returnLength;
+
+        status = KphReadVirtualMemory(
+            PhKphHandle,
+            ProcessHandle,
+            BaseAddress,
+            Buffer,
+            (ULONG)BufferSize,
+            &returnLength
+            );
+
+        if (NT_SUCCESS(status) && NumberOfBytesRead)
+            *NumberOfBytesRead = returnLength;
+    }
+
+    return status;
 }
 
 /**
@@ -499,13 +520,34 @@ NTSTATUS PhWriteVirtualMemory(
     __out_opt PSIZE_T NumberOfBytesWritten
     )
 {
-    return NtWriteVirtualMemory(
+    NTSTATUS status;
+
+    status = NtWriteVirtualMemory(
         ProcessHandle,
         BaseAddress,
         Buffer,
         BufferSize,
         NumberOfBytesWritten
         );
+
+    if (status == STATUS_ACCESS_DENIED && BufferSize <= MAXULONG32)
+    {
+        ULONG returnLength;
+
+        status = KphWriteVirtualMemory(
+            PhKphHandle,
+            ProcessHandle,
+            BaseAddress,
+            Buffer,
+            (ULONG)BufferSize,
+            &returnLength
+            );
+
+        if (NT_SUCCESS(status) && NumberOfBytesWritten)
+            *NumberOfBytesWritten = returnLength;
+    }
+
+    return status;
 }
 
 /**

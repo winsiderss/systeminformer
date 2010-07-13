@@ -75,6 +75,7 @@ VOID PhpCreateHexEditContext(
     PPHP_HEXEDIT_CONTEXT context;
 
     context = PhAllocate(sizeof(PHP_HEXEDIT_CONTEXT));
+    memset(context, 0, sizeof(PHP_HEXEDIT_CONTEXT)); // important, set NullWidth to 0
 
     context->Data = NULL;
     context->Length = 0;
@@ -205,7 +206,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                     }
                     break;
                 case SB_LINEUP:
-                    if (context->TopIndex > 0)
+                    if (context->TopIndex >= context->BytesPerRow)
                     {
                         context->TopIndex -= context->BytesPerRow;
                         REDRAW_WINDOW(hwnd);
@@ -241,7 +242,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
                 SetScrollPos(hwnd, SB_VERT, context->TopIndex / context->BytesPerRow, TRUE);
 
-                if (!context->NoAddressChange)
+                if (!context->NoAddressChange && FALSE) // this behaviour sucks, so just leave it out
                     context->CurrentAddress += context->TopIndex - originalTopIndex;
 
                 PhpHexEditRepositionCaret(hwnd, context, context->CurrentAddress);
@@ -254,32 +255,29 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
             if (context->Data)
             {
-                LONG originalTopIndex = context->TopIndex;
-
                 context->TopIndex += context->BytesPerRow * -wheelDelta / WHEEL_DELTA;
 
                 if (context->TopIndex < 0)
                     context->TopIndex = 0;
 
-                if (context->Length >= context->BytesPerRow)
+                if (context->Length >= context->LinesPerPage * context->BytesPerRow)
                 {
-                    if (context->TopIndex > context->Length - context->BytesPerRow)
-                        context->TopIndex = context->Length - context->BytesPerRow;
+                    if (context->TopIndex > context->Length - context->LinesPerPage * context->BytesPerRow)
+                        context->TopIndex = context->Length - context->LinesPerPage * context->BytesPerRow;
                 }
 
                 REDRAW_WINDOW(hwnd);
 
                 SetScrollPos(hwnd, SB_VERT, context->TopIndex / context->BytesPerRow, TRUE);
 
-                if (!context->NoAddressChange)
-                    context->CurrentAddress += context->TopIndex - originalTopIndex;
-
                 PhpHexEditRepositionCaret(hwnd, context, context->CurrentAddress);
             }
         }
         break;
     case WM_GETDLGCODE:
-        return DLGC_WANTALLKEYS;
+        if (wParam != VK_ESCAPE)
+            return DLGC_WANTALLKEYS;
+        break;
     case WM_ERASEBKGND:
         return 1;
     case WM_LBUTTONDOWN:
@@ -443,6 +441,10 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
             }
 
+            // Disallow editing beyond the end of the data.
+            if (context->CurrentAddress >= context->Length)
+                goto DefaultHandler;
+
             if (c == 0x8)
             {
                 if (context->CurrentAddress != 0)
@@ -474,12 +476,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
                     if (context->CurrentMode == EDIT_HIGH)
                     {
                         context->Data[context->CurrentAddress] =
-                            (UCHAR)((context->Data[context->CurrentAddress] & 0xf) | (b << 4));
+                            (UCHAR)((context->Data[context->CurrentAddress] & 0x0f) | (b << 4));
                     }
                     else
                     {
                         context->Data[context->CurrentAddress] =
-                            (UCHAR)((context->Data[context->CurrentAddress] & 0xf) | b);
+                            (UCHAR)((context->Data[context->CurrentAddress] & 0xf0) | b);
                     }
 
                     PhpHexEditMove(hwnd, context, 1, 0);
@@ -499,6 +501,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
             ULONG vk = (ULONG)wParam;
             BOOLEAN shift = GetKeyState(VK_SHIFT) < 0;
             BOOLEAN oldNoAddressChange = context->NoAddressChange;
+            BOOLEAN noScrollIntoView = FALSE;
 
             context->NoAddressChange = TRUE;
 
@@ -525,6 +528,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, 0, 1);
+                noScrollIntoView = TRUE;
                 break;
             case VK_UP:
                 if (shift)
@@ -544,6 +548,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, 0, -1);
+                noScrollIntoView = TRUE;
                 break;
             case VK_LEFT:
                 if (shift)
@@ -563,6 +568,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, -1, 0);
+                noScrollIntoView = TRUE;
                 break;
             case VK_RIGHT:
                 if (shift)
@@ -585,6 +591,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, 1, 0);
+                noScrollIntoView = TRUE;
                 break;
             case VK_PRIOR:
                 if (shift)
@@ -606,6 +613,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
                 SendMessage(hwnd, WM_VSCROLL, SB_PAGEUP, 0);
                 PhpHexEditMove(hwnd, context, 0, 0);
+                noScrollIntoView = TRUE;
                 break;
             case VK_NEXT:
                 if (shift)
@@ -627,6 +635,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
                 SendMessage(hwnd, WM_VSCROLL, SB_PAGEDOWN, 0);
                 PhpHexEditMove(hwnd, context, 0, 0);
+                noScrollIntoView = TRUE;
                 break;
             case VK_HOME:
                 if (shift)
@@ -669,6 +678,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, 0, 0);
+                noScrollIntoView = TRUE;
 
                 break;
             case VK_END:
@@ -731,6 +741,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 }
 
                 PhpHexEditMove(hwnd, context, 0, 0);
+                noScrollIntoView = TRUE;
 
                 break;
             case VK_INSERT:
@@ -769,6 +780,16 @@ LRESULT CALLBACK PhpHexEditWndProc(
                 break;
             }
 
+            // Scroll into view if not in view.
+            if (
+                !noScrollIntoView &&
+                (context->CurrentAddress < context->TopIndex ||
+                context->CurrentAddress >= context->TopIndex + context->LinesPerPage * context->BytesPerRow)
+                )
+            {
+                PhpHexEditScrollTo(hwnd, context, context->CurrentAddress);
+            }
+
             context->NoAddressChange = oldNoAddressChange;
         }
         break;
@@ -784,6 +805,22 @@ LRESULT CALLBACK PhpHexEditWndProc(
         return TRUE;
     case HEM_GETBUFFER:
         return (LPARAM)context->Data;
+    case HEM_SETSEL:
+        {
+            LONG selStart = (LONG)wParam;
+            LONG selEnd = (LONG)lParam;
+
+            if (selStart <= 0)
+                return FALSE;
+            if (selEnd > context->Length)
+                return FALSE;
+
+            PhpHexEditScrollTo(hwnd, context, selStart);
+            PhpHexEditSetSel(hwnd, context, selStart, selEnd);
+            PhpHexEditRepositionCaret(hwnd, context, selStart);
+            REDRAW_WINDOW(hwnd);
+        }
+        return TRUE;
     }
 
 DefaultHandler:
@@ -902,7 +939,7 @@ VOID PhpHexEditOnPaint(
             PhpHexEditUpdateScrollbars(hwnd, Context);
         }
 
-        height = clientRect.bottom / Context->LineHeight * Context->LineHeight; // round down the height
+        height = (clientRect.bottom + Context->LineHeight - 1) / Context->LineHeight * Context->LineHeight; // round up to height
 
         if (Context->ShowAddress)
         {
@@ -920,7 +957,7 @@ VOID PhpHexEditOnPaint(
             for (i = Context->TopIndex; i < Context->Length && rect.top < height; i += Context->BytesPerRow)
             {
                 swprintf(buffer, sizeof(buffer) / sizeof(WCHAR), format, i);
-                DrawText(bufferDc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
+                DrawText(bufferDc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                 rect.top += Context->LineHeight;
             }
         }
@@ -1004,7 +1041,7 @@ VOID PhpHexEditOnPaint(
                         n++;
                     }
 
-                    DrawText(bufferDc, buffer, Context->BytesPerRow * 3, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
+                    DrawText(bufferDc, buffer, Context->BytesPerRow * 3, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                     rect.top += Context->LineHeight;
                 }
             }
@@ -1079,7 +1116,7 @@ VOID PhpHexEditOnPaint(
                         i++;
                     }
 
-                    DrawText(bufferDc, buffer, n, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX);
+                    DrawText(bufferDc, buffer, n, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                     rect.top += Context->LineHeight;
                 }
             }
@@ -1109,13 +1146,14 @@ VOID PhpHexEditUpdateScrollbars(
     if (si.nMax > (LONG)si.nPage)
         EnableScrollBar(hwnd, SB_VERT, ESB_ENABLE_BOTH);
 
-    si.nMin = 0;
+    // No horizontal scrollbar please.
+    /*si.nMin = 0;
     si.nMax = ((Context->ShowAddress ? (Context->AddressIsWide ? 8 : 4) : 0) +
         (Context->ShowHex ? Context->BytesPerRow * 3 : 0) +
         (Context->ShowAscii ? Context->BytesPerRow : 0)) * Context->NullWidth;
     si.nPage = 1;
     si.nPos = 0;
-    SetScrollInfo(hwnd, SB_HORZ, &si, TRUE);
+    SetScrollInfo(hwnd, SB_HORZ, &si, TRUE);*/
 }
 
 VOID PhpHexEditCreateAddressCaret(
@@ -1197,14 +1235,14 @@ VOID PhpHexEditCalculatePosition(
 
     Y /= Context->LineHeight;
 
-    if (Y < 0 || Y > Context->LinesPerPage)
+    if (Y < 0 || Y >= Context->LinesPerPage)
     {
         Point->x = -1;
         Point->y = -1;
         return;
     }
 
-    if (Y * Context->BytesPerRow > Context->Length)
+    if (Y * Context->BytesPerRow >= Context->Length)
     {
         Point->x = -1;
         Point->y = -1;
@@ -1245,7 +1283,7 @@ VOID PhpHexEditCalculatePosition(
 
     xp = Context->AsciiOffset / Context->NullWidth + Context->BytesPerRow;
 
-    if (Context->ShowAscii && X * Context->NullWidth >= Context->AsciiOffset && X < xp)
+    if (Context->ShowAscii && X * Context->NullWidth >= Context->AsciiOffset && X <= xp)
     {
         Context->CurrentAddress = Context->TopIndex +
             Context->BytesPerRow * Y +
@@ -1346,6 +1384,12 @@ VOID PhpHexEditScrollTo(
 
         if (Context->TopIndex < 0)
             Context->TopIndex = 0;
+
+        if (Context->Length >= Context->LinesPerPage * Context->BytesPerRow)
+        {
+            if (Context->TopIndex > Context->Length - Context->LinesPerPage * Context->BytesPerRow)
+                Context->TopIndex = Context->Length - Context->LinesPerPage * Context->BytesPerRow;
+        }
 
         PhpHexEditUpdateScrollbars(hwnd, Context);
         REDRAW_WINDOW(hwnd);

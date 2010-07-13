@@ -453,6 +453,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\memprot.c"
+				>
+			</File>
+			<File
 				RelativePath=".\memprv.c"
 				>
 			</File>
