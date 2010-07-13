@@ -1602,6 +1602,16 @@ PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     );
 
+BOOLEAN PhGetServiceDelayedAutoStart(
+    __in SC_HANDLE ServiceHandle,
+    __out PBOOLEAN DelayedAutoStart
+    );
+
+BOOLEAN PhSetServiceDelayedAutoStart(
+    __in SC_HANDLE ServiceHandle,
+    __in BOOLEAN DelayedAutoStart
+    );
+
 PWSTR PhGetServiceStateString(
     __in ULONG ServiceState
     );
