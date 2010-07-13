@@ -385,6 +385,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\md5.c"
+				>
+			</File>
+			<File
 				RelativePath=".\native.c"
 				>
 			</File>
@@ -410,6 +414,10 @@
 			</File>
 			<File
 				RelativePath=".\secedit.c"
+				>
+			</File>
+			<File
+				RelativePath=".\sha.c"
 				>
 			</File>
 			<File
