@@ -2173,6 +2173,7 @@ VOID PhpAddIconProcesses(
 
         if (
             processItem->CpuUsage == 0 ||
+            !processItem->UserName ||
             !PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
             )
         {
