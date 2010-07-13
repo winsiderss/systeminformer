@@ -633,6 +633,9 @@ LRESULT CALLBACK PhMainWndProc(
 
                             PhDereferenceObject(fileStream);
                         }
+
+                        if (!NT_SUCCESS(status))
+                            PhShowStatus(hWnd, L"Unable to create the file", status, 0);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -1675,8 +1678,10 @@ LRESULT CALLBACK PhMainWndProc(
             PhShowMemoryEditorDialog(
                 showMemoryEditor->ProcessId,
                 showMemoryEditor->BaseAddress,
-                showMemoryEditor->RegionSize
+                showMemoryEditor->RegionSize,
+                showMemoryEditor->SelectOffset
                 );
+            PhFree(showMemoryEditor);
         }
         break;
     case WM_PH_PROCESS_ADDED:

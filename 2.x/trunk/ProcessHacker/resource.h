@@ -89,6 +89,7 @@
 #define IDD_OPTSYMBOLS                  179
 #define IDD_MEMEDIT                     180
 #define IDR_MEMORY                      181
+#define IDD_MEMPROTECT                  182
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -176,6 +177,7 @@
 #define IDC_MOVEUP                      1079
 #define IDC_CHANGE                      1079
 #define IDC_CLEAR                       1079
+#define IDC_GOTO                        1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -352,9 +354,12 @@
 #define IDC_WRITE                       1225
 #define IDC_ZPAGEFAULTSTRANSITION_V     1226
 #define IDC_ZPAGEFAULTSCACHE_V          1227
+#define IDC_MEMORY_LAYOUT               1227
 #define IDC_ZCONTEXTSWITCHES_V          1228
 #define IDC_ZINTERRUPTS_V               1229
 #define IDC_ZSYSTEMCALLS_V              1230
+#define IDC_EDIT3                       1230
+#define IDC_VALUE                       1230
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -555,9 +560,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        182
+#define _APS_NEXT_RESOURCE_VALUE        183
 #define _APS_NEXT_COMMAND_VALUE         40216
-#define _APS_NEXT_CONTROL_VALUE         1227
+#define _APS_NEXT_CONTROL_VALUE         1231
 #define _APS_NEXT_SYMED_VALUE           121
 #endif
 #endif

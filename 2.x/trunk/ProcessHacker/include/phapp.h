@@ -477,13 +477,14 @@ extern BOOLEAN PhMainWndExiting;
 #define ProcessHacker_ToggleVisible(hWnd) \
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 #define ProcessHacker_ShowMemoryEditor(hWnd, ShowMemoryEditor) \
-    SendMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
+    PostMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
     HANDLE ProcessId;
     PVOID BaseAddress;
     SIZE_T RegionSize;
+    ULONG SelectOffset;
 } PH_SHOWMEMORYEDITOR, *PPH_SHOWMEMORYEDITOR;
 
 #define PH_NOTIFY_MINIMUM 0x1
@@ -904,6 +905,13 @@ BOOLEAN PhUiUnloadModule(
     __in PPH_MODULE_ITEM Module
     );
 
+BOOLEAN PhUiFreeMemory(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PPH_MEMORY_ITEM MemoryItem,
+    __in BOOLEAN Free
+    );
+
 BOOLEAN PhUiCloseHandles(
     __in HWND hWnd,
     __in HANDLE ProcessId,
@@ -1076,7 +1084,16 @@ VOID PhShowLogDialog();
 VOID PhShowMemoryEditorDialog(
     __in HANDLE ProcessId,
     __in PVOID BaseAddress,
-    __in SIZE_T RegionSize
+    __in SIZE_T RegionSize,
+    __in ULONG SelectOffset
+    );
+
+// memprot
+
+VOID PhShowMemoryProtectDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in PPH_MEMORY_ITEM MemoryItem
     );
 
 // netstk
