@@ -10,17 +10,17 @@ typedef struct
     UCHAR buffer[64];
 } A_SHA_CTX;
 
-VOID NTAPI A_SHAInit(
+VOID A_SHAInit(
     __out A_SHA_CTX *Context
     );
 
-VOID NTAPI A_SHAUpdate(
+VOID A_SHAUpdate(
     __inout A_SHA_CTX *Context,
     __in_bcount(Length) UCHAR *Input,
     __in ULONG Length
     );
 
-VOID NTAPI A_SHAFinal(
+VOID A_SHAFinal(
     __inout A_SHA_CTX *Context,
     __out_bcount(20) UCHAR *Hash
     );
