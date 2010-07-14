@@ -317,6 +317,16 @@ PPH_STRING PhGetSessionInformationString(
     __in ULONG InformationClass
     );
 
+PPH_STRING PhUnescapeStringForDelimiter(
+    __in PPH_STRING String,
+    __in WCHAR Delimiter
+    );
+
+PPH_STRING PhEscapeStringForDelimiter(
+    __in PPH_STRING String,
+    __in WCHAR Delimiter
+    );
+
 typedef struct mxml_node_s mxml_node_t;
 
 PPH_STRING PhJoinXmlTextNodes(
@@ -448,6 +458,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_NOTIFY_ICON_MESSAGE (WM_APP + 126)
 #define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
 #define WM_PH_SHOW_MEMORY_EDITOR (WM_APP + 128)
+#define WM_PH_SHOW_MEMORY_RESULTS (WM_APP + 129)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -478,6 +489,8 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 #define ProcessHacker_ShowMemoryEditor(hWnd, ShowMemoryEditor) \
     PostMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
+#define ProcessHacker_ShowMemoryResults(hWnd, ShowMemoryResults) \
+    PostMessage(hWnd, WM_PH_SHOW_MEMORY_RESULTS, 0, (LPARAM)(ShowMemoryResults))
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
@@ -485,7 +498,14 @@ typedef struct _PH_SHOWMEMORYEDITOR
     PVOID BaseAddress;
     SIZE_T RegionSize;
     ULONG SelectOffset;
+    ULONG SelectLength;
 } PH_SHOWMEMORYEDITOR, *PPH_SHOWMEMORYEDITOR;
+
+typedef struct _PH_SHOWMEMORYRESULTS
+{
+    HANDLE ProcessId;
+    PPH_LIST Results;
+} PH_SHOWMEMORYRESULTS, *PPH_SHOWMEMORYRESULTS;
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
@@ -1085,7 +1105,8 @@ VOID PhShowMemoryEditorDialog(
     __in HANDLE ProcessId,
     __in PVOID BaseAddress,
     __in SIZE_T RegionSize,
-    __in ULONG SelectOffset
+    __in ULONG SelectOffset,
+    __in ULONG SelectLength
     );
 
 // memprot
@@ -1094,6 +1115,20 @@ VOID PhShowMemoryProtectDialog(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_ITEM ProcessItem,
     __in PPH_MEMORY_ITEM MemoryItem
+    );
+
+// memrslt
+
+VOID PhShowMemoryResultsDialog(
+    __in HANDLE ProcessId,
+    __in PPH_LIST Results
+    );
+
+// memsrch
+
+VOID PhShowMemoryStringDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
     );
 
 // netstk

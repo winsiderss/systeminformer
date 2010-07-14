@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
+#include <memsrch.h>
 #include <windowsx.h>
 #include <iphlpapi.h>
 #include <wtsapi32.h>
@@ -1679,9 +1680,26 @@ LRESULT CALLBACK PhMainWndProc(
                 showMemoryEditor->ProcessId,
                 showMemoryEditor->BaseAddress,
                 showMemoryEditor->RegionSize,
-                showMemoryEditor->SelectOffset
+                showMemoryEditor->SelectOffset,
+                showMemoryEditor->SelectLength
                 );
             PhFree(showMemoryEditor);
+        }
+        break;
+    case WM_PH_SHOW_MEMORY_RESULTS:
+        {
+            PPH_SHOWMEMORYRESULTS showMemoryResults = (PPH_SHOWMEMORYRESULTS)lParam;
+
+            PhShowMemoryResultsDialog(
+                showMemoryResults->ProcessId,
+                showMemoryResults->Results
+                );
+            PhDereferenceMemoryResults(
+                (PPH_MEMORY_RESULT *)showMemoryResults->Results->Items,
+                showMemoryResults->Results->Count
+                );
+            PhDereferenceObject(showMemoryResults->Results);
+            PhFree(showMemoryResults);
         }
         break;
     case WM_PH_PROCESS_ADDED:

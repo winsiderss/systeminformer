@@ -23,6 +23,7 @@
 #define PHLIB_GLOBAL_PRIVATE
 #include <ph.h>
 
+VOID PhInitializeSecurity();
 BOOLEAN PhInitializeSystem();
 VOID PhInitializeSystemInformation();
 VOID PhInitializeWindowsVersion();
@@ -35,7 +36,7 @@ ULONG PhCurrentSessionId;
 PPH_STRING PhCurrentUserName = NULL;
 BOOLEAN PhElevated;
 TOKEN_ELEVATION_TYPE PhElevationType;
-HANDLE PhHeapHandle;
+PVOID PhHeapHandle;
 HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle = NULL;
@@ -51,12 +52,19 @@ ACCESS_MASK ThreadAllAccess;
 
 NTSTATUS PhInitializePhLib()
 {
-    PhHeapHandle = HeapCreate(0, 0, 0);
+    PhHeapHandle = RtlCreateHeap(
+        HEAP_GROWABLE | HEAP_CLASS_1,
+        NULL,
+        1024 * 1024, // 2 MB
+        1024 * 1024, // 1 MB
+        NULL,
+        NULL
+        );
 
     if (!PhHeapHandle)
         return STATUS_INSUFFICIENT_RESOURCES;
 
-    PhInstanceHandle = (HINSTANCE)GetModuleHandle(NULL);
+    PhInstanceHandle = (HINSTANCE)NtCurrentPeb()->ImageBaseAddress;
 
     PhInitializeWindowsVersion();
 
@@ -76,55 +84,41 @@ NTSTATUS PhInitializePhLib()
     if (!PhInitializeSystem())
         return STATUS_UNSUCCESSFUL;
 
-    {
-        HANDLE tokenHandle;
-        PTOKEN_USER tokenUser;
-
-        PhElevated = TRUE;
-        PhElevationType = TokenElevationTypeDefault;
-
-        if (NT_SUCCESS(PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_QUERY,
-            NtCurrentProcess()
-            )))
-        {
-            if (WINDOWS_HAS_UAC)
-            {
-                PhGetTokenIsElevated(tokenHandle, &PhElevated);
-                PhGetTokenElevationType(tokenHandle, &PhElevationType);
-            }
-
-            if (!NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId)))
-                PhCurrentSessionId = NtCurrentPeb()->SessionId;
-
-            if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
-            {
-                PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
-                PhFree(tokenUser);
-            }
-
-            NtClose(tokenHandle);
-        }
-    }
+    PhInitializeSecurity();
 
     return STATUS_SUCCESS;
 }
 
-VOID PhInitializeSystemInformation()
+static VOID PhInitializeSecurity()
 {
-    if (!NT_SUCCESS(NtQuerySystemInformation(
-        SystemBasicInformation,
-        &PhSystemBasicInformation,
-        sizeof(SYSTEM_BASIC_INFORMATION),
-        NULL
+    HANDLE tokenHandle;
+    PTOKEN_USER tokenUser;
+
+    PhElevated = TRUE;
+    PhElevationType = TokenElevationTypeDefault;
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        &tokenHandle,
+        TOKEN_QUERY,
+        NtCurrentProcess()
         )))
     {
-        PhShowWarning(
-            NULL,
-            L"Unable to query basic system information. "
-            L"Some functionality may not work as expected."
-            );
+        if (WINDOWS_HAS_UAC)
+        {
+            PhGetTokenIsElevated(tokenHandle, &PhElevated);
+            PhGetTokenElevationType(tokenHandle, &PhElevationType);
+        }
+
+        if (!NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId)))
+            PhCurrentSessionId = NtCurrentPeb()->SessionId;
+
+        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+        {
+            PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
+            PhFree(tokenUser);
+        }
+
+        NtClose(tokenHandle);
     }
 }
 
@@ -144,7 +138,24 @@ BOOLEAN PhInitializeSystem()
     return TRUE;
 }
 
-VOID PhInitializeWindowsVersion()
+static VOID PhInitializeSystemInformation()
+{
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemBasicInformation,
+        &PhSystemBasicInformation,
+        sizeof(SYSTEM_BASIC_INFORMATION),
+        NULL
+        )))
+    {
+        PhShowWarning(
+            NULL,
+            L"Unable to query basic system information. "
+            L"Some functionality may not work as expected."
+            );
+    }
+}
+
+static VOID PhInitializeWindowsVersion()
 {
     RTL_OSVERSIONINFOEXW versionInfo;
     ULONG majorVersion;

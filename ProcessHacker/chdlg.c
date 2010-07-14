@@ -143,25 +143,33 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             {
                 PPH_STRING savedChoices = PhGetStringSetting(context->SavedChoicesSettingName);
                 ULONG i;
-                ULONG indexOfNewLine;
+                ULONG indexOfDelim;
                 PPH_STRING savedChoice;
 
                 i = 0;
 
-                // Split the saved choices using the backtick character.
+                // Split the saved choices using the delimiter.
                 while (i < (ULONG)savedChoices->Length / 2)
                 {
-                    indexOfNewLine = PhStringIndexOfChar(savedChoices, i, '`');
+                    indexOfDelim = PhStringIndexOfString(savedChoices, i, L"\\s");
 
-                    if (indexOfNewLine == -1)
-                        indexOfNewLine = savedChoices->Length / 2;
+                    if (indexOfDelim == -1)
+                        indexOfDelim = savedChoices->Length / 2;
 
-                    savedChoice = PhSubstring(savedChoices, i, indexOfNewLine - i);
+                    savedChoice = PhSubstring(savedChoices, i, indexOfDelim - i);
+
                     if (savedChoice->Length != 0)
-                        ComboBox_InsertString(comboBoxHandle, -1, savedChoice->Buffer);
+                    {
+                        PPH_STRING unescaped;
+
+                        unescaped = PhUnescapeStringForDelimiter(savedChoice, '\\');
+                        ComboBox_InsertString(comboBoxHandle, -1, unescaped->Buffer);
+                        PhDereferenceObject(unescaped);
+                    }
+
                     PhDereferenceObject(savedChoice);
 
-                    i = indexOfNewLine + 1;
+                    i = indexOfDelim + 2;
                 }
 
                 PhDereferenceObject(savedChoices);
@@ -280,6 +288,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         ULONG i;
                         ULONG choicesToSave = PH_CHOICE_DIALOG_SAVED_CHOICES;
                         PPH_STRING choice;
+                        PPH_STRING escaped;
 
                         PhInitializeStringBuilder(&savedChoices, 100);
 
@@ -287,8 +296,10 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                         if (selectedChoice->Length != 0)
                         {
-                            PhStringBuilderAppend(&savedChoices, selectedChoice);
-                            PhStringBuilderAppendChar(&savedChoices, '`');
+                            escaped = PhEscapeStringForDelimiter(selectedChoice, '\\');
+                            PhStringBuilderAppend(&savedChoices, escaped);
+                            PhDereferenceObject(escaped);
+                            PhStringBuilderAppend2(&savedChoices, L"\\s");
                         }
 
                         for (i = 1; i < choicesToSave; i++)
@@ -307,14 +318,16 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                                 continue;
                             }
 
-                            PhStringBuilderAppend(&savedChoices, choice);
+                            escaped = PhEscapeStringForDelimiter(choice, '\\');
+                            PhStringBuilderAppend(&savedChoices, escaped);
+                            PhDereferenceObject(escaped);
                             PhDereferenceObject(choice);
 
-                            PhStringBuilderAppendChar(&savedChoices, '`');
+                            PhStringBuilderAppend2(&savedChoices, L"\\s");
                         }
 
-                        if (PhStringEndsWith2(savedChoices.String, L"`", FALSE))
-                            PhStringBuilderRemove(&savedChoices, savedChoices.String->Length / 2 - 1, 1);
+                        if (PhStringEndsWith2(savedChoices.String, L"\\s", FALSE))
+                            PhStringBuilderRemove(&savedChoices, savedChoices.String->Length / 2 - 2, 2);
 
                         PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices.String->sr);
                         PhDeleteStringBuilder(&savedChoices);

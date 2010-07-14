@@ -32,7 +32,7 @@ VOID PhAddNotifyIcon(
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
 
-    wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName);
+    wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), PhApplicationName, _TRUNCATE);
 
     notifyIcon.hIcon = PhpGetBlackIcon();
 
@@ -65,7 +65,7 @@ VOID PhModifyNotifyIcon(
     notifyIcon.uFlags = Flags;
 
     if (Text)
-        wcscpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text);
+        wcsncpy_s(notifyIcon.szTip, sizeof(notifyIcon.szTip) / sizeof(WCHAR), Text, _TRUNCATE);
 
     notifyIcon.hIcon = Icon;
 
@@ -90,8 +90,8 @@ VOID PhShowBalloonTipNotifyIcon(
     notifyIcon.hWnd = PhMainWndHandle;
     notifyIcon.uID = Id;
     notifyIcon.uFlags = NIF_INFO;
-    wcscpy_s(notifyIcon.szInfoTitle, sizeof(notifyIcon.szInfoTitle) / sizeof(WCHAR), Title);
-    wcscpy_s(notifyIcon.szInfo, sizeof(notifyIcon.szInfo) / sizeof(WCHAR), Text);
+    wcsncpy_s(notifyIcon.szInfoTitle, sizeof(notifyIcon.szInfoTitle) / sizeof(WCHAR), Title, _TRUNCATE);
+    wcsncpy_s(notifyIcon.szInfo, sizeof(notifyIcon.szInfo) / sizeof(WCHAR), Text, _TRUNCATE);
     notifyIcon.uTimeout = Timeout;
     notifyIcon.dwInfoFlags = Flags;
 
