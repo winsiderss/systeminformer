@@ -76,36 +76,6 @@ PH_QUEUED_LOCK PhDbgThreadListLock = PH_QUEUED_LOCK_INIT;
 
 // Data
 
-static ULONG PhpCharToInteger[] =
-{
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0 - 15 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 16 - 31 */
-    36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, /* ' ' - '/' */
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, /* '0' - '9' */
-    52, 53, 54, 55, 56, 57, 58, /* ':' - '@' */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 'A' - 'Z' */
-    59, 60, 61, 62, 63, 64, /* '[' - '`' */
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, /* 'a' - 'z' */
-    65, 66, 67, 68, 0, /* '{' - 127 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 128 - 143 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 144 - 159 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 160 - 175 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 176 - 191 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 192 - 207 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 208 - 223 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 224 - 239 */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 240 - 255 */
-};
-
-static CHAR PhpIntegerToChar[] =
-"0123456789" /* 0 - 9 */
-"abcdefghijklmnopqrstuvwxyz" /* 10 - 35 */
-" !\"#$%&'()*+,-./" /* 36 - 51 */
-":;<=>?@" /* 52 - 58 */
-"[\\]^_`" /* 59 - 64 */
-"{|}~" /* 65 - 68 */
-;
-
 static ULONG PhpPrimeNumbers[] =
 {
     0x3, 0x7, 0xb, 0x11, 0x17, 0x1d, 0x25, 0x2f, 0x3b, 0x47, 0x59, 0x6b, 0x83,
@@ -3420,8 +3390,8 @@ BOOLEAN PhHexStringToBuffer(
     for (i = 0; i < length; i++)
     {
         Buffer[i] =
-            (UCHAR)(PhpCharToInteger[(UCHAR)String->Buffer[i * 2]] << 4) +
-            (UCHAR)PhpCharToInteger[(UCHAR)String->Buffer[i * 2 + 1]];
+            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * 2]] << 4) +
+            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * 2 + 1]];
     }
 
     return TRUE;
@@ -3439,8 +3409,8 @@ PPH_STRING PhBufferToHexString(
 
     for (i = 0; i < Length; i++)
     {
-        string->Buffer[i * 2] = PhpIntegerToChar[Buffer[i] >> 4];
-        string->Buffer[i * 2 + 1] = PhpIntegerToChar[Buffer[i] & 0xf];
+        string->Buffer[i * 2] = PhIntegerToChar[Buffer[i] >> 4];
+        string->Buffer[i * 2 + 1] = PhIntegerToChar[Buffer[i] & 0xf];
     }
 
     return string;
@@ -3472,8 +3442,8 @@ BOOLEAN PhpStringToInteger64(
     {
         WCHAR c; 
 
-        c = towlower(String->Buffer[length - i - 1]);
-        result += PhpCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
+        c = String->Buffer[length - i - 1];
+        result += PhCharToInteger[(UCHAR)c] * PhExponentiate64(Base, i);
     }
 
     *Integer = result;
@@ -3666,7 +3636,7 @@ PPH_STRING PhpIntegerToString64(
             string = newString;
         }
 
-        string->Buffer[string->Length / sizeof(WCHAR)] = PhpIntegerToChar[(ULONG)r];
+        string->Buffer[string->Length / sizeof(WCHAR)] = PhIntegerToChar[(ULONG)r];
         string->Length += sizeof(WCHAR);
     }
 

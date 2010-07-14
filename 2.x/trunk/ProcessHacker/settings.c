@@ -76,6 +76,10 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"MemEditGotoChoices", L"");
     PhpAddIntegerPairSetting(L"MemEditPosition", L"450,450");
     PhpAddIntegerPairSetting(L"MemEditSize", L"600,500");
+    PhpAddStringSetting(L"MemFilterChoices", L"");
+    PhpAddStringSetting(L"MemResultsListViewColumns", L"");
+    PhpAddIntegerPairSetting(L"MemResultsPosition", L"300,300");
+    PhpAddIntegerPairSetting(L"MemResultsSize", L"500,520");
     PhpAddStringSetting(L"MemoryListViewColumns", L"");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
     PhpAddStringSetting(L"ModuleListViewColumns", L"");

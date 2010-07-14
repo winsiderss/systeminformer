@@ -1,11 +1,6 @@
 #ifndef _PH_HEXEDITP_H
 #define _PH_HEXEDITP_H
 
-#define EDIT_NONE 0
-#define EDIT_ASCII 1
-#define EDIT_HIGH 2
-#define EDIT_LOW 3
-
 typedef struct _PHP_HEXEDIT_CONTEXT
 {
     PUCHAR Data;
@@ -38,6 +33,7 @@ typedef struct _PHP_HEXEDIT_CONTEXT
     LONG AsciiOffset;
     LONG AddressOffset;
 
+    BOOLEAN HasCapture;
     POINT EditPosition;
 } PHP_HEXEDIT_CONTEXT, *PPHP_HEXEDIT_CONTEXT;
 

@@ -47,7 +47,7 @@ extern ULONG PhCurrentSessionId;
 extern PPH_STRING PhCurrentUserName;
 extern BOOLEAN PhElevated;
 extern TOKEN_ELEVATION_TYPE PhElevationType;
-extern HANDLE PhHeapHandle;
+extern PVOID PhHeapHandle;
 extern __userSet HFONT PhIconTitleFont;
 extern HINSTANCE PhInstanceHandle;
 extern __userSet HANDLE PhKphHandle;
@@ -78,6 +78,50 @@ extern ACCESS_MASK ThreadAllAccess;
 #define WINDOWS_HAS_PSSUSPENDRESUMEPROCESS (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_SERVICE_TAGS (WindowsVersion >= WINDOWS_VISTA)
 #define WINDOWS_HAS_UAC (WindowsVersion >= WINDOWS_VISTA)
+
+// data
+
+#ifndef DATA_PRIVATE
+
+// SIDs
+
+extern SID PhSeNobodySid;
+
+extern SID PhSeEveryoneSid;
+
+extern SID PhSeLocalSid;
+
+extern SID PhSeCreatorOwnerSid;
+extern SID PhSeCreatorGroupSid;
+
+extern SID PhSeDialupSid;
+extern SID PhSeNetworkSid;
+extern SID PhSeBatchSid;
+extern SID PhSeInteractiveSid;
+extern SID PhSeServiceSid;
+extern SID PhSeAnonymousLogonSid;
+extern SID PhSeProxySid;
+extern SID PhSeAuthenticatedUserSid;
+extern SID PhSeRestrictedCodeSid;
+extern SID PhSeTerminalServerUserSid;
+extern SID PhSeRemoteInteractiveLogonSid;
+extern SID PhSeLocalSystemSid;
+extern SID PhSeLocalServiceSid;
+extern SID PhSeNetworkServiceSid;
+
+// Characters
+
+extern BOOLEAN PhCharIsPrintable[256];
+extern ULONG PhCharToInteger[256];
+extern CHAR PhIntegerToChar[69];
+extern CHAR PhIntegerToCharUpper[69];
+
+// Enums
+
+extern WCHAR *PhKThreadStateNames[MaximumThreadState];
+extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
+
+#endif
 
 // global
 
