@@ -299,6 +299,17 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             SetProp(hwndDlg, L"Context", (HANDLE)lParam);
             PhRegisterDialog(hwndDlg);
 
+            {
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(context->ProcessId))
+                {
+                    SetWindowText(hwndDlg, PhaFormatString(L"Results - %s (%u)",
+                        processItem->ProcessName->Buffer, (ULONG)processItem->ProcessId)->Buffer);
+                    PhDereferenceObject(processItem);
+                }
+            }
+
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
