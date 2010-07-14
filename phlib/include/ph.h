@@ -5,46 +5,6 @@
 #include <stdarg.h>
 #include <dltmgr.h>
 
-// data
-
-#ifndef DATA_PRIVATE
-
-// SIDs
-
-extern SID PhSeNobodySid;
-
-extern SID PhSeEveryoneSid;
-
-extern SID PhSeLocalSid;
-
-extern SID PhSeCreatorOwnerSid;
-extern SID PhSeCreatorGroupSid;
-
-extern SID PhSeDialupSid;
-extern SID PhSeNetworkSid;
-extern SID PhSeBatchSid;
-extern SID PhSeInteractiveSid;
-extern SID PhSeServiceSid;
-extern SID PhSeAnonymousLogonSid;
-extern SID PhSeProxySid;
-extern SID PhSeAuthenticatedUserSid;
-extern SID PhSeRestrictedCodeSid;
-extern SID PhSeTerminalServerUserSid;
-extern SID PhSeRemoteInteractiveLogonSid;
-extern SID PhSeLocalSystemSid;
-extern SID PhSeLocalServiceSid;
-extern SID PhSeNetworkServiceSid;
-
-// Strings
-
-extern CHAR PhIntegerToChar[16];
-extern CHAR PhIntegerToCharUpper[16];
-
-extern WCHAR *PhKThreadStateNames[MaximumThreadState];
-extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
-
-#endif
-
 // native
 
 /** The PID of the idle process. */

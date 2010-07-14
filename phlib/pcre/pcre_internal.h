@@ -45,6 +45,8 @@ functions whose names all begin with "_pcre_". */
 #ifndef PCRE_INTERNAL_H
 #define PCRE_INTERNAL_H
 
+#define PCRE_STATIC
+
 /* Define PCRE_DEBUG to get debugging output on stdout. */
 
 #if 0

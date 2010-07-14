@@ -46,7 +46,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
 				PreprocessorDefinitions="WIN32;DEBUG;_WINDOWS"
 				StringPooling="true"
 				MinimalRebuild="false"
@@ -127,7 +127,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
 				PreprocessorDefinitions="WIN64;DEBUG;_WINDOWS"
 				StringPooling="true"
 				MinimalRebuild="false"
@@ -210,7 +210,7 @@
 				AdditionalOptions="/MP"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -295,7 +295,7 @@
 				AdditionalOptions="/MP"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
+				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
 				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -461,6 +461,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\memrslt.c"
+				>
+			</File>
+			<File
+				RelativePath=".\memsrch.c"
+				>
+			</File>
+			<File
 				RelativePath=".\modprv.c"
 				>
 			</File>
@@ -608,6 +616,10 @@
 			</File>
 			<File
 				RelativePath=".\itemtips.c"
+				>
+			</File>
+			<File
+				RelativePath=".\include\memsrch.h"
 				>
 			</File>
 			<File

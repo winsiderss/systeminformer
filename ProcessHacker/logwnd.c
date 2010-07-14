@@ -80,18 +80,17 @@ static VOID PhpUpdateLogList()
     }
 }
 
-static PPH_STRING PhpGetStringForSelectedLogEntries(
+static PPH_FULL_STRING PhpGetStringForSelectedLogEntries(
     __in BOOLEAN All
     )
 {
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
+    PPH_FULL_STRING string;
     ULONG i;
 
     if (ListViewCount == 0)
-        return PhCreateString(L"");
+        return PhCreateFullString(L"");
 
-    PhInitializeStringBuilder(&stringBuilder, 100);
+    string = PhCreateFullString2(0x100);
 
     i = ListViewCount - 1;
 
@@ -99,7 +98,7 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
     {
         PPH_LOG_ENTRY entry;
         SYSTEMTIME systemTime;
-        PPH_STRING string;
+        PPH_STRING temp;
 
         if (!All)
         {
@@ -116,15 +115,15 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
             goto ContinueLoop;
 
         PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
-        string = PhFormatDateTime(&systemTime);
-        PhStringBuilderAppend(&stringBuilder, string);
-        PhDereferenceObject(string);
-        PhStringBuilderAppend2(&stringBuilder, L": ");
+        temp = PhFormatDateTime(&systemTime);
+        PhFullStringAppend(string, temp);
+        PhDereferenceObject(temp);
+        PhFullStringAppend2(string, L": ");
 
-        string = PhFormatLogEntry(entry);
-        PhStringBuilderAppend(&stringBuilder, string);
-        PhDereferenceObject(string);
-        PhStringBuilderAppend2(&stringBuilder, L"\r\n");
+        temp = PhFormatLogEntry(entry);
+        PhFullStringAppend(string, temp);
+        PhDereferenceObject(temp);
+        PhFullStringAppend2(string, L"\r\n");
 
 ContinueLoop:
 
@@ -133,9 +132,6 @@ ContinueLoop:
 
         i--;
     }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
 
     return string;
 }
@@ -209,7 +205,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 break;
             case IDC_COPY:
                 {
-                    PPH_STRING string;
+                    PPH_FULL_STRING string;
                     ULONG selectedCount;
 
                     selectedCount = ListView_GetSelectedCount(ListViewHandle);
@@ -225,7 +221,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                         string = PhpGetStringForSelectedLogEntries(FALSE);
                     }
 
-                    PhSetClipboardString(hwndDlg, &string->sr);
+                    PhSetClipboardStringEx(hwndDlg, string->Buffer, string->Length);
                     PhDereferenceObject(string);
 
                     SetFocus(ListViewHandle);
@@ -250,7 +246,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                         NTSTATUS status;
                         PPH_STRING fileName;
                         PPH_FILE_STREAM fileStream;
-                        PPH_STRING string;
+                        PPH_FULL_STRING string;
 
                         fileName = PhGetFileDialogFileName(fileDialog);
                         PhaDereferenceObject(fileName);
@@ -267,7 +263,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedLogEntries(TRUE);
-                            PhFileStreamWriteStringAsAnsi(fileStream, &string->sr);
+                            PhFileStreamWriteStringAsAnsiEx(fileStream, string->Buffer, string->Length);
                             PhDereferenceObject(string);
 
                             PhDereferenceObject(fileStream);
@@ -305,7 +301,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
                             PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
                             dateTime = PhFormatDateTime(&systemTime);
-                            wcscpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, dateTime->Buffer, _TRUNCATE);
                             PhDereferenceObject(dateTime);
                         }
                     }
@@ -316,7 +312,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PPH_STRING string;
 
                             string = PhFormatLogEntry(entry);
-                            wcscpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer);
+                            wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
                         }
                     }

@@ -336,6 +336,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
                         context->SelStart = context->CurrentAddress;
                         context->SelEnd = context->SelStart;
                         SetCapture(hwnd);
+                        context->HasCapture = TRUE;
                     }
                     else
                     {
@@ -357,8 +358,10 @@ LRESULT CALLBACK PhpHexEditWndProc(
         break;
     case WM_LBUTTONUP:
         {
-            if (PhpHexEditHasSelected(context))
+            if (context->HasCapture && PhpHexEditHasSelected(context))
                 ReleaseCapture();
+
+            context->HasCapture = FALSE;
         }
         break;
     case WM_MOUSEMOVE:
@@ -371,7 +374,7 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
             if (
                 context->Data &&
-                (flags & MK_LBUTTON) &&
+                context->HasCapture &&
                 context->SelStart != -1
                 )
             {
@@ -826,6 +829,11 @@ LRESULT CALLBACK PhpHexEditWndProc(
             REDRAW_WINDOW(hwnd);
         }
         return TRUE;
+    case HEM_SETEDITMODE:
+        {
+            context->CurrentMode = (LONG)wParam;
+        }
+        return TRUE;
     }
 
 DefaultHandler:
@@ -869,7 +877,7 @@ FORCEINLINE VOID PhpPrintAscii(
 {
     WCHAR c;
 
-    c = isprint(Byte) ? Byte : '.';
+    c = PhCharIsPrintable[Byte] ? Byte : '.';
     TextOut(hdc, *X, *Y, &c, 1);
     *X += Context->NullWidth;
     (*N)++;
@@ -880,6 +888,36 @@ FORCEINLINE VOID PhpPrintAscii(
         *X = Context->AsciiOffset;
         *Y += Context->LineHeight;
     }
+}
+
+FORCEINLINE COLORREF GetLighterHighlightColor()
+{
+    COLORREF color;
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+
+    color = GetSysColor(COLOR_HIGHLIGHT);
+    r = (UCHAR)color;
+    g = (UCHAR)(color >> 8);
+    b = (UCHAR)(color >> 16);
+
+    if (r <= 255 - 64)
+        r += 64;
+    else
+        r = 255;
+
+    if (g <= 255 - 64)
+        g += 64;
+    else
+        g = 255;
+
+    if (b <= 255 - 64)
+        b += 64;
+    else
+        b = 255;
+
+    return RGB(r, g, b);
 }
 
 VOID PhpHexEditOnPaint(
@@ -978,10 +1016,16 @@ VOID PhpHexEditOnPaint(
             rect.left = x;
             rect.top = 0;
 
-            if (Context->SelStart != -1 && (Context->CurrentMode == EDIT_HIGH || Context->CurrentMode == EDIT_LOW))
+            if (Context->SelStart != -1)
             {
+                COLORREF highlightColor;
                 LONG selStart;
                 LONG selEnd;
+
+                if (Context->CurrentMode == EDIT_HIGH || Context->CurrentMode == EDIT_LOW)
+                    highlightColor = GetSysColor(COLOR_HIGHLIGHT);
+                else
+                    highlightColor = GetLighterHighlightColor();
 
                 selStart = Context->SelStart;
                 selEnd = Context->SelEnd;
@@ -995,6 +1039,11 @@ VOID PhpHexEditOnPaint(
                     selStart = t;
                 }
 
+                if (selStart >= Context->Length)
+                    selStart = Context->Length - 1;
+                if (selEnd > Context->Length)
+                    selEnd = Context->Length;
+
                 // Bytes before the selection
 
                 for (i = Context->TopIndex; i < selStart && y < height; i++)
@@ -1005,7 +1054,7 @@ VOID PhpHexEditOnPaint(
                 // Bytes in the selection
 
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                SetBkColor(bufferDc, GetSysColor(COLOR_HIGHLIGHT));
+                SetBkColor(bufferDc, highlightColor);
 
                 for (; i < selEnd && i < Context->Length && y < height; i++)
                 {
@@ -1063,10 +1112,16 @@ VOID PhpHexEditOnPaint(
             rect.left = x;
             rect.top = 0;
 
-            if (Context->SelStart != -1 && Context->CurrentMode == EDIT_ASCII)
+            if (Context->SelStart != -1)
             {
+                COLORREF highlightColor;
                 LONG selStart;
                 LONG selEnd;
+
+                if (Context->CurrentMode == EDIT_ASCII)
+                    highlightColor = GetSysColor(COLOR_HIGHLIGHT);
+                else
+                    highlightColor = GetLighterHighlightColor();
 
                 selStart = Context->SelStart;
                 selEnd = Context->SelEnd;
@@ -1080,6 +1135,11 @@ VOID PhpHexEditOnPaint(
                     selStart = t;
                 }
 
+                if (selStart >= Context->Length)
+                    selStart = Context->Length - 1;
+                if (selEnd > Context->Length)
+                    selEnd = Context->Length;
+
                 // Bytes before the selection
 
                 for (i = Context->TopIndex; i < selStart && y < height; i++)
@@ -1090,7 +1150,7 @@ VOID PhpHexEditOnPaint(
                 // Bytes in the selection
 
                 SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                SetBkColor(bufferDc, GetSysColor(COLOR_HIGHLIGHT));
+                SetBkColor(bufferDc, highlightColor);
 
                 for (; i < selEnd && i < Context->Length && y < height; i++)
                 {
@@ -1117,7 +1177,7 @@ VOID PhpHexEditOnPaint(
 
                     for (n = 0; n < Context->BytesPerRow && i < Context->Length; n++)
                     {
-                        *p++ = isprint(Context->Data[i]) ? Context->Data[i] : '.'; 
+                        *p++ = PhCharIsPrintable[Context->Data[i]] ? Context->Data[i] : '.'; 
                         i++;
                     }
 
@@ -1367,13 +1427,20 @@ VOID PhpHexEditSetSel(
     Context->SelEnd = E;
     REDRAW_WINDOW(hwnd);
 
-    if (Context->EditPosition.x == 0 && Context->ShowAddress)
-        PhpHexEditCreateAddressCaret(hwnd, Context);
+    if (S != -1 && E != -1)
+    {
+        Context->CurrentAddress = S;
+    }
     else
-        PhpHexEditCreateEditCaret(hwnd, Context);
+    {
+        if (Context->EditPosition.x == 0 && Context->ShowAddress)
+            PhpHexEditCreateAddressCaret(hwnd, Context);
+        else
+            PhpHexEditCreateEditCaret(hwnd, Context);
 
-    SetCaretPos(Context->EditPosition.x, Context->EditPosition.y);
-    ShowCaret(hwnd);
+        SetCaretPos(Context->EditPosition.x, Context->EditPosition.y);
+        ShowCaret(hwnd);
+    }
 }
 
 VOID PhpHexEditScrollTo(
@@ -1484,7 +1551,7 @@ VOID PhpHexEditCopyEdit(
 
                     for (i = 0; i < length; i++)
                     {
-                        if (!isprint(*p))
+                        if (!PhCharIsPrintable[*p])
                             *p = '.';
                         p++;
                     }

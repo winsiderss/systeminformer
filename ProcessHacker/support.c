@@ -379,6 +379,81 @@ PPH_STRING PhGetSessionInformationString(
     }
 }
 
+PPH_STRING PhEscapeStringForDelimiter(
+    __in PPH_STRING String,
+    __in WCHAR Delimiter
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG length;
+    ULONG i;
+    WCHAR temp[2];
+
+    length = String->Length / 2;
+    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+
+    temp[0] = '\\';
+
+    for (i = 0; i < length; i++)
+    {
+        if (String->Buffer[i] == '\\' || String->Buffer[i] == Delimiter)
+        {
+            temp[1] = String->Buffer[i];
+            PhStringBuilderAppendEx(&stringBuilder, temp, 4);
+        }
+        else
+        {
+            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+        }
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
+PPH_STRING PhUnescapeStringForDelimiter(
+    __in PPH_STRING String,
+    __in WCHAR Delimiter
+    )
+{
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG length;
+    ULONG i;
+
+    length = String->Length / 2;
+    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+
+    for (i = 0; i < length; i++)
+    {
+        if (String->Buffer[i] == '\\')
+        {
+            if (i != length - 1)
+            {
+                PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i + 1]);
+                i++;
+            }
+            else
+            {
+                // Trailing backslash. Just ignore it.
+                break;
+            }
+        }
+        else
+        {
+            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+        }
+    }
+
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
+}
+
 PPH_STRING PhJoinXmlTextNodes(
     __in mxml_node_t *node
     )

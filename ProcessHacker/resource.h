@@ -92,6 +92,7 @@
 #define IDD_MEMPROTECT                  182
 #define IDD_MEMRESULTS                  183
 #define IDR_MEMFILTER                   184
+#define IDD_MEMSTRING                   185
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -361,8 +362,13 @@
 #define IDC_ZINTERRUPTS_V               1229
 #define IDC_ZSYSTEMCALLS_V              1230
 #define IDC_VALUE                       1230
-#define IDC_CHECK1                      1234
 #define IDC_DELAYEDSTART                1234
+#define IDC_MINIMUMLENGTH               1236
+#define IDC_DETECTUNICODE               1237
+#define IDC_PRIVATE                     1238
+#define IDC_IMAGE                       1239
+#define IDC_MAPPED                      1240
+#define IDC_STRINGS                     1242
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -569,9 +575,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        185
+#define _APS_NEXT_RESOURCE_VALUE        186
 #define _APS_NEXT_COMMAND_VALUE         40222
-#define _APS_NEXT_CONTROL_VALUE         1235
+#define _APS_NEXT_CONTROL_VALUE         1243
 #define _APS_NEXT_SYMED_VALUE           121
 #endif
 #endif

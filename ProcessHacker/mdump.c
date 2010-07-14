@@ -264,15 +264,8 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
 
-            if (WindowsVersion >= WINDOWS_XP)
-            {
-                PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
-                SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
-            }
-            else
-            {
-                ShowWindow(GetDlgItem(hwndDlg, IDC_PROGRESS), SW_HIDE);
-            }
+            PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
+            SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
             context->WindowHandle = hwndDlg;
             context->ThreadHandle = PhCreateThread(0, PhpProcessMiniDumpThreadStart, context);

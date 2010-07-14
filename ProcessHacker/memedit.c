@@ -69,7 +69,8 @@ VOID PhShowMemoryEditorDialog(
     __in HANDLE ProcessId,
     __in PVOID BaseAddress,
     __in SIZE_T RegionSize,
-    __in ULONG SelectOffset
+    __in ULONG SelectOffset,
+    __in ULONG SelectLength
     )
 {
     PMEMORY_EDITOR_CONTEXT context;
@@ -108,7 +109,7 @@ VOID PhShowMemoryEditorDialog(
         }
 
         if (SelectOffset != -1)
-            PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, 0);
+            PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
 
         PhRegisterDialog(context->WindowHandle);
         PhAvlTreeAdd(&PhMemoryEditorSet, &context->Links);
@@ -125,7 +126,7 @@ VOID PhShowMemoryEditorDialog(
             SetForegroundWindow(context->WindowHandle);
 
         if (SelectOffset != -1)
-            PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, 0);
+            PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
     }
 }
 
@@ -446,7 +447,8 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_PH_SELECT_OFFSET:
         {
-            HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, (ULONG)wParam);
+            HexEdit_SetEditMode(context->HexEditHandle, EDIT_ASCII);
+            HexEdit_SetSel(context->HexEditHandle, (ULONG)wParam, (ULONG)wParam + (ULONG)lParam);
         }
         break;
     }
