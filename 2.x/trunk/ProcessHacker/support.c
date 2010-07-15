@@ -454,36 +454,18 @@ PPH_STRING PhUnescapeStringForDelimiter(
     return string;
 }
 
-PPH_STRING PhJoinXmlTextNodes(
+PPH_STRING PhGetOpaqueXmlNodeText(
     __in mxml_node_t *node
     )
 {
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
-
-    PhInitializeStringBuilder(&stringBuilder, 10);
-
-    while (node)
+    if (node->child && node->child->type == MXML_OPAQUE && node->child->value.opaque)
     {
-        if (node->type == MXML_TEXT)
-        {
-            PPH_STRING textString;
-
-            if (node->value.text.whitespace)
-                PhStringBuilderAppendChar(&stringBuilder, ' ');
-
-            textString = PhCreateStringFromAnsi(node->value.text.string);
-            PhStringBuilderAppend(&stringBuilder, textString);
-            PhDereferenceObject(textString);
-        }
-
-        node = node->next;
+        return PhCreateStringFromAnsi(node->child->value.opaque);
     }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    else
+    {
+        return PhCreateString(L"");
+    }
 }
 
 VOID PhSearchOnlineString(

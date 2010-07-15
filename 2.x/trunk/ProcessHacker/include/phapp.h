@@ -329,7 +329,7 @@ PPH_STRING PhEscapeStringForDelimiter(
 
 typedef struct mxml_node_s mxml_node_t;
 
-PPH_STRING PhJoinXmlTextNodes(
+PPH_STRING PhGetOpaqueXmlNodeText(
     __in mxml_node_t *node
     );
 
