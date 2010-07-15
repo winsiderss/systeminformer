@@ -530,6 +530,20 @@ FORCEINLINE VOID PhResizingMinimumSize(
     }
 }
 
+FORCEINLINE VOID PhCopyControlRectangle(
+    __in HWND ParentWindowHandle,
+    __in HWND FromControlHandle,
+    __in HWND ToControlHandle
+    )
+{
+    RECT windowRect;
+
+    GetWindowRect(FromControlHandle, &windowRect);
+    MapWindowPoints(NULL, ParentWindowHandle, (POINT *)&windowRect, 2);
+    MoveWindow(ToControlHandle, windowRect.left, windowRect.top,
+        windowRect.right - windowRect.left, windowRect.bottom - windowRect.top, FALSE);
+}
+
 // icotobmp
 
 HBITMAP PhIconToBitmap(
@@ -610,7 +624,7 @@ VOID PhSetHeaderSortIcon(
     __in PH_SORT_ORDER Order
     );
 
-// max 1117
+// next 1119
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
@@ -618,6 +632,7 @@ VOID PhSetHeaderSortIcon(
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
 #define ELVM_SETCURSOR (WM_APP + 1114)
+#define ELVM_SETHIGHLIGHTINGDURATION (WM_APP + 1118)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_SETNEWCOLOR (WM_APP + 1112)
@@ -642,6 +657,8 @@ VOID PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETCONTEXT, 0, (LPARAM)(Context))
 #define ExtendedListView_SetCursor(hWnd, Cursor) \
     SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
+#define ExtendedListView_SetHighlightingDuration(hWnd, Duration) \
+    SendMessage((hWnd), ELVM_SETHIGHLIGHTINGDURATION, (WPARAM)(Duration), 0)
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
 #define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
@@ -692,6 +709,54 @@ FORCEINLINE ULONG PhGetColorBrightness(
     if (b > max) max = b;
 
     return (min + max) / 2;
+}
+
+FORCEINLINE COLORREF PhHalveColorBrightness(
+    __in COLORREF Color
+    )
+{
+    /*return RGB(
+        (UCHAR)Color / 2,
+        (UCHAR)(Color >> 8) / 2,
+        (UCHAR)(Color >> 16) / 2
+        );*/
+    // Since all targets are little-endian, we can use the following method.
+    *((PUCHAR)&Color) /= 2;
+    *((PUCHAR)&Color + 1) /= 2;
+    *((PUCHAR)&Color + 2) /= 2;
+
+    return Color;
+}
+
+FORCEINLINE COLORREF PhMakeColorBrighter(
+    __in COLORREF Color,
+    __in UCHAR Increment
+    )
+{
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+
+    r = (UCHAR)Color;
+    g = (UCHAR)(Color >> 8);
+    b = (UCHAR)(Color >> 16);
+
+    if (r <= 255 - Increment)
+        r += Increment;
+    else
+        r = 255;
+
+    if (g <= 255 - Increment)
+        g += Increment;
+    else
+        g = 255;
+
+    if (b <= 255 - Increment)
+        b += Increment;
+    else
+        b = 255;
+
+    return RGB(r, g, b);
 }
 
 // secedit

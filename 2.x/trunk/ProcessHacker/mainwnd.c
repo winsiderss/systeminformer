@@ -2729,10 +2729,10 @@ VOID PhMainWndOnCreate()
     PhProcessTreeListInitialization();
     PhInitializeProcessTreeList(ProcessTreeListHandle);
 
-    PhSetExtendedListView(ServiceListViewHandle);
+    PhSetExtendedListViewWithSettings(ServiceListViewHandle);
     ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
 
-    PhSetExtendedListView(NetworkListViewHandle);
+    PhSetExtendedListViewWithSettings(NetworkListViewHandle);
     ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
 
     PhRegisterCallback(

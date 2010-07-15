@@ -497,6 +497,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             context->Cursor = (HCURSOR)lParam;
         }
         return TRUE;
+    case ELVM_SETHIGHLIGHTINGDURATION:
+        {
+            context->HighlightingDuration = (ULONG)wParam;
+        }
+        return TRUE;
     case ELVM_SETITEMCOLORFUNCTION:
         {
             context->ItemColorFunction = (PPH_EXTLV_GET_ITEM_COLOR)lParam;

@@ -349,6 +349,10 @@ VOID PhLoadSymbolProviderOptions(
     __inout PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
+VOID PhSetExtendedListViewWithSettings(
+    __in HWND hWnd
+    );
+
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip

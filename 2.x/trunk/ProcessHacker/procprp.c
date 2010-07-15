@@ -1315,10 +1315,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
-                        drawInfo->LineColor2 = RGB(0xff, 0x00, 0x00);
-                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x00);
-                        drawInfo->LineBackColor2 = RGB(0x77, 0x00, 0x00);
+                        drawInfo->LineColor1 = PhCsColorCpuKernel;
+                        drawInfo->LineColor2 = PhCsColorCpuUser;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
+                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->CpuGraphState,
@@ -1354,8 +1354,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = RGB(0xff, 0x77, 0x00);
-                        drawInfo->LineBackColor1 = RGB(0x77, 0x33, 0x00);
+                        drawInfo->LineColor1 = PhCsColorPrivate;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->PrivateGraphState,
@@ -1406,10 +1406,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
-                        drawInfo->LineColor2 = RGB(0x77, 0x00, 0xff);
-                        drawInfo->LineBackColor1 = RGB(0x77, 0x77, 0x00);
-                        drawInfo->LineBackColor2 = RGB(0x33, 0x00, 0x77);
+                        drawInfo->LineColor1 = PhCsColorIoReadOther;
+                        drawInfo->LineColor2 = PhCsColorIoWrite;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
+                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
 
                         PhGraphStateGetDrawInfo(
                             &performanceContext->IoGraphState,
@@ -2142,7 +2142,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             if (processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
                 PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Service");
 
-            PhSetExtendedListView(lvHandle);
+            PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ThreadListViewColumns", lvHandle);
             ExtendedListView_SetContext(lvHandle, threadsContext);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpThreadTidCompareFunction);
@@ -2970,7 +2970,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 60, L"Size");
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 160, L"Description");
 
-            PhSetExtendedListView(lvHandle);
+            PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ModuleListViewColumns", lvHandle);
             ExtendedListView_SetTriState(lvHandle, TRUE);
             ExtendedListView_SetTriStateCompareFunction(lvHandle, PhpModuleTriStateCompareFunction);
@@ -4140,7 +4140,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name"); 
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Handle");
 
-            PhSetExtendedListView(lvHandle);
+            PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"HandleListViewColumns", lvHandle);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHandleTypeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHandleNameCompareFunction);

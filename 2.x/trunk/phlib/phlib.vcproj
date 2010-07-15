@@ -321,6 +321,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\colorbox.c"
+				>
+			</File>
+			<File
 				RelativePath=".\data.c"
 				>
 			</File>
@@ -548,6 +552,10 @@
 			</File>
 			<File
 				RelativePath=".\circbuf_i.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\colorbox.h"
 				>
 			</File>
 			<File

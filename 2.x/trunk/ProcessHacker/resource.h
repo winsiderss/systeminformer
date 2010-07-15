@@ -30,10 +30,16 @@
 #define IDR_COMPUTER                    120
 #define IDC_MEMORY                      120
 #define IDD_ABOUT                       121
+#define IDC_NEWOBJECTS                  121
+#define IDC_REMOVEDOBJECTS              122
 #define IDR_PROCESS                     123
+#define IDC_CPUUSER                     123
 #define IDR_SERVICE                     124
+#define IDC_CPUKERNEL                   124
 #define IDD_PROCSERVICES                125
+#define IDC_IORO                        125
 #define IDD_SRVGENERAL                  126
+#define IDC_IOW                         126
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130
@@ -93,6 +99,7 @@
 #define IDD_MEMRESULTS                  183
 #define IDR_MEMFILTER                   184
 #define IDD_MEMSTRING                   185
+#define IDD_OPTGRAPHS                   186
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -369,6 +376,15 @@
 #define IDC_IMAGE                       1239
 #define IDC_MAPPED                      1240
 #define IDC_STRINGS                     1242
+#define IDC_NEWOBJECTS_LAYOUT           1243
+#define IDC_REMOVEDOBJECTS_LAYOUT       1244
+#define IDC_SHOWTEXT                    1245
+#define IDC_CPUKERNEL_LAYOUT            1246
+#define IDC_CPUUSER_LAYOUT              1247
+#define IDC_IORO_LAYOUT                 1248
+#define IDC_IOW_LAYOUT                  1249
+#define IDC_PRIVATE_LAYOUT              1250
+#define IDC_PHYSICAL_LAYOUT             1251
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -577,7 +593,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        186
 #define _APS_NEXT_COMMAND_VALUE         40222
-#define _APS_NEXT_CONTROL_VALUE         1243
-#define _APS_NEXT_SYMED_VALUE           121
+#define _APS_NEXT_CONTROL_VALUE         1248
+#define _APS_NEXT_SYMED_VALUE           127
 #endif
 #endif

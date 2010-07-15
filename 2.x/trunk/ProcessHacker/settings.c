@@ -59,6 +59,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
+    PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY
     PhpAddIntegerSetting(L"IconNotifyMask", L"c"); // PH_NOTIFY_SERVICE_CREATE | PH_NOTIFY_SERVICE_DELETE
     PhpAddIntegerSetting(L"IconProcesses", L"a"); // 10
@@ -141,6 +142,12 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"ColorInheritHandles", L"ffff77");
 
     PhpAddIntegerSetting(L"GraphShowText", L"1");
+    PhpAddIntegerSetting(L"ColorCpuKernel", L"00ff00");
+    PhpAddIntegerSetting(L"ColorCpuUser", L"0000ff");
+    PhpAddIntegerSetting(L"ColorIoReadOther", L"00ffff");
+    PhpAddIntegerSetting(L"ColorIoWrite", L"ff0077");
+    PhpAddIntegerSetting(L"ColorPrivate", L"0077ff");
+    PhpAddIntegerSetting(L"ColorPhysical", L"ffff00");
 
     PhUpdateCachedSettings();
 }
@@ -151,6 +158,7 @@ VOID PhUpdateCachedSettings()
 
     UPDATE_INTEGER_CS(CollapseServicesOnStart);
     UPDATE_INTEGER_CS(EnableProcDb);
+    UPDATE_INTEGER_CS(HighlightingDuration);
     UPDATE_INTEGER_CS(UpdateInterval);
 
     UPDATE_INTEGER_CS(ColorNew);
@@ -186,6 +194,12 @@ VOID PhUpdateCachedSettings()
     UPDATE_INTEGER_CS(UseColorInheritHandles);
     UPDATE_INTEGER_CS(ColorInheritHandles);
     UPDATE_INTEGER_CS(GraphShowText);
+    UPDATE_INTEGER_CS(ColorCpuKernel);
+    UPDATE_INTEGER_CS(ColorCpuUser);
+    UPDATE_INTEGER_CS(ColorIoReadOther);
+    UPDATE_INTEGER_CS(ColorIoWrite);
+    UPDATE_INTEGER_CS(ColorPrivate);
+    UPDATE_INTEGER_CS(ColorPhysical);
 }
 
 BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
