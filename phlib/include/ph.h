@@ -1174,6 +1174,10 @@ NTSTATUS PhGetMappedArchiveImportEntry(
 
 // iosup
 
+#ifndef IOSUP_PRIVATE
+extern PPH_OBJECT_TYPE PhFileStreamType;
+#endif
+
 BOOLEAN PhIoSupportInitialization();
 
 NTSTATUS PhCreateFileWin32(
