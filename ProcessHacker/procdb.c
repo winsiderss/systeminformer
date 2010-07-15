@@ -272,6 +272,13 @@ PPH_PROCDB_ENTRY PhLookupProcDbEntry(
     return PhpLookupProcDbEntryByFileName(FileName);
 }
 
+mxml_type_t PhpProcDbLoadCallback(
+    __in mxml_node_t *node
+    )
+{
+     return MXML_OPAQUE;
+}
+
 NTSTATUS PhLoadProcDb(
     __in PWSTR FileName
     )
@@ -294,7 +301,7 @@ NTSTATUS PhLoadProcDb(
     if (!NT_SUCCESS(status))
         return status;
 
-    topNode = mxmlLoadFd(NULL, fileHandle, MXML_NO_CALLBACK);
+    topNode = mxmlLoadFd(NULL, fileHandle, PhpProcDbLoadCallback);
     NtClose(fileHandle);
 
     if (!topNode)
@@ -328,19 +335,19 @@ NTSTATUS PhLoadProcDb(
             {
                 if (STR_IEQUAL(childNode->value.element.name, "filename"))
                 {
-                    fileName = PhJoinXmlTextNodes(childNode->child);
+                    fileName = PhGetOpaqueXmlNodeText(childNode);
                 }
                 else if (STR_IEQUAL(childNode->value.element.name, "hash"))
                 {
-                    hashString = PhJoinXmlTextNodes(childNode->child);
+                    hashString = PhGetOpaqueXmlNodeText(childNode);
                 }
                 else if (STR_IEQUAL(childNode->value.element.name, "flags"))
                 {
-                    flagsString = PhJoinXmlTextNodes(childNode->child);
+                    flagsString = PhGetOpaqueXmlNodeText(childNode);
                 }
                 else if (STR_IEQUAL(childNode->value.element.name, "desiredprioritywin32"))
                 {
-                    desiredPriorityWin32String = PhJoinXmlTextNodes(childNode->child);
+                    desiredPriorityWin32String = PhGetOpaqueXmlNodeText(childNode);
                 }
 
                 childNode = childNode->next;
@@ -437,7 +444,7 @@ NTSTATUS PhSaveProcDb(
         {
             childNode = mxmlNewElement(processNode, "filename");
             ansiString = PhCreateAnsiStringFromUnicodeEx(entry->FileName->Buffer, entry->FileName->Length);
-            mxmlNewText(childNode, FALSE, ansiString->Buffer);
+            mxmlNewOpaque(childNode, ansiString->Buffer);
             PhDereferenceObject(ansiString);
         }
 
@@ -450,7 +457,7 @@ NTSTATUS PhSaveProcDb(
             hashString = PhBufferToHexString(entry->Hash, PH_PROCDB_HASH_SIZE);
             ansiString = PhCreateAnsiStringFromUnicodeEx(hashString->Buffer, hashString->Length);
             PhDereferenceObject(hashString);
-            mxmlNewText(childNode, FALSE, ansiString->Buffer);
+            mxmlNewOpaque(childNode, ansiString->Buffer);
             PhDereferenceObject(ansiString);
         }
 
@@ -462,7 +469,7 @@ NTSTATUS PhSaveProcDb(
             flagsString = PhIntegerToString64((ULONG64)entry->Flags, 16, FALSE);
             ansiString = PhCreateAnsiStringFromUnicodeEx(flagsString->Buffer, flagsString->Length);
             PhDereferenceObject(flagsString);
-            mxmlNewText(childNode, FALSE, ansiString->Buffer);
+            mxmlNewOpaque(childNode, ansiString->Buffer);
             PhDereferenceObject(ansiString);
         }
 
@@ -474,7 +481,7 @@ NTSTATUS PhSaveProcDb(
             desiredPriorityWin32String = PhIntegerToString64((ULONG64)entry->DesiredPriorityWin32, 16, FALSE);
             ansiString = PhCreateAnsiStringFromUnicodeEx(desiredPriorityWin32String->Buffer, desiredPriorityWin32String->Length);
             PhDereferenceObject(desiredPriorityWin32String);
-            mxmlNewText(childNode, FALSE, ansiString->Buffer);
+            mxmlNewOpaque(childNode, ansiString->Buffer);
             PhDereferenceObject(ansiString);
         }
 

@@ -574,6 +574,13 @@ __mayRaise VOID PhSetStringSetting2(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
+mxml_type_t PhpSettingsLoadCallback(
+    __in mxml_node_t *node
+    )
+{
+    return MXML_OPAQUE;
+}
+
 NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     )
@@ -596,7 +603,7 @@ NTSTATUS PhLoadSettings(
     if (!NT_SUCCESS(status))
         return status;
 
-    topNode = mxmlLoadFd(NULL, fileHandle, MXML_NO_CALLBACK);
+    topNode = mxmlLoadFd(NULL, fileHandle, PhpSettingsLoadCallback);
     NtClose(fileHandle);
 
     if (!topNode)
@@ -627,7 +634,7 @@ NTSTATUS PhLoadSettings(
         {
             PPH_STRING settingValue;
 
-            settingValue = PhJoinXmlTextNodes(currentNode->child);
+            settingValue = PhGetOpaqueXmlNodeText(currentNode);
 
             PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
@@ -672,6 +679,27 @@ NTSTATUS PhLoadSettings(
     return STATUS_SUCCESS;
 }
 
+char *PhpSettingsSaveCallback(
+    __in mxml_node_t *node,
+    __in int position
+    )
+{
+    if (STR_IEQUAL(node->value.element.name, "setting"))
+    {
+        if (position == MXML_WS_BEFORE_OPEN)
+            return "  ";
+        else if (position == MXML_WS_AFTER_CLOSE)
+            return "\n";
+    }
+    else if (STR_IEQUAL(node->value.element.name, "settings"))
+    {
+        if (position == MXML_WS_AFTER_OPEN)
+            return "\n";
+    }
+
+    return NULL;
+}
+
 NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     )
@@ -708,7 +736,7 @@ NTSTATUS PhSaveSettings(
         settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(settingValue->Buffer, settingValue->Length);
         PhDereferenceObject(settingValue);
 
-        textNode = mxmlNewText(settingNode, FALSE, settingValueAnsi->Buffer);
+        textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
         PhDereferenceObject(settingValueAnsi);
     }
 
@@ -751,7 +779,7 @@ NTSTATUS PhSaveSettings(
         return status;
     }
 
-    mxmlSaveFd(topNode, fileHandle, MXML_NO_CALLBACK);
+    mxmlSaveFd(topNode, fileHandle, PhpSettingsSaveCallback);
     mxmlDelete(topNode);
     NtClose(fileHandle);
 
