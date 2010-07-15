@@ -14,6 +14,8 @@ typedef VOID (NTAPI *PPH_MEMORY_RESULT_CALLBACK)(
     __in PVOID Context
     );
 
+#define PH_DISPLAY_BUFFER_COUNT (PAGE_SIZE * 2 - 1)
+
 typedef struct _PH_MEMORY_SEARCH_OPTIONS
 {
     BOOLEAN Cancel;
