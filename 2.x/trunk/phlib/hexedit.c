@@ -877,7 +877,7 @@ FORCEINLINE VOID PhpPrintAscii(
 {
     WCHAR c;
 
-    c = PhCharIsPrintable[Byte] ? Byte : '.';
+    c = PhCharIsPrintable[Byte] && Byte != '\t' ? Byte : '.';
     TextOut(hdc, *X, *Y, &c, 1);
     *X += Context->NullWidth;
     (*N)++;
@@ -1177,7 +1177,7 @@ VOID PhpHexEditOnPaint(
 
                     for (n = 0; n < Context->BytesPerRow && i < Context->Length; n++)
                     {
-                        *p++ = PhCharIsPrintable[Context->Data[i]] ? Context->Data[i] : '.'; 
+                        *p++ = PhCharIsPrintable[Context->Data[i]] && Context->Data[i] != '\t' ? Context->Data[i] : '.'; 
                         i++;
                     }
 
