@@ -100,6 +100,7 @@ PPH_STRING PhGetDiagnosticsString()
     OBJECT_TYPE_COUNT(PhPointerListType);
     OBJECT_TYPE_COUNT(PhQueueType);
     OBJECT_TYPE_COUNT(PhHashtableType);
+    OBJECT_TYPE_COUNT(PhFileStreamType);
 
     // ph
     OBJECT_TYPE_COUNT(PhSymbolProviderType);
