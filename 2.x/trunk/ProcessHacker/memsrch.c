@@ -189,6 +189,9 @@ VOID PhSearchMemoryString(
     detectUnicode = Options->DetectUnicode;
     memoryTypeMask = Options->MemoryTypeMask;
 
+    if (minimumLength < 4)
+        return;
+
     baseAddress = (PVOID)0;
 
     bufferSize = PAGE_SIZE * 64;
@@ -543,6 +546,13 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
                     ULONG64 minimumLength = 10;
 
                     PhStringToInteger64(&PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_MINIMUMLENGTH)->sr, 0, &minimumLength);
+
+                    if (minimumLength < 4)
+                    {
+                        PhShowError(hwndDlg, L"The minimum length must be at least 4.");
+                        break;
+                    }
+
                     context->MinimumLength = (ULONG)minimumLength;
                     context->DetectUnicode = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE)) == BST_CHECKED;
                     context->Private = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE)) == BST_CHECKED;
