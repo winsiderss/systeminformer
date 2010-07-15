@@ -623,10 +623,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0x00);
-                        drawInfo->LineColor2 = RGB(0xff, 0x00, 0x00);
-                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x00);
-                        drawInfo->LineBackColor2 = RGB(0x77, 0x00, 0x00);
+                        drawInfo->LineColor1 = PhCsColorCpuKernel;
+                        drawInfo->LineColor2 = PhCsColorCpuUser;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
+                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
 
                         PhGraphStateGetDrawInfo(
                             &CpuGraphState,
@@ -663,10 +663,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
-                        drawInfo->LineColor1 = RGB(0xff, 0xff, 0x00);
-                        drawInfo->LineColor2 = RGB(0x77, 0x00, 0xff);
-                        drawInfo->LineBackColor1 = RGB(0x77, 0x77, 0x00);
-                        drawInfo->LineBackColor2 = RGB(0x33, 0x00, 0x77);
+                        drawInfo->LineColor1 = PhCsColorIoReadOther;
+                        drawInfo->LineColor2 = PhCsColorIoWrite;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
+                        drawInfo->LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
 
                         PhGraphStateGetDrawInfo(
                             &IoGraphState,
@@ -738,8 +738,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
-                        drawInfo->LineColor1 = RGB(0x00, 0xff, 0xff);
-                        drawInfo->LineBackColor1 = RGB(0x00, 0x77, 0x77);
+                        drawInfo->LineColor1 = PhCsColorPhysical;
+                        drawInfo->LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
 
                         PhGraphStateGetDrawInfo(
                             &PhysicalGraphState,

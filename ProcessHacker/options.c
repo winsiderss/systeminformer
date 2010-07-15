@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <colorbox.h>
 #include <windowsx.h>
 
 #define WM_PH_CHILD_EXIT (WM_APP + 301)
@@ -53,6 +54,22 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
+static BOOLEAN ColorBoxInitialized = FALSE;
+
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static POINT StartLocation;
@@ -67,7 +84,13 @@ VOID PhShowOptionsDialog(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[3];
+    HPROPSHEETPAGE pages[5];
+
+    if (!ColorBoxInitialized)
+    {
+        PhColorBoxInitialization();
+        ColorBoxInitialized = TRUE;
+    }
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -107,6 +130,26 @@ VOID PhShowOptionsDialog(
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTSYMBOLS);
         propSheetPage.pfnDlgProc = PhpOptionsSymbolsDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
+    if (!PhStartupParameters.ShowOptions)
+    {
+        // Highlighting page
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING);
+        propSheetPage.pfnDlgProc = PhpOptionsHighlightingDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+
+    if (!PhStartupParameters.ShowOptions)
+    {
+        // Graphs page
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_OPTGRAPHS);
+        propSheetPage.pfnDlgProc = PhpOptionsGraphsDlgProc;
         pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
     }
 
@@ -593,6 +636,142 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     PhSetStringSetting2(L"DbgHelpPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPPATH)->sr));
                     PhSetStringSetting2(L"DbgHelpSearchPath", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DBGHELPSEARCHPATH)->sr));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_UNDECORATESYMBOLS, L"DbgHelpUndecorate");
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND hwnd;
+
+            PhpPageInit(hwndDlg);
+
+            // Highlighting Duration
+            SetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, PhCsHighlightingDuration, FALSE);
+
+            // New Objects
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_NEWOBJECTS);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_NEWOBJECTS_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorNew);
+
+            // Removed Objects
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_REMOVEDOBJECTS);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorRemoved);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_APPLY:
+                {
+                    PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, GetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, NULL, FALSE));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND hwnd;
+
+            PhpPageInit(hwndDlg);
+
+            // Show Text
+            SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
+
+            // CPU User
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_CPUUSER);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_CPUUSER_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorCpuUser);
+
+            // CPU Kernel
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_CPUKERNEL);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_CPUKERNEL_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorCpuKernel);
+
+            // I/O R+O
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_IORO);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_IORO_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorIoReadOther);
+
+            // I/O W
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_IOW);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_IOW_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorIoWrite);
+
+            // Private
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_PRIVATE);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVATE_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorPrivate);
+
+            // Physical
+            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_PHYSICAL);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_PHYSICAL_LAYOUT), hwnd);
+            ShowWindow(hwnd, SW_SHOW);
+            ColorBox_SetColor(hwnd, PhCsColorPhysical);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_APPLY:
+                {
+                    SetSettingForDlgItemCheck(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
+                    PH_SET_INTEGER_CACHED_SETTING(ColorCpuUser, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUUSER)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorCpuKernel, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorIoReadOther, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IORO)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorIoWrite, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_IOW)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorPrivate, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PRIVATE)));
+                    PH_SET_INTEGER_CACHED_SETTING(ColorPhysical, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL)));
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }

@@ -75,6 +75,7 @@ NTSTATUS PhSaveSettings(
 
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsEnableProcDb;
+EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;
@@ -110,6 +111,12 @@ EXT ULONG PhCsColorProtectedHandles;
 EXT ULONG PhCsUseColorInheritHandles;
 EXT ULONG PhCsColorInheritHandles;
 EXT ULONG PhCsGraphShowText;
+EXT ULONG PhCsColorCpuKernel;
+EXT ULONG PhCsColorCpuUser;
+EXT ULONG PhCsColorIoReadOther;
+EXT ULONG PhCsColorIoWrite;
+EXT ULONG PhCsColorPrivate;
+EXT ULONG PhCsColorPhysical;
 
 #define PH_SET_INTEGER_CACHED_SETTING(Name, Value) (PhSetIntegerSetting(L#Name, PhCs##Name = (Value)))
 

@@ -558,6 +558,16 @@ VOID PhLoadSymbolProviderOptions(
     PhDereferenceObject(searchPath);
 }
 
+VOID PhSetExtendedListViewWithSettings(
+    __in HWND hWnd
+    )
+{
+    PhSetExtendedListView(hWnd);
+    ExtendedListView_SetNewColor(hWnd, PhCsColorNew);
+    ExtendedListView_SetRemovingColor(hWnd, PhCsColorRemoved);
+    ExtendedListView_SetHighlightingDuration(hWnd, PhCsHighlightingDuration);
+}
+
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip

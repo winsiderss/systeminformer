@@ -411,7 +411,7 @@ VOID PhTickProcessNodes()
 
         while (PhEnumPointerList(ProcessNodeStateList, &enumerationKey, &node))
         {
-            if (PhRoundNumber(tickCount - node->TickCount, 100) < 1000)
+            if (PhRoundNumber(tickCount - node->TickCount, 100) < PhCsHighlightingDuration)
                 continue;
 
             stateListHandle = node->StateListHandle;
