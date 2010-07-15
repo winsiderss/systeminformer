@@ -382,9 +382,12 @@
 #define IDC_CPUKERNEL_LAYOUT            1246
 #define IDC_CPUUSER_LAYOUT              1247
 #define IDC_IORO_LAYOUT                 1248
+#define IDC_ICONPROCESSES               1248
 #define IDC_IOW_LAYOUT                  1249
 #define IDC_PRIVATE_LAYOUT              1250
 #define IDC_PHYSICAL_LAYOUT             1251
+#define IDC_BUTTON2                     1251
+#define IDC_ENABLE                      1251
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -593,7 +596,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        186
 #define _APS_NEXT_COMMAND_VALUE         40222
-#define _APS_NEXT_CONTROL_VALUE         1248
+#define _APS_NEXT_CONTROL_VALUE         1252
 #define _APS_NEXT_SYMED_VALUE           127
 #endif
 #endif
