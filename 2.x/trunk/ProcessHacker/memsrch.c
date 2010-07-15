@@ -197,7 +197,7 @@ VOID PhSearchMemoryString(
     if (!buffer)
         return;
 
-    displayBufferCount = PAGE_SIZE * 2 - 1;
+    displayBufferCount = PH_DISPLAY_BUFFER_COUNT;
     displayBuffer = PhAllocatePage((displayBufferCount + 1) * sizeof(WCHAR), NULL);
 
     if (!displayBuffer)
