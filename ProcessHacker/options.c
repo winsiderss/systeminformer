@@ -78,6 +78,9 @@ static PPH_STRING OldTaskMgrDebugger;
 static BOOLEAN OldReplaceTaskMgr;
 static HWND WindowHandleForElevate;
 
+static HWND HighlightingListViewHandle;
+static HIMAGELIST HighlightingImageListHandle;
+
 VOID PhShowOptionsDialog(
     __in HWND ParentWindowHandle
     )
@@ -169,6 +172,7 @@ VOID PhShowOptionsDialog(
     {
         if (!PhStartupParameters.ShowOptions)
         {
+            PhUpdateCachedSettings();
             ProcessHacker_SaveAllSettings(PhMainWndHandle);
             PhInvalidateAllProcessNodes();
         }
@@ -261,6 +265,8 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             else
                 ComboBox_SetCurSel(comboBoxHandle, sizeof(PhSizeUnitNames) / sizeof(PWSTR) - 1);
 
+            SetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, PhGetIntegerSetting(L"IconProcesses"), FALSE);
+
             SetDlgItemCheckForSetting(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
             SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
@@ -281,6 +287,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     PhSetStringSetting2(L"SearchEngine", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_SEARCHENGINE)->sr));
                     PhSetStringSetting2(L"ProgramInspectExecutables", &(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PEVIEWER)->sr));
                     PhSetIntegerSetting(L"MaxSizeUnit", PhMaxSizeUnit = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_MAXSIZEUNIT)));
+                    PhSetIntegerSetting(L"IconProcesses", GetDlgItemInt(hwndDlg, IDC_ICONPROCESSES, NULL, FALSE));
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ALLOWONLYONEINSTANCE, L"AllowOnlyOneInstance");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONCLOSE, L"HideOnClose");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEONMINIMIZE, L"HideOnMinimize");
@@ -648,6 +655,69 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
     return FALSE;
 }
 
+#define CROSS_INDEX 0
+#define TICK_INDEX 1
+
+typedef struct _COLOR_ITEM
+{
+    PWSTR SettingName;
+    PWSTR UseSettingName;
+    PWSTR Name;
+    PWSTR Description;
+
+    BOOLEAN CurrentUse;
+    COLORREF CurrentColor;
+} COLOR_ITEM, *PCOLOR_ITEM;
+
+#define COLOR_ITEM(SettingName, Name, Description) { SettingName, L"Use" SettingName, Name, Description }
+
+static COLOR_ITEM ColorItems[] =
+{
+    COLOR_ITEM(L"ColorOwnProcesses", L"Own Processes", L"Processes running under the same user account as Process Hacker."),
+    COLOR_ITEM(L"ColorSystemProcesses", L"System Processes", L"Processes running under the NT AUTHORITY\\SYSTEM user account."),
+    COLOR_ITEM(L"ColorServiceProcesses", L"Service Processes", L"Processes which host one or more services."),
+    COLOR_ITEM(L"ColorJobProcesses", L"Job Processes", L"Processes associated with a job."),
+#ifdef _M_X64
+    COLOR_ITEM(L"ColorWow64Processes", L"32-bit Processes", L"Processes running under WOW64, i.e. 32-bit."),
+#endif
+    COLOR_ITEM(L"ColorPosixProcesses", L"POSIX Processes", L"Processes running under the POSIX subsystem."),
+    COLOR_ITEM(L"ColorDebuggedProcesses", L"Debugged Processes", L"Processes that are currently being debugged."),
+    COLOR_ITEM(L"ColorElevatedProcesses", L"Elevated Processes", L"Processes with full privileges on a Windows Vista system with UAC enabled."),
+    COLOR_ITEM(L"ColorSuspended", L"Suspended Processes and Threads", L"Processes and threads that are suspended from execution."),
+    COLOR_ITEM(L"ColorDotNet", L".NET Processes and DLLs", L".NET, or managed processes and DLLs."),
+    COLOR_ITEM(L"ColorPacked", L"Packed Processes", L"Executables are sometimes \"packed\" to reduce their size."),
+    COLOR_ITEM(L"ColorGuiThreads", L"GUI Threads", L"Threads that have made at least one GUI-related system call."),
+    COLOR_ITEM(L"ColorRelocatedModules", L"Relocated DLLs", L"DLLs that were not loaded at their preferred image bases."),
+    COLOR_ITEM(L"ColorProtectedHandles", L"Protected Handles", L"Handles that are protected from being closed."),
+    COLOR_ITEM(L"ColorInheritHandles", L"Inheritable Handles", L"Handles that can be inherited by child processes.")
+};
+
+VOID PhpRefreshColorItems()
+{
+    ULONG i;
+
+    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+    {
+        PCOLOR_ITEM item = &ColorItems[i];
+
+        PhSetListViewItemImageIndex(HighlightingListViewHandle, i,
+            item->CurrentUse ? TICK_INDEX : CROSS_INDEX);
+    }
+
+    InvalidateRect(HighlightingListViewHandle, NULL, TRUE);
+}
+
+COLORREF NTAPI PhpColorItemColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in PVOID Context
+    )
+{
+    PCOLOR_ITEM item = Param;
+
+    return item->CurrentColor;
+}
+
 INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -660,6 +730,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     case WM_INITDIALOG:
         {
             HWND hwnd;
+            ULONG i;
 
             PhpPageInit(hwndDlg);
 
@@ -677,6 +748,68 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS_LAYOUT), hwnd);
             ShowWindow(hwnd, SW_SHOW);
             ColorBox_SetColor(hwnd, PhCsColorRemoved);
+
+            // Highlighting
+            HighlightingListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            PhSetListViewStyle(HighlightingListViewHandle, FALSE, TRUE);
+            PhAddListViewColumn(HighlightingListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
+            PhSetExtendedListView(HighlightingListViewHandle);
+            ExtendedListView_SetItemColorFunction(HighlightingListViewHandle, PhpColorItemColorFunction);
+
+            HighlightingImageListHandle = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
+            ImageList_SetImageCount(HighlightingImageListHandle, 2);
+            PhSetImageListBitmap(HighlightingImageListHandle, CROSS_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_CROSS));
+            PhSetImageListBitmap(HighlightingImageListHandle, TICK_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_TICK));
+            ListView_SetImageList(HighlightingListViewHandle, HighlightingImageListHandle, LVSIL_SMALL);
+
+            for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+            {
+                INT lvItemIndex;
+
+                lvItemIndex = PhAddListViewItem(HighlightingListViewHandle, MAXINT, ColorItems[i].Name, &ColorItems[i]);
+                ColorItems[i].CurrentColor = PhGetIntegerSetting(ColorItems[i].SettingName);
+                ColorItems[i].CurrentUse = !!PhGetIntegerSetting(ColorItems[i].UseSettingName);
+            }
+
+            PhpRefreshColorItems();
+            EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_ENABLE:
+                {
+                    PCOLOR_ITEM item;
+
+                    if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
+                        item->CurrentUse = !item->CurrentUse;
+
+                    PhpRefreshColorItems();
+                }
+                break;
+            case IDC_ENABLEALL:
+                {
+                    ULONG i;
+
+                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+                        ColorItems[i].CurrentUse = TRUE;
+
+                    PhpRefreshColorItems();
+                }
+                break;
+            case IDC_DISABLEALL:
+                {
+                    ULONG i;
+
+                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+                        ColorItems[i].CurrentUse = FALSE;
+
+                    PhpRefreshColorItems();
+                }
+                break;
+            }
         }
         break;
     case WM_NOTIFY:
@@ -687,17 +820,84 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             {
             case PSN_APPLY:
                 {
+                    ULONG i;
+
                     PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, GetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, NULL, FALSE));
                     PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
                     PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
 
+                    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
+                    {
+                        PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
+                        PhSetIntegerSetting(ColorItems[i].UseSettingName, ColorItems[i].CurrentUse);
+                    }
+
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }
                 return TRUE;
+            case NM_DBLCLK:
+                {
+                    if (header->hwndFrom == HighlightingListViewHandle)
+                    {
+                        PCOLOR_ITEM item;
+
+                        if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
+                        {
+                            CHOOSECOLOR chooseColor = { sizeof(chooseColor) };
+                            COLORREF customColors[16] = { 0 };
+
+                            chooseColor.hwndOwner = hwndDlg;
+                            chooseColor.rgbResult = PhGetIntegerSetting(item->SettingName);
+                            chooseColor.lpCustColors = customColors;
+                            chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
+
+                            if (ChooseColor(&chooseColor))
+                            {
+                                item->CurrentColor = chooseColor.rgbResult;
+                                PhpRefreshColorItems();
+                            }
+                        }
+                    }
+                }
+                break;
+            case LVN_ITEMCHANGED:
+                {
+                    if (header->hwndFrom == HighlightingListViewHandle)
+                    {
+                        PCOLOR_ITEM item;
+
+                        if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
+                        {
+                            SetWindowText(GetDlgItem(hwndDlg, IDC_ENABLE),
+                                item->CurrentUse ? L"Disable" : L"Enable");
+                        }
+                        else
+                        {
+                            SetWindowText(GetDlgItem(hwndDlg, IDC_ENABLE), L"Enable");
+                        }
+
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), ListView_GetSelectedCount(HighlightingListViewHandle) == 1);
+                    }
+                }
+                break;
+            case LVN_GETINFOTIP:
+                {
+                    if (header->hwndFrom == HighlightingListViewHandle)
+                    {
+                        NMLVGETINFOTIP *getInfoTip = (NMLVGETINFOTIP *)lParam;
+                        PH_STRINGREF tip;
+
+                        PhInitializeStringRef(&tip, ColorItems[getInfoTip->iItem].Description);
+                        PhCopyListViewInfoTip(getInfoTip, &tip); 
+                    }
+                }
+                break;
             }
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, HighlightingListViewHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }
