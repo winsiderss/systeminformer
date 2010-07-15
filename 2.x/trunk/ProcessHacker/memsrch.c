@@ -250,9 +250,10 @@ VOID PhSearchMemoryString(
         for (offset = 0; offset < basicInfo.RegionSize; offset += readSize)
         {
             ULONG_PTR i;
-            BOOLEAN isWide;
             UCHAR byte1; // previous byte
             UCHAR byte2; // byte before previous byte
+            BOOLEAN printable1;
+            BOOLEAN printable2;
             ULONG length;
 
             if (!NT_SUCCESS(PhReadVirtualMemory(
@@ -264,9 +265,10 @@ VOID PhSearchMemoryString(
                 )))
                 continue;
 
-            isWide = FALSE;
             byte1 = 0;
             byte2 = 0;
+            printable1 = FALSE;
+            printable2 = FALSE;
             length = 0;
 
             for (i = 0; i < readSize; i++)
@@ -277,97 +279,163 @@ VOID PhSearchMemoryString(
                 byte = buffer[i];
                 printable = PhCharIsPrintable[byte];
 
-                if (detectUnicode && isWide && printable && byte1 != 0)
+                // To find strings Process Hacker uses a small state machine.
+                // * byte2 - byte before previous byte
+                // * byte1 - previous byte
+                // * byte - current byte
+                // * length - length of current string run
+                //
+                // The states are described below.
+                //
+                //    [byte2] [byte1] [byte] ...
+                //    [char] means printable, [oth] means non-printable.
+                //
+                // 1. [char] [char] [char] ...
+                //      (we're in a non-wide sequence)
+                //      -> append char.
+                // 2. [char] [char] [oth] ...
+                //      (we reached the end of a non-wide sequence, or we need to start a wide sequence)
+                //      -> if current string is big enough, create result (non-wide).
+                //         otherwise if byte = null, reset to new string with byte1 as first character.
+                //         otherwise if byte != null, reset to new string.
+                // 3. [char] [oth] [char] ...
+                //      (we're in a wide sequence)
+                //      -> (byte1 should = null) append char.
+                // 4. [char] [oth] [oth] ...
+                //      (we reached the end of a wide sequence)
+                //      -> (byte1 should = null) if the current string is big enough, create result (wide).
+                //         otherwise, reset to new string.
+                // 5. [oth] [char] [char] ...
+                //      (we reached the end of a wide sequence, or we need to start a non-wide sequence)
+                //      -> (excluding byte1) if the current string is big enough, create result (wide).
+                //         otherwise, reset to new string with byte1 as first character and byte as 
+                //         second character.
+                // 6. [oth] [char] [oth] ...
+                //      (we're in a wide sequence)
+                //      -> (byte2 and byte should = null) do nothing.
+                // 7. [oth] [oth] [char] ...
+                //      (we're starting a sequence, but we don't know if it's a wide or non-wide sequence)
+                //      -> append char.
+                // 8. [oth] [oth] [oth] ...
+                //      (nothing)
+                //      -> do nothing.
+
+                if (printable2 && printable1 && printable)
                 {
-                    // Two printable characters in a row. This can't be 
-                    // a wide ASCII string anymore, but we thought it was 
-                    // going to be a wide string.
-
-                    isWide = FALSE;
-
-                    if (length >= 2)
-                    {
-                        // ... [char] [null] [char] *[char]* ...
-                        //                          ^ we are here
-                        // Reset.
-                        length = 1;
-                        displayBuffer[0] = byte1;
-                    }
-
                     if (length < displayBufferCount)
                         displayBuffer[length] = byte;
 
                     length++;
                 }
-                else if (printable)
-                {
-                    if (length < displayBufferCount)
-                        displayBuffer[length] = byte;
-
-                    length++;
-                }
-                else if (detectUnicode && byte == 0 && PhCharIsPrintable[byte1] && !PhCharIsPrintable[byte2])
-                {
-                    // We got a non printable byte, a printable byte, and now a null. 
-                    // This is probably going to be a wide string (or we're already in one).
-                    isWide = TRUE;
-                }
-                else if (isWide && byte == 0 && PhCharIsPrintable[byte1] && PhCharIsPrintable[byte2] &&
-                    length < minimumLength)
-                {
-                    // ... [char] [char] *[null]* ([char] [null] [char] [null]) ...
-                    //                   ^ we are here
-                    // We got a sequence of printable characters but now we have a null. 
-                    // That sequence was too short to be considered a string, so now we'll 
-                    // switch to wide string mode.
-
-                    isWide = TRUE;
-
-                    // Reset.
-                    length = 1;
-                    displayBuffer[0] = byte1;
-                }
-                else
+                else if (printable2 && printable1 && !printable)
                 {
                     if (length >= minimumLength)
                     {
-                        PPH_MEMORY_RESULT result;
-                        ULONG lengthInBytes;
-                        ULONG displayLength;
+                        goto CreateResult;
+                    }
+                    else if (byte == 0)
+                    {
+                        length = 1;
+                        displayBuffer[0] = byte1;
+                    }
+                    else
+                    {
+                        length = 0;
+                    }
+                }
+                else if (printable2 && !printable1 && printable)
+                {
+                    if (length < displayBufferCount)
+                        displayBuffer[length] = byte;
 
-                        lengthInBytes = length;
+                    length++;
+                }
+                else if (printable2 && !printable1 && !printable)
+                {
+                    if (length >= minimumLength)
+                    {
+                        goto CreateResult;
+                    }
+                    else
+                    {
+                        length = 0;
+                    }
+                }
+                else if (!printable2 && printable1 && printable)
+                {
+                    if (length >= minimumLength + 1) // length - 1 >= minimumLength but avoiding underflow
+                    {
+                        length--; // exclude byte1
+                        goto CreateResult;
+                    }
+                    else
+                    {
+                        length = 2;
+                        displayBuffer[0] = byte1;
+                        displayBuffer[1] = byte;
+                    }
+                }
+                else if (!printable2 && printable1 && !printable)
+                {
+                    // Nothing
+                }
+                else if (!printable2 && !printable1 && printable)
+                {
+                    if (length < displayBufferCount)
+                        displayBuffer[length] = byte;
 
-                        if (isWide)
-                            lengthInBytes *= 2;
+                    length++;
+                }
+                else if (!printable2 && !printable1 && !printable)
+                {
+                    // Nothing
+                }
 
-                        if (result = PhCreateMemoryResult(
-                            PTR_ADD_OFFSET(baseAddress, i - lengthInBytes),
-                            lengthInBytes
-                            ))
+                goto AfterCreateResult;
+
+CreateResult:
+                {
+                    PPH_MEMORY_RESULT result;
+                    ULONG lengthInBytes;
+                    ULONG bias;
+                    ULONG displayLength;
+
+                    lengthInBytes = length;
+                    bias = 0;
+
+                    if (printable1 == printable) // determine if string was wide (refer to state table, 4 and 5)
+                        lengthInBytes *= 2;
+                    if (printable) // byte1 excluded (refer to state table, 5)
+                        bias = 1;
+
+                    if (result = PhCreateMemoryResult(
+                        PTR_ADD_OFFSET(baseAddress, i - bias - lengthInBytes),
+                        lengthInBytes
+                        ))
+                    {
+                        displayLength = (ULONG)(min(length, displayBufferCount) * sizeof(WCHAR));
+
+                        if (result->Display.Buffer = PhAllocateForMemorySearch(displayLength + sizeof(WCHAR)))
                         {
-                            displayLength = (ULONG)(min(length, displayBufferCount) * sizeof(WCHAR));
-
-                            if (result->Display.Buffer = PhAllocateForMemorySearch(displayLength + sizeof(WCHAR)))
-                            {
-                                memcpy(result->Display.Buffer, displayBuffer, displayLength);
-                                result->Display.Buffer[displayLength / sizeof(WCHAR)] = 0;
-                                result->Display.Length = (USHORT)displayLength;
-                            }
-
-                            Options->Header.Callback(
-                                result,
-                                Options->Header.Context
-                                );
+                            memcpy(result->Display.Buffer, displayBuffer, displayLength);
+                            result->Display.Buffer[displayLength / sizeof(WCHAR)] = 0;
+                            result->Display.Length = (USHORT)displayLength;
                         }
+
+                        Options->Header.Callback(
+                            result,
+                            Options->Header.Context
+                            );
                     }
 
-                    // Reset.
-                    isWide = FALSE;
                     length = 0;
                 }
+AfterCreateResult:
 
                 byte2 = byte1;
                 byte1 = byte;
+                printable2 = printable1;
+                printable1 = printable;
             }
         }
 
