@@ -1,4 +1,5 @@
 #include <phapp.h>
+#include <settings.h>
 #include <graph.h>
 
 static HICON BlackIcon = NULL;
@@ -183,10 +184,10 @@ VOID PhUpdateIconCpuHistory()
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = RGB(0x00, 0xff, 0x00);
-    drawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
-    drawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
-    drawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
+    drawInfo.LineColor1 = PhCsColorCpuKernel;
+    drawInfo.LineColor2 = PhCsColorCpuUser;
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
+    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
 
     PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
     PhDrawGraph(hdc, &drawInfo);
@@ -278,10 +279,10 @@ VOID PhUpdateIconIoHistory()
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
     drawInfo.LineData2 = lineData2;
-    drawInfo.LineColor1 = RGB(0xff, 0xff, 0x00);
-    drawInfo.LineColor2 = RGB(0x77, 0x00, 0xff);
-    drawInfo.LineBackColor1 = RGB(0x77, 0x77, 0x00);
-    drawInfo.LineBackColor2 = RGB(0x33, 0x00, 0x77);
+    drawInfo.LineColor1 = PhCsColorIoReadOther;
+    drawInfo.LineColor2 = PhCsColorIoWrite;
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
+    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
 
     PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
     PhDrawGraph(hdc, &drawInfo);
@@ -363,8 +364,8 @@ VOID PhUpdateIconCommitHistory()
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = RGB(0xff, 0x77, 0x00);
-    drawInfo.LineBackColor1 = RGB(0x77, 0x33, 0x00);
+    drawInfo.LineColor1 = PhCsColorPrivate;
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
 
     PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
     PhDrawGraph(hdc, &drawInfo);
@@ -426,8 +427,8 @@ VOID PhUpdateIconPhysicalHistory()
 
     drawInfo.LineDataCount = lineDataCount;
     drawInfo.LineData1 = lineData1;
-    drawInfo.LineColor1 = RGB(0x00, 0xff, 0xff);
-    drawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x77);
+    drawInfo.LineColor1 = PhCsColorPhysical;
+    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
 
     PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
     PhDrawGraph(hdc, &drawInfo);
@@ -466,6 +467,10 @@ VOID PhUpdateIconCpuUsage()
 
     // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
     {
+        COLORREF kColor = PhCsColorCpuKernel;
+        COLORREF uColor = PhCsColorCpuUser;
+        COLORREF kbColor = PhHalveColorBrightness(PhCsColorCpuKernel);
+        COLORREF ubColor = PhHalveColorBrightness(PhCsColorCpuUser);
         FLOAT k = PhCpuKernelUsage;
         FLOAT u = PhCpuUserUsage;
         LONG kl = (LONG)(k * 16);
@@ -488,7 +493,7 @@ VOID PhUpdateIconCpuUsage()
         if (kl + ul == 0)
         {
             SelectObject(hdc, dcPen);
-            SetDCPenColor(hdc, RGB(0xff, 0x00, 0x00));
+            SetDCPenColor(hdc, uColor);
             points[0].x = 0;
             points[0].y = 15;
             points[1].x = 16;
@@ -501,7 +506,7 @@ VOID PhUpdateIconCpuUsage()
             rect.top = 16 - ul - kl;
             rect.right = 16;
             rect.bottom = 16 - kl;
-            SetDCBrushColor(hdc, RGB(0x77, 0x00, 0x00));
+            SetDCBrushColor(hdc, ubColor);
             FillRect(hdc, &rect, dcBrush);
 
             points[0].x = 0;
@@ -510,7 +515,7 @@ VOID PhUpdateIconCpuUsage()
             points[1].x = 16;
             points[1].y = points[0].y;
             SelectObject(hdc, dcPen);
-            SetDCPenColor(hdc, RGB(0xff, 0x00, 0x00));
+            SetDCPenColor(hdc, uColor);
             Polyline(hdc, points, 2);
 
             if (kl != 0)
@@ -519,7 +524,7 @@ VOID PhUpdateIconCpuUsage()
                 rect.top = 16 - kl;
                 rect.right = 16;
                 rect.bottom = 16;
-                SetDCBrushColor(hdc, RGB(0x00, 0x77, 0x00));
+                SetDCBrushColor(hdc, kbColor);
                 FillRect(hdc, &rect, dcBrush);
 
                 points[0].x = 0;
@@ -528,7 +533,7 @@ VOID PhUpdateIconCpuUsage()
                 points[1].x = 16;
                 points[1].y = points[0].y;
                 SelectObject(hdc, dcPen);
-                SetDCPenColor(hdc, RGB(0x00, 0xff, 0x00));
+                SetDCPenColor(hdc, kColor);
                 Polyline(hdc, points, 2);
             }
         }
