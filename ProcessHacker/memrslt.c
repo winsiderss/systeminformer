@@ -342,7 +342,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
             ListView_SetItemCount(lvHandle, context->Results->Count);
 
-            SetDlgItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%u results.", context->Results->Count)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
+                PhaFormatUInt64(context->Results->Count, TRUE)->Buffer)->Buffer);
 
             {
                 PH_RECTANGLE windowRectangle;
