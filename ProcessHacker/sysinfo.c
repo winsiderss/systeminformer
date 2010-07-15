@@ -621,6 +621,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             PhSetGraphText(hdc, drawInfo, &CpuGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = PhCsColorCpuKernel;
@@ -660,6 +664,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             SelectObject(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &IoGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
@@ -736,6 +744,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             PhSetGraphText(hdc, drawInfo, &PhysicalGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
                         drawInfo->LineColor1 = PhCsColorPhysical;
@@ -792,6 +804,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                                 SelectObject(hdc, PhApplicationFont);
                                 PhSetGraphText(hdc, drawInfo, &CpusGraphState[i].TooltipText->sr,
                                     &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                            }
+                            else
+                            {
+                                drawInfo->Text.Buffer = NULL;
                             }
 
                             drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
