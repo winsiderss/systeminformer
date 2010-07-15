@@ -681,6 +681,8 @@ typedef struct _PH_LOG_ENTRY
         {
             HANDLE ProcessId;
             PPH_STRING Name;
+            HANDLE ParentProcessId;
+            PPH_STRING ParentName;
         } Process;
         struct
         {
@@ -704,7 +706,9 @@ VOID PhClearLogEntries();
 VOID PhLogProcessEntry(
     __in UCHAR Type,
     __in HANDLE ProcessId,
-    __in PPH_STRING Name
+    __in PPH_STRING Name,
+    __in_opt HANDLE ParentProcessId,
+    __in_opt PPH_STRING ParentName
     );
 
 VOID PhLogServiceEntry(

@@ -3531,20 +3531,24 @@ VOID PhMainWndOnProcessAdded(
 
     if (RunId != 1)
     {
-        PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_CREATE, ProcessItem->ProcessId, ProcessItem->ProcessName);
+        PPH_PROCESS_ITEM parentProcess;
+        PPH_STRING parentName = NULL;
+
+        parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId);
+
+        if (parentProcess)
+            parentName = parentProcess->ProcessName;
+
+        PhLogProcessEntry(
+            PH_LOG_ENTRY_PROCESS_CREATE,
+            ProcessItem->ProcessId,
+            ProcessItem->ProcessName,
+            ProcessItem->ParentProcessId,
+            parentName
+            );
 
         if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
         {
-            PPH_PROCESS_ITEM parentProcess;
-            PPH_STRING parentName = NULL;
-
-            if (parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId))
-            {
-                parentName = parentProcess->ProcessName;
-                PhReferenceObject(parentName);
-                PhDereferenceObject(parentProcess);
-            }
-
             PhpShowIconNotification(L"Process Created", PhaFormatString(
                 L"The process %s (%u) was created by %s (%u)",
                 ProcessItem->ProcessName->Buffer,
@@ -3552,8 +3556,10 @@ VOID PhMainWndOnProcessAdded(
                 PhGetStringOrDefault(parentName, L"Unknown Process"),
                 (ULONG)ProcessItem->ParentProcessId
                 )->Buffer, NIIF_INFO);
-            if (parentName) PhDereferenceObject(parentName);
         }
+
+        if (parentProcess)
+            PhDereferenceObject(parentProcess);
     }
 
     if (PhProcDbInitialized)
@@ -3600,7 +3606,7 @@ VOID PhMainWndOnProcessRemoved(
         ProcessesNeedsRedraw = TRUE;
     }
 
-    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName);
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL);
 
     if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {

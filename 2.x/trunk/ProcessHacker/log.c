@@ -78,7 +78,9 @@ VOID PhpFreeLogEntry(
 PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     __in UCHAR Type,
     __in HANDLE ProcessId,
-    __in PPH_STRING Name
+    __in PPH_STRING Name,
+    __in_opt HANDLE ParentProcessId,
+    __in_opt PPH_STRING ParentName
     )
 {
     PPH_LOG_ENTRY entry;
@@ -87,6 +89,14 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     entry->Process.ProcessId = ProcessId;
     PhReferenceObject(Name);
     entry->Process.Name = Name;
+
+    entry->Process.ParentProcessId = ParentProcessId;
+
+    if (ParentName)
+    {
+        PhReferenceObject(ParentName);
+        entry->Process.ParentName = ParentName;
+    }
 
     return entry;
 }
@@ -152,10 +162,12 @@ VOID PhClearLogEntries()
 VOID PhLogProcessEntry(
     __in UCHAR Type,
     __in HANDLE ProcessId,
-    __in PPH_STRING Name
+    __in PPH_STRING Name,
+    __in_opt HANDLE ParentProcessId,
+    __in_opt PPH_STRING ParentName
     )
 {
-    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name));
+    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName));
 }
 
 VOID PhLogServiceEntry(
@@ -182,7 +194,13 @@ PPH_STRING PhFormatLogEntry(
     switch (Entry->Type)
     {
     case PH_LOG_ENTRY_PROCESS_CREATE:
-        return PhFormatString(L"Process created: %s (%u)", Entry->Process.Name->Buffer, (ULONG)Entry->Process.ProcessId);
+        return PhFormatString(
+            L"Process created: %s (%u) started by %s (%u)",
+            Entry->Process.Name->Buffer,
+            (ULONG)Entry->Process.ProcessId,
+            PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown Process"),
+            (ULONG)Entry->Process.ParentProcessId
+            );
     case PH_LOG_ENTRY_PROCESS_DELETE:
         return PhFormatString(L"Process terminated: %s (%u)", Entry->Process.Name->Buffer, (ULONG)Entry->Process.ProcessId);
     case PH_LOG_ENTRY_SERVICE_CREATE:
