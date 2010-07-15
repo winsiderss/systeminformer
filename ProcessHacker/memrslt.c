@@ -182,7 +182,8 @@ static VOID FilterResults(
             PPH_ANSI_STRING patternString;
             char *errorString;
             int errorOffset;
-            
+            PCHAR ansiBuffer;
+
             patternString = PhCreateAnsiStringFromUnicodeEx(
                 selectedChoice->Buffer,
                 selectedChoice->Length
@@ -209,15 +210,23 @@ static VOID FilterResults(
 
             expression_extra = pcre_study(expression, 0, &errorString);
 
+            ansiBuffer = PhAllocatePage(PH_DISPLAY_BUFFER_COUNT + 1, NULL);
             newResults = PhCreateList(1024);
 
             for (i = 0; i < results->Count; i++)
             {
                 PPH_MEMORY_RESULT result = results->Items[i];
-                PPH_ANSI_STRING ansiDisplay;
+                ULONG ansiLength;
                 int r;
 
-                ansiDisplay = PhCreateAnsiStringFromUnicodeEx(result->Display.Buffer, result->Display.Length);
+                if (!NT_SUCCESS(RtlUnicodeToMultiByteN(
+                    ansiBuffer,
+                    PH_DISPLAY_BUFFER_COUNT,
+                    &ansiLength,
+                    result->Display.Buffer,
+                    result->Display.Length
+                    )))
+                    continue;
 
                 // Guard against stack overflows.
                 __try
@@ -225,8 +234,8 @@ static VOID FilterResults(
                     r = pcre_exec(
                         expression,
                         expression_extra,
-                        ansiDisplay->Buffer,
-                        ansiDisplay->Length,
+                        ansiBuffer,
+                        ansiLength,
                         0,
                         0,
                         NULL,
@@ -248,9 +257,9 @@ static VOID FilterResults(
                     PhReferenceMemoryResult(result);
                     PhAddListItem(newResults, result);
                 }
-
-                PhDereferenceObject(ansiDisplay);
             }
+
+            PhFreePage(ansiBuffer);
 
             pcre_free(expression_extra);
             pcre_free(expression);
