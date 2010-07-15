@@ -847,7 +847,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                             COLORREF customColors[16] = { 0 };
 
                             chooseColor.hwndOwner = hwndDlg;
-                            chooseColor.rgbResult = PhGetIntegerSetting(item->SettingName);
+                            chooseColor.rgbResult = item->CurrentColor;
                             chooseColor.lpCustColors = customColors;
                             chooseColor.Flags = CC_ANYCOLOR | CC_FULLOPEN | CC_RGBINIT;
 
