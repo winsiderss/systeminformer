@@ -1313,6 +1313,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             PhSetGraphText(hdc, drawInfo, &performanceContext->CpuGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
                         }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
+                        }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
                         drawInfo->LineColor1 = PhCsColorCpuKernel;
@@ -1351,6 +1355,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             SelectObject(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->PrivateGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID;
@@ -1403,6 +1411,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             SelectObject(hdc, PhApplicationFont);
                             PhSetGraphText(hdc, drawInfo, &performanceContext->IoGraphState.TooltipText->sr,
                                 &PhNormalGraphTextMargin, &PhNormalGraphTextPadding, PH_ALIGN_TOP | PH_ALIGN_LEFT);
+                        }
+                        else
+                        {
+                            drawInfo->Text.Buffer = NULL;
                         }
 
                         drawInfo->Flags = PH_GRAPH_USE_GRID | PH_GRAPH_USE_LINE_2;
