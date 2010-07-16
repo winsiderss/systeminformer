@@ -250,13 +250,13 @@ BOOLEAN PhMainWndInitialization(
             NtCurrentProcess()
             )))
         {
-            PhSetTokenPrivilege(tokenHandle, L"SeDebugPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeIncreaseBasePriorityPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeIncreaseWorkingSetPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeLoadDriverPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeShutdownPrivilege", NULL, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege(tokenHandle, L"SeTakeOwnershipPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_DEBUG_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_INC_BASE_PRIORITY_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_INC_WORKING_SET_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_LOAD_DRIVER_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_SHUTDOWN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
+            PhSetTokenPrivilege2(tokenHandle, SE_TAKE_OWNERSHIP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
             NtClose(tokenHandle);
         }
     }

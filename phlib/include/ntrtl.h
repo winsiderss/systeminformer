@@ -2495,6 +2495,22 @@ RtlSetCurrentTransaction(
 
 // LUIDs
 
+FORCEINLINE BOOLEAN RtlIsEqualLuid(
+    __in PLUID L1,
+    __in PLUID L2
+    )
+{
+    return L1->LowPart == L2->LowPart &&
+        L1->HighPart == L2->HighPart;
+}
+
+FORCEINLINE BOOLEAN RtlIsZeroLuid(
+    __in PLUID L1
+    )
+{
+    return (L1->LowPart | L1->HighPart) == 0;
+}
+
 FORCEINLINE LUID RtlConvertLongToLuid(
     __in LONG Long
     )
@@ -2505,6 +2521,18 @@ FORCEINLINE LUID RtlConvertLongToLuid(
     tempLi.QuadPart = Long;
     tempLuid.LowPart = tempLi.LowPart;
     tempLuid.HighPart = tempLi.HighPart;
+
+    return tempLuid;
+}
+
+FORCEINLINE LUID RtlConvertUlongToLuid(
+    __in ULONG Ulong
+    )
+{
+    LUID tempLuid;
+
+    tempLuid.LowPart = Ulong;
+    tempLuid.HighPart = 0;
 
     return tempLuid;
 }

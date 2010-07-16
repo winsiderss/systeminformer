@@ -505,6 +505,12 @@ BOOLEAN PhSetTokenPrivilege(
     __in ULONG Attributes
     );
 
+BOOLEAN PhSetTokenPrivilege2(
+    __in HANDLE TokenHandle,
+    __in LONG Privilege,
+    __in ULONG Attributes
+    );
+
 NTSTATUS PhSetTokenIsVirtualizationEnabled(
     __in HANDLE TokenHandle,
     __in BOOLEAN IsVirtualizationEnabled
