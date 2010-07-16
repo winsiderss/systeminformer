@@ -40,23 +40,27 @@ _TaskDialogIndirect TaskDialogIndirect_I;
 
 VOID PhGuiSupportInitialization()
 {
-    LoadLibrary(L"shell32.dll");
-    LoadLibrary(L"shlwapi.dll");
-    LoadLibrary(L"uxtheme.dll");
+    HMODULE shell32Handle;
+    HMODULE shlwapiHandle;
+    HMODULE uxthemeHandle;
+
+    shell32Handle = LoadLibrary(L"shell32.dll");
+    shlwapiHandle = LoadLibrary(L"shlwapi.dll");
+    uxthemeHandle = LoadLibrary(L"uxtheme.dll");
 
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter");
-    RunFileDlg = PhGetProcAddress(L"shell32.dll", (PSTR)61);
-    SetWindowTheme_I = PhGetProcAddress(L"uxtheme.dll", "SetWindowTheme");
-    IsThemeActive_I = PhGetProcAddress(L"uxtheme.dll", "IsThemeActive");
-    OpenThemeData_I = PhGetProcAddress(L"uxtheme.dll", "OpenThemeData");
-    CloseThemeData_I = PhGetProcAddress(L"uxtheme.dll", "CloseThemeData");
-    DrawThemeBackground_I = PhGetProcAddress(L"uxtheme.dll", "DrawThemeBackground");
-    SHAutoComplete_I = PhGetProcAddress(L"shlwapi.dll", "SHAutoComplete");
-    SHCreateShellItem_I = PhGetProcAddress(L"shell32.dll", "SHCreateShellItem");
-    SHOpenFolderAndSelectItems_I = PhGetProcAddress(L"shell32.dll", "SHOpenFolderAndSelectItems");
-    SHParseDisplayName_I = PhGetProcAddress(L"shell32.dll", "SHParseDisplayName");
-    StrCmpLogicalW_I = PhGetProcAddress(L"shlwapi.dll", "StrCmpLogicalW");
+    RunFileDlg = (PVOID)GetProcAddress(shell32Handle, (PSTR)61);
+    SetWindowTheme_I = (PVOID)GetProcAddress(uxthemeHandle, "SetWindowTheme");
+    IsThemeActive_I = (PVOID)GetProcAddress(uxthemeHandle, "IsThemeActive");
+    OpenThemeData_I = (PVOID)GetProcAddress(uxthemeHandle, "OpenThemeData");
+    CloseThemeData_I = (PVOID)GetProcAddress(uxthemeHandle, "CloseThemeData");
+    DrawThemeBackground_I = (PVOID)GetProcAddress(uxthemeHandle, "DrawThemeBackground");
+    SHAutoComplete_I = (PVOID)GetProcAddress(shlwapiHandle, "SHAutoComplete");
+    SHCreateShellItem_I = (PVOID)GetProcAddress(shell32Handle, "SHCreateShellItem");
+    SHOpenFolderAndSelectItems_I = (PVOID)GetProcAddress(shell32Handle, "SHOpenFolderAndSelectItems");
+    SHParseDisplayName_I = (PVOID)GetProcAddress(shell32Handle, "SHParseDisplayName");
+    StrCmpLogicalW_I = (PVOID)GetProcAddress(shlwapiHandle, "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 

@@ -98,28 +98,32 @@ VOID PhSymbolProviderDynamicImport()
     // The Unicode versions aren't available in dbghelp.dll 5.1, so 
     // we fallback on the ANSI versions.
 
-    SymInitialize_I = PhGetProcAddress(L"dbghelp.dll", "SymInitialize");
-    SymCleanup_I = PhGetProcAddress(L"dbghelp.dll", "SymCleanup");
-    if (!(SymEnumSymbolsW_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbolsW")))
-        SymEnumSymbols_I = PhGetProcAddress(L"dbghelp.dll", "SymEnumSymbols");
-    if (!(SymFromAddrW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddrW")))
-        SymFromAddr_I = PhGetProcAddress(L"dbghelp.dll", "SymFromAddr");
-    if (!(SymFromNameW_I = PhGetProcAddress(L"dbghelp.dll", "SymFromNameW")))
-        SymFromName_I = PhGetProcAddress(L"dbghelp.dll", "SymFromName");
-    if (!(SymGetLineFromAddrW64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddrW64")))
-        SymGetLineFromAddr64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetLineFromAddr64");
-    SymLoadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymLoadModule64");
-    SymGetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymGetOptions");
-    SymSetOptions_I = PhGetProcAddress(L"dbghelp.dll", "SymSetOptions");
-    if (!(SymGetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPathW")))
-        SymGetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymGetSearchPath");
-    if (!(SymSetSearchPathW_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPathW")))
-        SymSetSearchPath_I = PhGetProcAddress(L"dbghelp.dll", "SymSetSearchPath");
-    SymUnloadModule64_I = PhGetProcAddress(L"dbghelp.dll", "SymUnloadModule64");
-    SymFunctionTableAccess64_I = PhGetProcAddress(L"dbghelp.dll", "SymFunctionTableAccess64");
-    SymGetModuleBase64_I = PhGetProcAddress(L"dbghelp.dll", "SymGetModuleBase64");
-    StackWalk64_I = PhGetProcAddress(L"dbghelp.dll", "StackWalk64");
-    MiniDumpWriteDump_I = PhGetProcAddress(L"dbghelp.dll", "MiniDumpWriteDump");
+    HMODULE dbghelpHandle;
+
+    dbghelpHandle = GetModuleHandle(L"dbghelp.dll");
+
+    SymInitialize_I = (PVOID)GetProcAddress(dbghelpHandle, "SymInitialize");
+    SymCleanup_I = (PVOID)GetProcAddress(dbghelpHandle, "SymCleanup");
+    if (!(SymEnumSymbolsW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymEnumSymbolsW")))
+        SymEnumSymbols_I = (PVOID)GetProcAddress(dbghelpHandle, "SymEnumSymbols");
+    if (!(SymFromAddrW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromAddrW")))
+        SymFromAddr_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromAddr");
+    if (!(SymFromNameW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromNameW")))
+        SymFromName_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFromName");
+    if (!(SymGetLineFromAddrW64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetLineFromAddrW64")))
+        SymGetLineFromAddr64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetLineFromAddr64");
+    SymLoadModule64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymLoadModule64");
+    SymGetOptions_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetOptions");
+    SymSetOptions_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetOptions");
+    if (!(SymGetSearchPathW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetSearchPathW")))
+        SymGetSearchPath_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetSearchPath");
+    if (!(SymSetSearchPathW_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetSearchPathW")))
+        SymSetSearchPath_I = (PVOID)GetProcAddress(dbghelpHandle, "SymSetSearchPath");
+    SymUnloadModule64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymUnloadModule64");
+    SymFunctionTableAccess64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymFunctionTableAccess64");
+    SymGetModuleBase64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetModuleBase64");
+    StackWalk64_I = (PVOID)GetProcAddress(dbghelpHandle, "StackWalk64");
+    MiniDumpWriteDump_I = (PVOID)GetProcAddress(dbghelpHandle, "MiniDumpWriteDump");
     SymbolServerGetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerGetOptions");
     SymbolServerSetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerSetOptions");
 
