@@ -2987,6 +2987,19 @@ BOOLEAN PhSetTokenPrivilege(
     return TRUE;
 }
 
+BOOLEAN PhSetTokenPrivilege2(
+    __in HANDLE TokenHandle,
+    __in LONG Privilege,
+    __in ULONG Attributes
+    )
+{
+    LUID privilegeLuid;
+
+    privilegeLuid = RtlConvertLongToLuid(Privilege);
+
+    return PhSetTokenPrivilege(TokenHandle, NULL, &privilegeLuid, Attributes);
+}
+
 /**
  * Sets whether virtualization is enabled for a token.
  *
