@@ -681,8 +681,11 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
                 PMEMORY_STRING_CONTEXT context =
                     (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
                 PPH_STRING progressText;
+                PPH_STRING numberText;
 
-                progressText = PhFormatString(L"%u strings found...", context->Results->Count);
+                numberText = PhFormatUInt64(context->Results->Count, TRUE);
+                progressText = PhFormatString(L"%s strings found...", numberText->Buffer);
+                PhDereferenceObject(numberText);
                 SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, progressText->Buffer);
                 PhDereferenceObject(progressText);
                 InvalidateRect(GetDlgItem(hwndDlg, IDC_PROGRESSTEXT), NULL, FALSE);
