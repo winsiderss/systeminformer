@@ -713,6 +713,8 @@ NTSTATUS PhpOpenCsrProcesses(
         }
     } while (process = PH_NEXT_PROCESS(process));
 
+    PhFree(processes);
+
     *ProcessHandles = PhAllocateCopy(processHandleList->Items, processHandleList->Count * sizeof(HANDLE));
     *NumberOfProcessHandles = processHandleList->Count;
 
