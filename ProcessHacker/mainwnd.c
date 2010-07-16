@@ -353,7 +353,8 @@ BOOLEAN PhMainWndInitialization(
 
         if (interval == 0)
         {
-            PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, 1000);
+            interval = 1000;
+            PH_SET_INTEGER_CACHED_SETTING(UpdateInterval, interval);
         }
 
         PhInitializeProviderThread(&PhPrimaryProviderThread, interval);
@@ -405,7 +406,7 @@ BOOLEAN PhMainWndInitialization(
     {
         PH_STRING_BUILDER stringBuilder;
 
-        PhInitializeStringBuilder(&stringBuilder, 50);
+        PhInitializeStringBuilder(&stringBuilder, 100);
         PhStringBuilderAppend2(&stringBuilder, L"Process Hacker");
 
         if (PhCurrentUserName)
