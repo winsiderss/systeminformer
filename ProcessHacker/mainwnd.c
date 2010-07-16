@@ -491,19 +491,8 @@ BOOLEAN PhMainWndInitialization(
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
-    // Register for WTS notifications.
-    {
-        _WTSRegisterSessionNotification WTSRegisterSessionNotification_I;
-
-        WTSRegisterSessionNotification_I = (_WTSRegisterSessionNotification)GetProcAddress(
-            GetModuleHandle(L"wtsapi32.dll"),
-            "WTSRegisterSessionNotification"
-            );
-
-        if (WTSRegisterSessionNotification_I)
-            WTSRegisterSessionNotification_I(PhMainWndHandle, NOTIFY_FOR_ALL_SESSIONS);
-    }
-
+    // TS notification registration is done in the delayed load function. It's therefore 
+    // possible that we miss a notification, but it's a trade-off.
     PhpRefreshUsersMenu();
 
     return TRUE;
@@ -1916,6 +1905,19 @@ static NTSTATUS PhpDelayedLoadFunction(
     )
 {
     ULONG i;
+
+    // Register for WTS notifications.
+    {
+        _WTSRegisterSessionNotification WTSRegisterSessionNotification_I;
+
+        WTSRegisterSessionNotification_I = (_WTSRegisterSessionNotification)GetProcAddress(
+            GetModuleHandle(L"wtsapi32.dll"),
+            "WTSRegisterSessionNotification"
+            );
+
+        if (WTSRegisterSessionNotification_I)
+            WTSRegisterSessionNotification_I(PhMainWndHandle, NOTIFY_FOR_ALL_SESSIONS);
+    }
 
     for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
     {
