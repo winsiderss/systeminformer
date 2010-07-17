@@ -3,6 +3,7 @@
 
 #include <ph.h>
 #include <commctrl.h>
+#define CINTERFACE
 #define COBJMACROS
 #include <shlobj.h>
 #include <prsht.h>
