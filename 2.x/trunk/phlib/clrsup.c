@@ -21,6 +21,7 @@
  */
 
 #include <ph.h>
+#include <clrsup.h>
 #define CINTERFACE
 #define COBJMACROS
 #include <corhdr.h>
@@ -28,7 +29,7 @@
 #include <cordebug.h>
 #include <corsym.h>
 
-PVOID PhClrCreatePublish()
+PPH_CLR_PUBLISH PhClrCreatePublish()
 {
     ICorPublish *publish;
 
@@ -40,7 +41,7 @@ PVOID PhClrCreatePublish()
         &publish
         )))
     {
-        return publish;
+        return (PPH_CLR_PUBLISH)publish;
     }
     else
     {
@@ -49,8 +50,132 @@ PVOID PhClrCreatePublish()
 }
 
 VOID PhClrFreePublish(
-    __in PVOID Publish
+    __in PPH_CLR_PUBLISH Publish
     )
 {
     ICorPublish_Release((ICorPublish *)Publish);
+}
+
+PPH_CLR_PUBLISH_PROCESS PhClrGetProcessPublish(
+    __in PPH_CLR_PUBLISH Publish,
+    __in HANDLE ProcessId
+    )
+{
+    ICorPublishProcess *process;
+
+    if (SUCCEEDED(ICorPublish_GetProcess(
+        (ICorPublish *)Publish,
+        (ULONG)ProcessId,
+        &process
+        )))
+    {
+        return (PPH_CLR_PUBLISH_PROCESS)process;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+VOID PhClrFreePublishProcess(
+    __in PPH_CLR_PUBLISH_PROCESS Process
+    )
+{
+    ICorPublishProcess_Release((ICorPublishProcess *)Process);
+}
+
+BOOLEAN PhClrIsManagedPublishProcess(
+    __in PPH_CLR_PUBLISH_PROCESS Process
+    )
+{
+    BOOL managed;
+
+    if (SUCCEEDED(ICorPublishProcess_IsManaged(
+        (ICorPublishProcess *)Process,
+        &managed
+        )))
+    {
+        return !!managed;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhClrEnumAppDomainsPublishProcess(
+    __in PPH_CLR_PUBLISH_PROCESS Process,
+    __out PPH_CLR_PUBLISH_APPDOMAIN *AppDomains,
+    __out PULONG NumberOfAppDomains
+    )
+{
+    ICorPublishAppDomainEnum *appDomainEnum;
+
+    if (SUCCEEDED(ICorPublishProcess_EnumAppDomains(
+        (ICorPublishProcess *)Process,
+        &appDomainEnum
+        )))
+    {
+        PPH_CLR_PUBLISH_APPDOMAIN *appDomains;
+        ULONG count;
+
+        if (SUCCEEDED(ICorPublishAppDomainEnum_GetCount(
+            appDomainEnum,
+            &count
+            )))
+        {
+            appDomains = PhAllocate(sizeof(PPH_CLR_PUBLISH_APPDOMAIN) * count);
+
+            if (SUCCEEDED(ICorPublishAppDomainEnum_Next(
+                appDomainEnum,
+                count,
+                (ICorPublishAppDomain **)appDomains,
+                &count
+                )))
+            {
+                ICorPublishAppDomainEnum_Release(appDomainEnum);
+
+                *AppDomains = appDomains;
+                *NumberOfAppDomains = count;
+
+                return TRUE;
+            }
+
+            PhFree(appDomains);
+        }
+
+        ICorPublishAppDomainEnum_Release(appDomainEnum);
+    }
+
+    return FALSE;
+}
+
+VOID PhClrFreePublishAppDomain(
+    __in PPH_CLR_PUBLISH_APPDOMAIN AppDomain
+    )
+{
+    ICorPublishAppDomain_Release((ICorPublishAppDomain *)AppDomain);
+}
+
+PPH_STRING PhClrGetNamePublishAppDomain(
+    __in PPH_CLR_PUBLISH_APPDOMAIN AppDomain
+    )
+{
+    PPH_STRING name;
+
+    name = PhCreateStringEx(NULL, 0x100);
+
+    if (SUCCEEDED(ICorPublishAppDomain_GetName(
+        (ICorPublishAppDomain *)AppDomain,
+        name->Length,
+        NULL,
+        name->Buffer
+        )))
+    {
+        PhTrimStringToNullTerminator(name);
+
+        return name;
+    }
+
+    PhDereferenceObject(name);
+
+    return NULL;
 }
