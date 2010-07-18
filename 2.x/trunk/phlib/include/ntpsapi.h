@@ -649,6 +649,38 @@ NtQueueApcThread(
     __in_opt PVOID ApcArgument3
     );
 
+// begin_rev
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+
+#define USER_APC_RESERVE_TYPE 0
+#define IO_COMPLETION_RESERVE_TYPE 1
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAllocateReserveObject(
+    __out PHANDLE MemoryReserveHandle,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in ULONG Type
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueueApcThreadEx(
+    __in HANDLE ThreadHandle,
+    __in_opt HANDLE UserApcReserveHandle,
+    __in PPS_APC_ROUTINE ApcRoutine,
+    __in_opt PVOID ApcArgument1,
+    __in_opt PVOID ApcArgument2,
+    __in_opt PVOID ApcArgument3
+    );
+
+#endif
+
+// end_rev
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
