@@ -1213,6 +1213,22 @@ NtSetIoCompletion(
     __in ULONG_PTR IoStatusInformation
     );
 
+// begin_rev
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetIoCompletionEx(
+    __in HANDLE IoCompletionHandle,
+    __in HANDLE IoCompletionReserveHandle,
+    __in PVOID KeyContext,
+    __in_opt PVOID ApcContext,
+    __in NTSTATUS IoStatus,
+    __in ULONG_PTR IoStatusInformation
+    );
+#endif
+// end_rev
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
