@@ -748,6 +748,17 @@ VOID PhWritePhTextHeader(
         PhDereferenceObject(version);
     }
 
+    PhFileStreamWriteStringFormat(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+
+    if (PhOsVersion.szCSDVersion[0] != 0)
+        PhFileStreamWriteStringFormat(FileStream, L" %s", PhOsVersion.szCSDVersion);
+
+#ifdef _M_IX86
+    PhFileStreamWriteStringAsAnsi2(FileStream, L" (32-bit)");
+#else
+    PhFileStreamWriteStringAsAnsi2(FileStream, L" (64-bit)");
+#endif
+
     PhQuerySystemTime(&time);
     PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 

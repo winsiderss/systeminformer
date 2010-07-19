@@ -52,6 +52,7 @@ extern __userSet HFONT PhIconTitleFont;
 extern HINSTANCE PhInstanceHandle;
 extern __userSet HANDLE PhKphHandle;
 extern __userSet ULONG PhKphFeatures;
+extern RTL_OSVERSIONINFOEXW PhOsVersion;
 extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 extern ULONG WindowsVersion;
 

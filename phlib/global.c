@@ -41,6 +41,7 @@ HFONT PhIconTitleFont;
 HINSTANCE PhInstanceHandle;
 HANDLE PhKphHandle = NULL;
 ULONG PhKphFeatures;
+RTL_OSVERSIONINFOEXW PhOsVersion;
 SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
 ULONG WindowsVersion;
 
@@ -174,6 +175,7 @@ static VOID PhInitializeWindowsVersion()
         return;
     }
 
+    memcpy(&PhOsVersion, &versionInfo, sizeof(RTL_OSVERSIONINFOEXW));
     majorVersion = versionInfo.dwMajorVersion;
     minorVersion = versionInfo.dwMinorVersion;
 
