@@ -419,7 +419,7 @@ VOID PhpCreateGraphContext(
     context->DrawInfo.LineColor2 = RGB(0xff, 0x00, 0x00);
     context->DrawInfo.LineBackColor1 = RGB(0x00, 0x77, 0x00);
     context->DrawInfo.LineBackColor2 = RGB(0x77, 0x00, 0x00);
-    context->DrawInfo.GridColor = RGB(0x00, 0xaa, 0x00);
+    context->DrawInfo.GridColor = RGB(0x00, 0x99, 0x00);
     context->DrawInfo.GridWidth = 12;
     context->DrawInfo.GridHeight = 12;
     context->DrawInfo.GridStart = 0;
