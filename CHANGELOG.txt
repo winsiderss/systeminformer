@@ -1,4 +1,9 @@
 Process Hacker
 
+2.1
+ * NEW/IMPROVED:
+   * Grid is a bit darker
+ * FIXED
+
 2.0
  * First release in the Process Hacker 2.x branch.
