@@ -22,6 +22,7 @@
 
 #define BASESUP_PRIVATE
 #include <phbase.h>
+#include <math.h>
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
 {
