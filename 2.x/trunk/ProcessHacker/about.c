@@ -31,6 +31,21 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
 {
     switch (uMsg)
     {
+    case WM_INITDIALOG:
+        {
+            PPH_STRING versionString;
+
+            if (versionString = PhGetPhVersion())
+            {
+                PPH_STRING appName;
+
+                appName = PhConcatStrings2(L"Process Hacker ", versionString->Buffer);
+                SetDlgItemText(hwndDlg, IDC_ABOUT_NAME, appName->Buffer);
+                PhDereferenceObject(appName);
+                PhDereferenceObject(versionString);
+            }
+        }
+        break;
     case WM_COMMAND:
         {
             switch (LOWORD(wParam))

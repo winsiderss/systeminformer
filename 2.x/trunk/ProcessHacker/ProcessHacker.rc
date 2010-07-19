@@ -590,8 +590,8 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,197,142,50,14
     ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
-    LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,50,8
-    LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,107,8
+    LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
+    LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
     GROUPBOX        "Credits",IDC_STATIC,7,42,240,95
     LTEXT           "wj32 - Project Manager",IDC_STATIC,15,53,76,8
     PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,7,142,50,14
