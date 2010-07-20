@@ -1979,7 +1979,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDosPathNameToNtPathName_U_WithStatus(
-    __in PCWSTR DosFileName,
+    __in PWSTR DosFileName,
     __out PUNICODE_STRING NtFileName,
     __out_opt PWSTR *FilePart,
     __out_opt PRTL_RELATIVE_NAME_U RelativeName
@@ -2580,15 +2580,6 @@ RtlDestroyQueryDebugBuffer(
     __in PRTL_DEBUG_INFORMATION Buffer
     );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-RtlQueryProcessDebugInformation(
-    __in HANDLE UniqueProcessId,
-    __in ULONG Flags,
-    __inout PRTL_DEBUG_INFORMATION Buffer
-    );
-
 #define RTL_QUERY_PROCESS_MODULES 0x00000001
 #define RTL_QUERY_PROCESS_BACKTRACES 0x00000002
 #define RTL_QUERY_PROCESS_HEAP_SUMMARY 0x00000004
@@ -2597,6 +2588,15 @@ RtlQueryProcessDebugInformation(
 #define RTL_QUERY_PROCESS_LOCKS 0x00000020
 #define RTL_QUERY_PROCESS_MODULES32 0x00000040
 #define RTL_QUERY_PROCESS_NONINVASIVE 0x80000000
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+RtlQueryProcessDebugInformation(
+    __in HANDLE UniqueProcessId,
+    __in ULONG Flags,
+    __inout PRTL_DEBUG_INFORMATION Buffer
+    );
 
 // Messages
 
@@ -2672,6 +2672,38 @@ NTAPI
 RtlSetThreadErrorMode(
     __in ULONG NewMode,
     __out_opt PULONG OldMode
+    );
+
+// Vectored Exception Handlers
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAddVectoredExceptionHandler(
+    __in ULONG First,
+    __in PVECTORED_EXCEPTION_HANDLER Handler
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRemoveVectoredExceptionHandler(
+    __in PVOID Handle
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAddVectoredContinueHandler(
+    __in ULONG First,
+    __in PVECTORED_EXCEPTION_HANDLER Handler
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlRemoveVectoredContinueHandler(
+    __in PVOID Handle
     );
 
 // Random
