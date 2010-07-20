@@ -61,6 +61,7 @@ VOID PhpFreeLogEntry(
     if (Entry->Type >= PH_LOG_ENTRY_PROCESS_FIRST && Entry->Type <= PH_LOG_ENTRY_PROCESS_LAST)
     {
         PhDereferenceObject(Entry->Process.Name);
+        if (Entry->Process.ParentName) PhDereferenceObject(Entry->Process.ParentName);
     }
     else if (Entry->Type >= PH_LOG_ENTRY_SERVICE_FIRST && Entry->Type <= PH_LOG_ENTRY_SERVICE_LAST)
     {
