@@ -1848,16 +1848,24 @@ VOID PhDereferenceProcessRecord(
         headProcessRecord = PhpSearchProcessRecordList(&ProcessRecord->CreateTime, &i, NULL);
         assert(headProcessRecord);
 
-        // Unlink the record from the list.
-        RemoveEntryList(&ProcessRecord->ListEntry);
-
         if (ProcessRecord == headProcessRecord)
         {
-            // Remove the slot completely, or choose a new head record.
             if (IsListEmpty(&headProcessRecord->ListEntry))
+            {
+                // There are no other records linked, so remove the slot completely.
                 PhRemoveListItem(PhProcessRecordList, i);
+            }
             else
+            {
+                // Unlink the (head) record from the list and choose a new head record.
+                RemoveTailList(headProcessRecord->ListEntry.Flink);
                 PhProcessRecordList->Items[i] = CONTAINING_RECORD(headProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+            }
+        }
+        else
+        {
+            // There are other records linked, so just unlink this record.
+            RemoveEntryList(&ProcessRecord->ListEntry);
         }
 
         PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
@@ -2036,3 +2044,57 @@ VOID PhPurgeProcessRecords()
         PhDereferenceObject(derefList);
     }
 }
+
+#ifdef DEBUG
+VOID PhDbgTestProcessRecords()
+{
+    PPH_PROCESS_RECORD record1;
+    PPH_PROCESS_RECORD record2;
+    PPH_PROCESS_RECORD record3;
+    PPH_PROCESS_ITEM item;
+    LARGE_INTEGER time;
+    LONG removeNumber;
+
+    PhQuerySystemTime(&time);
+    time.QuadPart += PH_TICKS_PER_HOUR;
+
+    item = PhCreateProcessItem((HANDLE)9996);
+    item->CreateTime = time;
+    item->ProcessName = PhCreateString(L"test.exe");
+    record1 = PhpCreateProcessRecord(item);
+    PhpAddProcessRecord(record1);
+
+    item = PhCreateProcessItem((HANDLE)9992);
+    item->CreateTime = time;
+    item->ProcessName = PhCreateString(L"test.exe");
+    record2 = PhpCreateProcessRecord(item);
+    PhpAddProcessRecord(record2);
+
+    item = PhCreateProcessItem((HANDLE)9988);
+    item->CreateTime = time;
+    item->ProcessName = PhCreateString(L"test.exe");
+    record3 = PhpCreateProcessRecord(item);
+    PhpAddProcessRecord(record3);
+
+    while (TRUE)
+    {
+        wprintf(L"Which one to remove? ");
+        wscanf(L"%d", &removeNumber);
+
+        switch (removeNumber)
+        {
+        case 1:
+            PhDereferenceProcessRecord(record1);
+            break;
+        case 2:
+            PhDereferenceProcessRecord(record2);
+            break;
+        case 3:
+            PhDereferenceProcessRecord(record3);
+            break;
+        default:
+            break;
+        }
+    }
+}
+#endif

@@ -268,6 +268,10 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
 
 VOID PhPurgeProcessRecords();
 
+#ifdef DEBUG
+VOID PhDbgTestProcessRecords();
+#endif
+
 // srvprv
 
 #ifndef SRVPRV_PRIVATE
