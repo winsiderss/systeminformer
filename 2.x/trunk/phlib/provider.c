@@ -461,6 +461,19 @@ ULONG PhGetProviderRunId(
 }
 
 /**
+ * Gets whether a provider is enabled.
+ *
+ * \param Registration A pointer to the registration object for 
+ * a provider.
+ */
+BOOLEAN PhGetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration
+    )
+{
+    return Registration->Enabled;
+}
+
+/**
  * Sets whether a provider is enabled.
  *
  * \param Registration A pointer to the registration object for 
@@ -469,7 +482,7 @@ ULONG PhGetProviderRunId(
  * FALSE.
  */
 VOID PhSetProviderEnabled(
-    __in PPH_PROVIDER_REGISTRATION Registration,
+    __inout PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
     )
 {

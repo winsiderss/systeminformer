@@ -1442,8 +1442,12 @@ ULONG PhGetProviderRunId(
     __in PPH_PROVIDER_REGISTRATION Registration
     );
 
+BOOLEAN PhGetProviderEnabled(
+    __in PPH_PROVIDER_REGISTRATION Registration
+    );
+
 VOID PhSetProviderEnabled(
-    __in PPH_PROVIDER_REGISTRATION Registration,
+    __inout PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
     );
 

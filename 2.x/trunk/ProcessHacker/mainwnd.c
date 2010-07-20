@@ -198,6 +198,7 @@ static HWND TabControlHandle;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
 static INT NetworkTabIndex;
+static INT MaxTabIndex;
 static HWND ProcessTreeListHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
@@ -802,6 +803,42 @@ LRESULT CALLBACK PhMainWndProc(
 
                     updateServices = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATESERVICES, 0) & MF_CHECKED);
                     PhSetProviderEnabled(&ServiceProviderRegistration, updateServices);
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_UPDATESERVICES,
+                        updateServices ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
+                break;
+            case ID_VIEW_PAUSE:
+                {
+                    BOOLEAN updateProcesses;
+                    BOOLEAN updateServices;
+
+                    // Shortcut only
+
+                    updateProcesses = PhGetProviderEnabled(&ProcessProviderRegistration);
+                    updateServices = PhGetProviderEnabled(&ServiceProviderRegistration);
+
+                    if (updateProcesses && updateServices)
+                    {
+                        updateProcesses = FALSE;
+                        updateServices = FALSE;
+                    }
+                    else
+                    {
+                        updateProcesses = TRUE;
+                        updateServices = TRUE;
+                    }
+
+                    PhSetProviderEnabled(&ProcessProviderRegistration, updateProcesses);
+                    PhSetProviderEnabled(&ServiceProviderRegistration, updateServices);
+
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_UPDATEPROCESSES,
+                        updateProcesses ? MF_CHECKED : MF_UNCHECKED
+                        );
                     CheckMenuItem(
                         PhMainWndMenuHandle,
                         ID_VIEW_UPDATESERVICES,
@@ -1419,6 +1456,32 @@ LRESULT CALLBACK PhMainWndProc(
             case ID_NETWORK_COPY:
                 {
                     PhCopyListView(NetworkListViewHandle);
+                }
+                break;
+            case ID_TAB_NEXT:
+                {
+                    ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+                    if (selectedIndex != MaxTabIndex)
+                        selectedIndex++;
+                    else
+                        selectedIndex = 0;
+
+                    PhpSelectTabPage(selectedIndex);
+                    SetFocus(TabControlHandle);
+                }
+                break;
+            case ID_TAB_PREV:
+                {
+                    ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+
+                    if (selectedIndex != 0)
+                        selectedIndex--;
+                    else
+                        selectedIndex = MaxTabIndex;
+
+                    PhpSelectTabPage(selectedIndex);
+                    SetFocus(TabControlHandle);
                 }
                 break;
             }
@@ -2690,6 +2753,7 @@ VOID PhMainWndOnCreate()
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
+    MaxTabIndex = NetworkTabIndex;
 
     ProcessTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_PROCESSTL);
     BringWindowToTop(ProcessTreeListHandle);
