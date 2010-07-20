@@ -588,6 +588,10 @@
 #define ID_FILTER_REGEX                 40219
 #define ID_FILTER_REGEX40220            40220
 #define ID_FILTER_REGEX_CASEINSENSITIVE 40221
+#define ID_VIEW_PAUSE                   40222
+#define ID_TAB_NEXT                     40223
+#define ID_PREV_TAB                     40224
+#define ID_TAB_PREV                     40224
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -595,7 +599,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        186
-#define _APS_NEXT_COMMAND_VALUE         40222
+#define _APS_NEXT_COMMAND_VALUE         40226
 #define _APS_NEXT_CONTROL_VALUE         1252
 #define _APS_NEXT_SYMED_VALUE           127
 #endif
