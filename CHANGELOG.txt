@@ -2,6 +2,8 @@ Process Hacker
 
 2.1
  * NEW/IMPROVED:
+   * Add Pause key shortcut to pause/resume updates
+   * Added Ctrl+Tab and Ctrl+Shift+Tab shortcuts
    * Grid is a bit darker
  * FIXED
 
