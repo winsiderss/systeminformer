@@ -2722,7 +2722,7 @@ NTSTATUS PhMd5File(
                 if (!NT_SUCCESS(status))
                     break;
 
-                MD5Update(&context, buffer, sizeof(buffer)); 
+                MD5Update(&context, buffer, (ULONG)isb.Information);
 
                 bytesRemaining -= (ULONG)isb.Information;
             }

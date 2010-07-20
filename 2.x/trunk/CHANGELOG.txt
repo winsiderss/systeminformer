@@ -6,6 +6,7 @@ Process Hacker
    * Added Ctrl+Tab and Ctrl+Shift+Tab shortcuts
    * Grid is a bit darker
  * FIXED
+   * MD5 calculation code for files was wrong
 
 2.0
  * First release in the Process Hacker 2.x branch.
