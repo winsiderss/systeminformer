@@ -390,4 +390,31 @@ FORCEINLINE LONG_PTR _InterlockedDecrementPointer(
 #endif
 }
 
+FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
+    __inout LONG volatile *Addend
+    )
+{
+    LONG value;
+    LONG newValue;
+
+    value = *Addend;
+
+    while (TRUE)
+    {
+        if (value == 0)
+            return FALSE;
+
+        if ((newValue = _InterlockedCompareExchange(
+            Addend,
+            value + 1,
+            value
+            )) == value)
+        {
+            return TRUE;
+        }
+
+        value = newValue;
+    }
+}
+
 #endif
