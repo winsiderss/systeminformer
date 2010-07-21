@@ -1159,7 +1159,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
         }
         else if (WSTR_IEQUAL(command, L"testprocrecords"))
         {
+#ifdef DEBUG
             PhDbgTestProcessRecords();
+#endif
         }
         else
         {
