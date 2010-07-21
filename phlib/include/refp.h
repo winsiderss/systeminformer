@@ -149,37 +149,10 @@ FORCEINLINE BOOLEAN PhpInterlockedIncrementSafe(
     __inout PLONG RefCount
     )
 {
-    LONG refCount;
-
     /* Here we will attempt to increment the reference count, 
      * making sure that it is not 0.
      */
-
-    while (TRUE)
-    {
-        refCount = *RefCount;
-
-        /* Check if the reference count is 0. If it is, the 
-         * object is being or about to be deleted.
-         */
-        if (refCount == 0)
-            return FALSE;
-
-        /* Try to increment the reference count. */
-        if (_InterlockedCompareExchange(
-            RefCount,
-            refCount + 1,
-            refCount
-            ) == refCount)
-        {
-            /* Success. */
-            return TRUE;
-        }
-
-        /* Someone else changed the reference count before we did. 
-         * Go back and try again.
-         */
-    }
+    return _InterlockedIncrementNoZero(RefCount);
 }
 
 PPH_OBJECT_HEADER PhpAllocateObject(

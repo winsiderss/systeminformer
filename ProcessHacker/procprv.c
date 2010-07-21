@@ -1251,7 +1251,7 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    if (runCount % 2 == 0)
+    if (runCount % 4 == 0)
         PhRefreshDosDevicePrefixes();
     if (runCount % 512 == 0) // yes, a very long time
         PhPurgeProcessRecords();
@@ -1825,6 +1825,33 @@ VOID PhpAddProcessRecord(
     PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
 }
 
+VOID PhpRemoveProcessRecord(
+    __inout PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    ULONG i;
+    PPH_PROCESS_RECORD headProcessRecord;
+
+    PhAcquireQueuedLockExclusive(&PhProcessRecordListLock);
+
+    headProcessRecord = PhpSearchProcessRecordList(&ProcessRecord->CreateTime, &i, NULL);
+    assert(headProcessRecord);
+
+    // Unlink the record from the list.
+    RemoveEntryList(&ProcessRecord->ListEntry);
+
+    if (ProcessRecord == headProcessRecord)
+    {
+        // Remove the slot completely, or choose a new head record.
+        if (IsListEmpty(&headProcessRecord->ListEntry))
+            PhRemoveListItem(PhProcessRecordList, i);
+        else
+            PhProcessRecordList->Items[i] = CONTAINING_RECORD(headProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
+}
+
 VOID PhReferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     )
@@ -1832,43 +1859,20 @@ VOID PhReferenceProcessRecord(
     _InterlockedIncrement(&ProcessRecord->RefCount);
 }
 
+BOOLEAN PhReferenceProcessRecordSafe(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    return _InterlockedIncrementNoZero(&ProcessRecord->RefCount);
+}
+
 VOID PhDereferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     )
 {
-    ULONG i;
-    PPH_PROCESS_RECORD headProcessRecord;
-
     if (_InterlockedDecrement(&ProcessRecord->RefCount) == 0)
     {
-        // Remove the record from the global list.
-
-        PhAcquireQueuedLockExclusive(&PhProcessRecordListLock);
-
-        headProcessRecord = PhpSearchProcessRecordList(&ProcessRecord->CreateTime, &i, NULL);
-        assert(headProcessRecord);
-
-        if (ProcessRecord == headProcessRecord)
-        {
-            if (IsListEmpty(&headProcessRecord->ListEntry))
-            {
-                // There are no other records linked, so remove the slot completely.
-                PhRemoveListItem(PhProcessRecordList, i);
-            }
-            else
-            {
-                // Unlink the (head) record from the list and choose a new head record.
-                RemoveTailList(headProcessRecord->ListEntry.Flink);
-                PhProcessRecordList->Items[i] = CONTAINING_RECORD(headProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
-            }
-        }
-        else
-        {
-            // There are other records linked, so just unlink this record.
-            RemoveEntryList(&ProcessRecord->ListEntry);
-        }
-
-        PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
+        PhpRemoveProcessRecord(ProcessRecord);
 
         PhDereferenceObject(ProcessRecord->ProcessName);
         if (ProcessRecord->FileName) PhDereferenceObject(ProcessRecord->FileName);
@@ -1978,7 +1982,12 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
     }
 
     if (found)
-        PhReferenceProcessRecord(processRecord);
+    {
+        // The record might have had its last reference just cleared but it hasn't 
+        // been removed from the list yet.
+        if (!PhReferenceProcessRecordSafe(processRecord))
+            found = FALSE;
+    }
 
     PhReleaseQueuedLockShared(&PhProcessRecordListLock);
 
@@ -2021,6 +2030,11 @@ VOID PhPurgeProcessRecords()
                 // If so we can dereference the process record.
                 if (processRecord->ExitTime.QuadPart < threshold.QuadPart)
                 {
+                    // Clear the stat ref bit; this is to make sure we don't try to 
+                    // dereference the record twice (e.g. if someone else currently holds 
+                    // a reference to the record and it doesn't get removed immediately).
+                    processRecord->Flags &= ~PH_PROCESS_RECORD_STAT_REF;
+
                     if (!derefList)
                         derefList = PhCreateList(2);
 
@@ -2051,29 +2065,31 @@ VOID PhDbgTestProcessRecords()
     PPH_PROCESS_RECORD record1;
     PPH_PROCESS_RECORD record2;
     PPH_PROCESS_RECORD record3;
-    PPH_PROCESS_ITEM item;
+    PPH_PROCESS_ITEM item1;
+    PPH_PROCESS_ITEM item2;
+    PPH_PROCESS_ITEM item3;
     LARGE_INTEGER time;
     LONG removeNumber;
 
     PhQuerySystemTime(&time);
     time.QuadPart += PH_TICKS_PER_HOUR;
 
-    item = PhCreateProcessItem((HANDLE)9996);
-    item->CreateTime = time;
-    item->ProcessName = PhCreateString(L"test.exe");
-    record1 = PhpCreateProcessRecord(item);
+    item1 = PhCreateProcessItem((HANDLE)9996);
+    item1->CreateTime = time;
+    item1->ProcessName = PhCreateString(L"test.exe");
+    record1 = PhpCreateProcessRecord(item1);
     PhpAddProcessRecord(record1);
 
-    item = PhCreateProcessItem((HANDLE)9992);
-    item->CreateTime = time;
-    item->ProcessName = PhCreateString(L"test.exe");
-    record2 = PhpCreateProcessRecord(item);
+    item2 = PhCreateProcessItem((HANDLE)9992);
+    item2->CreateTime = time;
+    item2->ProcessName = PhCreateString(L"test.exe");
+    record2 = PhpCreateProcessRecord(item2);
     PhpAddProcessRecord(record2);
 
-    item = PhCreateProcessItem((HANDLE)9988);
-    item->CreateTime = time;
-    item->ProcessName = PhCreateString(L"test.exe");
-    record3 = PhpCreateProcessRecord(item);
+    item3 = PhCreateProcessItem((HANDLE)9988);
+    item3->CreateTime = time;
+    item3->ProcessName = PhCreateString(L"test.exe");
+    record3 = PhpCreateProcessRecord(item3);
     PhpAddProcessRecord(record3);
 
     while (TRUE)
@@ -2096,5 +2112,9 @@ VOID PhDbgTestProcessRecords()
             break;
         }
     }
+
+    PhDereferenceObject(item1);
+    PhDereferenceObject(item2);
+    PhDereferenceObject(item3);
 }
 #endif
