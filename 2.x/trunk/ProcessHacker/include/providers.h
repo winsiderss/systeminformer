@@ -257,6 +257,10 @@ VOID PhReferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     );
 
+BOOLEAN PhReferenceProcessRecordSafe(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    );
+
 VOID PhDereferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     );

@@ -7,6 +7,7 @@ Process Hacker
    * Grid is a bit darker
  * FIXED
    * MD5 calculation code for files was wrong
+   * Process record bugs
 
 2.0
  * First release in the Process Hacker 2.x branch.
