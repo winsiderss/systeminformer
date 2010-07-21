@@ -41,6 +41,10 @@ VOID PhpAddProcessRecord(
     __inout PPH_PROCESS_RECORD ProcessRecord
     );
 
+VOID PhpRemoveProcessRecord(
+    __inout PPH_PROCESS_RECORD ProcessRecord
+    );
+
 typedef struct _PH_PROCESS_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
@@ -103,7 +107,9 @@ ULONG NTAPI PhpProcessHashtableHashFunction(
 
 VOID PhpUpdatePerfInformation();
 
-VOID PhpUpdateCpuInformation();
+VOID PhpUpdateCpuInformation(
+    __out PULONG64 TotalTime
+    );
 
 PPH_OBJECT_TYPE PhProcessItemType;
 

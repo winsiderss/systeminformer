@@ -278,7 +278,7 @@ VOID PhUpdateProcessItemServices(
     {
         if (
             (*serviceItem)->PendingProcess &&
-            (HANDLE)(*serviceItem)->ProcessId == ProcessItem->ProcessId
+            (*serviceItem)->ProcessId == ProcessItem->ProcessId
             )
         {
             PhpAddProcessItemService(ProcessItem, *serviceItem);
