@@ -545,7 +545,6 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"provthreads\n"
                 L"workqueues\n"
                 L"procrecords\n"
-                L"testprocrecords\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
@@ -1156,12 +1155,6 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhReleaseQueuedLockShared(&PhProcessRecordListLock);
-        }
-        else if (WSTR_IEQUAL(command, L"testprocrecords"))
-        {
-#ifdef DEBUG
-            PhDbgTestProcessRecords();
-#endif
         }
         else
         {
