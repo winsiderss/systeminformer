@@ -4428,6 +4428,126 @@ NTSTATUS PhEnumProcesses(
 }
 
 /**
+ * Enumerates the running processes for a session.
+ *
+ * \param Processes A variable which receives a 
+ * pointer to a buffer containing process 
+ * information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ * \param SessionId A session ID.
+ *
+ * \remarks You can use the \ref PH_FIRST_PROCESS 
+ * and \ref PH_NEXT_PROCESS macros to process the 
+ * information contained in the buffer.
+ */
+NTSTATUS PhEnumProcessesForSession(
+    __out PPVOID Processes,
+    __in ULONG SessionId
+    )
+{
+    static ULONG initialBufferSize = 0x4000;
+    NTSTATUS status;
+    SYSTEM_SESSION_PROCESS_INFORMATION sessionProcessInfo;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = initialBufferSize;
+    buffer = PhAllocate(bufferSize);
+
+    sessionProcessInfo.SessionId = SessionId;
+
+    while (TRUE)
+    {
+        sessionProcessInfo.SizeOfBuf = bufferSize;
+        sessionProcessInfo.Buffer = buffer;
+
+        status = NtQuerySystemInformation(
+            SystemSessionProcessInformation,
+            &sessionProcessInfo,
+            sizeof(SYSTEM_SESSION_PROCESS_INFORMATION),
+            &bufferSize // size of the inner buffer gets returned
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
+    *Processes = buffer;
+
+    return status;
+}
+
+/**
+ * Enumerates the running processes.
+ *
+ * \param Processes A variable which receives a 
+ * pointer to a buffer containing process 
+ * information. You must free the buffer using 
+ * PhFree() when you no longer need it.
+ *
+ * \remarks You can use the \ref PH_FIRST_PROCESS 
+ * and \ref PH_NEXT_PROCESS macros to process the 
+ * information contained in the buffer.
+ */
+NTSTATUS PhEnumProcessesEx(
+    __out PPVOID Processes
+    )
+{
+    static ULONG initialBufferSize = 0x4000;
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = initialBufferSize;
+    buffer = PhAllocate(bufferSize);
+
+    while (TRUE)
+    {
+        status = NtQuerySystemInformation(
+            SystemExtendedProcessInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        return status;
+    }
+
+    if (bufferSize <= 0x20000) initialBufferSize = bufferSize;
+    *Processes = buffer;
+
+    return status;
+}
+
+/**
  * Finds the process information structure for a 
  * specific process.
  *

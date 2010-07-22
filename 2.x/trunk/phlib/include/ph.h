@@ -687,6 +687,15 @@ NTSTATUS PhEnumProcesses(
     __out PPVOID Processes
     );
 
+NTSTATUS PhEnumProcessesForSession(
+    __out PPVOID Processes,
+    __in ULONG SessionId
+    );
+
+NTSTATUS PhEnumProcessesEx(
+    __out PPVOID Processes
+    );
+
 PSYSTEM_PROCESS_INFORMATION PhFindProcessInformation(
     __in PVOID Processes,
     __in HANDLE ProcessId
