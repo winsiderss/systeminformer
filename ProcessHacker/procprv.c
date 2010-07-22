@@ -1748,9 +1748,9 @@ PPH_PROCESS_RECORD PhpSearchProcessRecordList(
     )
 {
     PPH_PROCESS_RECORD processRecord;
-    ULONG low;
-    ULONG high;
-    ULONG i;
+    LONG low;
+    LONG high;
+    LONG i;
     BOOLEAN found = FALSE;
     INT comparison;
 
