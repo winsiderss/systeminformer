@@ -660,7 +660,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
                 (WPARAM)processItem->LargeIcon, 0);
 
-            SetDlgItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
+            if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
+            {
+                SetDlgItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(processItem->VersionInfo.FileDescription));
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_NAME, processItem->ProcessName->Buffer);
+            }
+
             SetDlgItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(processItem->VersionInfo.FileVersion));
             SetDlgItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(processItem->FileName));
 
