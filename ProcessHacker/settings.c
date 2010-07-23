@@ -46,6 +46,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableProcDb", L"0");
+    PhpAddIntegerSetting(L"EnableStage2", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
     PhpAddStringSetting(L"FindObjListViewColumns", L"");

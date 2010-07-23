@@ -127,6 +127,7 @@ PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
+BOOLEAN PhAutomaticProcessQueryStage2 = FALSE;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -731,7 +732,8 @@ VOID PhpProcessQueryStage1(
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
-    PhpQueueProcessQueryStage2(processItem);
+    if (PhAutomaticProcessQueryStage2)
+        PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpProcessQueryStage2(
