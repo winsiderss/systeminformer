@@ -5,6 +5,8 @@ Process Hacker
    * Add Pause key shortcut to pause/resume updates
    * Added Ctrl+Tab and Ctrl+Shift+Tab shortcuts
    * Grid is a bit darker
+   * Checks for digital signatures and packing is now 
+     off by default and optional
  * FIXED
    * MD5 calculation code for files was wrong
    * Process record bugs
