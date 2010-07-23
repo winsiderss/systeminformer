@@ -388,7 +388,6 @@
 #define IDC_PHYSICAL_LAYOUT             1251
 #define IDC_BUTTON2                     1251
 #define IDC_ENABLE                      1251
-#define IDC_CHECK1                      1253
 #define IDC_ENABLESTAGE2                1253
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
@@ -600,7 +599,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        186
-#define _APS_NEXT_COMMAND_VALUE         40226
+#define _APS_NEXT_COMMAND_VALUE         40229
 #define _APS_NEXT_CONTROL_VALUE         1254
 #define _APS_NEXT_SYMED_VALUE           127
 #endif
