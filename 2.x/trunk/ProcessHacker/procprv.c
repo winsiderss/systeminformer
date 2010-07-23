@@ -127,7 +127,7 @@ PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
-BOOLEAN PhAutomaticProcessQueryStage2 = FALSE;
+BOOLEAN PhEnableProcessQueryStage2 = FALSE;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -732,8 +732,7 @@ VOID PhpProcessQueryStage1(
     if (processHandleLimited)
         NtClose(processHandleLimited);
 
-    if (PhAutomaticProcessQueryStage2)
-        PhpQueueProcessQueryStage2(processItem);
+    PhpQueueProcessQueryStage2(processItem);
 }
 
 VOID PhpProcessQueryStage2(
@@ -746,7 +745,10 @@ VOID PhpProcessQueryStage2(
 
     PhGetProcessIsDotNet(processId, &Data->IsDotNet);
 
-    if (processItem->FileName)
+    // Despite its name PhEnableProcessQueryStage2 doesn't disable stage 2; 
+    // it disables checks for signatures and packing.
+
+    if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
         Data->VerifyResult = PhVerifyFile(
             processItem->FileName->Buffer,
