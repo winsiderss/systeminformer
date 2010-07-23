@@ -68,7 +68,7 @@ BEGIN
     BEGIN
         MENUITEM "Run...\aCtrl+R",              ID_HACKER_RUN
         MENUITEM "Run As Administrator...",     ID_HACKER_RUNASADMINISTRATOR
-        MENUITEM "Run As...",                   ID_HACKER_RUNAS
+        MENUITEM "Run As...\aCtrl+Shift+R",     ID_HACKER_RUNAS
         MENUITEM "Show Details for All Processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
         MENUITEM SEPARATOR
         MENUITEM "Save...\aCtrl+S",             ID_HACKER_SAVE
@@ -1860,11 +1860,13 @@ BEGIN
     "S",            ID_HACKER_SAVE,         VIRTKEY, CONTROL, NOINVERT
     "L",            ID_HELP_LOG,            VIRTKEY, CONTROL, NOINVERT
     "M",            ID_PROCESS_SEARCHONLINE, VIRTKEY, CONTROL, NOINVERT
-    VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
-    "I",            ID_VIEW_SYSTEMINFORMATION, VIRTKEY, CONTROL, NOINVERT
-    VK_PAUSE,       ID_VIEW_PAUSE,          VIRTKEY, NOINVERT
     VK_TAB,         ID_TAB_NEXT,            VIRTKEY, CONTROL, NOINVERT
     VK_TAB,         ID_TAB_PREV,            VIRTKEY, SHIFT, CONTROL, NOINVERT
+    VK_PAUSE,       ID_VIEW_PAUSE,          VIRTKEY, NOINVERT
+    VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
+    "I",            ID_VIEW_SYSTEMINFORMATION, VIRTKEY, CONTROL, NOINVERT
+    "R",            ID_HACKER_RUNAS,        VIRTKEY, SHIFT, CONTROL, NOINVERT
+    "R",            ID_HACKER_RUN,          VIRTKEY, CONTROL, NOINVERT
 END
 
 
