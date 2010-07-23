@@ -1926,6 +1926,7 @@ VOID PhpInitialLoadSettings()
     }
 
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
+    PhAutomaticProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
 
     NotifyIconMask = PhGetIntegerSetting(L"IconMask");
 

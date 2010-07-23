@@ -17,6 +17,7 @@ extern PPH_LIST PhProcessRecordList;
 extern PH_QUEUED_LOCK PhProcessRecordListLock;
 
 extern ULONG PhStatisticsSampleCount;
+extern BOOLEAN PhAutomaticProcessQueryStage2;
 
 extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 extern PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
