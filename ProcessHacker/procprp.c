@@ -603,7 +603,6 @@ VOID PhpUpdateProcessDep(
             }
 
             NtClose(processHandle);
-            processHandle = NULL;
         }
     }
     else
@@ -720,8 +719,15 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Started
 
-            PhLargeIntegerToLocalSystemTime(&startTime, &processItem->CreateTime);
-            SetDlgItemText(hwndDlg, IDC_STARTED, PhaFormatDateTime(&startTime)->Buffer);
+            if (processItem->CreateTime.QuadPart != 0)
+            {
+                PhLargeIntegerToLocalSystemTime(&startTime, &processItem->CreateTime);
+                SetDlgItemText(hwndDlg, IDC_STARTED, PhaFormatDateTime(&startTime)->Buffer);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_STARTED, L"N/A");
+            }
 
             // Parent
 

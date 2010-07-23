@@ -1,6 +1,8 @@
 #ifndef _PH_PHGUI_H
 #define _PH_PHGUI_H
 
+#pragma once
+
 #include <ph.h>
 #include <commctrl.h>
 #define CINTERFACE

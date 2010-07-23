@@ -27,7 +27,6 @@
 #include <corhdr.h>
 #include <corpub.h>
 #include <cordebug.h>
-#include <corsym.h>
 
 PPH_CLR_PUBLISH PhClrCreatePublish()
 {
