@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <phplug.h>
 
 BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
     __in PVOID Entry1,
@@ -1222,6 +1223,29 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
             node = (PPH_PROCESS_NODE)getNodeColor->Node;
             processItem = node->ProcessItem;
+
+            if (PhPluginsEnabled)
+            {
+                PH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor;
+
+                getHighlightingColor.Parameter = processItem;
+                getHighlightingColor.BackColor = RGB(0xff, 0xff, 0xff);
+                getHighlightingColor.Handled = FALSE;
+                getHighlightingColor.Cache = FALSE;
+
+                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackGetProcessHighlightingColor), &getHighlightingColor);
+
+                if (getHighlightingColor.Handled)
+                {
+                    getNodeColor->BackColor = getHighlightingColor.BackColor;
+                    getNodeColor->Flags = TLGNC_AUTO_FORECOLOR;
+
+                    if (getHighlightingColor.Cache)
+                        getNodeColor->Flags |= TLC_CACHE;
+
+                    return TRUE;
+                }
+            }
 
             if (!processItem)
                 ; // Dummy

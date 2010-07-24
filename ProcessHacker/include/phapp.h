@@ -23,6 +23,7 @@
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern PPH_STRING PhLocalSystemName;
+extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhProcDbFileName;
 extern PPH_STRING PhSettingsFileName;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
@@ -544,6 +545,14 @@ LRESULT CALLBACK PhMainWndProc(
 VOID PhShowProcessContextMenu(
     __in POINT Location
     );
+
+// plugins
+
+VOID PhPluginsInitialization();
+
+VOID PhLoadPlugins();
+
+VOID PhUnloadPlugins();
 
 // procprp
 
