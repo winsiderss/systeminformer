@@ -563,6 +563,7 @@ VOID PhDereferenceAllThreadItems(
     __in PPH_THREAD_PROVIDER ThreadProvider
     );
 
+PHAPPAPI
 PPH_STRING PhGetThreadPriorityWin32String(
     __in LONG PriorityWin32
     );
@@ -682,15 +683,18 @@ VOID PhDeleteMemoryProvider(
 
 PPH_MEMORY_ITEM PhCreateMemoryItem();
 
+PHAPPAPI
 VOID PhGetMemoryProtectionString(
     __in ULONG Protection,
     __out_ecount(17) PWSTR String
     );
 
+PHAPPAPI
 PWSTR PhGetMemoryStateString(
     __in ULONG State
     );
 
+PHAPPAPI
 PWSTR PhGetMemoryTypeString(
     __in ULONG Type
     );

@@ -150,7 +150,10 @@ typedef BOOL (CALLBACK *_SymbolServerSetOptions)(
     __in ULONG64 data
     );
 
-BOOLEAN PhStackWalk(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhStackWalk(
     __in ULONG MachineType,
     __in HANDLE ProcessHandle,
     __in HANDLE ThreadHandle,
