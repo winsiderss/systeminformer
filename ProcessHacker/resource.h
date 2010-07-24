@@ -389,6 +389,8 @@
 #define IDC_BUTTON2                     1251
 #define IDC_ENABLE                      1251
 #define IDC_ENABLESTAGE2                1253
+#define IDC_CHECK1                      1254
+#define IDC_TOGGLEELEVATION             1254
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -592,6 +594,8 @@
 #define ID_VIEW_PAUSE                   40222
 #define ID_TAB_NEXT                     40223
 #define ID_TAB_PREV                     40224
+#define ID_MISCELLANEOUS_RUNAS          40229
+#define ID_MISCELLANEOUS_RUNASTHISUSER  40230
 #define IDDYNAMIC                       50000
 
 // Next default values for new objects
@@ -599,8 +603,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        186
-#define _APS_NEXT_COMMAND_VALUE         40229
-#define _APS_NEXT_CONTROL_VALUE         1254
+#define _APS_NEXT_COMMAND_VALUE         40231
+#define _APS_NEXT_CONTROL_VALUE         1255
 #define _APS_NEXT_SYMED_VALUE           127
 #endif
 #endif

@@ -1179,6 +1179,27 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_MISCELLANEOUS_RUNAS:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem && processItem->FileName)
+                    {
+                        PhSetStringSetting2(L"RunAsProgram", &processItem->FileName->sr);
+                        PhShowRunAsDialog(hWnd, NULL);
+                    }
+                }
+                break;
+            case ID_MISCELLANEOUS_RUNASTHISUSER:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhShowRunAsDialog(hWnd, processItem->ProcessId);
+                    }
+                }
+                break;
             case ID_PRIORITY_REALTIME:
             case ID_PRIORITY_HIGH:
             case ID_PRIORITY_ABOVENORMAL:

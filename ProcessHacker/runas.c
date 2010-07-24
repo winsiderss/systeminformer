@@ -55,6 +55,7 @@ typedef struct _RUNAS_SERVICE_PARAMETERS
     PPH_STRING CommandLine;
     PPH_STRING FileName;
     PPH_STRING DesktopName;
+    BOOLEAN UseLinkedToken;
     PPH_STRING ErrorMailslot;
 } RUNAS_SERVICE_PARAMETERS, *PRUNAS_SERVICE_PARAMETERS;
 
@@ -66,11 +67,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     );
 
 VOID PhSetDesktopWinStaAccess();
-
-NTSTATUS PhRunAsCommandStart(
-    __in PWSTR ServiceCommandLine,
-    __in PWSTR ServiceName
-    );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
@@ -250,17 +246,64 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PROGRAM,
                 ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsProgram")))->Buffer);
-            SetDlgItemText(hwndDlg, IDC_USERNAME,
-                ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsUserName")))->Buffer);
 
-            // Fire the user name changed event so we can fix the logon type.
-            SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
+            if (!context->ProcessId)
+            {
+                SetDlgItemText(hwndDlg, IDC_USERNAME,
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(L"RunAsUserName")))->Buffer);
+
+                // Fire the user name changed event so we can fix the logon type.
+                SendMessage(hwndDlg, WM_COMMAND, MAKEWPARAM(IDC_USERNAME, CBN_EDITCHANGE), 0);
+            }
+            else
+            {
+                HANDLE processHandle;
+                HANDLE tokenHandle;
+                PTOKEN_USER user;
+                PPH_STRING userName;
+
+                if (NT_SUCCESS(PhOpenProcess(
+                    &processHandle,
+                    ProcessQueryAccess,
+                    context->ProcessId
+                    )))
+                {
+                    if (NT_SUCCESS(PhOpenProcessToken(
+                        &tokenHandle,
+                        TOKEN_QUERY,
+                        processHandle
+                        )))
+                    {
+                        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &user)))
+                        {
+                            if (userName = PhGetSidFullName(user->User.Sid, TRUE, NULL))
+                            {
+                                SetDlgItemText(hwndDlg, IDC_USERNAME, userName->Buffer);
+                                PhDereferenceObject(userName);
+                            }
+
+                            PhFree(user);
+                        }
+
+                        NtClose(tokenHandle);
+                    }
+
+                    NtClose(processHandle);
+                }
+
+                EnableWindow(GetDlgItem(hwndDlg, IDC_USERNAME), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_PASSWORD), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_TYPE), FALSE);
+            }
 
             SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
 
             if (!PhElevated)
                 SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
+
+            if (!WINDOWS_HAS_UAC)
+                ShowWindow(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION), SW_HIDE);
         }
         break;
     case WM_DESTROY:
@@ -287,6 +330,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     PPH_STRING logonTypeString;
                     ULONG logonType;
                     PPH_STRING desktopName;
+                    BOOLEAN useLinkedToken;
 
                     program = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PROGRAM);
                     userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
@@ -298,6 +342,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         password = NULL;
 
                     desktopName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DESKTOP);
+
+                    if (WINDOWS_HAS_UAC)
+                        useLinkedToken = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION)) == BST_CHECKED;
+                    else
+                        useLinkedToken = FALSE;
 
                     if (PhFindIntegerSiKeyValuePairs(
                         PhpLogonTypePairs,
@@ -314,7 +363,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             logonType,
                             context->ProcessId,
                             GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE),
-                            desktopName->Buffer
+                            desktopName->Buffer,
+                            useLinkedToken
                             );
                     }
                     else
@@ -666,6 +716,7 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
     __in PWSTR DesktopName,
+    __in BOOLEAN UseLinkedToken,
     __in PWSTR ErrorMailslot
     )
 {
@@ -725,6 +776,11 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
             L" -P %u",
             (ULONG)ProcessIdWithToken
             );
+    }
+
+    if (UseLinkedToken)
+    {
+        PhStringBuilderAppend2(&commandLineBuilder, L" -L");
     }
 
     PhStringBuilderAppendFormat(
@@ -861,6 +917,7 @@ CleanupExit:
  * under.
  * \param DesktopName The window station and desktop to run the 
  * program under.
+ * \param UseLinkedToken Uses the linked token if possible.
  *
  * \retval STATUS_CANCELLED The user cancelled the operation.
  *
@@ -877,7 +934,8 @@ NTSTATUS PhRunAsCommandStart2(
     __in_opt ULONG LogonType,
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
-    __in PWSTR DesktopName
+    __in PWSTR DesktopName,
+    __in BOOLEAN UseLinkedToken
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -896,6 +954,7 @@ NTSTATUS PhRunAsCommandStart2(
         ProcessIdWithToken,
         SessionId,
         DesktopName,
+        UseLinkedToken,
         serviceName
         );
 
@@ -1023,6 +1082,7 @@ VOID PhpRunAsServiceExit(
 #define PH_RUNAS_OPTION_ERRORMAILSLOT 8
 #define PH_RUNAS_OPTION_CURRENTDIRECTORY 9
 #define PH_RUNAS_OPTION_DESKTOPNAME 10
+#define PH_RUNAS_OPTION_USELINKEDTOKEN 11
 
 BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -1069,6 +1129,9 @@ BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
         case PH_RUNAS_OPTION_DESKTOPNAME:
             PhSwapReference(&RunAsServiceParameters.DesktopName, Value);
             break;
+        case PH_RUNAS_OPTION_USELINKEDTOKEN:
+            RunAsServiceParameters.UseLinkedToken = TRUE;
+            break;
         }
     }
 
@@ -1088,7 +1151,8 @@ VOID PhRunAsServiceStart()
         { PH_RUNAS_OPTION_PROCESSID, L"P", MandatoryArgumentType },
         { PH_RUNAS_OPTION_ERRORMAILSLOT, L"E", MandatoryArgumentType },
         { PH_RUNAS_OPTION_CURRENTDIRECTORY, L"d", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_DESKTOPNAME, L"D", MandatoryArgumentType }
+        { PH_RUNAS_OPTION_DESKTOPNAME, L"D", MandatoryArgumentType },
+        { PH_RUNAS_OPTION_USELINKEDTOKEN, L"L", NoArgumentType }
     };
     NTSTATUS status;
     PH_STRINGREF commandLine;
@@ -1167,6 +1231,7 @@ VOID PhRunAsServiceStart()
         (HANDLE)RunAsServiceParameters.ProcessId,
         RunAsServiceParameters.SessionId,
         PhGetString(RunAsServiceParameters.DesktopName),
+        RunAsServiceParameters.UseLinkedToken,
         NULL,
         NULL
         );
@@ -1201,6 +1266,7 @@ NTSTATUS PhCreateProcessAsUser(
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
     __in_opt PWSTR DesktopName,
+    __in BOOLEAN UseLinkedToken,
     __out_opt PHANDLE ProcessHandle,
     __out_opt PHANDLE ThreadHandle
     )
@@ -1209,6 +1275,7 @@ NTSTATUS PhCreateProcessAsUser(
     HANDLE tokenHandle;
     PVOID defaultEnvironment;
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
+    BOOLEAN needsDuplicate = FALSE;
 
     if (!ApplicationName && !CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -1252,42 +1319,56 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status))
             return status;
 
-        // If we're going to set the session ID, we need 
-        // to duplicate the token.
         if (SessionId != -1)
+            needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
+    }
+
+    if (UseLinkedToken)
+    {
+        HANDLE linkedTokenHandle;
+
+        if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
         {
-            HANDLE newTokenHandle;
-            OBJECT_ATTRIBUTES oa;
-            SECURITY_QUALITY_OF_SERVICE securityQos;
-
-            securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
-            securityQos.ImpersonationLevel = SecurityImpersonation;
-            securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
-            securityQos.EffectiveOnly = FALSE;
-
-            InitializeObjectAttributes(
-                &oa,
-                NULL,
-                0,
-                NULL,
-                &securityQos
-                );
-
-            status = NtDuplicateToken(
-                tokenHandle,
-                TOKEN_ALL_ACCESS,
-                &oa,
-                FALSE,
-                TokenPrimary,
-                &newTokenHandle
-                );
             NtClose(tokenHandle);
-
-            if (!NT_SUCCESS(status))
-                return status;
-
-            tokenHandle = newTokenHandle;
+            tokenHandle = linkedTokenHandle;
+            needsDuplicate = TRUE; // returned linked token handle is an impersonation token; need to convert to primary
         }
+    }
+
+    if (needsDuplicate)
+    {
+        HANDLE newTokenHandle;
+        OBJECT_ATTRIBUTES oa;
+        SECURITY_QUALITY_OF_SERVICE securityQos;
+
+        securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+        securityQos.ImpersonationLevel = SecurityImpersonation;
+        securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+        securityQos.EffectiveOnly = FALSE;
+
+        InitializeObjectAttributes(
+            &oa,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+        oa.SecurityQualityOfService = &securityQos;
+
+        status = NtDuplicateToken(
+            tokenHandle,
+            TOKEN_ALL_ACCESS,
+            &oa,
+            FALSE,
+            TokenPrimary,
+            &newTokenHandle
+            );
+        NtClose(tokenHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        tokenHandle = newTokenHandle;
     }
 
     // Set the session ID if needed.
