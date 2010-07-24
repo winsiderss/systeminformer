@@ -231,6 +231,7 @@ static BOOLEAN NetworkNeedsSort = FALSE;
 static PH_IMAGE_LIST_WRAPPER NetworkImageListWrapper;
 
 static HANDLE SelectedIconProcessId;
+static PPH_PLUGIN_MENU_ITEM SelectedMenuItemPlugin;
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
@@ -1513,6 +1514,20 @@ LRESULT CALLBACK PhMainWndProc(
                 }
                 break;
             }
+
+            if (PhPluginsEnabled)
+            {
+                if (id >= IDPLUGINS && id < IDPLUGINS_END)
+                {
+                    if (SelectedMenuItemPlugin)
+                    {
+                        PhInvokeCallback(
+                            PhGetPluginCallback(SelectedMenuItemPlugin->Plugin, PluginCallbackMenuItem),
+                            SelectedMenuItemPlugin
+                            );
+                    }
+                }
+            }
         }
         break;
     case WM_SHOWWINDOW:
@@ -1588,6 +1603,23 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            }
+
+            if (PhPluginsEnabled)
+            {
+                USHORT id = LOWORD(wParam);
+
+                if (id >= IDPLUGINS && id < IDPLUGINS_END)
+                {
+                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+                    menuItemInfo.fMask = MIIM_DATA;
+
+                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
+                    {
+                        SelectedMenuItemPlugin = (PPH_PLUGIN_MENU_ITEM)menuItemInfo.dwItemData;
+                    }
+                }
             }
         }
         break;

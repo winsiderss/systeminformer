@@ -27,6 +27,7 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackLoad = 0,
     PluginCallbackUnload = 1,
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle
+    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem
 
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
@@ -67,6 +68,25 @@ PPH_CALLBACK PhGetPluginCallback(
 PHAPPAPI
 PPH_CALLBACK PhGetGeneralCallback(
     __in PH_GENERAL_CALLBACK Callback
+    );
+
+typedef struct _PH_PLUGIN_MENU_ITEM
+{
+    PPH_PLUGIN Plugin;
+    ULONG Id;
+    PVOID Context;
+} PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
+
+#define PH_MENU_ITEM_LOCATION_TOOLS 2
+
+PHAPPAPI
+BOOLEAN PhPluginAddMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Location,
+    __in_opt PWSTR InsertAfter,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in PVOID Context
     );
 
 #endif
