@@ -21,33 +21,40 @@ VOID PhSettingsInitialization();
 
 VOID PhUpdateCachedSettings();
 
+PHAPPAPI
 __mayRaise ULONG PhGetIntegerSetting(
     __in PWSTR Name
     );
 
+PHAPPAPI
 __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     __in PWSTR Name
     );
 
+PHAPPAPI
 __mayRaise PPH_STRING PhGetStringSetting(
     __in PWSTR Name
     );
 
+PHAPPAPI
 __mayRaise VOID PhSetIntegerSetting(
     __in PWSTR Name,
     __in ULONG Value
     );
 
+PHAPPAPI
 __mayRaise VOID PhSetIntegerPairSetting(
     __in PWSTR Name,
     __in PH_INTEGER_PAIR Value
     );
 
+PHAPPAPI
 __mayRaise VOID PhSetStringSetting(
     __in PWSTR Name,
     __in PWSTR Value
     );
 
+PHAPPAPI
 __mayRaise VOID PhSetStringSetting2(
     __in PWSTR Name,
     __in PPH_STRINGREF Value
@@ -62,6 +69,21 @@ NTSTATUS PhSaveSettings(
     );
 
 #define PHA_GET_STRING_SETTING(Name) ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(Name)))
+
+// High-level settings creation
+
+typedef struct _PH_CREATE_SETTING
+{
+    PH_SETTING_TYPE Type;
+    PWSTR Name;
+    PWSTR DefaultValue;
+} PH_SETTING_CREATE, *PPH_SETTING_CREATE;
+
+PHAPPAPI
+VOID PhAddSettings(
+    __in PPH_SETTING_CREATE Settings,
+    __in ULONG NumberOfSettings
+    );
 
 // Cached settings
 

@@ -36,6 +36,7 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_HIDDEN_PROCESSES_CALLBACK)(
     __in PVOID Context
     );
 
+PHAPPAPI
 NTSTATUS PhEnumHiddenProcesses(
     __in PH_HIDDEN_PROCESS_METHOD Method,
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
@@ -47,17 +48,20 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK)(
     __in PVOID Context
     );
 
+PHAPPAPI
 NTSTATUS PhEnumCsrProcessHandles(
     __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
     __in PVOID Context
     );
 
+PHAPPAPI
 NTSTATUS PhOpenProcessByCsrHandle(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PPH_CSR_HANDLE_INFO Handle
     );
 
+PHAPPAPI
 NTSTATUS PhOpenProcessByCsrHandles(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,

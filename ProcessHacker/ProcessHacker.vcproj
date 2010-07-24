@@ -797,6 +797,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\plugin.c"
+				>
+			</File>
+			<File
 				RelativePath=".\procdb.c"
 				>
 			</File>
