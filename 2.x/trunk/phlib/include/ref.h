@@ -120,39 +120,65 @@ NTSTATUS PhCreateObjectTypeEx(
     __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
     );
 
-VOID PhDereferenceObject(
+PHLIBAPI
+VOID
+NTAPI
+PhDereferenceObject(
     __in PVOID Object
     );
 
-BOOLEAN PhDereferenceObjectDeferDelete(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDereferenceObjectDeferDelete(
     __in PVOID Object
     );
 
-__mayRaise LONG PhDereferenceObjectEx(
+__mayRaise
+PHLIBAPI
+LONG
+NTAPI
+PhDereferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount,
     __in BOOLEAN DeferDelete
     );
 
-PPH_OBJECT_TYPE PhGetObjectType(
+PHLIBAPI
+PPH_OBJECT_TYPE
+NTAPI
+PhGetObjectType(
     __in PVOID Object
     );
 
-VOID PhGetObjectTypeInformation(
+PHLIBAPI
+VOID
+NTAPI
+PhGetObjectTypeInformation(
     __in PPH_OBJECT_TYPE ObjectType,
     __out PPH_OBJECT_TYPE_INFORMATION Information
     );
 
-VOID PhReferenceObject(
+PHLIBAPI
+VOID
+NTAPI
+PhReferenceObject(
     __in PVOID Object
     );
 
-__mayRaise LONG PhReferenceObjectEx(
+__mayRaise
+PHLIBAPI
+LONG
+NTAPI
+PhReferenceObjectEx(
     __in PVOID Object,
     __in LONG RefCount
     );
 
-BOOLEAN PhReferenceObjectSafe(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhReferenceObjectSafe(
     __in PVOID Object
     );
 
@@ -198,7 +224,10 @@ FORCEINLINE VOID PhSwapReference2(
     if (oldObject) PhDereferenceObject(oldObject);
 }
 
-NTSTATUS PhCreateAlloc(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateAlloc(
     __out PVOID *Alloc,
     __in SIZE_T Size
     );
@@ -230,19 +259,33 @@ typedef struct _PH_AUTO_POOL
     struct _PH_AUTO_POOL *NextPool;
 } PH_AUTO_POOL, *PPH_AUTO_POOL;
 
-VOID PhInitializeAutoPool(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeAutoPool(
     __out PPH_AUTO_POOL AutoPool
     );
 
-__mayRaise VOID PhDeleteAutoPool(
+__mayRaise
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteAutoPool(
     __inout PPH_AUTO_POOL AutoPool
     );
 
-__mayRaise VOID PhaDereferenceObject(
+__mayRaise
+PHLIBAPI
+VOID
+NTAPI
+PhaDereferenceObject(
     __in PVOID Object
     );
 
-VOID PhDrainAutoPool(
+PHLIBAPI
+VOID
+NTAPI
+PhDrainAutoPool(
     __in PPH_AUTO_POOL AutoPool
     );
 

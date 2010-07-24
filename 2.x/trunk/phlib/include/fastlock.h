@@ -14,41 +14,67 @@ typedef struct _PH_FAST_LOCK
 
 VOID PhFastLockInitialization();
 
-VOID PhInitializeFastLock(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeFastLock(
     __out PPH_FAST_LOCK FastLock
     );
 
-VOID PhDeleteFastLock(
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteFastLock(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhAcquireFastLockExclusive PhfAcquireFastLockExclusive
-__mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
+__mayRaise
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhAcquireFastLockShared PhfAcquireFastLockShared
-__mayRaise VOID FASTCALL PhfAcquireFastLockShared(
+__mayRaise
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhReleaseFastLockExclusive PhfReleaseFastLockExclusive
-VOID FASTCALL PhfReleaseFastLockExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhReleaseFastLockShared PhfReleaseFastLockShared
-VOID FASTCALL PhfReleaseFastLockShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhTryAcquireFastLockExclusive PhfTryAcquireFastLockExclusive
-BOOLEAN FASTCALL PhfTryAcquireFastLockExclusive(
+PHLIBAPI
+BOOLEAN
+FASTCALL
+PhfTryAcquireFastLockExclusive(
     __inout PPH_FAST_LOCK FastLock
     );
 
 #define PhTryAcquireFastLockShared PhfTryAcquireFastLockShared
-BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
+PHLIBAPI
+BOOLEAN
+FASTCALL
+PhfTryAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
 

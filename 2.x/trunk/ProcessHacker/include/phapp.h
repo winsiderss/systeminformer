@@ -260,7 +260,7 @@ VOID PhWriteProcessTree(
     __inout PPH_FILE_STREAM FileStream
     );
 
-// support
+// appsup
 
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process

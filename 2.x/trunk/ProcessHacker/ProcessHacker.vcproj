@@ -47,7 +47,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN32;DEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN32;DEBUG;_WINDOWS;PHLIB_EXPORT"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -128,7 +128,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN64;DEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN64;DEBUG;_WINDOWS;PHLIB_EXPORT"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -211,7 +211,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;PHLIB_EXPORT"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -296,7 +296,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS"
+				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS;PHLIB_EXPORT"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -357,8 +357,6 @@
 	<Files>
 		<Filter
 			Name="phlib"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
 				RelativePath="..\phlib\basesup.c"
@@ -643,6 +641,8 @@
 		</Filter>
 		<Filter
 			Name="Process Hacker"
+			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
 				RelativePath=".\about.c"
@@ -658,6 +658,10 @@
 			</File>
 			<File
 				RelativePath=".\anawait.c"
+				>
+			</File>
+			<File
+				RelativePath=".\appsup.c"
 				>
 			</File>
 			<File
@@ -826,10 +830,6 @@
 			</File>
 			<File
 				RelativePath=".\ssndmsg.c"
-				>
-			</File>
-			<File
-				RelativePath=".\support.c"
 				>
 			</File>
 			<File
