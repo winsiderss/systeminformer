@@ -25,6 +25,7 @@
 #include <treelist.h>
 #include <settings.h>
 #include <memsrch.h>
+#include <phplug.h>
 #include <windowsx.h>
 #include <iphlpapi.h>
 #include <wtsapi32.h>
@@ -489,6 +490,9 @@ BOOLEAN PhMainWndInitialization(
         }
     }
 
+    if (PhPluginsEnabled)
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), (PVOID)ShowCommand);
+
     if (ShowCommand != SW_HIDE)
         ShowWindow(PhMainWndHandle, ShowCommand);
 
@@ -524,6 +528,9 @@ LRESULT CALLBACK PhMainWndProc(
                 if (mask & i)
                     PhRemoveNotifyIcon(i);
             }
+
+            if (PhPluginsEnabled)
+                PhUnloadPlugins();
 
             PostQuitMessage(0);
         }

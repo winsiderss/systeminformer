@@ -6,6 +6,9 @@ mkdir ..\..\sdk\lib\i386
 rem Header files
 
 for %%a in (
+    circbuf.h
+    circbuf_h.h
+    dltmgr.h
     fastlock.h
     graph.h
     hexedit.h
@@ -39,13 +42,14 @@ for %%a in (
     ph.h
     phbase.h
     phgui.h
-    phnt.h
+    phnet.h
     phnt.h
     phsup.h
     queuedlock.h
     ref.h
     rev.h
     symprv.h
+    templ.h
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\
 
