@@ -8,10 +8,10 @@
 #ifndef PROCPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhProcessItemType;
 
-extern PH_CALLBACK PhProcessAddedEvent;
-extern PH_CALLBACK PhProcessModifiedEvent;
-extern PH_CALLBACK PhProcessRemovedEvent;
-extern PH_CALLBACK PhProcessesUpdatedEvent;
+PHAPPAPI extern PH_CALLBACK PhProcessAddedEvent;
+PHAPPAPI extern PH_CALLBACK PhProcessModifiedEvent;
+PHAPPAPI extern PH_CALLBACK PhProcessRemovedEvent;
+PHAPPAPI extern PH_CALLBACK PhProcessesUpdatedEvent;
 
 extern PPH_LIST PhProcessRecordList;
 extern PH_QUEUED_LOCK PhProcessRecordListLock;
@@ -218,10 +218,12 @@ typedef struct _PH_PROCESS_RECORD
 
 BOOLEAN PhProcessProviderInitialization();
 
+PHAPPAPI
 PPH_STRING PhGetClientIdName(
     __in PCLIENT_ID ClientId
     );
 
+PHAPPAPI
 PWSTR PhGetProcessPriorityClassWin32String(
     __in ULONG PriorityClassWin32
     );
@@ -230,21 +232,25 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
     );
 
+PHAPPAPI
 PPH_PROCESS_ITEM PhReferenceProcessItem(
     __in HANDLE ProcessId
     );
 
+PHAPPAPI
 VOID PhEnumProcessItems(
     __out_opt PPH_PROCESS_ITEM **ProcessItems,
     __out PULONG NumberOfProcessItems
     );
 
+PHAPPAPI
 BOOLEAN PhGetStatisticsTime(
     __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index,
     __out PLARGE_INTEGER Time
     );
 
+PHAPPAPI
 PPH_STRING PhGetStatisticsTimeString(
     __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index
@@ -254,18 +260,22 @@ VOID PhProcessProviderUpdate(
     __in PVOID Object
     );
 
+PHAPPAPI
 VOID PhReferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     );
 
+PHAPPAPI
 BOOLEAN PhReferenceProcessRecordSafe(
     __in PPH_PROCESS_RECORD ProcessRecord
     );
 
+PHAPPAPI
 VOID PhDereferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     );
 
+PHAPPAPI
 PPH_PROCESS_RECORD PhFindProcessRecord(
     __in_opt HANDLE ProcessId,
     __in PLARGE_INTEGER Time
@@ -278,10 +288,10 @@ VOID PhPurgeProcessRecords();
 #ifndef SRVPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhServiceItemType;
 
-extern PH_CALLBACK PhServiceAddedEvent;
-extern PH_CALLBACK PhServiceModifiedEvent;
-extern PH_CALLBACK PhServiceRemovedEvent;
-extern PH_CALLBACK PhServicesUpdatedEvent;
+PHAPPAPI extern PH_CALLBACK PhServiceAddedEvent;
+PHAPPAPI extern PH_CALLBACK PhServiceModifiedEvent;
+PHAPPAPI extern PH_CALLBACK PhServiceRemovedEvent;
+PHAPPAPI extern PH_CALLBACK PhServicesUpdatedEvent;
 #endif
 
 typedef struct _PH_SERVICE_ITEM
@@ -326,6 +336,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
     __in_opt LPENUM_SERVICE_STATUS_PROCESS Information
     );
 
+PHAPPAPI
 PPH_SERVICE_ITEM PhReferenceServiceItem(
     __in PWSTR Name
     );
@@ -334,6 +345,7 @@ VOID PhMarkNeedsConfigUpdateServiceItem(
     __in PPH_SERVICE_ITEM ServiceItem
     );
 
+PHAPPAPI
 PH_SERVICE_CHANGE PhGetServiceChange(
     __in PPH_SERVICE_MODIFIED_DATA Data
     );
@@ -389,6 +401,7 @@ BOOLEAN PhNetworkProviderInitialization();
 
 PPH_NETWORK_ITEM PhCreateNetworkItem();
 
+PHAPPAPI
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
     __in ULONG ProtocolType,
     __in PPH_IP_ENDPOINT LocalEndpoint,
@@ -404,10 +417,12 @@ VOID PhNetworkProviderUpdate(
     __in PVOID Object
     );
 
+PHAPPAPI
 PWSTR PhGetProtocolTypeName(
     __in ULONG ProtocolType
     );
 
+PHAPPAPI
 PWSTR PhGetTcpStateName(
     __in ULONG State
     );

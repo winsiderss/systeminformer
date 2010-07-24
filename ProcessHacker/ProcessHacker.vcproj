@@ -47,7 +47,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN32;DEBUG;_WINDOWS;PHLIB_EXPORT"
+				PreprocessorDefinitions="WIN32;DEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -128,7 +128,7 @@
 				AdditionalOptions="/MP"
 				Optimization="0"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN64;DEBUG;_WINDOWS;PHLIB_EXPORT"
+				PreprocessorDefinitions="WIN64;DEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT"
 				StringPooling="true"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
@@ -211,7 +211,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;PHLIB_EXPORT"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -296,7 +296,7 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="../phlib/include;../phlib/pcre;include"
-				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS;PHLIB_EXPORT"
+				PreprocessorDefinitions="WIN64;NDEBUG;_WINDOWS;PHLIB_EXPORT;PHAPP_EXPORT"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -546,6 +546,14 @@
 			</File>
 			<File
 				RelativePath=".\include\phapp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\sdk\phdk.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phplug.h"
 				>
 			</File>
 			<File

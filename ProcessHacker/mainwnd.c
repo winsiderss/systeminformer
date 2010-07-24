@@ -183,7 +183,7 @@ VOID PhMainWndOnNetworkItemRemoved(
 
 VOID PhMainWndOnNetworkItemsUpdated();
 
-HWND PhMainWndHandle;
+PHAPPAPI HWND PhMainWndHandle;
 BOOLEAN PhMainWndExiting = FALSE;
 HMENU PhMainWndMenuHandle;
 
