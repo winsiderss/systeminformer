@@ -1,4 +1,4 @@
 @echo off
 
-makelib ntdll
-makelib samlib
+call makelib.cmd ntdll
+call makelib.cmd samlib
