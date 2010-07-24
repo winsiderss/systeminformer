@@ -278,7 +278,8 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     LocalSessionManagerProcessType, // lsm
     ServiceHostProcessType, // svchost
     RunDllAsAppProcessType, // rundll32
-    ComSurrogateProcessType // dllhost
+    ComSurrogateProcessType, // dllhost
+    TaskHostProcessType // taskeng, taskhost
 } PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
 
 NTSTATUS PhGetProcessKnownType(
