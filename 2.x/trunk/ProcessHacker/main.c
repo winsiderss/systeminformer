@@ -52,12 +52,16 @@ VOID PhDebugPrintLine(
     )
 {
     va_list argptr;
-    SYSTEMTIME time;
+    LARGE_INTEGER time;
+    TIME_FIELDS timeFields;
 
     va_start(argptr, Format);
-    GetLocalTime(&time);
 
-    fwprintf(stderr, L"%02u:%02u:%02u.%03u: ", time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+    PhQuerySystemTime(&time);
+    PhSystemTimeToLocalTime(&time, &time);
+    RtlTimeToTimeFields(&time, &timeFields);
+
+    fwprintf(stderr, L"%02u:%02u:%02u.%03u: ", timeFields.Hour, timeFields.Minute, timeFields.Second, timeFields.Milliseconds);
     vfwprintf(stderr, Format, argptr);
     fputwc('\n', stderr);
 }

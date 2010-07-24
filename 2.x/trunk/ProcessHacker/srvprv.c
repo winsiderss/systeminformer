@@ -52,10 +52,10 @@ PPH_OBJECT_TYPE PhServiceItemType;
 PPH_HASHTABLE PhServiceHashtable;
 PH_QUEUED_LOCK PhServiceHashtableLock;
 
-PH_CALLBACK PhServiceAddedEvent;
-PH_CALLBACK PhServiceModifiedEvent;
-PH_CALLBACK PhServiceRemovedEvent;
-PH_CALLBACK PhServicesUpdatedEvent;
+PHAPPAPI PH_CALLBACK PhServiceAddedEvent;
+PHAPPAPI PH_CALLBACK PhServiceModifiedEvent;
+PHAPPAPI PH_CALLBACK PhServiceRemovedEvent;
+PHAPPAPI PH_CALLBACK PhServicesUpdatedEvent;
 
 BOOLEAN PhServiceProviderInitialization()
 {

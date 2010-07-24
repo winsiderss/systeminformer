@@ -118,10 +118,10 @@ PH_QUEUED_LOCK PhProcessHashtableLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
-PH_CALLBACK PhProcessAddedEvent;
-PH_CALLBACK PhProcessModifiedEvent;
-PH_CALLBACK PhProcessRemovedEvent;
-PH_CALLBACK PhProcessesUpdatedEvent;
+PHAPPAPI PH_CALLBACK PhProcessAddedEvent;
+PHAPPAPI PH_CALLBACK PhProcessModifiedEvent;
+PHAPPAPI PH_CALLBACK PhProcessRemovedEvent;
+PHAPPAPI PH_CALLBACK PhProcessesUpdatedEvent;
 
 PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;

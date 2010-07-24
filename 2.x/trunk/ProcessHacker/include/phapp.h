@@ -1,6 +1,12 @@
 #ifndef PHAPP_H
 #define PHAPP_H
 
+#ifdef PHAPP_EXPORT
+#define PHAPPAPI __declspec(dllexport)
+#else
+#define PHAPPAPI
+#endif
+
 #include <phgui.h>
 #include <treelist.h>
 #include <circbuf.h>
@@ -73,10 +79,12 @@ typedef struct _PH_STARTUP_PARAMETERS
 
 INT PhMainMessageLoop();
 
+PHAPPAPI
 VOID PhRegisterDialog(
     __in HWND DialogWindowHandle
     );
 
+PHAPPAPI
 VOID PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
@@ -718,6 +726,7 @@ VOID PhLogServiceEntry(
     __in PPH_STRING DisplayName
     );
 
+PHAPPAPI
 VOID PhLogMessageEntry(
     __in UCHAR Type,
     __in PPH_STRING Message
@@ -740,163 +749,195 @@ typedef enum _PH_ACTION_ELEVATION_LEVEL
     AlwaysElevateAction = 2
 } PH_ACTION_ELEVATION_LEVEL;
 
+PHAPPAPI
 BOOLEAN PhUiLockComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiLogoffComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiSleepComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiHibernateComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiRestartComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiShutdownComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiPoweroffComputer(
     __in HWND hWnd
     );
 
+PHAPPAPI
 BOOLEAN PhUiConnectSession(
     __in HWND hWnd,
     __in ULONG SessionId
     );
 
+PHAPPAPI
 BOOLEAN PhUiDisconnectSession(
     __in HWND hWnd,
     __in ULONG SessionId
     );
 
+PHAPPAPI
 BOOLEAN PhUiLogoffSession(
     __in HWND hWnd,
     __in ULONG SessionId
     );
 
+PHAPPAPI
 BOOLEAN PhUiTerminateProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
     );
 
+PHAPPAPI
 BOOLEAN PhUiTerminateTreeProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiSuspendProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
     );
 
+PHAPPAPI
 BOOLEAN PhUiResumeProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
     );
 
+PHAPPAPI
 BOOLEAN PhUiRestartProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiDebugProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiReduceWorkingSetProcesses(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetVirtualizationProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN Enable
     );
 
+PHAPPAPI
 BOOLEAN PhUiDetachFromDebuggerProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiInjectDllProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetIoPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
     __in ULONG IoPriority
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
     __in ULONG PriorityClassWin32
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetDepStatusProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetProtectionProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process
     );
 
+PHAPPAPI
 BOOLEAN PhUiStartService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
     );
 
+PHAPPAPI
 BOOLEAN PhUiContinueService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
     );
 
+PHAPPAPI
 BOOLEAN PhUiPauseService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
     );
 
+PHAPPAPI
 BOOLEAN PhUiStopService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
     );
 
+PHAPPAPI
 BOOLEAN PhUiDeleteService(
     __in HWND hWnd,
     __in PPH_SERVICE_ITEM Service
     );
 
+PHAPPAPI
 BOOLEAN PhUiCloseConnections(
     __in HWND hWnd,
     __in PPH_NETWORK_ITEM *Connections,
     __in ULONG NumberOfConnections
     );
 
+PHAPPAPI
 BOOLEAN PhUiTerminateThreads(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM *Threads,
     __in ULONG NumberOfThreads
     );
 
+PHAPPAPI
 BOOLEAN PhUiForceTerminateThreads(
     __in HWND hWnd,
     __in HANDLE ProcessId,
@@ -904,36 +945,42 @@ BOOLEAN PhUiForceTerminateThreads(
     __in ULONG NumberOfThreads
     );
 
+PHAPPAPI
 BOOLEAN PhUiSuspendThreads(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM *Threads,
     __in ULONG NumberOfThreads
     );
 
+PHAPPAPI
 BOOLEAN PhUiResumeThreads(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM *Threads,
     __in ULONG NumberOfThreads
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetPriorityThread(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM Thread,
     __in ULONG ThreadPriorityWin32
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetIoPriorityThread(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM Thread,
     __in ULONG IoPriority
     );
 
+PHAPPAPI
 BOOLEAN PhUiUnloadModule(
     __in HWND hWnd,
     __in HANDLE ProcessId,
     __in PPH_MODULE_ITEM Module
     );
 
+PHAPPAPI
 BOOLEAN PhUiFreeMemory(
     __in HWND hWnd,
     __in HANDLE ProcessId,
@@ -941,6 +988,7 @@ BOOLEAN PhUiFreeMemory(
     __in BOOLEAN Free
     );
 
+PHAPPAPI
 BOOLEAN PhUiCloseHandles(
     __in HWND hWnd,
     __in HANDLE ProcessId,
@@ -949,6 +997,7 @@ BOOLEAN PhUiCloseHandles(
     __in BOOLEAN Warn
     );
 
+PHAPPAPI
 BOOLEAN PhUiSetAttributesHandle(
     __in HWND hWnd,
     __in HANDLE ProcessId,
