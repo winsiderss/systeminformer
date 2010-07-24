@@ -13,49 +13,45 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     __in PVOID Entry
     );
 
-static VOID PhpAddStringSetting(
+VOID PhpAddStringSetting(
     __in PWSTR Name,
     __in PWSTR DefaultValue
     );
 
-static VOID PhpAddIntegerSetting(
+VOID PhpAddIntegerSetting(
     __in PWSTR Name,
     __in PWSTR DefaultValue
     );
 
-static VOID PhpAddIntegerPairSetting(
+VOID PhpAddIntegerPairSetting(
     __in PWSTR Name,
     __in PWSTR DefaultValue
     );
 
-static VOID PhpAddSetting(
+__assumeLocked VOID PhpAddSetting(
     __in PH_SETTING_TYPE Type,
     __in PWSTR Name,
-    __in PVOID DefaultValue
+    __in PWSTR DefaultValue
     );
 
-static PPH_STRING PhpSettingToString(
+PPH_STRING PhpSettingToString(
     __in PH_SETTING_TYPE Type,
     __in PVOID Value
     );
 
-static BOOLEAN PhpSettingFromString(
+BOOLEAN PhpSettingFromString(
     __in PH_SETTING_TYPE Type,
     __in PPH_STRING String,
     __out PPVOID Value
     );
 
-static VOID PhpFreeSettingValue(
+VOID PhpFreeSettingValue(
     __in PH_SETTING_TYPE Type,
     __in PVOID Value
     );
 
-static PVOID PhpLookupSetting(
+PVOID PhpLookupSetting(
     __in PWSTR Name
-    );
-
-static PPH_STRING PhpJoinXmlTextNodes(
-    __in mxml_node_t *node
     );
 
 #endif

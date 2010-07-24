@@ -294,4 +294,67 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+// settings
+
+typedef enum _PH_SETTING_TYPE
+{
+    StringSettingType,
+    IntegerSettingType,
+    IntegerPairSettingType
+} PH_SETTING_TYPE, PPH_SETTING_TYPE;
+
+PHAPPAPI
+__mayRaise ULONG PhGetIntegerSetting(
+    __in PWSTR Name
+    );
+
+PHAPPAPI
+__mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
+    __in PWSTR Name
+    );
+
+PHAPPAPI
+__mayRaise PPH_STRING PhGetStringSetting(
+    __in PWSTR Name
+    );
+
+PHAPPAPI
+__mayRaise VOID PhSetIntegerSetting(
+    __in PWSTR Name,
+    __in ULONG Value
+    );
+
+PHAPPAPI
+__mayRaise VOID PhSetIntegerPairSetting(
+    __in PWSTR Name,
+    __in PH_INTEGER_PAIR Value
+    );
+
+PHAPPAPI
+__mayRaise VOID PhSetStringSetting(
+    __in PWSTR Name,
+    __in PWSTR Value
+    );
+
+PHAPPAPI
+__mayRaise VOID PhSetStringSetting2(
+    __in PWSTR Name,
+    __in PPH_STRINGREF Value
+    );
+
+// High-level settings creation
+
+typedef struct _PH_CREATE_SETTING
+{
+    PH_SETTING_TYPE Type;
+    PWSTR Name;
+    PWSTR DefaultValue;
+} PH_SETTING_CREATE, *PPH_SETTING_CREATE;
+
+PHAPPAPI
+VOID PhAddSettings(
+    __in PPH_SETTING_CREATE Settings,
+    __in ULONG NumberOfSettings
+    );
+
 #endif

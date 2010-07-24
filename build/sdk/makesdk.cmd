@@ -49,7 +49,12 @@ for %%a in (
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\
 
-copy ..\..\ProcessHacker\include\providers.h ..\..\sdk\include\
+for %%a in (
+    hidnproc.h
+    phplug.h
+    providers.h
+    ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\
+
 copy ..\..\ProcessHacker\sdk\phdk.h ..\..\sdk\include\
 
 rem Libraries
