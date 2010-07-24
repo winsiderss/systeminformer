@@ -687,6 +687,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntsam.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntseapi.h"
 				>
 			</File>
