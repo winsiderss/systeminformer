@@ -122,37 +122,42 @@ typedef struct _ETWREG_BASIC_INFORMATION
     ULONG_PTR SessionId;
 } ETWREG_BASIC_INFORMATION, *PETWREG_BASIC_INFORMATION;
 
-NTSTATUS KphInit();
-
+PHLIBAPI
 NTSTATUS KphConnect(
     __out PHANDLE KphHandle,
     __in_opt PWSTR DeviceName
     );
 
+PHLIBAPI
 NTSTATUS KphConnect2(
     __out PHANDLE KphHandle,
     __in_opt PWSTR DeviceName,
     __in PWSTR FileName
     );
 
+PHLIBAPI
 NTSTATUS KphDisconnect(
     __in HANDLE KphHandle
     );
 
+PHLIBAPI
 NTSTATUS KphInstall(
     __in_opt PWSTR DeviceName,
     __in PWSTR FileName
     );
 
+PHLIBAPI
 NTSTATUS KphUninstall(
     __in_opt PWSTR DeviceName
     );
 
+PHLIBAPI
 NTSTATUS KphGetFeatures(
     __in HANDLE KphHandle,
     __out PULONG Features
     );
 
+PHLIBAPI
 NTSTATUS KphOpenProcess(
     __in HANDLE KphHandle,
     __out PHANDLE ProcessHandle,
@@ -160,6 +165,7 @@ NTSTATUS KphOpenProcess(
     __in ACCESS_MASK DesiredAccess
     );
 
+PHLIBAPI
 NTSTATUS KphOpenProcessToken(
     __in HANDLE KphHandle,
     __out PHANDLE TokenHandle,
@@ -167,6 +173,7 @@ NTSTATUS KphOpenProcessToken(
     __in ACCESS_MASK DesiredAccess
     );
 
+PHLIBAPI
 NTSTATUS KphOpenProcessJob(
     __in HANDLE KphHandle,
     __out PHANDLE JobHandle,
@@ -174,22 +181,26 @@ NTSTATUS KphOpenProcessJob(
     __in ACCESS_MASK DesiredAccess
     );
 
+PHLIBAPI
 NTSTATUS KphSuspendProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle
     );
 
+PHLIBAPI
 NTSTATUS KphResumeProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle
     );
 
+PHLIBAPI
 NTSTATUS KphTerminateProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus
     );
 
+PHLIBAPI
 NTSTATUS KphReadVirtualMemory(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -199,6 +210,7 @@ NTSTATUS KphReadVirtualMemory(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphWriteVirtualMemory(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -208,6 +220,7 @@ NTSTATUS KphWriteVirtualMemory(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphUnsafeReadVirtualMemory(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -217,30 +230,35 @@ NTSTATUS KphUnsafeReadVirtualMemory(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphGetProcessProtected(
     __in HANDLE KphHandle,
     __in HANDLE ProcessId,
     __out PBOOLEAN IsProtected
     );
 
+PHLIBAPI
 NTSTATUS KphSetProcessProtected(
     __in HANDLE KphHandle,
     __in HANDLE ProcessId,
     __in BOOLEAN IsProtected
     );
 
+PHLIBAPI
 NTSTATUS KphSetExecuteOptions(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in ULONG ExecuteOptions
     );
 
+PHLIBAPI
 NTSTATUS KphSetProcessToken(
     __in HANDLE KphHandle,
     __in HANDLE SourceProcessId,
     __in HANDLE TargetProcessId
     );
 
+PHLIBAPI
 NTSTATUS KphQueryInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -250,6 +268,7 @@ NTSTATUS KphQueryInformationProcess(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphQueryInformationThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
@@ -259,6 +278,7 @@ NTSTATUS KphQueryInformationThread(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphSetInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -267,6 +287,7 @@ NTSTATUS KphSetInformationProcess(
     __in ULONG ProcessInformationLength
     );
 
+PHLIBAPI
 NTSTATUS KphSetInformationThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
@@ -275,6 +296,7 @@ NTSTATUS KphSetInformationThread(
     __in ULONG ThreadInformationLength
     );
 
+PHLIBAPI
 NTSTATUS KphOpenThread(
     __in HANDLE KphHandle,
     __out PHANDLE ThreadHandle,
@@ -282,6 +304,7 @@ NTSTATUS KphOpenThread(
     __in ACCESS_MASK DesiredAccess
     );
 
+PHLIBAPI
 NTSTATUS KphOpenThreadProcess(
     __in HANDLE KphHandle,
     __out PHANDLE ProcessHandle,
@@ -289,30 +312,35 @@ NTSTATUS KphOpenThreadProcess(
     __in ACCESS_MASK DesiredAccess
     );
 
+PHLIBAPI
 NTSTATUS KphTerminateThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
     );
 
+PHLIBAPI
 NTSTATUS KphDangerousTerminateThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus
     );
 
+PHLIBAPI
 NTSTATUS KphGetContextThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __inout PCONTEXT ThreadContext
     );
 
+PHLIBAPI
 NTSTATUS KphSetContextThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in PCONTEXT ThreadContext
     );
 
+PHLIBAPI
 NTSTATUS KphCaptureStackBackTraceThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
@@ -323,18 +351,21 @@ NTSTATUS KphCaptureStackBackTraceThread(
     __out_opt PULONG BackTraceHash
     );
 
+PHLIBAPI
 NTSTATUS KphGetThreadWin32Thread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __out PPVOID Win32Thread
     );
 
+PHLIBAPI
 NTSTATUS KphAssignImpersonationToken(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in HANDLE TokenHandle
     );
 
+PHLIBAPI
 NTSTATUS KphQueryProcessHandles(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -343,6 +374,7 @@ NTSTATUS KphQueryProcessHandles(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphGetHandleObjectName(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -352,6 +384,7 @@ NTSTATUS KphGetHandleObjectName(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphZwQueryObject(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -362,6 +395,7 @@ NTSTATUS KphZwQueryObject(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphDuplicateObject(
     __in HANDLE KphHandle,
     __in HANDLE SourceProcessHandle,
@@ -373,6 +407,7 @@ NTSTATUS KphDuplicateObject(
     __in ULONG Options
     );
 
+PHLIBAPI
 NTSTATUS KphSetHandleAttributes(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -380,12 +415,14 @@ NTSTATUS KphSetHandleAttributes(
     __in ULONG Flags
     );
 
+PHLIBAPI
 NTSTATUS KphSetHandleGrantedAccess(
     __in HANDLE KphHandle,
     __in HANDLE Handle,
     __in ACCESS_MASK GrantedAccess
     );
 
+PHLIBAPI
 NTSTATUS KphGetProcessId(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -393,6 +430,7 @@ NTSTATUS KphGetProcessId(
     __out PHANDLE ProcessId
     );
 
+PHLIBAPI
 NTSTATUS KphGetThreadId(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
@@ -401,6 +439,7 @@ NTSTATUS KphGetThreadId(
     __out_opt PHANDLE ProcessId
     );
 
+PHLIBAPI
 NTSTATUS KphOpenNamedObject(
     __in HANDLE KphHandle,
     __out PHANDLE Handle,
@@ -408,6 +447,7 @@ NTSTATUS KphOpenNamedObject(
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+PHLIBAPI
 NTSTATUS KphOpenDirectoryObject(
     __in HANDLE KphHandle,
     __out PHANDLE DirectoryHandle,
@@ -415,12 +455,14 @@ NTSTATUS KphOpenDirectoryObject(
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+PHLIBAPI
 NTSTATUS KphOpenDriver(
     __in HANDLE KphHandle,
     __out PHANDLE DriverHandle,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+PHLIBAPI
 NTSTATUS KphQueryInformationDriver(
     __in HANDLE KphHandle,
     __in HANDLE DriverHandle,
@@ -430,12 +472,14 @@ NTSTATUS KphQueryInformationDriver(
     __out_opt PULONG ReturnLength
     );
 
+PHLIBAPI
 NTSTATUS KphOpenType(
     __in HANDLE KphHandle,
     __out PHANDLE TypeHandle,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+PHLIBAPI
 NTSTATUS KphQueryInformationEtwReg(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,

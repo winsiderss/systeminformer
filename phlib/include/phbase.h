@@ -19,6 +19,14 @@
 #define UNICODE
 #endif
 
+#if defined(PHLIB_EXPORT)
+#define PHLIBAPI __declspec(dllexport)
+#elif defined(PHLIB_IMPORT)
+#define PHLIBAPI __declspec(dllimport)
+#else
+#define PHLIBAPI
+#endif
+
 #include <ntwin.h>
 #include <ntbasic.h>
 #include <phnt.h>
@@ -160,7 +168,10 @@ extern LIST_ENTRY PhDbgThreadListHead;
 extern PH_QUEUED_LOCK PhDbgThreadListLock;
 #endif
 
-HANDLE PhCreateThread(
+PHLIBAPI
+HANDLE
+NTAPI
+PhCreateThread(
     __in_opt SIZE_T StackSize,
     __in PUSER_THREAD_START_ROUTINE StartAddress,
     __in PVOID Parameter
@@ -168,27 +179,43 @@ HANDLE PhCreateThread(
 
 // misc. system
 
-VOID PhQuerySystemTime(
+PHLIBAPI
+VOID
+NTAPI
+PhQuerySystemTime(
     __out PLARGE_INTEGER SystemTime
     );
 
-VOID PhQueryTimeZoneBias(
+PHLIBAPI
+VOID
+NTAPI
+PhQueryTimeZoneBias(
     __out PLARGE_INTEGER TimeZoneBias
     );
 
-VOID PhSystemTimeToLocalTime(
+PHLIBAPI
+VOID
+NTAPI
+PhSystemTimeToLocalTime(
     __in PLARGE_INTEGER SystemTime,
     __out PLARGE_INTEGER LocalTime
     );
 
-VOID PhLocalTimeToSystemTime(
+PHLIBAPI
+VOID
+NTAPI
+PhLocalTimeToSystemTime(
     __in PLARGE_INTEGER LocalTime,
     __out PLARGE_INTEGER SystemTime
     );
 
 // heap
 
-__mayRaise PVOID PhAllocate(
+__mayRaise
+PHLIBAPI
+PVOID
+NTAPI
+PhAllocate(
     __in SIZE_T Size
     );
 
@@ -201,11 +228,18 @@ PVOID PhAllocateExSafe(
     __in ULONG Flags
     );
 
-VOID PhFree(
+PHLIBAPI
+VOID
+NTAPI
+PhFree(
     __in __post_invalid PVOID Memory
     );
 
-__mayRaise PVOID PhReAllocate(
+__mayRaise
+PHLIBAPI
+PVOID
+NTAPI
+PhReAllocate(
     __in PVOID Memory,
     __in SIZE_T Size
     );
@@ -215,12 +249,18 @@ PVOID PhReAllocateSafe(
     __in SIZE_T Size
     );
 
-PVOID PhAllocatePage(
+PHLIBAPI
+PVOID
+NTAPI
+PhAllocatePage(
     __in SIZE_T Size,
     __out_opt PSIZE_T NewSize
     );
 
-VOID PhFreePage(
+PHLIBAPI
+VOID
+NTAPI
+PhFreePage(
     __in PVOID Memory
     );
 
@@ -355,23 +395,35 @@ typedef struct _PH_EVENT
 
 #define PH_EVENT_INIT { PH_EVENT_REFCOUNT_INC, NULL }
 
-VOID FASTCALL PhfInitializeEvent(
+PHLIBAPI
+VOID
+FASTCALL
+PhfInitializeEvent(
     __out PPH_EVENT Event
     );
 
 #define PhSetEvent PhfSetEvent
-VOID FASTCALL PhfSetEvent(
+PHLIBAPI
+VOID
+FASTCALL
+PhfSetEvent(
     __inout PPH_EVENT Event
     );
 
 #define PhWaitForEvent PhfWaitForEvent
-BOOLEAN FASTCALL PhfWaitForEvent(
+PHLIBAPI
+BOOLEAN
+FASTCALL
+PhfWaitForEvent(
     __inout PPH_EVENT Event,
     __in_opt PLARGE_INTEGER Timeout
     );
 
 #define PhResetEvent PhfResetEvent
-VOID FASTCALL PhfResetEvent(
+PHLIBAPI
+VOID
+FASTCALL
+PhfResetEvent(
     __inout PPH_EVENT Event
     );
 
@@ -417,19 +469,31 @@ typedef struct _PH_RUNDOWN_WAIT_BLOCK
     PH_EVENT WakeEvent;
 } PH_RUNDOWN_WAIT_BLOCK, *PPH_RUNDOWN_WAIT_BLOCK;
 
-VOID FASTCALL PhfInitializeRundownProtection(
+PHLIBAPI
+VOID
+FASTCALL
+PhfInitializeRundownProtection(
     __out PPH_RUNDOWN_PROTECT Protection
     );
 
-BOOLEAN FASTCALL PhfAcquireRundownProtection(
+PHLIBAPI
+BOOLEAN
+FASTCALL
+PhfAcquireRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
-VOID FASTCALL PhfReleaseRundownProtection(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
-VOID FASTCALL PhfWaitForRundownProtection(
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForRundownProtection(
     __inout PPH_RUNDOWN_PROTECT Protection
     );
 
@@ -511,16 +575,25 @@ typedef struct _PH_INITONCE
 #define PH_INITONCE_INIT { PH_INITONCE_UNINITIALIZED, PH_EVENT_INIT }
 
 #define PhInitializeInitOnce PhfInitializeInitOnce
-VOID FASTCALL PhfInitializeInitOnce(
+PHLIBAPI
+VOID
+FASTCALL
+PhfInitializeInitOnce(
     __out PPH_INITONCE InitOnce
     );
 
-BOOLEAN FASTCALL PhfBeginInitOnce(
+PHLIBAPI
+BOOLEAN
+FASTCALL
+PhfBeginInitOnce(
     __inout PPH_INITONCE InitOnce
     );
 
 #define PhEndInitOnce PhfEndInitOnce
-VOID FASTCALL PhfEndInitOnce(
+PHLIBAPI
+VOID
+FASTCALL
+PhfEndInitOnce(
     __inout PPH_INITONCE InitOnce
     );
 
@@ -540,15 +613,24 @@ FORCEINLINE BOOLEAN PhBeginInitOnce(
 extern PPH_OBJECT_TYPE PhStringType;
 #endif
 
-PSTR PhDuplicateAnsiStringZ(
+PHLIBAPI
+PSTR
+NTAPI
+PhDuplicateAnsiStringZ(
     __in PSTR String
     );
 
-PSTR PhDuplicateAnsiStringZSafe(
+PHLIBAPI
+PSTR
+NTAPI
+PhDuplicateAnsiStringZSafe(
     __in PSTR String
     );
 
-BOOLEAN PhCopyAnsiStringZ(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCopyAnsiStringZ(
     __in PSTR InputBuffer,
     __in ULONG InputCount,
     __out_ecount_z_opt(OutputCount) PSTR OutputBuffer,
@@ -556,7 +638,10 @@ BOOLEAN PhCopyAnsiStringZ(
     __out_opt PULONG ReturnCount
     );
 
-BOOLEAN PhCopyUnicodeStringZ(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCopyUnicodeStringZ(
     __in PWSTR InputBuffer,
     __in ULONG InputCount,
     __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
@@ -564,7 +649,10 @@ BOOLEAN PhCopyUnicodeStringZ(
     __out_opt PULONG ReturnCount
     );
 
-BOOLEAN PhCopyUnicodeStringZFromAnsi(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCopyUnicodeStringZFromAnsi(
     __in PSTR InputBuffer,
     __in ULONG InputCount,
     __out_ecount_z_opt(OutputCount) PWSTR OutputBuffer,
@@ -725,47 +813,74 @@ typedef struct _PH_STRING
     WCHAR Buffer[1];
 } PH_STRING, *PPH_STRING;
 
-PPH_STRING PhCreateString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateString(
     __in PWSTR Buffer
     );
 
-PPH_STRING PhCreateStringEx(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateStringEx(
     __in_opt PWSTR Buffer,
     __in SIZE_T Length
     );
 
-PPH_STRING PhCreateStringFromAnsi(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateStringFromAnsi(
     __in PSTR Buffer
     );
 
-PPH_STRING PhCreateStringFromAnsiEx(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhCreateStringFromAnsiEx(
     __in PSTR Buffer,
     __in SIZE_T Length
     );
 
-PPH_STRING PhConcatStrings(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStrings(
     __in ULONG Count,
     ...
     );
 
 #define PH_CONCAT_STRINGS_LENGTH_CACHE_SIZE 16
 
-PPH_STRING PhConcatStrings_V(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStrings_V(
     __in ULONG Count,
     __in va_list ArgPtr
     );
 
-PPH_STRING PhConcatStrings2(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhConcatStrings2(
     __in PWSTR String1,
     __in PWSTR String2
     );
 
-PPH_STRING PhFormatString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatString(
     __in __format_string PWSTR Format,
     ...
     );
 
-PPH_STRING PhFormatString_V(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatString_V(
     __in __format_string PWSTR Format,
     __in va_list ArgPtr
     );
@@ -1280,20 +1395,32 @@ typedef struct _PH_ANSI_STRING
     CHAR Buffer[1];
 } PH_ANSI_STRING, *PPH_ANSI_STRING;
 
-PPH_ANSI_STRING PhCreateAnsiString(
+PHLIBAPI
+PPH_ANSI_STRING
+NTAPI
+PhCreateAnsiString(
     __in PSTR Buffer
     );
 
-PPH_ANSI_STRING PhCreateAnsiStringEx(
+PHLIBAPI
+PPH_ANSI_STRING
+NTAPI
+PhCreateAnsiStringEx(
     __in_opt PSTR Buffer,
     __in SIZE_T Length
     );
 
-PPH_ANSI_STRING PhCreateAnsiStringFromUnicode(
+PHLIBAPI
+PPH_ANSI_STRING
+NTAPI
+PhCreateAnsiStringFromUnicode(
     __in PWSTR Buffer
     );
 
-PPH_ANSI_STRING PhCreateAnsiStringFromUnicodeEx(
+PHLIBAPI
+PPH_ANSI_STRING
+NTAPI
+PhCreateAnsiStringFromUnicodeEx(
     __in PWSTR Buffer,
     __in SIZE_T Length
     );
@@ -1395,66 +1522,102 @@ typedef struct _PH_STRING_BUILDER
     PPH_STRING String;
 } PH_STRING_BUILDER, *PPH_STRING_BUILDER;
 
-VOID PhInitializeStringBuilder(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeStringBuilder(
     __out PPH_STRING_BUILDER StringBuilder,
     __in ULONG InitialCapacity
     );
 
-VOID PhDeleteStringBuilder(
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder
     );
 
-PPH_STRING PhReferenceStringBuilderString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhReferenceStringBuilderString(
     __in PPH_STRING_BUILDER StringBuilder
     );
 
-VOID PhStringBuilderAppend(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppend(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PPH_STRING String
     );
 
-VOID PhStringBuilderAppend2(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppend2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String
     );
 
-VOID PhStringBuilderAppendEx(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppendEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String,
     __in ULONG Length
     );
 
-VOID PhStringBuilderAppendChar(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppendChar(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character
     );
 
-VOID PhStringBuilderAppendFormat(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppendFormat(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in __format_string PWSTR Format,
     ...
     );
 
-VOID PhStringBuilderInsert(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderInsert(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PPH_STRING String
     );
 
-VOID PhStringBuilderInsert2(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderInsert2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PWSTR String
     );
 
-VOID PhStringBuilderInsertEx(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderInsertEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PWSTR String,
     __in ULONG Length
     );
 
-VOID PhStringBuilderRemove(
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderRemove(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -1481,50 +1644,77 @@ typedef struct _PH_LIST
     PPVOID Items;
 } PH_LIST, *PPH_LIST;
 
-PPH_LIST PhCreateList(
+PHLIBAPI
+PPH_LIST
+NTAPI
+PhCreateList(
     __in ULONG InitialCapacity
     );
 
-VOID PhAddListItem(
+PHLIBAPI
+VOID
+NTAPI
+PhAddListItem(
     __inout PPH_LIST List,
     __in PVOID Item
     );
 
-VOID PhAddListItems(
+PHLIBAPI
+VOID
+NTAPI
+PhAddListItems(
     __inout PPH_LIST List,
     __in PPVOID Items,
     __in ULONG Count
     );
 
-VOID PhClearList(
+PHLIBAPI
+VOID
+NTAPI
+PhClearList(
     __inout PPH_LIST List
     );
 
 __success(return != -1)
-ULONG PhIndexOfListItem(
+PHLIBAPI
+ULONG
+NTAPI
+PhIndexOfListItem(
     __in PPH_LIST List,
     __in PVOID Item
     );
 
-VOID PhInsertListItem(
+PHLIBAPI
+VOID
+NTAPI
+PhInsertListItem(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PVOID Item
     );
 
-VOID PhInsertListItems(
+PHLIBAPI
+VOID
+NTAPI
+PhInsertListItems(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PPVOID Items,
     __in ULONG Count
     );
 
-VOID PhRemoveListItem(
+PHLIBAPI
+VOID
+NTAPI
+PhRemoveListItem(
     __inout PPH_LIST List,
     __in ULONG Index
     );
 
-VOID PhRemoveListItems(
+PHLIBAPI
+VOID
+NTAPI
+PhRemoveListItems(
     __inout PPH_LIST List,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -1548,7 +1738,10 @@ typedef INT (NTAPI *PPH_COMPARE_FUNCTION)(
     __in PVOID Context
     );
 
-VOID PhSortList(
+PHLIBAPI
+VOID
+NTAPI
+PhSortList(
     __in PPH_LIST List,
     __in PPH_COMPARE_FUNCTION CompareFunction,
     __in PVOID Context
@@ -1899,21 +2092,33 @@ C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, ListEntry) == 0x0);
 C_ASSERT(FIELD_OFFSET(PH_FREE_LIST_ENTRY, Body) == 0x10);
 #endif
 
-VOID PhInitializeFreeList(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeFreeList(
     __out PPH_FREE_LIST FreeList,
     __in SIZE_T Size,
     __in ULONG MaximumCount
     );
 
-VOID PhDeleteFreeList(
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteFreeList(
     __inout PPH_FREE_LIST FreeList
     );
 
-PVOID PhAllocateFromFreeList(
+PHLIBAPI
+PVOID
+NTAPI
+PhAllocateFromFreeList(
     __inout PPH_FREE_LIST FreeList
     );
 
-VOID PhFreeToFreeList(
+PHLIBAPI
+VOID
+NTAPI
+PhFreeToFreeList(
     __inout PPH_FREE_LIST FreeList,
     __in PVOID Memory
     );
@@ -1973,22 +2178,34 @@ typedef struct _PH_CALLBACK
     PH_QUEUED_LOCK BusyCondition;
 } PH_CALLBACK, *PPH_CALLBACK;
 
-VOID PhInitializeCallback(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeCallback(
     __out PPH_CALLBACK Callback
     );
 
-VOID PhDeleteCallback(
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteCallback(
     __inout PPH_CALLBACK Callback
     );
 
-VOID PhRegisterCallback(
+PHLIBAPI
+VOID
+NTAPI
+PhRegisterCallback(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
     __in PVOID Context,
     __out PPH_CALLBACK_REGISTRATION Registration
     );
 
-VOID PhRegisterCallbackEx(
+PHLIBAPI
+VOID
+NTAPI
+PhRegisterCallbackEx(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
     __in PVOID Context,
@@ -1996,12 +2213,18 @@ VOID PhRegisterCallbackEx(
     __out PPH_CALLBACK_REGISTRATION Registration
     );
 
-VOID PhUnregisterCallback(
+PHLIBAPI
+VOID
+NTAPI
+PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,
     __inout PPH_CALLBACK_REGISTRATION Registration
     );
 
-VOID PhInvokeCallback(
+PHLIBAPI
+VOID
+NTAPI
+PhInvokeCallback(
     __in PPH_CALLBACK Callback,
     __in PVOID Parameter
     );
@@ -2046,45 +2269,72 @@ FORCEINLINE VOID PhIncrementMultipleCallbackSync(
 
 // general
 
-ULONG PhGetPrimeNumber(
+PHLIBAPI
+ULONG
+NTAPI
+PhGetPrimeNumber(
     __in ULONG Minimum
     );
 
-ULONG PhRoundUpToPowerOfTwo(
+PHLIBAPI
+ULONG
+NTAPI
+PhRoundUpToPowerOfTwo(
     __in ULONG Number
     );
 
-ULONG PhExponentiate(
+PHLIBAPI
+ULONG
+NTAPI
+PhExponentiate(
     __in ULONG Base,
     __in ULONG Exponent
     );
 
-ULONG64 PhExponentiate64(
+PHLIBAPI
+ULONG64
+NTAPI
+PhExponentiate64(
     __in ULONG64 Base,
     __in ULONG Exponent
     );
 
-ULONG PhLog2(
+PHLIBAPI
+ULONG
+NTAPI
+PhLog2(
     __in ULONG Exponent
     );
 
-BOOLEAN PhHexStringToBuffer(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhHexStringToBuffer(
     __in PPH_STRING String,
     __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     );
 
-PPH_STRING PhBufferToHexString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhBufferToHexString(
     __in PUCHAR Buffer,
     __in ULONG Length
     );
 
-BOOLEAN PhStringToInteger64(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhStringToInteger64(
     __in PPH_STRINGREF String,
     __in_opt ULONG Base,
     __out PLONG64 Integer
     );
 
-PPH_STRING PhIntegerToString64(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhIntegerToString64(
     __in LONG64 Integer,
     __in_opt ULONG Base,
     __in BOOLEAN Signed
@@ -2097,7 +2347,10 @@ PPH_STRING PhIntegerToString64(
 #define PH_TIMESPAN_HMSM 1
 #define PH_TIMESPAN_DHMS 2
 
-VOID PhPrintTimeSpan(
+PHLIBAPI
+VOID
+NTAPI
+PhPrintTimeSpan(
     __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
     __in ULONG64 Ticks,
     __in_opt ULONG Mode
@@ -2149,25 +2402,37 @@ PPH_STRING PhaSubstring(
 
 // basesupx
 
-VOID FASTCALL PhxfAddInt32(
+PHLIBAPI
+VOID
+FASTCALL
+PhxfAddInt32(
     __inout __needsAlign(16) PLONG A,
     __in __needsAlign(16) PLONG B,
     __in ULONG Count
     );
 
-VOID FASTCALL PhxfAddInt32U(
+PHLIBAPI
+VOID
+FASTCALL
+PhxfAddInt32U(
     __inout PLONG A,
     __in PLONG B,
     __in ULONG Count
     );
 
-VOID FASTCALL PhxfDivideSingleU(
+PHLIBAPI
+VOID
+FASTCALL
+PhxfDivideSingleU(
     __inout PFLOAT A,
     __in PFLOAT B,
     __in ULONG Count
     );
 
-VOID FASTCALL PhxfDivideSingle2U(
+PHLIBAPI
+VOID
+FASTCALL
+PhxfDivideSingle2U(
     __inout PFLOAT A,
     __in FLOAT B,
     __in ULONG Count
@@ -2175,11 +2440,17 @@ VOID FASTCALL PhxfDivideSingle2U(
 
 // error
 
-NTSTATUS PhDosErrorToNtStatus(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhDosErrorToNtStatus(
     __in ULONG DosError
     );
 
-BOOLEAN PhNtStatusFileNotFound(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhNtStatusFileNotFound(
     __in NTSTATUS Status
     );
 
@@ -2209,22 +2480,34 @@ typedef struct _PH_BINARY_TREE
 
 #define PH_BINARY_TREE_INIT(CompareFunction) { { NULL, NULL, NULL }, 0, CompareFunction }
 
-VOID PhInitializeBinaryTree(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeBinaryTree(
     __out PPH_BINARY_TREE Tree,
     __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction
     );
 
-PPH_BINARY_LINKS PhBinaryTreeAdd(
+PHLIBAPI
+PPH_BINARY_LINKS
+NTAPI
+PhBinaryTreeAdd(
     __inout PPH_BINARY_TREE Tree,
     __out PPH_BINARY_LINKS Subject
     );
 
-VOID PhBinaryTreeRemove(
+PHLIBAPI
+VOID
+NTAPI
+PhBinaryTreeRemove(
     __inout PPH_BINARY_TREE Tree,
     __inout PPH_BINARY_LINKS Subject
     );
 
-PPH_BINARY_LINKS PhBinaryTreeSearch(
+PHLIBAPI
+PPH_BINARY_LINKS
+NTAPI
+PhBinaryTreeSearch(
     __in PPH_BINARY_TREE Tree,
     __in PPH_BINARY_LINKS Subject
     );
@@ -2254,22 +2537,34 @@ typedef struct _PH_AVL_TREE
 
 #define PH_AVL_TREE_INIT(CompareFunction) { { NULL, NULL, NULL, 0 }, 0, CompareFunction }
 
-VOID PhInitializeAvlTree(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeAvlTree(
     __out PPH_AVL_TREE Tree,
     __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
     );
 
-PPH_AVL_LINKS PhAvlTreeAdd(
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhAvlTreeAdd(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Subject
     );
 
-VOID PhAvlTreeRemove(
+PHLIBAPI
+VOID
+NTAPI
+PhAvlTreeRemove(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Subject
     );
 
-PPH_AVL_LINKS PhAvlTreeSearch(
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhAvlTreeSearch(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Subject
     );
@@ -2436,24 +2731,36 @@ typedef struct _PH_WORK_QUEUE_ITEM
 
 VOID PhWorkQueueInitialization();
 
-VOID PhInitializeWorkQueue(
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeWorkQueue(
     __out PPH_WORK_QUEUE WorkQueue,
     __in ULONG MinimumThreads,
     __in ULONG MaximumThreads,
     __in ULONG NoWorkTimeout
     );
 
-VOID PhDeleteWorkQueue(
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue
     );
 
-VOID PhQueueWorkQueueItem(
+PHLIBAPI
+VOID
+NTAPI
+PhQueueWorkQueueItem(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
     );
 
-VOID PhQueueGlobalWorkQueueItem(
+PHLIBAPI
+VOID
+NTAPI
+PhQueueGlobalWorkQueueItem(
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
     );
