@@ -13,25 +13,40 @@ typedef struct T___(_PH_CIRCULAR_BUFFER, T)
     T *Data;
 } T___(PH_CIRCULAR_BUFFER, T), *T___(PPH_CIRCULAR_BUFFER, T);
 
-VOID T___(PhInitializeCircularBuffer, T)(
+PHLIBAPI
+VOID
+NTAPI
+T___(PhInitializeCircularBuffer, T)(
     __out T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in ULONG Size
     );
 
-VOID T___(PhDeleteCircularBuffer, T)(
+PHLIBAPI
+VOID
+NTAPI
+T___(PhDeleteCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
     );
 
-VOID T___(PhResizeCircularBuffer, T)(
+PHLIBAPI
+VOID
+NTAPI
+T___(PhResizeCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in ULONG NewSize
     );
 
-VOID T___(PhClearCircularBuffer, T)(
+PHLIBAPI
+VOID
+NTAPI
+T___(PhClearCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer
     );
 
-VOID T___(PhCopyCircularBuffer, T)(
+PHLIBAPI
+VOID
+NTAPI
+T___(PhCopyCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __out T *Destination,
     __in ULONG Count

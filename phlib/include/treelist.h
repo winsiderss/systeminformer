@@ -299,11 +299,13 @@ typedef struct _PH_TL_GETNODETEXT
 
 BOOLEAN PhTreeListInitialization();
 
+PHLIBAPI
 HWND PhCreateTreeListControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
     );
 
+PHLIBAPI
 VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     );
@@ -313,16 +315,19 @@ VOID PhInitializeTreeListNode(
 #define TLIN_FONT 0x4
 #define TLIN_ICON 0x8
 
+PHLIBAPI
 VOID PhInvalidateTreeListNode(
     __inout PPH_TREELIST_NODE Node,
     __in ULONG Flags
     );
 
+PHLIBAPI
 VOID PhExpandTreeListNode(
     __inout PPH_TREELIST_NODE Node,
     __in BOOLEAN Recursive
     );
 
+PHLIBAPI
 BOOLEAN PhAddTreeListColumn(
     __in HWND hwnd,
     __in ULONG Id,

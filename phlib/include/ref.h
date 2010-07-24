@@ -97,7 +97,11 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
 
 NTSTATUS PhInitializeRef();
 
-__mayRaise NTSTATUS PhCreateObject(
+__mayRaise
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
@@ -105,14 +109,20 @@ __mayRaise NTSTATUS PhCreateObject(
     __in_opt LONG AdditionalReferences
     );
 
-NTSTATUS PhCreateObjectType(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateObjectType(
     __out PPH_OBJECT_TYPE *ObjectType,
     __in PWSTR Name,
     __in ULONG Flags,
     __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
     );
 
-NTSTATUS PhCreateObjectTypeEx(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateObjectTypeEx(
     __out PPH_OBJECT_TYPE *ObjectType,
     __in PWSTR Name,
     __in ULONG Flags,
@@ -182,7 +192,10 @@ PhReferenceObjectSafe(
     __in PVOID Object
     );
 
-NTSTATUS PhQuerySecurityObject(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQuerySecurityObject(
     __in PVOID Object,
     __in SECURITY_INFORMATION SecurityInformation,
     __out_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
@@ -190,7 +203,10 @@ NTSTATUS PhQuerySecurityObject(
     __out PULONG ReturnLength
     );
 
-NTSTATUS PhSetSecurityObject(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetSecurityObject(
     __in PVOID Object,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
