@@ -38,6 +38,7 @@ LIST_ENTRY PhPluginsListHead;
 
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
+static ULONG NextPluginId = IDPLUGINS + 1;
 
 VOID PhPluginsInitialization()
 {
@@ -200,4 +201,75 @@ PPH_CALLBACK PhGetGeneralCallback(
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
 
     return &GeneralCallbacks[Callback];
+}
+
+BOOLEAN PhPluginAddMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Location,
+    __in_opt PWSTR InsertAfter,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem;
+    HMENU menu;
+    HMENU subMenu;
+    ULONG insertIndex;
+    ULONG textCount;
+    WCHAR textBuffer[256];
+    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+    textCount = (ULONG)wcslen(Text);
+
+    if (textCount > 128)
+        return FALSE;
+
+    menuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    menuItem->Plugin = Plugin;
+    menuItem->Id = Id;
+    menuItem->Context = Context;
+
+    menu = GetMenu(PhMainWndHandle);
+    subMenu = GetSubMenu(menu, Location);
+
+    if (InsertAfter)
+    {
+        ULONG count;
+
+        menuItemInfo.fMask = MIIM_STRING;
+        menuItemInfo.dwTypeData = textBuffer;
+        menuItemInfo.cch = sizeof(textBuffer) / sizeof(WCHAR);
+
+        insertIndex = 0;
+        count = GetMenuItemCount(subMenu);
+
+        if (count == -1)
+            return FALSE;
+
+        for (insertIndex = 0; insertIndex < count; insertIndex++)
+        {
+            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo))
+            {
+                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, textCount) == 0)
+                {
+                    insertIndex++;
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        insertIndex = 0;
+    }
+
+    menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
+    menuItemInfo.wID = NextPluginId++;
+    menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
+    menuItemInfo.dwTypeData = Text;
+
+    InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);
+
+    return TRUE;
 }
