@@ -133,6 +133,7 @@ extern _TaskDialogIndirect TaskDialogIndirect_I;
 
 VOID PhGuiSupportInitialization();
 
+PHLIBAPI
 VOID PhSetControlTheme(
     __in HWND Handle,
     __in PWSTR Theme
@@ -437,6 +438,7 @@ typedef struct _PH_IMAGE_LIST_WRAPPER
     PPH_LIST FreeList;
 } PH_IMAGE_LIST_WRAPPER, *PPH_IMAGE_LIST_WRAPPER;
 
+PHLIBAPI
 VOID PhInitializeImageListWrapper(
     __out PPH_IMAGE_LIST_WRAPPER Wrapper,
     __in ULONG Width,
@@ -444,15 +446,18 @@ VOID PhInitializeImageListWrapper(
     __in ULONG Flags
     );
 
+PHLIBAPI
 VOID PhDeleteImageListWrapper(
     __inout PPH_IMAGE_LIST_WRAPPER Wrapper
     );
 
+PHLIBAPI
 INT PhImageListWrapperAddIcon(
     __in PPH_IMAGE_LIST_WRAPPER Wrapper,
     __in HICON Icon
     );
 
+PHLIBAPI
 VOID PhImageListWrapperRemove(
     __in PPH_IMAGE_LIST_WRAPPER Wrapper,
     __in INT Index

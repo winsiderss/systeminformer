@@ -219,11 +219,17 @@ PhAllocate(
     __in SIZE_T Size
     );
 
-PVOID PhAllocateSafe(
+PHLIBAPI
+PVOID
+NTAPI
+PhAllocateSafe(
     __in SIZE_T Size
     );
 
-PVOID PhAllocateExSafe(
+PHLIBAPI
+PVOID
+NTAPI
+PhAllocateExSafe(
     __in SIZE_T Size,
     __in ULONG Flags
     );
@@ -244,7 +250,10 @@ PhReAllocate(
     __in SIZE_T Size
     );
 
-PVOID PhReAllocateSafe(
+PHLIBAPI
+PVOID
+NTAPI
+PhReAllocateSafe(
     __in PVOID Memory,
     __in SIZE_T Size
     );
@@ -1448,54 +1457,84 @@ typedef struct _PH_FULL_STRING
     PWSTR Buffer;
 } PH_FULL_STRING, *PPH_FULL_STRING;
 
-PPH_FULL_STRING PhCreateFullString(
+PHLIBAPI
+PPH_FULL_STRING
+NTAPI
+PhCreateFullString(
     __in PWSTR Buffer
     );
 
-PPH_FULL_STRING PhCreateFullString2(
+PHLIBAPI
+PPH_FULL_STRING
+NTAPI
+PhCreateFullString2(
     __in SIZE_T InitialCapacity
     );
 
-PPH_FULL_STRING PhCreateFullStringEx(
+PHLIBAPI
+PPH_FULL_STRING
+NTAPI
+PhCreateFullStringEx(
     __in_opt PWSTR Buffer,
     __in SIZE_T Length,
     __in_opt SIZE_T InitialCapacity
     );
 
-VOID PhResizeFullString(
+PHLIBAPI
+VOID
+NTAPI
+PhResizeFullString(
     __inout PPH_FULL_STRING String,
     __in SIZE_T NewLength,
     __in BOOLEAN Growing
     );
 
-VOID PhFullStringAppend(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppend(
     __inout PPH_FULL_STRING String,
     __in PPH_STRING ShortString
     );
 
-VOID PhFullStringAppend2(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppend2(
     __inout PPH_FULL_STRING String,
     __in PWSTR StringZ
     );
 
-VOID PhFullStringAppendEx(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppendEx(
     __inout PPH_FULL_STRING String,
     __in PWSTR Buffer,
     __in SIZE_T Length
     );
 
-VOID PhFullStringAppendChar(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppendChar(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character
     );
 
-VOID PhFullStringAppendFormat(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppendFormat(
     __inout PPH_FULL_STRING String,
     __in __format_string PWSTR Format,
     ...
     );
 
-VOID PhFullStringRemove(
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringRemove(
     __inout PPH_FULL_STRING String,
     __in SIZE_T StartIndex,
     __in SIZE_T Count
@@ -1775,28 +1814,43 @@ typedef struct _PH_POINTER_LIST
 
 #define PH_IS_LIST_POINTER_VALID(Pointer) (!((ULONG_PTR)(Pointer) & 0x1))
 
-PPH_POINTER_LIST PhCreatePointerList(
+PHLIBAPI
+PPH_POINTER_LIST
+NTAPI
+PhCreatePointerList(
     __in ULONG InitialCapacity
     );
 
-HANDLE PhAddPointerListItem(
+PHLIBAPI
+HANDLE
+NTAPI
+PhAddPointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
 
-BOOLEAN PhEnumPointerListEx(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhEnumPointerListEx(
     __in PPH_POINTER_LIST PointerList,
     __inout PULONG EnumerationKey,
     __out PPVOID Pointer,
     __out PHANDLE PointerHandle
     );
 
-HANDLE PhFindPointerListItem(
+PHLIBAPI
+HANDLE
+NTAPI
+PhFindPointerListItem(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
 
-VOID PhRemovePointerListItem(
+PHLIBAPI
+VOID
+NTAPI
+PhRemovePointerListItem(
     __inout PPH_POINTER_LIST PointerList,
     __in HANDLE PointerHandle
     );
@@ -1848,21 +1902,33 @@ typedef struct _PH_QUEUE
     ULONG Tail;
 } PH_QUEUE, *PPH_QUEUE;
 
-PPH_QUEUE PhCreateQueue(
+PHLIBAPI
+PPH_QUEUE
+NTAPI
+PhCreateQueue(
     __in ULONG InitialCapacity
     );
 
-VOID PhEnqueueQueueItem(
+PHLIBAPI
+VOID
+NTAPI
+PhEnqueueQueueItem(
     __inout PPH_QUEUE Queue,
     __in PVOID Item
     );
 
-BOOLEAN PhDequeueQueueItem(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDequeueQueueItem(
     __inout PPH_QUEUE Queue,
     __out PPVOID Item
     );
 
-BOOLEAN PhPeekQueueItem(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhPeekQueueItem(
     __in PPH_QUEUE Queue,
     __out PPVOID Item
     );
@@ -1962,34 +2028,52 @@ typedef struct _PH_HASHTABLE
     ((ULONG)(PTR_ADD_OFFSET(Entry, -(Hashtable)->Entries) / \
     PH_HASHTABLE_ENTRY_SIZE((Hashtable)->EntrySize)))
 
-PPH_HASHTABLE PhCreateHashtable(
+PHLIBAPI
+PPH_HASHTABLE
+NTAPI
+PhCreateHashtable(
     __in ULONG EntrySize,
     __in PPH_HASHTABLE_COMPARE_FUNCTION CompareFunction,
     __in PPH_HASHTABLE_HASH_FUNCTION HashFunction,
     __in ULONG InitialCapacity
     );
 
-PVOID PhAddHashtableEntry(
+PHLIBAPI
+PVOID
+NTAPI
+PhAddHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
 
-VOID PhClearHashtable(
+PHLIBAPI
+VOID
+NTAPI
+PhClearHashtable(
     __inout PPH_HASHTABLE Hashtable
     );
 
-BOOLEAN PhEnumHashtable(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhEnumHashtable(
     __in PPH_HASHTABLE Hashtable,
     __out PPVOID Entry,
     __inout PULONG EnumerationKey
     );
 
-PVOID PhGetHashtableEntry(
+PHLIBAPI
+PVOID
+NTAPI
+PhGetHashtableEntry(
     __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
 
-BOOLEAN PhRemoveHashtableEntry(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRemoveHashtableEntry(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
@@ -1997,19 +2081,28 @@ BOOLEAN PhRemoveHashtableEntry(
 #define PhHashBytes PhHashBytesSdbm
 
 #define PhHashBytesHsieh PhfHashBytesHsieh
-ULONG FASTCALL PhfHashBytesHsieh(
+PHLIBAPI
+ULONG
+FASTCALL
+PhfHashBytesHsieh(
     __in PUCHAR Bytes,
     __in ULONG Length
     );
 
 #define PhHashBytesMurmur PhfHashBytesMurmur
-ULONG FASTCALL PhfHashBytesMurmur(
+PHLIBAPI
+ULONG
+FASTCALL
+PhfHashBytesMurmur(
     __in PUCHAR Bytes,
     __in ULONG Length
     );
 
 #define PhHashBytesSdbm PhfHashBytesSdbm
-ULONG FASTCALL PhfHashBytesSdbm(
+PHLIBAPI
+ULONG
+FASTCALL
+PhfHashBytesSdbm(
     __in PUCHAR Bytes,
     __in ULONG Length
     );
@@ -2047,22 +2140,34 @@ typedef struct _PH_KEY_VALUE_PAIR
     PVOID Value;
 } PH_KEY_VALUE_PAIR, *PPH_KEY_VALUE_PAIR;
 
-PPH_HASHTABLE PhCreateSimpleHashtable(
+PHLIBAPI
+PPH_HASHTABLE
+NTAPI
+PhCreateSimpleHashtable(
     __in ULONG InitialCapacity
     );
 
-PVOID PhAddSimpleHashtableItem(
+PHLIBAPI
+PVOID
+NTAPI
+PhAddSimpleHashtableItem(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key,
     __in PVOID Value
     );
 
-PPVOID PhGetSimpleHashtableItem(
+PHLIBAPI
+PPVOID
+NTAPI
+PhGetSimpleHashtableItem(
     __in PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     );
 
-BOOLEAN PhRemoveSimpleHashtableItem(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhRemoveSimpleHashtableItem(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     );
@@ -2358,43 +2463,70 @@ PhPrintTimeSpan(
 
 // basesupa
 
-PPH_STRING PhaCreateString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaCreateString(
     __in PWSTR Buffer
     );
 
-PPH_STRING PhaCreateStringEx(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaCreateStringEx(
     __in PWSTR Buffer,
     __in SIZE_T Length
     );
 
-PPH_STRING PhaDuplicateString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaDuplicateString(
     __in PPH_STRING String
     );
 
-PPH_STRING PhaConcatStrings(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaConcatStrings(
     __in ULONG Count,
     ...
     );
 
-PPH_STRING PhaConcatStrings2(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaConcatStrings2(
     __in PWSTR String1,
     __in PWSTR String2
     );
 
-PPH_STRING PhaFormatString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaFormatString(
     __in __format_string PWSTR Format,
     ...
     );
 
-PPH_STRING PhaLowerString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaLowerString(
     __in PPH_STRING String
     );
 
-PPH_STRING PhaUpperString(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaUpperString(
     __in PPH_STRING String
     );
 
-PPH_STRING PhaSubstring(
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhaSubstring(
     __in PPH_STRING String,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -2609,34 +2741,55 @@ typedef struct _PH_HANDLE_TABLE_ENTRY
 
 VOID PhHandleTableInitialization();
 
-PPH_HANDLE_TABLE PhCreateHandleTable();
+PHLIBAPI
+PPH_HANDLE_TABLE
+NTAPI
+PhCreateHandleTable();
 
-VOID PhDestroyHandleTable(
+PHLIBAPI
+VOID
+NTAPI
+PhDestroyHandleTable(
     __in __post_invalid PPH_HANDLE_TABLE HandleTable
     );
 
-BOOLEAN PhLockHandleTableEntry(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhLockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-VOID PhUnlockHandleTableEntry(
+PHLIBAPI
+VOID
+NTAPI
+PhUnlockHandleTableEntry(
     __inout PPH_HANDLE_TABLE HandleTable,
     __inout PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-HANDLE PhCreateHandle(
+PHLIBAPI
+HANDLE
+NTAPI
+PhCreateHandle(
     __inout PPH_HANDLE_TABLE HandleTable,
     __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-BOOLEAN PhDestroyHandle(
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhDestroyHandle(
     __inout PPH_HANDLE_TABLE HandleTable,
     __in HANDLE Handle,
     __in_opt __assumeLocked PPH_HANDLE_TABLE_ENTRY HandleTableEntry
     );
 
-PPH_HANDLE_TABLE_ENTRY PhGetHandleTableEntry(
+PHLIBAPI
+PPH_HANDLE_TABLE_ENTRY
+NTAPI
+PhGetHandleTableEntry(
     __in PPH_HANDLE_TABLE HandleTable,
     __in HANDLE Handle
     );
@@ -2648,13 +2801,19 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
     __in PVOID Context
     );
 
-VOID PhEnumHandleTable(
+PHLIBAPI
+VOID
+NTAPI
+PhEnumHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
     __in PVOID Context
     );
 
-VOID PhSweepHandleTable(
+PHLIBAPI
+VOID
+NTAPI
+PhSweepHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
     __in PVOID Context
@@ -2679,7 +2838,10 @@ typedef struct _PH_HANDLE_TABLE_FLAGS_INFORMATION
     ULONG Flags;
 } PH_HANDLE_TABLE_FLAGS_INFORMATION, *PPH_HANDLE_TABLE_FLAGS_INFORMATION;
 
-NTSTATUS PhQueryInformationHandleTable(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryInformationHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
     __out_bcount_opt(BufferLength) PVOID Buffer,
@@ -2687,7 +2849,10 @@ NTSTATUS PhQueryInformationHandleTable(
     __out_opt PULONG ReturnLength
     );
 
-NTSTATUS PhSetInformationHandleTable(
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhSetInformationHandleTable(
     __inout PPH_HANDLE_TABLE HandleTable,
     __in PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
     __in_bcount(BufferLength) PVOID Buffer,

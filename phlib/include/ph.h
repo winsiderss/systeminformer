@@ -1578,28 +1578,34 @@ typedef struct _PH_PROVIDER_THREAD
     ULONG BoostCount;
 } PH_PROVIDER_THREAD, *PPH_PROVIDER_THREAD;
 
+PHLIBAPI
 VOID PhInitializeProviderThread(
     __out PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
     );
 
+PHLIBAPI
 VOID PhDeleteProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
+PHLIBAPI
 VOID PhStartProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
+PHLIBAPI
 VOID PhStopProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread
     );
 
+PHLIBAPI
 VOID PhSetProviderThreadInterval(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
     );
 
+PHLIBAPI
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
@@ -1607,23 +1613,28 @@ VOID PhRegisterProvider(
     __out PPH_PROVIDER_REGISTRATION Registration
     );
 
+PHLIBAPI
 VOID PhUnregisterProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration
     );
 
+PHLIBAPI
 BOOLEAN PhBoostProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration,
     __out_opt PULONG FutureRunId
     );
 
+PHLIBAPI
 ULONG PhGetProviderRunId(
     __in PPH_PROVIDER_REGISTRATION Registration
     );
 
+PHLIBAPI
 BOOLEAN PhGetProviderEnabled(
     __in PPH_PROVIDER_REGISTRATION Registration
     );
 
+PHLIBAPI
 VOID PhSetProviderEnabled(
     __inout PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
