@@ -21,6 +21,14 @@
  */
 
 #include <phapp.h>
+#define CINTERFACE
+#define COBJMACROS
+#include <taskschd.h>
+
+VOID PhpFillRunningTasks(
+    __in PPH_PROCESS_ITEM Process,
+    __inout PPH_STRING_BUILDER Tasks
+    );
 
 static int __cdecl ServiceForTooltipCompare(
     __in const void *elem1,
@@ -224,6 +232,27 @@ PPH_STRING PhGetProcessTooltipText(
         PhDereferenceObject(serviceList);
     }
 
+    // Tasks
+    if (WindowsVersion >= WINDOWS_VISTA && (
+        PhStringEquals2(Process->ProcessName, L"taskeng.exe", TRUE) ||
+        PhStringEquals2(Process->ProcessName, L"taskhost.exe", TRUE)
+        ))
+    {
+        PH_STRING_BUILDER tasks;
+
+        PhInitializeStringBuilder(&tasks, 40);
+
+        PhpFillRunningTasks(Process, &tasks);
+
+        if (tasks.String->Length != 0)
+        {
+            PhStringBuilderAppend2(&stringBuilder, L"Tasks:\n");
+            PhStringBuilderAppend(&stringBuilder, tasks.String);
+        }
+
+        PhDeleteStringBuilder(&tasks);
+    }
+
     // Notes
 
     {
@@ -301,6 +330,89 @@ PPH_STRING PhGetProcessTooltipText(
     PhDeleteStringBuilder(&stringBuilder);
 
     return tooltipText;
+}
+
+VOID PhpFillRunningTasks(
+    __in PPH_PROCESS_ITEM Process,
+    __inout PPH_STRING_BUILDER Tasks
+    )
+{
+    static CLSID CLSID_TaskScheduler_I = { 0x0f87369f, 0xa4e5, 0x4cfc, { 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd } };
+    static IID IID_ITaskService_I = { 0x2faba4c7, 0x4da9, 0x4013, { 0x96, 0x97, 0x20, 0xcc, 0x3f, 0xd4, 0x0f, 0x85 } };
+
+    ITaskService *taskService;
+
+    if (SUCCEEDED(CoCreateInstance(
+        &CLSID_TaskScheduler_I,
+        NULL,
+        CLSCTX_INPROC_SERVER,
+        &IID_ITaskService_I,
+        &taskService
+        )))
+    {
+        VARIANT empty = { 0 };
+
+        if (SUCCEEDED(ITaskService_Connect(taskService, empty, empty, empty, empty)))
+        {
+            IRunningTaskCollection *runningTasks;
+
+            if (SUCCEEDED(ITaskService_GetRunningTasks(
+                taskService,
+                TASK_ENUM_HIDDEN,
+                &runningTasks
+                )))
+            {
+                LONG count;
+                LONG i;
+                VARIANT index;
+
+                index.vt = VT_INT;
+
+                if (SUCCEEDED(IRunningTaskCollection_get_Count(runningTasks, &count)))
+                {
+                    for (i = 1; i <= count; i++) // collections are 1-based
+                    {
+                        IRunningTask *runningTask;
+
+                        index.lVal = i;
+
+                        if (SUCCEEDED(IRunningTaskCollection_get_Item(runningTasks, index, &runningTask)))
+                        {
+                            ULONG pid;
+                            BSTR action = NULL;
+                            BSTR path = NULL;
+
+                            if (
+                                SUCCEEDED(IRunningTask_get_EnginePID(runningTask, &pid)) &&
+                                pid == (ULONG)Process->ProcessId
+                                )
+                            {
+                                IRunningTask_get_CurrentAction(runningTask, &action);
+                                IRunningTask_get_Path(runningTask, &path);
+
+                                PhStringBuilderAppend2(Tasks, L"    ");
+                                PhStringBuilderAppend2(Tasks, action ? action : L"Unknown Action");
+                                PhStringBuilderAppend2(Tasks, L" (");
+                                PhStringBuilderAppend2(Tasks, path ? path : L"Unknown Path");
+                                PhStringBuilderAppend2(Tasks, L")\n");
+
+                                if (action)
+                                    SysFreeString(action);
+                                if (path)
+                                    SysFreeString(path);
+                            }
+
+                            IRunningTask_Release(runningTask);
+                        }
+                    }
+                }
+
+                IRunningTaskCollection_Release(runningTasks);
+            }
+        }
+
+        ITaskService_Release(taskService);
+    }
 }
 
 PPH_STRING PhGetServiceTooltipText(
