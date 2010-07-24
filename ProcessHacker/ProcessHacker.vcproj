@@ -69,9 +69,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib comctl32.lib version.lib wtsapi32.lib"
+				AdditionalDependencies="ntdll.lib comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)32;../lib/lib32"
+				AdditionalLibraryDirectories="../lib/lib32"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
@@ -150,9 +150,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib comctl32.lib version.lib wtsapi32.lib"
+				AdditionalDependencies="ntdll.lib comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)64;../lib/lib64"
+				AdditionalLibraryDirectories="../lib/lib64"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
@@ -233,9 +233,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib comctl32.lib version.lib wtsapi32.lib"
+				AdditionalDependencies="ntdll.lib comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)32;../lib/lib32"
+				AdditionalLibraryDirectories="../lib/lib32"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
@@ -318,9 +318,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib comctl32.lib version.lib wtsapi32.lib"
+				AdditionalDependencies="ntdll.lib comctl32.lib version.lib wtsapi32.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="$(SolutionDir)\phlib\bin\$(ConfigurationName)64;../lib/lib64"
+				AdditionalLibraryDirectories="../lib/lib64"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
 				IgnoreAllDefaultLibraries="false"
 				GenerateDebugInformation="true"
@@ -356,9 +356,293 @@
 	</References>
 	<Files>
 		<Filter
-			Name="Source Files"
+			Name="phlib"
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
+			<File
+				RelativePath="..\phlib\basesup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\basesupa.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\basesupx.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\bintree.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\circbuf.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\circbuf_i.h"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\clrsup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\colorbox.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\data.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\error.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\extlv.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\fastlock.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\global.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\graph.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\guisup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\handle.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\hexedit.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\hndlinfo.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\icotobmp.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\iosup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\kph.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\lsa.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\mapimg.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\maplib.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\md5.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\native.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\ntimport.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\provider.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\queuedlock.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\ref.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\secdata.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\secedit.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\sha.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\support.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\svcsup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\symprv.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\sync.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\treelist.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\verify.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\workqueue.c"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Headers"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
+			<File
+				RelativePath=".\mxml\config.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\hidnproc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\memsrch.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml-private.h"
+				>
+			</File>
+			<File
+				RelativePath=".\mxml\mxml.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\phapp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\procdb.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\procprpp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\providers.h"
+				>
+			</File>
+			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\settings.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\settingsp.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resources"
+			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
+			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			>
+			<File
+				RelativePath=".\resources\application.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\black.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\bricks.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\cog_edit.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\cog_edit.png"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\cross.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\folder.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\magnifier.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\minus.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\pencil.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\plus.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\ProcessHacker.ico"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\ProcessHacker.png"
+				>
+			</File>
+			<File
+				RelativePath=".\ProcessHacker.rc"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\tick.bmp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Process Hacker"
 			>
 			<File
 				RelativePath=".\about.c"
@@ -425,6 +709,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\itemtips.c"
+				>
+			</File>
+			<File
 				RelativePath=".\jobprp.c"
 				>
 			</File>
@@ -470,42 +758,6 @@
 			</File>
 			<File
 				RelativePath=".\modprv.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-attr.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-entity.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-file.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-index.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-node.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-private.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-search.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-set.c"
-				>
-			</File>
-			<File
-				RelativePath=".\mxml\mxml-string.c"
 				>
 			</File>
 			<File
@@ -602,134 +854,130 @@
 			</File>
 		</Filter>
 		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			Name="PCRE"
 			>
 			<File
-				RelativePath=".\mxml\config.h"
+				RelativePath="..\phlib\pcre\pcre_chartables.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\hidnproc.h"
+				RelativePath="..\phlib\pcre\pcre_compile.c"
 				>
 			</File>
 			<File
-				RelativePath=".\itemtips.c"
+				RelativePath="..\phlib\pcre\pcre_config.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\memsrch.h"
+				RelativePath="..\phlib\pcre\pcre_dfa_exec.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml-private.h"
+				RelativePath="..\phlib\pcre\pcre_exec.c"
 				>
 			</File>
 			<File
-				RelativePath=".\mxml\mxml.h"
+				RelativePath="..\phlib\pcre\pcre_fullinfo.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\phapp.h"
+				RelativePath="..\phlib\pcre\pcre_get.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\procdb.h"
+				RelativePath="..\phlib\pcre\pcre_globals.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\procprpp.h"
+				RelativePath="..\phlib\pcre\pcre_info.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\providers.h"
+				RelativePath="..\phlib\pcre\pcre_maketables.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resource.h"
+				RelativePath="..\phlib\pcre\pcre_newline.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\settings.h"
+				RelativePath="..\phlib\pcre\pcre_ord2utf8.c"
 				>
 			</File>
 			<File
-				RelativePath=".\include\settingsp.h"
+				RelativePath="..\phlib\pcre\pcre_refcount.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_study.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_tables.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_try_flipped.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_ucd.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_valid_utf8.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_version.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcre_xclass.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\pcre\pcreposix.c"
 				>
 			</File>
 		</Filter>
 		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
+			Name="Mini-XML"
 			>
 			<File
-				RelativePath=".\resources\application.bmp"
+				RelativePath=".\mxml\mxml-attr.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\bitmap1.bmp"
+				RelativePath=".\mxml\mxml-entity.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\black.ico"
+				RelativePath=".\mxml\mxml-file.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\bricks.bmp"
+				RelativePath=".\mxml\mxml-index.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\cog_edit.bmp"
+				RelativePath=".\mxml\mxml-node.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\cog_edit.png"
+				RelativePath=".\mxml\mxml-private.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\cross.bmp"
+				RelativePath=".\mxml\mxml-search.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\folder.bmp"
+				RelativePath=".\mxml\mxml-set.c"
 				>
 			</File>
 			<File
-				RelativePath=".\resources\icon1.ico"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\magnifier.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\minus.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\pencil.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\plus.bmp"
-				>
-			</File>
-			<File
-				RelativePath=".\ProcessHacker.ico"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\ProcessHacker.png"
-				>
-			</File>
-			<File
-				RelativePath=".\ProcessHacker.rc"
-				>
-			</File>
-			<File
-				RelativePath=".\resources\tick.bmp"
+				RelativePath=".\mxml\mxml-string.c"
 				>
 			</File>
 		</Filter>

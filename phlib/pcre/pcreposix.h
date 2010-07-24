@@ -109,6 +109,8 @@ typedef struct {
   regoff_t rm_eo;
 } regmatch_t;
 
+#if 0 /* wj32: kill all this */
+
 /* When an application links to a PCRE DLL in Windows, the symbols that are
 imported have to be identified as such. When building PCRE, the appropriate
 export settings are needed, and are set in pcreposix.c before including this
@@ -129,6 +131,15 @@ file. */
 #    define PCREPOSIX_EXP_DECL  extern
 #    define PCREPOSIX_EXP_DEFN  extern
 #  endif
+#endif
+
+#else
+
+#undef PCREPOSIX_EXP_DECL
+#define PCREPOSIX_EXP_DECL
+#undef PCREPOSIX_EXP_DEFN
+#define PCREPOSIX_EXP_DEFN
+
 #endif
 
 /* The functions */

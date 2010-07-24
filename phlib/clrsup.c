@@ -30,13 +30,16 @@
 
 PPH_CLR_PUBLISH PhClrCreatePublish()
 {
+    static CLSID CLSID_CorpubPublish_I = { 0x047a9a40, 0x657e, 0x11d3, { 0x8d, 0x5b, 0x00, 0x10, 0x4b, 0x35, 0xe7, 0xef } };
+    static IID IID_ICorPublish_I = { 0x9613a0e7, 0x5a68, 0x11d3, { 0x8f, 0x84, 0x00, 0xa0, 0xc9, 0xb4, 0xd5, 0x0c } };
+
     ICorPublish *publish;
 
     if (SUCCEEDED(CoCreateInstance(
-        &CLSID_CorpubPublish,
+        &CLSID_CorpubPublish_I,
         NULL,
         CLSCTX_INPROC_SERVER,
-        &IID_ICorPublish,
+        &IID_ICorPublish_I,
         &publish
         )))
     {
