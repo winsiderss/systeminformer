@@ -61,55 +61,88 @@ FORCEINLINE VOID PhInitializeQueuedLock(
     QueuedLock->Value = 0;
 }
 
-VOID FASTCALL PhfAcquireQueuedLockExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-VOID FASTCALL PhfAcquireQueuedLockShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-VOID FASTCALL PhfReleaseQueuedLockExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-VOID FASTCALL PhfReleaseQueuedLockShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseQueuedLockShared(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
-VOID FASTCALL PhfTryWakeQueuedLock(
+PHLIBAPI
+VOID
+FASTCALL
+PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
 #define PhPulseCondition PhfPulseCondition
-VOID FASTCALL PhfPulseCondition(
+PHLIBAPI
+VOID
+FASTCALL
+PhfPulseCondition(
     __inout PPH_QUEUED_LOCK Condition
     );
 
 #define PhPulseAllCondition PhfPulseAllCondition
-VOID FASTCALL PhfPulseAllCondition(
+PHLIBAPI
+VOID
+FASTCALL
+PhfPulseAllCondition(
     __inout PPH_QUEUED_LOCK Condition
     );
 
 #define PhWaitForCondition PhfWaitForCondition
-VOID FASTCALL PhfWaitForCondition(
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForCondition(
     __inout PPH_QUEUED_LOCK Condition,
     __inout_opt PPH_QUEUED_LOCK Lock,
     __in_opt PLARGE_INTEGER Timeout
     );
 
 #define PhQueueWakeEvent PhfQueueWakeEvent
-VOID FASTCALL PhfQueueWakeEvent(
+PHLIBAPI
+VOID
+FASTCALL
+PhfQueueWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent,
     __out PPH_QUEUED_WAIT_BLOCK WaitBlock
     );
 
-VOID FASTCALL PhfSetWakeEvent(
+PHLIBAPI
+VOID
+FASTCALL
+PhfSetWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent
     );
 
 #define PhWaitForWakeEvent PhfWaitForWakeEvent
-NTSTATUS FASTCALL PhfWaitForWakeEvent(
+PHLIBAPI
+NTSTATUS
+FASTCALL
+PhfWaitForWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent,
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
     __in_opt PLARGE_INTEGER Timeout

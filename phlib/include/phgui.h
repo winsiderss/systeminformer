@@ -207,6 +207,7 @@ FORCEINLINE LRESULT PhReflectMessage(
     return 0;
 }
 
+PHLIBAPI
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
@@ -234,6 +235,7 @@ FORCEINLINE VOID PhSetListViewStyle(
         );
 }
 
+PHLIBAPI
 INT PhAddListViewColumn(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -244,6 +246,7 @@ INT PhAddListViewColumn(
     __in PWSTR Text
     );
 
+PHLIBAPI
 INT PhAddListViewItem(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -251,47 +254,55 @@ INT PhAddListViewItem(
     __in PVOID Param
     );
 
+PHLIBAPI
 INT PhFindListViewItemByFlags(
     __in HWND ListViewHandle,
     __in INT StartIndex,
     __in ULONG Flags
     );
 
+PHLIBAPI
 INT PhFindListViewItemByParam(
     __in HWND ListViewHandle,
     __in INT StartIndex,
     __in PVOID Param
     );
 
+PHLIBAPI
 LOGICAL PhGetListViewItemImageIndex(
     __in HWND ListViewHandle,
     __in INT Index,
     __out PINT ImageIndex
     );
 
+PHLIBAPI
 LOGICAL PhGetListViewItemParam(
     __in HWND ListViewHandle,
     __in INT Index,
     __out PPVOID Param
     );
 
+PHLIBAPI
 VOID PhRemoveListViewItem(
     __in HWND ListViewHandle,
     __in INT Index
     );
 
+PHLIBAPI
 VOID PhSetListViewItemImageIndex(
     __in HWND ListViewHandle,
     __in INT Index,
     __in INT ImageIndex
     );
 
+PHLIBAPI
 VOID PhSetListViewItemStateImage(
     __in HWND ListViewHandle,
     __in INT Index,
     __in INT StateImage
     );
 
+PHLIBAPI
 VOID PhSetListViewSubItem(
     __in HWND ListViewHandle,
     __in INT Index,
@@ -299,19 +310,23 @@ VOID PhSetListViewSubItem(
     __in PWSTR Text
     );
 
+PHLIBAPI
 BOOLEAN PhLoadListViewColumnSettings(
     __in HWND ListViewHandle,
     __in PPH_STRING Settings
     );
 
+PHLIBAPI
 PPH_STRING PhSaveListViewColumnSettings(
     __in HWND ListViewHandle
     );
 
+PHLIBAPI
 HWND PhCreateTabControl(
     __in HWND ParentHandle
     );
 
+PHLIBAPI
 INT PhAddTabControlTab(
     __in HWND TabControlHandle,
     __in INT Index,
@@ -321,26 +336,31 @@ INT PhAddTabControlTab(
 #define PHA_GET_DLGITEM_TEXT(hwndDlg, id) \
     ((PPH_STRING)PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, id))))
 
+PHLIBAPI
 PPH_STRING PhGetWindowText(
     __in HWND hwnd
     );
 
+PHLIBAPI
 VOID PhAddComboBoxStrings(
     __in HWND hWnd,
     __in PWSTR *Strings,
     __in ULONG NumberOfStrings
     );
 
+PHLIBAPI
 PPH_STRING PhGetComboBoxString(
     __in HWND hwnd,
     __in INT Index
     );
 
+PHLIBAPI
 PPH_STRING PhGetListBoxString(
     __in HWND hwnd,
     __in INT Index
     );
 
+PHLIBAPI
 VOID PhShowContextMenu(
     __in HWND hwnd,
     __in HWND subHwnd,
@@ -348,6 +368,7 @@ VOID PhShowContextMenu(
     __in POINT point
     );
 
+PHLIBAPI
 UINT PhShowContextMenu2(
     __in HWND hwnd,
     __in HWND subHwnd,
@@ -355,6 +376,7 @@ UINT PhShowContextMenu2(
     __in POINT point
     );
 
+PHLIBAPI
 VOID PhSetMenuItemBitmap(
     __in HMENU Menu,
     __in ULONG Item,
@@ -362,39 +384,46 @@ VOID PhSetMenuItemBitmap(
     __in HBITMAP Bitmap
     );
 
+PHLIBAPI
 VOID PhSetRadioCheckMenuItem(
     __in HMENU Menu,
     __in ULONG Id,
     __in BOOLEAN RadioCheck
     );
 
+PHLIBAPI
 VOID PhEnableMenuItem(
     __in HMENU Menu,
     __in ULONG Id,
     __in BOOLEAN Enable
     );
 
+PHLIBAPI
 VOID PhEnableAllMenuItems(
     __in HMENU Menu,
     __in BOOLEAN Enable
     );
 
+PHLIBAPI
 VOID PhSetStateAllListViewItems(
     __in HWND hWnd,
     __in ULONG State,
     __in ULONG Mask
     );
 
+PHLIBAPI
 PVOID PhGetSelectedListViewItemParam(
     __in HWND hWnd
     );
 
+PHLIBAPI
 VOID PhGetSelectedListViewItemParams(
     __in HWND hWnd,
     __out PVOID **Items,
     __out PULONG NumberOfItems
     );
 
+PHLIBAPI
 VOID PhSetImageListBitmap(
     __in HIMAGELIST ImageList,
     __in INT Index,
@@ -429,11 +458,13 @@ VOID PhImageListWrapperRemove(
     __in INT Index
     );
 
+PHLIBAPI
 VOID PhSetClipboardString(
     __in HWND hWnd,
     __in PPH_STRINGREF String
     );
 
+PHLIBAPI
 VOID PhSetClipboardStringEx(
     __in HWND hWnd,
     __in PWSTR Buffer,
@@ -475,15 +506,18 @@ typedef struct _PH_LAYOUT_MANAGER
     ULONG LayoutNumber;
 } PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
 
+PHLIBAPI
 VOID PhInitializeLayoutManager(
     __out PPH_LAYOUT_MANAGER Manager,
     __in HWND RootWindowHandle
     );
 
+PHLIBAPI
 VOID PhDeleteLayoutManager(
     __inout PPH_LAYOUT_MANAGER Manager
     );
 
+PHLIBAPI
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
@@ -491,6 +525,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
     __in ULONG Anchor
     );
 
+PHLIBAPI
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     __inout PPH_LAYOUT_MANAGER Manager,
     __in HWND Handle,
@@ -499,6 +534,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     __in RECT Margin
     );
 
+PHLIBAPI
 VOID PhLayoutManagerLayout(
     __inout PPH_LAYOUT_MANAGER Manager
     );
@@ -549,6 +585,7 @@ FORCEINLINE VOID PhCopyControlRectangle(
 
 // icotobmp
 
+PHLIBAPI
 HBITMAP PhIconToBitmap(
     __in HICON Icon,
     __in ULONG Width,
@@ -617,10 +654,12 @@ typedef HFONT (NTAPI *PPH_EXTLV_GET_ITEM_FONT)(
     __in PVOID Context
     );
 
+PHLIBAPI
 VOID PhSetExtendedListView(
     __in HWND hWnd
     );
 
+PHLIBAPI
 VOID PhSetHeaderSortIcon(
     __in HWND hwnd,
     __in INT Index,
@@ -787,6 +826,7 @@ typedef struct _PH_ACCESS_ENTRY
 
 VOID PhSecurityEditorInitialization();
 
+PHLIBAPI
 HPROPSHEETPAGE PhCreateSecurityPage(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -796,6 +836,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     __in ULONG NumberOfAccessEntries
     );
 
+PHLIBAPI
 VOID PhEditSecurity(
     __in HWND hWnd,
     __in PWSTR ObjectName,
@@ -869,18 +910,21 @@ FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
     return access;
 }
 
+PHLIBAPI
 __callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context
     );
 
+PHLIBAPI
 __callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PVOID Context
     );
 
+PHLIBAPI
 NTSTATUS PhGetSeObjectSecurity(
     __in HANDLE Handle,
     __in SE_OBJECT_TYPE ObjectType,
@@ -888,6 +932,7 @@ NTSTATUS PhGetSeObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
 
+PHLIBAPI
 NTSTATUS PhSetSeObjectSecurity(
     __in HANDLE Handle,
     __in SE_OBJECT_TYPE ObjectType,
@@ -897,12 +942,14 @@ NTSTATUS PhSetSeObjectSecurity(
 
 // secdata
 
+PHLIBAPI
 BOOLEAN PhGetAccessEntries(
     __in PWSTR Type,
     __out PPH_ACCESS_ENTRY *AccessEntries,
     __out PULONG NumberOfAccessEntries
     );
 
+PHLIBAPI
 PPH_STRING PhGetAccessString(
     __in ACCESS_MASK Access,
     __in PPH_ACCESS_ENTRY AccessEntries,

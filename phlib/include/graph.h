@@ -50,11 +50,13 @@ typedef struct _PH_GRAPH_DRAW_INFO
 
 BOOLEAN PhGraphControlInitialization();
 
+PHLIBAPI
 VOID PhDrawGraph(
     __in HDC hdc,
     __in PPH_GRAPH_DRAW_INFO DrawInfo
     );
 
+PHLIBAPI
 VOID PhSetGraphText(
     __in HDC hdc,
     __inout PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -64,6 +66,7 @@ VOID PhSetGraphText(
     __in ULONG Align
     );
 
+PHLIBAPI
 HWND PhCreateGraphControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
