@@ -119,6 +119,10 @@ NTSTATUS PhGetProcessKnownType(
             knownProcessType = RunDllAsAppProcessType;
         else if (PhStringEquals2(baseName, L"\\dllhost.exe", TRUE))
             knownProcessType = ComSurrogateProcessType;
+        else if (PhStringEquals2(baseName, L"\\taskeng.exe", TRUE))
+            knownProcessType = TaskHostProcessType;
+        else if (PhStringEquals2(baseName, L"\\taskhost.exe", TRUE))
+            knownProcessType = TaskHostProcessType;
 
         PhDereferenceObject(baseName);
     }
