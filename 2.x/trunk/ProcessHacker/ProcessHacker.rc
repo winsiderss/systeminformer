@@ -258,6 +258,8 @@ BEGIN
                 MENUITEM "2",                           ID_I_2
                 MENUITEM "3",                           ID_I_3
             END
+            MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
+            MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
         END
         POPUP "Priority"
         BEGIN
@@ -429,8 +431,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,1,0,0
- PRODUCTVERSION 2,1,0,0
+ FILEVERSION 2,2,0,0
+ PRODUCTVERSION 2,2,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -447,12 +449,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Process Hacker"
-            VALUE "FileVersion", "2.1"
+            VALUE "FileVersion", "2.2"
             VALUE "InternalName", "Process Hacker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", "2.1"
+            VALUE "ProductVersion", "2.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -752,6 +754,7 @@ BEGIN
     LTEXT           "Desktop:",IDC_STATIC,7,90,30,8
     EDITTEXT        IDC_DESKTOP,53,88,104,12,ES_AUTOHSCROLL
     PUSHBUTTON      "...",IDC_DESKTOPS,161,87,16,14
+    CONTROL         "Toggle elevation",IDC_TOGGLEELEVATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,183,56,69,10
 END
 
 IDD_PROGRESS DIALOGEX 0, 0, 216, 62

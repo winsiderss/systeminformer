@@ -1210,7 +1210,8 @@ NTSTATUS PhRunAsCommandStart2(
     __in_opt ULONG LogonType,
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
-    __in PWSTR DesktopName
+    __in PWSTR DesktopName,
+    __in BOOLEAN UseLinkedToken
     );
 
 VOID PhRunAsServiceStart();
@@ -1227,6 +1228,7 @@ NTSTATUS PhCreateProcessAsUser(
     __in_opt HANDLE ProcessIdWithToken,
     __in ULONG SessionId,
     __in_opt PWSTR DesktopName,
+    __in BOOLEAN UseLinkedToken,
     __out_opt PHANDLE ProcessHandle,
     __out_opt PHANDLE ThreadHandle
     );

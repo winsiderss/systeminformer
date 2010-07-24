@@ -1,5 +1,11 @@
 Process Hacker
 
+2.2
+ * NEW/IMPROVED:
+   * Run As can now start processes elevated
+ * FIXED:
+   * Run and Run As shortcuts
+
 2.1
  * NEW/IMPROVED:
    * Add Pause key shortcut to pause/resume updates
@@ -7,7 +13,7 @@ Process Hacker
    * Grid is a bit darker
    * Checks for digital signatures and packing is now 
      off by default and optional
- * FIXED
+ * FIXED:
    * MD5 calculation code for files was wrong
    * Process record bugs
 
