@@ -33,6 +33,7 @@ VOID PhpProcessStartupParameters();
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 PPH_STRING PhLocalSystemName = NULL;
+BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhProcDbFileName = NULL;
 PPH_STRING PhSettingsFileName = NULL;
 PH_STARTUP_PARAMETERS PhStartupParameters;
@@ -227,6 +228,14 @@ INT WINAPI WinMain(
     }
 
     DialogList = PhCreateList(1);
+
+    PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
+
+    if (PhPluginsEnabled)
+    {
+        PhPluginsInitialization();
+        PhLoadPlugins();
+    }
 
     if (!PhMainWndInitialization(nCmdShow))
     {

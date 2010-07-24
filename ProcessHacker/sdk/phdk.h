@@ -9,6 +9,7 @@
 #include "ph.h"
 #include "phplug.h"
 
+#include "circbuf.h"
 #include "providers.h"
 
 // phapp
