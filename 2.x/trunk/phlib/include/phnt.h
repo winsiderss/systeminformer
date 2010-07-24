@@ -33,6 +33,8 @@
 #include <ntxcapi.h>
 
 #include <ntlsa.h>
+#include <ntsam.h>
+
 #include <ntmisc.h>
 
 #include <rev.h>

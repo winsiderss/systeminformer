@@ -157,6 +157,64 @@ ACCESS_ENTRIES(KeyedEvent)
     { L"Wake", KEYEDEVENT_WAKE, TRUE, TRUE }
 };
 
+ACCESS_ENTRIES(LsaAccount)
+{
+    { L"Full control", ACCOUNT_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", ACCOUNT_READ, TRUE, FALSE },
+    { L"Write", ACCOUNT_WRITE, TRUE, FALSE },
+    { L"Execute", ACCOUNT_EXECUTE, TRUE, FALSE },
+    { L"View", ACCOUNT_VIEW, FALSE, TRUE },
+    { L"Adjust privileges", ACCOUNT_ADJUST_PRIVILEGES, FALSE, TRUE },
+    { L"Adjust quotas", ACCOUNT_ADJUST_QUOTAS, FALSE, TRUE },
+    { L"Adjust system access", ACCOUNT_ADJUST_SYSTEM_ACCESS, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(LsaPolicy)
+{
+    { L"Full control", POLICY_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", POLICY_READ, TRUE, FALSE },
+    { L"Write", POLICY_WRITE, TRUE, FALSE },
+    { L"Execute", POLICY_EXECUTE, TRUE, FALSE },
+    { L"View local information", POLICY_VIEW_LOCAL_INFORMATION, FALSE, TRUE },
+    { L"View audit information", POLICY_VIEW_AUDIT_INFORMATION, FALSE, TRUE },
+    { L"Get private information", POLICY_GET_PRIVATE_INFORMATION, FALSE, TRUE },
+    { L"Administer trust", POLICY_TRUST_ADMIN, FALSE, TRUE },
+    { L"Create account", POLICY_CREATE_ACCOUNT, FALSE, TRUE },
+    { L"Create secret", POLICY_CREATE_SECRET, FALSE, TRUE },
+    { L"Create privilege", POLICY_CREATE_PRIVILEGE, FALSE, TRUE },
+    { L"Set default quota limits", POLICY_SET_DEFAULT_QUOTA_LIMITS, FALSE, TRUE },
+    { L"Set audit requirements", POLICY_SET_AUDIT_REQUIREMENTS, FALSE, TRUE },
+    { L"Administer audit log", POLICY_AUDIT_LOG_ADMIN, FALSE, TRUE },
+    { L"Administer server", POLICY_SERVER_ADMIN, FALSE, TRUE },
+    { L"Lookup names", POLICY_LOOKUP_NAMES, FALSE, TRUE },
+    { L"Get notifications", POLICY_NOTIFICATION, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(LsaSecret)
+{
+    { L"Full control", SECRET_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", SECRET_READ, TRUE, FALSE },
+    { L"Write", SECRET_WRITE, TRUE, FALSE },
+    { L"Execute", SECRET_EXECUTE, TRUE, FALSE },
+    { L"Set value", SECRET_SET_VALUE, FALSE, TRUE },
+    { L"Query value", SECRET_QUERY_VALUE, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(LsaTrusted)
+{
+    { L"Full control", TRUSTED_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", TRUSTED_READ, TRUE, FALSE },
+    { L"Write", TRUSTED_WRITE, TRUE, FALSE },
+    { L"Execute", TRUSTED_EXECUTE, TRUE, FALSE },
+    { L"Query domain name", TRUSTED_QUERY_DOMAIN_NAME, FALSE, TRUE },
+    { L"Query controllers", TRUSTED_QUERY_CONTROLLERS, FALSE, TRUE },
+    { L"Set controllers", TRUSTED_SET_CONTROLLERS, FALSE, TRUE },
+    { L"Query POSIX", TRUSTED_QUERY_POSIX, FALSE, TRUE },
+    { L"Set POSIX", TRUSTED_SET_POSIX, FALSE, TRUE },
+    { L"Query authentication", TRUSTED_QUERY_AUTH, FALSE, TRUE },
+    { L"Set authentication", TRUSTED_SET_AUTH, FALSE, TRUE }
+};
+
 ACCESS_ENTRIES(Mutant)
 {
     { L"Full control", MUTANT_ALL_ACCESS, TRUE, TRUE },
@@ -202,6 +260,84 @@ ACCESS_ENTRIES(Profile)
 {
     { L"Full control", PROFILE_ALL_ACCESS, TRUE, TRUE },
     { L"Control", PROFILE_CONTROL, TRUE, TRUE }
+};
+
+ACCESS_ENTRIES(SamAlias)
+{
+    { L"Full control", ALIAS_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", ALIAS_READ, TRUE, FALSE },
+    { L"Write", ALIAS_WRITE, TRUE, FALSE },
+    { L"Execute", ALIAS_EXECUTE, TRUE, FALSE },
+    { L"Read information", ALIAS_READ_INFORMATION, FALSE, TRUE },
+    { L"Write account", ALIAS_WRITE_ACCOUNT, FALSE, TRUE },
+    { L"Add member", ALIAS_ADD_MEMBER, FALSE, TRUE },
+    { L"Remove member", ALIAS_REMOVE_MEMBER, FALSE, TRUE },
+    { L"List members", ALIAS_LIST_MEMBERS, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(SamDomain)
+{
+    { L"Full control", DOMAIN_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", DOMAIN_READ, TRUE, FALSE },
+    { L"Write", DOMAIN_WRITE, TRUE, FALSE },
+    { L"Execute", DOMAIN_EXECUTE, TRUE, FALSE },
+    { L"Read password parameters", DOMAIN_READ_PASSWORD_PARAMETERS, FALSE, TRUE },
+    { L"Write password parameters", DOMAIN_WRITE_PASSWORD_PARAMS, FALSE, TRUE },
+    { L"Read other parameters", DOMAIN_READ_OTHER_PARAMETERS, FALSE, TRUE },
+    { L"Write other parameters", DOMAIN_WRITE_OTHER_PARAMETERS, FALSE, TRUE },
+    { L"Create user", DOMAIN_CREATE_USER, FALSE, TRUE },
+    { L"Create group", DOMAIN_CREATE_GROUP, FALSE, TRUE },
+    { L"Create alias", DOMAIN_CREATE_ALIAS, FALSE, TRUE },
+    { L"Get alias membership", DOMAIN_GET_ALIAS_MEMBERSHIP, FALSE, TRUE },
+    { L"List accounts", DOMAIN_LIST_ACCOUNTS, FALSE, TRUE },
+    { L"Lookup", DOMAIN_LOOKUP, FALSE, TRUE },
+    { L"Administer server", DOMAIN_ADMINISTER_SERVER, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(SamGroup)
+{
+    { L"Full control", GROUP_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", GROUP_READ, TRUE, FALSE },
+    { L"Write", GROUP_WRITE, TRUE, FALSE },
+    { L"Execute", GROUP_EXECUTE, TRUE, FALSE },
+    { L"Read information", GROUP_READ_INFORMATION, FALSE, TRUE },
+    { L"Write account", GROUP_WRITE_ACCOUNT, FALSE, TRUE },
+    { L"Add member", GROUP_ADD_MEMBER, FALSE, TRUE },
+    { L"Remove member", GROUP_REMOVE_MEMBER, FALSE, TRUE },
+    { L"List members", GROUP_LIST_MEMBERS, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(SamServer)
+{
+    { L"Full control", SAM_SERVER_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", SAM_SERVER_READ, TRUE, FALSE },
+    { L"Write", SAM_SERVER_WRITE, TRUE, FALSE },
+    { L"Execute", SAM_SERVER_EXECUTE, TRUE, FALSE },
+    { L"Connect", SAM_SERVER_CONNECT, FALSE, TRUE },
+    { L"Shutdown", SAM_SERVER_SHUTDOWN, FALSE, TRUE },
+    { L"Initialize", SAM_SERVER_INITIALIZE, FALSE, TRUE },
+    { L"Create domain", SAM_SERVER_CREATE_DOMAIN, FALSE, TRUE },
+    { L"Enumerate domains", SAM_SERVER_ENUMERATE_DOMAINS, FALSE, TRUE },
+    { L"Lookup domain", SAM_SERVER_LOOKUP_DOMAIN, FALSE, TRUE }
+};
+
+ACCESS_ENTRIES(SamUser)
+{
+    { L"Full control", USER_ALL_ACCESS, TRUE, TRUE },
+    { L"Read", USER_READ, TRUE, FALSE },
+    { L"Write", USER_WRITE, TRUE, FALSE },
+    { L"Execute", USER_EXECUTE, TRUE, FALSE },
+    { L"Read general", USER_READ_GENERAL, FALSE, TRUE },
+    { L"Read preferences", USER_READ_PREFERENCES, FALSE, TRUE },
+    { L"Write preferences", USER_WRITE_PREFERENCES, FALSE, TRUE },
+    { L"Read logon", USER_READ_LOGON, FALSE, TRUE },
+    { L"Read account", USER_READ_ACCOUNT, FALSE, TRUE },
+    { L"Write account", USER_WRITE_ACCOUNT, FALSE, TRUE },
+    { L"Change password", USER_CHANGE_PASSWORD, FALSE, TRUE },
+    { L"Force password change", USER_FORCE_PASSWORD_CHANGE, FALSE, TRUE },
+    { L"List groups", USER_LIST_GROUPS, FALSE, TRUE },
+    { L"Read group information", USER_READ_GROUP_INFORMATION, FALSE, TRUE },
+    { L"Write group information", USER_WRITE_GROUP_INFORMATION, FALSE, TRUE }
 };
 
 ACCESS_ENTRIES(Section)
@@ -418,10 +554,19 @@ PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(Job, TRUE),
     ACCESS_ENTRY(Key, FALSE),
     ACCESS_ENTRY(KeyedEvent, FALSE),
+    ACCESS_ENTRY(LsaAccount, FALSE),
+    ACCESS_ENTRY(LsaPolicy, FALSE),
+    ACCESS_ENTRY(LsaSecret, FALSE),
+    ACCESS_ENTRY(LsaTrusted, FALSE),
     ACCESS_ENTRY(Mutant, TRUE),
     ACCESS_ENTRY(Process, TRUE),
     ACCESS_ENTRY(Process60, TRUE),
     ACCESS_ENTRY(Profile, FALSE),
+    ACCESS_ENTRY(SamAlias, FALSE),
+    ACCESS_ENTRY(SamDomain, FALSE),
+    ACCESS_ENTRY(SamGroup, FALSE),
+    ACCESS_ENTRY(SamServer, FALSE),
+    ACCESS_ENTRY(SamUser, FALSE),
     ACCESS_ENTRY(Section, FALSE),
     ACCESS_ENTRY(Semaphore, TRUE),
     ACCESS_ENTRY(Service, FALSE),
