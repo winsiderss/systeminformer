@@ -34,7 +34,7 @@ VOID PhSettingsInitialization()
         sizeof(PH_SETTING),
         PhpSettingsHashtableCompareFunction,
         PhpSettingsHashtableHashFunction,
-        80
+        128
         );
     PhInitializeQueuedLock(&PhSettingsLock);
 
@@ -45,6 +45,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
+    PhpAddIntegerSetting(L"EnablePlugins", L"0");
     PhpAddIntegerSetting(L"EnableProcDb", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
@@ -247,15 +248,12 @@ static VOID PhpAddIntegerPairSetting(
     PhpAddSetting(IntegerPairSettingType, Name, DefaultValue);
 }
 
-static VOID PhpAddSetting(
+__assumeLocked static VOID PhpAddSetting(
     __in PH_SETTING_TYPE Type,
     __in PWSTR Name,
     __in PWSTR DefaultValue
     )
 {
-    // No need to lock because we only add settings 
-    // during initialization.
-
     PH_SETTING setting;
 
     setting.Type = Type;
@@ -799,4 +797,21 @@ NTSTATUS PhSaveSettings(
     NtClose(fileHandle);
 
     return STATUS_SUCCESS;
+}
+
+VOID PhAddSettings(
+    __in PPH_SETTING_CREATE Settings,
+    __in ULONG NumberOfSettings
+    )
+{
+    ULONG i;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    for (i = 0; i < NumberOfSettings; i++)
+    {
+        PhpAddSetting(Settings[i].Type, Settings[i].Name, Settings[i].DefaultValue);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
