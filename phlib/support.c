@@ -819,11 +819,10 @@ PPH_STRING PhpFormatDecimalFast(
     {
         if (FractionalDigits != 0)
         {
-            count = FractionalDigits;
-            string = PhCreateStringEx(NULL, (2 + count) * sizeof(WCHAR));
+            string = PhCreateStringEx(NULL, (2 + FractionalDigits) * sizeof(WCHAR));
             string->Buffer[0] = '0';
             string->Buffer[1] = DecimalSeparator;
-            wmemset(&string->Buffer[2], '0', count);
+            wmemset(&string->Buffer[2], '0', FractionalDigits);
         }
         else
         {
