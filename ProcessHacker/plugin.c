@@ -172,8 +172,10 @@ PPH_PLUGIN PhRegisterPlugin(
 
     if (Information)
     {
+        plugin->DisplayName = Information->DisplayName;
         plugin->Author = Information->Author;
         plugin->Description = Information->Description;
+        plugin->HasOptions = Information->HasOptions;
     }
 
     for (i = 0; i < PluginCallbackMaximum; i++)
@@ -216,9 +218,13 @@ BOOLEAN PhPluginAddMenuItem(
     HMENU menu;
     HMENU subMenu;
     ULONG insertIndex;
+    ULONG insertAfterCount;
     ULONG textCount;
     WCHAR textBuffer[256];
     MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+    if (InsertAfter)
+        insertAfterCount = (ULONG)wcslen(InsertAfter);
 
     textCount = (ULONG)wcslen(Text);
 
@@ -251,7 +257,7 @@ BOOLEAN PhPluginAddMenuItem(
         {
             if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo))
             {
-                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, textCount) == 0)
+                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
                 {
                     insertIndex++;
                     break;
@@ -268,6 +274,12 @@ BOOLEAN PhPluginAddMenuItem(
     menuItemInfo.wID = NextPluginId++;
     menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
     menuItemInfo.dwTypeData = Text;
+
+    if (textCount == 1 && Text[0] == '-')
+    {
+        menuItemInfo.fMask = MIIM_ID;
+        menuItemInfo.fType = MFT_SEPARATOR;
+    }
 
     InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);
 

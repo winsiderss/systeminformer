@@ -805,6 +805,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\plugman.c"
+				>
+			</File>
+			<File
 				RelativePath=".\procdb.c"
 				>
 			</File>

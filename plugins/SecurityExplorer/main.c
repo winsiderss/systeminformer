@@ -31,7 +31,14 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PluginInstance = PhRegisterPlugin(L"ProcessHacker.SecurityExplorer", Instance, NULL);
+            PH_PLUGIN_INFORMATION info;
+
+            info.DisplayName = L"Security Explorer";
+            info.Author = L"wj32";
+            info.Description = L"Manages LSA and SAM objects.";
+            info.HasOptions = FALSE;
+
+            PluginInstance = PhRegisterPlugin(L"ProcessHacker.SecurityExplorer", Instance, &info);
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

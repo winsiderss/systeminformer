@@ -5,9 +5,10 @@
 
 typedef enum _PH_GENERAL_CALLBACK
 {
-    GeneralCallbackMainWindowShowing = 0, // INT ShowCommand
-    GeneralCallbackGetProcessHighlightingColor = 1, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data
-    GeneralCallbackGetProcessTooltipText = 2, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data
+    GeneralCallbackMainWindowShowing = 0, // INT ShowCommand [main thread]
+    GeneralCallbackProcessesUpdated = 1, // [main thread]
+    GeneralCallbackGetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
+    GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -34,10 +35,10 @@ typedef struct _PH_PLUGIN_GET_TOOLTIP_TEXT
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
-    PluginCallbackLoad = 0,
-    PluginCallbackUnload = 1,
-    PluginCallbackShowOptions = 2, // HWND ParentWindowHandle
-    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem
+    PluginCallbackLoad = 0, // [main thread]
+    PluginCallbackUnload = 1, // [main thread]
+    PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
+    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main thread]
 
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
@@ -50,16 +51,20 @@ typedef struct _PH_PLUGIN
     PWSTR Name;
     PVOID DllBase;
 
+    PWSTR DisplayName;
     PWSTR Author;
     PWSTR Description;
+    BOOLEAN HasOptions;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
 } PH_PLUGIN, *PPH_PLUGIN;
 
 typedef struct _PH_PLUGIN_INFORMATION
 {
+    PWSTR DisplayName;
     PWSTR Author;
     PWSTR Description;
+    BOOLEAN HasOptions;
 } PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
 PHAPPAPI
