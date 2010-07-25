@@ -6,7 +6,8 @@
 typedef enum _PH_GENERAL_CALLBACK
 {
     GeneralCallbackMainWindowShowing = 0, // INT ShowCommand
-    GeneralCallbackGetProcessHighlightingColor = 1, // PPH_GET_HIGHLIGHTING_COLOR Data
+    GeneralCallbackGetProcessHighlightingColor = 1, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data
+    GeneralCallbackGetProcessTooltipText = 2, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -21,6 +22,15 @@ typedef struct _PH_PLUGIN_GET_HIGHLIGHTING_COLOR
     BOOLEAN Handled;
     BOOLEAN Cache;
 } PH_PLUGIN_GET_HIGHLIGHTING_COLOR, *PPH_PLUGIN_GET_HIGHLIGHTING_COLOR;
+
+typedef struct _PH_PLUGIN_GET_TOOLTIP_TEXT
+{
+    // Parameter is:
+    // PPH_PROCESS_ITEM for GeneralCallbackGetProcessTooltipText
+
+    PVOID Parameter;
+    PPH_STRING_BUILDER StringBuilder;
+} PH_PLUGIN_GET_TOOLTIP_TEXT, *PPH_PLUGIN_GET_TOOLTIP_TEXT;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {

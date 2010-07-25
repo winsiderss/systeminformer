@@ -1,6 +1,12 @@
 #include <phdk.h>
 #include "sbiedll.h"
 
+typedef struct _BOXED_PROCESS
+{
+    HANDLE ProcessId;
+    WCHAR BoxName[34];
+} BOXED_PROCESS, *PBOXED_PROCESS;
+
 VOID NTAPI LoadCallback(
     __in PVOID Parameter,
     __in PVOID Context
@@ -16,6 +22,11 @@ VOID NTAPI GetProcessHighlightingColorCallback(
     __in PVOID Context
     );
 
+VOID NTAPI GetProcessTooltipTextCallback(
+    __in PVOID Parameter,
+    __in PVOID Context
+    );
+
 VOID NTAPI RefreshBoxedPids(
     __in PVOID Context,
     __in BOOLEAN TimerOrWaitFired
@@ -25,13 +36,13 @@ PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
+PH_CALLBACK_REGISTRATION GetProcessTooltipTextCallbackRegistration;
 
 P_SbieApi_EnumBoxes SbieApi_EnumBoxes;
 P_SbieApi_EnumProcessEx SbieApi_EnumProcessEx;
 
-PH_QUEUED_LOCK BoxedPidsLock = PH_QUEUED_LOCK_INIT;
-ULONG BoxedPids[512];
-ULONG NumberOfBoxedPids = 0;
+PPH_HASHTABLE BoxedProcessesHashtable;
+PH_QUEUED_LOCK BoxedProcessesLock = PH_QUEUED_LOCK_INIT;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -64,11 +75,32 @@ LOGICAL DllMain(
                 NULL,
                 &GetProcessHighlightingColorCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackGetProcessTooltipText),
+                GetProcessTooltipTextCallback,
+                NULL,
+                &GetProcessTooltipTextCallbackRegistration
+                );
         }
         break;
     }
 
     return TRUE;
+}
+
+BOOLEAN NTAPI BoxedProcessesCompareFunction(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    )
+{
+    return ((PBOXED_PROCESS)Entry1)->ProcessId == ((PBOXED_PROCESS)Entry2)->ProcessId;
+}
+
+ULONG NTAPI BoxedProcessesHashFunction(
+    __in PVOID Entry
+    )
+{
+    return (ULONG)((PBOXED_PROCESS)Entry)->ProcessId / 4;
 }
 
 VOID NTAPI LoadCallback(
@@ -79,6 +111,13 @@ VOID NTAPI LoadCallback(
     HMODULE module;
     HANDLE timerQueueHandle;
     HANDLE timerHandle;
+
+    BoxedProcessesHashtable = PhCreateHashtable(
+        sizeof(BOXED_PROCESS),
+        BoxedProcessesCompareFunction,
+        BoxedProcessesHashFunction,
+        32
+        );
 
     module = LoadLibrary(L"C:\\Program Files\\Sandboxie\\SbieDll.dll");
     SbieApi_EnumBoxes = (PVOID)GetProcAddress(module, "_SbieApi_EnumBoxes@8");
@@ -103,22 +142,42 @@ VOID NTAPI GetProcessHighlightingColorCallback(
     )
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
-    ULONG i;
+    BOXED_PROCESS lookupBoxedProcess;
+    PBOXED_PROCESS boxedProcess;
 
-    PhAcquireQueuedLockShared(&BoxedPidsLock);
+    PhAcquireQueuedLockShared(&BoxedProcessesLock);
 
-    for (i = 0; i < NumberOfBoxedPids; i++)
+    lookupBoxedProcess.ProcessId = ((PPH_PROCESS_ITEM)getHighlightingColor->Parameter)->ProcessId;
+
+    if (boxedProcess = PhGetHashtableEntry(BoxedProcessesHashtable, &lookupBoxedProcess))
     {
-        if (BoxedPids[i] == (ULONG)((PPH_PROCESS_ITEM)getHighlightingColor->Parameter)->ProcessId)
-        {
-            getHighlightingColor->BackColor = RGB(0x33, 0x33, 0x00);
-            getHighlightingColor->Cache = TRUE;
-            getHighlightingColor->Handled = TRUE;
-            break;
-        }
+        getHighlightingColor->BackColor = RGB(0x33, 0x33, 0x00);
+        getHighlightingColor->Cache = TRUE;
+        getHighlightingColor->Handled = TRUE;
     }
 
-    PhReleaseQueuedLockShared(&BoxedPidsLock);
+    PhReleaseQueuedLockShared(&BoxedProcessesLock);
+}
+
+VOID NTAPI GetProcessTooltipTextCallback(
+    __in PVOID Parameter,
+    __in PVOID Context
+    )
+{
+    PPH_PLUGIN_GET_TOOLTIP_TEXT getTooltipText = Parameter;
+    BOXED_PROCESS lookupBoxedProcess;
+    PBOXED_PROCESS boxedProcess;
+
+    PhAcquireQueuedLockShared(&BoxedProcessesLock);
+
+    lookupBoxedProcess.ProcessId = ((PPH_PROCESS_ITEM)getTooltipText->Parameter)->ProcessId;
+
+    if (boxedProcess = PhGetHashtableEntry(BoxedProcessesHashtable, &lookupBoxedProcess))
+    {
+        PhStringBuilderAppendFormat(getTooltipText->StringBuilder, L"Sandboxie:\n    Box name: %s\n", boxedProcess->BoxName);
+    }
+
+    PhReleaseQueuedLockShared(&BoxedProcessesLock);
 }
 
 VOID NTAPI RefreshBoxedPids(
@@ -133,9 +192,9 @@ VOID NTAPI RefreshBoxedPids(
     if (!SbieApi_EnumBoxes || !SbieApi_EnumProcessEx)
         return;
 
-    PhAcquireQueuedLockExclusive(&BoxedPidsLock);
+    PhAcquireQueuedLockExclusive(&BoxedProcessesLock);
 
-    NumberOfBoxedPids = 0;
+    PhClearHashtable(BoxedProcessesHashtable);
 
     index = -1;
 
@@ -149,9 +208,14 @@ VOID NTAPI RefreshBoxedPids(
             count = pids[0];
             pid = &pids[1];
 
-            while (count != 0 && NumberOfBoxedPids < 512)
+            while (count != 0)
             {
-                BoxedPids[NumberOfBoxedPids++] = *pid;
+                BOXED_PROCESS boxedProcess;
+
+                boxedProcess.ProcessId = ULongToHandle(*pid);
+                memcpy(boxedProcess.BoxName, boxName, sizeof(boxName));
+
+                PhAddHashtableEntry(BoxedProcessesHashtable, &boxedProcess);
 
                 count--;
                 pid++;
@@ -159,5 +223,5 @@ VOID NTAPI RefreshBoxedPids(
         }
     }
 
-    PhReleaseQueuedLockExclusive(&BoxedPidsLock);
+    PhReleaseQueuedLockExclusive(&BoxedProcessesLock);
 }
