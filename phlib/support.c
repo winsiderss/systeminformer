@@ -763,17 +763,188 @@ PPH_STRING PhFormatUInt64(
     return PhFormatDecimal(string, 0, GroupDigits);
 }
 
+PPH_STRING PhpFormatDecimalFast(
+    __in PWSTR Value,
+    __in ULONG FractionalDigits,
+    __in WCHAR DecimalSeparator,
+    __in WCHAR ThousandSeparator
+    )
+{
+    PPH_STRING string;
+    ULONG inCount;
+    PWCHAR whole;
+    PWCHAR dot;
+    PWCHAR fractional;
+    ULONG inWholeCount;
+    ULONG inFractionalCount;
+    ULONG count;
+    ULONG outFractionalCount;
+    PWCHAR c;
+
+    inCount = (ULONG)wcslen(Value);
+
+    dot = wcschr(Value, '.');
+
+    if (dot)
+    {
+        inWholeCount = (ULONG)(dot - Value);
+        inFractionalCount = inCount - inWholeCount - 1;
+        fractional = dot + 1;
+    }
+    else
+    {
+        inWholeCount = inCount;
+        inFractionalCount = 0;
+        fractional = NULL;
+    }
+
+    // Ignore leading zeros.
+
+    whole = Value;
+
+    while (inWholeCount != 0 && *whole == '0')
+    {
+        whole++;
+        inWholeCount--;
+    }
+
+    // Ignore trailing zeros.
+
+    while (inFractionalCount != 0 && dot[1 + inFractionalCount - 1] == 0)
+    {
+        inFractionalCount--;
+    }
+
+    if (inWholeCount == 0)
+    {
+        if (FractionalDigits != 0)
+        {
+            count = FractionalDigits;
+            string = PhCreateStringEx(NULL, (2 + count) * sizeof(WCHAR));
+            string->Buffer[0] = '0';
+            string->Buffer[1] = DecimalSeparator;
+            wmemset(&string->Buffer[2], '0', count);
+        }
+        else
+        {
+            return PhCreateString(L"0");
+        }
+
+        return string;
+    }
+
+    // Calculate the number of characters in the output.
+
+    // Start with the number of whole digits.
+    count = inWholeCount;
+    // Add the space needed for the thousand separators.
+    count += (inWholeCount - 1) / 3;
+
+    // Add space for the decimal separator and fractional digits.
+    if (FractionalDigits != 0)
+    {
+        count += 1;
+        count += FractionalDigits;
+    }
+
+    string = PhCreateStringEx(NULL, count * sizeof(WCHAR));
+    c = string->Buffer;
+
+    while (inWholeCount != 0)
+    {
+        *c++ = *whole++;
+
+        if (inWholeCount != 1 && (inWholeCount - 1) % 3 == 0)
+            *c++ = ThousandSeparator;
+
+        inWholeCount--;
+    }
+
+    if (FractionalDigits != 0)
+    {
+        *c++ = DecimalSeparator;
+        outFractionalCount = inFractionalCount;
+
+        if (outFractionalCount > FractionalDigits)
+            outFractionalCount = FractionalDigits;
+
+        while (outFractionalCount != 0)
+        {
+            *c++ = *fractional++;
+            outFractionalCount--;
+        }
+
+        // Pad the remaining space with zeros.
+        if (inFractionalCount < FractionalDigits)
+        {
+            outFractionalCount = FractionalDigits - inFractionalCount;
+
+            while (outFractionalCount != 0)
+            {
+                *c++ = '0';
+                outFractionalCount--;
+            }
+        }
+    }
+
+    return string;
+}
+
 PPH_STRING PhFormatDecimal(
     __in PWSTR Value,
     __in ULONG FractionalDigits,
     __in BOOLEAN GroupDigits
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static WCHAR decimalSeparator[4];
+    static WCHAR thousandSeparator[4];
+    static BOOLEAN canUseFast;
+
     PPH_STRING string;
     NUMBERFMT format;
     ULONG bufferSize;
-    WCHAR decimalSeparator[4];
-    WCHAR thousandSeparator[4];
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (!GetLocaleInfo(
+            LOCALE_USER_DEFAULT,
+            LOCALE_SDECIMAL,
+            decimalSeparator,
+            4
+            ))
+        {
+            decimalSeparator[0] = '.';
+            decimalSeparator[1] = 0;
+        }
+
+        if (!GetLocaleInfo(
+            LOCALE_USER_DEFAULT,
+            LOCALE_STHOUSAND,
+            thousandSeparator,
+            4
+            ))
+        {
+            thousandSeparator[0] = ',';
+            thousandSeparator[1] = 0;
+        }
+
+        canUseFast =
+            decimalSeparator[0] != 0 && decimalSeparator[1] == 0 &&
+            thousandSeparator[0] != 0 && thousandSeparator[1] == 0;
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (canUseFast && GroupDigits)
+    {
+        return PhpFormatDecimalFast(
+            Value,
+            FractionalDigits,
+            decimalSeparator[0],
+            thousandSeparator[0]
+            );
+    }
 
     format.NumDigits = FractionalDigits;
     format.LeadingZero = 0;
@@ -781,22 +952,6 @@ PPH_STRING PhFormatDecimal(
     format.lpDecimalSep = decimalSeparator;
     format.lpThousandSep = thousandSeparator;
     format.NegativeOrder = 1;
-
-    if (!GetLocaleInfo(
-        LOCALE_USER_DEFAULT,
-        LOCALE_SDECIMAL,
-        decimalSeparator,
-        4
-        ))
-        return NULL;
-
-    if (!GetLocaleInfo(
-        LOCALE_USER_DEFAULT,
-        LOCALE_STHOUSAND,
-        thousandSeparator,
-        4
-        ))
-        return NULL;
 
     bufferSize = GetNumberFormat(
         LOCALE_USER_DEFAULT,
@@ -870,10 +1025,9 @@ PPH_STRING PhFormatSize(
     {
         WCHAR numberString[512]; // perf hack
         PPH_STRING formattedString;
-        PPH_STRING processedString;
         PPH_STRING outputString;
 
-        swprintf_s(numberString, sizeof(numberString) / 2, L"%f", s);
+        swprintf_s(numberString, sizeof(numberString) / 2, L"%.2f", s);
         formattedString = PhFormatDecimal(numberString, 2, TRUE);
 
         if (!formattedString)
@@ -886,31 +1040,18 @@ PPH_STRING PhFormatSize(
             formattedString->Length >= 6
             )
         {
-            // Remove the last three characters.
-            processedString = PhSubstring(
-                formattedString,
-                0,
-                formattedString->Length / 2 - 3
-                );
-            PhDereferenceObject(formattedString);
+            // Remove the last three characters by making sure 
+            // PhConcatStrings doesn't include them.
+            formattedString->Buffer[formattedString->Length / 2 - 3] = 0;
         }
         else if (PhStringEndsWith2(formattedString, L"0", FALSE))
         {
             // Remove the last character.
-            processedString = PhSubstring(
-                formattedString,
-                0,
-                formattedString->Length / 2 - 1
-                );
-            PhDereferenceObject(formattedString);
-        }
-        else
-        {
-            processedString = formattedString;
+            formattedString->Buffer[formattedString->Length / 2 - 1] = 0;
         }
 
-        outputString = PhConcatStrings(3, processedString->Buffer, L" ", PhSizeUnitNames[i]);
-        PhDereferenceObject(processedString);
+        outputString = PhConcatStrings(3, formattedString->Buffer, L" ", PhSizeUnitNames[i]);
+        PhDereferenceObject(formattedString);
 
         return outputString;
     }
