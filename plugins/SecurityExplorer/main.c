@@ -39,6 +39,9 @@ LOGICAL DllMain(
             info.HasOptions = FALSE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SecurityExplorer", Instance, &info);
+            
+            if (!PluginInstance)
+                return FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

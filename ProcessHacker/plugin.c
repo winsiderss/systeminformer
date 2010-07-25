@@ -255,7 +255,7 @@ BOOLEAN PhPluginAddMenuItem(
 
         for (insertIndex = 0; insertIndex < count; insertIndex++)
         {
-            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo))
+            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
             {
                 if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
                 {

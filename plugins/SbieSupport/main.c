@@ -90,6 +90,9 @@ LOGICAL DllMain(
             info.HasOptions = TRUE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SbieSupport", Instance, &info);
+            
+            if (!PluginInstance)
+                return FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
