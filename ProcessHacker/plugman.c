@@ -74,7 +74,7 @@ VOID PhpRefreshPluginDetails(
 
         if (PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer))
         {
-            SetDlgItemText(hwndDlg, IDC_VERSION, versionInfo.FileVersion->Buffer);
+            SetDlgItemText(hwndDlg, IDC_VERSION, PhGetStringOrDefault(versionInfo.FileVersion, L"Unknown"));
             PhDeleteImageVersionInfo(&versionInfo);
         }
         else
