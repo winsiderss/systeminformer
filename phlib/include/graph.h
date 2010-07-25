@@ -66,7 +66,6 @@ VOID PhSetGraphText(
     __in ULONG Align
     );
 
-PHLIBAPI
 HWND PhCreateGraphControl(
     __in HWND ParentHandle,
     __in INT_PTR Id

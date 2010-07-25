@@ -12,11 +12,6 @@ VOID NTAPI LoadCallback(
     __in PVOID Context
     );
 
-VOID NTAPI UnloadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
-    );
-
 VOID NTAPI GetProcessHighlightingColorCallback(
     __in PVOID Parameter,
     __in PVOID Context
@@ -34,7 +29,6 @@ VOID NTAPI RefreshBoxedPids(
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
-PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessHighlightingColorCallbackRegistration;
 PH_CALLBACK_REGISTRATION GetProcessTooltipTextCallbackRegistration;
 
@@ -61,12 +55,6 @@ LOGICAL DllMain(
                 LoadCallback,
                 NULL,
                 &PluginLoadCallbackRegistration
-                );
-            PhRegisterCallback(
-                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-                UnloadCallback,
-                NULL,
-                &PluginUnloadCallbackRegistration
                 );
 
             PhRegisterCallback(
@@ -127,13 +115,6 @@ VOID NTAPI LoadCallback(
     {
         RtlCreateTimer(timerQueueHandle, &timerHandle, RefreshBoxedPids, NULL, 0, 2000, 0);
     }
-}
-
-VOID NTAPI UnloadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
-    )
-{
 }
 
 VOID NTAPI GetProcessHighlightingColorCallback(

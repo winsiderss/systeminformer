@@ -171,10 +171,10 @@ ACCESS_ENTRIES(LsaAccount)
 
 ACCESS_ENTRIES(LsaPolicy)
 {
-    { L"Full control", POLICY_ALL_ACCESS, TRUE, TRUE },
+    { L"Full control", POLICY_ALL_ACCESS | POLICY_NOTIFICATION, TRUE, TRUE },
     { L"Read", POLICY_READ, TRUE, FALSE },
     { L"Write", POLICY_WRITE, TRUE, FALSE },
-    { L"Execute", POLICY_EXECUTE, TRUE, FALSE },
+    { L"Execute", POLICY_EXECUTE | POLICY_NOTIFICATION, TRUE, FALSE },
     { L"View local information", POLICY_VIEW_LOCAL_INFORMATION, FALSE, TRUE },
     { L"View audit information", POLICY_VIEW_AUDIT_INFORMATION, FALSE, TRUE },
     { L"Get private information", POLICY_GET_PRIVATE_INFORMATION, FALSE, TRUE },

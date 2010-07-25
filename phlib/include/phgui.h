@@ -208,7 +208,6 @@ FORCEINLINE LRESULT PhReflectMessage(
     return 0;
 }
 
-PHLIBAPI
 HWND PhCreateListViewControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
@@ -322,7 +321,6 @@ PPH_STRING PhSaveListViewColumnSettings(
     __in HWND ListViewHandle
     );
 
-PHLIBAPI
 HWND PhCreateTabControl(
     __in HWND ParentHandle
     );
