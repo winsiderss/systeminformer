@@ -10,7 +10,6 @@
 
 BOOLEAN PhHexEditInitialization();
 
-PHLIBAPI
 HWND PhCreateHexEditControl(
     __in HWND ParentHandle,
     __in INT_PTR Id

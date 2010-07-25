@@ -299,7 +299,6 @@ typedef struct _PH_TL_GETNODETEXT
 
 BOOLEAN PhTreeListInitialization();
 
-PHLIBAPI
 HWND PhCreateTreeListControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
@@ -339,11 +338,13 @@ BOOLEAN PhAddTreeListColumn(
     __in ULONG TextFlags
     );
 
+PHLIBAPI
 BOOLEAN PhLoadTreeListColumnSettings(
     __in HWND TreeListHandle,
     __in PPH_STRING Settings
     );
 
+PHLIBAPI
 PPH_STRING PhSaveTreeListColumnSettings(
     __in HWND TreeListHandle
     );
