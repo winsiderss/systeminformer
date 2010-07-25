@@ -28,6 +28,8 @@
 PPH_HASHTABLE PhSettingsHashtable;
 PH_QUEUED_LOCK PhSettingsLock;
 
+PPH_LIST PhIgnoredSettings;
+
 VOID PhSettingsInitialization()
 {
     PhSettingsHashtable = PhCreateHashtable(
@@ -37,6 +39,7 @@ VOID PhSettingsInitialization()
         128
         );
     PhInitializeQueuedLock(&PhSettingsLock);
+    PhIgnoredSettings = PhCreateList(4);
 
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");
     PhpAddIntegerSetting(L"CollapseServicesOnStart", L"0");
@@ -588,6 +591,34 @@ __mayRaise VOID PhSetStringSetting2(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
+VOID PhpClearIgnoredSettings()
+{
+    ULONG i;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    for (i = 0; i < PhIgnoredSettings->Count; i++)
+    {
+        PPH_SETTING setting = PhIgnoredSettings->Items[i];
+
+        PhFree(setting->Name);
+
+        if (setting->Value)
+            PhDereferenceObject(setting->Value);
+
+        PhFree(setting);
+    }
+
+    PhClearList(PhIgnoredSettings);
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
+}
+
+VOID PhClearIgnoredSettings()
+{
+    PhpClearIgnoredSettings();
+}
+
 mxml_type_t PhpSettingsLoadCallback(
     __in mxml_node_t *node
     )
@@ -603,6 +634,8 @@ NTSTATUS PhLoadSettings(
     HANDLE fileHandle;
     mxml_node_t *topNode;
     mxml_node_t *currentNode;
+
+    PhpClearIgnoredSettings();
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -674,6 +707,15 @@ NTSTATUS PhLoadSettings(
                             &setting->Value
                             );
                     }
+                }
+                else
+                {
+                    setting = PhAllocate(sizeof(PH_SETTING));
+                    setting->Name = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
+                    PhReferenceObject(settingValue);
+                    setting->Value = settingValue;
+
+                    PhAddListItem(PhIgnoredSettings, setting);
                 }
             }
 
@@ -752,6 +794,36 @@ NTSTATUS PhSaveSettings(
 
         textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
         PhDereferenceObject(settingValueAnsi);
+    }
+
+    // Write the ignored settings.
+    {
+        ULONG i;
+
+        for (i = 0; i < PhIgnoredSettings->Count; i++)
+        {
+            PPH_SETTING setting = PhIgnoredSettings->Items[i];
+            mxml_node_t *settingNode;
+            mxml_node_t *textNode;
+            PPH_ANSI_STRING settingName;
+            PPH_STRING settingValue;
+            PPH_ANSI_STRING settingValueAnsi;
+
+            // Create the setting element.
+
+            settingNode = mxmlNewElement(topNode, "setting");
+
+            settingName = PhCreateAnsiStringFromUnicode(setting->Name);
+            mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
+            PhDereferenceObject(settingName);
+
+            // Set the value.
+
+            settingValue = setting->Value;
+            settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(settingValue->Buffer, settingValue->Length);
+            textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
+            PhDereferenceObject(settingValueAnsi);
+        }
     }
 
     PhReleaseQueuedLockShared(&PhSettingsLock);

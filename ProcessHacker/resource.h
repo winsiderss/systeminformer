@@ -100,6 +100,7 @@
 #define IDR_MEMFILTER                   184
 #define IDD_MEMSTRING                   185
 #define IDD_OPTGRAPHS                   186
+#define IDD_PLUGINS                     187
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -142,8 +143,10 @@
 #define IDC_SERVICEDLL                  1042
 #define IDC_NAME                        1044
 #define IDC_REFERENCES                  1045
+#define IDC_INTERNALNAME                1045
 #define IDC_HANDLES                     1046
 #define IDC_PROCESSTYPELABEL            1046
+#define IDC_AUTHOR                      1046
 #define IDC_PAGED                       1047
 #define IDC_PROCESSTYPETEXT             1047
 #define IDC_NONPAGED                    1048
@@ -188,6 +191,7 @@
 #define IDC_CHANGE                      1079
 #define IDC_CLEAR                       1079
 #define IDC_GOTO                        1079
+#define IDC_OPTIONS                     1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -388,8 +392,10 @@
 #define IDC_PHYSICAL_LAYOUT             1251
 #define IDC_BUTTON2                     1251
 #define IDC_ENABLE                      1251
+#define IDC_CLEANUP                     1251
 #define IDC_ENABLESTAGE2                1253
 #define IDC_TOGGLEELEVATION             1254
+#define IDC_ENABLEPLUGINS               1258
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -595,6 +601,7 @@
 #define ID_TAB_PREV                     40224
 #define ID_MISCELLANEOUS_RUNAS          40229
 #define ID_MISCELLANEOUS_RUNASTHISUSER  40230
+#define ID_HACKER_PLUGINS               40231
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -603,9 +610,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        186
-#define _APS_NEXT_COMMAND_VALUE         40231
-#define _APS_NEXT_CONTROL_VALUE         1255
+#define _APS_NEXT_RESOURCE_VALUE        188
+#define _APS_NEXT_COMMAND_VALUE         40232
+#define _APS_NEXT_CONTROL_VALUE         1260
 #define _APS_NEXT_SYMED_VALUE           131
 #endif
 #endif

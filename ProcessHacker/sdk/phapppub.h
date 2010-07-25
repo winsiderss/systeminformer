@@ -3,6 +3,8 @@
 
 // Process Hacker application functions exposed to plugins
 
+// main
+
 PHAPPAPI
 VOID PhRegisterDialog(
     __in HWND DialogWindowHandle
@@ -13,6 +15,8 @@ VOID PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
+// mainwnd
+
 PHAPPAPI extern HWND PhMainWndHandle;
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
@@ -22,11 +26,49 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define ProcessHacker_ToggleVisible(hWnd) \
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 
+// proctree
+
+typedef struct _PH_PROCESS_NODE PH_PROCESS_NODE, *PPH_PROCESS_NODE;
+
+PHAPPAPI
+PPH_PROCESS_NODE PhFindProcessNode(
+   __in HANDLE ProcessId
+   );
+
+PHAPPAPI
+VOID PhUpdateProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
+
+PHAPPAPI
+PPH_PROCESS_ITEM PhGetSelectedProcessItem();
+
+PHAPPAPI
+VOID PhGetSelectedProcessItems(
+    __out PPH_PROCESS_ITEM **Processes,
+    __out PULONG NumberOfProcesses
+    );
+
+PHAPPAPI
+VOID PhDeselectAllProcessNodes();
+
+PHAPPAPI
+VOID PhInvalidateAllProcessNodes();
+
+PHAPPAPI
+VOID PhSelectAndEnsureVisibleProcessNode(
+    __in PPH_PROCESS_NODE ProcessNode
+    );
+
+// log
+
 PHAPPAPI
 VOID PhLogMessageEntry(
     __in UCHAR Type,
     __in PPH_STRING Message
     );
+
+// actions
 
 PHAPPAPI
 BOOLEAN PhUiLockComputer(
