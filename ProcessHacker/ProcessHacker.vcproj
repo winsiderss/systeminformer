@@ -549,6 +549,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sdk\phapppub.h"
+				>
+			</File>
+			<File
 				RelativePath=".\sdk\phdk.h"
 				>
 			</File>
