@@ -6,7 +6,7 @@
 #define PHLIB_IMPORT
 #define PHAPPAPI __declspec(dllimport)
 
-#include "ph.h"
+#include "phgui.h"
 #include "phplug.h"
 
 #include "circbuf.h"
