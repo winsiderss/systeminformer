@@ -60,6 +60,8 @@ __mayRaise VOID PhSetStringSetting2(
     __in PPH_STRINGREF Value
     );
 
+VOID PhClearIgnoredSettings();
+
 NTSTATUS PhLoadSettings(
     __in PWSTR FileName
     );

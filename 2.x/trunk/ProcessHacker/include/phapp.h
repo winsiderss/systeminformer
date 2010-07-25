@@ -232,6 +232,7 @@ PPH_PROCESS_NODE PhCreateProcessNode(
     __in ULONG RunId
     );
 
+PHAPPAPI
 PPH_PROCESS_NODE PhFindProcessNode(
    __in HANDLE ProcessId
    );
@@ -240,6 +241,7 @@ VOID PhRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+PHAPPAPI
 VOID PhUpdateProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
@@ -248,17 +250,22 @@ VOID PhTickProcessNodes();
 
 HICON PhGetStockAppIcon();
 
+PHAPPAPI
 PPH_PROCESS_ITEM PhGetSelectedProcessItem();
 
+PHAPPAPI
 VOID PhGetSelectedProcessItems(
     __out PPH_PROCESS_ITEM **Processes,
     __out PULONG NumberOfProcesses
     );
 
+PHAPPAPI
 VOID PhDeselectAllProcessNodes();
 
+PHAPPAPI
 VOID PhInvalidateAllProcessNodes();
 
+PHAPPAPI
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
@@ -547,6 +554,10 @@ VOID PhShowProcessContextMenu(
     );
 
 // plugins
+
+#ifndef PLUGINS_PRIVATE
+extern LIST_ENTRY PhPluginsListHead;
+#endif
 
 VOID PhPluginsInitialization();
 
@@ -1246,6 +1257,12 @@ VOID PhShowOptionsDialog(
 // pagfiles
 
 VOID PhShowPagefilesDialog(
+    __in HWND ParentWindowHandle
+    );
+
+// plugman
+
+VOID PhShowPluginsDialog(
     __in HWND ParentWindowHandle
     );
 

@@ -651,6 +651,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhShowOptionsDialog(hWnd);
                 }
                 break;
+            case ID_HACKER_PLUGINS:
+                {
+                    PhShowPluginsDialog(hWnd);
+                }
+                break;
             case ID_COMPUTER_LOCK:
             case ID_COMPUTER_LOGOFF:
             case ID_COMPUTER_SLEEP:
@@ -3753,6 +3758,11 @@ VOID PhMainWndOnProcessesUpdated()
     // The modified notification is only sent for special cases.
     // We have to invalidate the text on each update.
     PhTickProcessNodes();
+
+    if (PhPluginsEnabled)
+    {
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessesUpdated), NULL);
+    }
 
     if (ProcessesNeedsRedraw)
     {
