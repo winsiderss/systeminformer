@@ -1,9 +1,16 @@
 @echo off
 
-rmdir /S /Q ..\..\sdk
+if exist ..\..\sdk rmdir /S /Q ..\..\sdk
+if exist ..\..\doc\doxygen mkdir ..\..\sdk\doc\doxygen
 mkdir ..\..\sdk\include
 mkdir ..\..\sdk\lib\amd64
 mkdir ..\..\sdk\lib\i386
+mkdir ..\..\sdk\samples
+
+rem Documentation
+
+if exist ..\..\doc\doxygen echo d | xcopy /Q ..\..\doc\doxygen\html ..\..\sdk\doc\doxygen\html
+copy ..\..\ProcessHacker\sdk\readme.txt ..\..\sdk\
 
 rem Header files
 
@@ -53,18 +60,18 @@ for %%a in (
     symprv.h
     templ.h
     winsta.h
-    ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\
+    ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 
 for %%a in (
     hidnproc.h
     phplug.h
     providers.h
-    ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\
+    ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\%%a
 
 for %%a in (
     phapppub.h
     phdk.h
-    ) do copy ..\..\ProcessHacker\sdk\%%a ..\..\sdk\include\
+    ) do copy ..\..\ProcessHacker\sdk\%%a ..\..\sdk\include\%%a
 
 rem Libraries
 
@@ -74,4 +81,15 @@ copy ..\..\lib\lib32\samlib.lib ..\..\sdk\lib\i386\
 copy ..\..\lib\lib64\samlib.lib ..\..\sdk\lib\amd64\
 
 copy ..\..\bin\Release32\ProcessHacker.lib ..\..\sdk\lib\i386\
-copy ..\..\bin\Release64\ProcessHacker.lib ..\..\sdk\lib\amd64\
+copy ..\..\bin\Release64\ProcessHacker.lib ..\..\sdk\lib\amd64\ > NUL
+
+rem Samples
+
+rem SamplePlugin
+mkdir ..\..\sdk\samples\SamplePlugin
+for %%a in (
+    bin\Release32\SamplePlugin.dll
+    main.c
+    SamplePlugin.sln
+    SamplePlugin.vcproj
+    ) do echo f | xcopy /Q ..\..\plugins\SamplePlugin\%%a ..\..\sdk\samples\SamplePlugin\%%a

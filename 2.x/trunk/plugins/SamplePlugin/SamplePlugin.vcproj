@@ -2,11 +2,11 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9.00"
-	Name="phsvc"
-	ProjectGUID="{030499FD-1C80-42E0-B315-92B77787C19B}"
-	RootNamespace="phsvc"
+	Name="SamplePlugin"
+	ProjectGUID="{C74D269B-3FCC-4C3E-93C7-1B4A94E7BBEE}"
+	RootNamespace="SamplePlugin"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="131072"
+	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -23,7 +23,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)32"
 			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)32"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -44,8 +44,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="../../include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -66,9 +66,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../phlib/bin/$(ConfigurationName)32;../lib/lib32"
+				AdditionalLibraryDirectories="../../lib/i386"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -99,7 +99,7 @@
 			Name="Debug|x64"
 			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)64"
 			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)64"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -121,8 +121,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../phlib/include;include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="../../include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -143,9 +143,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../phlib/bin/$(ConfigurationName)64;../lib/lib64"
+				AdditionalLibraryDirectories="../../lib/amd64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="17"
@@ -176,7 +176,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)32"
 			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)32"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -199,8 +199,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="../../include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -220,9 +220,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../phlib/bin/$(ConfigurationName)32;../lib/lib32"
+				AdditionalLibraryDirectories="../../lib/i386"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -255,7 +255,7 @@
 			Name="Release|x64"
 			OutputDirectory="$(ProjectDir)\bin\$(ConfigurationName)64"
 			IntermediateDirectory="$(ProjectDir)\obj\$(ConfigurationName)64"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -279,8 +279,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="../phlib/include;include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS"
+				AdditionalIncludeDirectories="../../include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
@@ -300,9 +300,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../phlib/bin/$(ConfigurationName)64;../lib/lib64"
+				AdditionalLibraryDirectories="../../lib/amd64"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeReferences="2"
@@ -341,18 +341,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath=".\api.c"
-				>
-			</File>
-			<File
-				RelativePath=".\apiport.c"
-				>
-			</File>
-			<File
-				RelativePath=".\client.c"
-				>
-			</File>
-			<File
 				RelativePath=".\main.c"
 				>
 			</File>
@@ -362,14 +350,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath=".\include\phsvc.h"
-				>
-			</File>
-			<File
-				RelativePath=".\include\phsvcapi.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
