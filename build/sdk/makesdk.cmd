@@ -1,3 +1,5 @@
+@echo off
+
 rmdir /S /Q ..\..\sdk
 mkdir ..\..\sdk\include
 mkdir ..\..\sdk\lib\amd64
@@ -59,7 +61,10 @@ for %%a in (
     providers.h
     ) do copy ..\..\ProcessHacker\include\%%a ..\..\sdk\include\
 
-copy ..\..\ProcessHacker\sdk\phdk.h ..\..\sdk\include\
+for %%a in (
+    phapppub.h
+    phdk.h
+    ) do copy ..\..\ProcessHacker\sdk\%%a ..\..\sdk\include\
 
 rem Libraries
 

@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #define CINTERFACE
 #define COBJMACROS
 #include <taskschd.h>
@@ -251,6 +252,17 @@ PPH_STRING PhGetProcessTooltipText(
         }
 
         PhDeleteStringBuilder(&tasks);
+    }
+
+    // Plugin
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_GET_TOOLTIP_TEXT getTooltipText;
+
+        getTooltipText.Parameter = Process;
+        getTooltipText.StringBuilder = &stringBuilder;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackGetProcessTooltipText), &getTooltipText);
     }
 
     // Notes
