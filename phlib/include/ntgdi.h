@@ -1,5 +1,5 @@
-#ifndef NTGDI_H
-#define NTGDI_H
+#ifndef _NTGDI_H
+#define _NTGDI_H
 
 #define GDI_MAX_HANDLE_COUNT 0x4000
 

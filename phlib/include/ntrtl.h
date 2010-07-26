@@ -1,5 +1,5 @@
-#ifndef NTRTL_H
-#define NTRTL_H
+#ifndef _NTRTL_H
+#define _NTRTL_H
 
 #include <ntldr.h>
 
@@ -987,9 +987,7 @@ RtlWakeAllConditionVariable(
 
 // Strings
 
-#define PHNT_INLINE_INIT_STRING
-
-#ifdef PHNT_INLINE_INIT_STRING
+#ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitString(
     __out PSTRING DestinationString,
     __in_opt PSTR SourceString
@@ -1012,7 +1010,7 @@ RtlInitString(
     );
 #endif
 
-#ifdef PHNT_INLINE_INIT_STRING
+#ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitAnsiString(
     __out PANSI_STRING DestinationString,
     __in_opt PSTR SourceString
@@ -1123,12 +1121,13 @@ RtlUpperString(
     __in PSTRING SourceString
     );
 
-#ifdef PHNT_INLINE_INIT_STRING
+#ifndef PHNT_NO_INLINE_INIT_STRING
 FORCEINLINE VOID RtlInitUnicodeString(
     __out PUNICODE_STRING DestinationString,
     __in_opt PWSTR SourceString
     )
 {
+    // MaximumLength should really be Length + sizeof(WCHAR), but it doesn't matter too much.
     if (SourceString)
         DestinationString->MaximumLength = DestinationString->Length = (USHORT)(wcslen(SourceString) * sizeof(WCHAR));
     else

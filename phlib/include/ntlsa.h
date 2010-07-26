@@ -1,5 +1,5 @@
-#ifndef NTLSA_H
-#define NTLSA_H
+#ifndef _NTLSA_H
+#define _NTLSA_H
 
 // This header file provides access to the complete LSA API.
 // (The rest is provided by ntsecapi.h)

@@ -1,5 +1,5 @@
-#ifndef NTXCAPI_H
-#define NTXCAPI_H
+#ifndef _NTXCAPI_H
+#define _NTXCAPI_H
 
 NTSYSAPI
 BOOLEAN

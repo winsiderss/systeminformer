@@ -1,5 +1,5 @@
-#ifndef NTWIN
-#define NTWIN
+#ifndef _NTWIN_H
+#define _NTWIN_H
 
 // This header file provides access to Win32, plus NTSTATUS values.
 

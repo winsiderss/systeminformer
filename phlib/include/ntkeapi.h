@@ -1,5 +1,5 @@
-#ifndef NTKEAPI_H
-#define NTKEAPI_H
+#ifndef _NTKEAPI_H
+#define _NTKEAPI_H
 
 typedef enum _KTHREAD_STATE
 {

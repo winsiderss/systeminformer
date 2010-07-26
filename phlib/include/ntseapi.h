@@ -1,5 +1,5 @@
-#ifndef NTSEAPI_H
-#define NTSEAPI_H
+#ifndef _NTSEAPI_H
+#define _NTSEAPI_H
 
 // Privileges
 

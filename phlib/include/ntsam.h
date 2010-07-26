@@ -1,5 +1,5 @@
-#ifndef NTSAM_H
-#define NTSAM_H
+#ifndef _NTSAM_H
+#define _NTSAM_H
 
 #define SAM_MAXIMUM_LOOKUP_COUNT (1000)
 #define SAM_MAXIMUM_LOOKUP_LENGTH (32000)

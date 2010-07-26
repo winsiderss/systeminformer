@@ -1,5 +1,5 @@
-#ifndef NTEXAPI_H
-#define NTEXAPI_H
+#ifndef _NTEXAPI_H
+#define _NTEXAPI_H
 
 #include <ntkeapi.h>
 

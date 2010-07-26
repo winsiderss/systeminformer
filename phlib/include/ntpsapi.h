@@ -1,8 +1,10 @@
-#ifndef NTPSAPI_H
-#define NTPSAPI_H
+#ifndef _NTPSAPI_H
+#define _NTPSAPI_H
 
-// MS has decided to leave this one access right out 
-// of the headers...
+#ifndef PROCESS_SET_PORT
+#define PROCESS_SET_PORT 0x0800
+#endif
+
 #ifndef THREAD_ALERT
 #define THREAD_ALERT 0x0004
 #endif
@@ -17,6 +19,9 @@
 #endif
 
 typedef ULONG GDI_HANDLE_BUFFER[GDI_HANDLE_BUFFER_SIZE];
+
+typedef ULONG GDI_HANDLE_BUFFER32[GDI_HANDLE_BUFFER_SIZE32];
+typedef ULONG GDI_HANDLE_BUFFER64[GDI_HANDLE_BUFFER_SIZE64];
 
 #define FLS_MAXIMUM_AVAILABLE 128
 #define TLS_MINIMUM_AVAILABLE 64

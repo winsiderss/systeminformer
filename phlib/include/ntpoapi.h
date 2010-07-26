@@ -1,5 +1,5 @@
-#ifndef NTPOAPI_H
-#define NTPOAPI_H
+#ifndef _NTPOAPI_H
+#define _NTPOAPI_H
 
 typedef union _POWER_STATE
 {
@@ -116,15 +116,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetThreadExecutionState(
-    __in EXECUTION_STATE esFlags, // ES_* flags
+    __in EXECUTION_STATE NewFlags, // ES_* flags
     __out EXECUTION_STATE *PreviousFlags
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtRequestWakeupLatency(
-    __in LATENCY_TIME latency
     );
 
 NTSYSCALLAPI
@@ -132,7 +125,7 @@ NTSTATUS
 NTAPI
 NtInitiatePowerAction(
     __in POWER_ACTION SystemAction,
-    __in SYSTEM_POWER_STATE MinSystemState,
+    __in SYSTEM_POWER_STATE LightestSystemState,
     __in ULONG Flags, // POWER_ACTION_* flags
     __in BOOLEAN Asynchronous
     );
@@ -142,7 +135,7 @@ NTSTATUS
 NTAPI
 NtSetSystemPowerState(
     __in POWER_ACTION SystemAction,
-    __in SYSTEM_POWER_STATE MinSystemState,
+    __in SYSTEM_POWER_STATE LightestSystemState,
     __in ULONG Flags // POWER_ACTION_* flags
     );
 
@@ -151,21 +144,7 @@ NTSTATUS
 NTAPI
 NtGetDevicePowerState(
     __in HANDLE Device,
-    __out DEVICE_POWER_STATE *State
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtRequestDeviceWakeup(
-    __in HANDLE Device
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtCancelDeviceWakeupRequest(
-    __in HANDLE Device
+    __out PDEVICE_POWER_STATE State
     );
 
 NTSYSCALLAPI

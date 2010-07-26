@@ -1,5 +1,5 @@
-#ifndef NTREGAPI_H
-#define NTREGAPI_H
+#ifndef _NTREGAPI_H
+#define _NTREGAPI_H
 
 // Boot condition flags (NtInitializeRegistry)
 

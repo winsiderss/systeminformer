@@ -1,5 +1,5 @@
-#ifndef NTPNPAPI_H
-#define NTPNPAPI_H
+#ifndef _NTPNPAPI_H
+#define _NTPNPAPI_H
 
 typedef enum _PLUGPLAY_EVENT_CATEGORY
 {
