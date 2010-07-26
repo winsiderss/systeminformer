@@ -2067,7 +2067,6 @@ NTSTATUS PhUnloadDllProcess(
             PPH_STRING ntdll32FileName;
             UNLOAD_DLL_ENUM_MODULES_CONTEXT context;
             PH_MAPPED_IMAGE mappedImage;
-            BOOLEAN found = FALSE;
 
             ntdll32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
 
@@ -2079,40 +2078,44 @@ NTSTATUS PhUnloadDllProcess(
             status = PhEnumProcessModules32(ProcessHandle, PhpUnloadDllEnumModules32Callback, &context);
 
             if (!NT_SUCCESS(status))
-                return status;
+                goto GetAddressFail;
+
             if (!context.Ntdll32Base)
-                return STATUS_PROCEDURE_NOT_FOUND;
+            {
+                status = STATUS_PROCEDURE_NOT_FOUND;
+                goto GetAddressFail;
+            }
 
             // Find LdrUnloadDll in the WOW64 ntdll.
 
             if (NT_SUCCESS(status = PhLoadMappedImage(ntdll32FileName->Buffer, NULL, TRUE, &mappedImage)))
             {
                 PH_MAPPED_IMAGE_EXPORTS exports;
-                PH_MAPPED_IMAGE_EXPORT_FUNCTION function;
 
                 if (NT_SUCCESS(status = PhInitializeMappedImageExports(&exports, &mappedImage)))
                 {
-                    if (NT_SUCCESS(status = PhGetMappedImageExportFunction(
+                    status = PhGetMappedImageExportFunctionRemote(
                         &exports,
                         "LdrUnloadDll",
                         0,
-                        &function
-                        )))
-                    {
-                        ldrUnloadDll32 = REBASE_ADDRESS(function.Function, mappedImage.ViewBase, context.Ntdll32Base);
-                        found = TRUE;
-                    }
+                        context.Ntdll32Base,
+                        &ldrUnloadDll32
+                        );
                 }
 
                 PhUnloadMappedImage(&mappedImage);
             }
 
             if (!NT_SUCCESS(status))
-                return status;
-            if (!found)
-                return STATUS_PROCEDURE_NOT_FOUND;
+                goto GetAddressFail;
 
             threadStart = ldrUnloadDll32;
+
+GetAddressFail:
+            PhDereferenceObject(ntdll32FileName);
+
+            if (!NT_SUCCESS(status))
+                return status;
         }
     }
 #endif
