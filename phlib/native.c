@@ -35,6 +35,14 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in PVOID Context2
     );
 
+typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY32 Entry,
+    __in ULONG AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    );
+
 PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
 
 PH_STRINGREF PhDevicePrefixes[26];
@@ -1966,6 +1974,28 @@ FreeExit:
     return status;
 }
 
+typedef struct _UNLOAD_DLL_ENUM_MODULES_CONTEXT
+{
+    PPH_STRING Ntdll32FileName;
+    PVOID Ntdll32Base;
+} UNLOAD_DLL_ENUM_MODULES_CONTEXT, *PUNLOAD_DLL_ENUM_MODULES_CONTEXT;
+
+static BOOLEAN PhpUnloadDllEnumModules32Callback(
+    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in PVOID Context
+    )
+{
+    PUNLOAD_DLL_ENUM_MODULES_CONTEXT context = Context;
+
+    if (WSTR_IEQUAL(Module->FullDllName.Buffer, context->Ntdll32FileName->Buffer))
+    {
+        context->Ntdll32Base = Module->DllBase;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 /**
  * Causes a process to unload a DLL.
  *
@@ -1983,8 +2013,17 @@ NTSTATUS PhUnloadDllProcess(
     )
 {
     NTSTATUS status;
+#ifdef _M_X64
+    BOOLEAN isWow64 = FALSE;
+    BOOLEAN isModule32 = FALSE;
+#endif
     HANDLE threadHandle;
     THREAD_BASIC_INFORMATION basicInfo;
+    PVOID threadStart;
+
+#ifdef _M_X64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+#endif
 
     status = PhSetProcessModuleLoadCount(
         ProcessHandle,
@@ -1992,8 +2031,91 @@ NTSTATUS PhUnloadDllProcess(
         1
         );
 
+#ifdef _M_X64
+    if (isWow64 && status == STATUS_DLL_NOT_FOUND)
+    {
+        // The DLL might be 32-bit.
+        status = PhSetProcessModuleLoadCount32(
+            ProcessHandle,
+            BaseAddress,
+            1
+            );
+
+        if (NT_SUCCESS(status))
+            isModule32 = TRUE;
+    }
+#endif
+
     if (!NT_SUCCESS(status))
         return status;
+
+#ifdef _M_X64
+    if (!isModule32)
+    {
+#endif
+        threadStart = PhGetProcAddress(L"ntdll.dll", "LdrUnloadDll");
+#ifdef _M_X64
+    }
+    else
+    {
+        static PVOID ldrUnloadDll32 = NULL;
+
+        threadStart = ldrUnloadDll32;
+
+        if (!threadStart)
+        {
+            PPH_STRING ntdll32FileName;
+            UNLOAD_DLL_ENUM_MODULES_CONTEXT context;
+            PH_MAPPED_IMAGE mappedImage;
+            BOOLEAN found = FALSE;
+
+            ntdll32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
+
+            // Find the WOW64 ntdll's base.
+
+            context.Ntdll32FileName = ntdll32FileName;
+            context.Ntdll32Base = NULL;
+
+            status = PhEnumProcessModules32(ProcessHandle, PhpUnloadDllEnumModules32Callback, &context);
+
+            if (!NT_SUCCESS(status))
+                return status;
+            if (!context.Ntdll32Base)
+                return STATUS_PROCEDURE_NOT_FOUND;
+
+            // Find LdrUnloadDll in the WOW64 ntdll.
+
+            if (NT_SUCCESS(status = PhLoadMappedImage(ntdll32FileName->Buffer, NULL, TRUE, &mappedImage)))
+            {
+                PH_MAPPED_IMAGE_EXPORTS exports;
+                PH_MAPPED_IMAGE_EXPORT_FUNCTION function;
+
+                if (NT_SUCCESS(status = PhInitializeMappedImageExports(&exports, &mappedImage)))
+                {
+                    if (NT_SUCCESS(status = PhGetMappedImageExportFunction(
+                        &exports,
+                        "LdrUnloadDll",
+                        0,
+                        &function
+                        )))
+                    {
+                        ldrUnloadDll32 = REBASE_ADDRESS(function.Function, mappedImage.ViewBase, context.Ntdll32Base);
+                        found = TRUE;
+                    }
+                }
+
+                PhUnloadMappedImage(&mappedImage);
+            }
+
+            if (!NT_SUCCESS(status))
+                return status;
+            if (!found)
+                return STATUS_PROCEDURE_NOT_FOUND;
+
+            threadStart = ldrUnloadDll32;
+        }
+    }
+#endif
 
     if (WindowsVersion >= WINDOWS_VISTA)
     {
@@ -2004,7 +2126,7 @@ NTSTATUS PhUnloadDllProcess(
             0,
             0,
             0,
-            (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "LdrUnloadDll"),
+            (PUSER_THREAD_START_ROUTINE)threadStart,
             BaseAddress,
             &threadHandle,
             NULL
@@ -2016,7 +2138,7 @@ NTSTATUS PhUnloadDllProcess(
             ProcessHandle,
             NULL,
             0,
-            (PTHREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "FreeLibrary"),
+            (PTHREAD_START_ROUTINE)threadStart,
             BaseAddress,
             0,
             NULL
@@ -2036,12 +2158,7 @@ NTSTATUS PhUnloadDllProcess(
         status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
 
         if (NT_SUCCESS(status))
-        {
-            if (WindowsVersion >= WINDOWS_VISTA)
-                status = basicInfo.ExitStatus;
-            else
-                status = basicInfo.ExitStatus != 0 ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
-        }
+            status = basicInfo.ExitStatus;
     }
 
     NtClose(threadHandle);
@@ -4063,7 +4180,7 @@ NTSTATUS PhpEnumProcessModules(
 {
     NTSTATUS status;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PVOID ldr;
+    PPEB_LDR_DATA ldr;
     PEB_LDR_DATA pebLdrData;
     PLIST_ENTRY startLink;
     PLIST_ENTRY currentLink;
@@ -4289,6 +4406,271 @@ NTSTATUS PhSetProcessModuleLoadCount(
     status = PhpEnumProcessModules(
         ProcessHandle,
         PhpSetProcessModuleLoadCountCallback,
+        &context,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return context.Status;
+}
+
+NTSTATUS PhpEnumProcessModules32(
+    __in HANDLE ProcessHandle,
+    __in PPHP_ENUM_PROCESS_MODULES32_CALLBACK Callback,
+    __in PVOID Context1,
+    __in PVOID Context2
+    )
+{
+    NTSTATUS status;
+    PPEB32 peb;
+    ULONG ldr; // PEB_LDR_DATA32 *32
+    PEB_LDR_DATA32 pebLdrData;
+    ULONG startLink; // LIST_ENTRY32 *32
+    ULONG currentLink; // LIST_ENTRY32 *32
+    LDR_DATA_TABLE_ENTRY32 currentEntry;
+    ULONG i;
+
+    // Get the 32-bit PEB address.
+    status = PhGetProcessPeb32(ProcessHandle, &peb);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!peb)
+        return STATUS_NOT_SUPPORTED; // not a WOW64 process
+
+    // Read the address of the loader data.
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(peb, FIELD_OFFSET(PEB32, Ldr)),
+        &ldr,
+        sizeof(ULONG),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Read the loader data.
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        UlongToPtr(ldr),
+        &pebLdrData,
+        sizeof(PEB_LDR_DATA32),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!pebLdrData.Initialized)
+        return STATUS_UNSUCCESSFUL;
+
+    // Traverse the linked list (in load order).
+
+    i = 0;
+    startLink = (ULONG)(ldr + FIELD_OFFSET(PEB_LDR_DATA32, InLoadOrderModuleList));
+    currentLink = pebLdrData.InLoadOrderModuleList.Flink;
+
+    while (
+        currentLink != startLink &&
+        i <= PH_ENUM_PROCESS_MODULES_ITERS
+        )
+    {
+        ULONG addressOfEntry;
+
+        addressOfEntry = (ULONG)CONTAINING_RECORD(UlongToPtr(currentLink), LDR_DATA_TABLE_ENTRY32, InLoadOrderLinks);
+        status = PhReadVirtualMemory(
+            ProcessHandle,
+            UlongToPtr(addressOfEntry),
+            &currentEntry,
+            LDR_DATA_TABLE_ENTRY_SIZE32,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        // Make sure the entry is valid.
+        if (currentEntry.DllBase)
+        {
+            // Execute the callback.
+            if (!Callback(
+                ProcessHandle,
+                &currentEntry,
+                addressOfEntry,
+                Context1,
+                Context2
+                ))
+                break;
+        }
+
+        currentLink = currentEntry.InLoadOrderLinks.Flink;
+        i++;
+    }
+
+    return status;
+}
+
+BOOLEAN NTAPI PhpEnumProcessModules32Callback(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY32 Entry,
+    __in ULONG AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    )
+{
+    BOOLEAN cont;
+    LDR_DATA_TABLE_ENTRY nativeEntry;
+    PWSTR baseDllNameBuffer;
+    PWSTR fullDllNameBuffer;
+
+    // Convert the 32-bit entry to a native-sized entry.
+
+    memset(&nativeEntry, 0, sizeof(LDR_DATA_TABLE_ENTRY));
+    nativeEntry.DllBase = UlongToPtr(Entry->DllBase);
+    nativeEntry.EntryPoint = UlongToPtr(Entry->EntryPoint);
+    nativeEntry.SizeOfImage = Entry->SizeOfImage;
+    UStr32ToUStr(&nativeEntry.FullDllName, &Entry->FullDllName);
+    UStr32ToUStr(&nativeEntry.BaseDllName, &Entry->BaseDllName);
+    nativeEntry.Flags = Entry->Flags;
+    nativeEntry.LoadCount = Entry->LoadCount;
+    nativeEntry.TlsIndex = Entry->TlsIndex;
+
+    // Read the base DLL name string and add a null terminator.
+
+    baseDllNameBuffer = PhAllocate(nativeEntry.BaseDllName.Length + 2);
+
+    if (NT_SUCCESS(PhReadVirtualMemory(
+        ProcessHandle,
+        nativeEntry.BaseDllName.Buffer,
+        baseDllNameBuffer,
+        nativeEntry.BaseDllName.Length,
+        NULL
+        )))
+    {
+        baseDllNameBuffer[nativeEntry.BaseDllName.Length / 2] = 0;
+        nativeEntry.BaseDllName.Buffer = baseDllNameBuffer;
+    }
+
+    // Read the full DLL name string and add a null terminator.
+
+    fullDllNameBuffer = PhAllocate(nativeEntry.FullDllName.Length + 2);
+
+    if (NT_SUCCESS(PhReadVirtualMemory(
+        ProcessHandle,
+        nativeEntry.FullDllName.Buffer,
+        fullDllNameBuffer,
+        nativeEntry.FullDllName.Length,
+        NULL
+        )))
+    {
+        fullDllNameBuffer[nativeEntry.FullDllName.Length / 2] = 0;
+        nativeEntry.FullDllName.Buffer = fullDllNameBuffer;
+    }
+
+    // Execute the callback.
+    cont = ((PPH_ENUM_PROCESS_MODULES_CALLBACK)Context1)(&nativeEntry, Context2);
+
+    PhFree(baseDllNameBuffer);
+    PhFree(fullDllNameBuffer);
+
+    return cont;
+}
+
+/**
+ * Enumerates the 32-bit modules loaded by a process.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION 
+ * and PROCESS_VM_READ access.
+ * \param Callback A callback function which is 
+ * executed for each process module.
+ * \param Context A user-defined value to pass to the 
+ * callback function.
+ *
+ * \retval STATUS_NOT_SUPPORTED The process is not 
+ * running under WOW64.
+ *
+ * \remarks Do not use this function under a 32-bit 
+ * environment.
+ */
+NTSTATUS PhEnumProcessModules32(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    return PhpEnumProcessModules32(
+        ProcessHandle,
+        PhpEnumProcessModules32Callback,
+        Callback,
+        Context
+        );
+}
+
+BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
+    __in HANDLE ProcessHandle,
+    __in PLDR_DATA_TABLE_ENTRY32 Entry,
+    __in ULONG AddressOfEntry,
+    __in PVOID Context1,
+    __in PVOID Context2
+    )
+{
+    PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
+
+    if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
+    {
+        Entry->LoadCount = context->LoadCount;
+
+        context->Status = PhWriteVirtualMemory(
+            ProcessHandle,
+            UlongToPtr(AddressOfEntry),
+            Entry,
+            LDR_DATA_TABLE_ENTRY_SIZE32,
+            NULL
+            );
+
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Sets the load count of a 32-bit process module.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION, 
+ * PROCESS_VM_READ and PROCESS_VM_WRITE access.
+ * \param BaseAddress The base address of a module.
+ * \param LoadCount The new load count of the module.
+ *
+ * \retval STATUS_DLL_NOT_FOUND The module was not found.
+ * \retval STATUS_NOT_SUPPORTED The process is not 
+ * running under WOW64.
+ *
+ * \remarks Do not use this function under a 32-bit 
+ * environment.
+ */
+NTSTATUS PhSetProcessModuleLoadCount32(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in USHORT LoadCount
+    )
+{
+    NTSTATUS status;
+    SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context;
+
+    context.Status = STATUS_DLL_NOT_FOUND;
+    context.BaseAddress = BaseAddress;
+    context.LoadCount = LoadCount;
+
+    status = PhpEnumProcessModules32(
+        ProcessHandle,
+        PhpSetProcessModuleLoadCount32Callback,
         &context,
         NULL
         );
@@ -5404,18 +5786,12 @@ PPH_STRING PhGetFileName(
     // "\SystemRoot" means "C:\Windows".
     else if (PhStringStartsWith2(FileName, L"\\SystemRoot", TRUE))
     {
-        PPH_STRING systemDirectory = PhGetSystemDirectory();
+        ULONG systemRootLength;
 
-        if (systemDirectory)
-        {
-            ULONG indexOfLastBackslash = PhStringLastIndexOfChar(systemDirectory, 0, '\\');
-
-            newFileName = PhCreateStringEx(NULL, indexOfLastBackslash * 2 + FileName->Length - 22);
-            memcpy(newFileName->Buffer, systemDirectory->Buffer, indexOfLastBackslash * 2);
-            memcpy(&newFileName->Buffer[indexOfLastBackslash], &FileName->Buffer[11], FileName->Length - 22);
-
-            PhDereferenceObject(systemDirectory);
-        }
+        systemRootLength = (ULONG)wcslen(USER_SHARED_DATA->NtSystemRoot);
+        newFileName = PhCreateStringEx(NULL, systemRootLength * 2 + FileName->Length - 22);
+        memcpy(newFileName->Buffer, USER_SHARED_DATA->NtSystemRoot, systemRootLength * 2);
+        memcpy(&newFileName->Buffer[systemRootLength], &FileName->Buffer[11], FileName->Length - 22);
     }
     else if (FileName->Length != 0 && FileName->Buffer[0] == '\\')
     {
@@ -5433,14 +5809,10 @@ PPH_STRING PhGetFileName(
             // If the file name starts with "\Windows", prepend the system drive.
             if (PhStringStartsWith2(newFileName, L"\\Windows", TRUE))
             {
-                PPH_STRING systemDirectory = PhGetSystemDirectory();
-
                 newFileName = PhCreateStringEx(NULL, FileName->Length + 4);
-                newFileName->Buffer[0] = systemDirectory->Buffer[0];
+                newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
                 newFileName->Buffer[1] = ':';
                 memcpy(&newFileName->Buffer[2], FileName->Buffer, FileName->Length);
-
-                PhDereferenceObject(systemDirectory);
             }
             else
             {
@@ -5462,6 +5834,7 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 {
     PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
     PVOID Context;
+    ULONG Type;
     PPH_LIST BaseAddressList;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
 
@@ -5492,7 +5865,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         Module->FullDllName.Length
         );
 
-    moduleInfo.Type = PH_MODULE_TYPE_MODULE;
+    moduleInfo.Type = context->Type;
     moduleInfo.BaseAddress = Module->DllBase;
     moduleInfo.Size = Module->SizeOfImage;
     moduleInfo.EntryPoint = Module->EntryPoint;
@@ -5690,17 +6063,19 @@ NTSTATUS PhEnumGenericModules(
     }
     else
     {
-        // 32-bit process modules
+        // Process modules
 
         BOOLEAN opened = FALSE;
+#ifdef _M_X64
         BOOLEAN isWow64 = FALSE;
+#endif
         ENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
 
         if (!ProcessHandle)
         {
             if (!NT_SUCCESS(status = PhOpenProcess(
                 &ProcessHandle,
-                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+                PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, // needed for enumerating mapped files
                 ProcessId
                 )))
             {
@@ -5719,6 +6094,7 @@ NTSTATUS PhEnumGenericModules(
 
         context.Callback = Callback;
         context.Context = Context;
+        context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressList = baseAddressList;
 
         status = PhEnumProcessModules(
@@ -5740,42 +6116,26 @@ NTSTATUS PhEnumGenericModules(
         }
 
 #ifdef _M_X64
-        // And just before we close the process handle, find out 
-        // if the process is running under WOW64.
         PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+        // 32-bit process modules
+        if (isWow64)
+        {
+            context.Callback = Callback;
+            context.Context = Context;
+            context.Type = PH_MODULE_TYPE_WOW64_MODULE;
+            context.BaseAddressList = baseAddressList;
+
+            status = PhEnumProcessModules32(
+                ProcessHandle,
+                EnumGenericProcessModulesCallback,
+                &context
+                );
+        }
 #endif
 
         if (opened)
             NtClose(ProcessHandle);
-
-#ifdef _M_X64
-        // 64-bit process modules
-        if (isWow64)
-        {
-            PRTL_DEBUG_INFORMATION debugBuffer;
-
-            debugBuffer = RtlCreateQueryDebugBuffer(0, FALSE);
-
-            if (debugBuffer)
-            {
-                if (NT_SUCCESS(RtlQueryProcessDebugInformation(
-                    ProcessId,
-                    RTL_QUERY_PROCESS_MODULES32 | RTL_QUERY_PROCESS_NONINVASIVE,
-                    debugBuffer
-                    )))
-                {
-                    PhpRtlModulesToGenericModules(
-                        debugBuffer->Modules,
-                        Callback,
-                        Context,
-                        baseAddressList
-                        );
-                }
-
-                RtlDestroyQueryDebugBuffer(debugBuffer);
-            }
-        }
-#endif
     }
 
 CleanupExit:

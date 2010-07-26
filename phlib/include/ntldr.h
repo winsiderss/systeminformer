@@ -1,5 +1,5 @@
-#ifndef NTLDR_H
-#define NTLDR_H
+#ifndef _NTLDR_H
+#define _NTLDR_H
 
 // DLLs
 

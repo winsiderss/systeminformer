@@ -1,5 +1,5 @@
-#ifndef NTBASIC_H
-#define NTBASIC_H
+#ifndef _NTBASIC_H
+#define _NTBASIC_H
 
 // This header file provides basic NT types not included in Win32.
 
@@ -37,8 +37,11 @@ typedef CLONG *PCLONG;
 
 // Specific
 
+typedef UCHAR KIRQL, *PKIRQL;
 typedef LONG KPRIORITY;
 typedef USHORT RTL_ATOM, *PRTL_ATOM;
+
+typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 
 // NT status macros
 
@@ -78,13 +81,13 @@ typedef enum _WAIT_TYPE
     WaitAny
 } WAIT_TYPE;
 
-// String types
+// Strings
 
-typedef struct _ANSI_STRING
+typedef struct _STRING
 {
     USHORT Length;
     USHORT MaximumLength;
-    PSTR Buffer;
+    __field_bcount_part_opt(MaximumLength, Length) PCHAR Buffer;
 } STRING, *PSTRING, ANSI_STRING, *PANSI_STRING, OEM_STRING, *POEM_STRING;
 
 typedef const STRING *PCSTRING;
@@ -95,12 +98,39 @@ typedef struct _UNICODE_STRING
 {
     USHORT Length;
     USHORT MaximumLength;
-    PWSTR Buffer;
+    __field_bcount_part(MaximumLength, Length) PWCH Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
 
 typedef const UNICODE_STRING *PCUNICODE_STRING;
 
-// Valid flags for Attributes field
+// Portability
+
+typedef struct _SINGLE_LIST_ENTRY32
+{
+    ULONG Next;
+} SINGLE_LIST_ENTRY32, *PSINGLE_LIST_ENTRY32;
+
+typedef struct _STRING32
+{
+    USHORT Length;
+    USHORT MaximumLength;
+    ULONG Buffer;
+} STRING32, *PSTRING32;
+
+typedef STRING32 UNICODE_STRING32, *PUNICODE_STRING32;
+typedef STRING32 ANSI_STRING32, *PANSI_STRING32;
+
+typedef struct _STRING64
+{
+    USHORT Length;
+    USHORT MaximumLength;
+    ULONGLONG Buffer;
+} STRING64, *PSTRING64;
+
+typedef STRING64 UNICODE_STRING64, *PUNICODE_STRING64;
+typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
+
+// Object attributes
 
 #define OBJ_INHERIT 0x00000002
 #define OBJ_PERMANENT 0x00000010
@@ -118,9 +148,11 @@ typedef struct _OBJECT_ATTRIBUTES
     HANDLE RootDirectory;
     PUNICODE_STRING ObjectName;
     ULONG Attributes;
-    PVOID SecurityDescriptor;
-    PVOID SecurityQualityOfService;
+    PVOID SecurityDescriptor; // PSECURITY_DESCRIPTOR;
+    PVOID SecurityQualityOfService; // PSECURITY_QUALITY_OF_SERVICE
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
+
+typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
 
 #define InitializeObjectAttributes(p, n, a, r, s) { \
     (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
@@ -131,11 +163,81 @@ typedef struct _OBJECT_ATTRIBUTES
     (p)->SecurityQualityOfService = NULL; \
     }
 
+// Portability
+
+typedef struct _OBJECT_ATTRIBUTES64
+{
+    ULONG Length;
+    ULONG64 RootDirectory;
+    ULONG64 ObjectName;
+    ULONG Attributes;
+    ULONG64 SecurityDescriptor;
+    ULONG64 SecurityQualityOfService;
+} OBJECT_ATTRIBUTES64, *POBJECT_ATTRIBUTES64;
+
+typedef const OBJECT_ATTRIBUTES64 *PCOBJECT_ATTRIBUTES64;
+
+typedef struct _OBJECT_ATTRIBUTES32
+{
+    ULONG Length;
+    ULONG RootDirectory;
+    ULONG ObjectName;
+    ULONG Attributes;
+    ULONG SecurityDescriptor;
+    ULONG SecurityQualityOfService;
+} OBJECT_ATTRIBUTES32, *POBJECT_ATTRIBUTES32;
+
+typedef const OBJECT_ATTRIBUTES32 *PCOBJECT_ATTRIBUTES32;
+
+// Product types
+
+typedef enum _NT_PRODUCT_TYPE
+{
+    NtProductWinNt = 1,
+    NtProductLanManNt,
+    NtProductServer
+} NT_PRODUCT_TYPE, *PNT_PRODUCT_TYPE;
+
+typedef enum _SUITE_TYPE
+{
+    SmallBusiness,
+    Enterprise,
+    BackOffice,
+    CommunicationServer,
+    TerminalServer,
+    SmallBusinessRestricted,
+    EmbeddedNT,
+    DataCenter,
+    SingleUserTS,
+    Personal,
+    Blade,
+    EmbeddedRestricted,
+    SecurityAppliance,
+    StorageServer,
+    ComputeServer,
+    WHServer,
+    MaxSuiteType
+} SUITE_TYPE;
+
+// Specific
+
 typedef struct _CLIENT_ID
 {
     HANDLE UniqueProcess;
     HANDLE UniqueThread;
 } CLIENT_ID, *PCLIENT_ID;
+
+typedef struct _CLIENT_ID32
+{
+    ULONG UniqueProcess;
+    ULONG UniqueThread;
+} CLIENT_ID32, *PCLIENT_ID32;
+
+typedef struct _CLIENT_ID64
+{
+    ULONGLONG UniqueProcess;
+    ULONGLONG UniqueThread;
+} CLIENT_ID64, *PCLIENT_ID64;
 
 #include <pshpack4.h>
 

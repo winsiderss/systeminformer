@@ -1,5 +1,5 @@
-#ifndef NTMMAPI_H
-#define NTMMAPI_H
+#ifndef _NTMMAPI_H
+#define _NTMMAPI_H
 
 typedef enum _MEMORY_INFORMATION_CLASS
 {

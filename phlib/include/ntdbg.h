@@ -1,5 +1,5 @@
-#ifndef NTDBG_H
-#define NTDBG_H
+#ifndef _NTDBG_H
+#define _NTDBG_H
 
 // Definitions
 

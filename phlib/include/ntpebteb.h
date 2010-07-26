@@ -1,5 +1,5 @@
-#ifndef NTPEBTEB_H
-#define NTPEBTEB_H
+#ifndef _NTPEBTEB_H
+#define _NTPEBTEB_H
 
 #include <ntldr.h>
 #include <ntrtl.h>
@@ -137,11 +137,13 @@ typedef struct _PEB
     };
 } PEB, *PPEB;
 
+#define GDI_BATCH_BUFFER_SIZE 310
+
 typedef struct _GDI_TEB_BATCH
 {
     ULONG Offset;
-    HDC HDC;
-    ULONG Buffer[310];
+    ULONG_PTR HDC;
+    ULONG Buffer[GDI_BATCH_BUFFER_SIZE];
 } GDI_TEB_BATCH, *PGDI_TEB_BATCH;
 
 typedef struct _TEB_ACTIVE_FRAME_CONTEXT

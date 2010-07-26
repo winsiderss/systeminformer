@@ -1,5 +1,5 @@
-#ifndef NTTP_H
-#define NTTP_H
+#ifndef _NTTP_H
+#define _NTTP_H
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 

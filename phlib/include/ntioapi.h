@@ -1,5 +1,5 @@
-#ifndef NTIOAPI_H
-#define NTIOAPI_H
+#ifndef _NTIOAPI_H
+#define _NTIOAPI_H
 
 // Create disposition
 

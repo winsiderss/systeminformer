@@ -1,5 +1,5 @@
-#ifndef NTIMPORT_H
-#define NTIMPORT_H
+#ifndef _NTIMPORT_H
+#define _NTIMPORT_H
 
 #ifdef NTIMPORT_PRIVATE
 #define EXT

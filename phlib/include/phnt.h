@@ -3,6 +3,8 @@
 
 // This header file provides access to NT APIs.
 
+// Version
+
 #define PHNT_WIN2K 50
 #define PHNT_WINXP 51
 #define PHNT_WS03 52
@@ -13,7 +15,13 @@
 #define PHNT_VERSION PHNT_WINXP
 #endif
 
+// Options
+
+//#define PHNT_NO_INLINE_INIT_STRING
+
 #include <ntbasic.h>
+#include <ntnls.h>
+
 #include <ntcm.h>
 #include <ntdbg.h>
 #include <ntexapi.h>
@@ -31,6 +39,8 @@
 #include <nttmapi.h>
 #include <nttp.h>
 #include <ntxcapi.h>
+
+#include <ntwow64.h>
 
 #include <ntlsa.h>
 #include <ntsam.h>

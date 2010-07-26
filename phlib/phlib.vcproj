@@ -659,6 +659,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\ntnls.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\ntobapi.h"
 				>
 			</File>
@@ -704,6 +708,10 @@
 			</File>
 			<File
 				RelativePath=".\include\ntwin.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\ntwow64.h"
 				>
 			</File>
 			<File
