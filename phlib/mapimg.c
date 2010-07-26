@@ -21,7 +21,7 @@
  */
 
 /*
- * This file contains functions to load and retrieve information about 
+ * This file contains functions to load and retrieve information for 
  * image files (exe, dll). The file format for image files is explained 
  * in the PE/COFF specification located at:
  *
@@ -429,6 +429,110 @@ NTSTATUS PhGetMappedImageLoadConfig64(
         );
 }
 
+NTSTATUS PhLoadRemoteMappedImage(
+    __in HANDLE ProcessHandle,
+    __in PVOID ViewBase,
+    __out PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    )
+{
+    NTSTATUS status;
+    IMAGE_DOS_HEADER dosHeader;
+    ULONG ntHeadersOffset;
+    IMAGE_NT_HEADERS32 ntHeaders;
+    ULONG ntHeadersSize;
+
+    RemoteMappedImage->ViewBase = ViewBase;
+
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        ViewBase,
+        &dosHeader,
+        sizeof(IMAGE_DOS_HEADER),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Check the initial MZ.
+
+    if (dosHeader.e_magic != IMAGE_DOS_SIGNATURE)
+        return STATUS_INVALID_IMAGE_NOT_MZ;
+
+    // Get a pointer to the NT headers and read it in for some basic information.
+
+    ntHeadersOffset = (ULONG)dosHeader.e_lfanew;
+
+    if (ntHeadersOffset == 0 || ntHeadersOffset >= 0x10000000)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+        &ntHeaders,
+        sizeof(IMAGE_NT_HEADERS32),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Check the signature and verify the magic.
+
+    if (ntHeaders.Signature != IMAGE_NT_SIGNATURE)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    RemoteMappedImage->Magic = ntHeaders.OptionalHeader.Magic;
+
+    if (
+        RemoteMappedImage->Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
+        RemoteMappedImage->Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
+        )
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Get the real size and read in the whole thing.
+
+    RemoteMappedImage->NumberOfSections = ntHeaders.FileHeader.NumberOfSections;
+    ntHeadersSize = FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+        ntHeaders.FileHeader.SizeOfOptionalHeader +
+        RemoteMappedImage->NumberOfSections * sizeof(IMAGE_SECTION_HEADER);
+
+    if (ntHeadersSize > 1024 * 1024) // 1 MB
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    RemoteMappedImage->NtHeaders = PhAllocate(ntHeadersSize);
+
+    status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(ViewBase, ntHeadersOffset),
+        RemoteMappedImage->NtHeaders,
+        ntHeadersSize,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(RemoteMappedImage->NtHeaders);
+        return status;
+    }
+
+    RemoteMappedImage->Sections = (PIMAGE_SECTION_HEADER)(
+        (PCHAR)RemoteMappedImage->NtHeaders +
+        FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) + ntHeaders.FileHeader.SizeOfOptionalHeader
+        );
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhUnloadRemoteMappedImage(
+    __inout PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    )
+{
+    PhFree(RemoteMappedImage->NtHeaders);
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhInitializeMappedImageExports(
     __out PPH_MAPPED_IMAGE_EXPORTS Exports,
     __in PPH_MAPPED_IMAGE MappedImage
@@ -620,6 +724,51 @@ NTSTATUS PhGetMappedImageExportFunction(
             NULL
             );
         Function->ForwardedName = NULL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageExportFunctionRemote(
+    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
+    __in_opt PSTR Name,
+    __in_opt USHORT Ordinal,
+    __in PVOID RemoteBase,
+    __out PPVOID Function
+    )
+{
+    ULONG rva;
+
+    if (Name)
+    {
+        ULONG index;
+
+        index = PhpLookupMappedImageExportName(Exports, Name);
+
+        if (index == -1)
+            return STATUS_PROCEDURE_NOT_FOUND;
+
+        Ordinal = Exports->OrdinalTable[index] + (USHORT)Exports->ExportDirectory->Base;
+    }
+
+    Ordinal -= (USHORT)Exports->ExportDirectory->Base;
+
+    if (Ordinal >= Exports->ExportDirectory->NumberOfFunctions)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    rva = Exports->AddressTable[Ordinal];
+
+    if (
+        (rva >= Exports->DataDirectory->VirtualAddress) &&
+        (rva < Exports->DataDirectory->VirtualAddress + Exports->DataDirectory->Size)
+        )
+    {
+        // This is a forwarder RVA. Not supported for remote lookup.
+        return STATUS_NOT_SUPPORTED;
+    }
+    else
+    {
+        *Function = PTR_ADD_OFFSET(RemoteBase, rva);
     }
 
     return STATUS_SUCCESS;

@@ -1171,6 +1171,26 @@ NTSTATUS PhGetMappedImageLoadConfig64(
     __out PIMAGE_LOAD_CONFIG_DIRECTORY64 *LoadConfig
     );
 
+typedef struct _PH_REMOTE_MAPPED_IMAGE
+{
+    PVOID ViewBase;
+
+    PIMAGE_NT_HEADERS NtHeaders;
+    ULONG NumberOfSections;
+    PIMAGE_SECTION_HEADER Sections;
+    USHORT Magic;
+} PH_REMOTE_MAPPED_IMAGE, *PPH_REMOTE_MAPPED_IMAGE;
+
+NTSTATUS PhLoadRemoteMappedImage(
+    __in HANDLE ProcessHandle,
+    __in PVOID ViewBase,
+    __out PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    );
+
+NTSTATUS PhUnloadRemoteMappedImage(
+    __inout PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage
+    );
+
 typedef struct _PH_MAPPED_IMAGE_EXPORTS
 {
     PPH_MAPPED_IMAGE MappedImage;
@@ -1214,6 +1234,15 @@ NTSTATUS PhGetMappedImageExportFunction(
     __in_opt PSTR Name,
     __in_opt USHORT Ordinal,
     __out PPH_MAPPED_IMAGE_EXPORT_FUNCTION Function
+    );
+
+PHLIBAPI
+NTSTATUS PhGetMappedImageExportFunctionRemote(
+    __in PPH_MAPPED_IMAGE_EXPORTS Exports,
+    __in_opt PSTR Name,
+    __in_opt USHORT Ordinal,
+    __in PVOID RemoteBase,
+    __out PPVOID Function
     );
 
 typedef struct _PH_MAPPED_IMAGE_IMPORTS

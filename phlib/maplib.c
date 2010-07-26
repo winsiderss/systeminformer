@@ -21,7 +21,7 @@
  */
 
 /*
- * This file contains functions to load and retrieve information about 
+ * This file contains functions to load and retrieve information for 
  * library/archive files (lib). The file format for archive files is explained 
  * in the PE/COFF specification located at:
  *
