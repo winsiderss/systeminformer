@@ -1,5 +1,5 @@
-#ifndef NTCM_H
-#define NTCM_H
+#ifndef _NTCM_H
+#define _NTCM_H
 
 typedef enum _PNP_VETO_TYPE
 {

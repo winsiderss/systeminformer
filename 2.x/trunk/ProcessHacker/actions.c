@@ -2150,13 +2150,8 @@ BOOLEAN PhUiUnloadModule(
 
         if (status == STATUS_DLL_NOT_FOUND)
         {
-#ifdef _M_IX86
             PhShowError(hWnd, L"Unable to find the module to unload. This may be "
                 L"due to an attempt to unload a mapped file.");
-#else
-            PhShowError(hWnd, L"Unable to find the module to unload. This may be "
-                L"due to an attempt to unload a mapped file or a 32-bit module.");
-#endif
             return FALSE;
         }
 

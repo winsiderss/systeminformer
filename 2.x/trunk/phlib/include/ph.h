@@ -752,12 +752,26 @@ NTSTATUS PhSetProcessModuleLoadCount(
     );
 
 PHLIBAPI
-PPH_STRING PhGetKernelFileName();
+NTSTATUS PhEnumProcessModules32(
+    __in HANDLE ProcessHandle,
+    __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
+    __in PVOID Context
+    );
+
+PHLIBAPI
+NTSTATUS PhSetProcessModuleLoadCount32(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __in USHORT LoadCount
+    );
 
 PHLIBAPI
 NTSTATUS PhEnumKernelModules(
     __out PRTL_PROCESS_MODULES *Modules
     );
+
+PHLIBAPI
+PPH_STRING PhGetKernelFileName();
 
 /**
  * Gets a pointer to the first process information 

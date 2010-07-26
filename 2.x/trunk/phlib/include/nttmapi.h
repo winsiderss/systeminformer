@@ -1,5 +1,5 @@
-#ifndef NTTMAPI_H
-#define NTTMAPI_H
+#ifndef _NTTMAPI_H
+#define _NTTMAPI_H
 
 // begin_wdm
 
