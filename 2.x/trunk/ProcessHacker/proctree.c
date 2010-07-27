@@ -128,6 +128,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_SAFE, FALSE, L"Safe", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -351,6 +352,7 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->IoRoText) PhDereferenceObject(ProcessNode->IoRoText);
     if (ProcessNode->IoWText) PhDereferenceObject(ProcessNode->IoWText);
     if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
+    if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
 
     if (ProcessNode->DbEntry) PhDereferenceProcDbEntry(ProcessNode->DbEntry);
     PhDereferenceObject(ProcessNode->ProcessItem);
@@ -854,6 +856,12 @@ BEGIN_SORT_FUNCTION(Safe)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(RelativeStartTime)
+{
+    sortResult = -int64cmp(processItem1->CreateTime.QuadPart, processItem2->CreateTime.QuadPart);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -929,7 +937,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(UserCpuTime),
                         SORT_FUNCTION(VerificationStatus),
                         SORT_FUNCTION(VerifiedSigner),
-                        SORT_FUNCTION(Safe)
+                        SORT_FUNCTION(Safe),
+                        SORT_FUNCTION(RelativeStartTime)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1207,6 +1216,23 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 else
                 {
                     PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+                break;
+            case PHTLC_RELATIVESTARTTIME:
+                {
+                    if (processItem->CreateTime.QuadPart != 0)
+                    {
+                        LARGE_INTEGER currentTime;
+
+                        PhQuerySystemTime(&currentTime);
+                        PhSwapReference2(&node->RelativeStartTimeText,
+                            PhFormatTimeSpanRelative(currentTime.QuadPart - processItem->CreateTime.QuadPart));
+                        getNodeText->Text = node->RelativeStartTimeText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
                 }
                 break;
             default:
