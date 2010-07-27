@@ -15,17 +15,6 @@ VOID PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
-// mainwnd
-
-PHAPPAPI extern HWND PhMainWndHandle;
-
-#define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
-    SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
-#define ProcessHacker_Destroy(hWnd) \
-    SendMessage(hWnd, WM_PH_DESTROY, 0, 0)
-#define ProcessHacker_ToggleVisible(hWnd) \
-    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
-
 // proctree
 
 typedef struct _PH_PROCESS_NODE PH_PROCESS_NODE, *PPH_PROCESS_NODE;
@@ -58,6 +47,225 @@ VOID PhInvalidateAllProcessNodes();
 PHAPPAPI
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
+    );
+
+// appsup
+
+PHAPPAPI
+BOOLEAN PhGetProcessIsSuspended(
+    __in PSYSTEM_PROCESS_INFORMATION Process
+    );
+
+typedef enum _PH_KNOWN_PROCESS_TYPE
+{
+    UnknownProcessType,
+    SystemProcessType, // ntoskrnl/ntkrnlpa/...
+    SessionManagerProcessType, // smss
+    WindowsSubsystemProcessType, // csrss
+    WindowsStartupProcessType, // wininit
+    ServiceControlManagerProcessType, // services
+    LocalSecurityAuthorityProcessType, // lsass
+    LocalSessionManagerProcessType, // lsm
+    ServiceHostProcessType, // svchost
+    RunDllAsAppProcessType, // rundll32
+    ComSurrogateProcessType, // dllhost
+    TaskHostProcessType // taskeng, taskhost
+} PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
+
+PHAPPAPI
+NTSTATUS PhGetProcessKnownType(
+    __in HANDLE ProcessHandle,
+    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    );
+
+typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
+{
+    struct
+    {
+        PPH_STRING GroupName;
+    } ServiceHost;
+    struct
+    {
+        PPH_STRING FileName;
+        PPH_STRING ProcedureName;
+    } RunDllAsApp;
+    struct
+    {
+        GUID Guid;
+        PPH_STRING Name; // optional
+        PPH_STRING FileName; // optional
+    } ComSurrogate;
+} PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
+
+PHAPPAPI
+BOOLEAN PhaGetProcessKnownCommandLine(
+    __in PPH_STRING CommandLine,
+    __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
+    __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
+    );
+
+PHAPPAPI
+VOID PhSearchOnlineString(
+    __in HWND hWnd,
+    __in PWSTR String
+    );
+
+PHAPPAPI
+VOID PhShellExecuteUserString(
+    __in HWND hWnd,
+    __in PWSTR Setting,
+    __in PWSTR String,
+    __in BOOLEAN UseShellExecute
+    );
+
+PHAPPAPI
+VOID PhLoadSymbolProviderOptions(
+    __inout PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
+PHAPPAPI
+VOID PhSetExtendedListViewWithSettings(
+    __in HWND hWnd
+    );
+
+PHAPPAPI
+VOID PhCopyListViewInfoTip(
+    __inout LPNMLVGETINFOTIP GetInfoTip,
+    __in PPH_STRINGREF Tip
+    );
+
+PHAPPAPI
+VOID PhCopyListView(
+    __in HWND ListViewHandle
+    );
+
+PHAPPAPI
+VOID PhHandleListViewNotifyForCopy(
+    __in LPARAM lParam,
+    __in HWND ListViewHandle
+    );
+
+PHAPPAPI
+VOID PhLoadWindowPlacementFromSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID PhSaveWindowPlacementToSetting(
+    __in PWSTR PositionSettingName,
+    __in PWSTR SizeSettingName,
+    __in HWND WindowHandle
+    );
+
+PHAPPAPI
+VOID PhLoadListViewColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    );
+
+PHAPPAPI
+VOID PhSaveListViewColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND ListViewHandle
+    );
+
+PHAPPAPI
+VOID PhLoadTreeListColumnsFromSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
+    );
+
+PHAPPAPI
+VOID PhSaveTreeListColumnsToSetting(
+    __in PWSTR Name,
+    __in HWND TreeListHandle
+    );
+
+PHAPPAPI
+PPH_STRING PhGetPhVersion();
+
+PHAPPAPI
+VOID PhWritePhTextHeader(
+    __inout PPH_FILE_STREAM FileStream
+    );
+
+// mainwnd
+
+PHAPPAPI extern HWND PhMainWndHandle;
+
+#define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
+    SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
+#define ProcessHacker_Destroy(hWnd) \
+    SendMessage(hWnd, WM_PH_DESTROY, 0, 0)
+#define ProcessHacker_ToggleVisible(hWnd) \
+    SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
+
+// procprp
+
+typedef struct _PH_PROCESS_PROPCONTEXT PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
+
+typedef struct _PH_PROCESS_PROPPAGECONTEXT
+{
+    PPH_PROCESS_PROPCONTEXT PropContext;
+    PVOID Context;
+    PROPSHEETPAGE PropSheetPage;
+
+    BOOLEAN LayoutInitialized;
+} PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
+
+PHAPPAPI
+PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+PHAPPAPI
+BOOLEAN PhAddProcessPropPage(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    );
+
+PHAPPAPI
+BOOLEAN PhAddProcessPropPage2(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in HPROPSHEETPAGE PropSheetPageHandle
+    );
+
+PHAPPAPI
+PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
+    __in LPCWSTR Template,
+    __in DLGPROC DlgProc,
+    __in PVOID Context
+    );
+
+PHAPPAPI
+BOOLEAN PhPropPageDlgProcHeader(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in LPARAM lParam,
+    __out LPPROPSHEETPAGE *PropSheetPage,
+    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    __out PPH_PROCESS_ITEM *ProcessItem
+    );
+
+PHAPPAPI
+PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
+    __in HWND hwnd,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor
+    );
+
+PHAPPAPI
+VOID PhDoPropPageLayout(
+    __in HWND hwnd
+    );
+
+PHAPPAPI
+BOOLEAN PhShowProcessProperties(
+    __in PPH_PROCESS_PROPCONTEXT Context
     );
 
 // log

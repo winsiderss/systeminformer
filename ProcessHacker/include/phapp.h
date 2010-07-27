@@ -280,6 +280,7 @@ VOID PhWriteProcessTree(
 
 // appsup
 
+PHAPPAPI
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process
     );
@@ -300,6 +301,7 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     TaskHostProcessType // taskeng, taskhost
 } PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
 
+PHAPPAPI
 NTSTATUS PhGetProcessKnownType(
     __in HANDLE ProcessHandle,
     __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
@@ -324,6 +326,7 @@ typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
     } ComSurrogate;
 } PH_KNOWN_PROCESS_COMMAND_LINE, *PPH_KNOWN_PROCESS_COMMAND_LINE;
 
+PHAPPAPI
 BOOLEAN PhaGetProcessKnownCommandLine(
     __in PPH_STRING CommandLine,
     __in PH_KNOWN_PROCESS_TYPE KnownProcessType,
@@ -352,11 +355,13 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     __in mxml_node_t *node
     );
 
+PHAPPAPI
 VOID PhSearchOnlineString(
     __in HWND hWnd,
     __in PWSTR String
     );
 
+PHAPPAPI
 VOID PhShellExecuteUserString(
     __in HWND hWnd,
     __in PWSTR Setting,
@@ -364,62 +369,75 @@ VOID PhShellExecuteUserString(
     __in BOOLEAN UseShellExecute
     );
 
+PHAPPAPI
 VOID PhLoadSymbolProviderOptions(
     __inout PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
+PHAPPAPI
 VOID PhSetExtendedListViewWithSettings(
     __in HWND hWnd
     );
 
+PHAPPAPI
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip
     );
 
+PHAPPAPI
 VOID PhCopyListView(
     __in HWND ListViewHandle
     );
 
+PHAPPAPI
 VOID PhHandleListViewNotifyForCopy(
     __in LPARAM lParam,
     __in HWND ListViewHandle
     );
 
+PHAPPAPI
 VOID PhLoadWindowPlacementFromSetting(
     __in PWSTR PositionSettingName,
     __in PWSTR SizeSettingName,
     __in HWND WindowHandle
     );
 
+PHAPPAPI
 VOID PhSaveWindowPlacementToSetting(
     __in PWSTR PositionSettingName,
     __in PWSTR SizeSettingName,
     __in HWND WindowHandle
     );
 
+PHAPPAPI
 VOID PhLoadListViewColumnsFromSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle
     );
 
+PHAPPAPI
 VOID PhSaveListViewColumnsToSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle
     );
 
+PHAPPAPI
 VOID PhLoadTreeListColumnsFromSetting(
     __in PWSTR Name,
     __in HWND TreeListHandle
     );
 
+PHAPPAPI
 VOID PhSaveTreeListColumnsToSetting(
     __in PWSTR Name,
     __in HWND TreeListHandle
     );
 
+PHAPPAPI
 PPH_STRING PhGetPhVersion();
 
+PHAPPAPI
 VOID PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     );
@@ -571,6 +589,7 @@ VOID PhUnloadPlugins();
 
 #define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
 
+#ifndef DLGTEMPLATEEX
 typedef struct _DLGTEMPLATEEX
 {
     WORD dlgVer;
@@ -584,6 +603,7 @@ typedef struct _DLGTEMPLATEEX
     short cx;
     short cy;
 } DLGTEMPLATEEX, *PDLGTEMPLATEEX;
+#endif
 
 typedef struct _PH_PROCESS_PROPCONTEXT
 {
@@ -606,6 +626,7 @@ typedef struct _PH_PROCESS_PROPPAGECONTEXT
 
 BOOLEAN PhProcessPropInitialization();
 
+PHAPPAPI
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_ITEM ProcessItem
@@ -615,22 +636,49 @@ VOID PhRefreshProcessPropContext(
     __inout PPH_PROCESS_PROPCONTEXT PropContext
     );
 
+PHAPPAPI
 BOOLEAN PhAddProcessPropPage(
     __inout PPH_PROCESS_PROPCONTEXT PropContext,
     __in __assumeRefs(1) PPH_PROCESS_PROPPAGECONTEXT PropPageContext
     );
 
+PHAPPAPI
 BOOLEAN PhAddProcessPropPage2(
     __inout PPH_PROCESS_PROPCONTEXT PropContext,
     __in HPROPSHEETPAGE PropSheetPageHandle
     );
 
+PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
     __in PVOID Context
     );
 
+PHAPPAPI
+BOOLEAN PhPropPageDlgProcHeader(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in LPARAM lParam,
+    __out LPPROPSHEETPAGE *PropSheetPage,
+    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    __out PPH_PROCESS_ITEM *ProcessItem
+    );
+
+PHAPPAPI
+PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
+    __in HWND hwnd,
+    __in HWND Handle,
+    __in PPH_LAYOUT_ITEM ParentItem,
+    __in ULONG Anchor
+    );
+
+PHAPPAPI
+VOID PhDoPropPageLayout(
+    __in HWND hwnd
+    );
+
+PHAPPAPI
 BOOLEAN PhShowProcessProperties(
     __in PPH_PROCESS_PROPCONTEXT Context
     );
