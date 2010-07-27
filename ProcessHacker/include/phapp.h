@@ -155,8 +155,9 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_VERIFICATIONSTATUS 36
 #define PHTLC_VERIFIEDSIGNER 37
 #define PHTLC_SAFE 38
+#define PHTLC_RELATIVESTARTTIME 39
 
-#define PHTLC_MAXIMUM 39
+#define PHTLC_MAXIMUM 40
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
@@ -219,6 +220,7 @@ typedef struct _PH_PROCESS_NODE
     WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
+    PPH_STRING RelativeStartTimeText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();

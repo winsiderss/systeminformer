@@ -687,24 +687,10 @@ PPH_STRING PhFormatDate(
     PPH_STRING string;
     ULONG bufferSize;
 
-    bufferSize = GetDateFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Date,
-        Format,
-        NULL,
-        0
-        );
+    bufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, Date, Format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (!GetDateFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Date,
-        Format,
-        string->Buffer,
-        bufferSize
-        ))
+    if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, Date, Format, string->Buffer, bufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
@@ -723,30 +709,168 @@ PPH_STRING PhFormatTime(
     PPH_STRING string;
     ULONG bufferSize;
 
-    bufferSize = GetTimeFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Time,
-        Format,
-        NULL,
-        0
-        );
+    bufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, Time, Format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (!GetTimeFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Time,
-        Format,
-        string->Buffer,
-        bufferSize
-        ))
+    if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, Time, Format, string->Buffer, bufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
     }
 
     PhTrimStringToNullTerminator(string);
+
+    return string;
+}
+
+PPH_STRING PhFormatDateTime(
+    __in_opt PSYSTEMTIME DateTime
+    )
+{
+    PPH_STRING string;
+    ULONG dateBufferSize;
+    ULONG timeBufferSize;
+    ULONG count;
+
+    dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+    timeBufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+
+    string = PhCreateStringEx(NULL, (dateBufferSize + 1 + timeBufferSize) * 2);
+
+    if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], dateBufferSize))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+
+    count = (ULONG)wcslen(string->Buffer);
+    string->Buffer[count] = ' ';
+
+    if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], timeBufferSize))
+    {
+        PhDereferenceObject(string);
+        return NULL;
+    }
+
+    PhTrimStringToNullTerminator(string);
+
+    return string;
+}
+
+PPH_STRING PhFormatTimeSpanRelative(
+    __in ULONG64 TimeSpan
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_STRING string;
+    DOUBLE days;
+    DOUBLE weeks;
+    DOUBLE fortnights;
+    DOUBLE months;
+    DOUBLE years;
+    DOUBLE centuries;
+
+    PhInitializeAutoPool(&autoPool);
+
+    days = (DOUBLE)TimeSpan / PH_TICKS_PER_DAY;
+    weeks = days / 7;
+    fortnights = weeks / 2;
+    years = days / 365.2425;
+    months = years * 12;
+    centuries = years / 100;
+
+    if (centuries >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)centuries, (ULONG)centuries == 1 ? L"century" : L"centuries");
+    }
+    else if (years >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)years, (ULONG)years == 1 ? L"year" : L"years");
+    }
+    else if (months >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)months, (ULONG)months == 1 ? L"month" : L"months");
+    }
+    else if (fortnights >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)fortnights, (ULONG)fortnights == 1 ? L"fortnight" : L"fortnights");
+    }
+    else if (weeks >= 1)
+    {
+        string = PhaFormatString(L"%u %s", (ULONG)weeks, (ULONG)weeks == 1 ? L"week" : L"weeks");
+    }
+    else
+    {
+        DOUBLE milliseconds;
+        DOUBLE seconds;
+        DOUBLE minutes;
+        DOUBLE hours;
+        ULONG secondsPartial;
+        ULONG minutesPartial;
+        ULONG hoursPartial;
+
+        milliseconds = (DOUBLE)TimeSpan / PH_TICKS_PER_MS;
+        seconds = (DOUBLE)TimeSpan / PH_TICKS_PER_SEC;
+        minutes = (DOUBLE)TimeSpan / PH_TICKS_PER_MIN;
+        hours = (DOUBLE)TimeSpan / PH_TICKS_PER_HOUR;
+
+        if (days >= 1)
+        {
+            string = PhaFormatString(L"%u %s", (ULONG)days, (ULONG)days == 1 ? L"day" : L"days");
+            hoursPartial = (ULONG)PH_TICKS_PARTIAL_HOURS(TimeSpan);
+
+            if (hoursPartial >= 1)
+            {
+                string = PhaFormatString(L"%s and %u %s", string->Buffer, hoursPartial, hoursPartial == 1 ? L"hour" : L"hours");
+            }
+        }
+        else if (hours >= 1)
+        {
+            string = PhaFormatString(L"%u %s", (ULONG)hours, (ULONG)hours == 1 ? L"hour" : L"hours");
+            minutesPartial = (ULONG)PH_TICKS_PARTIAL_MIN(TimeSpan);
+
+            if (minutesPartial >= 1)
+            {
+                string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)minutesPartial, (ULONG)minutesPartial == 1 ? L"minute" : L"minutes");
+            }
+        }
+        else if (minutes >= 1)
+        {
+            string = PhaFormatString(L"%u %s", (ULONG)minutes, (ULONG)minutes == 1 ? L"minute" : L"minutes");
+            secondsPartial = (ULONG)PH_TICKS_PARTIAL_SEC(TimeSpan);
+
+            if (secondsPartial >= 1)
+            {
+                string = PhaFormatString(L"%s and %u %s", string->Buffer, (ULONG)secondsPartial, (ULONG)secondsPartial == 1 ? L"second" : L"seconds");
+            }
+        }
+        else if (seconds >= 1)
+        {
+            string = PhaFormatString(L"%u %s", (ULONG)seconds, (ULONG)seconds == 1 ? L"second" : L"seconds");
+        }
+        else if (milliseconds >= 1)
+        {
+            string = PhaFormatString(L"%u %s", (ULONG)milliseconds, (ULONG)milliseconds == 1 ? L"millisecond" : L"milliseconds");
+        }
+        else
+        {
+            string = PhaCreateString(L"a very short time");
+        }
+    }
+
+    // Turn 1 into "a", e.g. 1 minute -> a minute
+    if (PhStringStartsWith2(string, L"1 ", FALSE))
+    {
+        // Special vowel case: a hour -> an hour
+        if (string->Buffer[2] != 'h')
+            string = PhaConcatStrings2(L"a ", &string->Buffer[2]);
+        else
+            string = PhaConcatStrings2(L"an ", &string->Buffer[2]);
+    }
+
+    string = PhConcatStrings2(string->Buffer, L" ago");
+
+    PhDeleteAutoPool(&autoPool);
 
     return string;
 }
@@ -906,23 +1030,13 @@ PPH_STRING PhFormatDecimal(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        if (!GetLocaleInfo(
-            LOCALE_USER_DEFAULT,
-            LOCALE_SDECIMAL,
-            decimalSeparator,
-            4
-            ))
+        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_SDECIMAL, decimalSeparator, 4))
         {
             decimalSeparator[0] = '.';
             decimalSeparator[1] = 0;
         }
 
-        if (!GetLocaleInfo(
-            LOCALE_USER_DEFAULT,
-            LOCALE_STHOUSAND,
-            thousandSeparator,
-            4
-            ))
+        if (!GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_STHOUSAND, thousandSeparator, 4))
         {
             thousandSeparator[0] = ',';
             thousandSeparator[1] = 0;
@@ -952,24 +1066,10 @@ PPH_STRING PhFormatDecimal(
     format.lpThousandSep = thousandSeparator;
     format.NegativeOrder = 1;
 
-    bufferSize = GetNumberFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Value,
-        &format,
-        NULL,
-        0
-        );
+    bufferSize = GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, NULL, 0);
     string = PhCreateStringEx(NULL, bufferSize * 2);
 
-    if (!GetNumberFormat(
-        LOCALE_USER_DEFAULT,
-        0,
-        Value,
-        &format,
-        string->Buffer,
-        bufferSize
-        ))
+    if (!GetNumberFormat(LOCALE_USER_DEFAULT, 0, Value, &format, string->Buffer, bufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
