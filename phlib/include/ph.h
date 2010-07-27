@@ -2177,24 +2177,10 @@ PPH_STRING PhFormatTime(
     __in_opt PWSTR Format
     );
 
-FORCEINLINE PPH_STRING PhFormatDateTime(
+PHLIBAPI
+PPH_STRING PhFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
-    )
-{
-    PPH_STRING dateTimeString;
-    PPH_STRING timeString;
-    PPH_STRING dateString;
-
-    timeString = PhFormatTime(DateTime, NULL);
-    dateString = PhFormatDate(DateTime, NULL);
-
-    dateTimeString = PhConcatStrings(3, timeString->Buffer, L" ", dateString->Buffer);
-
-    PhDereferenceObject(dateString);
-    PhDereferenceObject(timeString);
-
-    return dateTimeString;
-}
+    );
 
 FORCEINLINE PPH_STRING PhaFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
@@ -2202,6 +2188,11 @@ FORCEINLINE PPH_STRING PhaFormatDateTime(
 {
     return PHA_DEREFERENCE(PhFormatDateTime(DateTime));
 }
+
+PHLIBAPI
+PPH_STRING PhFormatTimeSpanRelative(
+    __in ULONG64 TimeSpan
+    );
 
 PHLIBAPI
 PPH_STRING PhFormatUInt64(

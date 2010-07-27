@@ -636,7 +636,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #ifdef _M_X64
             PVOID peb32;
 #endif
-            SYSTEMTIME startTime;
             CLIENT_ID clientId;
             BOOLEAN isProtected;
 
@@ -729,8 +728,21 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             if (processItem->CreateTime.QuadPart != 0)
             {
-                PhLargeIntegerToLocalSystemTime(&startTime, &processItem->CreateTime);
-                SetDlgItemText(hwndDlg, IDC_STARTED, PhaFormatDateTime(&startTime)->Buffer);
+                LARGE_INTEGER startTime;
+                LARGE_INTEGER currentTime;
+                SYSTEMTIME startTimeFields;
+                PPH_STRING startTimeRelativeString;
+                PPH_STRING startTimeString;
+
+                startTime = processItem->CreateTime;
+                PhQuerySystemTime(&currentTime);
+                startTimeRelativeString = PHA_DEREFERENCE(PhFormatTimeSpanRelative(currentTime.QuadPart - startTime.QuadPart));
+
+                PhLargeIntegerToLocalSystemTime(&startTimeFields, &startTime);
+                startTimeString = PhaFormatDateTime(&startTimeFields);
+
+                SetDlgItemText(hwndDlg, IDC_STARTED,
+                    PhaFormatString(L"%s (%s)", startTimeRelativeString->Buffer, startTimeString->Buffer)->Buffer);
             }
             else
             {
