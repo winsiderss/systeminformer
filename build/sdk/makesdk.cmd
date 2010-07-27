@@ -35,6 +35,7 @@ for %%a in (
     ntlsa.h
     ntmisc.h
     ntmmapi.h
+    ntnls.h
     ntobapi.h
     ntpebteb.h
     ntpnpapi.h
@@ -47,6 +48,7 @@ for %%a in (
     nttmapi.h
     nttp.h
     ntwin.h
+    ntwow64.h
     ntxcapi.h
     ph.h
     phbase.h
