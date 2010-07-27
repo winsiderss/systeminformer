@@ -182,6 +182,15 @@ PhCreateThread(
 // misc. system
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetProcedureAddress(
+    __in PVOID DllHandle,
+    __in_opt PSTR ProcedureName,
+    __in_opt ULONG ProcedureNumber
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhQuerySystemTime(
@@ -733,7 +742,16 @@ FORCEINLINE BOOLEAN PhIsStringRefNullOrEmpty(
     return !String || String->Length == 0;
 }
 
-FORCEINLINE INT PhStringRefCompare2(
+FORCEINLINE LONG PhStringRefCompare(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    return RtlCompareUnicodeString(&String1->us, &String2->us, IgnoreCase);
+}
+
+FORCEINLINE LONG PhStringRefCompare2(
     __in PPH_STRINGREF String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -756,6 +774,15 @@ FORCEINLINE INT PhStringRefCompare2(
     {
         return result;
     }
+}
+
+FORCEINLINE BOOLEAN PhStringRefEquals(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    return PhStringRefCompare(String1, String2, IgnoreCase) == 0;
 }
 
 FORCEINLINE BOOLEAN PhStringRefEquals2(
@@ -1026,7 +1053,7 @@ FORCEINLINE PPH_STRING PhDuplicateString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE INT PhStringCompare(
+FORCEINLINE LONG PhStringCompare(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -1045,7 +1072,7 @@ FORCEINLINE INT PhStringCompare(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE INT PhStringCompare2(
+FORCEINLINE LONG PhStringCompare2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -1064,7 +1091,7 @@ FORCEINLINE INT PhStringCompare2(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE INT PhStringCompareWithNull(
+FORCEINLINE LONG PhStringCompareWithNull(
     __in_opt PPH_STRING String1,
     __in_opt PPH_STRING String2,
     __in BOOLEAN IgnoreCase
