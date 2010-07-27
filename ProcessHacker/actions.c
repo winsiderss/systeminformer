@@ -1248,7 +1248,7 @@ BOOLEAN PhUiInjectDllProcess(
         timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
         status = PhInjectDllProcess(
             processHandle,
-            fileName->Buffer,
+            &fileName->sr,
             &timeout
             );
 

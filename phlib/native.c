@@ -1891,18 +1891,16 @@ NTSTATUS PhSetProcessDepStatusInvasive(
  */
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
-    __in PWSTR FileName,
+    __in PPH_STRINGREF FileName,
     __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
     PVOID baseAddress = NULL;
-    SIZE_T stringSize;
     SIZE_T allocSize;
     HANDLE threadHandle;
 
-    stringSize = (wcslen(FileName) + 1) * 2;
-    allocSize = stringSize;
+    allocSize = FileName->Length + sizeof(WCHAR);
 
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
         ProcessHandle,
@@ -1917,8 +1915,8 @@ NTSTATUS PhInjectDllProcess(
     if (!NT_SUCCESS(status = PhWriteVirtualMemory(
         ProcessHandle,
         baseAddress,
-        FileName,
-        stringSize,
+        FileName->Buffer,
+        FileName->Length + sizeof(WCHAR),
         NULL
         )))
         goto FreeExit;
@@ -1974,28 +1972,6 @@ FreeExit:
     return status;
 }
 
-typedef struct _UNLOAD_DLL_ENUM_MODULES_CONTEXT
-{
-    PPH_STRING Ntdll32FileName;
-    PVOID Ntdll32Base;
-} UNLOAD_DLL_ENUM_MODULES_CONTEXT, *PUNLOAD_DLL_ENUM_MODULES_CONTEXT;
-
-static BOOLEAN PhpUnloadDllEnumModules32Callback(
-    __in PLDR_DATA_TABLE_ENTRY Module,
-    __in PVOID Context
-    )
-{
-    PUNLOAD_DLL_ENUM_MODULES_CONTEXT context = Context;
-
-    if (WSTR_IEQUAL(Module->FullDllName.Buffer, context->Ntdll32FileName->Buffer))
-    {
-        context->Ntdll32Base = Module->DllBase;
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
 /**
  * Causes a process to unload a DLL.
  *
@@ -2012,6 +1988,10 @@ NTSTATUS PhUnloadDllProcess(
     __in_opt PLARGE_INTEGER Timeout
     )
 {
+#ifdef _M_X64
+    static PVOID ldrUnloadDll32 = NULL;
+#endif
+
     NTSTATUS status;
 #ifdef _M_X64
     BOOLEAN isWow64 = FALSE;
@@ -2058,64 +2038,27 @@ NTSTATUS PhUnloadDllProcess(
     }
     else
     {
-        static PVOID ldrUnloadDll32 = NULL;
-
         threadStart = ldrUnloadDll32;
 
         if (!threadStart)
         {
             PPH_STRING ntdll32FileName;
-            UNLOAD_DLL_ENUM_MODULES_CONTEXT context;
-            PH_MAPPED_IMAGE mappedImage;
 
             ntdll32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\ntdll.dll");
-
-            // Find the WOW64 ntdll's base.
-
-            context.Ntdll32FileName = ntdll32FileName;
-            context.Ntdll32Base = NULL;
-
-            status = PhEnumProcessModules32(ProcessHandle, PhpUnloadDllEnumModules32Callback, &context);
-
-            if (!NT_SUCCESS(status))
-                goto GetAddressFail;
-
-            if (!context.Ntdll32Base)
-            {
-                status = STATUS_PROCEDURE_NOT_FOUND;
-                goto GetAddressFail;
-            }
-
-            // Find LdrUnloadDll in the WOW64 ntdll.
-
-            if (NT_SUCCESS(status = PhLoadMappedImage(ntdll32FileName->Buffer, NULL, TRUE, &mappedImage)))
-            {
-                PH_MAPPED_IMAGE_EXPORTS exports;
-
-                if (NT_SUCCESS(status = PhInitializeMappedImageExports(&exports, &mappedImage)))
-                {
-                    status = PhGetMappedImageExportFunctionRemote(
-                        &exports,
-                        "LdrUnloadDll",
-                        0,
-                        context.Ntdll32Base,
-                        &ldrUnloadDll32
-                        );
-                }
-
-                PhUnloadMappedImage(&mappedImage);
-            }
-
-            if (!NT_SUCCESS(status))
-                goto GetAddressFail;
-
-            threadStart = ldrUnloadDll32;
-
-GetAddressFail:
+            status = PhGetProcedureAddressRemote(
+                ProcessHandle,
+                ntdll32FileName->Buffer,
+                "LdrUnloadDll",
+                0,
+                &ldrUnloadDll32,
+                NULL
+                );
             PhDereferenceObject(ntdll32FileName);
 
             if (!NT_SUCCESS(status))
                 return status;
+
+            threadStart = ldrUnloadDll32;
         }
     }
 #endif
@@ -4682,6 +4625,94 @@ NTSTATUS PhSetProcessModuleLoadCount32(
         return status;
 
     return context.Status;
+}
+
+typedef struct _GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT
+{
+    PH_STRINGREF FileName;
+    PVOID DllBase;
+} GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT, *PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT;
+
+static BOOLEAN PhpGetProcedureAddressRemoteCallback(
+    __in PLDR_DATA_TABLE_ENTRY Module,
+    __in PVOID Context
+    )
+{
+    PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = Context;
+    PH_STRINGREF fullDllName;
+
+    fullDllName.us = Module->FullDllName;
+
+    if (PhStringRefEquals(&fullDllName, &context->FileName, TRUE))
+    {
+        context->DllBase = Module->DllBase;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhGetProcedureAddressRemote(
+    __in HANDLE ProcessHandle,
+    __in PWSTR FileName,
+    __in_opt PSTR ProcedureName,
+    __in_opt ULONG ProcedureNumber,
+    __out PVOID *ProcedureAddress,
+    __out_opt PVOID *DllBase
+    )
+{
+    NTSTATUS status;
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context;
+
+    if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
+        return status;
+
+    PhInitializeStringRef(&context.FileName, FileName);
+    context.DllBase = NULL;
+
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+#if _M_X64
+        status = PhEnumProcessModules32(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
+#else
+        status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
+#endif
+    }
+    else
+    {
+#if _M_X64
+        status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
+#else
+        status = STATUS_NOT_SUPPORTED;
+#endif
+    }
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhInitializeMappedImageExports(&exports, &mappedImage)))
+        goto CleanupExit;
+
+    status = PhGetMappedImageExportFunctionRemote(
+        &exports,
+        ProcedureName,
+        (USHORT)ProcedureNumber,
+        context.DllBase,
+        ProcedureAddress
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (DllBase)
+            *DllBase = context.DllBase;
+    }
+
+CleanupExit:
+    PhUnloadMappedImage(&mappedImage);
+
+    return status;
 }
 
 /**

@@ -389,7 +389,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
 PHLIBAPI
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
-    __in PWSTR FileName,
+    __in PPH_STRINGREF FileName,
     __in_opt PLARGE_INTEGER Timeout
     );
 
@@ -763,6 +763,16 @@ NTSTATUS PhSetProcessModuleLoadCount32(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
     __in USHORT LoadCount
+    );
+
+PHLIBAPI
+NTSTATUS PhGetProcedureAddressRemote(
+    __in HANDLE ProcessHandle,
+    __in PWSTR FileName,
+    __in_opt PSTR ProcedureName,
+    __in_opt ULONG ProcedureNumber,
+    __out PVOID *ProcedureAddress,
+    __out_opt PVOID *DllBase
     );
 
 PHLIBAPI
