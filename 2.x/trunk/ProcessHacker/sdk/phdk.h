@@ -7,11 +7,12 @@
 #define PHAPPAPI __declspec(dllimport)
 
 #include "phgui.h"
-#include "phplug.h"
 
 #include "circbuf.h"
 #include "providers.h"
 
 #include "phapppub.h"
+
+#include "phplug.h"
 
 #endif

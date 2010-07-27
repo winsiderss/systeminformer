@@ -25,6 +25,7 @@
 #include <procprpp.h>
 #include <kph.h>
 #include <settings.h>
+#include <phplug.h>
 #include <windowsx.h>
 
 #define SET_BUTTON_BITMAP(Id, Bitmap) \
@@ -456,6 +457,18 @@ FORCEINLINE BOOLEAN PhpPropPageDlgProcHeader(
     return TRUE;
 }
 
+BOOLEAN PhPropPageDlgProcHeader(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in LPARAM lParam,
+    __out LPPROPSHEETPAGE *PropSheetPage,
+    __out PPH_PROCESS_PROPPAGECONTEXT *PropPageContext,
+    __out PPH_PROCESS_ITEM *ProcessItem
+    )
+{
+    return PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam, PropSheetPage, PropPageContext, ProcessItem);
+}
+
 VOID PhpPropPageDlgProcDestroy(
     __in HWND hwndDlg
     )
@@ -463,7 +476,7 @@ VOID PhpPropPageDlgProcDestroy(
     RemoveProp(hwndDlg, L"PropSheetPage");
 }
 
-PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
+PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
     __in HWND hwnd,
     __in HWND Handle,
     __in PPH_LAYOUT_ITEM ParentItem,
@@ -525,7 +538,7 @@ PPH_LAYOUT_ITEM PhpAddPropPageLayoutItem(
     return item;
 }
 
-VOID PhpDoPropPageLayout(
+VOID PhDoPropPageLayout(
     __in HWND hwnd
     )
 {
@@ -859,48 +872,48 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_COMPANYNAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VERSION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENFILENAME),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CMDLINE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_CURDIR),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTED),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTED),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PEBADDRESS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PEBADDRESS),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEP),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITDEP),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROTECTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITPROTECTION),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_EDITPROTECTION),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESS),
                     dialogItem, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -1173,10 +1186,10 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -1301,10 +1314,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -2247,13 +2260,13 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
 #define ADD_BL_ITEM(Id) \
-    PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, Id), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM)
+    PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, Id), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM)
 
                 // Thread details area
                 {
@@ -2263,9 +2276,9 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                         ADD_BL_ITEM(id);
                 }
 
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_STARTMODULE),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_OPENSTARTMODULE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 ADD_BL_ITEM(IDC_STARTED);
                 ADD_BL_ITEM(IDC_KERNELTIME);
@@ -2278,7 +2291,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 ADD_BL_ITEM(IDC_IOPRIORITY);
                 ADD_BL_ITEM(IDC_PAGEPRIORITY);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -2769,22 +2782,22 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
 
                 // This is a big violation of abstraction...
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USER),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USER),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USERSID),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USERSID),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIRTUALIZED),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIRTUALIZED),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVILEGES),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVILEGES),
                     dialogItem, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 SetProp(hwndDlg, L"LayoutInitialized", (HANDLE)TRUE);
             }
@@ -3063,12 +3076,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -3515,14 +3528,14 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_REFRESH),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, lvHandle,
+                PhAddPropPageLayoutItem(hwndDlg, lvHandle,
                     dialogItem, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -3908,12 +3921,12 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -4235,12 +4248,12 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -4608,20 +4621,20 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
 
                 // This is a big violation of abstraction...
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_NAME),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_TERMINATE),
                     dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSES),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSES),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIMITS),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIMITS),
                     dialogItem, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 SetProp(hwndDlg, L"LayoutInitialized", (HANDLE)TRUE);
             }
@@ -4843,18 +4856,18 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
             {
                 PPH_LAYOUT_ITEM dialogItem;
 
-                dialogItem = PhpAddPropPageLayoutItem(hwndDlg, hwndDlg,
+                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
                     dialogItem, PH_ANCHOR_ALL);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
                     dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_START),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_START),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhpAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PAUSE),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PAUSE),
                     dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-                PhpDoPropPageLayout(hwndDlg);
+                PhDoPropPageLayout(hwndDlg);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
@@ -5082,6 +5095,17 @@ NTSTATUS PhpProcessPropertiesThreadStart(
             NULL
             );
         PhAddProcessPropPage(PropContext, newPage);
+    }
+
+    // Plugin-supplied pages
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_PROCESS_PROPCONTEXT pluginProcessPropContext;
+
+        pluginProcessPropContext.PropContext = PropContext;
+        pluginProcessPropContext.ProcessItem = PropContext->ProcessItem;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing), &pluginProcessPropContext);
     }
 
     // Create the property sheet

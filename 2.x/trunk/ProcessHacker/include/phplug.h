@@ -9,6 +9,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessesUpdated = 1, // [main thread]
     GeneralCallbackGetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
     GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
+    GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -32,6 +33,12 @@ typedef struct _PH_PLUGIN_GET_TOOLTIP_TEXT
     PVOID Parameter;
     PPH_STRING_BUILDER StringBuilder;
 } PH_PLUGIN_GET_TOOLTIP_TEXT, *PPH_PLUGIN_GET_TOOLTIP_TEXT;
+
+typedef struct _PH_PLUGIN_PROCESS_PROPCONTEXT
+{
+    PPH_PROCESS_PROPCONTEXT PropContext;
+    PPH_PROCESS_ITEM ProcessItem;
+} PH_PLUGIN_PROCESS_PROPCONTEXT, *PPH_PLUGIN_PROCESS_PROPCONTEXT;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
