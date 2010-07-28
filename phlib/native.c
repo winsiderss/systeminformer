@@ -1879,8 +1879,8 @@ NTSTATUS PhSetProcessDepStatusInvasive(
  * Causes a process to load a DLL.
  *
  * \param ProcessHandle A handle to a process. The handle 
- * must have PROCESS_CREATE_THREAD, PROCESS_VM_OPERATION 
- * and PROCESS_VM_WRITE access.
+ * must have PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_CREATE_THREAD,
+ * PROCESS_VM_OPERATION, PROCESS_VM_READ and PROCESS_VM_WRITE access.
  * \param FileName The file name of the DLL to inject.
  * \param Timeout The timeout, in milliseconds, for the 
  * process to load the DLL.
@@ -1891,21 +1891,85 @@ NTSTATUS PhSetProcessDepStatusInvasive(
  */
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
-    __in PPH_STRINGREF FileName,
+    __in PWSTR FileName,
     __in_opt PLARGE_INTEGER Timeout
     )
 {
+#ifdef _M_X64
+    static PVOID loadLibraryW32 = NULL;
+#endif
+
     NTSTATUS status;
+#ifdef _M_X64
+    BOOLEAN isWow64 = FALSE;
+    BOOLEAN isModule32 = FALSE;
+    PH_MAPPED_IMAGE mappedImage;
+#endif
+    PVOID threadStart;
+    PH_STRINGREF fileName;
     PVOID baseAddress = NULL;
+    ULONG_PTR zeroBits;
     SIZE_T allocSize;
     HANDLE threadHandle;
 
-    allocSize = FileName->Length + sizeof(WCHAR);
+#ifdef _M_X64
+    PhGetProcessIsWow64(ProcessHandle, &isWow64);
+
+    if (isWow64)
+    {
+        if (!NT_SUCCESS(status = PhLoadMappedImage(FileName, NULL, TRUE, &mappedImage)))
+            return status;
+
+        isModule32 = mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC;
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    if (!isModule32)
+    {
+#endif
+        threadStart = PhGetProcAddress(L"kernel32.dll", "LoadLibraryW");
+#ifdef _M_X64
+    }
+    else
+    {
+        threadStart = loadLibraryW32;
+
+        if (!threadStart)
+        {
+            PPH_STRING kernel32FileName;
+
+            kernel32FileName = PhConcatStrings2(USER_SHARED_DATA->NtSystemRoot, L"\\SysWow64\\kernel32.dll");
+            status = PhGetProcedureAddressRemote(
+                ProcessHandle,
+                kernel32FileName->Buffer,
+                "LoadLibraryW",
+                0,
+                &loadLibraryW32,
+                NULL
+                );
+            PhDereferenceObject(kernel32FileName);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            threadStart = loadLibraryW32;
+        }
+    }
+#endif
+
+    PhInitializeStringRef(&fileName, FileName);
+    allocSize = fileName.Length + sizeof(WCHAR);
+
+#ifdef _M_X64
+    zeroBits = isWow64 ? 0xffffffff : 0; // if this is a WOW64 process, make sure the region fits inside 32 bits.
+#else
+    zeroBits = 0;
+#endif
 
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
         ProcessHandle,
         &baseAddress,
-        0,
+        zeroBits,
         &allocSize,
         MEM_COMMIT,
         PAGE_READWRITE
@@ -1915,8 +1979,8 @@ NTSTATUS PhInjectDllProcess(
     if (!NT_SUCCESS(status = PhWriteVirtualMemory(
         ProcessHandle,
         baseAddress,
-        FileName->Buffer,
-        FileName->Length + sizeof(WCHAR),
+        fileName.Buffer,
+        fileName.Length + sizeof(WCHAR),
         NULL
         )))
         goto FreeExit;
@@ -1931,7 +1995,7 @@ NTSTATUS PhInjectDllProcess(
             0,
             0,
             0,
-            (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "LoadLibraryW"),
+            (PUSER_THREAD_START_ROUTINE)threadStart,
             baseAddress,
             &threadHandle,
             NULL
@@ -1944,7 +2008,7 @@ NTSTATUS PhInjectDllProcess(
             ProcessHandle,
             NULL,
             0,
-            (PTHREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "LoadLibraryW"),
+            (PTHREAD_START_ROUTINE)threadStart,
             baseAddress,
             0,
             NULL
