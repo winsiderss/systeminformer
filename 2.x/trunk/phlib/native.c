@@ -5361,6 +5361,136 @@ NTSTATUS PhGetProcessIsDotNet(
     return status;
 }
 
+BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
+    __in PPH_STRING Name,
+    __in PPH_STRING TypeName,
+    __in PVOID Context
+    )
+{
+    static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Cor_Private_IPCBlock_");
+    static PH_STRINGREF prefixAddV4 = PH_STRINGREF_INIT(L"v4_");
+
+    PPH_IS_DOT_NET_CONTEXT context = Context;
+
+    if (
+        PhStringEquals2(TypeName, L"Section", TRUE) &&
+        PhStringRefStartsWith(&Name->sr, &prefix, TRUE)
+        )
+    {
+        ULONG flags;
+        PH_STRINGREF name;
+        ULONG64 processId;
+
+        flags = 0;
+
+        name = Name->sr;
+        name.Buffer += prefix.Length / sizeof(WCHAR);
+        name.Length -= prefix.Length;
+
+        if (PhStringRefStartsWith(&name, &prefixAddV4, TRUE))
+        {
+            flags |= PH_IS_DOT_NET_VERSION_4;
+            name.Buffer += prefixAddV4.Length / sizeof(WCHAR);
+            name.Length -= prefixAddV4.Length;
+        }
+
+        if (PhStringToInteger64(&name, 10, &processId))
+        {
+            PhAddListItem(context->ProcessIdList, (HANDLE)(ULONG)processId);
+            PhAddListItem(context->FlagsList, (PVOID)flags);
+        }
+    }
+
+    return TRUE;
+}
+
+NTSTATUS PhCreateIsDotNetContext(
+    __out PPH_IS_DOT_NET_CONTEXT *IsDotNetContext,
+    __in_opt PPH_STRINGREF DirectoryNames,
+    __in ULONG NumberOfDirectoryNames
+    )
+{
+    NTSTATUS status;
+    PPH_IS_DOT_NET_CONTEXT isDotNetContext;
+    OBJECT_ATTRIBUTES oa;
+    HANDLE directoryHandle;
+    PH_STRINGREF defaultDirectoryName;
+    ULONG i;
+
+    isDotNetContext = PhAllocate(sizeof(PH_IS_DOT_NET_CONTEXT));
+    isDotNetContext->ProcessIdList = PhCreateList(4);
+    isDotNetContext->FlagsList = PhCreateList(4);
+
+    if (!DirectoryNames || NumberOfDirectoryNames == 0)
+    {
+        PhInitializeStringRef(&defaultDirectoryName, L"\\BaseNamedObjects");
+        DirectoryNames = &defaultDirectoryName;
+        NumberOfDirectoryNames = 1;
+    }
+
+    for (i = 0; i < NumberOfDirectoryNames; i++)
+    {
+        InitializeObjectAttributes(
+            &oa,
+            &DirectoryNames[i].us,
+            OBJ_CASE_INSENSITIVE,
+            NULL,
+            NULL
+            );
+        status = NtOpenDirectoryObject(
+            &directoryHandle,
+            DIRECTORY_QUERY,
+            &oa
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PhEnumDirectoryObjects(
+                directoryHandle,
+                PhpCreateIsDotNetContextCallback,
+                isDotNetContext
+                );
+
+            NtClose(directoryHandle);
+        }
+    }
+
+    *IsDotNetContext = isDotNetContext;
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhFreeIsDotNetContext(
+    __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
+    )
+{
+    PhDereferenceObject(IsDotNetContext->ProcessIdList);
+    PhDereferenceObject(IsDotNetContext->FlagsList);
+    PhFree(IsDotNetContext);
+}
+
+BOOLEAN PhGetProcessIsDotNetFromContext(
+    __in PPH_IS_DOT_NET_CONTEXT IsDotNetContext,
+    __in HANDLE ProcessId,
+    __out_opt PULONG Flags
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < IsDotNetContext->ProcessIdList->Count; i++)
+    {
+        if (IsDotNetContext->ProcessIdList->Items[i] == ProcessId)
+        {
+            if (Flags)
+                *Flags = (ULONG)IsDotNetContext->FlagsList->Items[i];
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 /**
  * Enumerates the objects in a directory object.
  *

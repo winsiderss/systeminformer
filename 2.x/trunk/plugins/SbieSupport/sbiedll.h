@@ -1,6 +1,15 @@
 #ifndef SBIEDLL_H
 #define SBIEDLL_H
 
+typedef LONG (__stdcall *P_SbieApi_QueryBoxPath)(
+    const WCHAR *box_name,      // pointer to WCHAR [34]
+    WCHAR *file_path,
+    WCHAR *key_path,
+    WCHAR *ipc_path,
+    ULONG *file_path_len,
+    ULONG *key_path_len,
+    ULONG *ipc_path_len);
+
 typedef LONG (__stdcall *P_SbieApi_EnumBoxes)(
     LONG index,                 // initialize to -1
     WCHAR *box_name);           // pointer to WCHAR [34]

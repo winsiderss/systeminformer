@@ -872,6 +872,33 @@ NTSTATUS PhGetProcessIsDotNet(
     __out PBOOLEAN IsDotNet
     );
 
+#define PH_IS_DOT_NET_VERSION_4 0x1
+
+typedef struct _PH_IS_DOT_NET_CONTEXT
+{
+    PPH_LIST ProcessIdList;
+    PPH_LIST FlagsList;
+} PH_IS_DOT_NET_CONTEXT, *PPH_IS_DOT_NET_CONTEXT;
+
+PHLIBAPI
+NTSTATUS PhCreateIsDotNetContext(
+    __out PPH_IS_DOT_NET_CONTEXT *IsDotNetContext,
+    __in_opt PPH_STRINGREF DirectoryNames,
+    __in ULONG NumberOfDirectoryNames
+    );
+
+PHLIBAPI
+VOID PhFreeIsDotNetContext(
+    __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
+    );
+
+PHLIBAPI
+BOOLEAN PhGetProcessIsDotNetFromContext(
+    __in PPH_IS_DOT_NET_CONTEXT IsDotNetContext,
+    __in HANDLE ProcessId,
+    __out_opt PULONG Flags
+    );
+
 /**
  * A callback function passed to PhEnumDirectoryObjects() 
  * and called for each directory object.
