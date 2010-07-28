@@ -20,7 +20,7 @@
 ;
 ;
 ; Requirements:
-; *Inno Setup QuickStart Pack v5.3.11(+): http://www.jrsoftware.org/isdl.php#qsp
+; *Inno Setup QuickStart Pack v5.3.10(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
 #define installer_build_number "02"
@@ -62,7 +62,7 @@ MinVersion=0,5.01.2600
 AppReadmeFile={app}\Help.htm
 LicenseFile=..\..\LICENSE.txt
 InfoAfterFile=..\..\CHANGELOG.txt
-InfoBeforeFile=..\..\doc\Help.htm
+;InfoBeforeFile=..\..\doc\Help.htm
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
@@ -98,7 +98,7 @@ Name: gr; MessagesFile: Languages\Greek.isl
 
 
 [Messages]
-BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                  Setup v{#= installer_build_number} built on {#= installer_build_date}
+BeveledLabel=Process Hacker v{#= simple_app_version} by wj32                                                                 Setup v{#= installer_build_number} built on {#= installer_build_date}
 
 
 [Files]
