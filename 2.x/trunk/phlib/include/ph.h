@@ -2532,7 +2532,6 @@ typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
 
 #define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
 #define PH_COMMAND_LINE_IGNORE_FIRST_PART 0x2
-#define PH_COMMAND_LINE_CALLBACK_ALL_MAIN 0x4
 
 PHLIBAPI
 PPH_STRING PhParseCommandLinePart(
@@ -2543,11 +2542,16 @@ PPH_STRING PhParseCommandLinePart(
 PHLIBAPI
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
-    __in PPH_COMMAND_LINE_OPTION Options,
+    __in_opt PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
     __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
     __in PVOID Context
+    );
+
+PHLIBAPI
+PPH_STRING PhEscapeCommandLinePart(
+    __in PPH_STRINGREF String
     );
 
 #endif

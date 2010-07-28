@@ -1539,7 +1539,7 @@ VOID
 NTAPI
 PhFullStringAppendEx(
     __inout PPH_FULL_STRING String,
-    __in PWSTR Buffer,
+    __in_opt PWSTR Buffer,
     __in SIZE_T Length
     );
 
@@ -1549,6 +1549,15 @@ NTAPI
 PhFullStringAppendChar(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFullStringAppendChar2(
+    __inout PPH_FULL_STRING String,
+    __in WCHAR Character,
+    __in SIZE_T Count
     );
 
 PHLIBAPI
@@ -1633,7 +1642,7 @@ VOID
 NTAPI
 PhStringBuilderAppendEx(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in PWSTR String,
+    __in_opt PWSTR String,
     __in ULONG Length
     );
 
@@ -1643,6 +1652,15 @@ NTAPI
 PhStringBuilderAppendChar(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhStringBuilderAppendChar2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in WCHAR Character,
+    __in ULONG Count
     );
 
 PHLIBAPI
@@ -1678,7 +1696,7 @@ NTAPI
 PhStringBuilderInsertEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
-    __in PWSTR String,
+    __in_opt PWSTR String,
     __in ULONG Length
     );
 

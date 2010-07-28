@@ -1364,12 +1364,13 @@ VOID PhFullStringAppend2(
  * Appends a string to the end of a string.
  *
  * \param String A string object.
- * \param Buffer The string to append.
+ * \param Buffer The string to append. Specify NULL 
+ * to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
 VOID PhFullStringAppendEx(
     __inout PPH_FULL_STRING String,
-    __in PWSTR Buffer,
+    __in_opt PWSTR Buffer,
     __in SIZE_T Length
     )
 {
@@ -1380,11 +1381,15 @@ VOID PhFullStringAppendEx(
     if (String->AllocatedLength < String->Length + Length)
         PhResizeFullString(String, String->Length + Length, TRUE);
 
-    memcpy(
-        &String->Buffer[String->Length / sizeof(WCHAR)],
-        Buffer,
-        Length
-        );
+    if (Buffer)
+    {
+        memcpy(
+            &String->Buffer[String->Length / sizeof(WCHAR)],
+            Buffer,
+            Length
+            );
+    }
+
     String->Length += Length;
     PhpWriteFullStringNullTerminator(String);
 }
@@ -1405,6 +1410,35 @@ VOID PhFullStringAppendChar(
 
     String->Buffer[String->Length / sizeof(WCHAR)] = Character;
     String->Length += sizeof(WCHAR);
+    PhpWriteFullStringNullTerminator(String);
+}
+
+/**
+ * Appends a number of characters to the end of a string.
+ *
+ * \param String A string object.
+ * \param Character The character to append.
+ * \param Count The number of times to append the character.
+ */
+VOID PhFullStringAppendChar2(
+    __inout PPH_FULL_STRING String,
+    __in WCHAR Character,
+    __in SIZE_T Count
+    )
+{
+    if (Count == 0)
+        return;
+
+    if (String->AllocatedLength < String->Length + Count * sizeof(WCHAR))
+        PhResizeFullString(String, String->Length + Count * sizeof(WCHAR), TRUE);
+
+    wmemset(
+        &String->Buffer[String->Length / sizeof(WCHAR)],
+        Character,
+        Count
+        );
+
+    String->Length += Count * sizeof(WCHAR);
     PhpWriteFullStringNullTerminator(String);
 }
 
@@ -1603,12 +1637,13 @@ VOID PhStringBuilderAppend2(
  * string.
  *
  * \param StringBuilder A string builder object.
- * \param String The string to append.
+ * \param String The string to append. Specify NULL to 
+ * simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
 VOID PhStringBuilderAppendEx(
     __inout PPH_STRING_BUILDER StringBuilder,
-    __in PWSTR String,
+    __in_opt PWSTR String,
     __in ULONG Length
     )
 {
@@ -1623,11 +1658,15 @@ VOID PhStringBuilderAppendEx(
 
     // Copy the string, add the length, then write the null terminator.
 
-    memcpy(
-        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
-        String,
-        Length
-        );
+    if (String)
+    {
+        memcpy(
+            &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+            String,
+            Length
+            );
+    }
+
     StringBuilder->String->Length += (USHORT)Length;
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
@@ -1651,6 +1690,39 @@ VOID PhStringBuilderAppendChar(
 
     StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = Character;
     StringBuilder->String->Length += sizeof(WCHAR);
+    PhpWriteStringBuilderNullTerminator(StringBuilder);
+}
+
+/**
+ * Appends a number of characters to the end of a string 
+ * builder string.
+ *
+ * \param StringBuilder A string builder object.
+ * \param Character The character to append.
+ * \param Count The number of times to append the character.
+ */
+VOID PhStringBuilderAppendChar2(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in WCHAR Character,
+    __in ULONG Count
+    )
+{
+    if (Count == 0)
+        return;
+
+    // See if we need to re-allocate the string.
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + Count * sizeof(WCHAR))
+    {
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + Count * sizeof(WCHAR));
+    }
+
+    wmemset(
+        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+        Character,
+        Count
+        );
+
+    StringBuilder->String->Length += (USHORT)(Count * sizeof(WCHAR));
     PhpWriteStringBuilderNullTerminator(StringBuilder);
 }
 
@@ -1726,13 +1798,14 @@ VOID PhStringBuilderInsert2(
  * \param StringBuilder A string builder object.
  * \param Index The index, in characters, at which to 
  * insert the string.
- * \param String The string to insert.
+ * \param String The string to insert. Specify NULL to 
+ * simply reserve \a Length bytes.
  * \param Length The number of bytes to insert.
  */
 VOID PhStringBuilderInsertEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
-    __in PWSTR String,
+    __in_opt PWSTR String,
     __in ULONG Length
     )
 {
@@ -1755,12 +1828,15 @@ VOID PhStringBuilderInsertEx(
             );
     }
 
-    // Copy the new string.
-    memcpy(
-        &StringBuilder->String->Buffer[Index],
-        String,
-        Length
-        );
+    if (String)
+    {
+        // Copy the new string.
+        memcpy(
+            &StringBuilder->String->Buffer[Index],
+            String,
+            Length
+            );
+    }
 
     StringBuilder->String->Length += (USHORT)Length;
     PhpWriteStringBuilderNullTerminator(StringBuilder);
