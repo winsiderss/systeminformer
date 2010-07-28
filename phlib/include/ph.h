@@ -389,7 +389,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
 PHLIBAPI
 NTSTATUS PhInjectDllProcess(
     __in HANDLE ProcessHandle,
-    __in PPH_STRINGREF FileName,
+    __in PWSTR FileName,
     __in_opt PLARGE_INTEGER Timeout
     );
 

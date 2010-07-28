@@ -1238,8 +1238,8 @@ BOOLEAN PhUiInjectDllProcess(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
-        PROCESS_VM_WRITE,
+        ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
+        PROCESS_VM_READ | PROCESS_VM_WRITE,
         Process->ProcessId
         )))
     {
@@ -1248,7 +1248,7 @@ BOOLEAN PhUiInjectDllProcess(
         timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
         status = PhInjectDllProcess(
             processHandle,
-            &fileName->sr,
+            fileName->Buffer,
             &timeout
             );
 
