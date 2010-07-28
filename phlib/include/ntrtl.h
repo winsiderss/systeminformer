@@ -1794,6 +1794,30 @@ RtlCreateUserThread(
     __out_opt PCLIENT_ID ClientId
     );
 
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeContext(
+    __in HANDLE Process,
+    __out PCONTEXT Context,
+    __in_opt PVOID Parameter,
+    __in_opt PVOID InitialPc,
+    __in_opt PVOID InitialSp
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRemoteCall(
+    __in HANDLE Process,
+    __in HANDLE Thread,
+    __in PVOID CallSite,
+    __in ULONG ArgumentCount,
+    __in_opt PULONG_PTR Arguments,
+    __in BOOLEAN PassContext,
+    __in BOOLEAN AlreadySuspended
+    );
+
 #ifdef _M_X64
 // rev
 NTSYSAPI
