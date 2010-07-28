@@ -10,6 +10,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackGetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
     GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
+    GeneralCallbackGetIsDotNetDirectoryNames = 5, // PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES Data [process provider thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -39,6 +40,12 @@ typedef struct _PH_PLUGIN_PROCESS_PROPCONTEXT
     PPH_PROCESS_PROPCONTEXT PropContext;
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PLUGIN_PROCESS_PROPCONTEXT, *PPH_PLUGIN_PROCESS_PROPCONTEXT;
+
+typedef struct _PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES
+{
+    PH_STRINGREF DirectoryNames[16];
+    ULONG NumberOfDirectoryNames;
+} PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES, *PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
