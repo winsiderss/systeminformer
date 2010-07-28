@@ -597,22 +597,19 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     }
     else
     {
-        if (Value)
+        PPH_STRING lowerValue;
+
+        lowerValue = PhDuplicateString(Value);
+        PhLowerString(lowerValue);
+
+        if (PhStringIndexOfString(lowerValue, 0, L"taskmgr.exe") != -1)
         {
-            PPH_STRING lowerValue;
-
-            lowerValue = PhDuplicateString(Value);
-            PhLowerString(lowerValue);
-
-            if (PhStringIndexOfString(lowerValue, 0, L"taskmgr.exe") != -1)
-            {
-                // User probably has Process Hacker replacing Task Manager. Force 
-                // the main window to start visible.
-                PhStartupParameters.ShowVisible = TRUE;
-            }
-
-            PhDereferenceObject(lowerValue);
+            // User probably has Process Hacker replacing Task Manager. Force 
+            // the main window to start visible.
+            PhStartupParameters.ShowVisible = TRUE;
         }
+
+        PhDereferenceObject(lowerValue);
     }
 
     return TRUE;
@@ -649,7 +646,7 @@ VOID PhpProcessStartupParameters()
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
+        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
         PhpCommandLineOptionCallback,
         NULL
         ))

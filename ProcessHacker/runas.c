@@ -635,6 +635,8 @@ VOID PhSetDesktopWinStaAccess()
     HDESK desktopHandle;
     SECURITY_DESCRIPTOR securityDescriptor;
 
+    // TODO: Set security on the correct window station and desktop.
+
     // Create a security descriptor with a NULL DACL, 
     // thereby allowing everyone to access the object.
     RtlCreateSecurityDescriptor(&securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
@@ -659,53 +661,6 @@ VOID PhSetDesktopWinStaAccess()
         PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &securityDescriptor);
         CloseDesktop(desktopHandle);
     }
-}
-
-/**
- * Escapes a string C-style for use in a command line.
- *
- * \param String The string to escape.
- *
- * \return The escaped string.
- *
- * \remarks Only backslash (\\) and quote characters (", ') are 
- * escaped.
- */
-PPH_STRING PhpCEscapeString(
-    __in PPH_STRINGREF String
-    )
-{
-    PPH_STRING string;
-    PH_STRING_BUILDER stringBuilder;
-    ULONG length;
-    ULONG i;
-    WCHAR temp[2];
-
-    length = String->Length / 2;
-    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
-
-    temp[0] = '\\';
-
-    for (i = 0; i < length; i++)
-    {
-        switch (String->Buffer[i])
-        {
-        case '\\':
-        case '\"':
-        case '\'':
-            temp[1] = String->Buffer[i];
-            PhStringBuilderAppendEx(&stringBuilder, temp, 4);
-            break;
-        default:
-            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
-            break;
-        }
-    }
-
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
 }
 
 PPH_STRING PhpBuildRunAsServiceCommandLine(
@@ -734,14 +689,14 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     PhStringBuilderAppend2(&commandLineBuilder, L"\" -ras");
 
     PhInitializeStringRef(&stringRef, Program);
-    string = PhpCEscapeString(&stringRef);
+    string = PhEscapeCommandLinePart(&stringRef);
     PhStringBuilderAppend2(&commandLineBuilder, L" -c \"");
     PhStringBuilderAppend(&commandLineBuilder, string);
     PhStringBuilderAppendChar(&commandLineBuilder, '\"');
     PhDereferenceObject(string);
 
     PhInitializeStringRef(&stringRef, DesktopName);
-    string = PhpCEscapeString(&stringRef);
+    string = PhEscapeCommandLinePart(&stringRef);
     PhStringBuilderAppend2(&commandLineBuilder, L" -D \"");
     PhStringBuilderAppend(&commandLineBuilder, string);
     PhStringBuilderAppendChar(&commandLineBuilder, '\"');
@@ -750,14 +705,14 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     if (!ProcessIdWithToken)
     {
         PhInitializeStringRef(&stringRef, UserName);
-        string = PhpCEscapeString(&stringRef);
+        string = PhEscapeCommandLinePart(&stringRef);
         PhStringBuilderAppend2(&commandLineBuilder, L" -u \"");
         PhStringBuilderAppend(&commandLineBuilder, string);
         PhStringBuilderAppendChar(&commandLineBuilder, '\"');
         PhDereferenceObject(string);
 
         PhInitializeStringRef(&stringRef, Password);
-        string = PhpCEscapeString(&stringRef);
+        string = PhEscapeCommandLinePart(&stringRef);
         PhStringBuilderAppend2(&commandLineBuilder, L" -p \"");
         PhStringBuilderAppend(&commandLineBuilder, string);
         PhStringBuilderAppendChar(&commandLineBuilder, '\"');
@@ -979,7 +934,7 @@ NTSTATUS PhRunAsCommandStart2(
             L"-c -ctype processhacker -caction runas -cobject \""
             );
 
-        string = PhpCEscapeString(&commandLine->sr);
+        string = PhEscapeCommandLinePart(&commandLine->sr);
         PhStringBuilderAppend(&argumentsBuilder, string);
         PhDereferenceObject(string);
 

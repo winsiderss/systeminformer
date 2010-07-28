@@ -294,7 +294,7 @@ int __cdecl main(int argc, char *argv[])
         &commandLine,
         options,
         sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_FIRST_PART | PH_COMMAND_LINE_CALLBACK_ALL_MAIN,
+        PH_COMMAND_LINE_IGNORE_FIRST_PART,
         FiCommandLineCallback,
         NULL
         ) || FiArgHelp)
