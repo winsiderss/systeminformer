@@ -707,6 +707,8 @@ typedef struct _PH_RELATIVE_STRINGREF
     ULONG Offset;
 } PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
 
+#define PH_STRINGREF_INIT(String) { (USHORT)(sizeof(String) - sizeof(WCHAR)), (USHORT)sizeof(String), (String) }
+
 FORCEINLINE VOID PhInitializeStringRef(
     __out PPH_STRINGREF String,
     __in PWSTR Buffer

@@ -23,6 +23,7 @@
 #define PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kph.h>
+#include <phplug.h>
 #include <wtsapi32.h>
 
 VOID PhpQueueProcessQueryStage1(
@@ -80,8 +81,6 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
 typedef struct _PH_PROCESS_QUERY_S2_DATA
 {
     PH_PROCESS_QUERY_DATA Header;
-
-    BOOLEAN IsDotNet;
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
@@ -182,6 +181,8 @@ PH_CIRCULAR_BUFFER_FLOAT PhMaxCpuUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoReadOtherHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 #endif
+
+static PPH_IS_DOT_NET_CONTEXT PhpIsDotNetContext = NULL;
 
 static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
 static ULONG PhpWtsNumberOfProcesses;
@@ -743,11 +744,6 @@ VOID PhpProcessQueryStage2(
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
     HANDLE processId = processItem->ProcessId;
 
-    PhGetProcessIsDotNet(processId, &Data->IsDotNet);
-
-    // Despite its name PhEnableProcessQueryStage2 doesn't disable stage 2; 
-    // it disables checks for signatures and packing.
-
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
         Data->VerifyResult = PhVerifyFile(
@@ -828,8 +824,11 @@ VOID PhpQueueProcessQueryStage2(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhReferenceObject(ProcessItem);
-    PhQueueGlobalWorkQueueItem(PhpProcessQueryStage2Worker, ProcessItem);
+    if (PhEnableProcessQueryStage2)
+    {
+        PhReferenceObject(ProcessItem);
+        PhQueueGlobalWorkQueueItem(PhpProcessQueryStage2Worker, ProcessItem);
+    }
 }
 
 VOID PhpFillProcessItemStage1(
@@ -865,7 +864,6 @@ VOID PhpFillProcessItemStage2(
 {
     PPH_PROCESS_ITEM processItem = Data->Header.ProcessItem;
 
-    processItem->IsDotNet = Data->IsDotNet;
     processItem->VerifyResult = Data->VerifyResult;
     processItem->VerifySignerName = Data->VerifySignerName;
     processItem->IsPacked = Data->IsPacked;
@@ -1253,6 +1251,8 @@ VOID PhProcessProviderUpdate(
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
 
+    BOOLEAN isDotNetContextUpdated = FALSE;
+
     ULONG64 sysTotalTime;
     FLOAT maxCpuValue = 0;
     PPH_PROCESS_ITEM maxCpuProcessItem = NULL;
@@ -1262,9 +1262,41 @@ VOID PhProcessProviderUpdate(
     // Pre-update tasks
 
     if (runCount % 4 == 0)
+    {
         PhRefreshDosDevicePrefixes();
+    }
+
+    if ((runCount + 3) % 4 == 0)
+    {
+        if (PhpIsDotNetContext)
+        {
+            PhFreeIsDotNetContext(PhpIsDotNetContext);
+            PhpIsDotNetContext = NULL;
+        }
+
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES directoryNames;
+
+            PhInitializeStringRef(&directoryNames.DirectoryNames[0], L"\\BaseNamedObjects");
+            directoryNames.NumberOfDirectoryNames = 1;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackGetIsDotNetDirectoryNames), &directoryNames);
+
+            PhCreateIsDotNetContext(&PhpIsDotNetContext, directoryNames.DirectoryNames, directoryNames.NumberOfDirectoryNames);
+            isDotNetContextUpdated = TRUE;
+        }
+        else
+        {
+            PhCreateIsDotNetContext(&PhpIsDotNetContext, NULL, 0);
+            isDotNetContextUpdated = TRUE;
+        }
+    }
+
     if (runCount % 512 == 0) // yes, a very long time
+    {
         PhPurgeProcessRecords();
+    }
 
     if (!PhProcessStatisticsInitialized)
     {
@@ -1605,6 +1637,16 @@ VOID PhProcessProviderUpdate(
                 if (processItem->IsSuspended != isSuspended)
                 {
                     processItem->IsSuspended = isSuspended;
+                    modified = TRUE;
+                }
+            }
+
+            // .NET
+            if (isDotNetContextUpdated && PhpIsDotNetContext && !processItem->IsDotNet)
+            {
+                if (PhGetProcessIsDotNetFromContext(PhpIsDotNetContext, processItem->ProcessId, NULL))
+                {
+                    processItem->IsDotNet = TRUE;
                     modified = TRUE;
                 }
             }
