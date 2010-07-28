@@ -9,6 +9,7 @@ Process Hacker
    * Relative start times
  * FIXED:
    * Run and Run As shortcuts
+   * Command line handling
 
 2.1
  * NEW/IMPROVED:

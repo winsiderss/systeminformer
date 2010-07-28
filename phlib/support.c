@@ -2996,69 +2996,79 @@ PPH_STRING PhParseCommandLinePart(
     ULONG length;
     ULONG i;
 
-    BOOLEAN inEscape;
+    ULONG numberOfBackslashes;
     BOOLEAN inQuote;
     BOOLEAN endOfValue;
 
     length = CommandLine->Length / 2;
     i = *Index;
 
+    // This function follows the rules used by CommandLineToArgvW:
+    //
+    // * 2n backslashes and a quotation mark produces n backslashes and a quotation mark (non-literal).
+    // * 2n + 1 backslashes and a quotation mark produces n and a quotation mark (literal).
+    // * n backslashes and no quotation mark produces n backslashes.
+
     PhInitializeStringBuilder(&stringBuilder, 10);
-    inEscape = FALSE;
+    numberOfBackslashes = 0;
     inQuote = FALSE;
     endOfValue = FALSE;
 
     for (; i < length; i++)
     {
-        if (inEscape)
+        switch (CommandLine->Buffer[i])
         {
-            switch (CommandLine->Buffer[i])
+        case '\\':
+            numberOfBackslashes++;
+            break;
+        case '\"':
+            if (numberOfBackslashes != 0)
             {
-            case '\\':
-            case '\"':
-            case '\'':
+                if (numberOfBackslashes & 1)
+                {
+                    numberOfBackslashes /= 2;
+
+                    if (numberOfBackslashes != 0)
+                    {
+                        PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                        numberOfBackslashes = 0;
+                    }
+
+                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+
+                    break;
+                }
+                else
+                {
+                    numberOfBackslashes /= 2;
+                    PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                    numberOfBackslashes = 0;
+                }
+            }
+
+            if (!inQuote)
+                inQuote = TRUE;
+            else
+                inQuote = FALSE;
+
+            break;
+        default:
+            if (numberOfBackslashes != 0)
+            {
+                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                numberOfBackslashes = 0;
+            }
+
+            if (CommandLine->Buffer[i] == ' ' && !inQuote)
+            {
+                endOfValue = TRUE;
+            }
+            else
+            {
                 PhStringBuilderAppendChar(&stringBuilder, CommandLine->Buffer[i]);
-                break;
-            default:
-                // Unknown escape. Append both the backslash and 
-                // escape character.
-                PhStringBuilderAppendEx(
-                    &stringBuilder,
-                    &CommandLine->Buffer[i - 1],
-                    4
-                    );
-                break;
             }
 
-            inEscape = FALSE;
-        }
-        else
-        {
-            switch (CommandLine->Buffer[i])
-            {
-            case '\\':
-                inEscape = TRUE;
-                break;
-            case '\"':
-            case '\'':
-                if (!inQuote)
-                    inQuote = TRUE;
-                else
-                    inQuote = FALSE;
-
-                break;
-            default:
-                if (CommandLine->Buffer[i] == ' ' && !inQuote)
-                {
-                    endOfValue = TRUE;
-                }
-                else
-                {
-                    PhStringBuilderAppendChar(&stringBuilder, CommandLine->Buffer[i]);
-                }
-
-                break;
-            }
+            break;
         }
 
         if (endOfValue)
@@ -3075,7 +3085,7 @@ PPH_STRING PhParseCommandLinePart(
 
 BOOLEAN PhParseCommandLine(
     __in PPH_STRINGREF CommandLine,
-    __in PPH_COMMAND_LINE_OPTION Options,
+    __in_opt PPH_COMMAND_LINE_OPTION Options,
     __in ULONG NumberOfOptions,
     __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
@@ -3091,8 +3101,6 @@ BOOLEAN PhParseCommandLine(
     PH_STRINGREF optionName;
     PPH_COMMAND_LINE_OPTION option = NULL;
     PPH_STRING optionValue;
-
-    PPH_STRING mainArgumentValue = NULL;
 
     if (CommandLine->Length == 0)
         return TRUE;
@@ -3178,51 +3186,93 @@ BOOLEAN PhParseCommandLine(
         }
         else
         {
-            // If PH_COMMAND_LINE_CALLBACK_ALL_MAIN was not specified:
-            // Value with no option. This becomes our "main argument". 
-            // If we had a previous "main argument", replace it with 
-            // this one.
+            PPH_STRING value;
 
-            if (mainArgumentValue)
-                PhDereferenceObject(mainArgumentValue);
-
-            mainArgumentValue = PhParseCommandLinePart(CommandLine, &i);
+            value = PhParseCommandLinePart(CommandLine, &i);
 
             if ((Flags & PH_COMMAND_LINE_IGNORE_FIRST_PART) && wasFirst)
             {
-                if (mainArgumentValue)
-                {
-                    PhDereferenceObject(mainArgumentValue);
-                    mainArgumentValue = NULL;
-                }
+                PhDereferenceObject(value);
+                value = NULL;
             }
 
-            if (Flags & PH_COMMAND_LINE_CALLBACK_ALL_MAIN)
+            if (value)
             {
-                // This makes PH_COMMAND_LINE_CALLBACK_ALL_MAIN cooperate with 
-                // PH_COMMAND_LINE_IGNORE_FIRST_PART.
-                if (mainArgumentValue)
-                {
-                    cont = Callback(NULL, mainArgumentValue, Context);
-                    PhDereferenceObject(mainArgumentValue);
-                    mainArgumentValue = NULL;
+                cont = Callback(NULL, value, Context);
+                PhDereferenceObject(value);
 
-                    if (!cont)
-                        break;
-                }
+                if (!cont)
+                    break;
             }
 
             wasFirst = FALSE;
         }
     }
 
-    // If PH_COMMAND_LINE_CALLBACK_ALL_MAIN is enabled this won't run 
-    // because mainArgumentValue is set to NULL after processing.
-    if (mainArgumentValue)
+    return TRUE;
+}
+
+/**
+ * Escapes a string for use in a command line.
+ *
+ * \param String The string to escape.
+ *
+ * \return The escaped string.
+ *
+ * \remarks Only the double quotation mark is escaped.
+ */
+PPH_STRING PhEscapeCommandLinePart(
+    __in PPH_STRINGREF String
+    )
+{
+    static WCHAR backslashAndQuote[2] = { '\\', '\"' };
+
+    PPH_STRING string;
+    PH_STRING_BUILDER stringBuilder;
+    ULONG length;
+    ULONG i;
+
+    ULONG numberOfBackslashes;
+
+    length = String->Length / 2;
+    PhInitializeStringBuilder(&stringBuilder, String->Length / 2 * 3);
+    numberOfBackslashes = 0;
+
+    // Simply replacing " with \" won't work here. See PhParseCommandLinePart 
+    // for the quoting rules.
+
+    for (i = 0; i < length; i++)
     {
-        Callback(NULL, mainArgumentValue, Context);
-        PhDereferenceObject(mainArgumentValue);
+        switch (String->Buffer[i])
+        {
+        case '\\':
+            numberOfBackslashes++;
+            break;
+        case '\"':
+            if (numberOfBackslashes != 0)
+            {
+                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes * 2);
+                numberOfBackslashes = 0;
+            }
+
+            PhStringBuilderAppendEx(&stringBuilder, backslashAndQuote, sizeof(backslashAndQuote));
+
+            break;
+        default:
+            if (numberOfBackslashes != 0)
+            {
+                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                numberOfBackslashes = 0;
+            }
+
+            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+
+            break;
+        }
     }
 
-    return TRUE;
+    string = PhReferenceStringBuilderString(&stringBuilder);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return string;
 }
