@@ -465,27 +465,17 @@ LRESULT CALLBACK PhpTreeListWndProc(
                     {
                         NMLISTVIEW *lv = (NMLISTVIEW *)hdr;
 
+                        // The documentation is vague about the meaning of uOldState and 
+                        // uNewState. uOldState is actually a mask and uNewState is the value.
+
                         if (lv->iItem != -1) // -1 means all items
                         {
                             PPH_TREELIST_NODE node = context->List->Items[lv->iItem];
 
-                            // The list view has stupid bug where the LVN_ITEMCHANGED 
-                            // notification is sent *after* LVN_ODSTATECHANGED and 
-                            // with uNewState = 0, deselecting what's meant to be 
-                            // selected. Maybe it's by design, but verifying that 
-                            // uOldState is correct fixes this problem.
-                            if (
-                                // Bug when trying to select an item when the list view doesn't have focus
-                                (lv->uNewState & LVIS_SELECTED) ||
-                                // Primary hack
-                                lv->uOldState == node->s.ViewState
-                                )
-                            {
-                                // FIXME: There is still a bug. Shift select multiple items, and try to 
-                                // deselect the top/bottom item using Ctrl.
-                                PhpApplyNodeState(node, lv->uNewState);
-                                ListView_Update(context->ListViewHandle, lv->iItem);
-                            }
+                            node->s.ViewState &= ~lv->uOldState;
+                            node->s.ViewState |= lv->uNewState;
+                            PhpApplyNodeState(node, node->s.ViewState);
+                            ListView_Update(context->ListViewHandle, lv->iItem);
                         }
                         else
                         {
@@ -495,7 +485,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                             {
                                 PPH_TREELIST_NODE node = context->List->Items[i];
 
-                                PhpApplyNodeState(node, lv->uNewState);
+                                node->s.ViewState &= ~lv->uOldState;
+                                node->s.ViewState |= lv->uNewState;
+                                PhpApplyNodeState(node, node->s.ViewState);
                             }
 
                             // bErase needs to be TRUE, otherwise the item background 
@@ -521,7 +513,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         {
                             PPH_TREELIST_NODE node = context->List->Items[i];
 
-                            PhpApplyNodeState(node, losc->uNewState);
+                            node->s.ViewState &= ~losc->uOldState;
+                            node->s.ViewState |= losc->uNewState;
+                            PhpApplyNodeState(node, node->s.ViewState);
                         }
 
                         ListView_RedrawItems(context->ListViewHandle, indexLow, indexHigh);
@@ -975,6 +969,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
             return (LRESULT)context->List->Items[index];
         }
         break;
+    case TLM_GETLISTVIEW:
+        return (LRESULT)context->ListViewHandle;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1008,11 +1004,13 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     case WM_SETFOCUS:
         {
             context->HasFocus = TRUE;
+            InvalidateRect(context->Handle, NULL, TRUE); // refresh the backgrounds
         }
         break;
     case WM_KILLFOCUS:
         {
             context->HasFocus = FALSE;
+            InvalidateRect(context->Handle, NULL, TRUE); // refresh the backgrounds
         }
         break;
     case WM_LBUTTONDOWN:
@@ -1816,7 +1814,6 @@ static VOID PhpApplyNodeState(
 {
     Node->Selected = !!(State & LVIS_SELECTED);
     Node->Focused = !!(State & LVIS_FOCUSED);
-    Node->s.ViewState = State;
 }
 
 static VOID PhpReloadThemeData(
