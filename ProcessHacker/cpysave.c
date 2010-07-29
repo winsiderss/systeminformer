@@ -161,11 +161,57 @@ VOID PhpPopulateTableWithProcessNodes(
     }
 }
 
+VOID PhpEscapeStringForCsv(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in PPH_STRING String
+    )
+{
+    ULONG i;
+    ULONG length;
+    PWCHAR runStart;
+    ULONG runLength;
+
+    length = String->Length / sizeof(WCHAR);
+    runStart = NULL;
+
+    for (i = 0; i < length; i++)
+    {
+        switch (String->Buffer[i])
+        {
+        case '\"':
+            if (runStart)
+            {
+                PhStringBuilderAppendEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
+                runStart = NULL;
+            }
+
+            PhStringBuilderAppend2(StringBuilder, L"\"\"");
+
+            break;
+        default:
+            if (runStart)
+            {
+                runLength++;
+            }
+            else
+            {
+                runStart = &String->Buffer[i];
+                runLength = 1;
+            }
+
+            break;
+        }
+    }
+
+    if (runStart)
+        PhStringBuilderAppendEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
+}
+
 PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
-    __in BOOLEAN UseTabs
+    __in ULONG Mode
     )
 {
 #define TAB_SIZE 8
@@ -230,23 +276,26 @@ PPH_LIST PhGetProcessTreeListLines(
             );
     }
 
-    // Create the tab count array.
-
-    PhCreateAlloc(&tabCount, sizeof(ULONG) * columns);
-    PhaDereferenceObject(tabCount);
-    memset(tabCount, 0, sizeof(ULONG) * columns); // zero all values
-
-    for (i = 0; i < rows; i++)
+    if (Mode == PH_EXPORT_MODE_TABS || Mode == PH_EXPORT_MODE_SPACES)
     {
-        for (j = 0; j < columns; j++)
+        // Create the tab count array.
+
+        PhCreateAlloc(&tabCount, sizeof(ULONG) * columns);
+        PhaDereferenceObject(tabCount);
+        memset(tabCount, 0, sizeof(ULONG) * columns); // zero all values
+
+        for (i = 0; i < rows; i++)
         {
-            ULONG newCount;
+            for (j = 0; j < columns; j++)
+            {
+                ULONG newCount;
 
-            newCount = (table[i][j]->Length / sizeof(WCHAR)) / TAB_SIZE;
+                newCount = table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
-            // Replace the existing count if this tab count is bigger.
-            if (tabCount[j] < newCount)
-                tabCount[j] = newCount;
+                // Replace the existing count if this tab count is bigger.
+                if (tabCount[j] < newCount)
+                    tabCount[j] = newCount;
+            }
         }
     }
 
@@ -263,26 +312,49 @@ PPH_LIST PhGetProcessTreeListLines(
 
         PhInitializeStringBuilder(&stringBuilder, 100);
 
-        for (j = 0; j < columns; j++)
+        switch (Mode)
         {
-            if (UseTabs)
+        case PH_EXPORT_MODE_TABS:
             {
-                ULONG k;
-                ULONG m;
+                for (j = 0; j < columns; j++)
+                {
+                    ULONG k;
 
-                // Calculate the number of tabs needed.
-                k = tabCount[j] - (table[i][j]->Length / sizeof(WCHAR)) / TAB_SIZE + 1;
+                    // Calculate the number of tabs needed.
+                    k = tabCount[j] + 1 - table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
-                PhStringBuilderAppend(&stringBuilder, table[i][j]);
-
-                for (m = 0; m < k; m++)
-                    PhStringBuilderAppendChar(&stringBuilder, '\t');
+                    PhStringBuilderAppend(&stringBuilder, table[i][j]);
+                    PhStringBuilderAppendChar2(&stringBuilder, '\t', k);
+                }
             }
-            else
+            break;
+        case PH_EXPORT_MODE_SPACES:
             {
-                // TODO
-                PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+                for (j = 0; j < columns; j++)
+                {
+                    ULONG k;
+
+                    // Calculate the number of spaces needed.
+                    k = (tabCount[j] + 1) * TAB_SIZE - table[i][j]->Length / sizeof(WCHAR);
+
+                    PhStringBuilderAppend(&stringBuilder, table[i][j]);
+                    PhStringBuilderAppendChar2(&stringBuilder, ' ', k);
+                }
             }
+            break;
+        case PH_EXPORT_MODE_CSV:
+            {
+                for (j = 0; j < columns; j++)
+                {
+                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+                    PhpEscapeStringForCsv(&stringBuilder, table[i][j]);
+                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+
+                    if (j != columns - 1)
+                        PhStringBuilderAppendChar(&stringBuilder, ',');
+                }
+            }
+            break;
         }
 
         line = PhReferenceStringBuilderString(&stringBuilder);

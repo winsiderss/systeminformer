@@ -603,6 +603,7 @@ LRESULT CALLBACK PhMainWndProc(
                     static PH_FILETYPE_FILTER filters[] =
                     {
                         { L"Text files (*.txt;*.log)", L"*.txt;*.log" },
+                        { L"Comma-separated values (*.csv)", L"*.csv" },
                         { L"All files (*.*)", L"*.*" }
                     };
                     PVOID fileDialog = PhCreateSaveFileDialog();
@@ -628,8 +629,15 @@ LRESULT CALLBACK PhMainWndProc(
                             0
                             )))
                         {
+                            ULONG mode;
+
+                            if (PhStringEndsWith2(fileName, L".csv", TRUE))
+                                mode = PH_EXPORT_MODE_CSV;
+                            else
+                                mode = PH_EXPORT_MODE_TABS;
+
                             PhWritePhTextHeader(fileStream);
-                            PhWriteProcessTree(fileStream);
+                            PhWriteProcessTree(fileStream, mode);
 
                             PhDereferenceObject(fileStream);
                         }

@@ -275,7 +275,8 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 VOID PhCopyProcessTree();
 
 VOID PhWriteProcessTree(
-    __inout PPH_FILE_STREAM FileStream
+    __inout PPH_FILE_STREAM FileStream,
+    __in ULONG Mode
     );
 
 // appsup
@@ -1155,11 +1156,15 @@ PPH_FULL_STRING PhGetProcessTreeListText(
     __in HWND TreeListHandle
     );
 
+#define PH_EXPORT_MODE_TABS 0
+#define PH_EXPORT_MODE_SPACES 1
+#define PH_EXPORT_MODE_CSV 2
+
 PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
-    __in BOOLEAN UseTabs
+    __in ULONG Mode
     );
 
 PPH_FULL_STRING PhGetListViewText(
