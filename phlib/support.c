@@ -2362,7 +2362,7 @@ PVOID PhCreateOpenFileDialog()
         OPENFILENAME *ofn;
 
         ofn = PhpCreateOpenFileName(1);
-        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST);
+        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_FILEMUSTEXIST | PH_FILEDIALOG_STRICTFILETYPES);
 
         return ofn;
     }
@@ -2403,7 +2403,7 @@ PVOID PhCreateSaveFileDialog()
         OPENFILENAME *ofn;
 
         ofn = PhpCreateOpenFileName(2);
-        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT);
+        PhSetFileDialogOptions(ofn, PH_FILEDIALOG_PATHMUSTEXIST | PH_FILEDIALOG_OVERWRITEPROMPT | PH_FILEDIALOG_STRICTFILETYPES);
 
         return ofn;
     }
@@ -2445,6 +2445,10 @@ BOOLEAN PhShowFileDialog(
 {
     if (WINDOWS_HAS_IFILEDIALOG)
     {
+        // Set a blank default extension. This will have an effect when the user 
+        // selects a different file type.
+        IFileDialog_SetDefaultExtension((IFileDialog *)FileDialog, L"");
+
         return SUCCEEDED(IFileDialog_Show((IFileDialog *)FileDialog, hWnd));
     }
     else
@@ -2475,7 +2479,8 @@ static PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
     { PH_FILEDIALOG_SHOWHIDDEN, FOS_FORCESHOWHIDDEN },
     { PH_FILEDIALOG_NODEREFERENCELINKS, FOS_NODEREFERENCELINKS },
     { PH_FILEDIALOG_OVERWRITEPROMPT, FOS_OVERWRITEPROMPT },
-    { PH_FILEDIALOG_DEFAULTEXPANDED, FOS_DEFAULTNOMINIMODE }
+    { PH_FILEDIALOG_DEFAULTEXPANDED, FOS_DEFAULTNOMINIMODE },
+    { PH_FILEDIALOG_STRICTFILETYPES, FOS_STRICTFILETYPES }
 };
 
 static PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =

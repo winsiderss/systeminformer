@@ -1560,7 +1560,8 @@ VOID PhCopyProcessTree()
 }
 
 VOID PhWriteProcessTree(
-    __inout PPH_FILE_STREAM FileStream
+    __inout PPH_FILE_STREAM FileStream,
+    __in ULONG Mode
     )
 {
     PPH_LIST lines;
@@ -1570,7 +1571,7 @@ VOID PhWriteProcessTree(
         ProcessTreeListHandle,
         ProcessNodeList->Count,
         ProcessNodeRootList,
-        TRUE
+        Mode
         );
 
     for (i = 0; i < lines->Count; i++)
