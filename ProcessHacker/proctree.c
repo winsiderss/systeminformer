@@ -1531,12 +1531,21 @@ VOID PhSelectAndEnsureVisibleProcessNode(
         processNode = processNode->Parent;
     }
 
-    ProcessNode->Node.Selected = TRUE;
-    ProcessNode->Node.Focused = TRUE;
-    PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_STATE);
+    // ListView_SetItemState is used instead.
+    // To reproduce the bug:
+    // 1. Select and then deselect an item.
+    // 2. Call PhSelectAndEnsureVisibleProcessNode.
+    // 3. Select another item (without Ctrl). The existing item doesn't get deselected.
+
+    //ProcessNode->Node.Selected = TRUE;
+    //ProcessNode->Node.Focused = TRUE;
+    //PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_STATE);
 
     if (needsRestructure)
         TreeList_NodesStructured(ProcessTreeListHandle);
+
+    ListView_SetItemState(TreeList_GetListView(ProcessTreeListHandle), ProcessNode->Node.s.ViewIndex,
+        LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 
     TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
 }
