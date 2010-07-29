@@ -10,6 +10,7 @@ Process Hacker
  * FIXED:
    * Run and Run As shortcuts
    * Command line handling
+   * Process tree selection
 
 2.1
  * NEW/IMPROVED:

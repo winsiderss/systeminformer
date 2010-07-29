@@ -208,6 +208,7 @@ typedef struct _PH_TREELIST_MOUSE_EVENT
 #define TLM_GETNODETEXT (WM_APP + 1223)
 #define TLM_GETVISIBLENODECOUNT (WM_APP + 1224)
 #define TLM_GETVISIBLENODE (WM_APP + 1225)
+#define TLM_GETLISTVIEW (WM_APP + 1226)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -296,6 +297,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_GetVisibleNode(hWnd, Index) \
     ((PPH_TREELIST_NODE)SendMessage((hWnd), TLM_GETVISIBLENODE, (WPARAM)(Index), 0))
+
+#define TreeList_GetListView(hWnd) \
+    ((HWND)SendMessage((hWnd), TLM_GETLISTVIEW, 0, 0))
 
 BOOLEAN PhTreeListInitialization();
 
