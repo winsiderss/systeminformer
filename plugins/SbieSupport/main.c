@@ -342,7 +342,7 @@ VOID NTAPI GetProcessHighlightingColorCallback(
 
     lookupBoxedProcess.ProcessId = ((PPH_PROCESS_ITEM)getHighlightingColor->Parameter)->ProcessId;
 
-    if (boxedProcess = PhGetHashtableEntry(BoxedProcessesHashtable, &lookupBoxedProcess))
+    if (boxedProcess = PhFindEntryHashtable(BoxedProcessesHashtable, &lookupBoxedProcess))
     {
         getHighlightingColor->BackColor = RGB(0x33, 0x33, 0x00);
         getHighlightingColor->Cache = TRUE;
@@ -365,9 +365,9 @@ VOID NTAPI GetProcessTooltipTextCallback(
 
     lookupBoxedProcess.ProcessId = ((PPH_PROCESS_ITEM)getTooltipText->Parameter)->ProcessId;
 
-    if (boxedProcess = PhGetHashtableEntry(BoxedProcessesHashtable, &lookupBoxedProcess))
+    if (boxedProcess = PhFindEntryHashtable(BoxedProcessesHashtable, &lookupBoxedProcess))
     {
-        PhStringBuilderAppendFormat(getTooltipText->StringBuilder, L"Sandboxie:\n    Box name: %s\n", boxedProcess->BoxName);
+        PhAppendFormatStringBuilder(getTooltipText->StringBuilder, L"Sandboxie:\n    Box name: %s\n", boxedProcess->BoxName);
     }
 
     PhReleaseQueuedLockShared(&BoxedProcessesLock);
@@ -424,7 +424,7 @@ VOID NTAPI RefreshSandboxieInfo(
     PhClearHashtable(BoxedProcessesHashtable);
 
     for (i = 0; i < BoxInfoCount; i++)
-        PhAddListItem(NeedsDereference, BoxInfo[i].IsDotNetDirectoryName);
+        PhAddItemList(NeedsDereference, BoxInfo[i].IsDotNetDirectoryName);
 
     BoxInfoCount = 0;
 
@@ -447,7 +447,7 @@ VOID NTAPI RefreshSandboxieInfo(
                 boxedProcess.ProcessId = ULongToHandle(*pid);
                 memcpy(boxedProcess.BoxName, boxName, sizeof(boxName));
 
-                PhAddHashtableEntry(BoxedProcessesHashtable, &boxedProcess);
+                PhAddEntryHashtable(BoxedProcessesHashtable, &boxedProcess);
 
                 count--;
                 pid++;
