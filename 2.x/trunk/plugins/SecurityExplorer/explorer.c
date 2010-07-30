@@ -99,7 +99,7 @@ VOID SxpRefreshAccounts()
                 PPH_STRING sidString;
 
                 sid = PhAllocateCopy(accounts[i].Sid, RtlLengthSid(accounts[i].Sid));
-                PhAddListItem(AccountsList, sid);
+                PhAddItemList(AccountsList, sid);
 
                 name = PhGetSidFullName(accounts[i].Sid, TRUE, NULL);
                 lvItemIndex = PhAddListViewItem(AccountsLv, MAXINT, name->Buffer, sid);
