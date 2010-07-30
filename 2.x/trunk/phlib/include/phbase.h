@@ -2702,14 +2702,14 @@ PHLIBAPI
 PPH_AVL_LINKS
 NTAPI
 PhMinimumElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    __in PPH_AVL_TREE Tree
     );
 
 PHLIBAPI
 PPH_AVL_LINKS
 NTAPI
 PhMaximumElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    __in PPH_AVL_TREE Tree
     );
 
 PHLIBAPI

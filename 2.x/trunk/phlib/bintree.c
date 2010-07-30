@@ -688,23 +688,37 @@ PPH_AVL_LINKS PhFindElementAvlTree(
 }
 
 PPH_AVL_LINKS PhMinimumElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    __in PPH_AVL_TREE Tree
     )
 {
-    while (Element->Left)
-        Element = Element->Left;
+    PPH_AVL_LINKS links;
 
-    return Element;
+    links = PhRootElementAvlTree(Tree);
+
+    if (!links)
+        return NULL;
+
+    while (links->Left)
+        links = links->Left;
+
+    return links;
 }
 
 PPH_AVL_LINKS PhMaximumElementAvlTree(
-    __in PPH_AVL_LINKS Element
+    __in PPH_AVL_TREE Tree
     )
 {
-    while (Element->Right)
-        Element = Element->Right;
+    PPH_AVL_LINKS links;
 
-    return Element;
+    links = PhRootElementAvlTree(Tree);
+
+    if (!links)
+        return NULL;
+
+    while (links->Right)
+        links = links->Right;
+
+    return links;
 }
 
 PPH_AVL_LINKS PhSuccessorElementAvlTree(

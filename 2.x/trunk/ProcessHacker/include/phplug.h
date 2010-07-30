@@ -59,7 +59,6 @@ typedef enum _PH_PLUGIN_CALLBACK
 
 typedef struct _PH_PLUGIN
 {
-    LIST_ENTRY ListEntry;
     PH_AVL_LINKS Links;
 
     PWSTR Name;

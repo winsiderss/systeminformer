@@ -34,7 +34,6 @@ VOID PhpExecuteCallbackForAllPlugins(
     );
 
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
-LIST_ENTRY PhPluginsListHead;
 
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
@@ -43,8 +42,6 @@ static ULONG NextPluginId = IDPLUGINS + 1;
 VOID PhPluginsInitialization()
 {
     ULONG i;
-
-    InitializeListHead(&PhPluginsListHead);
 
     for (i = 0; i < GeneralCallbackMaximum; i++)
         PhInitializeCallback(&GeneralCallbacks[i]);
@@ -130,17 +127,17 @@ VOID PhpExecuteCallbackForAllPlugins(
     __in PH_PLUGIN_CALLBACK Callback
     )
 {
-    PLIST_ENTRY listEntry;
+    PPH_AVL_LINKS links;
 
-    listEntry = PhPluginsListHead.Flink;
+    links = PhMinimumElementAvlTree(&PhPluginsByName);
 
-    while (listEntry != &PhPluginsListHead)
+    while (links)
     {
-        PPH_PLUGIN plugin = CONTAINING_RECORD(listEntry, PH_PLUGIN, ListEntry);
+        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
 
         PhInvokeCallback(PhGetPluginCallback(plugin, Callback), NULL);
 
-        listEntry = listEntry->Flink;
+        links = PhSuccessorElementAvlTree(links);
     }
 }
 
@@ -167,8 +164,6 @@ PPH_PLUGIN PhRegisterPlugin(
         PhFree(plugin);
         return NULL;
     }
-
-    InsertTailList(&PhPluginsListHead, &plugin->ListEntry);
 
     if (Information)
     {

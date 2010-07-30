@@ -110,7 +110,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PLIST_ENTRY listEntry;
+            PPH_AVL_LINKS links;
 
             PluginsLv = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(PluginsLv, FALSE, TRUE);
@@ -119,11 +119,11 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Author");
             PhSetExtendedListView(PluginsLv);
 
-            listEntry = PhPluginsListHead.Flink;
+            links = PhMinimumElementAvlTree(&PhPluginsByName);
 
-            while (listEntry != &PhPluginsListHead)
+            while (links)
             {
-                PPH_PLUGIN plugin = CONTAINING_RECORD(listEntry, PH_PLUGIN, ListEntry);
+                PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
                 INT lvItemIndex;
 
                 lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT,
@@ -132,7 +132,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 if (plugin->Author)
                     PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Author);
 
-                listEntry = listEntry->Flink;
+                links = PhSuccessorElementAvlTree(links);
             }
 
             ExtendedListView_SortItems(PluginsLv);
