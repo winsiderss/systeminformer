@@ -93,7 +93,7 @@ INT WINAPI WinMain(
     if (!PvFileName)
         return 1;
 
-    if (!PhStringEndsWith2(PvFileName, L".lib", TRUE))
+    if (!PhEndsWithString2(PvFileName, L".lib", TRUE))
         PvPeProperties();
     else
         PvLibProperties();

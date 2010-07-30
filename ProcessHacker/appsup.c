@@ -88,7 +88,7 @@ NTSTATUS PhGetProcessKnownType(
 
     knownProcessType = UnknownProcessType;
 
-    if (PhStringStartsWith(newFileName, systemDirectory, TRUE))
+    if (PhStartsWithString(newFileName, systemDirectory, TRUE))
     {
         baseName = PhSubstring(
             newFileName,
@@ -101,27 +101,27 @@ NTSTATUS PhGetProcessKnownType(
 
         if (!baseName)
             ; // Dummy
-        else if (PhStringEquals2(baseName, L"\\smss.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\smss.exe", TRUE))
             knownProcessType = SessionManagerProcessType;
-        else if (PhStringEquals2(baseName, L"\\csrss.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\csrss.exe", TRUE))
             knownProcessType = WindowsSubsystemProcessType;
-        else if (PhStringEquals2(baseName, L"\\wininit.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\wininit.exe", TRUE))
             knownProcessType = WindowsStartupProcessType;
-        else if (PhStringEquals2(baseName, L"\\services.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\services.exe", TRUE))
             knownProcessType = ServiceControlManagerProcessType;
-        else if (PhStringEquals2(baseName, L"\\lsass.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\lsass.exe", TRUE))
             knownProcessType = LocalSecurityAuthorityProcessType;
-        else if (PhStringEquals2(baseName, L"\\lsm.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\lsm.exe", TRUE))
             knownProcessType = LocalSessionManagerProcessType;
-        else if (PhStringEquals2(baseName, L"\\svchost.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\svchost.exe", TRUE))
             knownProcessType = ServiceHostProcessType;
-        else if (PhStringEquals2(baseName, L"\\rundll32.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\rundll32.exe", TRUE))
             knownProcessType = RunDllAsAppProcessType;
-        else if (PhStringEquals2(baseName, L"\\dllhost.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\dllhost.exe", TRUE))
             knownProcessType = ComSurrogateProcessType;
-        else if (PhStringEquals2(baseName, L"\\taskeng.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\taskeng.exe", TRUE))
             knownProcessType = TaskHostProcessType;
-        else if (PhStringEquals2(baseName, L"\\taskhost.exe", TRUE))
+        else if (PhEqualString2(baseName, L"\\taskhost.exe", TRUE))
             knownProcessType = TaskHostProcessType;
 
         PhDereferenceObject(baseName);
@@ -224,7 +224,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // The procedure name begins after the last comma.
 
-            lastIndexOfComma = PhStringLastIndexOfChar(dllName, 0, ',');
+            lastIndexOfComma = PhFindLastCharInString(dllName, 0, ',');
 
             if (lastIndexOfComma == -1)
                 return FALSE;
@@ -239,7 +239,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (PhStringIndexOfChar(dllName, 0, ':') == -1)
+            if (PhFindCharInString(dllName, 0, ':') == -1)
             {
                 dllName = PhaConcatStrings(
                     3,
@@ -292,7 +292,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // Find "/processid:"; the GUID is just after that.
 
             PhLowerString(argPart);
-            indexOfProcessId = PhStringIndexOfString(argPart, 0, L"/processid:");
+            indexOfProcessId = PhFindStringInString(argPart, 0, L"/processid:");
 
             if (indexOfProcessId == -1)
                 return FALSE;
@@ -404,11 +404,11 @@ PPH_STRING PhEscapeStringForDelimiter(
         if (String->Buffer[i] == '\\' || String->Buffer[i] == Delimiter)
         {
             temp[1] = String->Buffer[i];
-            PhStringBuilderAppendEx(&stringBuilder, temp, 4);
+            PhAppendStringBuilderEx(&stringBuilder, temp, 4);
         }
         else
         {
-            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+            PhAppendCharStringBuilder(&stringBuilder, String->Buffer[i]);
         }
     }
 
@@ -437,7 +437,7 @@ PPH_STRING PhUnescapeStringForDelimiter(
         {
             if (i != length - 1)
             {
-                PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i + 1]);
+                PhAppendCharStringBuilder(&stringBuilder, String->Buffer[i + 1]);
                 i++;
             }
             else
@@ -448,7 +448,7 @@ PPH_STRING PhUnescapeStringForDelimiter(
         }
         else
         {
-            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+            PhAppendCharStringBuilder(&stringBuilder, String->Buffer[i]);
         }
     }
 
@@ -494,14 +494,14 @@ VOID PhShellExecuteUserString(
     PPH_STRING newString;
 
     // Make sure the user executable string is absolute.
-    if (PhStringIndexOfChar(executeString, 0, L':') == -1)
+    if (PhFindCharInString(executeString, 0, L':') == -1)
     {
         newString = PhConcatStrings2(PhApplicationDirectory->Buffer, executeString->Buffer);
         PhDereferenceObject(executeString);
         executeString = newString;
     }
 
-    indexOfReplacement = PhStringIndexOfString(executeString, 0, L"%s");
+    indexOfReplacement = PhFindStringInString(executeString, 0, L"%s");
 
     if (indexOfReplacement != -1)
     {
@@ -549,7 +549,7 @@ VOID PhLoadSymbolProviderOptions(
 {
     PPH_STRING searchPath;
 
-    PhSymbolProviderSetOptions(
+    PhSetOptionsSymbolProvider(
         SYMOPT_UNDNAME,
         PhGetIntegerSetting(L"DbgHelpUndecorate") ? SYMOPT_UNDNAME : 0
         );
@@ -557,7 +557,7 @@ VOID PhLoadSymbolProviderOptions(
     searchPath = PhGetStringSetting(L"DbgHelpSearchPath");
 
     if (searchPath->Length != 0)
-        PhSymbolProviderSetSearchPath(SymbolProvider, searchPath->Buffer);
+        PhSetSearchPathSymbolProvider(SymbolProvider, searchPath->Buffer);
 
     PhDereferenceObject(searchPath);
 }
@@ -744,23 +744,23 @@ VOID PhWritePhTextHeader(
     PPH_STRING dateString;
     PPH_STRING timeString;
 
-    PhFileStreamWriteStringAsAnsi2(FileStream, L"Process Hacker ");
+    PhWriteStringAsAnsiFileStream2(FileStream, L"Process Hacker ");
 
     if (version = PhGetPhVersion())
     {
-        PhFileStreamWriteStringAsAnsi(FileStream, &version->sr);
+        PhWriteStringAsAnsiFileStream(FileStream, &version->sr);
         PhDereferenceObject(version);
     }
 
-    PhFileStreamWriteStringFormat(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
+    PhWriteStringFormatFileStream(FileStream, L"\r\nWindows NT %u.%u", PhOsVersion.dwMajorVersion, PhOsVersion.dwMinorVersion);
 
     if (PhOsVersion.szCSDVersion[0] != 0)
-        PhFileStreamWriteStringFormat(FileStream, L" %s", PhOsVersion.szCSDVersion);
+        PhWriteStringFormatFileStream(FileStream, L" %s", PhOsVersion.szCSDVersion);
 
 #ifdef _M_IX86
-    PhFileStreamWriteStringAsAnsi2(FileStream, L" (32-bit)");
+    PhWriteStringAsAnsiFileStream2(FileStream, L" (32-bit)");
 #else
-    PhFileStreamWriteStringAsAnsi2(FileStream, L" (64-bit)");
+    PhWriteStringAsAnsiFileStream2(FileStream, L" (64-bit)");
 #endif
 
     PhQuerySystemTime(&time);
@@ -768,7 +768,7 @@ VOID PhWritePhTextHeader(
 
     dateString = PhFormatDate(&systemTime, NULL);
     timeString = PhFormatTime(&systemTime, NULL);
-    PhFileStreamWriteStringFormat(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
+    PhWriteStringFormatFileStream(FileStream, L"\r\n%s %s\r\n\r\n", dateString->Buffer, timeString->Buffer);
     PhDereferenceObject(dateString);
     PhDereferenceObject(timeString);
 }

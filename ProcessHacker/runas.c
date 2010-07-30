@@ -130,9 +130,9 @@ static BOOLEAN IsServiceAccount(
     )
 {
     if (
-        PhStringEquals2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) || 
-        PhStringEquals2(UserName, L"NT AUTHORITY\\NETWORK SERVICE", TRUE) ||
-        PhStringEquals2(UserName, L"NT AUTHORITY\\SYSTEM", TRUE)
+        PhEqualString2(UserName, L"NT AUTHORITY\\LOCAL SERVICE", TRUE) || 
+        PhEqualString2(UserName, L"NT AUTHORITY\\NETWORK SERVICE", TRUE) ||
+        PhEqualString2(UserName, L"NT AUTHORITY\\SYSTEM", TRUE)
         )
     {
         return TRUE;
@@ -157,7 +157,7 @@ static PPH_STRING GetCurrentWinStaName()
         NULL
         ))
     {
-        PhTrimStringToNullTerminator(string);
+        PhTrimToNullTerminatorString(string);
         return string;
     }
     else
@@ -174,7 +174,7 @@ static BOOL CALLBACK EnumDesktopsCallback(
 {
     PRUNAS_DIALOG_CONTEXT context = (PRUNAS_DIALOG_CONTEXT)Context;
 
-    PhAddListItem(context->DesktopList, PhConcatStrings(
+    PhAddItemList(context->DesktopList, PhConcatStrings(
         3,
         context->CurrentWinStaName->Buffer,
         L"\\",
@@ -434,7 +434,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                             // Hack for Windows XP
                             if (
-                                PhStringEquals2(userName, L"NT AUTHORITY\\SYSTEM", TRUE) &&
+                                PhEqualString2(userName, L"NT AUTHORITY\\SYSTEM", TRUE) &&
                                 WindowsVersion <= WINDOWS_XP
                                 )
                             { 
@@ -496,7 +496,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 ));
 
                             if (
-                                !PhIsStringNullOrEmpty(userName) &&
+                                !PhIsNullOrEmptyString(userName) &&
                                 sessions[i].pWinStationName &&
                                 !WSTR_EQUAL(sessions[i].pWinStationName, L"")
                                 )
@@ -528,7 +528,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             AppendMenu(sessionsMenu, MF_STRING, 1 + i, menuString->Buffer);
                             PhDereferenceObject(menuString);
 
-                            PhAddListItem(context->SessionIdList, (PVOID)sessions[i].SessionId);
+                            PhAddItemList(context->SessionIdList, (PVOID)sessions[i].SessionId);
                         }
 
                         WTSFreeMemory(sessions);
@@ -684,41 +684,41 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
 
     PhInitializeStringBuilder(&commandLineBuilder, PhApplicationFileName->Length + 70);
 
-    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
-    PhStringBuilderAppend(&commandLineBuilder, PhApplicationFileName);
-    PhStringBuilderAppend2(&commandLineBuilder, L"\" -ras");
+    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
+    PhAppendStringBuilder(&commandLineBuilder, PhApplicationFileName);
+    PhAppendStringBuilder2(&commandLineBuilder, L"\" -ras");
 
     PhInitializeStringRef(&stringRef, Program);
     string = PhEscapeCommandLinePart(&stringRef);
-    PhStringBuilderAppend2(&commandLineBuilder, L" -c \"");
-    PhStringBuilderAppend(&commandLineBuilder, string);
-    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+    PhAppendStringBuilder2(&commandLineBuilder, L" -c \"");
+    PhAppendStringBuilder(&commandLineBuilder, string);
+    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
     PhDereferenceObject(string);
 
     PhInitializeStringRef(&stringRef, DesktopName);
     string = PhEscapeCommandLinePart(&stringRef);
-    PhStringBuilderAppend2(&commandLineBuilder, L" -D \"");
-    PhStringBuilderAppend(&commandLineBuilder, string);
-    PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+    PhAppendStringBuilder2(&commandLineBuilder, L" -D \"");
+    PhAppendStringBuilder(&commandLineBuilder, string);
+    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
     PhDereferenceObject(string);
 
     if (!ProcessIdWithToken)
     {
         PhInitializeStringRef(&stringRef, UserName);
         string = PhEscapeCommandLinePart(&stringRef);
-        PhStringBuilderAppend2(&commandLineBuilder, L" -u \"");
-        PhStringBuilderAppend(&commandLineBuilder, string);
-        PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+        PhAppendStringBuilder2(&commandLineBuilder, L" -u \"");
+        PhAppendStringBuilder(&commandLineBuilder, string);
+        PhAppendCharStringBuilder(&commandLineBuilder, '\"');
         PhDereferenceObject(string);
 
         PhInitializeStringRef(&stringRef, Password);
         string = PhEscapeCommandLinePart(&stringRef);
-        PhStringBuilderAppend2(&commandLineBuilder, L" -p \"");
-        PhStringBuilderAppend(&commandLineBuilder, string);
-        PhStringBuilderAppendChar(&commandLineBuilder, '\"');
+        PhAppendStringBuilder2(&commandLineBuilder, L" -p \"");
+        PhAppendStringBuilder(&commandLineBuilder, string);
+        PhAppendCharStringBuilder(&commandLineBuilder, '\"');
         PhDereferenceObject(string);
 
-        PhStringBuilderAppendFormat(
+        PhAppendFormatStringBuilder(
             &commandLineBuilder, 
             L" -t %u",
             LogonType
@@ -726,7 +726,7 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
     }
     else
     {
-        PhStringBuilderAppendFormat(
+        PhAppendFormatStringBuilder(
             &commandLineBuilder, 
             L" -P %u",
             (ULONG)ProcessIdWithToken
@@ -735,10 +735,10 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
 
     if (UseLinkedToken)
     {
-        PhStringBuilderAppend2(&commandLineBuilder, L" -L");
+        PhAppendStringBuilder2(&commandLineBuilder, L" -L");
     }
 
-    PhStringBuilderAppendFormat(
+    PhAppendFormatStringBuilder(
         &commandLineBuilder,
         L" -s %u -E %s",
         SessionId,
@@ -929,16 +929,16 @@ NTSTATUS PhRunAsCommandStart2(
 
         PhInitializeStringBuilder(&argumentsBuilder, 100);
 
-        PhStringBuilderAppend2(
+        PhAppendStringBuilder2(
             &argumentsBuilder,
             L"-c -ctype processhacker -caction runas -cobject \""
             );
 
         string = PhEscapeCommandLinePart(&commandLine->sr);
-        PhStringBuilderAppend(&argumentsBuilder, string);
+        PhAppendStringBuilder(&argumentsBuilder, string);
         PhDereferenceObject(string);
 
-        PhStringBuilderAppendFormat(
+        PhAppendFormatStringBuilder(
             &argumentsBuilder,
             L"\" -servicename %s",
             serviceName
@@ -1150,7 +1150,7 @@ VOID PhRunAsServiceStart()
 
     if (RunAsServiceParameters.UserName)
     {
-        indexOfBackslash = PhStringIndexOfChar(RunAsServiceParameters.UserName, 0, '\\');
+        indexOfBackslash = PhFindCharInString(RunAsServiceParameters.UserName, 0, '\\');
 
         if (indexOfBackslash != -1)
         {

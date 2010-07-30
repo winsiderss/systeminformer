@@ -22,177 +22,6 @@
 
 #include <phbase.h>
 
-VOID PhInitializeBinaryTree(
-    __out PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction
-    )
-{
-    Tree->Root.Parent = NULL;
-    Tree->Root.Left = NULL;
-    Tree->Root.Right = NULL;
-    Tree->Count = 0;
-    Tree->CompareFunction = CompareFunction;
-}
-
-FORCEINLINE PPH_BINARY_LINKS PhpSearchBinaryTree(
-    __in PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_LINKS Subject,
-    __out PINT Result
-    )
-{
-    PPH_BINARY_LINKS links;
-    INT result;
-
-    links = Tree->Root.Right;
-
-    if (!links)
-    {
-        *Result = 1;
-
-        return &Tree->Root;
-    }
-
-    while (TRUE)
-    {
-        result = Tree->CompareFunction(Subject, links);
-
-        if (result == 0)
-        {
-            *Result = 0;
-
-            return links;
-        }
-        else if (result < 0)
-        {
-            if (links->Left)
-            {
-                links = links->Left;
-            }
-            else
-            {
-                *Result = -1;
-
-                return links;
-            }
-        }
-        else
-        {
-            if (links->Right)
-            {
-                links = links->Right;
-            }
-            else
-            {
-                *Result = 1;
-
-                return links;
-            }
-        }
-    }
-
-    assert(FALSE);
-}
-
-PPH_BINARY_LINKS PhBinaryTreeAdd(
-    __inout PPH_BINARY_TREE Tree,
-    __out PPH_BINARY_LINKS Subject
-    )
-{
-    PPH_BINARY_LINKS links;
-    INT result;
-
-    links = PhpSearchBinaryTree(Tree, Subject, &result);
-
-    if (result < 0)
-        links->Left = Subject;
-    else if (result > 0)
-        links->Right = Subject;
-    else
-        return links;
-
-    Subject->Parent = links;
-    Subject->Left = NULL;
-    Subject->Right = NULL;
-
-    Tree->Count++;
-
-    return NULL;
-}
-
-VOID PhBinaryTreeRemove(
-    __inout PPH_BINARY_TREE Tree,
-    __inout PPH_BINARY_LINKS Subject
-    )
-{
-    PPH_BINARY_LINKS *replace;
-    PPH_BINARY_LINKS child;
-
-    if (Subject->Parent->Left == Subject)
-        replace = &Subject->Parent->Left;
-    else
-        replace = &Subject->Parent->Right;
-
-    if (!Subject->Right)
-    {
-        *replace = Subject->Left;
-
-        if (Subject->Left)
-            Subject->Left->Parent = Subject->Parent;
-    }
-    else if (!Subject->Left)
-    {
-        *replace = Subject->Right;
-        Subject->Right->Parent = Subject->Parent; // we know Right exists
-    }
-    else
-    {
-        // We replace the node with either its in-order successor or 
-        // its in-order predecessor. This is done by copying the links.
-        if ((ULONG_PTR)Subject & 0x6) // this may give us slightly random values, which is what we want
-        {
-            child = Subject->Left;
-
-            while (child->Right)
-                child = child->Right;
-        }
-        else
-        {
-            child = Subject->Right;
-
-            while (child->Left)
-                child = child->Left;
-        }
-
-        child->Parent = Subject->Parent;
-        child->Left = Subject->Left;
-        child->Right = Subject->Right;
-        *replace = child;
-
-        if (child->Left)
-            child->Left->Parent = child;
-        if (child->Right)
-            child->Right->Parent = child;
-    }
-
-    Tree->Count--;
-}
-
-PPH_BINARY_LINKS PhBinaryTreeSearch(
-    __in PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_LINKS Subject
-    )
-{
-    PPH_BINARY_LINKS links;
-    INT result;
-
-    links = PhpSearchBinaryTree(Tree, Subject, &result);
-
-    if (result == 0)
-        return links;
-    else
-        return NULL;
-}
-
 VOID PhInitializeAvlTree(
     __out PPH_AVL_TREE Tree,
     __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
@@ -642,7 +471,7 @@ ULONG PhpRebalanceAvlLinks(
     }
 }
 
-PPH_AVL_LINKS PhAvlTreeAdd(
+PPH_AVL_LINKS PhAddElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Subject
     )
@@ -721,7 +550,7 @@ PPH_AVL_LINKS PhAvlTreeAdd(
     return NULL;
 }
 
-VOID PhAvlTreeRemove(
+VOID PhRemoveElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Subject
     )
@@ -842,7 +671,7 @@ VOID PhAvlTreeRemove(
     Tree->Count--;
 }
 
-PPH_AVL_LINKS PhAvlTreeSearch(
+PPH_AVL_LINKS PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Subject
     )

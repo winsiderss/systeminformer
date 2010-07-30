@@ -263,7 +263,7 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
 
     PhAcquireQueuedLockShared(&PhNetworkHashtableLock);
 
-    networkItemPtr = (PPH_NETWORK_ITEM *)PhGetHashtableEntry(
+    networkItemPtr = (PPH_NETWORK_ITEM *)PhFindEntryHashtable(
         PhNetworkHashtable,
         &lookupNetworkItemPtr
         );
@@ -287,7 +287,7 @@ __assumeLocked VOID PhpRemoveNetworkItem(
     __in PPH_NETWORK_ITEM NetworkItem
     )
 {
-    PhRemoveHashtableEntry(PhNetworkHashtable, &NetworkItem);
+    PhRemoveEntryHashtable(PhNetworkHashtable, &NetworkItem);
     PhDereferenceObject(NetworkItem);
 }
 
@@ -322,7 +322,7 @@ __assumeLocked PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
     // Construct a temporary cache item for the lookup.
     lookupCacheItem.Address = *Address;
 
-    cacheItemPtr = (PPHP_RESOLVE_CACHE_ITEM *)PhGetHashtableEntry(
+    cacheItemPtr = (PPHP_RESOLVE_CACHE_ITEM *)PhFindEntryHashtable(
         PhpResolveCacheHashtable,
         &lookupCacheItemPtr
         );
@@ -401,7 +401,7 @@ PPH_STRING PhGetHostNameFromAddress(
         }
     }
 
-    PhTrimStringToNullTerminator(hostName);
+    PhTrimToNullTerminatorString(hostName);
 
     return hostName;
 }
@@ -439,7 +439,7 @@ NTSTATUS PhpNetworkItemQueryWorker(
                 cacheItem->HostString = hostString;
                 PhReferenceObject(hostString);
 
-                PhAddHashtableEntry(PhpResolveCacheHashtable, &cacheItem);
+                PhAddEntryHashtable(PhpResolveCacheHashtable, &cacheItem);
             }
 
             PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
@@ -485,7 +485,7 @@ VOID PhpQueueNetworkItemQuery(
         PhEndInitOnce(&PhNetworkProviderWorkQueueInitOnce);
     }
 
-    PhQueueWorkQueueItem(&PhNetworkProviderWorkQueue, PhpNetworkItemQueryWorker, data);
+    PhQueueItemWorkQueue(&PhNetworkProviderWorkQueue, PhpNetworkItemQueryWorker, data);
 }
 
 VOID PhpUpdateNetworkItemOwner(
@@ -562,7 +562,7 @@ VOID PhNetworkProviderUpdate(
                 if (!connectionsToRemove)
                     connectionsToRemove = PhCreateList(2);
 
-                PhAddListItem(connectionsToRemove, *networkItem);
+                PhAddItemList(connectionsToRemove, *networkItem);
             }
         }
 
@@ -712,7 +712,7 @@ VOID PhNetworkProviderUpdate(
 
             // Add the network item to the hashtable.
             PhAcquireQueuedLockExclusive(&PhNetworkHashtableLock);
-            PhAddHashtableEntry(PhNetworkHashtable, &networkItem);
+            PhAddEntryHashtable(PhNetworkHashtable, &networkItem);
             PhReleaseQueuedLockExclusive(&PhNetworkHashtableLock);
 
             // Raise the network item added event.

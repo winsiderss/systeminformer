@@ -74,9 +74,9 @@ NTSTATUS PhCommandModeStart()
         NULL
         );
 
-    if (PhStringEquals2(PhStartupParameters.CommandType, L"processhacker", TRUE))
+    if (PhEqualString2(PhStartupParameters.CommandType, L"processhacker", TRUE))
     {
-        if (PhStringEquals2(PhStartupParameters.CommandAction, L"runas", TRUE))
+        if (PhEqualString2(PhStartupParameters.CommandAction, L"runas", TRUE))
         {
             if (!RunAsServiceName || !PhStartupParameters.CommandObject)
                 return STATUS_INVALID_PARAMETER;
@@ -87,7 +87,7 @@ NTSTATUS PhCommandModeStart()
                 );
         }
     }
-    else if (PhStringEquals2(PhStartupParameters.CommandType, L"service", TRUE))
+    else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {
         SC_HANDLE serviceHandle;
         SERVICE_STATUS serviceStatus;
@@ -95,7 +95,7 @@ NTSTATUS PhCommandModeStart()
         if (!PhStartupParameters.CommandObject)
             return STATUS_INVALID_PARAMETER;
 
-        if (PhStringEquals2(PhStartupParameters.CommandAction, L"start", TRUE))
+        if (PhEqualString2(PhStartupParameters.CommandAction, L"start", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
                 PhStartupParameters.CommandObject->Buffer,
@@ -108,7 +108,7 @@ NTSTATUS PhCommandModeStart()
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"continue", TRUE))
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"continue", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
                 PhStartupParameters.CommandObject->Buffer,
@@ -121,7 +121,7 @@ NTSTATUS PhCommandModeStart()
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"pause", TRUE))
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"pause", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
                 PhStartupParameters.CommandObject->Buffer,
@@ -134,7 +134,7 @@ NTSTATUS PhCommandModeStart()
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"stop", TRUE))
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"stop", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
                 PhStartupParameters.CommandObject->Buffer,
@@ -147,7 +147,7 @@ NTSTATUS PhCommandModeStart()
 
             CloseServiceHandle(serviceHandle);
         }
-        else if (PhStringEquals2(PhStartupParameters.CommandAction, L"delete", TRUE))
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"delete", TRUE))
         {
             if (!(serviceHandle = PhOpenService(
                 PhStartupParameters.CommandObject->Buffer,

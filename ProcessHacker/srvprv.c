@@ -177,7 +177,7 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
 
     PhAcquireQueuedLockShared(&PhServiceHashtableLock);
 
-    serviceItemPtr = (PPH_SERVICE_ITEM *)PhGetHashtableEntry(
+    serviceItemPtr = (PPH_SERVICE_ITEM *)PhFindEntryHashtable(
         PhServiceHashtable,
         &lookupServiceItemPtr
         );
@@ -208,7 +208,7 @@ __assumeLocked VOID PhpRemoveServiceItem(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PhRemoveHashtableEntry(PhServiceHashtable, &ServiceItem);
+    PhRemoveEntryHashtable(PhServiceHashtable, &ServiceItem);
     PhDereferenceObject(ServiceItem);
 }
 
@@ -294,10 +294,10 @@ VOID PhpAddProcessItemService(
 {
     PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
-    if (!PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
+    if (!PhFindItemPointerList(ProcessItem->ServiceList, ServiceItem))
     {
         PhReferenceObject(ServiceItem);
-        PhAddPointerListItem(ProcessItem->ServiceList, ServiceItem);
+        PhAddItemPointerList(ProcessItem->ServiceList, ServiceItem);
     }
 
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
@@ -314,9 +314,9 @@ VOID PhpRemoveProcessItemService(
 
     PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
-    if (pointerHandle = PhFindPointerListItem(ProcessItem->ServiceList, ServiceItem))
+    if (pointerHandle = PhFindItemPointerList(ProcessItem->ServiceList, ServiceItem))
     {
-        PhRemovePointerListItem(ProcessItem->ServiceList, pointerHandle);
+        PhRemoveItemPointerList(ProcessItem->ServiceList, pointerHandle);
         PhDereferenceObject(ServiceItem);
     }
 
@@ -386,7 +386,7 @@ VOID PhServiceProviderUpdate(
             // Check if the service still exists.
             for (i = 0; i < numberOfServices; i++)
             {
-                if (PhStringEquals2((*serviceItem)->Name, services[i].lpServiceName, TRUE))
+                if (PhEqualString2((*serviceItem)->Name, services[i].lpServiceName, TRUE))
                 {
                     found = TRUE;
                     break;
@@ -415,7 +415,7 @@ VOID PhServiceProviderUpdate(
                 if (!servicesToRemove)
                     servicesToRemove = PhCreateList(2);
 
-                PhAddListItem(servicesToRemove, *serviceItem);
+                PhAddItemList(servicesToRemove, *serviceItem);
             }
         }
 
@@ -477,7 +477,7 @@ VOID PhServiceProviderUpdate(
 
             // Add the service item to the hashtable.
             PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
-            PhAddHashtableEntry(PhServiceHashtable, &serviceItem);
+            PhAddEntryHashtable(PhServiceHashtable, &serviceItem);
             PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
 
             // Raise the service added event.

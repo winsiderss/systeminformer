@@ -56,7 +56,7 @@ static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     __in PVOID Context
     )
 {
-    PhSymbolProviderLoadModule((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,
+    PhLoadModuleSymbolProvider((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,
         (ULONG64)Module->BaseAddress, Module->Size);
 
     return TRUE;
@@ -263,7 +263,7 @@ static VOID PhpDebugCreateObjectHook(
     if (NewObjectList)
     {
         PhReferenceObject(Object);
-        PhAddListItem(NewObjectList, Object);
+        PhAddItemList(NewObjectList, Object);
     }
 
     PhReleaseMutex(&NewObjectListLock);
@@ -493,7 +493,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     DebugConsoleSymbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
-    PhSymbolProviderSetSearchPath(DebugConsoleSymbolProvider, PhApplicationDirectory->Buffer);
+    PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, PhApplicationDirectory->Buffer);
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
         0, PhpLoadCurrentProcessSymbolsCallback, DebugConsoleSymbolProvider);
 
@@ -813,7 +813,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 currentEntry = currentEntry->Flink;
 
                 if (PhObjectHeaderToObject(objectHeader) != ObjectListSnapshot)
-                    PhAddSimpleHashtableItem(ObjectListSnapshot, objectHeader, NULL);
+                    PhAddItemSimpleHashtable(ObjectListSnapshot, objectHeader, NULL);
             }
 
             PhReleaseQueuedLockShared(&PhDbgObjectListLock);
@@ -852,10 +852,10 @@ NTSTATUS PhpDebugConsoleThreadStart(
                     PhObjectHeaderToObject(objectHeader) != newObjects
                     )
                 {
-                    if (!PhGetSimpleHashtableItem(ObjectListSnapshot, objectHeader))
+                    if (!PhFindItemSimpleHashtable(ObjectListSnapshot, objectHeader))
                     {
                         if (PhReferenceObjectSafe(PhObjectHeaderToObject(objectHeader)))
-                            PhAddListItem(newObjects, objectHeader);
+                            PhAddItemList(newObjects, objectHeader);
                     }
                 }
             }

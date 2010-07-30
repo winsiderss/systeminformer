@@ -120,7 +120,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 WTSFreeMemory(state);
             }
 
-            if (!PhIsStringNullOrEmpty(clientName))
+            if (!PhIsNullOrEmptyString(clientName))
                 SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientName->Buffer);
 
             WTSQuerySessionInformation(
@@ -133,7 +133,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (clientAddress)
             {
-                if (!PhIsStringNullOrEmpty(clientName))
+                if (!PhIsNullOrEmptyString(clientName))
                 {
                     switch (clientAddress->AddressFamily)
                     {
@@ -161,7 +161,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
             if (clientDisplay)
             {
-                if (!PhIsStringNullOrEmpty(clientName))
+                if (!PhIsNullOrEmptyString(clientName))
                 {
                     SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
                         PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,

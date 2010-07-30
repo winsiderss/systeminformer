@@ -252,7 +252,7 @@ NTSTATUS PhpWorkQueueThreadStart(
     return STATUS_SUCCESS;
 }
 
-VOID PhQueueWorkQueueItem(
+VOID PhQueueItemWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
@@ -289,7 +289,7 @@ VOID PhQueueWorkQueueItem(
     }
 }
 
-VOID PhQueueGlobalWorkQueueItem(
+VOID PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
     )
@@ -305,7 +305,7 @@ VOID PhQueueGlobalWorkQueueItem(
         PhEndInitOnce(&PhGlobalWorkQueueInitOnce);
     }
 
-    PhQueueWorkQueueItem(
+    PhQueueItemWorkQueue(
         &PhGlobalWorkQueue,
         Function,
         Context

@@ -100,7 +100,7 @@ INT NTAPI PhpProcDbByFileNameCompareFunction(
     PPH_PROCDB_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_PROCDB_ENTRY, Links);
     PPH_PROCDB_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_PROCDB_ENTRY, Links);
 
-    return PhStringCompare(entry1->FileName, entry2->FileName, TRUE);
+    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
 }
 
 INT NTAPI PhpProcDbByHashCompareFunction(
@@ -167,9 +167,9 @@ __assumeLocked BOOLEAN PhpLinkProcDbEntry(
     InsertTailList(&PhProcDbListHead, &Entry->ListEntry);
 
     if (Entry->Flags & PH_PROCDB_ENTRY_MATCH_HASH)
-        links = PhAvlTreeAdd(&PhProcDbByHash, &Entry->Links);
+        links = PhAddElementAvlTree(&PhProcDbByHash, &Entry->Links);
     else
-        links = PhAvlTreeAdd(&PhProcDbByFileName, &Entry->Links);
+        links = PhAddElementAvlTree(&PhProcDbByFileName, &Entry->Links);
 
     if (!links)
         return TRUE;
@@ -182,9 +182,9 @@ __assumeLocked VOID PhpUnlinkProcDbEntry(
     )
 {
     if (Entry->Flags & PH_PROCDB_ENTRY_MATCH_HASH)
-        PhAvlTreeRemove(&PhProcDbByHash, &Entry->Links);
+        PhRemoveElementAvlTree(&PhProcDbByHash, &Entry->Links);
     else
-        PhAvlTreeRemove(&PhProcDbByFileName, &Entry->Links);
+        PhRemoveElementAvlTree(&PhProcDbByFileName, &Entry->Links);
 
     RemoveEntryList(&Entry->ListEntry);
 }
@@ -201,7 +201,7 @@ PPH_PROCDB_ENTRY PhpLookupProcDbEntryByFileName(
 
     PhAcquireQueuedLockShared(&PhProcDbLock);
 
-    links = PhAvlTreeSearch(&PhProcDbByFileName, &lookupEntry.Links);
+    links = PhFindElementAvlTree(&PhProcDbByFileName, &lookupEntry.Links);
 
     if (links)
     {

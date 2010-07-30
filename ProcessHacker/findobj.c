@@ -547,7 +547,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     PhLowerString(lowerFileName);
 
     if (
-        PhStringIndexOfString(lowerFileName, 0, SearchString->Buffer) != -1 ||
+        PhFindStringInString(lowerFileName, 0, SearchString->Buffer) != -1 ||
         (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer)
         )
     {
@@ -565,7 +565,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
         PhAcquireMutex(&SearchResultsLock);
 
-        PhAddListItem(SearchResults, searchResult);
+        PhAddItemList(SearchResults, searchResult);
 
         // Update the search results in batches of 40.
         if (SearchResults->Count % 40 == 0)
@@ -615,7 +615,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
             // Open a handle to the process if we don't already have one.
 
-            processHandlePtr = PhGetSimpleHashtableItem(
+            processHandlePtr = PhFindItemSimpleHashtable(
                 processHandleHashtable,
                 (PVOID)handleInfo->UniqueProcessId
                 );
@@ -632,7 +632,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
                     (HANDLE)handleInfo->UniqueProcessId
                     )))
                 {
-                    PhAddSimpleHashtableItem(
+                    PhAddItemSimpleHashtable(
                         processHandleHashtable,
                         (PVOID)handleInfo->UniqueProcessId,
                         processHandle
@@ -662,7 +662,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 PhLowerString(lowerBestObjectName);
 
                 if (
-                    PhStringIndexOfString(lowerBestObjectName, 0, SearchString->Buffer) != -1 ||
+                    PhFindStringInString(lowerBestObjectName, 0, SearchString->Buffer) != -1 ||
                     (UseSearchPointer && handleInfo->Object == (PVOID)SearchPointer)
                     )
                 {
@@ -679,7 +679,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
 
                     PhAcquireMutex(&SearchResultsLock);
 
-                    PhAddListItem(SearchResults, searchResult);
+                    PhAddItemList(SearchResults, searchResult);
 
                     // Update the search results in batches of 40.
                     if (SearchResults->Count % 40 == 0)

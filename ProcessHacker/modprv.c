@@ -207,7 +207,7 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
 
     PhAcquireFastLockShared(&ModuleProvider->ModuleHashtableLock);
 
-    moduleItemPtr = (PPH_MODULE_ITEM *)PhGetHashtableEntry(
+    moduleItemPtr = (PPH_MODULE_ITEM *)PhFindEntryHashtable(
         ModuleProvider->ModuleHashtable,
         &lookupModuleItemPtr
         );
@@ -249,7 +249,7 @@ __assumeLocked VOID PhpRemoveModuleItem(
     __in PPH_MODULE_ITEM ModuleItem
     )
 {
-    PhRemoveHashtableEntry(ModuleProvider->ModuleHashtable, &ModuleItem);
+    PhRemoveEntryHashtable(ModuleProvider->ModuleHashtable, &ModuleItem);
     PhDereferenceObject(ModuleItem);
 }
 
@@ -264,7 +264,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
     PhReferenceObject(copy->Name);
     PhReferenceObject(copy->FileName);
 
-    PhAddListItem((PPH_LIST)Context, copy);
+    PhAddItemList((PPH_LIST)Context, copy);
 
     return TRUE;
 }
@@ -323,7 +323,7 @@ VOID PhModuleProviderUpdate(
                 if (!modulesToRemove)
                     modulesToRemove = PhCreateList(2);
 
-                PhAddListItem(modulesToRemove, *moduleItem);
+                PhAddItemList(modulesToRemove, *moduleItem);
             }
         }
 
@@ -377,7 +377,7 @@ VOID PhModuleProviderUpdate(
 
             // Add the module item to the hashtable.
             PhAcquireFastLockExclusive(&moduleProvider->ModuleHashtableLock);
-            PhAddHashtableEntry(moduleProvider->ModuleHashtable, &moduleItem);
+            PhAddEntryHashtable(moduleProvider->ModuleHashtable, &moduleItem);
             PhReleaseFastLockExclusive(&moduleProvider->ModuleHashtableLock);
 
             // Raise the module added event.

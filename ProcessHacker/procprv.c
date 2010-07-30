@@ -443,7 +443,7 @@ __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
     // Construct a temporary process item for the lookup.
     lookupProcessItem.ProcessId = ProcessId;
 
-    processItemPtr = (PPH_PROCESS_ITEM *)PhGetHashtableEntry(
+    processItemPtr = (PPH_PROCESS_ITEM *)PhFindEntryHashtable(
         PhProcessHashtable,
         &lookupProcessItemPtr
         );
@@ -510,7 +510,7 @@ __assumeLocked VOID PhpRemoveProcessItem(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhRemoveHashtableEntry(PhProcessHashtable, &ProcessItem);
+    PhRemoveEntryHashtable(PhProcessHashtable, &ProcessItem);
     PhDereferenceObject(ProcessItem);
 }
 
@@ -817,7 +817,7 @@ VOID PhpQueueProcessQueryStage1(
     // Ref: dereferenced when the provider update function removes the item from 
     // the queue.
     PhReferenceObject(ProcessItem);
-    PhQueueGlobalWorkQueueItem(PhpProcessQueryStage1Worker, ProcessItem);
+    PhQueueItemGlobalWorkQueue(PhpProcessQueryStage1Worker, ProcessItem);
 }
 
 VOID PhpQueueProcessQueryStage2(
@@ -827,7 +827,7 @@ VOID PhpQueueProcessQueryStage2(
     if (PhEnableProcessQueryStage2)
     {
         PhReferenceObject(ProcessItem);
-        PhQueueGlobalWorkQueueItem(PhpProcessQueryStage2Worker, ProcessItem);
+        PhQueueItemGlobalWorkQueue(PhpProcessQueryStage2Worker, ProcessItem);
     }
 }
 
@@ -1142,31 +1142,31 @@ VOID PhpUpdateSystemHistory()
     ULONG secondsSince1980;
 
     // CPU
-    PhCircularBufferAdd_FLOAT(&PhCpuKernelHistory, PhCpuKernelUsage);
-    PhCircularBufferAdd_FLOAT(&PhCpuUserHistory, PhCpuUserUsage);
+    PhAddItemCircularBuffer_FLOAT(&PhCpuKernelHistory, PhCpuKernelUsage);
+    PhAddItemCircularBuffer_FLOAT(&PhCpuUserHistory, PhCpuUserUsage);
 
     // CPUs
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
-        PhCircularBufferAdd_FLOAT(&PhCpusKernelHistory[i], PhCpusKernelUsage[i]);
-        PhCircularBufferAdd_FLOAT(&PhCpusUserHistory[i], PhCpusUserUsage[i]);
+        PhAddItemCircularBuffer_FLOAT(&PhCpusKernelHistory[i], PhCpusKernelUsage[i]);
+        PhAddItemCircularBuffer_FLOAT(&PhCpusUserHistory[i], PhCpusUserUsage[i]);
     }
 
     // I/O
-    PhCircularBufferAdd_ULONG64(&PhIoReadHistory, PhIoReadDelta.Delta);
-    PhCircularBufferAdd_ULONG64(&PhIoWriteHistory, PhIoWriteDelta.Delta);
-    PhCircularBufferAdd_ULONG64(&PhIoOtherHistory, PhIoOtherDelta.Delta);
+    PhAddItemCircularBuffer_ULONG64(&PhIoReadHistory, PhIoReadDelta.Delta);
+    PhAddItemCircularBuffer_ULONG64(&PhIoWriteHistory, PhIoWriteDelta.Delta);
+    PhAddItemCircularBuffer_ULONG64(&PhIoOtherHistory, PhIoOtherDelta.Delta);
 
     // Memory
-    PhCircularBufferAdd_ULONG(&PhCommitHistory, PhPerfInformation.CommittedPages);
-    PhCircularBufferAdd_ULONG(&PhPhysicalHistory,
+    PhAddItemCircularBuffer_ULONG(&PhCommitHistory, PhPerfInformation.CommittedPages);
+    PhAddItemCircularBuffer_ULONG(&PhPhysicalHistory,
         PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages
         );
 
     // Time
     PhQuerySystemTime(&systemTime);
     RtlTimeToSecondsSince1980(&systemTime, &secondsSince1980);
-    PhCircularBufferAdd_ULONG(&PhTimeHistory, secondsSince1980);
+    PhAddItemCircularBuffer_ULONG(&PhTimeHistory, secondsSince1980);
     PhTimeSequenceNumber++;
 }
 
@@ -1198,7 +1198,7 @@ BOOLEAN PhGetStatisticsTime(
         index = Index;
     }
 
-    secondsSince1980 = PhCircularBufferGet_ULONG(&PhTimeHistory, index);
+    secondsSince1980 = PhGetItemCircularBuffer_ULONG(&PhTimeHistory, index);
     RtlSecondsSince1980ToTime(secondsSince1980, &time);
 
     *Time = time;
@@ -1342,12 +1342,12 @@ VOID PhProcessProviderUpdate(
             process->KernelTime = PhCpuTotals.IdleTime;
         }
 
-        PhAddListItem(pids, process->UniqueProcessId);
+        PhAddItemList(pids, process->UniqueProcessId);
     } while (process = PH_NEXT_PROCESS(process));
 
     // Add the fake processes to the PID list.
-    PhAddListItem(pids, DPCS_PROCESS_ID);
-    PhAddListItem(pids, INTERRUPTS_PROCESS_ID);
+    PhAddItemList(pids, DPCS_PROCESS_ID);
+    PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
 
     PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
     PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
@@ -1364,7 +1364,7 @@ VOID PhProcessProviderUpdate(
             // Check if the process still exists.
             // TODO: Check CreateTime as well; between updates a process may terminate and 
             // get replaced by another one with the same PID.
-            if (PhIndexOfListItem(pids, (*processItem)->ProcessId) == -1)
+            if (PhFindItemList(pids, (*processItem)->ProcessId) == -1)
             {
                 PPH_PROCESS_ITEM processItem2;
 
@@ -1388,7 +1388,7 @@ VOID PhProcessProviderUpdate(
                 if (!processesToRemove)
                     processesToRemove = PhCreateList(2);
 
-                PhAddListItem(processesToRemove, *processItem);
+                PhAddItemList(processesToRemove, *processItem);
             }
         }
 
@@ -1518,7 +1518,7 @@ VOID PhProcessProviderUpdate(
 
             // Add the process item to the hashtable.
             PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
-            PhAddHashtableEntry(PhProcessHashtable, &processItem);
+            PhAddEntryHashtable(PhProcessHashtable, &processItem);
             PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
 
             // Raise the process added event.
@@ -1544,12 +1544,12 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
 
             processItem->SequenceNumber++;
-            PhCircularBufferAdd_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
-            PhCircularBufferAdd_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
-            PhCircularBufferAdd_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, processItem->IoWriteDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, processItem->IoOtherDelta.Delta);
 
-            PhCircularBufferAdd_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
-            //PhCircularBufferAdd_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
+            PhAddItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, processItem->VmCounters.PagefileUsage);
+            //PhAddItemCircularBuffer_SIZE_T(&processItem->WorkingSetHistory, processItem->VmCounters.WorkingSetSize);
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
@@ -1576,8 +1576,8 @@ VOID PhProcessProviderUpdate(
 
             processItem->CpuKernelUsage = kernelCpuUsage;
             processItem->CpuUserUsage = userCpuUsage;
-            PhCircularBufferAdd_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
-            PhCircularBufferAdd_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
+            PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
+            PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
             newCpuUsage = kernelCpuUsage + userCpuUsage;
 
@@ -1696,9 +1696,9 @@ VOID PhProcessProviderUpdate(
 
         if (maxCpuProcessItem)
         {
-            PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, (ULONG)maxCpuProcessItem->ProcessId);
 #ifdef PH_RECORD_MAX_USAGE
-            PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
+            PhAddItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
 #endif
 
             if (!(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
@@ -1710,19 +1710,19 @@ VOID PhProcessProviderUpdate(
         }
         else
         {
-            PhCircularBufferAdd_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&PhMaxCpuHistory, (ULONG)NULL);
 #ifdef PH_RECORD_MAX_USAGE
-            PhCircularBufferAdd_FLOAT(&PhMaxCpuUsageHistory, 0);
+            PhAddItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, 0);
 #endif
         }
 
         if (maxIoProcessItem)
         {
-            PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
+            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, (ULONG)maxIoProcessItem->ProcessId);
 #ifdef PH_RECORD_MAX_USAGE
-            PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory,
+            PhAddItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory,
                 maxIoProcessItem->IoReadDelta.Delta + maxIoProcessItem->IoOtherDelta.Delta);
-            PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, maxIoProcessItem->IoWriteDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, maxIoProcessItem->IoWriteDelta.Delta);
 #endif
 
             if (!(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
@@ -1734,10 +1734,10 @@ VOID PhProcessProviderUpdate(
         }
         else
         {
-            PhCircularBufferAdd_ULONG(&PhMaxIoHistory, (ULONG)NULL);
+            PhAddItemCircularBuffer_ULONG(&PhMaxIoHistory, (ULONG)NULL);
 #ifdef PH_RECORD_MAX_USAGE
-            PhCircularBufferAdd_ULONG64(&PhMaxIoReadOtherHistory, 0);
-            PhCircularBufferAdd_ULONG64(&PhMaxIoWriteHistory, 0);
+            PhAddItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, 0);
+            PhAddItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, 0);
 #endif
         }
     }
@@ -1866,7 +1866,7 @@ VOID PhpAddProcessRecord(
     if (!processRecord)
     {
         // Insert the process record, keeping the list sorted.
-        PhInsertListItem(PhProcessRecordList, insertIndex, ProcessRecord);
+        PhInsertItemList(PhProcessRecordList, insertIndex, ProcessRecord);
     }
     else
     {
@@ -1896,7 +1896,7 @@ VOID PhpRemoveProcessRecord(
     {
         // Remove the slot completely, or choose a new head record.
         if (IsListEmpty(&headProcessRecord->ListEntry))
-            PhRemoveListItem(PhProcessRecordList, i);
+            PhRemoveItemList(PhProcessRecordList, i);
         else
             PhProcessRecordList->Items[i] = CONTAINING_RECORD(headProcessRecord->ListEntry.Flink, PH_PROCESS_RECORD, ListEntry);
     }
@@ -2090,7 +2090,7 @@ VOID PhPurgeProcessRecords()
                     if (!derefList)
                         derefList = PhCreateList(2);
 
-                    PhAddListItem(derefList, processRecord);
+                    PhAddItemList(derefList, processRecord);
                 }
             }
 
