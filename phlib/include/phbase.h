@@ -2626,6 +2626,19 @@ PhNtStatusFileNotFound(
 
 // bintree
 
+// Generic definitions
+
+typedef enum _PH_TREE_ENUMERATION_ORDER
+{
+    TreeEnumerateInOrder,
+    TreeEnumerateInReverseOrder
+} PH_TREE_ENUMERATION_ORDER;
+
+#define PhIsLeftChildElement(Links) ((Links)->Parent->Left == (Links))
+#define PhIsRightChildElement(Links) ((Links)->Parent->Right == (Links))
+
+// AVL trees
+
 typedef struct _PH_AVL_LINKS
 {
     struct _PH_AVL_LINKS *Parent;
@@ -2651,6 +2664,8 @@ typedef struct _PH_AVL_TREE
 
 #define PH_AVL_TREE_INIT(CompareFunction) { { NULL, NULL, NULL, 0 }, 0, CompareFunction }
 
+#define PhRootElementAvlTree(Tree) ((Tree)->Root.Right)
+
 PHLIBAPI
 VOID
 NTAPI
@@ -2664,7 +2679,7 @@ PPH_AVL_LINKS
 NTAPI
 PhAddElementAvlTree(
     __inout PPH_AVL_TREE Tree,
-    __out PPH_AVL_LINKS Subject
+    __out PPH_AVL_LINKS Element
     );
 
 PHLIBAPI
@@ -2672,7 +2687,7 @@ VOID
 NTAPI
 PhRemoveElementAvlTree(
     __inout PPH_AVL_TREE Tree,
-    __inout PPH_AVL_LINKS Subject
+    __inout PPH_AVL_LINKS Element
     );
 
 PHLIBAPI
@@ -2680,7 +2695,51 @@ PPH_AVL_LINKS
 NTAPI
 PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Subject
+    __in PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhMinimumElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhMaximumElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhSuccessorElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhPredecessorElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    );
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_AVL_TREE_CALLBACK)(
+    __in PPH_AVL_TREE Tree,
+    __in PPH_AVL_LINKS Element,
+    __in PVOID Context
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhEnumAvlTree(
+    __in PPH_AVL_TREE Tree,
+    __in PH_TREE_ENUMERATION_ORDER Order,
+    __in PPH_ENUM_AVL_TREE_CALLBACK Callback,
+    __in PVOID Context
     );
 
 // handle
