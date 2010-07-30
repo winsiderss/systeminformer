@@ -36,16 +36,16 @@ VOID PhInitializeAvlTree(
     Tree->CompareFunction = CompareFunction;
 }
 
-FORCEINLINE PPH_AVL_LINKS PhpSearchAvlTree(
+FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Subject,
+    __in PPH_AVL_LINKS Element,
     __out PINT Result
     )
 {
     PPH_AVL_LINKS links;
     INT result;
 
-    links = Tree->Root.Right;
+    links = PhRootElementAvlTree(Tree);
 
     if (!links)
     {
@@ -56,7 +56,7 @@ FORCEINLINE PPH_AVL_LINKS PhpSearchAvlTree(
 
     while (TRUE)
     {
-        result = Tree->CompareFunction(Subject, links);
+        result = Tree->CompareFunction(Element, links);
 
         if (result == 0)
         {
@@ -473,7 +473,7 @@ ULONG PhpRebalanceAvlLinks(
 
 PPH_AVL_LINKS PhAddElementAvlTree(
     __inout PPH_AVL_TREE Tree,
-    __out PPH_AVL_LINKS Subject
+    __out PPH_AVL_LINKS Element
     )
 {
     INT result;
@@ -481,24 +481,24 @@ PPH_AVL_LINKS PhAddElementAvlTree(
     PPH_AVL_LINKS root;
     LONG balance;
 
-    P = PhpSearchAvlTree(Tree, Subject, &result);
+    P = PhpFindElementAvlTree(Tree, Element, &result);
 
     if (result < 0)
-        P->Left = Subject;
+        P->Left = Element;
     else if (result > 0)
-        P->Right = Subject;
+        P->Right = Element;
     else
         return P;
 
-    Subject->Parent = P;
-    Subject->Left = NULL;
-    Subject->Right = NULL;
-    Subject->Balance = 0;
+    Element->Parent = P;
+    Element->Left = NULL;
+    Element->Right = NULL;
+    Element->Balance = 0;
 
     // Balance the tree.
 
-    P = Subject;
-    root = Tree->Root.Right;
+    P = Element;
+    root = PhRootElementAvlTree(Tree);
 
     while (P != root)
     {
@@ -552,59 +552,59 @@ PPH_AVL_LINKS PhAddElementAvlTree(
 
 VOID PhRemoveElementAvlTree(
     __inout PPH_AVL_TREE Tree,
-    __inout PPH_AVL_LINKS Subject
+    __inout PPH_AVL_LINKS Element
     )
 {
-    PPH_AVL_LINKS newSubject;
+    PPH_AVL_LINKS newElement;
     PPH_AVL_LINKS *replace;
     PPH_AVL_LINKS P;
     PPH_AVL_LINKS root;
     LONG balance;
 
-    if (!Subject->Left || !Subject->Right)
+    if (!Element->Left || !Element->Right)
     {
-        newSubject = Subject;
+        newElement = Element;
     }
-    else if (Subject->Balance < 0) // pick the side depending on the balance to minimize rebalances
+    else if (Element->Balance < 0) // pick the side depending on the balance to minimize rebalances
     {
-        newSubject = Subject->Right;
+        newElement = Element->Right;
 
-        while (newSubject->Left)
-            newSubject = newSubject->Left;
+        while (newElement->Left)
+            newElement = newElement->Left;
     }
     else
     {
-        newSubject = Subject->Left;
+        newElement = Element->Left;
 
-        while (newSubject->Right)
-            newSubject = newSubject->Right;
+        while (newElement->Right)
+            newElement = newElement->Right;
     }
 
-    if (newSubject->Parent->Left == newSubject)
+    if (newElement->Parent->Left == newElement)
     {
-        replace = &newSubject->Parent->Left;
+        replace = &newElement->Parent->Left;
         balance = -1;
     }
     else
     {
-        replace = &newSubject->Parent->Right;
+        replace = &newElement->Parent->Right;
         balance = 1;
     }
 
-    if (!newSubject->Right)
+    if (!newElement->Right)
     {
-        *replace = newSubject->Left;
+        *replace = newElement->Left;
 
-        if (newSubject->Left)
-            newSubject->Left->Parent = newSubject->Parent;
+        if (newElement->Left)
+            newElement->Left->Parent = newElement->Parent;
     }
     else
     {
-        *replace = newSubject->Right;
-        newSubject->Right->Parent = newSubject->Parent; // we know Right exists
+        *replace = newElement->Right;
+        newElement->Right->Parent = newElement->Parent; // we know Right exists
     }
 
-    P = newSubject->Parent;
+    P = newElement->Parent;
     root = &Tree->Root;
 
     while (P != root)
@@ -649,23 +649,23 @@ VOID PhRemoveElementAvlTree(
         P = P->Parent;
     }
 
-    if (newSubject != Subject)
+    if (newElement != Element)
     {
         // Replace the subject with the new subject.
 
-        newSubject->Parent = Subject->Parent;
-        newSubject->Left = Subject->Left;
-        newSubject->Right = Subject->Right;
+        newElement->Parent = Element->Parent;
+        newElement->Left = Element->Left;
+        newElement->Right = Element->Right;
 
-        if (Subject->Parent->Left == Subject)
-            newSubject->Parent->Left = newSubject;
+        if (Element->Parent->Left == Element)
+            newElement->Parent->Left = newElement;
         else
-            newSubject->Parent->Right = newSubject;
+            newElement->Parent->Right = newElement;
 
-        if (newSubject->Left)
-            newSubject->Left->Parent = newSubject;
-        if (newSubject->Right)
-            newSubject->Right->Parent = newSubject;
+        if (newElement->Left)
+            newElement->Left->Parent = newElement;
+        if (newElement->Right)
+            newElement->Right->Parent = newElement;
     }
 
     Tree->Count--;
@@ -673,16 +673,177 @@ VOID PhRemoveElementAvlTree(
 
 PPH_AVL_LINKS PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
-    __in PPH_AVL_LINKS Subject
+    __in PPH_AVL_LINKS Element
     )
 {
     PPH_AVL_LINKS links;
     INT result;
 
-    links = PhpSearchAvlTree(Tree, Subject, &result);
+    links = PhpFindElementAvlTree(Tree, Element, &result);
 
     if (result == 0)
         return links;
     else
         return NULL;
+}
+
+PPH_AVL_LINKS PhMinimumElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    )
+{
+    while (Element->Left)
+        Element = Element->Left;
+
+    return Element;
+}
+
+PPH_AVL_LINKS PhMaximumElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    )
+{
+    while (Element->Right)
+        Element = Element->Right;
+
+    return Element;
+}
+
+PPH_AVL_LINKS PhSuccessorElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    )
+{
+    PPH_AVL_LINKS links;
+
+    if (Element->Right)
+    {
+        Element = Element->Right;
+
+        while (Element->Left)
+            Element = Element->Left;
+
+        return Element;
+    }
+    else
+    {
+        // Trace back to the next vertical level. Note 
+        // that this code does in fact return NULL when there 
+        // are no more elements because of the way the root 
+        // element is constructed.
+
+        links = Element->Parent;
+
+        while (links && links->Right == Element)
+        {
+            Element = links;
+            links = links->Parent;
+        }
+
+        return links;
+    }
+}
+
+PPH_AVL_LINKS PhPredecessorElementAvlTree(
+    __in PPH_AVL_LINKS Element
+    )
+{
+    PPH_AVL_LINKS links;
+
+    if (Element->Left)
+    {
+        Element = Element->Left;
+
+        while (Element->Right)
+            Element = Element->Right;
+
+        return Element;
+    }
+    else
+    {
+        links = Element->Parent;
+
+        while (links && links->Left == Element)
+        {
+            Element = links;
+            links = links->Parent;
+        }
+
+        // We need an additional check because the tree root is 
+        // stored in Root.Right, not Left.
+        if (!links->Parent)
+            return NULL; // reached Root, so no more elements
+
+        return links;
+    }
+}
+
+VOID PhEnumAvlTree(
+    __in PPH_AVL_TREE Tree,
+    __in PH_TREE_ENUMERATION_ORDER Order,
+    __in PPH_ENUM_AVL_TREE_CALLBACK Callback,
+    __in PVOID Context
+    )
+{
+    // The maximum height of an AVL tree is around 1.44 * log2(n).
+    // The maximum number of elements in this implementation is 
+    // 2^32, so the maximum height is around 46.08.
+    PPH_AVL_LINKS stackBase[47];
+    PPH_AVL_LINKS *stack;
+    PPH_AVL_LINKS links;
+
+    stack = stackBase;
+
+    switch (Order)
+    {
+    case TreeEnumerateInOrder:
+        links = PhRootElementAvlTree(Tree);
+
+        while (links)
+        {
+            *stack++ = links;
+            links = links->Left;
+        }
+
+        while (stack != stackBase)
+        {
+            links = *--stack;
+
+            if (!Callback(Tree, links, Context))
+                break;
+
+            links = links->Right;
+
+            while (links)
+            {
+                *stack++ = links;
+                links = links->Left;
+            }
+        }
+
+        break;
+    case TreeEnumerateInReverseOrder:
+        links = PhRootElementAvlTree(Tree);
+
+        while (links)
+        {
+            *stack++ = links;
+            links = links->Right;
+        }
+
+        while (stack != stackBase)
+        {
+            links = *--stack;
+
+            if (!Callback(Tree, links, Context))
+                break;
+
+            links = links->Left;
+
+            while (links)
+            {
+                *stack++ = links;
+                links = links->Right;
+            }
+        }
+
+        break;
+    }
 }
