@@ -577,7 +577,7 @@ VOID PhShowProcessContextMenu(
 // plugins
 
 #ifndef PLUGINS_PRIVATE
-extern LIST_ENTRY PhPluginsListHead;
+extern PH_AVL_TREE PhPluginsByName;
 #endif
 
 VOID PhPluginsInitialization();
