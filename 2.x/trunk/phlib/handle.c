@@ -283,7 +283,7 @@ BOOLEAN PhDestroyHandle(
     return TRUE;
 }
 
-PPH_HANDLE_TABLE_ENTRY PhGetHandleTableEntry(
+PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
     __in PPH_HANDLE_TABLE HandleTable,
     __in HANDLE Handle
     )

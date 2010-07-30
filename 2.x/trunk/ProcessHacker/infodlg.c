@@ -134,7 +134,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                             PH_STRINGREF string;
 
                             PhInitializeStringRef(&string, (PWSTR)GetProp(hwndDlg, L"String"));
-                            PhFileStreamWriteStringAsAnsi(fileStream, &string);
+                            PhWriteStringAsAnsiFileStream(fileStream, &string);
                             PhDereferenceObject(fileStream);
                         }
 

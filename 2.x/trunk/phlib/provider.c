@@ -245,7 +245,7 @@ VOID PhStartProviderThread(
 
     // Create and set the timer.
     NtCreateTimer(&ProviderThread->TimerHandle, TIMER_ALL_ACCESS, NULL, SynchronizationTimer);
-    PhSetProviderThreadInterval(ProviderThread, ProviderThread->Interval);
+    PhSetIntervalProviderThread(ProviderThread, ProviderThread->Interval);
 
     // Create and start the thread.
     ProviderThread->ThreadHandle = PhCreateThread(
@@ -290,7 +290,7 @@ VOID PhStopProviderThread(
  * \param ProviderThread A pointer to a provider thread object.
  * \param Interval The interval between each run, in milliseconds.
  */
-VOID PhSetProviderThreadInterval(
+VOID PhSetIntervalProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
     )
@@ -318,7 +318,7 @@ VOID PhSetProviderThreadInterval(
  * information for the provider.
  *
  * \remarks The provider is initially disabled. Call 
- * PhSetProviderEnabled() to enable it.
+ * PhSetEnabledProvider() to enable it.
  */
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
@@ -453,7 +453,7 @@ BOOLEAN PhBoostProvider(
  * \param Registration A pointer to the registration object for 
  * a provider.
  */
-ULONG PhGetProviderRunId(
+ULONG PhGetRunIdProvider(
     __in PPH_PROVIDER_REGISTRATION Registration
     )
 {
@@ -466,7 +466,7 @@ ULONG PhGetProviderRunId(
  * \param Registration A pointer to the registration object for 
  * a provider.
  */
-BOOLEAN PhGetProviderEnabled(
+BOOLEAN PhGetEnabledProvider(
     __in PPH_PROVIDER_REGISTRATION Registration
     )
 {
@@ -481,7 +481,7 @@ BOOLEAN PhGetProviderEnabled(
  * \param Enabled TRUE if the provider is enabled, otherwise 
  * FALSE.
  */
-VOID PhSetProviderEnabled(
+VOID PhSetEnabledProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
     )

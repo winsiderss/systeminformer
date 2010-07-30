@@ -82,7 +82,7 @@ static ULONG IndexOfStringInList(
 
     for (i = 0; i < List->Count; i++)
     {
-        if (PhStringEquals2(List->Items[i], String, FALSE))
+        if (PhEqualString2(List->Items[i], String, FALSE))
             return i;
     }
 
@@ -139,12 +139,12 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     PPH_TREELIST_COLUMN copy;
 
                     copy = PhAllocateCopy(&column, sizeof(PH_TREELIST_COLUMN));
-                    PhAddListItem(context->Columns, copy);
+                    PhAddItemList(context->Columns, copy);
                     count++;
 
                     if (column.Visible)
                     {
-                        PhAddListItem(displayOrderList, copy);
+                        PhAddItemList(displayOrderList, copy);
                     }
                     else
                     {
@@ -203,7 +203,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     activeList = PhCreateList(activeCount);
 
                     for (i = 0; i < activeCount; i++)
-                        PhAddListItem(activeList, PhGetListBoxString(context->ActiveList, i));
+                        PhAddItemList(activeList, PhGetListBoxString(context->ActiveList, i));
 
                     // Apply visiblity settings.
 

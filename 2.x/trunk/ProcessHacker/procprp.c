@@ -1417,7 +1417,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 performanceContext->PrivateGraphState.Data1[i] =
-                                    (FLOAT)PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
                             }
 
                             if (processItem->VmCounters.PeakPagefileUsage != 0)
@@ -1479,10 +1479,10 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                                 FLOAT data2;
 
                                 performanceContext->IoGraphState.Data1[i] = data1 =
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, i) +
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoReadHistory, i) +
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, i);
                                 performanceContext->IoGraphState.Data2[i] = data2 =
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -1523,8 +1523,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             FLOAT cpuKernel;
                             FLOAT cpuUser;
 
-                            cpuKernel = PhCircularBufferGet_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
-                            cpuUser = PhCircularBufferGet_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
+                            cpuKernel = PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, getTooltipText->Index);
+                            cpuUser = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, getTooltipText->Index);
 
                             PhSwapReference2(&performanceContext->CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%% (K: %.2f%%, U: %.2f%%)\n%s",
@@ -1546,7 +1546,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                         {
                             SIZE_T privateBytes;
 
-                            privateBytes = PhCircularBufferGet_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
+                            privateBytes = PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, getTooltipText->Index);
 
                             PhSwapReference2(&performanceContext->PrivateGraphState.TooltipText, PhFormatString(
                                 L"Private Bytes: %s\n%s",
@@ -1568,9 +1568,9 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                             ULONG64 ioWrite;
                             ULONG64 ioOther;
 
-                            ioRead = PhCircularBufferGet_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
-                            ioWrite = PhCircularBufferGet_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
-                            ioOther = PhCircularBufferGet_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
+                            ioRead = PhGetItemCircularBuffer_ULONG64(&processItem->IoReadHistory, getTooltipText->Index);
+                            ioWrite = PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, getTooltipText->Index);
+                            ioOther = PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, getTooltipText->Index);
 
                             PhSwapReference2(&performanceContext->IoGraphState.TooltipText, PhFormatString(
                                 L"R: %s\nW: %s\nO: %s\n%s",
@@ -1697,7 +1697,7 @@ static VOID NTAPI ThreadAddedHandler(
     PostMessage(
         threadsContext->WindowHandle,
         WM_PH_THREAD_ADDED,
-        PhGetProviderRunId(&threadsContext->ProviderRegistration),
+        PhGetRunIdProvider(&threadsContext->ProviderRegistration),
         (LPARAM)Parameter
         );
 }
@@ -2211,7 +2211,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
+            PhSetEnabledProvider(&threadsContext->ProviderRegistration, TRUE);
             PhBoostProvider(&threadsContext->ProviderRegistration, NULL);
 
             SET_BUTTON_BITMAP(IDC_OPENSTARTMODULE,
@@ -2564,10 +2564,10 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                PhSetProviderEnabled(&threadsContext->ProviderRegistration, TRUE);
+                PhSetEnabledProvider(&threadsContext->ProviderRegistration, TRUE);
                 break;
             case PSN_KILLACTIVE:
-                PhSetProviderEnabled(&threadsContext->ProviderRegistration, FALSE);
+                PhSetEnabledProvider(&threadsContext->ProviderRegistration, FALSE);
                 break;
             case NM_DBLCLK:
                 {
@@ -2820,7 +2820,7 @@ static VOID NTAPI ModuleAddedHandler(
     PostMessage(
         modulesContext->WindowHandle,
         WM_PH_MODULE_ADDED,
-        PhGetProviderRunId(&modulesContext->ProviderRegistration),
+        PhGetRunIdProvider(&modulesContext->ProviderRegistration),
         (LPARAM)Parameter
         );
 }
@@ -3040,7 +3040,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(&modulesContext->ProviderRegistration, TRUE);
+            PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
         }
         break;
@@ -3168,10 +3168,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                PhSetProviderEnabled(&modulesContext->ProviderRegistration, TRUE);
+                PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
                 break;
             case PSN_KILLACTIVE:
-                PhSetProviderEnabled(&modulesContext->ProviderRegistration, FALSE);
+                PhSetEnabledProvider(&modulesContext->ProviderRegistration, FALSE);
                 break;
             case LVN_GETINFOTIP:
                 {
@@ -3335,7 +3335,7 @@ BOOLEAN NTAPI PhpProcessMemoryCallback(
     PWSTR name;
     WCHAR protectionString[17];
 
-    PhAddListItem(memoryContext->MemoryList, MemoryItem);
+    PhAddItemList(memoryContext->MemoryList, MemoryItem);
 
     // Name
 
@@ -3643,7 +3643,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                             NULL
                                             )))
                                         {
-                                            PhFileStreamWrite(fileStream, buffer, PAGE_SIZE);
+                                            PhWriteFileStream(fileStream, buffer, PAGE_SIZE);
                                         }
                                     }
                                 }
@@ -3954,7 +3954,7 @@ static VOID NTAPI HandleAddedHandler(
     PostMessage(
         handlesContext->WindowHandle,
         WM_PH_HANDLE_ADDED,
-        PhGetProviderRunId(&handlesContext->ProviderRegistration),
+        PhGetRunIdProvider(&handlesContext->ProviderRegistration),
         (LPARAM)Parameter
         );
 }
@@ -4050,7 +4050,7 @@ INT NTAPI PhpHandleTypeCompareFunction(
     PPH_HANDLE_ITEM item1 = Item1;
     PPH_HANDLE_ITEM item2 = Item2;
 
-    return PhStringCompare(item1->TypeName, item2->TypeName, TRUE);
+    return PhCompareString(item1->TypeName, item2->TypeName, TRUE);
 }
 
 INT NTAPI PhpHandleNameCompareFunction(
@@ -4062,7 +4062,7 @@ INT NTAPI PhpHandleNameCompareFunction(
     PPH_HANDLE_ITEM item1 = Item1;
     PPH_HANDLE_ITEM item2 = Item2;
 
-    return PhStringCompare(item1->BestObjectName, item2->BestObjectName, TRUE);
+    return PhCompareString(item1->BestObjectName, item2->BestObjectName, TRUE);
 }
 
 INT NTAPI PhpHandleHandleCompareFunction(
@@ -4207,7 +4207,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
             }
 
-            PhSetProviderEnabled(&handlesContext->ProviderRegistration, TRUE);
+            PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&handlesContext->ProviderRegistration, NULL);
         }
         break;
@@ -4349,7 +4349,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
                         {
-                            if (PhIsStringNullOrEmpty(handleItem->BestObjectName))
+                            if (PhIsNullOrEmptyString(handleItem->BestObjectName))
                             {
                                 PhpAddHandleItem(lvHandle, handleItem);
                             }
@@ -4368,7 +4368,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         while (PhEnumPointerList(handlesContext->HandleList, &enumerationKey, &handleItem))
                         {
-                            if (PhIsStringNullOrEmpty(handleItem->BestObjectName))
+                            if (PhIsNullOrEmptyString(handleItem->BestObjectName))
                             {
                                 PhRemoveListViewItem(
                                     lvHandle,
@@ -4394,10 +4394,10 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                PhSetProviderEnabled(&handlesContext->ProviderRegistration, TRUE);
+                PhSetEnabledProvider(&handlesContext->ProviderRegistration, TRUE);
                 break;
             case PSN_KILLACTIVE:
-                PhSetProviderEnabled(&handlesContext->ProviderRegistration, FALSE);
+                PhSetEnabledProvider(&handlesContext->ProviderRegistration, FALSE);
                 break;
             case NM_DBLCLK:
                 {
@@ -4476,13 +4476,13 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             ULONG runId = (ULONG)wParam;
             PPH_HANDLE_ITEM handleItem = (PPH_HANDLE_ITEM)lParam;
 
-            PhAddPointerListItem(handlesContext->HandleList, handleItem);
+            PhAddItemPointerList(handlesContext->HandleList, handleItem);
 
             // If we're hiding unnamed handles and this handle doesn't 
             // have a name, don't add it.
             if (
                 handlesContext->HideUnnamedHandles &&
-                PhIsStringNullOrEmpty(handleItem->BestObjectName)
+                PhIsNullOrEmptyString(handleItem->BestObjectName)
                 )
             {
                 // No need to dereference; if we re-add the handle when 
@@ -4537,8 +4537,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 PhFindListViewItemByParam(lvHandle, -1, handleItem)
                 );
 
-            if (pointerHandle = PhFindPointerListItem(handlesContext->HandleList, handleItem))
-                PhRemovePointerListItem(handlesContext->HandleList, pointerHandle);
+            if (pointerHandle = PhFindItemPointerList(handlesContext->HandleList, handleItem))
+                PhRemoveItemPointerList(handlesContext->HandleList, pointerHandle);
 
             PhDereferenceObject(handleItem);
         }

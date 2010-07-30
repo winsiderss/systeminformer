@@ -86,7 +86,7 @@ VOID PhLoadPlugins()
 
     pluginsDirectory = PhGetStringSetting(L"PluginsDirectory");
 
-    if (PhStringIndexOfChar(pluginsDirectory, 0, ':') == -1)
+    if (PhFindCharInString(pluginsDirectory, 0, ':') == -1)
     {
         // Not absolute. Make sure it is.
         PluginsDirectory = PhConcatStrings(4, PhApplicationDirectory->Buffer, L"\\", pluginsDirectory->Buffer, L"\\");
@@ -160,7 +160,7 @@ PPH_PLUGIN PhRegisterPlugin(
     plugin->Name = Name;
     plugin->DllBase = DllBase;
 
-    existingLinks = PhAvlTreeAdd(&PhPluginsByName, &plugin->Links);
+    existingLinks = PhAddElementAvlTree(&PhPluginsByName, &plugin->Links);
 
     if (existingLinks)
     {

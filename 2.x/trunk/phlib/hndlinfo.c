@@ -364,26 +364,26 @@ PPH_STRING PhFormatNativeKeyName(
 
     PPH_STRING newName;
 
-    if (PhStringStartsWith2(Name, HKCR_PREFIX, TRUE))
+    if (PhStartsWithString2(Name, HKCR_PREFIX, TRUE))
     {
         newName = PhConcatStrings2(L"HKCR", &Name->Buffer[HKCR_PREFIX_LENGTH]);
     }
-    else if (PhStringStartsWith2(Name, HKLM_PREFIX, TRUE))
+    else if (PhStartsWithString2(Name, HKLM_PREFIX, TRUE))
     {
         newName = PhConcatStrings2(L"HKLM", &Name->Buffer[HKLM_PREFIX_LENGTH]);
     }
-    else if (PhStringStartsWith(Name, HkcucrPrefix, TRUE))
+    else if (PhStartsWithString(Name, HkcucrPrefix, TRUE))
     {
         newName = PhConcatStrings2(
             L"HKCU\\Software\\Classes",
             &Name->Buffer[HkcucrPrefix->Length / 2]
             );
     }
-    else if (PhStringStartsWith(Name, HkcuPrefix, TRUE))
+    else if (PhStartsWithString(Name, HkcuPrefix, TRUE))
     {
         newName = PhConcatStrings2(L"HKCU", &Name->Buffer[HkcuPrefix->Length / 2]);
     }
-    else if (PhStringStartsWith2(Name, HKU_PREFIX, TRUE))
+    else if (PhStartsWithString2(Name, HKU_PREFIX, TRUE))
     {
         newName = PhConcatStrings2(L"HKU", &Name->Buffer[HKU_PREFIX_LENGTH]);
     }
@@ -501,7 +501,7 @@ NTSTATUS PhpGetBestObjectName(
     NTSTATUS status;
     PPH_STRING bestObjectName = NULL;
 
-    if (PhStringEquals2(TypeName, L"EtwRegistration", TRUE))
+    if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
         if (PhKphHandle)
         {
@@ -564,7 +564,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
     }
-    else if (PhStringEquals2(TypeName, L"File", TRUE))
+    else if (PhEqualString2(TypeName, L"File", TRUE))
     {
         // Convert the file name to a DOS file name.
         bestObjectName = PhResolveDevicePrefix(ObjectName);
@@ -575,11 +575,11 @@ NTSTATUS PhpGetBestObjectName(
             PhReferenceObject(ObjectName);
         }
     }
-    else if (PhStringEquals2(TypeName, L"Key", TRUE))
+    else if (PhEqualString2(TypeName, L"Key", TRUE))
     {
         bestObjectName = PhFormatNativeKeyName(ObjectName);
     }
-    else if (PhStringEquals2(TypeName, L"Process", TRUE))
+    else if (PhEqualString2(TypeName, L"Process", TRUE))
     {
         CLIENT_ID clientId;
 
@@ -629,7 +629,7 @@ NTSTATUS PhpGetBestObjectName(
             bestObjectName = PhHandleGetClientIdName(&clientId);
         }
     }
-    else if (PhStringEquals2(TypeName, L"Thread", TRUE))
+    else if (PhEqualString2(TypeName, L"Thread", TRUE))
     {
         CLIENT_ID clientId;
 
@@ -678,7 +678,7 @@ NTSTATUS PhpGetBestObjectName(
             bestObjectName = PhHandleGetClientIdName(&clientId);
         }
     }
-    else if (PhStringEquals2(TypeName, L"TmEn", TRUE))
+    else if (PhEqualString2(TypeName, L"TmEn", TRUE))
     {
         HANDLE dupHandle;
         ENLISTMENT_BASIC_INFORMATION basicInfo;
@@ -704,7 +704,7 @@ NTSTATUS PhpGetBestObjectName(
             bestObjectName = PhFormatGuid(&basicInfo.EnlistmentId);
         }
     }
-    else if (PhStringEquals2(TypeName, L"TmRm", TRUE))
+    else if (PhEqualString2(TypeName, L"TmRm", TRUE))
     {
         HANDLE dupHandle;
         GUID guid;
@@ -732,7 +732,7 @@ NTSTATUS PhpGetBestObjectName(
 
         if (NT_SUCCESS(status))
         {
-            if (!PhIsStringNullOrEmpty(description))
+            if (!PhIsNullOrEmptyString(description))
             {
                 bestObjectName = description;
             }
@@ -745,7 +745,7 @@ NTSTATUS PhpGetBestObjectName(
             }
         }
     }
-    else if (PhStringEquals2(TypeName, L"TmTm", TRUE))
+    else if (PhEqualString2(TypeName, L"TmTm", TRUE))
     {
         HANDLE dupHandle;
         PPH_STRING logFileName = NULL;
@@ -769,7 +769,7 @@ NTSTATUS PhpGetBestObjectName(
             &logFileName
             );
 
-        if (NT_SUCCESS(status) && !PhIsStringNullOrEmpty(logFileName))
+        if (NT_SUCCESS(status) && !PhIsNullOrEmptyString(logFileName))
         {
             bestObjectName = PhResolveDevicePrefix(logFileName);
 
@@ -796,7 +796,7 @@ NTSTATUS PhpGetBestObjectName(
 
         NtClose(dupHandle);
     }
-    else if (PhStringEquals2(TypeName, L"TmTx", TRUE))
+    else if (PhEqualString2(TypeName, L"TmTx", TRUE))
     {
         HANDLE dupHandle;
         PPH_STRING description = NULL;
@@ -822,7 +822,7 @@ NTSTATUS PhpGetBestObjectName(
             &description
             );
 
-        if (NT_SUCCESS(status) && !PhIsStringNullOrEmpty(description))
+        if (NT_SUCCESS(status) && !PhIsNullOrEmptyString(description))
         {
             bestObjectName = description;
         }
@@ -844,7 +844,7 @@ NTSTATUS PhpGetBestObjectName(
 
         NtClose(dupHandle);
     }
-    else if (PhStringEquals2(TypeName, L"Token", TRUE))
+    else if (PhEqualString2(TypeName, L"Token", TRUE))
     {
         HANDLE dupHandle;
         PTOKEN_USER tokenUser = NULL;
@@ -1000,7 +1000,7 @@ NTSTATUS PhGetHandleInformation(
     // Get the object name.
     // If we're dealing with a file handle we must take 
     // special precautions so we don't hang.
-    if (PhStringEquals2(typeName, L"File", TRUE))
+    if (PhEqualString2(typeName, L"File", TRUE))
     {
         // Use KPH if we can.
         if (PhKphHandle)

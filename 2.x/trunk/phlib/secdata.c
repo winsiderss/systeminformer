@@ -720,11 +720,11 @@ PPH_STRING PhGetAccessString(
             )
         {
             if (accessEntries[i].ShortName)
-                PhStringBuilderAppend2(&stringBuilder, accessEntries[i].ShortName);
+                PhAppendStringBuilder2(&stringBuilder, accessEntries[i].ShortName);
             else
-                PhStringBuilderAppend2(&stringBuilder, accessEntries[i].Name);
+                PhAppendStringBuilder2(&stringBuilder, accessEntries[i].Name);
 
-            PhStringBuilderAppend2(&stringBuilder, L", ");
+            PhAppendStringBuilder2(&stringBuilder, L", ");
 
             // Disable equal or more specific entries.
             for (j = i; j < NumberOfAccessEntries; j++)
@@ -736,8 +736,8 @@ PPH_STRING PhGetAccessString(
     }
 
     // Remove the trailing ", ".
-    if (PhStringEndsWith2(stringBuilder.String, L", ", FALSE))
-        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
 
     PhFree(matched);
     PhFree(accessEntries);

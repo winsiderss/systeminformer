@@ -1330,12 +1330,12 @@ VOID PhResizeFullString(
  * \param String A string object.
  * \param ShortString The string to append.
  */
-VOID PhFullStringAppend(
+VOID PhAppendFullString(
     __inout PPH_FULL_STRING String,
     __in PPH_STRING ShortString
     )
 {
-    PhFullStringAppendEx(
+    PhAppendFullStringEx(
         String,
         ShortString->Buffer,
         ShortString->Length
@@ -1348,12 +1348,12 @@ VOID PhFullStringAppend(
  * \param String A string object.
  * \param StringZ The string to append.
  */
-VOID PhFullStringAppend2(
+VOID PhAppendFullString2(
     __inout PPH_FULL_STRING String,
     __in PWSTR StringZ
     )
 {
-    PhFullStringAppendEx(
+    PhAppendFullStringEx(
         String,
         StringZ,
         wcslen(StringZ) * sizeof(WCHAR)
@@ -1368,7 +1368,7 @@ VOID PhFullStringAppend2(
  * to simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
-VOID PhFullStringAppendEx(
+VOID PhAppendFullStringEx(
     __inout PPH_FULL_STRING String,
     __in_opt PWSTR Buffer,
     __in SIZE_T Length
@@ -1400,7 +1400,7 @@ VOID PhFullStringAppendEx(
  * \param String A string object.
  * \param Character The character to append.
  */
-VOID PhFullStringAppendChar(
+VOID PhAppendCharFullString(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character
     )
@@ -1420,7 +1420,7 @@ VOID PhFullStringAppendChar(
  * \param Character The character to append.
  * \param Count The number of times to append the character.
  */
-VOID PhFullStringAppendChar2(
+VOID PhAppendCharFullString2(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character,
     __in SIZE_T Count
@@ -1448,7 +1448,7 @@ VOID PhFullStringAppendChar2(
  * \param String A string object.
  * \param Format The format-control string.
  */
-VOID PhFullStringAppendFormat(
+VOID PhAppendFormatFullString(
     __inout PPH_FULL_STRING String,
     __in __format_string PWSTR Format,
     ...
@@ -1459,11 +1459,11 @@ VOID PhFullStringAppendFormat(
 
     va_start(argptr, Format);
     string = PhFormatString_V(Format, argptr);
-    PhFullStringAppend(String, string);
+    PhAppendFullString(String, string);
     PhDereferenceObject(string);
 }
 
-VOID PhFullStringRemove(
+VOID PhRemoveFullString(
     __inout PPH_FULL_STRING String,
     __in SIZE_T StartIndex,
     __in SIZE_T Count
@@ -1601,12 +1601,12 @@ PPH_STRING PhReferenceStringBuilderString(
  * \param StringBuilder A string builder object.
  * \param String The string to append.
  */
-VOID PhStringBuilderAppend(
+VOID PhAppendStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PPH_STRING String
     )
 {
-    PhStringBuilderAppendEx(
+    PhAppendStringBuilderEx(
         StringBuilder,
         String->Buffer,
         String->Length
@@ -1620,12 +1620,12 @@ VOID PhStringBuilderAppend(
  * \param StringBuilder A string builder object.
  * \param String The string to append.
  */
-VOID PhStringBuilderAppend2(
+VOID PhAppendStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String
     )
 {
-    PhStringBuilderAppendEx(
+    PhAppendStringBuilderEx(
         StringBuilder,
         String,
         (ULONG)wcslen(String) * sizeof(WCHAR)
@@ -1641,7 +1641,7 @@ VOID PhStringBuilderAppend2(
  * simply reserve \a Length bytes.
  * \param Length The number of bytes to append.
  */
-VOID PhStringBuilderAppendEx(
+VOID PhAppendStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in_opt PWSTR String,
     __in ULONG Length
@@ -1678,7 +1678,7 @@ VOID PhStringBuilderAppendEx(
  * \param StringBuilder A string builder object.
  * \param Character The character to append.
  */
-VOID PhStringBuilderAppendChar(
+VOID PhAppendCharStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character
     )
@@ -1701,7 +1701,7 @@ VOID PhStringBuilderAppendChar(
  * \param Character The character to append.
  * \param Count The number of times to append the character.
  */
-VOID PhStringBuilderAppendChar2(
+VOID PhAppendCharStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character,
     __in ULONG Count
@@ -1733,7 +1733,7 @@ VOID PhStringBuilderAppendChar2(
  * \param StringBuilder A string builder object.
  * \param Format The format-control string.
  */
-VOID PhStringBuilderAppendFormat(
+VOID PhAppendFormatStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in __format_string PWSTR Format,
     ...
@@ -1744,7 +1744,7 @@ VOID PhStringBuilderAppendFormat(
 
     va_start(argptr, Format);
     string = PhFormatString_V(Format, argptr);
-    PhStringBuilderAppend(StringBuilder, string);
+    PhAppendStringBuilder(StringBuilder, string);
     PhDereferenceObject(string);
 }
 
@@ -1756,13 +1756,13 @@ VOID PhStringBuilderAppendFormat(
  * insert the string.
  * \param String The string to insert.
  */
-VOID PhStringBuilderInsert(
+VOID PhInsertStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PPH_STRING String
     )
 {
-    PhStringBuilderInsertEx(
+    PhInsertStringBuilderEx(
         StringBuilder,
         Index,
         String->Buffer,
@@ -1778,13 +1778,13 @@ VOID PhStringBuilderInsert(
  * insert the string.
  * \param String The string to insert.
  */
-VOID PhStringBuilderInsert2(
+VOID PhInsertStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PWSTR String
     )
 {
-    PhStringBuilderInsertEx(
+    PhInsertStringBuilderEx(
         StringBuilder,
         Index,
         String,
@@ -1802,7 +1802,7 @@ VOID PhStringBuilderInsert2(
  * simply reserve \a Length bytes.
  * \param Length The number of bytes to insert.
  */
-VOID PhStringBuilderInsertEx(
+VOID PhInsertStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in_opt PWSTR String,
@@ -1850,7 +1850,7 @@ VOID PhStringBuilderInsertEx(
  * which to begin removing characters.
  * \param Count The number of characters to remove.
  */
-VOID PhStringBuilderRemove(
+VOID PhRemoveStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -1916,7 +1916,7 @@ VOID PhpListDeleteProcedure(
  * \param List A list object.
  * \param Item The item to add.
  */
-VOID PhAddListItem(
+VOID PhAddItemList(
     __inout PPH_LIST List,
     __in PVOID Item
     )
@@ -1938,7 +1938,7 @@ VOID PhAddListItem(
  * \param Items An array containing the items to add.
  * \param Count The number of items to add.
  */
-VOID PhAddListItems(
+VOID PhAddItemsList(
     __inout PPH_LIST List,
     __in PPVOID Items,
     __in ULONG Count
@@ -1986,7 +1986,7 @@ __success(return != -1)
  * \return The index of the item. If the 
  * item was not found, -1 is returned.
  */
-ULONG PhIndexOfListItem(
+ULONG PhFindItemList(
     __in PPH_LIST List,
     __in PVOID Item
     )
@@ -2009,13 +2009,13 @@ ULONG PhIndexOfListItem(
  * \param Index The index at which to insert the item.
  * \param Item The item to add.
  */
-VOID PhInsertListItem(
+VOID PhInsertItemList(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PVOID Item
     )
 {
-    PhInsertListItems(List, Index, &Item, 1);
+    PhInsertItemsList(List, Index, &Item, 1);
 }
 
 /**
@@ -2026,7 +2026,7 @@ VOID PhInsertListItem(
  * \param Items An array containing the items to add.
  * \param Count The number of items to add.
  */
-VOID PhInsertListItems(
+VOID PhInsertItemsList(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PPVOID Items,
@@ -2070,12 +2070,12 @@ VOID PhInsertListItems(
  * \param List A list object.
  * \param Index The index of the item.
  */
-VOID PhRemoveListItem(
+VOID PhRemoveItemList(
     __inout PPH_LIST List,
     __in ULONG Index
     )
 {
-    PhRemoveListItems(List, Index, 1);
+    PhRemoveItemsList(List, Index, 1);
 }
 
 /**
@@ -2086,7 +2086,7 @@ VOID PhRemoveListItem(
  * removing items.
  * \param Count The number of items to remove.
  */
-VOID PhRemoveListItems(
+VOID PhRemoveItemsList(
     __inout PPH_LIST List,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -2246,7 +2246,7 @@ FORCEINLINE ULONG PhpPointerListHandleToIndex(
  * \return A handle to the pointer, valid until 
  * the pointer is removed from the pointer list.
  */
-HANDLE PhAddPointerListItem(
+HANDLE PhAddItemPointerList(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )
@@ -2321,7 +2321,7 @@ BOOLEAN PhEnumPointerListEx(
  * If the pointer is not contained in the pointer 
  * list, NULL is returned.
  */
-HANDLE PhFindPointerListItem(
+HANDLE PhFindItemPointerList(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     )
@@ -2350,7 +2350,7 @@ HANDLE PhFindPointerListItem(
  * pointer handle. Make sure the handle is valid 
  * before calling the function.
  */
-VOID PhRemovePointerListItem(
+VOID PhRemoveItemPointerList(
     __inout PPH_POINTER_LIST PointerList,
     __in HANDLE PointerHandle
     )
@@ -2417,7 +2417,7 @@ VOID NTAPI PhpQueueDeleteProcedure(
  * \param Queue A queue object.
  * \param Item The item to enqueue.
  */
-VOID PhEnqueueQueueItem(
+VOID PhEnqueueItemQueue(
     __inout PPH_QUEUE Queue,
     __in PVOID Item
     )
@@ -2465,7 +2465,7 @@ VOID PhEnqueueQueueItem(
  * \return TRUE if an item was dequeued,
  * FALSE if the queue was empty.
  */
-BOOLEAN PhDequeueQueueItem(
+BOOLEAN PhDequeueItemQueue(
     __inout PPH_QUEUE Queue,
     __out PPVOID Item
     )
@@ -2491,7 +2491,7 @@ BOOLEAN PhDequeueQueueItem(
  * \return TRUE if an item was retrieved,
  * FALSE if the queue was empty.
  */
-BOOLEAN PhPeekQueueItem(
+BOOLEAN PhPeekItemQueue(
     __in PPH_QUEUE Queue,
     __out PPVOID Item
     )
@@ -2660,7 +2660,7 @@ VOID PhpResizeHashtable(
  * \remarks Entries are only guaranteed to be 8 byte 
  * aligned, even on 64-bit systems.
  */
-PVOID PhAddHashtableEntry(
+PVOID PhAddEntryHashtable(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     )
@@ -2804,7 +2804,7 @@ BOOLEAN PhEnumHashtable(
  * so that the comparison and hash functions can 
  * work with them.
  */
-PVOID PhGetHashtableEntry(
+PVOID PhFindEntryHashtable(
     __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     )
@@ -2840,10 +2840,10 @@ PVOID PhGetHashtableEntry(
  *
  * \remarks The entry specified in \a Entry 
  * can be an actual entry pointer returned 
- * by PhGetHashtableEntry, or a partial 
+ * by PhFindEntryHashtable, or a partial 
  * entry.
  */
-BOOLEAN PhRemoveHashtableEntry(
+BOOLEAN PhRemoveEntryHashtable(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     )
@@ -3061,7 +3061,7 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
         );
 }
 
-PVOID PhAddSimpleHashtableItem(
+PVOID PhAddItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key,
     __in PVOID Value
@@ -3072,13 +3072,13 @@ PVOID PhAddSimpleHashtableItem(
     entry.Key = Key;
     entry.Value = Value;
 
-    if (PhAddHashtableEntry(SimpleHashtable, &entry))
+    if (PhAddEntryHashtable(SimpleHashtable, &entry))
         return Value;
     else
         return NULL;
 }
 
-PPVOID PhGetSimpleHashtableItem(
+PPVOID PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     )
@@ -3087,7 +3087,7 @@ PPVOID PhGetSimpleHashtableItem(
     PPH_KEY_VALUE_PAIR entry;
 
     lookupEntry.Key = Key;
-    entry = PhGetHashtableEntry(SimpleHashtable, &lookupEntry);
+    entry = PhFindEntryHashtable(SimpleHashtable, &lookupEntry);
 
     if (entry)
         return &entry->Value;
@@ -3095,7 +3095,7 @@ PPVOID PhGetSimpleHashtableItem(
         return NULL;
 }
 
-BOOLEAN PhRemoveSimpleHashtableItem(
+BOOLEAN PhRemoveItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     )
@@ -3104,7 +3104,7 @@ BOOLEAN PhRemoveSimpleHashtableItem(
 
     lookupEntry.Key = Key;
 
-    return PhRemoveHashtableEntry(SimpleHashtable, &lookupEntry);
+    return PhRemoveEntryHashtable(SimpleHashtable, &lookupEntry);
 }
 
 /**

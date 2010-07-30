@@ -104,7 +104,7 @@ VOID PhpQueueThreadWorkQueueItem(
         PhEndInitOnce(&PhThreadProviderWorkQueueInitOnce);
     }
 
-    PhQueueWorkQueueItem(&PhThreadProviderWorkQueue, Function, Context);
+    PhQueueItemWorkQueue(&PhThreadProviderWorkQueue, Function, Context);
 }
 
 PPH_THREAD_PROVIDER PhCreateThreadProvider(
@@ -217,7 +217,7 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
         )
         return TRUE;
 
-    PhSymbolProviderLoadModule(
+    PhLoadModuleSymbolProvider(
         symbolProvider,
         Module->FileName->Buffer,
         (ULONG64)Module->BaseAddress,
@@ -236,11 +236,11 @@ static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     PPH_SYMBOL_PROVIDER symbolProvider = context->SymbolProvider;
 
     if (
-        PhStringEquals2(Module->Name, L"ntdll.dll", TRUE) ||
-        PhStringEquals2(Module->Name, L"kernel32.dll", TRUE)
+        PhEqualString2(Module->Name, L"ntdll.dll", TRUE) ||
+        PhEqualString2(Module->Name, L"kernel32.dll", TRUE)
         )
     {
-        PhSymbolProviderLoadModule(
+        PhLoadModuleSymbolProvider(
             symbolProvider,
             Module->FileName->Buffer,
             (ULONG64)Module->BaseAddress,
@@ -325,7 +325,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
                 newFileName = PhGetFileName(fileName);
                 PhDereferenceObject(fileName);
 
-                PhSymbolProviderLoadModule(
+                PhLoadModuleSymbolProvider(
                     threadProvider->SymbolProvider,
                     newFileName->Buffer,
                     (ULONG64)kernelModules->Modules[0].ImageBase,
@@ -427,7 +427,7 @@ PPH_THREAD_ITEM PhReferenceThreadItem(
 
     PhAcquireFastLockShared(&ThreadProvider->ThreadHashtableLock);
 
-    threadItemPtr = (PPH_THREAD_ITEM *)PhGetHashtableEntry(
+    threadItemPtr = (PPH_THREAD_ITEM *)PhFindEntryHashtable(
         ThreadProvider->ThreadHashtable,
         &lookupThreadItemPtr
         );
@@ -469,7 +469,7 @@ __assumeLocked VOID PhpRemoveThreadItem(
     __in PPH_THREAD_ITEM ThreadItem
     )
 {
-    PhRemoveHashtableEntry(ThreadProvider->ThreadHashtable, &ThreadItem);
+    PhRemoveEntryHashtable(ThreadProvider->ThreadHashtable, &ThreadItem);
     PhDereferenceObject(ThreadItem);
 }
 
@@ -572,7 +572,7 @@ PPH_STRING PhpGetThreadBasicStartAddress(
 
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
-        PhTrimStringToNullTerminator(symbol);
+        PhTrimToNullTerminatorString(symbol);
     }
     else
     {
@@ -733,7 +733,7 @@ VOID PhThreadProviderUpdate(
                 if (!threadsToRemove)
                     threadsToRemove = PhCreateList(2);
 
-                PhAddListItem(threadsToRemove, *threadItem);
+                PhAddItemList(threadsToRemove, *threadItem);
             }
         }
 
@@ -872,7 +872,7 @@ VOID PhThreadProviderUpdate(
                     threadItem->StartAddressString->Buffer,
                     (PVOID)threadItem->StartAddress
                     );
-                PhTrimStringToNullTerminator(threadItem->StartAddressString);
+                PhTrimToNullTerminatorString(threadItem->StartAddressString);
             }
 
             PhpQueueThreadQuery(threadProvider, threadItem);
@@ -895,7 +895,7 @@ VOID PhThreadProviderUpdate(
 
             // Add the thread item to the hashtable.
             PhAcquireFastLockExclusive(&threadProvider->ThreadHashtableLock);
-            PhAddHashtableEntry(threadProvider->ThreadHashtable, &threadItem);
+            PhAddEntryHashtable(threadProvider->ThreadHashtable, &threadItem);
             PhReleaseFastLockExclusive(&threadProvider->ThreadHashtableLock);
 
             // Raise the thread added event.

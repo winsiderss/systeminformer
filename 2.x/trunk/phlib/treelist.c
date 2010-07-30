@@ -1654,7 +1654,7 @@ static VOID PhpInsertNodeChildren(
     Node->Level = Level;
 
     Node->s.ViewIndex = Context->List->Count;
-    PhAddListItem(Context->List, Node);
+    PhAddItemList(Context->List, Node);
 
     if (!(Node->s.IsLeaf = PhpIsNodeLeaf(Context, Node)))
     {
@@ -1940,17 +1940,17 @@ BOOLEAN PhLoadTreeListColumnSettings(
         ULONG displayIndex;
         ULONG width;
 
-        indexOfComma = PhStringIndexOfChar(Settings, i, ',');
+        indexOfComma = PhFindCharInString(Settings, i, ',');
 
         if (indexOfComma == -1)
             goto CleanupExit;
 
-        indexOfPipe = PhStringIndexOfChar(Settings, i, '|');
+        indexOfPipe = PhFindCharInString(Settings, i, '|');
 
         if (indexOfPipe == -1) // last pair in string
             indexOfPipe = Settings->Length / 2;
 
-        indexOfComma2 = PhStringIndexOfChar(Settings, indexOfComma + 1, ',');
+        indexOfComma2 = PhFindCharInString(Settings, indexOfComma + 1, ',');
 
         if (indexOfComma2 == -1 || indexOfComma2 > indexOfPipe)
             goto CleanupExit;
@@ -1989,7 +1989,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
         column->Id = id;
         column->DisplayIndex = displayIndex;
         column->Width = width;
-        PhAddSimpleHashtableItem(columnHashtable, (PVOID)column->Id, column);
+        PhAddItemSimpleHashtable(columnHashtable, (PVOID)column->Id, column);
 
         i = indexOfPipe + 1;
     }
@@ -2009,7 +2009,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
 
         if (TreeList_GetColumn(TreeListHandle, &setColumn))
         {
-            columnPtr = (PPH_TREELIST_COLUMN *)PhGetSimpleHashtableItem(columnHashtable, (PVOID)i);
+            columnPtr = (PPH_TREELIST_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
 
             if (columnPtr)
             {
@@ -2093,7 +2093,7 @@ PPH_STRING PhSaveTreeListColumnSettings(
             column.Visible
             )
         {
-            PhStringBuilderAppendFormat(
+            PhAppendFormatStringBuilder(
                 &stringBuilder,
                 L"%u,%u,%u|",
                 i,
@@ -2107,7 +2107,7 @@ PPH_STRING PhSaveTreeListColumnSettings(
     }
 
     if (stringBuilder.String->Length != 0)
-        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     string = PhReferenceStringBuilderString(&stringBuilder);
     PhDeleteStringBuilder(&stringBuilder);

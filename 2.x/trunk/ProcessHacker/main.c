@@ -299,7 +299,7 @@ VOID PhRegisterDialog(
     __in HWND DialogWindowHandle
     )
 {
-    PhAddListItem(DialogList, (PVOID)DialogWindowHandle);
+    PhAddItemList(DialogList, (PVOID)DialogWindowHandle);
 }
 
 VOID PhUnregisterDialog(
@@ -308,18 +308,18 @@ VOID PhUnregisterDialog(
 {
     ULONG indexOfDialog;
 
-    indexOfDialog = PhIndexOfListItem(DialogList, (PVOID)DialogWindowHandle);
+    indexOfDialog = PhFindItemList(DialogList, (PVOID)DialogWindowHandle);
 
     if (indexOfDialog != -1)
-        PhRemoveListItem(DialogList, indexOfDialog);
+        PhRemoveItemList(DialogList, indexOfDialog);
 }
 
 VOID PhApplyUpdateInterval(
     __in ULONG Interval
     )
 {
-    PhSetProviderThreadInterval(&PhPrimaryProviderThread, Interval);
-    PhSetProviderThreadInterval(&PhSecondaryProviderThread, Interval);
+    PhSetIntervalProviderThread(&PhPrimaryProviderThread, Interval);
+    PhSetIntervalProviderThread(&PhSecondaryProviderThread, Interval);
 }
 
 VOID PhActivatePreviousInstance()
@@ -568,7 +568,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             {
                 ULONG indexOfComma;
 
-                indexOfComma = PhStringIndexOfChar(Value, 0, ',');
+                indexOfComma = PhFindCharInString(Value, 0, ',');
 
                 if (indexOfComma != -1)
                 {
@@ -602,7 +602,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         lowerValue = PhDuplicateString(Value);
         PhLowerString(lowerValue);
 
-        if (PhStringIndexOfString(lowerValue, 0, L"taskmgr.exe") != -1)
+        if (PhFindStringInString(lowerValue, 0, L"taskmgr.exe") != -1)
         {
             // User probably has Process Hacker replacing Task Manager. Force 
             // the main window to start visible.

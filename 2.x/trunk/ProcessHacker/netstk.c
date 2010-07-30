@@ -55,7 +55,7 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
         )
         return TRUE;
 
-    PhSymbolProviderLoadModule(
+    PhLoadModuleSymbolProvider(
         symbolProvider,
         Module->FileName->Buffer,
         (ULONG64)Module->BaseAddress,

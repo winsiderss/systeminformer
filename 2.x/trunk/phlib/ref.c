@@ -684,7 +684,7 @@ VOID PhpDeferDeleteObject(
      */
     if (!nextToFree)
     {
-        PhQueueGlobalWorkQueueItem(PhpDeferDeleteObjectRoutine, NULL);
+        PhQueueItemGlobalWorkQueue(PhpDeferDeleteObjectRoutine, NULL);
     }
 }
 

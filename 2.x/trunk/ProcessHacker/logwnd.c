@@ -109,21 +109,21 @@ static PPH_FULL_STRING PhpGetStringForSelectedLogEntries(
             }
         }
 
-        entry = PhCircularBufferGet_PVOID(&PhLogBuffer, i);
+        entry = PhGetItemCircularBuffer_PVOID(&PhLogBuffer, i);
 
         if (!entry)
             goto ContinueLoop;
 
         PhLargeIntegerToLocalSystemTime(&systemTime, &entry->Time);
         temp = PhFormatDateTime(&systemTime);
-        PhFullStringAppend(string, temp);
+        PhAppendFullString(string, temp);
         PhDereferenceObject(temp);
-        PhFullStringAppend2(string, L": ");
+        PhAppendFullString2(string, L": ");
 
         temp = PhFormatLogEntry(entry);
-        PhFullStringAppend(string, temp);
+        PhAppendFullString(string, temp);
         PhDereferenceObject(temp);
-        PhFullStringAppend2(string, L"\r\n");
+        PhAppendFullString2(string, L"\r\n");
 
 ContinueLoop:
 
@@ -263,7 +263,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedLogEntries(TRUE);
-                            PhFileStreamWriteStringAsAnsiEx(fileStream, string->Buffer, string->Length);
+                            PhWriteStringAsAnsiFileStreamEx(fileStream, string->Buffer, string->Length);
                             PhDereferenceObject(string);
 
                             PhDereferenceObject(fileStream);
@@ -290,7 +290,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                     NMLVDISPINFO *dispInfo = (NMLVDISPINFO *)header;
                     PPH_LOG_ENTRY entry;
 
-                    entry = PhCircularBufferGet_PVOID(&PhLogBuffer, ListViewCount - dispInfo->item.iItem - 1);
+                    entry = PhGetItemCircularBuffer_PVOID(&PhLogBuffer, ListViewCount - dispInfo->item.iItem - 1);
 
                     if (dispInfo->item.iSubItem == 0)
                     {

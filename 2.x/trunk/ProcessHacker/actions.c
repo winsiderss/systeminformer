@@ -423,7 +423,7 @@ static BOOLEAN PhpIsDangerousProcess(
 
         fullName = PhaConcatStrings(3, systemDirectory->Buffer, L"\\", DangerousProcesses[i]);
 
-        if (PhStringEquals(fileName, fullName, TRUE))
+        if (PhEqualString(fileName, fullName, TRUE))
             return TRUE;
     }
 
@@ -989,12 +989,12 @@ BOOLEAN PhUiDebugProcess(
 
             if (debugger)
             {
-                firstIndex = PhStringIndexOfChar(debugger, 0, L'"');
+                firstIndex = PhFindCharInString(debugger, 0, L'"');
 
                 if (firstIndex != -1)
                 {
                     firstIndex += 1;
-                    secondIndex = PhStringIndexOfChar(debugger, firstIndex, L'"');
+                    secondIndex = PhFindCharInString(debugger, firstIndex, L'"');
 
                     if (secondIndex != -1)
                     {
@@ -1019,10 +1019,10 @@ BOOLEAN PhUiDebugProcess(
 
     PhInitializeStringBuilder(&commandLineBuilder, DebuggerCommand->Length + 30);
 
-    PhStringBuilderAppendChar(&commandLineBuilder, '"');
-    PhStringBuilderAppend(&commandLineBuilder, DebuggerCommand);
-    PhStringBuilderAppendChar(&commandLineBuilder, '"');
-    PhStringBuilderAppendFormat(&commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
+    PhAppendCharStringBuilder(&commandLineBuilder, '"');
+    PhAppendStringBuilder(&commandLineBuilder, DebuggerCommand);
+    PhAppendCharStringBuilder(&commandLineBuilder, '"');
+    PhAppendFormatStringBuilder(&commandLineBuilder, L" -p %u", (ULONG)Process->ProcessId);
 
     status = PhCreateProcessWin32(
         NULL,
@@ -1396,11 +1396,11 @@ BOOLEAN PhUiSetDepStatusProcess(
 
         depStatus = 0;
 
-        if (PhStringEquals2(selectedChoice, choices[0], FALSE))
+        if (PhEqualString2(selectedChoice, choices[0], FALSE))
             depStatus = 0;
-        else if (PhStringEquals2(selectedChoice, choices[1], FALSE))
+        else if (PhEqualString2(selectedChoice, choices[1], FALSE))
             depStatus = PH_PROCESS_DEP_ENABLED;
-        else if (PhStringEquals2(selectedChoice, choices[2], FALSE))
+        else if (PhEqualString2(selectedChoice, choices[2], FALSE))
             depStatus = PH_PROCESS_DEP_ENABLED | PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED;
 
         if (selectedOption)
@@ -1479,7 +1479,7 @@ BOOLEAN PhUiSetProtectionProcess(
             NULL, 0, &selectedChoice, NULL, NULL))
         {
             status = KphSetProcessProtected(PhKphHandle, Process->ProcessId,
-                PhStringEquals2(selectedChoice, L"Protected", FALSE));
+                PhEqualString2(selectedChoice, L"Protected", FALSE));
 
             if (NT_SUCCESS(status))
             {
@@ -2270,7 +2270,7 @@ static BOOLEAN PhpShowErrorHandle(
     __in_opt ULONG Win32Result
     )
 {
-    if (!PhIsStringNullOrEmpty(Handle->BestObjectName))
+    if (!PhIsNullOrEmptyString(Handle->BestObjectName))
     {
         return PhShowContinueStatus(
             hWnd,

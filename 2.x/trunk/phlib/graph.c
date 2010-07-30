@@ -157,8 +157,8 @@ VOID PhDrawGraph(
             // Add the line height values to the list for drawing later.
             if (h0 > height1) h0 = height1;
             if (h1 > height1) h1 = height1;
-            PhAddListItem(lineList1, (PVOID)h0);
-            if (willBreak) PhAddListItem(lineList1, (PVOID)h1);
+            PhAddItemList(lineList1, (PVOID)h0);
+            if (willBreak) PhAddItemList(lineList1, (PVOID)h1);
 
             // Draw line 2 (either stacked or overlayed).
             if (DrawInfo->LineData2 && (flags & PH_GRAPH_USE_LINE_2))
@@ -199,8 +199,8 @@ VOID PhDrawGraph(
 
                 if (h0 > height1) h0 = height1;
                 if (h1 > height1) h1 = height1;
-                PhAddListItem(lineList2, (PVOID)h0);
-                if (willBreak) PhAddListItem(lineList2, (PVOID)h1);
+                PhAddItemList(lineList2, (PVOID)h0);
+                if (willBreak) PhAddItemList(lineList2, (PVOID)h1);
             }
 
             if (x < 0)

@@ -172,7 +172,7 @@ PPH_STRING PhClrGetNamePublishAppDomain(
         name->Buffer
         )))
     {
-        PhTrimStringToNullTerminator(name);
+        PhTrimToNullTerminatorString(name);
 
         return name;
     }

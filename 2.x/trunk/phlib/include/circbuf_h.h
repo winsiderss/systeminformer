@@ -52,7 +52,7 @@ T___(PhCopyCircularBuffer, T)(
     __in ULONG Count
     );
 
-FORCEINLINE T T___(PhCircularBufferGet, T)(
+FORCEINLINE T T___(PhGetItemCircularBuffer, T)(
     __in T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in LONG Index
     )
@@ -68,7 +68,7 @@ FORCEINLINE T T___(PhCircularBufferGet, T)(
 #endif
 }
 
-FORCEINLINE VOID T___(PhCircularBufferSet, T)(
+FORCEINLINE VOID T___(PhSetItemCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in LONG Index,
     __in T Value
@@ -84,7 +84,7 @@ FORCEINLINE VOID T___(PhCircularBufferSet, T)(
 #endif
 }
 
-FORCEINLINE VOID T___(PhCircularBufferAdd, T)(
+FORCEINLINE VOID T___(PhAddItemCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in T Value
     )
@@ -102,7 +102,7 @@ FORCEINLINE VOID T___(PhCircularBufferAdd, T)(
         Buffer->Count++;
 }
 
-FORCEINLINE T T___(PhCircularBufferAdd2, T)(
+FORCEINLINE T T___(PhAddItemCircularBuffer2, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
     __in T Value
     )

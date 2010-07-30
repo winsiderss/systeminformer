@@ -151,7 +151,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 // Split the saved choices using the delimiter.
                 while (i < (ULONG)savedChoices->Length / 2)
                 {
-                    indexOfDelim = PhStringIndexOfString(savedChoices, i, L"\\s");
+                    indexOfDelim = PhFindStringInString(savedChoices, i, L"\\s");
 
                     if (indexOfDelim == -1)
                         indexOfDelim = savedChoices->Length / 2;
@@ -297,9 +297,9 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                         if (selectedChoice->Length != 0)
                         {
                             escaped = PhEscapeStringForDelimiter(selectedChoice, '\\');
-                            PhStringBuilderAppend(&savedChoices, escaped);
+                            PhAppendStringBuilder(&savedChoices, escaped);
                             PhDereferenceObject(escaped);
-                            PhStringBuilderAppend2(&savedChoices, L"\\s");
+                            PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
                         for (i = 1; i < choicesToSave; i++)
@@ -311,7 +311,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
 
                             // Don't save the choice if it's the same as the one 
                             // entered by the user (since we already saved it above).
-                            if (PhStringEquals(choice, selectedChoice, FALSE))
+                            if (PhEqualString(choice, selectedChoice, FALSE))
                             {
                                 PhDereferenceObject(choice);
                                 choicesToSave++; // useless for now, but may be needed in the future
@@ -319,15 +319,15 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                             }
 
                             escaped = PhEscapeStringForDelimiter(choice, '\\');
-                            PhStringBuilderAppend(&savedChoices, escaped);
+                            PhAppendStringBuilder(&savedChoices, escaped);
                             PhDereferenceObject(escaped);
                             PhDereferenceObject(choice);
 
-                            PhStringBuilderAppend2(&savedChoices, L"\\s");
+                            PhAppendStringBuilder2(&savedChoices, L"\\s");
                         }
 
-                        if (PhStringEndsWith2(savedChoices.String, L"\\s", FALSE))
-                            PhStringBuilderRemove(&savedChoices, savedChoices.String->Length / 2 - 2, 2);
+                        if (PhEndsWithString2(savedChoices.String, L"\\s", FALSE))
+                            PhRemoveStringBuilder(&savedChoices, savedChoices.String->Length / 2 - 2, 2);
 
                         PhSetStringSetting2(context->SavedChoicesSettingName, &savedChoices.String->sr);
                         PhDeleteStringBuilder(&savedChoices);

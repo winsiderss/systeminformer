@@ -556,7 +556,7 @@ PPH_STRING PhGetSymbolFromAddress(
         resolveLevel = PhsrlAddress;
         symbol = PhCreateStringEx(NULL, PH_PTR_STR_LEN * 2);
         PhPrintPointer(symbol->Buffer, (PVOID)Address);
-        PhTrimStringToNullTerminator(symbol);
+        PhTrimToNullTerminatorString(symbol);
 
         goto CleanupExit;
     }
@@ -706,7 +706,7 @@ BOOLEAN PhGetSymbolFromName(
     return TRUE;
 }
 
-BOOLEAN PhSymbolProviderLoadModule(
+BOOLEAN PhLoadModuleSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR FileName,
     __in ULONG64 BaseAddress,
@@ -768,7 +768,7 @@ BOOLEAN PhSymbolProviderLoadModule(
             symbolModule->BaseAddress = BaseAddress;
             symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
 
-            PhAddListItem(SymbolProvider->ModulesList, symbolModule);
+            PhAddItemList(SymbolProvider->ModulesList, symbolModule);
             PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
         }
 
@@ -786,7 +786,7 @@ BOOLEAN PhSymbolProviderLoadModule(
     return TRUE;
 }
 
-VOID PhSymbolProviderSetOptions(
+VOID PhSetOptionsSymbolProvider(
     __in ULONG Mask,
     __in ULONG Value
     )
@@ -810,7 +810,7 @@ VOID PhSymbolProviderSetOptions(
     PhReleaseMutex(&PhSymMutex);
 }
 
-VOID PhSymbolProviderSetSearchPath(
+VOID PhSetSearchPathSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR Path
     )

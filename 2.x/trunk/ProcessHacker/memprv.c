@@ -208,7 +208,7 @@ BOOLEAN NTAPI PhpMemoryProviderEnumGenericModulesCallback(
     PhReferenceObject(module->Name);
     module->FileName = NULL;
 
-    PhAddSimpleHashtableItem(moduleHashtable, module->BaseAddress, module);
+    PhAddItemSimpleHashtable(moduleHashtable, module->BaseAddress, module);
 
     return TRUE;
 }
@@ -267,7 +267,7 @@ VOID PhMemoryProviderUpdate(
         // Get the associated module.
         if (memoryItem->Flags & MEM_IMAGE)
         {
-            module = (PPH_MODULE_INFO *)PhGetSimpleHashtableItem(moduleHashtable, memoryItem->BaseAddress);
+            module = (PPH_MODULE_INFO *)PhFindItemSimpleHashtable(moduleHashtable, memoryItem->BaseAddress);
 
             if (module)
                 lastModule = *module;

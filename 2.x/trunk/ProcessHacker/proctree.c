@@ -167,7 +167,7 @@ PPH_PROCESS_NODE PhCreateProcessNode(
         processNode->TickCount = GetTickCount();
         processNode->Node.UseTempBackColor = TRUE;
         processNode->Node.TempBackColor = PhCsColorNew;
-        processNode->StateListHandle = PhAddPointerListItem(ProcessNodeStateList, processNode);
+        processNode->StateListHandle = PhAddItemPointerList(ProcessNodeStateList, processNode);
         processNode->State = NewItemState;
     }
     else
@@ -188,14 +188,14 @@ PPH_PROCESS_NODE PhCreateProcessNode(
     // Find this process' parent and add the process to it if we found it.
     if (ProcessItem->HasParent && (parentNode = PhFindProcessNode(ProcessItem->ParentProcessId)))
     {
-        PhAddListItem(parentNode->Children, processNode);
+        PhAddItemList(parentNode->Children, processNode);
         processNode->Parent = parentNode;
     }
     else
     {
         // No parent, add to root list.
         processNode->Parent = NULL;
-        PhAddListItem(ProcessNodeRootList, processNode);
+        PhAddItemList(ProcessNodeRootList, processNode);
     }
 
     // Find this process' children and move them to this node.
@@ -207,20 +207,20 @@ PPH_PROCESS_NODE PhCreateProcessNode(
         if (node->ProcessItem->HasParent && node->ProcessItem->ParentProcessId == ProcessItem->ProcessId)
         {
             node->Parent = processNode;
-            PhAddListItem(processNode->Children, node);
+            PhAddItemList(processNode->Children, node);
         }
     }
 
     for (i = 0; i < processNode->Children->Count; i++)
     {
-        PhRemoveListItem(
+        PhRemoveItemList(
             ProcessNodeRootList,
-            PhIndexOfListItem(ProcessNodeRootList, processNode->Children->Items[i])
+            PhFindItemList(ProcessNodeRootList, processNode->Children->Items[i])
             );
     }
 
-    PhAddHashtableEntry(ProcessNodeHashtable, &processNode);
-    PhAddListItem(ProcessNodeList, processNode);
+    PhAddEntryHashtable(ProcessNodeHashtable, &processNode);
+    PhAddItemList(ProcessNodeList, processNode);
 
     if (PhCsCollapseServicesOnStart)
     {
@@ -241,7 +241,7 @@ PPH_PROCESS_NODE PhCreateProcessNode(
             // If this process is services.exe, collapse the node and free the string.
             if (
                 ProcessItem->FileName &&
-                PhStringEquals(ProcessItem->FileName, servicesFileName, TRUE)
+                PhEqualString(ProcessItem->FileName, servicesFileName, TRUE)
                 )
             {
                 processNode->Node.Expanded = FALSE;
@@ -267,7 +267,7 @@ PPH_PROCESS_NODE PhFindProcessNode(
 
     lookupNode.ProcessId = ProcessId;
 
-    node = PhGetHashtableEntry(ProcessNodeHashtable, &lookupNodePtr);
+    node = PhFindEntryHashtable(ProcessNodeHashtable, &lookupNodePtr);
 
     if (node)
         return *node;
@@ -285,7 +285,7 @@ VOID PhRemoveProcessNode(
         ProcessNode->Node.UseTempBackColor = TRUE;
         ProcessNode->Node.TempBackColor = PhCsColorRemoved;
         if (ProcessNode->State == NormalItemState)
-            ProcessNode->StateListHandle = PhAddPointerListItem(ProcessNodeStateList, ProcessNode);
+            ProcessNode->StateListHandle = PhAddItemPointerList(ProcessNodeStateList, ProcessNode);
         ProcessNode->State = RemovingItemState;
 
         TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
@@ -307,15 +307,15 @@ VOID PhpRemoveProcessNode(
     {
         // Remove the node from its parent.
 
-        if ((index = PhIndexOfListItem(ProcessNode->Parent->Children, ProcessNode)) != -1)
-            PhRemoveListItem(ProcessNode->Parent->Children, index);
+        if ((index = PhFindItemList(ProcessNode->Parent->Children, ProcessNode)) != -1)
+            PhRemoveItemList(ProcessNode->Parent->Children, index);
     }
     else
     {
         // Remove the node from the root list.
 
-        if ((index = PhIndexOfListItem(ProcessNodeRootList, ProcessNode)) != -1)
-            PhRemoveListItem(ProcessNodeRootList, index);
+        if ((index = PhFindItemList(ProcessNodeRootList, ProcessNode)) != -1)
+            PhRemoveItemList(ProcessNodeRootList, index);
     }
 
     // Move the node's children to the root list.
@@ -324,15 +324,15 @@ VOID PhpRemoveProcessNode(
         PPH_PROCESS_NODE node = ProcessNode->Children->Items[i];
 
         node->Parent = NULL;
-        PhAddListItem(ProcessNodeRootList, node);
+        PhAddItemList(ProcessNodeRootList, node);
     }
 
     // Remove from hashtable/list and cleanup.
 
-    PhRemoveHashtableEntry(ProcessNodeHashtable, &ProcessNode);
+    PhRemoveEntryHashtable(ProcessNodeHashtable, &ProcessNode);
 
-    if ((index = PhIndexOfListItem(ProcessNodeList, ProcessNode)) != -1)
-        PhRemoveListItem(ProcessNodeList, index);
+    if ((index = PhFindItemList(ProcessNodeList, ProcessNode)) != -1)
+        PhRemoveItemList(ProcessNodeList, index);
 
     PhDereferenceObject(ProcessNode->Children);
 
@@ -435,7 +435,7 @@ VOID PhTickProcessNodes()
                 PhpRemoveProcessNode(node);
             }
 
-            PhRemovePointerListItem(ProcessNodeStateList, stateListHandle);
+            PhRemoveItemPointerList(ProcessNodeStateList, stateListHandle);
         }
 
         if (redrawDisabled)
@@ -569,7 +569,7 @@ BOOLEAN PhpIsProcessNodeSafe(
 
 BEGIN_SORT_FUNCTION(Name)
 {
-    sortResult = PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+    sortResult = PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -603,13 +603,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(UserName)
 {
-    sortResult = PhStringCompareWithNull(processItem1->UserName, processItem2->UserName, TRUE);
+    sortResult = PhCompareStringWithNull(processItem1->UserName, processItem2->UserName, TRUE);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Description)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->VersionInfo.FileDescription,
         processItem2->VersionInfo.FileDescription,
         TRUE
@@ -619,7 +619,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CompanyName)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->VersionInfo.CompanyName,
         processItem2->VersionInfo.CompanyName,
         TRUE
@@ -629,7 +629,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Version)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->VersionInfo.FileVersion,
         processItem2->VersionInfo.FileVersion,
         TRUE
@@ -639,7 +639,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(FileName)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->FileName,
         processItem2->FileName,
         TRUE
@@ -649,7 +649,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(CommandLine)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->CommandLine,
         processItem2->CommandLine,
         TRUE
@@ -836,7 +836,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerifiedSigner)
 {
-    sortResult = PhStringCompareWithNull(
+    sortResult = PhCompareStringWithNull(
         processItem1->VerifySignerName,
         processItem2->VerifySignerName,
         TRUE
@@ -1303,14 +1303,14 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             else if (
                 PhCsUseColorSystemProcesses &&
                 processItem->UserName &&
-                PhStringEquals(processItem->UserName, PhLocalSystemName, TRUE)
+                PhEqualString(processItem->UserName, PhLocalSystemName, TRUE)
                 )
                 getNodeColor->BackColor = PhCsColorSystemProcesses;
             else if (
                 PhCsUseColorOwnProcesses &&
                 processItem->UserName &&
                 PhCurrentUserName &&
-                PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
+                PhEqualString(processItem->UserName, PhCurrentUserName, TRUE)
                 )
                 getNodeColor->BackColor = PhCsColorOwnProcesses;
 
@@ -1456,7 +1456,7 @@ VOID PhGetSelectedProcessItems(
 
         if (node->Node.Selected)
         {
-            PhAddListItem(list, node->ProcessItem);
+            PhAddItemList(list, node->ProcessItem);
         }
     }
 
@@ -1579,9 +1579,9 @@ VOID PhWriteProcessTree(
         PPH_STRING line;
 
         line = lines->Items[i];
-        PhFileStreamWriteStringAsAnsi(FileStream, &line->sr);
+        PhWriteStringAsAnsiFileStream(FileStream, &line->sr);
         PhDereferenceObject(line);
-        PhFileStreamWriteStringAsAnsi2(FileStream, L"\r\n");
+        PhWriteStringAsAnsiFileStream2(FileStream, L"\r\n");
     }
 
     PhDereferenceObject(lines);

@@ -261,7 +261,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                             // There are no params for kernel-mode stack traces.
                             if ((ULONG_PTR)stackFrame->PcAddress <= PhSystemBasicInformation.MaximumUserModeAddress)
                             {
-                                PhStringBuilderAppendFormat(
+                                PhAppendFormatStringBuilder(
                                     &stringBuilder,
                                     L"Parameters: 0x%Ix, 0x%Ix, 0x%Ix, 0x%Ix\n",
                                     stackFrame->Params[0],
@@ -279,7 +279,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                                 &lineInfo
                                 ))
                             {
-                                PhStringBuilderAppendFormat(
+                                PhAppendFormatStringBuilder(
                                     &stringBuilder,
                                     L"File: %s: line %u\n",
                                     fileName->Buffer,
@@ -289,7 +289,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                             }
 
                             if (stringBuilder.String->Length != 0)
-                                PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+                                PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
                             PhCopyListViewInfoTip(getInfoTip, &stringBuilder.String->sr);
                             PhDeleteStringBuilder(&stringBuilder);
@@ -341,7 +341,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     PhPrintUInt32(integerString, threadStackContext->Index++);
 
     stackFrame = PhAllocateCopy(StackFrame, sizeof(PH_THREAD_STACK_FRAME));
-    PhAddListItem(threadStackContext->List, stackFrame);
+    PhAddItemList(threadStackContext->List, stackFrame);
     lvItemIndex = PhAddListViewItem(threadStackContext->ListViewHandle, MAXINT,
         integerString, stackFrame);
 

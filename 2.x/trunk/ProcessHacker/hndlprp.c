@@ -107,21 +107,21 @@ VOID PhShowHandleProperties(
     {
         // Dummy
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Event", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Event", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"EventPair", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"EventPair", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateEventPairPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Job", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Job", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateJobPage(
             PhpDuplicateHandleFromProcess,
@@ -129,35 +129,35 @@ VOID PhShowHandleProperties(
             NULL
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Mutant", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Mutant", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateMutantPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Section", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Section", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateSectionPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Semaphore", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Semaphore", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateSemaphorePage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Timer", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Timer", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTimerPage(
             PhpDuplicateHandleFromProcess,
             &context
             );
     }
-    else if (PhStringEquals2(HandleItem->TypeName, L"Token", TRUE))
+    else if (PhEqualString2(HandleItem->TypeName, L"Token", TRUE))
     {
         pages[propSheetHeader.nPages++] = PhCreateTokenPage(
             PhpDuplicateHandleFromProcess,
@@ -213,15 +213,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             {
                 // Dummy
             }
-            else if (PhStringEquals2(context->HandleItem->TypeName, L"File", TRUE))
+            else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
             {
                 showPropertiesButton = TRUE;
             }
-            else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
+            else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
             {
                 showPropertiesButton = TRUE;
             }
-            else if (PhStringEquals2(context->HandleItem->TypeName, L"Process", TRUE))
+            else if (PhEqualString2(context->HandleItem->TypeName, L"Process", TRUE))
             {
                 showPropertiesButton = TRUE;
             }
@@ -324,15 +324,15 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     {
                         // Dummy
                     }
-                    else if (PhStringEquals2(context->HandleItem->TypeName, L"File", TRUE))
+                    else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
                     {
                         PhShellProperties(hwndDlg, context->HandleItem->BestObjectName->Buffer);
                     }
-                    else if (PhStringEquals2(context->HandleItem->TypeName, L"Key", TRUE))
+                    else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
                     {
                         PhShellOpenKey(hwndDlg, context->HandleItem->BestObjectName);
                     }
-                    else if (PhStringEquals2(context->HandleItem->TypeName, L"Process", TRUE))
+                    else if (PhEqualString2(context->HandleItem->TypeName, L"Process", TRUE))
                     {
                         HANDLE processHandle;
                         HANDLE processId;
