@@ -109,7 +109,7 @@ static NTSTATUS PhpLoadMmAddresses(
             newFileName = PhGetFileName(kernelFileName);
             PhDereferenceObject(kernelFileName);
 
-            PhSymbolProviderLoadModule(
+            PhLoadModuleSymbolProvider(
                 symbolProvider,
                 newFileName->Buffer,
                 (ULONG64)kernelModules->Modules[0].ImageBase,
@@ -156,7 +156,7 @@ static NTSTATUS PhpSysInfoThreadStart(
 
     if (!MmAddressesInitialized && PhKphHandle)
     {
-        PhQueueGlobalWorkQueueItem(PhpLoadMmAddresses, NULL);
+        PhQueueItemGlobalWorkQueue(PhpLoadMmAddresses, NULL);
         MmAddressesInitialized = TRUE;
     }
 
@@ -237,7 +237,7 @@ static PPH_STRING PhapGetMaxCpuString(
     // Find the process record for the max. CPU process for the particular time.
 
     PhGetStatisticsTime(NULL, Index, &time);
-    maxProcessId = PhCircularBufferGet_ULONG(&PhMaxCpuHistory, Index);
+    maxProcessId = PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, Index);
 
     // Note that the time we get has its components beyond seconds cleared. 
     // For example:
@@ -258,7 +258,7 @@ static PPH_STRING PhapGetMaxCpuString(
     {
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
-        maxCpuUsage = PhCircularBufferGet_FLOAT(&PhMaxCpuUsageHistory, Index);
+        maxCpuUsage = PhGetItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, Index);
         maxUsageString = PhaFormatString(
             L"\n%s: %.2f%%",
             maxProcessRecord->ProcessName->Buffer,
@@ -289,7 +289,7 @@ static PPH_STRING PhapGetMaxIoString(
     // Find the process record for the max. I/O process for the particular time.
 
     PhGetStatisticsTime(NULL, Index, &time);
-    maxProcessId = PhCircularBufferGet_ULONG(&PhMaxIoHistory, Index);
+    maxProcessId = PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, Index);
 
     // See above for the explanation.
     time.QuadPart += PH_TICKS_PER_SEC - 1;
@@ -299,8 +299,8 @@ static PPH_STRING PhapGetMaxIoString(
     {
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
-        maxIoReadOther = PhCircularBufferGet_ULONG64(&PhMaxIoReadOtherHistory, Index);
-        maxIoWrite = PhCircularBufferGet_ULONG64(&PhMaxIoWriteHistory, Index);
+        maxIoReadOther = PhGetItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, Index);
+        maxIoWrite = PhGetItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, Index);
         maxUsageString = PhaFormatString(
             L"\n%s: R+O: %s, W: %s",
             maxProcessRecord->ProcessName->Buffer,
@@ -693,10 +693,10 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                                 FLOAT data2;
 
                                 IoGraphState.Data1[i] = data1 =
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&PhIoReadHistory, i) +
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&PhIoOtherHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
                                 IoGraphState.Data2[i] = data2 =
-                                    (FLOAT)PhCircularBufferGet_ULONG64(&PhIoWriteHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
 
                                 if (max < data1 + data2)
                                     max = data1 + data2;
@@ -766,7 +766,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 PhysicalGraphState.Data1[i] =
-                                    (FLOAT)PhCircularBufferGet_ULONG(&PhPhysicalHistory, i);
+                                    (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
                             }
 
                             if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
@@ -849,8 +849,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             FLOAT cpuKernel;
                             FLOAT cpuUser;
 
-                            cpuKernel = PhCircularBufferGet_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
-                            cpuUser = PhCircularBufferGet_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
+                            cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpuKernelHistory, getTooltipText->Index);
+                            cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpuUserHistory, getTooltipText->Index);
 
                             PhSwapReference2(&CpuGraphState.TooltipText, PhFormatString(
                                 L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",
@@ -875,9 +875,9 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             ULONG64 ioWrite;
                             ULONG64 ioOther;
 
-                            ioRead = PhCircularBufferGet_ULONG64(&PhIoReadHistory, getTooltipText->Index);
-                            ioWrite = PhCircularBufferGet_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
-                            ioOther = PhCircularBufferGet_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
+                            ioRead = PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, getTooltipText->Index);
+                            ioWrite = PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, getTooltipText->Index);
+                            ioOther = PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, getTooltipText->Index);
 
                             PhSwapReference2(&IoGraphState.TooltipText, PhFormatString(
                                 L"R: %s\nW: %s\nO: %s%s\n%s",
@@ -900,7 +900,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         {
                             ULONG usedPages;
 
-                            usedPages = PhCircularBufferGet_ULONG(&PhPhysicalHistory, getTooltipText->Index);
+                            usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
                             PhSwapReference2(&PhysicalGraphState.TooltipText, PhFormatString(
                                 L"Physical Memory: %s\n%s",
@@ -926,8 +926,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                                 FLOAT cpuKernel;
                                 FLOAT cpuUser;
 
-                                cpuKernel = PhCircularBufferGet_FLOAT(&PhCpusKernelHistory[i], getTooltipText->Index);
-                                cpuUser = PhCircularBufferGet_FLOAT(&PhCpusUserHistory[i], getTooltipText->Index);
+                                cpuKernel = PhGetItemCircularBuffer_FLOAT(&PhCpusKernelHistory[i], getTooltipText->Index);
+                                cpuUser = PhGetItemCircularBuffer_FLOAT(&PhCpusUserHistory[i], getTooltipText->Index);
 
                                 PhSwapReference2(&CpusGraphState[i].TooltipText, PhFormatString(
                                     L"%.2f%% (K: %.2f%%, U: %.2f%%)%s\n%s",

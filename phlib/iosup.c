@@ -182,7 +182,7 @@ NTSTATUS PhCreateFileStream(
 
         zero.QuadPart = 0;
 
-        if (!NT_SUCCESS(PhFileStreamSeek(
+        if (!NT_SUCCESS(PhSeekFileStream(
             fileStream,
             &zero,
             SeekEnd
@@ -248,7 +248,7 @@ VOID NTAPI PhpFileStreamDeleteProcedure(
 {
     PPH_FILE_STREAM fileStream = (PPH_FILE_STREAM)Object;
 
-    PhFileStreamFlush(fileStream, FALSE);
+    PhFlushFileStream(fileStream, FALSE);
 
     if (!(fileStream->Flags & PH_FILE_STREAM_HANDLE_UNOWNED))
         NtClose(fileStream->FileHandle);
@@ -261,7 +261,7 @@ VOID NTAPI PhpFileStreamDeleteProcedure(
  * Verifies that a file stream's position matches 
  * the position held by the file object.
  */
-VOID PhFileStreamVerify(
+VOID PhVerifyFileStream(
     __in PPH_FILE_STREAM FileStream
     )
 {
@@ -291,7 +291,7 @@ VOID PhFileStreamVerify(
     }
 }
 
-NTSTATUS PhpFileStreamAllocateBuffer(
+NTSTATUS PhpAllocateBufferFileStream(
     __inout PPH_FILE_STREAM FileStream
     )
 {
@@ -303,7 +303,7 @@ NTSTATUS PhpFileStreamAllocateBuffer(
         return STATUS_INSUFFICIENT_RESOURCES;
 }
 
-NTSTATUS PhpFileStreamRead(
+NTSTATUS PhpReadFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __out_bcount(Length) PVOID Buffer,
     __in ULONG Length,
@@ -350,7 +350,7 @@ NTSTATUS PhpFileStreamRead(
     return status;
 }
 
-NTSTATUS PhFileStreamRead(
+NTSTATUS PhReadFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __out_bcount(Length) PVOID Buffer,
     __in ULONG Length,
@@ -363,7 +363,7 @@ NTSTATUS PhFileStreamRead(
 
     if (FileStream->Flags & PH_FILE_STREAM_UNBUFFERED)
     {
-        return PhpFileStreamRead(
+        return PhpReadFileStream(
             FileStream,
             Buffer,
             Length,
@@ -379,7 +379,7 @@ NTSTATUS PhFileStreamRead(
         // Make sure buffered writes are flushed.
         if (FileStream->WritePosition != 0)
         {
-            if (!NT_SUCCESS(status = PhpFileStreamFlushWrite(FileStream)))
+            if (!NT_SUCCESS(status = PhpFlushWriteFileStream(FileStream)))
                 return status;
         }
 
@@ -390,7 +390,7 @@ NTSTATUS PhFileStreamRead(
             FileStream->ReadPosition = 0;
             FileStream->ReadLength = 0;
 
-            return PhpFileStreamRead(
+            return PhpReadFileStream(
                 FileStream,
                 Buffer,
                 Length,
@@ -400,12 +400,12 @@ NTSTATUS PhFileStreamRead(
 
         if (!FileStream->Buffer)
         {
-            if (!NT_SUCCESS(status = PhpFileStreamAllocateBuffer(FileStream)))
+            if (!NT_SUCCESS(status = PhpAllocateBufferFileStream(FileStream)))
                 return status;
         }
 
         // Read as much as we can into our buffer.
-        if (!NT_SUCCESS(status = PhpFileStreamRead(
+        if (!NT_SUCCESS(status = PhpReadFileStream(
             FileStream,
             FileStream->Buffer,
             FileStream->BufferLength,
@@ -451,7 +451,7 @@ NTSTATUS PhFileStreamRead(
     {
         ULONG readLength2;
 
-        if (NT_SUCCESS(status = PhpFileStreamRead(
+        if (NT_SUCCESS(status = PhpReadFileStream(
             FileStream,
             (PCHAR)Buffer + readLength,
             Length - readLength,
@@ -474,7 +474,7 @@ NTSTATUS PhFileStreamRead(
     return status;
 }
 
-NTSTATUS PhpFileStreamWrite(
+NTSTATUS PhpWriteFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in_bcount(Length) PVOID Buffer,
     __in ULONG Length
@@ -517,7 +517,7 @@ NTSTATUS PhpFileStreamWrite(
     return status;
 }
 
-NTSTATUS PhFileStreamWrite(
+NTSTATUS PhWriteFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in_bcount(Length) PVOID Buffer,
     __in ULONG Length
@@ -529,7 +529,7 @@ NTSTATUS PhFileStreamWrite(
 
     if (FileStream->Flags & PH_FILE_STREAM_UNBUFFERED)
     {
-        return PhpFileStreamWrite(
+        return PhpWriteFileStream(
             FileStream,
             Buffer,
             Length
@@ -539,7 +539,7 @@ NTSTATUS PhFileStreamWrite(
     if (FileStream->WritePosition == 0)
     {
         // Make sure buffered reads are flushed.
-        if (!NT_SUCCESS(status = PhpFileStreamFlushRead(FileStream)))
+        if (!NT_SUCCESS(status = PhpFlushReadFileStream(FileStream)))
             return status;
     }
 
@@ -574,7 +574,7 @@ NTSTATUS PhFileStreamWrite(
 
         // If we didn't completely satisfy the request, it's because the 
         // buffer is full. Flush it.
-        if (!NT_SUCCESS(status = PhpFileStreamWrite(
+        if (!NT_SUCCESS(status = PhpWriteFileStream(
             FileStream,
             FileStream->Buffer,
             FileStream->WritePosition
@@ -587,7 +587,7 @@ NTSTATUS PhFileStreamWrite(
     // If the write is too big, pass it through.
     if (Length >= FileStream->BufferLength)
     {
-        if (!NT_SUCCESS(status = PhpFileStreamWrite(
+        if (!NT_SUCCESS(status = PhpWriteFileStream(
             FileStream,
             Buffer,
             Length
@@ -598,7 +598,7 @@ NTSTATUS PhFileStreamWrite(
     {
         if (!FileStream->Buffer)
         {
-            if (!NT_SUCCESS(status = PhpFileStreamAllocateBuffer(FileStream)))
+            if (!NT_SUCCESS(status = PhpAllocateBufferFileStream(FileStream)))
                 return status;
         }
 
@@ -614,7 +614,7 @@ NTSTATUS PhFileStreamWrite(
     return status;
 }
 
-NTSTATUS PhpFileStreamFlushRead(
+NTSTATUS PhpFlushReadFileStream(
     __inout PPH_FILE_STREAM FileStream
     )
 {
@@ -629,7 +629,7 @@ NTSTATUS PhpFileStreamFlushRead(
         // unused byte.
         offset.QuadPart = -(LONG)(FileStream->ReadLength - FileStream->ReadPosition);
 
-        if (!NT_SUCCESS(status = PhpFileStreamSeek(
+        if (!NT_SUCCESS(status = PhpSeekFileStream(
             FileStream,
             &offset,
             SeekCurrent
@@ -643,13 +643,13 @@ NTSTATUS PhpFileStreamFlushRead(
     return status;
 }
 
-NTSTATUS PhpFileStreamFlushWrite(
+NTSTATUS PhpFlushWriteFileStream(
     __inout PPH_FILE_STREAM FileStream
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (!NT_SUCCESS(status = PhpFileStreamWrite(
+    if (!NT_SUCCESS(status = PhpWriteFileStream(
         FileStream,
         FileStream->Buffer,
         FileStream->WritePosition
@@ -661,17 +661,6 @@ NTSTATUS PhpFileStreamFlushWrite(
     return status;
 }
 
-VOID PhFileStreamGetPosition(
-    __in PPH_FILE_STREAM FileStream,
-    __out PLARGE_INTEGER Position
-    )
-{
-    Position->QuadPart =
-        FileStream->Position.QuadPart +
-        (FileStream->ReadPosition - FileStream->ReadLength) +
-        FileStream->WritePosition;
-}
-
 /**
  * Flushes the file stream.
  *
@@ -680,7 +669,7 @@ VOID PhFileStreamGetPosition(
  * operating system, otherwise FALSE to only ensure the buffer 
  * is flushed to the operating system.
  */
-NTSTATUS PhFileStreamFlush(
+NTSTATUS PhFlushFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in BOOLEAN Full
     )
@@ -689,13 +678,13 @@ NTSTATUS PhFileStreamFlush(
 
     if (FileStream->WritePosition != 0)
     {
-        if (!NT_SUCCESS(status = PhpFileStreamFlushWrite(FileStream)))
+        if (!NT_SUCCESS(status = PhpFlushWriteFileStream(FileStream)))
             return status;
     }
 
     if (FileStream->ReadPosition != 0)
     {
-        if (!NT_SUCCESS(status = PhpFileStreamFlushRead(FileStream)))
+        if (!NT_SUCCESS(status = PhpFlushReadFileStream(FileStream)))
             return status;
     }
 
@@ -713,7 +702,18 @@ NTSTATUS PhFileStreamFlush(
     return status;
 }
 
-NTSTATUS PhpFileStreamSeek(
+VOID PhGetPositionFileStream(
+    __in PPH_FILE_STREAM FileStream,
+    __out PLARGE_INTEGER Position
+    )
+{
+    Position->QuadPart =
+        FileStream->Position.QuadPart +
+        (FileStream->ReadPosition - FileStream->ReadLength) +
+        FileStream->WritePosition;
+}
+
+NTSTATUS PhpSeekFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Offset,
     __in PH_SEEK_ORIGIN Origin
@@ -766,7 +766,7 @@ NTSTATUS PhpFileStreamSeek(
     return status;
 }
 
-NTSTATUS PhFileStreamSeek(
+NTSTATUS PhSeekFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Offset,
     __in PH_SEEK_ORIGIN Origin
@@ -779,7 +779,7 @@ NTSTATUS PhFileStreamSeek(
 
     if (FileStream->WritePosition != 0)
     {
-        if (!NT_SUCCESS(status = PhpFileStreamFlushWrite(FileStream)))
+        if (!NT_SUCCESS(status = PhpFlushWriteFileStream(FileStream)))
             return status;
     }
     else if (FileStream->ReadPosition != 0)
@@ -797,7 +797,7 @@ NTSTATUS PhFileStreamSeek(
         FileStream->ReadLength = 0;
     }
 
-    if (!NT_SUCCESS(status = PhpFileStreamSeek(
+    if (!NT_SUCCESS(status = PhpSeekFileStream(
         FileStream,
         &offset,
         Origin
@@ -807,7 +807,7 @@ NTSTATUS PhFileStreamSeek(
     return status;
 }
 
-NTSTATUS PhFileStreamLock(
+NTSTATUS PhLockFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Position,
     __in PLARGE_INTEGER Length,
@@ -842,7 +842,7 @@ NTSTATUS PhFileStreamLock(
     return status;
 }
 
-NTSTATUS PhFileStreamUnlock(
+NTSTATUS PhUnlockFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Position,
     __in PLARGE_INTEGER Length
@@ -859,15 +859,15 @@ NTSTATUS PhFileStreamUnlock(
         );
 }
 
-NTSTATUS PhFileStreamWriteStringAsAnsi(
+NTSTATUS PhWriteStringAsAnsiFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PPH_STRINGREF String
     )
 {
-    return PhFileStreamWriteStringAsAnsiEx(FileStream, String->Buffer, String->Length);
+    return PhWriteStringAsAnsiFileStreamEx(FileStream, String->Buffer, String->Length);
 }
 
-NTSTATUS PhFileStreamWriteStringAsAnsi2(
+NTSTATUS PhWriteStringAsAnsiFileStream2(
     __inout PPH_FILE_STREAM FileStream,
     __in PWSTR String
     )
@@ -876,10 +876,10 @@ NTSTATUS PhFileStreamWriteStringAsAnsi2(
 
     PhInitializeStringRef(&string, String);
 
-    return PhFileStreamWriteStringAsAnsi(FileStream, &string);
+    return PhWriteStringAsAnsiFileStream(FileStream, &string);
 }
 
-NTSTATUS PhFileStreamWriteStringAsAnsiEx(
+NTSTATUS PhWriteStringAsAnsiFileStreamEx(
     __inout PPH_FILE_STREAM FileStream,
     __in PWSTR Buffer,
     __in SIZE_T Length
@@ -904,7 +904,7 @@ NTSTATUS PhFileStreamWriteStringAsAnsiEx(
             )))
             return status;
 
-        PhFileStreamWrite(
+        PhWriteFileStream(
             FileStream,
             ansiString.Buffer,
             ansiString.Length
@@ -919,7 +919,7 @@ NTSTATUS PhFileStreamWriteStringAsAnsiEx(
     return status;
 }
 
-NTSTATUS PhFileStreamWriteStringFormat_V(
+NTSTATUS PhWriteStringFormatFileStream_V(
     __inout PPH_FILE_STREAM FileStream,
     __in __format_string PWSTR Format,
     __in va_list ArgPtr
@@ -929,13 +929,13 @@ NTSTATUS PhFileStreamWriteStringFormat_V(
     PPH_STRING string;
 
     string = PhFormatString_V(Format, ArgPtr);
-    status = PhFileStreamWriteStringAsAnsi(FileStream, &string->sr);
+    status = PhWriteStringAsAnsiFileStream(FileStream, &string->sr);
     PhDereferenceObject(string);
 
     return status;
 }
 
-NTSTATUS PhFileStreamWriteStringFormat(
+NTSTATUS PhWriteStringFormatFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in __format_string PWSTR Format,
     ...
@@ -945,5 +945,5 @@ NTSTATUS PhFileStreamWriteStringFormat(
 
     va_start(argptr, Format);
 
-    return PhFileStreamWriteStringFormat_V(FileStream, Format, argptr);
+    return PhWriteStringFormatFileStream_V(FileStream, Format, argptr);
 }

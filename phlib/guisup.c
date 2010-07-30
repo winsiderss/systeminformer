@@ -293,12 +293,12 @@ BOOLEAN PhLoadListViewColumnSettings(
 
     while (i < length)
     {
-        indexOfComma = PhStringIndexOfChar(Settings, i, ',');
+        indexOfComma = PhFindCharInString(Settings, i, ',');
 
         if (indexOfComma == -1)
             return FALSE;
 
-        indexOfPipe = PhStringIndexOfChar(Settings, i, '|');
+        indexOfPipe = PhFindCharInString(Settings, i, '|');
 
         if (indexOfPipe == -1) // last pair in string
             indexOfPipe = Settings->Length / 2;
@@ -355,7 +355,7 @@ PPH_STRING PhSaveListViewColumnSettings(
 
     while (ListView_GetColumn(ListViewHandle, i, &lvColumn))
     {
-        PhStringBuilderAppendFormat(
+        PhAppendFormatStringBuilder(
             &stringBuilder,
             L"%u,%u|",
             lvColumn.iOrder,
@@ -365,7 +365,7 @@ PPH_STRING PhSaveListViewColumnSettings(
     }
 
     if (stringBuilder.String->Length != 0)
-        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     string = PhReferenceStringBuilderString(&stringBuilder);
     PhDeleteStringBuilder(&stringBuilder);
@@ -707,7 +707,7 @@ VOID PhGetSelectedListViewItemParams(
             &param
             ))
         {
-            PhAddListItem(list, param);
+            PhAddItemList(list, param);
         }
     }
 
@@ -764,7 +764,7 @@ INT PhImageListWrapperAddIcon(
     if (Wrapper->FreeList->Count != 0)
     {
         index = (INT)Wrapper->FreeList->Items[Wrapper->FreeList->Count - 1];
-        PhRemoveListItem(Wrapper->FreeList, Wrapper->FreeList->Count - 1);
+        PhRemoveItemList(Wrapper->FreeList, Wrapper->FreeList->Count - 1);
     }
     else
     {
@@ -781,7 +781,7 @@ VOID PhImageListWrapperRemove(
 {
     // We don't actually remove the icon; this is to keep the indicies 
     // stable.
-    PhAddListItem(Wrapper->FreeList, (PVOID)Index);
+    PhAddItemList(Wrapper->FreeList, (PVOID)Index);
 }
 
 VOID PhpSetClipboardData(
@@ -946,7 +946,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
 
     item->OrigRect = item->Rect;
 
-    PhAddListItem(Manager->List, item);
+    PhAddItemList(Manager->List, item);
 
     return item;
 }

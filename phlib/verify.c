@@ -110,7 +110,7 @@ PPH_STRING PhpGetCertNameString(
         bufferSize
         );
 
-    PhTrimStringToNullTerminator(string);
+    PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -133,7 +133,7 @@ PPH_STRING PhpGetX500Value(
     keyNamePlusEquals[keyNameLength + 1] = 0;
 
     // Find "Key=".
-    startIndex = PhStringIndexOfString(String, 0, keyNamePlusEquals);
+    startIndex = PhFindStringInString(String, 0, keyNamePlusEquals);
 
     if (startIndex == -1)
         return NULL;
@@ -151,7 +151,7 @@ PPH_STRING PhpGetX500Value(
         if (startIndex * sizeof(WCHAR) >= String->Length)
             return NULL;
 
-        endIndex = PhStringIndexOfChar(String, startIndex, '"');
+        endIndex = PhFindCharInString(String, startIndex, '"');
 
         // It's an error if we didn't find the matching quotation mark.
         if (endIndex == -1)
@@ -159,7 +159,7 @@ PPH_STRING PhpGetX500Value(
     }
     else
     {
-        endIndex = PhStringIndexOfChar(String, startIndex, ',');
+        endIndex = PhFindCharInString(String, startIndex, ',');
 
         // If we didn't find a comma, it means the key/value pair is 
         // the last one in the string.

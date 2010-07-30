@@ -81,7 +81,7 @@ VOID PhShowMemoryEditorDialog(
     lookupContext.BaseAddress = BaseAddress;
     lookupContext.RegionSize = RegionSize;
 
-    links = PhAvlTreeSearch(&PhMemoryEditorSet, &lookupContext.Links);
+    links = PhFindElementAvlTree(&PhMemoryEditorSet, &lookupContext.Links);
 
     if (!links)
     {
@@ -112,7 +112,7 @@ VOID PhShowMemoryEditorDialog(
             PostMessage(context->WindowHandle, WM_PH_SELECT_OFFSET, SelectOffset, SelectLength);
 
         PhRegisterDialog(context->WindowHandle);
-        PhAvlTreeAdd(&PhMemoryEditorSet, &context->Links);
+        PhAddElementAvlTree(&PhMemoryEditorSet, &context->Links);
 
         ShowWindow(context->WindowHandle, SW_SHOW);
     }
@@ -280,7 +280,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
             if (context->LoadCompleted)
             {
                 PhSaveWindowPlacementToSetting(L"MemEditPosition", L"MemEditSize", hwndDlg);
-                PhAvlTreeRemove(&PhMemoryEditorSet, &context->Links);
+                PhRemoveElementAvlTree(&PhMemoryEditorSet, &context->Links);
                 PhUnregisterDialog(hwndDlg);
             }
 
@@ -350,7 +350,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                             0
                             )))
                         {
-                            status = PhFileStreamWrite(fileStream, context->Buffer, (ULONG)context->RegionSize);
+                            status = PhWriteFileStream(fileStream, context->Buffer, (ULONG)context->RegionSize);
                             PhDereferenceObject(fileStream);
                         }
 

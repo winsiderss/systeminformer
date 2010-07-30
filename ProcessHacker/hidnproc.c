@@ -180,7 +180,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                     ProcessesList = PhCreateList(40);
 
                     ProcessesMethod =
-                        PhStringEquals2(method, L"Brute Force", TRUE) ?
+                        PhEqualString2(method, L"Brute Force", TRUE) ?
                         BruteForceScanMethod :
                         CsrHandlesScanMethod;
                     NumberOfHiddenProcesses = 0;
@@ -300,10 +300,10 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             )))
                         {
                             PhWritePhTextHeader(fileStream);
-                            PhFileStreamWriteStringAsAnsi2(fileStream, L"Method: ");
-                            PhFileStreamWriteStringAsAnsi2(fileStream,
+                            PhWriteStringAsAnsiFileStream2(fileStream, L"Method: ");
+                            PhWriteStringAsAnsiFileStream2(fileStream,
                                 ProcessesMethod == BruteForceScanMethod ? L"Brute Force\r\n" : L"CSR Handles\r\n");
-                            PhFileStreamWriteStringFormat(
+                            PhWriteStringFormatFileStream(
                                 fileStream,
                                 L"Hidden: %u\r\nTerminated: %u\r\n\r\n",
                                 NumberOfHiddenProcesses,
@@ -319,13 +319,13 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                                     PPH_HIDDEN_PROCESS_ENTRY entry = ProcessesList->Items[i];
 
                                     if (entry->Type == HiddenProcess)
-                                        PhFileStreamWriteStringAsAnsi2(fileStream, L"[HIDDEN] ");
+                                        PhWriteStringAsAnsiFileStream2(fileStream, L"[HIDDEN] ");
                                     else if (entry->Type == TerminatedProcess)
-                                        PhFileStreamWriteStringAsAnsi2(fileStream, L"[Terminated] ");
+                                        PhWriteStringAsAnsiFileStream2(fileStream, L"[Terminated] ");
                                     else if (entry->Type != NormalProcess)
                                         continue;
 
-                                    PhFileStreamWriteStringFormat(
+                                    PhWriteStringFormatFileStream(
                                         fileStream,
                                         L"%s (%u)\r\n",
                                         entry->FileName->Buffer,
@@ -435,7 +435,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
     if (entry->FileName)
         PhReferenceObject(entry->FileName);
 
-    PhAddListItem(ProcessesList, entry);
+    PhAddItemList(ProcessesList, entry);
 
     lvItemIndex = PhAddListViewItem(PhHiddenProcessesListViewHandle, MAXINT,
         PhGetStringOrDefault(entry->FileName, L"(unknown)"), entry);
@@ -471,7 +471,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
     do
     {
-        PhAddListItem(pids, process->UniqueProcessId);
+        PhAddItemList(pids, process->UniqueProcessId);
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
@@ -508,7 +508,7 @@ NTSTATUS PhpEnumHiddenProcessesBruteForce(
 
                 if (times.ExitTime.QuadPart != 0)
                     entry.Type = TerminatedProcess;
-                else if (PhIndexOfListItem(pids, (HANDLE)pid) != -1)
+                else if (PhFindItemList(pids, (HANDLE)pid) != -1)
                     entry.Type = NormalProcess;
                 else
                     entry.Type = HiddenProcess;
@@ -586,7 +586,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
 
             if (times.ExitTime.QuadPart != 0)
                 entry.Type = TerminatedProcess;
-            else if (PhIndexOfListItem(context->Pids, Handle->ProcessId) != -1)
+            else if (PhFindItemList(context->Pids, Handle->ProcessId) != -1)
                 entry.Type = NormalProcess;
             else
                 entry.Type = HiddenProcess;
@@ -632,7 +632,7 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
 
     do
     {
-        PhAddListItem(pids, process->UniqueProcessId);
+        PhAddItemList(pids, process->UniqueProcessId);
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
@@ -704,7 +704,7 @@ NTSTATUS PhpOpenCsrProcesses(
                 )) &&
                 knownProcessType == WindowsSubsystemProcessType)
             {
-                PhAddListItem(processHandleList, processHandle);
+                PhAddItemList(processHandleList, processHandle);
             }
             else
             {
@@ -814,10 +814,10 @@ NTSTATUS PhEnumCsrProcessHandles(
                     continue;
 
                 // Avoid duplicate PIDs.
-                if (PhIndexOfListItem(pids, handle.ProcessId) != -1)
+                if (PhFindItemList(pids, handle.ProcessId) != -1)
                     continue;
 
-                PhAddListItem(pids, handle.ProcessId);
+                PhAddItemList(pids, handle.ProcessId);
 
                 if (!Callback(&handle, Context))
                 {

@@ -267,7 +267,7 @@ __assumeLocked static VOID PhpAddSetting(
 
     PhpSettingFromString(Type, setting.DefaultValue, &setting.Value);
 
-    PhAddHashtableEntry(PhSettingsHashtable, &setting);
+    PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
 
 static PPH_STRING PhpSettingToString(
@@ -339,7 +339,7 @@ static BOOLEAN PhpSettingFromString(
             PH_STRINGREF xString;
             PH_STRINGREF yString;
 
-            indexOfComma = PhStringIndexOfChar(String, 0, ',');
+            indexOfComma = PhFindCharInString(String, 0, ',');
 
             if (indexOfComma == -1)
                 return FALSE;
@@ -392,7 +392,7 @@ static PVOID PhpLookupSetting(
     PPH_SETTING setting;
 
     lookupSetting.Name = Name;
-    setting = (PPH_SETTING)PhGetHashtableEntry(
+    setting = (PPH_SETTING)PhFindEntryHashtable(
         PhSettingsHashtable,
         &lookupSetting
         );
@@ -715,7 +715,7 @@ NTSTATUS PhLoadSettings(
                     PhReferenceObject(settingValue);
                     setting->Value = settingValue;
 
-                    PhAddListItem(PhIgnoredSettings, setting);
+                    PhAddItemList(PhIgnoredSettings, setting);
                 }
             }
 

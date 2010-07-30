@@ -197,7 +197,7 @@ VOID PhUpdateIconCpuHistory()
 
     // Text
 
-    maxCpuProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxCpuHistory, 0);
+    maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
 
     if (maxCpuProcessId != NULL)
     {
@@ -264,10 +264,10 @@ VOID PhUpdateIconIoHistory()
     for (i = 0; i < lineDataCount; i++)
     {
         lineData1[i] =
-            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoReadHistory, i) +
-            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoOtherHistory, i);
+            (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
+            (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i);
         lineData2[i] =
-            (FLOAT)PhCircularBufferGet_ULONG64(&PhIoWriteHistory, i);
+            (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
 
         if (max < lineData1[i] + lineData2[i])
             max = lineData1[i] + lineData2[i];
@@ -292,7 +292,7 @@ VOID PhUpdateIconIoHistory()
 
     // Text
 
-    maxIoProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxIoHistory, 0);
+    maxIoProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0);
 
     if (maxIoProcessId != NULL)
     {
@@ -358,7 +358,7 @@ VOID PhUpdateIconCommitHistory()
     lineDataCount = min(9, PhCommitHistory.Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhCircularBufferGet_ULONG(&PhCommitHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
 
     PhxfDivideSingle2U(lineData1, (FLOAT)PhPerfInformation.CommitLimit, lineDataCount);
 
@@ -421,7 +421,7 @@ VOID PhUpdateIconPhysicalHistory()
     lineDataCount = min(9, PhCommitHistory.Count);
 
     for (i = 0; i < lineDataCount; i++)
-        lineData1[i] = (FLOAT)PhCircularBufferGet_ULONG(&PhPhysicalHistory, i);
+        lineData1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
 
     PhxfDivideSingle2U(lineData1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, lineDataCount);
 
@@ -544,7 +544,7 @@ VOID PhUpdateIconCpuUsage()
 
     // Text
 
-    maxCpuProcessId = (HANDLE)PhCircularBufferGet_ULONG(&PhMaxCpuHistory, 0);
+    maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
 
     if (maxCpuProcessId != NULL)
     {

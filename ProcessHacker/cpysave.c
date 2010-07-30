@@ -90,15 +90,15 @@ PPH_FULL_STRING PhGetProcessTreeListText(
             PhInitializeEmptyStringRef(&getNodeText.Text);
             TreeList_GetNodeText(TreeListHandle, &getNodeText);
 
-            PhFullStringAppendEx(string, getNodeText.Text.Buffer, getNodeText.Text.Length);
-            PhFullStringAppend2(string, L", ");
+            PhAppendFullStringEx(string, getNodeText.Text.Buffer, getNodeText.Text.Length);
+            PhAppendFullString2(string, L", ");
         }
 
         // Remove the trailing comma and space.
         if (string->Length != 0)
-            PhFullStringRemove(string, string->Length / 2 - 2, 2);
+            PhRemoveFullString(string, string->Length / 2 - 2, 2);
 
-        PhFullStringAppend2(string, L"\r\n");
+        PhAppendFullString2(string, L"\r\n");
     }
 
     return string;
@@ -181,11 +181,11 @@ VOID PhpEscapeStringForCsv(
         case '\"':
             if (runStart)
             {
-                PhStringBuilderAppendEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
+                PhAppendStringBuilderEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
                 runStart = NULL;
             }
 
-            PhStringBuilderAppend2(StringBuilder, L"\"\"");
+            PhAppendStringBuilder2(StringBuilder, L"\"\"");
 
             break;
         default:
@@ -204,7 +204,7 @@ VOID PhpEscapeStringForCsv(
     }
 
     if (runStart)
-        PhStringBuilderAppendEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
+        PhAppendStringBuilderEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
 }
 
 PPH_LIST PhGetProcessTreeListLines(
@@ -323,8 +323,8 @@ PPH_LIST PhGetProcessTreeListLines(
                     // Calculate the number of tabs needed.
                     k = tabCount[j] + 1 - table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
-                    PhStringBuilderAppend(&stringBuilder, table[i][j]);
-                    PhStringBuilderAppendChar2(&stringBuilder, '\t', k);
+                    PhAppendStringBuilder(&stringBuilder, table[i][j]);
+                    PhAppendCharStringBuilder2(&stringBuilder, '\t', k);
                 }
             }
             break;
@@ -337,8 +337,8 @@ PPH_LIST PhGetProcessTreeListLines(
                     // Calculate the number of spaces needed.
                     k = (tabCount[j] + 1) * TAB_SIZE - table[i][j]->Length / sizeof(WCHAR);
 
-                    PhStringBuilderAppend(&stringBuilder, table[i][j]);
-                    PhStringBuilderAppendChar2(&stringBuilder, ' ', k);
+                    PhAppendStringBuilder(&stringBuilder, table[i][j]);
+                    PhAppendCharStringBuilder2(&stringBuilder, ' ', k);
                 }
             }
             break;
@@ -346,12 +346,12 @@ PPH_LIST PhGetProcessTreeListLines(
             {
                 for (j = 0; j < columns; j++)
                 {
-                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+                    PhAppendCharStringBuilder(&stringBuilder, '\"');
                     PhpEscapeStringForCsv(&stringBuilder, table[i][j]);
-                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+                    PhAppendCharStringBuilder(&stringBuilder, '\"');
 
                     if (j != columns - 1)
-                        PhStringBuilderAppendChar(&stringBuilder, ',');
+                        PhAppendCharStringBuilder(&stringBuilder, ',');
                 }
             }
             break;
@@ -359,7 +359,7 @@ PPH_LIST PhGetProcessTreeListLines(
 
         line = PhReferenceStringBuilderString(&stringBuilder);
         PhDeleteStringBuilder(&stringBuilder);
-        PhAddListItem(lines, line);
+        PhAddItemList(lines, line);
     }
 
     PhDeleteAutoPool(&autoPool);
@@ -435,16 +435,16 @@ PPH_FULL_STRING PhGetListViewText(
             lvItem.pszText = buffer;
 
             if (ListView_GetItem(ListViewHandle, &lvItem))
-                PhFullStringAppend2(string, buffer);
+                PhAppendFullString2(string, buffer);
 
-            PhFullStringAppend2(string, L", ");
+            PhAppendFullString2(string, L", ");
         }
 
         // Remove the trailing comma and space.
         if (string->Length != 0)
-            PhFullStringRemove(string, string->Length / 2 - 2, 2);
+            PhRemoveFullString(string, string->Length / 2 - 2, 2);
 
-        PhFullStringAppend2(string, L"\r\n");
+        PhAppendFullString2(string, L"\r\n");
     }
 
     return string;

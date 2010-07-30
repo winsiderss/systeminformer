@@ -1463,7 +1463,7 @@ NTSTATUS PhGetProcessEnvironmentVariables(
             break;
 
         // Save a pointer to the current pair string.
-        PhAddListItem(pairsList, &buffer[oldIndex]);
+        PhAddItemList(pairsList, &buffer[oldIndex]);
         i++; // skip the null terminator
     }
 
@@ -3199,7 +3199,7 @@ NTSTATUS PhGetTokenIntegrityLevel(
         return STATUS_UNSUCCESSFUL;
 
     // Look for " Mandatory Level".
-    i = PhStringIndexOfString(sidName, 0, L" Mandatory Level");
+    i = PhFindStringInString(sidName, 0, L" Mandatory Level");
 
     if (i == -1)
     {
@@ -3212,17 +3212,17 @@ NTSTATUS PhGetTokenIntegrityLevel(
     PhDereferenceObject(sidName);
 
     // Compute the integer integrity level.
-    if (PhStringEquals2(integrityString, L"Untrusted", FALSE))
+    if (PhEqualString2(integrityString, L"Untrusted", FALSE))
         integrityLevel = PiUntrusted;
-    else if (PhStringEquals2(integrityString, L"Low", FALSE))
+    else if (PhEqualString2(integrityString, L"Low", FALSE))
         integrityLevel = PiLow;
-    else if (PhStringEquals2(integrityString, L"Medium", FALSE))
+    else if (PhEqualString2(integrityString, L"Medium", FALSE))
         integrityLevel = PiMedium;
-    else if (PhStringEquals2(integrityString, L"High", FALSE))
+    else if (PhEqualString2(integrityString, L"High", FALSE))
         integrityLevel = PiHigh;
-    else if (PhStringEquals2(integrityString, L"System", FALSE))
+    else if (PhEqualString2(integrityString, L"System", FALSE))
         integrityLevel = PiSystem;
-    else if (PhStringEquals2(integrityString, L"Installer", FALSE))
+    else if (PhEqualString2(integrityString, L"Installer", FALSE))
         integrityLevel = PiInstaller;
     else
         integrityLevel = -1;
@@ -4096,7 +4096,7 @@ NTSTATUS PhUnloadDriver(
         name = PhCreateString(Name);
 
         // Remove the extension if it is present.
-        if (PhStringEndsWith2(name, L".sys", TRUE))
+        if (PhEndsWithString2(name, L".sys", TRUE))
         {
             serviceKeyName = PhSubstring(name, 0, name->Length / 2 - 4);
             PhDereferenceObject(name);
@@ -4707,7 +4707,7 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
 
     fullDllName.us = Module->FullDllName;
 
-    if (PhStringRefEquals(&fullDllName, &context->FileName, TRUE))
+    if (PhEqualStringRef(&fullDllName, &context->FileName, TRUE))
     {
         context->DllBase = Module->DllBase;
         return FALSE;
@@ -5291,9 +5291,9 @@ BOOLEAN NTAPI PhpGetProcessIsDotNetCallback(
 {
     PGET_PROCESS_IS_DOT_NET_CONTEXT context = Context;
 
-    if (PhStringEquals2(TypeName, L"Section", TRUE) &&
-        (PhStringEquals(Name, context->SectionName, TRUE) ||
-        PhStringEquals(Name, context->SectionNameV4, TRUE))
+    if (PhEqualString2(TypeName, L"Section", TRUE) &&
+        (PhEqualString(Name, context->SectionName, TRUE) ||
+        PhEqualString(Name, context->SectionNameV4, TRUE))
         )
     {
         context->Found = TRUE;
@@ -5373,8 +5373,8 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
     PPH_IS_DOT_NET_CONTEXT context = Context;
 
     if (
-        PhStringEquals2(TypeName, L"Section", TRUE) &&
-        PhStringRefStartsWith(&Name->sr, &prefix, TRUE)
+        PhEqualString2(TypeName, L"Section", TRUE) &&
+        PhStartsWithStringRef(&Name->sr, &prefix, TRUE)
         )
     {
         ULONG flags;
@@ -5387,7 +5387,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
         name.Buffer += prefix.Length / sizeof(WCHAR);
         name.Length -= prefix.Length;
 
-        if (PhStringRefStartsWith(&name, &prefixAddV4, TRUE))
+        if (PhStartsWithStringRef(&name, &prefixAddV4, TRUE))
         {
             flags |= PH_IS_DOT_NET_VERSION_4;
             name.Buffer += prefixAddV4.Length / sizeof(WCHAR);
@@ -5396,8 +5396,8 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
-            PhAddListItem(context->ProcessIdList, (HANDLE)(ULONG)processId);
-            PhAddListItem(context->FlagsList, (PVOID)flags);
+            PhAddItemList(context->ProcessIdList, (HANDLE)(ULONG)processId);
+            PhAddItemList(context->FlagsList, (PVOID)flags);
         }
     }
 
@@ -5793,7 +5793,7 @@ VOID PhRefreshMupDevicePrefixes()
         if (PhDeviceMupPrefixesCount == PH_DEVICE_MUP_PREFIX_MAX_COUNT)
             break;
 
-        indexOfComma = PhStringIndexOfChar(providerOrder, i, ',');
+        indexOfComma = PhFindCharInString(providerOrder, i, ',');
 
         if (indexOfComma == -1) // last provider name
             indexOfComma = providerOrder->Length / sizeof(WCHAR);
@@ -5926,7 +5926,7 @@ PPH_STRING PhResolveDevicePrefix(
         prefixLength = PhDevicePrefixes[i].Length;
 
         if (prefixLength != 0)
-            isPrefix = PhStringRefStartsWith(&Name->sr, &PhDevicePrefixes[i], TRUE);
+            isPrefix = PhStartsWithStringRef(&Name->sr, &PhDevicePrefixes[i], TRUE);
 
         PhReleaseQueuedLockShared(&PhDevicePrefixesLock);
 
@@ -5960,7 +5960,7 @@ PPH_STRING PhResolveDevicePrefix(
             prefixLength = PhDeviceMupPrefixes[i]->Length;
 
             if (prefixLength != 0)
-                isPrefix = PhStringStartsWith(Name, PhDeviceMupPrefixes[i], TRUE);
+                isPrefix = PhStartsWithString(Name, PhDeviceMupPrefixes[i], TRUE);
 
             if (isPrefix)
             {
@@ -6006,13 +6006,13 @@ PPH_STRING PhGetFileName(
     newFileName = FileName;
 
     // "\??\" refers to \GLOBAL??. Just remove it.
-    if (PhStringStartsWith2(FileName, L"\\??\\", FALSE))
+    if (PhStartsWithString2(FileName, L"\\??\\", FALSE))
     {
         newFileName = PhCreateStringEx(NULL, FileName->Length - 8);
         memcpy(newFileName->Buffer, &FileName->Buffer[4], FileName->Length - 8);
     }
     // "\SystemRoot" means "C:\Windows".
-    else if (PhStringStartsWith2(FileName, L"\\SystemRoot", TRUE))
+    else if (PhStartsWithString2(FileName, L"\\SystemRoot", TRUE))
     {
         ULONG systemRootLength;
 
@@ -6035,7 +6035,7 @@ PPH_STRING PhGetFileName(
         {
             // We didn't find a match.
             // If the file name starts with "\Windows", prepend the system drive.
-            if (PhStringStartsWith2(newFileName, L"\\Windows", TRUE))
+            if (PhStartsWithString2(newFileName, L"\\Windows", TRUE))
             {
                 newFileName = PhCreateStringEx(NULL, FileName->Length + 4);
                 newFileName->Buffer[0] = USER_SHARED_DATA->NtSystemRoot[0];
@@ -6079,13 +6079,13 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     context = (PENUM_GENERIC_PROCESS_MODULES_CONTEXT)Context;
 
     // Check if we have a duplicate base address.
-    if (PhIndexOfListItem(context->BaseAddressList, Module->DllBase) != -1)
+    if (PhFindItemList(context->BaseAddressList, Module->DllBase) != -1)
     {
         return TRUE;
     }
     else
     {
-        PhAddListItem(context->BaseAddressList, Module->DllBase);
+        PhAddItemList(context->BaseAddressList, Module->DllBase);
     }
 
     fileName = PhCreateStringEx(
@@ -6133,13 +6133,13 @@ VOID PhpRtlModulesToGenericModules(
         module = &Modules->Modules[i];
 
         // Check if we have a duplicate base address.
-        if (PhIndexOfListItem(BaseAddressList, module->ImageBase) != -1)
+        if (PhFindItemList(BaseAddressList, module->ImageBase) != -1)
         {
             continue;
         }
         else
         {
-            PhAddListItem(BaseAddressList, module->ImageBase);
+            PhAddItemList(BaseAddressList, module->ImageBase);
         }
 
         fileName = PhCreateStringFromAnsi(module->FullPathName);
@@ -6197,13 +6197,13 @@ VOID PhpEnumGenericMappedFiles(
             BOOLEAN cont;
 
             // Check if we have a duplicate base address.
-            if (PhIndexOfListItem(BaseAddressList, baseAddress) != -1)
+            if (PhFindItemList(BaseAddressList, baseAddress) != -1)
             {
                 goto ContinueLoop;
             }
             else
             {
-                PhAddListItem(BaseAddressList, baseAddress);
+                PhAddItemList(BaseAddressList, baseAddress);
             }
 
             if (!NT_SUCCESS(PhGetProcessMappedFileName(

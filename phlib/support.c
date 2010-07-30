@@ -254,7 +254,7 @@ PPH_STRING PhGetNtMessage(
     // {Asdf}\r\nAsdf asdf asdf...
     if (message->Buffer[0] == '{')
     {
-        ULONG indexOfNewLine = PhStringIndexOfChar(message, 0, '\n');
+        ULONG indexOfNewLine = PhFindCharInString(message, 0, '\n');
 
         if (indexOfNewLine != -1)
         {
@@ -620,10 +620,10 @@ PPH_STRING PhEllipsisStringPath(
 {
     ULONG secondPartIndex;
 
-    secondPartIndex = PhStringLastIndexOfChar(String, 0, L'\\');
+    secondPartIndex = PhFindLastCharInString(String, 0, L'\\');
 
     if (secondPartIndex == -1)
-        secondPartIndex = PhStringLastIndexOfChar(String, 0, L'/');
+        secondPartIndex = PhFindLastCharInString(String, 0, L'/');
     if (secondPartIndex == -1)
         return PhEllipsisString(String, DesiredCount);
 
@@ -696,7 +696,7 @@ PPH_STRING PhFormatDate(
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(string);
+    PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -718,7 +718,7 @@ PPH_STRING PhFormatTime(
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(string);
+    PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -752,7 +752,7 @@ PPH_STRING PhFormatDateTime(
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(string);
+    PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -859,7 +859,7 @@ PPH_STRING PhFormatTimeSpanRelative(
     }
 
     // Turn 1 into "a", e.g. 1 minute -> a minute
-    if (PhStringStartsWith2(string, L"1 ", FALSE))
+    if (PhStartsWithString2(string, L"1 ", FALSE))
     {
         // Special vowel case: a hour -> an hour
         if (string->Buffer[2] != 'h')
@@ -1075,7 +1075,7 @@ PPH_STRING PhFormatDecimal(
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(string);
+    PhTrimToNullTerminatorString(string);
 
     return string;
 }
@@ -1135,7 +1135,7 @@ PPH_STRING PhFormatSize(
         }
 
         if (
-            PhStringEndsWith2(formattedString, L"00", FALSE) &&
+            PhEndsWithString2(formattedString, L"00", FALSE) &&
             formattedString->Length >= 6
             )
         {
@@ -1143,7 +1143,7 @@ PPH_STRING PhFormatSize(
             // PhConcatStrings doesn't include them.
             formattedString->Buffer[formattedString->Length / 2 - 3] = 0;
         }
-        else if (PhStringEndsWith2(formattedString, L"0", FALSE))
+        else if (PhEndsWithString2(formattedString, L"0", FALSE))
         {
             // Remove the last character.
             formattedString->Buffer[formattedString->Length / 2 - 1] = 0;
@@ -1241,7 +1241,7 @@ PPH_STRING PhGetFileVersionInfoString(
 
         string = PhCreateStringEx((PWSTR)buffer, length * sizeof(WCHAR));
         // length may include the null terminator.
-        PhTrimStringToNullTerminator(string);
+        PhTrimToNullTerminatorString(string);
 
         return string;
     }
@@ -1319,23 +1319,23 @@ PPH_STRING PhFormatImageVersionInfo(
 
     // File name
 
-    if (!PhIsStringNullOrEmpty(FileName))
+    if (!PhIsNullOrEmptyString(FileName))
     {
         PPH_STRING temp;
 
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
 
         temp = PhEllipsisStringPath(FileName, LineLimit);
-        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhAppendStringBuilderEx(&stringBuilder, temp->Buffer, temp->Length);
         PhDereferenceObject(temp);
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
+        PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
 
     // File description & version
 
     if (!(
-        PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription) &&
-        PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion)
+        PhIsNullOrEmptyString(ImageVersionInfo->FileDescription) &&
+        PhIsNullOrEmptyString(ImageVersionInfo->FileVersion)
         ))
     {
         PPH_STRING tempDescription = NULL;
@@ -1354,7 +1354,7 @@ PPH_STRING PhFormatImageVersionInfo(
             limitForVersion = MAXULONG32;
         }
 
-        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileDescription))
+        if (!PhIsNullOrEmptyString(ImageVersionInfo->FileDescription))
         {
             tempDescription = PhEllipsisString(
                 ImageVersionInfo->FileDescription,
@@ -1362,7 +1362,7 @@ PPH_STRING PhFormatImageVersionInfo(
                 );
         }
 
-        if (!PhIsStringNullOrEmpty(ImageVersionInfo->FileVersion))
+        if (!PhIsNullOrEmptyString(ImageVersionInfo->FileVersion))
         {
             tempVersion = PhEllipsisString(
                 ImageVersionInfo->FileVersion,
@@ -1370,23 +1370,23 @@ PPH_STRING PhFormatImageVersionInfo(
                 );
         }
 
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
 
         if (tempDescription)
         {
-            PhStringBuilderAppendEx(
+            PhAppendStringBuilderEx(
                 &stringBuilder,
                 tempDescription->Buffer,
                 tempDescription->Length
                 );
 
             if (tempVersion)
-                PhStringBuilderAppendChar(&stringBuilder, ' '); 
+                PhAppendCharStringBuilder(&stringBuilder, ' '); 
         }
 
         if (tempVersion)
         {
-            PhStringBuilderAppendEx(
+            PhAppendStringBuilderEx(
                 &stringBuilder,
                 tempVersion->Buffer,
                 tempVersion->Length
@@ -1398,26 +1398,26 @@ PPH_STRING PhFormatImageVersionInfo(
         if (tempVersion)
             PhDereferenceObject(tempVersion);
 
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
+        PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
 
     // File company
 
-    if (!PhIsStringNullOrEmpty(ImageVersionInfo->CompanyName))
+    if (!PhIsNullOrEmptyString(ImageVersionInfo->CompanyName))
     {
         PPH_STRING temp;
 
-        if (Indent) PhStringBuilderAppendEx(&stringBuilder, Indent, indentLength);
+        if (Indent) PhAppendStringBuilderEx(&stringBuilder, Indent, indentLength);
 
         temp = PhEllipsisString(ImageVersionInfo->CompanyName, LineLimit);
-        PhStringBuilderAppendEx(&stringBuilder, temp->Buffer, temp->Length);
+        PhAppendStringBuilderEx(&stringBuilder, temp->Buffer, temp->Length);
         PhDereferenceObject(temp);
-        PhStringBuilderAppendChar(&stringBuilder, '\n');
+        PhAppendCharStringBuilder(&stringBuilder, '\n');
     }
 
     // Remove the extra newline.
     if (stringBuilder.String->Length != 0)
-        PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     string = PhReferenceStringBuilderString(&stringBuilder);
     PhDeleteStringBuilder(&stringBuilder);
@@ -1455,7 +1455,7 @@ PPH_STRING PhGetFullPath(
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(fullPath);
+    PhTrimToNullTerminatorString(fullPath);
 
     if (IndexOfFileName)
     {
@@ -1528,7 +1528,7 @@ PPH_STRING PhGetBaseName(
 {
     ULONG lastIndexOfBackslash;
 
-    lastIndexOfBackslash = PhStringLastIndexOfChar(FileName, 0, '\\');
+    lastIndexOfBackslash = PhFindLastCharInString(FileName, 0, '\\');
 
     if (lastIndexOfBackslash == -1)
     {
@@ -1569,7 +1569,7 @@ PPH_STRING PhGetSystemDirectory()
         return NULL;
     }
 
-    PhTrimStringToNullTerminator(systemDirectory);
+    PhTrimToNullTerminatorString(systemDirectory);
 
     return systemDirectory;
 }
@@ -1633,7 +1633,7 @@ PPH_STRING PhGetDllFileName(
 
     if (IndexOfFileName)
     {
-        indexOfFileName = PhStringLastIndexOfChar(fileName, 0, '\\');
+        indexOfFileName = PhFindLastCharInString(fileName, 0, '\\');
 
         if (indexOfFileName != -1)
             indexOfFileName++;
@@ -2050,19 +2050,19 @@ VOID PhShellOpenKey(
         return;
 
     // Expand the abbreviations.
-    if (PhStringStartsWith2(KeyName, L"HKCU", TRUE))
+    if (PhStartsWithString2(KeyName, L"HKCU", TRUE))
     {
         lastKey = PhConcatStrings2(L"HKEY_CURRENT_USER", &KeyName->Buffer[4]);
     }
-    else if (PhStringStartsWith2(KeyName, L"HKU", TRUE))
+    else if (PhStartsWithString2(KeyName, L"HKU", TRUE))
     {
         lastKey = PhConcatStrings2(L"HKEY_USERS", &KeyName->Buffer[3]);
     }
-    else if (PhStringStartsWith2(KeyName, L"HKCR", TRUE))
+    else if (PhStartsWithString2(KeyName, L"HKCR", TRUE))
     {
         lastKey = PhConcatStrings2(L"HKEY_CLASSES_ROOT", &KeyName->Buffer[4]);
     }
-    else if (PhStringStartsWith2(KeyName, L"HKLM", TRUE))
+    else if (PhStartsWithString2(KeyName, L"HKLM", TRUE))
     {
         lastKey = PhConcatStrings2(L"HKEY_LOCAL_MACHINE", &KeyName->Buffer[4]);
     }
@@ -2636,10 +2636,10 @@ VOID PhSetFileDialogFilter(
 
         for (i = 0; i < NumberOfFilters; i++)
         {
-            PhStringBuilderAppend2(&filterBuilder, Filters[i].Name);
-            PhStringBuilderAppendChar(&filterBuilder, 0);
-            PhStringBuilderAppend2(&filterBuilder, Filters[i].Filter);
-            PhStringBuilderAppendChar(&filterBuilder, 0);
+            PhAppendStringBuilder2(&filterBuilder, Filters[i].Name);
+            PhAppendCharStringBuilder(&filterBuilder, 0);
+            PhAppendStringBuilder2(&filterBuilder, Filters[i].Filter);
+            PhAppendCharStringBuilder(&filterBuilder, 0);
         }
 
         filterString = PhReferenceStringBuilderString(&filterBuilder);
@@ -3035,18 +3035,18 @@ PPH_STRING PhParseCommandLinePart(
 
                     if (numberOfBackslashes != 0)
                     {
-                        PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                        PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
                         numberOfBackslashes = 0;
                     }
 
-                    PhStringBuilderAppendChar(&stringBuilder, '\"');
+                    PhAppendCharStringBuilder(&stringBuilder, '\"');
 
                     break;
                 }
                 else
                 {
                     numberOfBackslashes /= 2;
-                    PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                    PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
                     numberOfBackslashes = 0;
                 }
             }
@@ -3060,7 +3060,7 @@ PPH_STRING PhParseCommandLinePart(
         default:
             if (numberOfBackslashes != 0)
             {
-                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
                 numberOfBackslashes = 0;
             }
 
@@ -3070,7 +3070,7 @@ PPH_STRING PhParseCommandLinePart(
             }
             else
             {
-                PhStringBuilderAppendChar(&stringBuilder, CommandLine->Buffer[i]);
+                PhAppendCharStringBuilder(&stringBuilder, CommandLine->Buffer[i]);
             }
 
             break;
@@ -3167,7 +3167,7 @@ BOOLEAN PhParseCommandLine(
 
             for (j = 0; j < NumberOfOptions; j++)
             {
-                if (PhStringRefEquals2(&optionName, Options[j].Name, FALSE))
+                if (PhEqualStringRef2(&optionName, Options[j].Name, FALSE))
                 {
                     option = &Options[j];
                     break;
@@ -3256,21 +3256,21 @@ PPH_STRING PhEscapeCommandLinePart(
         case '\"':
             if (numberOfBackslashes != 0)
             {
-                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes * 2);
+                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes * 2);
                 numberOfBackslashes = 0;
             }
 
-            PhStringBuilderAppendEx(&stringBuilder, backslashAndQuote, sizeof(backslashAndQuote));
+            PhAppendStringBuilderEx(&stringBuilder, backslashAndQuote, sizeof(backslashAndQuote));
 
             break;
         default:
             if (numberOfBackslashes != 0)
             {
-                PhStringBuilderAppendChar2(&stringBuilder, '\\', numberOfBackslashes);
+                PhAppendCharStringBuilder2(&stringBuilder, '\\', numberOfBackslashes);
                 numberOfBackslashes = 0;
             }
 
-            PhStringBuilderAppendChar(&stringBuilder, String->Buffer[i]);
+            PhAppendCharStringBuilder(&stringBuilder, String->Buffer[i]);
 
             break;
         }

@@ -175,33 +175,33 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             PhInitializeStringBuilder(&stringBuilder, 10);
 
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_EXECUTABLE_IMAGE)
-                PhStringBuilderAppend2(&stringBuilder, L"Executable, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Executable, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_DLL)
-                PhStringBuilderAppend2(&stringBuilder, L"DLL, ");
+                PhAppendStringBuilder2(&stringBuilder, L"DLL, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_LARGE_ADDRESS_AWARE)
-                PhStringBuilderAppend2(&stringBuilder, L"Large address aware, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Large address aware, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_REMOVABLE_RUN_FROM_SWAP)
-                PhStringBuilderAppend2(&stringBuilder, L"Removable run from swap, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Removable run from swap, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_NET_RUN_FROM_SWAP)
-                PhStringBuilderAppend2(&stringBuilder, L"Net run from swap, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Net run from swap, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_SYSTEM)
-                PhStringBuilderAppend2(&stringBuilder, L"System, ");
+                PhAppendStringBuilder2(&stringBuilder, L"System, ");
             if (PvMappedImage.NtHeaders->FileHeader.Characteristics & IMAGE_FILE_UP_SYSTEM_ONLY)
-                PhStringBuilderAppend2(&stringBuilder, L"Uni-processor only, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Uni-processor only, ");
 
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
-                PhStringBuilderAppend2(&stringBuilder, L"Dynamic base, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Dynamic base, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_FORCE_INTEGRITY)
-                PhStringBuilderAppend2(&stringBuilder, L"Force integrity check, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Force integrity check, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NX_COMPAT)
-                PhStringBuilderAppend2(&stringBuilder, L"NX compatible, ");
+                PhAppendStringBuilder2(&stringBuilder, L"NX compatible, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_NO_SEH)
-                PhStringBuilderAppend2(&stringBuilder, L"No SEH, ");
+                PhAppendStringBuilder2(&stringBuilder, L"No SEH, ");
             if (PvMappedImage.NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE)
-                PhStringBuilderAppend2(&stringBuilder, L"Terminal server aware, ");
+                PhAppendStringBuilder2(&stringBuilder, L"Terminal server aware, ");
 
-            if (PhStringEndsWith2(stringBuilder.String, L", ", FALSE))
-                PhStringBuilderRemove(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
 
             SetDlgItemText(hwndDlg, IDC_CHARACTERISTICS, stringBuilder.String->Buffer);
             PhDeleteStringBuilder(&stringBuilder);

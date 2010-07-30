@@ -365,9 +365,9 @@ BOOLEAN PhMainWndInitialization(
     }
 
     PhRegisterProvider(&PhPrimaryProviderThread, PhProcessProviderUpdate, NULL, &ProcessProviderRegistration);
-    PhSetProviderEnabled(&ProcessProviderRegistration, TRUE);
+    PhSetEnabledProvider(&ProcessProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhServiceProviderUpdate, NULL, &ServiceProviderRegistration);
-    PhSetProviderEnabled(&ServiceProviderRegistration, TRUE);
+    PhSetEnabledProvider(&ServiceProviderRegistration, TRUE);
     PhRegisterProvider(&PhPrimaryProviderThread, PhNetworkProviderUpdate, NULL, &NetworkProviderRegistration);
 
     windowRectangle.Position = PhGetIntegerPairSetting(L"MainWindowPosition");
@@ -410,18 +410,18 @@ BOOLEAN PhMainWndInitialization(
         PH_STRING_BUILDER stringBuilder;
 
         PhInitializeStringBuilder(&stringBuilder, 100);
-        PhStringBuilderAppend2(&stringBuilder, L"Process Hacker");
+        PhAppendStringBuilder2(&stringBuilder, L"Process Hacker");
 
         if (PhCurrentUserName)
         {
-            PhStringBuilderAppend2(&stringBuilder, L" [");
-            PhStringBuilderAppend(&stringBuilder, PhCurrentUserName);
-            PhStringBuilderAppendChar(&stringBuilder, ']');
-            if (PhKphHandle) PhStringBuilderAppendChar(&stringBuilder, '+');
+            PhAppendStringBuilder2(&stringBuilder, L" [");
+            PhAppendStringBuilder(&stringBuilder, PhCurrentUserName);
+            PhAppendCharStringBuilder(&stringBuilder, ']');
+            if (PhKphHandle) PhAppendCharStringBuilder(&stringBuilder, '+');
         }
 
         if (WINDOWS_HAS_UAC && PhElevationType == TokenElevationTypeFull)
-            PhStringBuilderAppend2(&stringBuilder, L" (Administrator)");
+            PhAppendStringBuilder2(&stringBuilder, L" (Administrator)");
 
         SetWindowText(PhMainWndHandle, stringBuilder.String->Buffer);
 
@@ -461,7 +461,7 @@ BOOLEAN PhMainWndInitialization(
 
     PhpInitialLoadSettings();
     PhLogInitialization();
-    PhQueueGlobalWorkQueueItem(PhpDelayedLoadFunction, NULL);
+    PhQueueItemGlobalWorkQueue(PhpDelayedLoadFunction, NULL);
 
     PhMainWndTabControlOnSelectionChanged();
 
@@ -631,7 +631,7 @@ LRESULT CALLBACK PhMainWndProc(
                         {
                             ULONG mode;
 
-                            if (PhStringEndsWith2(fileName, L".csv", TRUE))
+                            if (PhEndsWithString2(fileName, L".csv", TRUE))
                                 mode = PH_EXPORT_MODE_CSV;
                             else
                                 mode = PH_EXPORT_MODE_TABS;
@@ -810,7 +810,7 @@ LRESULT CALLBACK PhMainWndProc(
                     BOOLEAN updateProcesses;
 
                     updateProcesses = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATEPROCESSES, 0) & MF_CHECKED);
-                    PhSetProviderEnabled(&ProcessProviderRegistration, updateProcesses);
+                    PhSetEnabledProvider(&ProcessProviderRegistration, updateProcesses);
                     CheckMenuItem(
                         PhMainWndMenuHandle,
                         ID_VIEW_UPDATEPROCESSES,
@@ -823,7 +823,7 @@ LRESULT CALLBACK PhMainWndProc(
                     BOOLEAN updateServices;
 
                     updateServices = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATESERVICES, 0) & MF_CHECKED);
-                    PhSetProviderEnabled(&ServiceProviderRegistration, updateServices);
+                    PhSetEnabledProvider(&ServiceProviderRegistration, updateServices);
                     CheckMenuItem(
                         PhMainWndMenuHandle,
                         ID_VIEW_UPDATESERVICES,
@@ -838,8 +838,8 @@ LRESULT CALLBACK PhMainWndProc(
 
                     // Shortcut only
 
-                    updateProcesses = PhGetProviderEnabled(&ProcessProviderRegistration);
-                    updateServices = PhGetProviderEnabled(&ServiceProviderRegistration);
+                    updateProcesses = PhGetEnabledProvider(&ProcessProviderRegistration);
+                    updateServices = PhGetEnabledProvider(&ServiceProviderRegistration);
 
                     if (updateProcesses && updateServices)
                     {
@@ -852,8 +852,8 @@ LRESULT CALLBACK PhMainWndProc(
                         updateServices = TRUE;
                     }
 
-                    PhSetProviderEnabled(&ProcessProviderRegistration, updateProcesses);
-                    PhSetProviderEnabled(&ServiceProviderRegistration, updateServices);
+                    PhSetEnabledProvider(&ProcessProviderRegistration, updateProcesses);
+                    PhSetEnabledProvider(&ServiceProviderRegistration, updateServices);
 
                     CheckMenuItem(
                         PhMainWndMenuHandle,
@@ -2235,7 +2235,7 @@ VOID PhpRefreshUsersMenu()
                 WTSUserName
                 ));
 
-            if (PhIsStringNullOrEmpty(domainName) || PhIsStringNullOrEmpty(userName))
+            if (PhIsNullOrEmptyString(domainName) || PhIsNullOrEmptyString(userName))
             {
                 // Probably the Services or RDP-Tcp session.
                 continue;
@@ -2293,7 +2293,7 @@ static int __cdecl IconProcessesNameCompare(
     PPH_PROCESS_ITEM processItem1 = *(PPH_PROCESS_ITEM *)elem1;
     PPH_PROCESS_ITEM processItem2 = *(PPH_PROCESS_ITEM *)elem2;
 
-    return PhStringCompare(processItem1->ProcessName, processItem2->ProcessName, TRUE);
+    return PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
 }
 
 VOID PhpAddIconProcesses(
@@ -2310,7 +2310,7 @@ VOID PhpAddIconProcesses(
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
     processList = PhCreateList(numberOfProcessItems);
-    PhAddListItems(processList, processItems, numberOfProcessItems);
+    PhAddItemsList(processList, processItems, numberOfProcessItems);
 
     // Remove non-real processes.
     for (i = 0; i < processList->Count; i++)
@@ -2319,7 +2319,7 @@ VOID PhpAddIconProcesses(
 
         if (!PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
         {
-            PhRemoveListItem(processList, i);
+            PhRemoveItemList(processList, i);
             i--;
         }
     }
@@ -2332,10 +2332,10 @@ VOID PhpAddIconProcesses(
         if (
             processItem->CpuUsage == 0 ||
             !processItem->UserName ||
-            !PhStringEquals(processItem->UserName, PhCurrentUserName, TRUE)
+            !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE)
             )
         {
-            PhRemoveListItem(processList, i);
+            PhRemoveItemList(processList, i);
             i--;
         }
     }
@@ -2345,7 +2345,7 @@ VOID PhpAddIconProcesses(
 
     if (processList->Count > NumberOfProcesses)
     {
-        PhRemoveListItems(processList, NumberOfProcesses, processList->Count - NumberOfProcesses);
+        PhRemoveItemsList(processList, NumberOfProcesses, processList->Count - NumberOfProcesses);
     }
 
     // Lastly, sort by name.
@@ -2674,7 +2674,7 @@ static VOID NTAPI ProcessAddedHandler(
     PostMessage(
         PhMainWndHandle,
         WM_PH_PROCESS_ADDED,
-        (WPARAM)PhGetProviderRunId(&ProcessProviderRegistration),
+        (WPARAM)PhGetRunIdProvider(&ProcessProviderRegistration),
         (LPARAM)processItem
         );
 }
@@ -2740,7 +2740,7 @@ static VOID NTAPI ServiceAddedHandler(
     PostMessage(
         PhMainWndHandle,
         WM_PH_SERVICE_ADDED,
-        PhGetProviderRunId(&ServiceProviderRegistration),
+        PhGetRunIdProvider(&ServiceProviderRegistration),
         (LPARAM)serviceItem
         );
 }
@@ -2787,7 +2787,7 @@ static VOID NTAPI NetworkItemAddedHandler(
     PostMessage(
         PhMainWndHandle,
         WM_PH_NETWORK_ITEM_ADDED,
-        PhGetProviderRunId(&NetworkProviderRegistration),
+        PhGetRunIdProvider(&NetworkProviderRegistration),
         (LPARAM)networkItem
         );
 }
@@ -3028,12 +3028,12 @@ VOID PhMainWndTabControlOnSelectionChanged()
 
     if (selectedIndex == NetworkTabIndex)
     {
-        PhSetProviderEnabled(&NetworkProviderRegistration, TRUE);
+        PhSetEnabledProvider(&NetworkProviderRegistration, TRUE);
         PhBoostProvider(&NetworkProviderRegistration, NULL);
     }
     else
     {
-        PhSetProviderEnabled(&NetworkProviderRegistration, FALSE);
+        PhSetEnabledProvider(&NetworkProviderRegistration, FALSE);
     }
 
     ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);

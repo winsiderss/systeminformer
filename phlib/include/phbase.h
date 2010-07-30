@@ -726,25 +726,14 @@ FORCEINLINE VOID PhInitializeEmptyStringRef(
     String->Buffer = NULL;
 }
 
-FORCEINLINE PH_STRINGREF PhCreateStringRef(
-    __in PWSTR Buffer
-    )
-{
-    PH_STRINGREF string;
-
-    PhInitializeStringRef(&string, Buffer);
-
-    return string;
-}
-
-FORCEINLINE BOOLEAN PhIsStringRefNullOrEmpty(
+FORCEINLINE BOOLEAN PhIsNullOrEmptyStringRef(
     __in_opt PPH_STRINGREF String
     )
 {
     return !String || String->Length == 0;
 }
 
-FORCEINLINE LONG PhStringRefCompare(
+FORCEINLINE LONG PhCompareStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
     __in BOOLEAN IgnoreCase
@@ -753,7 +742,7 @@ FORCEINLINE LONG PhStringRefCompare(
     return RtlCompareUnicodeString(&String1->us, &String2->us, IgnoreCase);
 }
 
-FORCEINLINE LONG PhStringRefCompare2(
+FORCEINLINE LONG PhCompareStringRef2(
     __in PPH_STRINGREF String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -778,25 +767,25 @@ FORCEINLINE LONG PhStringRefCompare2(
     }
 }
 
-FORCEINLINE BOOLEAN PhStringRefEquals(
+FORCEINLINE BOOLEAN PhEqualStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhStringRefCompare(String1, String2, IgnoreCase) == 0;
+    return PhCompareStringRef(String1, String2, IgnoreCase) == 0;
 }
 
-FORCEINLINE BOOLEAN PhStringRefEquals2(
+FORCEINLINE BOOLEAN PhEqualStringRef2(
     __in PPH_STRINGREF String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhStringRefCompare2(String1, String2, IgnoreCase) == 0;
+    return PhCompareStringRef2(String1, String2, IgnoreCase) == 0;
 }
 
-FORCEINLINE BOOLEAN PhStringRefStartsWith(
+FORCEINLINE BOOLEAN PhStartsWithStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
     __in BOOLEAN IgnoreCase
@@ -1029,7 +1018,7 @@ FORCEINLINE PWSTR PhGetStringOrDefault(
  *
  * \param String A pointer to a string object.
  */
-FORCEINLINE BOOLEAN PhIsStringNullOrEmpty(
+FORCEINLINE BOOLEAN PhIsNullOrEmptyString(
     __in_opt PPH_STRING String
     )
 {
@@ -1055,7 +1044,7 @@ FORCEINLINE PPH_STRING PhDuplicateString(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhStringCompare(
+FORCEINLINE LONG PhCompareString(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -1074,7 +1063,7 @@ FORCEINLINE LONG PhStringCompare(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhStringCompare2(
+FORCEINLINE LONG PhCompareString2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -1093,7 +1082,7 @@ FORCEINLINE LONG PhStringCompare2(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE LONG PhStringCompareWithNull(
+FORCEINLINE LONG PhCompareStringWithNull(
     __in_opt PPH_STRING String1,
     __in_opt PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -1123,13 +1112,13 @@ FORCEINLINE LONG PhStringCompareWithNull(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE BOOLEAN PhStringEquals(
+FORCEINLINE BOOLEAN PhEqualString(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhStringCompare(String1, String2, IgnoreCase) == 0;
+    return PhCompareString(String1, String2, IgnoreCase) == 0;
 }
 
 /**
@@ -1139,13 +1128,13 @@ FORCEINLINE BOOLEAN PhStringEquals(
  * \param String2 The second string.
  * \param IgnoreCase Whether to ignore character cases.
  */
-FORCEINLINE BOOLEAN PhStringEquals2(
+FORCEINLINE BOOLEAN PhEqualString2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhStringCompare2(String1, String2, IgnoreCase) == 0;
+    return PhCompareString2(String1, String2, IgnoreCase) == 0;
 }
 
 /**
@@ -1158,7 +1147,7 @@ FORCEINLINE BOOLEAN PhStringEquals2(
  * \return TRUE if \a String1 starts with \a String2, 
  * otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStringStartsWith(
+FORCEINLINE BOOLEAN PhStartsWithString(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -1180,7 +1169,7 @@ FORCEINLINE BOOLEAN PhStringStartsWith(
  * \return TRUE if \a String1 starts with \a String2, 
  * otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStringStartsWith2(
+FORCEINLINE BOOLEAN PhStartsWithString2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -1202,7 +1191,7 @@ FORCEINLINE BOOLEAN PhStringStartsWith2(
  * \return TRUE if \a String1 ends with \a String2, 
  * otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStringEndsWith(
+FORCEINLINE BOOLEAN PhEndsWithString(
     __in PPH_STRING String1,
     __in PPH_STRING String2,
     __in BOOLEAN IgnoreCase
@@ -1239,7 +1228,7 @@ FORCEINLINE BOOLEAN PhStringEndsWith(
  * \return TRUE if \a String1 ends with \a String2, 
  * otherwise FALSE.
  */
-FORCEINLINE BOOLEAN PhStringEndsWith2(
+FORCEINLINE BOOLEAN PhEndsWithString2(
     __in PPH_STRING String1,
     __in PWSTR String2,
     __in BOOLEAN IgnoreCase
@@ -1279,7 +1268,7 @@ FORCEINLINE BOOLEAN PhStringEndsWith2(
  * \a Char in \a String after \a StartIndex. If \a Char was not 
  * found, -1 is returned.
  */
-FORCEINLINE ULONG PhStringIndexOfChar(
+FORCEINLINE ULONG PhFindCharInString(
     __in PPH_STRING String,
     __in ULONG StartIndex,
     __in WCHAR Char
@@ -1288,6 +1277,33 @@ FORCEINLINE ULONG PhStringIndexOfChar(
     PWSTR location;
 
     location = wcschr(&String->Buffer[StartIndex], Char);
+
+    if (location)
+        return (ULONG)(location - String->Buffer);
+    else
+        return -1;
+}
+
+/**
+ * Locates a character in a string, backwards.
+ *
+ * \param String The string to search.
+ * \param StartIndex The index, in characters, to start searching at.
+ * \param Char The character to search for.
+ *
+ * \return The index, in characters, of the last occurrence of 
+ * \a Char in \a String after \a StartIndex. If \a Char was not 
+ * found, -1 is returned.
+ */
+FORCEINLINE ULONG PhFindLastCharInString(
+    __in PPH_STRING String,
+    __in ULONG StartIndex,
+    __in WCHAR Char
+    )
+{
+    PWSTR location;
+
+    location = wcsrchr(&String->Buffer[StartIndex], Char);
 
     if (location)
         return (ULONG)(location - String->Buffer);
@@ -1306,7 +1322,7 @@ FORCEINLINE ULONG PhStringIndexOfChar(
  * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 
  * found, -1 is returned.
  */
-FORCEINLINE ULONG PhStringIndexOfString(
+FORCEINLINE ULONG PhFindStringInString(
     __in PPH_STRING String1,
     __in ULONG StartIndex,
     __in PWSTR String2
@@ -1318,33 +1334,6 @@ FORCEINLINE ULONG PhStringIndexOfString(
 
     if (location)
         return (ULONG)(location - String1->Buffer);
-    else
-        return -1;
-}
-
-/**
- * Locates a character in a string, backwards.
- *
- * \param String The string to search.
- * \param StartIndex The index, in characters, to start searching at.
- * \param Char The character to search for.
- *
- * \return The index, in characters, of the last occurrence of 
- * \a Char in \a String after \a StartIndex. If \a Char was not 
- * found, -1 is returned.
- */
-FORCEINLINE ULONG PhStringLastIndexOfChar(
-    __in PPH_STRING String,
-    __in ULONG StartIndex,
-    __in WCHAR Char
-    )
-{
-    PWSTR location;
-
-    location = wcsrchr(&String->Buffer[StartIndex], Char);
-
-    if (location)
-        return (ULONG)(location - String->Buffer);
     else
         return -1;
 }
@@ -1399,7 +1388,7 @@ FORCEINLINE PPH_STRING PhSubstring(
  * \remarks Use this function after modifying a string 
  * object's buffer manually.
  */
-FORCEINLINE VOID PhTrimStringToNullTerminator(
+FORCEINLINE VOID PhTrimToNullTerminatorString(
     __inout PPH_STRING String
     )
 {
@@ -1523,7 +1512,7 @@ PhResizeFullString(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppend(
+PhAppendFullString(
     __inout PPH_FULL_STRING String,
     __in PPH_STRING ShortString
     );
@@ -1531,7 +1520,7 @@ PhFullStringAppend(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppend2(
+PhAppendFullString2(
     __inout PPH_FULL_STRING String,
     __in PWSTR StringZ
     );
@@ -1539,7 +1528,7 @@ PhFullStringAppend2(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppendEx(
+PhAppendFullStringEx(
     __inout PPH_FULL_STRING String,
     __in_opt PWSTR Buffer,
     __in SIZE_T Length
@@ -1548,7 +1537,7 @@ PhFullStringAppendEx(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppendChar(
+PhAppendCharFullString(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character
     );
@@ -1556,7 +1545,7 @@ PhFullStringAppendChar(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppendChar2(
+PhAppendCharFullString2(
     __inout PPH_FULL_STRING String,
     __in WCHAR Character,
     __in SIZE_T Count
@@ -1565,7 +1554,7 @@ PhFullStringAppendChar2(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringAppendFormat(
+PhAppendFormatFullString(
     __inout PPH_FULL_STRING String,
     __in __format_string PWSTR Format,
     ...
@@ -1574,7 +1563,7 @@ PhFullStringAppendFormat(
 PHLIBAPI
 VOID
 NTAPI
-PhFullStringRemove(
+PhRemoveFullString(
     __inout PPH_FULL_STRING String,
     __in SIZE_T StartIndex,
     __in SIZE_T Count
@@ -1626,7 +1615,7 @@ PhReferenceStringBuilderString(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppend(
+PhAppendStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PPH_STRING String
     );
@@ -1634,7 +1623,7 @@ PhStringBuilderAppend(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppend2(
+PhAppendStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PWSTR String
     );
@@ -1642,7 +1631,7 @@ PhStringBuilderAppend2(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppendEx(
+PhAppendStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in_opt PWSTR String,
     __in ULONG Length
@@ -1651,7 +1640,7 @@ PhStringBuilderAppendEx(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppendChar(
+PhAppendCharStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character
     );
@@ -1659,7 +1648,7 @@ PhStringBuilderAppendChar(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppendChar2(
+PhAppendCharStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in WCHAR Character,
     __in ULONG Count
@@ -1668,7 +1657,7 @@ PhStringBuilderAppendChar2(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderAppendFormat(
+PhAppendFormatStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in __format_string PWSTR Format,
     ...
@@ -1677,7 +1666,7 @@ PhStringBuilderAppendFormat(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderInsert(
+PhInsertStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PPH_STRING String
@@ -1686,7 +1675,7 @@ PhStringBuilderInsert(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderInsert2(
+PhInsertStringBuilder2(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in PWSTR String
@@ -1695,7 +1684,7 @@ PhStringBuilderInsert2(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderInsertEx(
+PhInsertStringBuilderEx(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG Index,
     __in_opt PWSTR String,
@@ -1705,7 +1694,7 @@ PhStringBuilderInsertEx(
 PHLIBAPI
 VOID
 NTAPI
-PhStringBuilderRemove(
+PhRemoveStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -1742,7 +1731,7 @@ PhCreateList(
 PHLIBAPI
 VOID
 NTAPI
-PhAddListItem(
+PhAddItemList(
     __inout PPH_LIST List,
     __in PVOID Item
     );
@@ -1750,7 +1739,7 @@ PhAddListItem(
 PHLIBAPI
 VOID
 NTAPI
-PhAddListItems(
+PhAddItemsList(
     __inout PPH_LIST List,
     __in PPVOID Items,
     __in ULONG Count
@@ -1767,7 +1756,7 @@ __success(return != -1)
 PHLIBAPI
 ULONG
 NTAPI
-PhIndexOfListItem(
+PhFindItemList(
     __in PPH_LIST List,
     __in PVOID Item
     );
@@ -1775,7 +1764,7 @@ PhIndexOfListItem(
 PHLIBAPI
 VOID
 NTAPI
-PhInsertListItem(
+PhInsertItemList(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PVOID Item
@@ -1784,7 +1773,7 @@ PhInsertListItem(
 PHLIBAPI
 VOID
 NTAPI
-PhInsertListItems(
+PhInsertItemsList(
     __inout PPH_LIST List,
     __in ULONG Index,
     __in PPVOID Items,
@@ -1794,7 +1783,7 @@ PhInsertListItems(
 PHLIBAPI
 VOID
 NTAPI
-PhRemoveListItem(
+PhRemoveItemList(
     __inout PPH_LIST List,
     __in ULONG Index
     );
@@ -1802,7 +1791,7 @@ PhRemoveListItem(
 PHLIBAPI
 VOID
 NTAPI
-PhRemoveListItems(
+PhRemoveItemsList(
     __inout PPH_LIST List,
     __in ULONG StartIndex,
     __in ULONG Count
@@ -1873,7 +1862,7 @@ PhCreatePointerList(
 PHLIBAPI
 HANDLE
 NTAPI
-PhAddPointerListItem(
+PhAddItemPointerList(
     __inout PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
@@ -1891,7 +1880,7 @@ PhEnumPointerListEx(
 PHLIBAPI
 HANDLE
 NTAPI
-PhFindPointerListItem(
+PhFindItemPointerList(
     __in PPH_POINTER_LIST PointerList,
     __in PVOID Pointer
     );
@@ -1899,7 +1888,7 @@ PhFindPointerListItem(
 PHLIBAPI
 VOID
 NTAPI
-PhRemovePointerListItem(
+PhRemoveItemPointerList(
     __inout PPH_POINTER_LIST PointerList,
     __in HANDLE PointerHandle
     );
@@ -1961,7 +1950,7 @@ PhCreateQueue(
 PHLIBAPI
 VOID
 NTAPI
-PhEnqueueQueueItem(
+PhEnqueueItemQueue(
     __inout PPH_QUEUE Queue,
     __in PVOID Item
     );
@@ -1969,7 +1958,7 @@ PhEnqueueQueueItem(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhDequeueQueueItem(
+PhDequeueItemQueue(
     __inout PPH_QUEUE Queue,
     __out PPVOID Item
     );
@@ -1977,7 +1966,7 @@ PhDequeueQueueItem(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhPeekQueueItem(
+PhPeekItemQueue(
     __in PPH_QUEUE Queue,
     __out PPVOID Item
     );
@@ -2090,7 +2079,7 @@ PhCreateHashtable(
 PHLIBAPI
 PVOID
 NTAPI
-PhAddHashtableEntry(
+PhAddEntryHashtable(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
@@ -2114,7 +2103,7 @@ PhEnumHashtable(
 PHLIBAPI
 PVOID
 NTAPI
-PhGetHashtableEntry(
+PhFindEntryHashtable(
     __in PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
@@ -2122,7 +2111,7 @@ PhGetHashtableEntry(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhRemoveHashtableEntry(
+PhRemoveEntryHashtable(
     __inout PPH_HASHTABLE Hashtable,
     __in PVOID Entry
     );
@@ -2199,7 +2188,7 @@ PhCreateSimpleHashtable(
 PHLIBAPI
 PVOID
 NTAPI
-PhAddSimpleHashtableItem(
+PhAddItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key,
     __in PVOID Value
@@ -2208,7 +2197,7 @@ PhAddSimpleHashtableItem(
 PHLIBAPI
 PPVOID
 NTAPI
-PhGetSimpleHashtableItem(
+PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     );
@@ -2216,7 +2205,7 @@ PhGetSimpleHashtableItem(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhRemoveSimpleHashtableItem(
+PhRemoveItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
     __in PVOID Key
     );
@@ -2637,62 +2626,6 @@ PhNtStatusFileNotFound(
 
 // bintree
 
-typedef struct _PH_BINARY_LINKS
-{
-    struct _PH_BINARY_LINKS *Parent;
-    struct _PH_BINARY_LINKS *Left;
-    struct _PH_BINARY_LINKS *Right;
-} PH_BINARY_LINKS, *PPH_BINARY_LINKS;
-
-struct _PH_BINARY_TREE;
-
-typedef INT (NTAPI *PPH_BINARY_TREE_COMPARE_FUNCTION)(
-    __in PPH_BINARY_LINKS Links1,
-    __in PPH_BINARY_LINKS Links2
-    );
-
-typedef struct _PH_BINARY_TREE
-{
-    PH_BINARY_LINKS Root; // Right contains real root
-    ULONG Count;
-
-    PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction;
-} PH_BINARY_TREE, *PPH_BINARY_TREE;
-
-#define PH_BINARY_TREE_INIT(CompareFunction) { { NULL, NULL, NULL }, 0, CompareFunction }
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeBinaryTree(
-    __out PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_TREE_COMPARE_FUNCTION CompareFunction
-    );
-
-PHLIBAPI
-PPH_BINARY_LINKS
-NTAPI
-PhBinaryTreeAdd(
-    __inout PPH_BINARY_TREE Tree,
-    __out PPH_BINARY_LINKS Subject
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhBinaryTreeRemove(
-    __inout PPH_BINARY_TREE Tree,
-    __inout PPH_BINARY_LINKS Subject
-    );
-
-PHLIBAPI
-PPH_BINARY_LINKS
-NTAPI
-PhBinaryTreeSearch(
-    __in PPH_BINARY_TREE Tree,
-    __in PPH_BINARY_LINKS Subject
-    );
-
 typedef struct _PH_AVL_LINKS
 {
     struct _PH_AVL_LINKS *Parent;
@@ -2729,7 +2662,7 @@ PhInitializeAvlTree(
 PHLIBAPI
 PPH_AVL_LINKS
 NTAPI
-PhAvlTreeAdd(
+PhAddElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Subject
     );
@@ -2737,7 +2670,7 @@ PhAvlTreeAdd(
 PHLIBAPI
 VOID
 NTAPI
-PhAvlTreeRemove(
+PhRemoveElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Subject
     );
@@ -2745,7 +2678,7 @@ PhAvlTreeRemove(
 PHLIBAPI
 PPH_AVL_LINKS
 NTAPI
-PhAvlTreeSearch(
+PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Subject
     );
@@ -2838,7 +2771,7 @@ PhDestroyHandle(
 PHLIBAPI
 PPH_HANDLE_TABLE_ENTRY
 NTAPI
-PhGetHandleTableEntry(
+PhLookupHandleTableEntry(
     __in PPH_HANDLE_TABLE HandleTable,
     __in HANDLE Handle
     );
@@ -2965,7 +2898,7 @@ PhDeleteWorkQueue(
 PHLIBAPI
 VOID
 NTAPI
-PhQueueWorkQueueItem(
+PhQueueItemWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
@@ -2974,7 +2907,7 @@ PhQueueWorkQueueItem(
 PHLIBAPI
 VOID
 NTAPI
-PhQueueGlobalWorkQueueItem(
+PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
     __in PVOID Context
     );

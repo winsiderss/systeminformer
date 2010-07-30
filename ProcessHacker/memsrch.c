@@ -577,7 +577,7 @@ static BOOL NTAPI PhpMemoryStringResultCallback(
 {
     PMEMORY_STRING_CONTEXT context = Context;
 
-    PhAddListItem(context->Results, Result);
+    PhAddItemList(context->Results, Result);
 
     return TRUE;
 }

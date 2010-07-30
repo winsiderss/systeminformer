@@ -356,7 +356,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 entry.Id = ListView_MapIndexToID(hwnd, index);
                 entry.TickCount = GetTickCount();
 
-                PhAddHashtableEntry(context->TickHashtable, &entry);
+                PhAddEntryHashtable(context->TickHashtable, &entry);
             }
 
             return index;
@@ -393,11 +393,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
                     entry.TickCount = GetTickCount();
 
-                    if (!PhAddHashtableEntry(context->TickHashtable, &entry))
+                    if (!PhAddEntryHashtable(context->TickHashtable, &entry))
                     {
                         PPH_TICK_ENTRY existingEntry;
 
-                        existingEntry = PhGetHashtableEntry(context->TickHashtable, &entry);
+                        existingEntry = PhFindEntryHashtable(context->TickHashtable, &entry);
 
                         if (existingEntry)
                             existingEntry->TickCount = GetTickCount();
@@ -412,7 +412,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                 entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
 
-                PhRemoveHashtableEntry(context->TickHashtable, &entry);
+                PhRemoveEntryHashtable(context->TickHashtable, &entry);
             }
         }
         break;
@@ -458,7 +458,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_ADDFALLBACKCOLUMN:
         {
-            PhAddListItem(context->FallbackColumns, (PVOID)wParam); 
+            PhAddItemList(context->FallbackColumns, (PVOID)wParam); 
         }
         return TRUE;
     case ELVM_ADDFALLBACKCOLUMNS:
@@ -468,7 +468,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             ULONG i;
 
             for (i = 0; i < numberOfColumns; i++)
-                PhAddListItem(context->FallbackColumns, (PVOID)columns[i]);
+                PhAddItemList(context->FallbackColumns, (PVOID)columns[i]);
         }
         return TRUE;
     case ELVM_INIT:
@@ -808,7 +808,7 @@ static VOID PhListTick(
             if (!itemsToRemove)
                 itemsToRemove = PhCreateList(2);
 
-            PhAddListItem(itemsToRemove, (PVOID)entry->Id);
+            PhAddItemList(itemsToRemove, (PVOID)entry->Id);
 
             entry->TickCount = tickCount;
         }
@@ -826,7 +826,7 @@ static VOID PhListTick(
 
         if (itemsToRemove)
         {
-            if (PhIndexOfListItem(itemsToRemove, (PVOID)entry->Id) != -1)
+            if (PhFindItemList(itemsToRemove, (PVOID)entry->Id) != -1)
                 continue;
         }
 
@@ -853,7 +853,7 @@ static VOID PhListTick(
             if (!itemsToRemove)
                 itemsToRemove = PhCreateList(2);
 
-            PhAddListItem(itemsToRemove, (PVOID)entry->Id);
+            PhAddItemList(itemsToRemove, (PVOID)entry->Id);
 
             entry->TickCount = tickCount;
         }
@@ -874,7 +874,7 @@ static VOID PhListTick(
 
             removeEntry.Id = (ULONG)itemsToRemove->Items[i];
 
-            PhRemoveHashtableEntry(Context->TickHashtable, &removeEntry);
+            PhRemoveEntryHashtable(Context->TickHashtable, &removeEntry);
         }
 
         PhDereferenceObject(itemsToRemove);

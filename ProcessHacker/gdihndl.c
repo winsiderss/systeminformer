@@ -273,7 +273,7 @@ VOID PhpRefreshGdiHandles(
         gdiHandleItem->Object = handle->Object;
         gdiHandleItem->TypeName = typeName;
         gdiHandleItem->Information = PhpGetGdiHandleInformation(gdiHandleItem->Handle);
-        PhAddListItem(Context->List, gdiHandleItem);
+        PhAddItemList(Context->List, gdiHandleItem);
 
         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, gdiHandleItem->TypeName, gdiHandleItem);
         PhPrintPointer(pointer, (PVOID)gdiHandleItem->Handle);

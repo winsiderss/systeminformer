@@ -315,7 +315,7 @@ static BOOLEAN PathMatchesPh(
 {
     BOOLEAN match = FALSE;
 
-    if (PhStringEquals(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
+    if (PhEqualString(OldTaskMgrDebugger, PhApplicationFileName, TRUE))
     {
         match = TRUE;
     }
@@ -330,7 +330,7 @@ static BOOLEAN PathMatchesPh(
 
         valueInside = PhSubstring(OldTaskMgrDebugger, 1, OldTaskMgrDebugger->Length / 2 - 2);
 
-        if (PhStringEquals(valueInside, PhApplicationFileName, TRUE))
+        if (PhEqualString(valueInside, PhApplicationFileName, TRUE))
             match = TRUE;
 
         PhDereferenceObject(valueInside);

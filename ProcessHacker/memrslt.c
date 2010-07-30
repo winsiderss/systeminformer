@@ -97,7 +97,7 @@ static PPH_FULL_STRING PhpGetStringForSelectedResults(
 
         result = Results->Items[i];
 
-        PhFullStringAppendFormat(string, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
+        PhAppendFormatFullString(string, L"0x%Ix (%u): %s\r\n", result->Address, result->Length,
             result->Display.Buffer ? result->Display.Buffer : L"");
     }
 
@@ -148,7 +148,7 @@ static VOID FilterResults(
                     if (wcsstr(result->Display.Buffer, selectedChoice->Buffer))
                     {
                         PhReferenceMemoryResult(result);
-                        PhAddListItem(newResults, result);
+                        PhAddItemList(newResults, result);
                     }
                 }
             }
@@ -170,7 +170,7 @@ static VOID FilterResults(
                     if (wcsstr(lowerDisplay, lowerChoice->Buffer))
                     {
                         PhReferenceMemoryResult(result);
-                        PhAddListItem(newResults, result);
+                        PhAddItemList(newResults, result);
                     }
 
                     PhFreeForMemorySearch(lowerDisplay);
@@ -255,7 +255,7 @@ static VOID FilterResults(
                 if (r >= 0)
                 {
                     PhReferenceMemoryResult(result);
-                    PhAddListItem(newResults, result);
+                    PhAddItemList(newResults, result);
                 }
             }
 
@@ -448,7 +448,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                             PhWritePhTextHeader(fileStream);
 
                             string = PhpGetStringForSelectedResults(GetDlgItem(hwndDlg, IDC_LIST), context->Results, TRUE);
-                            PhFileStreamWriteStringAsAnsiEx(fileStream, string->Buffer, string->Length);
+                            PhWriteStringAsAnsiFileStreamEx(fileStream, string->Buffer, string->Length);
                             PhDereferenceObject(string);
 
                             PhDereferenceObject(fileStream);

@@ -99,9 +99,9 @@ PPH_STRING PhGetDiagnosticsString()
 
     PhInitializeStringBuilder(&stringBuilder, 50);
 
-    PhStringBuilderAppendFormat(&stringBuilder, L"OBJECT INFORMATION\r\n");
+    PhAppendFormatStringBuilder(&stringBuilder, L"OBJECT INFORMATION\r\n");
 
-#define OBJECT_TYPE_COUNT(Type) PhStringBuilderAppendFormat(&stringBuilder, \
+#define OBJECT_TYPE_COUNT(Type) PhAppendFormatStringBuilder(&stringBuilder, \
     L#Type L": %u objects\r\n", PhpGetObjectTypeObjectCount(Type))
 
     // ref

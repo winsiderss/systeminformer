@@ -201,7 +201,7 @@ PPH_HANDLE_ITEM PhpLookupHandleItem(
 
     lookupHandleItem.Handle = Handle;
 
-    handleItemPtr = (PPH_HANDLE_ITEM *)PhGetHashtableEntry(
+    handleItemPtr = (PPH_HANDLE_ITEM *)PhFindEntryHashtable(
         HandleProvider->HandleHashtable,
         &lookupHandleItemPtr
         );
@@ -253,7 +253,7 @@ __assumeLocked VOID PhpRemoveHandleItem(
     __in PPH_HANDLE_ITEM HandleItem
     )
 {
-    PhRemoveHashtableEntry(HandleProvider->HandleHashtable, &HandleItem);
+    PhRemoveEntryHashtable(HandleProvider->HandleHashtable, &HandleItem);
     PhDereferenceObject(HandleItem);
 }
 
@@ -419,7 +419,7 @@ VOID PhHandleProviderUpdate(
 
             if (handle->UniqueProcessId == (USHORT)handleProvider->ProcessId)
             {
-                PhAddSimpleHashtableItem(
+                PhAddItemSimpleHashtable(
                     handleProvider->TempListHashtable,
                     (PVOID)handle->HandleValue,
                     handle
@@ -433,7 +433,7 @@ VOID PhHandleProviderUpdate(
         {
             PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = &handles[i];
 
-            PhAddSimpleHashtableItem(
+            PhAddItemSimpleHashtable(
                 handleProvider->TempListHashtable,
                 (PVOID)handle->HandleValue,
                 handle
@@ -454,7 +454,7 @@ VOID PhHandleProviderUpdate(
 
             // Check if the handle still exists.
 
-            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhGetSimpleHashtableItem(
+            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhFindItemSimpleHashtable(
                 handleProvider->TempListHashtable,
                 (PVOID)((*handleItem)->Handle)
                 );
@@ -479,7 +479,7 @@ VOID PhHandleProviderUpdate(
                 if (!handlesToRemove)
                     handlesToRemove = PhCreateList(2);
 
-                PhAddListItem(handlesToRemove, *handleItem);
+                PhAddItemList(handlesToRemove, *handleItem);
             }
         }
 
@@ -534,7 +534,7 @@ VOID PhHandleProviderUpdate(
 
             // Add the handle item to the hashtable.
             PhAcquireQueuedLockExclusive(&handleProvider->HandleHashtableLock);
-            PhAddHashtableEntry(handleProvider->HandleHashtable, &handleItem);
+            PhAddEntryHashtable(handleProvider->HandleHashtable, &handleItem);
             PhReleaseQueuedLockExclusive(&handleProvider->HandleHashtableLock);
 
             // Raise the handle added event.

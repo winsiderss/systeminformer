@@ -139,7 +139,7 @@ VOID PhpLogEntry(
 {
     PPH_LOG_ENTRY oldEntry;
 
-    oldEntry = PhCircularBufferAdd2_PVOID(&PhLogBuffer, Entry);
+    oldEntry = PhAddItemCircularBuffer2_PVOID(&PhLogBuffer, Entry);
 
     if (oldEntry)
         PhpFreeLogEntry(oldEntry);

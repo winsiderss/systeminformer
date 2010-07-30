@@ -305,7 +305,7 @@ int __cdecl main(int argc, char *argv[])
 
     if (!FiArgFileName && (
         FiArgAction &&
-        PhStringEquals2(FiArgAction, L"dir", TRUE)
+        PhEqualString2(FiArgAction, L"dir", TRUE)
         ))
     {
         FiArgFileName = PhCreateStringEx(
@@ -325,7 +325,7 @@ int __cdecl main(int argc, char *argv[])
         FiPrintHelp();
         return 1;
     }
-    else if (PhStringEquals2(FiArgAction, L"execute", TRUE))
+    else if (PhEqualString2(FiArgAction, L"execute", TRUE))
     {
         if (!NT_SUCCESS(status = PhCreateProcessWin32(
             FiArgFileName->Buffer,
@@ -342,7 +342,7 @@ int __cdecl main(int argc, char *argv[])
             return 1;
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"del", TRUE))
+    else if (PhEqualString2(FiArgAction, L"del", TRUE))
     {
         HANDLE fileHandle;
 
@@ -368,7 +368,7 @@ int __cdecl main(int argc, char *argv[])
             NtClose(fileHandle);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"touch", TRUE))
+    else if (PhEqualString2(FiArgAction, L"touch", TRUE))
     {
         HANDLE fileHandle;
 
@@ -384,7 +384,7 @@ int __cdecl main(int argc, char *argv[])
             NtClose(fileHandle);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"mkdir", TRUE))
+    else if (PhEqualString2(FiArgAction, L"mkdir", TRUE))
     {
         HANDLE fileHandle;
 
@@ -400,7 +400,7 @@ int __cdecl main(int argc, char *argv[])
             NtClose(fileHandle);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"rename", TRUE))
+    else if (PhEqualString2(FiArgAction, L"rename", TRUE))
     {
         HANDLE fileHandle;
         PPH_STRING newFileName;
@@ -445,7 +445,7 @@ int __cdecl main(int argc, char *argv[])
             NtClose(fileHandle);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"copy", TRUE))
+    else if (PhEqualString2(FiArgAction, L"copy", TRUE))
     {
         HANDLE fileHandle;
         HANDLE outFileHandle;
@@ -556,7 +556,7 @@ int __cdecl main(int argc, char *argv[])
             NtClose(outFileHandle);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"dir", TRUE))
+    else if (PhEqualString2(FiArgAction, L"dir", TRUE))
     {
         HANDLE fileHandle;
         PPH_STRING totalSize, totalAllocSize;
@@ -599,7 +599,7 @@ int __cdecl main(int argc, char *argv[])
             PhDereferenceObject(totalAllocSize);
         }
     }
-    else if (PhStringEquals2(FiArgAction, L"streams", TRUE))
+    else if (PhEqualString2(FiArgAction, L"streams", TRUE))
     {
         HANDLE fileHandle;
         PVOID streams;

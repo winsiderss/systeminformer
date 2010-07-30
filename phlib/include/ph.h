@@ -1506,12 +1506,12 @@ NTSTATUS PhCreateFileStream2(
     );
 
 PHLIBAPI
-VOID PhFileStreamVerify(
+VOID PhVerifyFileStream(
     __in PPH_FILE_STREAM FileStream
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamRead(
+NTSTATUS PhReadFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __out_bcount(Length) PVOID Buffer,
     __in ULONG Length,
@@ -1519,27 +1519,33 @@ NTSTATUS PhFileStreamRead(
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamWrite(
+NTSTATUS PhWriteFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in_bcount(Length) PVOID Buffer,
     __in ULONG Length
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamFlush(
+NTSTATUS PhFlushFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in BOOLEAN Full
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamSeek(
+VOID PhGetPositionFileStream(
+    __in PPH_FILE_STREAM FileStream,
+    __out PLARGE_INTEGER Position
+    );
+
+PHLIBAPI
+NTSTATUS PhSeekFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Offset,
     __in PH_SEEK_ORIGIN Origin
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamLock(
+NTSTATUS PhLockFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Position,
     __in PLARGE_INTEGER Length,
@@ -1548,7 +1554,7 @@ NTSTATUS PhFileStreamLock(
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamUnlock(
+NTSTATUS PhUnlockFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PLARGE_INTEGER Position,
     __in PLARGE_INTEGER Length
@@ -1557,33 +1563,33 @@ NTSTATUS PhFileStreamUnlock(
 #define PH_FILE_STREAM_STRING_BLOCK_SIZE (PAGE_SIZE / 2)
 
 PHLIBAPI
-NTSTATUS PhFileStreamWriteStringAsAnsi(
+NTSTATUS PhWriteStringAsAnsiFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in PPH_STRINGREF String
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamWriteStringAsAnsi2(
+NTSTATUS PhWriteStringAsAnsiFileStream2(
     __inout PPH_FILE_STREAM FileStream,
     __in PWSTR String
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamWriteStringAsAnsiEx(
+NTSTATUS PhWriteStringAsAnsiFileStreamEx(
     __inout PPH_FILE_STREAM FileStream,
     __in PWSTR Buffer,
     __in SIZE_T Length
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamWriteStringFormat_V(
+NTSTATUS PhWriteStringFormatFileStream_V(
     __inout PPH_FILE_STREAM FileStream,
     __in __format_string PWSTR Format,
     __in va_list ArgPtr
     );
 
 PHLIBAPI
-NTSTATUS PhFileStreamWriteStringFormat(
+NTSTATUS PhWriteStringFormatFileStream(
     __inout PPH_FILE_STREAM FileStream,
     __in __format_string PWSTR Format,
     ...
@@ -1680,7 +1686,7 @@ VOID PhStopProviderThread(
     );
 
 PHLIBAPI
-VOID PhSetProviderThreadInterval(
+VOID PhSetIntervalProviderThread(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in ULONG Interval
     );
@@ -1705,17 +1711,17 @@ BOOLEAN PhBoostProvider(
     );
 
 PHLIBAPI
-ULONG PhGetProviderRunId(
+ULONG PhGetRunIdProvider(
     __in PPH_PROVIDER_REGISTRATION Registration
     );
 
 PHLIBAPI
-BOOLEAN PhGetProviderEnabled(
+BOOLEAN PhGetEnabledProvider(
     __in PPH_PROVIDER_REGISTRATION Registration
     );
 
 PHLIBAPI
-VOID PhSetProviderEnabled(
+VOID PhSetEnabledProvider(
     __inout PPH_PROVIDER_REGISTRATION Registration,
     __in BOOLEAN Enabled
     );
@@ -1806,7 +1812,7 @@ BOOLEAN PhGetSymbolFromName(
     );
 
 PHLIBAPI
-BOOLEAN PhSymbolProviderLoadModule(
+BOOLEAN PhLoadModuleSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR FileName,
     __in ULONG64 BaseAddress,
@@ -1814,13 +1820,13 @@ BOOLEAN PhSymbolProviderLoadModule(
     );
 
 PHLIBAPI
-VOID PhSymbolProviderSetOptions(
+VOID PhSetOptionsSymbolProvider(
     __in ULONG Mask,
     __in ULONG Value
     );
 
 PHLIBAPI
-VOID PhSymbolProviderSetSearchPath(
+VOID PhSetSearchPathSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR Path
     );
