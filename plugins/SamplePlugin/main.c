@@ -228,7 +228,7 @@ VOID GetProcessHighlightingColorCallback(
         return;
     
     // Set the background color of svchost.exe processes to black.
-    if (PhStringEquals2(processItem->ProcessName, L"svchost.exe", TRUE))
+    if (PhEqualString2(processItem->ProcessName, L"svchost.exe", TRUE))
     {
         getHighlightingColor->BackColor = RGB(0x00, 0x00, 0x00);
         getHighlightingColor->Cache = TRUE;
@@ -247,7 +247,7 @@ VOID GetProcessTooltipTextCallback(
     processItem = getTooltipText->Parameter;
     
     // Put some text into the tooltip. This will go in just before the Notes section.
-    PhStringBuilderAppendFormat(
+    PhAppendFormatStringBuilder(
         getTooltipText->StringBuilder,
         L"Sample plugin:\n    The process name is: %s\n",
         processItem->ProcessName->Buffer
