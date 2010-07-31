@@ -346,7 +346,7 @@ NTSTATUS PhpThreadProviderLoadSymbols(
 
         if (processItem = PhReferenceProcessItem(threadProvider->ProcessId))
         {
-            threadProvider->HasServices = processItem->ServiceList->Count != 0;
+            threadProvider->HasServices = processItem->ServiceList && processItem->ServiceList->Count != 0;
             PhDereferenceObject(processItem);
         }
     }

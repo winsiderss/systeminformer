@@ -69,27 +69,19 @@ VOID PhHandleInfoInitialization()
     memset(PhObjectTypeNames, 0, sizeof(PhObjectTypeNames));
 
     {
-        HANDLE tokenHandle;
         PTOKEN_USER tokenUser;
         PPH_STRING stringSid = NULL;
 
-        if (NT_SUCCESS(PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_QUERY,
-            NtCurrentProcess()
-            )))
+        if (PhCurrentTokenQueryHandle)
         {
             if (NT_SUCCESS(PhGetTokenUser(
-                tokenHandle,
+                PhCurrentTokenQueryHandle,
                 &tokenUser
                 )))
             {
                 stringSid = PhSidToStringSid(tokenUser->User.Sid);
-
                 PhFree(tokenUser);
             }
-
-            NtClose(tokenHandle);
         }
 
         if (stringSid)

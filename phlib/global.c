@@ -33,7 +33,7 @@ PWSTR PhApplicationName = L"Application";
 HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
 ULONG PhCurrentSessionId;
-PPH_STRING PhCurrentUserName = NULL;
+HANDLE PhCurrentTokenQueryHandle = NULL;
 BOOLEAN PhElevated;
 TOKEN_ELEVATION_TYPE PhElevationType;
 PVOID PhHeapHandle;
@@ -93,10 +93,10 @@ NTSTATUS PhInitializePhLib()
 static VOID PhInitializeSecurity()
 {
     HANDLE tokenHandle;
-    PTOKEN_USER tokenUser;
 
     PhElevated = TRUE;
     PhElevationType = TokenElevationTypeDefault;
+    PhCurrentSessionId = NtCurrentPeb()->SessionId;
 
     if (NT_SUCCESS(PhOpenProcessToken(
         &tokenHandle,
@@ -110,16 +110,10 @@ static VOID PhInitializeSecurity()
             PhGetTokenElevationType(tokenHandle, &PhElevationType);
         }
 
-        if (!NT_SUCCESS(PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId)))
-            PhCurrentSessionId = NtCurrentPeb()->SessionId;
+        // Just use the PEB.
+        //PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId);
 
-        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
-        {
-            PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
-            PhFree(tokenUser);
-        }
-
-        NtClose(tokenHandle);
+        PhCurrentTokenQueryHandle = tokenHandle;
     }
 }
 
@@ -127,7 +121,6 @@ BOOLEAN PhInitializeSystem()
 {
     if (!PhIoSupportInitialization())
         return FALSE;
-    PhVerifyInitialization();
     if (!PhSymbolProviderInitialization())
         return FALSE;
     PhHandleInfoInitialization();

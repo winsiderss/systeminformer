@@ -56,7 +56,7 @@ extern __userSet PWSTR PhApplicationName;
 extern __userSet HFONT PhBoldListViewFont;
 extern __userSet HFONT PhBoldMessageFont;
 extern ULONG PhCurrentSessionId;
-extern PPH_STRING PhCurrentUserName;
+extern HANDLE PhCurrentTokenQueryHandle;
 extern BOOLEAN PhElevated;
 extern TOKEN_ELEVATION_TYPE PhElevationType;
 extern PVOID PhHeapHandle;

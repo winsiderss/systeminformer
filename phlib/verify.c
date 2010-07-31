@@ -33,8 +33,9 @@ _WTHelperProvDataFromStateData WTHelperProvDataFromStateData_I;
 _WTHelperGetProvSignerFromChain WTHelperGetProvSignerFromChain_I;
 _WinVerifyTrust WinVerifyTrust_I;
 _CertNameToStr CertNameToStr_I;
+static PH_INITONCE PhpVerifyInitOnce = PH_INITONCE_INIT;
 
-VOID PhVerifyInitialization()
+static VOID PhpVerifyInitialization()
 {
     LoadLibrary(L"wintrust.dll");
     LoadLibrary(L"crypt32.dll");
@@ -425,6 +426,12 @@ VERIFY_RESULT PhVerifyFile(
     )
 {
     VERIFY_RESULT result;
+
+    if (PhBeginInitOnce(&PhpVerifyInitOnce))
+    {
+        PhpVerifyInitialization();
+        PhEndInitOnce(&PhpVerifyInitOnce);
+    }
 
     // Make sure we have successfully imported 
     // the required functions.

@@ -2190,7 +2190,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 180, L"Start Address"); 
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Priority");
 
-            if (processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
+            if (processItem->ServiceList && processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
                 PhAddListViewColumn(lvHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Service");
 
             PhSetExtendedListViewWithSettings(lvHandle);
@@ -2688,7 +2688,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(threadItem->StartAddressString));
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(threadItem->PriorityWin32String));
 
-                if (processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
+                if (processItem->ServiceList && processItem->ServiceList->Count != 0 && WINDOWS_HAS_SERVICE_TAGS)
                     PhSetListViewSubItem(lvHandle, lvItemIndex, 4, PhGetString(threadItem->ServiceName));
 
                 threadsContext->NeedsSort = TRUE;
@@ -5087,7 +5087,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     }
 
     // Services
-    if (PropContext->ProcessItem->ServiceList->Count != 0)
+    if (PropContext->ProcessItem->ServiceList && PropContext->ProcessItem->ServiceList->Count != 0)
     {
         newPage = PhCreateProcessPropPageContext(
             MAKEINTRESOURCE(IDD_PROCSERVICES),

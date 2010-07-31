@@ -188,7 +188,7 @@ PPH_STRING PhGetProcessTooltipText(
 
     // Services
 
-    if (Process->ServiceList->Count != 0)
+    if (Process->ServiceList && Process->ServiceList->Count != 0)
     {
         ULONG enumerationKey = 0;
         PPH_SERVICE_ITEM serviceItem;
@@ -199,7 +199,7 @@ PPH_STRING PhGetProcessTooltipText(
 
         serviceList = PhCreateList(Process->ServiceList->Count);
 
-        PhAcquireQueuedLockExclusive(&Process->ServiceListLock);
+        PhAcquireQueuedLockShared(&Process->ServiceListLock);
 
         while (PhEnumPointerList(
             Process->ServiceList,
@@ -211,7 +211,7 @@ PPH_STRING PhGetProcessTooltipText(
             PhAddItemList(serviceList, serviceItem);
         }
 
-        PhReleaseQueuedLockExclusive(&Process->ServiceListLock);
+        PhReleaseQueuedLockShared(&Process->ServiceListLock);
 
         qsort(serviceList->Items, serviceList->Count, sizeof(PPH_SERVICE_ITEM), ServiceForTooltipCompare);
 
