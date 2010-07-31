@@ -502,6 +502,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
 #define WM_PH_SHOW_MEMORY_EDITOR (WM_APP + 128)
 #define WM_PH_SHOW_MEMORY_RESULTS (WM_APP + 129)
+#define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -534,6 +535,8 @@ extern BOOLEAN PhMainWndExiting;
     PostMessage(hWnd, WM_PH_SHOW_MEMORY_EDITOR, 0, (LPARAM)(ShowMemoryEditor))
 #define ProcessHacker_ShowMemoryResults(hWnd, ShowMemoryResults) \
     PostMessage(hWnd, WM_PH_SHOW_MEMORY_RESULTS, 0, (LPARAM)(ShowMemoryResults))
+#define ProcessHacker_SelectTabPage(hWnd, Index) \
+    SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
