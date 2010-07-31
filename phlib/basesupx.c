@@ -87,7 +87,6 @@ VOID FASTCALL PhxfAddInt32U(
 
     if ((ULONG_PTR)A & 0xf)
     {
-        // Fix mis-alignment for A.
         switch ((ULONG_PTR)A & 0xf)
         {
         case 0x4:
@@ -167,7 +166,6 @@ VOID FASTCALL PhxfDivideSingleU(
 
     if ((ULONG_PTR)A & 0xf)
     {
-        // Fix mis-alignment for A.
         switch ((ULONG_PTR)A & 0xf)
         {
         case 0x4:
@@ -239,6 +237,7 @@ VOID FASTCALL PhxfDivideSingle2U(
     __in ULONG Count
     )
 {
+    PFLOAT endA;
     __m128 b;
 
     if (!USER_SHARED_DATA->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE])
@@ -249,7 +248,6 @@ VOID FASTCALL PhxfDivideSingle2U(
 
     if ((ULONG_PTR)A & 0xf)
     {
-        // Fix mis-alignment for A.
         switch ((ULONG_PTR)A & 0xf)
         {
         case 0x4:
@@ -272,13 +270,18 @@ VOID FASTCALL PhxfDivideSingle2U(
                 *A++ /= B;
                 Count--;
             }
+            else
+            {
+                return; // essential; A may not be aligned properly
+            }
             break;
         }
     }
 
+    endA = (PFLOAT)((ULONG_PTR)(A + Count) & ~0xf);
     b = _mm_load1_ps(&B);
 
-    while (Count >= 4)
+    while (A != endA)
     {
         __m128 a;
 
@@ -287,7 +290,6 @@ VOID FASTCALL PhxfDivideSingle2U(
         _mm_store_ps(A, a);
 
         A += 4;
-        Count -= 4;
     }
 
     switch (Count & 0x3)
