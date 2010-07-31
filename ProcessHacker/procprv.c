@@ -360,7 +360,6 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
 
     memset(processItem, 0, sizeof(PH_PROCESS_ITEM));
     PhInitializeEvent(&processItem->Stage1Event);
-    processItem->ServiceList = PhCreatePointerList(1);
     PhInitializeQueuedLock(&processItem->ServiceListLock);
 
     processItem->ProcessId = ProcessId;
@@ -396,10 +395,13 @@ VOID PhpProcessItemDeleteProcedure(
     PhDeleteCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory);
     //PhDeleteCircularBuffer_SIZE_T(&processItem->WorkingSetHistory);
 
-    for (i = 0; i < processItem->ServiceList->Count; i++)
-        PhDereferenceObject(processItem->ServiceList->Items[i]);
+    if (processItem->ServiceList)
+    {
+        for (i = 0; i < processItem->ServiceList->Count; i++)
+            PhDereferenceObject(processItem->ServiceList->Items[i]);
 
-    PhDereferenceObject(processItem->ServiceList);
+        PhDereferenceObject(processItem->ServiceList);
+    }
 
     if (processItem->ProcessName) PhDereferenceObject(processItem->ProcessName);
     if (processItem->FileName) PhDereferenceObject(processItem->FileName);

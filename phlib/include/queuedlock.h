@@ -145,6 +145,7 @@ FASTCALL
 PhfWaitForWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent,
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in BOOLEAN Spin,
     __in_opt PLARGE_INTEGER Timeout
     );
 

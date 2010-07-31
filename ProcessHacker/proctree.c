@@ -1298,7 +1298,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (PhCsUseColorPacked && processItem->IsPacked)
                 getNodeColor->BackColor = PhCsColorPacked;
-            else if (PhCsUseColorServiceProcesses && processItem->ServiceList->Count != 0)
+            else if (PhCsUseColorServiceProcesses && processItem->ServiceList && processItem->ServiceList->Count != 0)
                 getNodeColor->BackColor = PhCsColorServiceProcesses;
             else if (
                 PhCsUseColorSystemProcesses &&

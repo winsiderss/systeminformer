@@ -289,24 +289,29 @@ FORCEINLINE PPH_QUEUED_WAIT_BLOCK PhpFindLastQueuedWaitBlock(
  * Waits for a wait block to be unblocked.
  *
  * \param WaitBlock A wait block.
+ * \param Spin TRUE to spin, FALSE to block immediately.
  * \param Timeout A timeout value.
  */
 __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in BOOLEAN Spin,
     __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
     ULONG i;
 
-    for (i = 0; i < PhQueuedLockSpinCount; i++)
+    if (Spin)
     {
-        if (!((*(volatile ULONG *)&WaitBlock->Flags) & PH_QUEUED_WAITER_SPINNING))
+        for (i = 0; i < PhQueuedLockSpinCount; i++)
         {
-            break;
-        }
+            if (!((*(volatile ULONG *)&WaitBlock->Flags) & PH_QUEUED_WAITER_SPINNING))
+            {
+                break;
+            }
 
-        YieldProcessor();
+            YieldProcessor();
+        }
     }
 
     if (_interlockedbittestandreset((PLONG)&WaitBlock->Flags, PH_QUEUED_WAITER_SPINNING_SHIFT))
@@ -699,7 +704,7 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
-                PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
+                PhpBlockOnQueuedWaitBlock(&waitBlock, TRUE, NULL);
             }
         }
 
@@ -760,7 +765,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
-                PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
+                PhpBlockOnQueuedWaitBlock(&waitBlock, TRUE, NULL);
             }
         }
 
@@ -1019,7 +1024,7 @@ VOID FASTCALL PhfWaitForCondition(
                 PhReleaseQueuedLockExclusive(Lock);
             }
 
-            PhpBlockOnQueuedWaitBlock(&waitBlock, NULL);
+            PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
 
             if (Lock)
             {
@@ -1098,6 +1103,8 @@ VOID FASTCALL PhfSetWakeEvent(
  * \param WakeEvent A wake event.
  * \param WaitBlock A wait block previously queued to 
  * the wake event using PhfQueueWakeEvent().
+ * \param Spin TRUE to spin on the wake event before blocking, 
+ * FALSE to block immediately.
  * \param Timeout A timeout value.
  *
  * \remarks Wake events are subject to spurious wakeups. You 
@@ -1107,12 +1114,13 @@ VOID FASTCALL PhfSetWakeEvent(
 NTSTATUS FASTCALL PhfWaitForWakeEvent(
     __inout PPH_QUEUED_LOCK WakeEvent,
     __inout PPH_QUEUED_WAIT_BLOCK WaitBlock,
+    __in BOOLEAN Spin,
     __in_opt PLARGE_INTEGER Timeout
     )
 {
     NTSTATUS status;
 
-    status = PhpBlockOnQueuedWaitBlock(WaitBlock, Timeout);
+    status = PhpBlockOnQueuedWaitBlock(WaitBlock, Spin, Timeout);
 
     if (status != STATUS_SUCCESS)
     {

@@ -294,6 +294,9 @@ VOID PhpAddProcessItemService(
 {
     PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
+    if (!ProcessItem->ServiceList)
+        ProcessItem->ServiceList = PhCreatePointerList(2);
+
     if (!PhFindItemPointerList(ProcessItem->ServiceList, ServiceItem))
     {
         PhReferenceObject(ServiceItem);
@@ -311,6 +314,9 @@ VOID PhpRemoveProcessItemService(
     )
 {
     HANDLE pointerHandle;
+
+    if (!ProcessItem->ServiceList)
+        return;
 
     PhAcquireQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
