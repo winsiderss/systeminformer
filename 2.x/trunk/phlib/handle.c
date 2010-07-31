@@ -172,7 +172,7 @@ VOID PhpBlockOnLockedHandleTableEntry(
     }
     else
     {
-        PhWaitForWakeEvent(&HandleTable->HandleWakeEvent, &waitBlock, NULL);
+        PhWaitForWakeEvent(&HandleTable->HandleWakeEvent, &waitBlock, TRUE, NULL);
     }
 }
 

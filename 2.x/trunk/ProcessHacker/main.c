@@ -32,6 +32,7 @@ VOID PhpProcessStartupParameters();
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
+PPH_STRING PhCurrentUserName = NULL;
 PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhProcDbFileName = NULL;
@@ -88,6 +89,17 @@ INT WINAPI WinMain(
 
     PhRegisterWindowClass();
     PhInitializeCommonControls();
+
+    if (PhCurrentTokenQueryHandle)
+    {
+        PTOKEN_USER tokenUser;
+
+        if (NT_SUCCESS(PhGetTokenUser(PhCurrentTokenQueryHandle, &tokenUser)))
+        {
+            PhCurrentUserName = PhGetSidFullName(tokenUser->User.Sid, TRUE, NULL);
+            PhFree(tokenUser);
+        }
+    }
 
     PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
 

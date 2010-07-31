@@ -1608,8 +1608,6 @@ typedef enum _VERIFY_RESULT
     VrSecuritySettings
 } VERIFY_RESULT, *PVERIFY_RESULT;
 
-VOID PhVerifyInitialization();
-
 PHLIBAPI
 VERIFY_RESULT PhVerifyFile(
     __in PWSTR FileName,

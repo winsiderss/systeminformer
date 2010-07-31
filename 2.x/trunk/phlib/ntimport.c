@@ -23,32 +23,24 @@
 #define NTIMPORT_PRIVATE
 #include <ph.h>
 
-#define GetProc(DllName, ProcName) GetProcAddress(GetModuleHandle(L##DllName), (ProcName))
-#define InitProc(DllName, ProcName) ((ProcName) = (_##ProcName)GetProc(DllName, #ProcName))
-#define InitProcReq(DllName, ProcName) \
-    if (!InitProc(DllName, ProcName)) \
-    { \
-        PhShowError( \
-            NULL, \
-            L"Process Hacker cannot run on your operating system. Unable to find %S in %S.", \
-            #ProcName, \
-            DllName \
-            ); \
-        return FALSE; \
-    }
+#define InitProc(DllHandle, ProcName) ((ProcName) = (_##ProcName)GetProcAddress(DllHandle, #ProcName))
 
 BOOLEAN PhInitializeImports()
 {
+    PVOID ntdll;
+
+    ntdll = GetModuleHandle(L"ntdll.dll");
+
 #if !(PHNT_VERSION >= PHNT_WS03)
-    InitProc("ntdll.dll", NtGetNextProcess);
-    InitProc("ntdll.dll", NtGetNextThread);
+    InitProc(ntdll, NtGetNextProcess);
+    InitProc(ntdll, NtGetNextThread);
 #endif
 
 #if !(PHNT_VERSION >= PHNT_VISTA)
-    InitProc("ntdll.dll", NtQueryInformationEnlistment);
-    InitProc("ntdll.dll", NtQueryInformationResourceManager);
-    InitProc("ntdll.dll", NtQueryInformationTransaction);
-    InitProc("ntdll.dll", NtQueryInformationTransactionManager);
+    InitProc(ntdll, NtQueryInformationEnlistment);
+    InitProc(ntdll, NtQueryInformationResourceManager);
+    InitProc(ntdll, NtQueryInformationTransaction);
+    InitProc(ntdll, NtQueryInformationTransactionManager);
 #endif
 
     return TRUE;

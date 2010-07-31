@@ -22,6 +22,7 @@
 
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
+extern PPH_STRING PhCurrentUserName;
 extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhProcDbFileName;
