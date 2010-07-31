@@ -1828,6 +1828,20 @@ LRESULT CALLBACK PhMainWndProc(
             PhFree(showMemoryResults);
         }
         break;
+    case WM_PH_SELECT_TAB_PAGE:
+        {
+            ULONG index = (ULONG)wParam;
+
+            PhpSelectTabPage(index);
+
+            if (index == ProcessesTabIndex)
+                SetFocus(ProcessTreeListHandle);
+            else if (index == ServicesTabIndex)
+                SetFocus(ServiceListViewHandle);
+            else if (index == NetworkTabIndex)
+                SetFocus(NetworkListViewHandle);
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;

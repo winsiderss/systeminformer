@@ -195,12 +195,28 @@ VOID PhWritePhTextHeader(
 
 PHAPPAPI extern HWND PhMainWndHandle;
 
+#define WM_PH_SHOW_PROCESS_PROPERTIES (WM_APP + 120)
+#define WM_PH_DESTROY (WM_APP + 121)
+#define WM_PH_SAVE_ALL_SETTINGS (WM_APP + 122)
+#define WM_PH_PREPARE_FOR_EARLY_SHUTDOWN (WM_APP + 123)
+#define WM_PH_CANCEL_EARLY_SHUTDOWN (WM_APP + 124)
+#define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
+#define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
+
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
 #define ProcessHacker_Destroy(hWnd) \
     SendMessage(hWnd, WM_PH_DESTROY, 0, 0)
+#define ProcessHacker_SaveAllSettings(hWnd) \
+    SendMessage(hWnd, WM_PH_SAVE_ALL_SETTINGS, 0, 0)
+#define ProcessHacker_PrepareForEarlyShutdown(hWnd) \
+    SendMessage(hWnd, WM_PH_PREPARE_FOR_EARLY_SHUTDOWN, 0, 0)
+#define ProcessHacker_CancelEarlyShutdown(hWnd) \
+    SendMessage(hWnd, WM_PH_CANCEL_EARLY_SHUTDOWN, 0, 0)
 #define ProcessHacker_ToggleVisible(hWnd) \
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
+#define ProcessHacker_SelectTabPage(hWnd, Index) \
+    SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
 
 // procprp
 
