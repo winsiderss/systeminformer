@@ -23,7 +23,7 @@
 ; *Inno Setup QuickStart Pack v5.3.10(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
-#define installer_build_number "02"
+#define installer_build_number "03"
 
 #define VerMajor
 #define VerMinor
@@ -105,6 +105,8 @@ BeveledLabel=Process Hacker v{#= simple_app_version} by wj32, Setup v{#= install
 Source: ..\..\CHANGELOG.txt; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\LICENSE.txt; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\doc\Help.htm; DestDir: {app}; Flags: ignoreversion
+Source: ..\..\tools\peview\bin\Release32\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\tools\peview\bin\Release64\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\KProcessHacker\i386\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
@@ -132,6 +134,7 @@ Name: restore_taskmgr; Description: {cm:tsk_RestoreTaskmgr}; GroupDescription: {
 
 
 [Icons]
+Name: {group}\peview; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
