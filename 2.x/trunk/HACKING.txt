@@ -6,7 +6,7 @@ IDE is Visual Studio 2008. Visual C++ 2008 Express Edition
 may or may not work. It is recommended that the x64 compiler 
 be installed even if you are not intending to build for that 
 platform. Also make sure you have installed and set up the Windows
-SDK v7.0 properly on your system. (For more details see here:
+SDK v7.1 properly on your system. (For more details see here:
 http://tinyurl.com/m92f7e)
 
 == Conventions ==
