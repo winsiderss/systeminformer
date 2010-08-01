@@ -223,8 +223,8 @@ FORCEINLINE VOID PhSwapReference(
     oldObject = *ObjectReference;
     *ObjectReference = NewObject;
 
-    if (oldObject) PhDereferenceObject(oldObject);
     if (NewObject) PhReferenceObject(NewObject);
+    if (oldObject) PhDereferenceObject(oldObject);
 }
 
 FORCEINLINE VOID PhSwapReference2(
