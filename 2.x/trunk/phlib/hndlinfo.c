@@ -55,8 +55,7 @@ HANDLE PhQueryObjectStartEvent = NULL;
 HANDLE PhQueryObjectCompletedEvent = NULL;
 PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
 
-#define MAX_OBJECT_TYPE_NUMBER 256
-PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER + 1];
+PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER];
 PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
 
 static PPH_STRING HkcuPrefix;
@@ -171,7 +170,7 @@ NTSTATUS PhpGetObjectTypeName(
     // If the cache contains the object type name, use it. Otherwise, 
     // query the type name.
 
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber <= MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         typeName = PhObjectTypeNames[ObjectTypeNumber];
 
     if (typeName)
@@ -928,7 +927,7 @@ NTSTATUS PhGetHandleInformation(
 
     if (Handle == NULL || Handle == NtCurrentProcess() || Handle == NtCurrentThread())
         return STATUS_INVALID_HANDLE;
-    if (ObjectTypeNumber != -1 && ObjectTypeNumber > MAX_OBJECT_TYPE_NUMBER)
+    if (ObjectTypeNumber != -1 && ObjectTypeNumber >= MAX_OBJECT_TYPE_NUMBER)
         return STATUS_INVALID_PARAMETER_3;
 
     // Duplicate the handle if we're not using KPH.

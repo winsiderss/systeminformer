@@ -1195,6 +1195,18 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             }
         }
         break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_DETAILS:
+                {
+                    PhShowHandleStatisticsDialog(hwndDlg, processItem->ProcessId);
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;

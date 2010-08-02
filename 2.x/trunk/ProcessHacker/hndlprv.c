@@ -257,7 +257,7 @@ __assumeLocked VOID PhpRemoveHandleItem(
     PhDereferenceObject(HandleItem);
 }
 
-NTSTATUS PhpEnumHandlesGeneric(
+NTSTATUS PhEnumHandlesGeneric(
     __in HANDLE ProcessId,
     __in HANDLE ProcessHandle,
     __out PSYSTEM_HANDLE_INFORMATION_EX *Handles,
@@ -399,7 +399,7 @@ VOID PhHandleProviderUpdate(
     if (!handleProvider->ProcessHandle)
         return;
 
-    if (!NT_SUCCESS(PhpEnumHandlesGeneric(
+    if (!NT_SUCCESS(PhEnumHandlesGeneric(
         handleProvider->ProcessId,
         handleProvider->ProcessHandle,
         &handleInfo,

@@ -629,6 +629,13 @@ VOID PhDereferenceAllHandleItems(
     __in PPH_HANDLE_PROVIDER HandleProvider
     );
 
+NTSTATUS PhEnumHandlesGeneric(
+    __in HANDLE ProcessId,
+    __in HANDLE ProcessHandle,
+    __out PSYSTEM_HANDLE_INFORMATION_EX *Handles,
+    __out PBOOLEAN FilterNeeded
+    );
+
 VOID PhHandleProviderUpdate(
     __in PVOID Object
     );
