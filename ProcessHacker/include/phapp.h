@@ -1210,6 +1210,13 @@ VOID PhShowHandleProperties(
     __in PPH_HANDLE_ITEM HandleItem
     );
 
+// hndlstat
+
+VOID PhShowHandleStatisticsDialog(
+    __in HWND ParentWindowHandle,
+    __in HANDLE ProcessId
+    );
+
 // infodlg
 
 VOID PhShowInformationDialog(

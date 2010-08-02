@@ -1074,6 +1074,8 @@ NTSTATUS PhEnumAccounts(
 
 // hndlinfo
 
+#define MAX_OBJECT_TYPE_NUMBER 257
+
 VOID PhHandleInfoInitialization();
 
 typedef PPH_STRING (NTAPI *PPH_GET_CLIENT_ID_NAME)(
