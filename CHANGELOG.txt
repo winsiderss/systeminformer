@@ -6,6 +6,7 @@ Process Hacker
    * Can now unload 32-bit modules on 64-bit systems
    * Tasks are shown in tooltips for taskeng.exe/taskhost.exe processes
    * Run As can now start processes elevated
+   * Handle count by type
    * CSV export
    * Relative start times
  * FIXED:

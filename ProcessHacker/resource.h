@@ -101,6 +101,7 @@
 #define IDD_MEMSTRING                   185
 #define IDD_OPTGRAPHS                   186
 #define IDD_PLUGINS                     187
+#define IDD_HANDLESTATS                 188
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -192,6 +193,7 @@
 #define IDC_CLEAR                       1079
 #define IDC_GOTO                        1079
 #define IDC_OPTIONS                     1079
+#define IDC_DETAILS                     1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082
@@ -610,9 +612,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        188
+#define _APS_NEXT_RESOURCE_VALUE        189
 #define _APS_NEXT_COMMAND_VALUE         40232
-#define _APS_NEXT_CONTROL_VALUE         1260
+#define _APS_NEXT_CONTROL_VALUE         1261
 #define _APS_NEXT_SYMED_VALUE           131
 #endif
 #endif

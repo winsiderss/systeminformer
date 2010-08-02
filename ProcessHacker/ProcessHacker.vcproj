@@ -721,6 +721,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hndlstat.c"
+				>
+			</File>
+			<File
 				RelativePath=".\infodlg.c"
 				>
 			</File>
