@@ -19,12 +19,8 @@
 #define IDC_PRIVATEBYTES                113
 #define IDD_TERMINATOR                  114
 #define IDC_IO                          114
-#define ID_ICONPROCESS_TERMINATE        115
-#define ID_ICONPROCESS_SUSPEND          116
 #define IDB_CROSS                       117
-#define ID_ICONPROCESS_RESUME           117
 #define IDB_TICK                        118
-#define ID_ICONPROCESS_PROPERTIES       118
 #define IDC_PHYSICAL                    119
 #define IDR_SHUTDOWN                    120
 #define IDR_COMPUTER                    120

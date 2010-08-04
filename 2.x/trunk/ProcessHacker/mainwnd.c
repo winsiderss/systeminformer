@@ -96,6 +96,11 @@ BOOLEAN PhpProcessComputerCommand(
     __in ULONG Id
     );
 
+BOOLEAN PhpProcessProcessPriorityCommand(
+    __in ULONG Id,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 VOID PhpRefreshUsersMenu();
 
 VOID PhpAddIconProcesses(
@@ -137,6 +142,13 @@ VOID PhpGetSelectedNetworkItems(
 
 VOID PhpShowProcessProperties(
     __in PPH_PROCESS_ITEM ProcessItem
+    );
+
+VOID PhpSetProcessMenuPriorityChecks(
+    __in HMENU Menu,
+    __in PPH_PROCESS_ITEM Process,
+    __in BOOLEAN SetPriority,
+    __in BOOLEAN SetIoPriority
     );
 
 VOID PhMainWndOnProcessAdded(
@@ -1232,32 +1244,8 @@ LRESULT CALLBACK PhMainWndProc(
 
                     if (processItem)
                     {
-                        ULONG priorityClassWin32;
-
-                        switch (id)
-                        {
-                        case ID_PRIORITY_REALTIME:
-                            priorityClassWin32 = REALTIME_PRIORITY_CLASS;
-                            break;
-                        case ID_PRIORITY_HIGH:
-                            priorityClassWin32 = HIGH_PRIORITY_CLASS;
-                            break;
-                        case ID_PRIORITY_ABOVENORMAL:
-                            priorityClassWin32 = ABOVE_NORMAL_PRIORITY_CLASS;
-                            break;
-                        case ID_PRIORITY_NORMAL:
-                            priorityClassWin32 = NORMAL_PRIORITY_CLASS;
-                            break;
-                        case ID_PRIORITY_BELOWNORMAL:
-                            priorityClassWin32 = BELOW_NORMAL_PRIORITY_CLASS;
-                            break;
-                        case ID_PRIORITY_IDLE:
-                            priorityClassWin32 = IDLE_PRIORITY_CLASS;
-                            break;
-                        }
-
                         PhReferenceObject(processItem);
-                        PhUiSetPriorityProcess(hWnd, processItem, priorityClassWin32);
+                        PhpProcessProcessPriorityCommand(id, processItem);
                         PhDereferenceObject(processItem);
                     }
                 }
@@ -1601,10 +1589,16 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
-            case ID_ICONPROCESS_TERMINATE:
-            case ID_ICONPROCESS_SUSPEND:
-            case ID_ICONPROCESS_RESUME:
-            case ID_ICONPROCESS_PROPERTIES:
+            case ID_PROCESS_TERMINATE:
+            case ID_PROCESS_SUSPEND:
+            case ID_PROCESS_RESUME:
+            case ID_PROCESS_PROPERTIES:
+            case ID_PRIORITY_REALTIME:
+            case ID_PRIORITY_HIGH:
+            case ID_PRIORITY_ABOVENORMAL:
+            case ID_PRIORITY_NORMAL:
+            case ID_PRIORITY_BELOWNORMAL:
+            case ID_PRIORITY_IDLE:
                 {
                     MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
 
@@ -2208,6 +2202,42 @@ BOOLEAN PhpProcessComputerCommand(
     return FALSE;
 }
 
+BOOLEAN PhpProcessProcessPriorityCommand(
+    __in ULONG Id,
+    __in PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    ULONG priorityClassWin32;
+
+    switch (Id)
+    {
+    case ID_PRIORITY_REALTIME:
+        priorityClassWin32 = REALTIME_PRIORITY_CLASS;
+        break;
+    case ID_PRIORITY_HIGH:
+        priorityClassWin32 = HIGH_PRIORITY_CLASS;
+        break;
+    case ID_PRIORITY_ABOVENORMAL:
+        priorityClassWin32 = ABOVE_NORMAL_PRIORITY_CLASS;
+        break;
+    case ID_PRIORITY_NORMAL:
+        priorityClassWin32 = NORMAL_PRIORITY_CLASS;
+        break;
+    case ID_PRIORITY_BELOWNORMAL:
+        priorityClassWin32 = BELOW_NORMAL_PRIORITY_CLASS;
+        break;
+    case ID_PRIORITY_IDLE:
+        priorityClassWin32 = IDLE_PRIORITY_CLASS;
+        break;
+    default:
+        return FALSE;
+    }
+
+    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClassWin32);
+
+    return TRUE;
+}
+
 VOID PhpRefreshUsersMenu()
 {
     HMENU menu;
@@ -2374,30 +2404,62 @@ VOID PhpAddIconProcesses(
     {
         MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
         HMENU subMenu;
+        HMENU priorityMenu;
         HBITMAP iconBitmap;
         CLIENT_ID clientId;
 
         processItem = processList->Items[i];
 
-        subMenu = CreateMenu();
-
         menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
         menuItemInfo.dwItemData = (ULONG_PTR)processItem->ProcessId;
 
+        // Priority
+
+        priorityMenu = CreateMenu();
+
+        menuItemInfo.wID = ID_PRIORITY_REALTIME;
+        menuItemInfo.dwTypeData = L"Real Time";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.wID = ID_PRIORITY_HIGH;
+        menuItemInfo.dwTypeData = L"High";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.wID = ID_PRIORITY_ABOVENORMAL;
+        menuItemInfo.dwTypeData = L"Above Normal";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.wID = ID_PRIORITY_NORMAL;
+        menuItemInfo.dwTypeData = L"Normal";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.wID = ID_PRIORITY_BELOWNORMAL;
+        menuItemInfo.dwTypeData = L"Below Normal";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.wID = ID_PRIORITY_IDLE;
+        menuItemInfo.dwTypeData = L"Idle";
+        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+
+        PhpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE);
+
+        subMenu = CreateMenu();
+
         // Terminate
-        menuItemInfo.wID = ID_ICONPROCESS_TERMINATE;
+        menuItemInfo.wID = ID_PROCESS_TERMINATE;
         menuItemInfo.dwTypeData = L"Terminate";
         InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Terminate
-        menuItemInfo.wID = ID_ICONPROCESS_SUSPEND;
+        // Suspend
+        menuItemInfo.wID = ID_PROCESS_SUSPEND;
         menuItemInfo.dwTypeData = L"Suspend";
         InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Terminate
-        menuItemInfo.wID = ID_ICONPROCESS_RESUME;
+        // Resume
+        menuItemInfo.wID = ID_PROCESS_RESUME;
         menuItemInfo.dwTypeData = L"Resume";
         InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Terminate
-        menuItemInfo.wID = ID_ICONPROCESS_PROPERTIES;
+        // Priority
+        menuItemInfo.fMask = MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
+        menuItemInfo.hSubMenu = priorityMenu;
+        menuItemInfo.dwTypeData = L"Priority";
+        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
+        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
+        // Properties
+        menuItemInfo.wID = ID_PROCESS_PROPERTIES;
         menuItemInfo.dwTypeData = L"Properties";
         InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
 
@@ -2547,10 +2609,10 @@ VOID PhpShowIconContextMenu(
                 NotifyIconNotifyMask ^= bit;
             }
             break;
-        case ID_ICONPROCESS_TERMINATE:
-        case ID_ICONPROCESS_SUSPEND:
-        case ID_ICONPROCESS_RESUME:
-        case ID_ICONPROCESS_PROPERTIES:
+        case ID_PROCESS_TERMINATE:
+        case ID_PROCESS_SUSPEND:
+        case ID_PROCESS_RESUME:
+        case ID_PROCESS_PROPERTIES:
             {
                 PPH_PROCESS_ITEM processItem;
 
@@ -2558,20 +2620,40 @@ VOID PhpShowIconContextMenu(
                 {
                     switch (id)
                     {
-                    case ID_ICONPROCESS_TERMINATE:
+                    case ID_PROCESS_TERMINATE:
                         PhUiTerminateProcesses(PhMainWndHandle, &processItem, 1);
                         break;
-                    case ID_ICONPROCESS_SUSPEND:
+                    case ID_PROCESS_SUSPEND:
                         PhUiSuspendProcesses(PhMainWndHandle, &processItem, 1);
                         break;
-                    case ID_ICONPROCESS_RESUME:
+                    case ID_PROCESS_RESUME:
                         PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
                         break;
-                    case ID_ICONPROCESS_PROPERTIES:
+                    case ID_PROCESS_PROPERTIES:
                         ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
                         break;
                     }
 
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    PhShowError(PhMainWndHandle, L"The process does not exist.");
+                }
+            }
+            break;
+        case ID_PRIORITY_REALTIME:
+        case ID_PRIORITY_HIGH:
+        case ID_PRIORITY_ABOVENORMAL:
+        case ID_PRIORITY_NORMAL:
+        case ID_PRIORITY_BELOWNORMAL:
+        case ID_PRIORITY_IDLE:
+            {
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(SelectedIconProcessId))
+                {
+                    PhpProcessProcessPriorityCommand(id, processItem);
                     PhDereferenceObject(processItem);
                 }
                 else
@@ -2585,6 +2667,8 @@ VOID PhpShowIconContextMenu(
             break;
         }
     }
+
+    SelectedIconProcessId = NULL;
 }
 
 VOID PhpShowIconNotification(
@@ -3076,6 +3160,100 @@ BOOL CALLBACK PhpEnumProcessWindowsProc(
     return TRUE;
 }
 
+VOID PhpSetProcessMenuPriorityChecks(
+    __in HMENU Menu,
+    __in PPH_PROCESS_ITEM Process,
+    __in BOOLEAN SetPriority,
+    __in BOOLEAN SetIoPriority
+    )
+{
+    HANDLE processHandle;
+    ULONG priorityClass = 0;
+    ULONG ioPriority = -1;
+    ULONG id = 0;
+
+    if (NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        Process->ProcessId
+        )))
+    {
+        if (SetPriority)
+            priorityClass = GetPriorityClass(processHandle);
+
+        if (SetIoPriority && WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (!NT_SUCCESS(PhGetProcessIoPriority(
+                processHandle,
+                &ioPriority
+                )))
+            {
+                ioPriority = -1;
+            }
+        }
+
+        NtClose(processHandle);
+    }
+
+    if (SetPriority)
+    {
+        switch (priorityClass)
+        {
+        case REALTIME_PRIORITY_CLASS:
+            id = ID_PRIORITY_REALTIME;
+            break;
+        case HIGH_PRIORITY_CLASS:
+            id = ID_PRIORITY_HIGH;
+            break;
+        case ABOVE_NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_ABOVENORMAL;
+            break;
+        case NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_NORMAL;
+            break;
+        case BELOW_NORMAL_PRIORITY_CLASS:
+            id = ID_PRIORITY_BELOWNORMAL;
+            break;
+        case IDLE_PRIORITY_CLASS:
+            id = ID_PRIORITY_IDLE;
+            break;
+        }
+
+        if (id != 0)
+        {
+            CheckMenuItem(Menu, id, MF_CHECKED);
+            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+        }
+    }
+
+    if (SetIoPriority && ioPriority != -1)
+    {
+        id = 0;
+
+        switch (ioPriority)
+        {
+        case 0:
+            id = ID_I_0;
+            break;
+        case 1:
+            id = ID_I_1;
+            break;
+        case 2:
+            id = ID_I_2;
+            break;
+        case 3:
+            id = ID_I_3;
+            break;
+        }
+
+        if (id != 0)
+        {
+            CheckMenuItem(Menu, id, MF_CHECKED);
+            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+        }
+    }
+}
+
 VOID PhpInitializeProcessMenu(
     __in HMENU Menu,
     __in PPH_PROCESS_ITEM *Processes,
@@ -3179,87 +3357,7 @@ VOID PhpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        HANDLE processHandle;
-        ULONG priorityClass = 0;
-        ULONG ioPriority = -1;
-        ULONG id = 0;
-
-        if (NT_SUCCESS(PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess,
-            Processes[0]->ProcessId
-            )))
-        {
-            priorityClass = GetPriorityClass(processHandle);
-
-            if (WindowsVersion >= WINDOWS_VISTA)
-            {
-                if (!NT_SUCCESS(PhGetProcessIoPriority(
-                    processHandle,
-                    &ioPriority
-                    )))
-                {
-                    ioPriority = -1;
-                }
-            }
-
-            NtClose(processHandle);
-        }
-
-        switch (priorityClass)
-        {
-        case REALTIME_PRIORITY_CLASS:
-            id = ID_PRIORITY_REALTIME;
-            break;
-        case HIGH_PRIORITY_CLASS:
-            id = ID_PRIORITY_HIGH;
-            break;
-        case ABOVE_NORMAL_PRIORITY_CLASS:
-            id = ID_PRIORITY_ABOVENORMAL;
-            break;
-        case NORMAL_PRIORITY_CLASS:
-            id = ID_PRIORITY_NORMAL;
-            break;
-        case BELOW_NORMAL_PRIORITY_CLASS:
-            id = ID_PRIORITY_BELOWNORMAL;
-            break;
-        case IDLE_PRIORITY_CLASS:
-            id = ID_PRIORITY_IDLE;
-            break;
-        }
-
-        if (id != 0)
-        {
-            CheckMenuItem(Menu, id, MF_CHECKED);
-            PhSetRadioCheckMenuItem(Menu, id, TRUE);
-        }
-
-        if (ioPriority != -1)
-        {
-            id = 0;
-
-            switch (ioPriority)
-            {
-            case 0:
-                id = ID_I_0;
-                break;
-            case 1:
-                id = ID_I_1;
-                break;
-            case 2:
-                id = ID_I_2;
-                break;
-            case 3:
-                id = ID_I_3;
-                break;
-            }
-
-            if (id != 0)
-            {
-                CheckMenuItem(Menu, id, MF_CHECKED);
-                PhSetRadioCheckMenuItem(Menu, id, TRUE);
-            }
-        }
+        PhpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE);
     }
 
     // Window menu
