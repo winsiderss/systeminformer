@@ -59,8 +59,8 @@ VOID PhShowLogDialog()
 }
 
 static VOID NTAPI LoggedCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PostMessage(PhLogWindowHandle, WM_PH_LOG_UPDATED, 0, 0); 

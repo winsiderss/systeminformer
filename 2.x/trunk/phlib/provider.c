@@ -323,7 +323,7 @@ VOID PhSetIntervalProviderThread(
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
-    __in PVOID Object,
+    __in_opt PVOID Object,
     __out PPH_PROVIDER_REGISTRATION Registration
     )
 {

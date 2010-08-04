@@ -320,7 +320,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
 
 static BOOLEAN NTAPI PhpWalkThreadStackCallback(
     __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PTHREAD_STACK_CONTEXT threadStackContext = (PTHREAD_STACK_CONTEXT)Context;

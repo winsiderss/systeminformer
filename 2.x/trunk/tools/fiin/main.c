@@ -49,7 +49,7 @@ ULONG64 FipDirTotalAllocSize;
 static BOOLEAN NTAPI FiCommandLineCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     if (Option)
@@ -226,7 +226,7 @@ BOOLEAN FiCreateFile(
 
 BOOLEAN NTAPI FipEnumDirectoryFileForDir(
     __in PFILE_DIRECTORY_INFORMATION Information,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_STRING date, time, size;

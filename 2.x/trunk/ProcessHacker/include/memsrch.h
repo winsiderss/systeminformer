@@ -11,7 +11,7 @@ typedef struct _PH_MEMORY_RESULT
 
 typedef VOID (NTAPI *PPH_MEMORY_RESULT_CALLBACK)(
     __in __assumeRefs(1) PPH_MEMORY_RESULT Result,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #define PH_DISPLAY_BUFFER_COUNT (PAGE_SIZE * 2 - 1)

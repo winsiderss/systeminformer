@@ -176,7 +176,7 @@ NTAPI
 PhCreateThread(
     __in_opt SIZE_T StackSize,
     __in PUSER_THREAD_START_ROUTINE StartAddress,
-    __in PVOID Parameter
+    __in_opt PVOID Parameter
     );
 
 // misc. system
@@ -1812,7 +1812,7 @@ PhRemoveItemsList(
 typedef INT (NTAPI *PPH_COMPARE_FUNCTION)(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -1821,7 +1821,7 @@ NTAPI
 PhSortList(
     __in PPH_LIST List,
     __in PPH_COMPARE_FUNCTION CompareFunction,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 // pointer list
@@ -2277,8 +2277,8 @@ PhFreeToFreeList(
  * to PhRegisterCallback().
  */
 typedef VOID (NTAPI *PPH_CALLBACK_FUNCTION)(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 /**
@@ -2341,7 +2341,7 @@ NTAPI
 PhRegisterCallback(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __out PPH_CALLBACK_REGISTRATION Registration
     );
 
@@ -2351,7 +2351,7 @@ NTAPI
 PhRegisterCallbackEx(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in USHORT Flags,
     __out PPH_CALLBACK_REGISTRATION Registration
     );
@@ -2369,7 +2369,7 @@ VOID
 NTAPI
 PhInvokeCallback(
     __in PPH_CALLBACK Callback,
-    __in PVOID Parameter
+    __in_opt PVOID Parameter
     );
 
 // callbacksync
@@ -2385,7 +2385,7 @@ typedef struct _PH_CALLBACK_SYNC
 FORCEINLINE VOID PhInitializeCallbackSync(
     __out PPH_CALLBACK_SYNC CallbackSync,
     __in ULONG Target,
-    __in PVOID Parameter
+    __in_opt PVOID Parameter
     )
 {
     PhInitializeCallback(&CallbackSync->Callback);
@@ -2729,7 +2729,7 @@ PhPredecessorElementAvlTree(
 typedef BOOLEAN (NTAPI *PPH_ENUM_AVL_TREE_CALLBACK)(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Element,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -2739,7 +2739,7 @@ PhEnumAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PH_TREE_ENUMERATION_ORDER Order,
     __in PPH_ENUM_AVL_TREE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 // handle
@@ -2839,7 +2839,7 @@ typedef BOOLEAN (NTAPI *PPH_ENUM_HANDLE_TABLE_CALLBACK)(
     __in PPH_HANDLE_TABLE HandleTable,
     __in HANDLE Handle,
     __in PPH_HANDLE_TABLE_ENTRY HandleTableEntry,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -2848,7 +2848,7 @@ NTAPI
 PhEnumHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -2857,7 +2857,7 @@ NTAPI
 PhSweepHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef enum _PH_HANDLE_TABLE_INFORMATION_CLASS
@@ -2960,7 +2960,7 @@ NTAPI
 PhQueueItemWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -2968,7 +2968,7 @@ VOID
 NTAPI
 PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #endif

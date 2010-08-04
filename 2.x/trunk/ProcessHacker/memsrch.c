@@ -572,7 +572,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
 
 static BOOL NTAPI PhpMemoryStringResultCallback(
     __in __assumeRefs(1) PPH_MEMORY_RESULT Result,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PMEMORY_STRING_CONTEXT context = Context;

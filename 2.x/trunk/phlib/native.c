@@ -31,16 +31,16 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES_CALLBACK)(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY Entry,
     __in PVOID AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     );
 
 typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY32 Entry,
     __in ULONG AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     );
 
 PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
@@ -2362,7 +2362,7 @@ NTSTATUS PhWalkThreadStack(
     __in_opt HANDLE ProcessHandle,
     __in ULONG Flags,
     __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -3765,7 +3765,7 @@ typedef struct _OPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT
 BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -4184,8 +4184,8 @@ NTSTATUS PhDuplicateObject(
 NTSTATUS PhpEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPHP_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     NTSTATUS status;
@@ -4280,8 +4280,8 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY Entry,
     __in PVOID AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     BOOLEAN cont;
@@ -4343,7 +4343,7 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpEnumProcessModules(
@@ -4365,8 +4365,8 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY Entry,
     __in PVOID AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
@@ -4429,8 +4429,8 @@ NTSTATUS PhSetProcessModuleLoadCount(
 NTSTATUS PhpEnumProcessModules32(
     __in HANDLE ProcessHandle,
     __in PPHP_ENUM_PROCESS_MODULES32_CALLBACK Callback,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     NTSTATUS status;
@@ -4528,8 +4528,8 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY32 Entry,
     __in ULONG AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     BOOLEAN cont;
@@ -4610,7 +4610,7 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
 NTSTATUS PhEnumProcessModules32(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpEnumProcessModules32(
@@ -4625,8 +4625,8 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
     __in HANDLE ProcessHandle,
     __in PLDR_DATA_TABLE_ENTRY32 Entry,
     __in ULONG AddressOfEntry,
-    __in PVOID Context1,
-    __in PVOID Context2
+    __in_opt PVOID Context1,
+    __in_opt PVOID Context2
     )
 {
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
@@ -4699,7 +4699,7 @@ typedef struct _GET_PROCEDURE_ADDRESS_REMOTE_CONTEXT
 
 static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     __in PLDR_DATA_TABLE_ENTRY Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PGET_PROCEDURE_ADDRESS_REMOTE_CONTEXT context = Context;
@@ -5286,7 +5286,7 @@ typedef struct _GET_PROCESS_IS_DOT_NET_CONTEXT
 BOOLEAN NTAPI PhpGetProcessIsDotNetCallback(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PGET_PROCESS_IS_DOT_NET_CONTEXT context = Context;
@@ -5364,7 +5364,7 @@ NTSTATUS PhGetProcessIsDotNet(
 BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     static PH_STRINGREF prefix = PH_STRINGREF_INIT(L"Cor_Private_IPCBlock_");
@@ -5504,7 +5504,7 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
 NTSTATUS PhEnumDirectoryObjects(
     __in HANDLE DirectoryHandle,
     __in PPH_ENUM_DIRECTORY_OBJECTS Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -5604,7 +5604,7 @@ NTSTATUS PhEnumDirectoryFile(
     __in HANDLE FileHandle,
     __in_opt PPH_STRINGREF SearchPattern,
     __in PPH_ENUM_DIRECTORY_FILE Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -6068,7 +6068,7 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
 
 static BOOLEAN EnumGenericProcessModulesCallback(
     __in PLDR_DATA_TABLE_ENTRY Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PENUM_GENERIC_PROCESS_MODULES_CONTEXT context;
@@ -6117,7 +6117,7 @@ static BOOLEAN EnumGenericProcessModulesCallback(
 VOID PhpRtlModulesToGenericModules(
     __in PRTL_PROCESS_MODULES Modules,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_LIST BaseAddressList
     )
 {
@@ -6171,7 +6171,7 @@ VOID PhpRtlModulesToGenericModules(
 VOID PhpEnumGenericMappedFiles(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_LIST BaseAddressList
     )
 {
@@ -6261,7 +6261,7 @@ NTSTATUS PhEnumGenericModules(
     __in_opt HANDLE ProcessHandle,
     __in ULONG Flags,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;

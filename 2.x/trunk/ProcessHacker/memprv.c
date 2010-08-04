@@ -47,7 +47,7 @@ VOID PhInitializeMemoryProvider(
     __out PPH_MEMORY_PROVIDER Provider,
     __in HANDLE ProcessId,
     __in PPH_MEMORY_PROVIDER_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     Provider->Callback = Callback;
@@ -198,7 +198,7 @@ PWSTR PhGetMemoryTypeString(
 
 BOOLEAN NTAPI PhpMemoryProviderEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HASHTABLE moduleHashtable = Context;

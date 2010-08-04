@@ -13,13 +13,13 @@ VOID SxShowExplorer();
 __callback NTSTATUS SxStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 __callback NTSTATUS SxStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #endif

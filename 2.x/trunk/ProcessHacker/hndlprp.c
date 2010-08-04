@@ -39,7 +39,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
 static NTSTATUS PhpDuplicateHandleFromProcess(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;

@@ -96,7 +96,7 @@ VOID PhShowProcessHeapsDialog(
 static INT NTAPI PhpHeapAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -108,7 +108,7 @@ static INT NTAPI PhpHeapAddressCompareFunction(
 static INT NTAPI PhpHeapUsedCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -120,7 +120,7 @@ static INT NTAPI PhpHeapUsedCompareFunction(
 static INT NTAPI PhpHeapCommittedCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -132,7 +132,7 @@ static INT NTAPI PhpHeapCommittedCompareFunction(
 static INT NTAPI PhpHeapEntriesCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo1 = Item1;
@@ -144,7 +144,7 @@ static INT NTAPI PhpHeapEntriesCompareFunction(
 static HFONT NTAPI PhpHeapFontFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PRTL_HEAP_INFORMATION heapInfo = Param;

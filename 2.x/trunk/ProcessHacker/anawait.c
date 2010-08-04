@@ -34,7 +34,7 @@ typedef struct _ANALYZE_WAIT_CONTEXT
 
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 VOID PhUiAnalyzeWaitThread(
@@ -129,7 +129,7 @@ static PPH_STRING PhapGetHandleString(
 
 static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PANALYZE_WAIT_CONTEXT context = (PANALYZE_WAIT_CONTEXT)Context;

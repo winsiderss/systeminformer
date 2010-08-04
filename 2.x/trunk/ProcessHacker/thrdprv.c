@@ -95,7 +95,7 @@ BOOLEAN PhThreadProviderInitialization()
 
 VOID PhpQueueThreadWorkQueueItem(
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     if (PhBeginInitOnce(&PhThreadProviderWorkQueueInitOnce))
@@ -201,7 +201,7 @@ VOID PhpThreadProviderDeleteProcedure(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;
@@ -229,7 +229,7 @@ static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
 
 static BOOLEAN LoadBasicSymbolsEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_SYMBOL_LOAD_CONTEXT context = Context;

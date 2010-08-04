@@ -36,12 +36,12 @@ INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 COLORREF NTAPI PhpHiddenProcessesColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 BOOLEAN NTAPI PhpHiddenProcessesCallback(
     __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HWND PhHiddenProcessesWindowHandle = NULL;
@@ -404,7 +404,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 static COLORREF NTAPI PhpHiddenProcessesColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HIDDEN_PROCESS_ENTRY entry = Param;
@@ -423,7 +423,7 @@ static COLORREF NTAPI PhpHiddenProcessesColorFunction(
 
 static BOOLEAN NTAPI PhpHiddenProcessesCallback(
     __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HIDDEN_PROCESS_ENTRY entry;
@@ -452,7 +452,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
 
 NTSTATUS PhpEnumHiddenProcessesBruteForce(
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -553,7 +553,7 @@ typedef struct _CSR_HANDLES_CONTEXT
 
 static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
     __in PPH_CSR_HANDLE_INFO Handle,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -614,7 +614,7 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
 
 NTSTATUS PhpEnumHiddenProcessesCsrHandles(
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -651,7 +651,7 @@ NTSTATUS PhpEnumHiddenProcessesCsrHandles(
 NTSTATUS PhEnumHiddenProcesses(
     __in PH_HIDDEN_PROCESS_METHOD Method,
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     if (Method == BruteForceScanMethod)
@@ -772,7 +772,7 @@ NTSTATUS PhpGetCsrHandleProcessId(
 
 NTSTATUS PhEnumCsrProcessHandles(
     __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -897,7 +897,7 @@ typedef struct _OPEN_PROCESS_BY_CSR_CONTEXT
 
 static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
     __in PPH_CSR_HANDLE_INFO Handle,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     POPEN_PROCESS_BY_CSR_CONTEXT context = Context;
