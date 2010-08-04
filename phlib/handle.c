@@ -304,7 +304,7 @@ PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
 VOID PhEnumHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     ULONG handleValue;
@@ -336,7 +336,7 @@ VOID PhEnumHandleTable(
 VOID PhSweepHandleTable(
     __in PPH_HANDLE_TABLE HandleTable,
     __in PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     ULONG handleValue;

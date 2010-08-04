@@ -39,7 +39,7 @@ INT_PTR CALLBACK PhpNetworkStackDlgProc(
 
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PNETWORK_STACK_CONTEXT context = Context;

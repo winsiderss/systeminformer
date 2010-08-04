@@ -114,7 +114,7 @@ BOOLEAN PhPluginAddMenuItem(
     __in_opt PWSTR InsertAfter,
     __in ULONG Id,
     __in PWSTR Text,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #endif

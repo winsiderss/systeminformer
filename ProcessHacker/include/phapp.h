@@ -657,7 +657,7 @@ PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHAPPAPI
@@ -1229,13 +1229,13 @@ VOID PhShowInformationDialog(
 VOID PhShowJobProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt PWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateJobPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt DLGPROC HookProc
     );
 
@@ -1286,32 +1286,32 @@ VOID PhShowNetworkStackDialog(
 
 HPROPSHEETPAGE PhCreateEventPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateEventPairPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateMutantPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSectionPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 HPROPSHEETPAGE PhCreateTimerPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 // options
@@ -1435,13 +1435,13 @@ PWSTR PhGetPrivilegeAttributesString(
 VOID PhShowTokenProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt PWSTR Title
     );
 
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt DLGPROC HookProc
     );
 

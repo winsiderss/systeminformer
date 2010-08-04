@@ -2118,9 +2118,9 @@ PPH_STRING PhSaveTreeListColumnSettings(
 __callback BOOLEAN NTAPI PhTreeListNullCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
-    __in PVOID Parameter1,
-    __in PVOID Parameter2,
-    __in PVOID Context
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
     )
 {
     return FALSE;

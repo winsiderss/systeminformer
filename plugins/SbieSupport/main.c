@@ -18,47 +18,47 @@ typedef struct _BOXED_PROCESS
 } BOXED_PROCESS, *PBOXED_PROCESS;
 
 VOID NTAPI LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI ShowOptionsCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI GetProcessHighlightingColorCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI GetProcessTooltipTextCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI GetIsDotNetDirectoryNamesCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI RefreshSandboxieInfo(
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in BOOLEAN TimerOrWaitFired
     );
 
@@ -196,8 +196,8 @@ ULONG NTAPI BoxedProcessesHashFunction(
 }
 
 VOID NTAPI LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_STRING sbieDllPath;
@@ -230,8 +230,8 @@ VOID NTAPI LoadCallback(
 }
 
 VOID NTAPI ShowOptionsCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     DialogBox(
@@ -243,8 +243,8 @@ VOID NTAPI ShowOptionsCallback(
 }
 
 VOID NTAPI MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -288,8 +288,8 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
@@ -299,8 +299,8 @@ VOID NTAPI MainWindowShowingCallback(
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PBOXED_PROCESS boxedProcess;
@@ -330,8 +330,8 @@ VOID NTAPI ProcessesUpdatedCallback(
 }
 
 VOID NTAPI GetProcessHighlightingColorCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
@@ -353,8 +353,8 @@ VOID NTAPI GetProcessHighlightingColorCallback(
 }
 
 VOID NTAPI GetProcessTooltipTextCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_GET_TOOLTIP_TEXT getTooltipText = Parameter;
@@ -374,8 +374,8 @@ VOID NTAPI GetProcessTooltipTextCallback(
 }
 
 VOID NTAPI GetIsDotNetDirectoryNamesCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES isDotNetDirectoryNames = Parameter;
@@ -406,7 +406,7 @@ VOID NTAPI GetIsDotNetDirectoryNamesCallback(
 }
 
 VOID NTAPI RefreshSandboxieInfo(
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in BOOLEAN TimerOrWaitFired
     )
 {

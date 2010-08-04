@@ -8,7 +8,7 @@ PPH_STRING outFile = NULL;
 BOOLEAN NTAPI CommandLineCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     if (Option)

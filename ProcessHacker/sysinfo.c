@@ -215,8 +215,8 @@ static VOID PhpSetOneGraphPerCpu()
 }
 
 static VOID NTAPI SysInfoUpdateHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PostMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_UPDATE, 0, 0);

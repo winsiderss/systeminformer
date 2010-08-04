@@ -253,7 +253,7 @@ PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHAPPAPI

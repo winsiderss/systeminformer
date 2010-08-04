@@ -369,7 +369,7 @@ BOOLEAN PhAddProcessPropPage2(
 PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
@@ -553,7 +553,7 @@ VOID PhDoPropPageLayout(
 NTSTATUS PhpProcessGeneralOpenProcess(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
@@ -1009,8 +1009,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 }
 
 static VOID NTAPI StatisticsUpdateHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_STATISTICS_CONTEXT statisticsContext = (PPH_STATISTICS_CONTEXT)Context;
@@ -1233,8 +1233,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 }
 
 static VOID NTAPI PerformanceUpdateHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PERFORMANCE_CONTEXT performanceContext = (PPH_PERFORMANCE_CONTEXT)Context;
@@ -1698,8 +1698,8 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 }
 
 static VOID NTAPI ThreadAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1715,8 +1715,8 @@ static VOID NTAPI ThreadAddedHandler(
 }
 
 static VOID NTAPI ThreadModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1725,8 +1725,8 @@ static VOID NTAPI ThreadModifiedHandler(
 }
 
 static VOID NTAPI ThreadRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1735,8 +1735,8 @@ static VOID NTAPI ThreadRemovedHandler(
 }
 
 static VOID NTAPI ThreadsUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1745,8 +1745,8 @@ static VOID NTAPI ThreadsUpdatedHandler(
 }
 
 static VOID NTAPI ThreadsLoadingStateChangedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_THREADS_CONTEXT threadsContext = (PPH_THREADS_CONTEXT)Context;
@@ -1939,7 +1939,7 @@ VOID PhpInitializeThreadMenu(
 NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
@@ -1948,7 +1948,7 @@ NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
 INT NTAPI PhpThreadTidCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_ITEM item1 = Item1;
@@ -1960,7 +1960,7 @@ INT NTAPI PhpThreadTidCompareFunction(
 INT NTAPI PhpThreadCyclesCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_ITEM item1 = Item1;
@@ -1976,7 +1976,7 @@ INT NTAPI PhpThreadCyclesCompareFunction(
 INT NTAPI PhpThreadPriorityCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_ITEM item1 = Item1;
@@ -1988,7 +1988,7 @@ INT NTAPI PhpThreadPriorityCompareFunction(
 COLORREF NTAPI PhpThreadColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_THREAD_ITEM item = Param;
@@ -2004,7 +2004,7 @@ COLORREF NTAPI PhpThreadColorFunction(
 NTSTATUS NTAPI PhpOpenThreadTokenObject(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhOpenThreadToken(
@@ -2753,7 +2753,7 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 static NTSTATUS NTAPI PhpOpenProcessToken(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -2821,8 +2821,8 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
 }
 
 static VOID NTAPI ModuleAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -2838,8 +2838,8 @@ static VOID NTAPI ModuleAddedHandler(
 }
 
 static VOID NTAPI ModuleRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -2848,8 +2848,8 @@ static VOID NTAPI ModuleRemovedHandler(
 }
 
 static VOID NTAPI ModulesUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
@@ -2891,7 +2891,7 @@ VOID PhpInitializeModuleMenu(
 INT NTAPI PhpModuleTriStateCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_ITEM item1 = Item1;
@@ -2909,7 +2909,7 @@ INT NTAPI PhpModuleTriStateCompareFunction(
 INT NTAPI PhpModuleBaseAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_ITEM item1 = Item1;
@@ -2921,7 +2921,7 @@ INT NTAPI PhpModuleBaseAddressCompareFunction(
 INT NTAPI PhpModuleSizeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_ITEM item1 = Item1;
@@ -2933,7 +2933,7 @@ INT NTAPI PhpModuleSizeCompareFunction(
 COLORREF NTAPI PhpModuleColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_ITEM item = Param;
@@ -2949,7 +2949,7 @@ COLORREF NTAPI PhpModuleColorFunction(
 HFONT NTAPI PhpModuleFontFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_ITEM item = Param;
@@ -3421,7 +3421,7 @@ VOID PhpUpdateMemoryItemInListView(
 INT NTAPI PhpMemoryAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MEMORY_ITEM item1 = Item1;
@@ -3433,7 +3433,7 @@ INT NTAPI PhpMemoryAddressCompareFunction(
 INT NTAPI PhpMemorySizeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MEMORY_ITEM item1 = Item1;
@@ -3955,8 +3955,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
 }
 
 static VOID NTAPI HandleAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -3972,8 +3972,8 @@ static VOID NTAPI HandleAddedHandler(
 }
 
 static VOID NTAPI HandleModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -3982,8 +3982,8 @@ static VOID NTAPI HandleModifiedHandler(
 }
 
 static VOID NTAPI HandleRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -3992,8 +3992,8 @@ static VOID NTAPI HandleRemovedHandler(
 }
 
 static VOID NTAPI HandlesUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLES_CONTEXT handlesContext = (PPH_HANDLES_CONTEXT)Context;
@@ -4056,7 +4056,7 @@ VOID PhpInitializeHandleMenu(
 INT NTAPI PhpHandleTypeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLE_ITEM item1 = Item1;
@@ -4068,7 +4068,7 @@ INT NTAPI PhpHandleTypeCompareFunction(
 INT NTAPI PhpHandleNameCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLE_ITEM item1 = Item1;
@@ -4080,7 +4080,7 @@ INT NTAPI PhpHandleNameCompareFunction(
 INT NTAPI PhpHandleHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLE_ITEM item1 = Item1;
@@ -4092,7 +4092,7 @@ INT NTAPI PhpHandleHandleCompareFunction(
 COLORREF NTAPI PhpHandleColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_HANDLE_ITEM item = Param;
@@ -4582,7 +4582,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 static NTSTATUS NTAPI PhpOpenProcessJob(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -4658,8 +4658,8 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
 }
 
 static VOID NTAPI ServiceModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;

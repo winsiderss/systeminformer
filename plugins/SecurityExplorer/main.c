@@ -2,18 +2,18 @@
 #include "explorer.h"
 
 VOID NTAPI LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID NTAPI MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 PPH_PLUGIN PluginInstance;
@@ -70,16 +70,16 @@ LOGICAL DllMain(
 }
 
 VOID NTAPI LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
 
 }
 
 VOID NTAPI MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -95,8 +95,8 @@ VOID NTAPI MenuItemCallback(
 }
 
 VOID NTAPI MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"Pagefiles",

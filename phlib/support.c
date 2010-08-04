@@ -3094,7 +3094,7 @@ BOOLEAN PhParseCommandLine(
     __in ULONG NumberOfOptions,
     __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     ULONG i;

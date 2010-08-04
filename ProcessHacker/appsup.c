@@ -138,7 +138,7 @@ NTSTATUS PhGetProcessKnownType(
 static BOOLEAN NTAPI PhpSvchostCommandLineCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine = Context;

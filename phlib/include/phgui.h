@@ -648,13 +648,13 @@ typedef enum _PH_ITEM_STATE
 typedef COLORREF (NTAPI *PPH_EXTLV_GET_ITEM_COLOR)(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef HFONT (NTAPI *PPH_EXTLV_GET_ITEM_FONT)(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -809,13 +809,13 @@ FORCEINLINE COLORREF PhMakeColorBrighter(
 typedef NTSTATUS (NTAPI *PPH_GET_OBJECT_SECURITY)(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef NTSTATUS (NTAPI *PPH_SET_OBJECT_SECURITY)(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef struct _PH_ACCESS_ENTRY
@@ -834,7 +834,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     );
@@ -845,7 +845,7 @@ VOID PhEditSecurity(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     );
@@ -853,7 +853,7 @@ VOID PhEditSecurity(
 typedef NTSTATUS (NTAPI *PPH_OPEN_OBJECT)(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef struct _PH_STD_OBJECT_SECURITY
@@ -917,14 +917,14 @@ PHLIBAPI
 __callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
 __callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI

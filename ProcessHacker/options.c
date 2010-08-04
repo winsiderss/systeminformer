@@ -715,7 +715,7 @@ VOID PhpRefreshColorItems()
 COLORREF NTAPI PhpColorItemColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PCOLOR_ITEM item = Param;

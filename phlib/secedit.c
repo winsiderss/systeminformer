@@ -52,7 +52,7 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     )
@@ -81,7 +81,7 @@ VOID PhEditSecurity(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     )
@@ -106,7 +106,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     )
@@ -316,7 +316,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
 __callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;
@@ -351,7 +351,7 @@ __callback NTSTATUS PhStdGetObjectSecurity(
 __callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;

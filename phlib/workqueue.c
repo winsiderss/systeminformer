@@ -110,7 +110,7 @@ VOID PhDeleteWorkQueue(
 FORCEINLINE VOID PhpInitializeWorkQueueItem(
     __out PPH_WORK_QUEUE_ITEM WorkQueueItem,
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     WorkQueueItem->Function = Function;
@@ -255,7 +255,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 VOID PhQueueItemWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_WORK_QUEUE_ITEM workQueueItem;
@@ -291,7 +291,7 @@ VOID PhQueueItemWorkQueue(
 
 VOID PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     if (PhBeginInitOnce(&PhGlobalWorkQueueInitOnce))

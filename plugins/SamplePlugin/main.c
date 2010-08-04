@@ -4,33 +4,33 @@
 #define ID_SHOW_ME_SOME_OBJECTS 2
 
 VOID LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID ShowOptionsCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID GetProcessHighlightingColorCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 VOID GetProcessTooltipTextCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     );
 
 PPH_PLUGIN PluginInstance;
@@ -122,8 +122,8 @@ LOGICAL DllMain(
 }
 
 VOID LoadCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     ULONG myInteger;
@@ -140,8 +140,8 @@ VOID LoadCallback(
 }
 
 VOID ShowOptionsCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PhShowError((HWND)Parameter, L"Show some options here.");
@@ -150,7 +150,7 @@ VOID ShowOptionsCallback(
 BOOLEAN NTAPI EnumDirectoryObjectsCallback(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     INT result;
@@ -167,8 +167,8 @@ BOOLEAN NTAPI EnumDirectoryObjectsCallback(
 }
 
 VOID MenuItemCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
@@ -202,8 +202,8 @@ VOID MenuItemCallback(
 }
 
 VOID MainWindowShowingCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     // $ won't match anything, so the menu item will get added to the end.
@@ -214,8 +214,8 @@ VOID MainWindowShowingCallback(
 }
 
 VOID GetProcessHighlightingColorCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_GET_HIGHLIGHTING_COLOR getHighlightingColor = Parameter;
@@ -237,8 +237,8 @@ VOID GetProcessHighlightingColorCallback(
 }
 
 VOID GetProcessTooltipTextCallback(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_GET_TOOLTIP_TEXT getTooltipText = Parameter;

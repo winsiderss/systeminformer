@@ -106,7 +106,7 @@ VOID PhShowRunAsDialog(
 
 static BOOLEAN NTAPI PhpRunAsEnumAccountsCallback(
     __in PSID Sid,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_STRING name;
@@ -1042,7 +1042,7 @@ VOID PhpRunAsServiceExit(
 BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     ULONG64 integer;
