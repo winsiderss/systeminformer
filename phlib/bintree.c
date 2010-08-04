@@ -96,7 +96,7 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
 }
 
 FORCEINLINE VOID PhpRotateLeftAvlLinks(
-    __deref_out PPH_AVL_LINKS *Root
+    __deref_inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -142,7 +142,7 @@ FORCEINLINE VOID PhpRotateLeftAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
-    __deref_out PPH_AVL_LINKS *Root
+    __deref_inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -211,7 +211,7 @@ FORCEINLINE VOID PhpRotateLeftTwiceAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightAvlLinks(
-    __deref_out PPH_AVL_LINKS *Root
+    __deref_inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS Q;
@@ -257,7 +257,7 @@ FORCEINLINE VOID PhpRotateRightAvlLinks(
 }
 
 FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
-    __deref_out PPH_AVL_LINKS *Root
+    __deref_inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -326,7 +326,7 @@ FORCEINLINE VOID PhpRotateRightTwiceAvlLinks(
 }
 
 ULONG PhpRebalanceAvlLinks(
-    __deref_out PPH_AVL_LINKS *Root
+    __deref_inout PPH_AVL_LINKS *Root
     )
 {
     PPH_AVL_LINKS P;
@@ -793,7 +793,7 @@ VOID PhEnumAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PH_TREE_ENUMERATION_ORDER Order,
     __in PPH_ENUM_AVL_TREE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     // The maximum height of an AVL tree is around 1.44 * log2(n).

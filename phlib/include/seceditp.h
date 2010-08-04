@@ -21,7 +21,7 @@ ISecurityInformation *PhSecurityInformation_Create(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     );

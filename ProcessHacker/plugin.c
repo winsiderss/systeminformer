@@ -60,7 +60,7 @@ INT NTAPI PhpPluginsCompareFunction(
 
 static BOOLEAN EnumPluginsDirectoryCallback(
     __in PFILE_DIRECTORY_INFORMATION Information,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_STRING fileName;
@@ -206,7 +206,7 @@ BOOLEAN PhPluginAddMenuItem(
     __in_opt PWSTR InsertAfter,
     __in ULONG Id,
     __in PWSTR Text,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem;

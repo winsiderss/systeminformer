@@ -42,7 +42,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 static NTSTATUS PhpOpenService(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     SC_HANDLE serviceHandle;

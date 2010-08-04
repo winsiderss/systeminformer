@@ -43,7 +43,7 @@ VOID SxShowExplorer()
 NTSTATUS SxpOpenLsaPolicy(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhOpenLsaPolicy(Handle, DesiredAccess, NULL);
@@ -168,7 +168,7 @@ VOID SxpRefreshPrivileges()
 NTSTATUS SxpOpenSelectedLsaAccount(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;

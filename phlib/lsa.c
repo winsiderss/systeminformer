@@ -335,7 +335,7 @@ PPH_STRING PhSidToStringSid(
 NTSTATUS PhEnumAccounts(
     __in LSA_HANDLE PolicyHandle,
     __in PPH_ENUM_ACCOUNTS_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     NTSTATUS status;

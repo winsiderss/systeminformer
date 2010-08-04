@@ -270,7 +270,7 @@ VOID PhpFreeSymbolModule(
 static INT PhpSymbolModuleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_SYMBOL_MODULE symbolModule1 = (PPH_SYMBOL_MODULE)Item1;

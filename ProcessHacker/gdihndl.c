@@ -290,7 +290,7 @@ VOID PhpRefreshGdiHandles(
 INT NTAPI PhpGdiHandleHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_GDI_HANDLE_ITEM item1 = Item1;
@@ -302,7 +302,7 @@ INT NTAPI PhpGdiHandleHandleCompareFunction(
 INT NTAPI PhpGdiHandleObjectCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_GDI_HANDLE_ITEM item1 = Item1;

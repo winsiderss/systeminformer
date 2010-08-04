@@ -33,25 +33,25 @@ typedef struct _PH_CSR_HANDLE_INFO
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_HIDDEN_PROCESSES_CALLBACK)(
     __in PPH_HIDDEN_PROCESS_ENTRY Process,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHAPPAPI
 NTSTATUS PhEnumHiddenProcesses(
     __in PH_HIDDEN_PROCESS_METHOD Method,
     __in PPH_ENUM_HIDDEN_PROCESSES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK)(
     __in PPH_CSR_HANDLE_INFO Handle,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHAPPAPI
 NTSTATUS PhEnumCsrProcessHandles(
     __in PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHAPPAPI

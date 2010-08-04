@@ -103,7 +103,7 @@ VOID PhShowHandleStatisticsDialog(
 static INT NTAPI PhpTypeCountCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PHANDLE_STATISTICS_ENTRY entry1 = Item1;

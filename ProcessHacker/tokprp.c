@@ -70,7 +70,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 VOID PhShowTokenProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt PWSTR Title
     )
 {
@@ -94,7 +94,7 @@ VOID PhShowTokenProperties(
 
 HPROPSHEETPAGE PhCreateTokenPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt DLGPROC HookProc
     )
 {
@@ -209,7 +209,7 @@ COLORREF PhGetGroupAttributesColor(
 static COLORREF NTAPI PhpTokenGroupColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PSID_AND_ATTRIBUTES sidAndAttributes = Param;
@@ -244,7 +244,7 @@ COLORREF PhGetPrivilegeAttributesColor(
 static COLORREF NTAPI PhpTokenPrivilegeColorFunction(
     __in INT Index,
     __in PVOID Param,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PLUID_AND_ATTRIBUTES luidAndAttributes = Param;
@@ -752,7 +752,7 @@ VOID PhpShowTokenAdvancedProperties(
 static NTSTATUS PhpOpenLinkedToken(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhGetTokenLinkedToken((HANDLE)Context, Handle);

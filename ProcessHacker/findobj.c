@@ -124,7 +124,7 @@ VOID PhpInitializeFindObjMenu(
 INT NTAPI PhpObjectHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
@@ -538,7 +538,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
 static BOOLEAN NTAPI EnumModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_STRING lowerFileName;

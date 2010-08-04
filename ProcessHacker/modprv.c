@@ -255,7 +255,7 @@ __assumeLocked VOID PhpRemoveModuleItem(
 
 static BOOLEAN NTAPI EnumModulesCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_MODULE_INFO copy;

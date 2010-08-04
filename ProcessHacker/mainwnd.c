@@ -2676,8 +2676,8 @@ VOID PhpGetSelectedNetworkItems(
 }
 
 static VOID NTAPI ProcessAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2694,8 +2694,8 @@ static VOID NTAPI ProcessAddedHandler(
 }
 
 static VOID NTAPI ProcessModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2704,8 +2704,8 @@ static VOID NTAPI ProcessModifiedHandler(
 }
 
 static VOID NTAPI ProcessRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_PROCESS_ITEM processItem = (PPH_PROCESS_ITEM)Parameter;
@@ -2716,16 +2716,16 @@ static VOID NTAPI ProcessRemovedHandler(
 }
 
 static VOID NTAPI ProcessesUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_PROCESSES_UPDATED, 0, 0);
 }
 
 static VOID NTAPI ProcessesUpdatedForIconsHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     // We do icon updating on the provider thread so we don't block the main GUI when 
@@ -2744,8 +2744,8 @@ static VOID NTAPI ProcessesUpdatedForIconsHandler(
 }
 
 static VOID NTAPI ServiceAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
@@ -2760,8 +2760,8 @@ static VOID NTAPI ServiceAddedHandler(
 }
 
 static VOID NTAPI ServiceModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
@@ -2773,8 +2773,8 @@ static VOID NTAPI ServiceModifiedHandler(
 }
 
 static VOID NTAPI ServiceRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)Parameter;
@@ -2783,16 +2783,16 @@ static VOID NTAPI ServiceRemovedHandler(
 }
 
 static VOID NTAPI ServicesUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_SERVICES_UPDATED, 0, 0);
 }
 
 static VOID NTAPI NetworkItemAddedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2807,8 +2807,8 @@ static VOID NTAPI NetworkItemAddedHandler(
 }
 
 static VOID NTAPI NetworkItemModifiedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2817,8 +2817,8 @@ static VOID NTAPI NetworkItemModifiedHandler(
 }
 
 static VOID NTAPI NetworkItemRemovedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PPH_NETWORK_ITEM networkItem = (PPH_NETWORK_ITEM)Parameter;
@@ -2827,8 +2827,8 @@ static VOID NTAPI NetworkItemRemovedHandler(
 }
 
 static VOID NTAPI NetworkItemsUpdatedHandler(
-    __in PVOID Parameter,
-    __in PVOID Context
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
     )
 {
     PostMessage(PhMainWndHandle, WM_PH_NETWORK_ITEMS_UPDATED, 0, 0);

@@ -30,7 +30,7 @@ typedef struct _COMMON_PAGE_CONTEXT
 
 HPROPSHEETPAGE PhpCommonCreatePage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PWSTR Template,
     __in DLGPROC DlgProc
     );
@@ -85,7 +85,7 @@ INT_PTR CALLBACK PhpTimerPageProc(
 
 static HPROPSHEETPAGE PhpCommonCreatePage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in PWSTR Template,
     __in DLGPROC DlgProc
     )
@@ -152,7 +152,7 @@ FORCEINLINE PCOMMON_PAGE_CONTEXT PhpCommonPageHeader(
 
 HPROPSHEETPAGE PhCreateEventPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -272,7 +272,7 @@ INT_PTR CALLBACK PhpEventPageProc(
 
 HPROPSHEETPAGE PhCreateEventPairPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -347,7 +347,7 @@ INT_PTR CALLBACK PhpEventPairPageProc(
 
 HPROPSHEETPAGE PhCreateMutantPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -446,7 +446,7 @@ INT_PTR CALLBACK PhpMutantPageProc(
 
 HPROPSHEETPAGE PhCreateSectionPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -523,7 +523,7 @@ INT_PTR CALLBACK PhpSectionPageProc(
 
 HPROPSHEETPAGE PhCreateSemaphorePage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(
@@ -635,7 +635,7 @@ INT_PTR CALLBACK PhpSemaphorePageProc(
 
 HPROPSHEETPAGE PhCreateTimerPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     return PhpCommonCreatePage(

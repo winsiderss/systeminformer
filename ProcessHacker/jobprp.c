@@ -58,7 +58,7 @@ INT_PTR CALLBACK PhpJobStatisticsPageProc(
 VOID PhShowJobProperties(
     __in HWND ParentWindowHandle,
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt PWSTR Title
     )
 {
@@ -82,7 +82,7 @@ VOID PhShowJobProperties(
 
 HPROPSHEETPAGE PhCreateJobPage(
     __in PPH_OPEN_OBJECT OpenObject,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in_opt DLGPROC HookProc
     )
 {

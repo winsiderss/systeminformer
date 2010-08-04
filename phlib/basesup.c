@@ -232,7 +232,7 @@ NTSTATUS PhpBaseThreadStart(
 HANDLE PhCreateThread(
     __in_opt SIZE_T StackSize,
     __in PUSER_THREAD_START_ROUTINE StartAddress,
-    __in PVOID Parameter
+    __in_opt PVOID Parameter
     )
 {
     HANDLE threadHandle;
@@ -2135,7 +2135,7 @@ static int __cdecl PhpListQSortCompare(
 VOID PhSortList(
     __in PPH_LIST List,
     __in PPH_COMPARE_FUNCTION CompareFunction,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PH_LIST_QSORT_CONTEXT qsortContext;
@@ -3251,7 +3251,7 @@ VOID PhDeleteCallback(
 VOID PhRegisterCallback(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __out PPH_CALLBACK_REGISTRATION Registration
     )
 {
@@ -3282,7 +3282,7 @@ VOID PhRegisterCallback(
 VOID PhRegisterCallbackEx(
     __inout PPH_CALLBACK Callback,
     __in PPH_CALLBACK_FUNCTION Function,
-    __in PVOID Context,
+    __in_opt PVOID Context,
     __in USHORT Flags,
     __out PPH_CALLBACK_REGISTRATION Registration
     )
@@ -3336,7 +3336,7 @@ VOID PhUnregisterCallback(
  */
 VOID PhInvokeCallback(
     __in PPH_CALLBACK Callback,
-    __in PVOID Parameter
+    __in_opt PVOID Parameter
     )
 {
     PLIST_ENTRY listEntry;

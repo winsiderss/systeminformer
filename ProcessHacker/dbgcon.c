@@ -53,7 +53,7 @@ VOID PhShowDebugConsole()
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PhLoadModuleSymbolProvider((PPH_SYMBOL_PROVIDER)Context, Module->FileName->Buffer,

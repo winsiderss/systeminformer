@@ -448,7 +448,7 @@ NTSTATUS PhSetThreadIoPriority(
  */
 typedef BOOLEAN (NTAPI *PPH_WALK_THREAD_STACK_CALLBACK)(
     __in PPH_THREAD_STACK_FRAME StackFrame,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -457,7 +457,7 @@ NTSTATUS PhWalkThreadStack(
     __in_opt HANDLE ProcessHandle,
     __in ULONG Flags,
     __in PPH_WALK_THREAD_STACK_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -734,14 +734,14 @@ NTSTATUS PhDuplicateObject(
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_PROCESS_MODULES_CALLBACK)(
     __in PLDR_DATA_TABLE_ENTRY Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
 NTSTATUS PhEnumProcessModules(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -755,7 +755,7 @@ PHLIBAPI
 NTSTATUS PhEnumProcessModules32(
     __in HANDLE ProcessHandle,
     __in PPH_ENUM_PROCESS_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -914,19 +914,19 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_OBJECTS)(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
 NTSTATUS PhEnumDirectoryObjects(
     __in HANDLE DirectoryHandle,
     __in PPH_ENUM_DIRECTORY_OBJECTS Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_DIRECTORY_FILE)(
     __in PFILE_DIRECTORY_INFORMATION Information,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
@@ -934,7 +934,7 @@ NTSTATUS PhEnumDirectoryFile(
     __in HANDLE FileHandle,
     __in_opt PPH_STRINGREF SearchPattern,
     __in PPH_ENUM_DIRECTORY_FILE Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #define PH_FIRST_STREAM(Streams) ((PFILE_STREAM_INFORMATION)(Streams))
@@ -999,7 +999,7 @@ typedef struct _PH_MODULE_INFO
  */
 typedef BOOLEAN (NTAPI *PPH_ENUM_GENERIC_MODULES_CALLBACK)(
     __in PPH_MODULE_INFO Module,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #define PH_ENUM_GENERIC_MAPPED_FILES 0x1
@@ -1010,7 +1010,7 @@ NTSTATUS PhEnumGenericModules(
     __in_opt HANDLE ProcessHandle,
     __in ULONG Flags,
     __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 // lsa
@@ -1062,14 +1062,14 @@ PPH_STRING PhSidToStringSid(
 
 typedef BOOLEAN (NTAPI *PPH_ENUM_ACCOUNTS_CALLBACK)(
     __in PSID Sid,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
 NTSTATUS PhEnumAccounts(
     __in LSA_HANDLE PolicyHandle,
     __in PPH_ENUM_ACCOUNTS_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 // hndlinfo
@@ -1695,7 +1695,7 @@ PHLIBAPI
 VOID PhRegisterProvider(
     __inout PPH_PROVIDER_THREAD ProviderThread,
     __in PPH_PROVIDER_FUNCTION Function,
-    __in PVOID Object,
+    __in_opt PVOID Object,
     __out PPH_PROVIDER_REGISTRATION Registration
     );
 
@@ -2561,7 +2561,7 @@ typedef struct _PH_COMMAND_LINE_OPTION
 typedef BOOLEAN (NTAPI *PPH_COMMAND_LINE_CALLBACK)(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
     __in_opt PPH_STRING Value,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 #define PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS 0x1
@@ -2580,7 +2580,7 @@ BOOLEAN PhParseCommandLine(
     __in ULONG NumberOfOptions,
     __in ULONG Flags,
     __in PPH_COMMAND_LINE_CALLBACK Callback,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
 PHLIBAPI
