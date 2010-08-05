@@ -102,8 +102,11 @@ VOID SxpRefreshAccounts()
                 PhAddItemList(AccountsList, sid);
 
                 name = PhGetSidFullName(accounts[i].Sid, TRUE, NULL);
-                lvItemIndex = PhAddListViewItem(AccountsLv, MAXINT, name->Buffer, sid);
-                PhDereferenceObject(name);
+
+                lvItemIndex = PhAddListViewItem(AccountsLv, MAXINT, PhGetStringOrDefault(name, L"(unknown)"), sid);
+
+                if (name)
+                    PhDereferenceObject(name);
 
                 sidString = PhSidToStringSid(accounts[i].Sid);
                 PhSetListViewSubItem(AccountsLv, lvItemIndex, 1, sidString->Buffer);
