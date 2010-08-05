@@ -190,8 +190,7 @@ NTSTATUS PhpBaseThreadStart(
     PhFreeToFreeList(&PhpBaseThreadContextFreeList, Parameter);
 
 #ifdef DEBUG
-    dbg.ClientId.UniqueProcess = NtCurrentProcessId();
-    dbg.ClientId.UniqueThread = NtCurrentThreadId();
+    dbg.ClientId = NtCurrentTeb()->ClientId;
 
     dbg.StartAddress = context.StartAddress;
     dbg.Parameter = context.Parameter;

@@ -216,8 +216,7 @@ INT WINAPI WinMain(
     }
 
 #ifdef DEBUG
-    dbg.ClientId.UniqueProcess = NtCurrentProcessId();
-    dbg.ClientId.UniqueThread = NtCurrentThreadId();
+    dbg.ClientId = NtCurrentTeb()->ClientId;
     dbg.StartAddress = WinMain;
     dbg.Parameter = NULL;
     InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
