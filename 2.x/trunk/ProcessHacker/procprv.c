@@ -1215,21 +1215,12 @@ PPH_STRING PhGetStatisticsTimeString(
 {
     LARGE_INTEGER time;
     SYSTEMTIME systemTime;
-    PPH_STRING dateString;
-    PPH_STRING timeString;
-    PPH_STRING dateAndTimeString;
 
     if (PhGetStatisticsTime(ProcessItem, Index, &time))
     {
         PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-        dateString = PhFormatDate(&systemTime, NULL);
-        timeString = PhFormatTime(&systemTime, NULL);
-        dateAndTimeString = PhConcatStrings(3, dateString->Buffer, L" ", timeString->Buffer);
-        PhDereferenceObject(dateString);
-        PhDereferenceObject(timeString);
-
-        return dateAndTimeString;
+        return PhFormatDateTime(&systemTime);
     }
     else
     {
