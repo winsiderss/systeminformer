@@ -66,9 +66,6 @@ FORCEINLINE VOID PhpReferenceEvent(
  * Any threads waiting on the event will be released.
  *
  * \param Event A pointer to an event object.
- *
- * \remarks This function is thread-safe with regards to
- * calls to PhSetEvent() and PhWaitForEvent().
  */
 VOID FASTCALL PhfSetEvent(
     __inout PPH_EVENT Event
@@ -111,10 +108,8 @@ VOID FASTCALL PhfSetEvent(
  * \return TRUE if the event object was set before the 
  * timeout period expired, otherwise FALSE.
  *
- * \remarks This function is thread-safe with regards to
- * calls to PhSetEvent() and PhWaitForEvent(). To test 
- * the event, use PhTestEvent() instead of using a timeout 
- * of zero.
+ * \remarks To test the event, use PhTestEvent() instead 
+ * of using a timeout of zero.
  */
 BOOLEAN FASTCALL PhfWaitForEvent(
     __inout PPH_EVENT Event,
@@ -238,7 +233,22 @@ FORCEINLINE VOID PhpBlockOnBarrier(
     PhWaitForWakeEvent(&Barrier->WakeEvent, &waitBlock, Spin, NULL);
 }
 
-VOID FASTCALL PhfWaitForBarrier(
+/**
+ * Waits until all threads are blocking on the barrier, and resets 
+ * the state of the barrier.
+ *
+ * \param Barrier A barrier.
+ * \param Spin TRUE to spin on the barrier before blocking, FALSE 
+ * to block immediately.
+ *
+ * \return TRUE for an unspecified thread after each phase, and FALSE 
+ * for all other threads.
+ *
+ * \remarks By checking the return value of the function, in each 
+ * phase an action can be performed exactly once. This could, for 
+ * example, involve merging the results of calculations.
+ */
+BOOLEAN FASTCALL PhfWaitForBarrier(
     __inout PPH_BARRIER Barrier,
     __in BOOLEAN Spin
     )
@@ -287,6 +297,8 @@ VOID FASTCALL PhfWaitForBarrier(
                     {
                         PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for the master
                     }
+
+                    return FALSE;
                 }
                 else
                 {
@@ -304,9 +316,9 @@ VOID FASTCALL PhfWaitForBarrier(
 
                     _InterlockedExchangeAddPointer((PLONG_PTR)&Barrier->Value, -(PH_BARRIER_WAKING + PH_BARRIER_COUNT_INC));
                     PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for observers
-                }
 
-                return;
+                    return TRUE;
+                }
             }
         }
         else
