@@ -985,7 +985,7 @@ VOID FASTCALL PhfPulseAllCondition(
  * Sleeps on a condition variable.
  *
  * \param Condition A condition variable.
- * \param Lock A queued lock to release/acquire.
+ * \param Lock A queued lock to release/acquire in exclusive mode.
  * \param Timeout Not implemented.
  *
  * \remarks The associated lock must be acquired before calling 
@@ -993,7 +993,7 @@ VOID FASTCALL PhfPulseAllCondition(
  */
 VOID FASTCALL PhfWaitForCondition(
     __inout PPH_QUEUED_LOCK Condition,
-    __inout_opt PPH_QUEUED_LOCK Lock,
+    __inout PPH_QUEUED_LOCK Lock,
     __in_opt PLARGE_INTEGER Timeout
     )
 {
@@ -1021,18 +1021,96 @@ VOID FASTCALL PhfWaitForCondition(
                 PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
             }
 
-            if (Lock)
+            PhReleaseQueuedLockExclusive(Lock);
+
+            PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
+
+            // Don't use the inline variant; it is extremely likely 
+            // that the lock is still owned.
+            PhfAcquireQueuedLockExclusive(Lock);
+
+            break;
+        }
+    }
+}
+
+/**
+ * Sleeps on a condition variable.
+ *
+ * \param Condition A condition variable.
+ * \param Lock A pointer to a lock.
+ * \param Flags A combination of flags controlling the operation.
+ * \param Timeout Not implemented.
+ */
+VOID FASTCALL PhfWaitForConditionEx(
+    __inout PPH_QUEUED_LOCK Condition,
+    __inout PVOID Lock,
+    __in ULONG Flags,
+    __in_opt PLARGE_INTEGER Timeout
+    )
+{
+    ULONG_PTR value;
+    ULONG_PTR currentValue;
+    PH_QUEUED_WAIT_BLOCK waitBlock;
+    BOOLEAN optimize;
+
+    value = Condition->Value;
+
+    while (TRUE)
+    {
+        if (PhpPushQueuedWaitBlock(
+            Condition,
+            value,
+            TRUE,
+            &waitBlock,
+            &optimize,
+            &value,
+            &currentValue
+            ))
+        {
+            if (optimize)
             {
-                PhReleaseQueuedLockExclusive(Lock);
+                PhpOptimizeQueuedLockListEx(Condition, currentValue, TRUE);
+            }
+
+            switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
+            {
+            case PH_CONDITION_WAIT_QUEUED_LOCK:
+                if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                    PhReleaseQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
+                else
+                    PhReleaseQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                break;
+            case PH_CONDITION_WAIT_CRITICAL_SECTION:
+                RtlLeaveCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                break;
+            case PH_CONDITION_WAIT_FAST_LOCK:
+                if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                    PhReleaseFastLockExclusive((PPH_FAST_LOCK)Lock);
+                else
+                    PhReleaseFastLockShared((PPH_FAST_LOCK)Lock);
+                break;
             }
 
             PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
 
-            if (Lock)
+            switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {
-                // Don't use the inline variant; it is extremely likely 
-                // that the lock is still owned.
-                PhfAcquireQueuedLockExclusive(Lock);
+            case PH_CONDITION_WAIT_QUEUED_LOCK:
+                if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                    PhfAcquireQueuedLockExclusive((PPH_QUEUED_LOCK)Lock);
+                else
+                    PhfAcquireQueuedLockShared((PPH_QUEUED_LOCK)Lock);
+                break;
+            case PH_CONDITION_WAIT_CRITICAL_SECTION:
+                RtlEnterCriticalSection((PRTL_CRITICAL_SECTION)Lock);
+                break;
+            case PH_CONDITION_WAIT_FAST_LOCK:
+                if (!(Flags & PH_CONDITION_WAIT_SHARED))
+                    PhAcquireFastLockExclusive((PPH_FAST_LOCK)Lock);
+                else
+                    PhAcquireFastLockShared((PPH_FAST_LOCK)Lock);
+                break;
             }
 
             break;
