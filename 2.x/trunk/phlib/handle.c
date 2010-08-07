@@ -168,7 +168,7 @@ VOID PhpBlockOnLockedHandleTableEntry(
         )
     {
         // Entry is not in use or has been unlocked; cancel the wait.
-        PhSetWakeEvent(&HandleTable->HandleWakeEvent);
+        PhSetWakeEvent(&HandleTable->HandleWakeEvent, &waitBlock);
     }
     else
     {
@@ -215,7 +215,7 @@ VOID PhUnlockHandleTableEntry(
         (PLONG)&HandleTableEntry->Value,
         PH_HANDLE_TABLE_ENTRY_LOCKED_SHIFT
         );
-    PhSetWakeEvent(&HandleTable->HandleWakeEvent);
+    PhSetWakeEvent(&HandleTable->HandleWakeEvent, NULL);
 }
 
 HANDLE PhCreateHandle(
@@ -276,7 +276,7 @@ BOOLEAN PhDestroyHandle(
     // The handle table entry is now free; wake any waiters because they 
     // can't lock the entry now. Any future lock attempts will fail because 
     // the entry is marked as being free.
-    PhSetWakeEvent(&HandleTable->HandleWakeEvent);
+    PhSetWakeEvent(&HandleTable->HandleWakeEvent, NULL);
 
     PhpFreeHandleTableEntry(HandleTable, handleValue, HandleTableEntry);
 

@@ -194,6 +194,133 @@ VOID FASTCALL PhfResetEvent(
         Event->Value = PH_EVENT_REFCOUNT_INC;
 }
 
+VOID FASTCALL PhfInitializeBarrier(
+    __out PPH_BARRIER Barrier,
+    __in ULONG_PTR Target
+    )
+{
+    Barrier->Value = Target << PH_BARRIER_TARGET_SHIFT;
+    PhInitializeQueuedLock(&Barrier->WakeEvent);
+}
+
+FORCEINLINE VOID PhpBlockOnBarrier(
+    __inout PPH_BARRIER Barrier,
+    __in ULONG Role,
+    __in BOOLEAN Spin
+    )
+{
+    PH_QUEUED_WAIT_BLOCK waitBlock;
+    ULONG_PTR cancel;
+
+    PhQueueWakeEvent(&Barrier->WakeEvent, &waitBlock);
+
+    cancel = 0;
+
+    switch (Role)
+    {
+    case PH_BARRIER_MASTER:
+        cancel = ((Barrier->Value >> PH_BARRIER_COUNT_SHIFT) & PH_BARRIER_COUNT_MASK) == 1;
+        break;
+    case PH_BARRIER_SLAVE:
+        cancel = Barrier->Value & PH_BARRIER_WAKING;
+        break;
+    case PH_BARRIER_OBSERVER:
+        cancel = !(Barrier->Value & PH_BARRIER_WAKING);
+        break;
+    }
+
+    if (cancel)
+    {
+        PhSetWakeEvent(&Barrier->WakeEvent, &waitBlock);
+        return;
+    }
+
+    PhWaitForWakeEvent(&Barrier->WakeEvent, &waitBlock, Spin, NULL);
+}
+
+VOID FASTCALL PhfWaitForBarrier(
+    __inout PPH_BARRIER Barrier,
+    __in BOOLEAN Spin
+    )
+{
+    ULONG_PTR value;
+    ULONG_PTR newValue;
+    ULONG_PTR count;
+    ULONG_PTR target;
+
+    value = Barrier->Value;
+
+    while (TRUE)
+    {
+        if (!(value & PH_BARRIER_WAKING))
+        {
+            count = (value >> PH_BARRIER_COUNT_SHIFT) & PH_BARRIER_COUNT_MASK;
+            target = (value >> PH_BARRIER_TARGET_SHIFT) & PH_BARRIER_TARGET_MASK;
+            assert(count != target);
+
+            count++;
+
+            if (count != target)
+                newValue = value + PH_BARRIER_COUNT_INC;
+            else
+                newValue = value + PH_BARRIER_COUNT_INC + PH_BARRIER_WAKING;
+
+            if ((newValue = (ULONG_PTR)_InterlockedCompareExchangePointer(
+                (PPVOID)&Barrier->Value,
+                (PVOID)newValue,
+                (PVOID)value
+                )) == value)
+            {
+                if (count != target)
+                {
+                    // Wait for the master signal (the last thread to reach the barrier). 
+                    // Once we get it, decrement the count to allow the master to continue.
+
+                    do
+                    {
+                        PhpBlockOnBarrier(Barrier, PH_BARRIER_SLAVE, Spin);
+                    } while (!(Barrier->Value & PH_BARRIER_WAKING));
+
+                    value = _InterlockedExchangeAddPointer((PLONG_PTR)&Barrier->Value, -PH_BARRIER_COUNT_INC);
+
+                    if (((value >> PH_BARRIER_COUNT_SHIFT) & PH_BARRIER_COUNT_MASK) - 1 == 1)
+                    {
+                        PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for the master
+                    }
+                }
+                else
+                {
+                    // We're the last one to reach the barrier, so we become the master.
+                    // Wake the slaves and wait for them to decrease the count to 1. This 
+                    // is so that we know the slaves have woken and we don't clear the waking 
+                    // bit before they wake.
+
+                    PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for slaves
+
+                    do
+                    {
+                        PhpBlockOnBarrier(Barrier, PH_BARRIER_MASTER, Spin);
+                    } while (((Barrier->Value >> PH_BARRIER_COUNT_SHIFT) & PH_BARRIER_COUNT_MASK) != 1);
+
+                    Barrier->Value -= PH_BARRIER_WAKING + PH_BARRIER_COUNT_INC;
+                    PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for observers
+                }
+
+                return;
+            }
+        }
+        else
+        {
+            // We're too early; other threads are still waking. Wait for them to finish.
+
+            PhpBlockOnBarrier(Barrier, PH_BARRIER_OBSERVER, Spin);
+            newValue = Barrier->Value;
+        }
+
+        value = newValue;
+    }
+}
+
 VOID FASTCALL PhfInitializeRundownProtection(
     __out PPH_RUNDOWN_PROTECT Protection
     )
