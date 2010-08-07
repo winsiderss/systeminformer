@@ -502,7 +502,7 @@ PhfInitializeBarrier(
 
 #define PhWaitForBarrier PhfWaitForBarrier
 PHLIBAPI
-VOID
+BOOLEAN
 FASTCALL
 PhfWaitForBarrier(
     __inout PPH_BARRIER Barrier,
