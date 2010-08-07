@@ -470,6 +470,54 @@ FORCEINLINE BOOLEAN PhTestEvent(
     return !!(Event->Value & PH_EVENT_SET);
 }
 
+// barrier
+
+#define PH_BARRIER_COUNT_SHIFT 0
+#define PH_BARRIER_COUNT_MASK ((1 << 15) - 1)
+#define PH_BARRIER_COUNT_INC (1 << PH_BARRIER_COUNT_SHIFT)
+#define PH_BARRIER_TARGET_SHIFT 16
+#define PH_BARRIER_TARGET_MASK ((1 << 15) - 1)
+#define PH_BARRIER_TARGET_INC (1 << PH_BARRIER_TARGET_SHIFT)
+#define PH_BARRIER_WAKING (1 << 31)
+
+#define PH_BARRIER_MASTER 1
+#define PH_BARRIER_SLAVE 2
+#define PH_BARRIER_OBSERVER 3
+
+typedef struct _PH_BARRIER
+{
+    ULONG_PTR Value;
+    PH_QUEUED_LOCK WakeEvent;
+} PH_BARRIER, *PPH_BARRIER;
+
+#define PH_BARRIER_INIT(Target) { (Target) << PH_BARRIER_TARGET_SHIFT, PH_QUEUED_LOCK_INIT }
+
+PHLIBAPI
+VOID
+FASTCALL
+PhfInitializeBarrier(
+    __out PPH_BARRIER Barrier,
+    __in ULONG_PTR Target
+    );
+
+#define PhWaitForBarrier PhfWaitForBarrier
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForBarrier(
+    __inout PPH_BARRIER Barrier,
+    __in BOOLEAN Spin
+    );
+
+FORCEINLINE VOID PhInitializeBarrier(
+    __out PPH_BARRIER Barrier,
+    __in ULONG_PTR Target
+    )
+{
+    Barrier->Value = Target << PH_BARRIER_TARGET_SHIFT;
+    PhInitializeQueuedLock(&Barrier->WakeEvent);
+}
+
 // rundown protection
 
 #define PH_RUNDOWN_ACTIVE 0x1

@@ -135,7 +135,8 @@ PHLIBAPI
 VOID
 FASTCALL
 PhfSetWakeEvent(
-    __inout PPH_QUEUED_LOCK WakeEvent
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout_opt PPH_QUEUED_WAIT_BLOCK WaitBlock
     );
 
 #define PhWaitForWakeEvent PhfWaitForWakeEvent
@@ -266,11 +267,18 @@ FORCEINLINE BOOLEAN PhTryAcquireReleaseQueuedLockExclusive(
 }
 
 FORCEINLINE VOID PhSetWakeEvent(
-    __inout PPH_QUEUED_LOCK WakeEvent
+    __inout PPH_QUEUED_LOCK WakeEvent,
+    __inout_opt PPH_QUEUED_WAIT_BLOCK WaitBlock
     )
 {
-    if (WakeEvent->Value)
-        PhfSetWakeEvent(WakeEvent);
+    // The wake event is similar to a synchronization event 
+    // in that it does not have thread-safe pulsing; we can 
+    // simply skip the function call if there's nothing to 
+    // wake. However, if we're cancelling a wait 
+    // (WaitBlock != NULL) we need to make the call.
+
+    if (WakeEvent->Value || WaitBlock)
+        PhfSetWakeEvent(WakeEvent, WaitBlock);
 }
 
 #endif
