@@ -302,7 +302,7 @@ VOID FASTCALL PhfWaitForBarrier(
                         PhpBlockOnBarrier(Barrier, PH_BARRIER_MASTER, Spin);
                     } while (((Barrier->Value >> PH_BARRIER_COUNT_SHIFT) & PH_BARRIER_COUNT_MASK) != 1);
 
-                    Barrier->Value -= PH_BARRIER_WAKING + PH_BARRIER_COUNT_INC;
+                    _InterlockedExchangeAddPointer((PLONG_PTR)&Barrier->Value, -(PH_BARRIER_WAKING + PH_BARRIER_COUNT_INC));
                     PhSetWakeEvent(&Barrier->WakeEvent, NULL); // for observers
                 }
 
