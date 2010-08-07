@@ -118,7 +118,25 @@ VOID
 FASTCALL
 PhfWaitForCondition(
     __inout PPH_QUEUED_LOCK Condition,
-    __inout_opt PPH_QUEUED_LOCK Lock,
+    __inout PPH_QUEUED_LOCK Lock,
+    __in_opt PLARGE_INTEGER Timeout
+    );
+
+#define PH_CONDITION_WAIT_QUEUED_LOCK 0x1
+#define PH_CONDITION_WAIT_CRITICAL_SECTION 0x2
+#define PH_CONDITION_WAIT_FAST_LOCK 0x4
+#define PH_CONDITION_WAIT_LOCK_TYPE_MASK 0xfff
+
+#define PH_CONDITION_WAIT_SHARED 0x1000
+
+#define PhWaitForConditionEx PhfWaitForConditionEx
+PHLIBAPI
+VOID
+FASTCALL
+PhfWaitForConditionEx(
+    __inout PPH_QUEUED_LOCK Condition,
+    __inout PVOID Lock,
+    __in ULONG Flags,
     __in_opt PLARGE_INTEGER Timeout
     );
 
