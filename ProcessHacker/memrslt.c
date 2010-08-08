@@ -192,7 +192,7 @@ static VOID FilterResults(
 
             expression = pcre_compile2(
                 patternString->Buffer,
-                (FILTER_REGEX_IGNORECASE ? PCRE_CASELESS : 0) | PCRE_DOTALL,
+                (Type == FILTER_REGEX_IGNORECASE ? PCRE_CASELESS : 0) | PCRE_DOTALL,
                 NULL,
                 &errorString,
                 &errorOffset,
