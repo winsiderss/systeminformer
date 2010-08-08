@@ -1267,16 +1267,22 @@ typedef struct _SYSTEM_EXTENDED_INFORMATION
 
 // end_rev
 
-// rev
-typedef enum _SYSTEM_PREFETCHER_INFORMATION_CLASS
+// begin_rev
+
+typedef enum _PREFETCHER_INFORMATION_CLASS
 {
     PrefetcherCompletedTraceInformation = 1,
     PrefetcherUnknownInformation = 2, // ???
     PrefetcherBootLoaderTraceInformation = 4
-} SYSTEM_PREFETCHER_INFORMATION_CLASS;
+} PREFETCHER_INFORMATION_CLASS;
 
-// rev
-typedef enum _SYSTEM_SUPERFETCH_INFORMATION_CLASS
+// end_rev
+
+// begin_rev
+
+#define SUPERFETCH_INFORMATION_REVISION 1
+
+typedef enum _SUPERFETCH_INFORMATION_CLASS
 {
     SuperfetchCompletedTraceInformation = 1,
     SuperfetchUnknownInformation2 = 2, // size 24
@@ -1287,7 +1293,22 @@ typedef enum _SYSTEM_SUPERFETCH_INFORMATION_CLASS
     SuperfetchMemoryListInformation = 16,
     SuperfetchMemoryRangesInformation = 17,
     SuperfetchUnknownInformation20 = 20 // size 8
-} SYSTEM_SUPERFETCH_INFORMATION_CLASS;
+} SUPERFETCH_INFORMATION_CLASS;
+
+typedef struct _PHYSICAL_MEMORY_RUN
+{
+    ULONG_PTR BasePage; // multiply by PAGE_SIZE to get base address
+    ULONG_PTR PageCount; // multiply by PAGE_SIZE to get number of bytes
+} PHYSICAL_MEMORY_RUN, *PPHYSICAL_MEMORY_RUN;
+
+typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
+{
+    ULONG Revision;
+    ULONG NumberOfRanges;
+    PHYSICAL_MEMORY_RUN Ranges[1];
+} SUPERFETCH_MEMORY_RANGES_INFORMATION, *PSUPERFETCH_MEMORY_RANGES_INFORMATION;
+
+// end_rev
 
 // rev
 typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
@@ -1357,6 +1378,18 @@ NTSTATUS
 NTAPI
 NtQuerySystemInformation(
     __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
+    __in ULONG SystemInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemInformationEx(
+    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    __in_bcount(QueryInfomationLength) PVOID QueryInformation,
+    __in ULONG QueryInfomationLength,
     __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
     __in ULONG SystemInformationLength,
     __out_opt PULONG ReturnLength
