@@ -585,9 +585,12 @@ VOID PhNetworkProviderUpdate(
         PSLIST_ENTRY entry;
         PPH_NETWORK_ITEM_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&PhNetworkItemQueryListHead))
+        entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
+            entry = entry->Next;
 
             if (data->Remote)
                 PhSwapReference2(&data->NetworkItem->RemoteHostString, data->HostString);

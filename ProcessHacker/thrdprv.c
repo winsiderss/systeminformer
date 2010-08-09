@@ -759,9 +759,12 @@ VOID PhThreadProviderUpdate(
         PSLIST_ENTRY entry;
         PPH_THREAD_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&threadProvider->QueryListHead))
+        entry = RtlInterlockedFlushSList(&threadProvider->QueryListHead);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
+            entry = entry->Next;
 
             if (data->StartAddressResolveLevel == PhsrlFunction && data->StartAddressString)
             {
