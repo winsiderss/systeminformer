@@ -39,37 +39,58 @@ typedef struct _PH_RESOURCE_WAITER
 } PH_RESOURCE_WAITER, *PPH_RESOURCE_WAITER;
 
 #define PhInitializeResourceLock PhfInitializeResourceLock
-VOID FASTCALL PhfInitializeResourceLock(
+PHLIBAPI
+VOID
+FASTCALL
+PhfInitializeResourceLock(
     __out PPH_RESOURCE_LOCK Lock
     );
 
 #define PhAcquireResourceLockExclusive PhfAcquireResourceLockExclusive
-VOID FASTCALL PhfAcquireResourceLockExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireResourceLockExclusive(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
 #define PhAcquireResourceLockShared PhfAcquireResourceLockShared
-VOID FASTCALL PhfAcquireResourceLockShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfAcquireResourceLockShared(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
 #define PhReleaseResourceLockExclusive PhfReleaseResourceLockExclusive
-VOID FASTCALL PhfReleaseResourceLockExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseResourceLockExclusive(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
 #define PhReleaseResourceLockShared PhfReleaseResourceLockShared
-VOID FASTCALL PhfReleaseResourceLockShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfReleaseResourceLockShared(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
 #define PhConvertResourceLockExclusiveToShared PhfConvertResourceLockExclusiveToShared
-VOID FASTCALL PhfConvertResourceLockExclusiveToShared(
+PHLIBAPI
+VOID
+FASTCALL
+PhfConvertResourceLockExclusiveToShared(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
 #define PhConvertResourceLockSharedToExclusive PhfConvertResourceLockSharedToExclusive
-VOID FASTCALL PhfConvertResourceLockSharedToExclusive(
+PHLIBAPI
+VOID
+FASTCALL
+PhfConvertResourceLockSharedToExclusive(
     __inout PPH_RESOURCE_LOCK Lock
     );
 
