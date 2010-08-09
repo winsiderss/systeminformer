@@ -1406,9 +1406,12 @@ VOID PhProcessProviderUpdate(
         PSLIST_ENTRY entry;
         PPH_PROCESS_QUERY_DATA data;
 
-        while (entry = RtlInterlockedPopEntrySList(&PhProcessQueryDataListHead))
+        entry = RtlInterlockedFlushSList(&PhProcessQueryDataListHead);
+
+        while (entry)
         {
             data = CONTAINING_RECORD(entry, PH_PROCESS_QUERY_DATA, ListEntry);
+            entry = entry->Next;
 
             if (data->Stage == 1)
             {
