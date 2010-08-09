@@ -432,8 +432,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,2,0,0
- PRODUCTVERSION 2,2,0,0
+ FILEVERSION 2,3,0,0
+ PRODUCTVERSION 2,3,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -450,12 +450,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Process Hacker"
-            VALUE "FileVersion", "2.2"
+            VALUE "FileVersion", "2.3"
             VALUE "InternalName", "Process Hacker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", "2.2"
+            VALUE "ProductVersion", "2.3"
         END
     END
     BLOCK "VarFileInfo"

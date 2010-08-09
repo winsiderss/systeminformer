@@ -1,5 +1,10 @@
 Process Hacker
 
+2.3
+ * NEW/IMPROVED:
+ * FIXED:
+   * Information window resizing
+
 2.2
  * NEW/IMPROVED:
    * Plugins support
