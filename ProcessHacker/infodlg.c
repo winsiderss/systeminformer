@@ -47,6 +47,10 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 PH_ANCHOR_ALL);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK), NULL,
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_COPY), NULL,
+                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
+                PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
             SetProp(hwndDlg, L"String", (HANDLE)string);
@@ -158,7 +162,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 180, 160);
+            PhResizingMinimumSize((PRECT)lParam, wParam, 280, 200);
         }
         break;
     }
