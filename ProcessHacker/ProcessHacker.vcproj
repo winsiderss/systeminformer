@@ -479,6 +479,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\phlib\reslock.c"
+				>
+			</File>
+			<File
 				RelativePath="..\phlib\secdata.c"
 				>
 			</File>
