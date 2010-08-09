@@ -1360,9 +1360,11 @@ VOID PhProcessProviderUpdate(
             if (PhFindItemList(pids, (*processItem)->ProcessId) == -1)
             {
                 PPH_PROCESS_ITEM processItem2;
+                LARGE_INTEGER exitTime;
 
                 processItem2 = *processItem;
                 processItem2->State |= PH_PROCESS_ITEM_REMOVED;
+                exitTime.QuadPart = 0;
 
                 if (processItem2->QueryHandle)
                 {
@@ -1370,10 +1372,16 @@ VOID PhProcessProviderUpdate(
 
                     if (NT_SUCCESS(PhGetProcessTimes(processItem2->QueryHandle, &times)))
                     {
-                        processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
-                        processItem2->Record->ExitTime = times.ExitTime;
+                        exitTime = times.ExitTime;
                     }
                 }
+
+                // If we don't have a valid exit time, use the current time.
+                if (exitTime.QuadPart == 0)
+                    PhQuerySystemTime(&exitTime);
+
+                processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
+                processItem2->Record->ExitTime = exitTime;
 
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
