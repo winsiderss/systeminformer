@@ -489,6 +489,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\include\phsync.h"
+				>
+			</File>
+			<File
 				RelativePath=".\provider.c"
 				>
 			</File>
@@ -498,6 +502,10 @@
 			</File>
 			<File
 				RelativePath=".\ref.c"
+				>
+			</File>
+			<File
+				RelativePath=".\reslock.c"
 				>
 			</File>
 			<File

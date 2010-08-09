@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsync.h>
 #include <refp.h>
 
 VOID PhpPrintHashtableStatistics(
@@ -470,18 +471,18 @@ static VOID PhpTestRwLock(
     wprintf(L"[strs] %s: %ums\n", Context->Name, PhGetMillisecondsStopwatch(&stopwatch));
 }
 
-VOID FASTCALL PhfAcquireMutex(
-    __in PPH_MUTEX Mutex
+VOID FASTCALL PhfAcquireCriticalSection(
+    __in PRTL_CRITICAL_SECTION CriticalSection
     )
 {
-    PhAcquireMutex(Mutex);
+    RtlEnterCriticalSection(CriticalSection);
 }
 
-VOID FASTCALL PhfReleaseMutex(
-    __in PPH_MUTEX Mutex
+VOID FASTCALL PhfReleaseCriticalSection(
+    __in PRTL_CRITICAL_SECTION CriticalSection
     )
 {
-    PhReleaseMutex(Mutex);
+    RtlLeaveCriticalSection(CriticalSection);
 }
 
 NTSTATUS PhpDebugConsoleThreadStart(
@@ -632,7 +633,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
             RW_TEST_CONTEXT testContext;
             PH_FAST_LOCK fastLock;
             PH_QUEUED_LOCK queuedLock;
-            PH_MUTEX mutex;
+            PH_RESOURCE_LOCK resourceLock;
+            RTL_CRITICAL_SECTION criticalSection;
 
             testContext.Name = L"FastLock";
             testContext.AcquireExclusive = PhfAcquireFastLockExclusive;
@@ -653,15 +655,24 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PhInitializeQueuedLock(&queuedLock);
             PhpTestRwLock(&testContext);
 
-            testContext.Name = L"Mutex";
-            testContext.AcquireExclusive = PhfAcquireMutex;
-            testContext.AcquireShared = PhfAcquireMutex;
-            testContext.ReleaseExclusive = PhfReleaseMutex;
-            testContext.ReleaseShared = PhfReleaseMutex;
-            testContext.Parameter = &mutex;
-            PhInitializeMutex(&mutex);
+            testContext.Name = L"ResourceLock";
+            testContext.AcquireExclusive = PhfAcquireResourceLockExclusive;
+            testContext.AcquireShared = PhfAcquireResourceLockShared;
+            testContext.ReleaseExclusive = PhfReleaseResourceLockExclusive;
+            testContext.ReleaseShared = PhfReleaseResourceLockShared;
+            testContext.Parameter = &resourceLock;
+            PhInitializeResourceLock(&resourceLock);
             PhpTestRwLock(&testContext);
-            PhDeleteMutex(&mutex);
+
+            testContext.Name = L"CriticalSection";
+            testContext.AcquireExclusive = PhfAcquireCriticalSection;
+            testContext.AcquireShared = PhfAcquireCriticalSection;
+            testContext.ReleaseExclusive = PhfReleaseCriticalSection;
+            testContext.ReleaseShared = PhfReleaseCriticalSection;
+            testContext.Parameter = &criticalSection;
+            RtlInitializeCriticalSection(&criticalSection);
+            PhpTestRwLock(&testContext);
+            RtlDeleteCriticalSection(&criticalSection);
 
             testContext.Name = L"QueuedLockMutex";
             testContext.AcquireExclusive = PhfAcquireQueuedLockExclusive;
