@@ -293,22 +293,19 @@ FORCEINLINE BOOLEAN PhpPrepareToInsertResourceWaiter(
 {
     PhAcquireQueuedLockExclusive(&Lock->WaiterListLock);
 
-    if (!(Value & PH_QUEUED_LOCK_WAITERS))
+    // Try to set the waiters bit.
+    if (_InterlockedCompareExchange(
+        &Lock->Value,
+        Value | PH_RESOURCE_LOCK_WAITERS,
+        Value
+        ) != Value)
     {
-        // Try to set the waiters bit.
-        if (_InterlockedCompareExchange(
-            &Lock->Value,
-            Value + PH_RESOURCE_LOCK_WAITERS,
-            Value
-            ) != Value)
-        {
-            // Unfortunately we have to go back. This is 
-            // very wasteful since the waiter list lock 
-            // must be released again, but must happen since 
-            // the lock may have been released.
-            PhReleaseQueuedLockExclusive(&Lock->WaiterListLock);
-            return FALSE;
-        }
+        // Unfortunately we have to go back. This is 
+        // very wasteful since the waiter list lock 
+        // must be released again, but must happen since 
+        // the lock may have been released.
+        PhReleaseQueuedLockExclusive(&Lock->WaiterListLock);
+        return FALSE;
     }
 
     return TRUE;
