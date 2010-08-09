@@ -56,6 +56,7 @@ for %%a in (
     phnet.h
     phnt.h
     phsup.h
+    phsync.h
     queuedlock.h
     ref.h
     rev.h
