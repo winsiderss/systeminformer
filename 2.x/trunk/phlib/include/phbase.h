@@ -396,6 +396,7 @@ FORCEINLINE VOID PhReleaseMutex(
 // event
 
 #define PH_EVENT_SET 0x1
+#define PH_EVENT_SET_SHIFT 0
 #define PH_EVENT_REFCOUNT_SHIFT 1
 #define PH_EVENT_REFCOUNT_INC 0x2
 
