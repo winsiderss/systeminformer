@@ -78,7 +78,10 @@ NtSetEvent(
     __out_opt PLONG PreviousState
     );
 
-typedef NTSTATUS (NTAPI *_NtSetEventBoostPriority)(
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetEventBoostPriority(
     __in HANDLE EventHandle
     );
 
