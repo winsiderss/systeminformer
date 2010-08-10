@@ -209,7 +209,7 @@ FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     if (!_interlockedbittestandset64((PLONG64)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
 #endif
     {
-        return TRUE; 
+        return TRUE;
     }
     else
     {
