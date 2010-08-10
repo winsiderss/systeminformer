@@ -226,8 +226,8 @@ BOOLEAN PhpNetworkHashtableCompareFunction(
 
     return
         networkItem1->ProtocolType == networkItem2->ProtocolType &&
-        PhIpEndpointEquals(&networkItem1->LocalEndpoint, &networkItem2->LocalEndpoint) &&
-        PhIpEndpointEquals(&networkItem1->RemoteEndpoint, &networkItem2->RemoteEndpoint) &&
+        PhEqualIpEndpoint(&networkItem1->LocalEndpoint, &networkItem2->LocalEndpoint) &&
+        PhEqualIpEndpoint(&networkItem1->RemoteEndpoint, &networkItem2->RemoteEndpoint) &&
         networkItem1->ProcessId == networkItem2->ProcessId;
 }
 
@@ -299,7 +299,7 @@ BOOLEAN PhpResolveCacheHashtableCompareFunction(
     PPHP_RESOLVE_CACHE_ITEM cacheItem1 = *(PPHP_RESOLVE_CACHE_ITEM *)Entry1;
     PPHP_RESOLVE_CACHE_ITEM cacheItem2 = *(PPHP_RESOLVE_CACHE_ITEM *)Entry2;
 
-    return PhIpAddressEquals(&cacheItem1->Address, &cacheItem2->Address);
+    return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
 
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
@@ -547,8 +547,8 @@ VOID PhNetworkProviderUpdate(
             {
                 if (
                     (*networkItem)->ProtocolType == connections[i].ProtocolType &&
-                    PhIpEndpointEquals(&(*networkItem)->LocalEndpoint, &connections[i].LocalEndpoint) &&
-                    PhIpEndpointEquals(&(*networkItem)->RemoteEndpoint, &connections[i].RemoteEndpoint) &&
+                    PhEqualIpEndpoint(&(*networkItem)->LocalEndpoint, &connections[i].LocalEndpoint) &&
+                    PhEqualIpEndpoint(&(*networkItem)->RemoteEndpoint, &connections[i].RemoteEndpoint) &&
                     (*networkItem)->ProcessId == connections[i].ProcessId
                     )
                 {
@@ -653,7 +653,7 @@ VOID PhNetworkProviderUpdate(
             }
             else if (
                 networkItem->RemoteEndpoint.Address.Type == PH_IPV6_NETWORK_TYPE &&
-                !PhIsIpAddressNull(&networkItem->RemoteEndpoint.Address)
+                !PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address)
                 )
             {
                 RtlIpv6AddressToString(&networkItem->RemoteEndpoint.Address.In6Addr, networkItem->RemoteAddressString);
@@ -682,7 +682,7 @@ VOID PhNetworkProviderUpdate(
             }
 
             // Remote
-            if (!PhIsIpAddressNull(&networkItem->RemoteEndpoint.Address))
+            if (!PhIsNullIpAddress(&networkItem->RemoteEndpoint.Address))
             {
                 PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
                 cacheItem = PhpLookupResolveCacheItem(&networkItem->RemoteEndpoint.Address);
