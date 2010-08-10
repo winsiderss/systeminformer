@@ -3785,18 +3785,25 @@ VOID PhMainWndOnProcessAdded(
     if (RunId != 1)
     {
         PPH_PROCESS_ITEM parentProcess;
+        HANDLE parentProcessId = NULL;
         PPH_STRING parentName = NULL;
 
-        parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId);
+        if (ProcessItem->HasParent)
+            parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId);
+        else
+            parentProcess = NULL;
 
         if (parentProcess)
+        {
+            parentProcessId = parentProcess->ProcessId;
             parentName = parentProcess->ProcessName;
+        }
 
         PhLogProcessEntry(
             PH_LOG_ENTRY_PROCESS_CREATE,
             ProcessItem->ProcessId,
             ProcessItem->ProcessName,
-            ProcessItem->ParentProcessId,
+            parentProcessId,
             parentName
             );
 
