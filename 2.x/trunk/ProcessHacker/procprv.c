@@ -1383,6 +1383,8 @@ VOID PhProcessProviderUpdate(
                 processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
                 processItem2->Record->ExitTime = exitTime;
 
+                // Fix the HasParent field, otherwise processes may get incorrectly moved.
+
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
 
