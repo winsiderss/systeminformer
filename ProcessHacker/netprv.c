@@ -426,6 +426,8 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
         if (hostString)
         {
+            data->HostString = hostString;
+
             // Update the cache.
 
             PhAcquireQueuedLockExclusive(&PhpResolveCacheHashtableLock);
