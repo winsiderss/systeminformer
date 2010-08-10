@@ -98,7 +98,7 @@ FORCEINLINE BOOLEAN PhTryAcquireResourceLockExclusive(
     __inout PPH_RESOURCE_LOCK Lock
     )
 {
-    if (!_interlockedbittestandset(&Lock->Value, PH_RESOURCE_LOCK_OWNED_SHIFT))
+    if (!_interlockedbittestandset((PLONG)&Lock->Value, PH_RESOURCE_LOCK_OWNED_SHIFT))
     {
         return TRUE;
     }

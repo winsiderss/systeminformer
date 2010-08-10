@@ -71,32 +71,21 @@ VOID FASTCALL PhfSetEvent(
     __inout PPH_EVENT Event
     )
 {
-    ULONG value;
     HANDLE eventHandle;
 
-    // Try to set the bit.
-    do
+    // Only proceed if the event isn't set already.
+    if (!_interlockedbittestandset((PLONG)&Event->Value, PH_EVENT_SET_SHIFT))
     {
-        value = Event->Value;
+        // Do an up-to-date read.
+        eventHandle = *(volatile HANDLE *)&Event->EventHandle;
 
-        // Has the event already been set?
-        if (value & PH_EVENT_SET)
-            return;
-    } while (_InterlockedCompareExchange(
-        &Event->Value,
-        value + PH_EVENT_SET,
-        value
-        ) != value);
+        if (eventHandle)
+        {
+            NtSetEvent(eventHandle, NULL);
+        }
 
-    // Do an up-to-date read.
-    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
-
-    if (eventHandle)
-    {
-        NtSetEvent(eventHandle, NULL);
+        PhpDereferenceEvent(Event);
     }
-
-    PhpDereferenceEvent(Event);
 }
 
 /**
@@ -134,7 +123,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     // Prevent the event from being invalidated.
     PhpReferenceEvent(Event);
 
-    eventHandle = *(volatile HANDLE *)(&Event->EventHandle);
+    eventHandle = *(volatile HANDLE *)&Event->EventHandle;
 
     // Don't bother creating an event if we already have one.
     if (!eventHandle)
@@ -156,7 +145,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
 
     // Essential: check the event one last time to see if 
     // it is set.
-    if (!(*(volatile ULONG *)(&Event->Value) & PH_EVENT_SET))
+    if (!(*(volatile ULONG *)&Event->Value & PH_EVENT_SET))
     {
         result = NtWaitForSingleObject(Event->EventHandle, FALSE, Timeout) == STATUS_WAIT_0;
     }
