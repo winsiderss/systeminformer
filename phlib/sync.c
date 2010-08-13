@@ -39,9 +39,9 @@ FORCEINLINE VOID PhpDereferenceEvent(
     __inout PPH_EVENT Event
     )
 {
-    ULONG value;
+    ULONG_PTR value;
 
-    value = _InterlockedExchangeAdd(&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
+    value = _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
 
     // See if the reference count has become 0.
     if ((value >> PH_EVENT_REFCOUNT_SHIFT) == 0)
@@ -58,7 +58,7 @@ FORCEINLINE VOID PhpReferenceEvent(
     __inout PPH_EVENT Event
     )
 {
-    _InterlockedExchangeAdd(&Event->Value, PH_EVENT_REFCOUNT_INC);
+    _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, PH_EVENT_REFCOUNT_INC);
 }
 
 /**
@@ -74,7 +74,7 @@ VOID FASTCALL PhfSetEvent(
     HANDLE eventHandle;
 
     // Only proceed if the event isn't set already.
-    if (!_interlockedbittestandset((PLONG)&Event->Value, PH_EVENT_SET_SHIFT))
+    if (!_InterlockedBitTestAndSetPointer((PLONG_PTR)&Event->Value, PH_EVENT_SET_SHIFT))
     {
         // Do an up-to-date read.
         eventHandle = *(volatile HANDLE *)&Event->EventHandle;
@@ -106,7 +106,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     )
 {
     BOOLEAN result;
-    ULONG value;
+    ULONG_PTR value;
     HANDLE eventHandle;
 
     value = Event->Value;
@@ -145,7 +145,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
 
     // Essential: check the event one last time to see if 
     // it is set.
-    if (!(*(volatile ULONG *)&Event->Value & PH_EVENT_SET))
+    if (!(*(volatile ULONG_PTR *)&Event->Value & PH_EVENT_SET))
     {
         result = NtWaitForSingleObject(Event->EventHandle, FALSE, Timeout) == STATUS_WAIT_0;
     }
