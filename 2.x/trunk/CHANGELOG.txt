@@ -3,6 +3,7 @@ Process Hacker
 2.3
  * NEW/IMPROVED:
  * FIXED:
+   * Network connection host resolution
    * Information window resizing
 
 2.2
