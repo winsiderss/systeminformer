@@ -174,11 +174,7 @@ FORCEINLINE VOID PhAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
-#ifdef _M_IX86
-    if (_interlockedbittestandset((PLONG)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
-#else
-    if (_interlockedbittestandset64((PLONG64)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
-#endif
+    if (_InterlockedBitTestAndSetPointer((PLONG_PTR)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
     {
         // Owned bit was already set. Slow path.
         PhfAcquireQueuedLockExclusive(QueuedLock);
@@ -203,11 +199,7 @@ FORCEINLINE BOOLEAN PhTryAcquireQueuedLockExclusive(
     __inout PPH_QUEUED_LOCK QueuedLock
     )
 {
-#ifdef _M_IX86
-    if (!_interlockedbittestandset((PLONG)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
-#else
-    if (!_interlockedbittestandset64((PLONG64)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
-#endif
+    if (!_InterlockedBitTestAndSetPointer((PLONG_PTR)&QueuedLock->Value, PH_QUEUED_LOCK_OWNED_SHIFT))
     {
         return TRUE;
     }
