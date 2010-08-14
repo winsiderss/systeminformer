@@ -1985,6 +1985,7 @@ VOID PhShellExploreFile(
         if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, &attributes)))
         {
             SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
+            CoTaskMemFree(item);
         }
         else
         {
@@ -2734,6 +2735,7 @@ VOID PhSetFileDialogFileName(
             if (SUCCEEDED(SHParseDisplayName_I(pathName->Buffer, NULL, &item, 0, &attributes)))
             {
                 SHCreateShellItem_I(NULL, NULL, item, &shellItem);
+                CoTaskMemFree(item);
             }
 
             PhDereferenceObject(pathName);
