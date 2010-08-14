@@ -827,8 +827,6 @@ typedef struct _PH_ACCESS_ENTRY
     PWSTR ShortName;
 } PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
 
-VOID PhSecurityEditorInitialization();
-
 PHLIBAPI
 HPROPSHEETPAGE PhCreateSecurityPage(
     __in PWSTR ObjectName,
