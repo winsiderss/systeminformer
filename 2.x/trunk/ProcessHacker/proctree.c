@@ -1287,13 +1287,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 getNodeColor->BackColor = PhCsColorWow64Processes;
             else if (PhCsUseColorJobProcesses && processItem->IsInSignificantJob)
                 getNodeColor->BackColor = PhCsColorJobProcesses;
-            else if (
-                PhCsUseColorPacked &&
-                (processItem->VerifyResult != VrUnknown &&
-                processItem->VerifyResult != VrNoSignature &&
-                processItem->VerifyResult != VrTrusted
-                ))
-                getNodeColor->BackColor = PhCsColorPacked;
+            //else if (
+            //    PhCsUseColorPacked &&
+            //    (processItem->VerifyResult != VrUnknown &&
+            //    processItem->VerifyResult != VrNoSignature &&
+            //    processItem->VerifyResult != VrTrusted
+            //    ))
+            //    getNodeColor->BackColor = PhCsColorPacked;
             else if (PhCsUseColorDotNet && processItem->IsDotNet)
                 getNodeColor->BackColor = PhCsColorDotNet;
             else if (PhCsUseColorPacked && processItem->IsPacked)
