@@ -37,15 +37,21 @@ ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_PropertySheetPageCallback
 };
 
+PH_INITONCE SecurityEditorInitOnce = PH_INITONCE_INIT;
 _CreateSecurityPage CreateSecurityPage_I;
 _EditSecurity EditSecurity_I;
 
-VOID PhSecurityEditorInitialization()
+FORCEINLINE VOID PhpSecurityEditorInitialization()
 {
-    LoadLibrary(L"aclui.dll");
+    if (PhBeginInitOnce(&SecurityEditorInitOnce))
+    {
+        LoadLibrary(L"aclui.dll");
 
-    CreateSecurityPage_I = PhGetProcAddress(L"aclui.dll", "CreateSecurityPage");
-    EditSecurity_I = PhGetProcAddress(L"aclui.dll", "EditSecurity"); 
+        CreateSecurityPage_I = PhGetProcAddress(L"aclui.dll", "CreateSecurityPage");
+        EditSecurity_I = PhGetProcAddress(L"aclui.dll", "EditSecurity");
+
+        PhEndInitOnce(&SecurityEditorInitOnce);
+    }
 }
 
 HPROPSHEETPAGE PhCreateSecurityPage(
@@ -59,6 +65,8 @@ HPROPSHEETPAGE PhCreateSecurityPage(
 {
     ISecurityInformation *info;
     HPROPSHEETPAGE page;
+
+    PhpSecurityEditorInitialization();
 
     info = PhSecurityInformation_Create(
         ObjectName,
@@ -87,6 +95,8 @@ VOID PhEditSecurity(
     )
 {
     ISecurityInformation *info;
+
+    PhpSecurityEditorInitialization();
 
     info = PhSecurityInformation_Create(
         ObjectName,

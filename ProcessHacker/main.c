@@ -229,7 +229,6 @@ INT WINAPI WinMain(
     PhTreeListInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();
-    PhSecurityEditorInitialization();
 
     if (PhStartupParameters.ShowOptions)
     {
