@@ -2809,7 +2809,7 @@ NTSTATUS PhIsExecutablePacked(
     PH_MAPPED_IMAGE_IMPORTS imports;
     PH_MAPPED_IMAGE_IMPORT_DLL importDll;
     ULONG i;
-    ULONG limitNumberOfSections;
+    //ULONG limitNumberOfSections;
     ULONG limitNumberOfModules;
     ULONG numberOfModules;
     ULONG numberOfFunctions = 0;
@@ -2829,26 +2829,29 @@ NTSTATUS PhIsExecutablePacked(
 
     // Go through the sections and look for the ".text" section.
 
-    limitNumberOfSections = min(mappedImage.NumberOfSections, 64);
+    // This rule is currently disabled.
+    hasTextSection = TRUE;
 
-    for (i = 0; i < limitNumberOfSections; i++)
-    {
-        CHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+    //limitNumberOfSections = min(mappedImage.NumberOfSections, 64);
 
-        if (PhGetMappedImageSectionName(
-            &mappedImage.Sections[i],
-            sectionName,
-            IMAGE_SIZEOF_SHORT_NAME + 1,
-            NULL
-            ))
-        {
-            if (STR_IEQUAL(sectionName, ".text"))
-            {
-                hasTextSection = TRUE;
-                break;
-            }
-        }
-    }
+    //for (i = 0; i < limitNumberOfSections; i++)
+    //{
+    //    CHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+    //    if (PhGetMappedImageSectionName(
+    //        &mappedImage.Sections[i],
+    //        sectionName,
+    //        IMAGE_SIZEOF_SHORT_NAME + 1,
+    //        NULL
+    //        ))
+    //    {
+    //        if (STR_IEQUAL(sectionName, ".text"))
+    //        {
+    //            hasTextSection = TRUE;
+    //            break;
+    //        }
+    //    }
+    //}
 
     status = PhInitializeMappedImageImports(
         &imports,
