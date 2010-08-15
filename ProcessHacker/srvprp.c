@@ -235,7 +235,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     {
                         PPH_STRING expandedString;
 
-                        if (expandedString = PhExpandEnvironmentStrings(serviceDllString->Buffer))
+                        if (expandedString = PhExpandEnvironmentStrings(&serviceDllString->sr))
                         {
                             SetDlgItemText(hwndDlg, IDC_SERVICEDLL, expandedString->Buffer);
                             PhDereferenceObject(expandedString);
