@@ -2318,7 +2318,7 @@ PPH_STRING PhGetFullPath(
 
 PHLIBAPI
 PPH_STRING PhExpandEnvironmentStrings(
-    __in PWSTR String
+    __in PPH_STRINGREF String
     );
 
 PHLIBAPI

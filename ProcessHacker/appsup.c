@@ -334,7 +334,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                         PHA_DEREFERENCE(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
 
                     if (fileName = PHA_DEREFERENCE(PhExpandEnvironmentStrings(
-                        KnownCommandLine->ComSurrogate.FileName->Buffer
+                        &KnownCommandLine->ComSurrogate.FileName->sr
                         )))
                     {
                         KnownCommandLine->ComSurrogate.FileName = fileName;
