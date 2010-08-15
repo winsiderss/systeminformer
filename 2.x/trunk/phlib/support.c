@@ -1475,15 +1475,12 @@ PPH_STRING PhGetFullPath(
 }
 
 PPH_STRING PhExpandEnvironmentStrings(
-    __in PWSTR String
+    __in PPH_STRINGREF String
     )
 {
     NTSTATUS status;
     PPH_STRING string;
-    UNICODE_STRING sourceString;
     ULONG bufferLength;
-
-    RtlInitUnicodeString(&sourceString, String);
 
     bufferLength = 0x40;
     string = PhCreateStringEx(NULL, bufferLength);
@@ -1491,8 +1488,8 @@ PPH_STRING PhExpandEnvironmentStrings(
 
     status = RtlExpandEnvironmentStrings_U(
         NULL,
-        &sourceString,
-        &string->us, 
+        &String->us,
+        &string->us,
         &bufferLength
         );
 
@@ -1504,7 +1501,7 @@ PPH_STRING PhExpandEnvironmentStrings(
 
         status = RtlExpandEnvironmentStrings_U(
             NULL,
-            &sourceString,
+            &String->us,
             &string->us,
             &bufferLength
             );
