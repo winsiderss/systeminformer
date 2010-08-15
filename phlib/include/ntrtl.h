@@ -3543,14 +3543,6 @@ RtlCreateSecurityDescriptor(
     __in ULONG Revision
     );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlCreateSecurityDescriptorRelative(
-    __out PISECURITY_DESCRIPTOR_RELATIVE SecurityDescriptor,
-    __in ULONG Revision
-    );
-
 __checkReturn
 NTSYSAPI
 BOOLEAN
@@ -3738,6 +3730,41 @@ RtlSelfRelativeToAbsoluteSD(
     __inout PULONG OwnerSize,
     __out_bcount_part_opt(*PrimaryGroupSize, *PrimaryGroupSize) PSID PrimaryGroup,
     __inout PULONG PrimaryGroupSize
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSelfRelativeToAbsoluteSD2(
+    __inout PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    __inout PULONG BufferLength
+    );
+
+// Access masks
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAreAllAccessesGranted(
+    __in ACCESS_MASK GrantedAccess,
+    __in ACCESS_MASK DesiredAccess
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAreAnyAccessesGranted(
+    __in ACCESS_MASK GrantedAccess,
+    __in ACCESS_MASK DesiredAccess
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlMapGenericMask(
+    __inout PACCESS_MASK AccessMask,
+    __in PGENERIC_MAPPING GenericMapping
     );
 
 // ACLs
@@ -3966,16 +3993,37 @@ RtlNewSecurityObject(
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlDeleteSecurityObject(
-    __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
+RtlNewSecurityObjectEx(
+    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
+    __out PSECURITY_DESCRIPTOR *NewDescriptor,
+    __in_opt GUID *ObjectType,
+    __in BOOLEAN IsDirectoryObject,
+    __in ULONG AutoInheritFlags, // SEF_*
+    __in_opt HANDLE Token,
+    __in PGENERIC_MAPPING GenericMapping
     );
 
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlCopySecurityDescriptor(
-    __in PSECURITY_DESCRIPTOR InputSecurityDescriptor,
-    __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
+RtlNewSecurityObjectWithMultipleInheritance(
+    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
+    __out PSECURITY_DESCRIPTOR *NewDescriptor,
+    __in_opt GUID **ObjectType,
+    __in ULONG GuidCount,
+    __in BOOLEAN IsDirectoryObject,
+    __in ULONG AutoInheritFlags, // SEF_*
+    __in_opt HANDLE Token,
+    __in PGENERIC_MAPPING GenericMapping
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteSecurityObject(
+    __inout PSECURITY_DESCRIPTOR *ObjectDescriptor
     );
 
 NTSYSAPI
@@ -3998,6 +4046,109 @@ RtlSetSecurityObject(
     __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
     __in PGENERIC_MAPPING GenericMapping,
     __in_opt HANDLE Token
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetSecurityObjectEx(
+    __in SECURITY_INFORMATION SecurityInformation,
+    __in PSECURITY_DESCRIPTOR ModificationDescriptor,
+    __inout PSECURITY_DESCRIPTOR *ObjectsSecurityDescriptor,
+    __in ULONG AutoInheritFlags, // SEF_*
+    __in PGENERIC_MAPPING GenericMapping,
+    __in_opt HANDLE Token
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlConvertToAutoInheritSecurityObject(
+    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
+    __in PSECURITY_DESCRIPTOR CurrentSecurityDescriptor,
+    __out PSECURITY_DESCRIPTOR *NewSecurityDescriptor,
+    __in_opt GUID *ObjectType,
+    __in BOOLEAN IsDirectoryObject,
+    __in PGENERIC_MAPPING GenericMapping
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNewInstanceSecurityObject(
+    __in BOOLEAN ParentDescriptorChanged,
+    __in BOOLEAN CreatorDescriptorChanged,
+    __in PLUID OldClientTokenModifiedId,
+    __out PLUID NewClientTokenModifiedId,
+    __in_opt PSECURITY_DESCRIPTOR ParentDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR CreatorDescriptor,
+    __out PSECURITY_DESCRIPTOR *NewDescriptor,
+    __in BOOLEAN IsDirectoryObject,
+    __in HANDLE Token,
+    __in PGENERIC_MAPPING GenericMapping
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCopySecurityDescriptor(
+    __in PSECURITY_DESCRIPTOR InputSecurityDescriptor,
+    __out PSECURITY_DESCRIPTOR *OutputSecurityDescriptor
+    );
+
+// Misc. security
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRunEncodeUnicodeString(
+    __inout PUCHAR Seed,
+    __in PUNICODE_STRING String
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRunDecodeUnicodeString(
+    __in UCHAR Seed,
+    __in PUNICODE_STRING String
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlImpersonateSelf(
+    __in SECURITY_IMPERSONATION_LEVEL ImpersonationLevel
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAdjustPrivilege(
+    __in ULONG Privilege,
+    __in BOOLEAN Enable,
+    __in BOOLEAN Client,
+    __out PBOOLEAN WasEnabled
+    );
+
+#define RTL_ACQUIRE_PRIVILEGE_REVERT 0x00000001
+#define RTL_ACQUIRE_PRIVILEGE_PROCESS 0x00000002
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAcquirePrivilege(
+    __in PULONG Privilege,
+    __in ULONG NumPriv,
+    __in ULONG Flags,
+    __out PVOID *ReturnedState
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlReleasePrivilege(
+    __in PVOID StatePointer
     );
 
 // Private namespaces
