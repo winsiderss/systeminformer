@@ -297,27 +297,25 @@ BOOLEAN PhMainWndInitialization(
         PPH_STRING dbghelpPath;
         HMODULE dbghelpModule;
 
-        // Try to set up the path automatically if this is the first run. 
+        // Try to set up the path automatically if this is the first run.
+        if (PhGetIntegerSetting(L"FirstRun"))
         {
-            if (PhGetIntegerSetting(L"FirstRun"))
-            {
-                PPH_STRING autoDbghelpPath;
+            PPH_STRING autoDbghelpPath;
 
-                autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
-                    CSIDL_PROGRAM_FILES,
+            autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
+                CSIDL_PROGRAM_FILES,
 #ifdef _M_IX86
-                    L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
+                L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
 #else
-                    L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
+                L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
 #endif
-                    ));
+                ));
 
-                if (autoDbghelpPath)
+            if (autoDbghelpPath)
+            {
+                if (PhFileExists(autoDbghelpPath->Buffer))
                 {
-                    if (PhFileExists(autoDbghelpPath->Buffer))
-                    {
-                        PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
-                    }
+                    PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
                 }
             }
         }
