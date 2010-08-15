@@ -934,7 +934,7 @@ PPH_STRING PhpFormatDecimalFast(
 
     // Ignore trailing zeros.
 
-    while (inFractionalCount != 0 && dot[1 + inFractionalCount - 1] == 0)
+    while (inFractionalCount != 0 && fractional[inFractionalCount - 1] == '0')
     {
         inFractionalCount--;
     }
