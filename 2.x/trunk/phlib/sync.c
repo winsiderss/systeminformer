@@ -40,6 +40,7 @@ FORCEINLINE VOID PhpDereferenceEvent(
     )
 {
     ULONG_PTR value;
+    HANDLE eventHandle;
 
     value = _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
 
@@ -48,8 +49,10 @@ FORCEINLINE VOID PhpDereferenceEvent(
     {
         if (Event->EventHandle)
         {
-            NtClose(Event->EventHandle);
-            Event->EventHandle = NULL;
+            eventHandle = _InterlockedExchangePointer(&Event->EventHandle, NULL);
+
+            if (eventHandle)
+                NtClose(eventHandle);
         }
     }
 }
