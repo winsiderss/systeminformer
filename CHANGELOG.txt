@@ -5,6 +5,7 @@ Process Hacker
  * FIXED:
    * Network connection host resolution
    * Information window resizing
+   * Log clearing
 
 2.2
  * NEW/IMPROVED:

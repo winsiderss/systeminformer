@@ -158,6 +158,7 @@ VOID PhClearLogEntries()
     }
 
     PhClearCircularBuffer_PVOID(&PhLogBuffer);
+    memset(PhLogBuffer.Data, 0, sizeof(PVOID) * PhLogBuffer.Size);
 }
 
 VOID PhLogProcessEntry(
