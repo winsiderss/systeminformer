@@ -1049,6 +1049,14 @@ NTSTATUS PhLookupSid(
     );
 
 PHLIBAPI
+NTSTATUS PhLookupName(
+    __in PPH_STRINGREF Name,
+    __out_opt PSID *Sid,
+    __out_opt PPH_STRING *DomainName,
+    __out_opt PSID_NAME_USE NameUse
+    );
+
+PHLIBAPI
 PPH_STRING PhGetSidFullName(
     __in PSID Sid,
     __in BOOLEAN IncludeDomain,
