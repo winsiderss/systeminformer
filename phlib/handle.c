@@ -45,7 +45,14 @@ PPH_HANDLE_TABLE PhCreateHandleTable()
     PPH_HANDLE_TABLE handleTable;
     ULONG i;
 
+#ifdef PH_HANDLE_TABLE_SAFE
+    handleTable = PhAllocateSafe(sizeof(PH_HANDLE_TABLE));
+
+    if (!handleTable)
+        return NULL;
+#else
     handleTable = PhAllocate(sizeof(PH_HANDLE_TABLE));
+#endif
 
     PhInitializeQueuedLock(&handleTable->Lock);
     PhInitializeQueuedLock(&handleTable->HandleWakeEvent);
@@ -1079,14 +1086,10 @@ PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
     PPH_HANDLE_TABLE_ENTRY **table;
 
 #ifdef PH_HANDLE_TABLE_SAFE
-    __try
-    {
-        table = PhAllocate(sizeof(PPH_HANDLE_TABLE_ENTRY *) * PH_HANDLE_TABLE_LEVEL_ENTRIES);
-    }
-    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_INSUFFICIENT_RESOURCES))
-    {
+    table = PhAllocateSafe(sizeof(PPH_HANDLE_TABLE_ENTRY *) * PH_HANDLE_TABLE_LEVEL_ENTRIES);
+
+    if (!table)
         return NULL;
-    }
 #else
     table = PhAllocate(sizeof(PPH_HANDLE_TABLE_ENTRY *) * PH_HANDLE_TABLE_LEVEL_ENTRIES);
 #endif
