@@ -2645,23 +2645,11 @@ VOID PhpResizeHashtable(
     }
 }
 
-/**
- * Adds an entry to a hashtable.
- *
- * \param Hashtable A hashtable object.
- * \param Entry The entry to add.
- *
- * \return A pointer to the entry as stored in
- * the hashtable. This pointer is valid until 
- * the hashtable is modified. If the hashtable 
- * already contained an equal entry, NULL is returned.
- *
- * \remarks Entries are only guaranteed to be 8 byte 
- * aligned, even on 64-bit systems.
- */
-PVOID PhAddEntryHashtable(
+FORCEINLINE PVOID PhpAddEntryHashtable(
     __inout PPH_HASHTABLE Hashtable,
-    __in PVOID Entry
+    __in PVOID Entry,
+    __in BOOLEAN CheckForDuplicate,
+    __out_opt PBOOLEAN Added
     )
 {
     ULONG hashCode; // hash code of the new entry
@@ -2672,24 +2660,23 @@ PVOID PhAddEntryHashtable(
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
     index = PhpIndexFromHash(Hashtable, hashCode);
 
-#if 1
-    // Check if the hashtable already contains the entry.
+    if (CheckForDuplicate)
     {
         ULONG i;
 
-        i = Hashtable->Buckets[index];
-
-        for (; i != -1; i = entry->Next)
+        for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
         {
             entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
             if (entry->HashCode == hashCode && Hashtable->CompareFunction(&entry->Body, Entry))
             {
-                return NULL;
+                if (Added)
+                    *Added = FALSE;
+
+                return &entry->Body;
             }
         }
     }
-#endif
 
     // Use a free entry if possible.
     if (Hashtable->FreeEntry != -1)
@@ -2722,7 +2709,40 @@ PVOID PhAddEntryHashtable(
 
     Hashtable->Count++;
 
+    if (Added)
+        *Added = TRUE;
+
     return &entry->Body;
+}
+
+/**
+ * Adds an entry to a hashtable.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry The entry to add.
+ *
+ * \return A pointer to the entry as stored in
+ * the hashtable. This pointer is valid until 
+ * the hashtable is modified. If the hashtable 
+ * already contained an equal entry, NULL is returned.
+ *
+ * \remarks Entries are only guaranteed to be 8 byte 
+ * aligned, even on 64-bit systems.
+ */
+PVOID PhAddEntryHashtable(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry
+    )
+{
+    PVOID entry;
+    BOOLEAN added;
+
+    entry = PhpAddEntryHashtable(Hashtable, Entry, TRUE, &added);
+
+    if (added)
+        return entry;
+    else
+        return NULL;
 }
 
 /**
@@ -2809,13 +2829,14 @@ PVOID PhFindEntryHashtable(
     )
 {
     ULONG hashCode;
+    ULONG index;
     ULONG i;
     PPH_HASHTABLE_ENTRY entry;
 
     hashCode = PhpValidateHash(Hashtable->HashFunction(Entry));
-    i = Hashtable->Buckets[PhpIndexFromHash(Hashtable, hashCode)];
+    index = PhpIndexFromHash(Hashtable, hashCode);
 
-    for (; i != -1; i = entry->Next)
+    for (i = Hashtable->Buckets[index]; i != -1; i = entry->Next)
     {
         entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
 
