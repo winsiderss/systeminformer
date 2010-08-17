@@ -226,7 +226,7 @@ NTSTATUS PhLookupSid(
 
         if (DomainName)
         {
-            if (names[0].DomainIndex != -1)
+            if (names[0].DomainIndex >= 0)
             {
                 PLSA_TRUST_INFORMATION trustInfo;
 
@@ -251,6 +251,91 @@ NTSTATUS PhLookupSid(
 
     LsaFreeMemory(referencedDomains);
     LsaFreeMemory(names);
+
+    return status;
+}
+
+/**
+ * Gets information about a name.
+ *
+ * \param Name A name to query.
+ * \param Sid A variable which receives a pointer 
+ * to a SID. You must free the SID using PhFree() when you 
+ * no longer need it.
+ * \param DomainName A variable which receives a pointer 
+ * to a string containing the SID's domain name. You must 
+ * free the string using PhDereferenceObject() when 
+ * you no longer need it.
+ * \param NameUse A variable which receives the 
+ * SID's usage.
+ */
+NTSTATUS PhLookupName(
+    __in PPH_STRINGREF Name,
+    __out_opt PSID *Sid,
+    __out_opt PPH_STRING *DomainName,
+    __out_opt PSID_NAME_USE NameUse
+    )
+{
+    NTSTATUS status;
+    LSA_HANDLE policyHandle;
+    PLSA_REFERENCED_DOMAIN_LIST referencedDomains;
+    PLSA_TRANSLATED_SID2 sids;
+
+    policyHandle = PhGetLookupPolicyHandle();
+
+    status = LsaLookupNames2(
+        policyHandle,
+        0,
+        1,
+        &Name->us,
+        &referencedDomains,
+        &sids
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (sids[0].Use != SidTypeInvalid && sids[0].Use != SidTypeUnknown)
+    {
+        if (Sid)
+        {
+            PSID sid;
+            ULONG sidLength;
+
+            sidLength = RtlLengthSid(sids[0].Sid);
+            sid = PhAllocate(sidLength);
+            memcpy(sid, sids[0].Sid, sidLength);
+
+            *Sid = sid;
+        }
+
+        if (DomainName)
+        {
+            if (sids[0].DomainIndex >= 0)
+            {
+                PLSA_TRUST_INFORMATION trustInfo;
+
+                trustInfo = &referencedDomains->Domains[sids[0].DomainIndex];
+                *DomainName = PhCreateStringEx(trustInfo->Name.Buffer, trustInfo->Name.Length);
+            }
+            else
+            {
+                *DomainName = PhCreateString(L"");
+            }
+        }
+
+        if (NameUse)
+        {
+            *NameUse = sids[0].Use;
+        }
+    }
+    else
+    {
+        status = STATUS_NONE_MAPPED;
+    }
+
+    LsaFreeMemory(referencedDomains);
+    LsaFreeMemory(sids);
 
     return status;
 }
