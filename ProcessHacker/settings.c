@@ -90,6 +90,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
     PhpAddStringSetting(L"ModuleListViewColumns", L"");
     PhpAddStringSetting(L"NetworkListViewColumns", L"");
+    PhpAddStringSetting(L"NoPurgeProcessRecords", L"0");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");

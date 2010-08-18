@@ -141,6 +141,7 @@ PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 
 ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessQueryStage2 = FALSE;
+BOOLEAN PhEnablePurgeProcessRecords = TRUE;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -1370,7 +1371,8 @@ VOID PhProcessProviderUpdate(
 
     if (runCount % 512 == 0) // yes, a very long time
     {
-        PhPurgeProcessRecords();
+        if (PhEnablePurgeProcessRecords)
+            PhPurgeProcessRecords();
     }
 
     if (!PhProcessStatisticsInitialized)
