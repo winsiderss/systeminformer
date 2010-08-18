@@ -82,6 +82,24 @@ FORCEINLINE PWSTR PhpGetStringOrNa(
         return L"N/A";
 }
 
+static PPH_PROCESS_ITEM PhpReferenceMatchingProcessItem(
+    __in PPH_PROCESS_RECORD Record
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    if (processItem = PhReferenceProcessItem(Record->ProcessId))
+    {
+        if (processItem->CreateTime.QuadPart != Record->CreateTime.QuadPart)
+        {
+            PhDereferenceObject(processItem);
+            processItem = NULL;
+        }
+    }
+
+    return processItem;
+}
+
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -117,16 +135,50 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             SHFILEINFO fileInfo;
             HICON icon;
             PPH_STRING processNameString;
+            PPH_PROCESS_ITEM processItem;
 
-            processNameString = PhaFormatString(L"%s (%u)",
-                context->Record->ProcessName->Buffer, (ULONG)context->Record->ProcessId);
+            if (!PH_IS_FAKE_PROCESS_ID(context->Record->ProcessId))
+            {
+                processNameString = PhaFormatString(L"%s (%u)",
+                    context->Record->ProcessName->Buffer, (ULONG)context->Record->ProcessId);
+            }
+            else
+            {
+                processNameString = context->Record->ProcessName;
+            }
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             SetWindowText(hwndDlg, processNameString->Buffer);
 
             SetDlgItemText(hwndDlg, IDC_PROCESSNAME, processNameString->Buffer);
-            SetDlgItemText(hwndDlg, IDC_PARENT, PhaFormatString(L"Unknown Process (%u)",
-                (ULONG)context->Record->ParentProcessId)->Buffer);
+
+            if (processItem = PhpReferenceMatchingProcessItem(context->Record))
+            {
+                if (processItem->HasParent)
+                {
+                    CLIENT_ID clientId;
+
+                    clientId.UniqueProcess = processItem->ParentProcessId;
+                    clientId.UniqueThread = NULL;
+
+                    SetDlgItemText(hwndDlg, IDC_PARENT,
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+                }
+                else
+                {
+                    SetDlgItemText(hwndDlg, IDC_PARENT, PhaFormatString(L"Non-existent process (%u)",
+                        (ULONG)context->Record->ParentProcessId)->Buffer);
+                }
+
+                PhDereferenceObject(processItem);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_PARENT, PhaFormatString(L"Unknown process (%u)",
+                    (ULONG)context->Record->ParentProcessId)->Buffer);
+
+                EnableWindow(GetDlgItem(hwndDlg, IDC_PROPERTIES), FALSE);
+            }
 
             memset(&versionInfo, 0, sizeof(PH_IMAGE_VERSION_INFO));
             icon = NULL;
@@ -201,6 +253,21 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 {
                     if (context->Record->FileName)
                         PhShellExploreFile(hwndDlg, context->Record->FileName->Buffer);
+                }
+                break;
+            case IDC_PROPERTIES:
+                {
+                    PPH_PROCESS_ITEM processItem;
+
+                    if (processItem = PhpReferenceMatchingProcessItem(context->Record))
+                    {
+                        ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        PhShowError(hwndDlg, L"The process has already terminated; only the process record is available.");
+                    }
                 }
                 break;
             }

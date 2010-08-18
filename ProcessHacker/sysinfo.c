@@ -330,31 +330,6 @@ static PPH_STRING PhapGetMaxIoString(
     return maxUsageString;
 }
 
-static VOID PhpShowProcessRecordOrProperties(
-    __in PPH_PROCESS_RECORD Record
-    )
-{
-    PPH_PROCESS_ITEM processItem;
-    BOOLEAN showProperties;
-
-    processItem = PhReferenceProcessItem(Record->ProcessId);
-    showProperties = FALSE;
-
-    if (processItem)
-    {
-        if (processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
-        {
-            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
-            showProperties = TRUE;
-        }
-
-        PhDereferenceObject(processItem);
-    }
-
-    if (!showProperties)
-        PhShowProcessRecordDialog(PhSysInfoWindowHandle, Record);
-}
-
 INT_PTR CALLBACK PhpSysInfoDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1024,7 +999,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                     if (record)
                     {
-                        PhpShowProcessRecordOrProperties(record);
+                        PhShowProcessRecordDialog(PhSysInfoWindowHandle, record);
                         PhDereferenceProcessRecord(record);
                     }
                 }
