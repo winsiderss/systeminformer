@@ -222,17 +222,12 @@ static VOID NTAPI SysInfoUpdateHandler(
     PostMessage(PhSysInfoWindowHandle, WM_PH_SYSINFO_UPDATE, 0, 0);
 }
 
-static PPH_STRING PhapGetMaxCpuString(
+static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
     __in LONG Index
     )
 {
     LARGE_INTEGER time;
     ULONG maxProcessId;
-    PPH_PROCESS_RECORD maxProcessRecord;
-#ifdef PH_RECORD_MAX_USAGE
-    FLOAT maxCpuUsage;
-#endif
-    PPH_STRING maxUsageString = NULL;
 
     // Find the process record for the max. CPU process for the particular time.
 
@@ -252,9 +247,21 @@ static PPH_STRING PhapGetMaxCpuString(
     // This mean we must add one second minus one tick (100ns) to the time, giving us 
     // 2.9999999 seconds. This will then make sure we find the process.
     time.QuadPart += PH_TICKS_PER_SEC - 1;
-    maxProcessRecord = PhFindProcessRecord((HANDLE)maxProcessId, &time);
 
-    if (maxProcessRecord)
+    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+}
+
+static PPH_STRING PhapGetMaxCpuString(
+    __in LONG Index
+    )
+{
+    PPH_PROCESS_RECORD maxProcessRecord;
+#ifdef PH_RECORD_MAX_USAGE
+    FLOAT maxCpuUsage;
+#endif
+    PPH_STRING maxUsageString = NULL;
+
+    if (maxProcessRecord = PhpReferenceMaxCpuRecord(Index))
     {
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
@@ -273,18 +280,12 @@ static PPH_STRING PhapGetMaxCpuString(
     return maxUsageString;
 }
 
-static PPH_STRING PhapGetMaxIoString(
+static PPH_PROCESS_RECORD PhpReferenceMaxIoRecord(
     __in LONG Index
     )
 {
     LARGE_INTEGER time;
     ULONG maxProcessId;
-    PPH_PROCESS_RECORD maxProcessRecord;
-#ifdef PH_RECORD_MAX_USAGE
-    ULONG64 maxIoReadOther;
-    ULONG64 maxIoWrite;
-#endif
-    PPH_STRING maxUsageString = NULL;
 
     // Find the process record for the max. I/O process for the particular time.
 
@@ -293,9 +294,22 @@ static PPH_STRING PhapGetMaxIoString(
 
     // See above for the explanation.
     time.QuadPart += PH_TICKS_PER_SEC - 1;
-    maxProcessRecord = PhFindProcessRecord((HANDLE)maxProcessId, &time);
 
-    if (maxProcessRecord)
+    return PhFindProcessRecord((HANDLE)maxProcessId, &time);
+}
+
+static PPH_STRING PhapGetMaxIoString(
+    __in LONG Index
+    )
+{
+    PPH_PROCESS_RECORD maxProcessRecord;
+#ifdef PH_RECORD_MAX_USAGE
+    ULONG64 maxIoReadOther;
+    ULONG64 maxIoWrite;
+#endif
+    PPH_STRING maxUsageString = NULL;
+
+    if (maxProcessRecord = PhpReferenceMaxIoRecord(Index))
     {
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
@@ -314,6 +328,31 @@ static PPH_STRING PhapGetMaxIoString(
     }
 
     return maxUsageString;
+}
+
+static VOID PhpShowProcessRecordOrProperties(
+    __in PPH_PROCESS_RECORD Record
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+    BOOLEAN showProperties;
+
+    processItem = PhReferenceProcessItem(Record->ProcessId);
+    showProperties = FALSE;
+
+    if (processItem)
+    {
+        if (processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
+        {
+            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+            showProperties = TRUE;
+        }
+
+        PhDereferenceObject(processItem);
+    }
+
+    if (!showProperties)
+        PhShowProcessRecordDialog(PhSysInfoWindowHandle, Record);
 }
 
 INT_PTR CALLBACK PhpSysInfoDlgProc(      
@@ -941,6 +980,52 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                             getTooltipText->Text = CpusGraphState[i].TooltipText->sr;
                         }
+                    }
+                }
+                break;
+            case GCN_MOUSEEVENT:
+                {
+                    PPH_GRAPH_MOUSEEVENT mouseEvent = (PPH_GRAPH_MOUSEEVENT)lParam;
+                    PPH_PROCESS_RECORD record;
+                    ULONG i;
+
+                    record = NULL;
+
+                    if (mouseEvent->Message == WM_LBUTTONDBLCLK)
+                    {
+                        if (
+                            header->hwndFrom == CpuGraphHandle &&
+                            mouseEvent->Index < mouseEvent->TotalCount
+                            )
+                        {
+                            record = PhpReferenceMaxCpuRecord(mouseEvent->Index);
+                        }
+                        else if (
+                            header->hwndFrom == IoGraphHandle &&
+                            mouseEvent->Index < mouseEvent->TotalCount
+                            )
+                        {
+                            record = PhpReferenceMaxIoRecord(mouseEvent->Index);
+                        }
+                        else if (
+                            CpusGraphHandle &&
+                            mouseEvent->Index < mouseEvent->TotalCount
+                            )
+                        {
+                            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+                            {
+                                if (header->hwndFrom != CpusGraphHandle[i])
+                                    continue;
+
+                                record = PhpReferenceMaxCpuRecord(mouseEvent->Index);
+                            }
+                        }
+                    }
+
+                    if (record)
+                    {
+                        PhpShowProcessRecordOrProperties(record);
+                        PhDereferenceProcessRecord(record);
                     }
                 }
                 break;

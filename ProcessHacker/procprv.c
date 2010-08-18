@@ -938,6 +938,8 @@ VOID PhpFillProcessItemStage1(
         wcsncpy(processItem->IntegrityString, Data->IntegrityString->Buffer, PH_INTEGRITY_STR_LEN);
         PhDereferenceObject(Data->IntegrityString);
     }
+
+    PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }
 
 VOID PhpFillProcessItemStage2(
@@ -1538,8 +1540,6 @@ VOID PhProcessProviderUpdate(
             PhpFillProcessItem(processItem, process);
             processItem->SequenceNumber = PhTimeSequenceNumber;
 
-            // Create and add a process record. (This will have to be moved when the CommandLine/UserName 
-            // fields are enabled.)
             processRecord = PhpCreateProcessRecord(processItem);
             PhpAddProcessRecord(processRecord);
             processItem->Record = processRecord;
@@ -1858,13 +1858,13 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
         processRecord->FileName = ProcessItem->FileName;
     }
 
-    /*if (ProcessItem->CommandLine)
+    if (ProcessItem->CommandLine)
     {
         PhReferenceObject(ProcessItem->CommandLine);
         processRecord->CommandLine = ProcessItem->CommandLine;
     }
 
-    if (ProcessItem->UserName)
+    /*if (ProcessItem->UserName)
     {
         PhReferenceObject(ProcessItem->UserName);
         processRecord->UserName = ProcessItem->UserName;
@@ -2014,8 +2014,8 @@ VOID PhDereferenceProcessRecord(
 
         PhDereferenceObject(ProcessRecord->ProcessName);
         if (ProcessRecord->FileName) PhDereferenceObject(ProcessRecord->FileName);
-        /*if (ProcessRecord->CommandLine) PhDereferenceObject(ProcessRecord->CommandLine);
-        if (ProcessRecord->UserName) PhDereferenceObject(ProcessRecord->UserName);*/
+        if (ProcessRecord->CommandLine) PhDereferenceObject(ProcessRecord->CommandLine);
+        /*if (ProcessRecord->UserName) PhDereferenceObject(ProcessRecord->UserName);*/
         PhFree(ProcessRecord);
     }
 }

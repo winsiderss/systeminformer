@@ -98,6 +98,7 @@
 #define IDD_OPTGRAPHS                   186
 #define IDD_PLUGINS                     187
 #define IDD_HANDLESTATS                 188
+#define IDD_PROCRECORD                  189
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -116,6 +117,7 @@
 #define IDC_STARTED                     1023
 #define IDC_ABOUT_NAME                  1024
 #define IDC_PEBADDRESS                  1024
+#define IDC_TERMINATED                  1024
 #define IDC_PARENTPROCESS               1025
 #define IDC_DEP                         1026
 #define IDC_PAUSE                       1027
@@ -141,6 +143,7 @@
 #define IDC_NAME                        1044
 #define IDC_REFERENCES                  1045
 #define IDC_INTERNALNAME                1045
+#define IDC_NAME2                       1045
 #define IDC_HANDLES                     1046
 #define IDC_PROCESSTYPELABEL            1046
 #define IDC_AUTHOR                      1046
@@ -394,6 +397,8 @@
 #define IDC_ENABLESTAGE2                1253
 #define IDC_TOGGLEELEVATION             1254
 #define IDC_ENABLEPLUGINS               1258
+#define IDC_PARENT                      1263
+#define IDC_PROCESSNAME                 1264
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -608,9 +613,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        189
+#define _APS_NEXT_RESOURCE_VALUE        190
 #define _APS_NEXT_COMMAND_VALUE         40232
-#define _APS_NEXT_CONTROL_VALUE         1261
+#define _APS_NEXT_CONTROL_VALUE         1265
 #define _APS_NEXT_SYMED_VALUE           131
 #endif
 #endif
