@@ -53,7 +53,7 @@ BOOLEAN PhGraphControlInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = 0;
+    c.style = CS_DBLCLKS;
     c.lpfnWndProc = PhpGraphWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
@@ -719,6 +719,31 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
                 context->TooltipVisible = FALSE;
             }
+        }
+        break;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_RBUTTONDBLCLK:
+        {
+            PH_GRAPH_MOUSEEVENT mouseEvent;
+            RECT clientRect;
+
+            GetClientRect(hwnd, &clientRect);
+
+            mouseEvent.Header.hwndFrom = hwnd;
+            mouseEvent.Header.code = GCN_MOUSEEVENT;
+            mouseEvent.Message = uMsg;
+            mouseEvent.Keys = (ULONG)wParam;
+            mouseEvent.Point.x = LOWORD(lParam);
+            mouseEvent.Point.y = HIWORD(lParam);
+
+            mouseEvent.Index = (clientRect.right - mouseEvent.Point.x) / context->DrawInfo.Step;
+            mouseEvent.TotalCount = context->DrawInfo.LineDataCount;
+
+            SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&mouseEvent);
         }
         break;
     case GCM_GETDRAWINFO:

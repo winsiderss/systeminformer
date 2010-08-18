@@ -2,6 +2,8 @@ Process Hacker
 
 2.3
  * NEW/IMPROVED:
+   * Double-clicking in the system information graphs now opens 
+     information for the relevant process
  * FIXED:
    * Network connection host resolution
    * Information window resizing

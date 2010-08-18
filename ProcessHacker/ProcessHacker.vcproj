@@ -829,6 +829,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\procrec.c"
+				>
+			</File>
+			<File
 				RelativePath=".\proctree.c"
 				>
 			</File>

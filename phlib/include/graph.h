@@ -100,6 +100,7 @@ HWND PhCreateGraphControl(
 
 #define GCN_GETDRAWINFO (WM_APP + 1351)
 #define GCN_GETTOOLTIPTEXT (WM_APP + 1352)
+#define GCN_MOUSEEVENT (WM_APP + 1353)
 
 typedef struct _PH_GRAPH_GETDRAWINFO
 {
@@ -115,6 +116,17 @@ typedef struct _PH_GRAPH_GETTOOLTIPTEXT
 
     PH_STRINGREF Text; // must be null-terminated
 } PH_GRAPH_GETTOOLTIPTEXT, *PPH_GRAPH_GETTOOLTIPTEXT;
+
+typedef struct _PH_GRAPH_MOUSEEVENT
+{
+    NMHDR Header;
+    ULONG Index;
+    ULONG TotalCount;
+
+    ULONG Message;
+    ULONG Keys;
+    POINT Point;
+} PH_GRAPH_MOUSEEVENT, *PPH_GRAPH_MOUSEEVENT;
 
 #define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step) + 1) // round up in division
 
