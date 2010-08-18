@@ -559,7 +559,7 @@ NTSTATUS PhpProcessGeneralOpenProcess(
     return PhOpenProcess(Handle, DesiredAccess, (HANDLE)Context);
 }
 
-PWSTR PhpGetStringOrNa(
+FORCEINLINE PWSTR PhpGetStringOrNa(
     __in PPH_STRING String
     )
 {

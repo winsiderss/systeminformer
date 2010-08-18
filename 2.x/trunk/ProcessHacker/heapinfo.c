@@ -163,7 +163,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
     __in LPARAM lParam
     )
 {
-    PPROCESS_HEAPS_CONTEXT context;
+    PPROCESS_HEAPS_CONTEXT context = NULL;
 
     if (uMsg != WM_INITDIALOG)
     {

@@ -213,8 +213,8 @@ typedef struct _PH_PROCESS_RECORD
 
     PPH_STRING ProcessName;
     PPH_STRING FileName;
-    /*PPH_STRING CommandLine;
-    PPH_STRING UserName;*/
+    PPH_STRING CommandLine;
+    /*PPH_STRING UserName;*/
 } PH_PROCESS_RECORD, *PPH_PROCESS_RECORD;
 
 BOOLEAN PhProcessProviderInitialization();

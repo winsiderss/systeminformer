@@ -1332,6 +1332,13 @@ VOID PhShowPluginsDialog(
     __in HWND ParentWindowHandle
     );
 
+// procrec
+
+VOID PhShowProcessRecordDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_RECORD Record
+    );
+
 // runas
 
 VOID PhShowRunAsDialog(
