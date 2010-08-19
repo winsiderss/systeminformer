@@ -762,12 +762,8 @@ NTSTATUS PhpGetBestObjectName(
 
         if (NT_SUCCESS(status) && !PhIsNullOrEmptyString(logFileName))
         {
-            bestObjectName = PhResolveDevicePrefix(logFileName);
-
-            if (bestObjectName)
-                PhDereferenceObject(logFileName);
-            else
-                bestObjectName = logFileName;
+            bestObjectName = PhGetFileName(logFileName);
+            PhDereferenceObject(logFileName);
         }
         else
         {
