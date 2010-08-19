@@ -464,6 +464,13 @@ VOID PhImageListWrapperRemove(
     );
 
 PHLIBAPI
+HICON PhGetFileShellIcon(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR DefaultExtension,
+    __in BOOLEAN LargeIcon
+    );
+
+PHLIBAPI
 VOID PhSetClipboardString(
     __in HWND hWnd,
     __in PPH_STRINGREF String

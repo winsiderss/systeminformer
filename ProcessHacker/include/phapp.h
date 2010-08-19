@@ -1154,6 +1154,14 @@ BOOLEAN PhaChoiceDialog(
     __in_opt PWSTR SavedChoicesSettingName
     );
 
+// chproc
+
+BOOLEAN PhShowChooseProcessDialog(
+    __in HWND ParentWindowHandle,
+    __in PWSTR Message,
+    __out PHANDLE ProcessId
+    );
+
 // cpysave
 
 PPH_FULL_STRING PhGetProcessTreeListText(
