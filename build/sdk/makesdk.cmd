@@ -18,6 +18,7 @@ for %%a in (
     circbuf.h
     circbuf_h.h
     dltmgr.h
+    dspick.h
     fastlock.h
     graph.h
     hexedit.h
