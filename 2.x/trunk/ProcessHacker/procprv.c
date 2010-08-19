@@ -974,7 +974,7 @@ VOID PhpFillProcessItem(
     }
     else
     {
-        ProcessItem->ProcessName = PhCreateString(L"System Idle Process");
+        ProcessItem->ProcessName = PhCreateString(SYSTEM_IDLE_PROCESS_NAME);
     }
 
     PhPrintUInt32(ProcessItem->ParentProcessIdString, (ULONG)ProcessItem->ParentProcessId);

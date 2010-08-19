@@ -132,7 +132,6 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
     case WM_INITDIALOG:
         {
             PH_IMAGE_VERSION_INFO versionInfo;
-            SHFILEINFO fileInfo;
             HICON icon;
             PPH_STRING processNameString;
             PPH_PROCESS_ITEM processItem;
@@ -181,35 +180,13 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             }
 
             memset(&versionInfo, 0, sizeof(PH_IMAGE_VERSION_INFO));
-            icon = NULL;
 
             if (context->Record->FileName)
             {
                 PhInitializeImageVersionInfo(&versionInfo, context->Record->FileName->Buffer);
-
-                if (SHGetFileInfo(
-                    context->Record->FileName->Buffer,
-                    0,
-                    &fileInfo,
-                    sizeof(SHFILEINFO),
-                    SHGFI_ICON | SHGFI_LARGEICON
-                    ))
-                {
-                    icon = fileInfo.hIcon;
-                }
             }
 
-            if (!icon)
-            {
-                if (SHGetFileInfo(
-                    L".exe",
-                    FILE_ATTRIBUTE_NORMAL,
-                    &fileInfo,
-                    sizeof(SHFILEINFO),
-                    SHGFI_ICON | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES
-                    ))
-                    icon = fileInfo.hIcon;
-            }
+            icon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_BITMAP,
                 (LPARAM)PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP));

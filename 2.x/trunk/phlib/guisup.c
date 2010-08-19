@@ -784,6 +784,45 @@ VOID PhImageListWrapperRemove(
     PhAddItemList(Wrapper->FreeList, (PVOID)Index);
 }
 
+HICON PhGetFileShellIcon(
+    __in_opt PWSTR FileName,
+    __in_opt PWSTR DefaultExtension,
+    __in BOOLEAN LargeIcon
+    )
+{
+    SHFILEINFO fileInfo;
+    ULONG iconFlag;
+    HICON icon;
+
+    iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
+    icon = NULL;
+
+    if (FileName && SHGetFileInfo(
+        FileName,
+        0,
+        &fileInfo,
+        sizeof(SHFILEINFO),
+        SHGFI_ICON | iconFlag
+        ))
+    {
+        icon = fileInfo.hIcon;
+    }
+
+    if (!icon && DefaultExtension)
+    {
+        if (SHGetFileInfo(
+            DefaultExtension,
+            FILE_ATTRIBUTE_NORMAL,
+            &fileInfo,
+            sizeof(SHFILEINFO),
+            SHGFI_ICON | iconFlag | SHGFI_USEFILEATTRIBUTES
+            ))
+            icon = fileInfo.hIcon;
+    }
+
+    return icon;
+}
+
 VOID PhpSetClipboardData(
     __in HWND hWnd,
     __in ULONG Format,

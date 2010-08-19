@@ -147,7 +147,7 @@ FORCEINLINE PJOB_PAGE_CONTEXT PhpJobPageHeader(
         hwndDlg, uMsg, wParam, lParam, L"JobPageContext");
 }
 
-static PhpAddLimit(
+static VOID PhpAddLimit(
     __in HWND Handle,
     __in PWSTR Name,
     __in PWSTR Value
@@ -157,6 +157,36 @@ static PhpAddLimit(
 
     lvItemIndex = PhAddListViewItem(Handle, MAXINT, Name, NULL);
     PhSetListViewSubItem(Handle, lvItemIndex, 1, Value);
+}
+
+static VOID PhpAddJobProcesses(
+    __in HWND hwndDlg,
+    __in HANDLE JobHandle
+    )
+{
+    PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+    HWND processesLv;
+
+    processesLv = GetDlgItem(hwndDlg, IDC_PROCESSES);
+
+    if (NT_SUCCESS(PhGetJobProcessIdList(JobHandle, &processIdList)))
+    {
+        ULONG i;
+        CLIENT_ID clientId;
+        PPH_STRING name;
+
+        clientId.UniqueThread = NULL;
+
+        for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+        {
+            clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
+            name = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+
+            PhAddListViewItem(processesLv, MAXINT, PhGetString(name), NULL);
+        }
+
+        PhFree(processIdList);
+    }
 }
 
 INT_PTR CALLBACK PhpJobPageProc(
@@ -208,7 +238,6 @@ INT_PTR CALLBACK PhpJobPageProc(
                 )))
             {
                 PPH_STRING jobObjectName = NULL;
-                PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
                 JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedLimits;
                 JOBOBJECT_BASIC_UI_RESTRICTIONS basicUiRestrictions;
 
@@ -231,25 +260,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 SetDlgItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(jobObjectName, L"(unnamed job)"));
 
                 // Processes
-
-                if (NT_SUCCESS(PhGetJobProcessIdList(jobHandle, &processIdList)))
-                {
-                    ULONG i;
-                    CLIENT_ID clientId;
-                    PPH_STRING name;
-
-                    clientId.UniqueThread = NULL;
-
-                    for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
-                    {
-                        clientId.UniqueProcess = (HANDLE)processIdList->ProcessIdList[i];
-                        name = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
-
-                        PhAddListViewItem(processesLv, MAXINT, PhGetString(name), NULL);
-                    }
-
-                    PhFree(processIdList);
-                }
+                PhpAddJobProcesses(hwndDlg, jobHandle);
 
                 // Limits
 
@@ -404,6 +415,50 @@ INT_PTR CALLBACK PhpJobPageProc(
                         if (!NT_SUCCESS(status))
                             PhShowStatus(hwndDlg, L"Unable to terminate the job", status, 0);
                     }
+                }
+                break;
+            case IDC_ADD:
+                {
+                    NTSTATUS status;
+                    HANDLE processId;
+                    HANDLE processHandle;
+                    HANDLE jobHandle;
+
+                    if (PhShowChooseProcessDialog(
+                        hwndDlg,
+                        L"Select a process to add to the job permanently.",
+                        &processId
+                        ))
+                    {
+                        if (NT_SUCCESS(status = PhOpenProcess(
+                            &processHandle,
+                            PROCESS_TERMINATE | PROCESS_SET_QUOTA,
+                            processId
+                            )))
+                        {
+                            if (NT_SUCCESS(status = jobPageContext->OpenObject(
+                                &jobHandle,
+                                JOB_OBJECT_ASSIGN_PROCESS | JOB_OBJECT_QUERY,
+                                jobPageContext->Context
+                                )))
+                            {
+                                status = NtAssignProcessToJobObject(jobHandle, processHandle);
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    ListView_DeleteAllItems(GetDlgItem(hwndDlg, IDC_PROCESSES));
+                                    PhpAddJobProcesses(hwndDlg, jobHandle);
+                                }
+
+                                NtClose(jobHandle);
+                            }
+
+                            NtClose(processHandle);
+                        }
+                    }
+
+                    if (!NT_SUCCESS(status))
+                        PhShowStatus(hwndDlg, L"Unable to add the process to the job", status, 0);
                 }
                 break;
             case IDC_ADVANCED:
