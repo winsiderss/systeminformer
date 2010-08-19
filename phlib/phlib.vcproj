@@ -333,6 +333,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\dspick.c"
+				>
+			</File>
+			<File
 				RelativePath=".\error.c"
 				>
 			</File>
@@ -580,6 +584,10 @@
 			</File>
 			<File
 				RelativePath=".\include\dltmgr.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\dspick.h"
 				>
 			</File>
 			<File

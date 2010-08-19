@@ -8,6 +8,8 @@
 #define CINTERFACE
 #define COBJMACROS
 #include <shlobj.h>
+#undef CINTERFACE
+#undef COBJMACROS
 #include <prsht.h>
 #include <aclapi.h>
 

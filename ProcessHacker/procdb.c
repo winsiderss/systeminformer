@@ -363,7 +363,7 @@ NTSTATUS PhLoadProcDb(
                 if (hashString->Length / sizeof(WCHAR) != PH_PROCDB_HASH_SIZE * 2)
                     goto ContinueLoop;
 
-                PhHexStringToBuffer(hashString, hash);
+                PhHexStringToBuffer(&hashString->sr, hash);
             }
 
             if (desiredPriorityWin32String)

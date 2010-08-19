@@ -395,6 +395,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\phlib\dspick.c"
+				>
+			</File>
+			<File
 				RelativePath="..\phlib\error.c"
 				>
 			</File>

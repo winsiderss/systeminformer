@@ -2502,7 +2502,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhHexStringToBuffer(
-    __in PPH_STRING String,
+    __in PPH_STRINGREF String,
     __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     );
 
