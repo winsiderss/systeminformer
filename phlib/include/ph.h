@@ -14,6 +14,8 @@
 /** The PID of the system process. */
 #define SYSTEM_PROCESS_ID ((HANDLE)4)
 
+#define SYSTEM_IDLE_PROCESS_NAME (L"System Idle Process")
+
 /** Specifies a PEB string. */
 typedef enum _PH_PEB_OFFSET
 {

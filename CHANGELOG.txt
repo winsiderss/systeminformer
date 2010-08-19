@@ -2,6 +2,7 @@ Process Hacker
 
 2.3
  * NEW/IMPROVED:
+   * Can add processes to jobs
    * Double-clicking in the system information graphs now opens 
      information for the relevant process
  * FIXED:

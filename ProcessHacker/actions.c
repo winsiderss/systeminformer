@@ -412,8 +412,8 @@ static BOOLEAN PhpIsDangerousProcess(
     if (!NT_SUCCESS(status))
         return FALSE;
 
+    PhSwapReference2(&fileName, PhGetFileName(fileName));
     PhaDereferenceObject(fileName);
-    fileName = PHA_DEREFERENCE(PhGetFileName(fileName));
 
     systemDirectory = PHA_DEREFERENCE(PhGetSystemDirectory());
 
