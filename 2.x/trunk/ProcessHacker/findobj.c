@@ -67,7 +67,7 @@ static BOOLEAN SearchStop;
 static PPH_STRING SearchString;
 static PPH_LIST SearchResults = NULL;
 static ULONG SearchResultsAddIndex;
-static PH_MUTEX SearchResultsLock;
+static PH_QUEUED_LOCK SearchResultsLock = PH_QUEUED_LOCK_INIT;
 
 static ULONG64 SearchPointer;
 static BOOLEAN UseSearchPointer;
@@ -242,7 +242,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                         SearchString = PhGetWindowText(GetDlgItem(hwndDlg, IDC_FILTER));
                         SearchResults = PhCreateList(128);
                         SearchResultsAddIndex = 0;
-                        PhInitializeMutex(&SearchResultsLock);
 
                         SearchThreadHandle = PhCreateThread(0, PhpFindObjectsThreadStart, NULL);
 
@@ -481,7 +480,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             ExtendedListView_SetRedraw(lvHandle, FALSE);
 
-            PhAcquireMutex(&SearchResultsLock);
+            PhAcquireQueuedLockExclusive(&SearchResultsLock);
 
             for (i = SearchResultsAddIndex; i < SearchResults->Count; i++)
             {
@@ -505,7 +504,7 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
             SearchResultsAddIndex = i;
 
-            PhReleaseMutex(&SearchResultsLock);
+            PhReleaseQueuedLockExclusive(&SearchResultsLock);
 
             ExtendedListView_SetRedraw(lvHandle, TRUE);
         }
@@ -516,7 +515,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             SendMessage(hwndDlg, WM_PH_SEARCH_UPDATE, 0, 0);
 
             PhDereferenceObject(SearchString);
-            PhDeleteMutex(&SearchResultsLock);
 
             NtWaitForSingleObject(SearchThreadHandle, FALSE, NULL);
             NtClose(SearchThreadHandle);
@@ -563,7 +561,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         PhPrintPointer(searchResult->HandleString, Module->BaseAddress);
         memset(&searchResult->Info, 0, sizeof(SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX));
 
-        PhAcquireMutex(&SearchResultsLock);
+        PhAcquireQueuedLockExclusive(&SearchResultsLock);
 
         PhAddItemList(SearchResults, searchResult);
 
@@ -571,7 +569,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         if (SearchResults->Count % 40 == 0)
             PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
 
-        PhReleaseMutex(&SearchResultsLock);
+        PhReleaseQueuedLockExclusive(&SearchResultsLock);
     }
 
     PhDereferenceObject(lowerFileName);
@@ -677,7 +675,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
                     PhPrintPointer(searchResult->HandleString, (PVOID)searchResult->Handle);
                     searchResult->Info = *handleInfo;
 
-                    PhAcquireMutex(&SearchResultsLock);
+                    PhAcquireQueuedLockExclusive(&SearchResultsLock);
 
                     PhAddItemList(SearchResults, searchResult);
 
@@ -685,7 +683,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
                     if (SearchResults->Count % 40 == 0)
                         PostMessage(PhFindObjectsWindowHandle, WM_PH_SEARCH_UPDATE, 0, 0);
 
-                    PhReleaseMutex(&SearchResultsLock);
+                    PhReleaseQueuedLockExclusive(&SearchResultsLock);
                 }
                 else
                 {

@@ -47,7 +47,10 @@ VOID PhpFreeSymbolModule(
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
 HANDLE PhNextFakeHandle;
-PH_MUTEX PhSymMutex;
+PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
+
+#define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
+#define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)
 
 _SymInitialize SymInitialize_I;
 _SymCleanup SymCleanup_I;
@@ -85,7 +88,6 @@ BOOLEAN PhSymbolProviderInitialization()
         return FALSE;
 
     PhNextFakeHandle = (HANDLE)0;
-    PhInitializeMutex(&PhSymMutex);
 
     return TRUE;
 }
@@ -217,9 +219,9 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
 
     if (SymCleanup_I)
     {
-        PhAcquireMutex(&PhSymMutex);
+        PH_LOCK_SYMBOLS();
         SymCleanup_I(symbolProvider->ProcessHandle);
-        PhReleaseMutex(&PhSymMutex);
+        PH_UNLOCK_SYMBOLS();
     }
 
     for (i = 0; i < symbolProvider->ModulesList->Count; i++)
@@ -241,9 +243,9 @@ VOID PhpRegisterSymbolProvider(
     {
         if (SymInitialize_I)
         {
-            PhAcquireMutex(&PhSymMutex);
+            PH_LOCK_SYMBOLS();
             SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
-            PhReleaseMutex(&PhSymMutex);
+            PH_UNLOCK_SYMBOLS();
         }
 
         PhEndInitOnce(&SymbolProvider->InitOnce);
@@ -251,9 +253,9 @@ VOID PhpRegisterSymbolProvider(
 #else
     if (SymInitialize_I)
     {
-        PhAcquireMutex(&PhSymMutex);
+        PH_LOCK_SYMBOLS();
         SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
-        PhReleaseMutex(&PhSymMutex);
+        PH_UNLOCK_SYMBOLS();
     }
 #endif
 }
@@ -306,7 +308,7 @@ BOOLEAN PhGetLineFromAddress(
 
     line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
 
     if (SymGetLineFromAddrW64_I)
     {
@@ -341,7 +343,7 @@ BOOLEAN PhGetLineFromAddress(
         }
     }
 
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 
     if (!result)
         return FALSE;
@@ -476,7 +478,7 @@ PPH_STRING PhGetSymbolFromAddress(
 
     // Get the symbol name.
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
 
     // Note that we don't care whether this call 
     // succeeds or not, based on the assumption that 
@@ -512,7 +514,7 @@ PPH_STRING PhGetSymbolFromAddress(
         PhpSymbolInfoAnsiToUnicode(symbolInfo, symbolInfoA);
     }
 
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 
     // Find the module name.
 
@@ -654,7 +656,7 @@ BOOLEAN PhGetSymbolFromName(
 
     // Get the symbol information.
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
 
     if (SymFromNameW_I)
     {
@@ -693,7 +695,7 @@ BOOLEAN PhGetSymbolFromName(
         result = FALSE;
     }
 
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 
     if (!result)
         return FALSE;
@@ -728,7 +730,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
     if (!fileName)
         return FALSE;
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
     baseAddress = SymLoadModule64_I(
         SymbolProvider->ProcessHandle,
         NULL,
@@ -737,7 +739,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
         BaseAddress,
         Size
         );
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
     PhDereferenceObject(fileName);
 
     // Add the module to the list, even if we couldn't load 
@@ -800,14 +802,14 @@ VOID PhSetOptionsSymbolProvider(
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
 
     options = SymGetOptions_I();
     options &= ~Mask;
     options |= Value;
     SymSetOptions_I(options);
 
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 }
 
 VOID PhSetSearchPathSymbolProvider(
@@ -822,7 +824,7 @@ VOID PhSetSearchPathSymbolProvider(
     PhpRegisterSymbolProvider(SymbolProvider);
 #endif
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
 
     if (SymSetSearchPathW_I)
     {
@@ -837,7 +839,7 @@ VOID PhSetSearchPathSymbolProvider(
         PhDereferenceObject(path);
     }
 
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 }
 
 BOOLEAN PhStackWalk(
@@ -862,7 +864,7 @@ BOOLEAN PhStackWalk(
     if (!GetModuleBaseRoutine)
         GetModuleBaseRoutine = SymGetModuleBase64_I;
 
-    PhAcquireMutex(&PhSymMutex);
+    PH_LOCK_SYMBOLS();
     result = StackWalk64_I(
         MachineType,
         ProcessHandle,
@@ -874,7 +876,7 @@ BOOLEAN PhStackWalk(
         GetModuleBaseRoutine,
         TranslateAddress
         );
-    PhReleaseMutex(&PhSymMutex);
+    PH_UNLOCK_SYMBOLS();
 
     return result;
 }
