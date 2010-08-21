@@ -6,6 +6,7 @@ Process Hacker
    * Double-clicking in the system information graphs now opens 
      information for the relevant process
  * FIXED:
+   * HKCU key name resolution
    * Network connection host resolution
    * Information window resizing
    * Log clearing
