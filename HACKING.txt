@@ -107,10 +107,6 @@ small size and good performance. Although the queued lock
 is a reader-writer lock, it can be used as a mutex simply by using 
 the exclusive acquire/release functions.
 
-For mutexes with blocking expected, the PH_MUTEX is an alternative. 
-Currently the PH_MUTEX is the same as PH_QUEUED_LOCK, although it was 
-RTL_CRITICAL_SECTION originally.
-
 Events can be used through PH_EVENT. This object does not create a 
 kernel event object until needed, and testing its state is very 
 fast.
