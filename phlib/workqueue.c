@@ -29,7 +29,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 
 PH_FREE_LIST PhWorkQueueItemFreeList;
 PH_WORK_QUEUE PhGlobalWorkQueue;
-PH_INITONCE PhGlobalWorkQueueInitOnce;
+PH_INITONCE PhGlobalWorkQueueInitOnce = PH_INITONCE_INIT;
 #ifdef DEBUG
 LIST_ENTRY PhDbgWorkQueueListHead;
 PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
@@ -38,7 +38,6 @@ PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
 VOID PhWorkQueueInitialization()
 {
     PhInitializeFreeList(&PhWorkQueueItemFreeList, sizeof(PH_WORK_QUEUE_ITEM), 32);
-    PhInitializeInitOnce(&PhGlobalWorkQueueInitOnce);
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgWorkQueueListHead);
