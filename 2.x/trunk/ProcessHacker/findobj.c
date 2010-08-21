@@ -121,6 +121,30 @@ VOID PhpInitializeFindObjMenu(
     PhEnableMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
 }
 
+INT NTAPI PhpObjectTypeCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
+    PPHP_OBJECT_SEARCH_RESULT item2 = Item2;
+
+    return PhCompareString(item1->TypeName, item2->TypeName, TRUE);
+}
+
+INT NTAPI PhpObjectNameCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
+    PPHP_OBJECT_SEARCH_RESULT item2 = Item2;
+
+    return PhCompareString(item1->Name, item2->Name, TRUE);
+}
+
 INT NTAPI PhpObjectHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
@@ -169,6 +193,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpObjectTypeCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpObjectNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpObjectHandleCompareFunction);
             PhLoadListViewColumnsFromSetting(L"FindObjListViewColumns", lvHandle);
         }

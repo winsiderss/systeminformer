@@ -217,10 +217,13 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            SHAutoComplete_I(
-                GetDlgItem(hwndDlg, IDC_PROGRAM), 
-                SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_FILESYS_ONLY
-                );
+            if (SHAutoComplete_I)
+            {
+                SHAutoComplete_I(
+                    GetDlgItem(hwndDlg, IDC_PROGRAM), 
+                    SHACF_AUTOAPPEND_FORCE_ON | SHACF_AUTOSUGGEST_FORCE_ON | SHACF_FILESYS_ONLY
+                    );
+            }
 
             ComboBox_AddString(typeComboBoxHandle, L"Batch");
             ComboBox_AddString(typeComboBoxHandle, L"Interactive");
