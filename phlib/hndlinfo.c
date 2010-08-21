@@ -50,50 +50,17 @@ NTSTATUS PhpQueryObjectThreadStart(
 
 HANDLE PhQueryObjectThreadHandle = NULL;
 PVOID PhQueryObjectFiber = NULL;
-PH_MUTEX PhQueryObjectMutex;
+PH_QUEUED_LOCK PhQueryObjectMutex;
 HANDLE PhQueryObjectStartEvent = NULL;
 HANDLE PhQueryObjectCompletedEvent = NULL;
 PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
 
-PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER];
+PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
 PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
-
-static PPH_STRING HkcuPrefix;
-static PPH_STRING HkcucrPrefix;
 
 VOID PhHandleInfoInitialization()
 {
-    PhInitializeMutex(&PhQueryObjectMutex);
-
-    memset(PhObjectTypeNames, 0, sizeof(PhObjectTypeNames));
-
-    {
-        PTOKEN_USER tokenUser;
-        PPH_STRING stringSid = NULL;
-
-        if (PhCurrentTokenQueryHandle)
-        {
-            if (NT_SUCCESS(PhGetTokenUser(
-                PhCurrentTokenQueryHandle,
-                &tokenUser
-                )))
-            {
-                stringSid = PhSidToStringSid(tokenUser->User.Sid);
-                PhFree(tokenUser);
-            }
-        }
-
-        if (stringSid)
-        {
-            HkcuPrefix = PhConcatStrings2(L"\\Registry\\User\\", stringSid->Buffer);
-            HkcucrPrefix = PhConcatStrings2(HkcuPrefix->Buffer, L"_Classes");
-        }
-        else
-        {
-            HkcuPrefix = PhCreateString(L"..."); // some random string that won't ever get matched
-            HkcucrPrefix = PhCreateString(L"...");
-        }
-    }
+    // Nothing
 }
 
 PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
@@ -353,7 +320,42 @@ PPH_STRING PhFormatNativeKeyName(
 #define HKU_PREFIX L"\\Registry\\User"
 #define HKU_PREFIX_LENGTH 14
 
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING hkcuPrefix;
+    static PPH_STRING hkcucrPrefix;
+
     PPH_STRING newName;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PTOKEN_USER tokenUser;
+        PPH_STRING stringSid = NULL;
+
+        if (PhCurrentTokenQueryHandle)
+        {
+            if (NT_SUCCESS(PhGetTokenUser(
+                PhCurrentTokenQueryHandle,
+                &tokenUser
+                )))
+            {
+                stringSid = PhSidToStringSid(tokenUser->User.Sid);
+                PhFree(tokenUser);
+            }
+        }
+
+        if (stringSid)
+        {
+            hkcuPrefix = PhConcatStrings2(L"\\Registry\\User\\", stringSid->Buffer);
+            hkcucrPrefix = PhConcatStrings2(hkcuPrefix->Buffer, L"_Classes");
+        }
+        else
+        {
+            hkcuPrefix = PhCreateString(L"..."); // some random string that won't ever get matched
+            hkcucrPrefix = PhCreateString(L"...");
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
 
     if (PhStartsWithString2(Name, HKCR_PREFIX, TRUE))
     {
@@ -363,16 +365,16 @@ PPH_STRING PhFormatNativeKeyName(
     {
         newName = PhConcatStrings2(L"HKLM", &Name->Buffer[HKLM_PREFIX_LENGTH]);
     }
-    else if (PhStartsWithString(Name, HkcucrPrefix, TRUE))
+    else if (PhStartsWithString(Name, hkcucrPrefix, TRUE))
     {
         newName = PhConcatStrings2(
             L"HKCU\\Software\\Classes",
-            &Name->Buffer[HkcucrPrefix->Length / 2]
+            &Name->Buffer[hkcucrPrefix->Length / 2]
             );
     }
-    else if (PhStartsWithString(Name, HkcuPrefix, TRUE))
+    else if (PhStartsWithString(Name, hkcuPrefix, TRUE))
     {
-        newName = PhConcatStrings2(L"HKCU", &Name->Buffer[HkcuPrefix->Length / 2]);
+        newName = PhConcatStrings2(L"HKCU", &Name->Buffer[hkcuPrefix->Length / 2]);
     }
     else if (PhStartsWithString2(Name, HKU_PREFIX, TRUE))
     {
@@ -1118,7 +1120,7 @@ CleanupExit:
 
 BOOLEAN PhpHeadQueryObjectHack()
 {
-    PhAcquireMutex(&PhQueryObjectMutex);
+    PhAcquireQueuedLockExclusive(&PhQueryObjectMutex);
 
     // Create a query thread if we don't have one.
     if (!PhQueryObjectThreadHandle)
@@ -1127,7 +1129,7 @@ BOOLEAN PhpHeadQueryObjectHack()
 
         if (!PhQueryObjectThreadHandle)
         {
-            PhReleaseMutex(&PhQueryObjectMutex);
+            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
             return FALSE;
         }
     }
@@ -1144,7 +1146,7 @@ BOOLEAN PhpHeadQueryObjectHack()
             FALSE
             )))
         {
-            PhReleaseMutex(&PhQueryObjectMutex);
+            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
             return FALSE;
         }
     }
@@ -1159,7 +1161,7 @@ BOOLEAN PhpHeadQueryObjectHack()
             FALSE
             )))
         {
-            PhReleaseMutex(&PhQueryObjectMutex);
+            PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
             return FALSE;
         }
     }
@@ -1192,7 +1194,7 @@ NTSTATUS PhpTailQueryObjectHack(
         status = PhQueryObjectContext.Status;
         returnLength = PhQueryObjectContext.ReturnLength;
 
-        PhReleaseMutex(&PhQueryObjectMutex);
+        PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
 
         if (ReturnLength)
             *ReturnLength = returnLength;
@@ -1213,7 +1215,7 @@ NTSTATUS PhpTailQueryObjectHack(
             PhQueryObjectFiber = NULL;
         }
 
-        PhReleaseMutex(&PhQueryObjectMutex);
+        PhReleaseQueuedLockExclusive(&PhQueryObjectMutex);
 
         return STATUS_UNSUCCESSFUL;
     }

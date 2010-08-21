@@ -38,7 +38,7 @@ static PPH_SYMBOL_PROVIDER DebugConsoleSymbolProvider;
 static PPH_HASHTABLE ObjectListSnapshot = NULL;
 #ifdef DEBUG
 static PPH_LIST NewObjectList = NULL;
-static PH_MUTEX NewObjectListLock;
+static PH_QUEUED_LOCK NewObjectListLock;
 #endif
 
 VOID PhShowDebugConsole()
@@ -259,7 +259,7 @@ static VOID PhpDebugCreateObjectHook(
     __in PPH_OBJECT_TYPE ObjectType
     )
 {
-    PhAcquireMutex(&NewObjectListLock);
+    PhAcquireQueuedLockExclusive(&NewObjectListLock);
 
     if (NewObjectList)
     {
@@ -267,7 +267,7 @@ static VOID PhpDebugCreateObjectHook(
         PhAddItemList(NewObjectList, Object);
     }
 
-    PhReleaseMutex(&NewObjectListLock);
+    PhReleaseQueuedLockExclusive(&NewObjectListLock);
 }
 #endif
 
@@ -499,7 +499,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         0, PhpLoadCurrentProcessSymbolsCallback, DebugConsoleSymbolProvider);
 
 #ifdef DEBUG
-    PhInitializeMutex(&NewObjectListLock);
+    PhInitializeQueuedLock(&NewObjectListLock);
     PhDbgCreateObjectHook = PhpDebugCreateObjectHook;
 #endif
 
@@ -553,7 +553,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             STOPWATCH stopwatch;
             ULONG i;
             PPH_STRING testString;
-            PH_MUTEX testMutex;
+            RTL_CRITICAL_SECTION testCriticalSection;
             PH_FAST_LOCK testFastLock;
             PH_QUEUED_LOCK testQueuedLock;
 
@@ -575,21 +575,21 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             wprintf(L"Referencing: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
 
-            // Mutex
+            // Critical section
 
-            PhInitializeMutex(&testMutex);
-            PhAcquireMutex(&testMutex);
-            PhReleaseMutex(&testMutex);
+            RtlInitializeCriticalSection(&testCriticalSection);
+            RtlEnterCriticalSection(&testCriticalSection);
+            RtlLeaveCriticalSection(&testCriticalSection);
             PhStartStopwatch(&stopwatch);
 
             for (i = 0; i < 10000000; i++)
             {
-                PhAcquireMutex(&testMutex);
-                PhReleaseMutex(&testMutex);
+                RtlEnterCriticalSection(&testCriticalSection);
+                RtlLeaveCriticalSection(&testCriticalSection);
             }
 
             PhStopStopwatch(&stopwatch);
-            PhDeleteMutex(&testMutex);
+            RtlDeleteCriticalSection(&testCriticalSection);
 
             wprintf(L"Mutex: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
 
@@ -890,9 +890,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
         else if (WSTR_IEQUAL(command, L"objmknew"))
         {
 #ifdef DEBUG
-            PhAcquireMutex(&NewObjectListLock);
+            PhAcquireQueuedLockExclusive(&NewObjectListLock);
             PhpDeleteNewObjectList();
-            PhReleaseMutex(&NewObjectListLock);
+            PhReleaseQueuedLockExclusive(&NewObjectListLock);
 
             // Creation needs to be done outside of the lock, 
             // otherwise a deadlock will occur.
@@ -904,9 +904,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
         else if (WSTR_IEQUAL(command, L"objdelnew"))
         {
 #ifdef DEBUG
-            PhAcquireMutex(&NewObjectListLock);
+            PhAcquireQueuedLockExclusive(&NewObjectListLock);
             PhpDeleteNewObjectList();
-            PhReleaseMutex(&NewObjectListLock);
+            PhReleaseQueuedLockExclusive(&NewObjectListLock);
 #else
             wprintf(commandDebugOnly);
 #endif
@@ -916,12 +916,12 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #ifdef DEBUG
             ULONG i;
 
-            PhAcquireMutex(&NewObjectListLock);
+            PhAcquireQueuedLockExclusive(&NewObjectListLock);
 
             if (!NewObjectList)
             {
                 wprintf(L"Object creation hooking not active.\n");
-                PhReleaseMutex(&NewObjectListLock);
+                PhReleaseQueuedLockExclusive(&NewObjectListLock);
                 goto EndCommand;
             }
 
@@ -930,7 +930,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 PhpPrintObjectInfo(PhObjectToObjectHeader(NewObjectList->Items[i]), 1);
             }
 
-            PhReleaseMutex(&NewObjectListLock);
+            PhReleaseQueuedLockExclusive(&NewObjectListLock);
 #else
             wprintf(commandDebugOnly);
 #endif

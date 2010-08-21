@@ -26,7 +26,7 @@
 #include <settingsp.h>
 
 PPH_HASHTABLE PhSettingsHashtable;
-PH_QUEUED_LOCK PhSettingsLock;
+PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 
 PPH_LIST PhIgnoredSettings;
 
@@ -38,7 +38,6 @@ VOID PhSettingsInitialization()
         PhpSettingsHashtableHashFunction,
         128
         );
-    PhInitializeQueuedLock(&PhSettingsLock);
     PhIgnoredSettings = PhCreateList(4);
 
     PhpAddIntegerSetting(L"AllowOnlyOneInstance", L"0");

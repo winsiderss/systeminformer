@@ -44,7 +44,7 @@ static ULONG PhpAutoPoolTlsIndex;
 
 #ifdef DEBUG
 LIST_ENTRY PhDbgObjectListHead;
-PH_QUEUED_LOCK PhDbgObjectListLock;
+PH_QUEUED_LOCK PhDbgObjectListLock = PH_QUEUED_LOCK_INIT;
 PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 #endif
 
@@ -58,7 +58,6 @@ NTSTATUS PhInitializeRef()
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgObjectListHead);
-    PhInitializeQueuedLock(&PhDbgObjectListLock);
 #endif
 
     PhInitializeFreeList(

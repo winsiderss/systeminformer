@@ -50,7 +50,7 @@ VOID PhpRemoveProcessItemService(
 PPH_OBJECT_TYPE PhServiceItemType;
 
 PPH_HASHTABLE PhServiceHashtable;
-PH_QUEUED_LOCK PhServiceHashtableLock;
+PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
 
 PHAPPAPI PH_CALLBACK PhServiceAddedEvent;
 PHAPPAPI PH_CALLBACK PhServiceModifiedEvent;
@@ -73,7 +73,6 @@ BOOLEAN PhServiceProviderInitialization()
         PhpServiceHashtableHashFunction,
         40
         );
-    PhInitializeQueuedLock(&PhServiceHashtableLock);
 
     PhInitializeCallback(&PhServiceAddedEvent);
     PhInitializeCallback(&PhServiceModifiedEvent);
