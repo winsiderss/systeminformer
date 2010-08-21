@@ -591,7 +591,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
             PhStopStopwatch(&stopwatch);
             RtlDeleteCriticalSection(&testCriticalSection);
 
-            wprintf(L"Mutex: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
+            wprintf(L"Critical section: %ums\n", PhGetMillisecondsStopwatch(&stopwatch));
 
             // Fast lock
 
