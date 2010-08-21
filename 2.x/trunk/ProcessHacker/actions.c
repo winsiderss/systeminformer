@@ -1544,7 +1544,7 @@ BOOLEAN PhUiStartService(
             hWnd,
             PhaConcatStrings2(L"Unable to start ", Service->Name->Buffer)->Buffer,
             status,
-            PhaConcatStrings(3, L"-e -c -ctype service -caction start -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            PhaConcatStrings(3, L"-c -ctype service -caction start -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
             &success
             ))
         {
@@ -1585,7 +1585,7 @@ BOOLEAN PhUiContinueService(
             hWnd,
             PhaConcatStrings2(L"Unable to continue ", Service->Name->Buffer)->Buffer,
             status,
-            PhaConcatStrings(3, L"-e -c -ctype service -caction continue -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            PhaConcatStrings(3, L"-c -ctype service -caction continue -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
             &success
             ))
         {
@@ -1626,7 +1626,7 @@ BOOLEAN PhUiPauseService(
             hWnd,
             PhaConcatStrings2(L"Unable to pause ", Service->Name->Buffer)->Buffer,
             status,
-            PhaConcatStrings(3, L"-e -c -ctype service -caction pause -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            PhaConcatStrings(3, L"-c -ctype service -caction pause -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
             &success
             ))
         {
@@ -1667,7 +1667,7 @@ BOOLEAN PhUiStopService(
             hWnd,
             PhaConcatStrings2(L"Unable to stop ", Service->Name->Buffer)->Buffer,
             status,
-            PhaConcatStrings(3, L"-e -c -ctype service -caction stop -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            PhaConcatStrings(3, L"-c -ctype service -caction stop -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
             &success
             ))
         {
@@ -1717,7 +1717,7 @@ BOOLEAN PhUiDeleteService(
             hWnd,
             PhaConcatStrings2(L"Unable to delete ", Service->Name->Buffer)->Buffer,
             status,
-            PhaConcatStrings(3, L"-e -c -ctype service -caction delete -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
+            PhaConcatStrings(3, L"-c -ctype service -caction delete -cobject \"", Service->Name->Buffer, L"\"")->Buffer,
             &success
             ))
         {
