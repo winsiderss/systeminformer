@@ -46,7 +46,7 @@ VOID PhpFreeSymbolModule(
 
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
-HANDLE PhNextFakeHandle;
+HANDLE PhNextFakeHandle = (HANDLE)0;
 PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
 
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
@@ -86,8 +86,6 @@ BOOLEAN PhSymbolProviderInitialization()
         PhpSymbolProviderDeleteProcedure
         )))
         return FALSE;
-
-    PhNextFakeHandle = (HANDLE)0;
 
     return TRUE;
 }
