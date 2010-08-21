@@ -5641,8 +5641,10 @@ NTSTATUS PhEnumDirectoryFile(
             // complete before continuing.
             if (status == STATUS_PENDING)
             {
-                NtWaitForSingleObject(FileHandle, FALSE, NULL);
-                status = isb.Status;
+                status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+                if (NT_SUCCESS(status))
+                    status = isb.Status;
             }
 
             if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH)
