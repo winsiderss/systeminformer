@@ -1455,6 +1455,56 @@ NTSTATUS PhDeleteFileWin32(
     __in PWSTR FileName
     );
 
+PHLIBAPI
+NTSTATUS PhListenNamedPipe(
+    __in HANDLE FileHandle,
+    __in_opt HANDLE Event,
+    __in_opt PIO_APC_ROUTINE ApcRoutine,
+    __in_opt PVOID ApcContext,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    );
+
+PHLIBAPI
+NTSTATUS PhDisconnectNamedPipe(
+    __in HANDLE FileHandle
+    );
+
+PHLIBAPI
+NTSTATUS PhPeekNamedPipe(
+    __in HANDLE FileHandle,
+    __out_bcount_opt(Length) PVOID Buffer,
+    __in ULONG Length,
+    __out_opt PULONG NumberOfBytesRead,
+    __out_opt PULONG NumberOfBytesAvailable,
+    __out_opt PULONG NumberOfBytesLeftInMessage
+    );
+
+PHLIBAPI
+NTSTATUS PhTransceiveNamedPipe(
+    __in HANDLE FileHandle,
+    __in_opt HANDLE Event,
+    __in_opt PIO_APC_ROUTINE ApcRoutine,
+    __in_opt PVOID ApcContext,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __in_bcount(InputBufferLength) PVOID InputBuffer,
+    __in ULONG InputBufferLength,
+    __out_bcount(OutputBufferLength) PVOID OutputBuffer,
+    __in ULONG OutputBufferLength
+    );
+
+PHLIBAPI
+NTSTATUS PhWaitForNamedPipe(
+    __in_opt PPH_STRINGREF FileSystemName,
+    __in PPH_STRINGREF Name,
+    __in_opt PLARGE_INTEGER Timeout,
+    __in BOOLEAN UseDefaultTimeout
+    );
+
+PHLIBAPI
+NTSTATUS PhImpersonateClientOfNamedPipe(
+    __in HANDLE FileHandle
+    );
+
 // Core flags (PhCreateFileStream2)
 /** Indicates that the file stream object should not close the file handle 
  * upon deletion. */

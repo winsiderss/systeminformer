@@ -127,6 +127,260 @@ NTSTATUS PhDeleteFileWin32(
     return status;
 }
 
+NTSTATUS PhListenNamedPipe(
+    __in HANDLE FileHandle,
+    __in_opt HANDLE Event,
+    __in_opt PIO_APC_ROUTINE ApcRoutine,
+    __in_opt PVOID ApcContext,
+    __out PIO_STATUS_BLOCK IoStatusBlock
+    )
+{
+    return NtFsControlFile(
+        FileHandle,
+        Event,
+        ApcRoutine,
+        ApcContext,
+        IoStatusBlock,
+        FSCTL_PIPE_LISTEN,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+}
+
+NTSTATUS PhDisconnectNamedPipe(
+    __in HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_DISCONNECT,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    return status;
+}
+
+NTSTATUS PhPeekNamedPipe(
+    __in HANDLE FileHandle,
+    __out_bcount_opt(Length) PVOID Buffer,
+    __in ULONG Length,
+    __out_opt PULONG NumberOfBytesRead,
+    __out_opt PULONG NumberOfBytesAvailable,
+    __out_opt PULONG NumberOfBytesLeftInMessage
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    PFILE_PIPE_PEEK_BUFFER peekBuffer;
+    ULONG peekBufferLength;
+
+    peekBufferLength = FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data) + Length;
+    peekBuffer = PhAllocate(peekBufferLength);
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_PEEK,
+        NULL,
+        0,
+        peekBuffer,
+        peekBufferLength
+        );
+
+    if (status == STATUS_PENDING)
+    {
+        status = NtWaitForSingleObject(FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
+    }
+
+    // STATUS_BUFFER_OVERFLOW means that there is data remaining; this is normal.
+    if (status == STATUS_BUFFER_OVERFLOW)
+        status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(status))
+    {
+        ULONG numberOfBytesRead;
+
+        if (Buffer || NumberOfBytesRead || NumberOfBytesLeftInMessage)
+            numberOfBytesRead = (ULONG)(isb.Information - FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data));
+
+        if (Buffer)
+            memcpy(Buffer, peekBuffer->Data, numberOfBytesRead);
+
+        if (NumberOfBytesRead)
+            *NumberOfBytesRead = numberOfBytesRead;
+
+        if (NumberOfBytesAvailable)
+            *NumberOfBytesAvailable = peekBuffer->ReadDataAvailable;
+
+        if (NumberOfBytesLeftInMessage)
+            *NumberOfBytesLeftInMessage = peekBuffer->MessageLength - numberOfBytesRead;
+    }
+
+    PhFree(peekBuffer);
+
+    return status;
+}
+
+NTSTATUS PhTransceiveNamedPipe(
+    __in HANDLE FileHandle,
+    __in_opt HANDLE Event,
+    __in_opt PIO_APC_ROUTINE ApcRoutine,
+    __in_opt PVOID ApcContext,
+    __out PIO_STATUS_BLOCK IoStatusBlock,
+    __in_bcount(InputBufferLength) PVOID InputBuffer,
+    __in ULONG InputBufferLength,
+    __out_bcount(OutputBufferLength) PVOID OutputBuffer,
+    __in ULONG OutputBufferLength
+    )
+{
+    return NtFsControlFile(
+        FileHandle,
+        Event,
+        ApcRoutine,
+        ApcContext,
+        IoStatusBlock,
+        FSCTL_PIPE_TRANSCEIVE,
+        InputBuffer,
+        InputBufferLength,
+        OutputBuffer,
+        OutputBufferLength
+        );
+}
+
+NTSTATUS PhWaitForNamedPipe(
+    __in_opt PPH_STRINGREF FileSystemName,
+    __in PPH_STRINGREF Name,
+    __in_opt PLARGE_INTEGER Timeout,
+    __in BOOLEAN UseDefaultTimeout
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+    PH_STRINGREF localNpfsName;
+    HANDLE fileSystemHandle;
+    OBJECT_ATTRIBUTES oa;
+    PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
+    ULONG waitForBufferLength;
+
+    if (!FileSystemName)
+    {
+        PhInitializeStringRef(&localNpfsName, L"\\Device\\NamedPipe");
+        FileSystemName = &localNpfsName;
+    }
+
+    InitializeObjectAttributes(
+        &oa,
+        &FileSystemName->us,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &fileSystemHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &oa,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    waitForBufferLength = FIELD_OFFSET(FILE_PIPE_WAIT_FOR_BUFFER, Name) + Name->Length;
+    waitForBuffer = PhAllocate(waitForBufferLength);
+
+    if (UseDefaultTimeout)
+    {
+        waitForBuffer->TimeoutSpecified = FALSE;
+    }
+    else
+    {
+        if (Timeout)
+        {
+            waitForBuffer->Timeout = *Timeout;
+        }
+        else
+        {
+            waitForBuffer->Timeout.LowPart = 0;
+            waitForBuffer->Timeout.HighPart = MINLONG; // a very long time
+        }
+
+        waitForBuffer->TimeoutSpecified = TRUE;
+    }
+
+    waitForBuffer->NameLength = Name->Length;
+    memcpy(waitForBuffer->Name, Name->Buffer, Name->Length);
+
+    status = NtFsControlFile(
+        fileSystemHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_WAIT,
+        waitForBuffer,
+        waitForBufferLength,
+        NULL,
+        0
+        );
+
+    PhFree(waitForBuffer);
+    NtClose(fileSystemHandle);
+
+    return status;
+}
+
+NTSTATUS PhImpersonateClientOfNamedPipe(
+    __in HANDLE FileHandle
+    )
+{
+    NTSTATUS status;
+    IO_STATUS_BLOCK isb;
+
+    status = NtFsControlFile(
+        FileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        FSCTL_PIPE_IMPERSONATE,
+        NULL,
+        0,
+        NULL,
+        0
+        );
+
+    return status;
+}
+
 NTSTATUS PhCreateFileStream(
     __out PPH_FILE_STREAM *FileStream,
     __in PWSTR FileName,
@@ -335,8 +589,10 @@ NTSTATUS PhpReadFileStream(
     {
         // Wait for the operation to finish. This probably means we got 
         // called on an asynchronous file object.
-        NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
-        status = isb.Status;
+        status = NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
     }
 
     if (NT_SUCCESS(status))
@@ -505,8 +761,10 @@ NTSTATUS PhpWriteFileStream(
     {
         // Wait for the operation to finish. This probably means we got 
         // called on an asynchronous file object.
-        NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
-        status = isb.Status;
+        status = NtWaitForSingleObject(FileStream->FileHandle, FALSE, NULL);
+
+        if (NT_SUCCESS(status))
+            status = isb.Status;
     }
 
     if (NT_SUCCESS(status))
