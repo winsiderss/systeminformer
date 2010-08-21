@@ -82,10 +82,10 @@ NTSTATUS PhInitializePhLib()
     if (!PhInitializeBase())
         return STATUS_UNSUCCESSFUL;
 
+    PhInitializeSecurity();
+
     if (!PhInitializeSystem())
         return STATUS_UNSUCCESSFUL;
-
-    PhInitializeSecurity();
 
     return STATUS_SUCCESS;
 }
