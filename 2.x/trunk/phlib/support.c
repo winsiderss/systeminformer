@@ -1896,7 +1896,7 @@ NTSTATUS PhCreateProcessWin32Ex(
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
-    __in PWSTR Parameters
+    __in_opt PWSTR Parameters
     )
 {
     SHELLEXECUTEINFO info = { sizeof(info) };
@@ -1916,7 +1916,7 @@ VOID PhShellExecute(
 BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
-    __in PWSTR Parameters,
+    __in_opt PWSTR Parameters,
     __in ULONG ShowWindowType,
     __in ULONG Flags,
     __in_opt ULONG Timeout,
