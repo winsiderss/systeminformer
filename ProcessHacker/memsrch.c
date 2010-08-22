@@ -253,8 +253,10 @@ VOID PhSearchMemoryString(
         for (offset = 0; offset < basicInfo.RegionSize; offset += readSize)
         {
             ULONG_PTR i;
+            UCHAR byte; // current byte
             UCHAR byte1; // previous byte
             UCHAR byte2; // byte before previous byte
+            BOOLEAN printable;
             BOOLEAN printable1;
             BOOLEAN printable2;
             ULONG length;
@@ -276,9 +278,6 @@ VOID PhSearchMemoryString(
 
             for (i = 0; i < readSize; i++)
             {
-                UCHAR byte;
-                BOOLEAN printable;
-
                 byte = buffer[i];
                 printable = PhCharIsPrintable[byte];
 
@@ -401,20 +400,28 @@ CreateResult:
                     PPH_MEMORY_RESULT result;
                     ULONG lengthInBytes;
                     ULONG bias;
+                    BOOLEAN isWide;
                     ULONG displayLength;
 
                     lengthInBytes = length;
                     bias = 0;
+                    isWide = FALSE;
 
                     if (printable1 == printable) // determine if string was wide (refer to state table, 4 and 5)
+                    {
+                        isWide = TRUE;
                         lengthInBytes *= 2;
-                    if (printable) // byte1 excluded (refer to state table, 5)
-                        bias = 1;
+                    }
 
-                    if (result = PhCreateMemoryResult(
+                    if (printable) // byte1 excluded (refer to state table, 5)
+                    {
+                        bias = 1;
+                    }
+
+                    if (!(isWide && !detectUnicode) && (result = PhCreateMemoryResult(
                         PTR_ADD_OFFSET(baseAddress, i - bias - lengthInBytes),
                         lengthInBytes
-                        ))
+                        )))
                     {
                         displayLength = (ULONG)(min(length, displayBufferCount) * sizeof(WCHAR));
 
