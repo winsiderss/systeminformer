@@ -2167,8 +2167,8 @@ PVOID
 NTAPI
 PhAddItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key,
-    __in PVOID Value
+    __in_opt PVOID Key,
+    __in_opt PVOID Value
     );
 
 PHLIBAPI
@@ -2176,7 +2176,7 @@ PPVOID
 NTAPI
 PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key
+    __in_opt PVOID Key
     );
 
 PHLIBAPI
@@ -2184,7 +2184,7 @@ BOOLEAN
 NTAPI
 PhRemoveItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key
+    __in_opt PVOID Key
     );
 
 // free list

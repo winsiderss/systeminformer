@@ -330,10 +330,10 @@ FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
 
 #ifdef _M_IX86
 
-FORCEINLINE PVOID _InterlockedCompareExchangePointer(
-    __inout PVOID volatile *Destination,
-    __in PVOID Exchange,
-    __in PVOID Comparand
+FORCEINLINE void *_InterlockedCompareExchangePointer(
+    void *volatile *Destination,
+    void *Exchange,
+    void *Comparand
     )
 {
     return (PVOID)_InterlockedCompareExchange(
@@ -343,9 +343,9 @@ FORCEINLINE PVOID _InterlockedCompareExchangePointer(
         );
 }
 
-FORCEINLINE PVOID _InterlockedExchangePointer(
-    __inout PVOID volatile *Destination,
-    __in PVOID Exchange
+FORCEINLINE void *_InterlockedExchangePointer(
+    void *volatile *Destination,
+    void *Exchange
     )
 {
     return (PVOID)_InterlockedExchange(

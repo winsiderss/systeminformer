@@ -2466,7 +2466,7 @@ PHLIBAPI
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
-    __in PWSTR Parameters
+    __in_opt PWSTR Parameters
     );
 
 #define PH_SHELL_EXECUTE_ADMIN 0x1
@@ -2476,7 +2476,7 @@ PHLIBAPI
 BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
-    __in PWSTR Parameters,
+    __in_opt PWSTR Parameters,
     __in ULONG ShowWindowType,
     __in ULONG Flags,
     __in_opt ULONG Timeout,
