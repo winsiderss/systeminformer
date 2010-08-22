@@ -1273,12 +1273,6 @@ BOOLEAN PhUiSetIoPriorityProcess(
     NTSTATUS status;
     HANDLE processHandle;
 
-    if (!PhKphHandle)
-    {
-        PhShowError(hWnd, KPH_ERROR_MESSAGE);
-        return FALSE;
-    }
-
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
         PROCESS_SET_INFORMATION,
@@ -2071,15 +2065,9 @@ BOOLEAN PhUiSetIoPriorityThread(
     NTSTATUS status;
     HANDLE threadHandle;
 
-    if (!PhKphHandle)
-    {
-        PhShowError(hWnd, KPH_ERROR_MESSAGE);
-        return FALSE;
-    }
-
     if (NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
-        ThreadSetAccess,
+        THREAD_SET_INFORMATION,
         Thread->ThreadId
         )))
     {
