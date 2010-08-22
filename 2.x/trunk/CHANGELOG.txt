@@ -5,6 +5,7 @@ Process Hacker
    * Can add processes to jobs
    * Double-clicking in the system information graphs now opens 
      information for the relevant process
+   * Setting I/O priority doesn't need KProcessHacker anymore
  * FIXED:
    * HKCU key name resolution
    * Network connection host resolution
