@@ -3083,8 +3083,8 @@ PPH_HASHTABLE PhCreateSimpleHashtable(
 
 PVOID PhAddItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key,
-    __in PVOID Value
+    __in_opt PVOID Key,
+    __in_opt PVOID Value
     )
 {
     PH_KEY_VALUE_PAIR entry;
@@ -3100,7 +3100,7 @@ PVOID PhAddItemSimpleHashtable(
 
 PPVOID PhFindItemSimpleHashtable(
     __in PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key
+    __in_opt PVOID Key
     )
 {
     PH_KEY_VALUE_PAIR lookupEntry;
@@ -3117,7 +3117,7 @@ PPVOID PhFindItemSimpleHashtable(
 
 BOOLEAN PhRemoveItemSimpleHashtable(
     __inout PPH_HASHTABLE SimpleHashtable,
-    __in PVOID Key
+    __in_opt PVOID Key
     )
 {
     PH_KEY_VALUE_PAIR lookupEntry;

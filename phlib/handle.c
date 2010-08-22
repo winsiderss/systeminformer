@@ -420,6 +420,8 @@ NTSTATUS PhQueryInformationHandleTable(
         break;
     default:
         status = STATUS_INVALID_INFO_CLASS;
+        returnLength = 0;
+        break;
     }
 
     if (ReturnLength)
@@ -891,6 +893,9 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
             table0 = table1[PH_HANDLE_VALUE_LEVEL1(HandleValue)];
             entry = &table0[PH_HANDLE_VALUE_LEVEL0(HandleValue)];
         }
+        break;
+    default:
+        assert(FALSE);
         break;
     }
 

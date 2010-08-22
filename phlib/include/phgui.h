@@ -631,9 +631,9 @@ FORCEINLINE ULONG PhFromListViewColumnAlign(
     __in ULONG Format
     )
 {
-    if (Format & LVCFMT_LEFT)
+    if (Format == LVCFMT_LEFT)
         return PH_ALIGN_LEFT;
-    else if (Format & LVCFMT_RIGHT)
+    else if (Format == LVCFMT_RIGHT)
         return PH_ALIGN_RIGHT;
     else
         return PH_ALIGN_CENTER;
