@@ -35,7 +35,6 @@ _SHAutoComplete SHAutoComplete_I;
 _SHCreateShellItem SHCreateShellItem_I;
 _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 _SHParseDisplayName SHParseDisplayName_I;
-_StrCmpLogicalW StrCmpLogicalW_I;
 _TaskDialogIndirect TaskDialogIndirect_I;
 
 VOID PhGuiSupportInitialization()
@@ -60,7 +59,6 @@ VOID PhGuiSupportInitialization()
     SHCreateShellItem_I = (PVOID)GetProcAddress(shell32Handle, "SHCreateShellItem");
     SHOpenFolderAndSelectItems_I = (PVOID)GetProcAddress(shell32Handle, "SHOpenFolderAndSelectItems");
     SHParseDisplayName_I = (PVOID)GetProcAddress(shell32Handle, "SHParseDisplayName");
-    StrCmpLogicalW_I = (PVOID)GetProcAddress(shlwapiHandle, "StrCmpLogicalW");
     TaskDialogIndirect_I = PhGetProcAddress(L"comctl32.dll", "TaskDialogIndirect");
 }
 

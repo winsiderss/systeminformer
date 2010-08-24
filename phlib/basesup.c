@@ -824,6 +824,178 @@ BOOLEAN PhCopyUnicodeStringZFromAnsi(
     return copied;
 }
 
+FORCEINLINE LONG PhpCompareRightNatural(
+    __in PWSTR A,
+    __in PWSTR B
+    )
+{
+    LONG bias = 0;
+
+    for (; ; A++, B++)
+    {
+        if (!iswdigit(*A) && !iswdigit(*B))
+        {
+            return bias;
+        }
+        else if (!iswdigit(*A))
+        {
+            return -1;
+        }
+        else if (!iswdigit(*B))
+        {
+            return 1;
+        }
+        else if (*A < *B)
+        {
+            if (bias == 0)
+                bias = -1;
+        }
+        else if (*A > *B)
+        {
+            if (bias == 0)
+                bias = 1;
+        }
+        else if (!*A && !*B)
+        {
+            return bias;
+        }
+    }
+
+    return 0;
+}
+
+FORCEINLINE LONG PhpCompareLeftNatural(
+    __in PWSTR A,
+    __in PWSTR B
+    )
+{
+    for (; ; A++, B++)
+    {
+        if (!iswdigit(*A) && !iswdigit(*B))
+        {
+            return 0;
+        }
+        else if (!iswdigit(*A))
+        {
+            return -1;
+        }
+        else if (!iswdigit(*B))
+        {
+            return 1;
+        }
+        else if (*A < *B)
+        {
+            return -1;
+        }
+        else if (*A > *B)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
+    __in PWSTR A,
+    __in PWSTR B,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    /*  strnatcmp.c -- Perform 'natural order' comparisons of strings in C.
+        Copyright (C) 2000, 2004 by Martin Pool <mbp sourcefrog net>
+
+        This software is provided 'as-is', without any express or implied
+        warranty.  In no event will the authors be held liable for any damages
+        arising from the use of this software.
+
+        Permission is granted to anyone to use this software for any purpose,
+        including commercial applications, and to alter it and redistribute it
+        freely, subject to the following restrictions:
+
+        1. The origin of this software must not be misrepresented; you must not
+         claim that you wrote the original software. If you use this software
+         in a product, an acknowledgment in the product documentation would be
+         appreciated but is not required.
+        2. Altered source versions must be plainly marked as such, and must not be
+         misrepresented as being the original software.
+        3. This notice may not be removed or altered from any source distribution.
+
+        This code has been modified for Process Hacker.
+     */
+
+    ULONG ai, bi;
+    WCHAR ca, cb;
+    LONG result;
+    BOOLEAN fractional;
+
+    ai = 0;
+    bi = 0;
+
+    while (TRUE)
+    {
+        ca = A[ai];
+        cb = B[bi];
+
+        /* Skip over leading spaces or zeros. */
+
+        while (iswspace(ca))
+            ca = A[++ai];
+
+        while (iswspace(cb))
+            cb = B[++bi];
+
+        /* Process run of digits. */
+        if (iswdigit(ca) && iswdigit(cb))
+        {
+            fractional = (ca == '0' || cb == '0');
+
+            if (fractional)
+            {
+                if ((result = PhpCompareLeftNatural(A + ai, B + bi)) != 0)
+                    return result;
+            }
+            else
+            {
+                if ((result = PhpCompareRightNatural(A + ai, B + bi)) != 0)
+                    return result;
+            }
+        }
+
+        if (!ca && !cb)
+        {
+            /* Strings are considered the same. */
+            return 0;
+        }
+
+        if (IgnoreCase)
+        {
+            ca = towupper(ca);
+            cb = towupper(cb);
+        }
+
+        if (ca < cb)
+            return -1;
+        else if (ca > cb)
+            return 1;
+
+        ai++;
+        bi++;
+    }
+}
+
+LONG PhCompareUnicodeStringZNatural(
+    __in PWSTR A,
+    __in PWSTR B,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return PhpCompareUnicodeStringZNatural(A, B, FALSE);
+    else
+        return PhpCompareUnicodeStringZNatural(A, B, TRUE);
+}
+
 /**
  * Creates a string object from an existing 
  * null-terminated string.

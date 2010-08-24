@@ -758,14 +758,11 @@ static INT PhpDefaultCompareListViewItems(
 
     // Compare them.
 
-    if (StrCmpLogicalW_I)
-    {
-        return StrCmpLogicalW_I(xText, yText);
-    }
-    else
-    {
-        return wcsicmp(xText, yText);
-    }
+#if 1
+    return PhCompareUnicodeStringZNatural(xText, yText, TRUE);
+#else
+    return wcsicmp(xText, yText);
+#endif
 }
 
 static VOID PhListTick(
