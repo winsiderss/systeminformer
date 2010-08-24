@@ -106,11 +106,6 @@ typedef HRESULT (WINAPI *_SHParseDisplayName)(
     __out SFGAOF *psfgaoOut
     );
 
-typedef INT (WINAPI *_StrCmpLogicalW)(
-    __in LPCWSTR psz1,
-    __in LPCWSTR psz2
-    );
-
 typedef HRESULT (WINAPI *_TaskDialogIndirect)(      
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
@@ -129,7 +124,6 @@ extern _SHAutoComplete SHAutoComplete_I;
 extern _SHCreateShellItem SHCreateShellItem_I;
 extern _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
 extern _SHParseDisplayName SHParseDisplayName_I;
-extern _StrCmpLogicalW StrCmpLogicalW_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
 

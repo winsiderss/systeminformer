@@ -657,6 +657,15 @@ PhCopyUnicodeStringZFromAnsi(
     __out_opt PULONG ReturnCount
     );
 
+PHLIBAPI
+LONG
+NTAPI
+PhCompareUnicodeStringZNatural(
+    __in PWSTR A,
+    __in PWSTR B,
+    __in BOOLEAN IgnoreCase
+    );
+
 #define PH_STRING_MAXLEN MAXUINT16
 
 typedef struct _PH_STRINGREF
