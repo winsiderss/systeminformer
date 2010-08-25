@@ -89,20 +89,22 @@ BOOLEAN PhpShowErrorAndElevateAction(
 
         config.hwndParent = hWnd;
         config.hInstance = PhInstanceHandle;
-        config.dwFlags = TDF_USE_COMMAND_LINKS;
         config.pszWindowTitle = L"Process Hacker";
         config.pszMainIcon = TD_ERROR_ICON;
         config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
-        config.pszContent = PhaConcatStrings(
+        /*config.pszContent = PhaConcatStrings(
             3,
             L"Unable to perform the action: ",
             ((PPH_STRING)PHA_DEREFERENCE(PhGetNtMessage(Status)))->Buffer,
-            L"\nDo you want Process Hacker to elevate the action?"
-            )->Buffer;
-        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+            L"\nYou will need to provide administrator permission. "
+            L"Click Continue to complete this operation."
+            )->Buffer;*/
+        config.pszContent = L"You will need to provide administrator permission. "
+            L"Click Continue to complete this operation.";
+        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
 
         buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = L"Elevate\nPrompt for credentials and elevate the action.";
+        buttons[0].pszButtonText = L"Continue";
 
         config.cButtons = 1;
         config.pButtons = buttons;
@@ -622,8 +624,17 @@ BOOLEAN PhUiTerminateProcesses(
         {
             success = FALSE;
 
-            if (!PhpShowErrorProcess(hWnd, L"terminate", Processes[i], status, 0))
-                break;
+            if (NumberOfProcesses != 1 || !PhpShowErrorAndElevateAction(
+                hWnd,
+                PhaConcatStrings2(L"Unable to terminate ", Processes[i]->ProcessName->Buffer)->Buffer,
+                status,
+                PhaFormatString(L"-c -ctype process -caction terminate -cobject %u", (ULONG)Processes[i]->ProcessId)->Buffer,
+                &success
+                ))
+            {
+                if (!PhpShowErrorProcess(hWnd, L"terminate", Processes[i], status, 0))
+                    break;
+            }
         }
     }
 
@@ -776,8 +787,17 @@ BOOLEAN PhUiSuspendProcesses(
         {
             success = FALSE;
 
-            if (!PhpShowErrorProcess(hWnd, L"suspend", Processes[i], status, 0))
-                break;
+            if (NumberOfProcesses != 1 || !PhpShowErrorAndElevateAction(
+                hWnd,
+                PhaConcatStrings2(L"Unable to suspend ", Processes[i]->ProcessName->Buffer)->Buffer,
+                status,
+                PhaFormatString(L"-c -ctype process -caction suspend -cobject %u", (ULONG)Processes[i]->ProcessId)->Buffer,
+                &success
+                ))
+            {
+                if (!PhpShowErrorProcess(hWnd, L"suspend", Processes[i], status, 0))
+                    break;
+            }
         }
     }
 
@@ -822,8 +842,17 @@ BOOLEAN PhUiResumeProcesses(
         {
             success = FALSE;
 
-            if (!PhpShowErrorProcess(hWnd, L"resume", Processes[i], status, 0))
-                break;
+            if (NumberOfProcesses != 1 || !PhpShowErrorAndElevateAction(
+                hWnd,
+                PhaConcatStrings2(L"Unable to resume ", Processes[i]->ProcessName->Buffer)->Buffer,
+                status,
+                PhaFormatString(L"-c -ctype process -caction resume -cobject %u", (ULONG)Processes[i]->ProcessId)->Buffer,
+                &success
+                ))
+            {
+                if (!PhpShowErrorProcess(hWnd, L"resume", Processes[i], status, 0))
+                    break;
+            }
         }
     }
 

@@ -255,27 +255,6 @@ BOOLEAN PhMainWndInitialization(
 {
     PH_RECTANGLE windowRectangle;
 
-    // Enable some privileges.
-    {
-        HANDLE tokenHandle;
-
-        if (NT_SUCCESS(PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_ADJUST_PRIVILEGES,
-            NtCurrentProcess()
-            )))
-        {
-            PhSetTokenPrivilege2(tokenHandle, SE_DEBUG_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_INC_BASE_PRIORITY_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_INC_WORKING_SET_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_LOAD_DRIVER_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_RESTORE_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_SHUTDOWN_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            PhSetTokenPrivilege2(tokenHandle, SE_TAKE_OWNERSHIP_PRIVILEGE, SE_PRIVILEGE_ENABLED);
-            NtClose(tokenHandle);
-        }
-    }
-
     // Initialize the system image lists.
     {
         HMODULE shell32;

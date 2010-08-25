@@ -6,6 +6,7 @@ Process Hacker
    * Double-clicking in the system information graphs now opens 
      information for the relevant process
    * Setting I/O priority doesn't need KProcessHacker anymore
+   * Elevation for certain actions
  * FIXED:
    * HKCU key name resolution
    * Network connection host resolution
