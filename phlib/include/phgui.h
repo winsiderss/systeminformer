@@ -10,8 +10,6 @@
 #include <shlobj.h>
 #undef CINTERFACE
 #undef COBJMACROS
-#include <prsht.h>
-#include <aclapi.h>
 
 // guisup
 
@@ -931,7 +929,7 @@ __callback NTSTATUS PhStdSetObjectSecurity(
 PHLIBAPI
 NTSTATUS PhGetSeObjectSecurity(
     __in HANDLE Handle,
-    __in SE_OBJECT_TYPE ObjectType,
+    __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor
     );
@@ -939,7 +937,7 @@ NTSTATUS PhGetSeObjectSecurity(
 PHLIBAPI
 NTSTATUS PhSetSeObjectSecurity(
     __in HANDLE Handle,
-    __in SE_OBJECT_TYPE ObjectType,
+    __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR SecurityDescriptor
     );

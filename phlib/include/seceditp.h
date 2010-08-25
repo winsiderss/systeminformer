@@ -2,6 +2,7 @@
 #define _PH_SECEDITP_H
 
 #include <aclui.h>
+#include <aclapi.h>
 
 typedef struct
 {
