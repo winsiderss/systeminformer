@@ -163,12 +163,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "PE Viewer"
-            VALUE "FileVersion", "1, 0, 0, 0"
+            VALUE "FileVersion", "1.0"
             VALUE "InternalName", "peview"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "peview.exe"
             VALUE "ProductName", "PE Viewer"
-            VALUE "ProductVersion", "1, 0, 0, 0"
+            VALUE "ProductVersion", "1.0"
         END
     END
     BLOCK "VarFileInfo"
