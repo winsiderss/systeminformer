@@ -395,7 +395,7 @@ __callback NTSTATUS PhStdSetObjectSecurity(
 
 NTSTATUS PhGetSeObjectSecurity(
     __in HANDLE Handle,
-    __in SE_OBJECT_TYPE ObjectType,
+    __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor
     )
@@ -428,7 +428,7 @@ NTSTATUS PhGetSeObjectSecurity(
 
 NTSTATUS PhSetSeObjectSecurity(
     __in HANDLE Handle,
-    __in SE_OBJECT_TYPE ObjectType,
+    __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR SecurityDescriptor
     )
