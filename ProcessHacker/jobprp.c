@@ -424,7 +424,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                     HANDLE processHandle;
                     HANDLE jobHandle;
 
-                    if (PhShowChooseProcessDialog(
+                    while (PhShowChooseProcessDialog(
                         hwndDlg,
                         L"Select a process to add to the job permanently.",
                         &processId
@@ -455,10 +455,12 @@ INT_PTR CALLBACK PhpJobPageProc(
 
                             NtClose(processHandle);
                         }
-                    }
 
-                    if (!NT_SUCCESS(status))
-                        PhShowStatus(hwndDlg, L"Unable to add the process to the job", status, 0);
+                        if (NT_SUCCESS(status))
+                            break;
+                        else
+                            PhShowStatus(hwndDlg, L"Unable to add the process to the job", status, 0);
+                    }
                 }
                 break;
             case IDC_ADVANCED:
