@@ -5414,7 +5414,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
-            PhAddItemList(context->ProcessIdList, (HANDLE)(ULONG)processId);
+            PhAddItemList(context->ProcessIdList, UlongToHandle((ULONG)processId));
             PhAddItemList(context->FlagsList, (PVOID)flags);
         }
     }

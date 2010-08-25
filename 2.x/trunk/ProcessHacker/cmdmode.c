@@ -87,6 +87,45 @@ NTSTATUS PhCommandModeStart()
                 );
         }
     }
+    else if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
+    {
+        ULONG64 processId64;
+        HANDLE processId;
+        HANDLE processHandle;
+
+        if (!PhStartupParameters.CommandObject)
+            return STATUS_INVALID_PARAMETER;
+
+        if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &processId64))
+            return STATUS_INVALID_PARAMETER;
+
+        processId = UlongToHandle((ULONG)processId64);
+
+        if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
+            {
+                status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+                NtClose(processHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            {
+                status = PhSuspendProcess(processHandle);
+                NtClose(processHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+            {
+                status = PhResumeProcess(processHandle);
+                NtClose(processHandle);
+            }
+        }
+    }
     else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {
         SC_HANDLE serviceHandle;

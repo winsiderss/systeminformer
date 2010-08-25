@@ -29,6 +29,7 @@
 #include <hexedit.h>
 
 VOID PhpProcessStartupParameters();
+VOID PhpEnablePrivileges();
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
@@ -169,14 +170,7 @@ INT WINAPI WinMain(
         PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     }
 
-    if (
-        PhStartupParameters.CommandMode &&
-        PhStartupParameters.CommandType &&
-        PhStartupParameters.CommandAction
-        )
-    {
-        RtlExitUserProcess(PhCommandModeStart());
-    }
+    PhpEnablePrivileges();
 
     if (PhStartupParameters.RunAsServiceMode)
     {
@@ -190,12 +184,22 @@ INT WINAPI WinMain(
     // Activate a previous instance if required.
     if (
         PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
-        !PhStartupParameters.ShowOptions
+        !PhStartupParameters.ShowOptions &&
+        !PhStartupParameters.CommandMode
         )
         PhActivatePreviousInstance();
 
     if (PhGetIntegerSetting(L"EnableKph") && !PhStartupParameters.NoKph)
         PhInitializeKph();
+
+    if (
+        PhStartupParameters.CommandMode &&
+        PhStartupParameters.CommandType &&
+        PhStartupParameters.CommandAction
+        )
+    {
+        RtlExitUserProcess(PhCommandModeStart());
+    }
 
     // Create a mutant for the installer.
     {
@@ -711,5 +715,49 @@ VOID PhpProcessStartupParameters()
     {
         // The symbol provider won't work if this is chosen.
         PhShowDebugConsole();
+    }
+}
+
+VOID PhpEnablePrivileges()
+{
+    HANDLE tokenHandle;
+
+    if (NT_SUCCESS(PhOpenProcessToken(
+        &tokenHandle,
+        TOKEN_ADJUST_PRIVILEGES,
+        NtCurrentProcess()
+        )))
+    {
+        PCHAR privilegesBuffer[sizeof(TOKEN_PRIVILEGES) + sizeof(LUID_AND_ATTRIBUTES) * 7];
+        PTOKEN_PRIVILEGES privileges;
+        ULONG i;
+
+        privileges = (PTOKEN_PRIVILEGES)privilegesBuffer;
+        privileges->PrivilegeCount = 7;
+
+        for (i = 0; i < privileges->PrivilegeCount; i++)
+        {
+            privileges->Privileges[i].Attributes = SE_PRIVILEGE_ENABLED;
+            privileges->Privileges[i].Luid.HighPart = 0;
+        }
+
+        privileges->Privileges[0].Luid.LowPart = SE_DEBUG_PRIVILEGE;
+        privileges->Privileges[1].Luid.LowPart = SE_INC_BASE_PRIORITY_PRIVILEGE;
+        privileges->Privileges[2].Luid.LowPart = SE_INC_WORKING_SET_PRIVILEGE;
+        privileges->Privileges[3].Luid.LowPart = SE_LOAD_DRIVER_PRIVILEGE;
+        privileges->Privileges[4].Luid.LowPart = SE_RESTORE_PRIVILEGE;
+        privileges->Privileges[5].Luid.LowPart = SE_SHUTDOWN_PRIVILEGE;
+        privileges->Privileges[6].Luid.LowPart = SE_TAKE_OWNERSHIP_PRIVILEGE;
+
+        NtAdjustPrivilegesToken(
+            tokenHandle,
+            FALSE,
+            privileges,
+            0,
+            NULL,
+            NULL
+            );
+
+        NtClose(tokenHandle);
     }
 }
