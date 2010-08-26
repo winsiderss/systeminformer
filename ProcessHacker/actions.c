@@ -951,7 +951,7 @@ BOOLEAN PhUiRestartProcess(
 
     status = PhCreateProcessWin32(
         PhGetString(Process->FileName), // we didn't wait for S1 processing
-        commandLine->Buffer, // string may be modified, but it's OK in this case
+        commandLine->Buffer,
         NULL,
         currentDirectory->Buffer,
         0,
