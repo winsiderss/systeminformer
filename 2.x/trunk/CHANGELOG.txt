@@ -1,5 +1,9 @@
 Process Hacker
 
+2.4
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.3
  * NEW/IMPROVED:
    * Can add processes to jobs
