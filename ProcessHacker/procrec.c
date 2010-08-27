@@ -132,6 +132,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
     case WM_INITDIALOG:
         {
             PH_IMAGE_VERSION_INFO versionInfo;
+            BOOLEAN versionInfoInitialized;
             HICON icon;
             PPH_STRING processNameString;
             PPH_PROCESS_ITEM processItem;
@@ -180,10 +181,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             }
 
             memset(&versionInfo, 0, sizeof(PH_IMAGE_VERSION_INFO));
+            versionInfoInitialized = FALSE;
 
             if (context->Record->FileName)
             {
-                PhInitializeImageVersionInfo(&versionInfo, context->Record->FileName->Buffer);
+                if (PhInitializeImageVersionInfo(&versionInfo, context->Record->FileName->Buffer))
+                    versionInfoInitialized = TRUE;
             }
 
             icon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
@@ -197,6 +200,9 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             SetDlgItemText(hwndDlg, IDC_COMPANYNAME, PhpGetStringOrNa(versionInfo.CompanyName));
             SetDlgItemText(hwndDlg, IDC_VERSION, PhpGetStringOrNa(versionInfo.FileVersion));
             SetDlgItemText(hwndDlg, IDC_FILENAME, PhpGetStringOrNa(context->Record->FileName));
+
+            if (versionInfoInitialized)
+                PhDeleteImageVersionInfo(&versionInfo);
 
             if (!context->Record->FileName)
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
