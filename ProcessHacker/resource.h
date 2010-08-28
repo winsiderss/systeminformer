@@ -606,6 +606,7 @@
 #define ID_MISCELLANEOUS_RUNAS          40229
 #define ID_MISCELLANEOUS_RUNASTHISUSER  40230
 #define ID_HACKER_PLUGINS               40231
+#define ID_VIEW_SHOWPROCESSESFROMALLUSERS 40232
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -615,7 +616,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40232
+#define _APS_NEXT_COMMAND_VALUE         40233
 #define _APS_NEXT_CONTROL_VALUE         1266
 #define _APS_NEXT_SYMED_VALUE           131
 #endif

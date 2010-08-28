@@ -45,6 +45,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in_opt PVOID Context
     );
 
+BOOLEAN PhpApplyProcessTreeFiltersToNode(
+    __in PPH_PROCESS_NODE Node
+    );
+
 static HANDLE ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
@@ -55,6 +59,8 @@ static PPH_LIST ProcessNodeRootList; // list of root nodes
 
 BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList; // list of nodes which need to be processed
+
+static PPH_LIST ProcessTreeFilterList = NULL;
 
 static HICON StockAppIcon;
 
@@ -129,6 +135,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_SAFE, FALSE, L"Safe", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_BITS, FALSE, L"Bits", 50, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -251,6 +259,9 @@ PPH_PROCESS_NODE PhCreateProcessNode(
             }
         }
     }
+
+    if (ProcessTreeFilterList)
+        processNode->Node.Visible = PhpApplyProcessTreeFiltersToNode(processNode);
 
     TreeList_NodesStructured(ProcessTreeListHandle);
 
@@ -862,6 +873,18 @@ BEGIN_SORT_FUNCTION(RelativeStartTime)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Bits)
+{
+    sortResult = intcmp(processItem1->IsWow64, processItem2->IsWow64);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Elevation)
+{
+    sortResult = intcmp(processItem1->ElevationType, processItem2->ElevationType);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -938,7 +961,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(VerificationStatus),
                         SORT_FUNCTION(VerifiedSigner),
                         SORT_FUNCTION(Safe),
-                        SORT_FUNCTION(RelativeStartTime)
+                        SORT_FUNCTION(RelativeStartTime),
+                        SORT_FUNCTION(Bits),
+                        SORT_FUNCTION(Elevation)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1235,6 +1260,43 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     }
                 }
                 break;
+            case PHTLC_BITS:
+#ifdef _M_X64
+                PhInitializeStringRef(&getNodeText->Text, processItem->IsWow64 ? L"32-bit" : L"64-bit");
+#else
+                PhInitializeStringRef(&getNodeText->Text, L"32-bit");
+#endif
+                break;
+            case PHTLC_ELEVATION:
+                {
+                    PWSTR type;
+
+                    if (WINDOWS_HAS_UAC)
+                    {
+                        switch (processItem->ElevationType)
+                        {
+                        case TokenElevationTypeDefault:
+                            type = L"N/A";
+                            break;
+                        case TokenElevationTypeLimited:
+                            type = L"Limited";
+                            break;
+                        case TokenElevationTypeFull:
+                            type = L"Full";
+                            break;
+                        default:
+                            type = L"N/A";
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        type = L"";
+                    }
+
+                    PhInitializeStringRef(&getNodeText->Text, type);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -1518,6 +1580,9 @@ VOID PhSelectAndEnsureVisibleProcessNode(
 
     PhDeselectAllProcessNodes();
 
+    if (!ProcessNode->Node.Visible)
+        return;
+
     // Expand recursively, upwards.
 
     processNode = ProcessNode->Parent;
@@ -1548,6 +1613,91 @@ VOID PhSelectAndEnsureVisibleProcessNode(
         LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 
     TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
+}
+
+PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER Filter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PROCESS_TREE_FILTER_ENTRY entry;
+
+    entry = PhAllocate(sizeof(PH_PROCESS_TREE_FILTER_ENTRY));
+    entry->Filter = Filter;
+    entry->Context = Context;
+
+    if (!ProcessTreeFilterList)
+        ProcessTreeFilterList = PhCreateList(2);
+
+    PhAddItemList(ProcessTreeFilterList, entry);
+
+    return entry;
+}
+
+VOID PhRemoveProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER_ENTRY Entry
+    )
+{
+    ULONG index;
+
+    if (!ProcessTreeFilterList)
+        return;
+
+    index = PhFindItemList(ProcessTreeFilterList, Entry);
+
+    if (index != -1)
+    {
+        PhRemoveItemList(ProcessTreeFilterList, index);
+        PhFree(Entry);
+    }
+}
+
+BOOLEAN PhpApplyProcessTreeFiltersToNode(
+    __in PPH_PROCESS_NODE Node
+    )
+{
+    BOOLEAN show;
+    ULONG i;
+
+    show = TRUE;
+
+    if (ProcessTreeFilterList)
+    {
+        for (i = 0; i < ProcessTreeFilterList->Count; i++)
+        {
+            PPH_PROCESS_TREE_FILTER_ENTRY entry;
+
+            entry = ProcessTreeFilterList->Items[i];
+
+            if (!entry->Filter(Node, entry->Context))
+            {
+                show = FALSE;
+                break;
+            }
+        }
+    }
+
+    return show;
+}
+
+VOID PhApplyProcessTreeFilters()
+{
+    ULONG i;
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
+    {
+        PPH_PROCESS_NODE node;
+
+        node = ProcessNodeList->Items[i];
+        node->Node.Visible = PhpApplyProcessTreeFiltersToNode(node);
+
+        if (!node->Node.Visible)
+            node->Node.Selected = FALSE;
+
+        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
+    }
+
+    TreeList_NodesStructured(ProcessTreeListHandle);
 }
 
 VOID PhCopyProcessTree()

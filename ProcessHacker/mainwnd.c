@@ -119,6 +119,11 @@ VOID PhpShowIconNotification(
     __in ULONG Flags
     );
 
+BOOLEAN PhpCurrentUserProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    );
+
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
 VOID PhpGetSelectedProcesses(
@@ -248,6 +253,8 @@ static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
 static ULONG SelectedUserSessionId;
+
+static PPH_PROCESS_TREE_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -713,6 +720,27 @@ LRESULT CALLBACK PhMainWndProc(
                         PhMainWndMenuHandle,
                         LOWORD(wParam),
                         enable ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
+                break;
+            case ID_VIEW_SHOWPROCESSESFROMALLUSERS:
+                {
+                    if (!CurrentUserFilterEntry)
+                    {
+                        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhpCurrentUserProcessTreeFilter, NULL);
+                    }
+                    else
+                    {
+                        PhRemoveProcessTreeFilter(CurrentUserFilterEntry);
+                        CurrentUserFilterEntry = NULL;
+                    }
+
+                    PhApplyProcessTreeFilters();
+
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_SHOWPROCESSESFROMALLUSERS,
+                        !CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
                         );
                 }
                 break;
@@ -2666,6 +2694,23 @@ VOID PhpShowIconNotification(
             break;
         }
     }
+}
+
+BOOLEAN PhpCurrentUserProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    )
+{
+    if (!ProcessNode->ProcessItem->UserName)
+        return FALSE;
+
+    if (!PhCurrentUserName)
+        return FALSE;
+
+    if (!PhEqualString(ProcessNode->ProcessItem->UserName, PhCurrentUserName, TRUE))
+        return FALSE;
+
+    return TRUE;
 }
 
 PPH_PROCESS_ITEM PhpGetSelectedProcess()

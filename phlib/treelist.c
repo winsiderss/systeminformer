@@ -1647,14 +1647,21 @@ static VOID PhpInsertNodeChildren(
     PPH_TREELIST_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
+    ULONG nextLevel;
 
-    if (!Node->Visible)
-        return;
+    if (Node->Visible)
+    {
+        Node->Level = Level;
 
-    Node->Level = Level;
+        Node->s.ViewIndex = Context->List->Count;
+        PhAddItemList(Context->List, Node);
 
-    Node->s.ViewIndex = Context->List->Count;
-    PhAddItemList(Context->List, Node);
+        nextLevel = Level + 1;
+    }
+    else
+    {
+        nextLevel = 0; // children of this node should be level 0
+    }
 
     if (!(Node->s.IsLeaf = PhpIsNodeLeaf(Context, Node)))
     {
@@ -1666,7 +1673,7 @@ static VOID PhpInsertNodeChildren(
             {
                 for (i = 0; i < numberOfChildren; i++)
                 {
-                    PhpInsertNodeChildren(Context, children[i], Level + 1);
+                    PhpInsertNodeChildren(Context, children[i], nextLevel);
                 }
 
                 if (numberOfChildren == 0)
