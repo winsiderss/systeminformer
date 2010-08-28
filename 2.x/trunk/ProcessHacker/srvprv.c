@@ -368,9 +368,12 @@ VOID PhServiceProviderUpdate(
     ULONG numberOfServices;
     ULONG i;
 
-    if (scManagerHandle == NULL)
+    if (!scManagerHandle)
     {
         scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
+
+        if (!scManagerHandle)
+            return;
     }
 
     services = PhEnumServices(scManagerHandle, 0, 0, &numberOfServices);
