@@ -604,6 +604,13 @@ FORCEINLINE BOOLEAN PhBeginInitOnce(
         return PhfBeginInitOnce(InitOnce);
 }
 
+FORCEINLINE BOOLEAN PhTestInitOnce(
+    __in PPH_INITONCE InitOnce
+    )
+{
+    return InitOnce->State == PH_INITONCE_INITIALIZED;
+}
+
 // string
 
 #ifndef BASESUP_PRIVATE

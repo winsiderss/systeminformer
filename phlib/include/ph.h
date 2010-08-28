@@ -1802,6 +1802,7 @@ typedef struct _PH_SYMBOL_PROVIDER
     PH_QUEUED_LOCK ModulesListLock;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
+    BOOLEAN IsRegistered;
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
     PH_INITONCE InitOnce;
 #endif
