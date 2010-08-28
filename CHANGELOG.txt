@@ -3,6 +3,8 @@ Process Hacker
 2.4
  * NEW/IMPROVED:
  * FIXED:
+   * Memory leak
+   * Crash when running under certain conditions
 
 2.3
  * NEW/IMPROVED:
