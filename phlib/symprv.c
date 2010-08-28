@@ -198,6 +198,8 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         symbolProvider->ProcessHandle = fakeHandle;
     }
 
+    symbolProvider->IsRegistered = FALSE;
+
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
     PhInitializeInitOnce(&symbolProvider->InitOnce);
 #else
@@ -218,7 +220,10 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (SymCleanup_I)
     {
         PH_LOCK_SYMBOLS();
-        SymCleanup_I(symbolProvider->ProcessHandle);
+
+        if (symbolProvider->IsRegistered)
+            SymCleanup_I(symbolProvider->ProcessHandle);
+
         PH_UNLOCK_SYMBOLS();
     }
 
@@ -244,6 +249,8 @@ VOID PhpRegisterSymbolProvider(
             PH_LOCK_SYMBOLS();
             SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
             PH_UNLOCK_SYMBOLS();
+
+            SymbolProvider->IsRegistered = TRUE;
         }
 
         PhEndInitOnce(&SymbolProvider->InitOnce);
@@ -254,6 +261,8 @@ VOID PhpRegisterSymbolProvider(
         PH_LOCK_SYMBOLS();
         SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
         PH_UNLOCK_SYMBOLS();
+
+        SymbolProvider->IsRegistered = TRUE;
     }
 #endif
 }
