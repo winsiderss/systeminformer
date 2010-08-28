@@ -25,22 +25,6 @@
 #include <shlwapi.h>
 #include <wtsapi32.h>
 #include <windowsx.h>
-#include <userenv.h>
-
-typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
-    __out LPVOID *lpEnvironment,
-    __in_opt HANDLE hToken,
-    __in BOOL bInherit
-    );
-
-typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
-    __in LPVOID lpEnvironment
-    );
-
-typedef BOOL (WINAPI *_LoadUserProfileW)(
-    __in HANDLE hToken,
-    __inout LPPROFILEINFO lpProfileInfo
-    );
 
 typedef struct _RUNAS_DIALOG_CONTEXT
 {
@@ -73,6 +57,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     );
 
 VOID PhSetDesktopWinStaAccess();
+
+VOID PhpSplitUserName(
+    __in PPH_STRING UserName,
+    __out PPH_STRING *UserPart,
+    __out PPH_STRING *DomainPart
+    );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
@@ -305,8 +295,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             SetFocus(GetDlgItem(hwndDlg, IDC_PROGRAM));
             Edit_SetSel(GetDlgItem(hwndDlg, IDC_PROGRAM), 0, -1);
 
-            if (!PhElevated)
-                SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
+            //if (!PhElevated)
+            //    SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
 
             if (!WINDOWS_HAS_UAC)
                 ShowWindow(GetDlgItem(hwndDlg, IDC_TOGGLEELEVATION), SW_HIDE);
@@ -335,6 +325,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     PPH_STRING password;
                     PPH_STRING logonTypeString;
                     ULONG logonType;
+                    ULONG sessionId;
                     PPH_STRING desktopName;
                     BOOLEAN useLinkedToken;
 
@@ -342,11 +333,32 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     userName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_USERNAME);
                     logonTypeString = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_TYPE);
 
+                    // Fix up the user name if it doesn't have a domain.
+                    if (PhFindCharInString(userName, 0, '\\') == -1)
+                    {
+                        PSID sid;
+                        PPH_STRING newUserName;
+
+                        if (NT_SUCCESS(PhLookupName(&userName->sr, &sid, NULL, NULL)))
+                        {
+                            newUserName = PhGetSidFullName(sid, TRUE, NULL);
+
+                            if (newUserName)
+                            {
+                                PhaDereferenceObject(newUserName);
+                                userName = newUserName;
+                            }
+
+                            PhFree(sid);
+                        }
+                    }
+
                     if (!IsServiceAccount(userName))
                         password = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PASSWORD);
                     else
                         password = NULL;
 
+                    sessionId = GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE);
                     desktopName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_DESKTOP);
 
                     if (WINDOWS_HAS_UAC)
@@ -361,17 +373,57 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &logonType
                         ))
                     {
-                        status = PhRunAsCommandStart2(
-                            hwndDlg,
-                            program->Buffer,
-                            userName->Buffer,
-                            PhGetStringOrEmpty(password),
-                            logonType,
-                            context->ProcessId,
-                            GetDlgItemInt(hwndDlg, IDC_SESSIONID, NULL, FALSE),
-                            desktopName->Buffer,
-                            useLinkedToken
-                            );
+                        if (
+                            logonType == LOGON32_LOGON_INTERACTIVE &&
+                            !context->ProcessId &&
+                            sessionId == NtCurrentPeb()->SessionId &&
+                            !useLinkedToken
+                            )
+                        {
+                            // We are eligible to load the user profile.
+                            // This must be done here, not in the service, because 
+                            // we need to be in the target session.
+
+                            PH_CREATE_PROCESS_AS_USER_INFO createInfo;
+                            PPH_STRING domainPart;
+                            PPH_STRING userPart;
+
+                            PhpSplitUserName(userName, &domainPart, &userPart);
+
+                            memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
+                            createInfo.CommandLine = program->Buffer;
+                            createInfo.UserName = userPart->Buffer;
+                            createInfo.DomainName = domainPart->Buffer;
+                            createInfo.Password = PhGetStringOrEmpty(password);
+                            createInfo.DesktopName = desktopName->Buffer;
+
+                            PhSetDesktopWinStaAccess();
+
+                            status = PhCreateProcessAsUser(
+                                &createInfo,
+                                PH_CREATE_PROCESS_WITH_PROFILE,
+                                NULL,
+                                NULL,
+                                NULL
+                                );
+
+                            if (domainPart) PhDereferenceObject(domainPart);
+                            if (userPart) PhDereferenceObject(userPart);
+                        }
+                        else
+                        {
+                            status = PhRunAsCommandStart2(
+                                hwndDlg,
+                                program->Buffer,
+                                userName->Buffer,
+                                PhGetStringOrEmpty(password),
+                                logonType,
+                                context->ProcessId,
+                                sessionId,
+                                desktopName->Buffer,
+                                useLinkedToken
+                                );
+                        }
                     }
                     else
                     {
@@ -1099,6 +1151,33 @@ BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
     return TRUE;
 }
 
+static VOID PhpSplitUserName(
+    __in PPH_STRING UserName,
+    __out PPH_STRING *DomainPart,
+    __out PPH_STRING *UserPart
+    )
+{
+    ULONG indexOfBackslash;
+
+    indexOfBackslash = PhFindCharInString(UserName, 0, '\\');
+
+    if (indexOfBackslash != -1)
+    {
+        *DomainPart = PhSubstring(UserName, 0, indexOfBackslash);
+        *UserPart = PhSubstring(
+            UserName,
+            indexOfBackslash + 1,
+            UserName->Length / 2 - indexOfBackslash - 1
+            );
+    }
+    else
+    {
+        *DomainPart = NULL;
+        *UserPart = UserName;
+        PhReferenceObject(UserName);
+    }
+}
+
 VOID PhRunAsServiceStart()
 {
     static PH_COMMAND_LINE_OPTION options[] =
@@ -1118,9 +1197,9 @@ VOID PhRunAsServiceStart()
     NTSTATUS status;
     PH_STRINGREF commandLine;
     HANDLE tokenHandle;
-    ULONG indexOfBackslash;
     PPH_STRING domainName;
     PPH_STRING userName;
+    PH_CREATE_PROCESS_AS_USER_INFO createInfo;
 
     // Enable some required privileges.
 
@@ -1156,23 +1235,7 @@ VOID PhRunAsServiceStart()
 
     if (RunAsServiceParameters.UserName)
     {
-        indexOfBackslash = PhFindCharInString(RunAsServiceParameters.UserName, 0, '\\');
-
-        if (indexOfBackslash != -1)
-        {
-            domainName = PhSubstring(RunAsServiceParameters.UserName, 0, indexOfBackslash);
-            userName = PhSubstring(
-                RunAsServiceParameters.UserName,
-                indexOfBackslash + 1,
-                RunAsServiceParameters.UserName->Length / 2 - indexOfBackslash - 1
-                );
-        }
-        else
-        {
-            domainName = NULL;
-            userName = RunAsServiceParameters.UserName;
-            PhReferenceObject(userName);
-        }
+        PhpSplitUserName(RunAsServiceParameters.UserName, &domainName, &userName);
     }
     else
     {
@@ -1180,19 +1243,22 @@ VOID PhRunAsServiceStart()
         userName = NULL;
     }
 
+    memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
+    createInfo.ApplicationName = PhGetString(RunAsServiceParameters.FileName);
+    createInfo.CommandLine = PhGetString(RunAsServiceParameters.CommandLine);
+    createInfo.CurrentDirectory = PhGetString(RunAsServiceParameters.CurrentDirectory);
+    createInfo.DomainName = PhGetString(domainName);
+    createInfo.UserName = PhGetString(userName);
+    createInfo.Password = PhGetString(RunAsServiceParameters.Password);
+    createInfo.LogonType = RunAsServiceParameters.LogonType;
+    createInfo.ProcessIdWithToken = UlongToHandle(RunAsServiceParameters.ProcessId);
+    createInfo.SessionId = RunAsServiceParameters.SessionId;
+    createInfo.DesktopName = PhGetString(RunAsServiceParameters.DesktopName);
+
     status = PhCreateProcessAsUser(
-        PhGetString(RunAsServiceParameters.FileName),
-        PhGetString(RunAsServiceParameters.CommandLine),
-        PhGetString(RunAsServiceParameters.CurrentDirectory),
+        &createInfo,
+        PH_CREATE_PROCESS_USE_LINKED_TOKEN | PH_CREATE_PROCESS_SET_SESSION_ID,
         NULL,
-        PhGetString(domainName),
-        PhGetString(userName),
-        PhGetString(RunAsServiceParameters.Password),
-        RunAsServiceParameters.LogonType,
-        (HANDLE)RunAsServiceParameters.ProcessId,
-        RunAsServiceParameters.SessionId,
-        PhGetString(RunAsServiceParameters.DesktopName),
-        RunAsServiceParameters.UseLinkedToken,
         NULL,
         NULL
         );
@@ -1201,185 +1267,4 @@ VOID PhRunAsServiceStart()
     if (userName) PhDereferenceObject(userName);
 
     PhpRunAsServiceExit(status);
-}
-
-NTSTATUS PhCreateProcessAsUser(
-    __in_opt PWSTR ApplicationName,
-    __in_opt PWSTR CommandLine,
-    __in_opt PWSTR CurrentDirectory,
-    __in_opt PVOID Environment,
-    __in_opt PWSTR DomainName,
-    __in_opt PWSTR UserName,
-    __in_opt PWSTR Password,
-    __in_opt ULONG LogonType,
-    __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId,
-    __in_opt PWSTR DesktopName,
-    __in BOOLEAN UseLinkedToken,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
-    )
-{
-    static PH_INITONCE userEnvInitOnce = PH_INITONCE_INIT;
-    static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
-    static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
-
-    NTSTATUS status;
-    HANDLE tokenHandle;
-    PVOID defaultEnvironment;
-    STARTUPINFO startupInfo = { sizeof(startupInfo) };
-    BOOLEAN needsDuplicate = FALSE;
-
-    if (PhBeginInitOnce(&userEnvInitOnce))
-    {
-        HMODULE userEnv;
-
-        userEnv = LoadLibrary(L"userenv.dll");
-        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userEnv, "CreateEnvironmentBlock");
-        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userEnv, "DestroyEnvironmentBlock");
-    }
-
-    if (!ApplicationName && !CommandLine)
-        return STATUS_INVALID_PARAMETER_MIX;
-    if ((!DomainName || !UserName || !Password) && !ProcessIdWithToken)
-        return STATUS_INVALID_PARAMETER_MIX;
-
-    // Get the token handle, either obtained by 
-    // logging in as a user or stealing a token from 
-    // another process.
-
-    if (!ProcessIdWithToken)
-    {
-        if (!LogonUser(
-            UserName,
-            DomainName,
-            Password,
-            LogonType,
-            LOGON32_PROVIDER_DEFAULT,
-            &tokenHandle
-            ))
-            return NTSTATUS_FROM_WIN32(GetLastError());
-    }
-    else
-    {
-        HANDLE processHandle;
-
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess,
-            ProcessIdWithToken
-            )))
-            return status;
-
-        status = PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_ALL_ACCESS,
-            processHandle
-            );
-        NtClose(processHandle);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (SessionId != -1)
-            needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
-    }
-
-    if (UseLinkedToken)
-    {
-        HANDLE linkedTokenHandle;
-
-        if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
-        {
-            NtClose(tokenHandle);
-            tokenHandle = linkedTokenHandle;
-            needsDuplicate = TRUE; // returned linked token handle is an impersonation token; need to convert to primary
-        }
-    }
-
-    if (needsDuplicate)
-    {
-        HANDLE newTokenHandle;
-        OBJECT_ATTRIBUTES oa;
-        SECURITY_QUALITY_OF_SERVICE securityQos;
-
-        securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
-        securityQos.ImpersonationLevel = SecurityImpersonation;
-        securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
-        securityQos.EffectiveOnly = FALSE;
-
-        InitializeObjectAttributes(
-            &oa,
-            NULL,
-            0,
-            NULL,
-            NULL
-            );
-        oa.SecurityQualityOfService = &securityQos;
-
-        status = NtDuplicateToken(
-            tokenHandle,
-            TOKEN_ALL_ACCESS,
-            &oa,
-            FALSE,
-            TokenPrimary,
-            &newTokenHandle
-            );
-        NtClose(tokenHandle);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        tokenHandle = newTokenHandle;
-    }
-
-    // Set the session ID if needed.
-
-    if (SessionId != -1)
-    {
-        if (!NT_SUCCESS(status = PhSetTokenSessionId(
-            tokenHandle,
-            SessionId
-            )))
-        {
-            NtClose(tokenHandle);
-            return status;
-        }
-    }
-
-    if (!Environment)
-    {
-        defaultEnvironment = NULL;
-
-        if (CreateEnvironmentBlock_I)
-            CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
-    }
-
-    if (DesktopName)
-        startupInfo.lpDesktop = DesktopName;
-    else
-        startupInfo.lpDesktop = L"WinSta0\\Default";
-
-    status = PhCreateProcessWin32Ex(
-        ApplicationName,
-        CommandLine,
-        Environment ? Environment : defaultEnvironment,
-        CurrentDirectory,
-        &startupInfo,
-        PH_CREATE_PROCESS_UNICODE_ENVIRONMENT,
-        tokenHandle,
-        NULL,
-        ProcessHandle,
-        ThreadHandle
-        );
-
-    if (defaultEnvironment)
-    {
-        if (DestroyEnvironmentBlock_I)
-            DestroyEnvironmentBlock_I(defaultEnvironment);
-    }
-
-    NtClose(tokenHandle);
-
-    return status;
 }

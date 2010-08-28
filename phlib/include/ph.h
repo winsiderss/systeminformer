@@ -2462,6 +2462,34 @@ NTSTATUS PhCreateProcessWin32Ex(
     __out_opt PHANDLE ThreadHandle
     );
 
+typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
+{
+    __in_opt PWSTR ApplicationName;
+    __in_opt PWSTR CommandLine;
+    __in_opt PWSTR CurrentDirectory;
+    __in_opt PVOID Environment;
+    __in_opt PWSTR DomainName;
+    __in_opt PWSTR UserName;
+    __in_opt PWSTR Password;
+    __in_opt ULONG LogonType;
+    __in_opt HANDLE ProcessIdWithToken; // can't use with DomainName/UserName/Password
+    __in_opt ULONG SessionId; // need to specify PH_CREATE_PROCESS_SET_SESSION_ID
+    __in_opt PWSTR DesktopName;
+} PH_CREATE_PROCESS_AS_USER_INFO, *PPH_CREATE_PROCESS_AS_USER_INFO;
+
+#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x1000
+#define PH_CREATE_PROCESS_SET_SESSION_ID 0x2000
+#define PH_CREATE_PROCESS_WITH_PROFILE 0x4000
+
+PHLIBAPI
+NTSTATUS PhCreateProcessAsUser(
+    __in PPH_CREATE_PROCESS_AS_USER_INFO Information,
+    __in ULONG Flags,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    );
+
 PHLIBAPI
 VOID PhShellExecute(
     __in HWND hWnd,

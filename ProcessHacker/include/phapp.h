@@ -1373,23 +1373,6 @@ NTSTATUS PhRunAsCommandStart2(
 
 VOID PhRunAsServiceStart();
 
-NTSTATUS PhCreateProcessAsUser(
-    __in_opt PWSTR ApplicationName,
-    __in_opt PWSTR CommandLine,
-    __in_opt PWSTR CurrentDirectory,
-    __in_opt PVOID Environment,
-    __in_opt PWSTR DomainName,
-    __in_opt PWSTR UserName,
-    __in_opt PWSTR Password,
-    __in_opt ULONG LogonType,
-    __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId,
-    __in_opt PWSTR DesktopName,
-    __in BOOLEAN UseLinkedToken,
-    __out_opt PHANDLE ProcessHandle,
-    __out_opt PHANDLE ThreadHandle
-    );
-
 // sessprp
 
 VOID PhShowSessionProperties(
