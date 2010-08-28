@@ -2,6 +2,7 @@ Process Hacker
 
 2.4
  * NEW/IMPROVED:
+   * Better Run As behaviour
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions

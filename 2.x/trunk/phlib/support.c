@@ -24,6 +24,16 @@
 #include <phgui.h>
 #include <md5.h>
 
+typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
+    __out LPVOID *lpEnvironment,
+    __in_opt HANDLE hToken,
+    __in BOOL bInherit
+    );
+
+typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
+    __in LPVOID lpEnvironment
+    );
+
 WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 ULONG PhMaxSizeUnit = MAXULONG32;
 
@@ -1788,6 +1798,38 @@ NTSTATUS PhCreateProcessWin32(
         );
 }
 
+static PH_FLAG_MAPPING PhpCreateProcessMappings[] =
+{
+    { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
+    { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
+    { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
+    { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE }
+};
+
+FORCEINLINE VOID PhpConvertProcessInformation(
+    __in PPROCESS_INFORMATION ProcessInfo,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
+    if (ClientId)
+    {
+        ClientId->UniqueProcess = UlongToHandle(ProcessInfo->dwProcessId);
+        ClientId->UniqueThread = UlongToHandle(ProcessInfo->dwThreadId);
+    }
+
+    if (ProcessHandle)
+        *ProcessHandle = ProcessInfo->hProcess;
+    else
+        NtClose(ProcessInfo->hProcess);
+
+    if (ThreadHandle)
+        *ThreadHandle = ProcessInfo->hThread;
+    else
+        NtClose(ProcessInfo->hThread);
+}
+
 NTSTATUS PhCreateProcessWin32Ex(
     __in_opt PWSTR FileName,
     __in_opt PWSTR CommandLine,
@@ -1801,13 +1843,6 @@ NTSTATUS PhCreateProcessWin32Ex(
     __out_opt PHANDLE ThreadHandle
     )
 {
-    static PH_FLAG_MAPPING mappings[] =
-    {
-        { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
-        { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
-        { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
-        { PH_CREATE_PROCESS_NEW_CONSOLE, CREATE_NEW_CONSOLE }
-    };
     NTSTATUS status;
     PPH_STRING commandLine = NULL;
     STARTUPINFO startupInfo;
@@ -1818,7 +1853,7 @@ NTSTATUS PhCreateProcessWin32Ex(
         commandLine = PhCreateString(CommandLine);
 
     newFlags = 0;
-    PhMapFlags1(&newFlags, Flags, mappings, sizeof(mappings) / sizeof(PH_FLAG_MAPPING));
+    PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
 
     if (StartupInfo)
     {
@@ -1873,22 +1908,286 @@ NTSTATUS PhCreateProcessWin32Ex(
 
     if (NT_SUCCESS(status))
     {
-        if (ClientId)
+        PhpConvertProcessInformation(&processInfo, ClientId, ProcessHandle, ThreadHandle);
+    }
+
+    return status;
+}
+
+NTSTATUS PhCreateProcessAsUser(
+    __in PPH_CREATE_PROCESS_AS_USER_INFO Information,
+    __in ULONG Flags,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
+    static PH_INITONCE userEnvInitOnce = PH_INITONCE_INIT;
+    static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
+    static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
+
+    NTSTATUS status;
+    HANDLE tokenHandle;
+    PVOID defaultEnvironment;
+    STARTUPINFO startupInfo = { sizeof(startupInfo) };
+    BOOLEAN needsDuplicate = FALSE;
+
+    if (PhBeginInitOnce(&userEnvInitOnce))
+    {
+        HMODULE userEnv;
+
+        userEnv = LoadLibrary(L"userenv.dll");
+        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userEnv, "CreateEnvironmentBlock");
+        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userEnv, "DestroyEnvironmentBlock");
+
+        PhEndInitOnce(&userEnvInitOnce);
+    }
+
+    if (!Information->ApplicationName && !Information->CommandLine)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if ((!Information->DomainName || !Information->UserName || !Information->Password) && !Information->ProcessIdWithToken)
+        return STATUS_INVALID_PARAMETER_MIX;
+
+    // Whenever we can, try not to set the desktop name; it breaks a lot of things.
+    if (Information->DesktopName && !WSTR_IEQUAL(Information->DesktopName, L"WinSta0\\Default"))
+        startupInfo.lpDesktop = Information->DesktopName;
+
+    // Try to use CreateProcessWithLogonW if we need to load the user profile. 
+    // This isn't compatible with some options.
+    if (Flags & PH_CREATE_PROCESS_WITH_PROFILE)
+    {
+        BOOLEAN useWithLogon;
+
+        useWithLogon = TRUE;
+
+        if (!Information->DomainName || !Information->UserName || !Information->Password)
+            useWithLogon = FALSE;
+
+        if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+            useWithLogon = FALSE;
+
+        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
         {
-            ClientId->UniqueProcess = (HANDLE)processInfo.dwProcessId;
-            ClientId->UniqueThread = (HANDLE)processInfo.dwThreadId;
+            if (Information->SessionId != NtCurrentPeb()->SessionId)
+                useWithLogon = FALSE;
         }
 
-        if (ProcessHandle)
-            *ProcessHandle = processInfo.hProcess;
-        else
-            NtClose(processInfo.hProcess);
+        if (Information->LogonType && Information->LogonType != LOGON32_LOGON_INTERACTIVE)
+            useWithLogon = FALSE;
 
-        if (ThreadHandle)
-            *ThreadHandle = processInfo.hThread;
-        else
-            NtClose(processInfo.hThread);
+        if (useWithLogon)
+        {
+            PPH_STRING commandLine;
+            PROCESS_INFORMATION processInfo;
+            ULONG newFlags;
+
+            if (Information->CommandLine) // duplicate because CreateProcess modifies the string
+                commandLine = PhCreateString(Information->CommandLine);
+            else
+                commandLine = NULL;
+
+            if (!Information->Environment)
+                Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+
+            newFlags = 0;
+            PhMapFlags1(&newFlags, Flags, PhpCreateProcessMappings, sizeof(PhpCreateProcessMappings) / sizeof(PH_FLAG_MAPPING));
+
+            if (CreateProcessWithLogonW(
+                Information->UserName,
+                Information->DomainName,
+                Information->Password,
+                LOGON_WITH_PROFILE,
+                Information->ApplicationName,
+                PhGetString(commandLine),
+                newFlags,
+                Information->Environment,
+                Information->CurrentDirectory,
+                &startupInfo,
+                &processInfo
+                ))
+                status = STATUS_SUCCESS;
+            else
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+
+            if (commandLine)
+                PhDereferenceObject(commandLine);
+
+            if (NT_SUCCESS(status))
+            {
+                PhpConvertProcessInformation(&processInfo, ClientId, ProcessHandle, ThreadHandle);
+            }
+
+            return status;
+        }
     }
+
+    // Get the token handle, either obtained by 
+    // logging in as a user or stealing a token from 
+    // another process.
+
+    if (!Information->ProcessIdWithToken)
+    {
+        ULONG logonType;
+
+        if (Information->LogonType)
+        {
+            logonType = Information->LogonType;
+        }
+        else
+        {
+            logonType = LOGON32_LOGON_INTERACTIVE;
+
+            // Check if this is a service logon.
+            if (WSTR_IEQUAL(Information->DomainName, L"NT AUTHORITY"))
+            {
+                if (WSTR_IEQUAL(Information->UserName, L"SYSTEM"))
+                {
+                    if (WindowsVersion >= WINDOWS_VISTA)
+                        logonType = LOGON32_LOGON_SERVICE;
+                    else
+                        logonType = LOGON32_LOGON_NEW_CREDENTIALS; // HACK
+                }
+
+                if (
+                    WSTR_IEQUAL(Information->UserName, L"LOCAL SERVICE") ||
+                    WSTR_IEQUAL(Information->UserName, L"NETWORK SERVICE")
+                    )
+                {
+                    logonType = LOGON32_LOGON_SERVICE;
+                }
+            }
+        }
+
+        if (!LogonUser(
+            Information->UserName,
+            Information->DomainName,
+            Information->Password,
+            logonType,
+            LOGON32_PROVIDER_DEFAULT,
+            &tokenHandle
+            ))
+            return NTSTATUS_FROM_WIN32(GetLastError());
+    }
+    else
+    {
+        HANDLE processHandle;
+
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            Information->ProcessIdWithToken
+            )))
+            return status;
+
+        status = PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_ALL_ACCESS,
+            processHandle
+            );
+        NtClose(processHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+            needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
+    }
+
+    if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+    {
+        HANDLE linkedTokenHandle;
+
+        if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
+        {
+            NtClose(tokenHandle);
+            tokenHandle = linkedTokenHandle;
+            needsDuplicate = TRUE; // returned linked token handle is an impersonation token; need to convert to primary
+        }
+    }
+
+    if (needsDuplicate)
+    {
+        HANDLE newTokenHandle;
+        OBJECT_ATTRIBUTES oa;
+        SECURITY_QUALITY_OF_SERVICE securityQos;
+
+        securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
+        securityQos.ImpersonationLevel = SecurityImpersonation;
+        securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
+        securityQos.EffectiveOnly = FALSE;
+
+        InitializeObjectAttributes(
+            &oa,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+        oa.SecurityQualityOfService = &securityQos;
+
+        status = NtDuplicateToken(
+            tokenHandle,
+            TOKEN_ALL_ACCESS,
+            &oa,
+            FALSE,
+            TokenPrimary,
+            &newTokenHandle
+            );
+        NtClose(tokenHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        tokenHandle = newTokenHandle;
+    }
+
+    // Set the session ID if needed.
+
+    if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+    {
+        if (!NT_SUCCESS(status = PhSetTokenSessionId(
+            tokenHandle,
+            Information->SessionId
+            )))
+        {
+            NtClose(tokenHandle);
+            return status;
+        }
+    }
+
+    if (!Information->Environment)
+    {
+        defaultEnvironment = NULL;
+
+        if (CreateEnvironmentBlock_I)
+        {
+            CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
+
+            if (defaultEnvironment)
+                Flags |= PH_CREATE_PROCESS_UNICODE_ENVIRONMENT;
+        }
+    }
+
+    status = PhCreateProcessWin32Ex(
+        Information->ApplicationName,
+        Information->CommandLine,
+        Information->Environment ? Information->Environment : defaultEnvironment,
+        Information->CurrentDirectory,
+        &startupInfo,
+        Flags,
+        tokenHandle,
+        ClientId,
+        ProcessHandle,
+        ThreadHandle
+        );
+
+    if (defaultEnvironment)
+    {
+        if (DestroyEnvironmentBlock_I)
+            DestroyEnvironmentBlock_I(defaultEnvironment);
+    }
+
+    NtClose(tokenHandle);
 
     return status;
 }
