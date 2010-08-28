@@ -25,6 +25,7 @@
 #include <shlwapi.h>
 #include <wtsapi32.h>
 #include <windowsx.h>
+#include <userenv.h>
 
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
     __out LPVOID *lpEnvironment,
@@ -34,6 +35,11 @@ typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
 
 typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
     __in LPVOID lpEnvironment
+    );
+
+typedef BOOL (WINAPI *_LoadUserProfileW)(
+    __in HANDLE hToken,
+    __inout LPPROFILEINFO lpProfileInfo
     );
 
 typedef struct _RUNAS_DIALOG_CONTEXT
@@ -78,9 +84,6 @@ static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
     SIP(L"New credentials", LOGON32_LOGON_NEW_CREDENTIALS),
     SIP(L"Service", LOGON32_LOGON_SERVICE)
 };
-
-static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
-static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
 
 static RUNAS_SERVICE_PARAMETERS RunAsServiceParameters;
 
@@ -1200,18 +1203,6 @@ VOID PhRunAsServiceStart()
     PhpRunAsServiceExit(status);
 }
 
-static VOID PhpImportUserEnv()
-{
-    HMODULE userenv;
-
-    if (!CreateEnvironmentBlock_I || !DestroyEnvironmentBlock_I)
-    {
-        userenv = LoadLibrary(L"userenv.dll");
-        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userenv, "CreateEnvironmentBlock");
-        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userenv, "DestroyEnvironmentBlock");
-    }
-}
-
 NTSTATUS PhCreateProcessAsUser(
     __in_opt PWSTR ApplicationName,
     __in_opt PWSTR CommandLine,
@@ -1229,11 +1220,24 @@ NTSTATUS PhCreateProcessAsUser(
     __out_opt PHANDLE ThreadHandle
     )
 {
+    static PH_INITONCE userEnvInitOnce = PH_INITONCE_INIT;
+    static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
+    static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
+
     NTSTATUS status;
     HANDLE tokenHandle;
     PVOID defaultEnvironment;
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
     BOOLEAN needsDuplicate = FALSE;
+
+    if (PhBeginInitOnce(&userEnvInitOnce))
+    {
+        HMODULE userEnv;
+
+        userEnv = LoadLibrary(L"userenv.dll");
+        CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userEnv, "CreateEnvironmentBlock");
+        DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userEnv, "DestroyEnvironmentBlock");
+    }
 
     if (!ApplicationName && !CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -1345,9 +1349,10 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (!Environment)
     {
-        PhpImportUserEnv();
         defaultEnvironment = NULL;
-        CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
+
+        if (CreateEnvironmentBlock_I)
+            CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
     }
 
     if (DesktopName)
@@ -1370,7 +1375,8 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (defaultEnvironment)
     {
-        DestroyEnvironmentBlock_I(defaultEnvironment);
+        if (DestroyEnvironmentBlock_I)
+            DestroyEnvironmentBlock_I(defaultEnvironment);
     }
 
     NtClose(tokenHandle);
