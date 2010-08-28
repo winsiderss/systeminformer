@@ -200,6 +200,45 @@ NTSTATUS PhCommandModeStart()
             CloseServiceHandle(serviceHandle);
         }
     }
+    else if (PhEqualString2(PhStartupParameters.CommandType, L"thread", TRUE))
+    {
+        ULONG64 threadId64;
+        HANDLE threadId;
+        HANDLE threadHandle;
+
+        if (!PhStartupParameters.CommandObject)
+            return STATUS_INVALID_PARAMETER;
+
+        if (!PhStringToInteger64(&PhStartupParameters.CommandObject->sr, 10, &threadId64))
+            return STATUS_INVALID_PARAMETER;
+
+        threadId = UlongToHandle((ULONG)threadId64);
+
+        if (PhEqualString2(PhStartupParameters.CommandAction, L"terminate", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
+            {
+                status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+                NtClose(threadHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"suspend", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            {
+                status = PhSuspendThread(threadHandle, NULL);
+                NtClose(threadHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"resume", TRUE))
+        {
+            if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+            {
+                status = PhResumeThread(threadHandle, NULL);
+                NtClose(threadHandle);
+            }
+        }
+    }
 
     return status;
 }
