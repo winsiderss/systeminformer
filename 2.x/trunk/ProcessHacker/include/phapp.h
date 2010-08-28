@@ -157,8 +157,10 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_VERIFIEDSIGNER 37
 #define PHTLC_SAFE 38
 #define PHTLC_RELATIVESTARTTIME 39
+#define PHTLC_BITS 40
+#define PHTLC_ELEVATION 41
 
-#define PHTLC_MAXIMUM 40
+#define PHTLC_MAXIMUM 42
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
@@ -272,6 +274,31 @@ PHAPPAPI
 VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
+
+typedef BOOLEAN (NTAPI *PPH_PROCESS_TREE_FILTER)(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    );
+
+typedef struct _PH_PROCESS_TREE_FILTER_ENTRY
+{
+    PPH_PROCESS_TREE_FILTER Filter;
+    PVOID Context;
+} PH_PROCESS_TREE_FILTER_ENTRY, *PPH_PROCESS_TREE_FILTER_ENTRY;
+
+PHAPPAPI
+PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER Filter,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+VOID PhRemoveProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER_ENTRY Entry
+    );
+
+PHAPPAPI
+VOID PhApplyProcessTreeFilters();
 
 VOID PhCopyProcessTree();
 

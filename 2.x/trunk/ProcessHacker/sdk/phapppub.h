@@ -49,6 +49,27 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+typedef BOOLEAN (NTAPI *PPH_PROCESS_TREE_FILTER)(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    );
+
+typedef struct _PH_PROCESS_TREE_FILTER_ENTRY *PPH_PROCESS_TREE_FILTER_ENTRY;
+
+PHAPPAPI
+PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER Filter,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+VOID PhRemoveProcessTreeFilter(
+    __in PPH_PROCESS_TREE_FILTER_ENTRY Entry
+    );
+
+PHAPPAPI
+VOID PhApplyProcessTreeFilters();
+
 // appsup
 
 PHAPPAPI
