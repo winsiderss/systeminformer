@@ -3,6 +3,7 @@ Process Hacker
 2.4
  * NEW/IMPROVED:
    * Better Run As behaviour
+   * Show Processes From All Users option
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions
