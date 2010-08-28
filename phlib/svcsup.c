@@ -77,6 +77,7 @@ PVOID PhEnumServices(
     )
 {
     static ULONG initialBufferSize = 0x8000;
+    LOGICAL result;
     PVOID buffer;
     ULONG bufferSize;
     ULONG returnLength;
@@ -90,7 +91,7 @@ PVOID PhEnumServices(
     bufferSize = initialBufferSize;
     buffer = PhAllocate(bufferSize);
 
-    if (!EnumServicesStatusEx(
+    if (!(result = EnumServicesStatusEx(
         ScManagerHandle,
         SC_ENUM_PROCESS_INFO,
         Type,
@@ -101,7 +102,7 @@ PVOID PhEnumServices(
         &servicesReturned,
         NULL,
         NULL
-        ))
+        )))
     {
         if (GetLastError() == ERROR_MORE_DATA)
         {
@@ -109,7 +110,7 @@ PVOID PhEnumServices(
             bufferSize += returnLength;
             buffer = PhAllocate(bufferSize);
 
-            if (!EnumServicesStatusEx(
+            result = EnumServicesStatusEx(
                 ScManagerHandle,
                 SC_ENUM_PROCESS_INFO,
                 Type,
@@ -120,11 +121,13 @@ PVOID PhEnumServices(
                 &servicesReturned,
                 NULL,
                 NULL
-                ))
-            {
-                PhFree(buffer);
-                return NULL;
-            }
+                );
+        }
+
+        if (!result)
+        {
+            PhFree(buffer);
+            return NULL;
         }
     }
 
