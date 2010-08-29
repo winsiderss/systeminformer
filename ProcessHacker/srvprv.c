@@ -143,9 +143,9 @@ ULONG PhpServiceHashtableHashFunction(
     )
 {
     PPH_SERVICE_ITEM serviceItem = *(PPH_SERVICE_ITEM *)Entry;
-    WCHAR lowerName[257];
+    WCHAR upperName[257];
 
-    // Service names are case-insensitive, so we'll lowercase 
+    // Service names are case-insensitive, so we'll uppercase 
     // the given service name and then hash it.
 
     // Check the length. Should never be above 256, but we have 
@@ -153,13 +153,13 @@ ULONG PhpServiceHashtableHashFunction(
     if (serviceItem->Key.Length > 256 * 2)
         return 0;
 
-    // Copy the name and convert it to lowercase.
-    memcpy(lowerName, serviceItem->Key.Buffer, serviceItem->Key.Length);
-    lowerName[serviceItem->Key.Length / sizeof(WCHAR)] = 0; // null terminator
-    _wcslwr(lowerName);
+    // Copy the name and convert it to uppercase.
+    memcpy(upperName, serviceItem->Key.Buffer, serviceItem->Key.Length);
+    upperName[serviceItem->Key.Length / sizeof(WCHAR)] = 0; // null terminator
+    _wcsupr(upperName);
 
     // Hash the string.
-    return PhHashBytes((PUCHAR)lowerName, serviceItem->Key.Length);
+    return PhHashBytes((PUCHAR)upperName, serviceItem->Key.Length);
 }
 
 PPH_SERVICE_ITEM PhReferenceServiceItem(
