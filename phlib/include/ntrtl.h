@@ -1614,24 +1614,6 @@ RtlFreeToPeb(
     __in ULONG Size
     );
 
-NTSYSAPI
-NTSTATUS
-STDAPIVCALLTYPE
-RtlSetProcessIsCritical(
-    __in BOOLEAN NewValue,
-    __out_opt PBOOLEAN OldValue,
-    __in BOOLEAN CheckFlag
-    );
-
-NTSYSAPI
-NTSTATUS
-STDAPIVCALLTYPE
-RtlSetThreadIsCritical(
-    __in BOOLEAN NewValue,
-    __out_opt PBOOLEAN OldValue,
-    __in BOOLEAN CheckFlag
-    );
-
 // Processes
 
 #define DOS_MAX_COMPONENT_LENGTH 255
@@ -1770,6 +1752,24 @@ RtlCreateUserProcess(
     __in_opt HANDLE DebugPort,
     __in_opt HANDLE ExceptionPort,
     __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    );
+
+NTSYSAPI
+NTSTATUS
+STDAPIVCALLTYPE
+RtlSetProcessIsCritical(
+    __in BOOLEAN NewValue,
+    __out_opt PBOOLEAN OldValue,
+    __in BOOLEAN CheckFlag
+    );
+
+NTSYSAPI
+NTSTATUS
+STDAPIVCALLTYPE
+RtlSetThreadIsCritical(
+    __in BOOLEAN NewValue,
+    __out_opt PBOOLEAN OldValue,
+    __in BOOLEAN CheckFlag
     );
 
 // Threads
@@ -2108,7 +2108,7 @@ typedef struct _RTL_HEAP_ENTRY
 #define RTL_HEAP_SETTABLE_FLAG1 (USHORT)0x0020
 #define RTL_HEAP_SETTABLE_FLAG2 (USHORT)0x0040
 #define RTL_HEAP_SETTABLE_FLAG3 (USHORT)0x0080
-#define RTL_HEAP_SETTABLE_FLAGS (USHORT)0x00E0
+#define RTL_HEAP_SETTABLE_FLAGS (USHORT)0x00e0
 #define RTL_HEAP_UNCOMMITTED_RANGE (USHORT)0x0100
 #define RTL_HEAP_PROTECTED_ENTRY (USHORT)0x0200
 
