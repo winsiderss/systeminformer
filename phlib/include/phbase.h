@@ -766,7 +766,7 @@ FORCEINLINE BOOLEAN PhEqualStringRef(
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhCompareStringRef(String1, String2, IgnoreCase) == 0;
+    return RtlEqualUnicodeString(&String1->us, &String2->us, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhEqualStringRef2(
@@ -784,10 +784,7 @@ FORCEINLINE BOOLEAN PhStartsWithStringRef(
     __in BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcsncmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
-    else
-        return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+    return RtlPrefixUnicodeString(&String2->us, &String1->us, IgnoreCase);
 }
 
 FORCEINLINE VOID PhReverseStringRef(
@@ -1046,7 +1043,7 @@ FORCEINLINE LONG PhCompareString(
     if (!IgnoreCase)
         return wcscmp(String1->Buffer, String2->Buffer);
     else
-        return wcsicmp(String1->Buffer, String2->Buffer);
+        return RtlCompareUnicodeString(&String1->us, &String2->us, TRUE); // faster than wcsicmp
 }
 
 /**
@@ -1083,10 +1080,7 @@ FORCEINLINE LONG PhCompareStringWithNull(
 {
     if (String1 && String2)
     {
-        if (!IgnoreCase)
-            return wcscmp(String1->Buffer, String2->Buffer);
-        else
-            return wcsicmp(String1->Buffer, String2->Buffer);
+        return PhCompareString(String1, String2, IgnoreCase);
     }
     else if (!String1)
     {
@@ -1111,7 +1105,10 @@ FORCEINLINE BOOLEAN PhEqualString(
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhCompareString(String1, String2, IgnoreCase) == 0;
+    if (!IgnoreCase)
+        return wcscmp(String1->Buffer, String2->Buffer) == 0;
+    else
+        return RtlEqualUnicodeString(&String1->us, &String2->us, TRUE);
 }
 
 /**
@@ -1146,10 +1143,7 @@ FORCEINLINE BOOLEAN PhStartsWithString(
     __in BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcsncmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
-    else
-        return wcsnicmp(String1->Buffer, String2->Buffer, String2->Length / sizeof(WCHAR)) == 0;
+    return RtlPrefixUnicodeString(&String2->us, &String1->us, IgnoreCase);
 }
 
 /**
