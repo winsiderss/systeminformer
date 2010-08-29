@@ -495,7 +495,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 PhEqualString2(userName, L"NT AUTHORITY\\SYSTEM", TRUE) &&
                                 WindowsVersion <= WINDOWS_XP
                                 )
-                            { 
+                            {
                                 ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_TYPE), -1, L"New credentials");
                             }
                             else
@@ -1211,6 +1211,8 @@ VOID PhRunAsServiceStart()
     {
         PhSetTokenPrivilege(tokenHandle, L"SeAssignPrimaryTokenPrivilege", NULL, SE_PRIVILEGE_ENABLED);
         PhSetTokenPrivilege(tokenHandle, L"SeBackupPrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege(tokenHandle, L"SeImpersonatePrivilege", NULL, SE_PRIVILEGE_ENABLED);
+        PhSetTokenPrivilege(tokenHandle, L"SeIncreaseQuotaPrivilege", NULL, SE_PRIVILEGE_ENABLED);
         PhSetTokenPrivilege(tokenHandle, L"SeRestorePrivilege", NULL, SE_PRIVILEGE_ENABLED);
         NtClose(tokenHandle);
     }
