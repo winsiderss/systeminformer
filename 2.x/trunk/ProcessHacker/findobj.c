@@ -565,13 +565,13 @@ static BOOLEAN NTAPI EnumModulesCallback(
     __in_opt PVOID Context
     )
 {
-    PPH_STRING lowerFileName;
+    PPH_STRING upperFileName;
 
-    lowerFileName = PhDuplicateString(Module->FileName);
-    PhLowerString(lowerFileName);
+    upperFileName = PhDuplicateString(Module->FileName);
+    PhUpperString(upperFileName);
 
     if (
-        PhFindStringInString(lowerFileName, 0, SearchString->Buffer) != -1 ||
+        PhFindStringInString(upperFileName, 0, SearchString->Buffer) != -1 ||
         (UseSearchPointer && Module->BaseAddress == (PVOID)SearchPointer)
         )
     {
@@ -598,7 +598,7 @@ static BOOLEAN NTAPI EnumModulesCallback(
         PhReleaseQueuedLockExclusive(&SearchResultsLock);
     }
 
-    PhDereferenceObject(lowerFileName);
+    PhDereferenceObject(upperFileName);
 
     return TRUE;
 }
@@ -617,10 +617,10 @@ static NTSTATUS PhpFindObjectsThreadStart(
     if (SearchString->Length == 0)
         goto Exit;
 
-    PhLowerString(SearchString);
-
     // Try to get a search pointer from the search string.
     UseSearchPointer = PhStringToInteger64(&SearchString->sr, 0, &SearchPointer);
+
+    PhUpperString(SearchString);
 
     if (NT_SUCCESS(PhEnumHandlesEx(&handles)))
     {
@@ -680,13 +680,13 @@ static NTSTATUS PhpFindObjectsThreadStart(
                 &bestObjectName
                 )))
             {
-                PPH_STRING lowerBestObjectName;
+                PPH_STRING upperBestObjectName;
 
-                lowerBestObjectName = PhDuplicateString(bestObjectName);
-                PhLowerString(lowerBestObjectName);
+                upperBestObjectName = PhDuplicateString(bestObjectName);
+                PhUpperString(upperBestObjectName);
 
                 if (
-                    PhFindStringInString(lowerBestObjectName, 0, SearchString->Buffer) != -1 ||
+                    PhFindStringInString(upperBestObjectName, 0, SearchString->Buffer) != -1 ||
                     (UseSearchPointer && handleInfo->Object == (PVOID)SearchPointer)
                     )
                 {
@@ -717,7 +717,7 @@ static NTSTATUS PhpFindObjectsThreadStart(
                     PhDereferenceObject(bestObjectName);
                 }
 
-                PhDereferenceObject(lowerBestObjectName);
+                PhDereferenceObject(upperBestObjectName);
             }
         }
 

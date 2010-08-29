@@ -611,19 +611,19 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
     }
     else
     {
-        PPH_STRING lowerValue;
+        PPH_STRING upperValue;
 
-        lowerValue = PhDuplicateString(Value);
-        PhLowerString(lowerValue);
+        upperValue = PhDuplicateString(Value);
+        PhUpperString(upperValue);
 
-        if (PhFindStringInString(lowerValue, 0, L"taskmgr.exe") != -1)
+        if (PhFindStringInString(upperValue, 0, L"TASKMGR.EXE") != -1)
         {
             // User probably has Process Hacker replacing Task Manager. Force 
             // the main window to start visible.
             PhStartupParameters.ShowVisible = TRUE;
         }
 
-        PhDereferenceObject(lowerValue);
+        PhDereferenceObject(upperValue);
     }
 
     return TRUE;
