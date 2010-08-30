@@ -38,6 +38,12 @@
 #  include <errno.h>
 #  include <windows.h>
 
+#ifdef PHAPP_EXPORT
+#define PHMXMLAPI __declspec(dllexport)
+#else
+#define PHMXMLAPI
+#endif
+
 
 /*
  * Constants...
@@ -191,13 +197,13 @@ extern "C" {
  * Prototypes...
  */
 
-extern void		mxmlAdd(mxml_node_t *parent, int where,
+PHMXMLAPI extern void		mxmlAdd(mxml_node_t *parent, int where,
 			        mxml_node_t *child, mxml_node_t *node);
-extern void		mxmlDelete(mxml_node_t *node);
-extern void		mxmlElementDeleteAttr(mxml_node_t *node,
+PHMXMLAPI extern void		mxmlDelete(mxml_node_t *node);
+PHMXMLAPI extern void		mxmlElementDeleteAttr(mxml_node_t *node,
 			                      const char *name);
-extern const char	*mxmlElementGetAttr(mxml_node_t *node, const char *name);
-extern void		mxmlElementSetAttr(mxml_node_t *node, const char *name,
+PHMXMLAPI extern const char	*mxmlElementGetAttr(mxml_node_t *node, const char *name);
+PHMXMLAPI extern void		mxmlElementSetAttr(mxml_node_t *node, const char *name,
 			                   const char *value);
 extern void		mxmlElementSetAttrf(mxml_node_t *node, const char *name,
 			                    const char *format, ...)
@@ -209,7 +215,7 @@ extern int		mxmlEntityAddCallback(mxml_entity_cb_t cb);
 extern const char	*mxmlEntityGetName(int val);
 extern int		mxmlEntityGetValue(const char *name);
 extern void		mxmlEntityRemoveCallback(mxml_entity_cb_t cb);
-extern mxml_node_t	*mxmlFindElement(mxml_node_t *node, mxml_node_t *top,
+PHMXMLAPI extern mxml_node_t	*mxmlFindElement(mxml_node_t *node, mxml_node_t *top,
 			                 const char *name, const char *attr,
 					 const char *value, int descend);
 extern void		mxmlIndexDelete(mxml_index_t *ind);
@@ -220,20 +226,20 @@ extern mxml_node_t	*mxmlIndexFind(mxml_index_t *ind,
 extern mxml_index_t	*mxmlIndexNew(mxml_node_t *node, const char *element,
 			              const char *attr);
 extern mxml_node_t	*mxmlIndexReset(mxml_index_t *ind);
-extern mxml_node_t	*mxmlLoadFd(mxml_node_t *top, HANDLE fd,
+PHMXMLAPI extern mxml_node_t	*mxmlLoadFd(mxml_node_t *top, HANDLE fd,
 			            mxml_type_t (*cb)(mxml_node_t *));
 extern mxml_node_t	*mxmlLoadFile(mxml_node_t *top, FILE *fp,
 			              mxml_type_t (*cb)(mxml_node_t *));
-extern mxml_node_t	*mxmlLoadString(mxml_node_t *top, const char *s,
+PHMXMLAPI extern mxml_node_t	*mxmlLoadString(mxml_node_t *top, const char *s,
 			                mxml_type_t (*cb)(mxml_node_t *));
-extern mxml_node_t	*mxmlNewCDATA(mxml_node_t *parent, const char *string);
-extern mxml_node_t	*mxmlNewCustom(mxml_node_t *parent, void *data,
+PHMXMLAPI extern mxml_node_t	*mxmlNewCDATA(mxml_node_t *parent, const char *string);
+PHMXMLAPI extern mxml_node_t	*mxmlNewCustom(mxml_node_t *parent, void *data,
 			               mxml_custom_destroy_cb_t destroy);
-extern mxml_node_t	*mxmlNewElement(mxml_node_t *parent, const char *name);
+PHMXMLAPI extern mxml_node_t	*mxmlNewElement(mxml_node_t *parent, const char *name);
 extern mxml_node_t	*mxmlNewInteger(mxml_node_t *parent, int integer);
-extern mxml_node_t	*mxmlNewOpaque(mxml_node_t *parent, const char *opaque);
+PHMXMLAPI extern mxml_node_t	*mxmlNewOpaque(mxml_node_t *parent, const char *opaque);
 extern mxml_node_t	*mxmlNewReal(mxml_node_t *parent, double real);
-extern mxml_node_t	*mxmlNewText(mxml_node_t *parent, int whitespace,
+PHMXMLAPI extern mxml_node_t	*mxmlNewText(mxml_node_t *parent, int whitespace,
 			             const char *string);
 extern mxml_node_t	*mxmlNewTextf(mxml_node_t *parent, int whitespace,
 			              const char *format, ...)
@@ -241,17 +247,17 @@ extern mxml_node_t	*mxmlNewTextf(mxml_node_t *parent, int whitespace,
 __attribute__ ((__format__ (__printf__, 3, 4)))
 #    endif /* __GNUC__ */
 ;
-extern mxml_node_t	*mxmlNewXML(const char *version);
-extern int		mxmlRelease(mxml_node_t *node);
-extern void		mxmlRemove(mxml_node_t *node);
-extern int		mxmlRetain(mxml_node_t *node);
-extern char		*mxmlSaveAllocString(mxml_node_t *node,
+PHMXMLAPI extern mxml_node_t	*mxmlNewXML(const char *version);
+PHMXMLAPI extern int		mxmlRelease(mxml_node_t *node);
+PHMXMLAPI extern void		mxmlRemove(mxml_node_t *node);
+PHMXMLAPI extern int		mxmlRetain(mxml_node_t *node);
+PHMXMLAPI extern char		*mxmlSaveAllocString(mxml_node_t *node,
 			        	     mxml_save_cb_t cb);
-extern int		mxmlSaveFd(mxml_node_t *node, HANDLE fd,
+PHMXMLAPI extern int		mxmlSaveFd(mxml_node_t *node, HANDLE fd,
 			           mxml_save_cb_t cb);
 extern int		mxmlSaveFile(mxml_node_t *node, FILE *fp,
 			             mxml_save_cb_t cb);
-extern int		mxmlSaveString(mxml_node_t *node, char *buffer,
+PHMXMLAPI extern int		mxmlSaveString(mxml_node_t *node, char *buffer,
 			               int bufsize, mxml_save_cb_t cb);
 extern mxml_node_t	*mxmlSAXLoadFd(mxml_node_t *top, HANDLE fd,
 			               mxml_type_t (*cb)(mxml_node_t *),
@@ -262,17 +268,17 @@ extern mxml_node_t	*mxmlSAXLoadFile(mxml_node_t *top, FILE *fp,
 extern mxml_node_t	*mxmlSAXLoadString(mxml_node_t *top, const char *s,
 			                   mxml_type_t (*cb)(mxml_node_t *),
 			                   mxml_sax_cb_t sax, void *sax_data);
-extern int		mxmlSetCDATA(mxml_node_t *node, const char *data);
-extern int		mxmlSetCustom(mxml_node_t *node, void *data,
+PHMXMLAPI extern int		mxmlSetCDATA(mxml_node_t *node, const char *data);
+PHMXMLAPI extern int		mxmlSetCustom(mxml_node_t *node, void *data,
 			              mxml_custom_destroy_cb_t destroy);
-extern void		mxmlSetCustomHandlers(mxml_custom_load_cb_t load,
+PHMXMLAPI extern void		mxmlSetCustomHandlers(mxml_custom_load_cb_t load,
 			                      mxml_custom_save_cb_t save);
-extern int		mxmlSetElement(mxml_node_t *node, const char *name);
-extern void		mxmlSetErrorCallback(mxml_error_cb_t cb);
+PHMXMLAPI extern int		mxmlSetElement(mxml_node_t *node, const char *name);
+PHMXMLAPI extern void		mxmlSetErrorCallback(mxml_error_cb_t cb);
 extern int		mxmlSetInteger(mxml_node_t *node, int integer);
-extern int		mxmlSetOpaque(mxml_node_t *node, const char *opaque);
+PHMXMLAPI extern int		mxmlSetOpaque(mxml_node_t *node, const char *opaque);
 extern int		mxmlSetReal(mxml_node_t *node, double real);
-extern int		mxmlSetText(mxml_node_t *node, int whitespace,
+PHMXMLAPI extern int		mxmlSetText(mxml_node_t *node, int whitespace,
 			            const char *string);
 extern int		mxmlSetTextf(mxml_node_t *node, int whitespace,
 			             const char *format, ...)
@@ -281,9 +287,9 @@ __attribute__ ((__format__ (__printf__, 3, 4)))
 #    endif /* __GNUC__ */
 ;
 extern void		mxmlSetWrapMargin(int column);
-extern mxml_node_t	*mxmlWalkNext(mxml_node_t *node, mxml_node_t *top,
+PHMXMLAPI extern mxml_node_t	*mxmlWalkNext(mxml_node_t *node, mxml_node_t *top,
 			              int descend);
-extern mxml_node_t	*mxmlWalkPrev(mxml_node_t *node, mxml_node_t *top,
+PHMXMLAPI extern mxml_node_t	*mxmlWalkPrev(mxml_node_t *node, mxml_node_t *top,
 			              int descend);
 
 
