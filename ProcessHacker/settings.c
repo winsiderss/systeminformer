@@ -48,7 +48,6 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"0");
-    PhpAddIntegerSetting(L"EnableProcDb", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
     PhpAddStringSetting(L"EnvironmentListViewColumns", L"");
@@ -163,7 +162,6 @@ VOID PhUpdateCachedSettings()
 #define UPDATE_INTEGER_CS(Name) (PhCs##Name = PhGetIntegerSetting(L#Name)) 
 
     UPDATE_INTEGER_CS(CollapseServicesOnStart);
-    UPDATE_INTEGER_CS(EnableProcDb);
     UPDATE_INTEGER_CS(HighlightingDuration);
     UPDATE_INTEGER_CS(UpdateInterval);
 
