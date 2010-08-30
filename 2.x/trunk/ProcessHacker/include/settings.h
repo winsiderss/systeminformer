@@ -98,7 +98,6 @@ VOID PhAddSettings(
 #endif
 
 EXT ULONG PhCsCollapseServicesOnStart;
-EXT ULONG PhCsEnableProcDb;
 EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsUpdateInterval;
 

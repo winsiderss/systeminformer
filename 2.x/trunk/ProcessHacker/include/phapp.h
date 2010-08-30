@@ -11,7 +11,6 @@
 #include <treelist.h>
 #include <circbuf.h>
 #include <providers.h>
-#include <procdb.h>
 #include "resource.h"
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
@@ -155,7 +154,7 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_USERCPUTIME 35
 #define PHTLC_VERIFICATIONSTATUS 36
 #define PHTLC_VERIFIEDSIGNER 37
-#define PHTLC_SAFE 38
+#define PHTLC_RESERVED1 38
 #define PHTLC_RELATIVESTARTTIME 39
 #define PHTLC_BITS 40
 #define PHTLC_ELEVATION 41
@@ -181,8 +180,6 @@ typedef struct _PH_PROCESS_NODE
     PPH_LIST Children;
 
     PH_STRINGREF TextCache[PHTLC_MAXIMUM];
-
-    PPH_PROCDB_ENTRY DbEntry;
 
     // If the user has selected certain columns we need extra information 
     // that isn't retrieved by the process provider.

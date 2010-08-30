@@ -569,10 +569,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\include\procdb.h"
-				>
-			</File>
-			<File
 				RelativePath=".\include\procprpp.h"
 				>
 			</File>
@@ -822,10 +818,6 @@
 			</File>
 			<File
 				RelativePath=".\plugman.c"
-				>
-			</File>
-			<File
-				RelativePath=".\procdb.c"
 				>
 			</File>
 			<File

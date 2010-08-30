@@ -273,7 +273,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
             SetDlgItemCheckForSetting(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
-            SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEPROCDB, L"EnableProcDb");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
         }
         break;
@@ -295,7 +294,6 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     SetSettingForDlgItemCheck(hwndDlg, IDC_STARTHIDDEN, L"StartHidden");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
-                    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEPROCDB, L"EnableProcDb");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
