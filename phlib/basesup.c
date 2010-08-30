@@ -1548,7 +1548,7 @@ VOID PhAppendFullStringEx(
     if (Length == 0)
         return;
 
-    // Resize the string is necessary.
+    // Resize the string if necessary.
     if (String->AllocatedLength < String->Length + Length)
         PhResizeFullString(String, String->Length + Length, TRUE);
 
