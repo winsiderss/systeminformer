@@ -77,6 +77,8 @@ for %%a in (
     phdk.h
     ) do copy ..\..\ProcessHacker\sdk\%%a ..\..\sdk\include\%%a
 
+copy ..\..\ProcessHacker\mxml\mxml.h ..\..\sdk\include\mxml.h
+
 rem Libraries
 
 copy ..\..\lib\lib32\ntdll.lib ..\..\sdk\lib\i386\
