@@ -342,8 +342,6 @@ BOOLEAN PhMainWndInitialization(
         PhSymbolProviderDynamicImport();
     }
 
-    PhProcDbInitialization();
-
     PhSetIntegerSetting(L"FirstRun", FALSE);
 
     // Initialize the providers.
@@ -1313,25 +1311,6 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
-            case ID_PROCESS_MARKASSAFE:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-                    ULONG i;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-
-                    for (i = 0; i < numberOfProcesses; i++)
-                        PhToggleSafeProcess(processes[i]);
-
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
-
-                    // Force a refresh of all process database associations.
-                    PhInvalidateAllProcessNodes();
-                }
-                break;
             case ID_PROCESS_SEARCHONLINE:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
@@ -1737,9 +1716,6 @@ LRESULT CALLBACK PhMainWndProc(
     case WM_PH_SAVE_ALL_SETTINGS:
         {
             PhpSaveAllSettings();
-
-            if (PhProcDbFileName)
-                PhSaveProcDb(PhProcDbFileName->Buffer);
         }
         break;
     case WM_PH_PREPARE_FOR_EARLY_SHUTDOWN:
@@ -3417,55 +3393,12 @@ VOID PhpInitializeProcessMenu(
         EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
     }
 
-    if (PhProcDbInitialized)
-    {
-        if (NumberOfProcesses == 1)
-        {
-            PPH_PROCESS_NODE processNode;
-
-            if (PH_IS_REAL_PROCESS_ID(Processes[0]->ProcessId))
-            {
-                if (processNode = PhFindProcessNode(Processes[0]->ProcessId))
-                {
-                    if (processNode->DbEntry)
-                    {
-                        if (processNode->DbEntry->Flags & PH_PROCDB_ENTRY_SAFE)
-                        {
-                            MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-                            menuItemInfo.fMask = MIIM_STRING;
-                            menuItemInfo.dwTypeData = L"Mark as Unsafe";
-
-                            SetMenuItemInfo(Menu, ID_PROCESS_MARKASSAFE, FALSE, &menuItemInfo);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                PhEnableMenuItem(Menu, ID_PROCESS_MARKASSAFE, FALSE);
-            }
-        }
-        else
-        {
-            MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-            menuItemInfo.fMask = MIIM_STRING;
-            menuItemInfo.dwTypeData = L"Toggle Safe";
-
-            SetMenuItemInfo(Menu, ID_PROCESS_MARKASSAFE, FALSE, &menuItemInfo);
-        }
-    }
-
     // Remove irrelevant menu items (continued)
 
     if (!WINDOWS_HAS_UAC)
     {
         DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
     }
-
-    if (!PhProcDbInitialized)
-        DeleteMenu(Menu, ID_PROCESS_MARKASSAFE, 0);
 }
 
 VOID PhShowProcessContextMenu(
@@ -3843,29 +3776,6 @@ VOID PhMainWndOnProcessAdded(
 
         if (parentProcess)
             PhDereferenceObject(parentProcess);
-    }
-
-    if (PhProcDbInitialized)
-    {
-        if (ProcessItem->FileName)
-        {
-            UCHAR hash[16];
-
-            processNode->DbEntry = PhLookupProcDbEntry(ProcessItem->FileName);
-
-            // TODO: Calculate the hash in a worker thread.
-            if (
-                processNode->DbEntry &&
-                (processNode->DbEntry->Flags & PH_PROCDB_ENTRY_SAFE) &&
-                (processNode->DbEntry->Flags & PH_PROCDB_ENTRY_HASH_VALID) &&
-                NT_SUCCESS(PhMd5File(ProcessItem->FileName->Buffer, hash))
-                )
-            {
-                // Check if the file has changed, and if so, reset it to unsafe.
-                if (memcmp(processNode->DbEntry->Hash, hash, 16) != 0)
-                    processNode->DbEntry->Flags &= ~PH_PROCDB_ENTRY_SAFE;
-            }
-        }
     }
 
     // PhCreateProcessNode has its own reference.

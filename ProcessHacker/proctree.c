@@ -133,7 +133,6 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_USERCPUTIME, FALSE, L"User CPU Time", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHTLC_SAFE, FALSE, L"Safe", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_BITS, FALSE, L"Bits", 50, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
@@ -365,7 +364,6 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
     if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
 
-    if (ProcessNode->DbEntry) PhDereferenceProcDbEntry(ProcessNode->DbEntry);
     PhDereferenceObject(ProcessNode->ProcessItem);
 
     PhFree(ProcessNode);
@@ -546,16 +544,6 @@ VOID PhpUpdateProcessNodeIoPagePriority(
 
         ProcessNode->ValidMask |= PHPN_IOPAGEPRIORITY;
     }
-}
-
-BOOLEAN PhpIsProcessNodeSafe(
-    __in PPH_PROCESS_NODE ProcessNode
-    )
-{
-    if (!PH_IS_REAL_PROCESS_ID(ProcessNode->ProcessId))
-        return TRUE;
-
-    return ProcessNode->DbEntry && (ProcessNode->DbEntry->Flags & PH_PROCDB_ENTRY_SAFE);
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
@@ -855,15 +843,9 @@ BEGIN_SORT_FUNCTION(VerifiedSigner)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(Safe)
+BEGIN_SORT_FUNCTION(Reserved1)
 {
-    BOOLEAN safe1;
-    BOOLEAN safe2;
-
-    safe1 = PhpIsProcessNodeSafe(node1);
-    safe2 = PhpIsProcessNodeSafe(node2);
-
-    sortResult = intcmp(safe1, safe2);
+    sortResult = 0;
 }
 END_SORT_FUNCTION
 
@@ -960,7 +942,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(UserCpuTime),
                         SORT_FUNCTION(VerificationStatus),
                         SORT_FUNCTION(VerifiedSigner),
-                        SORT_FUNCTION(Safe),
+                        SORT_FUNCTION(Reserved1),
                         SORT_FUNCTION(RelativeStartTime),
                         SORT_FUNCTION(Bits),
                         SORT_FUNCTION(Elevation)
@@ -1229,19 +1211,6 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHTLC_VERIFIEDSIGNER:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
-                break;
-            case PHTLC_SAFE:
-                if (PhProcDbInitialized)
-                {
-                    if (PhpIsProcessNodeSafe(node))
-                        PhInitializeStringRef(&getNodeText->Text, L"Safe");
-                    else
-                        PhInitializeStringRef(&getNodeText->Text, L"Unsafe");
-                }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getNodeText->Text);
-                }
                 break;
             case PHTLC_RELATIVESTARTTIME:
                 {
@@ -1554,18 +1523,6 @@ VOID PhInvalidateAllProcessNodes()
         memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHTLC_MAXIMUM);
         PhInvalidateTreeListNode(&node->Node, TLIN_COLOR);
         node->ValidMask = 0;
-
-        if (PhProcDbInitialized)
-        {
-            if (node->DbEntry)
-            {
-                PhDereferenceProcDbEntry(node->DbEntry);
-                node->DbEntry = NULL;
-            }
-
-            if (node->ProcessItem->FileName)
-                node->DbEntry = PhLookupProcDbEntry(node->ProcessItem->FileName);
-        }
     }
 
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
