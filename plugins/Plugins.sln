@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SbieSupport", "SbieSupport\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecurityExplorer", "SecurityExplorer\SecurityExplorer.vcproj", "{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessActions", "ProcessActions\ProcessActions.vcproj", "{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -29,6 +31,14 @@ Global
 		{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}.Release|Win32.Build.0 = Release|Win32
 		{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}.Release|x64.ActiveCfg = Release|x64
 		{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}.Release|x64.Build.0 = Release|x64
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Debug|Win32.Build.0 = Debug|Win32
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Debug|x64.ActiveCfg = Debug|x64
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Debug|x64.Build.0 = Debug|x64
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Release|Win32.ActiveCfg = Release|Win32
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Release|Win32.Build.0 = Release|Win32
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Release|x64.ActiveCfg = Release|x64
+		{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
