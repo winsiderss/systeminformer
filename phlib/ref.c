@@ -22,7 +22,7 @@
 
 // This code was initially ported from KProcessHacker.
 
-#define REF_PRIVATE
+#define _PH_REF_PRIVATE
 #include <phbase.h>
 #include <refp.h>
 

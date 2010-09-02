@@ -165,7 +165,7 @@ PhStackWalk(
     __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     );
 
-#ifndef SYMPRV_PRIVATE
+#ifndef _PH_SYMPRV_PRIVATE
 extern _MiniDumpWriteDump MiniDumpWriteDump_I;
 #endif
 

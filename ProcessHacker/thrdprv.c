@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define THRDPRV_PRIVATE
+#define PH_THRDPRV_PRIVATE
 #include <phapp.h>
 #include <kph.h>
 

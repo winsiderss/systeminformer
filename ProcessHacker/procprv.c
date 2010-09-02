@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define PROCPRV_PRIVATE
+#define PH_PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kph.h>
 #include <phplug.h>

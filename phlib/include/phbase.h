@@ -38,7 +38,7 @@
 #include <fastlock.h>
 #include <queuedlock.h>
 
-#ifndef PHLIB_GLOBAL_PRIVATE
+#ifndef _PH_GLOBAL_PRIVATE
 
 struct _PH_STRING;
 typedef struct _PH_STRING *PPH_STRING;
@@ -94,7 +94,7 @@ extern ACCESS_MASK ThreadAllAccess;
 
 // data
 
-#ifndef DATA_PRIVATE
+#ifndef _PH_DATA_PRIVATE
 
 // SIDs
 
@@ -164,7 +164,7 @@ typedef struct _PHP_BASE_THREAD_DBG
 } PHP_BASE_THREAD_DBG, *PPHP_BASE_THREAD_DBG;
 #endif
 
-#if !defined(BASESUP_PRIVATE) && defined(DEBUG)
+#if !defined(_PH_BASESUP_PRIVATE) && defined(DEBUG)
 extern ULONG PhDbgThreadDbgTlsIndex;
 extern LIST_ENTRY PhDbgThreadListHead;
 extern PH_QUEUED_LOCK PhDbgThreadListLock;
@@ -613,7 +613,7 @@ FORCEINLINE BOOLEAN PhTestInitOnce(
 
 // string
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhStringType;
 #endif
 
@@ -1384,7 +1384,7 @@ FORCEINLINE VOID PhTrimToNullTerminatorString(
 
 // ansi string
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhAnsiStringType;
 #endif
 
@@ -1443,7 +1443,7 @@ PhCreateAnsiStringFromUnicodeEx(
 
 // full string
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhFullStringType;
 #endif
 
@@ -1689,7 +1689,7 @@ PhRemoveStringBuilder(
 
 // list
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhListType;
 #endif
 
@@ -1813,7 +1813,7 @@ PhSortList(
 
 // pointer list
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhPointerListType;
 #endif
 
@@ -1904,7 +1904,7 @@ FORCEINLINE BOOLEAN PhEnumPointerList(
 
 // queue
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhQueueType;
 #endif
 
@@ -1960,7 +1960,7 @@ PhPeekItemQueue(
 
 // hashtable
 
-#ifndef BASESUP_PRIVATE
+#ifndef _PH_BASESUP_PRIVATE
 extern PPH_OBJECT_TYPE PhHashtableType;
 #endif
 
@@ -2889,7 +2889,7 @@ PhSetInformationHandleTable(
 
 // workqueue
 
-#if !defined(WORKQUEUE_PRIVATE) && defined(DEBUG)
+#if !defined(_PH_WORKQUEUE_PRIVATE) && defined(DEBUG)
 extern LIST_ENTRY PhDbgWorkQueueListHead;
 extern PH_QUEUED_LOCK PhDbgWorkQueueListLock;
 #endif

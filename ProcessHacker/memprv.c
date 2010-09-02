@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define MEMPRV_PRIVATE
+#define PH_MEMPRV_PRIVATE
 #include <phapp.h>
 
 VOID PhpMemoryItemDeleteProcedure(

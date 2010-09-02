@@ -111,7 +111,7 @@ typedef HRESULT (WINAPI *_TaskDialogIndirect)(
     __in BOOL *pfVerificationFlagChecked
     );
 
-#ifndef GUISUP_PRIVATE
+#ifndef _PH_GUISUP_PRIVATE
 extern _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;
 extern _RunFileDlg RunFileDlg;
 extern _IsThemeActive IsThemeActive_I;

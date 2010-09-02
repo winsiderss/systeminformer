@@ -21,7 +21,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define NETPRV_PRIVATE
+#define PH_NETPRV_PRIVATE
 #include <phapp.h>
 #include <ws2tcpip.h>
 #include <ws2ipdef.h>
