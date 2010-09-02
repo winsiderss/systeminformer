@@ -1575,6 +1575,7 @@ RtlIsNormalizedString(
     );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 // ntifs:FsRtlIsNameInExpression
 NTSYSAPI
 BOOLEAN
@@ -1585,6 +1586,7 @@ RtlIsNameInExpression(
     __in BOOLEAN IgnoreCase,
     __in_opt PWCH UpcaseTable
     );
+#endif
 
 // PEB
 
