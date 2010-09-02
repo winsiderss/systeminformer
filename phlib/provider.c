@@ -43,7 +43,7 @@
  * directly, which would involve unnecessary blocking and synchronization.
  */
 
-#define PROVIDER_PRIVATE
+#define _PH_PROVIDER_PRIVATE
 #include <ph.h>
 
 #ifdef DEBUG

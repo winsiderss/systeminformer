@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define SETTINGS_PRIVATE
+#define PH_SETTINGS_PRIVATE
 #include <phapp.h>
 #include <settings.h>
 #include <settingsp.h>

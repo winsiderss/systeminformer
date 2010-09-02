@@ -6,7 +6,7 @@
 #define PH_RECORD_MAX_USAGE
 //#define PH_ENABLE_VERIFY_CACHE
 
-#ifndef PROCPRV_PRIVATE
+#ifndef PH_PROCPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhProcessItemType;
 
 PHAPPAPI extern PH_CALLBACK PhProcessAddedEvent;
@@ -287,7 +287,7 @@ VOID PhPurgeProcessRecords();
 
 // srvprv
 
-#ifndef SRVPRV_PRIVATE
+#ifndef PH_SRVPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhServiceItemType;
 
 PHAPPAPI extern PH_CALLBACK PhServiceAddedEvent;
@@ -362,7 +362,7 @@ VOID PhServiceProviderUpdate(
 
 // netprv
 
-#ifndef NETPRV_PRIVATE
+#ifndef PH_NETPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhNetworkItemType;
 extern PH_CALLBACK PhNetworkItemAddedEvent;
 extern PH_CALLBACK PhNetworkItemModifiedEvent;
@@ -431,7 +431,7 @@ PWSTR PhGetTcpStateName(
 
 // modprv
 
-#ifndef MODPRV_PRIVATE
+#ifndef PH_MODPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhModuleProviderType;
 extern PPH_OBJECT_TYPE PhModuleItemType;
 #endif
@@ -487,7 +487,7 @@ VOID PhModuleProviderUpdate(
 
 // thrdprv
 
-#ifndef THRDPRV_PRIVATE
+#ifndef PH_THRDPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhThreadProviderType;
 extern PPH_OBJECT_TYPE PhThreadItemType;
 #endif
@@ -576,7 +576,7 @@ VOID PhThreadProviderUpdate(
 
 // hndlprv
 
-#ifndef HNDLPRV_PRIVATE
+#ifndef PH_HNDLPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhHandleProviderType;
 extern PPH_OBJECT_TYPE PhHandleItemType;
 #endif
@@ -644,7 +644,7 @@ VOID PhHandleProviderUpdate(
 
 // memprv
 
-#ifndef MEMPRV_PRIVATE
+#ifndef PH_MEMPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhMemoryItemType;
 #endif
 

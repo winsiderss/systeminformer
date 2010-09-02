@@ -1,7 +1,7 @@
 #ifndef _NTIMPORT_H
 #define _NTIMPORT_H
 
-#ifdef NTIMPORT_PRIVATE
+#ifdef _PH_NTIMPORT_PRIVATE
 #define EXT
 #define EQNULL = NULL
 #else

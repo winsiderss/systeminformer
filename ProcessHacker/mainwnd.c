@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define MAINWND_PRIVATE
+#define PH_MAINWND_PRIVATE
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>

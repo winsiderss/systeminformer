@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define NTIMPORT_PRIVATE
+#define _PH_NTIMPORT_PRIVATE
 #include <ph.h>
 
 #define InitProc(DllHandle, ProcName) ((ProcName) = (_##ProcName)GetProcAddress(DllHandle, #ProcName))

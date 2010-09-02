@@ -17,7 +17,7 @@
             L"or could not be loaded. Make sure Process Hacker is running " \
             L"on a 32-bit system and with administrative privileges.")
 
-#ifndef MAIN_PRIVATE
+#ifndef PH_MAIN_PRIVATE
 
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
@@ -508,7 +508,7 @@ FORCEINLINE PVOID PhpGenericPropertyPageHeader(
 
 // mainwnd
 
-#ifndef MAINWND_PRIVATE
+#ifndef PH_MAINWND_PRIVATE
 extern HWND PhMainWndHandle;
 extern BOOLEAN PhMainWndExiting;
 #endif
@@ -802,7 +802,7 @@ typedef struct _PH_LOG_ENTRY
     UCHAR Buffer[1];
 } PH_LOG_ENTRY, *PPH_LOG_ENTRY;
 
-#ifndef LOG_PRIVATE
+#ifndef PH_LOG_PRIVATE
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 PH_CALLBACK PhLoggedCallback;
 #endif

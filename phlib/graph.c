@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define GRAPH_PRIVATE
+#define _PH_GRAPH_PRIVATE
 #include <phgui.h>
 #include <graph.h>
 

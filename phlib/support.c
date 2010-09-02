@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define SUPPORT_PRIVATE
+#define _PH_SUPPORT_PRIVATE
 #include <phgui.h>
 #include <md5.h>
 

@@ -3,7 +3,7 @@
 
 // Graph drawing
 
-#ifndef GRAPH_PRIVATE
+#ifndef _PH_GRAPH_PRIVATE
 extern RECT PhNormalGraphTextMargin;
 extern RECT PhNormalGraphTextPadding;
 #endif
