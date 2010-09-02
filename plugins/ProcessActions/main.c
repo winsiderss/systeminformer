@@ -1,4 +1,5 @@
 #include <phdk.h>
+#include "procdb.h"
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
