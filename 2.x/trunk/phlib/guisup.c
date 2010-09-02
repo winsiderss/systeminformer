@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define GUISUP_PRIVATE
+#define _PH_GUISUP_PRIVATE
 #include <phgui.h>
 #include <windowsx.h>
 

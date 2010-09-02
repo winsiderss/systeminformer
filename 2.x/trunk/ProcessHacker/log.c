@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define LOG_PRIVATE
+#define PH_LOG_PRIVATE
 #include <phapp.h>
 #include <settings.h>
 

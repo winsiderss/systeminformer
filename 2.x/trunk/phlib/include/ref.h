@@ -69,7 +69,7 @@ typedef VOID (NTAPI *PPH_CREATE_OBJECT_HOOK)(
     );
 #endif
 
-#ifndef REF_PRIVATE
+#ifndef _PH_REF_PRIVATE
 extern PPH_OBJECT_TYPE PhObjectTypeObject;
 extern PPH_OBJECT_TYPE PhAllocType;
 

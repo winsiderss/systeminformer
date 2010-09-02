@@ -91,7 +91,7 @@ VOID PhAddSettings(
 
 #undef EXT
 
-#ifdef SETTINGS_PRIVATE
+#ifdef PH_SETTINGS_PRIVATE
 #define EXT
 #else
 #define EXT extern

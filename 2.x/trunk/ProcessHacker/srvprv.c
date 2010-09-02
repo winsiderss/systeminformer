@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define SRVPRV_PRIVATE
+#define PH_SRVPRV_PRIVATE
 #include <phapp.h>
 
 VOID NTAPI PhpServiceItemDeleteProcedure(

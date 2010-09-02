@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define SVCSUP_PRIVATE
+#define _PH_SVCSUP_PRIVATE
 #include <ph.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
