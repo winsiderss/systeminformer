@@ -704,7 +704,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 }
             }
 
-            context->Columns[context->NumberOfColumns++] = realColumn;
+            context->Columns[column->Id] = realColumn;
+            context->NumberOfColumns++;
 
             if (realColumn->Visible)
             {
@@ -1786,8 +1787,11 @@ static VOID PhpRefreshColumnsLookup(
     memset(Context->ColumnsForViewX, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForViewX);
     memset(Context->ColumnsForDraw, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForDraw);
 
-    for (i = 0; i < Context->NumberOfColumns; i++)
+    for (i = 0; i < Context->MaxId + 1; i++)
     {
+        if (!Context->Columns[i])
+            continue;
+
         if (Context->Columns[i]->Visible && Context->Columns[i]->DisplayIndex != -1)
         {
             if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
