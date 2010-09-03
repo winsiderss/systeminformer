@@ -154,28 +154,28 @@ static VOID FilterResults(
             }
             else
             {
-                PPH_STRING lowerChoice;
+                PPH_STRING upperChoice;
 
-                lowerChoice = PhaLowerString(selectedChoice);
+                upperChoice = PhaUpperString(selectedChoice);
 
                 for (i = 0; i < results->Count; i++)
                 {
                     PPH_MEMORY_RESULT result = results->Items[i];
-                    PWSTR lowerDisplay;
+                    PWSTR upperDisplay;
 
-                    lowerDisplay = PhAllocateForMemorySearch(result->Display.Length + sizeof(WCHAR));
+                    upperDisplay = PhAllocateForMemorySearch(result->Display.Length + sizeof(WCHAR));
                     // Copy the null terminator as well.
-                    memcpy(lowerDisplay, result->Display.Buffer, result->Display.Length + sizeof(WCHAR));
+                    memcpy(upperDisplay, result->Display.Buffer, result->Display.Length + sizeof(WCHAR));
 
-                    _wcslwr(lowerDisplay);
+                    _wcsupr(upperDisplay);
 
-                    if (wcsstr(lowerDisplay, lowerChoice->Buffer))
+                    if (wcsstr(upperDisplay, upperChoice->Buffer))
                     {
                         PhReferenceMemoryResult(result);
                         PhAddItemList(newResults, result);
                     }
 
-                    PhFreeForMemorySearch(lowerDisplay);
+                    PhFreeForMemorySearch(upperDisplay);
                 }
             }
         }
