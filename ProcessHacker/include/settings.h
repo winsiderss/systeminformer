@@ -11,7 +11,7 @@ typedef enum _PH_SETTING_TYPE
 typedef struct _PH_SETTING
 {
     PH_SETTING_TYPE Type;
-    PWSTR Name;
+    PH_STRINGREF Name;
     PPH_STRING DefaultValue;
 
     PVOID Value;

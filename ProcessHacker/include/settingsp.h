@@ -51,7 +51,7 @@ VOID PhpFreeSettingValue(
     );
 
 PVOID PhpLookupSetting(
-    __in PWSTR Name
+    __in PPH_STRINGREF Name
     );
 
 #endif
