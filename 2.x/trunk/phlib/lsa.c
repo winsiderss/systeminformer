@@ -235,7 +235,7 @@ NTSTATUS PhLookupSid(
             }
             else
             {
-                *DomainName = PhCreateString(L"");
+                *DomainName = PhReferenceEmptyString();
             }
         }
 
@@ -320,7 +320,7 @@ NTSTATUS PhLookupName(
             }
             else
             {
-                *DomainName = PhCreateString(L"");
+                *DomainName = PhReferenceEmptyString();
             }
         }
 

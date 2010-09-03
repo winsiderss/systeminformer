@@ -468,7 +468,7 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     }
     else
     {
-        return PhCreateString(L"");
+        return PhReferenceEmptyString();
     }
 }
 

@@ -189,8 +189,7 @@ PPH_NETWORK_ITEM PhCreateNetworkItem()
         &networkItem,
         sizeof(PH_NETWORK_ITEM),
         0,
-        PhNetworkItemType,
-        0
+        PhNetworkItemType
         )))
         return NULL;
     

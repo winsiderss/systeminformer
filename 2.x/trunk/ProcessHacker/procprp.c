@@ -67,8 +67,7 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
         &propContext,
         sizeof(PH_PROCESS_PROPCONTEXT),
         0,
-        PhpProcessPropContextType,
-        0
+        PhpProcessPropContextType
         )))
         return NULL;
 
@@ -378,8 +377,7 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
         &propPageContext,
         sizeof(PH_PROCESS_PROPPAGECONTEXT),
         0,
-        PhpProcessPropPageContextType,
-        0
+        PhpProcessPropPageContextType
         )))
         return NULL;
 

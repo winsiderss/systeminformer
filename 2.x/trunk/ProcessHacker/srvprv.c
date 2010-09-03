@@ -92,8 +92,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         &serviceItem,
         sizeof(PH_SERVICE_ITEM),
         0,
-        PhServiceItemType,
-        0
+        PhServiceItemType
         )))
         return NULL;
 

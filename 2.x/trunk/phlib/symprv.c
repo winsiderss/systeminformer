@@ -141,8 +141,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         &symbolProvider,
         sizeof(PH_SYMBOL_PROVIDER),
         0,
-        PhSymbolProviderType,
-        0
+        PhSymbolProviderType
         )))
         return NULL;
 

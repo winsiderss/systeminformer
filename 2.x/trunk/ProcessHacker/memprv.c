@@ -86,8 +86,7 @@ PPH_MEMORY_ITEM PhCreateMemoryItem()
         &memoryItem,
         sizeof(PH_MEMORY_ITEM),
         0,
-        PhMemoryItemType,
-        0
+        PhMemoryItemType
         )))
         return NULL;
 

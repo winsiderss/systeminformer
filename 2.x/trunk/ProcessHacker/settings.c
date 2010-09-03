@@ -278,7 +278,7 @@ static PPH_STRING PhpSettingToString(
     case StringSettingType:
         {
             if (!Value)
-                return PhCreateString(L"");
+                return PhReferenceEmptyString();
 
             PhReferenceObject(Value);
 
@@ -296,7 +296,7 @@ static PPH_STRING PhpSettingToString(
         }
     }
 
-    return PhCreateString(L"");
+    return PhReferenceEmptyString();
 }
 
 static BOOLEAN PhpSettingFromString(
@@ -493,7 +493,7 @@ __mayRaise PPH_STRING PhGetStringSetting(
         PhRaiseStatus(STATUS_NOT_FOUND);
 
     if (!value)
-        value = PhCreateString(L"");
+        value = PhReferenceEmptyString();
 
     return value;
 }
