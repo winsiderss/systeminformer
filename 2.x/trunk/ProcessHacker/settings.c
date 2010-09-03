@@ -214,7 +214,7 @@ BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
     PPH_SETTING setting2 = (PPH_SETTING)Entry2;
 
-    return WSTR_EQUAL(setting1->Name, setting2->Name);
+    return WSTR_EQUAL(setting1->Name.Buffer, setting2->Name.Buffer);
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
@@ -223,7 +223,7 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
 {
     PPH_SETTING setting = (PPH_SETTING)Entry;
 
-    return PhHashBytes((PBYTE)setting->Name, (ULONG)wcslen(setting->Name) * 2);
+    return PhHashBytes((PUCHAR)setting->Name.Buffer, setting->Name.Length);
 }
 
 static VOID PhpAddStringSetting(
@@ -259,7 +259,7 @@ __assumeLocked static VOID PhpAddSetting(
     PH_SETTING setting;
 
     setting.Type = Type;
-    setting.Name = Name;
+    PhInitializeStringRef(&setting.Name, Name);
     setting.DefaultValue = PhCreateString(DefaultValue);
     setting.Value = NULL;
 
@@ -383,13 +383,13 @@ static VOID PhpFreeSettingValue(
 }
 
 static PVOID PhpLookupSetting(
-    __in PWSTR Name
+    __in PPH_STRINGREF Name
     )
 {
     PH_SETTING lookupSetting;
     PPH_SETTING setting;
 
-    lookupSetting.Name = Name;
+    lookupSetting.Name = *Name;
     setting = (PPH_SETTING)PhFindEntryHashtable(
         PhSettingsHashtable,
         &lookupSetting
@@ -403,11 +403,14 @@ __mayRaise ULONG PhGetIntegerSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
     ULONG value;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -431,11 +434,14 @@ __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
     PH_INTEGER_PAIR value;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -462,11 +468,14 @@ __mayRaise PPH_STRING PhGetStringSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
     PPH_STRING value;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockShared(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -504,10 +513,13 @@ __mayRaise VOID PhSetIntegerSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == IntegerSettingType)
     {
@@ -526,10 +538,13 @@ __mayRaise VOID PhSetIntegerPairSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
@@ -549,10 +564,13 @@ __mayRaise VOID PhSetStringSetting(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -572,10 +590,13 @@ __mayRaise VOID PhSetStringSetting2(
     )
 {
     PPH_SETTING setting;
+    PH_STRINGREF name;
+
+    PhInitializeStringRef(&name, Name);
 
     PhAcquireQueuedLockExclusive(&PhSettingsLock);
 
-    setting = PhpLookupSetting(Name);
+    setting = PhpLookupSetting(&name);
 
     if (setting && setting->Type == StringSettingType)
     {
@@ -599,7 +620,7 @@ VOID PhpClearIgnoredSettings()
     {
         PPH_SETTING setting = PhIgnoredSettings->Items[i];
 
-        PhFree(setting->Name);
+        PhFree(setting->Name.Buffer);
 
         if (setting->Value)
             PhDereferenceObject(setting->Value);
@@ -686,7 +707,7 @@ NTSTATUS PhLoadSettings(
             {
                 PPH_SETTING setting;
 
-                setting = PhpLookupSetting(settingName->Buffer);
+                setting = PhpLookupSetting(&settingName->sr);
 
                 if (setting)
                 {
@@ -709,7 +730,8 @@ NTSTATUS PhLoadSettings(
                 else
                 {
                     setting = PhAllocate(sizeof(PH_SETTING));
-                    setting->Name = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
+                    setting->Name.Buffer = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
+                    setting->Name.Length = settingName->Length;
                     PhReferenceObject(settingValue);
                     setting->Value = settingValue;
 
@@ -780,7 +802,7 @@ NTSTATUS PhSaveSettings(
 
         settingNode = mxmlNewElement(topNode, "setting");
 
-        settingName = PhCreateAnsiStringFromUnicode(setting->Name);
+        settingName = PhCreateAnsiStringFromUnicodeEx(setting->Name.Buffer, setting->Name.Length);
         mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
         PhDereferenceObject(settingName);
 
@@ -811,7 +833,7 @@ NTSTATUS PhSaveSettings(
 
             settingNode = mxmlNewElement(topNode, "setting");
 
-            settingName = PhCreateAnsiStringFromUnicode(setting->Name);
+            settingName = PhCreateAnsiStringFromUnicodeEx(setting->Name.Buffer, setting->Name.Length);
             mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
             PhDereferenceObject(settingName);
 
