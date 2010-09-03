@@ -76,8 +76,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         &moduleProvider,
         sizeof(PH_MODULE_PROVIDER),
         0,
-        PhModuleProviderType,
-        0
+        PhModuleProviderType
         )))
         return NULL;
 
@@ -147,8 +146,7 @@ PPH_MODULE_ITEM PhCreateModuleItem()
         &moduleItem,
         sizeof(PH_MODULE_ITEM),
         0,
-        PhModuleItemType,
-        0
+        PhModuleItemType
         )))
         return NULL;
 

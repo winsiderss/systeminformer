@@ -117,8 +117,7 @@ PPH_THREAD_PROVIDER PhCreateThreadProvider(
         &threadProvider,
         sizeof(PH_THREAD_PROVIDER),
         0,
-        PhThreadProviderType,
-        0
+        PhThreadProviderType
         )))
         return NULL;
 
@@ -368,8 +367,7 @@ PPH_THREAD_ITEM PhCreateThreadItem(
         &threadItem,
         sizeof(PH_THREAD_ITEM),
         0,
-        PhThreadItemType,
-        0
+        PhThreadItemType
         )))
         return NULL;
 
@@ -990,7 +988,7 @@ VOID PhThreadProviderUpdate(
                     {
                         PhSwapReference2(
                             &threadItem->ContextSwitchesDeltaString,
-                            PhCreateString(L"")
+                            PhReferenceEmptyString()
                             );
                     }
 
@@ -1031,7 +1029,7 @@ VOID PhThreadProviderUpdate(
                         {
                             PhSwapReference2(
                                 &threadItem->CyclesDeltaString,
-                                PhCreateString(L"")
+                                PhReferenceEmptyString()
                                 );
                         }
 

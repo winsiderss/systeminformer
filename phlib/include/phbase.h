@@ -865,6 +865,11 @@ PhCreateStringFromAnsiEx(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhReferenceEmptyString();
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhConcatStrings(
     __in ULONG Count,
     ...

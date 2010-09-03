@@ -1053,7 +1053,7 @@ NTSTATUS PhGetHandleInformation(
             else
             {
                 // Pretend the file object has no name.
-                objectName = PhCreateString(L"");
+                objectName = PhReferenceEmptyString();
                 status = STATUS_SUCCESS;
             }
         }
