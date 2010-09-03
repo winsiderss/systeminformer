@@ -393,7 +393,7 @@ VOID PhServiceProviderUpdate(
             // Check if the service still exists.
             for (i = 0; i < numberOfServices; i++)
             {
-                if (PhEqualString2((*serviceItem)->Name, services[i].lpServiceName, TRUE))
+                if (wcsicmp((*serviceItem)->Name->Buffer, services[i].lpServiceName) == 0)
                 {
                     found = TRUE;
                     break;
