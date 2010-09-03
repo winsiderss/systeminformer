@@ -131,19 +131,15 @@ __mayRaise NTSTATUS PhCreateObject(
     {
         status = STATUS_INVALID_PARAMETER_3;
     }
-    /* Make sure the additional reference count isn't negative. */
-    else if (AdditionalReferences < 0)
-    {
-        status = STATUS_INVALID_PARAMETER_5;
-    }
 #else
     assert(!((Flags & PHOBJ_VALID_FLAGS) != Flags));
     assert(!(!ObjectType && PhObjectTypeObject));
-    assert(!(AdditionalReferences < 0));
 #endif
 
+#ifdef PHOBJ_STRICT_CHECKS
     if (NT_SUCCESS(status))
     {
+#endif
         /* Allocate storage for the object. Note that this includes 
          * the object header followed by the object body. */
         objectHeader = PhpAllocateObject(ObjectType, ObjectSize, Flags);
@@ -152,7 +148,9 @@ __mayRaise NTSTATUS PhCreateObject(
         if (!objectHeader)
             status = STATUS_INSUFFICIENT_RESOURCES;
 #endif
+#ifdef PHOBJ_STRICT_CHECKS
     }
+#endif
 
 #ifndef PHOBJ_ALLOCATE_NEVER_NULL
     if (!NT_SUCCESS(status))
