@@ -466,8 +466,7 @@ NTSTATUS PhCreateFileStream2(
         &fileStream,
         sizeof(PH_FILE_STREAM),
         0,
-        PhFileStreamType,
-        0
+        PhFileStreamType
         )))
         return status;
 

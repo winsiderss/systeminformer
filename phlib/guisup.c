@@ -423,7 +423,7 @@ PPH_STRING PhGetWindowText(
     length = GetWindowTextLength(hwnd);
 
     if (length == 0)
-        return PhCreateString(L"");
+        return PhReferenceEmptyString();
 
     string = PhCreateStringEx(NULL, length * 2);
 
@@ -471,7 +471,7 @@ PPH_STRING PhGetComboBoxString(
     if (length == CB_ERR)
         return NULL;
     if (length == 0)
-        return PhCreateString(L"");
+        return PhReferenceEmptyString();
 
     string = PhCreateStringEx(NULL, length * 2);
 
@@ -507,7 +507,7 @@ PPH_STRING PhGetListBoxString(
     if (length == LB_ERR)
         return NULL;
     if (length == 0)
-        return PhCreateString(L"");
+        return PhReferenceEmptyString();
 
     string = PhCreateStringEx(NULL, length * 2);
 

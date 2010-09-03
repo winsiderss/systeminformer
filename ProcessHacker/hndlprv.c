@@ -77,8 +77,7 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
         &handleProvider,
         sizeof(PH_HANDLE_PROVIDER),
         0,
-        PhHandleProviderType,
-        0
+        PhHandleProviderType
         )))
         return NULL;
 
@@ -140,8 +139,7 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
         &handleItem,
         sizeof(PH_HANDLE_ITEM),
         0,
-        PhHandleItemType,
-        0
+        PhHandleItemType
         )))
         return NULL;
 

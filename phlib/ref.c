@@ -114,15 +114,12 @@ NTSTATUS PhInitializeRef()
  * \li \c PHOBJ_RAISE_ON_FAIL An exception will be raised if the object cannot be 
  * allocated.
  * \param ObjectType The type of the object.
- * \param AdditionalReferences The number of references to add to the object. The 
- * object will initially have a reference count of 1 + AdditionalReferences.
  */
 __mayRaise NTSTATUS PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType,
-    __in_opt LONG AdditionalReferences
+    __in PPH_OBJECT_TYPE ObjectType
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -171,7 +168,7 @@ __mayRaise NTSTATUS PhCreateObject(
     _InterlockedIncrement((PLONG)&ObjectType->NumberOfObjects);
 
     /* Initialize the object header. */
-    objectHeader->RefCount = 1 + AdditionalReferences;
+    objectHeader->RefCount = 1;
     // objectHeader->Flags is initialized by PhpAllocateObject.
     objectHeader->Size = ObjectSize;
     objectHeader->Type = ObjectType;
@@ -285,8 +282,7 @@ NTSTATUS PhCreateObjectTypeEx(
         &objectType,
         sizeof(PH_OBJECT_TYPE),
         0,
-        PhObjectTypeObject,
-        0
+        PhObjectTypeObject
         );
 
     if (!NT_SUCCESS(status))
@@ -726,8 +722,7 @@ NTSTATUS PhCreateAlloc(
         Alloc,
         Size,
         0,
-        PhAllocType,
-        0
+        PhAllocType
         );
 }
 

@@ -373,8 +373,7 @@ PPH_PROCESS_ITEM PhCreateProcessItem(
         &processItem,
         sizeof(PH_PROCESS_ITEM),
         0,
-        PhProcessItemType,
-        0
+        PhProcessItemType
         )))
         return NULL;
 
@@ -1055,9 +1054,15 @@ VOID PhpFillProcessItem(
     else
     {
         if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
-            ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
+        {
+            PhReferenceObject(PhLocalSystemName);
+            ProcessItem->UserName = PhLocalSystemName;
+        }
         else if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
-            ProcessItem->UserName = PhDuplicateString(PhLocalSystemName);
+        {
+            PhReferenceObject(PhLocalSystemName);
+            ProcessItem->UserName = PhLocalSystemName;
+        }
     }
 
     if (!ProcessItem->UserName && WindowsVersion <= WINDOWS_XP)

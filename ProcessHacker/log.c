@@ -221,6 +221,6 @@ PPH_STRING PhFormatLogEntry(
         PhReferenceObject(Entry->Message);
         return Entry->Message;
     default:
-        return PhCreateString(L"");
+        return PhReferenceEmptyString();
     }
 }

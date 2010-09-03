@@ -105,8 +105,7 @@ PhCreateObject(
     __out PVOID *Object,
     __in SIZE_T ObjectSize,
     __in ULONG Flags,
-    __in PPH_OBJECT_TYPE ObjectType,
-    __in_opt LONG AdditionalReferences
+    __in PPH_OBJECT_TYPE ObjectType
     );
 
 PHLIBAPI

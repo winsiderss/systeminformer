@@ -111,7 +111,7 @@ INT WINAPI WinMain(
     if (!PhApplicationFileName)
         PhApplicationFileName = PhCreateString(L"ProcessHacker.exe");
     if (!PhApplicationDirectory)
-        PhApplicationDirectory = PhCreateString(L"");
+        PhApplicationDirectory = PhReferenceEmptyString();
 
     PhpProcessStartupParameters();
 

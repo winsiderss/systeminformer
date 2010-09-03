@@ -65,6 +65,10 @@ PPH_OBJECT_TYPE PhPointerListType;
 PPH_OBJECT_TYPE PhQueueType;
 PPH_OBJECT_TYPE PhHashtableType;
 
+// Misc.
+
+PPH_STRING PhSharedEmptyString = NULL;
+
 // Threads
 
 PH_FREE_LIST PhpBaseThreadContextFreeList;
@@ -1026,8 +1030,7 @@ PPH_STRING PhCreateStringEx(
         &string,
         FIELD_OFFSET(PH_STRING, Buffer) + Length + sizeof(WCHAR), // null terminator
         0,
-        PhStringType,
-        0
+        PhStringType
         )))
         return NULL;
 
@@ -1099,6 +1102,41 @@ PPH_STRING PhCreateStringFromAnsiEx(
         PhDereferenceObject(string);
         return NULL;
     }
+
+    return string;
+}
+
+/**
+ * Obtains a reference to a zero-length string.
+ */
+PPH_STRING PhReferenceEmptyString()
+{
+    PPH_STRING string;
+    PPH_STRING newString;
+
+    string = PhSharedEmptyString;
+
+    if (!string)
+    {
+        newString = PhCreateStringEx(NULL, 0);
+
+        string = _InterlockedCompareExchangePointer(
+            &PhSharedEmptyString,
+            newString,
+            NULL
+            );
+
+        if (!string)
+        {
+            string = newString; // success
+        }
+        else
+        {
+            PhDereferenceObject(newString);
+        }
+    }
+
+    PhReferenceObject(string);
 
     return string;
 }
@@ -1286,8 +1324,7 @@ PPH_ANSI_STRING PhCreateAnsiStringEx(
         &string,
         FIELD_OFFSET(PH_ANSI_STRING, Buffer) + Length + sizeof(CHAR), // null terminator
         0,
-        PhAnsiStringType,
-        0
+        PhAnsiStringType
         )))
         return NULL;
 
@@ -1416,8 +1453,7 @@ PPH_FULL_STRING PhCreateFullStringEx(
         &string,
         sizeof(PH_FULL_STRING), // null terminator
         0,
-        PhFullStringType,
-        0
+        PhFullStringType
         )))
         return NULL;
 
@@ -2055,8 +2091,7 @@ PPH_LIST PhCreateList(
         &list,
         sizeof(PH_LIST),
         0,
-        PhListType,
-        0
+        PhListType
         )))
         return NULL;
 
@@ -2339,8 +2374,7 @@ PPH_POINTER_LIST PhCreatePointerList(
         &pointerList,
         sizeof(PH_POINTER_LIST),
         0,
-        PhPointerListType,
-        0
+        PhPointerListType
         )))
         return NULL;
 
@@ -2554,8 +2588,7 @@ PPH_QUEUE PhCreateQueue(
         &queue,
         sizeof(PH_QUEUE),
         0,
-        PhQueueType,
-        0
+        PhQueueType
         )))
         return NULL;
 
@@ -2739,8 +2772,7 @@ PPH_HASHTABLE PhCreateHashtable(
         &hashtable,
         sizeof(PH_HASHTABLE),
         0,
-        PhHashtableType,
-        0
+        PhHashtableType
         )))
         return NULL;
 

@@ -333,7 +333,9 @@ reasons.
 
 String objects must be treated as immutable unless a string 
 object is created and modified before the pointer is shared with 
-any other functions or stored in any global variables.
+any other functions or stored in any global variables. This 
+exception applies only when creating a string using 
+PhCreateString or PhCreateStringEx.
 
 Strings can be concatenated with PhConcatStrings:
 
