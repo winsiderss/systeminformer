@@ -167,6 +167,8 @@ static VOID FilterResults(
                     // Copy the null terminator as well.
                     memcpy(lowerDisplay, result->Display.Buffer, result->Display.Length + sizeof(WCHAR));
 
+                    _wcslwr(lowerDisplay);
+
                     if (wcsstr(lowerDisplay, lowerChoice->Buffer))
                     {
                         PhReferenceMemoryResult(result);
