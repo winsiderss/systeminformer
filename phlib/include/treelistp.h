@@ -16,10 +16,10 @@ typedef struct _PHP_TREELIST_CONTEXT
     PPH_TREELIST_CALLBACK Callback;
     PVOID Context;
 
-    ULONG MaxId;
     PPH_TREELIST_COLUMN *Columns; // columns, indexed by ID
-    ULONG NumberOfColumns;
+    ULONG MaxId;
     ULONG AllocatedColumns;
+    ULONG NumberOfColumns; // just a statistic; do not use for actual logic
 
     // We have to deal with three kinds of indicies here:
     // * Display index
