@@ -1714,7 +1714,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDestroyProcessParameters(
-    __in __post_invalid ProcessParameters
+    __in __post_invalid PRTL_USER_PROCESS_PARAMETERS ProcessParameters
     );
 
 NTSYSAPI

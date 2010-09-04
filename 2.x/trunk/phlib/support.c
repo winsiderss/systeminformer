@@ -1773,6 +1773,100 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     }
 }
 
+NTSTATUS PhCreateProcess(
+    __in PWSTR FileName,
+    __in_opt PPH_STRINGREF CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PPH_STRINGREF CurrentDirectory,
+    __in_opt PPH_CREATE_PROCESS_INFO Information,
+    __in ULONG Flags,
+    __in_opt HANDLE ParentProcessHandle,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    RTL_USER_PROCESS_INFORMATION processInfo;
+    PRTL_USER_PROCESS_PARAMETERS parameters;
+    UNICODE_STRING fileName;
+    PUNICODE_STRING windowTitle;
+    PUNICODE_STRING desktopInfo;
+
+    if (!RtlDosPathNameToNtPathName_U(
+        FileName,
+        &fileName,
+        NULL,
+        NULL
+        ))
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+
+    if (Information)
+    {
+        windowTitle = (PUNICODE_STRING)Information->WindowTitle;
+        desktopInfo = (PUNICODE_STRING)Information->DesktopInfo;
+    }
+
+    if (!windowTitle)
+        windowTitle = &fileName;
+
+    if (!desktopInfo)
+        desktopInfo = &NtCurrentPeb()->ProcessParameters->DesktopInfo;
+
+    status = RtlCreateProcessParameters(
+        &parameters,
+        &fileName,
+        Information ? (PUNICODE_STRING)Information->DllPath : NULL,
+        (PUNICODE_STRING)CurrentDirectory,
+        CommandLine ? &CommandLine->us : &fileName,
+        Environment,
+        windowTitle,
+        desktopInfo,
+        Information ? (PUNICODE_STRING)Information->ShellInfo : NULL,
+        Information ? (PUNICODE_STRING)Information->RuntimeData : NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = RtlCreateUserProcess(
+            &fileName,
+            OBJ_CASE_INSENSITIVE,
+            parameters,
+            NULL,
+            NULL,
+            ParentProcessHandle,
+            !!(Flags & PH_CREATE_PROCESS_INHERIT_HANDLES),
+            NULL,
+            NULL,
+            &processInfo
+            );
+        RtlDestroyProcessParameters(parameters);
+    }
+
+    RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
+
+    if (NT_SUCCESS(status))
+    {
+        if (!(Flags & PH_CREATE_PROCESS_SUSPENDED))
+            NtResumeThread(processInfo.Thread, NULL);
+
+        if (ClientId)
+            *ClientId = processInfo.ClientId;
+
+        if (ProcessHandle)
+            *ProcessHandle = processInfo.Process;
+        else
+            NtClose(processInfo.Process);
+
+        if (ThreadHandle)
+            *ThreadHandle = processInfo.Thread;
+        else
+            NtClose(processInfo.Thread);
+    }
+
+    return status;
+}
+
 NTSTATUS PhCreateProcessWin32(
     __in_opt PWSTR FileName,
     __in_opt PWSTR CommandLine,
