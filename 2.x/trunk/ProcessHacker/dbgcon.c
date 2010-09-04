@@ -24,6 +24,12 @@
 #include <phsync.h>
 #include <refp.h>
 
+typedef struct _STRING_TABLE_ENTRY
+{
+    PPH_STRING String;
+    ULONG_PTR Count;
+} STRING_TABLE_ENTRY, *PSTRING_TABLE_ENTRY;
+
 VOID PhpPrintHashtableStatistics(
     __in PPH_HASHTABLE Hashtable
     );
@@ -287,6 +293,37 @@ static VOID PhpDeleteNewObjectList()
 }
 #endif
 
+static BOOLEAN PhpStringHashtableCompareFunction(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    )
+{
+    PSTRING_TABLE_ENTRY entry1 = Entry1;
+    PSTRING_TABLE_ENTRY entry2 = Entry2;
+
+    return RtlEqualUnicodeString(&entry1->String->us, &entry2->String->us, FALSE);
+}
+
+static ULONG PhpStringHashtableHashFunction(
+    __in PVOID Entry
+    )
+{
+    PSTRING_TABLE_ENTRY entry = Entry;
+
+    return PhHashBytes((PUCHAR)entry->String->Buffer, entry->String->Length);
+}
+
+static int __cdecl PhpStringEntryCompareByCount(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PSTRING_TABLE_ENTRY entry1 = *(PSTRING_TABLE_ENTRY *)elem1;
+    PSTRING_TABLE_ENTRY entry2 = *(PSTRING_TABLE_ENTRY *)elem2;
+
+    return uintptrcmp(entry2->Count, entry1->Count);
+}
+
 typedef struct _STOPWATCH
 {
     LARGE_INTEGER StartCounter;
@@ -546,6 +583,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"provthreads\n"
                 L"workqueues\n"
                 L"procrecords\n"
+                L"uniquestr\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
@@ -1166,6 +1204,101 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhReleaseQueuedLockShared(&PhProcessRecordListLock);
+        }
+        else if (WSTR_IEQUAL(command, L"uniquestr"))
+        {
+#ifdef DEBUG
+            PLIST_ENTRY currentEntry;
+            PPH_HASHTABLE hashtable;
+            PPH_LIST list;
+            PSTRING_TABLE_ENTRY stringEntry;
+            ULONG enumerationKey;
+            ULONG i;
+
+            hashtable = PhCreateHashtable(
+                sizeof(STRING_TABLE_ENTRY),
+                PhpStringHashtableCompareFunction,
+                PhpStringHashtableHashFunction,
+                1024
+                );
+
+            PhAcquireQueuedLockShared(&PhDbgObjectListLock);
+
+            currentEntry = PhDbgObjectListHead.Flink;
+
+            while (currentEntry != &PhDbgObjectListHead)
+            {
+                PPH_OBJECT_HEADER objectHeader;
+                PPH_STRING string;
+                STRING_TABLE_ENTRY localStringEntry;
+                BOOLEAN added;
+
+                objectHeader = CONTAINING_RECORD(currentEntry, PH_OBJECT_HEADER, ObjectListEntry);
+                currentEntry = currentEntry->Flink;
+                string = PhObjectHeaderToObject(objectHeader);
+
+                // Make sure this is a string.
+                if (objectHeader->Type != PhStringType)
+                    continue;
+
+                // Make sure the object isn't being destroyed.
+                if (!PhReferenceObjectSafe(string))
+                    continue;
+
+                localStringEntry.String = string;
+                stringEntry = PhAddEntryHashtableEx(hashtable, &localStringEntry, &added);
+
+                if (added)
+                {
+                    stringEntry->Count = 1;
+                    PhReferenceObject(string);
+                }
+                else
+                {
+                    stringEntry->Count++;
+                }
+
+                PhDereferenceObjectDeferDelete(string);
+            }
+
+            PhReleaseQueuedLockShared(&PhDbgObjectListLock);
+
+            // Sort the string entries by count.
+
+            list = PhCreateList(hashtable->Count);
+
+            enumerationKey = 0;
+
+            while (PhEnumHashtable(hashtable, &stringEntry, &enumerationKey))
+            {
+                PhAddItemList(list, stringEntry);
+            }
+
+            qsort(list->Items, list->Count, sizeof(PSTRING_TABLE_ENTRY), PhpStringEntryCompareByCount);
+
+            // Display...
+
+            for (i = 0; i < 40 && i < list->Count; i++)
+            {
+                stringEntry = list->Items[i];
+                wprintf(L"%Iu\t%.64s\n", stringEntry->Count, stringEntry->String->Buffer);
+            }
+
+            wprintf(L"\nTotal unique strings: %u\n", list->Count);
+
+            // Cleanup
+
+            for (i = 0; i < list->Count; i++)
+            {
+                stringEntry = list->Items[i];
+                PhDereferenceObject(stringEntry->String);
+            }
+
+            PhDereferenceObject(list);
+            PhDereferenceObject(hashtable);
+#else
+            wprintf(commandDebugOnly);
+#endif
         }
         else
         {

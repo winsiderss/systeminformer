@@ -388,20 +388,13 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 ListView_SetItem(hwnd, &item);
 
                 {
-                    PH_TICK_ENTRY entry;
+                    PH_TICK_ENTRY localEntry;
+                    PPH_TICK_ENTRY entry;
 
-                    entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
-                    entry.TickCount = GetTickCount();
+                    localEntry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
+                    entry = PhAddEntryHashtableEx(context->TickHashtable, &localEntry, NULL);
 
-                    if (!PhAddEntryHashtable(context->TickHashtable, &entry))
-                    {
-                        PPH_TICK_ENTRY existingEntry;
-
-                        existingEntry = PhFindEntryHashtable(context->TickHashtable, &entry);
-
-                        if (existingEntry)
-                            existingEntry->TickCount = GetTickCount();
-                    }
+                    entry->TickCount = GetTickCount();
                 }
 
                 return TRUE;

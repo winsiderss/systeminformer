@@ -2950,6 +2950,34 @@ PVOID PhAddEntryHashtable(
 }
 
 /**
+ * Adds an entry to a hashtable or returns an existing one.
+ *
+ * \param Hashtable A hashtable object.
+ * \param Entry The entry to add.
+ * \param Added A variable which receives TRUE if a new 
+ * entry was created, and FALSE if an existing entry was 
+ * returned.
+ *
+ * \return A pointer to the entry as stored in
+ * the hashtable. This pointer is valid until 
+ * the hashtable is modified. If the hashtable 
+ * already contained an equal entry, the existing entry 
+ * is returned. Check the value of \a Added to determine 
+ * whether the returned entry is new or existing.
+ *
+ * \remarks Entries are only guaranteed to be 8 byte 
+ * aligned, even on 64-bit systems.
+ */
+PVOID PhAddEntryHashtableEx(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry,
+    __out_opt PBOOLEAN Added
+    )
+{
+    return PhpAddEntryHashtable(Hashtable, Entry, TRUE, Added);
+}
+
+/**
  * Clears a hashtable.
  *
  * \param Hashtable A hashtable object.
