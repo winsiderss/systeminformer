@@ -327,19 +327,41 @@ int __cdecl main(int argc, char *argv[])
     }
     else if (PhEqualString2(FiArgAction, L"execute", TRUE))
     {
-        if (!NT_SUCCESS(status = PhCreateProcessWin32(
-            FiArgFileName->Buffer,
-            PhGetString(FiArgOutput),
-            NULL,
-            NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
-            PH_CREATE_PROCESS_NEW_CONSOLE,
-            NULL,
-            NULL,
-            NULL
-            )))
+        if (FiArgNative)
         {
-            wprintf(L"Error: %s\n", PhGetNtMessage(status)->Buffer);
-            return 1;
+            if (!NT_SUCCESS(status = PhCreateProcess(
+                FiArgFileName->Buffer,
+                FiArgOutput ? &FiArgOutput->sr : NULL,
+                NULL,
+                NULL,
+                NULL,
+                0,
+                NULL,
+                NULL,
+                NULL,
+                NULL
+                )))
+            {
+                wprintf(L"Error: %s\n", PhGetNtMessage(status)->Buffer);
+                return 1;
+            }
+        }
+        else
+        {
+            if (!NT_SUCCESS(status = PhCreateProcessWin32(
+                FiArgFileName->Buffer,
+                PhGetString(FiArgOutput),
+                NULL,
+                NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
+                PH_CREATE_PROCESS_NEW_CONSOLE,
+                NULL,
+                NULL,
+                NULL
+                )))
+            {
+                wprintf(L"Error: %s\n", PhGetNtMessage(status)->Buffer);
+                return 1;
+            }
         }
     }
     else if (PhEqualString2(FiArgAction, L"del", TRUE))
