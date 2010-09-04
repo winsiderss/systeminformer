@@ -2078,6 +2078,15 @@ PhAddEntryHashtable(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhAddEntryHashtableEx(
+    __inout PPH_HASHTABLE Hashtable,
+    __in PVOID Entry,
+    __out_opt PBOOLEAN Added
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhClearHashtable(
