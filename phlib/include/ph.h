@@ -2431,11 +2431,34 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     __in ULONG Timeout
     );
 
+typedef struct _PH_CREATE_PROCESS_INFO
+{
+    PPH_STRINGREF DllPath;
+    PPH_STRINGREF WindowTitle;
+    PPH_STRINGREF DesktopInfo;
+    PPH_STRINGREF ShellInfo;
+    PPH_STRINGREF RuntimeData;
+} PH_CREATE_PROCESS_INFO, *PPH_CREATE_PROCESS_INFO;
+
 #define PH_CREATE_PROCESS_INHERIT_HANDLES 0x1
 #define PH_CREATE_PROCESS_UNICODE_ENVIRONMENT 0x2
 #define PH_CREATE_PROCESS_SUSPENDED 0x4
 #define PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB 0x8
 #define PH_CREATE_PROCESS_NEW_CONSOLE 0x10
+
+PHLIBAPI
+NTSTATUS PhCreateProcess(
+    __in PWSTR FileName,
+    __in_opt PPH_STRINGREF CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PPH_STRINGREF CurrentDirectory,
+    __in_opt PPH_CREATE_PROCESS_INFO Information,
+    __in ULONG Flags,
+    __in_opt HANDLE ParentProcessHandle,
+    __out_opt PCLIENT_ID ClientId,
+    __out_opt PHANDLE ProcessHandle,
+    __out_opt PHANDLE ThreadHandle
+    );
 
 PHLIBAPI
 NTSTATUS PhCreateProcessWin32(
