@@ -1556,6 +1556,34 @@ PhAppendFormatFullString(
 PHLIBAPI
 VOID
 NTAPI
+PhInsertFullString(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in PPH_STRING ShortString
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInsertFullString2(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in PWSTR StringZ
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInsertFullStringEx(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in_opt PWSTR Buffer,
+    __in SIZE_T Length
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhRemoveFullString(
     __inout PPH_FULL_STRING String,
     __in SIZE_T StartIndex,
@@ -1603,6 +1631,13 @@ PPH_STRING
 NTAPI
 PhReferenceStringBuilderString(
     __in PPH_STRING_BUILDER StringBuilder
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFinalStringBuilderString(
+    __inout PPH_STRING_BUILDER StringBuilder
     );
 
 PHLIBAPI
@@ -1719,6 +1754,14 @@ PPH_LIST
 NTAPI
 PhCreateList(
     __in ULONG InitialCapacity
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhResizeList(
+    __inout PPH_LIST List,
+    __in ULONG NewCapacity
     );
 
 PHLIBAPI
