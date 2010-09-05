@@ -1,5 +1,6 @@
 #include <phdk.h>
 #include "procdb.h"
+#include "actions.h"
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
@@ -22,11 +23,6 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     );
 
-VOID NTAPI ProcessAddedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -39,7 +35,6 @@ PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
-PH_CALLBACK_REGISTRATION ProcessAddedCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -88,21 +83,15 @@ LOGICAL DllMain(
                 NULL,
                 &MainWindowShowingCallbackRegistration
                 );
-            PhRegisterCallback(
-                &PhProcessAddedEvent,
-                ProcessAddedCallback,
-                NULL,
-                &ProcessAddedCallbackRegistration
-                );
 
-            {
-                static PH_SETTING_CREATE settings[] =
-                {
-                    { StringSettingType, L"ProcessHacker.SbieSupport.SbieDllPath", L"C:\\Program Files\\Sandboxie\\SbieDll.dll" }
-                };
+            //{
+            //    static PH_SETTING_CREATE settings[] =
+            //    {
+            //        { StringSettingType, L"ProcessHacker.ProcessActions.SbieDllPath", L"C:\\Program Files\\Sandboxie\\SbieDll.dll" }
+            //    };
 
-                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            }
+            //    PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            //}
         }
         break;
     }
@@ -115,7 +104,8 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    // TODO
+    PaProcDbInitialization();
+    PaActionsInitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -123,6 +113,7 @@ VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Context
     )
 {
+    PhShowInformation(PhMainWndHandle, L"Use Tools > Configure Actions... to configure this plugin.");
     //DialogBox(
     //    PluginInstance->DllBase,
     //    MAKEINTRESOURCE(IDD_OPTIONS),
@@ -150,13 +141,6 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     // TODO
-}
-
-VOID NTAPI ProcessAddedCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    )
-{
 }
 
 INT_PTR CALLBACK OptionsDlgProc(
