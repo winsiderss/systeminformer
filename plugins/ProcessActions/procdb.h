@@ -51,7 +51,8 @@ typedef enum _PA_PROCDB_ACTION_TYPE
     ActionInvalid = 0,
     ActionSetPriorityClass = 1,
     ActionSetAffinityMask = 2,
-    ActionTerminate = 3
+    ActionTerminate = 3,
+    ActionSuspend = 4
 } PA_PROCDB_ACTION_TYPE;
 
 typedef struct _PA_PROCDB_ACTION
