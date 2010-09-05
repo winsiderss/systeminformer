@@ -689,6 +689,78 @@ PPH_STRING PhEllipsisStringPath(
     }
 }
 
+FORCEINLINE BOOLEAN PhpMatchWildcards(
+    __in PWSTR Pattern,
+    __in PWSTR String,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PWCHAR s, p;
+    BOOLEAN star = FALSE;
+
+    // Code is from http://xoomer.virgilio.it/acantato/dev/wildcard/wildmatch.html
+
+LoopStart:
+    for (s = String, p = Pattern; *s; s++, p++)
+    {
+        switch (*p)
+        {
+        case '?':
+            break;
+        case '*':
+            star = TRUE;
+            String = s;
+            Pattern = p;
+
+            do
+            {
+                Pattern++;
+            } while (*Pattern == '*');
+
+            if (!*Pattern) return TRUE;
+
+            goto LoopStart;
+        default:
+            if (!IgnoreCase)
+            {
+                if (*s != *p)
+                    goto StarCheck;
+            }
+            else
+            {
+                if (towupper(*s) != towupper(*p))
+                    goto StarCheck;
+            }
+
+            break;
+        }
+    }
+
+    while (*p == '*')
+        p++;
+
+    return (!*p);
+
+StarCheck:
+    if (!star)
+        return FALSE;
+
+    String++;
+    goto LoopStart;
+}
+
+BOOLEAN PhMatchWildcards(
+    __in PWSTR Pattern,
+    __in PWSTR String,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return PhpMatchWildcards(Pattern, String, FALSE);
+    else
+        return PhpMatchWildcards(Pattern, String, TRUE);
+}
+
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format
@@ -1316,7 +1388,6 @@ PPH_STRING PhFormatImageVersionInfo(
     __in_opt ULONG LineLimit
     )
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     ULONG indentLength;
 
@@ -1429,10 +1500,7 @@ PPH_STRING PhFormatImageVersionInfo(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 PPH_STRING PhGetFullPath(
@@ -3033,8 +3101,7 @@ VOID PhSetFileDialogFilter(
             PhAppendCharStringBuilder(&filterBuilder, 0);
         }
 
-        filterString = PhReferenceStringBuilderString(&filterBuilder);
-        PhDeleteStringBuilder(&filterBuilder);
+        filterString = PhFinalStringBuilderString(&filterBuilder);
 
         if (ofn->lpstrFilter)
             PhFree((PVOID)ofn->lpstrFilter);
@@ -3391,7 +3458,6 @@ PPH_STRING PhParseCommandLinePart(
     __inout PULONG Index
     )
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
@@ -3477,10 +3543,7 @@ PPH_STRING PhParseCommandLinePart(
 
     *Index = i;
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 BOOLEAN PhParseCommandLine(
@@ -3627,7 +3690,6 @@ PPH_STRING PhEscapeCommandLinePart(
 {
     static WCHAR backslashAndQuote[2] = { '\\', '\"' };
 
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
@@ -3671,8 +3733,5 @@ PPH_STRING PhEscapeCommandLinePart(
         }
     }
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }

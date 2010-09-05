@@ -128,6 +128,7 @@ PhfWaitForCondition(
 #define PH_CONDITION_WAIT_LOCK_TYPE_MASK 0xfff
 
 #define PH_CONDITION_WAIT_SHARED 0x1000
+#define PH_CONDITION_WAIT_SPIN 0x2000
 
 #define PhWaitForConditionEx PhfWaitForConditionEx
 PHLIBAPI

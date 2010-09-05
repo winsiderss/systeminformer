@@ -1092,7 +1092,14 @@ VOID FASTCALL PhfWaitForConditionEx(
                 break;
             }
 
-            PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
+            if (!(Flags & PH_CONDITION_WAIT_SPIN))
+            {
+                PhpBlockOnQueuedWaitBlock(&waitBlock, FALSE, NULL);
+            }
+            else
+            {
+                PhpBlockOnQueuedWaitBlock(&waitBlock, TRUE, NULL);
+            }
 
             switch (Flags & PH_CONDITION_WAIT_LOCK_TYPE_MASK)
             {

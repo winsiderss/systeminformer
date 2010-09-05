@@ -343,7 +343,6 @@ PPH_STRING PhSaveListViewColumnSettings(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    PPH_STRING string;
     ULONG i = 0;
     LVCOLUMN lvColumn;
 
@@ -365,10 +364,7 @@ PPH_STRING PhSaveListViewColumnSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 HWND PhCreateTabControl(

@@ -803,10 +803,7 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
         ErrorMailslot
         );
 
-    string = PhReferenceStringBuilderString(&commandLineBuilder);
-    PhDeleteStringBuilder(&commandLineBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&commandLineBuilder);
 }
 
 /**

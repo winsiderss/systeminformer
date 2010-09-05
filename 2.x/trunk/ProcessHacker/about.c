@@ -94,7 +94,6 @@ FORCEINLINE ULONG PhpGetObjectTypeObjectCount(
 
 PPH_STRING PhGetDiagnosticsString()
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
 
     PhInitializeStringBuilder(&stringBuilder, 50);
@@ -130,8 +129,5 @@ PPH_STRING PhGetDiagnosticsString()
     OBJECT_TYPE_COUNT(PhHandleItemType);
     OBJECT_TYPE_COUNT(PhMemoryItemType);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }

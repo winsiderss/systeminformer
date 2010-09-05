@@ -2085,7 +2085,6 @@ PPH_STRING PhSaveTreeListColumnSettings(
     )
 {
     PH_STRING_BUILDER stringBuilder;
-    PPH_STRING string;
     ULONG i = 0;
     ULONG count = 0;
     ULONG total;
@@ -2120,10 +2119,7 @@ PPH_STRING PhSaveTreeListColumnSettings(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 __callback BOOLEAN NTAPI PhTreeListNullCallback(
