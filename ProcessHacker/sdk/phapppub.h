@@ -307,6 +307,8 @@ BOOLEAN PhShowProcessProperties(
 
 // log
 
+#define PH_LOG_ENTRY_MESSAGE 9
+
 PHAPPAPI
 VOID PhLogMessageEntry(
     __in UCHAR Type,

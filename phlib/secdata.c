@@ -691,7 +691,6 @@ PPH_STRING PhGetAccessString(
     __in ULONG NumberOfAccessEntries
     )
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     PPH_ACCESS_ENTRY accessEntries;
     PBOOLEAN matched;
@@ -742,8 +741,5 @@ PPH_STRING PhGetAccessString(
     PhFree(matched);
     PhFree(accessEntries);
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }

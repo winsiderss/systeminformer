@@ -307,7 +307,6 @@ PPH_LIST PhGetProcessTreeListLines(
 
     for (i = 0; i < rows; i++)
     {
-        PPH_STRING line;
         PH_STRING_BUILDER stringBuilder;
 
         PhInitializeStringBuilder(&stringBuilder, 100);
@@ -357,9 +356,7 @@ PPH_LIST PhGetProcessTreeListLines(
             break;
         }
 
-        line = PhReferenceStringBuilderString(&stringBuilder);
-        PhDeleteStringBuilder(&stringBuilder);
-        PhAddItemList(lines, line);
+        PhAddItemList(lines, PhFinalStringBuilderString(&stringBuilder));
     }
 
     PhDeleteAutoPool(&autoPool);

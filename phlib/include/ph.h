@@ -2260,6 +2260,13 @@ PPH_STRING PhEllipsisStringPath(
     );
 
 PHLIBAPI
+BOOLEAN PhMatchWildcards(
+    __in PWSTR Pattern,
+    __in PWSTR String,
+    __in BOOLEAN IgnoreCase
+    );
+
+PHLIBAPI
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format

@@ -388,7 +388,6 @@ PPH_STRING PhEscapeStringForDelimiter(
     __in WCHAR Delimiter
     )
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
@@ -412,10 +411,7 @@ PPH_STRING PhEscapeStringForDelimiter(
         }
     }
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 PPH_STRING PhUnescapeStringForDelimiter(
@@ -423,7 +419,6 @@ PPH_STRING PhUnescapeStringForDelimiter(
     __in WCHAR Delimiter
     )
 {
-    PPH_STRING string;
     PH_STRING_BUILDER stringBuilder;
     ULONG length;
     ULONG i;
@@ -452,10 +447,7 @@ PPH_STRING PhUnescapeStringForDelimiter(
         }
     }
 
-    string = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return string;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 PPH_STRING PhGetOpaqueXmlNodeText(

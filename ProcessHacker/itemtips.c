@@ -46,7 +46,6 @@ PPH_STRING PhGetProcessTooltipText(
     __in PPH_PROCESS_ITEM Process
     )
 {
-    PPH_STRING tooltipText;
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING tempString;
 
@@ -338,10 +337,7 @@ PPH_STRING PhGetProcessTooltipText(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    tooltipText = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return tooltipText;
+    return PhFinalStringBuilderString(&stringBuilder);
 }
 
 VOID PhpFillRunningTasks(
@@ -431,7 +427,6 @@ PPH_STRING PhGetServiceTooltipText(
     __in PPH_SERVICE_ITEM Service
     )
 {
-    PPH_STRING tooltipText;
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING tempString;
     SC_HANDLE serviceHandle;
@@ -501,8 +496,5 @@ PPH_STRING PhGetServiceTooltipText(
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
-    tooltipText = PhReferenceStringBuilderString(&stringBuilder);
-    PhDeleteStringBuilder(&stringBuilder);
-
-    return tooltipText;
+    return PhFinalStringBuilderString(&stringBuilder);
 }

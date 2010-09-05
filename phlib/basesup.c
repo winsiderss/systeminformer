@@ -1483,7 +1483,7 @@ VOID NTAPI PhpFullStringDeleteProcedure(
     PhFree(string->Buffer);
 }
 
-FORCEINLINE VOID PhpWriteFullStringNullTerminator(
+FORCEINLINE VOID PhpWriteNullTerminatorFullString(
     __in PPH_FULL_STRING String
     )
 {
@@ -1528,7 +1528,7 @@ VOID PhResizeFullString(
     // Resize the buffer.
     String->Buffer = PhReAllocate(String->Buffer, String->AllocatedLength + sizeof(WCHAR));
     // Make sure we have a null terminator.
-    PhpWriteFullStringNullTerminator(String);
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -1598,7 +1598,7 @@ VOID PhAppendFullStringEx(
     }
 
     String->Length += Length;
-    PhpWriteFullStringNullTerminator(String);
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -1617,7 +1617,7 @@ VOID PhAppendCharFullString(
 
     String->Buffer[String->Length / sizeof(WCHAR)] = Character;
     String->Length += sizeof(WCHAR);
-    PhpWriteFullStringNullTerminator(String);
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -1646,7 +1646,7 @@ VOID PhAppendCharFullString2(
         );
 
     String->Length += Count * sizeof(WCHAR);
-    PhpWriteFullStringNullTerminator(String);
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -1670,6 +1670,106 @@ VOID PhAppendFormatFullString(
     PhDereferenceObject(string);
 }
 
+/**
+ * Inserts a string into a string.
+ *
+ * \param String A string object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param ShortString The string to insert.
+ */
+VOID PhInsertFullString(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in PPH_STRING ShortString
+    )
+{
+    PhInsertFullStringEx(
+        String,
+        Index,
+        ShortString->Buffer,
+        ShortString->Length
+        );
+}
+
+/**
+ * Inserts a string into a string.
+ *
+ * \param String A string object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param StringZ The string to insert.
+ */
+VOID PhInsertFullString2(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in PWSTR StringZ
+    )
+{
+    PhInsertFullStringEx(
+        String,
+        Index,
+        StringZ,
+        wcslen(StringZ) * sizeof(WCHAR)
+        );
+}
+
+/**
+ * Inserts a string into a string.
+ *
+ * \param String A string object.
+ * \param Index The index, in characters, at which to 
+ * insert the string.
+ * \param Buffer The string to insert. Specify NULL to 
+ * simply reserve \a Length bytes at \a Index.
+ * \param Length The number of bytes to insert.
+ */
+VOID PhInsertFullStringEx(
+    __inout PPH_FULL_STRING String,
+    __in SIZE_T Index,
+    __in_opt PWSTR Buffer,
+    __in SIZE_T Length
+    )
+{
+    if (Length == 0)
+        return;
+
+    // Resize the string if necessary.
+    if (String->AllocatedLength < String->Length + Length)
+        PhResizeFullString(String, String->Length + Length, TRUE);
+
+    if (Index * sizeof(WCHAR) < String->Length)
+    {
+        // Create some space for the string.
+        memmove(
+            &String->Buffer[Index + Length / sizeof(WCHAR)],
+            &String->Buffer[Index],
+            String->Length - Index * sizeof(WCHAR)
+            );
+    }
+
+    if (Buffer)
+    {
+        // Copy the new string.
+        memcpy(
+            &String->Buffer[Index],
+            Buffer,
+            Length
+            );
+    }
+
+    String->Length += Length;
+    PhpWriteNullTerminatorFullString(String);
+}
+
+/**
+ * Removes characters from a string.
+ *
+ * \param String A string object.
+ * \param StartIndex The index, in characters, at 
+ * which to begin removing characters.
+ * \param Count The number of characters to remove.
+ */
 VOID PhRemoveFullString(
     __inout PPH_FULL_STRING String,
     __in SIZE_T StartIndex,
@@ -1684,7 +1784,7 @@ VOID PhRemoveFullString(
         String->Length - (Count + StartIndex) * sizeof(WCHAR)
         );
     String->Length -= Count * sizeof(WCHAR);
-    PhpWriteFullStringNullTerminator(String);
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -1768,7 +1868,7 @@ VOID PhpResizeStringBuilder(
     StringBuilder->String = newString;
 }
 
-FORCEINLINE VOID PhpWriteStringBuilderNullTerminator(
+FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
     __in PPH_STRING_BUILDER StringBuilder
     )
 {
@@ -1799,6 +1899,28 @@ PPH_STRING PhReferenceStringBuilderString(
     PhReferenceObject(string);
 
     return string;
+}
+
+/**
+ * Obtains a reference to the string constructed 
+ * by a string builder object and frees resources 
+ * used by the object.
+ *
+ * \param StringBuilder A string builder object.
+ *
+ * \return A pointer to a string. You must free 
+ * the string using PhDereferenceObject() when 
+ * you no longer need it.
+ *
+ * \remarks This function is equivalent to calling 
+ * PhReferenceStringBuilderString() followed by 
+ * PhDeleteStringBuilder().
+ */
+PPH_STRING PhFinalStringBuilderString(
+    __inout PPH_STRING_BUILDER StringBuilder
+    )
+{
+    return StringBuilder->String;
 }
 
 /**
@@ -1875,7 +1997,7 @@ VOID PhAppendStringBuilderEx(
     }
 
     StringBuilder->String->Length += (USHORT)Length;
-    PhpWriteStringBuilderNullTerminator(StringBuilder);
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
@@ -1897,7 +2019,7 @@ VOID PhAppendCharStringBuilder(
 
     StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)] = Character;
     StringBuilder->String->Length += sizeof(WCHAR);
-    PhpWriteStringBuilderNullTerminator(StringBuilder);
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
@@ -1930,7 +2052,7 @@ VOID PhAppendCharStringBuilder2(
         );
 
     StringBuilder->String->Length += (USHORT)(Count * sizeof(WCHAR));
-    PhpWriteStringBuilderNullTerminator(StringBuilder);
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
@@ -2006,7 +2128,7 @@ VOID PhInsertStringBuilder2(
  * \param Index The index, in characters, at which to 
  * insert the string.
  * \param String The string to insert. Specify NULL to 
- * simply reserve \a Length bytes.
+ * simply reserve \a Length bytes at \a Index.
  * \param Length The number of bytes to insert.
  */
 VOID PhInsertStringBuilderEx(
@@ -2046,7 +2168,7 @@ VOID PhInsertStringBuilderEx(
     }
 
     StringBuilder->String->Length += (USHORT)Length;
-    PhpWriteStringBuilderNullTerminator(StringBuilder);
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
@@ -2072,7 +2194,7 @@ VOID PhRemoveStringBuilder(
         StringBuilder->String->Length - (Count + StartIndex) * sizeof(WCHAR)
         );
     StringBuilder->String->Length -= (USHORT)(Count * sizeof(WCHAR));
-    PhpWriteStringBuilderNullTerminator(StringBuilder);
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
@@ -2114,6 +2236,18 @@ VOID PhpListDeleteProcedure(
     PPH_LIST list = (PPH_LIST)Object;
 
     PhFree(list->Items);
+}
+
+VOID PhResizeList(
+    __inout PPH_LIST List,
+    __in ULONG NewCapacity
+    )
+{
+    if (List->Count > NewCapacity)
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+
+    List->AllocatedCount = NewCapacity;
+    List->Items = PhReAllocate(List->Items, List->AllocatedCount * sizeof(PVOID));
 }
 
 /**
