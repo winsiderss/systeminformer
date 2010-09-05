@@ -776,6 +776,34 @@ char *PhpSettingsSaveCallback(
     return NULL;
 }
 
+mxml_node_t *PhpCreateSettingElement(
+    __inout mxml_node_t *ParentNode,
+    __in PPH_STRINGREF SettingName,
+    __in PPH_STRINGREF SettingValue
+    )
+{
+    mxml_node_t *settingNode;
+    mxml_node_t *textNode;
+    PPH_ANSI_STRING settingNameAnsi;
+    PPH_ANSI_STRING settingValueAnsi;
+
+    // Create the setting element.
+
+    settingNode = mxmlNewElement(ParentNode, "setting");
+
+    settingNameAnsi = PhCreateAnsiStringFromUnicodeEx(SettingName->Buffer, SettingName->Length);
+    mxmlElementSetAttr(settingNode, "name", settingNameAnsi->Buffer);
+    PhDereferenceObject(settingNameAnsi);
+
+    // Set the value.
+
+    settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(SettingValue->Buffer, SettingValue->Length);
+    textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
+    PhDereferenceObject(settingValueAnsi);
+
+    return settingNode;
+}
+
 NTSTATUS PhSaveSettings(
     __in PWSTR FileName
     )
@@ -792,28 +820,11 @@ NTSTATUS PhSaveSettings(
 
     while (PhEnumHashtable(PhSettingsHashtable, &setting, &enumerationKey))
     {
-        mxml_node_t *settingNode;
-        mxml_node_t *textNode;
-        PPH_ANSI_STRING settingName;
         PPH_STRING settingValue;
-        PPH_ANSI_STRING settingValueAnsi;
-
-        // Create the setting element.
-
-        settingNode = mxmlNewElement(topNode, "setting");
-
-        settingName = PhCreateAnsiStringFromUnicodeEx(setting->Name.Buffer, setting->Name.Length);
-        mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
-        PhDereferenceObject(settingName);
-
-        // Set the value.
 
         settingValue = PhpSettingToString(setting->Type, setting->Value);
-        settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(settingValue->Buffer, settingValue->Length);
+        PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         PhDereferenceObject(settingValue);
-
-        textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
-        PhDereferenceObject(settingValueAnsi);
     }
 
     // Write the ignored settings.
@@ -823,26 +834,10 @@ NTSTATUS PhSaveSettings(
         for (i = 0; i < PhIgnoredSettings->Count; i++)
         {
             PPH_SETTING setting = PhIgnoredSettings->Items[i];
-            mxml_node_t *settingNode;
-            mxml_node_t *textNode;
-            PPH_ANSI_STRING settingName;
             PPH_STRING settingValue;
-            PPH_ANSI_STRING settingValueAnsi;
-
-            // Create the setting element.
-
-            settingNode = mxmlNewElement(topNode, "setting");
-
-            settingName = PhCreateAnsiStringFromUnicodeEx(setting->Name.Buffer, setting->Name.Length);
-            mxmlElementSetAttr(settingNode, "name", settingName->Buffer);
-            PhDereferenceObject(settingName);
-
-            // Set the value.
 
             settingValue = setting->Value;
-            settingValueAnsi = PhCreateAnsiStringFromUnicodeEx(settingValue->Buffer, settingValue->Length);
-            textNode = mxmlNewOpaque(settingNode, settingValueAnsi->Buffer);
-            PhDereferenceObject(settingValueAnsi);
+            PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         }
     }
 

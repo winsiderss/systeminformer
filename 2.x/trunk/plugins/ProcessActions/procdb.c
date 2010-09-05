@@ -26,7 +26,8 @@ static CHAR *PaActionStrings[] =
     NULL,
     "setpriorityclass",
     "setaffinitymask",
-    "terminate"
+    "terminate",
+    "suspend"
 };
 
 VOID PaProcDbInitialization()
@@ -36,7 +37,9 @@ VOID PaProcDbInitialization()
     PaProcDbFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\procdb.xml");
 
     if (PaProcDbFileName)
+    {
         PaLoadProcDb(PaProcDbFileName->Buffer);
+    }
 }
 
 PPA_PROCDB_ENTRY PaAllocateProcDbEntry()
@@ -439,6 +442,75 @@ ContinueEntryLoop:
     return STATUS_SUCCESS;
 }
 
+mxml_node_t *PapCreateNodeWithOpaque(
+    __inout mxml_node_t *ParentNode,
+    __in PSTR Name,
+    __in PPH_STRINGREF String
+    )
+{
+    mxml_node_t *newNode;
+    mxml_node_t *textNode;
+    PPH_ANSI_STRING ansiString;
+
+    ansiString = PhCreateAnsiStringFromUnicodeEx(String->Buffer, String->Length);
+
+    newNode = mxmlNewElement(ParentNode, Name);
+    textNode = mxmlNewOpaque(newNode, ansiString->Buffer);
+
+    PhDereferenceObject(ansiString);
+
+    return newNode;
+}
+
+char *PapProcDbSaveCallback(
+    __in mxml_node_t *node,
+    __in int position
+    )
+{
+    if (STR_IEQUAL(node->value.element.name, "entry"))
+    {
+        switch (position)
+        {
+        case MXML_WS_BEFORE_OPEN:
+        case MXML_WS_BEFORE_CLOSE:
+            return "  ";
+        case MXML_WS_AFTER_OPEN:
+        case MXML_WS_AFTER_CLOSE:
+            return "\n";
+        }
+    }
+    if (
+        STR_IEQUAL(node->value.element.name, "control") ||
+        STR_IEQUAL(node->value.element.name, "selector") ||
+        STR_IEQUAL(node->value.element.name, "action")
+        )
+    {
+        switch (position)
+        {
+        case MXML_WS_BEFORE_OPEN:
+        case MXML_WS_BEFORE_CLOSE:
+            return "    ";
+        case MXML_WS_AFTER_OPEN:
+        case MXML_WS_AFTER_CLOSE:
+            return "\n";
+        }
+    }
+    else if (STR_IEQUAL(node->value.element.name, "database"))
+    {
+        if (position == MXML_WS_AFTER_OPEN)
+            return "\n";
+    }
+    else
+    {
+        if (position == MXML_WS_BEFORE_OPEN)
+            return "      ";
+        else if (position == MXML_WS_AFTER_CLOSE)
+            return "\n";
+    }
+
+    return NULL;
+}
+
 NTSTATUS PaSaveProcDb(
     __in PWSTR FileName
     )
@@ -454,14 +526,69 @@ NTSTATUS PaSaveProcDb(
     {
         PPA_PROCDB_ENTRY entry;
         mxml_node_t *entryNode;
+        mxml_node_t *childNode;
+        ULONG j;
 
         entry = PaProcDbList->Items[i];
 
-        // Create the process element.
-
         entryNode = mxmlNewElement(topNode, "entry");
 
-//ContinueLoop:
+        // Control
+
+        childNode = mxmlNewElement(entryNode, "control");
+        mxmlElementSetAttr(childNode, "type",
+            LookupIntegerAnsi(PaControlStrings, sizeof(PaControlStrings), entry->Control.Type));
+
+        // Selector
+
+        childNode = mxmlNewElement(entryNode, "selector");
+        mxmlElementSetAttr(childNode, "type",
+            LookupIntegerAnsi(PaSelectorStrings, sizeof(PaSelectorStrings), entry->Selector.Type));
+
+        switch (entry->Selector.Type)
+        {
+        case SelectorProcessName:
+            PapCreateNodeWithOpaque(childNode, "name", &entry->Selector.u.ProcessName.Name->sr);
+            break;
+        case SelectorFileName:
+            PapCreateNodeWithOpaque(childNode, "name", &entry->Selector.u.FileName.Name->sr);
+            break;
+        }
+
+        // Actions
+
+        for (j = 0; j < entry->Actions->Count; j++)
+        {
+            PPA_PROCDB_ACTION action = entry->Actions->Items[j];
+
+            childNode = mxmlNewElement(entryNode, "action");
+            mxmlElementSetAttr(childNode, "type",
+                LookupIntegerAnsi(PaActionStrings, sizeof(PaActionStrings), action->Type));
+
+            switch (action->Type)
+            {
+            case ActionSetPriorityClass:
+                {
+                    WCHAR buffer[PH_INT32_STR_LEN_1];
+                    PH_STRINGREF stringRef;
+
+                    _snwprintf(buffer, PH_INT32_STR_LEN, L"0x%x", action->u.SetPriorityClass.PriorityClassWin32);
+                    PhInitializeStringRef(&stringRef, buffer);
+                    PapCreateNodeWithOpaque(childNode, "priorityclasswin32", &stringRef);
+                }
+                break;
+            case ActionSetAffinityMask:
+                {
+                    WCHAR buffer[PH_INT64_STR_LEN_1];
+                    PH_STRINGREF stringRef;
+
+                    _snwprintf(buffer, PH_INT64_STR_LEN, L"0x%Ix", action->u.SetAffinityMask.AffinityMask);
+                    PhInitializeStringRef(&stringRef, buffer);
+                    PapCreateNodeWithOpaque(childNode, "affinitymask", &stringRef);
+                }
+                break;
+            }
+        }
     }
 
     // Create the directory if it does not exist.
@@ -501,7 +628,7 @@ NTSTATUS PaSaveProcDb(
         return status;
     }
 
-    mxmlSaveFd(topNode, fileHandle, MXML_NO_CALLBACK);
+    mxmlSaveFd(topNode, fileHandle, PapProcDbSaveCallback);
     mxmlDelete(topNode);
     NtClose(fileHandle);
 

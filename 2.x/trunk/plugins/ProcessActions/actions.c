@@ -113,6 +113,19 @@ NTSTATUS PaRunAction(
 
         break;
 
+    case ActionSuspend:
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SUSPEND_RESUME,
+            ProcessItem->ProcessId
+            )))
+        {
+            status = PhSuspendProcess(processHandle);
+            NtClose(processHandle);
+        }
+
+        break;
+
     default:
         assert(FALSE);
         break;
