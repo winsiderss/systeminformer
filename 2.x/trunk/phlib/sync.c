@@ -42,10 +42,10 @@ FORCEINLINE VOID PhpDereferenceEvent(
     ULONG_PTR value;
     HANDLE eventHandle;
 
-    value = _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, -PH_EVENT_REFCOUNT_INC) - PH_EVENT_REFCOUNT_INC;
+    value = _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, -PH_EVENT_REFCOUNT_INC);
 
     // See if the reference count has become 0.
-    if ((value >> PH_EVENT_REFCOUNT_SHIFT) == 0)
+    if ((value >> PH_EVENT_REFCOUNT_SHIFT) - 1 == 0)
     {
         if (Event->EventHandle)
         {
