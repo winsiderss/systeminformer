@@ -324,14 +324,13 @@ static BOOLEAN PathMatchesPh(
         OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / 2 - 1] == '"'
         )
     {
-        PPH_STRING valueInside;
+        PH_STRINGREF partInside;
 
-        valueInside = PhSubstring(OldTaskMgrDebugger, 1, OldTaskMgrDebugger->Length / 2 - 2);
+        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
+        partInside.Length = OldTaskMgrDebugger->Length - sizeof(WCHAR) * 2;
 
-        if (PhEqualString(valueInside, PhApplicationFileName, TRUE))
+        if (PhEqualStringRef(&partInside, &PhApplicationFileName->sr, TRUE))
             match = TRUE;
-
-        PhDereferenceObject(valueInside);
     }
 
     return match;
