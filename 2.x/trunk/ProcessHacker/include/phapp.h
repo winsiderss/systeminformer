@@ -1149,6 +1149,13 @@ VOID PhShowProcessAffinityDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+PHAPPAPI
+BOOLEAN PhShowProcessAffinityDialog2(
+    __in HWND ParentWindowHandle,
+    __in ULONG_PTR AffinityMask,
+    __out PULONG_PTR NewAffinityMask
+    );
+
 // chcol
 
 VOID PhShowChooseColumnsDialog(
@@ -1180,6 +1187,7 @@ BOOLEAN PhaChoiceDialog(
 
 // chproc
 
+PHAPPAPI
 BOOLEAN PhShowChooseProcessDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Message,
