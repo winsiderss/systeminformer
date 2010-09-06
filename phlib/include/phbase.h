@@ -741,23 +741,11 @@ FORCEINLINE LONG PhCompareStringRef2(
     __in BOOLEAN IgnoreCase
     )
 {
-    INT result;
+    PH_STRINGREF sr2;
 
-    if (!IgnoreCase)
-        result = wcsncmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
-    else
-        result = wcsnicmp(String1->Buffer, String2, String1->Length / sizeof(WCHAR));
+    PhInitializeStringRef(&sr2, String2);
 
-    // The above operation is essentially a "starts with" test, which means that we 
-    // must do additional processing.
-    if (result == 0)
-    {
-        return (INT)String1->Length / sizeof(WCHAR) - (INT)wcslen(String2);
-    }
-    else
-    {
-        return result;
-    }
+    return RtlCompareUnicodeString(&String1->us, &sr2.us, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhEqualStringRef(
@@ -775,7 +763,11 @@ FORCEINLINE BOOLEAN PhEqualStringRef2(
     __in BOOLEAN IgnoreCase
     )
 {
-    return PhCompareStringRef2(String1, String2, IgnoreCase) == 0;
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, String2);
+
+    return RtlEqualUnicodeString(&String1->us, &sr2.us, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhStartsWithStringRef(
@@ -785,6 +777,72 @@ FORCEINLINE BOOLEAN PhStartsWithStringRef(
     )
 {
     return RtlPrefixUnicodeString(&String2->us, &String1->us, IgnoreCase);
+}
+
+FORCEINLINE BOOLEAN PhStartsWithStringRef2(
+    __in PPH_STRINGREF String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, String2);
+
+    return RtlPrefixUnicodeString(&sr2.us, &String1->us, IgnoreCase);
+}
+
+FORCEINLINE BOOLEAN PhEndsWithStringRef(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr1;
+
+    if (String2->Length > String1->Length)
+        return FALSE;
+
+    sr1.Buffer = &String1->Buffer[(String1->Length - String2->Length) / sizeof(WCHAR)];
+    sr1.Length = String2->Length;
+
+    return RtlEqualUnicodeString(&sr1.us, &String2->us, IgnoreCase);
+}
+
+FORCEINLINE BOOLEAN PhEndsWithStringRef2(
+    __in PPH_STRINGREF String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PH_STRINGREF sr1;
+    PH_STRINGREF sr2;
+
+    PhInitializeStringRef(&sr2, String2);
+
+    if (sr2.Length > String1->Length)
+        return FALSE;
+
+    sr1.Buffer = &String1->Buffer[(String1->Length - sr2.Length) / sizeof(WCHAR)];
+    sr1.Length = sr2.Length;
+
+    return RtlEqualUnicodeString(&sr1.us, &sr2.us, IgnoreCase);
+}
+
+FORCEINLINE ULONG PhFindCharInStringRef(
+    __in PPH_STRINGREF String,
+    __in ULONG StartIndex,
+    __in WCHAR Char
+    )
+{
+    PWSTR location;
+
+    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR));
+
+    if (location)
+        return (ULONG)(location - String->Buffer);
+    else
+        return -1;
 }
 
 FORCEINLINE VOID PhReverseStringRef(
@@ -1269,7 +1327,7 @@ FORCEINLINE ULONG PhFindCharInString(
 {
     PWSTR location;
 
-    location = wcschr(&String->Buffer[StartIndex], Char);
+    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR));
 
     if (location)
         return (ULONG)(location - String->Buffer);
