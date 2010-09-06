@@ -114,12 +114,6 @@ VOID NTAPI ShowOptionsCallback(
     )
 {
     PhShowInformation(PhMainWndHandle, L"Use Tools > Configure Actions... to configure this plugin.");
-    //DialogBox(
-    //    PluginInstance->DllBase,
-    //    MAKEINTRESOURCE(IDD_OPTIONS),
-    //    (HWND)Parameter,
-    //    OptionsDlgProc
-    //    );
 }
 
 VOID NTAPI MenuItemCallback(
