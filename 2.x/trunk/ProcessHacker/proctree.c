@@ -193,7 +193,10 @@ PPH_PROCESS_NODE PhCreateProcessNode(
     processNode->Children = PhCreateList(1);
 
     // Find this process' parent and add the process to it if we found it.
-    if (ProcessItem->HasParent && (parentNode = PhFindProcessNode(ProcessItem->ParentProcessId)))
+    if (
+        (parentNode = PhFindProcessNode(ProcessItem->ParentProcessId)) &&
+        parentNode->ProcessItem->CreateTime.QuadPart <= ProcessItem->CreateTime.QuadPart
+        )
     {
         PhAddItemList(parentNode->Children, processNode);
         processNode->Parent = parentNode;
@@ -211,7 +214,11 @@ PPH_PROCESS_NODE PhCreateProcessNode(
     {
         PPH_PROCESS_NODE node = ProcessNodeRootList->Items[i];
 
-        if (node->ProcessItem->HasParent && node->ProcessItem->ParentProcessId == ProcessItem->ProcessId)
+        if (
+            node != processNode && // for cases where the parent PID = PID (e.g. System Idle Process) 
+            node->ProcessItem->ParentProcessId == ProcessItem->ProcessId &&
+            ProcessItem->CreateTime.QuadPart <= node->ProcessItem->CreateTime.QuadPart
+            )
         {
             node->Parent = processNode;
             PhAddItemList(processNode->Children, node);
