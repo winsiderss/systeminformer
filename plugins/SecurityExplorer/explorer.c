@@ -150,13 +150,14 @@ VOID SxpRefreshPrivileges()
 
                 name = PhCreateStringEx(privileges[i].Name.Buffer, privileges[i].Name.Length);
                 lvItemIndex = PhAddListViewItem(PrivilegesLv, MAXINT, name->Buffer, NULL);
-                PhDereferenceObject(name);
 
-                if (PhLookupPrivilegeDisplayName(name->Buffer, &displayName))
+                if (PhLookupPrivilegeDisplayName(&name->sr, &displayName))
                 {
                     PhSetListViewSubItem(PrivilegesLv, lvItemIndex, 1, displayName->Buffer);
                     PhDereferenceObject(displayName);
                 }
+
+                PhDereferenceObject(name);
             }
 
             LsaFreeMemory(privileges);
