@@ -345,6 +345,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\config.c"
+				>
+			</File>
+			<File
 				RelativePath=".\main.c"
 				>
 			</File>
@@ -360,6 +364,10 @@
 			>
 			<File
 				RelativePath=".\actions.h"
+				>
+			</File>
+			<File
+				RelativePath=".\config.h"
 				>
 			</File>
 			<File
