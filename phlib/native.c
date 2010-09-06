@@ -3105,8 +3105,12 @@ BOOLEAN PhSetTokenPrivilege(
     }
     else if (PrivilegeName)
     {
+        PH_STRINGREF privilegeName;
+
+        PhInitializeStringRef(&privilegeName, PrivilegeName);
+
         if (!PhLookupPrivilegeValue(
-            PrivilegeName,
+            &privilegeName,
             &privileges.Privileges[0].Luid
             ))
             return FALSE;
