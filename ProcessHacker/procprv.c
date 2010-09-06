@@ -301,23 +301,35 @@ PPH_STRING PhGetClientIdName(
     )
 {
     PPH_STRING name;
-    PPH_STRING processName = NULL;
     PPH_PROCESS_ITEM processItem;
 
     processItem = PhReferenceProcessItem(ClientId->UniqueProcess);
 
     if (processItem)
     {
-        processName = processItem->ProcessName;
-        PhReferenceObject(processName);
+        name = PhGetClientIdNameEx(ClientId, processItem->ProcessName);
         PhDereferenceObject(processItem);
     }
+    else
+    {
+        name = PhGetClientIdNameEx(ClientId, NULL);
+    }
+
+    return name;
+}
+
+PPH_STRING PhGetClientIdNameEx(
+    __in PCLIENT_ID ClientId,
+    __in_opt PPH_STRING ProcessName
+    )
+{
+    PPH_STRING name;
 
     if (ClientId->UniqueThread)
     {
-        if (processName)
+        if (ProcessName)
         {
-            name = PhFormatString(L"%s (%u): %u", processName->Buffer,
+            name = PhFormatString(L"%s (%u): %u", ProcessName->Buffer,
                 (ULONG)ClientId->UniqueProcess, (ULONG)ClientId->UniqueThread);
         }
         else
@@ -328,14 +340,11 @@ PPH_STRING PhGetClientIdName(
     }
     else
     {
-        if (processName)
-            name = PhFormatString(L"%s (%u)", processName->Buffer, (ULONG)ClientId->UniqueProcess);
+        if (ProcessName)
+            name = PhFormatString(L"%s (%u)", ProcessName->Buffer, (ULONG)ClientId->UniqueProcess);
         else
             name = PhFormatString(L"Non-existent process (%u)", (ULONG)ClientId->UniqueProcess);
     }
-
-    if (processName)
-        PhDereferenceObject(processName);
 
     return name;
 }
@@ -1472,8 +1481,6 @@ VOID PhProcessProviderUpdate(
                 processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
                 processItem2->Record->ExitTime = exitTime;
 
-                // Fix the HasParent field, otherwise processes may get incorrectly moved.
-
                 // Raise the process removed event.
                 PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
 
@@ -1553,26 +1560,6 @@ VOID PhProcessProviderUpdate(
 
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
-
-            // Check if process actually has a parent.
-            {
-                PSYSTEM_PROCESS_INFORMATION parentProcess;
-
-                processItem->HasParent = TRUE;
-                parentProcess = PhFindProcessInformation(processes, processItem->ParentProcessId);
-
-                if (!parentProcess || processItem->ParentProcessId == processItem->ProcessId)
-                {
-                    processItem->HasParent = FALSE;
-                }
-                else if (parentProcess)
-                {
-                    // Check the parent's creation time to see if it is 
-                    // actually the parent.
-                    if (parentProcess->CreateTime.QuadPart > processItem->CreateTime.QuadPart)
-                        processItem->HasParent = FALSE;
-                }
-            }
 
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
@@ -2202,4 +2189,52 @@ VOID PhPurgeProcessRecords()
 
         PhDereferenceObject(derefList);
     }
+}
+
+PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
+    __in HANDLE ParentProcessId,
+    __in HANDLE ProcessId,
+    __in PLARGE_INTEGER CreateTime
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    if (ParentProcessId == ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
+        return NULL;
+
+    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+
+    processItem = PhpLookupProcessItem(ParentProcessId);
+
+    // We make sure that the process item we found is actually the parent 
+    // process - its start time must not be larger than the supplied 
+    // time.
+    if (processItem && processItem->CreateTime.QuadPart <= CreateTime->QuadPart)
+        PhReferenceObject(processItem);
+    else
+        processItem = NULL;
+
+    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+
+    return processItem;
+}
+
+PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
+    __in PPH_PROCESS_RECORD Record
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+
+    processItem = PhpLookupProcessItem(Record->ProcessId);
+
+    if (processItem && processItem->CreateTime.QuadPart == Record->CreateTime.QuadPart)
+        PhReferenceObject(processItem);
+    else
+        processItem = NULL;
+
+    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+
+    return processItem;
 }

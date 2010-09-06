@@ -3744,12 +3744,11 @@ VOID PhMainWndOnProcessAdded(
         HANDLE parentProcessId = NULL;
         PPH_STRING parentName = NULL;
 
-        if (ProcessItem->HasParent)
-            parentProcess = PhReferenceProcessItem(ProcessItem->ParentProcessId);
-        else
-            parentProcess = NULL;
-
-        if (parentProcess)
+        if (parentProcess = PhReferenceProcessItemForParent(
+            ProcessItem->ParentProcessId,
+            ProcessItem->ProcessId,
+            &ProcessItem->CreateTime
+            ))
         {
             parentProcessId = parentProcess->ProcessId;
             parentName = parentProcess->ProcessName;

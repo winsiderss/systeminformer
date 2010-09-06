@@ -8,6 +8,7 @@ Process Hacker
    * Memory leak
    * Crash when running under certain conditions
    * Memory case-insensitive filter
+   * Process parent association bug
  * REMOVED:
    * Process database
 

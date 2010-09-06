@@ -226,6 +226,12 @@ PPH_STRING PhGetClientIdName(
     );
 
 PHAPPAPI
+PPH_STRING PhGetClientIdNameEx(
+    __in PCLIENT_ID ClientId,
+    __in_opt PPH_STRING ProcessName
+    );
+
+PHAPPAPI
 PWSTR PhGetProcessPriorityClassWin32String(
     __in ULONG PriorityClassWin32
     );
@@ -284,6 +290,18 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
     );
 
 VOID PhPurgeProcessRecords();
+
+PHAPPAPI
+PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
+    __in HANDLE ParentProcessId,
+    __in HANDLE ProcessId,
+    __in PLARGE_INTEGER CreateTime
+    );
+
+PHAPPAPI
+PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
+    __in PPH_PROCESS_RECORD Record
+    );
 
 // srvprv
 
