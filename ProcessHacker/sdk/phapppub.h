@@ -573,6 +573,24 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+// affinity
+
+PHAPPAPI
+BOOLEAN PhShowProcessAffinityDialog2(
+    __in HWND ParentWindowHandle,
+    __in ULONG_PTR AffinityMask,
+    __out PULONG_PTR NewAffinityMask
+    );
+
+// chproc
+
+PHAPPAPI
+BOOLEAN PhShowChooseProcessDialog(
+    __in HWND ParentWindowHandle,
+    __in PWSTR Message,
+    __out PHANDLE ProcessId
+    );
+
 // settings
 
 typedef enum _PH_SETTING_TYPE
