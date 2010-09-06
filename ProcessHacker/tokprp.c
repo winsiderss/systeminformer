@@ -437,7 +437,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                             ))
                         {
                             privilegeDisplayName = NULL;
-                            PhLookupPrivilegeDisplayName(privilegeName->Buffer, &privilegeDisplayName);
+                            PhLookupPrivilegeDisplayName(&privilegeName->sr, &privilegeDisplayName);
 
                             // Name
                             lvItemIndex = PhAddListViewItem(privilegesLv, MAXINT, privilegeName->Buffer,

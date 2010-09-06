@@ -1032,13 +1032,13 @@ BOOLEAN PhLookupPrivilegeName(
 
 PHLIBAPI
 BOOLEAN PhLookupPrivilegeDisplayName(
-    __in PWSTR PrivilegeName,
+    __in PPH_STRINGREF PrivilegeName,
     __out PPH_STRING *PrivilegeDisplayName
     );
 
 PHLIBAPI
 BOOLEAN PhLookupPrivilegeValue(
-    __in PWSTR PrivilegeName,
+    __in PPH_STRINGREF PrivilegeName,
     __out PLUID PrivilegeValue
     );
 

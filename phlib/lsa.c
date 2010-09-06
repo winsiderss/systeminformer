@@ -127,20 +127,17 @@ BOOLEAN PhLookupPrivilegeName(
  * PhDereferenceObject() when you no longer need it.
  */
 BOOLEAN PhLookupPrivilegeDisplayName(
-    __in PWSTR PrivilegeName,
+    __in PPH_STRINGREF PrivilegeName,
     __out PPH_STRING *PrivilegeDisplayName
     )
 {
     NTSTATUS status;
-    UNICODE_STRING privilegeName;
     PUNICODE_STRING displayName;
     SHORT language;
 
-    RtlInitUnicodeString(&privilegeName, PrivilegeName);
-
     status = LsaLookupPrivilegeDisplayName(
         PhGetLookupPolicyHandle(),
-        &privilegeName,
+        &PrivilegeName->us,
         &displayName,
         &language
         );
@@ -162,17 +159,13 @@ BOOLEAN PhLookupPrivilegeDisplayName(
  * the LUID of the privilege.
  */
 BOOLEAN PhLookupPrivilegeValue(
-    __in PWSTR PrivilegeName,
+    __in PPH_STRINGREF PrivilegeName,
     __out PLUID PrivilegeValue
     )
 {
-    UNICODE_STRING privilegeName;
-
-    RtlInitUnicodeString(&privilegeName, PrivilegeName);
-
     return NT_SUCCESS(LsaLookupPrivilegeValue(
         PhGetLookupPolicyHandle(),
-        &privilegeName,
+        &PrivilegeName->us,
         PrivilegeValue
         ));
 }
