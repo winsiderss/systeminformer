@@ -337,6 +337,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                                     PhRemoveListViewItem(PhFindObjectsListViewHandle,
                                         PhFindListViewItemByParam(PhFindObjectsListViewHandle, 0, results[i]));
                                 }
+
+                                NtClose(processHandle);
                             }
 
                             if (!NT_SUCCESS(status))
