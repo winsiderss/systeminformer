@@ -647,6 +647,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #ifdef _M_X64
             PVOID peb32;
 #endif
+            PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
             BOOLEAN isProtected;
 
@@ -762,13 +763,19 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // Parent
 
-            if (processItem->HasParent)
+            if (parentProcess = PhReferenceProcessItemForParent(
+                processItem->ParentProcessId,
+                processItem->ProcessId,
+                &processItem->CreateTime
+                ))
             {
-                clientId.UniqueProcess = processItem->ParentProcessId;
+                clientId.UniqueProcess = parentProcess->ProcessId;
                 clientId.UniqueThread = NULL;
 
                 SetDlgItemText(hwndDlg, IDC_PARENTPROCESS,
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+
+                PhDereferenceObject(parentProcess);
             }
             else
             {

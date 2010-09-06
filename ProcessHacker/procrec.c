@@ -82,24 +82,6 @@ FORCEINLINE PWSTR PhpGetStringOrNa(
         return L"N/A";
 }
 
-static PPH_PROCESS_ITEM PhpReferenceMatchingProcessItem(
-    __in PPH_PROCESS_RECORD Record
-    )
-{
-    PPH_PROCESS_ITEM processItem;
-
-    if (processItem = PhReferenceProcessItem(Record->ProcessId))
-    {
-        if (processItem->CreateTime.QuadPart != Record->CreateTime.QuadPart)
-        {
-            PhDereferenceObject(processItem);
-            processItem = NULL;
-        }
-    }
-
-    return processItem;
-}
-
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -152,17 +134,25 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PROCESSNAME, processNameString->Buffer);
 
-            if (processItem = PhpReferenceMatchingProcessItem(context->Record))
+            if (processItem = PhReferenceProcessItemForRecord(context->Record))
             {
-                if (processItem->HasParent)
+                PPH_PROCESS_ITEM parentProcess;
+
+                if (parentProcess = PhReferenceProcessItemForParent(
+                    processItem->ParentProcessId,
+                    processItem->ProcessId,
+                    &processItem->CreateTime
+                    ))
                 {
                     CLIENT_ID clientId;
 
-                    clientId.UniqueProcess = processItem->ParentProcessId;
+                    clientId.UniqueProcess = parentProcess->ProcessId;
                     clientId.UniqueThread = NULL;
 
                     SetDlgItemText(hwndDlg, IDC_PARENT,
-                        ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer);
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdNameEx(&clientId, parentProcess->ProcessName)))->Buffer);
+
+                    PhDereferenceObject(parentProcess);
                 }
                 else
                 {
@@ -242,7 +232,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 {
                     PPH_PROCESS_ITEM processItem;
 
-                    if (processItem = PhpReferenceMatchingProcessItem(context->Record))
+                    if (processItem = PhReferenceProcessItemForRecord(context->Record))
                     {
                         ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
                         PhDereferenceObject(processItem);
