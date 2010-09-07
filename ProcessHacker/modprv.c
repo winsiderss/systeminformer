@@ -358,6 +358,7 @@ VOID PhModuleProviderUpdate(
             PhPrintPointer(moduleItem->BaseAddressString, moduleItem->BaseAddress);
             moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
+            moduleItem->Type = module->Type;
 
             moduleItem->Name = module->Name;
             PhReferenceObject(moduleItem->Name);
