@@ -40,8 +40,7 @@ pre {
 
     <h2>Configuration File</h2>
     <p>The settings file for Process Hacker is stored in: <code>[Roaming Application Data]\Process Hacker 2</code>. 
-    This can be overridden using the <code>-settings</code> command line parameter. The process database file is 
-    stored in the same directory as the settings file, but its location currently cannot be changed.</p>
+    This can be overridden using the <code>-settings</code> command line parameter.</p>
 
     <h2>Command Line Options</h2>
     <dl>
@@ -331,8 +330,9 @@ pre {
       
       <dt>Inject DLL...</dt>
       <dd>Allows you to select a DLL file (or any other PE image) that will be injected into 
-      the selected process. This option is only available for processes running in the same 
-      session as Process Hacker (usually processes in the same user account).</dd>
+      the selected process. On Windows XP, this option is only available for processes running in the same 
+      session as Process Hacker (usually processes in the same user account). On Windows Vista and above, 
+      there is no such restriction.</dd>
       
       <dt>I/O Priority</dt>
       <dd>Sets the process' I/O priority.</dd>
@@ -457,6 +457,14 @@ pre {
       view and edit its properties.</dd>
     </dl>
     
+    <h1 id="findobj">Find Handles or DLLs</h1>
+    <p>This tool allows you to find handles, DLLs and mapped files matching the specified name. 
+    The entered string can be a substring of an object name. The search is not case-sensitive. 
+    Note that this window only allows you to close handles. If you wish to "unlock" a file which is 
+    loaded as a DLL or mapped, you must open the properties window for the relevant process, select 
+    the <strong>Modules</strong> tab, right-click the relevant item, and select 
+    <strong>Unload</strong>.</p>
+    
     <h1 id="glossary">Glossary</h1>
     <dl>
       <dt>Affinity</dt>
@@ -471,7 +479,7 @@ pre {
       <dd>A new process started by an existing one.</dd>
       <dt>Command Line</dt>
       <dd>A <em>string</em> describing a program to start and any parameters to pass to it. Examples: 
-      <code>C:\Windows\notepad.exe C:\Windows\win.ini</code>, <code>cmd /TF0</code></dd>
+      <code>C:\Windows\notepad.exe C:\Windows\win.ini</code>, <code>cmd /T:F0</code></dd>
       <dt>Commit</dt>
       <dd>A committed page or memory region contains actual data. Compare with <em>reserve</em>.</dd>
       <dt>Context Switch</dt>
@@ -480,6 +488,8 @@ pre {
       <dt>Data Execution Prevention</dt>
       <dd>The Windows implementation of NX (No eXecute) technology, designed to prevent the execution of data 
       regions as code. This can prevent certain types of software attacks.</dd>
+      <dt>Debug Object (Object)</dt>
+      <dd>An object which a debugger can attach to processes to facilitate debugging.</dd>
       <dt>Directory (Object)</dt>
       <dd>A "directory" in the NT object manager. These have nothing to do with files and folders, although 
       through the object manager all kinds of objects are accessed, including the file system and registry.</dd>
@@ -496,8 +506,15 @@ pre {
       <dt>Environment Variable</dt>
       <dd>A variable accessible to processes describing the operating system environment. Environment variables 
       are normally inherited by <em>child processes</em>.</dd>
+      <dt>Event (Object)</dt>
+      <dd>A type of object used for synchronization.</dd>
+      <dt>Event Pair (Object)</dt>
+      <dd>A type of object used for synchronization, containing two events, "high" and "low".</dd>
       <dt>EtwRegistration (Object)</dt>
       <dd>An object used by Event Tracing for Windows.</dd>
+      <dt>File (Object)</dt>
+      <dd>An object which supports common operations such as read, write and I/O control. This can refer to 
+      a file or directory in an actual file system, and also devices.</dd>
       <dt>GDI</dt>
       <dd>Graphics Device Interface. This is a system which provides basic graphics support for programs.</dd>
       <dt>GDI Handles/Objects</dt>
@@ -510,11 +527,16 @@ pre {
       <dt>Heap</dt>
       <dd>A process-managed structure from which memory can be allocated. Since <em>pages</em> can only be 
       allocated in large chunks, using a heap will reduce wastage of memory for small allocations.</dd>
+      <dt>I/O completion (Object)</dt>
+      <dd>An object to which packets of information about completed I/O can be queued.</dd>
       <dt>Image</dt>
       <dd>A "package" containing executable code.</dd>
       <dt>Interrupt</dt>
       <dd>An event, usually signaled by hardware, that is handled by the operating system through a 
       <em>interrupt handler</em>.</dd>
+      <dt>Job (Object)</dt>
+      <dd>A process group. Restrictions can be placed on processes in a job, and statistics are collected 
+      for the group.</dd>
       <dt>Key (Object)</dt>
       <dd>A registry key.</dd>
       <dt>Kernel</dt>
@@ -530,8 +552,9 @@ pre {
       operating system tasks. Most kernel-mode threads are contained in the System process, but csrss.exe also 
       runs kernel-mode threads.</dd>
       <dt>LPC</dt>
-      <dd>Local inter-Process Communication (not Local Procedure Call). A Windows NT mechanism which enables 
-      processes to communicate with each other. Primary consumers are system services and RPC.</dd>
+      <dd>Local inter-Process Communication (sometimes mistakenly referred to as Local Procedure Call). A Windows 
+      NT mechanism which enables processes to communicate with each other. Primary consumers are system services 
+      and RPC.</dd>
       <dt>LUID</dt>
       <dd>Locally Unique IDentifier. A value which is unique on the local system until it is rebooted.</dd>
       <dt>Module</dt>
@@ -539,7 +562,8 @@ pre {
       <dt>Mutant (Object)</dt>
       <dd>A mutex object. Win32 calls these objects mutexes, while in the Native API they are called mutants.</dd>
       <dt>Page</dt>
-      <dd>A block of memory, 4 kB in size on x86 and AMD64 processors.</dd>
+      <dd>A block of memory, 4 kB in size on x86 and AMD64 processors. Every page can have its own attributes, 
+      such as its protection (read, write, execute).</dd>
       <dt>PEB</dt>
       <dd>Process Environment Block. The PEB contains a variety of data used by the process.</dd>
       <dt>Privilege</dt>
@@ -558,6 +582,8 @@ pre {
       <dd>A block of memory that can be mapped into a process' address space. The data for this block of memory can 
       be temporary ("backed" by the pagefile) or can come from a file ("backed" by a file, i.e. file mapping). Win32 
       calls these objects "file mappings".</dd>
+      <dt>Semaphore (Object)</dt>
+      <dd>A type of object used for synchronization.</dd>
       <dt>Service</dt>
       <dd>A operating system managed program which runs in the background. They can be in shared processes 
       (in svchost.exe instances), in separate processes, or drivers loaded into kernel-mode space.</dd>
@@ -573,6 +599,8 @@ pre {
       <dt>Thread</dt>
       <dd>A unit of execution belonging to a process, running code concurrently. Most threads run in <em>user-mode</em>, 
       but some are <em>kernel-mode threads</em>.</dd>
+      <dt>Timer (Object)</dt>
+      <dd>A type of object used for synchronization.</dd>
       <dt>TmEn (Object)</dt>
       <dd>Enlistment objects (for the transaction manager).</dd>
       <dt>TmRm (Object)</dt>
@@ -581,6 +609,8 @@ pre {
       <dd>Transaction Manager objects. These have an associated log file.</dd>
       <dt>TmTx (Object)</dt>
       <dd>Transaction objects (for the transaction manager).</dd>
+      <dt>Token (Object)</dt>
+      <dd>An object which describes security attributes such as the user, groups and privileges.</dd>
       <dt>User Account Control</dt>
       <dd>Refers to restrictions on normal processes preventing them from modifying system-wide files and settings. 
       Processes which are <em>elevated</em> have full administrative access to system resources.</dd>
