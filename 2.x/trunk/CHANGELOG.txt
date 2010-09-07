@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Better Run As behaviour
    * Show Processes From All Users option
+   * Can now unmap section views
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions

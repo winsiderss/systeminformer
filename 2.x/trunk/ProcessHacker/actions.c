@@ -2126,13 +2126,33 @@ BOOLEAN PhUiUnloadModule(
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
+        PWSTR verb;
+        PWSTR action;
+
+        switch (Module->Type)
+        {
+        case PH_MODULE_TYPE_MODULE:
+        case PH_MODULE_TYPE_WOW64_MODULE:
+            verb = L"unload";
+            action = L"Unloading a module may cause the process to crash.";
+            break;
+        case PH_MODULE_TYPE_KERNEL_MODULE:
+            verb = L"unload";
+            action = L"Unloading a driver may cause system instability.";
+            break;
+        case PH_MODULE_TYPE_MAPPED_FILE:
+            verb = L"unmap";
+            action = L"Unmapping a section view may cause the process to crash.";
+            break;
+        default:
+            return FALSE;
+        }
+
         cont = PhShowConfirmMessage(
             hWnd,
-            L"unload",
+            verb,
             Module->Name->Buffer,
-            ProcessId != SYSTEM_PROCESS_ID ?
-            L"Unloading a module may cause the process to crash." :
-            L"Unloading a driver may cause system instability.",
+            action,
             TRUE
             );
     }
@@ -2144,8 +2164,10 @@ BOOLEAN PhUiUnloadModule(
     if (!cont)
         return FALSE;
 
-    if (ProcessId != SYSTEM_PROCESS_ID)
+    switch (Module->Type)
     {
+    case PH_MODULE_TYPE_MODULE:
+    case PH_MODULE_TYPE_WOW64_MODULE:
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
             ProcessQueryAccess | PROCESS_CREATE_THREAD | PROCESS_VM_OPERATION |
@@ -2167,8 +2189,7 @@ BOOLEAN PhUiUnloadModule(
 
         if (status == STATUS_DLL_NOT_FOUND)
         {
-            PhShowError(hWnd, L"Unable to find the module to unload. This may be "
-                L"due to an attempt to unload a mapped file.");
+            PhShowError(hWnd, L"Unable to find the module to unload.");
             return FALSE;
         }
 
@@ -2182,9 +2203,10 @@ BOOLEAN PhUiUnloadModule(
                 );
             return FALSE;
         }
-    }
-    else
-    {
+
+        break;
+
+    case PH_MODULE_TYPE_KERNEL_MODULE:
         status = PhUnloadDriver(Module->BaseAddress, Module->Name->Buffer);
 
         if (!NT_SUCCESS(status))
@@ -2203,6 +2225,35 @@ BOOLEAN PhUiUnloadModule(
                 );
             return FALSE;
         }
+
+        break;
+
+    case PH_MODULE_TYPE_MAPPED_FILE:
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_VM_OPERATION,
+            ProcessId
+            )))
+        {
+            status = NtUnmapViewOfSection(processHandle, Module->BaseAddress);
+            NtClose(processHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            PhShowStatus(
+                hWnd,
+                PhaFormatString(L"Unable to unmap the section view at 0x%Ix", Module->BaseAddress)->Buffer,
+                status,
+                0
+                );
+            return FALSE;
+        }
+
+        break;
+
+    default:
+        return FALSE;
     }
 
     return TRUE;
