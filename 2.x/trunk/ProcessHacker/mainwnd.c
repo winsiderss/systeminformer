@@ -3287,7 +3287,6 @@ VOID PhpInitializeProcessMenu(
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
             ID_PROCESS_REDUCEWORKINGSET,
-            ID_PROCESS_MARKASSAFE,
             ID_PROCESS_COPY
         };
         ULONG i;

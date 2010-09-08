@@ -580,7 +580,6 @@
 #define ID_MODULE_COPY                  40199
 #define ID_HANDLE_COPY                  40200
 #define ID_OBJECT_COPY                  40201
-#define ID_PROCESS_MARKASSAFE           40202
 #define ID_PRIORITY_PERMANENT           40203
 #define ID_PRIORITY_RESTORE             40204
 #define ID_PRIORITY_SAVE                40205
