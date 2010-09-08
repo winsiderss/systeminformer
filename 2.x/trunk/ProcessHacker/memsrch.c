@@ -61,7 +61,7 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
 
 PVOID PhMemorySearchHeap = NULL;
 LONG PhMemorySearchHeapRefCount = 0;
-PH_QUEUED_LOCK PhMemorySearchHeapLock;
+PH_QUEUED_LOCK PhMemorySearchHeapLock = PH_QUEUED_LOCK_INIT;
 
 PVOID PhAllocateForMemorySearch(
     __in SIZE_T Size
