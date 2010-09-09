@@ -1153,7 +1153,8 @@ PPH_STRING PhGetDiagnosticsString();
 
 VOID PhShowProcessAffinityDialog(
     __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
+    __in_opt PPH_THREAD_ITEM ThreadItem
     );
 
 PHAPPAPI

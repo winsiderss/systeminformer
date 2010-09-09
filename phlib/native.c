@@ -2293,6 +2293,26 @@ NTSTATUS PhGetThreadCycleTime(
 }
 
 /**
+ * Sets a thread's affinity mask.
+ *
+ * \param ThreadHandle A handle to a thread. The handle 
+ * must have THREAD_SET_LIMITED_INFORMATION access.
+ * \param AffinityMask The new affinity mask.
+ */
+NTSTATUS PhSetThreadAffinityMask(
+    __in HANDLE ThreadHandle,
+    __in ULONG_PTR AffinityMask
+    )
+{
+    return NtSetInformationThread(
+        ThreadHandle,
+        ThreadAffinityMask,
+        &AffinityMask,
+        sizeof(ULONG_PTR)
+        );
+}
+
+/**
  * Sets a thread's I/O priority.
  *
  * \param ThreadHandle A handle to a thread. The handle 

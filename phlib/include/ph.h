@@ -427,6 +427,12 @@ NTSTATUS PhGetThreadCycleTime(
     );
 
 PHLIBAPI
+NTSTATUS PhSetThreadAffinityMask(
+    __in HANDLE ThreadHandle,
+    __in ULONG_PTR AffinityMask
+    );
+
+PHLIBAPI
 NTSTATUS PhSetThreadIoPriority(
     __in HANDLE ThreadHandle,
     __in ULONG IoPriority
