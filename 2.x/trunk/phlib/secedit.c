@@ -68,6 +68,9 @@ HPROPSHEETPAGE PhCreateSecurityPage(
 
     PhpSecurityEditorInitialization();
 
+    if (!CreateSecurityPage_I)
+        return NULL;
+
     info = PhSecurityInformation_Create(
         ObjectName,
         GetObjectSecurity,
@@ -97,6 +100,9 @@ VOID PhEditSecurity(
     ISecurityInformation *info;
 
     PhpSecurityEditorInitialization();
+
+    if (!EditSecurity_I)
+        return;
 
     info = PhSecurityInformation_Create(
         ObjectName,
