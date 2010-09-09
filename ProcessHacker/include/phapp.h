@@ -644,7 +644,7 @@ typedef struct _DLGTEMPLATEEX
 typedef struct _PH_PROCESS_PROPCONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
-    HANDLE WindowHandle;
+    HWND WindowHandle;
     PH_EVENT CreatedEvent;
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
