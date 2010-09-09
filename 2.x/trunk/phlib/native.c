@@ -912,19 +912,19 @@ NTSTATUS PhGetProcessIsWow64(
     )
 {
     NTSTATUS status;
-    WOW64_PROCESS wow64;
+    ULONG_PTR wow64;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessWow64Information,
         &wow64,
-        sizeof(WOW64_PROCESS),
+        sizeof(ULONG_PTR),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *IsWow64 = !!wow64.Wow64;
+        *IsWow64 = !!wow64;
     }
 
     return status;
@@ -948,19 +948,19 @@ NTSTATUS PhGetProcessPeb32(
     )
 {
     NTSTATUS status;
-    WOW64_PROCESS wow64;
+    ULONG_PTR wow64;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessWow64Information,
         &wow64,
-        sizeof(WOW64_PROCESS),
+        sizeof(ULONG_PTR),
         NULL
         );
 
     if (NT_SUCCESS(status))
     {
-        *Peb32 = wow64.Wow64;
+        *Peb32 = (PVOID)wow64;
     }
 
     return status;
