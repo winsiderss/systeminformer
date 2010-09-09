@@ -160,6 +160,7 @@ BEGIN
         MENUITEM "Suspend",                     ID_THREAD_SUSPEND
         MENUITEM "Resume",                      ID_THREAD_RESUME
         MENUITEM SEPARATOR
+        MENUITEM "Affinity",                    ID_THREAD_AFFINITY
         MENUITEM "Permissions",                 ID_THREAD_PERMISSIONS
         MENUITEM "Token",                       ID_THREAD_TOKEN
         POPUP "Analyze"
@@ -961,7 +962,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,88,124,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,142,124,50,14
-    LTEXT           "Affinity controls which CPUs the process' threads are allowed to execute on.",IDC_STATIC,7,7,185,18
+    LTEXT           "Affinity controls which CPUs threads are allowed to execute on.",IDC_STATIC,7,7,185,18
     CONTROL         "CPU 0",IDC_CPU0,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,28,35,10
     CONTROL         "CPU 1",IDC_CPU1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,40,35,10
     CONTROL         "CPU 2",IDC_CPU2,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,51,35,10

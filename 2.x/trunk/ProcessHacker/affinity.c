@@ -26,6 +26,7 @@
 typedef struct _AFFINITY_DIALOG_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
+    PPH_THREAD_ITEM ThreadItem;
     ULONG_PTR AffinityMask;
     ULONG_PTR NewAffinityMask;
 } AFFINITY_DIALOG_CONTEXT, *PAFFINITY_DIALOG_CONTEXT;
@@ -39,12 +40,16 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
 VOID PhShowProcessAffinityDialog(
     __in HWND ParentWindowHandle,
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in_opt PPH_PROCESS_ITEM ProcessItem,
+    __in_opt PPH_THREAD_ITEM ThreadItem
     )
 {
     AFFINITY_DIALOG_CONTEXT context;
 
+    assert(!!ProcessItem != !!ThreadItem); // make sure we have one and not the other
+
     context.ProcessItem = ProcessItem;
+    context.ThreadItem = ThreadItem;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -64,6 +69,7 @@ BOOLEAN PhShowProcessAffinityDialog2(
     AFFINITY_DIALOG_CONTEXT context;
 
     context.ProcessItem = NULL;
+    context.ThreadItem = NULL;
     context.AffinityMask = AffinityMask;
 
     if (DialogBoxParam(
@@ -97,17 +103,21 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
         {
             NTSTATUS status;
             PAFFINITY_DIALOG_CONTEXT context = (PAFFINITY_DIALOG_CONTEXT)lParam;
-            HANDLE processHandle;
-            PROCESS_BASIC_INFORMATION basicInfo;
             SYSTEM_BASIC_INFORMATION systemBasicInfo;
-            ULONG_PTR processAffinityMask;
+            ULONG_PTR systemAffinityMask;
+            ULONG_PTR affinityMask;
             ULONG i;
 
             SetProp(hwndDlg, L"Context", (HANDLE)context);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
+            systemAffinityMask = 0;
+
             if (context->ProcessItem)
             {
+                HANDLE processHandle;
+                PROCESS_BASIC_INFORMATION basicInfo;
+
                 if (NT_SUCCESS(status = PhOpenProcess(
                     &processHandle,
                     ProcessQueryAccess,
@@ -117,18 +127,56 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     status = PhGetProcessBasicInformation(processHandle, &basicInfo);
 
                     if (NT_SUCCESS(status))
-                        processAffinityMask = basicInfo.AffinityMask;
+                        affinityMask = basicInfo.AffinityMask;
 
                     NtClose(processHandle);
                 }
             }
+            else if (context->ThreadItem)
+            {
+                HANDLE threadHandle;
+                THREAD_BASIC_INFORMATION basicInfo;
+                HANDLE processHandle;
+                PROCESS_BASIC_INFORMATION processBasicInfo;
+
+                if (NT_SUCCESS(status = PhOpenThread(
+                    &threadHandle,
+                    ThreadQueryAccess,
+                    context->ThreadItem->ThreadId
+                    )))
+                {
+                    status = PhGetThreadBasicInformation(threadHandle, &basicInfo);
+
+                    if (NT_SUCCESS(status))
+                    {
+                        affinityMask = basicInfo.AffinityMask;
+
+                        // A thread's affinity mask is restricted by the process affinity mask, 
+                        // so use that as the system affinity mask.
+
+                        if (NT_SUCCESS(PhOpenProcess(
+                            &processHandle,
+                            ProcessQueryAccess,
+                            basicInfo.ClientId.UniqueProcess
+                            )))
+                        {
+                            if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &processBasicInfo)))
+                                systemAffinityMask = processBasicInfo.AffinityMask;
+
+                            NtClose(processHandle);
+                        }
+                    }
+
+                    NtClose(threadHandle);
+                }
+            }
             else
             {
-                processAffinityMask = context->AffinityMask;
+                affinityMask = context->AffinityMask;
                 status = STATUS_SUCCESS;
             }
 
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(status) && systemAffinityMask == 0)
             {
                 status = NtQuerySystemInformation(
                     SystemBasicInformation,
@@ -136,23 +184,26 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     sizeof(SYSTEM_BASIC_INFORMATION),
                     NULL
                     );
+
+                if (NT_SUCCESS(status))
+                    systemAffinityMask = systemBasicInfo.ActiveProcessorsAffinityMask;
             }
 
             if (!NT_SUCCESS(status))
             {
-                PhShowStatus(hwndDlg, L"Unable to retrieve the process' affinity", status, 0);
+                PhShowStatus(hwndDlg, L"Unable to retrieve the affinity", status, 0);
                 EndDialog(hwndDlg, IDCANCEL);
                 break;
             }
 
             // Disable the CPU checkboxes which aren't part of the system affinity mask, 
-            // and check the CPU checkboxes which are part of the process affinity mask.
+            // and check the CPU checkboxes which are part of the affinity mask.
 
             for (i = 0; i < 32; i++)
             {
-                if ((systemBasicInfo.ActiveProcessorsAffinityMask >> i) & 0x1)
+                if ((systemAffinityMask >> i) & 0x1)
                 {
-                    if ((processAffinityMask >> i) & 0x1)
+                    if ((affinityMask >> i) & 0x1)
                     {
                         Button_SetCheck(GetDlgItem(hwndDlg, IDC_CPU0 + i), BST_CHECKED);
                     }
@@ -182,7 +233,6 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     PAFFINITY_DIALOG_CONTEXT context = (PAFFINITY_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
                     ULONG i;
                     ULONG_PTR affinityMask;
-                    HANDLE processHandle;
 
                     // Work out the affinity mask.
 
@@ -196,7 +246,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
 
                     if (context->ProcessItem)
                     {
-                        // Open the process and set the affinity mask.
+                        HANDLE processHandle;
 
                         if (NT_SUCCESS(status = PhOpenProcess(
                             &processHandle,
@@ -208,6 +258,20 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                             NtClose(processHandle);
                         }
                     }
+                    else if (context->ThreadItem)
+                    {
+                        HANDLE threadHandle;
+
+                        if (NT_SUCCESS(status = PhOpenThread(
+                            &threadHandle,
+                            ThreadSetAccess,
+                            context->ThreadItem->ThreadId
+                            )))
+                        {
+                            status = PhSetThreadAffinityMask(threadHandle, affinityMask);
+                            NtClose(threadHandle);
+                        }
+                    }
                     else
                     {
                         context->NewAffinityMask = affinityMask;
@@ -217,7 +281,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     if (NT_SUCCESS(status))
                         EndDialog(hwndDlg, IDOK);
                     else
-                        PhShowStatus(hwndDlg, L"Unable to set the process' affinity", status, 0);
+                        PhShowStatus(hwndDlg, L"Unable to set the affinity", status, 0);
                 }
                 break;
             }
