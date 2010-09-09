@@ -64,54 +64,54 @@ typedef struct _WOW64_PROCESS
 
 typedef enum _PROCESS_INFORMATION_CLASS
 {
-    ProcessBasicInformation, // 0
-    ProcessQuotaLimits,
-    ProcessIoCounters,
-    ProcessVmCounters,
-    ProcessTimes,
-    ProcessBasePriority,
-    ProcessRaisePriority,
-    ProcessDebugPort,
-    ProcessExceptionPort,
-    ProcessAccessToken,
+    ProcessBasicInformation, // 0, q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
+    ProcessQuotaLimits, // qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
+    ProcessIoCounters, // q: IO_COUNTERS
+    ProcessVmCounters, // q: VM_COUNTERS, VM_COUNTERS_EX
+    ProcessTimes, // q: KERNEL_USER_TIMES
+    ProcessBasePriority, // s: KPRIORITY
+    ProcessRaisePriority, // s: ULONG
+    ProcessDebugPort, // q: HANDLE
+    ProcessExceptionPort, // s: HANDLE
+    ProcessAccessToken, // s: PROCESS_ACCESS_TOKEN
     ProcessLdtInformation, // 10
     ProcessLdtSize,
-    ProcessDefaultHardErrorMode,
+    ProcessDefaultHardErrorMode, // qs: ULONG
     ProcessIoPortHandlers,
-    ProcessPooledUsageAndLimits,
-    ProcessWorkingSetWatch,
+    ProcessPooledUsageAndLimits, // q: POOLED_USAGE_AND_LIMITS
+    ProcessWorkingSetWatch, // q: var PROCESS_WS_WATCH_INFORMATION[]; s: void
     ProcessUserModeIOPL,
-    ProcessEnableAlignmentFaultFixup,
-    ProcessPriorityClass,
+    ProcessEnableAlignmentFaultFixup, // s: BOOLEAN
+    ProcessPriorityClass, // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information,
-    ProcessHandleCount, // 20
-    ProcessAffinityMask,
-    ProcessPriorityBoost,
+    ProcessHandleCount, // 20, q: ULONG
+    ProcessAffinityMask, // s: KAFFINITY
+    ProcessPriorityBoost, // qs: ULONG
     ProcessDeviceMap,
-    ProcessSessionInformation,
-    ProcessForegroundInformation,
-    ProcessWow64Information,
-    ProcessImageFileName,
-    ProcessLUIDDeviceMapsEnabled,
-    ProcessBreakOnTermination,
-    ProcessDebugObjectHandle, // 30
-    ProcessDebugFlags,
-    ProcessHandleTracing,
-    ProcessIoPriority,
-    ProcessExecuteFlags,
+    ProcessSessionInformation, // q: PROCESS_SESSION_INFORMATION
+    ProcessForegroundInformation, // s: PROCESS_FOREGROUND_BACKGROUND
+    ProcessWow64Information, // q: ULONG_PTR
+    ProcessImageFileName, // q: var UNICODE_STRING
+    ProcessLUIDDeviceMapsEnabled, // q: ULONG
+    ProcessBreakOnTermination, // qs: ULONG
+    ProcessDebugObjectHandle, // 30, q: HANDLE
+    ProcessDebugFlags, // qs: ULONG
+    ProcessHandleTracing, // q: var PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
+    ProcessIoPriority, // qs: ULONG
+    ProcessExecuteFlags, // qs: ULONG
     ProcessResourceManagement,
-    ProcessCookie,
-    ProcessImageInformation,
-    ProcessCycleTime,
-    ProcessPagePriority,
+    ProcessCookie, // q: ULONG
+    ProcessImageInformation, // q: SECTION_IMAGE_INFORMATION
+    ProcessCycleTime, // q: PROCESS_CYCLE_TIME_INFORMATION
+    ProcessPagePriority, // q: ULONG
     ProcessInstrumentationCallback, // 40
     ProcessThreadStackAllocation,
-    ProcessWorkingSetWatchEx,
-    ProcessImageFileNameWin32,
+    ProcessWorkingSetWatchEx, // q: var PROCESS_WS_WATCH_INFORMATION_EX[]
+    ProcessImageFileNameWin32, // q: var UNICODE_STRING
     ProcessImageFileMapping,
     ProcessAffinityUpdateMode,
     ProcessMemoryAllocationMode,
-    ProcessGroupInformation, // array of USHORTs, list of groups assigned to process 
+    ProcessGroupInformation, // q: var USHORT[]
     ProcessTokenVirtualizationEnabled,
     ProcessConsoleHostProcess,
     ProcessWindowInformation, // 50
@@ -120,37 +120,37 @@ typedef enum _PROCESS_INFORMATION_CLASS
 
 typedef enum _THREAD_INFORMATION_CLASS
 {
-    ThreadBasicInformation,
-    ThreadTimes,
-    ThreadPriority,
-    ThreadBasePriority,
-    ThreadAffinityMask,
-    ThreadImpersonationToken,
+    ThreadBasicInformation, // q: THREAD_BASIC_INFORMATION
+    ThreadTimes, // q: KERNEL_USER_TIMES
+    ThreadPriority, // s: KPRIORITY
+    ThreadBasePriority, // s: LONG
+    ThreadAffinityMask, // s: KAFFINITY
+    ThreadImpersonationToken, // s: HANDLE
     ThreadDescriptorTableEntry,
-    ThreadEnableAlignmentFaultFixup,
+    ThreadEnableAlignmentFaultFixup, // s: BOOLEAN
     ThreadEventPair,
-    ThreadQuerySetWin32StartAddress,
+    ThreadQuerySetWin32StartAddress, // q: PVOID
     ThreadZeroTlsCell, // 10
-    ThreadPerformanceCount,
-    ThreadAmILastThread,
-    ThreadIdealProcessor,
-    ThreadPriorityBoost,
+    ThreadPerformanceCount, // q: LARGE_INTEGER
+    ThreadAmILastThread, // q: ULONG
+    ThreadIdealProcessor, // s: ULONG
+    ThreadPriorityBoost, // qs: ULONG
     ThreadSetTlsArrayAddress,
-    ThreadIsIoPending,
-    ThreadHideFromDebugger,
-    ThreadBreakOnTermination,
+    ThreadIsIoPending, // q: ULONG
+    ThreadHideFromDebugger, // s: void
+    ThreadBreakOnTermination, // qs: ULONG
     ThreadSwitchLegacyState,
-    ThreadIsTerminated, // 20
+    ThreadIsTerminated, // 20, q: ULONG
     ThreadLastSystemCall,
-    ThreadIoPriority,
-    ThreadCycleTime,
-    ThreadPagePriority,
+    ThreadIoPriority, // qs: ULONG
+    ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
+    ThreadPagePriority, // q: ULONG
     ThreadActualBasePriority,
     ThreadTebInformation,
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
-    ThreadWow64Context, // WOW64_CONTEXT
-    ThreadGroupInformation, // 30, GROUP_AFFINITY
+    ThreadWow64Context, // q: WOW64_CONTEXT
+    ThreadGroupInformation, // 30, q: GROUP_AFFINITY
     ThreadUmsInformation,
     ThreadCounterProfiling,
     ThreadIdealProcessorEx,
@@ -248,6 +248,12 @@ typedef struct _POOLED_USAGE_AND_LIMITS
     SIZE_T PagefileLimit;
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
+typedef struct _PROCESS_ACCESS_TOKEN
+{
+    HANDLE Token; // needs TOKEN_ASSIGN_PRIMARY access
+    HANDLE Thread; // handle to initial/only thread; needs THREAD_QUERY_INFORMATION access
+} PROCESS_ACCESS_TOKEN, *PPROCESS_ACCESS_TOKEN;
+
 typedef struct _PROCESS_WS_WATCH_INFORMATION
 {
     PVOID FaultingPc;
@@ -261,6 +267,25 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
     ULONG_PTR FaultingThreadId;
     ULONG_PTR Flags;
 } PROCESS_WS_WATCH_INFORMATION_EX, *PPROCESS_WS_WATCH_INFORMATION_EX;
+
+#define PROCESS_PRIORITY_CLASS_UNKNOWN 0
+#define PROCESS_PRIORITY_CLASS_IDLE 1
+#define PROCESS_PRIORITY_CLASS_NORMAL 2
+#define PROCESS_PRIORITY_CLASS_HIGH 3
+#define PROCESS_PRIORITY_CLASS_REALTIME 4
+#define PROCESS_PRIORITY_CLASS_BELOW_NORMAL 5
+#define PROCESS_PRIORITY_CLASS_ABOVE_NORMAL 6
+
+typedef struct _PROCESS_PRIORITY_CLASS
+{
+    BOOLEAN Foreground;
+    UCHAR PriorityClass;
+} PROCESS_PRIORITY_CLASS, *PPROCESS_PRIORITY_CLASS;
+
+typedef struct _PROCESS_FOREGROUND_BACKGROUND
+{
+    BOOLEAN Foreground;
+} PROCESS_FOREGROUND_BACKGROUND, *PPROCESS_FOREGROUND_BACKGROUND;
 
 typedef struct _PROCESS_SESSION_INFORMATION
 {
