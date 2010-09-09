@@ -1097,7 +1097,7 @@ LRESULT CALLBACK PhMainWndProc(
                     if (processItem)
                     {
                         PhReferenceObject(processItem);
-                        PhShowProcessAffinityDialog(hWnd, processItem);
+                        PhShowProcessAffinityDialog(hWnd, processItem, NULL);
                         PhDereferenceObject(processItem);
                     }
                 }

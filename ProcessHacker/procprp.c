@@ -1772,8 +1772,8 @@ VOID PhpInitializeThreadMenu(
     __in ULONG NumberOfThreads
     )
 {
-#define ANALYZE_MENU_INDEX 8
-#define IOPRIORITY_MENU_INDEX 10
+#define ANALYZE_MENU_INDEX 9
+#define IOPRIORITY_MENU_INDEX 11
 
     if (NumberOfThreads == 0)
     {
@@ -2400,6 +2400,18 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                     PhUiResumeThreads(hwndDlg, threads, numberOfThreads);
                     PhDereferenceObjects(threads, numberOfThreads);
                     PhFree(threads);
+                }
+                break;
+            case ID_THREAD_AFFINITY:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        PhReferenceObject(threadItem);
+                        PhShowProcessAffinityDialog(hwndDlg, NULL, threadItem);
+                        PhDereferenceObject(threadItem);
+                    }
                 }
                 break;
             case ID_THREAD_PERMISSIONS:
