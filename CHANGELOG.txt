@@ -5,6 +5,7 @@ Process Hacker
    * Better Run As behaviour
    * Show Processes From All Users option
    * Can now unmap section views
+   * Plugin for filtering notifications
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions

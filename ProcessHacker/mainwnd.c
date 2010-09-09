@@ -113,12 +113,6 @@ VOID PhpShowIconContextMenu(
     __in POINT Location
     );
 
-VOID PhpShowIconNotification(
-    __in PWSTR Title,
-    __in PWSTR Text,
-    __in ULONG Flags
-    );
-
 BOOLEAN PhpCurrentUserProcessTreeFilter(
     __in PPH_PROCESS_NODE ProcessNode,
     __in_opt PVOID Context
@@ -2653,7 +2647,7 @@ VOID PhpShowIconContextMenu(
     SelectedIconProcessId = NULL;
 }
 
-VOID PhpShowIconNotification(
+VOID PhShowIconNotification(
     __in PWSTR Title,
     __in PWSTR Text,
     __in ULONG Flags
@@ -3722,6 +3716,22 @@ VOID PhMainWndNetworkListViewOnNotify(
     }
 }
 
+BOOLEAN PhpPluginNotifyEvent(
+    __in ULONG Type,
+    __in PVOID Parameter
+    )
+{
+    PH_PLUGIN_NOTIFY_EVENT notifyEvent;
+
+    notifyEvent.Type = Type;
+    notifyEvent.Handled = FALSE;
+    notifyEvent.Parameter = Parameter;
+
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNotifyEvent), &notifyEvent);
+
+    return notifyEvent.Handled;
+}
+
 VOID PhMainWndOnProcessAdded(
     __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem,
     __in ULONG RunId
@@ -3735,7 +3745,7 @@ VOID PhMainWndOnProcessAdded(
         ProcessesNeedsRedraw = TRUE;
     }
 
-    processNode = PhCreateProcessNode(ProcessItem, RunId);
+    processNode = PhAddProcessNode(ProcessItem, RunId);
 
     if (RunId != 1)
     {
@@ -3763,13 +3773,16 @@ VOID PhMainWndOnProcessAdded(
 
         if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
         {
-            PhpShowIconNotification(L"Process Created", PhaFormatString(
-                L"The process %s (%u) was created by %s (%u)",
-                ProcessItem->ProcessName->Buffer,
-                (ULONG)ProcessItem->ProcessId,
-                PhGetStringOrDefault(parentName, L"Unknown Process"),
-                (ULONG)ProcessItem->ParentProcessId
-                )->Buffer, NIIF_INFO);
+            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
+            {
+                PhShowIconNotification(L"Process Created", PhaFormatString(
+                    L"The process %s (%u) was created by %s (%u)",
+                    ProcessItem->ProcessName->Buffer,
+                    (ULONG)ProcessItem->ProcessId,
+                    PhGetStringOrDefault(parentName, L"Unknown Process"),
+                    (ULONG)ProcessItem->ParentProcessId
+                    )->Buffer, NIIF_INFO);
+            }
         }
 
         if (parentProcess)
@@ -3801,11 +3814,14 @@ VOID PhMainWndOnProcessRemoved(
 
     if (NotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {
-        PhpShowIconNotification(L"Process Terminated", PhaFormatString(
-            L"The process %s (%u) was terminated.",
-            ProcessItem->ProcessName->Buffer,
-            (ULONG)ProcessItem->ProcessId
-            )->Buffer, NIIF_INFO);
+        if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_PROCESS_DELETE, ProcessItem))
+        {
+            PhShowIconNotification(L"Process Terminated", PhaFormatString(
+                L"The process %s (%u) was terminated.",
+                ProcessItem->ProcessName->Buffer,
+                (ULONG)ProcessItem->ProcessId
+                )->Buffer, NIIF_INFO);
+        }
     }
 
     PhRemoveProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
@@ -3884,11 +3900,14 @@ VOID PhMainWndOnServiceAdded(
 
         if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
         {
-            PhpShowIconNotification(L"Service Created", PhaFormatString(
-                L"The service %s (%s) has been created.",
-                ServiceItem->Name->Buffer,
-                ServiceItem->DisplayName->Buffer
-                )->Buffer, NIIF_INFO);
+            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
+            {
+                PhShowIconNotification(L"Service Created", PhaFormatString(
+                    L"The service %s (%s) has been created.",
+                    ServiceItem->Name->Buffer,
+                    ServiceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
         }
     }
 }
@@ -3950,19 +3969,25 @@ VOID PhMainWndOnServiceModified(
 
         if (serviceChange == ServiceStarted && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_START))
         {
-            PhpShowIconNotification(L"Service Started", PhaFormatString(
-                L"The service %s (%s) has been started.",
-                serviceItem->Name->Buffer,
-                serviceItem->DisplayName->Buffer
-                )->Buffer, NIIF_INFO);
+            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
+            {
+                PhShowIconNotification(L"Service Started", PhaFormatString(
+                    L"The service %s (%s) has been started.",
+                    serviceItem->Name->Buffer,
+                    serviceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
         }
         else if (serviceChange == ServiceStopped && (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_STOP))
         {
-            PhpShowIconNotification(L"Service Stopped", PhaFormatString(
-                L"The service %s (%s) has been stopped.",
-                serviceItem->Name->Buffer,
-                serviceItem->DisplayName->Buffer
-                )->Buffer, NIIF_INFO);
+            if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
+            {
+                PhShowIconNotification(L"Service Stopped", PhaFormatString(
+                    L"The service %s (%s) has been stopped.",
+                    serviceItem->Name->Buffer,
+                    serviceItem->DisplayName->Buffer
+                    )->Buffer, NIIF_INFO);
+            }
         }
     }
 }
@@ -3986,11 +4011,14 @@ VOID PhMainWndOnServiceRemoved(
 
     if (NotifyIconNotifyMask & PH_NOTIFY_SERVICE_CREATE)
     {
-        PhpShowIconNotification(L"Service Deleted", PhaFormatString(
-            L"The service %s (%s) has been deleted.",
-            ServiceItem->Name->Buffer,
-            ServiceItem->DisplayName->Buffer
-            )->Buffer, NIIF_INFO);
+        if (!PhPluginsEnabled || !PhpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
+        {
+            PhShowIconNotification(L"Service Deleted", PhaFormatString(
+                L"The service %s (%s) has been deleted.",
+                ServiceItem->Name->Buffer,
+                ServiceItem->DisplayName->Buffer
+                )->Buffer, NIIF_INFO);
+        }
     }
 
     // Remove the reference we added in PhMainWndOnServiceAdded.

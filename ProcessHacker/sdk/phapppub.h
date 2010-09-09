@@ -239,6 +239,23 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define ProcessHacker_SelectTabPage(hWnd, Index) \
     SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
 
+#define PH_NOTIFY_MINIMUM 0x1
+#define PH_NOTIFY_PROCESS_CREATE 0x1
+#define PH_NOTIFY_PROCESS_DELETE 0x2
+#define PH_NOTIFY_SERVICE_CREATE 0x4
+#define PH_NOTIFY_SERVICE_DELETE 0x8
+#define PH_NOTIFY_SERVICE_START 0x10
+#define PH_NOTIFY_SERVICE_STOP 0x20
+#define PH_NOTIFY_MAXIMUM 0x40
+#define PH_NOTIFY_VALID_MASK 0x3f
+
+PHAPPAPI
+VOID PhShowIconNotification(
+    __in PWSTR Title,
+    __in PWSTR Text,
+    __in ULONG Flags
+    );
+
 // procprp
 
 typedef struct _PH_PROCESS_PROPCONTEXT PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;

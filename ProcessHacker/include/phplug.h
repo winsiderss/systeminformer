@@ -11,6 +11,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackGetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
     GeneralCallbackGetIsDotNetDirectoryNames = 5, // PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES Data [process provider thread]
+    GeneralCallbackNotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -46,6 +47,17 @@ typedef struct _PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES
     PH_STRINGREF DirectoryNames[16];
     ULONG NumberOfDirectoryNames;
 } PH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES, *PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES;
+
+typedef struct _PH_PLUGIN_NOTIFY_EVENT
+{
+    // Parameter is:
+    // PPH_PROCESS_ITEM for Type = PH_NOTIFY_PROCESS_*
+    // PPH_SERVICE_ITEM for Type = PH_NOTIFY_SERVICE_*
+
+    ULONG Type;
+    BOOLEAN Handled;
+    PVOID Parameter;
+} PH_PLUGIN_NOTIFY_EVENT, *PPH_PLUGIN_NOTIFY_EVENT;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
