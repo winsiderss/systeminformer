@@ -229,7 +229,7 @@ VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     );
 
-PPH_PROCESS_NODE PhCreateProcessNode(
+PPH_PROCESS_NODE PhAddProcessNode(
     __in PPH_PROCESS_ITEM ProcessItem,
     __in ULONG RunId
     );
@@ -365,12 +365,12 @@ PPH_STRING PhGetSessionInformationString(
     __in ULONG InformationClass
     );
 
-PPH_STRING PhUnescapeStringForDelimiter(
+PPH_STRING PhEscapeStringForDelimiter(
     __in PPH_STRING String,
     __in WCHAR Delimiter
     );
 
-PPH_STRING PhEscapeStringForDelimiter(
+PPH_STRING PhUnescapeStringForDelimiter(
     __in PPH_STRING String,
     __in WCHAR Delimiter
     );
@@ -596,6 +596,13 @@ LRESULT CALLBACK PhMainWndProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+PHAPPAPI
+VOID PhShowIconNotification(
+    __in PWSTR Title,
+    __in PWSTR Text,
+    __in ULONG Flags
     );
 
 VOID PhShowProcessContextMenu(
