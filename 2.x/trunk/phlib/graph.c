@@ -57,7 +57,7 @@ BOOLEAN PhGraphControlInitialization()
     c.lpfnWndProc = PhpGraphWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhInstanceHandle;
+    c.hInstance = PhLibImageBase;
     c.hIcon = NULL;
     c.hCursor = LoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
@@ -393,7 +393,7 @@ HWND PhCreateGraphControl(
         3,
         ParentHandle,
         (HMENU)Id,
-        PhInstanceHandle,
+        PhLibImageBase,
         NULL
         );
 }
@@ -813,7 +813,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                     CW_USEDEFAULT,
                     NULL,
                     NULL,
-                    PhInstanceHandle,
+                    PhLibImageBase,
                     NULL
                     );
                 oldWndProc = (WNDPROC)GetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC);

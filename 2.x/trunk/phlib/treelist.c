@@ -55,7 +55,7 @@ BOOLEAN PhTreeListInitialization()
     c.lpfnWndProc = PhpTreeListWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
-    c.hInstance = PhInstanceHandle;
+    c.hInstance = PhLibImageBase;
     c.hIcon = NULL;
     c.hCursor = LoadCursor(NULL, IDC_ARROW);
     c.hbrBackground = NULL;
@@ -86,7 +86,7 @@ HWND PhCreateTreeListControl(
         3,
         ParentHandle,
         (HMENU)Id,
-        PhInstanceHandle,
+        PhLibImageBase,
         NULL
         );
 }
@@ -219,7 +219,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 createStruct->cy,
                 hwnd,
                 (HMENU)PH_TREELIST_LISTVIEW_ID,
-                PhInstanceHandle,
+                createStruct->hInstance,
                 NULL
                 );
 
@@ -243,8 +243,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             // Open theme data if available.
             PhpReloadThemeData(context);
-
-            SendMessage(hwnd, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
 
             // Make sure we have a minimum size of 16 pixels for each row using this hack.
             ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);

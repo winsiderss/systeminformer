@@ -33,7 +33,12 @@ VOID PhpEnablePrivileges();
 
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
+HFONT PhApplicationFont;
+HFONT PhBoldListViewFont;
+HFONT PhBoldMessageFont;
 PPH_STRING PhCurrentUserName = NULL;
+HFONT PhIconTitleFont;
+HINSTANCE PhInstanceHandle;
 PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhProcDbFileName = NULL;
@@ -82,6 +87,8 @@ INT WINAPI WinMain(
 #endif
 
     CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+
+    PhInstanceHandle = (HINSTANCE)NtCurrentPeb()->ImageBaseAddress;
 
     if (!NT_SUCCESS(PhInitializePhLib()))
         return 1;
