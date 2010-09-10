@@ -223,6 +223,8 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define WM_PH_CANCEL_EARLY_SHUTDOWN (WM_APP + 124)
 #define WM_PH_TOGGLE_VISIBLE (WM_APP + 127)
 #define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
+#define WM_PH_GET_LAYOUT_PADDING (WM_APP + 131)
+#define WM_PH_SET_LAYOUT_PADDING (WM_APP + 132)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
@@ -238,6 +240,10 @@ PHAPPAPI extern HWND PhMainWndHandle;
     SendMessage(hWnd, WM_PH_TOGGLE_VISIBLE, 0, 0)
 #define ProcessHacker_SelectTabPage(hWnd, Index) \
     SendMessage(hWnd, WM_PH_SELECT_TAB_PAGE, (WPARAM)(Index), 0)
+#define ProcessHacker_GetLayoutPadding(hWnd, Rect) \
+    SendMessage(hWnd, WM_PH_GET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
+#define ProcessHacker_SetLayoutPadding(hWnd, Rect) \
+    SendMessage(hWnd, WM_PH_SET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
