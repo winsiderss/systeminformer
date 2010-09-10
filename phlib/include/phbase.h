@@ -51,28 +51,25 @@ typedef struct _PH_STARTUP_PARAMETERS PH_STARTUP_PARAMETERS;
 
 #define __userSet
 
-extern __userSet HFONT PhApplicationFont;
-extern __userSet PWSTR PhApplicationName;
-extern __userSet HFONT PhBoldListViewFont;
-extern __userSet HFONT PhBoldMessageFont;
-extern ULONG PhCurrentSessionId;
-extern HANDLE PhCurrentTokenQueryHandle;
-extern BOOLEAN PhElevated;
-extern TOKEN_ELEVATION_TYPE PhElevationType;
-extern PVOID PhHeapHandle;
-extern __userSet HFONT PhIconTitleFont;
-extern HINSTANCE PhInstanceHandle;
-extern __userSet HANDLE PhKphHandle;
-extern __userSet ULONG PhKphFeatures;
-extern RTL_OSVERSIONINFOEXW PhOsVersion;
-extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-extern ULONG WindowsVersion;
+PHLIBAPI extern __userSet PVOID PhLibImageBase;
 
-extern ACCESS_MASK ProcessQueryAccess;
-extern ACCESS_MASK ProcessAllAccess;
-extern ACCESS_MASK ThreadQueryAccess;
-extern ACCESS_MASK ThreadSetAccess;
-extern ACCESS_MASK ThreadAllAccess;
+PHLIBAPI extern __userSet PWSTR PhApplicationName;
+PHLIBAPI extern ULONG PhCurrentSessionId;
+PHLIBAPI extern HANDLE PhCurrentTokenQueryHandle;
+PHLIBAPI extern BOOLEAN PhElevated;
+PHLIBAPI extern TOKEN_ELEVATION_TYPE PhElevationType;
+PHLIBAPI extern PVOID PhHeapHandle;
+PHLIBAPI extern __userSet HANDLE PhKphHandle;
+PHLIBAPI extern __userSet ULONG PhKphFeatures;
+PHLIBAPI extern RTL_OSVERSIONINFOEXW PhOsVersion;
+PHLIBAPI extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
+PHLIBAPI extern ULONG WindowsVersion;
+
+PHLIBAPI extern ACCESS_MASK ProcessQueryAccess;
+PHLIBAPI extern ACCESS_MASK ProcessAllAccess;
+PHLIBAPI extern ACCESS_MASK ThreadQueryAccess;
+PHLIBAPI extern ACCESS_MASK ThreadSetAccess;
+PHLIBAPI extern ACCESS_MASK ThreadAllAccess;
 
 #endif
 

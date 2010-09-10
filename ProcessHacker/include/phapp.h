@@ -21,7 +21,12 @@
 
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
+extern HFONT PhApplicationFont;
+extern HFONT PhBoldListViewFont;
+extern HFONT PhBoldMessageFont;
 extern PPH_STRING PhCurrentUserName;
+extern HFONT PhIconTitleFont;
+extern HINSTANCE PhInstanceHandle;
 extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhProcDbFileName;

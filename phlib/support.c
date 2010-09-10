@@ -462,7 +462,7 @@ BOOLEAN PhShowConfirmMessage(
         INT button;
 
         config.hwndParent = hWnd;
-        config.hInstance = PhInstanceHandle;
+        config.hInstance = PhLibImageBase;
         config.pszWindowTitle = L"Process Hacker";
         config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
         config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;

@@ -89,7 +89,7 @@ HWND PhCreateListViewControl(
         3,
         ParentHandle,
         (HMENU)Id,
-        PhInstanceHandle,
+        PhLibImageBase,
         NULL
         );
 }
@@ -383,14 +383,9 @@ HWND PhCreateTabControl(
         3,
         ParentHandle,
         NULL,
-        PhInstanceHandle,
+        PhLibImageBase,
         NULL
         );
-
-    if (tabControlHandle)
-    {
-        SendMessage(tabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
-    }
 
     return tabControlHandle;
 }
