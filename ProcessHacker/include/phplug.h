@@ -120,6 +120,7 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 {
     PPH_PLUGIN Plugin;
     ULONG Id;
+    ULONG RealId;
     PVOID Context;
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
