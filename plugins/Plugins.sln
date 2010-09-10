@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessActions", "ProcessAc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedNotifications", "ExtendedNotifications\ExtendedNotifications.vcproj", "{80E791B8-AC98-407E-8FF9-5154AF50E887}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProcessHacker2.Api", "ProcessHacker2.Api\ProcessHacker2.Api.csproj", "{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -49,6 +51,14 @@ Global
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Release|Win32.Build.0 = Release|Win32
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Release|x64.ActiveCfg = Release|x64
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Release|x64.Build.0 = Release|x64
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Debug|Win32.Build.0 = Debug|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Debug|x64.Build.0 = Debug|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Release|Win32.ActiveCfg = Release|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Release|Win32.Build.0 = Release|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Release|x64.ActiveCfg = Release|Any CPU
+		{3ACE7A68-E867-44E1-8B5A-1725E6A9C355}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

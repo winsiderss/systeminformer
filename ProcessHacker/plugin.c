@@ -23,10 +23,26 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
+#define CINTERFACE
+#define COBJMACROS
+#include <mscoree.h>
+
+typedef HRESULT (STDAPICALLTYPE *_CorBindToRuntimeEx)(
+    __in LPCWSTR pwszVersion,
+    __in LPCWSTR pwszBuildFlavor,
+    __in DWORD startupFlags,
+    __in REFCLSID rclsid,
+    __in REFIID riid,
+    __out LPVOID *ppv
+    );
 
 INT NTAPI PhpPluginsCompareFunction(
     __in PPH_AVL_LINKS Links1,
     __in PPH_AVL_LINKS Links2
+    );
+
+VOID PhLoadPlugin(
+    __in PPH_STRING FileName
     );
 
 VOID PhpExecuteCallbackForAllPlugins(
@@ -37,7 +53,14 @@ PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
+static PPH_STRING LoadingPluginFileName;
 static ULONG NextPluginId = IDPLUGINS + 1;
+
+static BOOLEAN PhPluginsClrHostInitialized = FALSE;
+static PVOID PhPluginsClrHost;
+
+static CLSID CLSID_CLRRuntimeHost_I = { 0x90f1a06e, 0x7712, 0x4762, { 0x86, 0xb5, 0x7a, 0x5e, 0xba, 0x6b, 0xdb, 0x02 } };
+static IID IID_ICLRRuntimeHost_I = { 0x90f1a06c, 0x7712, 0x4762, { 0x86, 0xb5, 0x7a, 0x5e, 0xba, 0x6b, 0xdb, 0x02 } };
 
 VOID PhPluginsInitialization()
 {
@@ -69,7 +92,7 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
     memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
 
-    LoadLibrary(fileName->Buffer);
+    PhLoadPlugin(fileName);
 
     PhDereferenceObject(fileName);
 
@@ -123,6 +146,66 @@ VOID PhUnloadPlugins()
     PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
 }
 
+VOID PhLoadPlugin(
+    __in PPH_STRING FileName
+    )
+{
+    PPH_STRING fileName;
+
+    fileName = PhGetFullPath(FileName->Buffer, NULL);
+
+    if (!fileName)
+    {
+        fileName = FileName;
+        PhReferenceObject(fileName);
+    }
+
+    LoadingPluginFileName = fileName;
+
+    if (!PhEndsWithString2(fileName, L".clr.dll", TRUE))
+    {
+        LoadLibrary(fileName->Buffer);
+    }
+    else
+    {
+        ICLRRuntimeHost *clrHost;
+        ULONG returnValue;
+
+        if (!PhPluginsClrHostInitialized)
+        {
+            _CorBindToRuntimeEx CorBindToRuntimeEx_I;
+            HMODULE mscoreeHandle;
+
+            if (
+                (mscoreeHandle = LoadLibrary(L"mscoree.dll")) &&
+                (CorBindToRuntimeEx_I = (_CorBindToRuntimeEx)GetProcAddress(mscoreeHandle, "CorBindToRuntimeEx"))
+                )
+            {
+                if (SUCCEEDED(CorBindToRuntimeEx_I(NULL, L"wks", 0, &CLSID_CLRRuntimeHost_I,
+                    &IID_ICLRRuntimeHost_I, &clrHost)))
+                {
+                    ICLRRuntimeHost_Start(clrHost);
+                    PhPluginsClrHost = clrHost;
+                }
+            }
+        }
+
+        clrHost = (ICLRRuntimeHost *)PhPluginsClrHost;
+
+        ICLRRuntimeHost_ExecuteInDefaultAppDomain(
+            clrHost,
+            fileName->Buffer,
+            L"ProcessHacker2.Plugin",
+            L"PluginEntry",
+            fileName->Buffer,
+            &returnValue
+            );
+    }
+
+    PhDereferenceObject(fileName);
+    LoadingPluginFileName = NULL;
+}
+
 VOID PhpExecuteCallbackForAllPlugins(
     __in PH_PLUGIN_CALLBACK Callback
     )
@@ -151,11 +234,17 @@ PPH_PLUGIN PhRegisterPlugin(
     PPH_AVL_LINKS existingLinks;
     ULONG i;
 
+    if (!LoadingPluginFileName) // this function must be called from the plugin entry
+        return NULL;
+
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
 
     plugin->Name = Name;
     plugin->DllBase = DllBase;
+
+    PhReferenceObject(LoadingPluginFileName);
+    plugin->FileName = LoadingPluginFileName;
 
     existingLinks = PhAddElementAvlTree(&PhPluginsByName, &plugin->Links);
 

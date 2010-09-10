@@ -58,13 +58,12 @@ VOID PhpRefreshPluginDetails(
     __in HWND hwndDlg
     )
 {
-    PLDR_DATA_TABLE_ENTRY loaderEntry;
     PPH_STRING fileName;
     PH_IMAGE_VERSION_INFO versionInfo;
 
-    if (SelectedPlugin && (loaderEntry = PhFindLoaderEntry(SelectedPlugin->DllBase)))
+    if (SelectedPlugin)
     {
-        fileName = PhCreateStringEx(loaderEntry->FullDllName.Buffer, loaderEntry->FullDllName.Length);
+        fileName = SelectedPlugin->FileName;
 
         SetDlgItemText(hwndDlg, IDC_NAME, SelectedPlugin->DisplayName ? SelectedPlugin->DisplayName : L"(unnamed)");
         SetDlgItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name);
@@ -81,8 +80,6 @@ VOID PhpRefreshPluginDetails(
         {
             SetDlgItemText(hwndDlg, IDC_VERSION, L"Unknown");
         }
-
-        PhDereferenceObject(fileName);
 
         EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->HasOptions);
     }

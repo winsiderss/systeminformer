@@ -75,6 +75,7 @@ typedef struct _PH_PLUGIN
 
     PWSTR Name;
     PVOID DllBase;
+    PPH_STRING FileName;
 
     PWSTR DisplayName;
     PWSTR Author;
