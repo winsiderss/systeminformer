@@ -1,6 +1,7 @@
 #include <phdk.h>
 #include "resource.h"
 #include "toolstatus.h"
+#include <phappresource.h>
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -212,16 +213,16 @@ LRESULT CALLBACK MainWndSubclassProc(
                 switch (toolbarId)
                 {
                 case TIDC_REFRESH:
-                    SendMessage(hWnd, WM_COMMAND, PHID_VIEW_REFRESH, 0);
+                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_REFRESH, 0);
                     break;
                 case TIDC_OPTIONS:
-                    SendMessage(hWnd, WM_COMMAND, PHID_HACKER_OPTIONS, 0);
+                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_HACKER_OPTIONS, 0);
                     break;
                 case TIDC_FINDOBJ:
-                    SendMessage(hWnd, WM_COMMAND, PHID_HACKER_FINDHANDLESORDLLS, 0);
+                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_HACKER_FINDHANDLESORDLLS, 0);
                     break;
                 case TIDC_SYSINFO:
-                    SendMessage(hWnd, WM_COMMAND, PHID_VIEW_SYSTEMINFORMATION, 0);
+                    SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_SYSTEMINFORMATION, 0);
                     break;
                 }
             }
