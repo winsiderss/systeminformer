@@ -111,6 +111,11 @@ PPH_CALLBACK PhGetGeneralCallback(
     __in PH_GENERAL_CALLBACK Callback
     );
 
+PHAPPAPI
+ULONG PhPluginReserveIds(
+    __in ULONG Count
+    );
+
 typedef struct _PH_PLUGIN_MENU_ITEM
 {
     PPH_PLUGIN Plugin;
