@@ -2914,6 +2914,7 @@ static VOID NTAPI NetworkItemsUpdatedHandler(
 VOID PhMainWndOnCreate()
 {
     TabControlHandle = PhCreateTabControl(PhMainWndHandle);
+    SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
     BringWindowToTop(TabControlHandle);
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
     ServicesTabIndex = PhAddTabControlTab(TabControlHandle, 1, L"Services");

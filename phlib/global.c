@@ -28,28 +28,25 @@ BOOLEAN PhInitializeSystem();
 VOID PhInitializeSystemInformation();
 VOID PhInitializeWindowsVersion();
 
-HFONT PhApplicationFont;
-PWSTR PhApplicationName = L"Application";
-HFONT PhBoldListViewFont;
-HFONT PhBoldMessageFont;
-ULONG PhCurrentSessionId;
-HANDLE PhCurrentTokenQueryHandle = NULL;
-BOOLEAN PhElevated;
-TOKEN_ELEVATION_TYPE PhElevationType;
-PVOID PhHeapHandle;
-HFONT PhIconTitleFont;
-HINSTANCE PhInstanceHandle;
-HANDLE PhKphHandle = NULL;
-ULONG PhKphFeatures;
-RTL_OSVERSIONINFOEXW PhOsVersion;
-SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-ULONG WindowsVersion;
+PHLIBAPI PVOID PhLibImageBase;
 
-ACCESS_MASK ProcessQueryAccess;
-ACCESS_MASK ProcessAllAccess;
-ACCESS_MASK ThreadQueryAccess;
-ACCESS_MASK ThreadSetAccess;
-ACCESS_MASK ThreadAllAccess;
+PHLIBAPI PWSTR PhApplicationName = L"Application";
+PHLIBAPI ULONG PhCurrentSessionId;
+PHLIBAPI HANDLE PhCurrentTokenQueryHandle = NULL;
+PHLIBAPI BOOLEAN PhElevated;
+PHLIBAPI TOKEN_ELEVATION_TYPE PhElevationType;
+PHLIBAPI PVOID PhHeapHandle;
+PHLIBAPI HANDLE PhKphHandle = NULL;
+PHLIBAPI ULONG PhKphFeatures;
+PHLIBAPI RTL_OSVERSIONINFOEXW PhOsVersion;
+PHLIBAPI SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
+PHLIBAPI ULONG WindowsVersion;
+
+PHLIBAPI ACCESS_MASK ProcessQueryAccess;
+PHLIBAPI ACCESS_MASK ProcessAllAccess;
+PHLIBAPI ACCESS_MASK ThreadQueryAccess;
+PHLIBAPI ACCESS_MASK ThreadSetAccess;
+PHLIBAPI ACCESS_MASK ThreadAllAccess;
 
 NTSTATUS PhInitializePhLib()
 {
@@ -65,7 +62,7 @@ NTSTATUS PhInitializePhLib()
     if (!PhHeapHandle)
         return STATUS_INSUFFICIENT_RESOURCES;
 
-    PhInstanceHandle = (HINSTANCE)NtCurrentPeb()->ImageBaseAddress;
+    PhLibImageBase = NtCurrentPeb()->ImageBaseAddress;
 
     PhInitializeWindowsVersion();
 
