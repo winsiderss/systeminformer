@@ -79,6 +79,10 @@ for %%a in (
 
 copy ..\..\ProcessHacker\mxml\mxml.h ..\..\sdk\include\mxml.h
 
+copy ..\..\ProcessHacker\resource.h ..\..\sdk\include\phappresource.h
+cscript replace.vbs ..\..\sdk\include\phappresource.h "#define ID" "#define PHAPP_ID"
+cscript replace.vbs ..\..\sdk\include\phappresource.h "#ifdef APSTUDIO_INVOKED" "#if 0"
+
 rem Libraries
 
 copy ..\..\lib\lib32\ntdll.lib ..\..\sdk\lib\i386\
