@@ -289,6 +289,13 @@ PPH_CALLBACK PhGetGeneralCallback(
     return &GeneralCallbacks[Callback];
 }
 
+ULONG PhPluginReserveIds(
+    __in ULONG Count
+    )
+{
+    return NextPluginId += Count;
+}
+
 BOOLEAN PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG Location,
@@ -355,7 +362,7 @@ BOOLEAN PhPluginAddMenuItem(
     }
 
     menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-    menuItemInfo.wID = NextPluginId++;
+    menuItemInfo.wID = PhPluginReserveIds(1);
     menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
     menuItemInfo.dwTypeData = Text;
 
