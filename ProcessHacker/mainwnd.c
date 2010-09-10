@@ -206,6 +206,7 @@ static ULONG NotifyIconMask;
 static ULONG NotifyIconNotifyMask;
 static HBITMAP *IconProcessBitmaps;
 
+static RECT LayoutPadding = { 0, 0, 0, 0 };
 static HWND TabControlHandle;
 static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
@@ -1811,6 +1812,20 @@ LRESULT CALLBACK PhMainWndProc(
                 SetFocus(NetworkListViewHandle);
         }
         break;
+    case WM_PH_GET_LAYOUT_PADDING:
+        {
+            PRECT rect = (PRECT)lParam;
+
+            *rect = LayoutPadding;
+        }
+        break;
+    case WM_PH_SET_LAYOUT_PADDING:
+        {
+            PRECT rect = (PRECT)lParam;
+
+            LayoutPadding = *rect;
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;
@@ -3050,14 +3065,27 @@ VOID PhMainWndOnCreate()
         );
 }
 
+VOID PhpApplyLayoutPadding(
+    __inout PRECT Rect,
+    __in PRECT Padding
+    )
+{
+    Rect->left += Padding->left;
+    Rect->top += Padding->top;
+    Rect->right -= Padding->right;
+    Rect->bottom -= Padding->bottom;
+}
+
 VOID PhMainWndOnLayout(HDWP *deferHandle)
 {
     RECT rect;
 
     // Resize the tab control.
-    GetClientRect(PhMainWndHandle, &rect);
-
     // Don't defer the resize. The tab control doesn't repaint properly.
+
+    GetClientRect(PhMainWndHandle, &rect);
+    PhpApplyLayoutPadding(&rect, &LayoutPadding);
+
     SetWindowPos(TabControlHandle, NULL,
         rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
         SWP_NOACTIVATE | SWP_NOZORDER);
@@ -3072,6 +3100,7 @@ VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
     INT selectedIndex;
 
     GetClientRect(PhMainWndHandle, &rect);
+    PhpApplyLayoutPadding(&rect, &LayoutPadding);
     TabCtrl_AdjustRect(TabControlHandle, FALSE, &rect);
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
