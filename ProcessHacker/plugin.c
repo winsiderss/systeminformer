@@ -361,8 +361,10 @@ BOOLEAN PhPluginAddMenuItem(
         insertIndex = 0;
     }
 
+    menuItem->RealId = PhPluginReserveIds(1);
+
     menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-    menuItemInfo.wID = PhPluginReserveIds(1);
+    menuItemInfo.wID = menuItem->RealId;
     menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
     menuItemInfo.dwTypeData = Text;
 

@@ -1499,7 +1499,7 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 if (id >= IDPLUGINS && id < IDPLUGINS_END)
                 {
-                    if (SelectedMenuItemPlugin)
+                    if (SelectedMenuItemPlugin && SelectedMenuItemPlugin->RealId == (ULONG)id)
                     {
                         PhInvokeCallback(
                             PhGetPluginCallback(SelectedMenuItemPlugin->Plugin, PluginCallbackMenuItem),

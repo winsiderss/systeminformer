@@ -1,29 +1,6 @@
 #include <phdk.h>
 #include "resource.h"
-
-VOID NTAPI LoadCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI ShowOptionsCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-VOID NTAPI MainWindowShowingCallback(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
-    );
-
-LRESULT CALLBACK MainWndSubclassProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam,
-    __in UINT_PTR uIdSubclass,
-    __in DWORD_PTR dwRefData
-    );
+#include "toolstatus.h"
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
@@ -32,9 +9,11 @@ PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 
 HWND ToolBarHandle;
 HWND StatusBarHandle;
+HIMAGELIST ToolBarImageList;
 
 ULONG IdRangeBase;
-ULONG ButtonIdRangeBase;
+ULONG ToolBarIdRangeBase;
+ULONG ToolBarIdRangeEnd;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -120,21 +99,21 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    static TBBUTTON buttons[2] =
-    {
-        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT },
-        { I_IMAGENONE, 0, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT }
-    };
-    PTBBUTTON button;
+    static TBBUTTON buttons[7];
+    ULONG buttonIndex;
+    ULONG idIndex;
+    ULONG imageIndex;
 
-    IdRangeBase = PhPluginReserveIds(4);
-    ButtonIdRangeBase = IdRangeBase + 2;
+    IdRangeBase = PhPluginReserveIds(2 + 6);
+
+    ToolBarIdRangeBase = IdRangeBase + 2;
+    ToolBarIdRangeEnd = ToolBarIdRangeBase + 6;
 
     ToolBarHandle = CreateWindowEx(
         0,
         TOOLBARCLASSNAME,
         L"",
-        WS_CHILD | WS_VISIBLE | CCS_TOP | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS | BTNS_AUTOSIZE,
+        WS_CHILD | WS_VISIBLE | CCS_TOP | TBSTYLE_FLAT | TBSTYLE_TOOLTIPS,
         0,
         0,
         0,
@@ -146,16 +125,48 @@ VOID NTAPI MainWindowShowingCallback(
         );
 
     SendMessage(ToolBarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(ToolBarHandle, TB_SETEXTENDEDSTYLE, 0,
+        TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_HIDECLIPPEDBUTTONS | TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(ToolBarHandle, TB_SETMAXTEXTROWS, 0, 0); // hide the text
 
-    button = &buttons[0];
+    ToolBarImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 0);
+    ImageList_SetImageCount(ToolBarImageList, sizeof(buttons) / sizeof(TBBUTTON));
+    PhSetImageListBitmap(ToolBarImageList, 0, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_ARROW_REFRESH));
+    PhSetImageListBitmap(ToolBarImageList, 1, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_COG_EDIT));
+    PhSetImageListBitmap(ToolBarImageList, 2, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_FIND));
+    PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
+    PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
+    PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
 
-    button->idCommand = ButtonIdRangeBase++;
-    button->iString = (INT_PTR)L"Test item";
-    button++;
-    button->idCommand = ButtonIdRangeBase++;
-    button->iString = (INT_PTR)L"ASDF";
-    button++;
+    SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+
+    buttonIndex = 0;
+    idIndex = 0;
+    imageIndex = 0;
+
+#define DEFINE_BUTTON(Text) \
+    buttons[buttonIndex].iBitmap = imageIndex++; \
+    buttons[buttonIndex].idCommand = ToolBarIdRangeBase + (idIndex++); \
+    buttons[buttonIndex].fsState = TBSTATE_ENABLED; \
+    buttons[buttonIndex].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE; \
+    buttons[buttonIndex].iString = (INT_PTR)(Text); \
+    buttonIndex++
+
+#define DEFINE_SEPARATOR() \
+    buttons[buttonIndex].iBitmap = 0; \
+    buttons[buttonIndex].idCommand = 0; \
+    buttons[buttonIndex].fsState = 0; \
+    buttons[buttonIndex].fsStyle = TBSTYLE_SEP; \
+    buttons[buttonIndex].iString = 0; \
+    buttonIndex++
+
+    DEFINE_BUTTON(L"Refresh");
+    DEFINE_BUTTON(L"Options");
+    DEFINE_BUTTON(L"Find Handles or DLLs");
+    DEFINE_BUTTON(L"System Information");
+    DEFINE_SEPARATOR();
+    DEFINE_BUTTON(L"Find Window");
+    DEFINE_BUTTON(L"Find Window and Thread");
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, sizeof(buttons) / sizeof(TBBUTTON), (LPARAM)buttons);
     SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
@@ -189,6 +200,33 @@ LRESULT CALLBACK MainWndSubclassProc(
 {
     switch (uMsg)
     {
+    case WM_COMMAND:
+        {
+            ULONG id = (ULONG)(USHORT)LOWORD(wParam);
+            ULONG toolbarId;
+
+            if (id >= ToolBarIdRangeBase && id < ToolBarIdRangeEnd)
+            {
+                toolbarId = id - ToolBarIdRangeBase;
+
+                switch (toolbarId)
+                {
+                case TIDC_REFRESH:
+                    SendMessage(hWnd, WM_COMMAND, PHID_VIEW_REFRESH, 0);
+                    break;
+                case TIDC_OPTIONS:
+                    SendMessage(hWnd, WM_COMMAND, PHID_HACKER_OPTIONS, 0);
+                    break;
+                case TIDC_FINDOBJ:
+                    SendMessage(hWnd, WM_COMMAND, PHID_HACKER_FINDHANDLESORDLLS, 0);
+                    break;
+                case TIDC_SYSINFO:
+                    SendMessage(hWnd, WM_COMMAND, PHID_VIEW_SYSTEMINFORMATION, 0);
+                    break;
+                }
+            }
+        }
+        break;
     case WM_SIZE:
         {
             RECT padding;
@@ -202,7 +240,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             padding.right = 0;
 
             GetClientRect(ToolBarHandle, &rect);
-            padding.top = rect.bottom;
+            padding.top = rect.bottom + 2;
 
             GetClientRect(StatusBarHandle, &rect);
             padding.bottom = rect.bottom;

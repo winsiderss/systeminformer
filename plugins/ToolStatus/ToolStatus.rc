@@ -85,6 +85,19 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_APPLICATION         BITMAP                  "resources\\application.bmp"
+IDB_APPLICATION_GO      BITMAP                  "resources\\application_go.bmp"
+IDB_ARROW_REFRESH       BITMAP                  "resources\\arrow_refresh.bmp"
+IDB_CHART_LINE          BITMAP                  "resources\\chart_line.bmp"
+IDB_COG_EDIT            BITMAP                  "resources\\cog_edit.bmp"
+IDB_FIND                BITMAP                  "resources\\find.bmp"
+IDB_LIGHTBULB_OFF       BITMAP                  "resources\\lightbulb_off.bmp"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 

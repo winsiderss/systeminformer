@@ -354,12 +354,44 @@
 				RelativePath=".\resource.h"
 				>
 			</File>
+			<File
+				RelativePath=".\toolstatus.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
+			<File
+				RelativePath=".\resources\application.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\application_go.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\arrow_refresh.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\chart_line.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\cog_edit.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\find.bmp"
+				>
+			</File>
+			<File
+				RelativePath=".\resources\lightbulb_off.bmp"
+				>
+			</File>
 			<File
 				RelativePath=".\ToolStatus.rc"
 				>

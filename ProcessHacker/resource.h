@@ -469,7 +469,6 @@
 #define ID_HACKER_RUNAS                 40078
 #define ID_HACKER_SHOWDETAILSFORALLPROCESSES 40079
 #define ID_HACKER_0                     40080
-#define ID_HACKER_OPEN                  40081
 #define ID_HACKER_FINDHANDLESORDLLS     40082
 #define ID_HACKER_OPTIONS               40083
 #define ID_SHUTDOWN_LOCK                40084
@@ -535,7 +534,6 @@
 #define ID_OPACITY_80                   40149
 #define ID_OPACITY_90                   40150
 #define ID_OPACITY_OPAQUE               40151
-#define ID_VIEW_A                       40152
 #define ID_VIEW_ALWAYSONTOP             40153
 #define ID_VIEW_UPDATEINTERVAL          40154
 #define ID_UPDATEINTERVAL_FAST          40155
