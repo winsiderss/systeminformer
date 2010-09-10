@@ -466,7 +466,7 @@ VOID FixControlStates(
     EnableWindow(GetDlgItem(hwndDlg, IDC_MOVEDOWN), i != LB_ERR && i != count - 1);
 }
 
-BOOLEAN HandleCommonMessages(
+INT_PTR HandleCommonMessages(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -671,9 +671,11 @@ INT_PTR CALLBACK ProcessesDlgProc(
     __in LPARAM lParam
     )
 {
-    if (HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
+    INT_PTR result;
+
+    if (result = HandleCommonMessages(hwndDlg, uMsg, wParam, lParam,
         GetDlgItem(hwndDlg, IDC_LIST), EditingProcessFilterList))
-        return FALSE;
+        return result;
 
     switch (uMsg)
     {
