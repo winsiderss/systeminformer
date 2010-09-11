@@ -137,4 +137,31 @@ BOOLEAN PhPluginAddMenuItem(
     __in_opt PVOID Context
     );
 
+typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
+{
+    PSYSTEM_PERFORMANCE_INFORMATION Performance;
+
+    ULONG NumberOfProcesses;
+    ULONG NumberOfThreads;
+    ULONG NumberOfHandles;
+
+    FLOAT CpuKernelUsage;
+    FLOAT CpuUserUsage;
+
+    PH_UINT64_DELTA IoReadDelta;
+    PH_UINT64_DELTA IoWriteDelta;
+    PH_UINT64_DELTA IoOtherDelta;
+
+    ULONG CommitPages;
+    ULONG PhysicalPages;
+
+    HANDLE MaxCpuProcessId;
+    HANDLE MaxIoProcessId;
+} PH_PLUGIN_SYSTEM_STATISTICS, *PPH_PLUGIN_SYSTEM_STATISTICS;
+
+PHAPPAPI
+VOID PhPluginGetSystemStatistics(
+    __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
 #endif

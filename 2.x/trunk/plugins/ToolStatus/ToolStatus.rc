@@ -98,6 +98,29 @@ IDB_CHART_LINE          BITMAP                  "resources\\chart_line.bmp"
 IDB_COG_EDIT            BITMAP                  "resources\\cog_edit.bmp"
 IDB_FIND                BITMAP                  "resources\\find.bmp"
 IDB_LIGHTBULB_OFF       BITMAP                  "resources\\lightbulb_off.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_STATUS MENU 
+BEGIN
+    POPUP "Status"
+    BEGIN
+        MENUITEM "CPU Usage",                   ID_STATUS_CPUUSAGE
+        MENUITEM "Commit Charge",               ID_STATUS_COMMITCHARGE
+        MENUITEM "Physical Memory",             ID_STATUS_PHYSICALMEMORY
+        MENUITEM "Number of Processes",         ID_STATUS_NUMBEROFPROCESSES
+        MENUITEM "Number of Threads",           ID_STATUS_NUMBEROFTHREADS
+        MENUITEM "Number of Handles",           ID_STATUS_NUMBEROFHANDLES
+        MENUITEM "I/O Read+Other",              ID_STATUS_IO_RO
+        MENUITEM "I/O Write",                   ID_STATUS_IO_W
+        MENUITEM "Max. CPU Process",            ID_STATUS_MAX_CPU_PROCESS
+        MENUITEM "Max. I/O Process",            ID_STATUS_MAX_IO_PROCESS
+    END
+END
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
