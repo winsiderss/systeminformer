@@ -1,10 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace ProcessHacker2.Api
 {
-    public delegate void PluginLoadDelegate(PluginInstance instance);
+    public struct GeneralGetHighlightingColorArgs
+    {
+        public IntPtr Parameter;
+        public Color BackColor;
+        public bool Handled;
+        public bool Cache;
+    }
+
+    public delegate void GeneralGetHighlightingColorDelegate(PluginInstance instance, ref GeneralGetHighlightingColorArgs args);
+
+    public delegate void SimplePluginDelegate(PluginInstance instance);
 
     public unsafe class PluginInstance
     {
@@ -19,11 +30,11 @@ namespace ProcessHacker2.Api
             info = new PhPluginInformation();
 
             if (displayName != null)
-                info.DisplayName = Marshal.StringToHGlobalUni(displayName);
+                info.DisplayName = (void*)Marshal.StringToHGlobalUni(displayName);
             if (author != null)
-                info.Author = Marshal.StringToHGlobalUni(author);
+                info.Author = (void*)Marshal.StringToHGlobalUni(author);
             if (description != null)
-                info.Description = Marshal.StringToHGlobalUni(description);
+                info.Description = (void*)Marshal.StringToHGlobalUni(description);
 
             info.HasOptions = hasOptions ? (byte)1 : (byte)0;
 
@@ -35,12 +46,12 @@ namespace ProcessHacker2.Api
             }
             else
             {
-                if (info.DisplayName != IntPtr.Zero)
-                    Marshal.FreeHGlobal(info.DisplayName);
-                if (info.Author != IntPtr.Zero)
-                    Marshal.FreeHGlobal(info.Author);
-                if (info.Description != IntPtr.Zero)
-                    Marshal.FreeHGlobal(info.Description);
+                if (info.DisplayName != null)
+                    Marshal.FreeHGlobal((IntPtr)info.DisplayName);
+                if (info.Author != null)
+                    Marshal.FreeHGlobal((IntPtr)info.Author);
+                if (info.Description != null)
+                    Marshal.FreeHGlobal((IntPtr)info.Description);
 
                 return null;
             }
@@ -51,12 +62,63 @@ namespace ProcessHacker2.Api
             _plugin = plugin;
         }
 
-        public void RegisterLoadHandler(PluginLoadDelegate handler)
+        public void RegisterGetProcessHighlightingColorHandler(GeneralGetHighlightingColorDelegate handler)
+        {
+            CallbackRegistration registration;
+
+            registration = new CallbackRegistration(
+                NativeApi.PhGetGeneralCallback(PhGeneralCallback.GetProcessHighlightingColor),
+                (parameter, context) =>
+                {
+                    PhPluginGetHighlightingColor* pargs = (PhPluginGetHighlightingColor*)parameter;
+                    GeneralGetHighlightingColorArgs args;
+
+                    args.Parameter = (IntPtr)pargs->Parameter;
+                    args.BackColor = ColorTranslator.FromWin32(pargs->BackColor);
+                    args.Handled = pargs->Handled != 0;
+                    args.Cache = pargs->Cache != 0;
+
+                    handler(this, ref args);
+
+                    pargs->BackColor = ColorTranslator.ToWin32(args.BackColor);
+                    pargs->Handled = (byte)(args.Handled ? 1 : 0);
+                    pargs->Cache = (byte)(args.Cache ? 1 : 0);
+                }
+                );
+
+            _registrations.Add(registration);
+        }
+
+        public void RegisterLoadHandler(SimplePluginDelegate handler)
         {
             CallbackRegistration registration;
 
             registration = new CallbackRegistration(
                 NativeApi.PhGetPluginCallback(_plugin, PhPluginCallback.Load),
+                (parameter, context) => handler(this)
+                );
+
+            _registrations.Add(registration);
+        }
+
+        public void RegisterMainWindowShowingHandler(SimplePluginDelegate handler)
+        {
+            CallbackRegistration registration;
+
+            registration = new CallbackRegistration(
+                NativeApi.PhGetGeneralCallback(PhGeneralCallback.MainWindowShowing),
+                (parameter, context) => handler(this)
+                );
+
+            _registrations.Add(registration);
+        }
+
+        public void RegisterProcessesUpdatedHandler(SimplePluginDelegate handler)
+        {
+            CallbackRegistration registration;
+
+            registration = new CallbackRegistration(
+                NativeApi.PhGetGeneralCallback(PhGeneralCallback.ProcessesUpdated),
                 (parameter, context) => handler(this)
                 );
 
