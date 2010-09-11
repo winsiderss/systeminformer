@@ -137,6 +137,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_RELATIVESTARTTIME, FALSE, L"Relative Start Time", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_BITS, FALSE, L"Bits", 50, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_WINDOWTITLE, FALSE, L"Window Title", 120, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -354,6 +356,8 @@ VOID PhpRemoveProcessNode(
 
     PhDereferenceObject(ProcessNode->Children);
 
+    if (ProcessNode->WindowText) PhDereferenceObject(ProcessNode->WindowText);
+
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
 
     if (ProcessNode->IoTotalText) PhDereferenceObject(ProcessNode->IoTotalText);
@@ -371,6 +375,7 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->IoWText) PhDereferenceObject(ProcessNode->IoWText);
     if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
     if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
+    if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
 
     PhDereferenceObject(ProcessNode->ProcessItem);
 
@@ -480,7 +485,7 @@ HICON PhGetStockAppIcon()
 }
 
 VOID PhpUpdateProcessNodeWsCounters(
-    __in PPH_PROCESS_NODE ProcessNode
+    __inout PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_WSCOUNTERS))
@@ -511,7 +516,7 @@ VOID PhpUpdateProcessNodeWsCounters(
 }
 
 VOID PhpUpdateProcessNodeGdiUserHandles(
-    __in PPH_PROCESS_NODE ProcessNode
+    __inout PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_GDIUSERHANDLES))
@@ -532,7 +537,7 @@ VOID PhpUpdateProcessNodeGdiUserHandles(
 }
 
 VOID PhpUpdateProcessNodeIoPagePriority(
-    __in PPH_PROCESS_NODE ProcessNode
+    __inout PPH_PROCESS_NODE ProcessNode
     )
 {
     if (!(ProcessNode->ValidMask & PHPN_IOPAGEPRIORITY))
@@ -551,6 +556,58 @@ VOID PhpUpdateProcessNodeIoPagePriority(
         }
 
         ProcessNode->ValidMask |= PHPN_IOPAGEPRIORITY;
+    }
+}
+
+BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)lParam;
+    ULONG threadId;
+    ULONG processId;
+
+    threadId = GetWindowThreadProcessId(hwnd, &processId);
+
+    if (UlongToHandle(processId) == processNode->ProcessId)
+    {
+        processNode->WindowHandle = hwnd;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID PhpUpdateProcessNodeWindow(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_WINDOW))
+    {
+        ProcessNode->WindowHandle = NULL;
+        EnumWindows(PhpEnumProcessNodeWindowsProc, (LPARAM)ProcessNode);
+
+        PhSwapReference(&ProcessNode->WindowText, NULL);
+
+        if (ProcessNode->WindowHandle)
+        {
+            ProcessNode->WindowText = PhCreateStringEx(NULL, 128);
+
+            if (InternalGetWindowText(ProcessNode->WindowHandle,
+                ProcessNode->WindowText->Buffer, ProcessNode->WindowText->Length / sizeof(WCHAR)) != 0)
+            {
+                PhTrimToNullTerminatorString(ProcessNode->WindowText);
+            }
+            else
+            {
+                PhSwapReference(&ProcessNode->WindowText, NULL);
+            }
+
+            ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
+        }
+
+        ProcessNode->ValidMask |= PHPN_WINDOW;
     }
 }
 
@@ -875,6 +932,22 @@ BEGIN_SORT_FUNCTION(Elevation)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(WindowTitle)
+{
+    PhpUpdateProcessNodeWindow(node1);
+    PhpUpdateProcessNodeWindow(node2);
+    sortResult = PhCompareStringWithNull(node1->WindowText, node2->WindowText, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(WindowStatus)
+{
+    PhpUpdateProcessNodeWindow(node1);
+    PhpUpdateProcessNodeWindow(node2);
+    sortResult = intcmp(node1->WindowHung, node2->WindowHung);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -953,7 +1026,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(Reserved1),
                         SORT_FUNCTION(RelativeStartTime),
                         SORT_FUNCTION(Bits),
-                        SORT_FUNCTION(Elevation)
+                        SORT_FUNCTION(Elevation),
+                        SORT_FUNCTION(WindowTitle),
+                        SORT_FUNCTION(WindowStatus)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1273,6 +1348,19 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     PhInitializeStringRef(&getNodeText->Text, type);
                 }
+                break;
+            case PHTLC_WINDOWTITLE:
+                PhpUpdateProcessNodeWindow(node);
+                PhSwapReference(&node->WindowTitleText, node->WindowText);
+                getNodeText->Text = PhGetStringRef(node->WindowTitleText);
+                break;
+            case PHTLC_WINDOWSTATUS:
+                PhpUpdateProcessNodeWindow(node);
+
+                if (node->WindowHandle)
+                    PhInitializeStringRef(&getNodeText->Text, node->WindowHung ? L"Not responding" : L"Running");
+                else
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
                 break;
             default:
                 return FALSE;
