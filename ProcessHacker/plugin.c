@@ -233,9 +233,27 @@ PPH_PLUGIN PhRegisterPlugin(
     PPH_PLUGIN plugin;
     PPH_AVL_LINKS existingLinks;
     ULONG i;
+    PPH_STRING fileName;
 
-    if (!LoadingPluginFileName) // this function must be called from the plugin entry
-        return NULL;
+    if (DllBase)
+    {
+        PLDR_DATA_TABLE_ENTRY loaderEntry;
+
+        if (!(loaderEntry = PhFindLoaderEntry(DllBase)))
+            return NULL;
+
+        fileName = PhCreateStringEx(loaderEntry->FullDllName.Buffer, loaderEntry->FullDllName.Length);
+    }
+    else
+    {
+        // Should only happen for .NET DLLs.
+
+        if (!LoadingPluginFileName)
+            return NULL;
+
+        fileName = LoadingPluginFileName;
+        PhReferenceObject(fileName);
+    }
 
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
@@ -243,8 +261,7 @@ PPH_PLUGIN PhRegisterPlugin(
     plugin->Name = Name;
     plugin->DllBase = DllBase;
 
-    PhReferenceObject(LoadingPluginFileName);
-    plugin->FileName = LoadingPluginFileName;
+    plugin->FileName = fileName;
 
     existingLinks = PhAddElementAvlTree(&PhPluginsByName, &plugin->Links);
 
