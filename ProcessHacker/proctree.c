@@ -572,6 +572,15 @@ BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
 
     if (UlongToHandle(processId) == processNode->ProcessId)
     {
+        HWND parentWindow;
+
+        if (
+            !IsWindowVisible(hwnd) || // skip invisible windows
+            ((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) || // skip windows with visible parents
+            GetWindowTextLength(hwnd) == 0 // skip windows with no title
+            )
+            return TRUE;
+
         processNode->WindowHandle = hwnd;
         return FALSE;
     }
@@ -592,18 +601,7 @@ VOID PhpUpdateProcessNodeWindow(
 
         if (ProcessNode->WindowHandle)
         {
-            ProcessNode->WindowText = PhCreateStringEx(NULL, 128);
-
-            if (InternalGetWindowText(ProcessNode->WindowHandle,
-                ProcessNode->WindowText->Buffer, ProcessNode->WindowText->Length / sizeof(WCHAR)) != 0)
-            {
-                PhTrimToNullTerminatorString(ProcessNode->WindowText);
-            }
-            else
-            {
-                PhSwapReference(&ProcessNode->WindowText, NULL);
-            }
-
+            ProcessNode->WindowText = PhGetWindowText(ProcessNode->WindowHandle);
             ProcessNode->WindowHung = !!IsHungAppWindow(ProcessNode->WindowHandle);
         }
 
