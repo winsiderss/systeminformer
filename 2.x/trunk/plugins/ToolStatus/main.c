@@ -420,7 +420,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                     RedrawWindowForTargeting(TargetingCurrentWindow, FALSE);
                     threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
 
-                    if (threadId && processId)
+                    if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
                     {
                         PPH_PROCESS_NODE processNode;
 
