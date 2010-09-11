@@ -1074,7 +1074,21 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 PhInitializeStringRef(&getNodeText->Text, processItem->ProcessIdString);
                 break;
             case PHTLC_CPU:
-                PhInitializeStringRef(&getNodeText->Text, processItem->CpuUsageString);
+                {
+                    FLOAT cpuUsage;
+
+                    cpuUsage = processItem->CpuUsage * 100;
+
+                    if (cpuUsage >= 0.01)
+                    {
+                        _snwprintf(node->CpuUsageText, PH_INT32_STR_LEN, L"%.2f", cpuUsage);
+                        PhInitializeStringRef(&getNodeText->Text, node->CpuUsageText);
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getNodeText->Text);
+                    }
+                }
                 break;
             case PHTLC_IOTOTAL:
                 {

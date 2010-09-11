@@ -208,6 +208,7 @@ typedef struct _PH_PROCESS_NODE
 
     PPH_STRING TooltipText;
 
+    WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING IoTotalText;
     PPH_STRING PrivateMemoryText;
     PPH_STRING PeakPrivateMemoryText;
