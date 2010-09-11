@@ -163,12 +163,15 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_RELATIVESTARTTIME 39
 #define PHTLC_BITS 40
 #define PHTLC_ELEVATION 41
+#define PHTLC_WINDOWTITLE 42
+#define PHTLC_WINDOWSTATUS 43
 
-#define PHTLC_MAXIMUM 42
+#define PHTLC_MAXIMUM 44
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
 #define PHPN_IOPAGEPRIORITY 0x4
+#define PHPN_WINDOW 0x8
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -198,6 +201,10 @@ typedef struct _PH_PROCESS_NODE
     // I/O, Page priority
     ULONG IoPriority;
     ULONG PagePriority;
+    // Window
+    HWND WindowHandle;
+    PPH_STRING WindowText;
+    BOOLEAN WindowHung;
 
     PPH_STRING TooltipText;
 
@@ -226,6 +233,7 @@ typedef struct _PH_PROCESS_NODE
     WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     PPH_STRING RelativeStartTimeText;
+    PPH_STRING WindowTitleText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();

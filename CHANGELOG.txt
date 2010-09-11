@@ -6,7 +6,9 @@ Process Hacker
    * Show Processes From All Users option
    * Can now unmap section views
    * Control over thread affinity
+   * Window Title and Window Status columns
    * Plugin for filtering notifications
+   * Plugin for toolbar and status bar
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions

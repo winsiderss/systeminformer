@@ -2096,22 +2096,23 @@ PPH_STRING PhSaveTreeListColumnSettings(
     {
         column.Id = i;
 
-        if (
-            TreeList_GetColumn(TreeListHandle, &column) &&
-            column.Visible
-            )
+        if (TreeList_GetColumn(TreeListHandle, &column))
         {
-            PhAppendFormatStringBuilder(
-                &stringBuilder,
-                L"%u,%u,%u|",
-                i,
-                column.DisplayIndex,
-                column.Width
-                );
+            if (column.Visible)
+            {
+                PhAppendFormatStringBuilder(
+                    &stringBuilder,
+                    L"%u,%u,%u|",
+                    i,
+                    column.DisplayIndex,
+                    column.Width
+                    );
+            }
+
+            count++;
         }
 
         i++;
-        count++;
     }
 
     if (stringBuilder.String->Length != 0)
