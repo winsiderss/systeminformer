@@ -28,6 +28,7 @@ namespace ProcessHacker2.Api
             {
                 NativeApi.PhUnregisterCallback(_callback, _registration);
                 Marshal.FreeHGlobal((IntPtr)_registration);
+                _registration = null;
             }
         }
     }

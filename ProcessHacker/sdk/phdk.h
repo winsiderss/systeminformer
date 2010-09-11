@@ -11,6 +11,7 @@
 #include "circbuf.h"
 #include "providers.h"
 
+#include "treelist.h"
 #include "phapppub.h"
 
 #include "phplug.h"
