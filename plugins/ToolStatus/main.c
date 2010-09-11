@@ -334,6 +334,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                             SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
                             TargetingWindow = TRUE;
+                            TargetingCurrentWindow = NULL;
                             TargetingWithThread = id == TIDC_FINDWINDOWTHREAD;
 
                             SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
