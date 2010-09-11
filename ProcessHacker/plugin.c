@@ -378,3 +378,27 @@ BOOLEAN PhPluginAddMenuItem(
 
     return TRUE;
 }
+
+VOID PhPluginGetSystemStatistics(
+    __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
+    )
+{
+    Statistics->Performance = &PhPerfInformation;
+
+    Statistics->NumberOfProcesses = PhTotalProcesses;
+    Statistics->NumberOfThreads = PhTotalThreads;
+    Statistics->NumberOfHandles = PhTotalHandles;
+
+    Statistics->CpuKernelUsage = PhCpuKernelUsage;
+    Statistics->CpuUserUsage = PhCpuUserUsage;
+
+    Statistics->IoReadDelta = PhIoReadDelta;
+    Statistics->IoWriteDelta = PhIoWriteDelta;
+    Statistics->IoOtherDelta = PhIoOtherDelta;
+
+    Statistics->CommitPages = PhGetItemCircularBuffer_ULONG(&PhCommitHistory, 0);
+    Statistics->PhysicalPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, 0);
+
+    Statistics->MaxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
+    Statistics->MaxIoProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
+}
