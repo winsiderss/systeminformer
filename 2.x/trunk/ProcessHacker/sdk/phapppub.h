@@ -17,7 +17,19 @@ VOID PhUnregisterDialog(
 
 // proctree
 
-typedef struct _PH_PROCESS_NODE PH_PROCESS_NODE, *PPH_PROCESS_NODE;
+typedef struct _PH_PROCESS_NODE
+{
+    PH_TREELIST_NODE Node;
+
+    PH_ITEM_STATE State;
+    PVOID Private1;
+    ULONG Private2;
+
+    HANDLE ProcessId;
+    PPH_PROCESS_ITEM ProcessItem;
+
+    // Other members are not exposed.
+} PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 PHAPPAPI
 PPH_PROCESS_NODE PhFindProcessNode(
