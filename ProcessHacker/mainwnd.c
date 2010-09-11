@@ -1826,6 +1826,39 @@ LRESULT CALLBACK PhMainWndProc(
             LayoutPadding = *rect;
         }
         break;
+    case WM_PH_SELECT_PROCESS_NODE:
+        {
+            PhSelectAndEnsureVisibleProcessNode((PPH_PROCESS_NODE)lParam);
+        }
+        break;
+    case WM_PH_SELECT_SERVICE_ITEM:
+        {
+            INT lvItemIndex;
+
+            PhSetStateAllListViewItems(ServiceListViewHandle, 0, LVIS_SELECTED);
+            lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, (PVOID)lParam);
+
+            if (lvItemIndex != -1)
+            {
+                ListView_SetItemState(ServiceListViewHandle, lvItemIndex,
+                    LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+            }
+        }
+        break;
+    case WM_PH_SELECT_NETWORK_ITEM:
+        {
+            INT lvItemIndex;
+
+            PhSetStateAllListViewItems(NetworkListViewHandle, 0, LVIS_SELECTED);
+            lvItemIndex = PhFindListViewItemByParam(NetworkListViewHandle, -1, (PVOID)lParam);
+
+            if (lvItemIndex != -1)
+            {
+                ListView_SetItemState(NetworkListViewHandle, lvItemIndex,
+                    LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+            }
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;

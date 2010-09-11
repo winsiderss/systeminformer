@@ -136,6 +136,14 @@ VOID PhRefreshProcessPropContext(
     PropContext->PropSheetHeader.hIcon = PropContext->ProcessItem->SmallIcon;
 }
 
+VOID PhSetSelectThreadIdProcessPropContext(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in HANDLE ThreadId
+    )
+{
+    PropContext->SelectThreadId = ThreadId;
+}
+
 INT CALLBACK PhpPropSheetProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -2757,6 +2765,31 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
                 threadsContext->NeedsRedraw = FALSE;
             }
 
+            if (propPageContext->PropContext->SelectThreadId)
+            {
+                PPH_THREAD_ITEM threadItem;
+                INT lvItemIndex;
+
+                if (threadItem = PhReferenceThreadItem(
+                    threadsContext->Provider,
+                    propPageContext->PropContext->SelectThreadId
+                    ))
+                {
+                    lvItemIndex = PhFindListViewItemByParam(lvHandle, -1, threadItem);
+
+                    if (lvItemIndex != -1)
+                    {
+                        ListView_SetItemState(lvHandle, lvItemIndex,
+                            LVIS_FOCUSED | LVIS_SELECTED,
+                            LVIS_FOCUSED | LVIS_SELECTED);
+                    }
+
+                    PhDereferenceObject(threadItem);
+                }
+
+                propPageContext->PropContext->SelectThreadId = NULL;
+            }
+
             PhpUpdateThreadDetails(hwndDlg, FALSE);
         }
         break;
@@ -5140,6 +5173,9 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     }
 
     // Create the property sheet
+
+    if (PropContext->SelectThreadId)
+        PhSetStringSetting(L"ProcPropPage", L"Threads");
 
     startPage = PhGetStringSetting(L"ProcPropPage");
     PropContext->PropSheetHeader.dwFlags |= PSH_USEPSTARTPAGE;
