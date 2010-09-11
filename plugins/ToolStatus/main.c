@@ -7,10 +7,12 @@ PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 HWND ToolBarHandle;
-HWND StatusBarHandle;
 HIMAGELIST ToolBarImageList;
+HWND StatusBarHandle;
+ULONG StatusMask;
 
 ULONG IdRangeBase;
 ULONG ToolBarIdRangeBase;
@@ -19,6 +21,8 @@ ULONG ToolBarIdRangeEnd;
 BOOLEAN TargetingWindow = FALSE;
 HWND TargetingCurrentWindow = NULL;
 BOOLEAN TargetingWithThread;
+
+ULONG ProcessesUpdatedCount = 0;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -32,10 +36,10 @@ LOGICAL DllMain(
         {
             PH_PLUGIN_INFORMATION info;
 
-            info.DisplayName = L"Toolbar and Statusbar";
+            info.DisplayName = L"Toolbar and Status Bar";
             info.Author = L"wj32";
-            info.Description = L"Adds a toolbar and a statusbar.";
-            info.HasOptions = TRUE;
+            info.Description = L"Adds a toolbar and a status bar.";
+            info.HasOptions = FALSE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
             
@@ -61,16 +65,21 @@ LOGICAL DllMain(
                 NULL,
                 &MainWindowShowingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &ProcessesUpdatedCallbackRegistration
+                );
 
-            //{
-            //    static PH_SETTING_CREATE settings[] =
-            //    {
-            //        { StringSettingType, SETTING_NAME_PROCESS_LIST, L"\\i*" },
-            //        { StringSettingType, SETTING_NAME_SERVICE_LIST, L"\\i*" }
-            //    };
+            {
+                static PH_SETTING_CREATE settings[] =
+                {
+                    { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" }
+                };
 
-            //    PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            //}
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            }
         }
         break;
     }
@@ -191,7 +200,18 @@ VOID NTAPI MainWindowShowingCallback(
         NULL
         );
 
-    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0); 
+    StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
+
+    SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0);
+}
+
+VOID NTAPI ProcessesUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    ProcessesUpdatedCount++;
+    UpdateStatusBar();
 }
 
 VOID DrawWindowBorderForTargeting(
@@ -324,6 +344,22 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 goto DefaultWndProc;
             }
+            else if (hdr->hwndFrom == StatusBarHandle)
+            {
+                switch (hdr->code)
+                {
+                case NM_RCLICK:
+                    {
+                        POINT cursorPos;
+
+                        GetCursorPos(&cursorPos);
+                        ShowStatusMenu(&cursorPos);
+                    }
+                    break;
+                }
+
+                goto DefaultWndProc;
+            }
         }
         break;
     case WM_MOUSEMOVE:
@@ -444,4 +480,231 @@ LRESULT CALLBACK MainWndSubclassProc(
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 DefaultWndProc:
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+VOID UpdateStatusBar()
+{
+    PPH_STRING text[10];
+    ULONG widths[10];
+    ULONG i;
+    ULONG count;
+    HDC hdc;
+    PH_PLUGIN_SYSTEM_STATISTICS statistics;
+
+    if (ProcessesUpdatedCount < 2)
+        return;
+
+    PhPluginGetSystemStatistics(&statistics);
+
+    hdc = GetDC(StatusBarHandle);
+    SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
+
+    count = 0;
+
+    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
+    {
+        if (StatusMask & i)
+        {
+            SIZE size;
+            PPH_PROCESS_ITEM processItem;
+
+            switch (i)
+            {
+            case STATUS_CPUUSAGE:
+                text[count] = PhFormatString(L"CPU Usage: %.2f%%", (statistics.CpuKernelUsage + statistics.CpuUserUsage) * 100);
+                break;
+            case STATUS_COMMIT:
+                text[count] = PhFormatString(L"Commit Charge: %.2f%%",
+                    (FLOAT)statistics.CommitPages * 100 / statistics.Performance->CommitLimit);
+                break;
+            case STATUS_PHYSICAL:
+                text[count] = PhFormatString(L"Physical Memory: %.2f%%",
+                    (FLOAT)statistics.PhysicalPages * 100 / PhSystemBasicInformation.NumberOfPhysicalPages);
+                break;
+            case STATUS_NUMBEROFPROCESSES:
+                text[count] = PhConcatStrings2(L"Processes: ",
+                    PhaFormatUInt64(statistics.NumberOfProcesses, TRUE)->Buffer);
+                break;
+            case STATUS_NUMBEROFTHREADS:
+                text[count] = PhConcatStrings2(L"Threads: ",
+                    PhaFormatUInt64(statistics.NumberOfThreads, TRUE)->Buffer);
+                break;
+            case STATUS_NUMBEROFHANDLES:
+                text[count] = PhConcatStrings2(L"Handles: ",
+                    PhaFormatUInt64(statistics.NumberOfHandles, TRUE)->Buffer);
+                break;
+            case STATUS_IOREADOTHER:
+                text[count] = PhConcatStrings2(L"I/O R+O: ", PhaFormatSize(
+                    statistics.IoReadDelta.Delta + statistics.IoOtherDelta.Delta, -1)->Buffer);
+                break;
+            case STATUS_IOWRITE:
+                text[count] = PhConcatStrings2(L"I/O W: ", PhaFormatSize(
+                    statistics.IoWriteDelta.Delta, -1)->Buffer);
+                break;
+            case STATUS_MAXCPUPROCESS:
+                if (statistics.MaxCpuProcessId && (processItem = PhReferenceProcessItem(statistics.MaxCpuProcessId)))
+                {
+                    text[count] = PhFormatString(
+                        L"%s (%u): %.2f%%",
+                        processItem->ProcessName->Buffer,
+                        (ULONG)processItem->ProcessId,
+                        processItem->CpuUsage * 100
+                        );
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    text[count] = PhCreateString(L"-");
+                }
+                break;
+            case STATUS_MAXIOPROCESS:
+                if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
+                {
+                    text[count] = PhFormatString(
+                        L"%s (%u): %s",
+                        processItem->ProcessName->Buffer,
+                        (ULONG)processItem->ProcessId,
+                        PhaFormatSize(processItem->IoReadDelta.Delta + processItem->IoWriteDelta.Delta + processItem->IoOtherDelta.Delta, -1)->Buffer
+                        );
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    text[count] = PhCreateString(L"-");
+                }
+                break;
+            }
+
+            if (!GetTextExtentPoint32(hdc, text[count]->Buffer, text[count]->Length / 2, &size))
+                size.cx = 200;
+
+            if (count != 0)
+                widths[count] = widths[count - 1];
+            else
+                widths[count] = 0;
+
+            widths[count] += size.cx + 10;
+
+            count++;
+        }
+    }
+
+    ReleaseDC(StatusBarHandle, hdc);
+
+    SendMessage(StatusBarHandle, SB_SETPARTS, count, (LPARAM)widths);
+
+    for (i = 0; i < count; i++)
+    {
+        SendMessage(StatusBarHandle, SB_SETTEXT, i, (LPARAM)text[i]->Buffer);
+        PhDereferenceObject(text[i]);
+    }
+}
+
+VOID ShowStatusMenu(
+    __in PPOINT Point
+    )
+{
+    HMENU menu;
+    HMENU subMenu;
+    ULONG i;
+    ULONG id;
+    ULONG bit;
+
+    menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_STATUS));
+    subMenu = GetSubMenu(menu, 0);
+
+    // Check the enabled items.
+    for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
+    {
+        if (StatusMask & i)
+        {
+            switch (i)
+            {
+            case STATUS_CPUUSAGE:
+                id = ID_STATUS_CPUUSAGE;
+                break;
+            case STATUS_COMMIT:
+                id = ID_STATUS_COMMITCHARGE;
+                break;
+            case STATUS_PHYSICAL:
+                id = ID_STATUS_PHYSICALMEMORY;
+                break;
+            case STATUS_NUMBEROFPROCESSES:
+                id = ID_STATUS_NUMBEROFPROCESSES;
+                break;
+            case STATUS_NUMBEROFTHREADS:
+                id = ID_STATUS_NUMBEROFTHREADS;
+                break;
+            case STATUS_NUMBEROFHANDLES:
+                id = ID_STATUS_NUMBEROFHANDLES;
+                break;
+            case STATUS_IOREADOTHER:
+                id = ID_STATUS_IO_RO;
+                break;
+            case STATUS_IOWRITE:
+                id = ID_STATUS_IO_W;
+                break;
+            case STATUS_MAXCPUPROCESS:
+                id = ID_STATUS_MAX_CPU_PROCESS;
+                break;
+            case STATUS_MAXIOPROCESS:
+                id = ID_STATUS_MAX_IO_PROCESS;
+                break;
+            }
+
+            CheckMenuItem(subMenu, id, MF_CHECKED);
+        }
+    }
+
+    id = (ULONG)TrackPopupMenu(
+        subMenu,
+        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD,
+        Point->x,
+        Point->y,
+        0,
+        PhMainWndHandle,
+        NULL
+        );
+    DestroyMenu(menu);
+
+    switch (id)
+    {
+    case ID_STATUS_CPUUSAGE:
+        bit = STATUS_CPUUSAGE;
+        break;
+    case ID_STATUS_COMMITCHARGE:
+        bit = STATUS_COMMIT;
+        break;
+    case ID_STATUS_PHYSICALMEMORY:
+        bit = STATUS_PHYSICAL;
+        break;
+    case ID_STATUS_NUMBEROFPROCESSES:
+        bit = STATUS_NUMBEROFPROCESSES;
+        break;
+    case ID_STATUS_NUMBEROFTHREADS:
+        bit = STATUS_NUMBEROFTHREADS;
+        break;
+    case ID_STATUS_NUMBEROFHANDLES:
+        bit = STATUS_NUMBEROFHANDLES;
+        break;
+    case ID_STATUS_IO_RO:
+        bit = STATUS_IOREADOTHER;
+        break;
+    case ID_STATUS_IO_W:
+        bit = STATUS_IOWRITE;
+        break;
+    case ID_STATUS_MAX_CPU_PROCESS:
+        bit = STATUS_MAXCPUPROCESS;
+        break;
+    case ID_STATUS_MAX_IO_PROCESS:
+        bit = STATUS_MAXIOPROCESS;
+        break;
+    default:
+        return;
+    }
+
+    StatusMask ^= bit;
+    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask", StatusMask);
+
+    UpdateStatusBar();
 }
