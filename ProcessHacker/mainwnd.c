@@ -3201,13 +3201,18 @@ BOOL CALLBACK PhpEnumProcessWindowsProc(
     )
 {
     ULONG processId;
+    HWND parentWindow;
 
     if (!IsWindowVisible(hwnd))
         return TRUE;
 
     GetWindowThreadProcessId(hwnd, &processId);
 
-    if (processId == (ULONG)lParam)
+    if (
+        processId == (ULONG)lParam &&
+        !((parentWindow = GetParent(hwnd)) && IsWindowVisible(parentWindow)) && // skip windows with a visible parent
+        GetWindowTextLength(hwnd) != 0
+        )
     {
         SelectedProcessWindowHandle = hwnd;
         return FALSE;
