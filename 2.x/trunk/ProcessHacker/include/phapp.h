@@ -534,6 +534,9 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SELECT_TAB_PAGE (WM_APP + 130)
 #define WM_PH_GET_LAYOUT_PADDING (WM_APP + 131)
 #define WM_PH_SET_LAYOUT_PADDING (WM_APP + 132)
+#define WM_PH_SELECT_PROCESS_NODE (WM_APP + 133)
+#define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
+#define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -572,6 +575,12 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_GET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
 #define ProcessHacker_SetLayoutPadding(hWnd, Rect) \
     SendMessage(hWnd, WM_PH_SET_LAYOUT_PADDING, 0, (LPARAM)(Rect))
+#define ProcessHacker_SelectProcessNode(hWnd, ProcessNode) \
+    SendMessage(hWnd, WM_PH_SELECT_PROCESS_NODE, 0, (LPARAM)(ProcessNode))
+#define ProcessHacker_SelectServiceItem(hWnd, ServiceItem) \
+    SendMessage(hWnd, WM_PH_SELECT_SERVICE_ITEM, 0, (LPARAM)(ServiceItem))
+#define ProcessHacker_SelectNetworkItem(hWnd, NetworkItem) \
+    SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
@@ -660,6 +669,8 @@ typedef struct _PH_PROCESS_PROPCONTEXT
     PPH_STRING Title;
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE *PropSheetPages;
+
+    HANDLE SelectThreadId;
 } PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
 
 typedef struct _PH_PROCESS_PROPPAGECONTEXT
@@ -681,6 +692,12 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
 
 VOID PhRefreshProcessPropContext(
     __inout PPH_PROCESS_PROPCONTEXT PropContext
+    );
+
+PHAPPAPI
+VOID PhSetSelectThreadIdProcessPropContext(
+    __inout PPH_PROCESS_PROPCONTEXT PropContext,
+    __in HANDLE ThreadId
     );
 
 PHAPPAPI

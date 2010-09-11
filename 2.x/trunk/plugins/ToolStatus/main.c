@@ -16,6 +16,10 @@ ULONG IdRangeBase;
 ULONG ToolBarIdRangeBase;
 ULONG ToolBarIdRangeEnd;
 
+BOOLEAN TargetingWindow = FALSE;
+HWND TargetingCurrentWindow = NULL;
+BOOLEAN TargetingWithThread;
+
 LOGICAL DllMain(
     __in HINSTANCE Instance,
     __in ULONG Reason,
@@ -190,6 +194,63 @@ VOID NTAPI MainWindowShowingCallback(
     SetWindowSubclass(PhMainWndHandle, MainWndSubclassProc, 0, 0); 
 }
 
+VOID DrawWindowBorderForTargeting(
+    __in HWND hWnd
+    )
+{
+    RECT rect;
+    HDC hdc;
+
+    GetWindowRect(hWnd, &rect);
+    hdc = GetWindowDC(hWnd);
+
+    if (hdc)
+    {
+        ULONG penWidth = GetSystemMetrics(SM_CXBORDER) * 3;
+        INT oldDc;
+        HPEN pen;
+        HBRUSH brush;
+
+        oldDc = SaveDC(hdc);
+
+        // Get an inversion effect.
+        SetROP2(hdc, R2_NOT);
+
+        pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
+        SelectObject(hdc, pen);
+
+        brush = GetStockObject(NULL_BRUSH);
+        SelectObject(hdc, brush);
+
+        // Draw the rectangle.
+        Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
+
+        // Cleanup.
+        DeleteObject(pen);
+
+        RestoreDC(hdc, oldDc);
+        ReleaseDC(hWnd, hdc);
+    }
+}
+
+VOID RedrawWindowForTargeting(
+    __in HWND hWnd,
+    __in BOOLEAN Workaround
+    )
+{
+    if (!RedrawWindow(hWnd, NULL, NULL,
+        RDW_INVALIDATE |
+        RDW_ERASE | // for toolbar backgrounds and empty forms
+        RDW_UPDATENOW |
+        RDW_ALLCHILDREN |
+        RDW_FRAME
+        ) && Workaround)
+    {
+        // Since the rectangle is just an inversion we can undo it.
+        DrawWindowBorderForTargeting(hWnd);
+    }
+}
+
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
@@ -225,6 +286,136 @@ LRESULT CALLBACK MainWndSubclassProc(
                     SendMessage(hWnd, WM_COMMAND, PHAPP_ID_VIEW_SYSTEMINFORMATION, 0);
                     break;
                 }
+
+                goto DefaultWndProc;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR hdr = (LPNMHDR)lParam;
+
+            if (hdr->hwndFrom == ToolBarHandle)
+            {
+                switch (hdr->code)
+                {
+                case TBN_BEGINDRAG:
+                    {
+                        LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
+                        ULONG id;
+
+                        id = (ULONG)toolbar->iItem - ToolBarIdRangeBase;
+
+                        if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD)
+                        {
+                            // Direct all mouse events to this window.
+                            SetCapture(hWnd);
+                            // Send the window to the bottom.
+                            SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                            TargetingWindow = TRUE;
+                            TargetingWithThread = id == TIDC_FINDWINDOWTHREAD;
+
+                            SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
+                        }
+                    }
+                    break;
+                }
+
+                goto DefaultWndProc;
+            }
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            if (TargetingWindow)
+            {
+                POINT cursorPos;
+                HWND windowOverMouse;
+                ULONG processId;
+                ULONG threadId;
+
+                GetCursorPos(&cursorPos);
+                windowOverMouse = WindowFromPoint(cursorPos);
+
+                if (TargetingCurrentWindow != windowOverMouse)
+                {
+                    if (TargetingCurrentWindow)
+                    {
+                        // Refresh the old window.
+                        RedrawWindowForTargeting(TargetingCurrentWindow, TRUE);
+                    }
+
+                    if (windowOverMouse)
+                    {
+                        threadId = GetWindowThreadProcessId(windowOverMouse, &processId);
+
+                        // Draw a rectangle over the current window (but not if it's one of our own).
+                        if (UlongToHandle(processId) != NtCurrentProcessId())
+                        {
+                            DrawWindowBorderForTargeting(windowOverMouse);
+                        }
+                    }
+
+                    TargetingCurrentWindow = windowOverMouse;
+                }
+
+                goto DefaultWndProc;
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONUP:
+        {
+            if (TargetingWindow)
+            {
+                ULONG processId;
+                ULONG threadId;
+
+                BringWindowToTop(hWnd);
+                TargetingWindow = FALSE;
+                ReleaseCapture();
+
+                if (TargetingCurrentWindow)
+                {
+                    // Redraw the window we found.
+                    RedrawWindowForTargeting(TargetingCurrentWindow, FALSE);
+                    threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
+
+                    if (threadId && processId)
+                    {
+                        PPH_PROCESS_NODE processNode;
+
+                        processNode = PhFindProcessNode(UlongToHandle(processId));
+
+                        if (processNode)
+                        {
+                            ProcessHacker_SelectTabPage(hWnd, 0);
+                            ProcessHacker_SelectProcessNode(hWnd, processNode);
+                        }
+
+                        if (TargetingWithThread)
+                        {
+                            PPH_PROCESS_PROPCONTEXT propContext;
+                            PPH_PROCESS_ITEM processItem;
+
+                            if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                            {
+                                if (propContext = PhCreateProcessPropContext(hWnd, processItem))
+                                {
+                                    PhSetSelectThreadIdProcessPropContext(propContext, UlongToHandle(threadId));
+                                    PhShowProcessProperties(propContext);
+                                    PhDereferenceObject(propContext);
+                                }
+
+                                PhDereferenceObject(processItem);
+                            }
+                        }
+                    }
+                }
+
+                goto DefaultWndProc;
             }
         }
         break;
@@ -237,8 +428,7 @@ LRESULT CALLBACK MainWndSubclassProc(
             SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
             SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
 
-            padding.left = 0;
-            padding.right = 0;
+            ProcessHacker_GetLayoutPadding(hWnd, &padding);
 
             GetClientRect(ToolBarHandle, &rect);
             padding.top = rect.bottom + 2;
@@ -252,4 +442,6 @@ LRESULT CALLBACK MainWndSubclassProc(
     }
 
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+DefaultWndProc:
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
