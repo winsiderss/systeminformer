@@ -1351,12 +1351,12 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    if (runCount % 4 == 0)
+    if (runCount % 5 == 0)
     {
         PhRefreshDosDevicePrefixes();
     }
 
-    if ((runCount + 3) % 4 == 0)
+    if (runCount % 10 == 1)
     {
         if (PhpIsDotNetContext)
         {
@@ -1660,21 +1660,7 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
             newCpuUsage = kernelCpuUsage + userCpuUsage;
-
-            if (processItem->CpuUsage != newCpuUsage)
-            {
-                processItem->CpuUsage = newCpuUsage;
-
-                if ((newCpuUsage * 100) >= 0.01)
-                {
-                    _snwprintf(processItem->CpuUsageString, PH_INT32_STR_LEN,
-                        L"%.2f", (DOUBLE)newCpuUsage * 100);
-                }
-                else
-                {
-                    processItem->CpuUsageString[0] = 0;
-                }
-            }
+            processItem->CpuUsage = newCpuUsage;
 
             // Max. values
 

@@ -161,7 +161,6 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR SessionIdString[PH_INT32_STR_LEN_1];
     WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
-    WCHAR CpuUsageString[PH_INT32_STR_LEN_1]; // volatile
 
     // Dynamic
 
