@@ -5437,8 +5437,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
-            PhAddItemList(context->ProcessIdList, UlongToHandle((ULONG)processId));
-            PhAddItemList(context->FlagsList, (PVOID)flags);
+            PhAddItemSimpleHashtable(context, UlongToHandle((ULONG)processId), (PVOID)flags);
         }
     }
 
@@ -5458,9 +5457,7 @@ NTSTATUS PhCreateIsDotNetContext(
     PH_STRINGREF defaultDirectoryName;
     ULONG i;
 
-    isDotNetContext = PhAllocate(sizeof(PH_IS_DOT_NET_CONTEXT));
-    isDotNetContext->ProcessIdList = PhCreateList(4);
-    isDotNetContext->FlagsList = PhCreateList(4);
+    isDotNetContext = PhCreateSimpleHashtable(8);
 
     if (!DirectoryNames || NumberOfDirectoryNames == 0)
     {
@@ -5505,9 +5502,7 @@ VOID PhFreeIsDotNetContext(
     __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
     )
 {
-    PhDereferenceObject(IsDotNetContext->ProcessIdList);
-    PhDereferenceObject(IsDotNetContext->FlagsList);
-    PhFree(IsDotNetContext);
+    PhDereferenceObject(IsDotNetContext);
 }
 
 BOOLEAN PhGetProcessIsDotNetFromContext(
@@ -5516,20 +5511,21 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
     __out_opt PULONG Flags
     )
 {
-    ULONG i;
+    PPVOID item;
 
-    for (i = 0; i < IsDotNetContext->ProcessIdList->Count; i++)
+    item = PhFindItemSimpleHashtable(IsDotNetContext, ProcessId);
+
+    if (item)
     {
-        if (IsDotNetContext->ProcessIdList->Items[i] == ProcessId)
-        {
-            if (Flags)
-                *Flags = (ULONG)IsDotNetContext->FlagsList->Items[i];
+        if (Flags)
+            *Flags = (ULONG)*item;
 
-            return TRUE;
-        }
+        return TRUE;
     }
-
-    return FALSE;
+    else
+    {
+        return FALSE;
+    }
 }
 
 /**

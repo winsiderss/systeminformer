@@ -1001,8 +1001,10 @@ VOID PhpFillProcessItem(
 
             if (WINDOWS_HAS_IMAGE_FILE_NAME_BY_PROCESS_ID)
                 status = PhGetProcessImageFileNameByProcessId(ProcessItem->ProcessId, &fileName);
-            else
+            else if (processHandle)
                 status = PhGetProcessImageFileName(processHandle, &fileName);
+            else
+                status = STATUS_UNSUCCESSFUL;
 
             if (NT_SUCCESS(status))
             {
@@ -1062,12 +1064,10 @@ VOID PhpFillProcessItem(
     }
     else
     {
-        if (ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID)
-        {
-            PhReferenceObject(PhLocalSystemName);
-            ProcessItem->UserName = PhLocalSystemName;
-        }
-        else if (ProcessItem->ProcessId == SYSTEM_PROCESS_ID) // System token can't be opened on XP
+        if (
+            ProcessItem->ProcessId == SYSTEM_IDLE_PROCESS_ID ||
+            ProcessItem->ProcessId == SYSTEM_PROCESS_ID // System token can't be opened on XP
+            )
         {
             PhReferenceObject(PhLocalSystemName);
             ProcessItem->UserName = PhLocalSystemName;
@@ -1356,7 +1356,7 @@ VOID PhProcessProviderUpdate(
         PhRefreshDosDevicePrefixes();
     }
 
-    if (runCount % 10 == 1)
+    if (runCount % 15 == 1)
     {
         if (PhpIsDotNetContext)
         {
