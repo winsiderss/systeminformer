@@ -34,15 +34,6 @@ VOID NTAPI PhpHandleItemDeleteProcedure(
     __in ULONG Flags
     );
 
-BOOLEAN NTAPI PhpHandleHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    );
-
-ULONG NTAPI PhpHandleHashtableHashFunction(
-    __in PVOID Entry
-    );
-
 PPH_OBJECT_TYPE PhHandleProviderType;
 PPH_OBJECT_TYPE PhHandleItemType;
 
@@ -81,13 +72,10 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
         )))
         return NULL;
 
-    handleProvider->HandleHashtable = PhCreateHashtable(
-        sizeof(PPH_HANDLE_ITEM),
-        PhpHandleHashtableCompareFunction,
-        PhpHandleHashtableHashFunction,
-        20
-        );
-    PhInitializeQueuedLock(&handleProvider->HandleHashtableLock);
+    handleProvider->HandleHashSetSize = 128;
+    handleProvider->HandleHashSet = PhCreateHashSet(handleProvider->HandleHashSetSize);
+    handleProvider->HandleHashSetCount = 0;
+    PhInitializeQueuedLock(&handleProvider->HandleHashSetLock);
 
     PhInitializeCallback(&handleProvider->HandleAddedEvent);
     PhInitializeCallback(&handleProvider->HandleModifiedEvent);
@@ -119,7 +107,7 @@ VOID PhpHandleProviderDeleteProcedure(
     // when we added them to the hashtable).
     PhDereferenceAllHandleItems(handleProvider);
 
-    PhDereferenceObject(handleProvider->HandleHashtable);
+    PhFree(handleProvider->HandleHashSet);
     PhDeleteCallback(&handleProvider->HandleAddedEvent);
     PhDeleteCallback(&handleProvider->HandleModifiedEvent);
     PhDeleteCallback(&handleProvider->HandleRemovedEvent);
@@ -171,21 +159,19 @@ VOID PhpHandleItemDeleteProcedure(
     if (handleItem->BestObjectName) PhDereferenceObject(handleItem->BestObjectName);
 }
 
-BOOLEAN PhpHandleHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+FORCEINLINE BOOLEAN PhCompareHandleItem(
+    __in PPH_HANDLE_ITEM Value1,
+    __in PPH_HANDLE_ITEM Value2
     )
 {
-    return
-        (*(PPH_HANDLE_ITEM *)Entry1)->Handle ==
-        (*(PPH_HANDLE_ITEM *)Entry2)->Handle;
+    return Value1->Handle == Value2->Handle;
 }
 
-ULONG PhpHandleHashtableHashFunction(
-    __in PVOID Entry
+FORCEINLINE ULONG PhHashHandleItem(
+    __in PPH_HANDLE_ITEM Value
     )
 {
-    return (ULONG)(*(PPH_HANDLE_ITEM *)Entry)->Handle / 4;
+    return (ULONG)Value->Handle / 4;
 }
 
 PPH_HANDLE_ITEM PhpLookupHandleItem(
@@ -194,20 +180,25 @@ PPH_HANDLE_ITEM PhpLookupHandleItem(
     )
 {
     PH_HANDLE_ITEM lookupHandleItem;
-    PPH_HANDLE_ITEM lookupHandleItemPtr = &lookupHandleItem;
-    PPH_HANDLE_ITEM *handleItemPtr;
+    PPH_HASH_ENTRY entry;
+    PPH_HANDLE_ITEM handleItem;
 
     lookupHandleItem.Handle = Handle;
-
-    handleItemPtr = (PPH_HANDLE_ITEM *)PhFindEntryHashtable(
-        HandleProvider->HandleHashtable,
-        &lookupHandleItemPtr
+    entry = PhFindEntryHashSet(
+        HandleProvider->HandleHashSet,
+        HandleProvider->HandleHashSetSize,
+        PhHashHandleItem(&lookupHandleItem)
         );
 
-    if (handleItemPtr)
-        return *handleItemPtr;
-    else
-        return NULL;
+    for (; entry; entry = entry->Next)
+    {
+        handleItem = CONTAINING_RECORD(entry, PH_HANDLE_ITEM, HashEntry);
+
+        if (PhCompareHandleItem(&lookupHandleItem, handleItem))
+            return handleItem;
+    }
+
+    return NULL;
 }
 
 PPH_HANDLE_ITEM PhReferenceHandleItem(
@@ -217,14 +208,14 @@ PPH_HANDLE_ITEM PhReferenceHandleItem(
 {
     PPH_HANDLE_ITEM handleItem;
 
-    PhAcquireQueuedLockShared(&HandleProvider->HandleHashtableLock);
+    PhAcquireQueuedLockShared(&HandleProvider->HandleHashSetLock);
 
     handleItem = PhpLookupHandleItem(HandleProvider, Handle);
 
     if (handleItem)
         PhReferenceObject(handleItem);
 
-    PhReleaseQueuedLockShared(&HandleProvider->HandleHashtableLock);
+    PhReleaseQueuedLockShared(&HandleProvider->HandleHashSetLock);
 
     return handleItem;
 }
@@ -233,17 +224,48 @@ VOID PhDereferenceAllHandleItems(
     __in PPH_HANDLE_PROVIDER HandleProvider
     )
 {
-    ULONG enumerationKey = 0;
-    PPH_HANDLE_ITEM *handleItem;
+    ULONG i;
+    PPH_HASH_ENTRY entry;
+    PPH_HANDLE_ITEM handleItem;
 
-    PhAcquireQueuedLockExclusive(&HandleProvider->HandleHashtableLock);
+    PhAcquireQueuedLockExclusive(&HandleProvider->HandleHashSetLock);
 
-    while (PhEnumHashtable(HandleProvider->HandleHashtable, (PPVOID)&handleItem, &enumerationKey))
+    for (i = 0; i < HandleProvider->HandleHashSetSize; i++)
     {
-        PhDereferenceObject(*handleItem);
+        entry = HandleProvider->HandleHashSet[i];
+
+        while (entry)
+        {
+            handleItem = CONTAINING_RECORD(entry, PH_HANDLE_ITEM, HashEntry);
+            entry = entry->Next;
+            PhDereferenceObject(handleItem);
+        }
     }
 
-    PhReleaseQueuedLockExclusive(&HandleProvider->HandleHashtableLock);
+    PhReleaseQueuedLockExclusive(&HandleProvider->HandleHashSetLock);
+}
+
+__assumeLocked VOID PhpAddHandleItem(
+    __in PPH_HANDLE_PROVIDER HandleProvider,
+    __in __assumeRefs(1) PPH_HANDLE_ITEM HandleItem
+    )
+{
+    if (HandleProvider->HandleHashSetSize < HandleProvider->HandleHashSetCount + 1)
+    {
+        PhResizeHashSet(
+            &HandleProvider->HandleHashSet,
+            &HandleProvider->HandleHashSetSize,
+            HandleProvider->HandleHashSetSize * 2
+            );
+    }
+
+    PhAddEntryHashSet(
+        HandleProvider->HandleHashSet,
+        HandleProvider->HandleHashSetSize,
+        &HandleItem->HashEntry,
+        PhHashHandleItem(HandleItem)
+        );
+    HandleProvider->HandleHashSetCount++;
 }
 
 __assumeLocked VOID PhpRemoveHandleItem(
@@ -251,7 +273,8 @@ __assumeLocked VOID PhpRemoveHandleItem(
     __in PPH_HANDLE_ITEM HandleItem
     )
 {
-    PhRemoveEntryHashtable(HandleProvider->HandleHashtable, &HandleItem);
+    PhRemoveEntryHashSet(HandleProvider->HandleHashSet, HandleProvider->HandleHashSetSize, &HandleItem->HashEntry);
+    HandleProvider->HandleHashSetCount--;
     PhDereferenceObject(HandleItem);
 }
 
@@ -442,48 +465,54 @@ VOID PhHandleProviderUpdate(
     // Look for closed handles.
     {
         PPH_LIST handlesToRemove = NULL;
-        ULONG enumerationKey = 0;
-        PPH_HANDLE_ITEM *handleItem;
+        ULONG i;
+        PPH_HASH_ENTRY entry;
+        PPH_HANDLE_ITEM handleItem;
         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *tempHashtableValue;
 
-        while (PhEnumHashtable(handleProvider->HandleHashtable, (PPVOID)&handleItem, &enumerationKey))
+        for (i = 0; i < handleProvider->HandleHashSetSize; i++)
         {
-            BOOLEAN found = FALSE;
-
-            // Check if the handle still exists.
-
-            tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhFindItemSimpleHashtable(
-                handleProvider->TempListHashtable,
-                (PVOID)((*handleItem)->Handle)
-                );
-
-            if (tempHashtableValue)
+            for (entry = handleProvider->HandleHashSet[i]; entry; entry = entry->Next)
             {
-                // Also compare the object pointers to make sure a 
-                // different object wasn't re-opened with the same 
-                // handle value. This isn't 100% accurate as pool 
-                // addresses may be re-used, but it works well.
-                if ((*handleItem)->Object == (*tempHashtableValue)->Object)
+                BOOLEAN found = FALSE;
+
+                handleItem = CONTAINING_RECORD(entry, PH_HANDLE_ITEM, HashEntry);
+
+                // Check if the handle still exists.
+
+                tempHashtableValue = (PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *)PhFindItemSimpleHashtable(
+                    handleProvider->TempListHashtable,
+                    (PVOID)(handleItem->Handle)
+                    );
+
+                if (tempHashtableValue)
                 {
-                    found = TRUE;
+                    // Also compare the object pointers to make sure a 
+                    // different object wasn't re-opened with the same 
+                    // handle value. This isn't 100% accurate as pool 
+                    // addresses may be re-used, but it works well.
+                    if (handleItem->Object == (*tempHashtableValue)->Object)
+                    {
+                        found = TRUE;
+                    }
                 }
-            }
 
-            if (!found)
-            {
-                // Raise the handle removed event.
-                PhInvokeCallback(&handleProvider->HandleRemovedEvent, *handleItem);
+                if (!found)
+                {
+                    // Raise the handle removed event.
+                    PhInvokeCallback(&handleProvider->HandleRemovedEvent, handleItem);
 
-                if (!handlesToRemove)
-                    handlesToRemove = PhCreateList(2);
+                    if (!handlesToRemove)
+                        handlesToRemove = PhCreateList(2);
 
-                PhAddItemList(handlesToRemove, *handleItem);
+                    PhAddItemList(handlesToRemove, handleItem);
+                }
             }
         }
 
         if (handlesToRemove)
         {
-            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashtableLock);
+            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashSetLock);
 
             for (i = 0; i < handlesToRemove->Count; i++)
             {
@@ -493,7 +522,7 @@ VOID PhHandleProviderUpdate(
                     );
             }
 
-            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashtableLock);
+            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashSetLock);
             PhDereferenceObject(handlesToRemove);
         }
     }
@@ -531,9 +560,9 @@ VOID PhHandleProviderUpdate(
             }
 
             // Add the handle item to the hashtable.
-            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashtableLock);
-            PhAddEntryHashtable(handleProvider->HandleHashtable, &handleItem);
-            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashtableLock);
+            PhAcquireQueuedLockExclusive(&handleProvider->HandleHashSetLock);
+            PhpAddHandleItem(handleProvider, handleItem);
+            PhReleaseQueuedLockExclusive(&handleProvider->HandleHashSetLock);
 
             // Raise the handle added event.
             PhInvokeCallback(&handleProvider->HandleAddedEvent, handleItem);
