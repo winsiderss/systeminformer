@@ -253,24 +253,6 @@ VOID DrawWindowBorderForTargeting(
     }
 }
 
-VOID RedrawWindowForTargeting(
-    __in HWND hWnd,
-    __in BOOLEAN Workaround
-    )
-{
-    if (!RedrawWindow(hWnd, NULL, NULL,
-        RDW_INVALIDATE |
-        RDW_ERASE | // for toolbar backgrounds and empty forms
-        RDW_UPDATENOW |
-        RDW_ALLCHILDREN |
-        RDW_FRAME
-        ) && Workaround)
-    {
-        // Since the rectangle is just an inversion we can undo it.
-        DrawWindowBorderForTargeting(hWnd);
-    }
-}
-
 LRESULT CALLBACK MainWndSubclassProc(
     __in HWND hWnd,
     __in UINT uMsg,
@@ -379,8 +361,8 @@ LRESULT CALLBACK MainWndSubclassProc(
                 {
                     if (TargetingCurrentWindow)
                     {
-                        // Refresh the old window.
-                        RedrawWindowForTargeting(TargetingCurrentWindow, TRUE);
+                        // Invert the old border (to remove it).
+                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
                     }
 
                     if (windowOverMouse)
@@ -416,8 +398,8 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 if (TargetingCurrentWindow)
                 {
-                    // Redraw the window we found.
-                    RedrawWindowForTargeting(TargetingCurrentWindow, FALSE);
+                    // Remove the border on the window we found.
+                    DrawWindowBorderForTargeting(TargetingCurrentWindow);
                     threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
 
                     if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
