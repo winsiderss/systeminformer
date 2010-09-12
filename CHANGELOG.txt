@@ -1,5 +1,9 @@
 Process Hacker
 
+2.5
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.4
  * NEW/IMPROVED:
    * Better Run As behaviour
