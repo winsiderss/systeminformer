@@ -882,11 +882,7 @@ NTSTATUS PhGetProcessIsDotNet(
 
 #define PH_IS_DOT_NET_VERSION_4 0x1
 
-typedef struct _PH_IS_DOT_NET_CONTEXT
-{
-    PPH_LIST ProcessIdList;
-    PPH_LIST FlagsList;
-} PH_IS_DOT_NET_CONTEXT, *PPH_IS_DOT_NET_CONTEXT;
+typedef PPH_HASHTABLE PPH_IS_DOT_NET_CONTEXT;
 
 PHLIBAPI
 NTSTATUS PhCreateIsDotNetContext(
