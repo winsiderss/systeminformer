@@ -84,15 +84,6 @@ VOID NTAPI PhpProcessItemDeleteProcedure(
     __in ULONG Flags
     );
 
-BOOLEAN NTAPI PhpProcessHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    );
-
-ULONG NTAPI PhpProcessHashtableHashFunction(
-    __in PVOID Entry
-    );
-
 INT NTAPI PhpVerifyCacheCompareFunction(
     __in PPH_AVL_LINKS Links1,
     __in PPH_AVL_LINKS Links2
@@ -126,8 +117,9 @@ VOID PhpRemoveProcessRecord(
 
 PPH_OBJECT_TYPE PhProcessItemType;
 
-PPH_HASHTABLE PhProcessHashtable;
-PH_QUEUED_LOCK PhProcessHashtableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASH_ENTRY PhProcessHashSet[256] = PH_HASH_SET_INIT;
+ULONG PhProcessHashSetCount = 0;
+PH_QUEUED_LOCK PhProcessHashSetLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
@@ -221,13 +213,6 @@ BOOLEAN PhProcessProviderInitialization()
         PhpProcessItemDeleteProcedure
         )))
         return FALSE;
-
-    PhProcessHashtable = PhCreateHashtable(
-        sizeof(PPH_PROCESS_ITEM),
-        PhpProcessHashtableCompareFunction,
-        PhpProcessHashtableHashFunction,
-        40
-        );
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
 
@@ -445,21 +430,19 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->Record) PhDereferenceProcessRecord(processItem->Record);
 }
 
-BOOLEAN PhpProcessHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+FORCEINLINE BOOLEAN PhCompareProcessItem(
+    __in PPH_PROCESS_ITEM Value1,
+    __in PPH_PROCESS_ITEM Value2
     )
 {
-    return
-        (*(PPH_PROCESS_ITEM *)Entry1)->ProcessId ==
-        (*(PPH_PROCESS_ITEM *)Entry2)->ProcessId;
+    return Value1->ProcessId == Value2->ProcessId;
 }
 
-ULONG PhpProcessHashtableHashFunction(
-    __in PVOID Entry
+FORCEINLINE ULONG PhHashProcessItem(
+    __in PPH_PROCESS_ITEM Value
     )
 {
-    return (ULONG)(*(PPH_PROCESS_ITEM *)Entry)->ProcessId / 4;
+    return (ULONG)Value->ProcessId / 4;
 }
 
 __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
@@ -467,21 +450,25 @@ __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
     )
 {
     PH_PROCESS_ITEM lookupProcessItem;
-    PPH_PROCESS_ITEM lookupProcessItemPtr = &lookupProcessItem;
-    PPH_PROCESS_ITEM *processItemPtr;
+    PPH_HASH_ENTRY entry;
+    PPH_PROCESS_ITEM processItem;
 
-    // Construct a temporary process item for the lookup.
     lookupProcessItem.ProcessId = ProcessId;
-
-    processItemPtr = (PPH_PROCESS_ITEM *)PhFindEntryHashtable(
-        PhProcessHashtable,
-        &lookupProcessItemPtr
+    entry = PhFindEntryHashSet(
+        PhProcessHashSet,
+        PH_HASH_SET_SIZE(PhProcessHashSet),
+        PhHashProcessItem(&lookupProcessItem)
         );
 
-    if (processItemPtr)
-        return *processItemPtr;
-    else
-        return NULL;
+    for (; entry; entry = entry->Next)
+    {
+        processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
+
+        if (PhCompareProcessItem(&lookupProcessItem, processItem))
+            return processItem;
+    }
+
+    return NULL;
 }
 
 PPH_PROCESS_ITEM PhReferenceProcessItem(
@@ -490,14 +477,14 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
 {
     PPH_PROCESS_ITEM processItem;
 
-    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
     processItem = PhpLookupProcessItem(ProcessId);
 
     if (processItem)
         PhReferenceObject(processItem);
 
-    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     return processItem;
 }
@@ -508,39 +495,58 @@ VOID PhEnumProcessItems(
     )
 {
     PPH_PROCESS_ITEM *processItems;
-    PPH_PROCESS_ITEM *processItem;
     ULONG numberOfProcessItems;
-    ULONG enumerationKey = 0;
-    ULONG i = 0;
+    ULONG count = 0;
+    ULONG i;
+    PPH_HASH_ENTRY entry;
+    PPH_PROCESS_ITEM processItem;
 
     if (!ProcessItems)
     {
-        *NumberOfProcessItems = PhProcessHashtable->Count;
+        *NumberOfProcessItems = PhProcessHashSetCount;
         return;
     }
 
-    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
-    numberOfProcessItems = PhProcessHashtable->Count;
+    numberOfProcessItems = PhProcessHashSetCount;
     processItems = PhAllocate(sizeof(PPH_PROCESS_ITEM) * numberOfProcessItems);
 
-    while (PhEnumHashtable(PhProcessHashtable, (PPVOID)&processItem, &enumerationKey))
+    for (i = 0; i < PH_HASH_SET_SIZE(PhProcessHashSet); i++)
     {
-        PhReferenceObject(*processItem);
-        processItems[i++] = *processItem;
+        for (entry = PhProcessHashSet[i]; entry; entry = entry->Next)
+        {
+            processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
+            PhReferenceObject(processItem);
+            processItems[count++] = processItem;
+        }
     }
 
-    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     *ProcessItems = processItems;
     *NumberOfProcessItems = numberOfProcessItems;
+}
+
+__assumeLocked VOID PhpAddProcessItem(
+    __in __assumeRefs(1) PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PhAddEntryHashSet(
+        PhProcessHashSet,
+        PH_HASH_SET_SIZE(PhProcessHashSet),
+        &ProcessItem->HashEntry,
+        PhHashProcessItem(ProcessItem)
+        );
+    PhProcessHashSetCount++;
 }
 
 __assumeLocked VOID PhpRemoveProcessItem(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhRemoveEntryHashtable(PhProcessHashtable, &ProcessItem);
+    PhRemoveEntryHashSet(PhProcessHashSet, PH_HASH_SET_SIZE(PhProcessHashSet), &ProcessItem->HashEntry);
+    PhProcessHashSetCount--;
     PhDereferenceObject(ProcessItem);
 }
 
@@ -1446,62 +1452,65 @@ VOID PhProcessProviderUpdate(
     // Look for dead processes.
     {
         PPH_LIST processesToRemove = NULL;
-        ULONG enumerationKey = 0;
-        PPH_PROCESS_ITEM *processItem;
         ULONG i;
+        PPH_HASH_ENTRY entry;
+        PPH_PROCESS_ITEM processItem;
 
-        while (PhEnumHashtable(PhProcessHashtable, (PPVOID)&processItem, &enumerationKey))
+        for (i = 0; i < PH_HASH_SET_SIZE(PhProcessHashSet); i++)
         {
-            // Check if the process still exists.
-            // TODO: Check CreateTime as well; between updates a process may terminate and 
-            // get replaced by another one with the same PID.
-            if (PhFindItemList(pids, (*processItem)->ProcessId) == -1)
+            for (entry = PhProcessHashSet[i]; entry; entry = entry->Next)
             {
-                PPH_PROCESS_ITEM processItem2;
-                LARGE_INTEGER exitTime;
+                processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
 
-                processItem2 = *processItem;
-                processItem2->State |= PH_PROCESS_ITEM_REMOVED;
-                exitTime.QuadPart = 0;
-
-                if (processItem2->QueryHandle)
+                // Check if the process still exists.
+                // TODO: Check CreateTime as well; between updates a process may terminate and 
+                // get replaced by another one with the same PID.
+                if (PhFindItemList(pids, processItem->ProcessId) == -1)
                 {
-                    KERNEL_USER_TIMES times;
+                    LARGE_INTEGER exitTime;
 
-                    if (NT_SUCCESS(PhGetProcessTimes(processItem2->QueryHandle, &times)))
+                    processItem->State |= PH_PROCESS_ITEM_REMOVED;
+                    exitTime.QuadPart = 0;
+
+                    if (processItem->QueryHandle)
                     {
-                        exitTime = times.ExitTime;
+                        KERNEL_USER_TIMES times;
+
+                        if (NT_SUCCESS(PhGetProcessTimes(processItem->QueryHandle, &times)))
+                        {
+                            exitTime = times.ExitTime;
+                        }
                     }
+
+                    // If we don't have a valid exit time, use the current time.
+                    if (exitTime.QuadPart == 0)
+                        PhQuerySystemTime(&exitTime);
+
+                    processItem->Record->Flags |= PH_PROCESS_RECORD_DEAD;
+                    processItem->Record->ExitTime = exitTime;
+
+                    // Raise the process removed event.
+                    PhInvokeCallback(&PhProcessRemovedEvent, processItem);
+
+                    if (!processesToRemove)
+                        processesToRemove = PhCreateList(2);
+
+                    PhAddItemList(processesToRemove, processItem);
                 }
-
-                // If we don't have a valid exit time, use the current time.
-                if (exitTime.QuadPart == 0)
-                    PhQuerySystemTime(&exitTime);
-
-                processItem2->Record->Flags |= PH_PROCESS_RECORD_DEAD;
-                processItem2->Record->ExitTime = exitTime;
-
-                // Raise the process removed event.
-                PhInvokeCallback(&PhProcessRemovedEvent, *processItem);
-
-                if (!processesToRemove)
-                    processesToRemove = PhCreateList(2);
-
-                PhAddItemList(processesToRemove, *processItem);
             }
         }
 
         // Lock only if we have something to do.
         if (processesToRemove)
         {
-            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashSetLock);
 
             for (i = 0; i < processesToRemove->Count; i++)
             {
                 PhpRemoveProcessItem((PPH_PROCESS_ITEM)processesToRemove->Items[i]);
             }
 
-            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
+            PhReleaseQueuedLockExclusive(&PhProcessHashSetLock);
             PhDereferenceObject(processesToRemove);
         }
     }
@@ -1597,9 +1606,9 @@ VOID PhProcessProviderUpdate(
             PhUpdateProcessItemServices(processItem);
 
             // Add the process item to the hashtable.
-            PhAcquireQueuedLockExclusive(&PhProcessHashtableLock);
-            PhAddEntryHashtable(PhProcessHashtable, &processItem);
-            PhReleaseQueuedLockExclusive(&PhProcessHashtableLock);
+            PhAcquireQueuedLockExclusive(&PhProcessHashSetLock);
+            PhpAddProcessItem(processItem);
+            PhReleaseQueuedLockExclusive(&PhProcessHashSetLock);
 
             // Raise the process added event.
             PhInvokeCallback(&PhProcessAddedEvent, processItem);
@@ -2188,7 +2197,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
     if (ParentProcessId == ProcessId) // for cases where the parent PID = PID (e.g. System Idle Process)
         return NULL;
 
-    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
     processItem = PhpLookupProcessItem(ParentProcessId);
 
@@ -2200,7 +2209,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForParent(
     else
         processItem = NULL;
 
-    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     return processItem;
 }
@@ -2211,7 +2220,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
 {
     PPH_PROCESS_ITEM processItem;
 
-    PhAcquireQueuedLockShared(&PhProcessHashtableLock);
+    PhAcquireQueuedLockShared(&PhProcessHashSetLock);
 
     processItem = PhpLookupProcessItem(Record->ProcessId);
 
@@ -2220,7 +2229,7 @@ PPH_PROCESS_ITEM PhReferenceProcessItemForRecord(
     else
         processItem = NULL;
 
-    PhReleaseQueuedLockShared(&PhProcessHashtableLock);
+    PhReleaseQueuedLockShared(&PhProcessHashSetLock);
 
     return processItem;
 }

@@ -91,6 +91,7 @@ typedef struct _PH_PROCESS_RECORD *PPH_PROCESS_RECORD;
 
 typedef struct _PH_PROCESS_ITEM
 {
+    PH_HASH_ENTRY HashEntry;
     ULONG State;
     PPH_PROCESS_RECORD Record;
 
@@ -601,6 +602,8 @@ extern PPH_OBJECT_TYPE PhHandleItemType;
 
 typedef struct _PH_HANDLE_ITEM
 {
+    PH_HASH_ENTRY HashEntry;
+
     HANDLE Handle;
     PVOID Object;
     ULONG Attributes;
@@ -617,8 +620,11 @@ typedef struct _PH_HANDLE_ITEM
 
 typedef struct _PH_HANDLE_PROVIDER
 {
-    PPH_HASHTABLE HandleHashtable;
-    PH_QUEUED_LOCK HandleHashtableLock;
+    PPH_HASH_ENTRY *HandleHashSet;
+    ULONG HandleHashSetSize;
+    ULONG HandleHashSetCount;
+    PH_QUEUED_LOCK HandleHashSetLock;
+
     PH_CALLBACK HandleAddedEvent;
     PH_CALLBACK HandleModifiedEvent;
     PH_CALLBACK HandleRemovedEvent;

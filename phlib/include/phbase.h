@@ -2062,6 +2062,162 @@ PhPeekItemQueue(
     __out PPVOID Item
     );
 
+// hash
+
+typedef struct _PH_HASH_ENTRY
+{
+    struct _PH_HASH_ENTRY *Next;
+    ULONG Hash;
+} PH_HASH_ENTRY, *PPH_HASH_ENTRY;
+
+#define PH_HASH_SET_INIT { 0 }
+#define PH_HASH_SET_SIZE(Buckets) (sizeof(Buckets) / sizeof(PPH_HASH_ENTRY))
+
+FORCEINLINE VOID PhInitializeHashSet(
+    __out PPH_HASH_ENTRY *Buckets,
+    __in ULONG NumberOfBuckets
+    )
+{
+    memset(Buckets, 0, sizeof(PPH_HASH_ENTRY) * NumberOfBuckets);
+}
+
+FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
+    __in ULONG NumberOfBuckets
+    )
+{
+    PPH_HASH_ENTRY *buckets;
+
+    buckets = PhAllocate(sizeof(PPH_HASH_ENTRY) * NumberOfBuckets);
+    PhInitializeHashSet(buckets, NumberOfBuckets);
+
+    return buckets;
+}
+
+FORCEINLINE ULONG PhCountHashSet(
+    __in PPH_HASH_ENTRY *Buckets,
+    __in ULONG NumberOfBuckets
+    )
+{
+    ULONG i;
+    PPH_HASH_ENTRY entry;
+    ULONG count;
+
+    count = 0;
+
+    for (i = 0; i < NumberOfBuckets; i++)
+    {
+        for (entry = Buckets[i]; entry; entry = entry->Next)
+            count++;
+    }
+
+    return count;
+}
+
+FORCEINLINE VOID PhDistributeHashSet(
+    __inout PPH_HASH_ENTRY *NewBuckets,
+    __in ULONG NumberOfNewBuckets,
+    __in PPH_HASH_ENTRY *OldBuckets,
+    __in ULONG NumberOfOldBuckets
+    )
+{
+    ULONG i;
+    PPH_HASH_ENTRY entry;
+    PPH_HASH_ENTRY nextEntry;
+    ULONG index;
+
+    for (i = 0; i < NumberOfOldBuckets; i++)
+    {
+        entry = OldBuckets[i];
+
+        while (entry)
+        {
+            nextEntry = entry->Next;
+
+            index = entry->Hash & (NumberOfNewBuckets - 1);
+            entry->Next = NewBuckets[index];
+            NewBuckets[index] = entry;
+
+            entry = nextEntry;
+        }
+    }
+}
+
+FORCEINLINE VOID PhAddEntryHashSet(
+    __inout PPH_HASH_ENTRY *Buckets,
+    __in ULONG NumberOfBuckets,
+    __out PPH_HASH_ENTRY Entry,
+    __in ULONG Hash
+    )
+{
+    ULONG index;
+
+    index = Hash & (NumberOfBuckets - 1);
+
+    Entry->Hash = Hash;
+    Entry->Next = Buckets[index];
+    Buckets[index] = Entry;
+}
+
+FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
+    __in PPH_HASH_ENTRY *Buckets,
+    __in ULONG NumberOfBuckets,
+    __in ULONG Hash
+    )
+{
+    return Buckets[Hash & (NumberOfBuckets - 1)];
+}
+
+FORCEINLINE VOID PhRemoveEntryHashSet(
+    __inout PPH_HASH_ENTRY *Buckets,
+    __in ULONG NumberOfBuckets,
+    __inout PPH_HASH_ENTRY Entry
+    )
+{
+    ULONG index;
+    PPH_HASH_ENTRY entry;
+    PPH_HASH_ENTRY previousEntry;
+
+    index = Entry->Hash & (NumberOfBuckets - 1);
+    previousEntry = NULL;
+
+    entry = Buckets[index];
+
+    do
+    {
+        if (entry == Entry)
+        {
+            if (!previousEntry)
+                Buckets[index] = entry->Next;
+            else
+                previousEntry->Next = entry->Next;
+
+            return;
+        }
+
+        previousEntry = entry;
+        entry = entry->Next;
+    } while (entry);
+
+    // Entry doesn't actually exist in the set. This is a fatal logic error.
+    PhRaiseStatus(STATUS_INTERNAL_ERROR);
+}
+
+FORCEINLINE VOID PhResizeHashSet(
+    __inout PPH_HASH_ENTRY **Buckets,
+    __inout PULONG NumberOfBuckets,
+    __in ULONG NewNumberOfBuckets
+    )
+{
+    PPH_HASH_ENTRY *newBuckets;
+
+    newBuckets = PhCreateHashSet(NewNumberOfBuckets);
+    PhDistributeHashSet(newBuckets, NewNumberOfBuckets, *Buckets, *NumberOfBuckets);
+
+    PhFree(*Buckets);
+    *Buckets = newBuckets;
+    *NumberOfBuckets = NewNumberOfBuckets;
+}
+
 // hashtable
 
 #ifndef _PH_BASESUP_PRIVATE
