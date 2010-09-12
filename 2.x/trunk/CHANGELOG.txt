@@ -12,6 +12,7 @@ Process Hacker
    * Performance improvements
  * FIXED:
    * Memory leak
+   * SbieSupport plugin on 64-bit
    * Crash when running under certain conditions
    * Memory case-insensitive filter
    * Process parent association bug

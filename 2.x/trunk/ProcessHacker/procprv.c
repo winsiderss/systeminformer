@@ -1043,7 +1043,7 @@ VOID PhpFillProcessItem(
     // Token-related information
     if (
         processHandle &&
-        !(WindowsVersion <= WINDOWS_XP && ProcessItem->ProcessId == SYSTEM_PROCESS_ID)
+        ProcessItem->ProcessId != SYSTEM_PROCESS_ID // Token of System process can't be opened sometimes
         )
     {
         HANDLE tokenHandle;
