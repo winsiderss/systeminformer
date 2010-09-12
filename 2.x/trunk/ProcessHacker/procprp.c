@@ -4155,7 +4155,7 @@ COLORREF NTAPI PhpHandleColorFunction(
     return PhSysWindowColor;
 }
 
-VOID PhpAddHandleItem(
+static VOID PhpAddHandleItem(
     __in HWND ListViewHandle,
     __in PPH_HANDLE_ITEM HandleItem
     )
