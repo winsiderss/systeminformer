@@ -565,7 +565,7 @@ VOID PhRemoveElementAvlTree(
     {
         newElement = Element;
     }
-    else if (Element->Balance < 0) // pick the side depending on the balance to minimize rebalances
+    else if (Element->Balance >= 0) // pick the side depending on the balance to minimize rebalances
     {
         newElement = Element->Right;
 
@@ -639,6 +639,8 @@ VOID PhRemoveElementAvlTree(
             // We can stop tracing if we have a special case rotation.
             if (PhpRebalanceAvlLinks(ref) == 3)
                 break;
+
+            P = P->Parent;
         }
 
         if (P->Parent->Left == P)
@@ -653,9 +655,7 @@ VOID PhRemoveElementAvlTree(
     {
         // Replace the subject with the new subject.
 
-        newElement->Parent = Element->Parent;
-        newElement->Left = Element->Left;
-        newElement->Right = Element->Right;
+        *newElement = *Element;
 
         if (Element->Parent->Left == Element)
             newElement->Parent->Left = newElement;
