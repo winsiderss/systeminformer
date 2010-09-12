@@ -45,6 +45,13 @@ namespace ProcessHacker2.Api
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct PhHashEntry
+    {
+        public PhHashEntry* Next;
+        public int Hash;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct PhIntegerPair
     {
         public int X;
@@ -148,6 +155,7 @@ namespace ProcessHacker2.Api
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PhProcessItem
     {
+        public PhHashEntry HashEntry;
         public int State;
         public PhProcessRecord* Record;
 
@@ -216,6 +224,8 @@ namespace ProcessHacker2.Api
     public unsafe struct PhProcessNode
     {
         public PhTreeListNode Node;
+
+        public PhHashEntry HashEntry;
 
         public PhItemState State;
         public IntPtr Private1;

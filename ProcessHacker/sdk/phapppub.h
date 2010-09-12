@@ -21,6 +21,8 @@ typedef struct _PH_PROCESS_NODE
 {
     PH_TREELIST_NODE Node;
 
+    PH_HASH_ENTRY HashEntry;
+
     PH_ITEM_STATE State;
     PVOID Private1;
     ULONG Private2;

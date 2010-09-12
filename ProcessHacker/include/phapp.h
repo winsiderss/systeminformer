@@ -177,6 +177,8 @@ typedef struct _PH_PROCESS_NODE
 {
     PH_TREELIST_NODE Node;
 
+    PH_HASH_ENTRY HashEntry;
+
     PH_ITEM_STATE State;
     HANDLE StateListHandle;
     ULONG TickCount;
