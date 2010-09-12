@@ -101,6 +101,11 @@ PPH_PLUGIN PhRegisterPlugin(
     );
 
 PHAPPAPI
+PPH_PLUGIN PhFindPlugin(
+    __in PWSTR Name
+    );
+
+PHAPPAPI
 PPH_CALLBACK PhGetPluginCallback(
     __in PPH_PLUGIN Plugin,
     __in PH_PLUGIN_CALLBACK Callback

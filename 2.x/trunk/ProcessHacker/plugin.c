@@ -285,6 +285,22 @@ PPH_PLUGIN PhRegisterPlugin(
     return plugin;
 }
 
+PPH_PLUGIN PhFindPlugin(
+    __in PWSTR Name
+    )
+{
+    PPH_AVL_LINKS links;
+    PH_PLUGIN lookupPlugin;
+
+    lookupPlugin.Name = Name;
+    links = PhFindElementAvlTree(&PhPluginsByName, &lookupPlugin.Links);
+
+    if (links)
+        return CONTAINING_RECORD(links, PH_PLUGIN, Links);
+    else
+        return NULL;
+}
+
 PPH_CALLBACK PhGetPluginCallback(
     __in PPH_PLUGIN Plugin,
     __in PH_PLUGIN_CALLBACK Callback
