@@ -1019,7 +1019,7 @@ PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
     {
         table = PhAllocateFromFreeList(&PhHandleTableLevel0FreeList);
     }
-    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_INSUFFICIENT_RESOURCES))
+    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_NO_MEMORY))
     {
         return NULL;
     }
@@ -1064,7 +1064,7 @@ PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
     {
         table = PhAllocateFromFreeList(&PhHandleTableLevel1FreeList);
     }
-    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_INSUFFICIENT_RESOURCES))
+    __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_NO_MEMORY))
     {
         return NULL;
     }

@@ -390,23 +390,15 @@ VOID PhLocalTimeToSystemTime(
  * memory.
  *
  * \remarks If the function fails to allocate 
- * the block of memory, it raises a 
- * STATUS_INSUFFICIENT_RESOURCES exception. The 
- * block is guaranteed to be aligned at 
+ * the block of memory, it raises an exception. 
+ * The block is guaranteed to be aligned at 
  * MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
 __mayRaise PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
-    PVOID memory;
-
-    memory = RtlAllocateHeap(PhHeapHandle, 0, Size);
-
-    if (!memory)
-        PhRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
-
-    return memory;
+    return RtlAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Size);
 }
 
 /**
@@ -467,22 +459,14 @@ VOID PhFree(
  * copied to the new block.
  *
  * \remarks If the function fails to allocate 
- * the block of memory, it raises a 
- * STATUS_INSUFFICIENT_RESOURCES exception.
+ * the block of memory, it raises an exception.
  */
 __mayRaise PVOID PhReAllocate(
     __in PVOID Memory,
     __in SIZE_T Size
     )
 {
-    PVOID memory;
-
-    memory = RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
-
-    if (!memory)
-        PhRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
-
-    return memory;
+    return RtlReAllocateHeap(PhHeapHandle, HEAP_GENERATE_EXCEPTIONS, Memory, Size);
 }
 
 /**
