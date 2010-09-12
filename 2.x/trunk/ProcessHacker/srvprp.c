@@ -267,6 +267,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
             switch (LOWORD(wParam))
             {
+            case IDCANCEL:
+                {
+                    // Workaround for property sheet + multiline edit: http://support.microsoft.com/kb/130765
+
+                    SendMessage(GetParent(hwndDlg), uMsg, wParam, lParam);
+                }
+                break;
             case IDC_PASSWORD:
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
