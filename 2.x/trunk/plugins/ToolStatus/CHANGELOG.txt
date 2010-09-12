@@ -1,0 +1,5 @@
+1.1
+ * Fixed hanging when using Find Window on hung programs
+
+1.0
+ * Initial release
