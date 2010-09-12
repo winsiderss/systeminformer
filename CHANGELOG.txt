@@ -3,6 +3,7 @@ Process Hacker
 2.5
  * NEW/IMPROVED:
  * FIXED:
+   * Esc couldn't close Service Properties on open
 
 2.4
  * NEW/IMPROVED:
