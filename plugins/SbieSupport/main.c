@@ -218,10 +218,10 @@ VOID NTAPI LoadCallback(
     module = LoadLibrary(sbieDllPath->Buffer);
     PhDereferenceObject(sbieDllPath);
 
-    SbieApi_QueryBoxPath = (PVOID)GetProcAddress(module, "_SbieApi_QueryBoxPath@28");
-    SbieApi_EnumBoxes = (PVOID)GetProcAddress(module, "_SbieApi_EnumBoxes@8");
-    SbieApi_EnumProcessEx = (PVOID)GetProcAddress(module, "_SbieApi_EnumProcessEx@16");
-    SbieDll_KillAll = (PVOID)GetProcAddress(module, "_SbieDll_KillAll@8");
+    SbieApi_QueryBoxPath = (PVOID)GetProcAddress(module, SbieApi_QueryBoxPath_Name);
+    SbieApi_EnumBoxes = (PVOID)GetProcAddress(module, SbieApi_EnumBoxes_Name);
+    SbieApi_EnumProcessEx = (PVOID)GetProcAddress(module, SbieApi_EnumProcessEx_Name);
+    SbieDll_KillAll = (PVOID)GetProcAddress(module, SbieDll_KillAll_Name);
 
     if (NT_SUCCESS(RtlCreateTimerQueue(&timerQueueHandle)))
     {
