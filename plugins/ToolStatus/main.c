@@ -20,6 +20,7 @@ ULONG ToolBarIdRangeEnd;
 
 BOOLEAN TargetingWindow = FALSE;
 HWND TargetingCurrentWindow = NULL;
+BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingWithThread;
 
 ULONG ProcessesUpdatedCount = 0;
@@ -317,6 +318,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                             TargetingWindow = TRUE;
                             TargetingCurrentWindow = NULL;
+                            TargetingCurrentWindowDraw = FALSE;
                             TargetingWithThread = id == TIDC_FINDWINDOWTHREAD;
 
                             SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
@@ -359,7 +361,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 if (TargetingCurrentWindow != windowOverMouse)
                 {
-                    if (TargetingCurrentWindow)
+                    if (TargetingCurrentWindow && TargetingCurrentWindowDraw)
                     {
                         // Invert the old border (to remove it).
                         DrawWindowBorderForTargeting(TargetingCurrentWindow);
@@ -373,6 +375,11 @@ LRESULT CALLBACK MainWndSubclassProc(
                         if (UlongToHandle(processId) != NtCurrentProcessId())
                         {
                             DrawWindowBorderForTargeting(windowOverMouse);
+                            TargetingCurrentWindowDraw = TRUE;
+                        }
+                        else
+                        {
+                            TargetingCurrentWindowDraw = FALSE;
                         }
                     }
 
@@ -398,8 +405,12 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 if (TargetingCurrentWindow)
                 {
-                    // Remove the border on the window we found.
-                    DrawWindowBorderForTargeting(TargetingCurrentWindow);
+                    if (TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
+                    }
+
                     threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
 
                     if (threadId && processId && UlongToHandle(processId) != NtCurrentProcessId())
