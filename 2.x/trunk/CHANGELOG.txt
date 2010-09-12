@@ -9,6 +9,7 @@ Process Hacker
    * Window Title and Window Status columns
    * Plugin for filtering notifications
    * Plugin for toolbar and status bar
+   * Performance improvements
  * FIXED:
    * Memory leak
    * Crash when running under certain conditions
