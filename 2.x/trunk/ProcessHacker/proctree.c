@@ -24,15 +24,6 @@
 #include <settings.h>
 #include <phplug.h>
 
-BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    );
-
-ULONG NTAPI PhpProcessNodeHashtableHashFunction(
-    __in PVOID Entry
-    );
-
 VOID PhpRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
@@ -53,7 +44,7 @@ static HANDLE ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
 
-static PPH_HASHTABLE ProcessNodeHashtable; // hashtable of all nodes
+static PPH_HASH_ENTRY ProcessNodeHashSet[256] = PH_HASH_SET_INIT; // hashtable of all nodes
 static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enabled
 static PPH_LIST ProcessNodeRootList; // list of root nodes
 
@@ -66,13 +57,6 @@ static HICON StockAppIcon;
 
 VOID PhProcessTreeListInitialization()
 {
-    ProcessNodeHashtable = PhCreateHashtable(
-        sizeof(PPH_PROCESS_NODE),
-        PhpProcessNodeHashtableCompareFunction,
-        PhpProcessNodeHashtableHashFunction,
-        40
-        );
-
     ProcessNodeList = PhCreateList(40);
     ProcessNodeRootList = PhCreateList(10);
     ProcessNodeStateList = PhCreatePointerList(4);
@@ -144,19 +128,19 @@ VOID PhInitializeProcessTreeList(
     TreeList_SetSort(hwnd, 0, NoSortOrder);
 }
 
-static BOOLEAN NTAPI PhpProcessNodeHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
+FORCEINLINE BOOLEAN PhCompareProcessNode(
+    __in PPH_PROCESS_NODE Value1,
+    __in PPH_PROCESS_NODE Value2
     )
 {
-    return (*(PPH_PROCESS_NODE *)Entry1)->ProcessId == (*(PPH_PROCESS_NODE *)Entry2)->ProcessId;
+    return Value1->ProcessId == Value2->ProcessId;
 }
 
-static ULONG NTAPI PhpProcessNodeHashtableHashFunction(
-    __in PVOID Entry
+FORCEINLINE ULONG PhHashProcessNode(
+    __in PPH_PROCESS_NODE Value
     )
 {
-    return (ULONG)(*(PPH_PROCESS_NODE *)Entry)->ProcessId / 4;
+    return (ULONG)Value->ProcessId / 4;
 }
 
 PPH_PROCESS_NODE PhAddProcessNode(
@@ -236,7 +220,12 @@ PPH_PROCESS_NODE PhAddProcessNode(
             );
     }
 
-    PhAddEntryHashtable(ProcessNodeHashtable, &processNode);
+    PhAddEntryHashSet(
+        ProcessNodeHashSet,
+        PH_HASH_SET_SIZE(ProcessNodeHashSet),
+        &processNode->HashEntry,
+        PhHashProcessNode(processNode)
+        );
     PhAddItemList(ProcessNodeList, processNode);
 
     if (PhCsCollapseServicesOnStart)
@@ -282,17 +271,25 @@ PPH_PROCESS_NODE PhFindProcessNode(
    )
 {
     PH_PROCESS_NODE lookupNode;
-    PPH_PROCESS_NODE lookupNodePtr = &lookupNode;
-    PPH_PROCESS_NODE *node;
+    PPH_HASH_ENTRY entry;
+    PPH_PROCESS_NODE node;
 
     lookupNode.ProcessId = ProcessId;
+    entry = PhFindEntryHashSet(
+        ProcessNodeHashSet,
+        PH_HASH_SET_SIZE(ProcessNodeHashSet),
+        PhHashProcessNode(&lookupNode)
+        );
 
-    node = PhFindEntryHashtable(ProcessNodeHashtable, &lookupNodePtr);
+    for (; entry; entry = entry->Next)
+    {
+        node = CONTAINING_RECORD(entry, PH_PROCESS_NODE, HashEntry);
 
-    if (node)
-        return *node;
-    else
-        return NULL;
+        if (PhCompareProcessNode(&lookupNode, node))
+            return node;
+    }
+
+    return NULL;
 }
 
 VOID PhRemoveProcessNode(
@@ -349,7 +346,7 @@ VOID PhpRemoveProcessNode(
 
     // Remove from hashtable/list and cleanup.
 
-    PhRemoveEntryHashtable(ProcessNodeHashtable, &ProcessNode);
+    PhRemoveEntryHashSet(ProcessNodeHashSet, PH_HASH_SET_SIZE(ProcessNodeHashSet), &ProcessNode->HashEntry);
 
     if ((index = PhFindItemList(ProcessNodeList, ProcessNode)) != -1)
         PhRemoveItemList(ProcessNodeList, index);
