@@ -1206,7 +1206,7 @@ BOOLEAN PhUiDetachFromDebuggerProcess(
 
             // Disable kill-on-close.
             flags = 0;
-            status = NtSetInformationDebugObject(
+            NtSetInformationDebugObject(
                 debugObjectHandle,
                 DebugObjectFlags,
                 &flags,
