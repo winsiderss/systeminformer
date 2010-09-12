@@ -553,7 +553,7 @@ NTSTATUS PhpAllocateBufferFileStream(
     if (FileStream->Buffer)
         return STATUS_SUCCESS;
     else
-        return STATUS_INSUFFICIENT_RESOURCES;
+        return STATUS_NO_MEMORY;
 }
 
 NTSTATUS PhpReadFileStream(

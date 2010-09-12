@@ -579,7 +579,7 @@ static NTSTATUS NTAPI TerminatorM1(
             )))
         {
             NtClose(processHandle);
-            return STATUS_INSUFFICIENT_RESOURCES;
+            return STATUS_NO_MEMORY;
         }
 
         baseAddress = (PVOID)0;

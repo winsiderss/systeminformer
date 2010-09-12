@@ -146,7 +146,7 @@ __mayRaise NTSTATUS PhCreateObject(
 
 #ifndef PHOBJ_ALLOCATE_NEVER_NULL
         if (!objectHeader)
-            status = STATUS_INSUFFICIENT_RESOURCES;
+            status = STATUS_NO_MEMORY;
 #endif
 #ifdef PHOBJ_STRICT_CHECKS
     }
