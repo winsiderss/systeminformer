@@ -1522,12 +1522,12 @@ NTSTATUS PhImpersonateClientOfNamedPipe(
  * and not use the file object's own file position. */
 #define PH_FILE_STREAM_OWN_POSITION 0x8
 
+// Higher-level flags (PhCreateFileStream)
+#define PH_FILE_STREAM_APPEND 0x00010000
+
 // Internal flags
 /** Indicates that at least one write has been issued to the file handle. */
-#define PH_FILE_STREAM_WRITTEN 0x00010000
-
-// Higher-level flags (PhCreateFileStream)
-#define PH_FILE_STREAM_APPEND 0x01000000
+#define PH_FILE_STREAM_WRITTEN 0x80000000
 
 // Seek
 typedef enum _PH_SEEK_ORIGIN

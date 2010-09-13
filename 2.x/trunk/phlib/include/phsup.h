@@ -33,7 +33,7 @@
 #define ASSUME_ASSERT(Expression) assert(Expression)
 #define ASSUME_NO_DEFAULT assert(FALSE)
 #else
-#define ASSUME_ASSERT(Expression) assert(Expression)
+#define ASSUME_ASSERT(Expression) __assume(Expression)
 #define ASSUME_NO_DEFAULT __assume(FALSE)
 #endif
 
