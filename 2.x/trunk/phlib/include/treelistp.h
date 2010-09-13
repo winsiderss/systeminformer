@@ -52,6 +52,7 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     // Drawing
 
+    BOOLEAN TextMetricsValid;
     TEXTMETRIC TextMetrics;
     RECT RowRect;
     HTHEME ThemeData;
