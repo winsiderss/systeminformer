@@ -2211,19 +2211,33 @@ BOOLEAN PhUiUnloadModule(
 
         if (!NT_SUCCESS(status))
         {
-            PhShowStatus(
+            BOOLEAN success = FALSE;
+
+            if (!PhpShowErrorAndElevateAction(
                 hWnd,
-                PhaConcatStrings(
-                3,
-                L"Unable to unload ",
-                Module->Name->Buffer,
-                L". Make sure Process Hacker is running with "
-                L"administrative privileges. Error"
-                )->Buffer,
+                PhaConcatStrings2(L"Unable to unload ", Module->Name->Buffer)->Buffer,
                 status,
-                0
-                );
-            return FALSE;
+                PhaFormatString(L"-c -ctype processhacker -caction unloaddriver -cobject %s -baseaddress 0x%Ix",
+                Module->Name->Buffer, Module->BaseAddress)->Buffer,
+                &success
+                ))
+            {
+                PhShowStatus(
+                    hWnd,
+                    PhaConcatStrings(
+                    3,
+                    L"Unable to unload ",
+                    Module->Name->Buffer,
+                    L". Make sure Process Hacker is running with "
+                    L"administrative privileges. Error"
+                    )->Buffer,
+                    status,
+                    0
+                    );
+                return FALSE;
+            }
+
+            return success;
         }
 
         break;
