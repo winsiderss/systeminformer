@@ -127,10 +127,10 @@ PPH_OBJECT_TYPE PhNetworkItemType;
 PPH_HASHTABLE PhNetworkHashtable;
 PH_QUEUED_LOCK PhNetworkHashtableLock = PH_QUEUED_LOCK_INIT;
 
-PH_CALLBACK PhNetworkItemAddedEvent;
-PH_CALLBACK PhNetworkItemModifiedEvent;
-PH_CALLBACK PhNetworkItemRemovedEvent;
-PH_CALLBACK PhNetworkItemsUpdatedEvent;
+PH_CALLBACK_DECLARE(PhNetworkItemAddedEvent);
+PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
+PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
+PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
 
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
@@ -163,11 +163,6 @@ BOOLEAN PhNetworkProviderInitialization()
         PhpNetworkHashtableHashFunction,
         40
         );
-
-    PhInitializeCallback(&PhNetworkItemAddedEvent);
-    PhInitializeCallback(&PhNetworkItemModifiedEvent);
-    PhInitializeCallback(&PhNetworkItemRemovedEvent);
-    PhInitializeCallback(&PhNetworkItemsUpdatedEvent);
 
     RtlInitializeSListHead(&PhNetworkItemQueryListHead);
 

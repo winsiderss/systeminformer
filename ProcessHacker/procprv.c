@@ -123,10 +123,10 @@ PH_QUEUED_LOCK PhProcessHashSetLock = PH_QUEUED_LOCK_INIT;
 
 SLIST_HEADER PhProcessQueryDataListHead;
 
-PHAPPAPI PH_CALLBACK PhProcessAddedEvent;
-PHAPPAPI PH_CALLBACK PhProcessModifiedEvent;
-PHAPPAPI PH_CALLBACK PhProcessRemovedEvent;
-PHAPPAPI PH_CALLBACK PhProcessesUpdatedEvent;
+PHAPPAPI PH_CALLBACK_DECLARE(PhProcessAddedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhProcessModifiedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhProcessRemovedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhProcessesUpdatedEvent);
 
 PPH_LIST PhProcessRecordList;
 PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
@@ -215,11 +215,6 @@ BOOLEAN PhProcessProviderInitialization()
         return FALSE;
 
     RtlInitializeSListHead(&PhProcessQueryDataListHead);
-
-    PhInitializeCallback(&PhProcessAddedEvent);
-    PhInitializeCallback(&PhProcessModifiedEvent);
-    PhInitializeCallback(&PhProcessRemovedEvent);
-    PhInitializeCallback(&PhProcessesUpdatedEvent);
 
     PhProcessRecordList = PhCreateList(40);
 

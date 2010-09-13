@@ -25,6 +25,7 @@
 #include <treelist.h>
 #include <settings.h>
 #include <memsrch.h>
+#include <symprv.h>
 #include <phplug.h>
 #include <windowsx.h>
 #include <iphlpapi.h>
@@ -66,6 +67,11 @@ VOID PhMainWndNetworkListViewOnNotify(
 VOID PhReloadSysParameters();
 
 VOID PhpInitialLoadSettings();
+
+VOID PhpSymInitHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
 
 NTSTATUS PhpDelayedLoadFunction(
     __in PVOID Parameter
@@ -216,6 +222,8 @@ static HWND ProcessTreeListHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
 
+static PH_CALLBACK_REGISTRATION SymInitRegistration;
+
 static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
 static PH_CALLBACK_REGISTRATION ProcessAddedRegistration;
 static PH_CALLBACK_REGISTRATION ProcessModifiedRegistration;
@@ -273,71 +281,33 @@ BOOLEAN PhMainWndInitialization(
         }
     }
 
-    // Initialize dbghelp.
+    if (PhGetIntegerSetting(L"FirstRun"))
     {
-        PPH_STRING dbghelpPath;
-        HMODULE dbghelpModule;
+        PPH_STRING autoDbghelpPath;
 
-        // Try to set up the path automatically if this is the first run.
-        if (PhGetIntegerSetting(L"FirstRun"))
-        {
-            PPH_STRING autoDbghelpPath;
+        // Try to set up the dbghelp path automatically if this is the first run.
 
-            autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
-                CSIDL_PROGRAM_FILES,
+        autoDbghelpPath = PHA_DEREFERENCE(PhGetKnownLocation(
+            CSIDL_PROGRAM_FILES,
 #ifdef _M_IX86
-                L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
+            L"\\Debugging Tools for Windows (x86)\\dbghelp.dll"
 #else
-                L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
+            L"\\Debugging Tools for Windows (x64)\\dbghelp.dll"
 #endif
-                ));
+            ));
 
-            if (autoDbghelpPath)
+        if (autoDbghelpPath)
+        {
+            if (PhFileExists(autoDbghelpPath->Buffer))
             {
-                if (PhFileExists(autoDbghelpPath->Buffer))
-                {
-                    PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
-                }
+                PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
             }
         }
 
-        dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
-
-        if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
-        {
-            PPH_STRING fullDbghelpPath;
-            ULONG indexOfFileName;
-            PPH_STRING dbghelpFolder;
-            PPH_STRING symsrvPath;
-
-            fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
-
-            if (fullDbghelpPath)
-            {
-                if (indexOfFileName != -1)
-                {
-                    dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
-                    symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
-                    LoadLibrary(symsrvPath->Buffer);
-
-                    PhDereferenceObject(symsrvPath);
-                    PhDereferenceObject(dbghelpFolder);
-                }
-
-                PhDereferenceObject(fullDbghelpPath);
-            }
-        }
-        else
-        {
-            LoadLibrary(L"dbghelp.dll");
-        }
-
-        PhDereferenceObject(dbghelpPath);
-
-        PhSymbolProviderDynamicImport();
+        PhSetIntegerSetting(L"FirstRun", FALSE);
     }
 
-    PhSetIntegerSetting(L"FirstRun", FALSE);
+    PhRegisterCallback(&PhSymInitCallback, PhpSymInitHandler, NULL, &SymInitRegistration);
 
     // Initialize the providers.
     {
@@ -2067,6 +2037,50 @@ VOID PhpInitialLoadSettings()
     PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
     PhLoadListViewColumnsFromSetting(L"ServiceListViewColumns", ServiceListViewHandle);
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
+}
+
+static VOID PhpSymInitHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_STRING dbghelpPath;
+    HMODULE dbghelpModule;
+
+    dbghelpPath = PhGetStringSetting(L"DbgHelpPath");
+
+    if (dbghelpModule = LoadLibrary(dbghelpPath->Buffer))
+    {
+        PPH_STRING fullDbghelpPath;
+        ULONG indexOfFileName;
+        PPH_STRING dbghelpFolder;
+        PPH_STRING symsrvPath;
+
+        fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
+
+        if (fullDbghelpPath)
+        {
+            if (indexOfFileName != -1)
+            {
+                dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
+                symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
+                LoadLibrary(symsrvPath->Buffer);
+
+                PhDereferenceObject(symsrvPath);
+                PhDereferenceObject(dbghelpFolder);
+            }
+
+            PhDereferenceObject(fullDbghelpPath);
+        }
+    }
+    else
+    {
+        LoadLibrary(L"dbghelp.dll");
+    }
+
+    PhDereferenceObject(dbghelpPath);
+
+    PhSymbolProviderDynamicImport();
 }
 
 static NTSTATUS PhpDelayedLoadFunction(
