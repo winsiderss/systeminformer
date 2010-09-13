@@ -52,10 +52,10 @@ PPH_OBJECT_TYPE PhServiceItemType;
 PPH_HASHTABLE PhServiceHashtable;
 PH_QUEUED_LOCK PhServiceHashtableLock = PH_QUEUED_LOCK_INIT;
 
-PHAPPAPI PH_CALLBACK PhServiceAddedEvent;
-PHAPPAPI PH_CALLBACK PhServiceModifiedEvent;
-PHAPPAPI PH_CALLBACK PhServiceRemovedEvent;
-PHAPPAPI PH_CALLBACK PhServicesUpdatedEvent;
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceAddedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceModifiedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServiceRemovedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhServicesUpdatedEvent);
 
 BOOLEAN PhServiceProviderInitialization()
 {
@@ -73,11 +73,6 @@ BOOLEAN PhServiceProviderInitialization()
         PhpServiceHashtableHashFunction,
         40
         );
-
-    PhInitializeCallback(&PhServiceAddedEvent);
-    PhInitializeCallback(&PhServiceModifiedEvent);
-    PhInitializeCallback(&PhServiceRemovedEvent);
-    PhInitializeCallback(&PhServicesUpdatedEvent);
 
     return TRUE;
 }

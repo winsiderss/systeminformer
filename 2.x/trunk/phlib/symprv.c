@@ -46,6 +46,9 @@ VOID PhpFreeSymbolModule(
 
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
+PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
+PH_CALLBACK_DECLARE(PhSymInitCallback);
+
 HANDLE PhNextFakeHandle = (HANDLE)0;
 PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
 
@@ -237,12 +240,22 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
 }
 
 VOID PhpRegisterSymbolProvider(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    __in_opt PPH_SYMBOL_PROVIDER SymbolProvider
     )
 {
+    if (PhBeginInitOnce(&PhSymInitOnce))
+    {
+        PhInvokeCallback(&PhSymInitCallback, NULL);
+        PhEndInitOnce(&PhSymInitOnce);
+    }
+
+    if (!SymbolProvider)
+        return;
+
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
     if (PhBeginInitOnce(&SymbolProvider->InitOnce))
     {
+#endif
         if (SymInitialize_I)
         {
             PH_LOCK_SYMBOLS();
@@ -251,17 +264,9 @@ VOID PhpRegisterSymbolProvider(
 
             SymbolProvider->IsRegistered = TRUE;
         }
+#ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
 
         PhEndInitOnce(&SymbolProvider->InitOnce);
-    }
-#else
-    if (SymInitialize_I)
-    {
-        PH_LOCK_SYMBOLS();
-        SymInitialize_I(SymbolProvider->ProcessHandle, NULL, FALSE);
-        PH_UNLOCK_SYMBOLS();
-
-        SymbolProvider->IsRegistered = TRUE;
     }
 #endif
 }
@@ -805,7 +810,7 @@ VOID PhSetOptionsSymbolProvider(
         return;
 
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
-    PhpRegisterSymbolProvider(SymbolProvider);
+    PhpRegisterSymbolProvider(NULL);
 #endif
 
     PH_LOCK_SYMBOLS();

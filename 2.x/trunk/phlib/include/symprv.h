@@ -166,6 +166,7 @@ PhStackWalk(
     );
 
 #ifndef _PH_SYMPRV_PRIVATE
+extern PH_CALLBACK PhSymInitCallback;
 extern _MiniDumpWriteDump MiniDumpWriteDump_I;
 #endif
 

@@ -25,7 +25,7 @@
 #include <settings.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
-PH_CALLBACK PhLoggedCallback;
+PH_CALLBACK_DECLARE(PhLoggedCallback);
 
 VOID PhLogInitialization()
 {
@@ -35,8 +35,6 @@ VOID PhLogInitialization()
     if (entries > 0x1000) entries = 0x1000;
     PhInitializeCircularBuffer_PVOID(&PhLogBuffer, entries);
     memset(PhLogBuffer.Data, 0, sizeof(PVOID) * PhLogBuffer.Size);
-
-    PhInitializeCallback(&PhLoggedCallback);
 }
 
 PPH_LOG_ENTRY PhpCreateLogEntry(
