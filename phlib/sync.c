@@ -214,6 +214,8 @@ FORCEINLINE VOID PhpBlockOnBarrier(
     case PH_BARRIER_OBSERVER:
         cancel = !(Barrier->Value & PH_BARRIER_WAKING);
         break;
+    default:
+        ASSUME_NO_DEFAULT;
     }
 
     if (cancel)
@@ -486,8 +488,7 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
         PhWaitForEvent(&InitOnce->WakeEvent, NULL);
         return FALSE;
     default:
-        assert(FALSE);
-        return FALSE;
+        ASSUME_NO_DEFAULT;
     }
 }
 

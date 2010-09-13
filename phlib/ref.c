@@ -133,7 +133,6 @@ __mayRaise NTSTATUS PhCreateObject(
     }
 #else
     assert(!((Flags & PHOBJ_VALID_FLAGS) != Flags));
-    assert(!(!ObjectType && PhObjectTypeObject));
 #endif
 
 #ifdef PHOBJ_STRICT_CHECKS
@@ -333,7 +332,7 @@ VOID PhDereferenceObject(
     objectHeader = PhObjectToObjectHeader(Object);
     /* Decrement the reference count. */
     newRefCount = _InterlockedDecrement(&objectHeader->RefCount);
-    assert(newRefCount >= 0);
+    ASSUME_ASSERT(newRefCount >= 0);
 
     /* Free the object if it has 0 references. */
     if (newRefCount == 0)
@@ -882,6 +881,8 @@ VOID PhDrainAutoPool(
 
     if (AutoPool->DynamicObjects)
     {
+        ASSUME_ASSERT(AutoPool->DynamicCount >= 1);
+
         for (i = 0; i < AutoPool->DynamicCount; i++)
         {
             PhDereferenceObject(AutoPool->DynamicObjects[i]);

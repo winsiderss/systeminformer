@@ -2613,9 +2613,10 @@ BOOLEAN PhEnumPointerListEx(
     __out PHANDLE PointerHandle
     )
 {
-    while (*EnumerationKey < PointerList->NextEntry)
+    ULONG index;
+
+    while ((index = *EnumerationKey) < PointerList->NextEntry)
     {
-        ULONG index = *EnumerationKey;
         PVOID pointer = PointerList->Items[index];
 
         (*EnumerationKey)++;
