@@ -3505,7 +3505,16 @@ VOID PhpInitializeMemoryMenu(
     }
     else if (NumberOfMemoryItems == 1)
     {
-        // Nothing
+        if (MemoryItems[0]->Flags & MEM_FREE)
+        {
+            PhEnableMenuItem(Menu, ID_MEMORY_CHANGEPROTECTION, FALSE);
+            PhEnableMenuItem(Menu, ID_MEMORY_FREE, FALSE);
+            PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
+        }
+        else if (MemoryItems[0]->Flags & MEM_MAPPED)
+        {
+            PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
+        }
     }
     else
     {
