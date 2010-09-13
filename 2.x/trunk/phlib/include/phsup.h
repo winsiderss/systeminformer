@@ -8,8 +8,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define SIMPLE_EXCEPTION_FILTER(Condition) \
-    ((Condition) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+// Memory
 
 #define PTR_ADD_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) + (ULONG_PTR)(Offset)))
 #define PTR_SUB_OFFSET(Pointer, Offset) ((PVOID)((ULONG_PTR)(Pointer) - (ULONG_PTR)(Offset)))
@@ -19,7 +18,26 @@
 
 #define PAGE_SIZE 0x1000
 
-#define WCHAR_LONG_TO_SHORT(Long) (((Long) & 0xff) | (((Long) & 0xff0000) >> 16))
+#define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
+
+// Exceptions
+
+#define PhRaiseStatus(Status) RtlRaiseStatus(Status)
+
+#define SIMPLE_EXCEPTION_FILTER(Condition) \
+    ((Condition) ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
+
+// Compiler
+
+#ifdef DEBUG
+#define ASSUME_ASSERT(Expression) assert(Expression)
+#define ASSUME_NO_DEFAULT assert(FALSE)
+#else
+#define ASSUME_ASSERT(Expression) assert(Expression)
+#define ASSUME_NO_DEFAULT __assume(FALSE)
+#endif
+
+// Time
 
 #define PH_TICKS_PER_NS ((LONG64)1 * 10)
 #define PH_TICKS_PER_MS (PH_TICKS_PER_NS * 1000)
@@ -36,10 +54,6 @@
 
 #define PH_TIMEOUT_MS PH_TICKS_PER_MS
 #define PH_TIMEOUT_SEC PH_TICKS_PER_SEC
-
-#define PH_LARGE_BUFFER_SIZE (16 * 1024 * 1024)
-
-#define PhRaiseStatus(Status) RtlRaiseStatus(Status)
 
 // Annotations
 
@@ -79,23 +93,6 @@
  * value to be aligned at the specified number of bytes.
  */
 #define __needsAlign(align)
-
-// Strings
-
-#define PH_INT32_STR_LEN 12
-#define PH_INT32_STR_LEN_1 (PH_INT32_STR_LEN + 1)
-
-#define PH_INT64_STR_LEN 50
-#define PH_INT64_STR_LEN_1 (PH_INT64_STR_LEN + 1)
-
-#define PH_PTR_STR_LEN 24
-#define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
-
-#define STR_EQUAL(Str1, Str2) (strcmp(Str1, Str2) == 0)
-#define WSTR_EQUAL(Str1, Str2) (wcscmp(Str1, Str2) == 0)
-
-#define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
-#define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
 
 // Sorting
 
@@ -204,129 +201,7 @@ FORCEINLINE int wcsicmp2(
         return 1;
 }
 
-// Misc.
-
-FORCEINLINE ULONG PhCountBits(
-    __in ULONG Value
-    )
-{
-    ULONG count = 0;
-
-    while (Value)
-    {
-        count++;
-        Value &= Value - 1;
-    }
-
-    return count;
-}
-
-FORCEINLINE ULONG PhRoundNumber(
-    __in ULONG Value,
-    __in ULONG Multiplier
-    )
-{
-    ULONG newValue;
-
-    newValue = Value / Multiplier * Multiplier;
-
-    // This new value has the multiplier truncated.
-    // E.g. 1099 / 100 * 100 = 1000.
-    // If the difference is less than half the multiplier, 
-    // use the new value.
-    // E.g.
-    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use 
-    // the new value plus the multiplier.
-    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use 
-    // the new value.
-
-    if (Value - newValue < Multiplier / 2)
-        return newValue;
-    else
-        return newValue + Multiplier;
-}
-
-FORCEINLINE PVOID PhGetProcAddress(
-    __in PWSTR LibraryName,
-    __in PSTR ProcName
-    )
-{
-    return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
-}
-
-FORCEINLINE VOID PhPrintInt32(
-    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
-    __in LONG Int32
-    )
-{
-    _snwprintf(Destination, PH_INT32_STR_LEN, L"%d", Int32);
-}
-
-FORCEINLINE VOID PhPrintUInt32(
-    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
-    __in ULONG UInt32
-    )
-{
-    _snwprintf(Destination, PH_INT32_STR_LEN, L"%u", UInt32);
-}
-
-FORCEINLINE VOID PhPrintInt64(
-    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
-    __in LONG64 Int64
-    )
-{
-    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64d", Int64);
-}
-
-FORCEINLINE VOID PhPrintUInt64(
-    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
-    __in ULONG64 UInt64
-    )
-{
-    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64u", UInt64);
-}
-
-FORCEINLINE VOID PhPrintPointer(
-    __out_ecount(PH_PTR_STR_LEN_1) PWSTR Destination,
-    __in PVOID Pointer
-    )
-{
-    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%Ix", Pointer);
-}
-
-FORCEINLINE VOID PhProbeAddress(
-    __in PVOID UserAddress,
-    __in SIZE_T UserLength,
-    __in PVOID BufferAddress,
-    __in SIZE_T BufferLength,
-    __in ULONG Alignment
-    )
-{
-    if (UserLength != 0)
-    {
-        if (((ULONG_PTR)UserAddress & (Alignment - 1)) != 0)
-            PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
-
-        if (
-            (((ULONG_PTR)UserAddress + UserLength) < (ULONG_PTR)UserAddress) ||
-            (((ULONG_PTR)UserAddress + UserLength) > ((ULONG_PTR)BufferAddress + BufferLength))
-            )
-            PhRaiseStatus(STATUS_ACCESS_VIOLATION);
-    }
-}
-
-FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
-    __out PLARGE_INTEGER Timeout,
-    __in ULONG Milliseconds
-    )
-{
-    if (Milliseconds == INFINITE)
-        return NULL;
-
-    Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
-
-    return Timeout;
-}
+// Synchronization
 
 #ifdef _M_IX86
 
@@ -439,6 +314,147 @@ FORCEINLINE BOOLEAN _InterlockedIncrementNoZero(
 
         value = newValue;
     }
+}
+
+// Strings
+
+#define PH_INT32_STR_LEN 12
+#define PH_INT32_STR_LEN_1 (PH_INT32_STR_LEN + 1)
+
+#define PH_INT64_STR_LEN 50
+#define PH_INT64_STR_LEN_1 (PH_INT64_STR_LEN + 1)
+
+#define PH_PTR_STR_LEN 24
+#define PH_PTR_STR_LEN_1 (PH_PTR_STR_LEN + 1)
+
+#define STR_EQUAL(Str1, Str2) (strcmp(Str1, Str2) == 0)
+#define WSTR_EQUAL(Str1, Str2) (wcscmp(Str1, Str2) == 0)
+
+#define STR_IEQUAL(Str1, Str2) (stricmp(Str1, Str2) == 0)
+#define WSTR_IEQUAL(Str1, Str2) (wcsicmp(Str1, Str2) == 0)
+
+FORCEINLINE VOID PhPrintInt32(
+    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
+    __in LONG Int32
+    )
+{
+    _snwprintf(Destination, PH_INT32_STR_LEN, L"%d", Int32);
+}
+
+FORCEINLINE VOID PhPrintUInt32(
+    __out_ecount(PH_INT32_STR_LEN_1) PWSTR Destination,
+    __in ULONG UInt32
+    )
+{
+    _snwprintf(Destination, PH_INT32_STR_LEN, L"%u", UInt32);
+}
+
+FORCEINLINE VOID PhPrintInt64(
+    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
+    __in LONG64 Int64
+    )
+{
+    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64d", Int64);
+}
+
+FORCEINLINE VOID PhPrintUInt64(
+    __out_ecount(PH_INT64_STR_LEN_1) PWSTR Destination,
+    __in ULONG64 UInt64
+    )
+{
+    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64u", UInt64);
+}
+
+FORCEINLINE VOID PhPrintPointer(
+    __out_ecount(PH_PTR_STR_LEN_1) PWSTR Destination,
+    __in PVOID Pointer
+    )
+{
+    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%Ix", Pointer);
+}
+
+// Misc.
+
+FORCEINLINE ULONG PhCountBits(
+    __in ULONG Value
+    )
+{
+    ULONG count = 0;
+
+    while (Value)
+    {
+        count++;
+        Value &= Value - 1;
+    }
+
+    return count;
+}
+
+FORCEINLINE ULONG PhRoundNumber(
+    __in ULONG Value,
+    __in ULONG Multiplier
+    )
+{
+    ULONG newValue;
+
+    newValue = Value / Multiplier * Multiplier;
+
+    // This new value has the multiplier truncated.
+    // E.g. 1099 / 100 * 100 = 1000.
+    // If the difference is less than half the multiplier, 
+    // use the new value.
+    // E.g.
+    // 1099 -> 1000 (100). 1099 - 1000 >= 50, so use 
+    // the new value plus the multiplier.
+    // 1010 -> 1000 (100). 1010 - 1000 < 50, so use 
+    // the new value.
+
+    if (Value - newValue < Multiplier / 2)
+        return newValue;
+    else
+        return newValue + Multiplier;
+}
+
+FORCEINLINE PVOID PhGetProcAddress(
+    __in PWSTR LibraryName,
+    __in PSTR ProcName
+    )
+{
+    return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
+}
+
+FORCEINLINE VOID PhProbeAddress(
+    __in PVOID UserAddress,
+    __in SIZE_T UserLength,
+    __in PVOID BufferAddress,
+    __in SIZE_T BufferLength,
+    __in ULONG Alignment
+    )
+{
+    if (UserLength != 0)
+    {
+        if (((ULONG_PTR)UserAddress & (Alignment - 1)) != 0)
+            PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
+
+        if (
+            (((ULONG_PTR)UserAddress + UserLength) < (ULONG_PTR)UserAddress) ||
+            (((ULONG_PTR)UserAddress + UserLength) > ((ULONG_PTR)BufferAddress + BufferLength))
+            )
+            PhRaiseStatus(STATUS_ACCESS_VIOLATION);
+    }
+}
+
+FORCEINLINE PLARGE_INTEGER PhTimeoutFromMilliseconds(
+    __out PLARGE_INTEGER Timeout,
+    __in ULONG Milliseconds
+    )
+{
+    if (Milliseconds == INFINITE)
+        return NULL;
+
+    Timeout->QuadPart = -(LONGLONG)UInt32x32To64(Milliseconds, PH_TIMEOUT_MS);
+
+    return Timeout;
 }
 
 #endif
