@@ -126,6 +126,8 @@ VOID PhpCreateTreeListContext(
     context->EnableRedraw = 1;
     context->NeedsRestructure = FALSE;
     context->Cursor = NULL;
+    context->HasFocus = FALSE;
+    context->TextMetricsValid = FALSE;
     context->ThemeData = NULL;
     context->PlusBitmap = NULL;
     context->MinusBitmap = NULL;
@@ -273,6 +275,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case WM_THEMECHANGED:
         {
             PhpReloadThemeData(context);
+        }
+        break;
+    case WM_SETTINGCHANGE:
+        {
+            context->TextMetricsValid = FALSE;
         }
         break;
     case WM_SETCURSOR:
@@ -1309,7 +1316,11 @@ static VOID PhpCustomDrawPrePaintItem(
         backBrush = GetStockObject(DC_BRUSH);
     }
 
-    GetTextMetrics(hdc, &Context->TextMetrics);
+    if (!Context->TextMetricsValid)
+    {
+        GetTextMetrics(hdc, &Context->TextMetrics);
+        Context->TextMetricsValid = TRUE;
+    }
 
     if (PH_TREELIST_USE_HACKAROUNDS)
     {

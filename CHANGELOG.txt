@@ -5,6 +5,7 @@ Process Hacker
    * Unmap section views in Memory tab
  * FIXED:
    * Esc couldn't close Service Properties on open
+   * Small bug fixes
 
 2.4
  * NEW/IMPROVED:
