@@ -106,6 +106,7 @@ namespace ProcessHacker2.Api
 
         public void* Name;
         public void* DllBase;
+        public PhString* FileName;
 
         public void* DisplayName;
         public void* Author;
