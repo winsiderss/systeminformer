@@ -2127,22 +2127,22 @@ BOOLEAN PhUiUnloadModule(
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
         PWSTR verb;
-        PWSTR action;
+        PWSTR message;
 
         switch (Module->Type)
         {
         case PH_MODULE_TYPE_MODULE:
         case PH_MODULE_TYPE_WOW64_MODULE:
             verb = L"unload";
-            action = L"Unloading a module may cause the process to crash.";
+            message = L"Unloading a module may cause the process to crash.";
             break;
         case PH_MODULE_TYPE_KERNEL_MODULE:
             verb = L"unload";
-            action = L"Unloading a driver may cause system instability.";
+            message = L"Unloading a driver may cause system instability.";
             break;
         case PH_MODULE_TYPE_MAPPED_FILE:
             verb = L"unmap";
-            action = L"Unmapping a section view may cause the process to crash.";
+            message = L"Unmapping a section view may cause the process to crash.";
             break;
         default:
             return FALSE;
@@ -2152,7 +2152,7 @@ BOOLEAN PhUiUnloadModule(
             hWnd,
             verb,
             Module->Name->Buffer,
-            action,
+            message,
             TRUE
             );
     }
@@ -2272,13 +2272,33 @@ BOOLEAN PhUiFreeMemory(
 
     if (PhGetIntegerSetting(L"EnableWarnings"))
     {
+        PWSTR verb;
+        PWSTR message;
+
+        if (!(MemoryItem->Flags & MEM_MAPPED))
+        {
+            if (Free)
+            {
+                verb = L"free";
+                message = L"Freeing memory regions may cause the process to crash.";
+            }
+            else
+            {
+                verb = L"decommit";
+                message = L"Decommitting memory regions may cause the process to crash.";
+            }
+        }
+        else
+        {
+            verb = L"unmap";
+            message = L"Unmapping a section view may cause the process to crash.";
+        }
+
         cont = PhShowConfirmMessage(
             hWnd,
-            Free ? L"free" : L"decommit",
+            verb,
             L"the memory region",
-            Free ?
-            L"Freeing memory regions may cause the process to crash." :
-            L"Decommitting memory regions may cause the process to crash.",
+            message,
             TRUE
             );
     }
@@ -2301,26 +2321,48 @@ BOOLEAN PhUiFreeMemory(
 
         baseAddress = MemoryItem->BaseAddress;
 
-        // The size needs to be 0 if we're freeing.
-        if (Free)
-            regionSize = 0;
-        else
-            regionSize = MemoryItem->Size;
+        if (!(MemoryItem->Flags & MEM_MAPPED))
+        {
+            // The size needs to be 0 if we're freeing.
+            if (Free)
+                regionSize = 0;
+            else
+                regionSize = MemoryItem->Size;
 
-        status = NtFreeVirtualMemory(
-            processHandle,
-            &baseAddress,
-            &regionSize,
-            Free ? MEM_RELEASE : MEM_DECOMMIT
-            );
+            status = NtFreeVirtualMemory(
+                processHandle,
+                &baseAddress,
+                &regionSize,
+                Free ? MEM_RELEASE : MEM_DECOMMIT
+                );
+        }
+        else
+        {
+            status = NtUnmapViewOfSection(processHandle, baseAddress);
+        }
+
         NtClose(processHandle);
     }
 
     if (!NT_SUCCESS(status))
     {
+        PWSTR message;
+
+        if (!(MemoryItem->Flags & MEM_MAPPED))
+        {
+            if (Free)
+                message = L"Unable to free the memory region";
+            else
+                message = L"Unable to decommit the memory region";
+        }
+        else
+        {
+            message = L"Unable to unmap the section view";
+        }
+
         PhShowStatus(
             hWnd,
-            Free ? L"Unable to free the memory region" : L"Unable to decommit the memory region",
+            message,
             status,
             0
             );
