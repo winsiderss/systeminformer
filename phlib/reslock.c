@@ -58,8 +58,7 @@ FORCEINLINE VOID PhpInsertResourceWaiter(
         InsertTailList(&Lock->WaiterListHead, &Waiter->ListEntry);
         break;
     default:
-        assert(FALSE);
-        break;
+        ASSUME_NO_DEFAULT;
     }
 }
 

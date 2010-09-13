@@ -152,6 +152,8 @@ VOID PhDestroyHandleTable(
             PhpFreeHandleTableLevel2(table2);
         }
         break;
+    default:
+        ASSUME_NO_DEFAULT;
     }
 
     PhFree(HandleTable);
@@ -816,6 +818,8 @@ BOOLEAN PhpAllocateMoreHandleTableEntries(
             }
         }
         break;
+    default:
+        ASSUME_NO_DEFAULT;
     }
 
     // In each of the cases above, we allocated one additional level 0 table.
@@ -895,8 +899,7 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
         }
         break;
     default:
-        assert(FALSE);
-        break;
+        ASSUME_NO_DEFAULT;
     }
 
     return entry;
