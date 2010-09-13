@@ -489,6 +489,7 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
         return FALSE;
     default:
         ASSUME_NO_DEFAULT;
+        return FALSE;
     }
 }
 
