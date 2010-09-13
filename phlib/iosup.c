@@ -769,6 +769,7 @@ NTSTATUS PhpWriteFileStream(
     if (NT_SUCCESS(status))
     {
         FileStream->Position.QuadPart += isb.Information;
+        FileStream->Flags |= PH_FILE_STREAM_WRITTEN;
     }
 
     return status;
