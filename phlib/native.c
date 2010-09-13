@@ -5437,7 +5437,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
-            PhAddItemSimpleHashtable(context, UlongToHandle((ULONG)processId), (PVOID)flags);
+            PhAddItemSimpleHashtable(context, (HANDLE)processId, (PVOID)flags);
         }
     }
 
