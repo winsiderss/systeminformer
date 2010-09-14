@@ -2289,7 +2289,7 @@ BOOLEAN PhUiFreeMemory(
         PWSTR verb;
         PWSTR message;
 
-        if (!(MemoryItem->Flags & MEM_MAPPED))
+        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
         {
             if (Free)
             {
@@ -2335,7 +2335,7 @@ BOOLEAN PhUiFreeMemory(
 
         baseAddress = MemoryItem->BaseAddress;
 
-        if (!(MemoryItem->Flags & MEM_MAPPED))
+        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
         {
             // The size needs to be 0 if we're freeing.
             if (Free)
@@ -2362,7 +2362,7 @@ BOOLEAN PhUiFreeMemory(
     {
         PWSTR message;
 
-        if (!(MemoryItem->Flags & MEM_MAPPED))
+        if (!(MemoryItem->Flags & (MEM_MAPPED | MEM_IMAGE)))
         {
             if (Free)
                 message = L"Unable to free the memory region";
