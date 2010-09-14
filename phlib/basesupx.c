@@ -32,6 +32,15 @@ VOID FASTCALL PhxpfAddInt32Fallback(
         *A++ += *B++;
 }
 
+/**
+ * Adds one array of integers to another.
+ *
+ * \param A The destination array to which the source 
+ * array is added. The array must be 16 byte aligned.
+ * \param B The source array. The array must be 16 
+ * byte aligned.
+ * \param Count The number of elements.
+ */
 VOID FASTCALL PhxfAddInt32(
     __inout __needsAlign(16) PLONG A,
     __in __needsAlign(16) PLONG B,
@@ -73,6 +82,14 @@ VOID FASTCALL PhxfAddInt32(
     }
 }
 
+/**
+ * Adds one array of integers to another.
+ *
+ * \param A The destination array to which the source 
+ * array is added.
+ * \param B The source array.
+ * \param Count The number of elements.
+ */
 VOID FASTCALL PhxfAddInt32U(
     __inout PLONG A,
     __in PLONG B,
@@ -152,6 +169,14 @@ VOID FASTCALL PhxpfDivideSingleFallback(
         *A++ /= *B++;
 }
 
+/**
+ * Divides one array of numbers by another.
+ *
+ * \param A The destination array, divided by 
+ * the source array.
+ * \param B The source array.
+ * \param Count The number of elements.
+ */
 VOID FASTCALL PhxfDivideSingleU(
     __inout PFLOAT A,
     __in PFLOAT B,
@@ -231,6 +256,14 @@ VOID FASTCALL PhxpfDivideSingle2Fallback(
         *A++ /= B;
 }
 
+/**
+ * Divides an array of numbers by a number.
+ *
+ * \param A The destination array, divided by 
+ * \a B.
+ * \param B The number.
+ * \param Count The number of elements.
+ */
 VOID FASTCALL PhxfDivideSingle2U(
     __inout PFLOAT A,
     __in FLOAT B,

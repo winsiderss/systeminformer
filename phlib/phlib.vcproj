@@ -313,15 +313,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\bintree.c"
-				>
-			</File>
-			<File
 				RelativePath=".\circbuf.c"
 				>
 			</File>
 			<File
 				RelativePath=".\clrsup.c"
+				>
+			</File>
+			<File
+				RelativePath=".\collect.c"
 				>
 			</File>
 			<File
