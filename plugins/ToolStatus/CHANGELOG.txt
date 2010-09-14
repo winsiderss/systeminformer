@@ -1,5 +1,6 @@
 1.1
  * Fixed hanging when using Find Window on hung programs
+ * Fixed status bar with no selected parts
 
 1.0
  * Initial release
