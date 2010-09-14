@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   binary trees
+ *   additional collection types
  * 
  * Copyright (C) 2010 wj32
  * 
@@ -22,6 +22,12 @@
 
 #include <phbase.h>
 
+/**
+ * Initializes an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param CompareFunction A function used to compare tree elements.
+ */
 VOID PhInitializeAvlTree(
     __out PPH_AVL_TREE Tree,
     __in PPH_AVL_TREE_COMPARE_FUNCTION CompareFunction
@@ -36,6 +42,13 @@ VOID PhInitializeAvlTree(
     Tree->CompareFunction = CompareFunction;
 }
 
+/**
+ * Finds an element in an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Element The element to find.
+ * \param Result The result of the search.
+ */
 FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Element,
@@ -471,6 +484,15 @@ ULONG PhpRebalanceAvlLinks(
     }
 }
 
+/**
+ * Adds an element to an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Element The element to add.
+ *
+ * \return NULL if the element was added, or an existing 
+ * element.
+ */
 PPH_AVL_LINKS PhAddElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __out PPH_AVL_LINKS Element
@@ -550,6 +572,12 @@ PPH_AVL_LINKS PhAddElementAvlTree(
     return NULL;
 }
 
+/**
+ * Removes an element from an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Element An element already present in the tree.
+ */
 VOID PhRemoveElementAvlTree(
     __inout PPH_AVL_TREE Tree,
     __inout PPH_AVL_LINKS Element
@@ -671,6 +699,14 @@ VOID PhRemoveElementAvlTree(
     Tree->Count--;
 }
 
+/**
+ * Finds an element in an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Element An element to find.
+ *
+ * \return The element, or NULL if it could not be found.
+ */
 PPH_AVL_LINKS PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Element
@@ -687,6 +723,13 @@ PPH_AVL_LINKS PhFindElementAvlTree(
         return NULL;
 }
 
+/**
+ * Finds the smallest element in an AVL tree.
+ *
+ * \param Tree The tree.
+ *
+ * \return An element, or NULL if the tree is empty.
+ */
 PPH_AVL_LINKS PhMinimumElementAvlTree(
     __in PPH_AVL_TREE Tree
     )
@@ -704,6 +747,13 @@ PPH_AVL_LINKS PhMinimumElementAvlTree(
     return links;
 }
 
+/**
+ * Finds the biggest element in an AVL tree.
+ *
+ * \param Tree The tree.
+ *
+ * \return An element, or NULL if the tree is empty.
+ */
 PPH_AVL_LINKS PhMaximumElementAvlTree(
     __in PPH_AVL_TREE Tree
     )
@@ -721,6 +771,14 @@ PPH_AVL_LINKS PhMaximumElementAvlTree(
     return links;
 }
 
+/**
+ * Finds the next element in an AVL tree.
+ *
+ * \param Element The element.
+ *
+ * \return The next element, or NULL if there are no 
+ * more elements.
+ */
 PPH_AVL_LINKS PhSuccessorElementAvlTree(
     __in PPH_AVL_LINKS Element
     )
@@ -755,6 +813,14 @@ PPH_AVL_LINKS PhSuccessorElementAvlTree(
     }
 }
 
+/**
+ * Finds the previous element in an AVL tree.
+ *
+ * \param Element The element.
+ *
+ * \return The previous element, or NULL if there are no 
+ * more elements.
+ */
 PPH_AVL_LINKS PhPredecessorElementAvlTree(
     __in PPH_AVL_LINKS Element
     )
@@ -789,6 +855,15 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
     }
 }
 
+/**
+ * Enumerates the elements in an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Order The enumeration order.
+ * \param Callback The callback function.
+ * \param Context A user-defined value to pass to the callback 
+ * function.
+ */
 VOID PhEnumAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PH_TREE_ENUMERATION_ORDER Order,
