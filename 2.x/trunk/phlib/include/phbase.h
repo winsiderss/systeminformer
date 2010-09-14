@@ -2073,6 +2073,12 @@ typedef struct _PH_HASH_ENTRY
 #define PH_HASH_SET_INIT { 0 }
 #define PH_HASH_SET_SIZE(Buckets) (sizeof(Buckets) / sizeof(PPH_HASH_ENTRY))
 
+/**
+ * Initializes a hash set.
+ *
+ * \param Buckets The bucket array.
+ * \param NumberOfBuckets The number of buckets.
+ */
 FORCEINLINE VOID PhInitializeHashSet(
     __out PPH_HASH_ENTRY *Buckets,
     __in ULONG NumberOfBuckets
@@ -2081,6 +2087,14 @@ FORCEINLINE VOID PhInitializeHashSet(
     memset(Buckets, 0, sizeof(PPH_HASH_ENTRY) * NumberOfBuckets);
 }
 
+/**
+ * Allocates and initializes a hash set.
+ *
+ * \param NumberOfBuckets The number of buckets.
+ *
+ * \return The allocated hash set. You must free it with 
+ * PhFree() when you no longer need it.
+ */
 FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
     __in ULONG NumberOfBuckets
     )
@@ -2093,6 +2107,14 @@ FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
     return buckets;
 }
 
+/**
+ * Determines the number of entries in a hash set.
+ *
+ * \param Buckets The bucket array.
+ * \param NumberOfBuckets The number of buckets.
+ *
+ * \return The number of entries in the hash set.
+ */
 FORCEINLINE ULONG PhCountHashSet(
     __in PPH_HASH_ENTRY *Buckets,
     __in ULONG NumberOfBuckets
@@ -2113,6 +2135,16 @@ FORCEINLINE ULONG PhCountHashSet(
     return count;
 }
 
+/**
+ * Moves entries from one hash set to another.
+ *
+ * \param NewBuckets The new bucket array.
+ * \param NumberOfNewBuckets The number of buckets in \a NewBuckets.
+ * \param OldBuckets The old bucket array.
+ * \param NumberOfOldBuckets The number of buckets in \a OldBuckets.
+ *
+ * \remarks \a NewBuckets and \a OldBuckets must be different.
+ */
 FORCEINLINE VOID PhDistributeHashSet(
     __inout PPH_HASH_ENTRY *NewBuckets,
     __in ULONG NumberOfNewBuckets,
@@ -2142,6 +2174,16 @@ FORCEINLINE VOID PhDistributeHashSet(
     }
 }
 
+/**
+ * Adds an entry to a hash set.
+ *
+ * \param Buckets The bucket array.
+ * \param NumberOfBuckets The number of buckets.
+ * \param Entry The entry.
+ * \param Hash The hash for the entry.
+ *
+ * \remarks This function does not check for duplicates.
+ */
 FORCEINLINE VOID PhAddEntryHashSet(
     __inout PPH_HASH_ENTRY *Buckets,
     __in ULONG NumberOfBuckets,
@@ -2158,6 +2200,15 @@ FORCEINLINE VOID PhAddEntryHashSet(
     Buckets[index] = Entry;
 }
 
+/**
+ * Begins the process of finding an entry in a hash set.
+ *
+ * \param Buckets The bucket array.
+ * \param NumberOfBuckets The number of buckets.
+ * \param Hash The hash for the entry.
+ *
+ * \return The first entry in the chain.
+ */
 FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
     __in PPH_HASH_ENTRY *Buckets,
     __in ULONG NumberOfBuckets,
@@ -2167,6 +2218,13 @@ FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
     return Buckets[Hash & (NumberOfBuckets - 1)];
 }
 
+/**
+ * Removes an entry from a hash set.
+ *
+ * \param Buckets The bucket array.
+ * \param NumberOfBuckets The number of buckets.
+ * \param Entry An entry present in the hash set.
+ */
 FORCEINLINE VOID PhRemoveEntryHashSet(
     __inout PPH_HASH_ENTRY *Buckets,
     __in ULONG NumberOfBuckets,
@@ -2202,6 +2260,15 @@ FORCEINLINE VOID PhRemoveEntryHashSet(
     PhRaiseStatus(STATUS_INTERNAL_ERROR);
 }
 
+/**
+ * Resizes a hash set.
+ *
+ * \param Buckets A pointer to the bucket array. On return the new bucket 
+ * array is stored in this variable.
+ * \param NumberOfBuckets A pointer to the number of buckets. On return the 
+ * new number of buckets is stored in this variable.
+ * \param NewNumberOfBuckets The new number of buckets.
+ */
 FORCEINLINE VOID PhResizeHashSet(
     __inout PPH_HASH_ENTRY **Buckets,
     __inout PULONG NumberOfBuckets,
@@ -2882,9 +2949,9 @@ PhNtStatusFileNotFound(
     __in NTSTATUS Status
     );
 
-// bintree
+// collect
 
-// Generic definitions
+// Generic tree definitions
 
 typedef enum _PH_TREE_ENUMERATION_ORDER
 {

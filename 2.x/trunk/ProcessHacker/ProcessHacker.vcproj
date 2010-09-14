@@ -371,10 +371,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\phlib\bintree.c"
-				>
-			</File>
-			<File
 				RelativePath="..\phlib\circbuf.c"
 				>
 			</File>
@@ -384,6 +380,10 @@
 			</File>
 			<File
 				RelativePath="..\phlib\clrsup.c"
+				>
+			</File>
+			<File
+				RelativePath="..\phlib\collect.c"
 				>
 			</File>
 			<File
