@@ -585,11 +585,14 @@ INT_PTR HandleCommonMessages(
             case IDC_REMOVE:
                 {
                     ULONG i;
+                    PFILTER_ENTRY entry;
 
                     i = ListBox_GetCurSel(ListBox);
 
                     if (i != LB_ERR)
                     {
+                        entry = FilterList->Items[i];
+                        FreeFilterEntry(entry);
                         PhRemoveItemList(FilterList, i);
                         ListBox_DeleteString(ListBox, i);
 
