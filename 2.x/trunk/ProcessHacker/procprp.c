@@ -3511,7 +3511,7 @@ VOID PhpInitializeMemoryMenu(
             PhEnableMenuItem(Menu, ID_MEMORY_FREE, FALSE);
             PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
-        else if (MemoryItems[0]->Flags & MEM_MAPPED)
+        else if (MemoryItems[0]->Flags & (MEM_MAPPED | MEM_IMAGE))
         {
             PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
