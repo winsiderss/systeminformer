@@ -478,8 +478,8 @@ DefaultWndProc:
 
 VOID UpdateStatusBar()
 {
-    PPH_STRING text[10];
-    ULONG widths[10];
+    PPH_STRING text[STATUS_COUNT];
+    ULONG widths[STATUS_COUNT];
     ULONG i;
     ULONG count;
     HDC hdc;
@@ -487,6 +487,15 @@ VOID UpdateStatusBar()
 
     if (ProcessesUpdatedCount < 2)
         return;
+
+    if (!(StatusMask & (STATUS_MAXIMUM - 1)))
+    {
+        // The status bar doesn't cope well with 0 parts.
+        widths[0] = -1;
+        SendMessage(StatusBarHandle, SB_SETPARTS, 1, (LPARAM)widths);
+        SendMessage(StatusBarHandle, SB_SETTEXT, 0, (LPARAM)L"");
+        return;
+    }
 
     PhPluginGetSystemStatistics(&statistics);
 
