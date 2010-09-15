@@ -161,9 +161,13 @@ INT_PTR CALLBACK PhpServiceDependenciesDlgProc(
                             if (dependencyLength == 0)
                                 break;
 
+                            if (dependency[0] == SC_GROUP_IDENTIFIER)
+                                goto ContinueLoop;
+
                             if (dependencyService = PhReferenceServiceItem(dependency))
                                 PhAddItemList(serviceList, dependencyService);
 
+ContinueLoop:
                             dependency += dependencyLength + 1;
                         }
                     }
