@@ -643,6 +643,17 @@ BOOLEAN PhShowChooseProcessDialog(
     __out PHANDLE ProcessId
     );
 
+// srvlist
+
+#define WM_PH_SET_LIST_VIEW_SETTINGS (WM_APP + 701)
+
+PHAPPAPI
+HWND PhCreateServiceListControl(
+    __in HWND ParentWindowHandle,
+    __in PPH_SERVICE_ITEM *Services,
+    __in ULONG NumberOfServices
+    );
+
 // settings
 
 typedef enum _PH_SETTING_TYPE

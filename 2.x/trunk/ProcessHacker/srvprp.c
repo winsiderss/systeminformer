@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phplug.h>
 #include <windowsx.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
@@ -65,7 +66,7 @@ VOID PhShowServiceProperties(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[2];
+    HPROPSHEETPAGE pages[10];
     SERVICE_PROPERTIES_CONTEXT context;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
@@ -112,6 +113,20 @@ VOID PhShowServiceProperties(
             numberOfAccessEntries
             );
         PhFree(accessEntries);
+    }
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
+
+        objectProperties.Parameter = ServiceItem;
+        objectProperties.NumberOfPages = propSheetHeader.nPages;
+        objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
+        objectProperties.Pages = pages;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializaing), &objectProperties);
+
+        propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
 
     PropertySheet(&propSheetHeader);
