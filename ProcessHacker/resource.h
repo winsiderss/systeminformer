@@ -32,8 +32,8 @@
 #define IDC_CPUUSER                     123
 #define IDR_SERVICE                     124
 #define IDC_CPUKERNEL                   124
-#define IDD_PROCSERVICES                125
 #define IDC_IORO                        125
+#define IDD_SRVLIST                     125
 #define IDD_SRVGENERAL                  126
 #define IDC_IOW                         126
 #define IDD_HNDLGENERAL                 128
@@ -100,6 +100,7 @@
 #define IDD_HANDLESTATS                 188
 #define IDD_PROCRECORD                  189
 #define IDD_CHOOSEPROCESS               190
+#define IDD_PROCSERVICES                191
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -400,6 +401,7 @@
 #define IDC_ENABLEPLUGINS               1258
 #define IDC_PARENT                      1263
 #define IDC_PROCESSNAME                 1264
+#define IDC_SERVICES_LAYOUT             1266
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -615,7 +617,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40234
-#define _APS_NEXT_CONTROL_VALUE         1266
+#define _APS_NEXT_CONTROL_VALUE         1267
 #define _APS_NEXT_SYMED_VALUE           131
 #endif
 #endif
