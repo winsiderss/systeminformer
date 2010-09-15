@@ -12,6 +12,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
     GeneralCallbackGetIsDotNetDirectoryNames = 5, // PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES Data [process provider thread]
     GeneralCallbackNotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
+    GeneralCallbackServicePropertiesInitializaing = 7, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -58,6 +59,17 @@ typedef struct _PH_PLUGIN_NOTIFY_EVENT
     BOOLEAN Handled;
     PVOID Parameter;
 } PH_PLUGIN_NOTIFY_EVENT, *PPH_PLUGIN_NOTIFY_EVENT;
+
+typedef struct _PH_PLUGIN_OBJECT_PROPERTIES
+{
+    // Parameter is:
+    // PPH_SERVICE_ITEM for GeneralCallbackServicePropertiesInitializaing
+
+    PVOID Parameter;
+    ULONG NumberOfPages;
+    ULONG MaximumNumberOfPages;
+    HPROPSHEETPAGE *Pages;
+} PH_PLUGIN_OBJECT_PROPERTIES, *PPH_PLUGIN_OBJECT_PROPERTIES;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
