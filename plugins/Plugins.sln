@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedNotifications", "Ex
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolStatus", "ToolStatus\ToolStatus.vcproj", "{60B43533-C75E-4741-9E19-C4D581BEF51C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedServices", "ExtendedServices\ExtendedServices.vcproj", "{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -59,6 +61,14 @@ Global
 		{60B43533-C75E-4741-9E19-C4D581BEF51C}.Release|Win32.Build.0 = Release|Win32
 		{60B43533-C75E-4741-9E19-C4D581BEF51C}.Release|x64.ActiveCfg = Release|x64
 		{60B43533-C75E-4741-9E19-C4D581BEF51C}.Release|x64.Build.0 = Release|x64
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Debug|Win32.Build.0 = Debug|Win32
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Debug|x64.ActiveCfg = Debug|x64
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Debug|x64.Build.0 = Debug|x64
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Release|Win32.ActiveCfg = Release|Win32
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Release|Win32.Build.0 = Release|Win32
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Release|x64.ActiveCfg = Release|x64
+		{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
