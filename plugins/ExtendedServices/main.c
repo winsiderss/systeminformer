@@ -132,7 +132,7 @@ INT_PTR CALLBACK PhpServiceDependenciesDlgProc(
             BOOLEAN success = FALSE;
             PPH_SERVICE_ITEM *services;
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"The service depends on the following services:");
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, L"This service depends on the following services:");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), NULL, PH_ANCHOR_ALL);
