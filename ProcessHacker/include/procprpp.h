@@ -166,15 +166,6 @@ typedef struct _PH_HANDLES_CONTEXT
     BOOLEAN HideUnnamedHandles;
 } PH_HANDLES_CONTEXT, *PPH_HANDLES_CONTEXT;
 
-typedef struct _PH_SERVICES_CONTEXT
-{
-    PPH_SERVICE_ITEM *Services;
-    ULONG NumberOfServices;
-    PH_CALLBACK_REGISTRATION ModifiedEventRegistration;
-
-    HWND WindowHandle;
-} PH_SERVICES_CONTEXT, *PPH_SERVICES_CONTEXT;
-
 typedef struct _PH_MEMORY_CONTEXT
 {
     PH_MEMORY_PROVIDER Provider;

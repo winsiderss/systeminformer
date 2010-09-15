@@ -435,7 +435,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
             SetWindowPos(PhSysInfoPanelWindowHandle, NULL, 10, 0, 0, 0,
                 SWP_NOACTIVATE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER);
-            SetParent(PhSysInfoPanelWindowHandle, hwndDlg);
             ShowWindow(PhSysInfoPanelWindowHandle, SW_SHOW);
 
             AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(L"SysInfoWindowAlwaysOnTop");

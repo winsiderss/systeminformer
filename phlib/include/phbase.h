@@ -2208,6 +2208,9 @@ FORCEINLINE VOID PhAddEntryHashSet(
  * \param Hash The hash for the entry.
  *
  * \return The first entry in the chain.
+ *
+ * \remarks If the function returns NULL, the entry 
+ * does not exist in the hash set.
  */
 FORCEINLINE PPH_HASH_ENTRY PhFindEntryHashSet(
     __in PPH_HASH_ENTRY *Buckets,

@@ -1465,6 +1465,16 @@ VOID PhShowCreateServiceDialog(
     __in HWND ParentWindowHandle
     );
 
+// srvlist
+
+#define WM_PH_SET_LIST_VIEW_SETTINGS (WM_APP + 701)
+
+HWND PhCreateServiceListControl(
+    __in HWND ParentWindowHandle,
+    __in PPH_SERVICE_ITEM *Services,
+    __in ULONG NumberOfServices
+    );
+
 // srvprp
 
 VOID PhShowServiceProperties(
