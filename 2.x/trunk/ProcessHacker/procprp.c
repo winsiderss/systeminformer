@@ -4718,99 +4718,24 @@ INT_PTR CALLBACK PhpProcessJobHookProc(
     return FALSE;
 }
 
-static VOID NTAPI ServiceModifiedHandler(
-    __in_opt PVOID Parameter,
-    __in_opt PVOID Context
+static VOID PhpLayoutServiceListControl(
+    __in HWND hwndDlg,
+    __in HWND ServiceListHandle
     )
 {
-    PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)Parameter;
-    PPH_SERVICES_CONTEXT servicesContext = (PPH_SERVICES_CONTEXT)Context;
-    PPH_SERVICE_MODIFIED_DATA copy;
+    RECT rect;
 
-    copy = PhAllocateCopy(serviceModifiedData, sizeof(PH_SERVICE_MODIFIED_DATA));
+    GetWindowRect(GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT), &rect);
+    MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
 
-    PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_MODIFIED, 0, (LPARAM)copy);
-}
-
-VOID PhpFixProcessServicesControls(
-    __in HWND hWnd,
-    __in PPH_SERVICE_ITEM ServiceItem
-    )
-{
-    HWND startButton;
-    HWND pauseButton;
-    HWND descriptionLabel;
-
-    startButton = GetDlgItem(hWnd, IDC_START);
-    pauseButton = GetDlgItem(hWnd, IDC_PAUSE);
-    descriptionLabel = GetDlgItem(hWnd, IDC_DESCRIPTION);
-
-    if (ServiceItem)
-    {
-        SC_HANDLE serviceHandle;
-        PPH_STRING description;
-
-        switch (ServiceItem->State)
-        {
-        case SERVICE_RUNNING:
-            {
-                SetWindowText(startButton, L"Stop");
-                SetWindowText(pauseButton, L"Pause");
-                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
-                EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-            }
-            break;
-        case SERVICE_PAUSED:
-            {
-                SetWindowText(startButton, L"Stop");
-                SetWindowText(pauseButton, L"Continue");
-                EnableWindow(startButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_STOP);
-                EnableWindow(pauseButton, ServiceItem->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-            }
-            break;
-        case SERVICE_STOPPED:
-            {
-                SetWindowText(startButton, L"Start");
-                SetWindowText(pauseButton, L"Pause");
-                EnableWindow(startButton, TRUE);
-                EnableWindow(pauseButton, FALSE);
-            }
-            break;
-        case SERVICE_START_PENDING:
-        case SERVICE_CONTINUE_PENDING:
-        case SERVICE_PAUSE_PENDING:
-        case SERVICE_STOP_PENDING:
-            {
-                SetWindowText(startButton, L"Start");
-                SetWindowText(pauseButton, L"Pause");
-                EnableWindow(startButton, FALSE);
-                EnableWindow(pauseButton, FALSE);
-            }
-            break;
-        }
-
-        if (serviceHandle = PhOpenService(
-            ServiceItem->Name->Buffer,
-            SERVICE_QUERY_CONFIG
-            ))
-        {
-            if (description = PhGetServiceDescription(serviceHandle))
-            {
-                SetWindowText(descriptionLabel, description->Buffer);
-                PhDereferenceObject(description);
-            }
-
-            CloseServiceHandle(serviceHandle);
-        }
-    }
-    else
-    {
-        SetWindowText(startButton, L"Start");
-        SetWindowText(pauseButton, L"Pause");
-        EnableWindow(startButton, FALSE);
-        EnableWindow(pauseButton, FALSE);
-        SetWindowText(descriptionLabel, L"");
-    }
+    MoveWindow(
+        ServiceListHandle,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        TRUE
+        );
 }
 
 INT_PTR CALLBACK PhpProcessServicesDlgProc(
@@ -4823,36 +4748,28 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
     LPPROPSHEETPAGE propSheetPage;
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
-    PPH_SERVICES_CONTEXT servicesContext;
-    HWND lvHandle;
 
-    if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
+    if (!PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
-    {
-        servicesContext = (PPH_SERVICES_CONTEXT)propPageContext->Context;
-    }
-    else
     {
         return FALSE;
     }
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
     case WM_INITDIALOG:
         {
+            PPH_SERVICE_ITEM *services;
+            ULONG numberOfServices;
             ULONG i;
-
-            servicesContext = propPageContext->Context =
-                PhAllocate(sizeof(PH_SERVICES_CONTEXT));
+            HWND serviceListHandle;
 
             // Get a copy of the process' service list.
 
             PhAcquireQueuedLockShared(&processItem->ServiceListLock);
 
-            servicesContext->NumberOfServices = processItem->ServiceList->Count;
-            servicesContext->Services = PhAllocate(servicesContext->NumberOfServices * sizeof(PPH_SERVICE_ITEM));
+            numberOfServices = processItem->ServiceList->Count;
+            services = PhAllocate(numberOfServices * sizeof(PPH_SERVICE_ITEM));
 
             {
                 ULONG enumerationKey = 0;
@@ -4863,63 +4780,25 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
                 while (PhEnumPointerList(processItem->ServiceList, &enumerationKey, &serviceItem))
                 {
                     PhReferenceObject(serviceItem);
-                    servicesContext->Services[i++] = serviceItem;
+                    services[i++] = serviceItem;
                 }
             }
 
             PhReleaseQueuedLockShared(&processItem->ServiceListLock);
 
-            PhRegisterCallback(
-                &PhServiceModifiedEvent,
-                ServiceModifiedHandler,
-                servicesContext,
-                &servicesContext->ModifiedEventRegistration
+            serviceListHandle = PhCreateServiceListControl(
+                hwndDlg,
+                services,
+                numberOfServices
                 );
+            SendMessage(serviceListHandle, WM_PH_SET_LIST_VIEW_SETTINGS, 0, (LPARAM)L"ProcessServiceListViewColumns");
+            ShowWindow(serviceListHandle, SW_SHOW);
 
-            servicesContext->WindowHandle = hwndDlg;
-
-            // Initialize the list.
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 220, L"Display Name");
-
-            PhSetExtendedListView(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ProcessServiceListViewColumns", lvHandle);
-
-            for (i = 0; i < servicesContext->NumberOfServices; i++)
-            {
-                PPH_SERVICE_ITEM serviceItem;
-                INT lvItemIndex;
-
-                serviceItem = servicesContext->Services[i];
-                lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, serviceItem->Name->Buffer, serviceItem);
-                PhSetListViewSubItem(lvHandle, lvItemIndex, 1, serviceItem->DisplayName->Buffer);
-            }
-
-            ExtendedListView_SortItems(lvHandle);
-
-            PhpFixProcessServicesControls(hwndDlg, NULL);
+            propPageContext->Context = serviceListHandle;
         }
         break;
     case WM_DESTROY:
         {
-            ULONG i;
-
-            for (i = 0; i < servicesContext->NumberOfServices; i++)
-                PhDereferenceObject(servicesContext->Services[i]);
-
-            PhFree(servicesContext->Services);
-
-            PhUnregisterCallback(
-                &PhServiceModifiedEvent,
-                &servicesContext->ModifiedEventRegistration
-                );
-
-            PhFree(servicesContext);
-
-            PhSaveListViewColumnsToSetting(L"ProcessServiceListViewColumns", lvHandle);
-
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
         break;
@@ -4931,121 +4810,19 @@ INT_PTR CALLBACK PhpProcessServicesDlgProc(
 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_SERVICES_LAYOUT),
                     dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DESCRIPTION),
-                    dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_START),
-                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PAUSE),
-                    dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
                 PhDoPropPageLayout(hwndDlg);
+                PhpLayoutServiceListControl(hwndDlg, (HWND)propPageContext->Context);
 
                 propPageContext->LayoutInitialized = TRUE;
             }
         }
         break;
-    case WM_COMMAND:
+    case WM_SIZE:
         {
-            INT id = LOWORD(wParam);
-
-            switch (id)
-            {
-            case IDC_START:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
-
-                    if (serviceItem)
-                    {
-                        switch (serviceItem->State)
-                        {
-                        case SERVICE_RUNNING:
-                            PhUiStopService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_PAUSED:
-                            PhUiStopService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_STOPPED:
-                            PhUiStartService(hwndDlg, serviceItem);
-                            break;
-                        }
-                    }
-                }
-                break;
-            case IDC_PAUSE:
-                {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
-
-                    if (serviceItem)
-                    {
-                        switch (serviceItem->State)
-                        {
-                        case SERVICE_RUNNING:
-                            PhUiPauseService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_PAUSED:
-                            PhUiContinueService(hwndDlg, serviceItem);
-                            break;
-                        }
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            PhHandleListViewNotifyForCopy(lParam, lvHandle);
-
-            switch (header->code)
-            {
-            case NM_DBLCLK:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(lvHandle);
-
-                        if (serviceItem)
-                        {
-                            PhShowServiceProperties(hwndDlg, serviceItem);
-                        }
-                    }
-                }
-                break;
-            case LVN_ITEMCHANGED:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        //LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
-                        PPH_SERVICE_ITEM serviceItem = NULL;
-
-                        if (ListView_GetSelectedCount(lvHandle) == 1)
-                            serviceItem = PhGetSelectedListViewItemParam(lvHandle);
-
-                        PhpFixProcessServicesControls(hwndDlg, serviceItem);
-                    }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_PH_SERVICE_MODIFIED:
-        {
-            PPH_SERVICE_MODIFIED_DATA serviceModifiedData = (PPH_SERVICE_MODIFIED_DATA)lParam;
-            PPH_SERVICE_ITEM serviceItem = NULL;
-
-            if (ListView_GetSelectedCount(lvHandle) == 1)
-                serviceItem = PhGetSelectedListViewItemParam(lvHandle);
-
-            if (serviceModifiedData->Service == serviceItem)
-            {
-                PhpFixProcessServicesControls(hwndDlg, serviceItem);
-            }
-
-            PhFree(serviceModifiedData);
+            PhpLayoutServiceListControl(hwndDlg, (HWND)propPageContext->Context);
         }
         break;
     }
