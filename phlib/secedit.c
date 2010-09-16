@@ -249,7 +249,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
         );
 
     if (!NT_SUCCESS(status))
-        return HRESULT_FROM_WIN32(RtlNtStatusToDosError(status));
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 
     sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
     newSd = LocalAlloc(0, sdLength);
@@ -277,7 +277,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_SetSecurity(
         );
 
     if (!NT_SUCCESS(status))
-        return HRESULT_FROM_WIN32(RtlNtStatusToDosError(status));
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 
     return S_OK;
 }
