@@ -130,8 +130,8 @@ static VOID EspFixControls(
     SC_ACTION_TYPE action2;
     SC_ACTION_TYPE actionS;
     BOOLEAN enableRestart;
-    BOOLEAN enableCommand;
     BOOLEAN enableReboot;
+    BOOLEAN enableCommand;
 
     action1 = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_FIRSTFAILURE));
     action2 = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_SECONDFAILURE));
@@ -140,20 +140,20 @@ static VOID EspFixControls(
     EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), Context->EnableFlagCheckBox);
 
     enableRestart = action1 == SC_ACTION_RESTART || action2 == SC_ACTION_RESTART || actionS == SC_ACTION_RESTART;
-    enableCommand = action1 == SC_ACTION_RUN_COMMAND || action2 == SC_ACTION_RUN_COMMAND || actionS == SC_ACTION_RUN_COMMAND;
     enableReboot = action1 == SC_ACTION_REBOOT || action2 == SC_ACTION_REBOOT || actionS == SC_ACTION_REBOOT;
+    enableCommand = action1 == SC_ACTION_RUN_COMMAND || action2 == SC_ACTION_RUN_COMMAND || actionS == SC_ACTION_RUN_COMMAND;
 
     EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTSERVICEAFTER_LABEL), enableRestart);
     EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTSERVICEAFTER), enableRestart);
     EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTSERVICEAFTER_MINUTES), enableRestart);
+
+    EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTCOMPUTEROPTIONS), enableReboot);
 
     EnableWindow(GetDlgItem(hwndDlg, IDC_RUNPROGRAM_GROUP), enableCommand);
     EnableWindow(GetDlgItem(hwndDlg, IDC_RUNPROGRAM_LABEL), enableCommand);
     EnableWindow(GetDlgItem(hwndDlg, IDC_RUNPROGRAM), enableCommand);
     EnableWindow(GetDlgItem(hwndDlg, IDC_BROWSE), enableCommand);
     EnableWindow(GetDlgItem(hwndDlg, IDC_RUNPROGRAM_INFO), enableCommand);
-
-    EnableWindow(GetDlgItem(hwndDlg, IDC_RESTARTCOMPUTEROPTIONS), enableReboot);
 }
 
 NTSTATUS EspLoadRecoveryInfo(
@@ -440,14 +440,18 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
                     for (i = 0; i < 3; i++)
                     {
-                        if (actions[i].Type == SC_ACTION_RESTART)
+                        switch (actions[i].Type)
                         {
+                        case SC_ACTION_RESTART:
                             actions[i].Delay = restartServiceAfter;
                             enableRestart = TRUE;
-                        }
-                        else if (actions[i].Type == SC_ACTION_REBOOT)
-                        {
+                            break;
+                        case SC_ACTION_REBOOT:
                             actions[i].Delay = context->RebootAfter;
+                            break;
+                        case SC_ACTION_RUN_COMMAND:
+                            actions[i].Delay = 0;
+                            break;
                         }
                     }
 
