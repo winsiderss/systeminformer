@@ -66,7 +66,7 @@ VOID PhShowServiceProperties(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[10];
+    HPROPSHEETPAGE pages[32];
     SERVICE_PROPERTIES_CONTEXT context;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
@@ -439,16 +439,25 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         }
                         else
                         {
-                            PhShowStatus(hwndDlg, L"Unable to change service configuration",
-                                0, GetLastError());
-                            SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                            goto ErrorCase;
                         }
 
                         CloseServiceHandle(serviceHandle);
                     }
                     else
                     {
-                        PhShowStatus(hwndDlg, L"Unable to change service configuration", 0, GetLastError());
+                        goto ErrorCase;
+                    }
+
+                    return TRUE;
+ErrorCase:
+                    if (PhShowMessage(
+                        hwndDlg,
+                        MB_ICONERROR | MB_RETRYCANCEL,
+                        L"Unable to change service configuration: %s",
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(GetLastError())))->Buffer
+                        ) == IDRETRY)
+                    {
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
                     }
                 }

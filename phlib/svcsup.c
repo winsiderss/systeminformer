@@ -180,41 +180,65 @@ PVOID PhGetServiceConfig(
     return buffer;
 }
 
+PVOID PhQueryServiceVariableSize(
+    __in SC_HANDLE ServiceHandle,
+    __in ULONG InfoLevel
+    )
+{
+    PVOID buffer;
+    ULONG bufferSize = 0x100;
+
+    buffer = PhAllocate(bufferSize);
+
+    if (!QueryServiceConfig2(
+        ServiceHandle,
+        InfoLevel,
+        (BYTE *)buffer,
+        bufferSize,
+        &bufferSize
+        ))
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        if (!QueryServiceConfig2(
+            ServiceHandle,
+            InfoLevel,
+            (BYTE *)buffer,
+            bufferSize,
+            &bufferSize
+            ))
+        {
+            PhFree(buffer);
+            return NULL;
+        }
+    }
+
+    return buffer;
+}
+
 PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     )
 {
-    PVOID buffer;
-    ULONG returnLength = 0x100;
-    LPSERVICE_DESCRIPTION serviceDescription;
     PPH_STRING description = NULL;
+    LPSERVICE_DESCRIPTION serviceDescription;
 
-    QueryServiceConfig2(
-        ServiceHandle,
-        SERVICE_CONFIG_DESCRIPTION,
-        NULL,
-        0,
-        &returnLength
-        );
-    buffer = PhAllocate(returnLength);
+    serviceDescription = PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_DESCRIPTION);
 
-    if (QueryServiceConfig2(
-        ServiceHandle,
-        SERVICE_CONFIG_DESCRIPTION,
-        (BYTE *)buffer,
-        returnLength,
-        &returnLength
-        ))
+    if (serviceDescription)
     {
-        serviceDescription = (LPSERVICE_DESCRIPTION)buffer;
-
         if (serviceDescription->lpDescription)
             description = PhCreateString(serviceDescription->lpDescription);
+
+        PhFree(serviceDescription);
+
+        return description;
     }
-
-    PhFree(buffer);
-
-    return description;
+    else
+    {
+        return NULL;
+    }
 }
 
 BOOLEAN PhGetServiceDelayedAutoStart(

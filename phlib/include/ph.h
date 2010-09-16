@@ -1922,6 +1922,12 @@ PVOID PhGetServiceConfig(
     );
 
 PHLIBAPI
+PVOID PhQueryServiceVariableSize(
+    __in SC_HANDLE ServiceHandle,
+    __in ULONG InfoLevel
+    );
+
+PHLIBAPI
 PPH_STRING PhGetServiceDescription(
     __in SC_HANDLE ServiceHandle
     );
