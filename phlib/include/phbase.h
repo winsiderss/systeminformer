@@ -2939,6 +2939,13 @@ PhxfDivideSingle2U(
 // error
 
 PHLIBAPI
+ULONG
+NTAPI
+PhNtStatusToDosError(
+    __in NTSTATUS Status
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhDosErrorToNtStatus(
