@@ -4,7 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Unmap section views in Memory tab
    * Plugin for extended service information (including 
-     dependencies and dependents)
+     recovery information, dependencies and dependents)
  * FIXED:
    * Esc couldn't close Service Properties on open
    * Small bug fixes
