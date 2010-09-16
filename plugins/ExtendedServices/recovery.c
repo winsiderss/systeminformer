@@ -63,7 +63,7 @@ VOID EspAddServiceActionStrings(
     for (i = 0; i < sizeof(ServiceActionPairs) / sizeof(PH_KEY_VALUE_PAIR); i++)
         ComboBox_AddString(ComboBoxHandle, (PWSTR)ServiceActionPairs[i].Key);
 
-    ComboBox_SelectString(ComboBoxHandle, -1, (PWSTR)ServiceActionPairs[i].Key);
+    ComboBox_SelectString(ComboBoxHandle, -1, (PWSTR)ServiceActionPairs[0].Key);
 }
 
 SC_ACTION_TYPE EspStringToServiceAction(
@@ -209,6 +209,7 @@ NTSTATUS EspLoadRecoveryInfo(
 
     // Enable actions for stops with errors
 
+    // This is Vista and above only.
     if (WindowsVersion >= WINDOWS_VISTA && QueryServiceConfig2(
         serviceHandle,
         SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
@@ -300,7 +301,18 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
             status = EspLoadRecoveryInfo(hwndDlg, context);
 
             if (!NT_SUCCESS(status))
-                PhShowStatus(hwndDlg, L"Unable to query recovery information", status, 0);
+            {
+                SetDlgItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
+
+                if (WindowsVersion >= WINDOWS_VISTA)
+                {
+                    context->EnableFlagCheckBox = TRUE;
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS), TRUE);
+                }
+
+                PhShowWarning(hwndDlg, L"Unable to query service recovery information: %s",
+                    ((PPH_STRING)PHA_DEREFERENCE(PhGetNtMessage(status)))->Buffer);
+            }
 
             EspFixControls(hwndDlg, context);
 
@@ -581,6 +593,8 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                         }
                     }
 
+                    // This message is exactly the same as the one in the Services console, 
+                    // except the double spaces are replaced by single spaces.
                     message = PhFormatString(
                         L"Your computer is connected to the computer named %s. "
                         L"The %s service on %s has ended unexpectedly. "
@@ -603,6 +617,7 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                 {
                     if (HIWORD(wParam) == EN_CHANGE)
                     {
+                        // A zero length restart message disables it, so we might as well uncheck the box.
                         Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE),
                             GetWindowTextLength(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)) != 0 ? BST_CHECKED : BST_UNCHECKED);
                     }
