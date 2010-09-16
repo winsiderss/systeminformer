@@ -32,6 +32,9 @@ typedef struct _SERVICE_RECOVERY_CONTEXT
     BOOLEAN EnableFlagCheckBox;
     ULONG RebootAfter; // in ms
     PPH_STRING RebootMessage;
+
+    BOOLEAN Ready;
+    BOOLEAN Dirty;
 } SERVICE_RECOVERY_CONTEXT, *PSERVICE_RECOVERY_CONTEXT;
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -300,6 +303,8 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                 PhShowStatus(hwndDlg, L"Unable to query recovery information", status, 0);
 
             EspFixControls(hwndDlg, context);
+
+            context->Ready = TRUE;
         }
         break;
     case WM_DESTROY:
@@ -333,6 +338,161 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                         );
                 }
                 break;
+            case IDC_BROWSE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Executable files (*.exe;*.cmd;*.bat)", L"*.exe;*.cmd;*.bat" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+                    PPH_STRING fileName;
+
+                    fileDialog = PhCreateOpenFileDialog();
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BROWSE));
+                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
+                    PhDereferenceObject(fileName);
+
+                    if (PhShowFileDialog(NULL, fileDialog))
+                    {
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        SetDlgItemText(hwndDlg, IDC_BROWSE, fileName->Buffer);
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
+            case IDC_ENABLEFORERRORSTOPS:
+                {
+                    context->Dirty = TRUE;
+                }
+                break;
+            }
+
+            switch (HIWORD(wParam))
+            {
+            case EN_CHANGE:
+            case CBN_SELCHANGE:
+                {
+                    if (context->Ready)
+                        context->Dirty = TRUE;
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_KILLACTIVE:
+                {
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, FALSE);
+                }
+                return TRUE;
+            case PSN_APPLY:
+                {
+                    PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
+                    SC_HANDLE serviceHandle;
+                    ULONG restartServiceAfter;
+                    SERVICE_FAILURE_ACTIONS failureActions;
+                    SC_ACTION actions[3];
+                    ULONG i;
+                    BOOLEAN enableRestart = FALSE;
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+
+                    if (!context->Dirty)
+                    {
+                        return TRUE;
+                    }
+
+                    // Build the failure actions structure.
+
+                    failureActions.dwResetPeriod = GetDlgItemInt(hwndDlg, IDC_RESETFAILCOUNT, NULL, FALSE) * 60 * 60 * 24;
+                    failureActions.lpRebootMsg = PhGetStringOrEmpty(context->RebootMessage);
+                    failureActions.lpCommand = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_RUNPROGRAM)->Buffer;
+                    failureActions.cActions = 3;
+                    failureActions.lpsaActions = actions;
+
+                    actions[0].Type = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_FIRSTFAILURE));
+                    actions[1].Type = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_SECONDFAILURE));
+                    actions[2].Type = ComboBoxToServiceAction(GetDlgItem(hwndDlg, IDC_SUBSEQUENTFAILURES));
+
+                    restartServiceAfter = GetDlgItemInt(hwndDlg, IDC_RESTARTSERVICEAFTER, NULL, FALSE) * 1000 * 60;
+
+                    for (i = 0; i < 3; i++)
+                    {
+                        if (actions[i].Type == SC_ACTION_RESTART)
+                        {
+                            actions[i].Delay = restartServiceAfter;
+                            enableRestart = TRUE;
+                        }
+                        else if (actions[i].Type == SC_ACTION_REBOOT)
+                        {
+                            actions[i].Delay = context->RebootAfter;
+                        }
+                    }
+
+                    // Try to save the changes.
+
+                    serviceHandle = PhOpenService(
+                        serviceItem->Name->Buffer,
+                        SERVICE_CHANGE_CONFIG | (enableRestart ? SERVICE_START : 0) // SC_ACTION_RESTART requires SERVICE_START
+                        );
+
+                    if (serviceHandle)
+                    {
+                        if (ChangeServiceConfig2(
+                            serviceHandle,
+                            SERVICE_CONFIG_FAILURE_ACTIONS,
+                            &failureActions
+                            ))
+                        {
+                            if (context->EnableFlagCheckBox)
+                            {
+                                SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
+
+                                failureActionsFlag.fFailureActionsOnNonCrashFailures =
+                                    Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLEFORERRORSTOPS)) == BST_CHECKED;
+
+                                ChangeServiceConfig2(
+                                    serviceHandle,
+                                    SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
+                                    &failureActionsFlag
+                                    );
+                            }
+                        }
+                        else
+                        {
+                            goto ErrorCase;
+                        }
+
+                        CloseServiceHandle(serviceHandle);
+                    }
+                    else
+                    {
+                        goto ErrorCase;
+                    }
+
+                    return TRUE;
+ErrorCase:
+                    if (PhShowMessage(
+                        hwndDlg,
+                        MB_ICONERROR | MB_RETRYCANCEL,
+                        L"Unable to change service recovery information: %s",
+                        ((PPH_STRING)PHA_DEREFERENCE(PhGetWin32Message(GetLastError())))->Buffer
+                        ) == IDRETRY)
+                    {
+                        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                    }
+                }
+                return TRUE;
             }
         }
         break;
@@ -390,6 +550,8 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
                         PhSwapReference2(&context->RebootMessage, PhGetWindowText(GetDlgItem(hwndDlg, IDC_RESTARTMESSAGE)));
                     else
                         PhSwapReference2(&context->RebootMessage, NULL);
+
+                    context->Dirty = TRUE;
 
                     EndDialog(hwndDlg, IDOK);
                 }
