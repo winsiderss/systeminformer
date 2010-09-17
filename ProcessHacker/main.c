@@ -27,6 +27,7 @@
 #include <treelist.h>
 #include <graph.h>
 #include <hexedit.h>
+#include <shlobj.h>
 
 VOID PhpProcessStartupParameters();
 VOID PhpEnablePrivileges();

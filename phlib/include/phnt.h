@@ -19,6 +19,10 @@
 
 //#define PHNT_NO_INLINE_INIT_STRING
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <ntbasic.h>
 #include <ntnls.h>
 
@@ -48,5 +52,9 @@
 #include <ntmisc.h>
 
 #include <rev.h>
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

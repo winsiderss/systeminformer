@@ -28,6 +28,7 @@
 #include <symprv.h>
 #include <phplug.h>
 #include <windowsx.h>
+#include <shlobj.h>
 #include <iphlpapi.h>
 #include <wtsapi32.h>
 

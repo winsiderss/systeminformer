@@ -1,6 +1,10 @@
 #ifndef _PH_PHPLUG_H
 #define _PH_PHPLUG_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Callbacks
 
 typedef enum _PH_GENERAL_CALLBACK
@@ -188,5 +192,9 @@ PHAPPAPI
 VOID PhPluginGetSystemStatistics(
     __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -509,10 +509,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\reslock.c"
-				>
-			</File>
-			<File
 				RelativePath=".\secdata.c"
 				>
 			</File>
@@ -596,6 +592,10 @@
 			</File>
 			<File
 				RelativePath=".\include\graph.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\guisupp.h"
 				>
 			</File>
 			<File

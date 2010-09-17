@@ -1,6 +1,10 @@
 #ifndef _PH_QUEUEDLOCK_H
 #define _PH_QUEUEDLOCK_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PH_QUEUED_LOCK_OWNED ((ULONG_PTR)0x1)
 #define PH_QUEUED_LOCK_OWNED_SHIFT 0
 #define PH_QUEUED_LOCK_WAITERS ((ULONG_PTR)0x2)
@@ -291,5 +295,9 @@ FORCEINLINE VOID PhSetWakeEvent(
     if (WakeEvent->Value || WaitBlock)
         PhfSetWakeEvent(WakeEvent, WaitBlock);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -3,6 +3,10 @@
 
 // FastLock is a port of FastResourceLock from PH 1.x.
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _PH_FAST_LOCK
 {
     ULONG Value;
@@ -77,5 +81,9 @@ FASTCALL
 PhfTryAcquireFastLockShared(
     __inout PPH_FAST_LOCK FastLock
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -5,11 +5,10 @@
 
 #include <ph.h>
 #include <commctrl.h>
-#define CINTERFACE
-#define COBJMACROS
-#include <shlobj.h>
-#undef CINTERFACE
-#undef COBJMACROS
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // guisup
 
@@ -42,6 +41,8 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 #define RF_CANCEL 0x0001
 #define RF_RETRY 0x0002
 
+typedef HANDLE HTHEME;
+
 typedef BOOL (WINAPI *_RunFileDlg)(
     __in HWND hwndOwner,
     __in_opt HICON hIcon,
@@ -49,12 +50,6 @@ typedef BOOL (WINAPI *_RunFileDlg)(
     __in_opt LPCWSTR lpszTitle,
     __in_opt LPCWSTR lpszDescription,
     __in ULONG uFlags
-    );
-
-typedef HRESULT (WINAPI *_SetWindowTheme)(
-    __in HWND hwnd,
-    __in LPCWSTR pszSubAppName,
-    __in LPCWSTR pszSubIdList
     );
 
 typedef BOOL (WINAPI *_IsThemeActive)(); 
@@ -82,28 +77,6 @@ typedef HRESULT (WINAPI *_SHAutoComplete)(
     __in DWORD dwFlags
     );
 
-typedef HRESULT (WINAPI *_SHCreateShellItem)(
-    __in_opt PCIDLIST_ABSOLUTE pidlParent,
-    __in_opt IShellFolder *psfParent,
-    __in PCUITEMID_CHILD pidl,
-    __out IShellItem **ppsi
-    );
-
-typedef HRESULT (WINAPI *_SHOpenFolderAndSelectItems)(
-    __in PCIDLIST_ABSOLUTE pidlFolder,
-    __in UINT cidl,
-    __in_ecount_opt(cidl) PCUITEMID_CHILD_ARRAY *apidl,
-    __in DWORD dwFlags
-    );
-
-typedef HRESULT (WINAPI *_SHParseDisplayName)(
-    __in LPCWSTR pszName,
-    __in_opt IBindCtx *pbc,
-    __out PIDLIST_ABSOLUTE *ppidl,
-    __in SFGAOF sfgaoIn,
-    __out SFGAOF *psfgaoOut
-    );
-
 typedef HRESULT (WINAPI *_TaskDialogIndirect)(      
     __in const TASKDIALOGCONFIG *pTaskConfig,
     __in int *pnButton,
@@ -119,9 +92,6 @@ extern _OpenThemeData OpenThemeData_I;
 extern _CloseThemeData CloseThemeData_I;
 extern _DrawThemeBackground DrawThemeBackground_I;
 extern _SHAutoComplete SHAutoComplete_I;
-extern _SHCreateShellItem SHCreateShellItem_I;
-extern _SHOpenFolderAndSelectItems SHOpenFolderAndSelectItems_I;
-extern _SHParseDisplayName SHParseDisplayName_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
 
@@ -957,5 +927,9 @@ PPH_STRING PhGetAccessString(
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

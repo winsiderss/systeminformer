@@ -217,17 +217,17 @@ typedef struct _TEB32
 
 // Conversion
 
-FORCEINLINE UStr32ToUStr(
+FORCEINLINE VOID UStr32ToUStr(
     __out PUNICODE_STRING Destination,
     __in PUNICODE_STRING32 Source
     )
 {
     Destination->Length = Source->Length;
     Destination->MaximumLength = Source->MaximumLength;
-    Destination->Buffer = UlongToPtr(Source->Buffer);
+    Destination->Buffer = (PWCH)UlongToPtr(Source->Buffer);
 }
 
-FORCEINLINE UStrToUStr32(
+FORCEINLINE VOID UStrToUStr32(
     __out PUNICODE_STRING32 Destination,
     __in PUNICODE_STRING Source
     )
