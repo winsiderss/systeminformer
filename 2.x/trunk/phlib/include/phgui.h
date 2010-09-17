@@ -560,7 +560,9 @@ FORCEINLINE VOID PhCopyControlRectangle(
 // icotobmp
 
 PHLIBAPI
-HBITMAP PhIconToBitmap(
+HBITMAP
+NTAPI
+PhIconToBitmap(
     __in HICON Icon,
     __in ULONG Width,
     __in ULONG Height
@@ -629,12 +631,16 @@ typedef HFONT (NTAPI *PPH_EXTLV_GET_ITEM_FONT)(
     );
 
 PHLIBAPI
-VOID PhSetExtendedListView(
+VOID
+NTAPI
+PhSetExtendedListView(
     __in HWND hWnd
     );
 
 PHLIBAPI
-VOID PhSetHeaderSortIcon(
+VOID
+NTAPI
+PhSetHeaderSortIcon(
     __in HWND hwnd,
     __in INT Index,
     __in PH_SORT_ORDER Order
@@ -799,7 +805,9 @@ typedef struct _PH_ACCESS_ENTRY
 } PH_ACCESS_ENTRY, *PPH_ACCESS_ENTRY;
 
 PHLIBAPI
-HPROPSHEETPAGE PhCreateSecurityPage(
+HPROPSHEETPAGE
+NTAPI
+PhCreateSecurityPage(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     __in PPH_SET_OBJECT_SECURITY SetObjectSecurity,
@@ -809,7 +817,9 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     );
 
 PHLIBAPI
-VOID PhEditSecurity(
+VOID
+NTAPI
+PhEditSecurity(
     __in HWND hWnd,
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -883,21 +893,27 @@ FORCEINLINE ACCESS_MASK PhGetAccessForSetSecurity(
 }
 
 PHLIBAPI
-__callback NTSTATUS PhStdGetObjectSecurity(
+__callback NTSTATUS
+NTAPI
+PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in_opt PVOID Context
     );
 
 PHLIBAPI
-__callback NTSTATUS PhStdSetObjectSecurity(
+__callback NTSTATUS
+NTAPI
+PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
     __in_opt PVOID Context
     );
 
 PHLIBAPI
-NTSTATUS PhGetSeObjectSecurity(
+NTSTATUS
+NTAPI
+PhGetSeObjectSecurity(
     __in HANDLE Handle,
     __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
@@ -905,7 +921,9 @@ NTSTATUS PhGetSeObjectSecurity(
     );
 
 PHLIBAPI
-NTSTATUS PhSetSeObjectSecurity(
+NTSTATUS
+NTAPI
+PhSetSeObjectSecurity(
     __in HANDLE Handle,
     __in ULONG ObjectType,
     __in SECURITY_INFORMATION SecurityInformation,
@@ -915,14 +933,18 @@ NTSTATUS PhSetSeObjectSecurity(
 // secdata
 
 PHLIBAPI
-BOOLEAN PhGetAccessEntries(
+BOOLEAN
+NTAPI
+PhGetAccessEntries(
     __in PWSTR Type,
     __out PPH_ACCESS_ENTRY *AccessEntries,
     __out PULONG NumberOfAccessEntries
     );
 
 PHLIBAPI
-PPH_STRING PhGetAccessString(
+PPH_STRING
+NTAPI
+PhGetAccessString(
     __in ACCESS_MASK Access,
     __in PPH_ACCESS_ENTRY AccessEntries,
     __in ULONG NumberOfAccessEntries

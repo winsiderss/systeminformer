@@ -118,30 +118,40 @@ typedef struct _PH_PLUGIN_INFORMATION
 } PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
 PHAPPAPI
-PPH_PLUGIN PhRegisterPlugin(
+PPH_PLUGIN
+NTAPI
+PhRegisterPlugin(
     __in PWSTR Name,
     __in PVOID DllBase,
     __in_opt PPH_PLUGIN_INFORMATION Information
     );
 
 PHAPPAPI
-PPH_PLUGIN PhFindPlugin(
+PPH_PLUGIN
+NTAPI
+PhFindPlugin(
     __in PWSTR Name
     );
 
 PHAPPAPI
-PPH_CALLBACK PhGetPluginCallback(
+PPH_CALLBACK
+NTAPI
+PhGetPluginCallback(
     __in PPH_PLUGIN Plugin,
     __in PH_PLUGIN_CALLBACK Callback
     );
 
 PHAPPAPI
-PPH_CALLBACK PhGetGeneralCallback(
+PPH_CALLBACK
+NTAPI
+PhGetGeneralCallback(
     __in PH_GENERAL_CALLBACK Callback
     );
 
 PHAPPAPI
-ULONG PhPluginReserveIds(
+ULONG
+NTAPI
+PhPluginReserveIds(
     __in ULONG Count
     );
 
@@ -157,7 +167,9 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
 PHAPPAPI
-BOOLEAN PhPluginAddMenuItem(
+BOOLEAN
+NTAPI
+PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG Location,
     __in_opt PWSTR InsertAfter,
@@ -189,7 +201,9 @@ typedef struct _PH_PLUGIN_SYSTEM_STATISTICS
 } PH_PLUGIN_SYSTEM_STATISTICS, *PPH_PLUGIN_SYSTEM_STATISTICS;
 
 PHAPPAPI
-VOID PhPluginGetSystemStatistics(
+VOID
+NTAPI
+PhPluginGetSystemStatistics(
     __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     );
 
