@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <kph.h>
+#include <phplug.h>
 
 typedef struct _HANDLE_PROPERTIES_CONTEXT
 {
@@ -75,7 +76,7 @@ VOID PhShowHandleProperties(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[3];
+    HPROPSHEETPAGE pages[16];
     HANDLE_PROPERTIES_CONTEXT context;
     PH_STD_OBJECT_SECURITY stdObjectSecurity;
     PPH_ACCESS_ENTRY accessEntries;
@@ -182,6 +183,24 @@ VOID PhShowHandleProperties(
             numberOfAccessEntries
             );
         PhFree(accessEntries);
+    }
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_OBJECT_PROPERTIES objectProperties;
+        PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT propertiesContext;
+
+        propertiesContext.ProcessId = ProcessId;
+        propertiesContext.HandleItem = HandleItem;
+
+        objectProperties.Parameter = &propertiesContext;
+        objectProperties.NumberOfPages = propSheetHeader.nPages;
+        objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
+        objectProperties.Pages = pages;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing), &objectProperties);
+
+        propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
 
     PropertySheet(&propSheetHeader);
