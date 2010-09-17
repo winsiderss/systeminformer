@@ -165,9 +165,21 @@ PhStackWalk(
     __in_opt PTRANSLATE_ADDRESS_ROUTINE64 TranslateAddress
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhWriteMiniDumpProcess(
+    __in HANDLE ProcessHandle,
+    __in HANDLE ProcessId,
+    __in HANDLE FileHandle,
+    __in MINIDUMP_TYPE DumpType,
+    __in_opt PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+    __in_opt PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+    __in_opt PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+    );
+
 #ifndef _PH_SYMPRV_PRIVATE
 extern PH_CALLBACK PhSymInitCallback;
-extern _MiniDumpWriteDump MiniDumpWriteDump_I;
 #endif
 
 #endif
