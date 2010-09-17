@@ -29,6 +29,7 @@ typedef struct _SERVICE_RECOVERY_CONTEXT
 {
     PPH_SERVICE_ITEM ServiceItem;
 
+    ULONG NumberOfActions;
     BOOLEAN EnableFlagCheckBox;
     ULONG RebootAfter; // in ms
     PPH_STRING RebootMessage;
@@ -161,9 +162,11 @@ NTSTATUS EspLoadRecoveryInfo(
     __in PSERVICE_RECOVERY_CONTEXT Context
     )
 {
+    NTSTATUS status = STATUS_SUCCESS;
     SC_HANDLE serviceHandle;
     LPSERVICE_FAILURE_ACTIONS failureActions;
     SERVICE_FAILURE_ACTIONS_FLAG failureActionsFlag;
+    SC_ACTION_TYPE lastType;
     ULONG returnLength;
     ULONG i;
 
@@ -178,12 +181,22 @@ NTSTATUS EspLoadRecoveryInfo(
 
     // Failure action types
 
+    Context->NumberOfActions = failureActions->cActions;
+
+    if (failureActions->cActions != 0 && failureActions->cActions != 3)
+        status = STATUS_SOME_NOT_MAPPED;
+
+    // If failure actions are not defined for a particular fail count, the 
+    // last failure action is used. Here we duplicate this behaviour when there 
+    // are fewer than 3 failure actions.
+    lastType = SC_ACTION_NONE;
+
     ServiceActionToComboBox(GetDlgItem(hwndDlg, IDC_FIRSTFAILURE),
-        failureActions->cActions >= 1 ? failureActions->lpsaActions[0].Type : SC_ACTION_NONE);
+        failureActions->cActions >= 1 ? (lastType = failureActions->lpsaActions[0].Type) : lastType);
     ServiceActionToComboBox(GetDlgItem(hwndDlg, IDC_SECONDFAILURE),
-        failureActions->cActions >= 2 ? failureActions->lpsaActions[1].Type : SC_ACTION_NONE);
+        failureActions->cActions >= 2 ? (lastType = failureActions->lpsaActions[1].Type) : lastType);
     ServiceActionToComboBox(GetDlgItem(hwndDlg, IDC_SUBSEQUENTFAILURES),
-        failureActions->cActions >= 3 ? failureActions->lpsaActions[2].Type : SC_ACTION_NONE);
+        failureActions->cActions >= 3 ? (lastType = failureActions->lpsaActions[2].Type) : lastType);
 
     // Reset fail count after
 
@@ -254,7 +267,7 @@ NTSTATUS EspLoadRecoveryInfo(
     PhFree(failureActions);
     CloseServiceHandle(serviceHandle);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 INT_PTR CALLBACK EspServiceRecoveryDlgProc(      
@@ -300,7 +313,19 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
 
             status = EspLoadRecoveryInfo(hwndDlg, context);
 
-            if (!NT_SUCCESS(status))
+            if (status == STATUS_SOME_NOT_MAPPED)
+            {
+                if (context->NumberOfActions > 3)
+                {
+                    PhShowWarning(
+                        hwndDlg,
+                        L"The service has %u failure actions configured, but this program only supports editing 3. "
+                        L"If you save the recovery information using this program, the additional failure actions will be lost.",
+                        context->NumberOfActions
+                        );
+                }
+            }
+            else if (!NT_SUCCESS(status))
             {
                 SetDlgItemText(hwndDlg, IDC_RESETFAILCOUNT, L"0");
 
@@ -517,6 +542,16 @@ ErrorCase:
     return FALSE;
 }
 
+INT_PTR CALLBACK EspServiceRecovery2DlgProc(      
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    return FALSE;
+}
+
 static INT_PTR CALLBACK RestartComputerDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -549,6 +584,9 @@ static INT_PTR CALLBACK RestartComputerDlgProc(
             SetDlgItemInt(hwndDlg, IDC_RESTARTCOMPAFTER, context->RebootAfter / (1000 * 60), FALSE); // ms to min
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLERESTARTMESSAGE), context->RebootMessage ? BST_CHECKED : BST_UNCHECKED);
             SetDlgItemText(hwndDlg, IDC_RESTARTMESSAGE, PhGetString(context->RebootMessage));
+
+            SetFocus(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER));
+            Edit_SetSel(GetDlgItem(hwndDlg, IDC_RESTARTCOMPAFTER), 0, -1);
         }
         break;
     case WM_COMMAND:

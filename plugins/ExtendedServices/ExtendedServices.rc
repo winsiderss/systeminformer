@@ -143,6 +143,14 @@ BEGIN
     PUSHBUTTON      "Use Default Message",IDC_USEDEFAULTMESSAGE,7,116,79,14
 END
 
+IDD_SRVRECOVERY2 DIALOGEX 0, 0, 282, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Recovery"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CTEXT           "If this service fails, the computer will restart.\nRecovery actions are not supported for this service.",IDC_STATIC,51,80,179,21
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -174,6 +182,14 @@ BEGIN
         RIGHTMARGIN, 238
         TOPMARGIN, 7
         BOTTOMMARGIN, 130
+    END
+
+    IDD_SRVRECOVERY2, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
     END
 END
 #endif    // APSTUDIO_INVOKED
