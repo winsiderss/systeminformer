@@ -881,8 +881,6 @@ VOID PhDrainAutoPool(
 
     if (AutoPool->DynamicObjects)
     {
-        ASSUME_ASSERT(AutoPool->DynamicCount >= 1);
-
         for (i = 0; i < AutoPool->DynamicCount; i++)
         {
             PhDereferenceObject(AutoPool->DynamicObjects[i]);
