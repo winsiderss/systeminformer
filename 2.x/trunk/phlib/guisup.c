@@ -22,6 +22,7 @@
 
 #define _PH_GUISUP_PRIVATE
 #include <phgui.h>
+#include <guisupp.h>
 #include <windowsx.h>
 
 _ChangeWindowMessageFilter ChangeWindowMessageFilter_I;

@@ -22,6 +22,7 @@
 
 #define _PH_SUPPORT_PRIVATE
 #include <phgui.h>
+#include <guisupp.h>
 #include <md5.h>
 
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
