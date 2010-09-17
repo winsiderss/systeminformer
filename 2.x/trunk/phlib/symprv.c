@@ -867,6 +867,8 @@ BOOLEAN PhStackWalk(
 {
     BOOLEAN result;
 
+    PhpRegisterSymbolProvider(NULL);
+
     if (!StackWalk64_I)
         return FALSE;
 
@@ -890,4 +892,33 @@ BOOLEAN PhStackWalk(
     PH_UNLOCK_SYMBOLS();
 
     return result;
+}
+
+BOOLEAN PhWriteMiniDumpProcess(
+    __in HANDLE ProcessHandle,
+    __in HANDLE ProcessId,
+    __in HANDLE FileHandle,
+    __in MINIDUMP_TYPE DumpType,
+    __in_opt PMINIDUMP_EXCEPTION_INFORMATION ExceptionParam,
+    __in_opt PMINIDUMP_USER_STREAM_INFORMATION UserStreamParam,
+    __in_opt PMINIDUMP_CALLBACK_INFORMATION CallbackParam
+    )
+{
+    PhpRegisterSymbolProvider(NULL);
+
+    if (!MiniDumpWriteDump_I)
+    {
+        SetLastError(ERROR_PROC_NOT_FOUND);
+        return FALSE;
+    }
+
+    return MiniDumpWriteDump_I(
+        ProcessHandle,
+        (ULONG)ProcessId,
+        FileHandle,
+        DumpType,
+        ExceptionParam,
+        UserStreamParam,
+        CallbackParam
+        );
 }
