@@ -124,7 +124,7 @@ VOID PhShowServiceProperties(
         objectProperties.MaximumNumberOfPages = sizeof(pages) / sizeof(HPROPSHEETPAGE);
         objectProperties.Pages = pages;
 
-        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializaing), &objectProperties);
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing), &objectProperties);
 
         propSheetHeader.nPages = objectProperties.NumberOfPages;
     }
