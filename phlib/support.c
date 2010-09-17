@@ -2723,30 +2723,35 @@ UINT_PTR CALLBACK PhpOpenFileNameHookProc(
         {
             LPOFNOTIFY header = (LPOFNOTIFY)lParam;
 
-            if (header->hdr.code == CDN_FILEOK)
+            // We can't use CDN_FILEOK because it's not sent if the buffer is too small, 
+            // defeating the entire purpose of this callback function.
+
+            switch (header->hdr.code)
             {
-                ULONG returnLength;
-
-                returnLength = CommDlg_OpenSave_GetFilePath(
-                    header->hdr.hwndFrom,
-                    header->lpOFN->lpstrFile,
-                    header->lpOFN->nMaxFile
-                    );
-
-                if (returnLength > header->lpOFN->nMaxFile)
+            case CDN_SELCHANGE:
                 {
-                    PhFree(header->lpOFN->lpstrFile);
-                    header->lpOFN->nMaxFile = returnLength;
-                    header->lpOFN->lpstrFile = PhAllocate(header->lpOFN->nMaxFile * 2);
+                    ULONG returnLength;
 
                     returnLength = CommDlg_OpenSave_GetFilePath(
                         header->hdr.hwndFrom,
                         header->lpOFN->lpstrFile,
                         header->lpOFN->nMaxFile
                         );
-                }
 
-                return TRUE;
+                    if ((LONG)returnLength > 0 && returnLength > header->lpOFN->nMaxFile)
+                    {
+                        PhFree(header->lpOFN->lpstrFile);
+                        header->lpOFN->nMaxFile = returnLength + 0x200; // pre-allocate some more
+                        header->lpOFN->lpstrFile = PhAllocate(header->lpOFN->nMaxFile * 2);
+
+                        returnLength = CommDlg_OpenSave_GetFilePath(
+                            header->hdr.hwndFrom,
+                            header->lpOFN->lpstrFile,
+                            header->lpOFN->nMaxFile
+                            );
+                    }
+                }
+                break;
             }
         }
         break;
@@ -2766,7 +2771,7 @@ OPENFILENAME *PhpCreateOpenFileName(
     *(PULONG)PTR_ADD_OFFSET(ofn, sizeof(OPENFILENAME)) = Type;
 
     ofn->lStructSize = sizeof(OPENFILENAME);
-    ofn->nMaxFile = 0x100;
+    ofn->nMaxFile = 0x400;
     ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
     ofn->lpstrFileTitle = NULL;
     ofn->Flags = OFN_ENABLEHOOK | OFN_EXPLORER;
@@ -3220,8 +3225,8 @@ VOID PhSetFileDialogFileName(
             return;
         }
 
-        PhFree((PVOID)ofn->lpstrFile);
-        ofn->nMaxFile = (ULONG)wcslen(FileName) + 1;
+        PhFree(ofn->lpstrFile);
+        ofn->nMaxFile = max((ULONG)wcslen(FileName) + 1, 0x400);
         ofn->lpstrFile = PhAllocateCopy(FileName, ofn->nMaxFile * 2);
     }
 }
