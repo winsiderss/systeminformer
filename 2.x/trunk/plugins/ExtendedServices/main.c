@@ -106,9 +106,21 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
         propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
         propSheetPage.hInstance = PluginInstance->DllBase;
-        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVRECOVERY);
-        propSheetPage.pfnDlgProc = EspServiceRecoveryDlgProc;
         propSheetPage.lParam = (LPARAM)serviceItem;
+
+        if (!(serviceItem->Flags & SERVICE_RUNS_IN_SYSTEM_PROCESS))
+        {
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVRECOVERY);
+            propSheetPage.pfnDlgProc = EspServiceRecoveryDlgProc;
+        }
+        else
+        {
+            // Services which run in system processes don't support failure actions.
+            // Create a different page with a message saying this.
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SRVRECOVERY2);
+            propSheetPage.pfnDlgProc = EspServiceRecovery2DlgProc;
+        }
+
         objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
     }
 

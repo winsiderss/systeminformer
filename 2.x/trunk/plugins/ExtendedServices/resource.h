@@ -6,6 +6,8 @@
 #define IDD_SRVLIST                     101
 #define IDD_SRVRECOVERY                 102
 #define IDD_RESTARTCOMP                 103
+#define IDD_SRVRECOVERY1                104
+#define IDD_SRVRECOVERY2                104
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -20,7 +22,6 @@
 #define IDC_RUNPROGRAM                  1014
 #define IDC_BROWSE                      1015
 #define IDC_RESTARTCOMPAFTER            1016
-#define IDC_CHECK1                      1017
 #define IDC_ENABLERESTARTMESSAGE        1017
 #define IDC_RESTARTMESSAGE              1018
 #define IDC_RUNPROGRAM_GROUP            1019
