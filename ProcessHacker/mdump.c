@@ -214,9 +214,9 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     callbackInfo.CallbackRoutine = PhpProcessMiniDumpCallback;
     callbackInfo.CallbackParam = context;
 
-    if (MiniDumpWriteDump_I(
+    if (PhWriteMiniDumpProcess(
         context->ProcessHandle,
-        (ULONG)context->ProcessId,
+        context->ProcessId,
         context->FileHandle,
         context->DumpType,
         NULL,
