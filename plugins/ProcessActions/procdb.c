@@ -2,6 +2,7 @@
 #define PA_PROCDB_PRIVATE
 #include "procdb.h"
 #include <mxml.h>
+#include <shlobj.h>
 
 PPH_LIST PaProcDbList;
 PPH_STRING PaProcDbFileName;
