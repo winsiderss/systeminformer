@@ -69,7 +69,7 @@ LOGICAL DllMain(
                 );
 
             PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializaing),
+                PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
                 ServicePropertiesInitializingCallback,
                 NULL,
                 &ServicePropertiesInitializingCallbackRegistration
