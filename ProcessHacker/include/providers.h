@@ -324,6 +324,7 @@ typedef struct _PH_SERVICE_ITEM
     ULONG Type;
     ULONG State;
     ULONG ControlsAccepted;
+    ULONG Flags; // e.g. SERVICE_RUNS_IN_SYSTEM_PROCESS
     HANDLE ProcessId;
 
     // Config

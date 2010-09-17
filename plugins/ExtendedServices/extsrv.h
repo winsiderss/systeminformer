@@ -38,4 +38,11 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK EspServiceRecovery2DlgProc(      
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 #endif

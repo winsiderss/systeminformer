@@ -101,6 +101,7 @@ PPH_SERVICE_ITEM PhCreateServiceItem(
         serviceItem->Type = Information->ServiceStatusProcess.dwServiceType;
         serviceItem->State = Information->ServiceStatusProcess.dwCurrentState;
         serviceItem->ControlsAccepted = Information->ServiceStatusProcess.dwControlsAccepted;
+        serviceItem->Flags = Information->ServiceStatusProcess.dwServiceFlags;
         serviceItem->ProcessId = (HANDLE)Information->ServiceStatusProcess.dwProcessId;
 
         if (serviceItem->ProcessId)
