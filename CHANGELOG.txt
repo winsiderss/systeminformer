@@ -6,6 +6,7 @@ Process Hacker
    * Plugin for extended service information (including 
      recovery information, dependencies and dependents)
  * FIXED:
+   * Critical bug for file dialogs on Windows XP
    * Esc couldn't close Service Properties on open
    * Small bug fixes
 
