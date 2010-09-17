@@ -3,6 +3,10 @@
 
 // Process Hacker application functions exposed to plugins
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // main
 
 PHAPPAPI
@@ -716,5 +720,9 @@ VOID PhAddSettings(
     __in PPH_SETTING_CREATE Settings,
     __in ULONG NumberOfSettings
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

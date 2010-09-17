@@ -671,7 +671,6 @@ NTSTATUS PhpDebugConsoleThreadStart(
             RW_TEST_CONTEXT testContext;
             PH_FAST_LOCK fastLock;
             PH_QUEUED_LOCK queuedLock;
-            PH_RESOURCE_LOCK resourceLock;
             RTL_CRITICAL_SECTION criticalSection;
 
             testContext.Name = L"FastLock";
@@ -691,15 +690,6 @@ NTSTATUS PhpDebugConsoleThreadStart(
             testContext.ReleaseShared = PhfReleaseQueuedLockShared;
             testContext.Parameter = &queuedLock;
             PhInitializeQueuedLock(&queuedLock);
-            PhpTestRwLock(&testContext);
-
-            testContext.Name = L"ResourceLock";
-            testContext.AcquireExclusive = PhfAcquireResourceLockExclusive;
-            testContext.AcquireShared = PhfAcquireResourceLockShared;
-            testContext.ReleaseExclusive = PhfReleaseResourceLockExclusive;
-            testContext.ReleaseShared = PhfReleaseResourceLockShared;
-            testContext.Parameter = &resourceLock;
-            PhInitializeResourceLock(&resourceLock);
             PhpTestRwLock(&testContext);
 
             testContext.Name = L"CriticalSection";

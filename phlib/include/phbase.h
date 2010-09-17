@@ -3,10 +3,12 @@
 
 #pragma once
 
+#ifndef PHLIB_NO_DEFAULT_LIB
 #pragma comment(lib, "ntdll.lib")
 
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "version.lib")
+#endif
 
 // nonstandard extension used : nameless struct/union
 #pragma warning(disable: 4201)
@@ -37,6 +39,10 @@
 #include <ref.h>
 #include <fastlock.h>
 #include <queuedlock.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef _PH_GLOBAL_PRIVATE
 
@@ -2101,7 +2107,7 @@ FORCEINLINE PPH_HASH_ENTRY *PhCreateHashSet(
 {
     PPH_HASH_ENTRY *buckets;
 
-    buckets = PhAllocate(sizeof(PPH_HASH_ENTRY) * NumberOfBuckets);
+    buckets = (PPH_HASH_ENTRY *)PhAllocate(sizeof(PPH_HASH_ENTRY) * NumberOfBuckets);
     PhInitializeHashSet(buckets, NumberOfBuckets);
 
     return buckets;
@@ -2700,44 +2706,6 @@ PhInvokeCallback(
     __in_opt PVOID Parameter
     );
 
-// callbacksync
-
-typedef struct _PH_CALLBACK_SYNC
-{
-    PH_CALLBACK Callback;
-    ULONG Target;
-    PVOID Parameter;
-    ULONG Value;
-} PH_CALLBACK_SYNC, *PPH_CALLBACK_SYNC;
-
-FORCEINLINE VOID PhInitializeCallbackSync(
-    __out PPH_CALLBACK_SYNC CallbackSync,
-    __in ULONG Target,
-    __in_opt PVOID Parameter
-    )
-{
-    PhInitializeCallback(&CallbackSync->Callback);
-    CallbackSync->Target = Target;
-    CallbackSync->Parameter = Parameter;
-    CallbackSync->Value = 0;
-}
-
-FORCEINLINE VOID PhIncrementCallbackSync(
-    __in PPH_CALLBACK_SYNC CallbackSync
-    )
-{
-    if ((ULONG)_InterlockedIncrement(&CallbackSync->Value) == CallbackSync->Target)
-        PhInvokeCallback(&CallbackSync->Callback, CallbackSync->Parameter); 
-}
-
-FORCEINLINE VOID PhIncrementMultipleCallbackSync(
-    __in PPH_CALLBACK_SYNC CallbackSync
-    )
-{
-    if ((ULONG)_InterlockedIncrement(&CallbackSync->Value) >= CallbackSync->Target)
-        PhInvokeCallback(&CallbackSync->Callback, CallbackSync->Parameter); 
-}
-
 // general
 
 PHLIBAPI
@@ -3305,5 +3273,9 @@ PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
     __in_opt PVOID Context
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

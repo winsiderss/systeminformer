@@ -23,6 +23,10 @@
 #ifndef _PH_REF_H
 #define _PH_REF_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Configuration
 
 #define PHOBJ_SMALL_OBJECT_SIZE 48
@@ -321,5 +325,9 @@ FORCEINLINE PVOID PHA_DEREFERENCE(
 
     return Object;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -7,6 +7,10 @@
 #include <stdarg.h>
 #include <dltmgr.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // native
 
 /** The PID of the idle process. */
@@ -2295,7 +2299,7 @@ FORCEINLINE PPH_STRING PhaFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
     )
 {
-    return PHA_DEREFERENCE(PhFormatDateTime(DateTime));
+    return (PPH_STRING)PHA_DEREFERENCE(PhFormatDateTime(DateTime));
 }
 
 PHLIBAPI
@@ -2714,5 +2718,9 @@ PHLIBAPI
 PPH_STRING PhEscapeCommandLinePart(
     __in PPH_STRINGREF String
     );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
