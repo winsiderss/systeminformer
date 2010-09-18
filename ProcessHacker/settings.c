@@ -214,7 +214,7 @@ BOOLEAN NTAPI PhpSettingsHashtableCompareFunction(
     PPH_SETTING setting1 = (PPH_SETTING)Entry1;
     PPH_SETTING setting2 = (PPH_SETTING)Entry2;
 
-    return WSTR_EQUAL(setting1->Name.Buffer, setting2->Name.Buffer);
+    return PhEqualStringRef(&setting1->Name, &setting2->Name, FALSE);
 }
 
 ULONG NTAPI PhpSettingsHashtableHashFunction(
