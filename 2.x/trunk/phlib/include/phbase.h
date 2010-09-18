@@ -324,6 +324,13 @@ FORCEINLINE PVOID PhAllocateCopy(
     return copy;
 }
 
+// basesupx (basic)
+
+PHLIBAPI
+int
+__cdecl
+ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len);
+
 // event
 
 #define PH_EVENT_SET 0x1
@@ -757,7 +764,21 @@ FORCEINLINE BOOLEAN PhEqualStringRef(
     __in BOOLEAN IgnoreCase
     )
 {
-    return RtlEqualUnicodeString(&String1->us, &String2->us, IgnoreCase);
+    if (!IgnoreCase)
+    {
+        USHORT length1;
+
+        length1 = String1->Length;
+
+        if (length1 != String2->Length)
+            return FALSE;
+
+        return ph_equal_string(String1->Buffer, String2->Buffer, length1 / sizeof(WCHAR));
+    }
+    else
+    {
+        return RtlEqualUnicodeString(&String1->us, &String2->us, TRUE);
+    }
 }
 
 FORCEINLINE BOOLEAN PhEqualStringRef2(
@@ -770,7 +791,7 @@ FORCEINLINE BOOLEAN PhEqualStringRef2(
 
     PhInitializeStringRef(&sr2, String2);
 
-    return RtlEqualUnicodeString(&String1->us, &sr2.us, IgnoreCase);
+    return PhEqualStringRef(String1, &sr2, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhStartsWithStringRef(
@@ -779,7 +800,21 @@ FORCEINLINE BOOLEAN PhStartsWithStringRef(
     __in BOOLEAN IgnoreCase
     )
 {
-    return RtlPrefixUnicodeString(&String2->us, &String1->us, IgnoreCase);
+    if (!IgnoreCase)
+    {
+        USHORT length2;
+
+        length2 = String2->Length;
+
+        if (String1->Length < length2)
+            return FALSE;
+
+        return ph_equal_string(String1->Buffer, String2->Buffer, length2 / sizeof(WCHAR));
+    }
+    else
+    {
+        return RtlPrefixUnicodeString(&String2->us, &String1->us, TRUE);
+    }
 }
 
 FORCEINLINE BOOLEAN PhStartsWithStringRef2(
@@ -792,7 +827,7 @@ FORCEINLINE BOOLEAN PhStartsWithStringRef2(
 
     PhInitializeStringRef(&sr2, String2);
 
-    return RtlPrefixUnicodeString(&sr2.us, &String1->us, IgnoreCase);
+    return PhStartsWithStringRef(String1, &sr2, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhEndsWithStringRef(
@@ -809,7 +844,7 @@ FORCEINLINE BOOLEAN PhEndsWithStringRef(
     sr1.Buffer = &String1->Buffer[(String1->Length - String2->Length) / sizeof(WCHAR)];
     sr1.Length = String2->Length;
 
-    return RtlEqualUnicodeString(&sr1.us, &String2->us, IgnoreCase);
+    return PhEqualStringRef(&sr1, String2, IgnoreCase);
 }
 
 FORCEINLINE BOOLEAN PhEndsWithStringRef2(
@@ -818,18 +853,11 @@ FORCEINLINE BOOLEAN PhEndsWithStringRef2(
     __in BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr1;
     PH_STRINGREF sr2;
 
     PhInitializeStringRef(&sr2, String2);
 
-    if (sr2.Length > String1->Length)
-        return FALSE;
-
-    sr1.Buffer = &String1->Buffer[(String1->Length - sr2.Length) / sizeof(WCHAR)];
-    sr1.Length = sr2.Length;
-
-    return RtlEqualUnicodeString(&sr1.us, &sr2.us, IgnoreCase);
+    return PhEndsWithStringRef(String1, &sr2, IgnoreCase);
 }
 
 FORCEINLINE ULONG PhFindCharInStringRef(
@@ -1179,10 +1207,7 @@ FORCEINLINE BOOLEAN PhEqualString(
     __in BOOLEAN IgnoreCase
     )
 {
-    if (!IgnoreCase)
-        return wcscmp(String1->Buffer, String2->Buffer) == 0;
-    else
-        return RtlEqualUnicodeString(&String1->us, &String2->us, TRUE);
+    return PhEqualStringRef(&String1->sr, &String2->sr, IgnoreCase);
 }
 
 /**
@@ -1228,7 +1253,7 @@ FORCEINLINE BOOLEAN PhStartsWithString(
     __in BOOLEAN IgnoreCase
     )
 {
-    return RtlPrefixUnicodeString(&String2->us, &String1->us, IgnoreCase);
+    return PhStartsWithStringRef(&String1->sr, &String2->sr, IgnoreCase);
 }
 
 /**
@@ -1251,7 +1276,7 @@ FORCEINLINE BOOLEAN PhStartsWithString2(
 
     PhInitializeStringRef(&sr2, String2);
 
-    return RtlPrefixUnicodeString(&sr2.us, &String1->us, IgnoreCase);
+    return PhStartsWithStringRef(&String1->sr, &sr2, IgnoreCase);
 }
 
 /**
@@ -1270,15 +1295,7 @@ FORCEINLINE BOOLEAN PhEndsWithString(
     __in BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr1;
-
-    if (String2->Length > String1->Length)
-        return FALSE;
-
-    sr1.Buffer = &String1->Buffer[(String1->Length - String2->Length) / sizeof(WCHAR)];
-    sr1.Length = String2->Length;
-
-    return RtlEqualUnicodeString(&sr1.us, &String2->us, IgnoreCase);
+    return PhEndsWithStringRef(&String1->sr, &String2->sr, IgnoreCase);
 }
 
 /**
@@ -1297,18 +1314,11 @@ FORCEINLINE BOOLEAN PhEndsWithString2(
     __in BOOLEAN IgnoreCase
     )
 {
-    PH_STRINGREF sr1;
     PH_STRINGREF sr2;
 
     PhInitializeStringRef(&sr2, String2);
 
-    if (sr2.Length > String1->Length)
-        return FALSE;
-
-    sr1.Buffer = &String1->Buffer[(String1->Length - sr2.Length) / sizeof(WCHAR)];
-    sr1.Length = sr2.Length;
-
-    return RtlEqualUnicodeString(&sr1.us, &sr2.us, IgnoreCase);
+    return PhEndsWithStringRef(&String1->sr, &sr2, IgnoreCase);
 }
 
 /**
@@ -2866,7 +2876,7 @@ PhaSubstring(
     __in ULONG Count
     );
 
-// basesupx
+// basesupx (extra)
 
 PHLIBAPI
 VOID
