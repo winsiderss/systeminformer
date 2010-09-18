@@ -132,6 +132,10 @@ extern ULONG PhCharToInteger[256];
 extern CHAR PhIntegerToChar[69];
 extern CHAR PhIntegerToCharUpper[69];
 
+// CRC32
+
+extern ULONG PhCrc32Table[256];
+
 // Enums
 
 extern WCHAR *PhKThreadStateNames[MaximumThreadState];
@@ -330,6 +334,11 @@ PHLIBAPI
 int
 __cdecl
 ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len);
+
+PHLIBAPI
+unsigned long
+__cdecl
+ph_crc32(unsigned long crc, char *buf, size_t len);
 
 // event
 
