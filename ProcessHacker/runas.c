@@ -556,7 +556,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             if (
                                 !PhIsNullOrEmptyString(userName) &&
                                 sessions[i].pWinStationName &&
-                                !WSTR_EQUAL(sessions[i].pWinStationName, L"")
+                                sessions[i].pWinStationName[0] != 0
                                 )
                             {
                                 menuString = PhFormatString(
@@ -569,7 +569,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
                             else if (
                                 sessions[i].pWinStationName &&
-                                !WSTR_EQUAL(sessions[i].pWinStationName, L"")
+                                sessions[i].pWinStationName[0] != 0
                                 )
                             {
                                 menuString = PhFormatString(
