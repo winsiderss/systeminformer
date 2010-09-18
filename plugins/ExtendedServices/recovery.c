@@ -388,14 +388,13 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
-                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_BROWSE));
+                    fileName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_RUNPROGRAM);
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
-                    PhDereferenceObject(fileName);
 
                     if (PhShowFileDialog(NULL, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
-                        SetDlgItemText(hwndDlg, IDC_BROWSE, fileName->Buffer);
+                        SetDlgItemText(hwndDlg, IDC_RUNPROGRAM, fileName->Buffer);
                         PhDereferenceObject(fileName);
                     }
 
