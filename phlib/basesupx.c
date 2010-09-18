@@ -22,6 +22,92 @@
 
 #include <phbase.h>
 
+#ifdef _M_IX86
+
+__declspec(naked) int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len)
+{
+    __asm
+    {
+        push    esi
+        push    edi
+
+        mov     eax, [esp+0xc+0x8] // len
+        mov     ecx, [esp+0xc+0x8] // len
+
+        and     ecx, -2 // round down to even number
+        mov     esi, [esp+0xc+0x0] // s1
+        mov     edi, [esp+0xc+0x4] // s2
+        jz      zero_or_one
+
+loop_start:
+        mov     edx, [esi]
+        cmp     edx, [edi]
+        jnz     return0
+
+        add     esi, 4
+        add     edi, 4
+        sub     ecx, 2
+        jnz     loop_start
+
+        // Either we've reached the end, or the length was odd.
+        test    eax, 1
+        jnz     odd_length
+
+return1:
+        mov     eax, 1
+        pop     edi
+        pop     esi
+        ret
+
+zero_or_one:
+        test    eax, eax
+        jz      return1
+
+odd_length:
+        mov     dx, [esi]
+        cmp     dx, [edi]
+        jz      return1
+
+return0:
+        xor     eax, eax
+        pop     edi
+        pop     esi
+        ret
+    }
+}
+
+#else
+
+int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len)
+{
+    size_t l;
+
+    l = len & -2; // round down to power of 2
+
+    if (l)
+    {
+        while (TRUE)
+        {
+            if (*(PULONG)s1 != *(PULONG)s2)
+                return 0;
+
+            s1 += 2;
+            s2 += 2;
+            l -= 2;
+
+            if (!l)
+                break;
+        }
+    }
+
+    if (len & 1)
+        return *s1 == *s2;
+    else
+        return 1;
+}
+
+#endif
+
 VOID FASTCALL PhxpfAddInt32Fallback(
     __inout PLONG A,
     __in PLONG B,
