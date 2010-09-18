@@ -24,6 +24,7 @@
 #include <phgui.h>
 #include <guisupp.h>
 #include <md5.h>
+#include <sha.h>
 
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
     __out LPVOID *lpEnvironment,
@@ -563,21 +564,91 @@ VOID PhGenerateGuid(
         random[i] = RtlRandomEx(&seed);
 
     // random[0] is usable
-    *(PSHORT)&Guid->Data1 = (SHORT)random[0];
+    *(PUSHORT)&Guid->Data1 = (USHORT)random[0];
     // top byte from random[0] is usable
-    *((PSHORT)&Guid->Data1 + 1) = (SHORT)((random[0] >> 16) | (random[1] & 0xff));
+    *((PUSHORT)&Guid->Data1 + 1) = (USHORT)((random[0] >> 16) | (random[1] & 0xff));
     // top 2 bytes from random[1] are usable
     Guid->Data2 = (SHORT)(random[1] >> 8);
     // random[2] is usable
     Guid->Data3 = (SHORT)random[2];
     // top byte from random[2] is usable
-    *(PSHORT)&Guid->Data4[0] = (SHORT)((random[2] >> 16) | (random[3] & 0xff));
+    *(PUSHORT)&Guid->Data4[0] = (USHORT)((random[2] >> 16) | (random[3] & 0xff));
     // top 2 bytes from random[3] are usable
-    *(PSHORT)&Guid->Data4[2] = (SHORT)(random[3] >> 8);
+    *(PUSHORT)&Guid->Data4[2] = (USHORT)(random[3] >> 8);
     // random[4] is usable
-    *(PSHORT)&Guid->Data4[4] = (SHORT)random[4];
+    *(PUSHORT)&Guid->Data4[4] = (USHORT)random[4];
     // top byte from random[4] is usable
-    *(PSHORT)&Guid->Data4[6] = (SHORT)((random[4] >> 16) | (random[5] & 0xff));
+    *(PUSHORT)&Guid->Data4[6] = (USHORT)((random[4] >> 16) | (random[5] & 0xff));
+
+    ((PGUID_EX)Guid)->s2.Version = GUID_VERSION_RANDOM;
+    ((PGUID_EX)Guid)->s2.Variant &= ~GUID_VARIANT_STANDARD_MASK;
+    ((PGUID_EX)Guid)->s2.Variant |= GUID_VARIANT_STANDARD;
+}
+
+FORCEINLINE VOID PhpReverseGuid(
+    __inout PGUID Guid
+    )
+{
+    Guid->Data1 = _byteswap_ulong(Guid->Data1);
+    Guid->Data2 = _byteswap_ushort(Guid->Data2);
+    Guid->Data3 = _byteswap_ushort(Guid->Data3);
+}
+
+VOID PhGenerateGuidFromName(
+    __out PGUID Guid,
+    __in PGUID Namespace,
+    __in PCHAR Name,
+    __in ULONG NameLength,
+    __in UCHAR Version
+    )
+{
+    PGUID_EX guid;
+    PUCHAR data;
+    ULONG dataLength;
+    GUID ns;
+    UCHAR hash[20];
+
+    // Convert the namespace to big endian.
+
+    ns = *Namespace;
+    PhpReverseGuid(&ns);
+
+    // Compute the hash of the namespace concatenated with the name.
+
+    dataLength = 16 + NameLength;
+    data = PhAllocate(dataLength);
+    memcpy(data, &ns, 16);
+    memcpy(&data[16], Name, NameLength);
+
+    if (Version == GUID_VERSION_MD5)
+    {
+        MD5_CTX context;
+
+        MD5Init(&context);
+        MD5Update(&context, data, dataLength);
+        MD5Final(&context);
+
+        memcpy(hash, context.digest, 16);
+    }
+    else
+    {
+        A_SHA_CTX context;
+
+        A_SHAInit(&context);
+        A_SHAUpdate(&context, data, dataLength);
+        A_SHAFinal(&context, hash);
+
+        Version = GUID_VERSION_SHA1;
+    }
+
+    PhFree(data);
+
+    guid = (PGUID_EX)Guid;
+    memcpy(guid->Data, hash, 16);
+    PhpReverseGuid(&guid->Guid);
+    guid->s2.Version = Version;
+    guid->s2.Variant &= ~GUID_VARIANT_STANDARD_MASK;
+    guid->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
 VOID PhGenerateRandomAlphaString(
