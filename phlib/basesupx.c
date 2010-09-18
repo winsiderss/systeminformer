@@ -76,6 +76,39 @@ return0:
     }
 }
 
+__declspec(naked) unsigned long __cdecl ph_crc32(unsigned long crc, char *buf, size_t len)
+{
+    __asm
+    {
+        push    esi
+
+        mov     eax, [esp+0x8+0x0] // crc
+        mov     ecx, [esp+0x8+0x8] // len
+        mov     esi, [esp+0x8+0x4] // buf
+
+        xor     edx, edx
+        jecxz   done
+        not     eax
+
+        // while (len--)
+        //     crc = (crc >> 8) ^ table[(crc ^ *buf++) & 0xff];
+loop_start:
+        mov     dl, [esi]
+        inc     esi
+        xor     dl, al
+        shr     eax, 8
+        xor     eax, [PhCrc32Table+edx*4]
+
+        sub     ecx, 1
+        jnz     loop_start
+
+        not     eax
+done:
+        pop     esi
+        ret
+    }
+}
+
 #else
 
 int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len)
@@ -104,6 +137,16 @@ int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len)
         return *s1 == *s2;
     else
         return 1;
+}
+
+unsigned long __cdecl ph_crc32(unsigned long crc, char *buf, size_t len)
+{
+    crc ^= 0xffffffff;
+
+    while (len--)
+        crc = (crc >> 8) ^ PhCrc32Table[(crc ^ *buf++) & 0xff];
+
+    return crc ^ 0xffffffff;
 }
 
 #endif

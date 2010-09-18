@@ -21,6 +21,8 @@
  */
 
 #include <ph.h>
+#include <md5.h>
+#include <sha.h>
 
 #define FI_ARG_HELP 1
 #define FI_ARG_ACTION 2
@@ -30,6 +32,10 @@
 #define FI_ARG_OUTPUT 6
 #define FI_ARG_FORCE 7
 #define FI_ARG_LENGTH 8
+
+#define HASH_MD5 1
+#define HASH_SHA1 2
+#define HASH_CRC32 3
 
 PPH_STRING FiArgFileName;
 BOOLEAN FiArgHelp;
@@ -111,6 +117,7 @@ VOID FiPrintHelp()
         L"del\n"
         L"dir\n"
         L"execute\n"
+        L"hash\n"
         L"mkdir\n"
         L"rename\n"
         L"streams\n"
@@ -325,6 +332,132 @@ int __cdecl main(int argc, char *argv[])
         FiPrintHelp();
         return 1;
     }
+    else if (PhEqualString2(FiArgAction, L"hash", TRUE))
+    {
+        HANDLE fileHandle;
+        LARGE_INTEGER fileSize;
+        IO_STATUS_BLOCK isb;
+        ULONG mode;
+
+        if (!FiArgOutput)
+            mode = HASH_MD5;
+        else if (PhEqualString2(FiArgOutput, L"md5", TRUE))
+            mode = HASH_MD5;
+        else if (PhEqualString2(FiArgOutput, L"sha1", TRUE))
+            mode = HASH_SHA1;
+        else if (PhEqualString2(FiArgOutput, L"crc32", TRUE))
+            mode = HASH_CRC32;
+        else
+        {
+            wprintf(L"Invalid hash algorithm. Possibilities: md5, sha1, crc32\n");
+            return 1;
+        }
+
+        if (NT_SUCCESS(status = PhCreateFileWin32(
+            &fileHandle,
+            FiArgFileName->Buffer,
+            FILE_GENERIC_READ,
+            0,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+            {
+                MD5_CTX md5Context;
+                A_SHA_CTX shaContext;
+                ULONG crc;
+                UCHAR buffer[PAGE_SIZE * 4];
+                ULONG64 bytesRemaining;
+
+                bytesRemaining = fileSize.QuadPart;
+
+                switch (mode)
+                {
+                case HASH_MD5:
+                    MD5Init(&md5Context);
+                    break;
+                case HASH_SHA1:
+                    A_SHAInit(&shaContext);
+                    break;
+                case HASH_CRC32:
+                    crc = 0;
+                    break;
+                }
+
+                while (bytesRemaining)
+                {
+                    status = NtReadFile(
+                        fileHandle,
+                        NULL,
+                        NULL,
+                        NULL,
+                        &isb,
+                        buffer,
+                        sizeof(buffer),
+                        NULL,
+                        NULL
+                        );
+
+                    if (!NT_SUCCESS(status))
+                        break;
+
+                    switch (mode)
+                    {
+                    case HASH_MD5:
+                        MD5Update(&md5Context, buffer, (ULONG)isb.Information);
+                        break;
+                    case HASH_SHA1:
+                        A_SHAUpdate(&shaContext, buffer, (ULONG)isb.Information);
+                        break;
+                    case HASH_CRC32:
+                        crc = ph_crc32(crc, buffer, isb.Information);
+                        break;
+                    }
+
+                    bytesRemaining -= (ULONG)isb.Information;
+                }
+
+                if (status == STATUS_END_OF_FILE)
+                    status = STATUS_SUCCESS;
+
+                switch (mode)
+                {
+                case HASH_MD5:
+                    {
+                        MD5Final(&md5Context);
+                        wprintf(L"%s", PhBufferToHexString(md5Context.digest, 16)->Buffer);
+                    }
+                    break;
+                case HASH_SHA1:
+                    {
+                        UCHAR hash[20];
+
+                        A_SHAFinal(&shaContext, hash);
+                        wprintf(L"%s", PhBufferToHexString(hash, 20)->Buffer);
+                    }
+                    break;
+                case HASH_CRC32:
+                    {
+                        wprintf(L"%08x", crc);
+                    }
+                    break;
+                }
+
+                if (!NT_SUCCESS(status))
+                    wprintf(L"Warning: I/O error encountered: %s\n", PhGetNtMessage(status)->Buffer);
+            }
+
+            NtClose(fileHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            wprintf(L"Error: %s\n", PhGetNtMessage(status)->Buffer);
+            return 1;
+        }
+    }
     else if (PhEqualString2(FiArgAction, L"execute", TRUE))
     {
         if (FiArgNative)
@@ -507,7 +640,13 @@ int __cdecl main(int argc, char *argv[])
                 PhSetFileSize(outFileHandle, &fileSize);
             }
 
-            buffer = PhAllocate(COPY_BUFFER_SIZE);
+            buffer = PhAllocatePage(COPY_BUFFER_SIZE, NULL);
+
+            if (!buffer)
+            {
+                wprintf(L"Error allocating buffer.\n");
+                return 1;
+            }
 
             while (bytesToCopy)
             {
@@ -554,7 +693,7 @@ int __cdecl main(int argc, char *argv[])
                 bytesToCopy -= (ULONG)isb.Information;
             }
 
-            PhFree(buffer);
+            PhFreePage(buffer);
 
             // Copy basic attributes over.
             if (NT_SUCCESS(NtQueryInformationFile(
