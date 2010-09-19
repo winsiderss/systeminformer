@@ -587,18 +587,20 @@ BEGIN
     LTEXT           "Static",IDC_TERMINATOR_TEXT,7,7,269,8
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 254, 163
+IDD_ABOUT DIALOGEX 0, 0, 270, 172
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,197,142,50,14
-    ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,20,20
+    DEFPUSHBUTTON   "OK",IDOK,213,151,50,14
+    ICON            IDI_PROCESSHACKER,IDC_STATIC,16,15,21,20
     LTEXT           "Process Hacker",IDC_ABOUT_NAME,45,14,192,8
     LTEXT           "Licensed under the GNU GPL, v3.",IDC_STATIC,45,27,193,8
-    GROUPBOX        "Credits",IDC_STATIC,7,42,240,95
-    LTEXT           "wj32 - Project Manager",IDC_STATIC,15,53,76,8
-    PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,7,142,50,14
+    LTEXT           "Copyright (c) 2008-2010 wj32",IDC_STATIC,15,40,97,8
+    PUSHBUTTON      "Diagnostics",IDC_DIAGNOSTICS,160,151,50,14
+    CONTROL         "<a href=""http://sourceforge.net/projects/processhacker"">Process Hacker on SourceForge.net</a>",IDC_LINK_SF,
+                    "SysLink",WS_TABSTOP,7,154,130,11
+    CONTROL         "Credits.",IDC_CREDITS,"SysLink",WS_TABSTOP,15,55,248,90
 END
 
 IDD_SRVLIST DIALOGEX 0, 0, 237, 201
@@ -1585,9 +1587,9 @@ BEGIN
     IDD_ABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 247
+        RIGHTMARGIN, 263
         TOPMARGIN, 7
-        BOTTOMMARGIN, 156
+        BOTTOMMARGIN, 165
     END
 
     IDD_SRVGENERAL, DIALOG
