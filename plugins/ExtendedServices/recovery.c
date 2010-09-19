@@ -507,13 +507,14 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                                     &failureActionsFlag
                                     );
                             }
+
+                            CloseServiceHandle(serviceHandle);
                         }
                         else
                         {
+                            CloseServiceHandle(serviceHandle);
                             goto ErrorCase;
                         }
-
-                        CloseServiceHandle(serviceHandle);
                     }
                     else
                     {
