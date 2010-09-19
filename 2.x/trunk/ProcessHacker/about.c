@@ -44,6 +44,19 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 PhDereferenceObject(appName);
                 PhDereferenceObject(versionString);
             }
+
+            SetDlgItemText(hwndDlg, IDC_CREDITS,
+                L"Thanks to:\n"
+                L"    Donators - thank you for your support!\n"
+                L"    <a href=\"http://forum.sysinternals.com\">Sysinternals Forums</a>\n"
+                L"    <a href=\"http://www.reactos.org\">ReactOS</a>\n"
+                L"Process Hacker uses the following components:\n"
+                L"    <a href=\"http://www.minixml.org\">Mini-XML</a> by Michael Sweet\n"
+                L"    <a href=\"http://www.pcre.org\">PCRE</a>\n"
+                L"    MD5 code by Jouni Malinen\n"
+                L"    SHA1 code by Filip Navara, based on code by Steve Reid\n"
+                L"    <a href=\"http://www.famfamfam.com/lab/icons/silk\">Silk icons</a>\n"
+                );
         }
         break;
     case WM_COMMAND:
@@ -64,6 +77,33 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
                 break;
             }
         }
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            __try
+            {
+                switch (header->code)
+                {
+                case NM_CLICK:
+                    {
+                        switch (header->idFrom)
+                        {
+                        case IDC_CREDITS:
+                        case IDC_LINK_SF:
+                            PhShellExecute(hwndDlg, ((PNMLINK)header)->item.szUrl, NULL);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+            __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_ACCESS_VIOLATION))
+            {
+                // Seems that the SysLink control is a bit retarded.
+            }
+        }
+        break;
     }
 
     return FALSE;
