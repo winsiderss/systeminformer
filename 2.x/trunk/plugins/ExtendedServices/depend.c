@@ -170,7 +170,7 @@ INT_PTR CALLBACK EspServiceDependenciesDlgProc(
 
                         while (TRUE)
                         {
-                            dependencyLength = wcslen(dependency);
+                            dependencyLength = (ULONG)wcslen(dependency);
 
                             if (dependencyLength == 0)
                                 break;
