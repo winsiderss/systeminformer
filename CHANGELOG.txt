@@ -1,5 +1,10 @@
 Process Hacker
 
+2.6
+ * NEW/IMPROVED:
+ * FIXED:
+   * Fixed service handle leak
+
 2.5
  * NEW/IMPROVED:
    * Unmap section views in Memory tab
