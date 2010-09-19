@@ -118,6 +118,7 @@ VOID FiPrintHelp()
         L"dir\n"
         L"execute\n"
         L"hash\n"
+        L"map\n"
         L"mkdir\n"
         L"rename\n"
         L"streams\n"
@@ -148,13 +149,32 @@ PPH_STRING FiFormatFileName(
         }
         else
         {
+            wprintf(L"Warning: Unable to convert the file name \"%s\" to a NT file name.\n", FileName->Buffer);
             // Fallback method.
             return PhConcatStrings2(L"\\??\\", FileName->Buffer);
         }
     }
     else
     {
-        return PhCreateStringEx(FileName->Buffer, FileName->Length);
+        // Some limited conversions are applied for convenience.
+
+        if (FileName->Length >= 2 * 2 && iswalpha(FileName->Buffer[0]) && FileName->Buffer[1] == ':')
+        {
+            return PhConcatStrings2(L"\\??\\", FileName->Buffer);
+        }
+        else if (FileName->Buffer[0] != '\\')
+        {
+            return PhFormatString(
+                L"\\??\\%s%s",
+                NtCurrentPeb()->ProcessParameters->CurrentDirectory.DosPath.Buffer,
+                FileName->Buffer
+                );
+        }
+        else
+        {
+            PhReferenceObject(FileName);
+            return FileName;
+        }
     }
 }
 
@@ -171,6 +191,7 @@ BOOLEAN FiCreateFile(
     HANDLE fileHandle;
     OBJECT_ATTRIBUTES oa;
     IO_STATUS_BLOCK isb;
+    PPH_STRING fileName;
 
     if (!Options)
         Options = FILE_SYNCHRONOUS_IO_NONALERT;
@@ -198,9 +219,11 @@ BOOLEAN FiCreateFile(
         return TRUE;
     }
 
+    fileName = FiFormatFileName(FileName);
+
     InitializeObjectAttributes(
         &oa,
-        &FileName->us,
+        &fileName->us,
         (!FiArgCaseSensitive ? OBJ_CASE_INSENSITIVE : 0),
         NULL,
         NULL
@@ -325,6 +348,53 @@ int __cdecl main(int argc, char *argv[])
     {
         FiPrintHelp();
         return 1;
+    }
+    else if (PhEqualString2(FiArgAction, L"map", TRUE))
+    {
+        WCHAR deviceNameBuffer[7] = L"\\??\\ :";
+        ULONG i;
+        WCHAR targetNameBuffer[0x100];
+        UNICODE_STRING targetName;
+
+        targetName.Buffer = targetNameBuffer;
+        targetName.MaximumLength = sizeof(targetNameBuffer);
+
+        for (i = 0; i < 26; i++)
+        {
+            HANDLE linkHandle;
+            OBJECT_ATTRIBUTES oa;
+            UNICODE_STRING deviceName;
+
+            deviceNameBuffer[4] = (WCHAR)('A' + i);
+            deviceName.Buffer = deviceNameBuffer;
+            deviceName.Length = 6 * sizeof(WCHAR);
+
+            InitializeObjectAttributes(
+                &oa,
+                &deviceName,
+                OBJ_CASE_INSENSITIVE,
+                NULL,
+                NULL
+                );
+
+            if (NT_SUCCESS(NtOpenSymbolicLinkObject(
+                &linkHandle,
+                SYMBOLIC_LINK_QUERY,
+                &oa
+                )))
+            {
+                if (NT_SUCCESS(NtQuerySymbolicLinkObject(
+                    linkHandle,
+                    &targetName,
+                    NULL
+                    )))
+                {
+                    wprintf(L"%c: %.*s\n", 'A' + i, targetName.Length / 2, targetName.Buffer); 
+                }
+
+                NtClose(linkHandle);
+            }
+        }
     }
     else if (!FiArgFileName)
     {
@@ -463,7 +533,7 @@ int __cdecl main(int argc, char *argv[])
         if (FiArgNative)
         {
             if (!NT_SUCCESS(status = PhCreateProcess(
-                FiArgFileName->Buffer,
+                FiFormatFileName(FiArgFileName)->Buffer,
                 FiArgOutput ? &FiArgOutput->sr : NULL,
                 NULL,
                 NULL,
