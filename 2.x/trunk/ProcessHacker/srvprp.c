@@ -436,13 +436,14 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                             }
 
                             PhMarkNeedsConfigUpdateServiceItem(serviceItem);
+
+                            CloseServiceHandle(serviceHandle);
                         }
                         else
                         {
+                            CloseServiceHandle(serviceHandle);
                             goto ErrorCase;
                         }
-
-                        CloseServiceHandle(serviceHandle);
                     }
                     else
                     {
