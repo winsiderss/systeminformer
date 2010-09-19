@@ -1946,6 +1946,11 @@ NTSTATUS PhCreateProcess(
         windowTitle = (PUNICODE_STRING)Information->WindowTitle;
         desktopInfo = (PUNICODE_STRING)Information->DesktopInfo;
     }
+    else
+    {
+        windowTitle = NULL;
+        desktopInfo = NULL;
+    }
 
     if (!windowTitle)
         windowTitle = &fileName;
