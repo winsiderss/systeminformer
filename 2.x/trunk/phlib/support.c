@@ -2662,30 +2662,29 @@ PPH_STRING PhQueryRegistryString(
 {
     ULONG win32Result;
     PPH_STRING string = NULL;
-    PVOID buffer;
     ULONG bufferSize = 0x80;
     ULONG type;
 
-    buffer = PhAllocate(bufferSize);
+    string = PhCreateStringEx(NULL, bufferSize);
 
     if ((win32Result = RegQueryValueEx(
         KeyHandle,
         ValueName,
         NULL,
         &type,
-        buffer,
+        (PBYTE)string->Buffer,
         &bufferSize
         )) == ERROR_MORE_DATA)
     {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        PhDereferenceObject(string);
+        string = PhCreateStringEx(NULL, bufferSize);
 
         win32Result = RegQueryValueEx(
             KeyHandle,
             ValueName,
             NULL,
             &type,
-            buffer,
+            (PBYTE)string->Buffer,
             &bufferSize
             );
     }
@@ -2697,15 +2696,15 @@ PPH_STRING PhQueryRegistryString(
         type != REG_EXPAND_SZ
         ))
     {
-        PhFree(buffer);
+        PhDereferenceObject(string);
         SetLastError(win32Result);
         return NULL;
     }
 
-    if (bufferSize > 2)
-        string = PhCreateStringEx((PWSTR)buffer, bufferSize - 2);
-
-    PhFree(buffer);
+    if (bufferSize > sizeof(WCHAR))
+    {
+        string->Length = (USHORT)(bufferSize - sizeof(WCHAR));
+    }
 
     return string;
 }

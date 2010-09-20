@@ -99,7 +99,38 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
+typedef struct _PH_REF_STATISTICS
+{
+    ULONG ObjectsCreated;
+    ULONG ObjectsDestroyed;
+    ULONG ObjectsAllocated;
+    ULONG ObjectsFreed;
+    ULONG ObjectsAllocatedFromSmallFreeList;
+    ULONG ObjectsFreedToSmallFreeList;
+    ULONG ObjectsAllocatedFromTypeFreeList;
+    ULONG ObjectsFreedToTypeFreeList;
+    ULONG ObjectsDeleteDeferred;
+    ULONG AutoPoolsCreated;
+    ULONG AutoPoolsDestroyed;
+    ULONG AutoPoolsDynamicAllocated;
+    ULONG AutoPoolsDynamicResized;
+} PH_REF_STATISTICS, *PPH_REF_STATISTICS;
+
+typedef struct _PH_REF_DEBUG_INFORMATION
+{
+    ULONG ObjectSmallFreeListCount;
+    PH_REF_STATISTICS Statistics;
+} PH_REF_DEBUG_INFORMATION, *PPH_REF_DEBUG_INFORMATION;
+
 NTSTATUS PhInitializeRef();
+
+#ifdef DEBUG
+VOID
+NTAPI
+PhGetRefDebugInformation(
+    __out PPH_REF_DEBUG_INFORMATION Information
+    );
+#endif
 
 __mayRaise
 PHLIBAPI
@@ -113,24 +144,26 @@ PhCreateObject(
     );
 
 PHLIBAPI
-NTSTATUS
+VOID
 NTAPI
-PhCreateObjectType(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+PhReferenceObject(
+    __in PVOID Object
+    );
+
+__mayRaise
+PHLIBAPI
+LONG
+NTAPI
+PhReferenceObjectEx(
+    __in PVOID Object,
+    __in LONG RefCount
     );
 
 PHLIBAPI
-NTSTATUS
+BOOLEAN
 NTAPI
-PhCreateObjectTypeEx(
-    __out PPH_OBJECT_TYPE *ObjectType,
-    __in PWSTR Name,
-    __in ULONG Flags,
-    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
-    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
+PhReferenceObjectSafe(
+    __in PVOID Object
     );
 
 PHLIBAPI
@@ -165,37 +198,6 @@ PhGetObjectType(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhGetObjectTypeInformation(
-    __in PPH_OBJECT_TYPE ObjectType,
-    __out PPH_OBJECT_TYPE_INFORMATION Information
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhReferenceObject(
-    __in PVOID Object
-    );
-
-__mayRaise
-PHLIBAPI
-LONG
-NTAPI
-PhReferenceObjectEx(
-    __in PVOID Object,
-    __in LONG RefCount
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhReferenceObjectSafe(
-    __in PVOID Object
-    );
-
-PHLIBAPI
 NTSTATUS
 NTAPI
 PhQuerySecurityObject(
@@ -214,6 +216,35 @@ PhSetSecurityObject(
     __in SECURITY_INFORMATION SecurityInformation,
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in_opt HANDLE TokenHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateObjectType(
+    __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
+    __in ULONG Flags,
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateObjectTypeEx(
+    __out PPH_OBJECT_TYPE *ObjectType,
+    __in PWSTR Name,
+    __in ULONG Flags,
+    __in_opt PPH_TYPE_DELETE_PROCEDURE DeleteProcedure,
+    __in_opt PPH_OBJECT_TYPE_PARAMETERS Parameters
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhGetObjectTypeInformation(
+    __in PPH_OBJECT_TYPE ObjectType,
+    __out PPH_OBJECT_TYPE_INFORMATION Information
     );
 
 FORCEINLINE VOID PhSwapReference(
