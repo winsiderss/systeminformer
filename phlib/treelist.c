@@ -1532,13 +1532,13 @@ static VOID PhpCustomDrawPrePaintSubItem(
         textRect.right -= 4;
     }
 
-    if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
-        textFlags |= DT_END_ELLIPSIS;
-
-    textFlags |= DT_NOPREFIX | DT_VCENTER;
-
     if (PhpGetNodeText(Context, node, subItemIndex, &text))
     {
+        if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
+            textFlags |= DT_END_ELLIPSIS;
+
+        textFlags |= DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE;
+
         textRect.top = origTextRect.top + textVertMargin;
         textRect.bottom = origTextRect.bottom - textVertMargin;
 
