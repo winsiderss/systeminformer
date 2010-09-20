@@ -5402,6 +5402,21 @@ NTSTATUS PhGetProcessIsDotNet(
     return status;
 }
 
+typedef struct _PH_IS_DOT_NET_ENTRY
+{
+    struct _PH_IS_DOT_NET_ENTRY *Next;
+    ULONG Flags;
+    HANDLE ProcessId;
+} PH_IS_DOT_NET_ENTRY, *PPH_IS_DOT_NET_ENTRY;
+
+typedef struct _PH_IS_DOT_NET_CONTEXT
+{
+    PPH_IS_DOT_NET_ENTRY Entries;
+    ULONG NumberOfEntries;
+    ULONG NumberOfAllocatedEntries;
+    PPH_IS_DOT_NET_ENTRY Buckets[16];
+} PH_IS_DOT_NET_CONTEXT, *PPH_IS_DOT_NET_CONTEXT;
+
 BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
     __in PPH_STRING Name,
     __in PPH_STRING TypeName,
@@ -5418,9 +5433,11 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
         PhStartsWithStringRef(&Name->sr, &prefix, TRUE)
         )
     {
+        PPH_IS_DOT_NET_ENTRY entry;
         ULONG flags;
         PH_STRINGREF name;
         ULONG64 processId;
+        ULONG index;
 
         flags = 0;
 
@@ -5437,7 +5454,22 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
-            PhAddItemSimpleHashtable(context, (HANDLE)processId, (PVOID)flags);
+            if (context->NumberOfEntries == context->NumberOfAllocatedEntries)
+            {
+                context->NumberOfAllocatedEntries *= 2;
+                context->Entries = PhReAllocate(
+                    context->Entries,
+                    context->NumberOfAllocatedEntries * sizeof(PH_IS_DOT_NET_ENTRY)
+                    );
+            }
+
+            entry = &context->Entries[context->NumberOfEntries++];
+            entry->Flags = flags;
+            entry->ProcessId = (HANDLE)processId;
+
+            index = ((ULONG)processId / 4) & (sizeof(context->Buckets) / sizeof(PH_IS_DOT_NET_ENTRY) - 1);
+            entry->Next = context->Buckets[index];
+            context->Buckets[index] = entry;
         }
     }
 
@@ -5457,7 +5489,11 @@ NTSTATUS PhCreateIsDotNetContext(
     PH_STRINGREF defaultDirectoryName;
     ULONG i;
 
-    isDotNetContext = PhCreateSimpleHashtable(8);
+    isDotNetContext = PhAllocate(sizeof(PH_IS_DOT_NET_CONTEXT));
+    isDotNetContext->NumberOfEntries = 0;
+    isDotNetContext->NumberOfAllocatedEntries = 16;
+    isDotNetContext->Entries = PhAllocate(isDotNetContext->NumberOfAllocatedEntries * sizeof(PH_IS_DOT_NET_ENTRY));
+    memset(isDotNetContext->Buckets, 0, sizeof(isDotNetContext->Buckets));
 
     if (!DirectoryNames || NumberOfDirectoryNames == 0)
     {
@@ -5502,7 +5538,8 @@ VOID PhFreeIsDotNetContext(
     __inout PPH_IS_DOT_NET_CONTEXT IsDotNetContext
     )
 {
-    PhDereferenceObject(IsDotNetContext);
+    PhFree(IsDotNetContext->Entries);
+    PhFree(IsDotNetContext);
 }
 
 BOOLEAN PhGetProcessIsDotNetFromContext(
@@ -5511,21 +5548,26 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
     __out_opt PULONG Flags
     )
 {
-    PPVOID item;
+    PPH_IS_DOT_NET_ENTRY entry;
+    ULONG index;
 
-    item = PhFindItemSimpleHashtable(IsDotNetContext, ProcessId);
+    index = ((ULONG)ProcessId / 4) & (sizeof(IsDotNetContext->Buckets) / sizeof(PH_IS_DOT_NET_ENTRY) - 1);
+    entry = IsDotNetContext->Buckets[index];
 
-    if (item)
+    while (entry)
     {
-        if (Flags)
-            *Flags = (ULONG)*item;
+        if (entry->ProcessId == ProcessId)
+        {
+            if (Flags)
+                *Flags = entry->Flags;
 
-        return TRUE;
+            return TRUE;
+        }
+
+        entry = entry->Next;
     }
-    else
-    {
-        return FALSE;
-    }
+
+    return FALSE;
 }
 
 /**
