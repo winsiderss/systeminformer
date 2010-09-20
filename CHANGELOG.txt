@@ -2,6 +2,7 @@ Process Hacker
 
 2.6
  * NEW/IMPROVED:
+   * Performance improvements
  * FIXED:
    * Fixed service handle leak
 

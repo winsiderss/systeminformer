@@ -632,10 +632,6 @@ FORCEINLINE BOOLEAN PhTestInitOnce(
 
 // string
 
-#ifndef _PH_BASESUP_PRIVATE
-extern PPH_OBJECT_TYPE PhStringType;
-#endif
-
 PHLIBAPI
 PSTR
 NTAPI
@@ -691,6 +687,55 @@ PhCompareUnicodeStringZNatural(
     __in PWSTR B,
     __in BOOLEAN IgnoreCase
     );
+
+FORCEINLINE LONG PhCompareStringZ(
+    __in PWSTR String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1, String2);
+    else
+        return wcsicmp(String1, String2);
+}
+
+FORCEINLINE BOOLEAN PhAreCharactersDifferent(
+    __in WCHAR Char1,
+    __in WCHAR Char2
+    )
+{
+    WCHAR d;
+
+    d = Char1 ^ Char2;
+
+    // We ignore bits beyond bit 5 because bit 6 is the case bit, and also we 
+    // don't support localization here.
+    if (d & 0x1f)
+        return TRUE;
+
+    return FALSE;
+}
+
+FORCEINLINE BOOLEAN PhEqualStringZ(
+    __in PWSTR String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+    {
+        return wcscmp(String1, String2) == 0;
+    }
+    else
+    {
+        // wcsicmp is very expensive, so we do a quick check for negatives first.
+        if (PhAreCharactersDifferent(String1[0], String2[0]))
+            return FALSE;
+
+        return wcsicmp(String1, String2) == 0;
+    }
+}
 
 #define PH_STRING_MAXLEN MAXUINT16
 
@@ -900,6 +945,10 @@ FORCEINLINE VOID PhReverseStringRef(
         String->Buffer[j] = t;
     }
 }
+
+#ifndef _PH_BASESUP_PRIVATE
+extern PPH_OBJECT_TYPE PhStringType;
+#endif
 
 /**
  * A Unicode string object.
