@@ -164,7 +164,9 @@ static VOID PhpDumpObjectInfo(
 
         if (ObjectHeader->Type == PhObjectTypeObject)
         {
-            wprintf(L"%s\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
+            wprintf(L"Name: %s\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->Name);
+            wprintf(L"Number of objects: %u\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->NumberOfObjects);
+            wprintf(L"Free list count: %u\n", ((PPH_OBJECT_TYPE)PhObjectHeaderToObject(ObjectHeader))->FreeList.Count);
         }
         else if (ObjectHeader->Type == PhStringType)
         {
@@ -571,6 +573,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"testperf\n"
                 L"testlocks\n"
                 L"objects [type-name-filter]\n"
+                L"objstats\n"
                 L"objtrace object-address\n"
                 L"objmksnap\n"
                 L"objcmpsnap\n"
@@ -763,6 +766,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             PhReleaseQueuedLockShared(&PhDbgObjectListLock);
 
+            wprintf(L"\n");
             wprintf(L"Total number: %u\n", totalNumberOfObjects);
             wprintf(L"Total size (excl. header): %s\n",
                 ((PPH_STRING)PHA_DEREFERENCE(PhFormatSize(totalNumberOfBytes, 1)))->Buffer);
@@ -770,6 +774,35 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 ((PPH_STRING)PHA_DEREFERENCE(
                 PhFormatSize(PhpAddObjectHeaderSize(0) * totalNumberOfObjects, 1)
                 ))->Buffer);
+#else
+            wprintf(commandDebugOnly);
+#endif
+        }
+        else if (WSTR_IEQUAL(command, L"objstats"))
+        {
+#ifdef DEBUG
+            PH_REF_DEBUG_INFORMATION debugInfo;
+
+            PhGetRefDebugInformation(&debugInfo);
+
+            wprintf(L"Object small free list count: %u\n", debugInfo.ObjectSmallFreeListCount);
+            wprintf(L"Statistics:\n");
+#define PRINT_STATISTIC(Name) wprintf(L#Name L": %u\n", debugInfo.Statistics.Name);
+
+            PRINT_STATISTIC(ObjectsCreated);
+            PRINT_STATISTIC(ObjectsDestroyed);
+            PRINT_STATISTIC(ObjectsAllocated);
+            PRINT_STATISTIC(ObjectsFreed);
+            PRINT_STATISTIC(ObjectsAllocatedFromSmallFreeList);
+            PRINT_STATISTIC(ObjectsFreedToSmallFreeList);
+            PRINT_STATISTIC(ObjectsAllocatedFromTypeFreeList);
+            PRINT_STATISTIC(ObjectsFreedToTypeFreeList);
+            PRINT_STATISTIC(ObjectsDeleteDeferred);
+            PRINT_STATISTIC(AutoPoolsCreated);
+            PRINT_STATISTIC(AutoPoolsDestroyed);
+            PRINT_STATISTIC(AutoPoolsDynamicAllocated);
+            PRINT_STATISTIC(AutoPoolsDynamicResized);
+
 #else
             wprintf(commandDebugOnly);
 #endif
