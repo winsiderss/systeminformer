@@ -23,6 +23,13 @@
 #define PH_SRVPRV_PRIVATE
 #include <phapp.h>
 
+typedef struct _PHP_SERVICE_NAME_ENTRY
+{
+    PH_HASH_ENTRY HashEntry;
+    PH_STRINGREF Name;
+    ENUM_SERVICE_STATUS_PROCESS *ServiceEntry;
+} PHP_SERVICE_NAME_ENTRY, *PPHP_SERVICE_NAME_ENTRY;
+
 VOID NTAPI PhpServiceItemDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -130,7 +137,7 @@ BOOLEAN PhpServiceHashtableCompareFunction(
     PPH_SERVICE_ITEM serviceItem1 = *(PPH_SERVICE_ITEM *)Entry1;
     PPH_SERVICE_ITEM serviceItem2 = *(PPH_SERVICE_ITEM *)Entry2;
 
-    return WSTR_IEQUAL(serviceItem1->Key.Buffer, serviceItem2->Key.Buffer);
+    return PhEqualStringRef(&serviceItem1->Key, &serviceItem2->Key, TRUE);
 }
 
 ULONG PhpServiceHashtableHashFunction(
@@ -145,7 +152,7 @@ ULONG PhpServiceHashtableHashFunction(
 
     // Check the length. Should never be above 256, but we have 
     // to make sure.
-    if (serviceItem->Key.Length > 256 * 2)
+    if (serviceItem->Key.Length > 256 * sizeof(WCHAR))
         return 0;
 
     // Copy the name and convert it to uppercase.
@@ -157,34 +164,43 @@ ULONG PhpServiceHashtableHashFunction(
     return PhHashBytes((PUCHAR)upperName, serviceItem->Key.Length);
 }
 
-PPH_SERVICE_ITEM PhReferenceServiceItem(
-    __in PWSTR Name
+__assumeLocked PPH_SERVICE_ITEM PhpLookupServiceItem(
+    __in PPH_STRINGREF Name
     )
 {
     PH_SERVICE_ITEM lookupServiceItem;
     PPH_SERVICE_ITEM lookupServiceItemPtr = &lookupServiceItem;
-    PPH_SERVICE_ITEM *serviceItemPtr;
-    PPH_SERVICE_ITEM serviceItem;
+    PPH_SERVICE_ITEM *serviceItem;
 
-    // Construct a temporary service item for the lookup.
-    PhInitializeStringRef(&lookupServiceItem.Key, Name);
+    lookupServiceItem.Key = *Name;
 
-    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
-
-    serviceItemPtr = (PPH_SERVICE_ITEM *)PhFindEntryHashtable(
+    serviceItem = (PPH_SERVICE_ITEM *)PhFindEntryHashtable(
         PhServiceHashtable,
         &lookupServiceItemPtr
         );
 
-    if (serviceItemPtr)
-    {
-        serviceItem = *serviceItemPtr;
-        PhReferenceObject(serviceItem);
-    }
+    if (serviceItem)
+        return *serviceItem;
     else
-    {
-        serviceItem = NULL;
-    }
+        return NULL;
+}
+
+PPH_SERVICE_ITEM PhReferenceServiceItem(
+    __in PWSTR Name
+    )
+{
+    PPH_SERVICE_ITEM serviceItem;
+    PH_STRINGREF key;
+
+    // Construct a temporary service item for the lookup.
+    PhInitializeStringRef(&key, Name);
+
+    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
+
+    serviceItem = PhpLookupServiceItem(&key);
+
+    if (serviceItem)
+        PhReferenceObject(serviceItem);
 
     PhReleaseQueuedLockShared(&PhServiceHashtableLock);
 
@@ -352,6 +368,21 @@ VOID PhpUpdateServiceItemConfig(
     }
 }
 
+static BOOLEAN PhpCompareServiceNameEntry(
+    __in PPHP_SERVICE_NAME_ENTRY Value1,
+    __in PPHP_SERVICE_NAME_ENTRY Value2
+    )
+{
+    return PhEqualStringRef(&Value1->Name, &Value2->Name, TRUE);
+}
+
+static ULONG PhpHashServiceNameEntry(
+    __in PPHP_SERVICE_NAME_ENTRY Value
+    )
+{
+    return PhHashBytes((PUCHAR)Value->Name.Buffer, Value->Name.Length);
+}
+
 VOID PhServiceProviderUpdate(
     __in PVOID Object
     )
@@ -359,9 +390,15 @@ VOID PhServiceProviderUpdate(
     static SC_HANDLE scManagerHandle = NULL;
     static ULONG runCount = 0;
 
+    static PPH_HASH_ENTRY nameHashSet[256];
+    static PPHP_SERVICE_NAME_ENTRY nameEntries = NULL;
+    static ULONG nameEntriesCount;
+    static ULONG nameEntriesAllocated = 0;
+
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
     ULONG i;
+    PPH_HASH_ENTRY hashEntry;
 
     if (!scManagerHandle)
     {
@@ -376,6 +413,35 @@ VOID PhServiceProviderUpdate(
     if (!services)
         return;
 
+    // Build a hash set containing the service names.
+
+    nameEntriesCount = 0;
+
+    if (nameEntriesAllocated < numberOfServices)
+    {
+        nameEntriesAllocated = numberOfServices + 32;
+
+        if (nameEntries) PhFree(nameEntries);
+        nameEntries = PhAllocate(sizeof(PHP_SERVICE_NAME_ENTRY) * nameEntriesAllocated);
+    }
+
+    PhInitializeHashSet(nameHashSet, PH_HASH_SET_SIZE(nameHashSet));
+
+    for (i = 0; i < numberOfServices; i++)
+    {
+        PPHP_SERVICE_NAME_ENTRY entry;
+
+        entry = &nameEntries[nameEntriesCount++];
+        PhInitializeStringRef(&entry->Name, services[i].lpServiceName);
+        entry->ServiceEntry = &services[i];
+        PhAddEntryHashSet(
+            nameHashSet,
+            PH_HASH_SET_SIZE(nameHashSet),
+            &entry->HashEntry,
+            PhpHashServiceNameEntry(entry)
+            );
+    }
+
     // Look for dead services.
     {
         PPH_LIST servicesToRemove = NULL;
@@ -385,11 +451,24 @@ VOID PhServiceProviderUpdate(
         while (PhEnumHashtable(PhServiceHashtable, (PPVOID)&serviceItem, &enumerationKey))
         {
             BOOLEAN found = FALSE;
+            PHP_SERVICE_NAME_ENTRY lookupNameEntry;
 
             // Check if the service still exists.
-            for (i = 0; i < numberOfServices; i++)
+
+            lookupNameEntry.Name = (*serviceItem)->Name->sr;
+            hashEntry = PhFindEntryHashSet(
+                nameHashSet,
+                PH_HASH_SET_SIZE(nameHashSet),
+                PhpHashServiceNameEntry(&lookupNameEntry)
+                );
+
+            for (; hashEntry; hashEntry = hashEntry->Next)
             {
-                if (wcsicmp((*serviceItem)->Name->Buffer, services[i].lpServiceName) == 0)
+                PPHP_SERVICE_NAME_ENTRY nameEntry;
+
+                nameEntry = CONTAINING_RECORD(hashEntry, PHP_SERVICE_NAME_ENTRY, HashEntry);
+
+                if (PhpCompareServiceNameEntry(&lookupNameEntry, nameEntry))
                 {
                     found = TRUE;
                     break;
@@ -437,134 +516,139 @@ VOID PhServiceProviderUpdate(
     }
 
     // Look for new services and update existing ones.
-    for (i = 0; i < numberOfServices; i++)
+    for (i = 0; i < PH_HASH_SET_SIZE(nameHashSet); i++)
     {
-        PPH_SERVICE_ITEM serviceItem;
-
-        serviceItem = PhReferenceServiceItem(services[i].lpServiceName);
-
-        if (!serviceItem)
+        for (hashEntry = nameHashSet[i]; hashEntry; hashEntry = hashEntry->Next)
         {
-            // Create the service item and fill in basic information.
+            PPH_SERVICE_ITEM serviceItem;
+            PPHP_SERVICE_NAME_ENTRY nameEntry;
+            ENUM_SERVICE_STATUS_PROCESS *serviceEntry;
 
-            serviceItem = PhCreateServiceItem(&services[i]);
+            nameEntry = CONTAINING_RECORD(hashEntry, PHP_SERVICE_NAME_ENTRY, HashEntry);
+            serviceEntry = nameEntry->ServiceEntry;
+            serviceItem = PhpLookupServiceItem(&nameEntry->Name);
 
-            PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
-
-            // Add the service to its process, if appropriate.
-            if (
-                (
-                serviceItem->State == SERVICE_RUNNING ||
-                serviceItem->State == SERVICE_PAUSED
-                ) &&
-                serviceItem->ProcessId
-                )
+            if (!serviceItem)
             {
-                PPH_PROCESS_ITEM processItem;
+                // Create the service item and fill in basic information.
 
-                processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
+                serviceItem = PhCreateServiceItem(serviceEntry);
 
-                if (processItem)
-                {
-                    PhpAddProcessItemService(processItem, serviceItem);
-                    PhDereferenceObject(processItem);
-                }
-                else
-                {
-                    // The process doesn't exist yet (to us). Set the pending 
-                    // flag and when the process is added this will be 
-                    // fixed.
-                    serviceItem->PendingProcess = TRUE;
-                }
-            }
+                PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
 
-            // Add the service item to the hashtable.
-            PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
-            PhAddEntryHashtable(PhServiceHashtable, &serviceItem);
-            PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
-
-            // Raise the service added event.
-            PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
-        }
-        else
-        {
-            if (
-                serviceItem->Type != services[i].ServiceStatusProcess.dwServiceType || 
-                serviceItem->State != services[i].ServiceStatusProcess.dwCurrentState ||
-                serviceItem->ControlsAccepted != services[i].ServiceStatusProcess.dwControlsAccepted ||
-                serviceItem->ProcessId != (HANDLE)services[i].ServiceStatusProcess.dwProcessId ||
-                serviceItem->NeedsConfigUpdate
-                )
-            {
-                PH_SERVICE_MODIFIED_DATA serviceModifiedData;
-                PH_SERVICE_CHANGE serviceChange;
-
-                // The service has been "modified".
-
-                serviceModifiedData.Service = serviceItem;
-                memset(&serviceModifiedData.OldService, 0, sizeof(PH_SERVICE_ITEM));
-                serviceModifiedData.OldService.Type = serviceItem->Type;
-                serviceModifiedData.OldService.State = serviceItem->State;
-                serviceModifiedData.OldService.ControlsAccepted = serviceItem->ControlsAccepted;
-                serviceModifiedData.OldService.ProcessId = serviceItem->ProcessId;
-
-                // Update the service item.
-                serviceItem->Type = services[i].ServiceStatusProcess.dwServiceType;
-                serviceItem->State = services[i].ServiceStatusProcess.dwCurrentState;
-                serviceItem->ControlsAccepted = services[i].ServiceStatusProcess.dwControlsAccepted;
-                serviceItem->ProcessId = (HANDLE)services[i].ServiceStatusProcess.dwProcessId;
-
-                if (serviceItem->ProcessId)
-                    PhPrintUInt32(serviceItem->ProcessIdString, (ULONG)serviceItem->ProcessId);
-                else
-                    serviceItem->ProcessIdString[0] = 0;
-
-                // Add/remove the service from its process.
-
-                serviceChange = PhGetServiceChange(&serviceModifiedData);
-
+                // Add the service to its process, if appropriate.
                 if (
-                    (serviceChange == ServiceStarted && serviceItem->ProcessId) ||
-                    (serviceChange == ServiceStopped && serviceModifiedData.OldService.ProcessId)
+                    (
+                    serviceItem->State == SERVICE_RUNNING ||
+                    serviceItem->State == SERVICE_PAUSED
+                    ) &&
+                    serviceItem->ProcessId
                     )
                 {
                     PPH_PROCESS_ITEM processItem;
 
-                    if (serviceChange == ServiceStarted)
-                        processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
-                    else
-                        processItem = PhReferenceProcessItem((HANDLE)serviceModifiedData.OldService.ProcessId);
+                    processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
 
                     if (processItem)
                     {
-                        if (serviceChange == ServiceStarted)
-                            PhpAddProcessItemService(processItem, serviceItem);
-                        else
-                            PhpRemoveProcessItemService(processItem, serviceItem);
-
+                        PhpAddProcessItemService(processItem, serviceItem);
                         PhDereferenceObject(processItem);
                     }
                     else
                     {
-                        if (serviceChange == ServiceStarted)
-                            serviceItem->PendingProcess = TRUE;
-                        else
-                            serviceItem->PendingProcess = FALSE;
+                        // The process doesn't exist yet (to us). Set the pending 
+                        // flag and when the process is added this will be 
+                        // fixed.
+                        serviceItem->PendingProcess = TRUE;
                     }
                 }
 
-                // Do a config update if necessary.
-                if (serviceItem->NeedsConfigUpdate)
-                {
-                    PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
-                    serviceItem->NeedsConfigUpdate = FALSE;
-                }
+                // Add the service item to the hashtable.
+                PhAcquireQueuedLockExclusive(&PhServiceHashtableLock);
+                PhAddEntryHashtable(PhServiceHashtable, &serviceItem);
+                PhReleaseQueuedLockExclusive(&PhServiceHashtableLock);
 
-                // Raise the service modified event.
-                PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
+                // Raise the service added event.
+                PhInvokeCallback(&PhServiceAddedEvent, serviceItem);
             }
+            else
+            {
+                if (
+                    serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType || 
+                    serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
+                    serviceItem->ControlsAccepted != serviceEntry->ServiceStatusProcess.dwControlsAccepted ||
+                    serviceItem->ProcessId != (HANDLE)serviceEntry->ServiceStatusProcess.dwProcessId ||
+                    serviceItem->NeedsConfigUpdate
+                    )
+                {
+                    PH_SERVICE_MODIFIED_DATA serviceModifiedData;
+                    PH_SERVICE_CHANGE serviceChange;
 
-            PhDereferenceObject(serviceItem);
+                    // The service has been "modified".
+
+                    serviceModifiedData.Service = serviceItem;
+                    memset(&serviceModifiedData.OldService, 0, sizeof(PH_SERVICE_ITEM));
+                    serviceModifiedData.OldService.Type = serviceItem->Type;
+                    serviceModifiedData.OldService.State = serviceItem->State;
+                    serviceModifiedData.OldService.ControlsAccepted = serviceItem->ControlsAccepted;
+                    serviceModifiedData.OldService.ProcessId = serviceItem->ProcessId;
+
+                    // Update the service item.
+                    serviceItem->Type = serviceEntry->ServiceStatusProcess.dwServiceType;
+                    serviceItem->State = serviceEntry->ServiceStatusProcess.dwCurrentState;
+                    serviceItem->ControlsAccepted = serviceEntry->ServiceStatusProcess.dwControlsAccepted;
+                    serviceItem->ProcessId = (HANDLE)serviceEntry->ServiceStatusProcess.dwProcessId;
+
+                    if (serviceItem->ProcessId)
+                        PhPrintUInt32(serviceItem->ProcessIdString, (ULONG)serviceItem->ProcessId);
+                    else
+                        serviceItem->ProcessIdString[0] = 0;
+
+                    // Add/remove the service from its process.
+
+                    serviceChange = PhGetServiceChange(&serviceModifiedData);
+
+                    if (
+                        (serviceChange == ServiceStarted && serviceItem->ProcessId) ||
+                        (serviceChange == ServiceStopped && serviceModifiedData.OldService.ProcessId)
+                        )
+                    {
+                        PPH_PROCESS_ITEM processItem;
+
+                        if (serviceChange == ServiceStarted)
+                            processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
+                        else
+                            processItem = PhReferenceProcessItem((HANDLE)serviceModifiedData.OldService.ProcessId);
+
+                        if (processItem)
+                        {
+                            if (serviceChange == ServiceStarted)
+                                PhpAddProcessItemService(processItem, serviceItem);
+                            else
+                                PhpRemoveProcessItemService(processItem, serviceItem);
+
+                            PhDereferenceObject(processItem);
+                        }
+                        else
+                        {
+                            if (serviceChange == ServiceStarted)
+                                serviceItem->PendingProcess = TRUE;
+                            else
+                                serviceItem->PendingProcess = FALSE;
+                        }
+                    }
+
+                    // Do a config update if necessary.
+                    if (serviceItem->NeedsConfigUpdate)
+                    {
+                        PhpUpdateServiceItemConfig(scManagerHandle, serviceItem);
+                        serviceItem->NeedsConfigUpdate = FALSE;
+                    }
+
+                    // Raise the service modified event.
+                    PhInvokeCallback(&PhServiceModifiedEvent, &serviceModifiedData);
+                }
+            }
         }
     }
 

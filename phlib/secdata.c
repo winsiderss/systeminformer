@@ -697,7 +697,7 @@ PPH_STRING PhGetAccessString(
     ULONG i;
     ULONG j;
 
-    PhInitializeStringBuilder(&stringBuilder, 10);
+    PhInitializeStringBuilder(&stringBuilder, 32);
 
     // Sort the access entries according to how many access rights they 
     // include.

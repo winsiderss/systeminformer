@@ -517,7 +517,7 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
 
     for (i = 0; i < SizeOfKeyValuePairs / sizeof(PH_KEY_VALUE_PAIR); i++)
     {
-        if (WSTR_IEQUAL(KeyValuePairs[i].Key, String))
+        if (PhEqualStringZ(KeyValuePairs[i].Key, String, TRUE))
         {
             *Integer = (ULONG)KeyValuePairs[i].Value;
             return TRUE;
