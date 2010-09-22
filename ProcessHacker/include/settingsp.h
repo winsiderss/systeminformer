@@ -13,41 +13,26 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     __in PVOID Entry
     );
 
-VOID PhpAddStringSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
-VOID PhpAddIntegerSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
-VOID PhpAddIntegerPairSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    );
-
 __assumeLocked VOID PhpAddSetting(
     __in PH_SETTING_TYPE Type,
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
+    __in PPH_STRINGREF Name,
+    __in PPH_STRINGREF DefaultValue
     );
 
 PPH_STRING PhpSettingToString(
     __in PH_SETTING_TYPE Type,
-    __in PVOID Value
+    __in PPH_SETTING Setting
     );
 
 BOOLEAN PhpSettingFromString(
     __in PH_SETTING_TYPE Type,
     __in PPH_STRING String,
-    __out PPVOID Value
+    __inout PPH_SETTING Setting
     );
 
 VOID PhpFreeSettingValue(
     __in PH_SETTING_TYPE Type,
-    __in PVOID Value
+    __in PPH_SETTING Setting
     );
 
 PVOID PhpLookupSetting(
