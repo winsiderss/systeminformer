@@ -688,18 +688,6 @@ PhCompareUnicodeStringZNatural(
     __in BOOLEAN IgnoreCase
     );
 
-FORCEINLINE LONG PhCompareStringZ(
-    __in PWSTR String1,
-    __in PWSTR String2,
-    __in BOOLEAN IgnoreCase
-    )
-{
-    if (!IgnoreCase)
-        return wcscmp(String1, String2);
-    else
-        return wcsicmp(String1, String2);
-}
-
 FORCEINLINE BOOLEAN PhAreCharactersDifferent(
     __in WCHAR Char1,
     __in WCHAR Char2
@@ -715,6 +703,25 @@ FORCEINLINE BOOLEAN PhAreCharactersDifferent(
         return TRUE;
 
     return FALSE;
+}
+
+FORCEINLINE BOOLEAN PhIsDigitCharacter(
+    __in WCHAR Char
+    )
+{
+    return (USHORT)(Char - '0') < 10;
+}
+
+FORCEINLINE LONG PhCompareStringZ(
+    __in PWSTR String1,
+    __in PWSTR String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    if (!IgnoreCase)
+        return wcscmp(String1, String2);
+    else
+        return wcsicmp(String1, String2);
 }
 
 FORCEINLINE BOOLEAN PhEqualStringZ(
