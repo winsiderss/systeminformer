@@ -337,6 +337,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\emenu.c"
+				>
+			</File>
+			<File
 				RelativePath=".\error.c"
 				>
 			</File>
@@ -584,6 +588,10 @@
 			</File>
 			<File
 				RelativePath=".\include\dspick.h"
+				>
+			</File>
+			<File
+				RelativePath=".\include\emenu.h"
 				>
 			</File>
 			<File
