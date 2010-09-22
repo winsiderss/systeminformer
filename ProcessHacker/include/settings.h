@@ -14,7 +14,12 @@ typedef struct _PH_SETTING
     PH_STRINGREF Name;
     PPH_STRING DefaultValue;
 
-    PVOID Value;
+    union
+    {
+        PVOID Pointer;
+        ULONG Integer;
+        PH_INTEGER_PAIR IntegerPair;
+    } u;
 } PH_SETTING, *PPH_SETTING;
 
 VOID PhSettingsInitialization();

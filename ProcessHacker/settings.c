@@ -30,6 +30,20 @@ PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 
 PPH_LIST PhIgnoredSettings;
 
+// These macros make sure the C strings can be seamlessly converted into 
+// PH_STRINGREFs at compile time, for a small speed boost.
+
+#define ADD_SETTING_WRAPPER(Type, Name, DefaultValue) \
+    { \
+        static PH_STRINGREF name = PH_STRINGREF_INIT(Name); \
+        static PH_STRINGREF defaultValue = PH_STRINGREF_INIT(DefaultValue); \
+        PhpAddSetting(Type, &name, &defaultValue); \
+    }
+
+#define PhpAddStringSetting(A, B) ADD_SETTING_WRAPPER(StringSettingType, A, B)
+#define PhpAddIntegerSetting(A, B) ADD_SETTING_WRAPPER(IntegerSettingType, A, B)
+#define PhpAddIntegerPairSetting(A, B) ADD_SETTING_WRAPPER(IntegerPairSettingType, A, B)
+
 VOID PhSettingsInitialization()
 {
     PhSettingsHashtable = PhCreateHashtable(
@@ -226,71 +240,47 @@ ULONG NTAPI PhpSettingsHashtableHashFunction(
     return PhHashBytes((PUCHAR)setting->Name.Buffer, setting->Name.Length);
 }
 
-static VOID PhpAddStringSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    )
-{
-    PhpAddSetting(StringSettingType, Name, DefaultValue);
-}
-
-static VOID PhpAddIntegerSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    )
-{
-    PhpAddSetting(IntegerSettingType, Name, DefaultValue);
-}
-
-static VOID PhpAddIntegerPairSetting(
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
-    )
-{
-    PhpAddSetting(IntegerPairSettingType, Name, DefaultValue);
-}
-
 __assumeLocked static VOID PhpAddSetting(
     __in PH_SETTING_TYPE Type,
-    __in PWSTR Name,
-    __in PWSTR DefaultValue
+    __in PPH_STRINGREF Name,
+    __in PPH_STRINGREF DefaultValue
     )
 {
     PH_SETTING setting;
 
     setting.Type = Type;
-    PhInitializeStringRef(&setting.Name, Name);
-    setting.DefaultValue = PhCreateString(DefaultValue);
-    setting.Value = NULL;
+    setting.Name = *Name;
+    setting.DefaultValue = PhCreateStringEx(DefaultValue->Buffer, DefaultValue->Length);
+    memset(&setting.u, 0, sizeof(setting.u));
 
-    PhpSettingFromString(Type, setting.DefaultValue, &setting.Value);
+    PhpSettingFromString(Type, setting.DefaultValue, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
 
 static PPH_STRING PhpSettingToString(
     __in PH_SETTING_TYPE Type,
-    __in PVOID Value
+    __in PPH_SETTING Setting
     )
 {
     switch (Type)
     {
     case StringSettingType:
         {
-            if (!Value)
+            if (!Setting->u.Pointer)
                 return PhReferenceEmptyString();
 
-            PhReferenceObject(Value);
+            PhReferenceObject(Setting->u.Pointer);
 
-            return (PPH_STRING)Value;
+            return (PPH_STRING)Setting->u.Pointer;
         }
     case IntegerSettingType:
         {
-            return PhFormatString(L"%x", (ULONG)Value);
+            return PhFormatString(L"%x", Setting->u.Integer);
         }
     case IntegerPairSettingType:
         {
-            PPH_INTEGER_PAIR integerPair = (PPH_INTEGER_PAIR)Value;
+            PPH_INTEGER_PAIR integerPair = &Setting->u.IntegerPair;
 
             return PhFormatString(L"%u,%u", integerPair->X, integerPair->Y);
         }
@@ -302,7 +292,7 @@ static PPH_STRING PhpSettingToString(
 static BOOLEAN PhpSettingFromString(
     __in PH_SETTING_TYPE Type,
     __in PPH_STRING String,
-    __out PPVOID Value
+    __inout PPH_SETTING Setting
     )
 {
     switch (Type)
@@ -310,7 +300,7 @@ static BOOLEAN PhpSettingFromString(
     case StringSettingType:
         {
             PhReferenceObject(String);
-            *Value = String;
+            Setting->u.Pointer = String;
 
             return TRUE;
         }
@@ -320,7 +310,7 @@ static BOOLEAN PhpSettingFromString(
 
             if (PhStringToInteger64(&String->sr, 16, &integer))
             {
-                *Value = (PVOID)(ULONG)integer;
+                Setting->u.Integer = (ULONG)integer;
                 return TRUE;
             }
             else
@@ -330,7 +320,6 @@ static BOOLEAN PhpSettingFromString(
         }
     case IntegerPairSettingType:
         {
-            PH_INTEGER_PAIR integerPair;
             LONG64 x;
             LONG64 y;
             ULONG indexOfComma;
@@ -349,9 +338,8 @@ static BOOLEAN PhpSettingFromString(
 
             if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
             {
-                integerPair.X = (LONG)x;
-                integerPair.Y = (LONG)y;
-                *Value = PhAllocateCopy(&integerPair, sizeof(PH_INTEGER_PAIR));
+                Setting->u.IntegerPair.X = (LONG)x;
+                Setting->u.IntegerPair.Y = (LONG)y;
                 return TRUE;
             }
             else
@@ -366,18 +354,14 @@ static BOOLEAN PhpSettingFromString(
 
 static VOID PhpFreeSettingValue(
     __in PH_SETTING_TYPE Type,
-    __in PVOID Value
+    __in PPH_SETTING Setting
     )
 {
     switch (Type)
     {
     case StringSettingType:
-        if (Value)
-            PhDereferenceObject(Value);
-        break;
-    case IntegerPairSettingType:
-        if (Value)
-            PhFree(Value);
+        if (Setting->u.Pointer)
+            PhDereferenceObject(Setting->u.Pointer);
         break;
     }
 }
@@ -414,7 +398,7 @@ __mayRaise ULONG PhGetIntegerSetting(
 
     if (setting && setting->Type == IntegerSettingType)
     {
-        value = (ULONG)setting->Value;
+        value = setting->u.Integer;
     }
     else
     {
@@ -445,10 +429,7 @@ __mayRaise PH_INTEGER_PAIR PhGetIntegerPairSetting(
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
-        if (setting->Value)
-            value = *(PPH_INTEGER_PAIR)setting->Value;
-        else
-            memset(&value, 0, sizeof(PH_INTEGER_PAIR));
+        value = setting->u.IntegerPair;
     }
     else
     {
@@ -479,9 +460,9 @@ __mayRaise PPH_STRING PhGetStringSetting(
 
     if (setting && setting->Type == StringSettingType)
     {
-        if (setting->Value)
+        if (setting->u.Pointer)
         {
-            value = (PPH_STRING)setting->Value;
+            value = setting->u.Pointer;
             PhReferenceObject(value);
         }
         else
@@ -523,7 +504,7 @@ __mayRaise VOID PhSetIntegerSetting(
 
     if (setting && setting->Type == IntegerSettingType)
     {
-        setting->Value = (PVOID)Value;
+        setting->u.Integer = Value;
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -548,8 +529,7 @@ __mayRaise VOID PhSetIntegerPairSetting(
 
     if (setting && setting->Type == IntegerPairSettingType)
     {
-        PhpFreeSettingValue(IntegerPairSettingType, setting->Value);
-        setting->Value = PhAllocateCopy(&Value, sizeof(PH_INTEGER_PAIR));
+        setting->u.IntegerPair = Value;
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -574,8 +554,8 @@ __mayRaise VOID PhSetStringSetting(
 
     if (setting && setting->Type == StringSettingType)
     {
-        PhpFreeSettingValue(StringSettingType, setting->Value);
-        setting->Value = PhCreateString(Value);
+        PhpFreeSettingValue(StringSettingType, setting);
+        setting->u.Pointer = PhCreateString(Value);
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -600,8 +580,8 @@ __mayRaise VOID PhSetStringSetting2(
 
     if (setting && setting->Type == StringSettingType)
     {
-        PhpFreeSettingValue(StringSettingType, setting->Value);
-        setting->Value = PhCreateStringEx(Value->Buffer, Value->Length);
+        PhpFreeSettingValue(StringSettingType, setting);
+        setting->u.Pointer = PhCreateStringEx(Value->Buffer, Value->Length);
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
@@ -622,8 +602,8 @@ VOID PhpClearIgnoredSettings()
 
         PhFree(setting->Name.Buffer);
 
-        if (setting->Value)
-            PhDereferenceObject(setting->Value);
+        if (setting->u.Pointer)
+            PhDereferenceObject(setting->u.Pointer);
 
         PhFree(setting);
     }
@@ -711,19 +691,18 @@ NTSTATUS PhLoadSettings(
 
                 if (setting)
                 {
-                    PhpFreeSettingValue(setting->Type, setting->Value);
-                    setting->Value = NULL;
+                    PhpFreeSettingValue(setting->Type, setting);
 
                     if (!PhpSettingFromString(
                         setting->Type,
                         settingValue,
-                        &setting->Value
+                        setting
                         ))
                     {
                         PhpSettingFromString(
                             setting->Type,
                             setting->DefaultValue,
-                            &setting->Value
+                            setting
                             );
                     }
                 }
@@ -733,7 +712,7 @@ NTSTATUS PhLoadSettings(
                     setting->Name.Buffer = PhAllocateCopy(settingName->Buffer, settingName->Length + sizeof(WCHAR));
                     setting->Name.Length = settingName->Length;
                     PhReferenceObject(settingValue);
-                    setting->Value = settingValue;
+                    setting->u.Pointer = settingValue;
 
                     PhAddItemList(PhIgnoredSettings, setting);
                 }
@@ -822,7 +801,7 @@ NTSTATUS PhSaveSettings(
     {
         PPH_STRING settingValue;
 
-        settingValue = PhpSettingToString(setting->Type, setting->Value);
+        settingValue = PhpSettingToString(setting->Type, setting);
         PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         PhDereferenceObject(settingValue);
     }
@@ -836,7 +815,7 @@ NTSTATUS PhSaveSettings(
             PPH_SETTING setting = PhIgnoredSettings->Items[i];
             PPH_STRING settingValue;
 
-            settingValue = setting->Value;
+            settingValue = setting->u.Pointer;
             PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         }
     }
@@ -898,7 +877,12 @@ VOID PhAddSettings(
 
     for (i = 0; i < NumberOfSettings; i++)
     {
-        PhpAddSetting(Settings[i].Type, Settings[i].Name, Settings[i].DefaultValue);
+        PH_STRINGREF name;
+        PH_STRINGREF defaultValue;
+
+        PhInitializeStringRef(&name, Settings[i].Name);
+        PhInitializeStringRef(&defaultValue, Settings[i].DefaultValue);
+        PhpAddSetting(Settings[i].Type, &name, &defaultValue);
     }
 
     PhReleaseQueuedLockExclusive(&PhSettingsLock);
