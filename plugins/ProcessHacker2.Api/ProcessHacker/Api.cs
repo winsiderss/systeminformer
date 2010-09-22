@@ -67,6 +67,8 @@ namespace ProcessHacker2.Api
         ProcessPropertiesInitializing = 4,
         GetIsDotNetDirectoryNames = 5,
         NotifyEvent = 6,
+        ServicePropertiesInitializing = 7,
+        HandlePropertiesInitializing = 8,
         Maximum
     }
 
