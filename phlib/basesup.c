@@ -821,15 +821,15 @@ FORCEINLINE LONG PhpCompareRightNatural(
 
     for (; ; A++, B++)
     {
-        if (!iswdigit(*A) && !iswdigit(*B))
+        if (!PhIsDigitCharacter(*A) && !PhIsDigitCharacter(*B))
         {
             return bias;
         }
-        else if (!iswdigit(*A))
+        else if (!PhIsDigitCharacter(*A))
         {
             return -1;
         }
-        else if (!iswdigit(*B))
+        else if (!PhIsDigitCharacter(*B))
         {
             return 1;
         }
@@ -859,15 +859,15 @@ FORCEINLINE LONG PhpCompareLeftNatural(
 {
     for (; ; A++, B++)
     {
-        if (!iswdigit(*A) && !iswdigit(*B))
+        if (!PhIsDigitCharacter(*A) && !PhIsDigitCharacter(*B))
         {
             return 0;
         }
-        else if (!iswdigit(*A))
+        else if (!PhIsDigitCharacter(*A))
         {
             return -1;
         }
-        else if (!iswdigit(*B))
+        else if (!PhIsDigitCharacter(*B))
         {
             return 1;
         }
@@ -927,14 +927,14 @@ FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
 
         /* Skip over leading spaces or zeros. */
 
-        while (iswspace(ca))
+        while (ca == ' ')
             ca = A[++ai];
 
-        while (iswspace(cb))
+        while (cb == ' ')
             cb = B[++bi];
 
         /* Process run of digits. */
-        if (iswdigit(ca) && iswdigit(cb))
+        if (PhIsDigitCharacter(ca) && PhIsDigitCharacter(cb))
         {
             fractional = (ca == '0' || cb == '0');
 
@@ -4006,27 +4006,34 @@ BOOLEAN PhStringToInteger64(
 
         if (string.Length >= 2 * sizeof(WCHAR) && string.Buffer[0] == '0')
         {
-            switch (towlower(string.Buffer[1]))
+            switch (string.Buffer[1])
             {
             case 'x':
+            case 'X':
                 base = 16;
                 break;
             case 'o':
+            case 'O':
                 base = 8;
                 break;
             case 'b':
+            case 'B':
                 base = 2;
                 break;
             case 't': // ternary
+            case 'T':
                 base = 3;
                 break;
             case 'q': // quaternary
+            case 'Q':
                 base = 4;
                 break;
             case 'w': // base 12
+            case 'W':
                 base = 12;
                 break;
             case 'r': // base 32
+            case 'R':
                 base = 32;
                 break;
             }
