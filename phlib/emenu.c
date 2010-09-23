@@ -53,7 +53,7 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PWSTR Bitmap,
-    __in PVOID Context
+    __in_opt PVOID Context
     )
 {
     PPH_EMENU_ITEM item;
@@ -78,6 +78,9 @@ VOID PhDestroyEMenuItem(
     __in PPH_EMENU_ITEM Item
     )
 {
+    if (Item->DeleteFunction)
+        Item->DeleteFunction(Item);
+
     if (Item->Flags & PH_EMENU_TEXT_OWNED)
         PhFree(Item->Text);
 
@@ -153,6 +156,17 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     return NULL;
 }
 
+ULONG PhIndexOfEMenuItem(
+    __in PPH_EMENU_ITEM Parent,
+    __in PPH_EMENU_ITEM Item
+    )
+{
+    if (!Parent->Items)
+        return -1;
+
+    return PhFindItemList(Parent->Items, Item);
+}
+
 VOID PhInsertEMenuItem(
     __inout PPH_EMENU_ITEM Parent,
     __inout PPH_EMENU_ITEM Item,
@@ -165,6 +179,9 @@ VOID PhInsertEMenuItem(
 
     if (!Parent->Items)
         Parent->Items = PhCreateList(16);
+
+    if (Index > Parent->Items->Count)
+        Index = Parent->Items->Count;
 
     if (Index == -1)
         PhAddItemList(Parent->Items, Item);

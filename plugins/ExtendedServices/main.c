@@ -30,14 +30,26 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI ServicePropertiesInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID NTAPI ServiceMenuInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION ServicePropertiesInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ServiceMenuInitializingCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -53,7 +65,7 @@ LOGICAL DllMain(
 
             info.DisplayName = L"Extended Services";
             info.Author = L"wj32";
-            info.Description = L"Adds more tabs to service properties.";
+            info.Description = L"Extends service management capabilities.";
             info.HasOptions = FALSE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ExtendedServices", Instance, &info);
@@ -67,12 +79,24 @@ LOGICAL DllMain(
                 NULL,
                 &PluginLoadCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
+                MenuItemCallback,
+                NULL,
+                &PluginMenuItemCallbackRegistration
+                );
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
                 ServicePropertiesInitializingCallback,
                 NULL,
                 &ServicePropertiesInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing),
+                ServiceMenuInitializingCallback,
+                NULL,
+                &ServiceMenuInitializingCallbackRegistration
                 );
         }
         break;
@@ -87,6 +111,45 @@ VOID NTAPI LoadCallback(
     )
 {
     // Nothing
+}
+
+VOID NTAPI MenuItemCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
+
+    switch (menuItem->Id)
+    {
+    case ID_SERVICE_RESTART:
+        {
+            PPH_SERVICE_ITEM serviceItem = menuItem->Context;
+            SC_HANDLE serviceHandle;
+            ULONG win32Result = 0;
+
+            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP))
+            {
+                EsRestartServiceWithProgress(PhMainWndHandle, serviceItem->Name->Buffer, serviceHandle);
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                win32Result = GetLastError();
+            }
+
+            if (win32Result != 0)
+            {
+                PhShowStatus(
+                    PhMainWndHandle,
+                    PhaFormatString(L"Unable to restart %s", serviceItem->Name->Buffer)->Buffer,
+                    0,
+                    win32Result
+                    );
+            }
+        }
+        break;
+    }
 }
 
 VOID NTAPI ServicePropertiesInitializingCallback(
@@ -150,5 +213,31 @@ VOID NTAPI ServicePropertiesInitializingCallback(
         propSheetPage.pfnDlgProc = EspServiceDependentsDlgProc;
         propSheetPage.lParam = (LPARAM)serviceItem;
         objectProperties->Pages[objectProperties->NumberOfPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
+}
+
+VOID NTAPI ServiceMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_EMENU_ITEM menuItem;
+    ULONG indexOfMenuItem;
+
+    if (menuInfo->u.Service.NumberOfServices == 1 && menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING)
+    {
+        // Insert our Restart menu item after the Stop menu item.
+
+        menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Stop", 0);
+
+        if (menuItem)
+            indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+
+        PhInsertEMenuItem(
+            menuInfo->Menu,
+            PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_RESTART, L"Restart", menuInfo->u.Service.Services[0]),
+            indexOfMenuItem + 1
+            );
     }
 }

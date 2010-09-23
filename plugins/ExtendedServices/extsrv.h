@@ -45,4 +45,12 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     __in LPARAM lParam
     );
 
+// srvprgrs
+
+VOID EsRestartServiceWithProgress(
+    __in HWND hWnd,
+    __in PWSTR ServiceName,
+    __in SC_HANDLE ServiceHandle
+    );
+
 #endif

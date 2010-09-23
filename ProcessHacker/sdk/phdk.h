@@ -12,8 +12,8 @@
 #include "providers.h"
 
 #include "treelist.h"
+#include "emenu.h"
 #include "phapppub.h"
-
 #include "phplug.h"
 
 #endif
