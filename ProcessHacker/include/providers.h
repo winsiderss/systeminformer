@@ -389,8 +389,6 @@ extern PH_CALLBACK PhNetworkItemRemovedEvent;
 extern PH_CALLBACK PhNetworkItemsUpdatedEvent;
 #endif
 
-#include <phnet.h>
-
 #define PH_NETWORK_OWNER_INFO_SIZE 16
 
 typedef struct _PH_NETWORK_ITEM

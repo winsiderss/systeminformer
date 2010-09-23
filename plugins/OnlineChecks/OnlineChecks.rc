@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -70,54 +70,18 @@ BEGIN
         BLOCK "0c0904b0"
         BEGIN
             VALUE "CompanyName", "wj32"
-            VALUE "FileDescription", "ToolStatus plugin for Process Hacker"
-            VALUE "FileVersion", "1.1"
-            VALUE "InternalName", "ToolStatus"
+            VALUE "FileDescription", "Online Checks plugin for Process Hacker"
+            VALUE "FileVersion", "1.0"
+            VALUE "InternalName", "OnlineChecks"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
-            VALUE "OriginalFilename", "ToolStatus.dll"
-            VALUE "ProductName", "ToolStatus plugin for Process Hacker"
-            VALUE "ProductVersion", "1.1"
+            VALUE "OriginalFilename", "OnlineChecks.dll"
+            VALUE "ProductName", "Online Checks plugin for Process Hacker"
+            VALUE "ProductVersion", "1.0"
         END
     END
     BLOCK "VarFileInfo"
     BEGIN
         VALUE "Translation", 0xc09, 1200
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Bitmap
-//
-
-IDB_APPLICATION         BITMAP                  "resources\\application.bmp"
-IDB_APPLICATION_GO      BITMAP                  "resources\\application_go.bmp"
-IDB_ARROW_REFRESH       BITMAP                  "resources\\arrow_refresh.bmp"
-IDB_CHART_LINE          BITMAP                  "resources\\chart_line.bmp"
-IDB_COG_EDIT            BITMAP                  "resources\\cog_edit.bmp"
-IDB_FIND                BITMAP                  "resources\\find.bmp"
-IDB_LIGHTBULB_OFF       BITMAP                  "resources\\lightbulb_off.bmp"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Menu
-//
-
-IDR_STATUS MENU 
-BEGIN
-    POPUP "Status"
-    BEGIN
-        MENUITEM "CPU Usage",                   ID_STATUS_CPUUSAGE
-        MENUITEM "Commit Charge",               ID_STATUS_COMMITCHARGE
-        MENUITEM "Physical Memory",             ID_STATUS_PHYSICALMEMORY
-        MENUITEM "Number of Processes",         ID_STATUS_NUMBEROFPROCESSES
-        MENUITEM "Number of Threads",           ID_STATUS_NUMBEROFTHREADS
-        MENUITEM "Number of Handles",           ID_STATUS_NUMBEROFHANDLES
-        MENUITEM "I/O Read+Other",              ID_STATUS_IO_RO
-        MENUITEM "I/O Write",                   ID_STATUS_IO_W
-        MENUITEM "Max. CPU Process",            ID_STATUS_MAX_CPU_PROCESS
-        MENUITEM "Max. I/O Process",            ID_STATUS_MAX_IO_PROCESS
     END
 END
 
