@@ -548,6 +548,11 @@ BOOLEAN PhFindStringSiKeyValuePairs(
     return FALSE;
 }
 
+/**
+ * Creates a random (type 4) UUID.
+ *
+ * \param Guid The destination UUID.
+ */
 VOID PhGenerateGuid(
     __out PGUID Guid
     )
@@ -594,6 +599,18 @@ FORCEINLINE VOID PhpReverseGuid(
     Guid->Data3 = _byteswap_ushort(Guid->Data3);
 }
 
+/**
+ * Creates a name-based (type 3 or 5) UUID.
+ *
+ * \param Guid The destination UUID.
+ * \param Namespace The UUID of the namespace.
+ * \param Name The input name.
+ * \param NameLength The length of the input name, not 
+ * including the null terminator if present.
+ * \param Version The type of UUID.
+ * \li \c GUID_VERSION_MD5 Creates a type 3, MD5-based UUID.
+ * \li \c GUID_VERSION_SHA1 Creates a type 5, SHA1-based UUID.
+ */
 VOID PhGenerateGuidFromName(
     __out PGUID Guid,
     __in PGUID Namespace,
@@ -651,6 +668,14 @@ VOID PhGenerateGuidFromName(
     guid->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
+/**
+ * Fills a buffer with random uppercase alphabetical characters.
+ *
+ * \param Buffer The buffer to fill with random characters, plus 
+ * a null terminator.
+ * \param Count The number of characters available in the buffer, 
+ * including space for the null terminator.
+ */
 VOID PhGenerateRandomAlphaString(
     __out_ecount_z(Count) PWSTR Buffer,
     __in ULONG Count
@@ -670,6 +695,16 @@ VOID PhGenerateRandomAlphaString(
     Buffer[Count - 1] = 0;
 }
 
+/**
+ * Modifies a string to ensure it is within the specified length.
+ *
+ * \param String The input string.
+ * \param DesiredCount The desired number of characters in the 
+ * new string. If necessary, parts of the string are replaced with 
+ * an ellipsis to indicate characters have been omitted.
+ *
+ * \return The new string.
+ */
 PPH_STRING PhEllipsisString(
     __in PPH_STRING String,
     __in ULONG DesiredCount
@@ -695,6 +730,17 @@ PPH_STRING PhEllipsisString(
     }
 }
 
+/**
+ * Modifies a string to ensure it is within the specified length, 
+ * parsing the string as a path.
+ *
+ * \param String The input string.
+ * \param DesiredCount The desired number of characters in the 
+ * new string. If necessary, parts of the string are replaced with 
+ * an ellipsis to indicate characters have been omitted.
+ *
+ * \return The new string.
+ */
 PPH_STRING PhEllipsisStringPath(
     __in PPH_STRING String,
     __in ULONG DesiredCount
@@ -821,6 +867,14 @@ StarCheck:
     goto LoopStart;
 }
 
+/**
+ * Matches a pattern against a string.
+ *
+ * \param Pattern The pattern, which can contain asterisks and 
+ * question marks.
+ * \param String The string which the pattern is matched against.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
 BOOLEAN PhMatchWildcards(
     __in PWSTR Pattern,
     __in PWSTR String,
@@ -1310,6 +1364,11 @@ PPH_STRING PhFormatSize(
     }
 }
 
+/**
+ * Converts a UUID to its string representation.
+ *
+ * \param Guid A UUID.
+ */
 PPH_STRING PhFormatGuid(
     __in PGUID Guid
     )

@@ -5972,11 +5972,11 @@ VOID PhRefreshDosDevicePrefixes()
 }
 
 /**
- * Resolves a NT path into a DOS path.
+ * Resolves a NT path into a Win32 path.
  *
  * \param Name A string containing the path to resolve.
  *
- * \return A pointer to a string containing the DOS 
+ * \return A pointer to a string containing the Win32 
  * path. You must free the string using PhDereferenceObject() 
  * when you no longer need it.
  */
@@ -6065,11 +6065,11 @@ PPH_STRING PhResolveDevicePrefix(
 }
 
 /**
- * Converts a file name into DOS format.
+ * Converts a file name into Win32 format.
  *
  * \param FileName A string containing a file name.
  *
- * \return A pointer to a string containing the DOS 
+ * \return A pointer to a string containing the Win32 
  * file name. You must free the string using 
  * PhDereferenceObject() when you no longer need it.
  *
