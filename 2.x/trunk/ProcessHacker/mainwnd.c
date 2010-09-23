@@ -2539,7 +2539,6 @@ VOID PhpShowIconContextMenu(
         Location.x,
         Location.y
         );
-    PhDestroyEMenu(menu);
 
     // Destroy the bitmaps.
     for (i = 0; i < numberOfProcesses; i++)
@@ -2674,6 +2673,8 @@ VOID PhpShowIconContextMenu(
             }
         }
     }
+
+    PhDestroyEMenu(menu);
 }
 
 VOID PhShowIconNotification(
