@@ -647,6 +647,13 @@ PhDuplicateAnsiStringZSafe(
     );
 
 PHLIBAPI
+PWSTR
+NTAPI
+PhDuplicateUnicodeStringZ(
+    __in PWSTR String
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhCopyAnsiStringZ(
