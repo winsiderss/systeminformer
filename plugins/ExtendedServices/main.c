@@ -236,6 +236,8 @@ VOID NTAPI ServiceMenuInitializingCallback(
 
         if (menuItem)
             indexOfMenuItem = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
+        else
+            indexOfMenuItem = -1;
 
         PhInsertEMenuItem(
             menuInfo->Menu,
