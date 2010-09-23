@@ -328,6 +328,9 @@ VOID PhQuerySystemTime(
     } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
 }
 
+/**
+ * Gets the offset of the current time zone from UTC.
+ */
 VOID PhQueryTimeZoneBias(
     __out PLARGE_INTEGER TimeZoneBias
     )
@@ -490,6 +493,17 @@ PVOID PhReAllocateSafe(
     return RtlReAllocateHeap(PhHeapHandle, 0, Memory, Size);
 }
 
+/**
+ * Allocates pages of memory.
+ *
+ * \param Size The number of bytes to allocate. The number of 
+ * pages allocated will be large enough to contain \a Size bytes.
+ * \param NewSize The number of bytes actually allocated. This 
+ * is \a Size rounded up to the next multiple of PAGE_SIZE.
+ *
+ * \return A pointer to the allocated block of memory, or NULL 
+ * if the block could not be allocated.
+ */
 PVOID PhAllocatePage(
     __in SIZE_T Size,
     __out_opt PSIZE_T NewSize
@@ -519,6 +533,11 @@ PVOID PhAllocatePage(
     }
 }
 
+/**
+ * Frees pages of memory allocated with PhAllocatePage().
+ *
+ * \param Memory A pointer to a block of memory.
+ */
 VOID PhFreePage(
     __in PVOID Memory
     )
@@ -535,6 +554,13 @@ VOID PhFreePage(
         );
 }
 
+/**
+ * Allocates space for and copies a string.
+ *
+ * \param String The string to duplicate.
+ *
+ * \return The new string, which can be freed using PhFree().
+ */
 PSTR PhDuplicateAnsiStringZ(
     __in PSTR String
     )
@@ -550,6 +576,14 @@ PSTR PhDuplicateAnsiStringZ(
     return newString;
 }
 
+/**
+ * Allocates space for and copies a string.
+ *
+ * \param String The string to duplicate.
+ *
+ * \return The new string, which can be freed using PhFree(), or 
+ * NULL if storage could not be allocated.
+ */
 PSTR PhDuplicateAnsiStringZSafe(
     __in PSTR String
     )
@@ -569,6 +603,13 @@ PSTR PhDuplicateAnsiStringZSafe(
     return newString;
 }
 
+/**
+ * Allocates space for and copies a string.
+ *
+ * \param String The string to duplicate.
+ *
+ * \return The new string, which can be freed using PhFree().
+ */
 PWSTR PhDuplicateUnicodeStringZ(
     __in PWSTR String
     )
@@ -987,6 +1028,13 @@ FORCEINLINE LONG PhpCompareUnicodeStringZNatural(
     }
 }
 
+/**
+ * Compares two strings in natural sort order.
+ *
+ * \param A The first string.
+ * \param B The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ */
 LONG PhCompareUnicodeStringZNatural(
     __in PWSTR A,
     __in PWSTR B,
@@ -1494,7 +1542,9 @@ FORCEINLINE VOID PhpWriteNullTerminatorFullString(
  *
  * \param String A string object.
  * \param NewLength The new required length of the string object. 
- * This should not include space for a null terminator.
+ * This should not include space for a null terminator. If 
+ * \a Growing is TRUE, \a NewLength must not be smaller than the 
+ * current allocated length.
  * \param Growing TRUE to use sizing logic for growing strings, 
  * otherwise FALSE to resize to the exact specified length.
  */
@@ -2237,6 +2287,14 @@ VOID PhpListDeleteProcedure(
     PhFree(list->Items);
 }
 
+/**
+ * Resizes a list.
+ *
+ * \param List A list object.
+ * \param NewCapacity The new required number of elements for 
+ * which storage has been reserved. This must not be smaller 
+ * than the current number of items in the list.
+ */
 VOID PhResizeList(
     __inout PPH_LIST List,
     __in ULONG NewCapacity
@@ -3769,6 +3827,10 @@ VOID PhInvokeCallback(
     PhReleaseQueuedLockShared(&Callback->ListLock);
 }
 
+/**
+ * Retrieves a prime number bigger than or equal to the 
+ * specified number.
+ */
 ULONG PhGetPrimeNumber(
     __in ULONG Minimum
     )
@@ -3801,6 +3863,9 @@ ULONG PhGetPrimeNumber(
     return Minimum;
 }
 
+/**
+ * Rounds up a number to the next power of two.
+ */
 ULONG PhRoundUpToPowerOfTwo(
     __in ULONG Number
     )
@@ -3881,6 +3946,16 @@ ULONG PhLog2(
     return result;
 }
 
+/**
+ * Converts a sequence of hexadecimal digits into a byte array.
+ *
+ * \param String A string containing hexadecimal digits to convert.
+ * The string must have an even number of digits, because each pair 
+ * of hexadecimal digits represents one byte. Example: "129a2eff5c0b".
+ * \param Buffer The output buffer.
+ *
+ * \return TRUE if the string was successfully converted, otherwise FALSE.
+ */
 BOOLEAN PhHexStringToBuffer(
     __in PPH_STRINGREF String,
     __out_bcount(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
@@ -3905,6 +3980,14 @@ BOOLEAN PhHexStringToBuffer(
     return TRUE;
 }
 
+/**
+ * Converts a byte array into a sequence of hexadecimal digits.
+ *
+ * \param Buffer The input buffer.
+ * \param Length The number of bytes to convert.
+ *
+ * \return A string containing a sequence of hexadecimal digits.
+ */
 PPH_STRING PhBufferToHexString(
     __in PUCHAR Buffer,
     __in ULONG Length

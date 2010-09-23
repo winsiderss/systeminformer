@@ -45,6 +45,28 @@ BOOLEAN PhIoSupportInitialization()
     return TRUE;
 }
 
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param FileAttributes File attributes applied if the file is 
+ * created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does 
+ * or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ */
 NTSTATUS PhCreateFileWin32(
     __out PHANDLE FileHandle,
     __in PWSTR FileName,
@@ -102,6 +124,11 @@ NTSTATUS PhCreateFileWin32(
     return status;
 }
 
+/**
+ * Deletes a file.
+ *
+ * \param FileName The Win32 file name.
+ */
 NTSTATUS PhDeleteFileWin32(
     __in PWSTR FileName
     )
