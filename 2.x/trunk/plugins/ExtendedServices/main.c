@@ -225,7 +225,10 @@ VOID NTAPI ServiceMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
     ULONG indexOfMenuItem;
 
-    if (menuInfo->u.Service.NumberOfServices == 1 && menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING)
+    if (
+        menuInfo->u.Service.NumberOfServices == 1 &&
+        (menuInfo->u.Service.Services[0]->State == SERVICE_RUNNING || menuInfo->u.Service.Services[0]->State == SERVICE_PAUSED)
+        )
     {
         // Insert our Restart menu item after the Stop menu item.
 
