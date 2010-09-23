@@ -3320,8 +3320,8 @@ VOID PhpInitializeProcessMenu(
         if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
         {
             PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
-            PhSetFlagsEMenuItem(Menu, ID_PROCESS_PROPERTIES, PH_EMENU_DISABLED, 0);
-            PhSetFlagsEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, PH_EMENU_DISABLED, 0);
+            PhEnableEMenuItem(Menu, ID_PROCESS_PROPERTIES, TRUE);
+            PhEnableEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, TRUE);
         }
     }
     else
@@ -3351,9 +3351,7 @@ VOID PhpInitializeProcessMenu(
     if (WindowsVersion < WINDOWS_VISTA)
     {
         // Remove I/O priority.
-        item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0);
-
-        if (item)
+        if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0))
             PhRemoveEMenuItem(NULL, item, 0);
     }
 
@@ -3418,11 +3416,11 @@ VOID PhpInitializeProcessMenu(
             GetWindowPlacement(SelectedProcessWindowHandle, &placement);
 
             if (placement.showCmd == SW_MINIMIZE)
-                PhSetFlagsEMenuItem(item, ID_WINDOW_MINIMIZE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                PhEnableEMenuItem(item, ID_WINDOW_MINIMIZE, FALSE);
             else if (placement.showCmd == SW_MAXIMIZE)
-                PhSetFlagsEMenuItem(item, ID_WINDOW_MAXIMIZE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                PhEnableEMenuItem(item, ID_WINDOW_MAXIMIZE, FALSE);
             else if (placement.showCmd == SW_NORMAL)
-                PhSetFlagsEMenuItem(item, ID_WINDOW_RESTORE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                PhEnableEMenuItem(item, ID_WINDOW_RESTORE, FALSE);
         }
         else
         {
@@ -3434,9 +3432,7 @@ VOID PhpInitializeProcessMenu(
 
     if (!WINDOWS_HAS_UAC)
     {
-        item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION);
-
-        if (item)
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION))
             PhRemoveEMenuItem(NULL, item, 0);
     }
 }
@@ -3461,7 +3457,18 @@ VOID PhShowProcessContextMenu(
 
         PhpInitializeProcessMenu(menu, processes, numberOfProcesses);
 
-        MapWindowPoints(ProcessTreeListHandle, NULL, &Location, 1);
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+            menuInfo.Menu = menu;
+            menuInfo.u.Process.Processes = processes;
+            menuInfo.u.Process.NumberOfProcesses = numberOfProcesses;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing), &menuInfo);
+        }
+
+        ClientToScreen(ProcessTreeListHandle, &Location);
 
         item = PhShowEMenu(
             menu,
@@ -3474,7 +3481,13 @@ VOID PhShowProcessContextMenu(
 
         if (item)
         {
-            SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+            BOOLEAN handled = FALSE;
+
+            if (PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(item);
+
+            if (!handled)
+                SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
         }
 
         PhDestroyEMenu(menu);
@@ -3484,24 +3497,24 @@ VOID PhShowProcessContextMenu(
 }
 
 VOID PhpInitializeServiceMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPH_SERVICE_ITEM *Services,
     __in ULONG NumberOfServices
     )
 {
     if (NumberOfServices == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfServices == 1)
     {
         if (!Services[0]->ProcessId)
-            PhEnableMenuItem(Menu, ID_SERVICE_GOTOPROCESS, FALSE);
+            PhEnableEMenuItem(Menu, ID_SERVICE_GOTOPROCESS, FALSE);
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
-        PhEnableMenuItem(Menu, ID_SERVICE_COPY, TRUE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_SERVICE_COPY, TRUE);
     }
 
     if (NumberOfServices == 1)
@@ -3510,29 +3523,29 @@ VOID PhpInitializeServiceMenu(
         {
         case SERVICE_RUNNING:
             {
-                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE,
+                PhEnableEMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE,
                     Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                PhEnableMenuItem(Menu, ID_SERVICE_STOP,
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP,
                     Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
             }
             break;
         case SERVICE_PAUSED:
             {
-                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE,
+                PhEnableEMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE,
                     Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE);
-                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_STOP,
+                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP,
                     Services[0]->ControlsAccepted & SERVICE_ACCEPT_STOP);
             }
             break;
         case SERVICE_STOPPED:
             {
-                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_STOP, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP, FALSE);
             }
             break;
         case SERVICE_START_PENDING:
@@ -3540,18 +3553,22 @@ VOID PhpInitializeServiceMenu(
         case SERVICE_PAUSE_PENDING:
         case SERVICE_STOP_PENDING:
             {
-                PhEnableMenuItem(Menu, ID_SERVICE_START, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
-                PhEnableMenuItem(Menu, ID_SERVICE_STOP, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_START, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_CONTINUE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_PAUSE, FALSE);
+                PhEnableEMenuItem(Menu, ID_SERVICE_STOP, FALSE);
             }
             break;
         }
 
         if (!(Services[0]->ControlsAccepted & SERVICE_ACCEPT_PAUSE_CONTINUE))
         {
-            DeleteMenu(Menu, ID_SERVICE_CONTINUE, 0);
-            DeleteMenu(Menu, ID_SERVICE_PAUSE, 0);
+            PPH_EMENU_ITEM item;
+
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_SERVICE_CONTINUE))
+                PhRemoveEMenuItem(NULL, item, 0);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_SERVICE_PAUSE))
+                PhRemoveEMenuItem(NULL, item, 0);
         }
     }
 }
@@ -3577,22 +3594,51 @@ VOID PhMainWndServiceListViewOnNotify(
 
             if (numberOfServices != 0)
             {
-                HMENU menu;
-                HMENU subMenu;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM item;
+                POINT location;
 
-                menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICE));
-                subMenu = GetSubMenu(menu, 0);
+                menu = PhCreateEMenu();
+                PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICE), 0);
+                PhSetFlagsEMenuItem(menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                SetMenuDefaultItem(subMenu, ID_SERVICE_PROPERTIES, FALSE);
-                PhpInitializeServiceMenu(subMenu, services, numberOfServices);
+                PhpInitializeServiceMenu(menu, services, numberOfServices);
 
-                PhShowContextMenu(
+                if (PhPluginsEnabled)
+                {
+                    PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                    menuInfo.Menu = menu;
+                    menuInfo.u.Service.Services = services;
+                    menuInfo.u.Service.NumberOfServices = numberOfServices;
+
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing), &menuInfo);
+                }
+
+                location = itemActivate->ptAction;
+                ClientToScreen(ServiceListViewHandle, &location);
+
+                item = PhShowEMenu(
+                    menu,
                     PhMainWndHandle,
-                    ServiceListViewHandle,
-                    subMenu,
-                    itemActivate->ptAction
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    location.x,
+                    location.y
                     );
-                DestroyMenu(menu);
+
+                if (item)
+                {
+                    BOOLEAN handled = FALSE;
+
+                    if (PhPluginsEnabled)
+                        handled = PhPluginTriggerEMenuItem(item);
+
+                    if (!handled)
+                        SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+                }
+
+                PhDestroyEMenu(menu);
             }
 
             PhFree(services);
@@ -3640,31 +3686,35 @@ VOID PhMainWndServiceListViewOnNotify(
 }
 
 VOID PhpInitializeNetworkMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPH_NETWORK_ITEM *NetworkItems,
     __in ULONG NumberOfNetworkItems
     )
 {
     ULONG i;
+    PPH_EMENU_ITEM item;
 
     if (NumberOfNetworkItems == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfNetworkItems == 1)
     {
         if (!NetworkItems[0]->ProcessId)
-            PhEnableMenuItem(Menu, ID_NETWORK_GOTOPROCESS, FALSE);
+            PhEnableEMenuItem(Menu, ID_NETWORK_GOTOPROCESS, FALSE);
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
-        PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, TRUE);
-        PhEnableMenuItem(Menu, ID_NETWORK_COPY, TRUE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, TRUE);
+        PhEnableEMenuItem(Menu, ID_NETWORK_COPY, TRUE);
     }
 
     if (WindowsVersion >= WINDOWS_VISTA)
-        DeleteMenu(Menu, ID_NETWORK_VIEWSTACK, 0);
+    {
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_NETWORK_VIEWSTACK))
+            PhRemoveEMenuItem(NULL, item, 0);
+    }
 
     // Close
     if (NumberOfNetworkItems != 0)
@@ -3684,7 +3734,7 @@ VOID PhpInitializeNetworkMenu(
         }
 
         if (!closeOk)
-            PhEnableMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
+            PhEnableEMenuItem(Menu, ID_NETWORK_CLOSE, FALSE);
     }
 }
 
@@ -3709,22 +3759,51 @@ VOID PhMainWndNetworkListViewOnNotify(
 
             if (numberOfNetworkItems != 0)
             {
-                HMENU menu;
-                HMENU subMenu;
+                PPH_EMENU menu;
+                PPH_EMENU_ITEM item;
+                POINT location;
 
-                menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK));
-                subMenu = GetSubMenu(menu, 0);
+                menu = PhCreateEMenu();
+                PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK), 0);
+                PhSetFlagsEMenuItem(menu, ID_NETWORK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                SetMenuDefaultItem(subMenu, ID_NETWORK_GOTOPROCESS, FALSE);
-                PhpInitializeNetworkMenu(subMenu, networkItems, numberOfNetworkItems);
+                PhpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
 
-                PhShowContextMenu(
+                if (PhPluginsEnabled)
+                {
+                    PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                    menuInfo.Menu = menu;
+                    menuInfo.u.Network.NetworkItems = networkItems;
+                    menuInfo.u.Network.NumberOfNetworkItems = numberOfNetworkItems;
+
+                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkMenuInitializing), &menuInfo);
+                }
+
+                location = itemActivate->ptAction;
+                ClientToScreen(NetworkListViewHandle, &location);
+
+                item = PhShowEMenu(
+                    menu,
                     PhMainWndHandle,
-                    NetworkListViewHandle,
-                    subMenu,
-                    itemActivate->ptAction
+                    PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    location.x,
+                    location.y
                     );
-                DestroyMenu(menu);
+
+                if (item)
+                {
+                    BOOLEAN handled = FALSE;
+
+                    if (PhPluginsEnabled)
+                        handled = PhPluginTriggerEMenuItem(item);
+
+                    if (!handled)
+                        SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+                }
+
+                PhDestroyEMenu(menu);
             }
 
             PhFree(networkItems);

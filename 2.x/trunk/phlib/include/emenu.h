@@ -16,6 +16,12 @@
 #define PH_EMENU_TEXT_OWNED 0x80000000
 #define PH_EMENU_BITMAP_OWNED 0x40000000
 
+struct _PH_EMENU_ITEM;
+
+typedef VOID (NTAPI *PPH_EMENU_ITEM_DELETE_FUNCTION)(
+    __in struct _PH_EMENU_ITEM *Item
+    );
+
 typedef struct _PH_EMENU_ITEM
 {
     ULONG Flags;
@@ -25,6 +31,8 @@ typedef struct _PH_EMENU_ITEM
 
     PVOID Parameter;
     PVOID Context;
+    PPH_EMENU_ITEM_DELETE_FUNCTION DeleteFunction;
+    PVOID Reserved;
 
     struct _PH_EMENU_ITEM *Parent;
     PPH_LIST Items;
@@ -37,9 +45,10 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PWSTR Bitmap,
-    __in PVOID Context
+    __in_opt PVOID Context
     );
 
+PHLIBAPI
 VOID PhDestroyEMenuItem(
     __in PPH_EMENU_ITEM Item
     );
@@ -47,6 +56,7 @@ VOID PhDestroyEMenuItem(
 #define PH_EMENU_FIND_DESCEND 0x1
 #define PH_EMENU_FIND_STARTSWITH 0x2
 
+PHLIBAPI
 PPH_EMENU_ITEM PhFindEMenuItem(
     __in PPH_EMENU_ITEM Item,
     __in ULONG Flags,
@@ -54,18 +64,27 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     __in_opt ULONG Id
     );
 
+PHLIBAPI
+ULONG PhIndexOfEMenuItem(
+    __in PPH_EMENU_ITEM Parent,
+    __in PPH_EMENU_ITEM Item
+    );
+
+PHLIBAPI
 VOID PhInsertEMenuItem(
     __inout PPH_EMENU_ITEM Parent,
     __inout PPH_EMENU_ITEM Item,
     __in ULONG Index
     );
 
+PHLIBAPI
 BOOLEAN PhRemoveEMenuItem(
     __inout_opt PPH_EMENU_ITEM Parent,
     __in_opt PPH_EMENU_ITEM Item,
     __in_opt ULONG Index
     );
 
+PHLIBAPI
 VOID PhRemoveAllEMenuItems(
     __inout PPH_EMENU_ITEM Parent
     );
@@ -129,6 +148,15 @@ BOOLEAN PhSetFlagsEMenuItem(
     __in ULONG Mask,
     __in ULONG Value
     );
+
+FORCEINLINE BOOLEAN PhEnableEMenuItem(
+    __in PPH_EMENU_ITEM Item,
+    __in ULONG Id,
+    __in BOOLEAN Enable
+    )
+{
+    return PhSetFlagsEMenuItem(Item, Id, PH_EMENU_DISABLED, Enable ? 0 : PH_EMENU_DISABLED);
+}
 
 VOID PhSetFlagsAllEMenuItems(
     __in PPH_EMENU_ITEM Item,

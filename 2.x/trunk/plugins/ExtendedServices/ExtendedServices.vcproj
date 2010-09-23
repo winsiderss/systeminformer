@@ -348,6 +348,10 @@
 				RelativePath=".\main.c"
 				>
 			</File>
+			<File
+				RelativePath=".\srvprgrs.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

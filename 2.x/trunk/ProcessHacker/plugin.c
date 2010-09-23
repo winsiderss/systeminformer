@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <emenu.h>
 #include <phplug.h>
 #define CINTERFACE
 #define COBJMACROS
@@ -434,4 +435,52 @@ VOID PhPluginGetSystemStatistics(
 
     Statistics->MaxCpuProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0));
     Statistics->MaxIoProcessId = UlongToHandle(PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0));
+}
+
+static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
+    __in PPH_EMENU_ITEM Item
+    )
+{
+    PhFree(Item->Context);
+}
+
+PPH_EMENU_ITEM PhPluginCreateEMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Flags,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in_opt PVOID Context
+    )
+{
+    PPH_EMENU_ITEM item;
+    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
+
+    item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, NULL);
+
+    pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    pluginMenuItem->Plugin = Plugin;
+    pluginMenuItem->Id = Id;
+    pluginMenuItem->RealId = 0;
+    pluginMenuItem->Context = Context;
+
+    item->Context = pluginMenuItem;
+    item->DeleteFunction = PhpPluginEMenuItemDeleteFunction;
+
+    return item;
+}
+
+BOOLEAN PhPluginTriggerEMenuItem(
+    __in PPH_EMENU_ITEM Item
+    )
+{
+    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
+
+    if (Item->Id != ID_PLUGIN_MENU_ITEM)
+        return FALSE;
+
+    pluginMenuItem = Item->Context;
+
+    PhInvokeCallback(PhGetPluginCallback(pluginMenuItem->Plugin, PluginCallbackMenuItem), pluginMenuItem);
+
+    return TRUE;
 }
