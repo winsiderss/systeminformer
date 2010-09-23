@@ -19,6 +19,7 @@ for %%a in (
     circbuf_h.h
     dltmgr.h
     dspick.h
+    emenu.h
     fastlock.h
     graph.h
     hexedit.h

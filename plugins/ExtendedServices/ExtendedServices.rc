@@ -151,6 +151,16 @@ BEGIN
     CTEXT           "If this service fails, the computer will restart.\nRecovery actions are not supported for this service.",IDC_STATIC,51,80,179,21
 END
 
+IDD_SRVPROGRESS DIALOGEX 0, 0, 204, 61
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Progress"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,147,40,50,14
+    LTEXT           "Progress",IDC_MESSAGE,7,7,190,8,SS_ENDELLIPSIS
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,21,190,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -190,6 +200,14 @@ BEGIN
         RIGHTMARGIN, 275
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
+    END
+
+    IDD_SRVPROGRESS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 197
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 54
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -40,6 +40,7 @@
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130
 #define IDD_OBJTOKEN                    131
+#define ID_PLUGIN_MENU_ITEM             131
 #define IDD_HEAPS                       132
 #define IDR_PRIVILEGE                   133
 #define IDR_FINDOBJ                     134
@@ -620,6 +621,6 @@
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40234
 #define _APS_NEXT_CONTROL_VALUE         1271
-#define _APS_NEXT_SYMED_VALUE           131
+#define _APS_NEXT_SYMED_VALUE           132
 #endif
 #endif

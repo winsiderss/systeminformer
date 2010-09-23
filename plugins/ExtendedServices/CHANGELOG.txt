@@ -1,4 +1,5 @@
 1.1
+ * Added Restart menu item for services
  * Fixed service handle leak
 
 1.0

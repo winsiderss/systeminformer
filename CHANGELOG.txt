@@ -2,6 +2,7 @@ Process Hacker
 
 2.6
  * NEW/IMPROVED:
+   * Updated ExtendedServices plugin
    * Performance improvements
  * FIXED:
    * Fixed service handle leak

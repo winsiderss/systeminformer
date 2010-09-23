@@ -18,6 +18,9 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackNotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
     GeneralCallbackServicePropertiesInitializing = 7, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
     GeneralCallbackHandlePropertiesInitializing = 8, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
+    GeneralCallbackProcessMenuInitializing = 9, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackServiceMenuInitializing = 10, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackNetworkMenuInitializing = 11, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -82,6 +85,32 @@ typedef struct _PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT
     HANDLE ProcessId;
     PPH_HANDLE_ITEM HandleItem;
 } PH_PLUGIN_HANDLE_PROPERTIES_CONTEXT, *PPH_PLUGIN_HANDLE_PROPERTIES_CONTEXT;
+
+typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM, *PPH_EMENU;
+
+typedef struct _PH_PLUGIN_MENU_INFORMATION
+{
+    PPH_EMENU Menu;
+
+    union
+    {
+        struct
+        {
+            PPH_PROCESS_ITEM *Processes;
+            ULONG NumberOfProcesses;
+        } Process;
+        struct
+        {
+            PPH_SERVICE_ITEM *Services;
+            ULONG NumberOfServices;
+        } Service;
+        struct
+        {
+            PPH_NETWORK_ITEM *NetworkItems;
+            ULONG NumberOfNetworkItems;
+        } Network;
+    } u;
+} PH_PLUGIN_MENU_INFORMATION, *PPH_PLUGIN_MENU_INFORMATION;
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
@@ -205,6 +234,24 @@ VOID
 NTAPI
 PhPluginGetSystemStatistics(
     __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
+    );
+
+PHAPPAPI
+PPH_EMENU_ITEM
+NTAPI
+PhPluginCreateEMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Flags,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in_opt PVOID Context
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhPluginTriggerEMenuItem(
+    __in PPH_EMENU_ITEM Item
     );
 
 #ifdef __cplusplus
