@@ -569,6 +569,21 @@ PSTR PhDuplicateAnsiStringZSafe(
     return newString;
 }
 
+PWSTR PhDuplicateUnicodeStringZ(
+    __in PWSTR String
+    )
+{
+    PWSTR newString;
+    SIZE_T length;
+
+    length = (wcslen(String) + 1) * sizeof(WCHAR); // include the null terminator
+
+    newString = PhAllocate(length);
+    memcpy(newString, String, length);
+
+    return newString;
+}
+
 /**
  * Copies a string with optional null termination and 
  * a maximum number of characters.

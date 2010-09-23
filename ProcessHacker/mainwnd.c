@@ -26,6 +26,7 @@
 #include <settings.h>
 #include <memsrch.h>
 #include <symprv.h>
+#include <emenu.h>
 #include <phplug.h>
 #include <windowsx.h>
 #include <shlobj.h>
@@ -111,7 +112,7 @@ BOOLEAN PhpProcessProcessPriorityCommand(
 VOID PhpRefreshUsersMenu();
 
 VOID PhpAddIconProcesses(
-    __in HMENU Menu,
+    __in PPH_EMENU_ITEM Menu,
     __in ULONG NumberOfProcesses,
     __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
     );
@@ -151,7 +152,7 @@ VOID PhpShowProcessProperties(
     );
 
 VOID PhpSetProcessMenuPriorityChecks(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN SetPriority,
     __in BOOLEAN SetIoPriority
@@ -251,7 +252,6 @@ static BOOLEAN NetworkNeedsRedraw = FALSE;
 static BOOLEAN NetworkNeedsSort = FALSE;
 static PH_IMAGE_LIST_WRAPPER NetworkImageListWrapper;
 
-static HANDLE SelectedIconProcessId;
 static PPH_PLUGIN_MENU_ITEM SelectedMenuItemPlugin;
 static BOOLEAN SelectedRunAsAdmin;
 static HWND SelectedProcessWindowHandle;
@@ -1539,27 +1539,6 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
-            case ID_PROCESS_TERMINATE:
-            case ID_PROCESS_SUSPEND:
-            case ID_PROCESS_RESUME:
-            case ID_PROCESS_PROPERTIES:
-            case ID_PRIORITY_REALTIME:
-            case ID_PRIORITY_HIGH:
-            case ID_PRIORITY_ABOVENORMAL:
-            case ID_PRIORITY_NORMAL:
-            case ID_PRIORITY_BELOWNORMAL:
-            case ID_PRIORITY_IDLE:
-                {
-                    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-
-                    menuItemInfo.fMask = MIIM_DATA;
-
-                    if (GetMenuItemInfo((HMENU)lParam, LOWORD(wParam), FALSE, &menuItemInfo))
-                    {
-                        SelectedIconProcessId = (HANDLE)menuItemInfo.dwItemData;
-                    }
-                }
-                break;
             }
 
             if (PhPluginsEnabled)
@@ -2380,7 +2359,7 @@ static int __cdecl IconProcessesNameCompare(
 }
 
 VOID PhpAddIconProcesses(
-    __in HMENU Menu,
+    __in PPH_EMENU_ITEM Menu,
     __in ULONG NumberOfProcesses,
     __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
     )
@@ -2434,73 +2413,45 @@ VOID PhpAddIconProcesses(
     // Lastly, sort by name.
     qsort(processList->Items, processList->Count, sizeof(PVOID), IconProcessesNameCompare);
 
-    // Delete everything in the target menu.
-    while (DeleteMenu(Menu, 0, MF_BYPOSITION)) ;
+    // Delete all menu items.
+    PhRemoveAllEMenuItems(Menu);
 
     // Add the processes.
 
     for (i = 0; i < processList->Count; i++)
     {
-        MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
-        HMENU subMenu;
-        HMENU priorityMenu;
+        PPH_EMENU_ITEM subMenu;
+        PPH_EMENU_ITEM priorityMenu;
         HBITMAP iconBitmap;
         CLIENT_ID clientId;
 
         processItem = processList->Items[i];
 
-        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-        menuItemInfo.dwItemData = (ULONG_PTR)processItem->ProcessId;
-
         // Priority
 
-        priorityMenu = CreateMenu();
+        priorityMenu = PhCreateEMenuItem(0, 0, L"Priority", NULL, NULL);
 
-        menuItemInfo.wID = ID_PRIORITY_REALTIME;
-        menuItemInfo.dwTypeData = L"Real Time";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.wID = ID_PRIORITY_HIGH;
-        menuItemInfo.dwTypeData = L"High";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.wID = ID_PRIORITY_ABOVENORMAL;
-        menuItemInfo.dwTypeData = L"Above Normal";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.wID = ID_PRIORITY_NORMAL;
-        menuItemInfo.dwTypeData = L"Normal";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.wID = ID_PRIORITY_BELOWNORMAL;
-        menuItemInfo.dwTypeData = L"Below Normal";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.wID = ID_PRIORITY_IDLE;
-        menuItemInfo.dwTypeData = L"Idle";
-        InsertMenuItem(priorityMenu, MAXINT, TRUE, &menuItemInfo);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"Real Time", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_HIGH, L"High", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_ABOVENORMAL, L"Above Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_NORMAL, L"Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below Normal", NULL, NULL), -1);
+        PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, NULL), -1);
 
         PhpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE);
 
-        subMenu = CreateMenu();
+        // Process
 
-        // Terminate
-        menuItemInfo.wID = ID_PROCESS_TERMINATE;
-        menuItemInfo.dwTypeData = L"Terminate";
-        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Suspend
-        menuItemInfo.wID = ID_PROCESS_SUSPEND;
-        menuItemInfo.dwTypeData = L"Suspend";
-        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Resume
-        menuItemInfo.wID = ID_PROCESS_RESUME;
-        menuItemInfo.dwTypeData = L"Resume";
-        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        // Priority
-        menuItemInfo.fMask = MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
-        menuItemInfo.hSubMenu = priorityMenu;
-        menuItemInfo.dwTypeData = L"Priority";
-        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
-        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-        // Properties
-        menuItemInfo.wID = ID_PROCESS_PROPERTIES;
-        menuItemInfo.dwTypeData = L"Properties";
-        InsertMenuItem(subMenu, MAXINT, TRUE, &menuItemInfo);
+        clientId.UniqueProcess = processItem->ProcessId;
+        clientId.UniqueThread = NULL;
+
+        subMenu = PhCreateEMenuItem(
+            0,
+            0,
+            ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer,
+            NULL,
+            processItem->ProcessId
+            );
 
         // Menu icons only work properly on Vista and above.
         if (WindowsVersion >= WINDOWS_VISTA)
@@ -2508,16 +2459,16 @@ VOID PhpAddIconProcesses(
         else
             iconBitmap = NULL;
 
-        menuItemInfo.fMask = MIIM_BITMAP | MIIM_DATA | MIIM_STRING | MIIM_SUBMENU;
-        menuItemInfo.hbmpItem = iconBitmap;
-        menuItemInfo.dwItemData = (ULONG_PTR)processItem->ProcessId;
-        clientId.UniqueProcess = processItem->ProcessId;
-        clientId.UniqueThread = NULL;
-        menuItemInfo.dwTypeData = ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer;
-        menuItemInfo.hSubMenu = subMenu;
-        InsertMenuItem(Menu, i, TRUE, &menuItemInfo);
-
+        subMenu->Bitmap = iconBitmap;
         Bitmaps[i] = iconBitmap;
+
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"Terminate", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"Suspend", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_RESUME, L"Resume", NULL, NULL), -1);
+        PhInsertEMenuItem(subMenu, priorityMenu, -1);
+        PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_PROPERTIES, L"Properties", NULL, NULL), -1);
+
+        PhInsertEMenuItem(Menu, subMenu, -1);
     }
 
     PhDereferenceObject(processList);
@@ -2529,16 +2480,14 @@ VOID PhpShowIconContextMenu(
     __in POINT Location
     )
 {
-#define PROCESSES_MENU_INDEX 3
-
-    HMENU iconMenu;
-    HMENU menu;
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM item;
     ULONG numberOfProcesses;
     ULONG id;
     ULONG i;
 
-    iconMenu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON));
-    menu = GetSubMenu(iconMenu, 0);
+    menu = PhCreateEMenu();
+    PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON), 0);
 
     // Check the Notifications menu items.
     for (i = PH_NOTIFY_MINIMUM; i != PH_NOTIFY_MAXIMUM; i <<= 1)
@@ -2567,7 +2516,7 @@ VOID PhpShowIconContextMenu(
                 break;
             }
 
-            CheckMenuItem(menu, id, MF_CHECKED);
+            PhSetFlagsEMenuItem(menu, id, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 
@@ -2575,19 +2524,22 @@ VOID PhpShowIconContextMenu(
     numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
     IconProcessBitmaps = PhAllocate(sizeof(HBITMAP) * numberOfProcesses);
     memset(IconProcessBitmaps, 0, sizeof(HBITMAP) * numberOfProcesses);
-    PhpAddIconProcesses(GetSubMenu(menu, PROCESSES_MENU_INDEX), numberOfProcesses, IconProcessBitmaps);
+
+    item = PhFindEMenuItem(menu, 0, L"Processes", 0);
+
+    if (item)
+        PhpAddIconProcesses(item, numberOfProcesses, IconProcessBitmaps);
 
     SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
-    id = (ULONG)TrackPopupMenu(
+    item = PhShowEMenu(
         menu,
-        TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,
-        Location.x,
-        Location.y,
-        0,
         PhMainWndHandle,
-        NULL
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        Location.x,
+        Location.y
         );
-    DestroyMenu(iconMenu);
+    PhDestroyEMenu(menu);
 
     // Destroy the bitmaps.
     for (i = 0; i < numberOfProcesses; i++)
@@ -2598,116 +2550,130 @@ VOID PhpShowIconContextMenu(
 
     PhFree(IconProcessBitmaps);
 
-    if (!PhpProcessComputerCommand(id))
+    if (item)
     {
-        switch (id)
+        PPH_EMENU_ITEM parentItem;
+        HANDLE processId;
+
+        parentItem = item->Parent;
+
+        while (parentItem)
         {
-        case ID_ICON_SHOWHIDEPROCESSHACKER:
-            SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
-            break;
-        case ID_ICON_SYSTEMINFORMATION:
-            SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
-            break;
-        case ID_NOTIFICATIONS_ENABLEALL:
-            NotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
-            break;
-        case ID_NOTIFICATIONS_DISABLEALL:
-            NotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
-            break;
-        case ID_NOTIFICATIONS_NEWPROCESSES:
-        case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-        case ID_NOTIFICATIONS_NEWSERVICES:
-        case ID_NOTIFICATIONS_STARTEDSERVICES:
-        case ID_NOTIFICATIONS_STOPPEDSERVICES:
-        case ID_NOTIFICATIONS_DELETEDSERVICES:
+            if (parentItem->Context)
+                processId = parentItem->Context;
+
+            parentItem = parentItem->Parent;
+        }
+
+        if (!PhpProcessComputerCommand(item->Id))
+        {
+            switch (item->Id)
             {
-                ULONG bit;
-
-                switch (id)
+            case ID_ICON_SHOWHIDEPROCESSHACKER:
+                SendMessage(PhMainWndHandle, WM_PH_TOGGLE_VISIBLE, 0, 0);
+                break;
+            case ID_ICON_SYSTEMINFORMATION:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_VIEW_SYSTEMINFORMATION, 0);
+                break;
+            case ID_NOTIFICATIONS_ENABLEALL:
+                NotifyIconNotifyMask |= PH_NOTIFY_VALID_MASK;
+                break;
+            case ID_NOTIFICATIONS_DISABLEALL:
+                NotifyIconNotifyMask &= ~PH_NOTIFY_VALID_MASK;
+                break;
+            case ID_NOTIFICATIONS_NEWPROCESSES:
+            case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+            case ID_NOTIFICATIONS_NEWSERVICES:
+            case ID_NOTIFICATIONS_STARTEDSERVICES:
+            case ID_NOTIFICATIONS_STOPPEDSERVICES:
+            case ID_NOTIFICATIONS_DELETEDSERVICES:
                 {
-                case ID_NOTIFICATIONS_NEWPROCESSES:
-                    bit = PH_NOTIFY_PROCESS_CREATE;
-                    break;
-                case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
-                    bit = PH_NOTIFY_PROCESS_DELETE;
-                    break;
-                case ID_NOTIFICATIONS_NEWSERVICES:
-                    bit = PH_NOTIFY_SERVICE_CREATE;
-                    break;
-                case ID_NOTIFICATIONS_STARTEDSERVICES:
-                    bit = PH_NOTIFY_SERVICE_START;
-                    break;
-                case ID_NOTIFICATIONS_STOPPEDSERVICES:
-                    bit = PH_NOTIFY_SERVICE_STOP;
-                    break;
-                case ID_NOTIFICATIONS_DELETEDSERVICES:
-                    bit = PH_NOTIFY_SERVICE_DELETE;
-                    break;
-                }
+                    ULONG bit;
 
-                NotifyIconNotifyMask ^= bit;
-            }
-            break;
-        case ID_PROCESS_TERMINATE:
-        case ID_PROCESS_SUSPEND:
-        case ID_PROCESS_RESUME:
-        case ID_PROCESS_PROPERTIES:
-            {
-                PPH_PROCESS_ITEM processItem;
-
-                if (processItem = PhReferenceProcessItem(SelectedIconProcessId))
-                {
-                    switch (id)
+                    switch (item->Id)
                     {
-                    case ID_PROCESS_TERMINATE:
-                        PhUiTerminateProcesses(PhMainWndHandle, &processItem, 1);
+                    case ID_NOTIFICATIONS_NEWPROCESSES:
+                        bit = PH_NOTIFY_PROCESS_CREATE;
                         break;
-                    case ID_PROCESS_SUSPEND:
-                        PhUiSuspendProcesses(PhMainWndHandle, &processItem, 1);
+                    case ID_NOTIFICATIONS_TERMINATEDPROCESSES:
+                        bit = PH_NOTIFY_PROCESS_DELETE;
                         break;
-                    case ID_PROCESS_RESUME:
-                        PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
+                    case ID_NOTIFICATIONS_NEWSERVICES:
+                        bit = PH_NOTIFY_SERVICE_CREATE;
                         break;
-                    case ID_PROCESS_PROPERTIES:
-                        ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                    case ID_NOTIFICATIONS_STARTEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_START;
+                        break;
+                    case ID_NOTIFICATIONS_STOPPEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_STOP;
+                        break;
+                    case ID_NOTIFICATIONS_DELETEDSERVICES:
+                        bit = PH_NOTIFY_SERVICE_DELETE;
                         break;
                     }
 
-                    PhDereferenceObject(processItem);
+                    NotifyIconNotifyMask ^= bit;
                 }
-                else
+                break;
+            case ID_PROCESS_TERMINATE:
+            case ID_PROCESS_SUSPEND:
+            case ID_PROCESS_RESUME:
+            case ID_PROCESS_PROPERTIES:
                 {
-                    PhShowError(PhMainWndHandle, L"The process does not exist.");
-                }
-            }
-            break;
-        case ID_PRIORITY_REALTIME:
-        case ID_PRIORITY_HIGH:
-        case ID_PRIORITY_ABOVENORMAL:
-        case ID_PRIORITY_NORMAL:
-        case ID_PRIORITY_BELOWNORMAL:
-        case ID_PRIORITY_IDLE:
-            {
-                PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_ITEM processItem;
 
-                if (processItem = PhReferenceProcessItem(SelectedIconProcessId))
-                {
-                    PhpProcessProcessPriorityCommand(id, processItem);
-                    PhDereferenceObject(processItem);
+                    if (processItem = PhReferenceProcessItem(processId))
+                    {
+                        switch (item->Id)
+                        {
+                        case ID_PROCESS_TERMINATE:
+                            PhUiTerminateProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_SUSPEND:
+                            PhUiSuspendProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_RESUME:
+                            PhUiResumeProcesses(PhMainWndHandle, &processItem, 1);
+                            break;
+                        case ID_PROCESS_PROPERTIES:
+                            ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
+                            break;
+                        }
+
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    }
                 }
-                else
+                break;
+            case ID_PRIORITY_REALTIME:
+            case ID_PRIORITY_HIGH:
+            case ID_PRIORITY_ABOVENORMAL:
+            case ID_PRIORITY_NORMAL:
+            case ID_PRIORITY_BELOWNORMAL:
+            case ID_PRIORITY_IDLE:
                 {
-                    PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    PPH_PROCESS_ITEM processItem;
+
+                    if (processItem = PhReferenceProcessItem(processId))
+                    {
+                        PhpProcessProcessPriorityCommand(item->Id, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                    else
+                    {
+                        PhShowError(PhMainWndHandle, L"The process does not exist.");
+                    }
                 }
+                break;
+            case ID_ICON_EXIT:
+                SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
+                break;
             }
-            break;
-        case ID_ICON_EXIT:
-            SendMessage(PhMainWndHandle, WM_COMMAND, ID_HACKER_EXIT, 0);
-            break;
         }
     }
-
-    SelectedIconProcessId = NULL;
 }
 
 VOID PhShowIconNotification(
@@ -3237,7 +3203,7 @@ BOOL CALLBACK PhpEnumProcessWindowsProc(
 }
 
 VOID PhpSetProcessMenuPriorityChecks(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN SetPriority,
     __in BOOLEAN SetIoPriority
@@ -3297,8 +3263,9 @@ VOID PhpSetProcessMenuPriorityChecks(
 
         if (id != 0)
         {
-            CheckMenuItem(Menu, id, MF_CHECKED);
-            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+            PhSetFlagsEMenuItem(Menu, id,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
 
@@ -3324,24 +3291,24 @@ VOID PhpSetProcessMenuPriorityChecks(
 
         if (id != 0)
         {
-            CheckMenuItem(Menu, id, MF_CHECKED);
-            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+            PhSetFlagsEMenuItem(Menu, id,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
     }
 }
 
 VOID PhpInitializeProcessMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM *Processes,
     __in ULONG NumberOfProcesses
     )
 {
-#define MISCELLANEOUS_MENU_INDEX 12
-#define WINDOW_MENU_INDEX 14
+    PPH_EMENU_ITEM item;
 
     if (NumberOfProcesses == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfProcesses == 1)
     {
@@ -3351,9 +3318,9 @@ VOID PhpInitializeProcessMenu(
         // a few menu items.
         if (PH_IS_FAKE_PROCESS_ID(Processes[0]->ProcessId))
         {
-            PhEnableAllMenuItems(Menu, FALSE);
-            EnableMenuItem(Menu, ID_PROCESS_PROPERTIES, MF_ENABLED);
-            EnableMenuItem(Menu, ID_PROCESS_SEARCHONLINE, MF_ENABLED);
+            PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+            PhSetFlagsEMenuItem(Menu, ID_PROCESS_PROPERTIES, PH_EMENU_DISABLED, 0);
+            PhSetFlagsEMenuItem(Menu, ID_PROCESS_SEARCHONLINE, PH_EMENU_DISABLED, 0);
         }
     }
     else
@@ -3368,13 +3335,13 @@ VOID PhpInitializeProcessMenu(
         };
         ULONG i;
 
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
         // These menu items are capable of manipulating 
         // multiple processes.
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
         {
-            EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
+            PhSetFlagsEMenuItem(Menu, menuItemsMultiEnabled[i], PH_EMENU_DISABLED, 0);
         }
     }
 
@@ -3382,11 +3349,11 @@ VOID PhpInitializeProcessMenu(
 
     if (WindowsVersion < WINDOWS_VISTA)
     {
-        HMENU miscMenu;
-
         // Remove I/O priority.
-        miscMenu = GetSubMenu(Menu, MISCELLANEOUS_MENU_INDEX);
-        DeleteMenu(miscMenu, 4, MF_BYPOSITION);
+        item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0);
+
+        if (item)
+            PhRemoveEMenuItem(NULL, item, 0);
     }
 
     // Virtualization
@@ -3420,13 +3387,9 @@ VOID PhpInitializeProcessMenu(
         }
 
         if (!allowed)
-        {
-            EnableMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, MF_DISABLED | MF_GRAYED);
-        }
-        else
-        {
-            CheckMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, enabled ? MF_CHECKED : MF_UNCHECKED);
-        }
+            PhSetFlagsEMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        else if (enabled)
+            PhSetFlagsEMenuItem(Menu, ID_PROCESS_VIRTUALIZATION, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
     }
 
     // Priority
@@ -3435,45 +3398,45 @@ VOID PhpInitializeProcessMenu(
         PhpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE);
     }
 
-    // Window menu
-    if (NumberOfProcesses == 1)
+    item = PhFindEMenuItem(Menu, 0, L"Window", 0);
+
+    if (item)
     {
-        WINDOWPLACEMENT placement = { sizeof(placement) };
-
-        // Get a handle to the process' top-level window (if any).
-        SelectedProcessWindowHandle = NULL;
-        EnumWindows(PhpEnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
-
-        if (SelectedProcessWindowHandle)
+        // Window menu
+        if (NumberOfProcesses == 1)
         {
-            EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_ENABLED | MF_BYPOSITION);
+            WINDOWPLACEMENT placement = { sizeof(placement) };
+
+            // Get a handle to the process' top-level window (if any).
+            SelectedProcessWindowHandle = NULL;
+            EnumWindows(PhpEnumProcessWindowsProc, (ULONG)Processes[0]->ProcessId);
+
+            if (!SelectedProcessWindowHandle)
+                item->Flags |= PH_EMENU_DISABLED;
+
+            GetWindowPlacement(SelectedProcessWindowHandle, &placement);
+
+            if (placement.showCmd == SW_MINIMIZE)
+                PhSetFlagsEMenuItem(item, ID_WINDOW_MINIMIZE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+            else if (placement.showCmd == SW_MAXIMIZE)
+                PhSetFlagsEMenuItem(item, ID_WINDOW_MAXIMIZE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+            else if (placement.showCmd == SW_NORMAL)
+                PhSetFlagsEMenuItem(item, ID_WINDOW_RESTORE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
         }
         else
         {
-            EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
+            item->Flags |= PH_EMENU_DISABLED;
         }
-
-        GetWindowPlacement(SelectedProcessWindowHandle, &placement);
-
-        PhEnableAllMenuItems(GetSubMenu(Menu, WINDOW_MENU_INDEX), TRUE);
-
-        if (placement.showCmd == SW_MINIMIZE)
-            EnableMenuItem(Menu, ID_WINDOW_MINIMIZE, MF_DISABLED | MF_GRAYED);
-        else if (placement.showCmd == SW_MAXIMIZE)
-            EnableMenuItem(Menu, ID_WINDOW_MAXIMIZE, MF_DISABLED | MF_GRAYED);
-        else if (placement.showCmd == SW_NORMAL)
-            EnableMenuItem(Menu, ID_WINDOW_RESTORE, MF_DISABLED | MF_GRAYED);
-    }
-    else
-    {
-        EnableMenuItem(Menu, WINDOW_MENU_INDEX, MF_DISABLED | MF_GRAYED | MF_BYPOSITION);
     }
 
     // Remove irrelevant menu items (continued)
 
     if (!WINDOWS_HAS_UAC)
     {
-        DeleteMenu(Menu, ID_PROCESS_VIRTUALIZATION, 0);
+        item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION);
+
+        if (item)
+            PhRemoveEMenuItem(NULL, item, 0);
     }
 }
 
@@ -3488,22 +3451,32 @@ VOID PhShowProcessContextMenu(
 
     if (numberOfProcesses != 0)
     {
-        HMENU menu;
-        HMENU subMenu;
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
 
-        menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESS));
-        subMenu = GetSubMenu(menu, 0);
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_PROCESS), 0);
+        PhSetFlagsEMenuItem(menu, ID_PROCESS_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-        SetMenuDefaultItem(subMenu, ID_PROCESS_PROPERTIES, FALSE);
-        PhpInitializeProcessMenu(subMenu, processes, numberOfProcesses);
+        PhpInitializeProcessMenu(menu, processes, numberOfProcesses);
 
-        PhShowContextMenu(
+        MapWindowPoints(ProcessTreeListHandle, NULL, &Location, 1);
+
+        item = PhShowEMenu(
+            menu,
             PhMainWndHandle,
-            ProcessTreeListHandle,
-            subMenu,
-            Location
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            Location.x,
+            Location.y
             );
-        DestroyMenu(menu);
+
+        if (item)
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+        }
+
+        PhDestroyEMenu(menu);
     }
 
     PhFree(processes);
