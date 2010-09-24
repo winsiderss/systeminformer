@@ -1472,6 +1472,8 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (SelectedMenuItemPlugin && SelectedMenuItemPlugin->RealId == (ULONG)id)
                     {
+                        SelectedMenuItemPlugin->OwnerWindow = hWnd;
+
                         PhInvokeCallback(
                             PhGetPluginCallback(SelectedMenuItemPlugin->Plugin, PluginCallbackMenuItem),
                             SelectedMenuItemPlugin
@@ -3462,6 +3464,7 @@ VOID PhShowProcessContextMenu(
             PH_PLUGIN_MENU_INFORMATION menuInfo;
 
             menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = PhMainWndHandle;
             menuInfo.u.Process.Processes = processes;
             menuInfo.u.Process.NumberOfProcesses = numberOfProcesses;
 
@@ -3484,7 +3487,7 @@ VOID PhShowProcessContextMenu(
             BOOLEAN handled = FALSE;
 
             if (PhPluginsEnabled)
-                handled = PhPluginTriggerEMenuItem(item);
+                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
             if (!handled)
                 SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
@@ -3609,6 +3612,7 @@ VOID PhMainWndServiceListViewOnNotify(
                     PH_PLUGIN_MENU_INFORMATION menuInfo;
 
                     menuInfo.Menu = menu;
+                    menuInfo.OwnerWindow = PhMainWndHandle;
                     menuInfo.u.Service.Services = services;
                     menuInfo.u.Service.NumberOfServices = numberOfServices;
 
@@ -3632,7 +3636,7 @@ VOID PhMainWndServiceListViewOnNotify(
                     BOOLEAN handled = FALSE;
 
                     if (PhPluginsEnabled)
-                        handled = PhPluginTriggerEMenuItem(item);
+                        handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
                     if (!handled)
                         SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
@@ -3774,6 +3778,7 @@ VOID PhMainWndNetworkListViewOnNotify(
                     PH_PLUGIN_MENU_INFORMATION menuInfo;
 
                     menuInfo.Menu = menu;
+                    menuInfo.OwnerWindow = PhMainWndHandle;
                     menuInfo.u.Network.NetworkItems = networkItems;
                     menuInfo.u.Network.NumberOfNetworkItems = numberOfNetworkItems;
 
@@ -3797,7 +3802,7 @@ VOID PhMainWndNetworkListViewOnNotify(
                     BOOLEAN handled = FALSE;
 
                     if (PhPluginsEnabled)
-                        handled = PhPluginTriggerEMenuItem(item);
+                        handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
                     if (!handled)
                         SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);

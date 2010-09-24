@@ -44,11 +44,17 @@ VOID NTAPI ProcessMenuInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ModuleMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -97,6 +103,12 @@ LOGICAL DllMain(
                 NULL,
                 &ProcessMenuInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
+                ModuleMenuInitializingCallback,
+                NULL,
+                &ModuleMenuInitializingCallbackRegistration
+                );
         }
         break;
     }
@@ -126,19 +138,46 @@ VOID NTAPI MenuItemCallback(
     )
 {
     PPH_PLUGIN_MENU_ITEM menuItem = Parameter;
-    PPH_PROCESS_ITEM processItem;
+    PPH_STRING fileName;
 
     switch (menuItem->Id)
     {
     case ID_SENDTO_SERVICE1:
-        processItem = menuItem->Context;
-        UploadToOnlineService(PhMainWndHandle, processItem->FileName, UPLOAD_SERVICE_VIRUSTOTAL);
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_VIRUSTOTAL);
         break;
     case ID_SENDTO_SERVICE2:
-        processItem = menuItem->Context;
-        UploadToOnlineService(PhMainWndHandle, processItem->FileName, UPLOAD_SERVICE_JOTTI);
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_JOTTI);
         break;
     }
+}
+
+PPH_EMENU_ITEM CreateSendToMenu(
+    __in PPH_EMENU_ITEM Parent,
+    __in PWSTR InsertAfter,
+    __in PPH_STRING FileName
+    )
+{
+    PPH_EMENU_ITEM sendToMenu;
+    PPH_EMENU_ITEM menuItem;
+    ULONG insertIndex;
+
+    // Create the Send To menu.
+    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", FileName), -1);
+
+    menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
+
+    if (menuItem)
+        insertIndex = PhIndexOfEMenuItem(Parent, menuItem);
+    else
+        insertIndex = -1;
+
+    PhInsertEMenuItem(Parent, sendToMenu, insertIndex + 1);
+
+    return sendToMenu;
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
@@ -149,33 +188,39 @@ VOID NTAPI ProcessMenuInitializingCallback(
     PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
     PPH_PROCESS_ITEM processItem;
     PPH_EMENU_ITEM sendToMenu;
-    PPH_EMENU_ITEM menuItem;
-    ULONG insertIndex;
 
     if (menuInfo->u.Process.NumberOfProcesses == 1)
         processItem = menuInfo->u.Process.Processes[0];
     else
         processItem = NULL;
 
-    // Create the Send To menu.
-    sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", processItem), -1);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", processItem), -1);
-
-    // Insert the Send To menu into the process menu.
-
-    menuItem = PhFindEMenuItem(menuInfo->Menu, PH_EMENU_FIND_STARTSWITH, L"Search Online", 0);
-
-    if (menuItem)
-        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem);
-    else
-        insertIndex = -1;
-
-    PhInsertEMenuItem(menuInfo->Menu, sendToMenu, insertIndex + 1);
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", processItem ? processItem->FileName : NULL);
 
     // Only enable the Send To menu if there is exactly one process selected and it has a file name.
 
     if (!processItem || !processItem->FileName)
+    {
+        sendToMenu->Flags |= PH_EMENU_DISABLED;
+    }
+}
+
+VOID NTAPI ModuleMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_MODULE_ITEM moduleItem;
+    PPH_EMENU_ITEM sendToMenu;
+
+    if (menuInfo->u.Module.NumberOfModules == 1)
+        moduleItem = menuInfo->u.Module.Modules[0];
+    else
+        moduleItem = NULL;
+
+    sendToMenu = CreateSendToMenu(menuInfo->Menu, L"Search Online", moduleItem ? moduleItem->FileName : NULL);
+
+    if (!moduleItem)
     {
         sendToMenu->Flags |= PH_EMENU_DISABLED;
     }

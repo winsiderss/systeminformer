@@ -470,6 +470,7 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
 }
 
 BOOLEAN PhPluginTriggerEMenuItem(
+    __in HWND OwnerWindow,
     __in PPH_EMENU_ITEM Item
     )
 {
@@ -479,6 +480,8 @@ BOOLEAN PhPluginTriggerEMenuItem(
         return FALSE;
 
     pluginMenuItem = Item->Context;
+
+    pluginMenuItem->OwnerWindow = OwnerWindow;
 
     PhInvokeCallback(PhGetPluginCallback(pluginMenuItem->Plugin, PluginCallbackMenuItem), pluginMenuItem);
 

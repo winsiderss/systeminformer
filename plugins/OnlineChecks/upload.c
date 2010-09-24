@@ -402,7 +402,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 {
                     if (!HttpQueryInfo(requestHandle, HTTP_QUERY_LOCATION, buffer, &bufferSize, &index))
                     {
-                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", GetLastError());
                         goto ExitCleanup;
                     }
 
@@ -442,10 +442,28 @@ static NTSTATUS UploadWorkerThreadStart(
                                 );
                         }
                     }
+                    else
+                    {
+                        PSTR tooManyFiles;
+
+                        tooManyFiles = strstr(buffer, "Too many files");
+
+                        if (tooManyFiles)
+                        {
+                            RaiseUploadError(
+                                context,
+                                L"Unable to scan the file:\n\n"
+                                L"Too many files have been scanned from this IP in a short period. "
+                                L"Please try again later",
+                                0
+                                );
+                            goto ExitCleanup;
+                        }
+                    }
 
                     if (!context->LaunchCommand)
                     {
-                        RaiseUploadError(context, L"Unable to complete the request", 0);
+                        RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", 0);
                         goto ExitCleanup;
                     }
                 }
