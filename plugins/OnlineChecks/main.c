@@ -134,6 +134,10 @@ VOID NTAPI MenuItemCallback(
         processItem = menuItem->Context;
         UploadToOnlineService(PhMainWndHandle, processItem->FileName, UPLOAD_SERVICE_VIRUSTOTAL);
         break;
+    case ID_SENDTO_SERVICE2:
+        processItem = menuItem->Context;
+        UploadToOnlineService(PhMainWndHandle, processItem->FileName, UPLOAD_SERVICE_JOTTI);
+        break;
     }
 }
 
@@ -155,7 +159,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
     // Create the Send To menu.
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
-    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"VirusTotal.com", processItem), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", processItem), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", processItem), -1);
 
     // Insert the Send To menu into the process menu.
 
