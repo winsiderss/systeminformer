@@ -84,6 +84,14 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         {
             HWND lvHandle;
 
+#ifdef _M_X64
+            PhShowWarning(
+                hwndDlg,
+                L"The hidden processes feature is only fully implemented on 32-bit systems. "
+                L"Some features may not work as expected."
+                );
+#endif
+
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhHiddenProcessesListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_PROCESSES);
 
