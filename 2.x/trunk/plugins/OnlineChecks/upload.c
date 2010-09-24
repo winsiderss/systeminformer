@@ -140,6 +140,7 @@ static NTSTATUS UploadWorkerThreadStart(
     switch (context->Service)
     {
     case UPLOAD_SERVICE_VIRUSTOTAL:
+    case UPLOAD_SERVICE_JOTTI:
         {
             NTSTATUS status;
             PPH_STRING userAgent;
@@ -225,7 +226,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
             connectHandle = InternetConnect(
                 internetHandle,
-                L"www.virustotal.com",
+                context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? L"www.virustotal.com" : L"virusscan.jotti.org",
                 80,
                 NULL,
                 NULL,
@@ -248,7 +249,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 requestHandle = HttpOpenRequest(
                     connectHandle,
                     L"POST",
-                    L"/vt/en/recepcionf",
+                    context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? L"/vt/en/recepcionf" : L"/processupload.php",
                     L"HTTP/1.1",
                     L"",
                     acceptTypes,
@@ -278,7 +279,9 @@ static NTSTATUS UploadWorkerThreadStart(
             // Create the data.
 
             {
-                PSTR contentDispositionStart = "Content-Disposition: form-data; name=\"archivo\"; filename=\"";
+                PSTR contentDispositionPart1 = "Content-Disposition: form-data; name=\"";
+                PSTR fileNameFieldName;
+                PSTR contentDispositionPart2 = "\"; filename=\"";
                 PSTR contentType = "Content-Type: application/octet-stream\r\n\r\n";
                 PPH_STRING baseFileName;
                 IO_STATUS_BLOCK isb;
@@ -287,10 +290,14 @@ static NTSTATUS UploadWorkerThreadStart(
                 baseFileNameAnsi = PhCreateAnsiStringFromUnicodeEx(baseFileName->Buffer, baseFileName->Length);
                 PhDereferenceObject(baseFileName);
 
+                fileNameFieldName = context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? "archivo" : "scanfile";
+
                 dataLength = 2; // --
                 dataLength += boundaryAnsi->Length;
                 dataLength += 2; // \r\n
-                dataLength += strlen(contentDispositionStart);
+                dataLength += strlen(contentDispositionPart1);
+                dataLength += strlen(fileNameFieldName);
+                dataLength += strlen(contentDispositionPart2);
                 dataLength += baseFileNameAnsi->Length;
                 dataLength += 3; // \"\r\n
                 dataLength += strlen(contentType);
@@ -316,8 +323,12 @@ static NTSTATUS UploadWorkerThreadStart(
                 dataCursor += 2;
 
                 // Content Disposition
-                memcpy(&data[dataCursor], contentDispositionStart, strlen(contentDispositionStart));
-                dataCursor += strlen(contentDispositionStart);
+                memcpy(&data[dataCursor], contentDispositionPart1, strlen(contentDispositionPart1));
+                dataCursor += strlen(contentDispositionPart1);
+                memcpy(&data[dataCursor], fileNameFieldName, strlen(fileNameFieldName));
+                dataCursor += strlen(fileNameFieldName);
+                memcpy(&data[dataCursor], contentDispositionPart2, strlen(contentDispositionPart2));
+                dataCursor += strlen(contentDispositionPart2);
                 memcpy(&data[dataCursor], baseFileNameAnsi->Buffer, baseFileNameAnsi->Length);
                 dataCursor += baseFileNameAnsi->Length;
                 memcpy(&data[dataCursor], "\"\r\n", 3);
@@ -380,20 +391,65 @@ static NTSTATUS UploadWorkerThreadStart(
             // Get the new location.
 
             {
-                WCHAR buffer[1024];
+                UCHAR buffer[PAGE_SIZE];
                 ULONG bufferSize;
                 ULONG index;
 
                 bufferSize = sizeof(buffer);
                 index = 0;
 
-                if (!HttpQueryInfo(requestHandle, HTTP_QUERY_LOCATION, buffer, &bufferSize, &index))
+                if (context->Service == UPLOAD_SERVICE_VIRUSTOTAL)
                 {
-                    RaiseUploadError(context, L"Unable to complete the request", GetLastError());
-                    goto ExitCleanup;
+                    if (!HttpQueryInfo(requestHandle, HTTP_QUERY_LOCATION, buffer, &bufferSize, &index))
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        goto ExitCleanup;
+                    }
+
+                    context->LaunchCommand = PhCreateString((PWSTR)buffer);
+                }
+                else
+                {
+                    PSTR hrefEquals;
+                    PSTR quote;
+
+                    // This service returns some JavaScript that redirects the user to the new location.
+
+                    if (!InternetReadFile(requestHandle, buffer, sizeof(buffer) - 1, &bufferSize))
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request", GetLastError());
+                        goto ExitCleanup;
+                    }
+
+                    // Make sure the buffer is null-terminated.
+                    buffer[bufferSize] = 0;
+
+                    // The JavaScript looks like this:
+                    // top.location.href="...";
+                    hrefEquals = strstr(buffer, "href=\"");
+
+                    if (hrefEquals)
+                    {
+                        hrefEquals += 6;
+                        quote = strchr(hrefEquals, '\"');
+
+                        if (quote)
+                        {
+                            context->LaunchCommand = PhFormatString(
+                                L"http://virusscan.jotti.org%.*S",
+                                quote - hrefEquals,
+                                hrefEquals
+                                );
+                        }
+                    }
+
+                    if (!context->LaunchCommand)
+                    {
+                        RaiseUploadError(context, L"Unable to complete the request", 0);
+                        goto ExitCleanup;
+                    }
                 }
 
-                context->LaunchCommand = PhCreateString(buffer);
                 PostMessage(context->WindowHandle, UM_LAUNCH_COMMAND, 0, 0);
             }
 
