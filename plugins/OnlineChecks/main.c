@@ -21,6 +21,7 @@
  */
 
 #include <phdk.h>
+#include "onlnchk.h"
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
@@ -131,7 +132,7 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_SENDTO_SERVICE1:
         processItem = menuItem->Context;
-        PhShowInformation(PhMainWndHandle, L"VirusTotal.com: %s", processItem->FileName->Buffer);
+        UploadToOnlineService(PhMainWndHandle, processItem->FileName, UPLOAD_SERVICE_VIRUSTOTAL);
         break;
     }
 }

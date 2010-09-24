@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib wininet.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../sdk/lib/i386"
 				GenerateDebugInformation="true"
@@ -143,7 +143,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib wininet.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../sdk/lib/amd64"
 				GenerateDebugInformation="true"
@@ -220,7 +220,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib wininet.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../sdk/lib/i386"
 				GenerateDebugInformation="true"
@@ -300,7 +300,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ProcessHacker.lib ntdll.lib"
+				AdditionalDependencies="ProcessHacker.lib ntdll.lib wininet.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../sdk/lib/amd64"
 				GenerateDebugInformation="true"
@@ -344,12 +344,20 @@
 				RelativePath=".\main.c"
 				>
 			</File>
+			<File
+				RelativePath=".\upload.c"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\onlnchk.h"
+				>
+			</File>
 			<File
 				RelativePath=".\resource.h"
 				>
