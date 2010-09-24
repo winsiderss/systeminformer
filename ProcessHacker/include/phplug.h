@@ -21,6 +21,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessMenuInitializing = 9, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackServiceMenuInitializing = 10, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackNetworkMenuInitializing = 11, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackModuleMenuInitializing = 12, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -91,6 +92,7 @@ typedef struct _PH_EMENU_ITEM *PPH_EMENU_ITEM, *PPH_EMENU;
 typedef struct _PH_PLUGIN_MENU_INFORMATION
 {
     PPH_EMENU Menu;
+    HWND OwnerWindow;
 
     union
     {
@@ -109,6 +111,12 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
             PPH_NETWORK_ITEM *NetworkItems;
             ULONG NumberOfNetworkItems;
         } Network;
+        struct
+        {
+            HANDLE ProcessId;
+            PPH_MODULE_ITEM *Modules;
+            ULONG NumberOfModules;
+        } Module;
     } u;
 } PH_PLUGIN_MENU_INFORMATION, *PPH_PLUGIN_MENU_INFORMATION;
 
@@ -190,6 +198,9 @@ typedef struct _PH_PLUGIN_MENU_ITEM
     ULONG Id;
     ULONG RealId;
     PVOID Context;
+
+    // Parameters
+    HWND OwnerWindow;
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
 #define PH_MENU_ITEM_LOCATION_VIEW 1
@@ -251,6 +262,7 @@ PHAPPAPI
 BOOLEAN
 NTAPI
 PhPluginTriggerEMenuItem(
+    __in HWND OwnerWindow,
     __in PPH_EMENU_ITEM Item
     );
 
