@@ -85,6 +85,40 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_PROGRESS DIALOGEX 0, 0, 189, 41
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Uploading"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,132,20,50,14
+    LTEXT           "Message",IDC_MESSAGE,7,7,175,8
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_PROGRESS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 182
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 34
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
