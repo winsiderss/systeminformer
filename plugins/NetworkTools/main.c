@@ -21,6 +21,8 @@
  */
 
 #include <phdk.h>
+#define MAIN_PRIVATE
+#include "nettools.h"
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
@@ -131,15 +133,20 @@ VOID NTAPI MenuItemCallback(
     {
     case ID_TOOLS_PING:
         networkItem = menuItem->Context;
-        PhShowInformation(PhMainWndHandle, L"You chose Ping for %s", networkItem->RemoteAddressString);
+        PerformNetworkAction(PhMainWndHandle, NETWORK_ACTION_PING, &networkItem->RemoteEndpoint.Address);
         break;
     case ID_TOOLS_TRACEROUTE:
         networkItem = menuItem->Context;
-        PhShowInformation(PhMainWndHandle, L"You chose Traceroute for %s", networkItem->RemoteAddressString);
+        PerformNetworkAction(PhMainWndHandle, NETWORK_ACTION_TRACEROUTE, &networkItem->RemoteEndpoint.Address);
         break;
     case ID_TOOLS_WHOIS:
         networkItem = menuItem->Context;
-        PhShowInformation(PhMainWndHandle, L"You chose Whois for %s", networkItem->RemoteAddressString);
+        // TODO: Integrate WHOIS with the GUI.
+        PhShellExecute(
+            PhMainWndHandle,
+            PhaConcatStrings2(L"http://wq.apnic.net/apnic-bin/whois.pl?searchtext=", networkItem->RemoteAddressString)->Buffer,
+            NULL
+            );
         break;
     }
 }
