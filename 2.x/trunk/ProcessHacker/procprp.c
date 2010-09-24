@@ -25,6 +25,7 @@
 #include <procprpp.h>
 #include <kph.h>
 #include <settings.h>
+#include <emenu.h>
 #include <phplug.h>
 #include <windowsx.h>
 
@@ -2908,24 +2909,28 @@ static VOID NTAPI ModulesUpdatedHandler(
 }
 
 VOID PhpInitializeModuleMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in HANDLE ProcessId,
     __in PPH_MODULE_ITEM *Modules,
     __in ULONG NumberOfModules
     )
 {
+    PPH_EMENU_ITEM item;
     PPH_STRING inspectExecutables;
 
     inspectExecutables = PhGetStringSetting(L"ProgramInspectExecutables");
 
     if (inspectExecutables->Length == 0)
-        DeleteMenu(Menu, ID_MODULE_INSPECT, 0);
+    {
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_MODULE_INSPECT))
+            PhRemoveEMenuItem(NULL, item, 0);
+    }
 
     PhDereferenceObject(inspectExecutables);
 
     if (NumberOfModules == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfModules == 1)
     {
@@ -2933,8 +2938,8 @@ VOID PhpInitializeModuleMenu(
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
-        PhEnableMenuItem(Menu, ID_MODULE_COPY, TRUE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_MODULE_COPY, TRUE);
     }
 }
 
@@ -3274,21 +3279,52 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                         if (numberOfModules != 0)
                         {
-                            HMENU menu;
-                            HMENU subMenu;
+                            PPH_EMENU menu;
+                            PPH_EMENU_ITEM item;
+                            POINT location;
 
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE));
-                            subMenu = GetSubMenu(menu, 0);
+                            menu = PhCreateEMenu();
+                            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
 
-                            PhpInitializeModuleMenu(subMenu, processItem->ProcessId, modules, numberOfModules);
+                            PhpInitializeModuleMenu(menu, processItem->ProcessId, modules, numberOfModules);
 
-                            PhShowContextMenu(
+                            if (PhPluginsEnabled)
+                            {
+                                PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                                menuInfo.Menu = menu;
+                                menuInfo.OwnerWindow = hwndDlg;
+                                menuInfo.u.Module.ProcessId = processItem->ProcessId;
+                                menuInfo.u.Module.Modules = modules;
+                                menuInfo.u.Module.NumberOfModules = numberOfModules;
+
+                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing), &menuInfo);
+                            }
+
+                            location = itemActivate->ptAction;
+                            ClientToScreen(lvHandle, &location);
+
+                            item = PhShowEMenu(
+                                menu,
                                 hwndDlg,
-                                lvHandle,
-                                subMenu,
-                                itemActivate->ptAction
+                                PH_EMENU_SHOW_LEFTRIGHT,
+                                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                                location.x,
+                                location.y
                                 );
-                            DestroyMenu(menu);
+
+                            if (item)
+                            {
+                                BOOLEAN handled = FALSE;
+
+                                if (PhPluginsEnabled)
+                                    handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+                                if (!handled)
+                                    SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+                            }
+
+                            PhDestroyEMenu(menu);
                         }
 
                         PhFree(modules);
