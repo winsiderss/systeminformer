@@ -1775,18 +1775,17 @@ static VOID NTAPI ThreadsLoadingStateChangedHandler(
 }
 
 VOID PhpInitializeThreadMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in HANDLE ProcessId,
     __in PPH_THREAD_ITEM *Threads,
     __in ULONG NumberOfThreads
     )
 {
-#define ANALYZE_MENU_INDEX 9
-#define IOPRIORITY_MENU_INDEX 11
+    PPH_EMENU_ITEM item;
 
     if (NumberOfThreads == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfThreads == 1)
     {
@@ -1804,13 +1803,13 @@ VOID PhpInitializeThreadMenu(
         };
         ULONG i;
 
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
         // These menu items are capable of manipulating 
         // multiple threads.
         for (i = 0; i < sizeof(menuItemsMultiEnabled) / sizeof(ULONG); i++)
         {
-            EnableMenuItem(Menu, menuItemsMultiEnabled[i], MF_ENABLED);
+            PhEnableEMenuItem(Menu, menuItemsMultiEnabled[i], TRUE);
         }
     }
 
@@ -1819,18 +1818,21 @@ VOID PhpInitializeThreadMenu(
     if (WindowsVersion < WINDOWS_VISTA)
     {
         // Remove I/O priority.
-        DeleteMenu(Menu, IOPRIORITY_MENU_INDEX, MF_BYPOSITION);
+        if (item = PhFindEMenuItem(Menu, 0, L"I/O Priority", 0))
+            PhDestroyEMenuItem(item);
     }
 
 #ifndef _M_IX86
     // Remove Analyze.
-    DeleteMenu(Menu, ANALYZE_MENU_INDEX, MF_BYPOSITION);
+    if (item = PhFindEMenuItem(Menu, 0, L"Analyze", 0))
+        PhDestroyEMenuItem(item);
 #endif
 
     if (!PhKphHandle)
     {
         // Remove Force Terminate.
-        DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
+            PhDestroyEMenuItem(item);
     }
     else
     {
@@ -1838,11 +1840,12 @@ VOID PhpInitializeThreadMenu(
         {
             // Remove Force Terminate because Terminate does 
             // the same job.
-            DeleteMenu(Menu, ID_THREAD_FORCETERMINATE, 0);
+            if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
+                PhDestroyEMenuItem(item);
         }
     }
 
-    PhEnableMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
+    PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
 
     // Priority
     if (NumberOfThreads == 1)
@@ -1882,7 +1885,7 @@ VOID PhpInitializeThreadMenu(
                     TRUE
                     )))
                 {
-                    PhEnableMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
+                    PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, TRUE);
                     NtClose(tokenHandle);
                 }
             }
@@ -1917,8 +1920,9 @@ VOID PhpInitializeThreadMenu(
 
         if (id != 0)
         {
-            CheckMenuItem(Menu, id, MF_CHECKED);
-            PhSetRadioCheckMenuItem(Menu, id, TRUE);
+            PhSetFlagsEMenuItem(Menu, id,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
         }
 
         if (ioPriority != -1)
@@ -1943,8 +1947,9 @@ VOID PhpInitializeThreadMenu(
 
             if (id != 0)
             {
-                CheckMenuItem(Menu, id, MF_CHECKED);
-                PhSetRadioCheckMenuItem(Menu, id, TRUE);
+                PhSetFlagsEMenuItem(Menu, id,
+                    PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                    PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
             }
         }
     }
@@ -2627,22 +2632,53 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         if (numberOfThreads != 0)
                         {
-                            HMENU menu;
-                            HMENU subMenu;
+                            PPH_EMENU menu;
+                            PPH_EMENU_ITEM item;
+                            POINT location;
 
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_THREAD));
-                            subMenu = GetSubMenu(menu, 0);
+                            menu = PhCreateEMenu();
+                            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_THREAD), 0);
+                            PhSetFlagsEMenuItem(menu, ID_THREAD_INSPECT, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                            SetMenuDefaultItem(subMenu, ID_THREAD_INSPECT, FALSE);
-                            PhpInitializeThreadMenu(subMenu, processItem->ProcessId, threads, numberOfThreads);
+                            PhpInitializeThreadMenu(menu, processItem->ProcessId, threads, numberOfThreads);
 
-                            PhShowContextMenu(
+                            if (PhPluginsEnabled)
+                            {
+                                PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                                menuInfo.Menu = menu;
+                                menuInfo.OwnerWindow = hwndDlg;
+                                menuInfo.u.Thread.ProcessId = processItem->ProcessId;
+                                menuInfo.u.Thread.Threads = threads;
+                                menuInfo.u.Thread.NumberOfThreads = numberOfThreads;
+
+                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing), &menuInfo);
+                            }
+
+                            location = itemActivate->ptAction;
+                            ClientToScreen(lvHandle, &location);
+
+                            item = PhShowEMenu(
+                                menu,
                                 hwndDlg,
-                                lvHandle,
-                                subMenu,
-                                itemActivate->ptAction
+                                PH_EMENU_SHOW_LEFTRIGHT,
+                                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                                location.x,
+                                location.y
                                 );
-                            DestroyMenu(menu);
+
+                            if (item)
+                            {
+                                BOOLEAN handled = FALSE;
+
+                                if (PhPluginsEnabled)
+                                    handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+                                if (!handled)
+                                    SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+                            }
+
+                            PhDestroyEMenu(menu);
                         }
 
                         PhFree(threads);
@@ -2923,7 +2959,7 @@ VOID PhpInitializeModuleMenu(
     if (inspectExecutables->Length == 0)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_MODULE_INSPECT))
-            PhRemoveEMenuItem(NULL, item, 0);
+            PhDestroyEMenuItem(item);
     }
 
     PhDereferenceObject(inspectExecutables);
@@ -3529,7 +3565,7 @@ INT NTAPI PhpMemorySizeCompareFunction(
 }
 
 VOID PhpInitializeMemoryMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in HANDLE ProcessId,
     __in PPH_MEMORY_ITEM *MemoryItems,
     __in ULONG NumberOfMemoryItems
@@ -3537,29 +3573,29 @@ VOID PhpInitializeMemoryMenu(
 {
     if (NumberOfMemoryItems == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfMemoryItems == 1)
     {
         if (MemoryItems[0]->Flags & MEM_FREE)
         {
-            PhEnableMenuItem(Menu, ID_MEMORY_CHANGEPROTECTION, FALSE);
-            PhEnableMenuItem(Menu, ID_MEMORY_FREE, FALSE);
-            PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
+            PhEnableEMenuItem(Menu, ID_MEMORY_CHANGEPROTECTION, FALSE);
+            PhEnableEMenuItem(Menu, ID_MEMORY_FREE, FALSE);
+            PhEnableEMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
         else if (MemoryItems[0]->Flags & (MEM_MAPPED | MEM_IMAGE))
         {
-            PhEnableMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
+            PhEnableEMenuItem(Menu, ID_MEMORY_DECOMMIT, FALSE);
         }
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
-        PhEnableMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
-        PhEnableMenuItem(Menu, ID_MEMORY_COPY, TRUE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_MEMORY_SAVE, TRUE);
+        PhEnableEMenuItem(Menu, ID_MEMORY_COPY, TRUE);
     }
 
-    PhEnableMenuItem(Menu, ID_MEMORY_READWRITEADDRESS, TRUE);
+    PhEnableEMenuItem(Menu, ID_MEMORY_READWRITEADDRESS, TRUE);
 }
 
 INT_PTR CALLBACK PhpProcessMemoryDlgProc(
@@ -3922,22 +3958,53 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         // the user can use Read/Write Address.
                         //if (numberOfMemoryItems != 0)
                         {
-                            HMENU menu;
-                            HMENU subMenu;
+                            PPH_EMENU menu;
+                            PPH_EMENU_ITEM item;
+                            POINT location;
 
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY));
-                            subMenu = GetSubMenu(menu, 0);
+                            menu = PhCreateEMenu();
+                            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MEMORY), 0);
+                            PhSetFlagsEMenuItem(menu, ID_MEMORY_READWRITEMEMORY, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                            SetMenuDefaultItem(subMenu, ID_MEMORY_READWRITEMEMORY, FALSE);
-                            PhpInitializeMemoryMenu(subMenu, processItem->ProcessId, memoryItems, numberOfMemoryItems);
+                            PhpInitializeMemoryMenu(menu, processItem->ProcessId, memoryItems, numberOfMemoryItems);
 
-                            PhShowContextMenu(
+                            if (PhPluginsEnabled)
+                            {
+                                PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                                menuInfo.Menu = menu;
+                                menuInfo.OwnerWindow = hwndDlg;
+                                menuInfo.u.Memory.ProcessId = processItem->ProcessId;
+                                menuInfo.u.Memory.MemoryItems = memoryItems;
+                                menuInfo.u.Memory.NumberOfMemoryItems = numberOfMemoryItems;
+
+                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMemoryMenuInitializing), &menuInfo);
+                            }
+
+                            location = itemActivate->ptAction;
+                            ClientToScreen(lvHandle, &location);
+
+                            item = PhShowEMenu(
+                                menu,
                                 hwndDlg,
-                                lvHandle,
-                                subMenu,
-                                itemActivate->ptAction
+                                PH_EMENU_SHOW_LEFTRIGHT,
+                                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                                location.x,
+                                location.y
                                 );
-                            DestroyMenu(menu);
+
+                            if (item)
+                            {
+                                BOOLEAN handled = FALSE;
+
+                                if (PhPluginsEnabled)
+                                    handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+                                if (!handled)
+                                    SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+                            }
+
+                            PhDestroyEMenu(menu);
                         }
 
                         PhFree(memoryItems);
@@ -4097,16 +4164,18 @@ static VOID NTAPI HandlesUpdatedHandler(
 }
 
 VOID PhpInitializeHandleMenu(
-    __in HMENU Menu,
+    __in PPH_EMENU Menu,
     __in HANDLE ProcessId,
     __in PPH_HANDLE_ITEM *Handles,
     __in ULONG NumberOfHandles,
     __inout PPH_HANDLES_CONTEXT HandlesContext
     )
 {
+    PPH_EMENU_ITEM item;
+
     if (NumberOfHandles == 0)
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
     }
     else if (NumberOfHandles == 1)
     {
@@ -4114,18 +4183,20 @@ VOID PhpInitializeHandleMenu(
     }
     else
     {
-        PhEnableAllMenuItems(Menu, FALSE);
+        PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
 
-        EnableMenuItem(Menu, ID_HANDLE_CLOSE, MF_ENABLED);
-        EnableMenuItem(Menu, ID_HANDLE_COPY, MF_ENABLED);
+        PhEnableEMenuItem(Menu, ID_HANDLE_CLOSE, TRUE);
+        PhEnableEMenuItem(Menu, ID_HANDLE_COPY, TRUE);
     }
 
     // Remove irrelevant menu items.
 
     if (!PhKphHandle)
     {
-        DeleteMenu(Menu, ID_HANDLE_PROTECTED, 0);
-        DeleteMenu(Menu, ID_HANDLE_INHERIT, 0);
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_PROTECTED))
+            PhDestroyEMenuItem(item);
+        if (item = PhFindEMenuItem(Menu, 0, NULL, ID_HANDLE_INHERIT))
+            PhDestroyEMenuItem(item);
     }
 
     // Protected, Inherit
@@ -4137,13 +4208,13 @@ VOID PhpInitializeHandleMenu(
         if (Handles[0]->Attributes & OBJ_PROTECT_CLOSE)
         {
             HandlesContext->SelectedHandleProtected = TRUE;
-            CheckMenuItem(Menu, ID_HANDLE_PROTECTED, MF_CHECKED);
+            PhSetFlagsEMenuItem(Menu, ID_HANDLE_PROTECTED, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
 
         if (Handles[0]->Attributes & OBJ_INHERIT)
         {
             HandlesContext->SelectedHandleInherit = TRUE;
-            CheckMenuItem(Menu, ID_HANDLE_INHERIT, MF_CHECKED);
+            PhSetFlagsEMenuItem(Menu, ID_HANDLE_INHERIT, PH_EMENU_CHECKED, PH_EMENU_CHECKED);
         }
     }
 }
@@ -4526,28 +4597,59 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
                         if (numberOfHandles != 0)
                         {
-                            HMENU menu;
-                            HMENU subMenu;
+                            PPH_EMENU menu;
+                            PPH_EMENU_ITEM item;
+                            POINT location;
 
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE));
-                            subMenu = GetSubMenu(menu, 0);
+                            menu = PhCreateEMenu();
+                            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_HANDLE), 0);
+                            PhSetFlagsEMenuItem(menu, ID_HANDLE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
 
-                            SetMenuDefaultItem(subMenu, ID_HANDLE_PROPERTIES, FALSE);
                             PhpInitializeHandleMenu(
-                                subMenu,
+                                menu,
                                 processItem->ProcessId,
                                 handles,
                                 numberOfHandles,
                                 handlesContext
                                 );
 
-                            PhShowContextMenu(
+                            if (PhPluginsEnabled)
+                            {
+                                PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+                                menuInfo.Menu = menu;
+                                menuInfo.OwnerWindow = hwndDlg;
+                                menuInfo.u.Handle.ProcessId = processItem->ProcessId;
+                                menuInfo.u.Handle.Handles = handles;
+                                menuInfo.u.Handle.NumberOfHandles = numberOfHandles;
+
+                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHandleMenuInitializing), &menuInfo);
+                            }
+
+                            location = itemActivate->ptAction;
+                            ClientToScreen(lvHandle, &location);
+
+                            item = PhShowEMenu(
+                                menu,
                                 hwndDlg,
-                                lvHandle,
-                                subMenu,
-                                itemActivate->ptAction
+                                PH_EMENU_SHOW_LEFTRIGHT,
+                                PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                                location.x,
+                                location.y
                                 );
-                            DestroyMenu(menu);
+
+                            if (item)
+                            {
+                                BOOLEAN handled = FALSE;
+
+                                if (PhPluginsEnabled)
+                                    handled = PhPluginTriggerEMenuItem(hwndDlg, item);
+
+                                if (!handled)
+                                    SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+                            }
+
+                            PhDestroyEMenu(menu);
                         }
 
                         PhFree(handles);
