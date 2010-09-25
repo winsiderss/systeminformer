@@ -687,7 +687,7 @@ LRESULT CALLBACK PhMainWndProc(
                         );
                 }
                 break;
-            case ID_VIEW_SHOWPROCESSESFROMALLUSERS:
+            case ID_VIEW_HIDEPROCESSESFROMOTHERUSERS:
                 {
                     if (!CurrentUserFilterEntry)
                     {
@@ -703,8 +703,8 @@ LRESULT CALLBACK PhMainWndProc(
 
                     CheckMenuItem(
                         PhMainWndMenuHandle,
-                        ID_VIEW_SHOWPROCESSESFROMALLUSERS,
-                        !CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
+                        ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
+                        CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
                         );
                 }
                 break;
