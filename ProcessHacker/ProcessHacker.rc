@@ -101,7 +101,7 @@ BEGIN
             MENUITEM "Commit History",              ID_TRAYICONS_COMMITHISTORY
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
-        MENUITEM "Show Processes From All Users", ID_VIEW_SHOWPROCESSESFROMALLUSERS, CHECKED
+        MENUITEM "Hide Processes From Other Users", ID_VIEW_HIDEPROCESSESFROMOTHERUSERS
         MENUITEM SEPARATOR
         MENUITEM "Always on Top",               ID_VIEW_ALWAYSONTOP
         POPUP "Opacity"
