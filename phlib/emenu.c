@@ -78,6 +78,10 @@ VOID PhDestroyEMenuItem(
     __in PPH_EMENU_ITEM Item
     )
 {
+    // Remove the item from its parent, if it has one.
+    if (Item->Parent)
+        PhRemoveEMenuItem(NULL, Item, 0);
+
     if (Item->DeleteFunction)
         Item->DeleteFunction(Item);
 
@@ -217,7 +221,9 @@ BOOLEAN PhRemoveEMenuItem(
             return FALSE;
     }
 
+    Item = Parent->Items->Items[Index];
     PhRemoveItemList(Parent->Items, Index);
+    Item->Parent = NULL;
 
     return TRUE;
 }

@@ -21,7 +21,11 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessMenuInitializing = 9, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackServiceMenuInitializing = 10, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackNetworkMenuInitializing = 11, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
-    GeneralCallbackModuleMenuInitializing = 12, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+    GeneralCallbackIconMenuInitializing = 12, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+    GeneralCallbackThreadMenuInitializing = 13, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+    GeneralCallbackModuleMenuInitializing = 14, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+    GeneralCallbackMemoryMenuInitializing = 15, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+    GeneralCallbackHandleMenuInitializing = 16, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -114,9 +118,27 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
         struct
         {
             HANDLE ProcessId;
+            PPH_THREAD_ITEM *Threads;
+            ULONG NumberOfThreads;
+        } Thread;
+        struct
+        {
+            HANDLE ProcessId;
             PPH_MODULE_ITEM *Modules;
             ULONG NumberOfModules;
         } Module;
+        struct
+        {
+            HANDLE ProcessId;
+            PPH_MEMORY_ITEM *MemoryItems;
+            ULONG NumberOfMemoryItems;
+        } Memory;
+        struct
+        {
+            HANDLE ProcessId;
+            PPH_HANDLE_ITEM *Handles;
+            ULONG NumberOfHandles;
+        } Handle;
     } u;
 } PH_PLUGIN_MENU_INFORMATION, *PPH_PLUGIN_MENU_INFORMATION;
 

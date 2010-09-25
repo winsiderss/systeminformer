@@ -2532,6 +2532,16 @@ VOID PhpShowIconContextMenu(
     if (item)
         PhpAddIconProcesses(item, numberOfProcesses, IconProcessBitmaps);
 
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+        menuInfo.Menu = menu;
+        menuInfo.OwnerWindow = PhMainWndHandle;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackIconMenuInitializing), &menuInfo);
+    }
+
     SetForegroundWindow(PhMainWndHandle); // window must be foregrounded so menu will disappear properly
     item = PhShowEMenu(
         menu,
@@ -2555,6 +2565,7 @@ VOID PhpShowIconContextMenu(
     {
         PPH_EMENU_ITEM parentItem;
         HANDLE processId;
+        BOOLEAN handled = FALSE;
 
         parentItem = item->Parent;
 
@@ -2566,7 +2577,13 @@ VOID PhpShowIconContextMenu(
             parentItem = parentItem->Parent;
         }
 
-        if (!PhpProcessComputerCommand(item->Id))
+        if (PhPluginsEnabled && !handled)
+            handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+
+        if (!handled)
+            handled = PhpProcessComputerCommand(item->Id);
+
+        if (!handled)
         {
             switch (item->Id)
             {
@@ -3354,7 +3371,7 @@ VOID PhpInitializeProcessMenu(
     {
         // Remove I/O priority.
         if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0))
-            PhRemoveEMenuItem(NULL, item, 0);
+            PhDestroyEMenuItem(item);
     }
 
     // Virtualization
@@ -3435,7 +3452,7 @@ VOID PhpInitializeProcessMenu(
     if (!WINDOWS_HAS_UAC)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_VIRTUALIZATION))
-            PhRemoveEMenuItem(NULL, item, 0);
+            PhDestroyEMenuItem(item);
     }
 }
 
@@ -3569,9 +3586,9 @@ VOID PhpInitializeServiceMenu(
             PPH_EMENU_ITEM item;
 
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_SERVICE_CONTINUE))
-                PhRemoveEMenuItem(NULL, item, 0);
+                PhDestroyEMenuItem(item);
             if (item = PhFindEMenuItem(Menu, 0, NULL, ID_SERVICE_PAUSE))
-                PhRemoveEMenuItem(NULL, item, 0);
+                PhDestroyEMenuItem(item);
         }
     }
 }
@@ -3717,7 +3734,7 @@ VOID PhpInitializeNetworkMenu(
     if (WindowsVersion >= WINDOWS_VISTA)
     {
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_NETWORK_VIEWSTACK))
-            PhRemoveEMenuItem(NULL, item, 0);
+            PhDestroyEMenuItem(item);
     }
 
     // Close
