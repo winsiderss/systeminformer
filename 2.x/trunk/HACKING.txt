@@ -56,7 +56,8 @@ to test a boolean value.
 
 ==== Annotations, qualifiers ====
  * All parameters must use annotations, such as __in, __inout, __out, etc. 
- * Do not use "const".
+ * Do not use "const", unless obvious optimizations can be made by the 
+   compiler (e.g. inlining).
  * Do not use "volatile" in definitions. Instead, cast to a volatile 
    pointer when necessary.
 

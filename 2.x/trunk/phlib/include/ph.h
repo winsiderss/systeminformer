@@ -2642,7 +2642,7 @@ PHLIBAPI
 VOID PhMapFlags1(
     __inout PULONG Value2,
     __in ULONG Value1,
-    __in PPH_FLAG_MAPPING Mappings,
+    __in const PH_FLAG_MAPPING *Mappings,
     __in ULONG NumberOfMappings
     );
 
@@ -2650,7 +2650,7 @@ PHLIBAPI
 VOID PhMapFlags2(
     __inout PULONG Value1,
     __in ULONG Value2,
-    __in PPH_FLAG_MAPPING Mappings,
+    __in const PH_FLAG_MAPPING *Mappings,
     __in ULONG NumberOfMappings
     );
 
