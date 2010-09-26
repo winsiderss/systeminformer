@@ -126,6 +126,11 @@ BOOLEAN PhpCurrentUserProcessTreeFilter(
     __in_opt PVOID Context
     );
 
+BOOLEAN PhpSignedProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    );
+
 PPH_PROCESS_ITEM PhpGetSelectedProcess();
 
 VOID PhpGetSelectedProcesses(
@@ -259,6 +264,7 @@ static BOOLEAN SelectedProcessVirtualizationEnabled;
 static ULONG SelectedUserSessionId;
 
 static PPH_PROCESS_TREE_FILTER_ENTRY CurrentUserFilterEntry = NULL;
+static PPH_PROCESS_TREE_FILTER_ENTRY SignedFilterEntry = NULL;
 
 BOOLEAN PhMainWndInitialization(
     __in INT ShowCommand
@@ -705,6 +711,36 @@ LRESULT CALLBACK PhMainWndProc(
                         PhMainWndMenuHandle,
                         ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
                         CurrentUserFilterEntry ? MF_CHECKED : MF_UNCHECKED
+                        );
+                }
+                break;
+            case ID_VIEW_HIDESIGNEDPROCESSES:
+                {
+                    if (!SignedFilterEntry)
+                    {
+                        if (!PhEnableProcessQueryStage2)
+                        {
+                            PhShowInformation(
+                                hWnd,
+                                L"This filter cannot function because digital signature checking is not enabled. "
+                                L"Enable it in Options > Advanced and restart Process Hacker."
+                                );
+                        }
+
+                        SignedFilterEntry = PhAddProcessTreeFilter(PhpSignedProcessTreeFilter, NULL);
+                    }
+                    else
+                    {
+                        PhRemoveProcessTreeFilter(SignedFilterEntry);
+                        SignedFilterEntry = NULL;
+                    }
+
+                    PhApplyProcessTreeFilters();
+
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_HIDESIGNEDPROCESSES,
+                        SignedFilterEntry ? MF_CHECKED : MF_UNCHECKED
                         );
                 }
                 break;
@@ -2732,6 +2768,17 @@ BOOLEAN PhpCurrentUserProcessTreeFilter(
     return TRUE;
 }
 
+BOOLEAN PhpSignedProcessTreeFilter(
+    __in PPH_PROCESS_NODE ProcessNode,
+    __in_opt PVOID Context
+    )
+{
+    if (ProcessNode->ProcessItem->VerifyResult == VrTrusted)
+        return FALSE;
+
+    return TRUE;
+}
+
 PPH_PROCESS_ITEM PhpGetSelectedProcess()
 {
     return PhGetSelectedProcessItem();
@@ -3956,6 +4003,9 @@ VOID PhMainWndOnProcessModified(
     )
 {
     PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+
+    if (SignedFilterEntry)
+        PhApplyProcessTreeFilters();
 }
 
 VOID PhMainWndOnProcessRemoved(

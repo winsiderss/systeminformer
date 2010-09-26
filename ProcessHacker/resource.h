@@ -610,6 +610,7 @@
 #define ID_HACKER_PLUGINS               40231
 #define ID_VIEW_HIDEPROCESSESFROMOTHERUSERS 40232
 #define ID_THREAD_AFFINITY              40233
+#define ID_VIEW_HIDESIGNEDPROCESSES     40234
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -619,7 +620,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40234
+#define _APS_NEXT_COMMAND_VALUE         40235
 #define _APS_NEXT_CONTROL_VALUE         1271
 #define _APS_NEXT_SYMED_VALUE           132
 #endif
