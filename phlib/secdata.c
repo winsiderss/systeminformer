@@ -595,24 +595,24 @@ BOOLEAN PhGetAccessEntries(
     PPH_SPECIFIC_TYPE specificType = NULL;
     PPH_ACCESS_ENTRY accessEntries;
 
-    if (PhEqualStringZ(Type, L"ALPC Port", TRUE))
+    if (WSTR_IEQUAL(Type, L"ALPC Port"))
     {
         Type = L"AlpcPort";
     }
-    else if (PhEqualStringZ(Type, L"Port", TRUE))
+    else if (WSTR_IEQUAL(Type, L"Port"))
     {
         Type = L"AlpcPort";
     }
-    else if (PhEqualStringZ(Type, L"WaitablePort", TRUE))
+    else if (WSTR_IEQUAL(Type, L"WaitablePort"))
     {
         Type = L"AlpcPort";
     }
-    else if (PhEqualStringZ(Type, L"Process", TRUE))
+    else if (WSTR_IEQUAL(Type, L"Process"))
     {
         if (WindowsVersion >= WINDOWS_VISTA)
             Type = L"Process60";
     }
-    else if (PhEqualStringZ(Type, L"Thread", TRUE))
+    else if (WSTR_IEQUAL(Type, L"Thread"))
     {
         if (WindowsVersion >= WINDOWS_VISTA)
             Type = L"Thread60";
@@ -621,7 +621,7 @@ BOOLEAN PhGetAccessEntries(
     // Find the specific type.
     for (i = 0; i < sizeof(PhSpecificTypes) / sizeof(PH_SPECIFIC_TYPE); i++)
     {
-        if (PhEqualStringZ(PhSpecificTypes[i].Type, Type, TRUE))
+        if (WSTR_IEQUAL(PhSpecificTypes[i].Type, Type))
         {
             specificType = &PhSpecificTypes[i];
             break;
