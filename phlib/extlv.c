@@ -695,15 +695,18 @@ static INT PhpExtendedListViewCompareFunc(
     INT x = (INT)lParam1;
     INT y = (INT)lParam2;
     ULONG i;
+    PPVOID fallbackColumns;
 
     result = PhpCompareListViewItems(context, x, y, context->SortColumn);
 
     if (result != 0)
         return result;
 
-    for (i = 0; i < context->FallbackColumns->Count; i++)
+    fallbackColumns = context->FallbackColumns->Items;
+
+    for (i = context->FallbackColumns->Count; i != 0; i--)
     {
-        ULONG fallbackColumn = (ULONG)context->FallbackColumns->Items[i];
+        ULONG fallbackColumn = (ULONG)*fallbackColumns;
 
         if (fallbackColumn == context->SortColumn)
             continue;
@@ -712,6 +715,8 @@ static INT PhpExtendedListViewCompareFunc(
 
         if (result != 0)
             return result;
+
+        fallbackColumns++;
     }
 
     return 0;
