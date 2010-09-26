@@ -2,6 +2,10 @@ Process Hacker
 
 2.6
  * NEW/IMPROVED:
+   * Hide Signed Processes option
+   * Added plugin for uploading files to online virus 
+     scanners
+   * Added Network tools plugin
    * Updated ExtendedServices plugin
    * Performance improvements
  * FIXED:

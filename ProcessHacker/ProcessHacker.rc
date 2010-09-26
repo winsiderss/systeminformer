@@ -102,6 +102,7 @@ BEGIN
             MENUITEM "Physical Memory History",     ID_TRAYICONS_PHYSICALMEMORYHISTORY
         END
         MENUITEM "Hide Processes From Other Users", ID_VIEW_HIDEPROCESSESFROMOTHERUSERS
+        MENUITEM "Hide Signed Processes",       ID_VIEW_HIDESIGNEDPROCESSES
         MENUITEM SEPARATOR
         MENUITEM "Always on Top",               ID_VIEW_ALWAYSONTOP
         POPUP "Opacity"
