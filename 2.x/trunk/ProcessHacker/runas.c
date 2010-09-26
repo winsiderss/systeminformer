@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <emenu.h>
 #include <shlwapi.h>
 #include <wtsapi32.h>
 #include <windowsx.h>
@@ -29,7 +30,6 @@
 typedef struct _RUNAS_DIALOG_CONTEXT
 {
     HANDLE ProcessId;
-    PPH_LIST SessionIdList;
     PPH_LIST DesktopList;
     PPH_STRING CurrentWinStaName;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
@@ -85,7 +85,6 @@ VOID PhShowRunAsDialog(
     RUNAS_DIALOG_CONTEXT context;
 
     context.ProcessId = ProcessId;
-    context.SessionIdList = NULL;
     context.DesktopList = NULL;
 
     DialogBoxParam(
@@ -304,8 +303,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         break;
     case WM_DESTROY:
         {
-            if (context->SessionIdList)
-                PhDereferenceObject(context->SessionIdList);
             if (context->DesktopList)
                 PhDereferenceObject(context->DesktopList);
         }
@@ -513,15 +510,14 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                 break;
             case IDC_SESSIONS:
                 {
-                    HMENU sessionsMenu;
+                    PPH_EMENU sessionsMenu;
                     PWTS_SESSION_INFO sessions;
                     ULONG numberOfSessions;
                     ULONG i;
                     RECT buttonRect;
-                    POINT point;
-                    UINT selectedItem;
+                    PPH_EMENU_ITEM selectedItem;
 
-                    sessionsMenu = CreatePopupMenu();
+                    sessionsMenu = PhCreateEMenu();
 
                     if (WTSEnumerateSessions(
                         WTS_CURRENT_SERVER_HANDLE,
@@ -531,11 +527,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         &numberOfSessions
                         ))
                     {
-                        if (!context->SessionIdList)
-                            context->SessionIdList = PhCreateList(numberOfSessions);
-                        else
-                            PhClearList(context->SessionIdList);
-
                         for (i = 0; i < numberOfSessions; i++)
                         {
                             PPH_STRING domainName;
@@ -583,53 +574,49 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                 menuString = PhFormatString(L"%u", sessions[i].SessionId);
                             }
 
-                            AppendMenu(sessionsMenu, MF_STRING, 1 + i, menuString->Buffer);
-                            PhDereferenceObject(menuString);
-
-                            PhAddItemList(context->SessionIdList, (PVOID)sessions[i].SessionId);
+                            PhInsertEMenuItem(sessionsMenu,
+                                PhCreateEMenuItem(0, 0, menuString->Buffer, NULL, (PVOID)sessions[i].SessionId), -1);
+                            PhaDereferenceObject(menuString);
                         }
 
                         WTSFreeMemory(sessions);
 
-                        GetClientRect(GetDlgItem(hwndDlg, IDC_SESSIONS), &buttonRect);
-                        point.x = buttonRect.right;
-                        point.y = 0;
+                        GetWindowRect(GetDlgItem(hwndDlg, IDC_SESSIONS), &buttonRect);
 
-                        selectedItem = PhShowContextMenu2(
-                            hwndDlg,
-                            GetDlgItem(hwndDlg, IDC_SESSIONS),
+                        selectedItem = PhShowEMenu(
                             sessionsMenu,
-                            point
+                            hwndDlg,
+                            PH_EMENU_SHOW_LEFTRIGHT,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                            buttonRect.right,
+                            buttonRect.top
                             );
 
-                        if (selectedItem != 0)
+                        if (selectedItem)
                         {
                             SetDlgItemInt(
                                 hwndDlg,
                                 IDC_SESSIONID,
-                                (ULONG)context->SessionIdList->Items[selectedItem - 1],
+                                (ULONG)selectedItem->Context,
                                 FALSE
                                 );
                         }
 
-                        DestroyMenu(sessionsMenu);
+                        PhDestroyEMenu(sessionsMenu);
                     }
                 }
                 break;
             case IDC_DESKTOPS:
                 {
-                    HMENU desktopsMenu;
+                    PPH_EMENU desktopsMenu;
                     ULONG i;
                     RECT buttonRect;
-                    POINT point;
-                    UINT selectedItem;
+                    PPH_EMENU_ITEM selectedItem;
 
-                    desktopsMenu = CreatePopupMenu();
+                    desktopsMenu = PhCreateEMenu();
 
                     if (!context->DesktopList)
                         context->DesktopList = PhCreateList(10);
-                    else
-                        PhClearList(context->DesktopList);
 
                     context->CurrentWinStaName = GetCurrentWinStaName();
 
@@ -637,42 +624,39 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     for (i = 0; i < context->DesktopList->Count; i++)
                     {
-                        AppendMenu(
+                        PhInsertEMenuItem(
                             desktopsMenu,
-                            MF_STRING,
-                            1 + i,
-                            ((PPH_STRING)context->DesktopList->Items[i])->Buffer
+                            PhCreateEMenuItem(0, 0, ((PPH_STRING)context->DesktopList->Items[i])->Buffer, NULL, NULL),
+                            -1
                             );
                     }
 
-                    GetClientRect(GetDlgItem(hwndDlg, IDC_DESKTOPS), &buttonRect);
-                    point.x = buttonRect.right;
-                    point.y = 0;
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_DESKTOPS), &buttonRect);
 
-                    selectedItem = PhShowContextMenu2(
-                        hwndDlg,
-                        GetDlgItem(hwndDlg, IDC_DESKTOPS),
+                    selectedItem = PhShowEMenu(
                         desktopsMenu,
-                        point
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        buttonRect.right,
+                        buttonRect.top
                         );
 
-                    if (selectedItem != 0)
+                    if (selectedItem)
                     {
                         SetDlgItemText(
                             hwndDlg,
                             IDC_DESKTOP,
-                            ((PPH_STRING)context->DesktopList->Items[selectedItem - 1])->Buffer
+                            selectedItem->Text
                             );
                     }
 
                     for (i = 0; i < context->DesktopList->Count; i++)
-                    {
                         PhDereferenceObject(context->DesktopList->Items[i]);
-                    }
 
+                    PhClearList(context->DesktopList);
                     PhDereferenceObject(context->CurrentWinStaName);
-
-                    DestroyMenu(desktopsMenu);
+                    PhDestroyEMenu(desktopsMenu);
                 }
                 break;
             }
