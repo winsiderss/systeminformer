@@ -3009,6 +3009,7 @@ VOID PhpResizeHashtable(
     __in ULONG NewCapacity
     )
 {
+    PPH_HASHTABLE_ENTRY entry;
     ULONG i;
 
     // Re-allocate the buckets. Note that we don't need to keep the 
@@ -3027,10 +3028,12 @@ VOID PhpResizeHashtable(
         );
 
     // Re-distribute the entries among the buckets.
+
+    // PH_HASHTABLE_GET_ENTRY is quite slow (it involves a multiply), so we use a pointer here.
+    entry = Hashtable->Entries;
+
     for (i = 0; i < Hashtable->NextEntry; i++)
     {
-        PPH_HASHTABLE_ENTRY entry = PH_HASHTABLE_GET_ENTRY(Hashtable, i);
-
         if (entry->HashCode != -1)
         {
             ULONG index = PhpIndexFromHash(Hashtable, entry->HashCode);
@@ -3038,6 +3041,8 @@ VOID PhpResizeHashtable(
             entry->Next = Hashtable->Buckets[index];
             Hashtable->Buckets[index] = i;
         }
+
+        entry = (PPH_HASHTABLE_ENTRY)((ULONG_PTR)entry + PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize));
     }
 }
 
