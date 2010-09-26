@@ -1352,12 +1352,12 @@ VOID PhProcessProviderUpdate(
 
     // Pre-update tasks
 
-    if (runCount % 5 == 0)
+    if (runCount % 8 == 0)
     {
         PhRefreshDosDevicePrefixes();
     }
 
-    if (runCount % 15 == 1)
+    if (runCount % 16 == 1)
     {
         if (PhpIsDotNetContext)
         {
@@ -1771,10 +1771,9 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, maxCpuProcessItem->CpuUsage);
 #endif
 
-            if (!(maxCpuProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
+            if (!(maxCpuProcessItem->Record->Flags & PH_PROCESS_RECORD_STAT_REF))
             {
                 PhReferenceProcessRecord(maxCpuProcessItem->Record);
-                maxCpuProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
                 maxCpuProcessItem->Record->Flags |= PH_PROCESS_RECORD_STAT_REF;
             }
         }
@@ -1795,10 +1794,9 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, maxIoProcessItem->IoWriteDelta.Delta);
 #endif
 
-            if (!(maxIoProcessItem->State & PH_PROCESS_ITEM_RECORD_STAT_REF))
+            if (!(maxIoProcessItem->Record->Flags & PH_PROCESS_RECORD_STAT_REF))
             {
                 PhReferenceProcessRecord(maxIoProcessItem->Record);
-                maxIoProcessItem->State |= PH_PROCESS_ITEM_RECORD_STAT_REF;
                 maxIoProcessItem->Record->Flags |= PH_PROCESS_RECORD_STAT_REF;
             }
         }
