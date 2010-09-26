@@ -23,14 +23,14 @@
 #include <phgui.h>
 #include <emenu.h>
 
-static PH_FLAG_MAPPING EMenuTypeMappings[] =
+static const PH_FLAG_MAPPING EMenuTypeMappings[] =
 {
     { PH_EMENU_MENUBARBREAK, MFT_MENUBARBREAK },
     { PH_EMENU_MENUBREAK, MFT_MENUBREAK },
     { PH_EMENU_RADIOCHECK, MFT_RADIOCHECK }
 };
 
-static PH_FLAG_MAPPING EMenuStateMappings[] =
+static const PH_FLAG_MAPPING EMenuStateMappings[] =
 {
     { PH_EMENU_CHECKED, MFS_CHECKED },
     { PH_EMENU_DEFAULT, MFS_DEFAULT },

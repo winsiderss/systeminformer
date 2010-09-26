@@ -2096,7 +2096,7 @@ NTSTATUS PhCreateProcessWin32(
         );
 }
 
-static PH_FLAG_MAPPING PhpCreateProcessMappings[] =
+static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
 {
     { PH_CREATE_PROCESS_UNICODE_ENVIRONMENT, CREATE_UNICODE_ENVIRONMENT },
     { PH_CREATE_PROCESS_SUSPENDED, CREATE_SUSPENDED },
@@ -2771,7 +2771,7 @@ PPH_STRING PhQueryRegistryString(
 VOID PhMapFlags1(
     __inout PULONG Value2,
     __in ULONG Value1,
-    __in PPH_FLAG_MAPPING Mappings,
+    __in const PH_FLAG_MAPPING *Mappings,
     __in ULONG NumberOfMappings
     )
 {
@@ -2813,7 +2813,7 @@ VOID PhMapFlags1(
 VOID PhMapFlags2(
     __inout PULONG Value1,
     __in ULONG Value2,
-    __in PPH_FLAG_MAPPING Mappings,
+    __in const PH_FLAG_MAPPING *Mappings,
     __in ULONG NumberOfMappings
     )
 {
@@ -3070,7 +3070,7 @@ BOOLEAN PhShowFileDialog(
     }
 }
 
-static PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
+static const PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
 {
     { PH_FILEDIALOG_CREATEPROMPT, FOS_CREATEPROMPT },
     { PH_FILEDIALOG_PATHMUSTEXIST, FOS_PATHMUSTEXIST },
@@ -3082,7 +3082,7 @@ static PH_FLAG_MAPPING PhpFileDialogIfdMappings[] =
     { PH_FILEDIALOG_STRICTFILETYPES, FOS_STRICTFILETYPES }
 };
 
-static PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
+static const PH_FLAG_MAPPING PhpFileDialogOfnMappings[] =
 {
     { PH_FILEDIALOG_CREATEPROMPT, OFN_CREATEPROMPT },
     { PH_FILEDIALOG_PATHMUSTEXIST, OFN_PATHMUSTEXIST },
