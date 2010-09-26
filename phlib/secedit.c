@@ -350,7 +350,7 @@ __callback NTSTATUS PhStdGetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (WSTR_IEQUAL(stdObjectSecurity->ObjectType, L"Service"))
+    if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"Service", TRUE))
     {
         status = PhGetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
@@ -385,7 +385,7 @@ __callback NTSTATUS PhStdSetObjectSecurity(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (WSTR_IEQUAL(stdObjectSecurity->ObjectType, L"Service"))
+    if (PhEqualStringZ(stdObjectSecurity->ObjectType, L"Service", TRUE))
     {
         status = PhSetSeObjectSecurity(handle, SE_SERVICE, SecurityInformation, SecurityDescriptor);
         CloseServiceHandle(handle);
