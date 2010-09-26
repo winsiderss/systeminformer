@@ -2247,7 +2247,7 @@ NTSTATUS PhCreateProcessAsUser(
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Whenever we can, try not to set the desktop name; it breaks a lot of things.
-    if (Information->DesktopName && !PhEqualStringZ(Information->DesktopName, L"WinSta0\\Default", TRUE))
+    if (Information->DesktopName && !WSTR_IEQUAL(Information->DesktopName, L"WinSta0\\Default"))
         startupInfo.lpDesktop = Information->DesktopName;
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile. 
@@ -2336,9 +2336,9 @@ NTSTATUS PhCreateProcessAsUser(
             logonType = LOGON32_LOGON_INTERACTIVE;
 
             // Check if this is a service logon.
-            if (PhEqualStringZ(Information->DomainName, L"NT AUTHORITY", TRUE))
+            if (WSTR_IEQUAL(Information->DomainName, L"NT AUTHORITY"))
             {
-                if (PhEqualStringZ(Information->UserName, L"SYSTEM", TRUE))
+                if (WSTR_IEQUAL(Information->UserName, L"SYSTEM"))
                 {
                     if (WindowsVersion >= WINDOWS_VISTA)
                         logonType = LOGON32_LOGON_SERVICE;
@@ -2347,8 +2347,8 @@ NTSTATUS PhCreateProcessAsUser(
                 }
 
                 if (
-                    PhEqualStringZ(Information->UserName, L"LOCAL SERVICE", TRUE) ||
-                    PhEqualStringZ(Information->UserName, L"NETWORK SERVICE", TRUE)
+                    WSTR_IEQUAL(Information->UserName, L"LOCAL SERVICE") ||
+                    WSTR_IEQUAL(Information->UserName, L"NETWORK SERVICE")
                     )
                 {
                     logonType = LOGON32_LOGON_SERVICE;
