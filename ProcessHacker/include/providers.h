@@ -81,8 +81,6 @@ extern PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 // The process item has been removed.
 #define PH_PROCESS_ITEM_REMOVED 0x1
-// An extra reference has been added to the process record for the statistics system.
-#define PH_PROCESS_ITEM_RECORD_STAT_REF 0x2
 
 #define PH_INTEGRITY_STR_LEN 10
 #define PH_INTEGRITY_STR_LEN_1 (PH_INTEGRITY_STR_LEN + 1)
