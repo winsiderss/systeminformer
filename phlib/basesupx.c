@@ -31,8 +31,8 @@ __declspec(naked) int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t l
         push    esi
         push    edi
 
-        mov     eax, [esp+0xc+0x8] // len
         mov     ecx, [esp+0xc+0x8] // len
+        mov     eax, [esp+0xc+0x8] // len
 
         and     ecx, -2 // round down to even number
         mov     esi, [esp+0xc+0x0] // s1
