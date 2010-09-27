@@ -706,7 +706,7 @@ static INT PhpExtendedListViewCompareFunc(
 
     for (i = context->FallbackColumns->Count; i != 0; i--)
     {
-        ULONG fallbackColumn = (ULONG)*fallbackColumns;
+        ULONG fallbackColumn = (ULONG)*fallbackColumns++;
 
         if (fallbackColumn == context->SortColumn)
             continue;
@@ -715,8 +715,6 @@ static INT PhpExtendedListViewCompareFunc(
 
         if (result != 0)
             return result;
-
-        fallbackColumns++;
     }
 
     return 0;
