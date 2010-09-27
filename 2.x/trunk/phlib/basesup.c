@@ -67,11 +67,11 @@ PPH_OBJECT_TYPE PhHashtableType;
 
 // Misc.
 
-PPH_STRING PhSharedEmptyString = NULL;
+static PPH_STRING PhSharedEmptyString = NULL;
 
 // Threads
 
-PH_FREE_LIST PhpBaseThreadContextFreeList;
+static PH_FREE_LIST PhpBaseThreadContextFreeList;
 #ifdef DEBUG
 ULONG PhDbgThreadDbgTlsIndex;
 LIST_ENTRY PhDbgThreadListHead;
@@ -95,7 +95,9 @@ static ULONG PhpPrimeNumbers[] =
 /**
  * Initializes the base support module.
  */
-BOOLEAN PhInitializeBase()
+BOOLEAN PhInitializeBase(
+    __in ULONG Flags
+    )
 {
     PH_OBJECT_TYPE_PARAMETERS parameters;
 
@@ -174,8 +176,10 @@ BOOLEAN PhInitializeBase()
     InitializeListHead(&PhDbgThreadListHead);
 #endif
 
-    PhWorkQueueInitialization();
-    PhHandleTableInitialization();
+    if (Flags & PHLIB_INIT_MODULE_WORK_QUEUE)
+        PhWorkQueueInitialization();
+    if (Flags & PHLIB_INIT_MODULE_HANDLE_TABLE)
+        PhHandleTableInitialization();
 
     return TRUE;
 }

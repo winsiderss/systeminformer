@@ -33,8 +33,6 @@
 // solely for mutual exclusion. It is also much smaller 
 // than the critical section.
 
-extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
-
 #define PH_LOCK_OWNED 0x1
 #define PH_LOCK_EXCLUSIVE_WAKING 0x2
 
@@ -54,14 +52,14 @@ extern SYSTEM_BASIC_INFORMATION PhSystemBasicInformation;
     (PH_LOCK_EXCLUSIVE_WAKING | \
     (PH_LOCK_EXCLUSIVE_WAITERS_MASK << PH_LOCK_EXCLUSIVE_WAITERS_SHIFT))
 
-static ULONG PhLockSpinCount;
+static ULONG PhFastLockSpinCount = 2000;
 
 VOID PhFastLockInitialization()
 {
     if ((ULONG)PhSystemBasicInformation.NumberOfProcessors > 1)
-        PhLockSpinCount = 4000;
+        PhFastLockSpinCount = 4000;
     else
-        PhLockSpinCount = 0;
+        PhFastLockSpinCount = 0;
 }
 
 VOID PhInitializeFastLock(
@@ -131,7 +129,7 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockExclusive(
                 ) == value)
                 break;
         }
-        else if (i >= PhLockSpinCount)
+        else if (i >= PhFastLockSpinCount)
         {
             PhpEnsureEventCreated(&FastLock->ExclusiveWakeEvent);
 
@@ -203,7 +201,7 @@ __mayRaise VOID FASTCALL PhfAcquireFastLockShared(
                 ) == value)
                 break;
         }
-        else if (i >= PhLockSpinCount)
+        else if (i >= PhFastLockSpinCount)
         {
             PhpEnsureEventCreated(&FastLock->SharedWakeEvent);
 

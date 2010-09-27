@@ -145,14 +145,47 @@ extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 
 // global
 
+// Initialization flags
+
+// Features
+
+// Imports
+
+/** Needed to use supplied dynamically imported functions from ntdll.dll. */
+#define PHLIB_INIT_MODULE_NTIMPORTS 0x1
+/** Needed to use fast locks. */
+#define PHLIB_INIT_MODULE_FAST_LOCK 0x2
+/** Needed to use work queues. */
+#define PHLIB_INIT_MODULE_WORK_QUEUE 0x4
+/** Needed to use handle tables. */
+#define PHLIB_INIT_MODULE_HANDLE_TABLE 0x8
+/** Needed to use file streams. Basic I/O functions do not require this in order to work. */
+#define PHLIB_INIT_MODULE_IO_SUPPORT 0x10
+/** Needed to use symbol providers. */
+#define PHLIB_INIT_MODULE_SYMBOL_PROVIDER 0x20
+/** Needed to use the handle information module. */
+#define PHLIB_INIT_MODULE_HANDLE_INFO 0x40
+
+// Misc.
+/** Retrieves token information (e.g. elevation status). */
+#define PHLIB_INIT_TOKEN_INFO 0x100000
+
 NTSTATUS PhInitializePhLib();
+
+NTSTATUS PhInitializePhLibEx(
+    __in ULONG Flags,
+    __in_opt SIZE_T HeapReserveSize,
+    __in_opt SIZE_T HeapCommitSize
+    );
 
 // basesup
 
 struct _PH_OBJECT_TYPE;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
-BOOLEAN PhInitializeBase();
+BOOLEAN PhInitializeBase(
+    __in ULONG Flags
+    );
 
 // threads
 
