@@ -48,19 +48,19 @@ NTSTATUS PhpQueryObjectThreadStart(
     __in PVOID Parameter
     );
 
-HANDLE PhQueryObjectThreadHandle = NULL;
-PVOID PhQueryObjectFiber = NULL;
-PH_QUEUED_LOCK PhQueryObjectMutex;
-HANDLE PhQueryObjectStartEvent = NULL;
-HANDLE PhQueryObjectCompletedEvent = NULL;
-PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
+static HANDLE PhQueryObjectThreadHandle = NULL;
+static PVOID PhQueryObjectFiber = NULL;
+static PH_QUEUED_LOCK PhQueryObjectMutex;
+static HANDLE PhQueryObjectStartEvent = NULL;
+static HANDLE PhQueryObjectCompletedEvent = NULL;
+static PH_QUERY_OBJECT_CONTEXT PhQueryObjectContext;
 
-PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
-PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = PhStdGetClientIdName;
+static PPH_STRING PhObjectTypeNames[MAX_OBJECT_TYPE_NUMBER] = { 0 };
+static PPH_GET_CLIENT_ID_NAME PhHandleGetClientIdName = NULL;
 
 VOID PhHandleInfoInitialization()
 {
-    // Nothing
+    PhHandleGetClientIdName = PhStdGetClientIdName;
 }
 
 PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
@@ -493,6 +493,7 @@ NTSTATUS PhpGetBestObjectName(
 {
     NTSTATUS status;
     PPH_STRING bestObjectName = NULL;
+    PPH_GET_CLIENT_ID_NAME handleGetClientIdName;
 
     if (PhEqualString2(TypeName, L"EtwRegistration", TRUE))
     {
@@ -617,10 +618,10 @@ NTSTATUS PhpGetBestObjectName(
             clientId.UniqueProcess = basicInfo.UniqueProcessId;
         }
 
-        if (PhHandleGetClientIdName)
-        {
-            bestObjectName = PhHandleGetClientIdName(&clientId);
-        }
+        handleGetClientIdName = PhHandleGetClientIdName;
+
+        if (handleGetClientIdName)
+            bestObjectName = handleGetClientIdName(&clientId);
     }
     else if (PhEqualString2(TypeName, L"Thread", TRUE))
     {
@@ -666,10 +667,10 @@ NTSTATUS PhpGetBestObjectName(
             clientId = basicInfo.ClientId;
         }
 
-        if (PhHandleGetClientIdName)
-        {
-            bestObjectName = PhHandleGetClientIdName(&clientId);
-        }
+        handleGetClientIdName = PhHandleGetClientIdName;
+
+        if (handleGetClientIdName)
+            bestObjectName = handleGetClientIdName(&clientId);
     }
     else if (PhEqualString2(TypeName, L"TmEn", TRUE))
     {

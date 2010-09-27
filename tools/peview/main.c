@@ -50,7 +50,7 @@ INT WINAPI WinMain(
     };
     PH_STRINGREF commandLine;
 
-    if (!NT_SUCCESS(PhInitializePhLib()))
+    if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
         return 1;
 
     PhGuiSupportInitialization();

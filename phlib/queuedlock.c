@@ -103,8 +103,8 @@ VOID FASTCALL PhpfWakeQueuedLockEx(
     __in BOOLEAN WakeAll
     );
 
-HANDLE PhQueuedLockKeyedEventHandle;
-ULONG PhQueuedLockSpinCount;
+static HANDLE PhQueuedLockKeyedEventHandle;
+static ULONG PhQueuedLockSpinCount = 2000;
 
 BOOLEAN PhQueuedLockInitialization()
 {

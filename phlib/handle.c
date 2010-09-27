@@ -23,8 +23,8 @@
 #include <phbase.h>
 #include <handlep.h>
 
-PH_FREE_LIST PhHandleTableLevel0FreeList;
-PH_FREE_LIST PhHandleTableLevel1FreeList;
+static PH_FREE_LIST PhHandleTableLevel0FreeList;
+static PH_FREE_LIST PhHandleTableLevel1FreeList;
 
 VOID PhHandleTableInitialization()
 {

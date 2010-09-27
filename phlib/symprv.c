@@ -46,11 +46,11 @@ VOID PhpFreeSymbolModule(
 
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
-PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
+static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
 PH_CALLBACK_DECLARE(PhSymInitCallback);
 
-HANDLE PhNextFakeHandle = (HANDLE)0;
-PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
+static HANDLE PhNextFakeHandle = (HANDLE)0;
+static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
 
 #define PH_LOCK_SYMBOLS() PhAcquireFastLockExclusive(&PhSymMutex)
 #define PH_UNLOCK_SYMBOLS() PhReleaseFastLockExclusive(&PhSymMutex)

@@ -23,9 +23,9 @@ typedef HRESULT (*_GetBufferedPaintBits)(
     );
 
 static BOOLEAN ImportsInitialized = FALSE;
-_BeginBufferedPaint BeginBufferedPaint_I = NULL;
-_EndBufferedPaint EndBufferedPaint_I = NULL;
-_GetBufferedPaintBits GetBufferedPaintBits_I = NULL;
+static _BeginBufferedPaint BeginBufferedPaint_I = NULL;
+static _EndBufferedPaint EndBufferedPaint_I = NULL;
+static _GetBufferedPaintBits GetBufferedPaintBits_I = NULL;
 
 static HBITMAP PhpCreateBitmap32(
     __in HDC hdc,

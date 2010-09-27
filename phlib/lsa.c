@@ -22,7 +22,7 @@
 
 #include <ph.h>
 
-LSA_HANDLE PhLookupPolicyHandle = NULL;
+static LSA_HANDLE PhLookupPolicyHandle = NULL;
 
 NTSTATUS PhOpenLsaPolicy(
     __out PLSA_HANDLE PolicyHandle,

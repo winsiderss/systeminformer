@@ -30,10 +30,10 @@
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
 
 /** The next object to delete. */
-PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
+static PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
 /** Free list for small objects. */
-PH_FREE_LIST PhObjectSmallFreeList;
+static PH_FREE_LIST PhObjectSmallFreeList;
 
 /** The allocated memory object type. */
 PPH_OBJECT_TYPE PhAllocType = NULL;

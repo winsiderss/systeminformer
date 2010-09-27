@@ -27,9 +27,9 @@ NTSTATUS PhpWorkQueueThreadStart(
     __in PVOID Parameter
     );
 
-PH_FREE_LIST PhWorkQueueItemFreeList;
-PH_WORK_QUEUE PhGlobalWorkQueue;
-PH_INITONCE PhGlobalWorkQueueInitOnce = PH_INITONCE_INIT;
+static PH_FREE_LIST PhWorkQueueItemFreeList;
+static PH_WORK_QUEUE PhGlobalWorkQueue;
+static PH_INITONCE PhGlobalWorkQueueInitOnce = PH_INITONCE_INIT;
 #ifdef DEBUG
 LIST_ENTRY PhDbgWorkQueueListHead;
 PH_QUEUED_LOCK PhDbgWorkQueueListLock = PH_QUEUED_LOCK_INIT;
