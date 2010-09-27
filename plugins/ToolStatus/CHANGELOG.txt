@@ -1,3 +1,6 @@
+1.2
+ * Added options
+
 1.1
  * Fixed hanging when using Find Window on hung programs
  * Fixed status bar with no selected parts
