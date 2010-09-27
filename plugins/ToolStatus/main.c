@@ -54,6 +54,7 @@ BOOLEAN TargetingCurrentWindowDraw = FALSE;
 BOOLEAN TargetingWithThread;
 
 ULONG ProcessesUpdatedCount = 0;
+ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -533,12 +534,16 @@ DefaultWndProc:
 
 VOID UpdateStatusBar()
 {
+    static ULONG lastTickCount = 0;
+
     PPH_STRING text[STATUS_COUNT];
     ULONG widths[STATUS_COUNT];
     ULONG i;
+    ULONG index;
     ULONG count;
     HDC hdc;
     PH_PLUGIN_SYSTEM_STATISTICS statistics;
+    BOOLEAN resetMaxWidths = FALSE;
 
     if (ProcessesUpdatedCount < 2)
         return;
@@ -557,7 +562,21 @@ VOID UpdateStatusBar()
     hdc = GetDC(StatusBarHandle);
     SelectObject(hdc, (HFONT)SendMessage(StatusBarHandle, WM_GETFONT, 0, 0));
 
+    // Reset max. widths for Max. CPU Process and Max. I/O Process parts once in a while.
+    {
+        ULONG tickCount;
+
+        tickCount = GetTickCount();
+
+        if (tickCount - lastTickCount >= 10000)
+        {
+            resetMaxWidths = TRUE;
+            lastTickCount = tickCount;
+        }
+    }
+
     count = 0;
+    index = 0;
 
     for (i = STATUS_MINIMUM; i != STATUS_MAXIMUM; i <<= 1)
     {
@@ -565,6 +584,7 @@ VOID UpdateStatusBar()
         {
             SIZE size;
             PPH_PROCESS_ITEM processItem;
+            ULONG width;
 
             switch (i)
             {
@@ -614,6 +634,10 @@ VOID UpdateStatusBar()
                 {
                     text[count] = PhCreateString(L"-");
                 }
+
+                if (resetMaxWidths)
+                    StatusBarMaxWidths[index] = 0;
+
                 break;
             case STATUS_MAXIOPROCESS:
                 if (statistics.MaxIoProcessId && (processItem = PhReferenceProcessItem(statistics.MaxIoProcessId)))
@@ -630,6 +654,10 @@ VOID UpdateStatusBar()
                 {
                     text[count] = PhCreateString(L"-");
                 }
+
+                if (resetMaxWidths)
+                    StatusBarMaxWidths[index] = 0;
+
                 break;
             }
 
@@ -641,10 +669,23 @@ VOID UpdateStatusBar()
             else
                 widths[count] = 0;
 
-            widths[count] += size.cx + 10;
+            width = size.cx + 10;
+
+            if (width <= StatusBarMaxWidths[index])
+                width = StatusBarMaxWidths[index];
+            else
+                StatusBarMaxWidths[index] = width;
+
+            widths[count] += width;
 
             count++;
         }
+        else
+        {
+            StatusBarMaxWidths[index] = 0;
+        }
+
+        index++;
     }
 
     ReleaseDC(StatusBarHandle, hdc);
