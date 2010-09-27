@@ -1,5 +1,6 @@
 1.2
  * Added options
+ * Status bar panel widths are more stable
 
 1.1
  * Fixed hanging when using Find Window on hung programs
