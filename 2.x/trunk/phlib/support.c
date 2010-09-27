@@ -1333,6 +1333,7 @@ PPH_STRING PhFormatSize(
         WCHAR numberString[512]; // perf hack
         PPH_STRING formattedString;
         PPH_STRING outputString;
+        ULONG length;
 
         swprintf_s(numberString, sizeof(numberString) / 2, L"%.2f", s);
         formattedString = PhFormatDecimal(numberString, 2, TRUE);
@@ -1342,19 +1343,22 @@ PPH_STRING PhFormatSize(
             return PhFormatString(L"%.2g %s", s, PhSizeUnitNames[i]);
         }
 
+        length = formattedString->Length / 2;
+
         if (
-            PhEndsWithString2(formattedString, L"00", FALSE) &&
-            formattedString->Length >= 6
+            length >= 3 &&
+            formattedString->Buffer[length - 1] == '0' &&
+            formattedString->Buffer[length - 2] == '0'
             )
         {
             // Remove the last three characters by making sure 
             // PhConcatStrings doesn't include them.
-            formattedString->Buffer[formattedString->Length / 2 - 3] = 0;
+            formattedString->Buffer[length - 3] = 0;
         }
-        else if (PhEndsWithString2(formattedString, L"0", FALSE))
+        else if (length >= 1 && formattedString->Buffer[length - 1] == '0')
         {
             // Remove the last character.
-            formattedString->Buffer[formattedString->Length / 2 - 1] = 0;
+            formattedString->Buffer[length - 1] = 0;
         }
 
         outputString = PhConcatStrings(3, formattedString->Buffer, L" ", PhSizeUnitNames[i]);
