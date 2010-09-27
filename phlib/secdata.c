@@ -22,7 +22,7 @@
 
 #include <phgui.h>
 
-#define ACCESS_ENTRIES(Type) PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
+#define ACCESS_ENTRIES(Type) static PH_ACCESS_ENTRY Ph##Type##AccessEntries[] =
 #define ACCESS_ENTRY(Type, HasSynchronize) \
     { L#Type, Ph##Type##AccessEntries, sizeof(Ph##Type##AccessEntries), HasSynchronize }
 
@@ -540,7 +540,7 @@ ACCESS_ENTRIES(WmiGuid)
     { L"Register provider GUIDs", TRACELOG_REGISTER_GUIDS, FALSE, TRUE, L"Register GUIDs" }
 };
 
-PH_SPECIFIC_TYPE PhSpecificTypes[] =
+static PH_SPECIFIC_TYPE PhSpecificTypes[] =
 {
     ACCESS_ENTRY(AlpcPort, TRUE),
     ACCESS_ENTRY(DebugObject, TRUE),

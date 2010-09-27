@@ -43,14 +43,14 @@ typedef BOOLEAN (NTAPI *PPHP_ENUM_PROCESS_MODULES32_CALLBACK)(
     __in_opt PVOID Context2
     );
 
-PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
+static PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
 
-PH_STRINGREF PhDevicePrefixes[26];
-PH_QUEUED_LOCK PhDevicePrefixesLock = PH_QUEUED_LOCK_INIT;
+static PH_STRINGREF PhDevicePrefixes[26];
+static PH_QUEUED_LOCK PhDevicePrefixesLock = PH_QUEUED_LOCK_INIT;
 
-PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
-ULONG PhDeviceMupPrefixesCount = 0;
-PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
+static PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
+static ULONG PhDeviceMupPrefixesCount = 0;
+static PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
 
 /**
  * Opens a process.

@@ -23,8 +23,14 @@
 #define _PH_GLOBAL_PRIVATE
 #include <ph.h>
 
-VOID PhInitializeSecurity();
-BOOLEAN PhInitializeSystem();
+VOID PhInitializeSecurity(
+    __in ULONG Flags
+    );
+
+BOOLEAN PhInitializeSystem(
+    __in ULONG Flags
+    );
+
 VOID PhInitializeSystemInformation();
 VOID PhInitializeWindowsVersion();
 
@@ -50,11 +56,24 @@ PHLIBAPI ACCESS_MASK ThreadAllAccess;
 
 NTSTATUS PhInitializePhLib()
 {
+    return PhInitializePhLibEx(
+        0xffffffff, // all possible features
+        0,
+        0
+        );
+}
+
+NTSTATUS PhInitializePhLibEx(
+    __in ULONG Flags,
+    __in_opt SIZE_T HeapReserveSize,
+    __in_opt SIZE_T HeapCommitSize
+    )
+{
     PhHeapHandle = RtlCreateHeap(
         HEAP_GROWABLE | HEAP_CLASS_1,
         NULL,
-        1024 * 1024, // 2 MB
-        1024 * 1024, // 1 MB
+        HeapReserveSize ? HeapReserveSize : 2 * 1024 * 1024, // 2 MB
+        HeapCommitSize ? HeapCommitSize : 1024 * 1024, // 1 MB
         NULL,
         NULL
         );
@@ -66,28 +85,36 @@ NTSTATUS PhInitializePhLib()
 
     PhInitializeWindowsVersion();
 
-    if (!PhInitializeImports())
-        return STATUS_UNSUCCESSFUL;
+    if (Flags & PHLIB_INIT_MODULE_NTIMPORTS)
+    {
+        if (!PhInitializeImports())
+            return STATUS_UNSUCCESSFUL;
+    }
 
     PhInitializeSystemInformation();
 
-    PhFastLockInitialization();
     if (!PhQueuedLockInitialization())
         return STATUS_UNSUCCESSFUL;
+
+    if (Flags & PHLIB_INIT_MODULE_FAST_LOCK)
+        PhFastLockInitialization();
+
     if (!NT_SUCCESS(PhInitializeRef()))
         return STATUS_UNSUCCESSFUL;
-    if (!PhInitializeBase())
+    if (!PhInitializeBase(Flags))
         return STATUS_UNSUCCESSFUL;
 
-    PhInitializeSecurity();
+    PhInitializeSecurity(Flags);
 
-    if (!PhInitializeSystem())
+    if (!PhInitializeSystem(Flags))
         return STATUS_UNSUCCESSFUL;
 
     return STATUS_SUCCESS;
 }
 
-static VOID PhInitializeSecurity()
+static VOID PhInitializeSecurity(
+    __in ULONG Flags
+    )
 {
     HANDLE tokenHandle;
 
@@ -95,32 +122,45 @@ static VOID PhInitializeSecurity()
     PhElevationType = TokenElevationTypeDefault;
     PhCurrentSessionId = NtCurrentPeb()->SessionId;
 
-    if (NT_SUCCESS(PhOpenProcessToken(
-        &tokenHandle,
-        TOKEN_QUERY,
-        NtCurrentProcess()
-        )))
+    if (Flags & PHLIB_INIT_TOKEN_INFO)
     {
-        if (WINDOWS_HAS_UAC)
+        if (NT_SUCCESS(PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_QUERY,
+            NtCurrentProcess()
+            )))
         {
-            PhGetTokenIsElevated(tokenHandle, &PhElevated);
-            PhGetTokenElevationType(tokenHandle, &PhElevationType);
+            if (WINDOWS_HAS_UAC)
+            {
+                PhGetTokenIsElevated(tokenHandle, &PhElevated);
+                PhGetTokenElevationType(tokenHandle, &PhElevationType);
+            }
+
+            PhCurrentTokenQueryHandle = tokenHandle;
         }
-
-        // Just use the PEB.
-        //PhGetTokenSessionId(tokenHandle, &PhCurrentSessionId);
-
-        PhCurrentTokenQueryHandle = tokenHandle;
     }
 }
 
-BOOLEAN PhInitializeSystem()
+static BOOLEAN PhInitializeSystem(
+    __in ULONG Flags
+    )
 {
-    if (!PhIoSupportInitialization())
-        return FALSE;
-    if (!PhSymbolProviderInitialization())
-        return FALSE;
-    PhHandleInfoInitialization();
+    if (Flags & PHLIB_INIT_MODULE_IO_SUPPORT)
+    {
+        if (!PhIoSupportInitialization())
+            return FALSE;
+    }
+
+    if (Flags & PHLIB_INIT_MODULE_SYMBOL_PROVIDER)
+    {
+        if (!PhSymbolProviderInitialization())
+            return FALSE;
+    }
+
+    if (Flags & PHLIB_INIT_MODULE_HANDLE_INFO)
+    {
+        PhHandleInfoInitialization();
+    }
 
 #ifdef DEBUG
     InitializeListHead(&PhDbgProviderListHead);

@@ -315,7 +315,7 @@ int __cdecl main(int argc, char *argv[])
     PH_STRINGREF commandLine;
     NTSTATUS status;
 
-    if (!NT_SUCCESS(PhInitializePhLib()))
+    if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
         return 1;
 
     commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;

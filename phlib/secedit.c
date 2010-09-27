@@ -23,7 +23,7 @@
 #include <phgui.h>
 #include <seceditp.h>
 
-ISecurityInformationVtbl PhSecurityInformation_VTable =
+static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
     PhSecurityInformation_QueryInterface,
     PhSecurityInformation_AddRef,
@@ -37,9 +37,9 @@ ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_PropertySheetPageCallback
 };
 
-PH_INITONCE SecurityEditorInitOnce = PH_INITONCE_INIT;
-_CreateSecurityPage CreateSecurityPage_I;
-_EditSecurity EditSecurity_I;
+static PH_INITONCE SecurityEditorInitOnce = PH_INITONCE_INIT;
+static _CreateSecurityPage CreateSecurityPage_I;
+static _EditSecurity EditSecurity_I;
 
 FORCEINLINE VOID PhpSecurityEditorInitialization()
 {
