@@ -135,9 +135,12 @@ VOID PhLoadPlugins()
         NtClose(pluginsDirectoryHandle);
     }
 
-    // Reload settings because plugins may have added settings.
+    // When we loaded settings before, we didn't know about plugin settings, so they 
+    // went into the ignored settings list. Now that they've had a chance to add 
+    // settings, we should scan the ignored settings list and move the settings to 
+    // the right places.
     if (PhSettingsFileName)
-        PhLoadSettings(PhSettingsFileName->Buffer);
+        PhConvertIgnoredSettings();
 
     PhpExecuteCallbackForAllPlugins(PluginCallbackLoad);
 }

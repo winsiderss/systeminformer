@@ -590,6 +590,16 @@ __mayRaise VOID PhSetStringSetting2(
         PhRaiseStatus(STATUS_NOT_FOUND);
 }
 
+VOID PhpFreeIgnoredSetting(
+    __in PPH_SETTING Setting
+    )
+{
+    PhFree(Setting->Name.Buffer);
+    PhDereferenceObject(Setting->u.Pointer);
+
+    PhFree(Setting);
+}
+
 VOID PhpClearIgnoredSettings()
 {
     ULONG i;
@@ -598,14 +608,7 @@ VOID PhpClearIgnoredSettings()
 
     for (i = 0; i < PhIgnoredSettings->Count; i++)
     {
-        PPH_SETTING setting = PhIgnoredSettings->Items[i];
-
-        PhFree(setting->Name.Buffer);
-
-        if (setting->u.Pointer)
-            PhDereferenceObject(setting->u.Pointer);
-
-        PhFree(setting);
+        PhpFreeIgnoredSetting(PhIgnoredSettings->Items[i]);
     }
 
     PhClearList(PhIgnoredSettings);
@@ -616,6 +619,46 @@ VOID PhpClearIgnoredSettings()
 VOID PhClearIgnoredSettings()
 {
     PhpClearIgnoredSettings();
+}
+
+VOID PhConvertIgnoredSettings()
+{
+    ULONG i;
+
+    PhAcquireQueuedLockExclusive(&PhSettingsLock);
+
+    for (i = 0; i < PhIgnoredSettings->Count; i++)
+    {
+        PPH_SETTING ignoredSetting = PhIgnoredSettings->Items[i];
+        PPH_SETTING setting;
+
+        setting = PhpLookupSetting(&ignoredSetting->Name);
+
+        if (setting)
+        {
+            PhpFreeSettingValue(setting->Type, setting);
+
+            if (!PhpSettingFromString(
+                setting->Type,
+                ignoredSetting->u.Pointer,
+                setting
+                ))
+            {
+                PhpSettingFromString(
+                    setting->Type,
+                    setting->DefaultValue,
+                    setting
+                    );
+            }
+
+            PhpFreeIgnoredSetting(ignoredSetting);
+
+            PhRemoveItemList(PhIgnoredSettings, i);
+            i--;
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&PhSettingsLock);
 }
 
 mxml_type_t PhpSettingsLoadCallback(
