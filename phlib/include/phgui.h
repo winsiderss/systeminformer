@@ -646,7 +646,7 @@ PhSetHeaderSortIcon(
     __in PH_SORT_ORDER Order
     );
 
-// next 1119
+// next 1120
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
@@ -661,6 +661,7 @@ PhSetHeaderSortIcon(
 #define ELVM_SETREDRAW (WM_APP + 1116)
 #define ELVM_SETREMOVINGCOLOR (WM_APP + 1113)
 #define ELVM_SETSORT (WM_APP + 1108)
+#define ELVM_SETSORTFAST (WM_APP + 1119)
 #define ELVM_SETSTATEHIGHLIGHTING (WM_APP + 1110)
 #define ELVM_SETTRISTATE (WM_APP + 1107)
 #define ELVM_SETTRISTATECOMPAREFUNCTION (WM_APP + 1105)
@@ -693,6 +694,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETREMOVINGCOLOR, (WPARAM)(RemovingColor), 0)
 #define ExtendedListView_SetSort(hWnd, Column, Order) \
     SendMessage((hWnd), ELVM_SETSORT, (WPARAM)(Column), (LPARAM)(Order))
+#define ExtendedListView_SetSortFast(hWnd, Fast) \
+    SendMessage((hWnd), ELVM_SETSORTFAST, (WPARAM)(Fast), 0)
 #define ExtendedListView_SetStateHighlighting(hWnd, StateHighlighting) \
     SendMessage((hWnd), ELVM_SETSTATEHIGHLIGHTING, (WPARAM)(StateHighlighting), 0)
 #define ExtendedListView_SetTriState(hWnd, TriState) \
