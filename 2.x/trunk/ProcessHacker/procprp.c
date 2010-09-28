@@ -1955,7 +1955,7 @@ VOID PhpInitializeThreadMenu(
     }
 }
 
-NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
+static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt PVOID Context
@@ -1964,7 +1964,7 @@ NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     return PhOpenThread(Handle, DesiredAccess, (HANDLE)Context);
 }
 
-INT NTAPI PhpThreadTidCompareFunction(
+static INT NTAPI PhpThreadTidCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -1976,7 +1976,7 @@ INT NTAPI PhpThreadTidCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->ThreadId, (ULONG_PTR)item2->ThreadId);
 }
 
-INT NTAPI PhpThreadCyclesCompareFunction(
+static INT NTAPI PhpThreadCyclesCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -1992,7 +1992,19 @@ INT NTAPI PhpThreadCyclesCompareFunction(
         return uint64cmp(item1->ContextSwitchesDelta.Delta, item2->ContextSwitchesDelta.Delta);
 }
 
-INT NTAPI PhpThreadPriorityCompareFunction(
+static INT NTAPI PhpThreadStartAddressCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item1 = Item1;
+    PPH_THREAD_ITEM item2 = Item2;
+
+    return PhCompareStringWithNull(item1->StartAddressString, item2->StartAddressString, TRUE);
+}
+
+static INT NTAPI PhpThreadPriorityCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -2004,7 +2016,19 @@ INT NTAPI PhpThreadPriorityCompareFunction(
     return intcmp(item1->PriorityWin32, item2->PriorityWin32);
 }
 
-COLORREF NTAPI PhpThreadColorFunction(
+static INT NTAPI PhpThreadServiceCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPH_THREAD_ITEM item1 = Item1;
+    PPH_THREAD_ITEM item2 = Item2;
+
+    return PhCompareStringWithNull(item1->ServiceName, item2->ServiceName, TRUE);
+}
+
+static COLORREF NTAPI PhpThreadColorFunction(
     __in INT Index,
     __in PVOID Param,
     __in_opt PVOID Context
@@ -2020,7 +2044,7 @@ COLORREF NTAPI PhpThreadColorFunction(
     return PhSysWindowColor;
 }
 
-NTSTATUS NTAPI PhpOpenThreadTokenObject(
+static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     __out PHANDLE Handle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt PVOID Context
@@ -2227,16 +2251,19 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ThreadListViewColumns", lvHandle);
             ExtendedListView_SetContext(lvHandle, threadsContext);
+            ExtendedListView_SetSortFast(lvHandle, TRUE);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpThreadTidCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpThreadCyclesCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpThreadStartAddressCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpThreadPriorityCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 4, PhpThreadServiceCompareFunction);
             ExtendedListView_SetSort(lvHandle, 1, DescendingSortOrder);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpThreadColorFunction);
             ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
 
             // Sort by TID, Start Address, Priority, Cycles/Context Switches Delta, then Service.
             {
-                ULONG fallbackColumns[] = { 0, 2, 3, 1, 4 };
+                ULONG fallbackColumns[] = { 0, 2, 3 };
 
                 ExtendedListView_AddFallbackColumns(lvHandle,
                     sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
@@ -2979,7 +3006,7 @@ VOID PhpInitializeModuleMenu(
     }
 }
 
-INT NTAPI PhpModuleTriStateCompareFunction(
+static INT NTAPI PhpModuleTriStateCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -2997,7 +3024,19 @@ INT NTAPI PhpModuleTriStateCompareFunction(
     return 0;
 }
 
-INT NTAPI PhpModuleBaseAddressCompareFunction(
+static INT NTAPI PhpModuleNameCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item1 = Item1;
+    PPH_MODULE_ITEM item2 = Item2;
+
+    return PhCompareString(item1->Name, item2->Name, TRUE);
+}
+
+static INT NTAPI PhpModuleBaseAddressCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -3009,7 +3048,7 @@ INT NTAPI PhpModuleBaseAddressCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
 }
 
-INT NTAPI PhpModuleSizeCompareFunction(
+static INT NTAPI PhpModuleSizeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -3021,7 +3060,19 @@ INT NTAPI PhpModuleSizeCompareFunction(
     return uintcmp(item1->Size, item2->Size);
 }
 
-COLORREF NTAPI PhpModuleColorFunction(
+static INT NTAPI PhpModuleDescriptionCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPH_MODULE_ITEM item1 = Item1;
+    PPH_MODULE_ITEM item2 = Item2;
+
+    return PhCompareStringWithNull(item1->VersionInfo.FileDescription, item2->VersionInfo.FileDescription, TRUE);
+}
+
+static COLORREF NTAPI PhpModuleColorFunction(
     __in INT Index,
     __in PVOID Param,
     __in_opt PVOID Context
@@ -3037,7 +3088,7 @@ COLORREF NTAPI PhpModuleColorFunction(
     return PhSysWindowColor;
 }
 
-HFONT NTAPI PhpModuleFontFunction(
+static HFONT NTAPI PhpModuleFontFunction(
     __in INT Index,
     __in PVOID Param,
     __in_opt PVOID Context
@@ -3126,10 +3177,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"ModuleListViewColumns", lvHandle);
+            ExtendedListView_SetSortFast(lvHandle, TRUE);
             ExtendedListView_SetTriState(lvHandle, TRUE);
             ExtendedListView_SetTriStateCompareFunction(lvHandle, PhpModuleTriStateCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpModuleNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
+            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpModuleDescriptionCompareFunction);
             ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
             ExtendedListView_SetItemColorFunction(lvHandle, PhpModuleColorFunction);
             ExtendedListView_SetItemFontFunction(lvHandle, PhpModuleFontFunction);
@@ -4219,7 +4273,7 @@ VOID PhpInitializeHandleMenu(
     }
 }
 
-INT NTAPI PhpHandleTypeCompareFunction(
+static INT NTAPI PhpHandleTypeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -4231,7 +4285,7 @@ INT NTAPI PhpHandleTypeCompareFunction(
     return PhCompareString(item1->TypeName, item2->TypeName, TRUE);
 }
 
-INT NTAPI PhpHandleNameCompareFunction(
+static INT NTAPI PhpHandleNameCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -4243,7 +4297,7 @@ INT NTAPI PhpHandleNameCompareFunction(
     return PhCompareString(item1->BestObjectName, item2->BestObjectName, TRUE);
 }
 
-INT NTAPI PhpHandleHandleCompareFunction(
+static INT NTAPI PhpHandleHandleCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -4255,7 +4309,7 @@ INT NTAPI PhpHandleHandleCompareFunction(
     return uintptrcmp((ULONG_PTR)item1->Handle, (ULONG_PTR)item2->Handle);
 }
 
-COLORREF NTAPI PhpHandleColorFunction(
+static COLORREF NTAPI PhpHandleColorFunction(
     __in INT Index,
     __in PVOID Param,
     __in_opt PVOID Context
@@ -4371,6 +4425,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             PhSetExtendedListViewWithSettings(lvHandle);
             PhLoadListViewColumnsFromSetting(L"HandleListViewColumns", lvHandle);
+            ExtendedListView_SetSortFast(lvHandle, TRUE);
             ExtendedListView_SetCompareFunction(lvHandle, 0, PhpHandleTypeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpHandleNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpHandleHandleCompareFunction);

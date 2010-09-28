@@ -41,6 +41,7 @@ typedef struct _PHP_OBJECT_SEARCH_RESULT
     HANDLE Handle;
     PPH_STRING TypeName;
     PPH_STRING Name;
+    PPH_STRING ProcessName;
 
     WCHAR HandleString[PH_PTR_STR_LEN_1];
 
@@ -121,6 +122,24 @@ VOID PhpInitializeFindObjMenu(
     PhEnableMenuItem(Menu, ID_OBJECT_CLOSE, allCanBeClosed);
 }
 
+INT NTAPI PhpObjectProcessCompareFunction(
+    __in PVOID Item1,
+    __in PVOID Item2,
+    __in_opt PVOID Context
+    )
+{
+    PPHP_OBJECT_SEARCH_RESULT item1 = Item1;
+    PPHP_OBJECT_SEARCH_RESULT item2 = Item2;
+    INT result;
+
+    result = PhCompareStringWithNull(item1->ProcessName, item2->ProcessName, TRUE);
+
+    if (result != 0)
+        return result;
+    else
+        return uintptrcmp((ULONG_PTR)item1->ProcessId, (ULONG_PTR)item2->ProcessId);
+}
+
 INT NTAPI PhpObjectTypeCompareFunction(
     __in PVOID Item1,
     __in PVOID Item2,
@@ -193,6 +212,8 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Handle");
 
             PhSetExtendedListView(lvHandle);
+            ExtendedListView_SetSortFast(lvHandle, TRUE);
+            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpObjectProcessCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 1, PhpObjectTypeCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 2, PhpObjectNameCompareFunction);
             ExtendedListView_SetCompareFunction(lvHandle, 3, PhpObjectHandleCompareFunction);
@@ -257,6 +278,10 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
 
                                 PhDereferenceObject(searchResult->TypeName);
                                 PhDereferenceObject(searchResult->Name);
+
+                                if (searchResult->ProcessName)
+                                    PhDereferenceObject(searchResult->ProcessName);
+
                                 PhFree(searchResult);
                             }
 
@@ -514,17 +539,36 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
             {
                 PPHP_OBJECT_SEARCH_RESULT searchResult = SearchResults->Items[i];
                 CLIENT_ID clientId;
+                PPH_PROCESS_ITEM processItem;
+                PPH_STRING clientIdName;
                 INT lvItemIndex;
 
                 clientId.UniqueProcess = searchResult->ProcessId;
                 clientId.UniqueThread = NULL;
 
+                processItem = PhReferenceProcessItem(clientId.UniqueProcess);
+                clientIdName = PhGetClientIdNameEx(&clientId, processItem ? processItem->ProcessName : NULL);
+
                 lvItemIndex = PhAddListViewItem(
                     lvHandle,
                     MAXINT,
-                    ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer,
+                    clientIdName->Buffer,
                     searchResult
                     );
+
+                PhDereferenceObject(clientIdName);
+
+                if (processItem)
+                {
+                    searchResult->ProcessName = processItem->ProcessName;
+                    PhReferenceObject(searchResult->ProcessName);
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    searchResult->ProcessName = NULL;
+                }
+
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 1, searchResult->TypeName->Buffer);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 2, searchResult->Name->Buffer);
                 PhSetListViewSubItem(lvHandle, lvItemIndex, 3, searchResult->HandleString);
