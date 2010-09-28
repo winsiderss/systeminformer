@@ -44,6 +44,10 @@ VOID PhpFreeSymbolModule(
     __in PPH_SYMBOL_MODULE SymbolModule
     );
 
+VOID PhpEnsureModuleListSorted(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    );
+
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
@@ -150,6 +154,7 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 
     symbolProvider->ModulesList = PhCreateList(10);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
+    symbolProvider->ModulesListNeedsSort = FALSE;
 
     if (ProcessId)
     {
@@ -381,7 +386,9 @@ ULONG64 PhGetModuleFromAddress(
 {
     ULONG i;
 
-    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+    PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+
+    PhpEnsureModuleListSorted(SymbolProvider);
 
     for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
     {
@@ -399,13 +406,13 @@ ULONG64 PhGetModuleFromAddress(
                 PhReferenceObject(module->FileName);
             }
 
-            PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+            PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
 
             return baseAddress;
         }
     }
 
-    PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+    PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
 
     return 0;
 }
@@ -543,7 +550,7 @@ PPH_STRING PhGetSymbolFromAddress(
 
         modBase = symbolInfo->ModBase;
 
-        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+        PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
 
         for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
         {
@@ -560,7 +567,7 @@ PPH_STRING PhGetSymbolFromAddress(
             }
         }
 
-        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+        PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
     }
 
     // If we don't have a module name, return an address.
@@ -719,6 +726,17 @@ BOOLEAN PhGetSymbolFromName(
     return TRUE;
 }
 
+static VOID PhpEnsureModuleListSorted(
+    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    )
+{
+    if (SymbolProvider->ModulesListNeedsSort)
+    {
+        PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
+        SymbolProvider->ModulesListNeedsSort = FALSE;
+    }
+}
+
 BOOLEAN PhLoadModuleSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR FileName,
@@ -782,7 +800,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
             symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
 
             PhAddItemList(SymbolProvider->ModulesList, symbolModule);
-            PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
+            SymbolProvider->ModulesListNeedsSort = TRUE;
         }
 
         PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);

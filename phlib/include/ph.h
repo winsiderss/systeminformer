@@ -1806,6 +1806,7 @@ typedef struct _PH_SYMBOL_PROVIDER
 {
     PPH_LIST ModulesList;
     PH_QUEUED_LOCK ModulesListLock;
+    BOOLEAN ModulesListNeedsSort;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
     BOOLEAN IsRegistered;
