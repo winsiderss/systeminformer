@@ -1719,7 +1719,7 @@ static VOID PhpRestructureNodes(
 
     // Avoid using ListView_SetItemCountEx if we can.
     if (Context->List->Count != oldCount)
-        ListView_SetItemCountEx(Context->ListViewHandle, Context->List->Count, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
+        ListView_SetItemCountEx(Context->ListViewHandle, Context->List->Count, LVSICF_NOSCROLL);
     else
         InvalidateRect(Context->ListViewHandle, NULL, TRUE);
 }
