@@ -1700,11 +1700,14 @@ static VOID PhpRestructureNodes(
     PPH_TREELIST_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
+    ULONG oldCount;
 
     if (!PhpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
         return;
 
     // At this point we rebuild the entire list.
+
+    oldCount = Context->List->Count;
 
     PhClearList(Context->List);
     Context->CanAnyExpand = FALSE;
@@ -1714,7 +1717,11 @@ static VOID PhpRestructureNodes(
         PhpInsertNodeChildren(Context, children[i], 0);
     }
 
-    ListView_SetItemCountEx(Context->ListViewHandle, Context->List->Count, LVSICF_NOSCROLL);
+    // Avoid using ListView_SetItemCountEx if we can.
+    if (Context->List->Count != oldCount)
+        ListView_SetItemCountEx(Context->ListViewHandle, Context->List->Count, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
+    else
+        InvalidateRect(Context->ListViewHandle, NULL, TRUE);
 }
 
 static INT PhpInsertColumn(
