@@ -547,9 +547,7 @@ VOID PhServiceProviderUpdate(
                 {
                     PPH_PROCESS_ITEM processItem;
 
-                    processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
-
-                    if (processItem)
+                    if (processItem = PhReferenceProcessItem(serviceItem->ProcessId))
                     {
                         PhpAddProcessItemService(processItem, serviceItem);
                         PhDereferenceObject(processItem);
@@ -616,9 +614,9 @@ VOID PhServiceProviderUpdate(
                         PPH_PROCESS_ITEM processItem;
 
                         if (serviceChange == ServiceStarted)
-                            processItem = PhReferenceProcessItem((HANDLE)serviceItem->ProcessId);
+                            processItem = PhReferenceProcessItem(serviceItem->ProcessId);
                         else
-                            processItem = PhReferenceProcessItem((HANDLE)serviceModifiedData.OldService.ProcessId);
+                            processItem = PhReferenceProcessItem(serviceModifiedData.OldService.ProcessId);
 
                         if (processItem)
                         {
@@ -635,6 +633,34 @@ VOID PhServiceProviderUpdate(
                                 serviceItem->PendingProcess = TRUE;
                             else
                                 serviceItem->PendingProcess = FALSE;
+                        }
+                    }
+                    else if (
+                        serviceItem->State == SERVICE_RUNNING &&
+                        serviceItem->ProcessId != serviceModifiedData.OldService.ProcessId &&
+                        serviceItem->ProcessId
+                        )
+                    {
+                        PPH_PROCESS_ITEM processItem;
+
+                        // The service stopped and started, and the only change we have detected 
+                        // is in the process ID.
+
+                        if (processItem = PhReferenceProcessItem(serviceModifiedData.OldService.ProcessId))
+                        {
+                            PhpRemoveProcessItemService(processItem, serviceItem);
+                            PhDereferenceObject(processItem);
+                        }
+
+                        if (processItem = PhReferenceProcessItem(serviceItem->ProcessId))
+                        {
+                            PhpAddProcessItemService(processItem, serviceItem);
+                            PhDereferenceObject(processItem);
+                            serviceItem->PendingProcess = FALSE;
+                        }
+                        else
+                        {
+                            serviceItem->PendingProcess = TRUE;
                         }
                     }
 
