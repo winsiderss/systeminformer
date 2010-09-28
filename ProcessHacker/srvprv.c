@@ -292,7 +292,6 @@ VOID PhUpdateProcessItemServices(
             )
         {
             PhpAddProcessItemService(ProcessItem, *serviceItem);
-            (*serviceItem)->PendingProcess = FALSE;
         }
     }
 }
@@ -315,6 +314,7 @@ VOID PhpAddProcessItemService(
 
     PhReleaseQueuedLockExclusive(&ProcessItem->ServiceListLock);
 
+    ServiceItem->PendingProcess = FALSE;
     ProcessItem->JustProcessed = TRUE;
 }
 
@@ -656,7 +656,6 @@ VOID PhServiceProviderUpdate(
                         {
                             PhpAddProcessItemService(processItem, serviceItem);
                             PhDereferenceObject(processItem);
-                            serviceItem->PendingProcess = FALSE;
                         }
                         else
                         {
