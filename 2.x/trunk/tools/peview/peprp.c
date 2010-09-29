@@ -172,14 +172,32 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             case IMAGE_SUBSYSTEM_WINDOWS_CUI:
                 type = L"Windows CUI";
                 break;
+            case IMAGE_SUBSYSTEM_OS2_CUI:
+                type = L"OS/2 CUI";
+                break;
             case IMAGE_SUBSYSTEM_POSIX_CUI:
                 type = L"POSIX CUI";
+                break;
+            case IMAGE_SUBSYSTEM_WINDOWS_CE_GUI:
+                type = L"Windows CE CUI";
                 break;
             case IMAGE_SUBSYSTEM_EFI_APPLICATION:
                 type = L"EFI Application";
                 break;
+            case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
+                type = L"EFI Boot Service Driver";
+                break;
+            case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
+                type = L"EFI Runtime Driver";
+                break;
+            case IMAGE_SUBSYSTEM_EFI_ROM:
+                type = L"EFI ROM";
+                break;
             case IMAGE_SUBSYSTEM_XBOX:
                 type = L"Xbox";
+                break;
+            case IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION:
+                type = L"Windows Boot Application";
                 break;
             default:
                 type = L"Unknown";
