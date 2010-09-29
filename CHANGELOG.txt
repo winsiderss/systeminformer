@@ -8,6 +8,7 @@ Process Hacker
      scanners
    * Added Network tools plugin
    * Updated ExtendedServices plugin
+   * PE viewer now verifies checksums
    * Performance improvements
  * FIXED:
    * Fixed service handle leak
