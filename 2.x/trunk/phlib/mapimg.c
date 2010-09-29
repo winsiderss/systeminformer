@@ -249,7 +249,7 @@ NTSTATUS PhMapViewOfEntireFile(
         goto CleanupExit;
 
     *ViewBase = viewBase;
-    *Size = viewSize;
+    *Size = (SIZE_T)size.QuadPart;
 
 CleanupExit:
     if (sectionHandle)
@@ -533,7 +533,7 @@ NTSTATUS PhUnloadRemoteMappedImage(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhInitializeMappedImageExports(
+NTSTATUS PhGetMappedImageExports(
     __out PPH_MAPPED_IMAGE_EXPORTS Exports,
     __in PPH_MAPPED_IMAGE MappedImage
     )
@@ -820,7 +820,7 @@ ULONG PhpLookupMappedImageExportName(
     return -1;
 }
 
-NTSTATUS PhInitializeMappedImageImports(
+NTSTATUS PhGetMappedImageImports(
     __out PPH_MAPPED_IMAGE_IMPORTS Imports,
     __in PPH_MAPPED_IMAGE MappedImage
     )
@@ -1078,4 +1078,49 @@ NTSTATUS PhGetMappedImageImportEntry(
     // TODO: Probe the name.
 
     return STATUS_SUCCESS;
+}
+
+USHORT PhComputePartialImageCheckSum(
+    __in ULONG PartialSum,
+    __in PUSHORT Buffer,
+    __in ULONG Count
+    )
+{
+    while (Count--)
+    {
+        PartialSum += *Buffer++;
+        PartialSum = (PartialSum >> 16) + (PartialSum & 0xffff);
+    }
+
+    PartialSum = (PartialSum >> 16) + PartialSum;
+
+    return (USHORT)PartialSum;
+}
+
+ULONG PhCheckSumMappedImage(
+    __in PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    ULONG checkSum;
+    USHORT partialSum;
+    PUSHORT adjust;
+
+    partialSum = PhComputePartialImageCheckSum(
+        0,
+        (PUSHORT)MappedImage->ViewBase,
+        (ULONG)(MappedImage->Size + 1) / 2
+        );
+
+    // This is actually the same for 32-bit and 64-bit executables.
+    adjust = (PUSHORT)&MappedImage->NtHeaders->OptionalHeader.CheckSum;
+
+    // Subtract the existing check sum (with carry).
+    partialSum -= partialSum < adjust[0];
+    partialSum -= adjust[0];
+    partialSum -= partialSum < adjust[1];
+    partialSum -= adjust[1];
+
+    checkSum = partialSum + (ULONG)MappedImage->Size;
+
+    return checkSum;
 }

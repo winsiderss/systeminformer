@@ -22,6 +22,8 @@
 
 #include <peview.h>
 
+#define PVM_CHECKSUM_DONE (WM_APP + 1)
+
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -96,6 +98,26 @@ VOID PvPeProperties()
     PhUnloadMappedImage(&PvMappedImage);
 }
 
+static NTSTATUS CheckSumImageThreadStart(
+    __in PVOID Parameter
+    )
+{
+    HWND windowHandle;
+    ULONG checkSum;
+
+    windowHandle = Parameter;
+    checkSum = PhCheckSumMappedImage(&PvMappedImage);
+
+    PostMessage(
+        windowHandle,
+        PVM_CHECKSUM_DONE,
+        checkSum,
+        0
+        );
+
+    return STATUS_SUCCESS;
+}
+
 INT_PTR CALLBACK PvpPeGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -111,7 +133,6 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             ULONG i;
             PPH_STRING string;
             PWSTR type;
-            WCHAR pointer[PH_PTR_STR_LEN_1];
             PH_STRING_BUILDER stringBuilder;
 
             PhCenterWindow(GetParent(hwndDlg), NULL);
@@ -134,8 +155,11 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_TARGETMACHINE, type);
 
-            PhPrintPointer(pointer, (PVOID)PvMappedImage.NtHeaders->OptionalHeader.CheckSum);
-            SetDlgItemText(hwndDlg, IDC_CHECKSUM, pointer);
+            string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum);
+            SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+            PhDereferenceObject(string);
+
+            PhQueueItemGlobalWorkQueue(CheckSumImageThreadStart, hwndDlg);
 
             switch (PvMappedImage.NtHeaders->OptionalHeader.Subsystem)
             {
@@ -233,6 +257,36 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             }
         }
         break;
+    case PVM_CHECKSUM_DONE:
+        {
+            PPH_STRING string;
+            ULONG headerCheckSum;
+            ULONG realCheckSum;
+
+            headerCheckSum = PvMappedImage.NtHeaders->OptionalHeader.CheckSum;
+            realCheckSum = (ULONG)wParam;
+
+            if (headerCheckSum == 0)
+            {
+                // Some executables, like .NET ones, don't have a check sum.
+                string = PhFormatString(L"0x0 (real 0x%Ix)", realCheckSum);
+                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhDereferenceObject(string);
+            }
+            else if (headerCheckSum == realCheckSum)
+            {
+                string = PhFormatString(L"0x%Ix (correct)", headerCheckSum);
+                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhDereferenceObject(string);
+            }
+            else
+            {
+                string = PhFormatString(L"0x%Ix (incorrect, real 0x%Ix)", headerCheckSum, realCheckSum);
+                SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
+                PhDereferenceObject(string);
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -266,7 +320,7 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             PhSetExtendedListView(lvHandle);
             ExtendedListView_AddFallbackColumns(lvHandle, 3, fallbackColumns);
 
-            if (NT_SUCCESS(PhInitializeMappedImageImports(&imports, &PvMappedImage)))
+            if (NT_SUCCESS(PhGetMappedImageImports(&imports, &PvMappedImage)))
             {
                 for (i = 0; i < imports.NumberOfDlls; i++)
                 {
@@ -338,7 +392,7 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"VA");
             PhSetExtendedListView(lvHandle);
 
-            if (NT_SUCCESS(PhInitializeMappedImageExports(&exports, &PvMappedImage)))
+            if (NT_SUCCESS(PhGetMappedImageExports(&exports, &PvMappedImage)))
             {
                 for (i = 0; i < exports.NumberOfEntries; i++)
                 {

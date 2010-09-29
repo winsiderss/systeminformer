@@ -1842,6 +1842,82 @@ RtlWow64SetThreadContext(
     );
 #endif
 
+// Images
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlPcToFileHeader(
+    __in PVOID PcValue,
+    __out PVOID *BaseOfImage
+    );
+
+NTSYSAPI
+PIMAGE_NT_HEADERS
+NTAPI
+RtlImageNtHeader(
+    __in PVOID Base
+    );
+
+#define RTL_IMAGE_NT_HEADER_EX_FLAG_NO_RANGE_CHECK 0x00000001
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlImageNtHeaderEx(
+    __in ULONG Flags,
+    __in PVOID Base,
+    __in ULONG64 Size,
+    __out PIMAGE_NT_HEADERS *OutHeaders
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlAddressInSectionTable(
+    __in PIMAGE_NT_HEADERS NtHeaders,
+    __in PVOID BaseOfImage,
+    __in ULONG VirtualAddress
+    );
+
+NTSYSAPI
+PIMAGE_SECTION_HEADER
+NTAPI
+RtlSectionTableFromVirtualAddress(
+    __in PIMAGE_NT_HEADERS NtHeaders,
+    __in PVOID BaseOfImage,
+    __in ULONG VirtualAddress
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlImageDirectoryEntryToData(
+    __in PVOID BaseOfImage,
+    __in BOOLEAN MappedAsImage,
+    __in USHORT DirectoryEntry,
+    __out PULONG Size
+    );
+
+NTSYSAPI
+PIMAGE_SECTION_HEADER
+NTAPI
+RtlImageRvaToSection(
+    __in PIMAGE_NT_HEADERS NtHeaders,
+    __in PVOID Base,
+    __in ULONG Rva
+    );
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlImageRvaToVa(
+    __in PIMAGE_NT_HEADERS NtHeaders,
+    __in PVOID Base,
+    __in ULONG Rva,
+    __inout_opt PIMAGE_SECTION_HEADER *LastRvaSection
+    );
+
 // Environment
 
 NTSYSAPI
@@ -4410,6 +4486,102 @@ RtlDeleteRegistryValue(
     );
 
 // end_wdm
+
+// Debugging
+
+NTSYSAPI
+VOID
+NTAPI
+DbgUserBreakPoint();
+
+// begin_wdm
+
+NTSYSAPI
+VOID
+NTAPI
+DbgBreakPoint();
+
+NTSYSAPI
+VOID
+NTAPI
+DbgBreakPointWithStatus(
+    __in ULONG Status
+    );
+
+#define DBG_STATUS_CONTROL_C 1
+#define DBG_STATUS_SYSRQ 2
+#define DBG_STATUS_BUGCHECK_FIRST 3
+#define DBG_STATUS_BUGCHECK_SECOND 4
+#define DBG_STATUS_FATAL 5
+#define DBG_STATUS_DEBUG_CONTROL 6
+#define DBG_STATUS_WORKER 7
+
+NTSYSAPI
+ULONG
+__cdecl
+DbgPrint(
+    __in_z __format_string PSTR Format,
+    ...
+    );
+
+NTSYSAPI
+ULONG
+__cdecl
+DbgPrintEx(
+    __in ULONG ComponentId,
+    __in ULONG Level,
+    __in_z __format_string PSTR Format,
+    ...
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+vDbgPrintEx(
+    __in ULONG ComponentId,
+    __in ULONG Level,
+    __in_z PCH Format,
+    __in va_list arglist
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+vDbgPrintExWithPrefix(
+    __in_z PCH Prefix,
+    __in ULONG ComponentId,
+    __in ULONG Level,
+    __in_z PCH Format,
+    __in va_list arglist
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+DbgQueryDebugFilterState(
+    __in ULONG ComponentId,
+    __in ULONG Level
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+DbgSetDebugFilterState(
+    __in ULONG ComponentId,
+    __in ULONG Level,
+    __in BOOLEAN State
+    );
+
+// end_wdm
+
+NTSYSAPI
+ULONG
+NTAPI
+DbgPrompt(
+    __in PCH Prompt,
+    __out_bcount(Length) PCH Response,
+    __in ULONG Length
+    );
 
 // Misc.
 
