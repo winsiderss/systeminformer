@@ -4797,7 +4797,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (!NT_SUCCESS(status = PhInitializeMappedImageExports(&exports, &mappedImage)))
+    if (!NT_SUCCESS(status = PhGetMappedImageExports(&exports, &mappedImage)))
         goto CleanupExit;
 
     status = PhGetMappedImageExportFunctionRemote(

@@ -1271,7 +1271,7 @@ typedef struct _PH_MAPPED_IMAGE_EXPORT_FUNCTION
 } PH_MAPPED_IMAGE_EXPORT_FUNCTION, *PPH_MAPPED_IMAGE_EXPORT_FUNCTION;
 
 PHLIBAPI
-NTSTATUS PhInitializeMappedImageExports(
+NTSTATUS PhGetMappedImageExports(
     __out PPH_MAPPED_IMAGE_EXPORTS Exports,
     __in PPH_MAPPED_IMAGE MappedImage
     );
@@ -1329,7 +1329,7 @@ typedef struct _PH_MAPPED_IMAGE_IMPORT_ENTRY
 } PH_MAPPED_IMAGE_IMPORT_ENTRY, *PPH_MAPPED_IMAGE_IMPORT_ENTRY;
 
 PHLIBAPI
-NTSTATUS PhInitializeMappedImageImports(
+NTSTATUS PhGetMappedImageImports(
     __out PPH_MAPPED_IMAGE_IMPORTS Imports,
     __in PPH_MAPPED_IMAGE MappedImage
     );
@@ -1346,6 +1346,11 @@ NTSTATUS PhGetMappedImageImportEntry(
     __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     __in ULONG Index,
     __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    );
+
+PHLIBAPI
+ULONG PhCheckSumMappedImage(
+    __in PPH_MAPPED_IMAGE MappedImage
     );
 
 // maplib
