@@ -300,6 +300,13 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
                 }
 
                 SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString->Buffer);
+                SendMessage(
+                    GetDlgItem(hwndDlg, IDC_TEXT),
+                    EM_SETSEL,
+                    context->ReceivedString->Length / 2 - 1,
+                    context->ReceivedString->Length / 2 - 1
+                    );
+                SendMessage(GetDlgItem(hwndDlg, IDC_TEXT), WM_VSCROLL, SB_BOTTOM, 0);
             }
         }
         break;
