@@ -295,12 +295,12 @@ static NTSTATUS UploadWorkerThreadStart(
                 dataLength = 2; // --
                 dataLength += boundaryAnsi->Length;
                 dataLength += 2; // \r\n
-                dataLength += strlen(contentDispositionPart1);
-                dataLength += strlen(fileNameFieldName);
-                dataLength += strlen(contentDispositionPart2);
+                dataLength += (ULONG)strlen(contentDispositionPart1);
+                dataLength += (ULONG)strlen(fileNameFieldName);
+                dataLength += (ULONG)strlen(contentDispositionPart2);
                 dataLength += baseFileNameAnsi->Length;
                 dataLength += 3; // \"\r\n
-                dataLength += strlen(contentType);
+                dataLength += (ULONG)strlen(contentType);
                 dataLength += fileSize;
                 dataLength += 4; // \r\n--
                 dataLength += boundaryAnsi->Length;
@@ -324,11 +324,11 @@ static NTSTATUS UploadWorkerThreadStart(
 
                 // Content Disposition
                 memcpy(&data[dataCursor], contentDispositionPart1, strlen(contentDispositionPart1));
-                dataCursor += strlen(contentDispositionPart1);
+                dataCursor += (ULONG)strlen(contentDispositionPart1);
                 memcpy(&data[dataCursor], fileNameFieldName, strlen(fileNameFieldName));
-                dataCursor += strlen(fileNameFieldName);
+                dataCursor += (ULONG)strlen(fileNameFieldName);
                 memcpy(&data[dataCursor], contentDispositionPart2, strlen(contentDispositionPart2));
-                dataCursor += strlen(contentDispositionPart2);
+                dataCursor += (ULONG)strlen(contentDispositionPart2);
                 memcpy(&data[dataCursor], baseFileNameAnsi->Buffer, baseFileNameAnsi->Length);
                 dataCursor += baseFileNameAnsi->Length;
                 memcpy(&data[dataCursor], "\"\r\n", 3);
@@ -336,7 +336,7 @@ static NTSTATUS UploadWorkerThreadStart(
 
                 // Content Type
                 memcpy(&data[dataCursor], contentType, strlen(contentType));
-                dataCursor += strlen(contentType);
+                dataCursor += (ULONG)strlen(contentType);
 
                 // File contents
                 status = NtReadFile(fileHandle, NULL, NULL, NULL, &isb, &data[dataCursor], fileSize, NULL, NULL);
@@ -375,7 +375,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 HttpAddRequestHeaders(
                     requestHandle,
                     headers->Buffer,
-                    headers->Length,
+                    (ULONG)headers->Length,
                     HTTP_ADDREQ_FLAG_REPLACE | HTTP_ADDREQ_FLAG_ADD
                     );
             }
