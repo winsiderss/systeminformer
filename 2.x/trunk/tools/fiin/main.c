@@ -430,7 +430,7 @@ int __cdecl main(int argc, char *argv[])
             0,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
             )))
         {
             if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
