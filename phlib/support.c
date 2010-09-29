@@ -3454,7 +3454,7 @@ NTSTATUS PhIsExecutablePacked(
     //    }
     //}
 
-    status = PhInitializeMappedImageImports(
+    status = PhGetMappedImageImports(
         &imports,
         &mappedImage
         );
