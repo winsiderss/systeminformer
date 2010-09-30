@@ -249,7 +249,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 requestHandle = HttpOpenRequest(
                     connectHandle,
                     L"POST",
-                    context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? L"/vt/en/recepcionf" : L"/processupload.php",
+                    context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? L"/file-upload/file_upload" : L"/processupload.php",
                     L"HTTP/1.1",
                     L"",
                     acceptTypes,
@@ -290,7 +290,7 @@ static NTSTATUS UploadWorkerThreadStart(
                 baseFileNameAnsi = PhCreateAnsiStringFromUnicodeEx(baseFileName->Buffer, baseFileName->Length);
                 PhDereferenceObject(baseFileName);
 
-                fileNameFieldName = context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? "archivo" : "scanfile";
+                fileNameFieldName = context->Service == UPLOAD_SERVICE_VIRUSTOTAL ? "file" : "scanfile";
 
                 dataLength = 2; // --
                 dataLength += boundaryAnsi->Length;
@@ -400,13 +400,19 @@ static NTSTATUS UploadWorkerThreadStart(
 
                 if (context->Service == UPLOAD_SERVICE_VIRUSTOTAL)
                 {
+                    //HttpQueryInfo(requestHandle, HTTP_QUERY_RAW_HEADERS_CRLF, buffer, &bufferSize, &index);
+                    //PhShowInformation(NULL, L"%.*s", bufferSize, buffer);
+
                     if (!HttpQueryInfo(requestHandle, HTTP_QUERY_LOCATION, buffer, &bufferSize, &index))
                     {
                         RaiseUploadError(context, L"Unable to complete the request (please try again after a few minutes)", GetLastError());
                         goto ExitCleanup;
                     }
 
-                    context->LaunchCommand = PhCreateString((PWSTR)buffer);
+                    if (bufferSize != 0 && *(PWCHAR)buffer == '/')
+                        context->LaunchCommand = PhConcatStrings2(L"http://www.virustotal.com", (PWSTR)buffer);
+                    else
+                        context->LaunchCommand = PhCreateString((PWSTR)buffer);
                 }
                 else
                 {
