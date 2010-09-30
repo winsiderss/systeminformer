@@ -298,7 +298,9 @@ VOID PhUpdateIconIoHistory()
     {
         if (maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId))
         {
-            maxIoText = PhConcatStrings2(L"\n", maxIoProcessItem->ProcessName->Buffer);
+            static PH_STRINGREF newLine = PH_STRINGREF_INIT(L"\n");
+
+            maxIoText = PhConcatStringRef2(&newLine, &maxIoProcessItem->ProcessName->sr);
             PhDereferenceObject(maxIoProcessItem);
         }
     }

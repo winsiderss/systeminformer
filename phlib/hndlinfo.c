@@ -313,18 +313,22 @@ PPH_STRING PhFormatNativeKeyName(
     __in PPH_STRING Name
     )
 {
-#define HKLM_PREFIX L"\\Registry\\Machine"
-#define HKLM_PREFIX_LENGTH 17
-#define HKCR_PREFIX L"\\Registry\\Machine\\Software\\Classes"
-#define HKCR_PREFIX_LENGTH 34
-#define HKU_PREFIX L"\\Registry\\User"
-#define HKU_PREFIX_LENGTH 14
-
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PH_STRINGREF hklmPrefix = PH_STRINGREF_INIT(L"\\Registry\\Machine");
+    static PH_STRINGREF hkcrPrefix = PH_STRINGREF_INIT(L"\\Registry\\Machine\\Software\\Classes");
+    static PH_STRINGREF hkuPrefix = PH_STRINGREF_INIT(L"\\Registry\\User");
     static PPH_STRING hkcuPrefix;
     static PPH_STRING hkcucrPrefix;
 
+    static PH_STRINGREF hklmString = PH_STRINGREF_INIT(L"HKLM");
+    static PH_STRINGREF hkcrString = PH_STRINGREF_INIT(L"HKCR");
+    static PH_STRINGREF hkuString = PH_STRINGREF_INIT(L"HKU");
+    static PH_STRINGREF hkcuString = PH_STRINGREF_INIT(L"HKCU");
+    static PH_STRINGREF hkcucrString = PH_STRINGREF_INIT(L"HKCU\\Software\\Classes");
+
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
     PPH_STRING newName;
+    PH_STRINGREF name;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -345,8 +349,11 @@ PPH_STRING PhFormatNativeKeyName(
 
         if (stringSid)
         {
-            hkcuPrefix = PhConcatStrings2(L"\\Registry\\User\\", stringSid->Buffer);
-            hkcucrPrefix = PhConcatStrings2(hkcuPrefix->Buffer, L"_Classes");
+            static PH_STRINGREF registryUserPrefix = PH_STRINGREF_INIT(L"\\Registry\\User\\");
+            static PH_STRINGREF classesString = PH_STRINGREF_INIT(L"_Classes");
+
+            hkcuPrefix = PhConcatStringRef2(&registryUserPrefix, &stringSid->sr);
+            hkcucrPrefix = PhConcatStringRef2(&hkcuPrefix->sr, &classesString);
         }
         else
         {
@@ -357,28 +364,37 @@ PPH_STRING PhFormatNativeKeyName(
         PhEndInitOnce(&initOnce);
     }
 
-    if (PhStartsWithString2(Name, HKCR_PREFIX, TRUE))
+    name = Name->sr;
+
+    if (PhStartsWithStringRef(&name, &hkcrPrefix, TRUE))
     {
-        newName = PhConcatStrings2(L"HKCR", &Name->Buffer[HKCR_PREFIX_LENGTH]);
+        name.Buffer += hkcrPrefix.Length / sizeof(WCHAR);
+        name.Length -= hkcrPrefix.Length;
+        newName = PhConcatStringRef2(&hkcrString, &name);
     }
-    else if (PhStartsWithString2(Name, HKLM_PREFIX, TRUE))
+    else if (PhStartsWithStringRef(&name, &hklmPrefix, TRUE))
     {
-        newName = PhConcatStrings2(L"HKLM", &Name->Buffer[HKLM_PREFIX_LENGTH]);
+        name.Buffer += hklmPrefix.Length / sizeof(WCHAR);
+        name.Length -= hklmPrefix.Length;
+        newName = PhConcatStringRef2(&hklmString, &name);
     }
-    else if (PhStartsWithString(Name, hkcucrPrefix, TRUE))
+    else if (PhStartsWithStringRef(&name, &hkcucrPrefix->sr, TRUE))
     {
-        newName = PhConcatStrings2(
-            L"HKCU\\Software\\Classes",
-            &Name->Buffer[hkcucrPrefix->Length / 2]
-            );
+        name.Buffer += hkcucrPrefix->Length / sizeof(WCHAR);
+        name.Length -= hkcucrPrefix->Length;
+        newName = PhConcatStringRef2(&hkcucrString, &name);
     }
-    else if (PhStartsWithString(Name, hkcuPrefix, TRUE))
+    else if (PhStartsWithStringRef(&name, &hkcuPrefix->sr, TRUE))
     {
-        newName = PhConcatStrings2(L"HKCU", &Name->Buffer[hkcuPrefix->Length / 2]);
+        name.Buffer += hkcuPrefix->Length / sizeof(WCHAR);
+        name.Length -= hkcuPrefix->Length;
+        newName = PhConcatStringRef2(&hkcuString, &name);
     }
-    else if (PhStartsWithString2(Name, HKU_PREFIX, TRUE))
+    else if (PhStartsWithStringRef(&name, &hkuPrefix, TRUE))
     {
-        newName = PhConcatStrings2(L"HKU", &Name->Buffer[HKU_PREFIX_LENGTH]);
+        name.Buffer += hkuPrefix.Length / sizeof(WCHAR);
+        name.Length -= hkuPrefix.Length;
+        newName = PhConcatStringRef2(&hkuString, &name);
     }
     else
     {

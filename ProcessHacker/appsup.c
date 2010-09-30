@@ -488,7 +488,7 @@ VOID PhShellExecuteUserString(
     // Make sure the user executable string is absolute.
     if (PhFindCharInString(executeString, 0, L':') == -1)
     {
-        newString = PhConcatStrings2(PhApplicationDirectory->Buffer, executeString->Buffer);
+        newString = PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr);
         PhDereferenceObject(executeString);
         executeString = newString;
     }
