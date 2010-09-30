@@ -226,7 +226,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             OBJECT_BASIC_INFORMATION basicInfo;
             BOOLEAN haveBasicInfo = FALSE;
 
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             if (!context)
             {
@@ -328,7 +328,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -337,7 +337,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
             {
             case IDC_PROPERTIES:
                 {
-                    PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PHANDLE_PROPERTIES_CONTEXT context = (PHANDLE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
                     if (!context)
                     {

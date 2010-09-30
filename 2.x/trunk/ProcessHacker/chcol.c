@@ -101,11 +101,11 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PCOLUMNS_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
     else
     {
-        context = (PCOLUMNS_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PCOLUMNS_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
     }
 
     if (!context)
@@ -177,7 +177,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             for (i = 0; i < context->Columns->Count; i++)
                 PhFree(context->Columns->Items[i]);
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:

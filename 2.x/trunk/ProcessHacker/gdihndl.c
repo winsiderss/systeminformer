@@ -325,7 +325,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
             PGDI_HANDLES_CONTEXT context = (PGDI_HANDLES_CONTEXT)lParam;
             HWND lvHandle;
 
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
@@ -347,7 +347,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -360,7 +360,7 @@ INT_PTR CALLBACK PhpGdiHandlesDlgProc(
                 break;
             case IDC_REFRESH:
                 {
-                    PhpRefreshGdiHandles(hwndDlg, (PGDI_HANDLES_CONTEXT)GetProp(hwndDlg, L"Context"));
+                    PhpRefreshGdiHandles(hwndDlg, (PGDI_HANDLES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom()));
                 }
                 break;
             }

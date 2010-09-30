@@ -422,6 +422,8 @@ VOID PhSetExtendedListViewWithSettings(
     __in HWND hWnd
     );
 
+PWSTR PhMakeContextAtom();
+
 PHAPPAPI
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,

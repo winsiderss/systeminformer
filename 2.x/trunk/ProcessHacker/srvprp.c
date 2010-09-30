@@ -168,7 +168,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             // HACK
             PhCenterWindow(GetParent(hwndDlg), GetParent(GetParent(hwndDlg)));
 
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             PhAddComboBoxStrings(GetDlgItem(hwndDlg, IDC_TYPE), PhServiceTypeStrings,
                 sizeof(PhServiceTypeStrings) / sizeof(WCHAR *));
@@ -272,13 +272,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
         {
             PSERVICE_PROPERTIES_CONTEXT context = 
-                (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+                (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             switch (LOWORD(wParam))
             {
@@ -359,7 +359,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             case PSN_APPLY:
                 {
                     PSERVICE_PROPERTIES_CONTEXT context = 
-                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, L"Context");
+                        (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
                     SC_HANDLE serviceHandle;
                     PPH_STRING newServiceTypeString;

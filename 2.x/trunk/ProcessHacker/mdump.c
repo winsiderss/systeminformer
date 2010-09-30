@@ -260,7 +260,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             PPROCESS_MINIDUMP_CONTEXT context = (PPROCESS_MINIDUMP_CONTEXT)lParam;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, L"Creating the dump file...");
 
@@ -283,11 +283,11 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         {
             PPROCESS_MINIDUMP_CONTEXT context;
 
-            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, L"Context");
+            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             NtClose(context->ThreadHandle);
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -297,7 +297,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             case IDCANCEL:
                 {
                     PPROCESS_MINIDUMP_CONTEXT context =
-                        (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, L"Context");
+                        (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
                     context->Stop = TRUE;
@@ -311,7 +311,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
             if (wParam == 1)
             {
                 PPROCESS_MINIDUMP_CONTEXT context =
-                    (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, L"Context");
+                    (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                 ULONG64 currentTickCount;
 
                 currentTickCount = NtGetTickCount64();
@@ -333,7 +333,7 @@ INT_PTR CALLBACK PhpProcessMiniDumpDlgProc(
         {
             PPROCESS_MINIDUMP_CONTEXT context;
 
-            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, L"Context");
+            context = (PPROCESS_MINIDUMP_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             switch (wParam)
             {
