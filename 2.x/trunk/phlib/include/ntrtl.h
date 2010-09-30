@@ -2638,6 +2638,14 @@ FORCEINLINE LUID RtlConvertUlongToLuid(
     return tempLuid;
 }
 
+NTSYSAPI
+VOID
+NTAPI
+RtlCopyLuid(
+    __out PLUID DestinationLuid,
+    __in PLUID SourceLuid
+    );
+
 // Debugging
 
 typedef struct RTL_PROCESS_BACKTRACES *PRTL_PROCESS_BACKTRACES;
@@ -3593,22 +3601,6 @@ RtlConvertSidToUnicodeString(
     __inout PUNICODE_STRING UnicodeString,
     __in PSID Sid,
     __in BOOLEAN AllocateDestinationString
-    );
-
-// LUIDs
-
-#define RtlEqualLuid(L1, L2) \
-    (((L1)->LowPart == (L2)->LowPart) && \
-    ((L1)->HighPart == (L2)->HighPart))
-
-#define RtlIsZeroLuid(L1) ((BOOLEAN)(((L1)->LowPart | (L1)->HighPart) == 0))
-
-NTSYSAPI
-VOID
-NTAPI
-RtlCopyLuid(
-    __out PLUID DestinationLuid,
-    __in PLUID SourceLuid
     );
 
 // Security Descriptors
