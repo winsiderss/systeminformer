@@ -3810,6 +3810,8 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     __in_opt PVOID Context
     )
 {
+    static PH_STRINGREF driverDirectoryName = PH_STRINGREF_INIT(L"\\Driver\\");
+
     NTSTATUS status;
     POPEN_DRIVER_BY_BASE_ADDRESS_CONTEXT context = Context;
     PPH_STRING driverName;
@@ -3817,7 +3819,7 @@ BOOLEAN NTAPI PhpOpenDriverByBaseAddressCallback(
     HANDLE driverHandle;
     DRIVER_BASIC_INFORMATION basicInfo;
 
-    driverName = PhConcatStrings2(L"\\Driver\\", Name->Buffer);
+    driverName = PhConcatStringRef2(&driverDirectoryName, &Name->sr);
     InitializeObjectAttributes(
         &objectAttributes,
         &driverName->us,
@@ -4016,6 +4018,8 @@ NTSTATUS PhpUnloadDriver(
     __in PPH_STRING ServiceKeyName
     )
 {
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
+
     NTSTATUS status;
     ULONG win32Result;
     HKEY servicesKeyHandle;
@@ -4064,10 +4068,7 @@ NTSTATUS PhpUnloadDriver(
         RegSetValueEx(serviceKeyHandle, L"ImagePath", 0, REG_SZ, (PBYTE)imagePath.Buffer, imagePath.Length + 2);
     }
 
-    servicePath = PhConcatStrings2(
-        L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\",
-        ServiceKeyName->Buffer
-        );
+    servicePath = PhConcatStringRef2(&servicesKeyName, &ServiceKeyName->sr);
     status = NtUnloadDriver(&servicePath->us);
     PhDereferenceObject(servicePath);
 

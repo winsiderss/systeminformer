@@ -1029,15 +1029,14 @@ VOID PhpRunAsServiceExit(
 {
     if (RunAsServiceParameters.ErrorMailslot)
     {
+        static PH_STRINGREF mailslotDeviceName = PH_STRINGREF_INIT(L"\\Device\\Mailslot\\");
+
         HANDLE fileHandle;
         OBJECT_ATTRIBUTES oa;
         IO_STATUS_BLOCK isb;
         PPH_STRING fileName;
 
-        fileName = PhConcatStrings2(
-            L"\\Device\\Mailslot\\",
-            RunAsServiceParameters.ErrorMailslot->Buffer
-            );
+        fileName = PhConcatStringRef2(&mailslotDeviceName, &RunAsServiceParameters.ErrorMailslot->sr);
 
         InitializeObjectAttributes(
             &oa,
