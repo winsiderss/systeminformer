@@ -531,7 +531,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetProp(hwndDlg, L"Context", (HANDLE)lParam);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
             SetDlgItemText(hwndDlg, IDC_MINIMUMLENGTH, L"10");
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_DETECTUNICODE), BST_CHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_PRIVATE), BST_CHECKED);
@@ -539,7 +539,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -551,7 +551,7 @@ INT_PTR CALLBACK PhpMemoryStringDlgProc(
                 break;
             case IDOK:
                 {
-                    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     ULONG64 minimumLength = 10;
 
                     PhStringToInteger64(&PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_MINIMUMLENGTH)->sr, 0, &minimumLength);
@@ -635,7 +635,7 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
             PMEMORY_STRING_CONTEXT context = (PMEMORY_STRING_CONTEXT)lParam;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
 
             SetDlgItemText(hwndDlg, IDC_PROGRESSTEXT, L"Searching...");
 
@@ -659,12 +659,12 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
         {
             PMEMORY_STRING_CONTEXT context;
 
-            context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
+            context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             if (context->ThreadHandle)
                 NtClose(context->ThreadHandle);
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -674,7 +674,7 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
             case IDCANCEL:
                 {
                     PMEMORY_STRING_CONTEXT context =
-                        (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
+                        (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
                     EnableWindow(GetDlgItem(hwndDlg, IDCANCEL), FALSE);
                     context->Options.Header.Cancel = TRUE;
@@ -688,7 +688,7 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
             if (wParam == 1)
             {
                 PMEMORY_STRING_CONTEXT context =
-                    (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
+                    (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                 PPH_STRING progressText;
                 PPH_STRING numberText;
 
@@ -705,7 +705,7 @@ INT_PTR CALLBACK PhpMemoryStringProgressDlgProc(
         {
             PMEMORY_STRING_CONTEXT context;
 
-            context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, L"Context");
+            context = (PMEMORY_STRING_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             switch (wParam)
             {

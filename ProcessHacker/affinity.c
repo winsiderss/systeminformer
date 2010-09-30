@@ -108,7 +108,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             ULONG_PTR affinityMask;
             ULONG i;
 
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             systemAffinityMask = 0;
@@ -217,7 +217,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"ProcessItem");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -230,7 +230,7 @@ static INT_PTR CALLBACK PhpProcessAffinityDlgProc(
             case IDOK:
                 {
                     NTSTATUS status;
-                    PAFFINITY_DIALOG_CONTEXT context = (PAFFINITY_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PAFFINITY_DIALOG_CONTEXT context = (PAFFINITY_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     ULONG i;
                     ULONG_PTR affinityMask;
 

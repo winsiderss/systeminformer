@@ -94,15 +94,15 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PPROCESS_RECORD_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
     else
     {
-        context = (PPROCESS_RECORD_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PPROCESS_RECORD_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
     }
 

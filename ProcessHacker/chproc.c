@@ -188,15 +188,15 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
     if (uMsg == WM_INITDIALOG)
     {
         context = (PCHOOSE_PROCESS_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
     else
     {
-        context = (PCHOOSE_PROCESS_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PCHOOSE_PROCESS_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
     }
 

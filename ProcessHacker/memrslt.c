@@ -290,12 +290,12 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = GetProp(hwndDlg, L"Context");
+        context = GetProp(hwndDlg, PhMakeContextAtom());
     }
     else
     {
         context = (PMEMORY_RESULTS_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
 
     if (!context)
@@ -307,7 +307,6 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
         {
             HWND lvHandle;
 
-            SetProp(hwndDlg, L"Context", (HANDLE)lParam);
             PhRegisterDialog(hwndDlg);
 
             {
@@ -373,7 +372,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
 
             PhDereferenceMemoryResults((PPH_MEMORY_RESULT *)context->Results->Items, context->Results->Count);
             PhDereferenceObject(context->Results);

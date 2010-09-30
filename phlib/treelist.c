@@ -184,6 +184,11 @@ static ULONG NTAPI PhpColumnHashtableHashFunction(
     return ((PPH_TREELIST_COLUMN)Entry)->Id;
 }
 
+static PWSTR PhpMakeTreeListContextAtom()
+{
+    PH_DEFINE_MAKE_ATOM(L"PhLib_TreeListContext");
+}
+
 LRESULT CALLBACK PhpTreeListWndProc(
     __in HWND hwnd,
     __in UINT uMsg,
@@ -243,7 +248,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
             context->OldLvWndProc = (WNDPROC)GetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC);
             SetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC, (LONG_PTR)PhpTreeListLvHookWndProc);
             PhpReferenceTreeListContext(context);
-            SetProp(context->ListViewHandle, L"TreeListContext", (HANDLE)context);
+            SetProp(context->ListViewHandle, PhpMakeTreeListContextAtom(), (HANDLE)context);
 
             // Open theme data if available.
             PhpReloadThemeData(context);
@@ -994,7 +999,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     PPHP_TREELIST_CONTEXT context;
     WNDPROC oldWndProc;
 
-    context = (PPHP_TREELIST_CONTEXT)GetProp(hwnd, L"TreeListContext");
+    context = (PPHP_TREELIST_CONTEXT)GetProp(hwnd, PhpMakeTreeListContextAtom());
     oldWndProc = context->OldLvWndProc;
 
     if (context->LvRecursionGuard > 0)
@@ -1006,7 +1011,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
             PhpDereferenceTreeListContext(context);
-            RemoveProp(hwnd, L"TreeListContext");
+            RemoveProp(hwnd, PhpMakeTreeListContextAtom());
         }
         break;
     case WM_SETFOCUS:

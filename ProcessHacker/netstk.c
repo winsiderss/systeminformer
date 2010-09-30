@@ -134,7 +134,7 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             networkStackContext = (PNETWORK_STACK_CONTEXT)lParam;
-            SetProp(hwndDlg, L"Context", (HANDLE)networkStackContext);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)networkStackContext);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 350, L"Name");
@@ -183,9 +183,9 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
 
-            networkStackContext = (PNETWORK_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+            networkStackContext = (PNETWORK_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
             RemoveProp(hwndDlg, L"LayoutManager");
         }
         break;

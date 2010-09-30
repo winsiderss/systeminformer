@@ -100,7 +100,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             RECT rect;
             ULONG diff;
 
-            SetProp(hwndDlg, L"Context", (HANDLE)context);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             SetWindowText(hwndDlg, context->Title);
@@ -261,7 +261,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -273,7 +273,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 break;
             case IDOK:
                 {
-                    PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_STRING selectedChoice;
 
                     selectedChoice = PHA_DEREFERENCE(PhGetWindowText(context->ComboBoxHandle));

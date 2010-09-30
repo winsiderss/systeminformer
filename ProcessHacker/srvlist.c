@@ -198,15 +198,15 @@ INT_PTR CALLBACK PhpServicesPageProc(
     if (uMsg == WM_INITDIALOG)
     {
         servicesContext = (PPH_SERVICES_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)servicesContext);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)servicesContext);
     }
     else
     {
-        servicesContext = (PPH_SERVICES_CONTEXT)GetProp(hwndDlg, L"Context");
+        servicesContext = (PPH_SERVICES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
         if (uMsg == WM_DESTROY)
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
     }
 

@@ -564,6 +564,11 @@ VOID PhSetExtendedListViewWithSettings(
     ExtendedListView_SetHighlightingDuration(hWnd, PhCsHighlightingDuration);
 }
 
+PWSTR PhMakeContextAtom()
+{
+    PH_DEFINE_MAKE_ATOM(L"PH2_Context");
+}
+
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip

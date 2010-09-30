@@ -49,7 +49,8 @@ typedef struct _PH_EXTLV_CONTEXT
 
     PPH_COMPARE_FUNCTION TriStateCompareFunction;
     PPH_COMPARE_FUNCTION CompareFunctions[PH_MAX_COMPARE_FUNCTIONS];
-    PPH_LIST FallbackColumns;
+    ULONG FallbackColumns[PH_MAX_COMPARE_FUNCTIONS];
+    ULONG NumberOfFallbackColumns;
 
     // State Highlighting
 
@@ -128,6 +129,11 @@ static ULONG NTAPI PhpTickHashtableHashFunction(
     return ((PPH_TICK_ENTRY)Entry)->Id;
 }
 
+static PWSTR PhpMakeExtLvContextAtom()
+{
+    PH_DEFINE_MAKE_ATOM(L"PhLib_ExtLvContext");
+}
+
 VOID PhSetExtendedListView(
     __in HWND hWnd
     )
@@ -149,7 +155,7 @@ VOID PhSetExtendedListView(
     context->SortFast = FALSE;
     context->TriStateCompareFunction = NULL;
     memset(context->CompareFunctions, 0, sizeof(context->CompareFunctions));
-    context->FallbackColumns = PhCreateList(1);
+    context->NumberOfFallbackColumns = 0;
 
     context->EnableStateHighlighting = 0;
     context->HighlightingDuration = 1000;
@@ -167,7 +173,7 @@ VOID PhSetExtendedListView(
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
-    SetProp(hWnd, L"ExtLvContext", (HANDLE)context);
+    SetProp(hWnd, PhpMakeExtLvContextAtom(), (HANDLE)context);
 
     ExtendedListView_Init(hWnd);
 }
@@ -182,7 +188,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     PPH_EXTLV_CONTEXT context;
     WNDPROC oldWndProc;
 
-    context = (PPH_EXTLV_CONTEXT)GetProp(hwnd, L"ExtLvContext");
+    context = (PPH_EXTLV_CONTEXT)GetProp(hwnd, PhpMakeExtLvContextAtom());
     oldWndProc = context->OldWndProc;
 
     switch (uMsg)
@@ -191,11 +197,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
-            PhDereferenceObject(context->FallbackColumns);
             PhDereferenceObject(context->TickHashtable);
 
             PhFree(context);
-            RemoveProp(hwnd, L"ExtLvContext");
+            RemoveProp(hwnd, PhpMakeExtLvContextAtom());
         }
         break;
     case WM_NOTIFY:
@@ -206,7 +211,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
             case HDN_ITEMCLICK:
                 {
-                    if (header->hwndFrom == ListView_GetHeader(hwnd))
+                    HWND headerHandle;
+
+                    headerHandle = (HWND)CallWindowProc(context->OldWndProc, hwnd, LVM_GETHEADER, 0, 0);
+
+                    if (header->hwndFrom == headerHandle)
                     {
                         LPNMHEADER header2 = (LPNMHEADER)header;
 
@@ -235,7 +244,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                             context->SortOrder = AscendingSortOrder;
                         }
 
-                        PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+                        PhSetHeaderSortIcon(headerHandle, context->SortColumn, context->SortOrder);
                         ExtendedListView_SortItems(hwnd);
                     }
                 }
@@ -403,7 +412,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 // including *not* deleting the item that the user wanted to delete.
                 item.lParam = (LPARAM)NULL;
 
-                ListView_SetItem(hwnd, &item);
+                CallWindowProc(context->OldWndProc, hwnd, LVM_SETITEM, 0, (LPARAM)&item);
 
                 {
                     PH_TICK_ENTRY localEntry;
@@ -469,17 +478,30 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_ADDFALLBACKCOLUMN:
         {
-            PhAddItemList(context->FallbackColumns, (PVOID)wParam); 
+            if (context->NumberOfFallbackColumns < PH_MAX_COMPARE_FUNCTIONS)
+                context->FallbackColumns[context->NumberOfFallbackColumns++] = (ULONG)wParam;
+            else
+                return FALSE;
         }
         return TRUE;
     case ELVM_ADDFALLBACKCOLUMNS:
         {
             ULONG numberOfColumns = (ULONG)wParam;
             PULONG columns = (PULONG)lParam;
-            ULONG i;
 
-            for (i = 0; i < numberOfColumns; i++)
-                PhAddItemList(context->FallbackColumns, (PVOID)columns[i]);
+            if (context->NumberOfFallbackColumns + numberOfColumns <= PH_MAX_COMPARE_FUNCTIONS)
+            {
+                memcpy(
+                    &context->FallbackColumns[context->NumberOfFallbackColumns],
+                    columns,
+                    numberOfColumns * sizeof(ULONG)
+                    );
+                context->NumberOfFallbackColumns += numberOfColumns;
+            }
+            else
+            {
+                return FALSE;
+            }
         }
         return TRUE;
     case ELVM_INIT:
@@ -674,7 +696,7 @@ static INT PhpExtendedListViewCompareFunc(
     INT x = (INT)lParam1;
     INT y = (INT)lParam2;
     ULONG i;
-    PPVOID fallbackColumns;
+    PULONG fallbackColumns;
     LVITEM xItem;
     LVITEM yItem;
 
@@ -726,11 +748,11 @@ static INT PhpExtendedListViewCompareFunc(
     if (result != 0)
         return result;
 
-    fallbackColumns = context->FallbackColumns->Items;
+    fallbackColumns = context->FallbackColumns;
 
-    for (i = context->FallbackColumns->Count; i != 0; i--)
+    for (i = context->NumberOfFallbackColumns; i != 0; i--)
     {
-        ULONG fallbackColumn = (ULONG)*fallbackColumns++;
+        ULONG fallbackColumn = *fallbackColumns++;
 
         if (fallbackColumn == context->SortColumn)
             continue;
@@ -753,7 +775,7 @@ static INT PhpExtendedListViewCompareFastFunc(
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
     INT result;
     ULONG i;
-    PPVOID fallbackColumns;
+    PULONG fallbackColumns;
 
     if (!lParam1 || !lParam2)
         return 0;
@@ -783,11 +805,11 @@ static INT PhpExtendedListViewCompareFastFunc(
     if (result != 0)
         return result;
 
-    fallbackColumns = context->FallbackColumns->Items;
+    fallbackColumns = context->FallbackColumns;
 
-    for (i = context->FallbackColumns->Count; i != 0; i--)
+    for (i = context->NumberOfFallbackColumns; i != 0; i--)
     {
-        ULONG fallbackColumn = (ULONG)*fallbackColumns++;
+        ULONG fallbackColumn = *fallbackColumns++;
 
         if (fallbackColumn == context->SortColumn)
             continue;
@@ -915,7 +937,7 @@ static VOID PhListTick(
         if (itemState == NewItemState)
         {
             item.state = INDEXTOSTATEIMAGEMASK(NormalItemState);
-            ListView_SetItem(hwnd, &item);
+            CallWindowProc(Context->OldWndProc, hwnd, LVM_SETITEM, 0, (LPARAM)&item);
 
             if (!itemsToRemove)
                 itemsToRemove = PhCreateList(2);

@@ -187,12 +187,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = (PRUNAS_DIALOG_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PRUNAS_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
     }
     else
     {
         context = (PRUNAS_DIALOG_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
 
     if (!context)
@@ -305,6 +305,8 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         {
             if (context->DesktopList)
                 PhDereferenceObject(context->DesktopList);
+
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:

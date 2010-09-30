@@ -167,12 +167,12 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = (PPROCESS_HEAPS_CONTEXT)GetProp(hwndDlg, L"Context");
+        context = (PPROCESS_HEAPS_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
     }
     else
     {
         context = (PPROCESS_HEAPS_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
 
     if (!context)
@@ -234,7 +234,7 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
