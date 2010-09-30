@@ -112,8 +112,7 @@ VOID PhGetMemoryProtectionString(
     )
 {
     PWSTR string;
-    PWSTR base;
-    ULONG count;
+    PH_STRINGREF base;
 
     if (!Protection)
     {
@@ -122,29 +121,28 @@ VOID PhGetMemoryProtectionString(
     }
 
     if (Protection & PAGE_NOACCESS)
-        base = L"NA";
+        PhInitializeStringRef(&base, L"NA");
     else if (Protection & PAGE_READONLY)
-        base = L"R";
+        PhInitializeStringRef(&base, L"R");
     else if (Protection & PAGE_READWRITE)
-        base = L"RW";
+        PhInitializeStringRef(&base, L"RW");
     else if (Protection & PAGE_WRITECOPY)
-        base = L"WC";
+        PhInitializeStringRef(&base, L"WC");
     else if (Protection & PAGE_EXECUTE)
-        base = L"X";
+        PhInitializeStringRef(&base, L"X");
     else if (Protection & PAGE_EXECUTE_READ)
-        base = L"RX";
+        PhInitializeStringRef(&base, L"RX");
     else if (Protection & PAGE_EXECUTE_READWRITE)
-        base = L"RWX";
+        PhInitializeStringRef(&base, L"RWX");
     else if (Protection & PAGE_EXECUTE_WRITECOPY)
-        base = L"WCX";
+        PhInitializeStringRef(&base, L"WCX");
     else
-        base = L"?";
+        PhInitializeStringRef(&base, L"?");
 
     string = String;
 
-    count = (ULONG)wcslen(base);
-    memcpy(string, base, count * 2);
-    string += count;
+    memcpy(string, base.Buffer, base.Length);
+    string += base.Length / sizeof(WCHAR);
 
     if (Protection & PAGE_GUARD)
     {

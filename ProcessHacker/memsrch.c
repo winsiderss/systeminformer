@@ -229,6 +229,8 @@ VOID PhSearchMemoryString(
             goto ContinueLoop;
         if (basicInfo.Protect == PAGE_NOACCESS)
             goto ContinueLoop;
+        if (basicInfo.Protect & PAGE_GUARD)
+            goto ContinueLoop;
 
         readSize = basicInfo.RegionSize;
 
