@@ -1,5 +1,9 @@
 Process Hacker
 
+2.7
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.6
  * NEW/IMPROVED:
    * Sorting for most lists is now much faster

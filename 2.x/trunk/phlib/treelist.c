@@ -106,10 +106,11 @@ VOID PhpCreateTreeListContext(
     context->Callback = PhTreeListNullCallback;
     context->Context = NULL;
 
-    context->MaxId = 0;
     context->Columns = NULL;
-    context->NumberOfColumns = 0;
+    context->MaxId = 0;
     context->AllocatedColumns = 0;
+    context->NumberOfColumns = 0;
+
     context->ColumnsForViewX = NULL;
     context->AllocatedColumnsForViewX = 0;
     context->ColumnsForDraw = NULL;
@@ -127,6 +128,7 @@ VOID PhpCreateTreeListContext(
     context->NeedsRestructure = FALSE;
     context->Cursor = NULL;
     context->HasFocus = FALSE;
+
     context->TextMetricsValid = FALSE;
     context->ThemeData = NULL;
     context->PlusBitmap = NULL;
