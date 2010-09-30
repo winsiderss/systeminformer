@@ -373,6 +373,10 @@
 				>
 			</File>
 		</Filter>
+		<File
+			RelativePath=".\CHANGELOG.txt"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

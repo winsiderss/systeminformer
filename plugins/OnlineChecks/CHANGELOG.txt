@@ -1,0 +1,5 @@
+1.1
+ * 2010-09-30: Updated VirusTotal uploader
+
+1.0
+ * Initial release
