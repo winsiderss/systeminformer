@@ -1090,6 +1090,14 @@ PhConcatStrings2(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhConcatStringRef2(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhFormatString(
     __in __format_string PWSTR Format,
     ...

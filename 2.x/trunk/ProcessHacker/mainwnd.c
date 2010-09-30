@@ -2080,8 +2080,10 @@ static VOID PhpSymInitHandler(
         {
             if (indexOfFileName != -1)
             {
+                static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
+
                 dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
-                symsrvPath = PhConcatStrings2(dbghelpFolder->Buffer, L"\\symsrv.dll");
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder->sr, &symsrvString);
                 LoadLibrary(symsrvPath->Buffer);
 
                 PhDereferenceObject(symsrvPath);

@@ -1304,6 +1304,26 @@ PPH_STRING PhConcatStrings2(
 }
 
 /**
+ * Concatenates two strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ */
+PPH_STRING PhConcatStringRef2(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2
+    )
+{
+    PPH_STRING string;
+
+    string = PhCreateStringEx(NULL, String1->Length + String2->Length);
+    memcpy(string->Buffer, String1->Buffer, String1->Length);
+    memcpy(&string->Buffer[String1->Length / sizeof(WCHAR)], String2->Buffer, String2->Length);
+
+    return string;
+}
+
+/**
  * Creates a string using format specifiers.
  *
  * \param Format The format-control string.

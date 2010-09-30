@@ -451,11 +451,11 @@ VOID PhInitializeKph()
 {
     // KProcessHacker doesn't support 64-bit systems.
 #ifdef _M_IX86
-    static WCHAR kprocesshacker[] = L"kprocesshacker.sys";
+    static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     PPH_STRING kprocesshackerFileName;
 
     // Append kprocesshacker.sys to the application directory.
-    kprocesshackerFileName = PhConcatStrings2(PhApplicationDirectory->Buffer, kprocesshacker);
+    kprocesshackerFileName = PhConcatStringRef2(&PhApplicationDirectory->sr, &kprocesshacker);
 
     KphConnect2(&PhKphHandle, L"KProcessHacker2", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);

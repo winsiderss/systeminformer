@@ -230,6 +230,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
 
     if (PhCsCollapseServicesOnStart)
     {
+        static PH_STRINGREF servicesBaseName = PH_STRINGREF_INIT(L"\\services.exe");
         static BOOLEAN servicesFound = FALSE;
         static PPH_STRING servicesFileName = NULL;
 
@@ -240,7 +241,7 @@ PPH_PROCESS_NODE PhAddProcessNode(
                 PPH_STRING systemDirectory;
 
                 systemDirectory = PhGetSystemDirectory();
-                servicesFileName = PhConcatStrings2(systemDirectory->Buffer, L"\\services.exe");
+                servicesFileName = PhConcatStringRef2(&systemDirectory->sr, &servicesBaseName);
                 PhDereferenceObject(systemDirectory);
             }
 
@@ -1056,6 +1057,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
         return TRUE;
     case TreeListGetNodeText:
         {
+            static PH_STRINGREF perSecondString = PH_STRINGREF_INIT(L"/s");
+
             PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
             PPH_PROCESS_ITEM processItem;
 
@@ -1104,7 +1107,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoTotalText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        PhSwapReference2(&node->IoTotalText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
                         getNodeText->Text = node->IoTotalText->sr;
                     }
                     else
@@ -1219,7 +1222,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoRoText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        PhSwapReference2(&node->IoRoText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
                         getNodeText->Text = node->IoRoText->sr;
                     }
                     else
@@ -1245,7 +1248,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoWText, PhConcatStrings2(PhaFormatSize(number, -1)->Buffer, L"/s"));
+                        PhSwapReference2(&node->IoWText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
                         getNodeText->Text = node->IoWText->sr;
                     }
                     else
