@@ -67,7 +67,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SetProp(hwndDlg, L"Context", (HANDLE)lParam);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)lParam);
 
             SetDlgItemText(hwndDlg, IDC_INTRO,
                 L"Possible values:\r\n"
@@ -91,7 +91,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
         break;
     case WM_DESTROY:
         {
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
         }
         break;
     case WM_COMMAND:
@@ -104,7 +104,7 @@ static INT_PTR CALLBACK PhpMemoryProtectDlgProc(
             case IDOK:
                 {
                     NTSTATUS status;
-                    PMEMORY_PROTECT_CONTEXT context = (PMEMORY_PROTECT_CONTEXT)GetProp(hwndDlg, L"Context");
+                    PMEMORY_PROTECT_CONTEXT context = (PMEMORY_PROTECT_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     HANDLE processHandle;
                     ULONG64 protect;
 

@@ -140,7 +140,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PH_INTEGER_PAIR size;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
-            SetProp(hwndDlg, L"Context", (HANDLE)threadStackContext);
+            SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
 
             title = PhFormatString(L"Stack - thread %u", (ULONG)threadStackContext->ThreadId);
             SetWindowText(hwndDlg, title->Buffer);
@@ -186,7 +186,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
 
-            threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+            threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
             PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
 
@@ -194,7 +194,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             windowRectangle = PhRectToRectangle(windowPlacement.rcNormalPosition);
             PhSetIntegerPairSetting(L"ThreadStackWindowSize", windowRectangle.Size);
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
             RemoveProp(hwndDlg, L"LayoutManager");
         }
         break;
@@ -211,7 +211,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             case IDC_REFRESH:
                 {
                     PhpRefreshThreadStack(
-                        (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context")
+                        (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom())
                         );
                 }
                 break;
@@ -244,7 +244,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                     PTHREAD_STACK_CONTEXT threadStackContext;
 
                     lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-                    threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, L"Context");
+                    threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
 
                     if (header->hwndFrom == lvHandle)
                     {

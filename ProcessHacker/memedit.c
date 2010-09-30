@@ -152,12 +152,12 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
 
     if (uMsg != WM_INITDIALOG)
     {
-        context = GetProp(hwndDlg, L"Context");
+        context = GetProp(hwndDlg, PhMakeContextAtom());
     }
     else
     {
         context = (PMEMORY_EDITOR_CONTEXT)lParam;
-        SetProp(hwndDlg, L"Context", (HANDLE)context);
+        SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)context);
     }
 
     if (!context)
@@ -284,7 +284,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PhUnregisterDialog(hwndDlg);
             }
 
-            RemoveProp(hwndDlg, L"Context");
+            RemoveProp(hwndDlg, PhMakeContextAtom());
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
