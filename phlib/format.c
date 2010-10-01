@@ -86,7 +86,8 @@ PPH_STRING PhFormat(
             thousandSeparator = localeBuffer[0];
         }
 
-        userLocale = _create_locale(LC_ALL, "");
+        if (decimalSeparator != '.')
+            userLocale = _create_locale(LC_ALL, "");
 
         PhEndInitOnce(&initOnce);
     }
