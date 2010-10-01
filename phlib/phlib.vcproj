@@ -353,6 +353,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\format.c"
+				>
+			</File>
+			<File
 				RelativePath=".\global.c"
 				>
 			</File>

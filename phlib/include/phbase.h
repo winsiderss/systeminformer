@@ -803,6 +803,23 @@ typedef struct _PH_STRINGREF
     };
 } PH_STRINGREF, *PPH_STRINGREF;
 
+typedef struct _PH_ANSI_STRINGREF
+{
+    union
+    {
+        struct
+        {
+            /** The length, in bytes, of the string. */
+            USHORT Length;
+            /** Unused and of an undefined value. */
+            USHORT Reserved;
+            /** The buffer containing the contents of the string. */
+            PSTR Buffer;
+        };
+        ANSI_STRING as;
+    };
+} PH_ANSI_STRINGREF, *PPH_ANSI_STRINGREF;
+
 typedef struct _PH_RELATIVE_STRINGREF
 {
     /** The length, in bytes, of the string. */
@@ -1587,6 +1604,7 @@ typedef struct _PH_ANSI_STRING
     {
         /** An embedded ANSI_STRING structure. */
         ANSI_STRING as;
+        PH_ANSI_STRINGREF asr;
         struct
         {
             /** The length, in bytes, of the string. */
@@ -2916,6 +2934,80 @@ PhPrintTimeSpan(
     __out_ecount(PH_TIMESPAN_STR_LEN_1) PWSTR Destination,
     __in ULONG64 Ticks,
     __in_opt ULONG Mode
+    );
+
+// format
+
+typedef enum _PH_FORMAT_TYPE
+{
+    CharFormatType,
+    StringFormatType,
+    StringZFormatType,
+    AnsiStringFormatType,
+    AnsiStringZFormatType,
+    Int32FormatType,
+    Int64FormatType,
+    IntPtrFormatType,
+    UInt32FormatType,
+    UInt64FormatType,
+    UIntPtrFormatType,
+    DoubleFormatType,
+    SizeFormatType,
+    FormatTypeMask = 0xff,
+
+    FormatUsePrecision = 0x100,
+    FormatUseWidth = 0x200,
+
+    // Floating-point flags
+    FormatStandardForm = 0x1000, // Use standard form instead of normal form
+    FormatHexadecimalForm = 0x2000, // Use hexadecimal form instead of normal form
+    FormatForceDecimalPoint = 0x4000, // Reserved
+    FormatCropZeros = 0x8000,
+
+    // Floating-point and integer flags
+    FormatGroupDigits = 0x10000, // Group digits (with floating-point, only works when in normal form)
+    FormatPrefixSign = 0x20000, // Always insert a prefix, '+' for positive and '-' for negative
+
+    // General flags
+    FormatLeftAlign = 0x80000000,
+    FormatRightAlign = 0x40000000,
+    FormatUpperCase = 0x20000000 // Make characters uppercase (only available for some types)
+} PH_FORMAT_TYPE;
+
+typedef struct _PH_FORMAT
+{
+    PH_FORMAT_TYPE Type;
+    USHORT Precision;
+    USHORT Width;
+    WCHAR Pad;
+    UCHAR Radix;
+    UCHAR Reserved;
+    union
+    {
+        WCHAR Char;
+        PH_STRINGREF String;
+        PWSTR StringZ;
+        PH_ANSI_STRINGREF AnsiString;
+        PSTR AnsiStringZ;
+        LONG Int32;
+        LONG64 Int64;
+        LONG_PTR IntPtr;
+        ULONG UInt32;
+        ULONG64 UInt64;
+        ULONG_PTR UIntPtr;
+        DOUBLE Double;
+
+        ULONG64 Size;
+    } u;
+} PH_FORMAT, *PPH_FORMAT;
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormat(
+    __in PPH_FORMAT Format,
+    __in ULONG Count,
+    __in_opt SIZE_T InitialCapacity
     );
 
 // basesupa
