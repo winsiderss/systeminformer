@@ -854,6 +854,15 @@ FORCEINLINE BOOLEAN PhIsNullOrEmptyStringRef(
     return !String || String->Length == 0;
 }
 
+FORCEINLINE VOID PhInitializeAnsiStringRef(
+    __out PPH_ANSI_STRINGREF String,
+    __in PSTR Buffer
+    )
+{
+    String->Length = (USHORT)strlen(Buffer);
+    String->Buffer = Buffer;
+}
+
 FORCEINLINE LONG PhCompareStringRef(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2,
@@ -3001,6 +3010,24 @@ typedef struct _PH_FORMAT
         ULONG64 Size;
     } u;
 } PH_FORMAT, *PPH_FORMAT;
+
+// Convenience macros
+#define PhInitFormatC(f, v) do { (f)->Type = CharFormatType; (f)->u.Char = (v); } while (0)
+#define PhInitFormatS(f, v) do { (f)->Type = StringFormatType; PhInitializeStringRef(&(f)->u.String, (v)); } while (0)
+#define PhInitFormatSR(f, v) do { (f)->Type = StringFormatType; (f)->u.String = (v); } while (0)
+#define PhInitFormatAnsiS(f, v) do { (f)->Type = AnsiStringFormatType; PhInitializeAnsiStringRef(&(f)->u.AnsiString, (v)); } while (0)
+#define PhInitFormatD(f, v) do { (f)->Type = Int32FormatType; (f)->u.Int32 = (v); } while (0)
+#define PhInitFormatU(f, v) do { (f)->Type = UInt32FormatType; (f)->u.UInt32 = (v); } while (0)
+#define PhInitFormatX(f, v) do { (f)->Type = UInt32FormatType | FormatUseRadix; (f)->u.UInt32 = (v); (f)->Radix = 16; } while (0)
+#define PhInitFormatI64D(f, v) do { (f)->Type = Int64FormatType; (f)->u.Int64 = (v); } while (0)
+#define PhInitFormatI64U(f, v) do { (f)->Type = UInt64FormatType; (f)->u.UInt64 = (v); } while (0)
+#define PhInitFormatI64X(f, v) do { (f)->Type = UInt64FormatType | FormatUseRadix; (f)->u.UInt64 = (v); (f)->Radix = 16; } while (0)
+#define PhInitFormatIU(f, v) do { (f)->Type = UIntPtrFormatType; (f)->u.UIntPtr = (v); } while (0)
+#define PhInitFormatIX(f, v) do { (f)->Type = UIntPtrFormatType | FormatUseRadix; (f)->u.UIntPtr = (v); (f)->Radix = 16; } while (0)
+#define PhInitFormatF(f, v, p) do { (f)->Type = DoubleFormatType | FormatUsePrecision; (f)->u.Double = (v); (f)->Precision = (p); } while (0)
+#define PhInitFormatE(f, v, p) do { (f)->Type = DoubleFormatType | FormatStandardForm | FormatUsePrecision; (f)->u.Double = (v); (f)->Precision = (p); } while (0)
+#define PhInitFormatA(f, v, p) do { (f)->Type = DoubleFormatType | FormatHexadecimalForm | FormatUsePrecision; (f)->u.Double = (v); (f)->Precision = (p); } while (0)
+#define PhInitFormatSize(f, v) do { (f)->Type = SizeFormatType; (f)->u.Size = (v); } while (0)
 
 PHLIBAPI
 PPH_STRING

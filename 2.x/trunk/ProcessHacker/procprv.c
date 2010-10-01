@@ -310,20 +310,20 @@ PPH_STRING PhGetClientIdNameEx(
     {
         if (ProcessName)
         {
-            format[0].Type = StringFormatType; format[0].u.String = ProcessName->sr;
-            format[1].Type = StringFormatType; PhInitializeStringRef(&format[1].u.String, L" (");
-            format[2].Type = UIntPtrFormatType; format[2].u.UIntPtr = (ULONG_PTR)ClientId->UniqueProcess;
-            format[3].Type = StringFormatType; PhInitializeStringRef(&format[3].u.String, L"): ");
-            format[4].Type = UIntPtrFormatType; format[4].u.UIntPtr = (ULONG_PTR)ClientId->UniqueThread;
+            PhInitFormatSR(&format[0], ProcessName->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
+            PhInitFormatS(&format[3], L"): ");
+            PhInitFormatIU(&format[4], (ULONG_PTR)ClientId->UniqueThread);
 
             name = PhFormat(format, 5, ProcessName->Length + 16 * sizeof(WCHAR));
         }
         else
         {
-            format[0].Type = StringFormatType; PhInitializeStringRef(&format[0].u.String, L"Non-existent process (");
-            format[1].Type = UIntPtrFormatType; format[1].u.UIntPtr = (ULONG_PTR)ClientId->UniqueProcess;
-            format[2].Type = StringFormatType; PhInitializeStringRef(&format[2].u.String, L"): ");
-            format[3].Type = UIntPtrFormatType; format[3].u.UIntPtr = (ULONG_PTR)ClientId->UniqueThread;
+            PhInitFormatS(&format[0], L"Non-existent process (");
+            PhInitFormatIU(&format[1], (ULONG_PTR)ClientId->UniqueProcess);
+            PhInitFormatS(&format[2], L"): ");
+            PhInitFormatIU(&format[3], (ULONG_PTR)ClientId->UniqueThread);
 
             name = PhFormat(format, 4, 0);
         }
@@ -332,18 +332,18 @@ PPH_STRING PhGetClientIdNameEx(
     {
         if (ProcessName)
         {
-            format[0].Type = StringFormatType; format[0].u.String = ProcessName->sr;
-            format[1].Type = StringFormatType; PhInitializeStringRef(&format[1].u.String, L" (");
-            format[2].Type = UIntPtrFormatType; format[2].u.UIntPtr = (ULONG_PTR)ClientId->UniqueProcess;
-            format[3].Type = CharFormatType; format[3].u.Char = ')';
+            PhInitFormatSR(&format[0], ProcessName->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatIU(&format[2], (ULONG_PTR)ClientId->UniqueProcess);
+            PhInitFormatC(&format[3], ')');
 
             name = PhFormat(format, 4, 0);
         }
         else
         {
-            format[0].Type = StringFormatType; PhInitializeStringRef(&format[0].u.String, L"Non-existent process (");
-            format[1].Type = UIntPtrFormatType; format[1].u.UIntPtr = (ULONG_PTR)ClientId->UniqueProcess;
-            format[2].Type = CharFormatType; format[2].u.Char = ')';
+            PhInitFormatS(&format[0], L"Non-existent process (");
+            PhInitFormatIU(&format[1], (ULONG_PTR)ClientId->UniqueProcess);
+            PhInitFormatC(&format[2], ')');
 
             name = PhFormat(format, 3, 0);
         }
