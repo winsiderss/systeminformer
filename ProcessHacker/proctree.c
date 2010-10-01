@@ -1057,8 +1057,6 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
         return TRUE;
     case TreeListGetNodeText:
         {
-            static PH_STRINGREF perSecondString = PH_STRINGREF_INIT(L"/s");
-
             PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
             PPH_PROCESS_ITEM processItem;
 
@@ -1109,10 +1107,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     {
                         PH_FORMAT format[2];
 
-                        format[0].Type = SizeFormatType;
-                        format[0].u.Size = number;
-                        format[1].Type = StringFormatType;
-                        format[1].u.String = perSecondString;
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
                         PhSwapReference2(&node->IoTotalText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoTotalText->sr;
                     }
@@ -1230,10 +1226,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     {
                         PH_FORMAT format[2];
 
-                        format[0].Type = SizeFormatType;
-                        format[0].u.Size = number;
-                        format[1].Type = StringFormatType;
-                        format[1].u.String = perSecondString;
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
                         PhSwapReference2(&node->IoRoText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoRoText->sr;
                     }
@@ -1262,10 +1256,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     {
                         PH_FORMAT format[2];
 
-                        format[0].Type = SizeFormatType;
-                        format[0].u.Size = number;
-                        format[1].Type = StringFormatType;
-                        format[1].u.String = perSecondString;
+                        PhInitFormatSize(&format[0], number);
+                        PhInitFormatS(&format[1], L"/s");
                         PhSwapReference2(&node->IoWText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoWText->sr;
                     }
