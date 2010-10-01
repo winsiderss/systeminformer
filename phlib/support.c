@@ -1088,11 +1088,12 @@ PPH_STRING PhFormatUInt64(
     __in BOOLEAN GroupDigits
     )
 {
-    WCHAR string[PH_INT64_STR_LEN_1];
+    PH_FORMAT format;
 
-    PhPrintUInt64(string, Value);
+    format.Type = UInt64FormatType | (GroupDigits ? FormatGroupDigits : 0);
+    format.u.UInt64 = Value;
 
-    return PhFormatDecimal(string, 0, GroupDigits);
+    return PhFormat(&format, 1, 0);
 }
 
 PPH_STRING PhpFormatDecimalFast(
@@ -1307,65 +1308,15 @@ PPH_STRING PhFormatSize(
     __in ULONG MaxSizeUnit
     )
 {
-    ULONG i = 0;
-    ULONG maxSizeUnit;
-    DOUBLE s = (DOUBLE)Size;
+    PH_FORMAT format;
 
-    if (Size == 0)
-        return PhCreateString(L"0");
+    // PhFormat handles this better than the old method.
 
-    if (MaxSizeUnit != -1)
-        maxSizeUnit = MaxSizeUnit;
-    else
-        maxSizeUnit = PhMaxSizeUnit;
+    format.Type = SizeFormatType | FormatUsePrecision;
+    format.Precision = (USHORT)(MaxSizeUnit != -1 ? MaxSizeUnit : PhMaxSizeUnit);
+    format.u.Size = Size;
 
-    while (
-        s > 1024 &&
-        i < sizeof(PhSizeUnitNames) / sizeof(PWSTR) &&
-        i < maxSizeUnit
-        )
-    {
-        s /= 1024;
-        i++;
-    }
-
-    {
-        WCHAR numberString[512]; // perf hack
-        PPH_STRING formattedString;
-        PPH_STRING outputString;
-        ULONG length;
-
-        swprintf_s(numberString, sizeof(numberString) / 2, L"%.2f", s);
-        formattedString = PhFormatDecimal(numberString, 2, TRUE);
-
-        if (!formattedString)
-        {
-            return PhFormatString(L"%.2g %s", s, PhSizeUnitNames[i]);
-        }
-
-        length = formattedString->Length / 2;
-
-        if (
-            length >= 3 &&
-            formattedString->Buffer[length - 1] == '0' &&
-            formattedString->Buffer[length - 2] == '0'
-            )
-        {
-            // Remove the last three characters by making sure 
-            // PhConcatStrings doesn't include them.
-            formattedString->Buffer[length - 3] = 0;
-        }
-        else if (length >= 1 && formattedString->Buffer[length - 1] == '0')
-        {
-            // Remove the last character.
-            formattedString->Buffer[length - 1] = 0;
-        }
-
-        outputString = PhConcatStrings(3, formattedString->Buffer, L" ", PhSizeUnitNames[i]);
-        PhDereferenceObject(formattedString);
-
-        return outputString;
-    }
+    return PhFormat(&format, 1, 0);
 }
 
 /**
