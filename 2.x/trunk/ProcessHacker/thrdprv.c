@@ -974,14 +974,15 @@ VOID PhThreadProviderUpdate(
 
                 if (threadItem->ContextSwitchesDelta.Delta != oldDelta)
                 {
-                    WCHAR deltaString[PH_INT32_STR_LEN_1];
-
                     if (threadItem->ContextSwitchesDelta.Delta != 0)
                     {
-                        PhPrintUInt32(deltaString, threadItem->ContextSwitchesDelta.Delta);
+                        PH_FORMAT format;
+
+                        format.Type = UInt32FormatType | FormatGroupDigits;
+                        format.u.UInt32 = threadItem->ContextSwitchesDelta.Delta;
                         PhSwapReference2(
                             &threadItem->ContextSwitchesDeltaString,
-                            PhFormatDecimal(deltaString, 0, TRUE)
+                            PhFormat(&format, 1, 0)
                             );
                     }
                     else
@@ -1015,14 +1016,11 @@ VOID PhThreadProviderUpdate(
 
                     if (threadItem->CyclesDelta.Delta != oldDelta)
                     {
-                        WCHAR deltaString[PH_INT64_STR_LEN_1];
-
                         if (threadItem->CyclesDelta.Delta != 0)
                         {
-                            PhPrintUInt64(deltaString, threadItem->CyclesDelta.Delta);
                             PhSwapReference2(
                                 &threadItem->CyclesDeltaString,
-                                PhFormatDecimal(deltaString, 0, TRUE)
+                                PhFormatUInt64(threadItem->CyclesDelta.Delta, TRUE)
                                 );
                         }
                         else

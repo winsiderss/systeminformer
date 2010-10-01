@@ -2957,6 +2957,7 @@ typedef enum _PH_FORMAT_TYPE
 
     FormatUsePrecision = 0x100,
     FormatUseWidth = 0x200,
+    FormatUseRadix = 0x400,
 
     // Floating-point flags
     FormatStandardForm = 0x1000, // Use standard form instead of normal form

@@ -1107,7 +1107,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoTotalText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
+                        PH_FORMAT format[2];
+
+                        format[0].Type = SizeFormatType;
+                        format[0].u.Size = number;
+                        format[1].Type = StringFormatType;
+                        format[1].u.String = perSecondString;
+                        PhSwapReference2(&node->IoTotalText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoTotalText->sr;
                     }
                     else
@@ -1222,7 +1228,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoRoText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
+                        PH_FORMAT format[2];
+
+                        format[0].Type = SizeFormatType;
+                        format[0].u.Size = number;
+                        format[1].Type = StringFormatType;
+                        format[1].u.String = perSecondString;
+                        PhSwapReference2(&node->IoRoText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoRoText->sr;
                     }
                     else
@@ -1248,7 +1260,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (number != 0)
                     {
-                        PhSwapReference2(&node->IoWText, PhConcatStringRef2(&PhaFormatSize(number, -1)->sr, &perSecondString));
+                        PH_FORMAT format[2];
+
+                        format[0].Type = SizeFormatType;
+                        format[0].u.Size = number;
+                        format[1].Type = StringFormatType;
+                        format[1].u.String = perSecondString;
+                        PhSwapReference2(&node->IoWText, PhFormat(format, 2, 0));
                         getNodeText->Text = node->IoWText->sr;
                     }
                     else
