@@ -186,7 +186,7 @@ PPH_STRING PhFormat(
                 if (NT_SUCCESS(RtlMultiByteToUnicodeSize(
                     &bytesInUnicodeString,
                     ansiBuffer,
-                    ansiLength
+                    (ULONG)ansiLength
                     )))
                 {
                     ENSURE_BUFFER_LENGTH(bytesInUnicodeString);
@@ -196,7 +196,7 @@ PPH_STRING PhFormat(
                         bytesInUnicodeString,
                         NULL,
                         ansiBuffer,
-                        ansiLength
+                        (ULONG)ansiLength
                         )))
                     {
                         ADVANCE_BUFFER(bytesInUnicodeString);
