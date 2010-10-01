@@ -204,27 +204,17 @@ VOID PhUpdateIconCpuHistory()
     else
         maxCpuProcessItem = NULL;
 
-    format[0].Type = StringFormatType;
-    PhInitializeStringRef(&format[0].u.String, L"CPU usage: ");
-    format[1].Type = DoubleFormatType | FormatUsePrecision;
-    format[1].Precision = 2;
-    format[1].u.Double = (PhCpuKernelUsage + PhCpuUserUsage) * 100;
-    format[2].Type = CharFormatType;
-    format[2].u.Char = '%';
+    PhInitFormatS(&format[0], L"CPU usage: ");
+    PhInitFormatF(&format[1], (PhCpuKernelUsage + PhCpuUserUsage) * 100, 2);
+    PhInitFormatC(&format[2], '%');
 
     if (maxCpuProcessItem)
     {
-        format[3].Type = CharFormatType;
-        format[3].u.Char = '\n';
-        format[4].Type = StringFormatType;
-        format[4].u.String = maxCpuProcessItem->ProcessName->sr;
-        format[5].Type = StringFormatType;
-        PhInitializeStringRef(&format[5].u.String, L": ");
-        format[6].Type = DoubleFormatType | FormatUsePrecision;
-        format[6].Precision = 2;
-        format[6].u.Double = maxCpuProcessItem->CpuUsage * 100;
-        format[7].Type = CharFormatType;
-        format[7].u.Char = '%';
+        PhInitFormatC(&format[3], '\n');
+        PhInitFormatSR(&format[4], maxCpuProcessItem->ProcessName->sr);
+        PhInitFormatS(&format[5], L": ");
+        PhInitFormatF(&format[6], maxCpuProcessItem->CpuUsage * 100, 2);
+        PhInitFormatC(&format[7], '%');
     }
 
     text = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
@@ -311,25 +301,17 @@ VOID PhUpdateIconIoHistory()
     else
         maxIoProcessItem = NULL;
 
-    format[0].Type = StringFormatType;
-    PhInitializeStringRef(&format[0].u.String, L"R: ");
-    format[1].Type = SizeFormatType;
-    format[1].u.Size = PhIoReadDelta.Delta;
-    format[2].Type = StringFormatType;
-    PhInitializeStringRef(&format[2].u.String, L"\nW: ");
-    format[3].Type = SizeFormatType;
-    format[3].u.Size = PhIoWriteDelta.Delta;
-    format[4].Type = StringFormatType;
-    PhInitializeStringRef(&format[4].u.String, L"\nO: ");
-    format[5].Type = SizeFormatType;
-    format[5].u.Size = PhIoOtherDelta.Delta;
+    PhInitFormatS(&format[0], L"R: ");
+    PhInitFormatSize(&format[1], PhIoReadDelta.Delta);
+    PhInitFormatS(&format[2], L"\nW: ");
+    PhInitFormatSize(&format[3], PhIoWriteDelta.Delta);
+    PhInitFormatS(&format[4], L"\nO: ");
+    PhInitFormatSize(&format[5], PhIoOtherDelta.Delta);
 
     if (maxIoProcessItem)
     {
-        format[6].Type = CharFormatType;
-        format[6].u.Char = '\n';
-        format[7].Type = StringFormatType;
-        format[7].u.String = maxIoProcessItem->ProcessName->sr;
+        PhInitFormatC(&format[6], '\n');
+        PhInitFormatSR(&format[7], maxIoProcessItem->ProcessName->sr);
     }
 
     text = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
@@ -394,19 +376,13 @@ VOID PhUpdateIconCommitHistory()
 
     commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
 
-    format[0].Type = StringFormatType;
-    PhInitializeStringRef(&format[0].u.String, L"Commit: ");
-    format[1].Type = SizeFormatType;
-    format[1].u.Size = UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE);
-    format[2].Type = StringFormatType;
-    PhInitializeStringRef(&format[2].u.String, L" (");
-    format[3].Type = DoubleFormatType | FormatUsePrecision;
-    format[3].Precision = 2;
-    format[3].u.Double = commitFraction * 100;
-    format[4].Type = StringFormatType;
-    PhInitializeStringRef(&format[4].u.String, L"%)");
+    PhInitFormatS(&format[0], L"Commit: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatF(&format[3], commitFraction * 100, 2);
+    PhInitFormatS(&format[4], L"%)");
 
-    text = PhFormat(format, sizeof(format) / sizeof(PH_FORMAT), 64);
+    text = PhFormat(format, 5, 96);
 
     PhModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
@@ -469,19 +445,13 @@ VOID PhUpdateIconPhysicalHistory()
     physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
     physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
 
-    format[0].Type = StringFormatType;
-    PhInitializeStringRef(&format[0].u.String, L"Physical Memory: ");
-    format[1].Type = SizeFormatType;
-    format[1].u.Size = UInt32x32To64(physicalUsage, PAGE_SIZE);
-    format[2].Type = StringFormatType;
-    PhInitializeStringRef(&format[2].u.String, L" (");
-    format[3].Type = DoubleFormatType | FormatUsePrecision;
-    format[3].Precision = 2;
-    format[3].u.Double = physicalFraction * 100;
-    format[4].Type = StringFormatType;
-    PhInitializeStringRef(&format[4].u.String, L"%)");
+    PhInitFormatS(&format[0], L"Physical Memory: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(physicalUsage, PAGE_SIZE));
+    PhInitFormatS(&format[2], L" (");
+    PhInitFormatF(&format[3], physicalFraction * 100, 2);
+    PhInitFormatS(&format[4], L"%)");
 
-    text = PhFormat(format, sizeof(format) / sizeof(PH_FORMAT), 64);
+    text = PhFormat(format, 5, 96);
 
     PhModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
