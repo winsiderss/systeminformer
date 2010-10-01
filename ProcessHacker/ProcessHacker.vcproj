@@ -415,6 +415,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\phlib\format.c"
+				>
+			</File>
+			<File
 				RelativePath="..\phlib\global.c"
 				>
 			</File>
