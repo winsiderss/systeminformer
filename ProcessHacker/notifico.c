@@ -172,7 +172,7 @@ VOID PhUpdateIconCpuHistory()
     HICON icon;
     HANDLE maxCpuProcessId;
     PPH_PROCESS_ITEM maxCpuProcessItem;
-    PPH_STRING maxCpuText = NULL;
+    PH_FORMAT format[8];
     PPH_STRING text;
 
     // Icon
@@ -199,21 +199,34 @@ VOID PhUpdateIconCpuHistory()
 
     maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
 
-    if (maxCpuProcessId != NULL)
+    if (maxCpuProcessId)
+        maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId);
+
+    format[0].Type = StringFormatType;
+    PhInitializeStringRef(&format[0].u.String, L"CPU usage: ");
+    format[1].Type = DoubleFormatType | FormatUsePrecision;
+    format[1].Precision = 2;
+    format[1].u.Double = (PhCpuKernelUsage + PhCpuUserUsage) * 100;
+    format[2].Type = CharFormatType;
+    format[2].u.Char = '%';
+
+    if (maxCpuProcessItem)
     {
-        if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
-        {
-            maxCpuText = PhFormatString(
-                L"\n%s: %.2f%%",
-                maxCpuProcessItem->ProcessName->Buffer,
-                maxCpuProcessItem->CpuUsage * 100
-                );
-            PhDereferenceObject(maxCpuProcessItem);
-        }
+        format[3].Type = CharFormatType;
+        format[3].u.Char = '\n';
+        format[4].Type = StringFormatType;
+        format[4].u.String = maxCpuProcessItem->ProcessName->sr;
+        format[5].Type = StringFormatType;
+        PhInitializeStringRef(&format[5].u.String, L": ");
+        format[6].Type = DoubleFormatType | FormatUsePrecision;
+        format[6].Precision = 2;
+        format[6].u.Double = maxCpuProcessItem->CpuUsage * 100;
+        format[7].Type = CharFormatType;
+        format[7].u.Char = '%';
     }
 
-    text = PhFormatString(L"CPU usage: %.2f%%%s", (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhGetStringOrEmpty(maxCpuText));
-    if (maxCpuText) PhDereferenceObject(maxCpuText);
+    text = PhFormat(format, maxCpuProcessItem ? 8 : 3, 128);
+    if (maxCpuProcessItem) PhDereferenceObject(maxCpuProcessItem);
 
     PhModifyNotifyIcon(PH_ICON_CPU_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
@@ -250,10 +263,7 @@ VOID PhUpdateIconIoHistory()
     HICON icon;
     HANDLE maxIoProcessId;
     PPH_PROCESS_ITEM maxIoProcessItem;
-    PPH_STRING readString;
-    PPH_STRING writeString;
-    PPH_STRING otherString;
-    PPH_STRING maxIoText = NULL;
+    PH_FORMAT format[8];
     PPH_STRING text;
 
     // Icon
@@ -294,31 +304,32 @@ VOID PhUpdateIconIoHistory()
 
     maxIoProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, 0);
 
-    if (maxIoProcessId != NULL)
-    {
-        if (maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId))
-        {
-            static PH_STRINGREF newLine = PH_STRINGREF_INIT(L"\n");
+    if (maxIoProcessId)
+        maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId);
 
-            maxIoText = PhConcatStringRef2(&newLine, &maxIoProcessItem->ProcessName->sr);
-            PhDereferenceObject(maxIoProcessItem);
-        }
+    format[0].Type = StringFormatType;
+    PhInitializeStringRef(&format[0].u.String, L"R: ");
+    format[1].Type = SizeFormatType;
+    format[1].u.Size = PhIoReadDelta.Delta;
+    format[2].Type = StringFormatType;
+    PhInitializeStringRef(&format[2].u.String, L"\nW: ");
+    format[3].Type = SizeFormatType;
+    format[3].u.Size = PhIoWriteDelta.Delta;
+    format[4].Type = StringFormatType;
+    PhInitializeStringRef(&format[4].u.String, L"\nO: ");
+    format[5].Type = SizeFormatType;
+    format[5].u.Size = PhIoOtherDelta.Delta;
+
+    if (maxIoProcessItem)
+    {
+        format[6].Type = CharFormatType;
+        format[6].u.Char = '\n';
+        format[7].Type = StringFormatType;
+        format[7].u.String = maxIoProcessItem->ProcessName->sr;
     }
 
-    readString = PhFormatSize(PhIoReadDelta.Delta, -1);
-    writeString = PhFormatSize(PhIoWriteDelta.Delta, -1);
-    otherString = PhFormatSize(PhIoOtherDelta.Delta, -1);
-    text = PhFormatString(
-        L"R: %s\nW: %s\nO: %s%s",
-        readString->Buffer,
-        writeString->Buffer,
-        otherString->Buffer,
-        PhGetStringOrEmpty(maxIoText)
-        );
-    PhDereferenceObject(readString);
-    PhDereferenceObject(writeString);
-    PhDereferenceObject(otherString);
-    if (maxIoText) PhDereferenceObject(maxIoText);
+    text = PhFormat(format, maxIoProcessItem ? 8 : 6, 128);
+    if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
 
     PhModifyNotifyIcon(PH_ICON_IO_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
@@ -351,8 +362,8 @@ VOID PhUpdateIconCommitHistory()
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
-    PPH_STRING commitString;
-    FLOAT commitFraction;
+    DOUBLE commitFraction;
+    PH_FORMAT format[5];
     PPH_STRING text;
 
     // Icon
@@ -377,10 +388,21 @@ VOID PhUpdateIconCommitHistory()
 
     // Text
 
-    commitString = PhFormatSize(UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE), -1);
-    commitFraction = (FLOAT)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
-    text = PhFormatString(L"Commit: %s (%.2f%%)", commitString->Buffer, commitFraction * 100);
-    PhDereferenceObject(commitString);
+    commitFraction = (DOUBLE)PhPerfInformation.CommittedPages / PhPerfInformation.CommitLimit;
+
+    format[0].Type = StringFormatType;
+    PhInitializeStringRef(&format[0].u.String, L"Commit: ");
+    format[1].Type = SizeFormatType;
+    format[1].u.Size = UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE);
+    format[2].Type = StringFormatType;
+    PhInitializeStringRef(&format[2].u.String, L" (");
+    format[3].Type = DoubleFormatType | FormatUsePrecision;
+    format[3].Precision = 2;
+    format[3].u.Double = commitFraction * 100;
+    format[4].Type = StringFormatType;
+    PhInitializeStringRef(&format[4].u.String, L"%)");
+
+    text = PhFormat(format, sizeof(format) / sizeof(PH_FORMAT), 64);
 
     PhModifyNotifyIcon(PH_ICON_COMMIT_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 
@@ -414,8 +436,8 @@ VOID PhUpdateIconPhysicalHistory()
     HBITMAP oldBitmap;
     HICON icon;
     ULONG physicalUsage;
-    PPH_STRING physicalString;
     FLOAT physicalFraction;
+    PH_FORMAT format[5];
     PPH_STRING text;
 
     // Icon
@@ -441,10 +463,21 @@ VOID PhUpdateIconPhysicalHistory()
     // Text
 
     physicalUsage = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
-    physicalString = PhFormatSize(UInt32x32To64(physicalUsage, PAGE_SIZE), -1);
     physicalFraction = (FLOAT)physicalUsage / PhSystemBasicInformation.NumberOfPhysicalPages;
-    text = PhFormatString(L"Physical Memory: %s (%.2f%%)", physicalString->Buffer, physicalFraction * 100);
-    PhDereferenceObject(physicalString);
+
+    format[0].Type = StringFormatType;
+    PhInitializeStringRef(&format[0].u.String, L"Physical Memory: ");
+    format[1].Type = SizeFormatType;
+    format[1].u.Size = UInt32x32To64(physicalUsage, PAGE_SIZE);
+    format[2].Type = StringFormatType;
+    PhInitializeStringRef(&format[2].u.String, L" (");
+    format[3].Type = DoubleFormatType | FormatUsePrecision;
+    format[3].Precision = 2;
+    format[3].u.Double = physicalFraction * 100;
+    format[4].Type = StringFormatType;
+    PhInitializeStringRef(&format[4].u.String, L"%)");
+
+    text = PhFormat(format, sizeof(format) / sizeof(PH_FORMAT), 64);
 
     PhModifyNotifyIcon(PH_ICON_PHYSICAL_HISTORY, NIF_TIP | NIF_ICON, text->Buffer, icon);
 

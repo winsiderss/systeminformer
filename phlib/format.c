@@ -21,6 +21,9 @@
  */
 
 #include <phbase.h>
+#include <locale.h>
+
+extern ULONG PhMaxSizeUnit;
 
 #define SMALL_BUFFER_LENGTH (PHOBJ_SMALL_OBJECT_SIZE - FIELD_OFFSET(PH_STRING, Buffer) - sizeof(WCHAR))
 #define BUFFER_SIZE 512
@@ -28,6 +31,7 @@
 #define PHP_FORMAT_NEGATIVE 0x1000
 
 // Internal CRT routines needed for floating-point conversion
+
 errno_t __cdecl _cfltcvt_l(double *arg, char *buffer, size_t sizeInBytes,
     int format, int precision, int caps, _locale_t plocinfo);
 
@@ -55,6 +59,7 @@ PPH_STRING PhFormat(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static WCHAR decimalSeparator = '.';
     static WCHAR thousandSeparator = ',';
+    static _locale_t userLocale = NULL;
 
     PPH_STRING string;
     PWSTR buffer;
@@ -81,6 +86,8 @@ PPH_STRING PhFormat(
             thousandSeparator = localeBuffer[0];
         }
 
+        userLocale = _create_locale(LC_ALL, "");
+
         PhEndInitOnce(&initOnce);
     }
 
@@ -96,14 +103,14 @@ PPH_STRING PhFormat(
 
 #define ENSURE_BUFFER_LENGTH(NeededLength) \
     do { \
-        if (allocatedLength < usedLength + NeededLength) \
+        if (allocatedLength < usedLength + (NeededLength)) \
         { \
             PPH_STRING newString; \
             \
             allocatedLength *= 2; \
             \
-            if (allocatedLength < usedLength + NeededLength) \
-                allocatedLength = usedLength + NeededLength; \
+            if (allocatedLength < usedLength + (NeededLength)) \
+                allocatedLength = usedLength + (NeededLength); \
             \
             newString = PhCreateStringEx(NULL, allocatedLength); \
             memcpy(newString->Buffer, string->Buffer, usedLength); \
@@ -114,7 +121,7 @@ PPH_STRING PhFormat(
     } while (0)
 
 #define ADVANCE_BUFFER(Length) \
-    do { buffer += Length / sizeof(WCHAR); usedLength += Length; } while (0)
+    do { buffer += (Length) / sizeof(WCHAR); usedLength += (Length); } while (0)
 
     while (Count--)
     {
@@ -214,23 +221,24 @@ PPH_STRING PhFormat(
         PCHAR integerToChar; \
         PWSTR temp; \
         ULONG tempCount; \
+        ULONG r; \
         \
-        radix = (Format)->Radix; \
-        if (radix < 2) radix = 10; \
+        radix = 10; \
+        if (((Format)->Type & FormatUseRadix) && (Format)->Radix >= 2 && (Format)->Radix <= 69) \
+            radix = (Format)->Radix; \
         integerToChar = PhIntegerToChar; \
-        if ((Format)->Type & FormatUpperCase) integerToChar = PhIntegerToCharUpper; \
+        if ((Format)->Type & FormatUpperCase) \
+            integerToChar = PhIntegerToCharUpper; \
         temp = tempBuffer + BUFFER_SIZE - 1; \
         tempCount = 0; \
         \
-        if (radix <= 69) \
+        if (Input != 0) \
         { \
-            ULONG r; \
-            \
             if ((Format)->Type & FormatGroupDigits) \
             { \
                 ULONG needsSep = 0; \
                 \
-                while (Input != 0) \
+                do \
                 { \
                     PROCESS_DIGIT(Input); \
                     \
@@ -240,32 +248,37 @@ PPH_STRING PhFormat(
                         tempCount++; \
                         needsSep = 0; \
                     } \
-                } \
+                } while (Input != 0); \
             } \
             else \
             { \
-                while (Input != 0) \
+                do \
                 { \
                     PROCESS_DIGIT(Input); \
-                } \
+                } while (Input != 0); \
             } \
-            \
-            if (flags & PHP_FORMAT_NEGATIVE) \
-            { \
-                *temp-- = '-'; \
-                tempCount++; \
-            } \
-            else if ((Format)->Type & FormatPrefixSign) \
-            { \
-                *temp-- = '+'; \
-                tempCount++; \
-            } \
-            \
-            temp++; \
-            ENSURE_BUFFER_LENGTH(tempCount * sizeof(WCHAR)); \
-            memcpy(buffer, temp, tempCount * sizeof(WCHAR)); \
-            ADVANCE_BUFFER(tempCount * sizeof(WCHAR)); \
         } \
+        else \
+        { \
+            *temp-- = '0'; \
+            tempCount++; \
+        } \
+        \
+        if (flags & PHP_FORMAT_NEGATIVE) \
+        { \
+            *temp-- = '-'; \
+            tempCount++; \
+        } \
+        else if ((Format)->Type & FormatPrefixSign) \
+        { \
+            *temp-- = '+'; \
+            tempCount++; \
+        } \
+        \
+        temp++; \
+        ENSURE_BUFFER_LENGTH(tempCount * sizeof(WCHAR)); \
+        memcpy(buffer, temp, tempCount * sizeof(WCHAR)); \
+        ADVANCE_BUFFER(tempCount * sizeof(WCHAR)); \
     } while (0)
 
 #ifdef _M_IX86
@@ -356,13 +369,13 @@ CommonInt64Format:
             c, \
             precision, \
             !!((Format)->Type & FormatUpperCase), \
-            NULL \
+            userLocale \
             ); \
         \
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
-             /* _forcdecpt_l(tempBufferAnsi, NULL); */ \
+             /* _forcdecpt_l(tempBufferAnsi, userLocale); */ \
         if ((Format)->Type & FormatCropZeros) \
-            _cropzeros_l((PSTR)tempBuffer, NULL); \
+            _cropzeros_l((PSTR)tempBuffer, userLocale); \
         \
         length = (ULONG)strlen((PSTR)tempBuffer); \
         \
@@ -473,7 +486,7 @@ CommonInt64Format:
                 if (format->Type & FormatUsePrecision)
                     maxSizeUnit = format->Precision;
                 else
-                    maxSizeUnit = -1;
+                    maxSizeUnit = PhMaxSizeUnit;
 
                 while (
                     s > 1024 &&
