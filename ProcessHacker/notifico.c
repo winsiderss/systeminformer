@@ -201,6 +201,8 @@ VOID PhUpdateIconCpuHistory()
 
     if (maxCpuProcessId)
         maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId);
+    else
+        maxCpuProcessItem = NULL;
 
     format[0].Type = StringFormatType;
     PhInitializeStringRef(&format[0].u.String, L"CPU usage: ");
@@ -306,6 +308,8 @@ VOID PhUpdateIconIoHistory()
 
     if (maxIoProcessId)
         maxIoProcessItem = PhReferenceProcessItem(maxIoProcessId);
+    else
+        maxIoProcessItem = NULL;
 
     format[0].Type = StringFormatType;
     PhInitializeStringRef(&format[0].u.String, L"R: ");
@@ -581,7 +585,7 @@ VOID PhUpdateIconCpuUsage()
 
     maxCpuProcessId = (HANDLE)PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, 0);
 
-    if (maxCpuProcessId != NULL)
+    if (maxCpuProcessId)
     {
         if (maxCpuProcessItem = PhReferenceProcessItem(maxCpuProcessId))
         {
