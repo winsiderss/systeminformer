@@ -574,10 +574,16 @@ PPH_STRING PhpGetThreadBasicStartAddress(
     }
     else
     {
+        PH_FORMAT format[3];
+
         baseName = PhGetBaseName(fileName);
         *ResolveLevel = PhsrlModule;
 
-        symbol = PhFormatString(L"%s+0x%Ix", baseName->Buffer, (PVOID)(Address - modBase));
+        PhInitFormatSR(&format[0], baseName->sr);
+        PhInitFormatS(&format[1], L"+0x");
+        PhInitFormatIX(&format[2], (ULONG_PTR)(Address - modBase));
+
+        symbol = PhFormat(format, 3, baseName->Length + 6 + 32);
     }
 
     if (fileName)
