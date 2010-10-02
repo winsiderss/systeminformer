@@ -419,6 +419,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\phlib\format_i.h"
+				>
+			</File>
+			<File
 				RelativePath="..\phlib\global.c"
 				>
 			</File>
