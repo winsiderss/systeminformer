@@ -29,6 +29,7 @@ SID PhSeNetworkServiceSid = { SID_REVISION, 1, SECURITY_NT_AUTHORITY, { SECURITY
 
 // Characters
 
+DECLSPEC_SELECTANY
 BOOLEAN PhCharIsPrintable[256] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, /* 0 - 15 */ // TAB, LF and CR are printable
@@ -50,6 +51,7 @@ BOOLEAN PhCharIsPrintable[256] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 240 - 255 */
 };
 
+DECLSPEC_SELECTANY
 ULONG PhCharToInteger[256] =
 {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 0 - 15 */
@@ -71,6 +73,7 @@ ULONG PhCharToInteger[256] =
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, /* 240 - 255 */
 };
 
+DECLSPEC_SELECTANY
 CHAR PhIntegerToChar[69] =
 "0123456789" /* 0 - 9 */
 "abcdefghijklmnopqrstuvwxyz" /* 10 - 35 */
@@ -80,6 +83,7 @@ CHAR PhIntegerToChar[69] =
 "{|}~" /* 65 - 68 */
 ;
 
+DECLSPEC_SELECTANY
 CHAR PhIntegerToCharUpper[69] =
 "0123456789" /* 0 - 9 */
 "ABCDEFGHIJKLMNOPQRSTUVWXYZ" /* 10 - 35 */
@@ -91,6 +95,7 @@ CHAR PhIntegerToCharUpper[69] =
 
 // CRC32
 
+DECLSPEC_SELECTANY
 ULONG PhCrc32Table[256] =
 {
     0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
@@ -129,6 +134,7 @@ ULONG PhCrc32Table[256] =
 
 // Enums
 
+DECLSPEC_SELECTANY
 WCHAR *PhKThreadStateNames[MaximumThreadState] =
 {
     L"Initialized",
@@ -142,6 +148,7 @@ WCHAR *PhKThreadStateNames[MaximumThreadState] =
     L"GateWait"
 };
 
+DECLSPEC_SELECTANY
 WCHAR *PhKWaitReasonNames[MaximumWaitReason] =
 {
     L"Executive",

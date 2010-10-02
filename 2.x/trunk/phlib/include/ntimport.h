@@ -2,7 +2,7 @@
 #define _NTIMPORT_H
 
 #ifdef _PH_NTIMPORT_PRIVATE
-#define EXT
+#define EXT DECLSPEC_SELECTANY
 #define EQNULL = NULL
 #else
 #define EXT extern

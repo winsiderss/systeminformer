@@ -36,8 +36,8 @@ typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
     __in LPVOID lpEnvironment
     );
 
-WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
-ULONG PhMaxSizeUnit = MAXULONG32;
+DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
+DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
 
 /**
  * Ensures a rectangle is positioned within the 
