@@ -2181,7 +2181,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     NTSTATUS status;
     HANDLE tokenHandle;
-    PVOID defaultEnvironment;
+    PVOID defaultEnvironment = NULL;
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
     BOOLEAN needsDuplicate = FALSE;
 
@@ -2410,8 +2410,6 @@ NTSTATUS PhCreateProcessAsUser(
 
     if (!Information->Environment)
     {
-        defaultEnvironment = NULL;
-
         if (CreateEnvironmentBlock_I)
         {
             CreateEnvironmentBlock_I(&defaultEnvironment, tokenHandle, FALSE);
