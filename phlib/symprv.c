@@ -51,7 +51,7 @@ VOID PhpEnsureModuleListSorted(
 PPH_OBJECT_TYPE PhSymbolProviderType;
 
 static PH_INITONCE PhSymInitOnce = PH_INITONCE_INIT;
-PH_CALLBACK_DECLARE(PhSymInitCallback);
+DECLSPEC_SELECTANY PH_CALLBACK_DECLARE(PhSymInitCallback);
 
 static HANDLE PhNextFakeHandle = (HANDLE)0;
 static PH_FAST_LOCK PhSymMutex = PH_FAST_LOCK_INIT;
