@@ -40,8 +40,10 @@ PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 
 HWND ToolBarHandle;
-HIMAGELIST ToolBarImageList;
+BOOLEAN EnableToolBar;
 HWND StatusBarHandle;
+BOOLEAN EnableStatusBar;
+HIMAGELIST ToolBarImageList;
 ULONG StatusMask;
 
 ULONG IdRangeBase;
@@ -74,7 +76,7 @@ LOGICAL DllMain(
             info.HasOptions = TRUE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
-            
+
             if (!PluginInstance)
                 return FALSE;
 
@@ -239,9 +241,9 @@ VOID NTAPI MainWindowShowingCallback(
         NULL
         );
 
-    if (PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
+    if (EnableToolBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar"))
         ShowWindow(ToolBarHandle, SW_SHOW);
-    if (PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
+    if (EnableStatusBar = !!PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar"))
         ShowWindow(StatusBarHandle, SW_SHOW);
 
     StatusMask = PhGetIntegerSetting(L"ProcessHacker.ToolStatus.StatusMask");
@@ -499,7 +501,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
             ProcessHacker_GetLayoutPadding(hWnd, &padding);
 
-            if (IsWindowVisible(ToolBarHandle))
+            if (EnableToolBar)
             {
                 // Get the toolbar to resize itself.
                 SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
@@ -511,7 +513,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                 padding.top = 0;
             }
 
-            if (IsWindowVisible(StatusBarHandle))
+            if (EnableStatusBar)
             {
                 SendMessage(StatusBarHandle, WM_SIZE, 0, 0);
                 GetClientRect(StatusBarHandle, &rect);
@@ -819,10 +821,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR),
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar") ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR),
-                PhGetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar") ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR), EnableStatusBar ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -834,16 +834,13 @@ INT_PTR CALLBACK OptionsDlgProc(
                 break;
             case IDOK:
                 {
-                    BOOLEAN enableToolBar;
-                    BOOLEAN enableStatusBar;
-
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableToolBar",
-                        (enableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));
+                        (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",
-                        (enableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR)) == BST_CHECKED));
+                        (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR)) == BST_CHECKED));
 
-                    ShowWindow(ToolBarHandle, enableToolBar ? SW_SHOW : SW_HIDE);
-                    ShowWindow(StatusBarHandle, enableStatusBar ? SW_SHOW : SW_HIDE);
+                    ShowWindow(ToolBarHandle, EnableToolBar ? SW_SHOW : SW_HIDE);
+                    ShowWindow(StatusBarHandle, EnableStatusBar ? SW_SHOW : SW_HIDE);
                     // Refresh the layout.
                     SendMessage(PhMainWndHandle, WM_SIZE, 0, 0);
 
