@@ -465,7 +465,6 @@ VOID PhHandleProviderUpdate(
     // Look for closed handles.
     {
         PPH_LIST handlesToRemove = NULL;
-        ULONG i;
         PPH_HASH_ENTRY entry;
         PPH_HANDLE_ITEM handleItem;
         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX *tempHashtableValue;

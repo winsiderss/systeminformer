@@ -4217,18 +4217,25 @@ PPH_STRING PhpIntegerToString64(
     {
     case 2:
         shift = 1;
+        break;
     case 4:
         shift = 2;
+        break;
     case 8:
         shift = 3;
+        break;
     case 16:
         shift = 4;
+        break;
     case 32:
         shift = 5;
+        break;
     case 64:
         shift = 6;
+        break;
     default:
         shift = 0;
+        break;
     }
 
     if (shift)

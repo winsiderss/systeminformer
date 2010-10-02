@@ -405,7 +405,7 @@ PPH_STRING PhFormatNativeKeyName(
     return newName;
 }
 
-PPH_STRING PhStdGetClientIdName(
+__callback PPH_STRING PhStdGetClientIdName(
     __in PCLIENT_ID ClientId
     )
 {
@@ -934,7 +934,7 @@ NTSTATUS PhGetHandleInformation(
     __out_opt PPH_STRING *BestObjectName
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     HANDLE dupHandle = NULL;
     PPH_STRING typeName = NULL;
     PPH_STRING objectName = NULL;
