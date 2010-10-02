@@ -774,6 +774,65 @@ VOID PhImageListWrapperRemove(
     PhAddItemList(Wrapper->FreeList, (PVOID)Index);
 }
 
+VOID PhGetStockApplicationIcon(
+    __out_opt HICON *SmallIcon,
+    __out_opt HICON *LargeIcon
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HICON smallIcon = NULL;
+    static HICON largeIcon = NULL;
+
+    // This no longer uses SHGetFileInfo because it is *very* slow and causes 
+    // many other DLLs to be loaded, increasing memory usage.
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_STRING systemDirectory;
+        PPH_STRING dllFileName;
+
+        // user32,0 (Vista and above) or shell32,2 (XP) contains the default application icon.
+
+        if (systemDirectory = PhGetSystemDirectory())
+        {
+            PH_STRINGREF dllBaseName;
+            ULONG index;
+
+            // TODO: Find a better solution.
+
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                PhInitializeStringRef(&dllBaseName, L"\\user32.dll");
+                index = 0;
+            }
+            else
+            {
+                PhInitializeStringRef(&dllBaseName, L"\\shell32.dll");
+                index = 2;
+            }
+
+            dllFileName = PhConcatStringRef2(&systemDirectory->sr, &dllBaseName);
+            PhDereferenceObject(systemDirectory);
+
+            ExtractIconEx(dllFileName->Buffer, index, &largeIcon, &smallIcon, 1);
+            PhDereferenceObject(dllFileName);
+        }
+
+        // Fallback icons - this is bad, because the icon isn't scaled correctly.
+        if (!smallIcon)
+            smallIcon = LoadIcon(NULL, IDI_APPLICATION);
+        if (!largeIcon)
+            largeIcon = LoadIcon(NULL, IDI_APPLICATION);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (SmallIcon)
+        *SmallIcon = smallIcon;
+    if (LargeIcon)
+        *LargeIcon = largeIcon;
+}
+
 HICON PhGetFileShellIcon(
     __in_opt PWSTR FileName,
     __in_opt PWSTR DefaultExtension,
@@ -783,6 +842,34 @@ HICON PhGetFileShellIcon(
     SHFILEINFO fileInfo;
     ULONG iconFlag;
     HICON icon;
+
+    if (DefaultExtension && PhEqualStringZ(DefaultExtension, L".exe", TRUE))
+    {
+        // Special case for executable files (see above for reasoning).
+
+        icon = NULL;
+
+        if (FileName)
+        {
+            ExtractIconEx(
+                FileName,
+                0,
+                LargeIcon ? &icon : NULL,
+                !LargeIcon ? &icon : NULL,
+                1
+                );
+        }
+
+        if (!icon)
+        {
+            PhGetStockApplicationIcon(
+                !LargeIcon ? &icon : NULL,
+                LargeIcon ? &icon : NULL
+                );
+        }
+
+        return icon;
+    }
 
     iconFlag = LargeIcon ? SHGFI_LARGEICON : SHGFI_SMALLICON;
     icon = NULL;
