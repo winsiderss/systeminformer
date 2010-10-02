@@ -603,6 +603,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\format_i.h"
+				>
+			</File>
+			<File
 				RelativePath=".\include\graph.h"
 				>
 			</File>

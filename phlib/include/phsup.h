@@ -338,7 +338,7 @@ FORCEINLINE VOID PhPrintInt32(
     __in LONG Int32
     )
 {
-    _snwprintf(Destination, PH_INT32_STR_LEN, L"%d", Int32);
+    _ltow(Int32, Destination, 10);
 }
 
 FORCEINLINE VOID PhPrintUInt32(
@@ -346,7 +346,7 @@ FORCEINLINE VOID PhPrintUInt32(
     __in ULONG UInt32
     )
 {
-    _snwprintf(Destination, PH_INT32_STR_LEN, L"%u", UInt32);
+    _ultow(UInt32, Destination, 10);
 }
 
 FORCEINLINE VOID PhPrintInt64(
@@ -354,7 +354,7 @@ FORCEINLINE VOID PhPrintInt64(
     __in LONG64 Int64
     )
 {
-    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64d", Int64);
+    _i64tow(Int64, Destination, 10);
 }
 
 FORCEINLINE VOID PhPrintUInt64(
@@ -362,7 +362,7 @@ FORCEINLINE VOID PhPrintUInt64(
     __in ULONG64 UInt64
     )
 {
-    _snwprintf(Destination, PH_INT64_STR_LEN, L"%I64u", UInt64);
+    _ui64tow(UInt64, Destination, 10);
 }
 
 FORCEINLINE VOID PhPrintPointer(
@@ -370,7 +370,13 @@ FORCEINLINE VOID PhPrintPointer(
     __in PVOID Pointer
     )
 {
-    _snwprintf(Destination, PH_PTR_STR_LEN, L"0x%Ix", Pointer);
+    Destination[0] = '0';
+    Destination[1] = 'x';
+#ifdef _M_IX86
+    _ultow((ULONG)Pointer, &Destination[2], 16);
+#else
+    _ui64tow((ULONG64)Pointer, &Destination[2], 16);
+#endif
 }
 
 // Misc.
