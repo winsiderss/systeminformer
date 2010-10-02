@@ -3,6 +3,7 @@ Process Hacker
 2.7
  * NEW/IMPROVED:
  * FIXED:
+   * ToolStatus layout problems
 
 2.6
  * NEW/IMPROVED:
