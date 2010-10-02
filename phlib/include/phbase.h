@@ -3038,6 +3038,17 @@ PhFormat(
     __in_opt SIZE_T InitialCapacity
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFormatToBuffer(
+    __in PPH_FORMAT Format,
+    __in ULONG Count,
+    __out_bcount_opt(BufferLength) PWSTR Buffer,
+    __in_opt SIZE_T BufferLength,
+    __out_opt PSIZE_T ReturnLength
+    );
+
 // basesupa
 
 PHLIBAPI
