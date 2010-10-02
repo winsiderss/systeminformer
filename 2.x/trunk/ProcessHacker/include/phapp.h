@@ -12,7 +12,7 @@
 #include <circbuf.h>
 #include <phnet.h>
 #include <providers.h>
-#include "resource.h"
+#include "../resource.h"
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
             L"or could not be loaded. Make sure Process Hacker is running " \
@@ -266,8 +266,6 @@ VOID PhUpdateProcessNode(
     );
 
 VOID PhTickProcessNodes();
-
-HICON PhGetStockAppIcon();
 
 PHAPPAPI
 PPH_PROCESS_ITEM PhGetSelectedProcessItem();

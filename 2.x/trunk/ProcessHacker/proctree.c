@@ -463,25 +463,6 @@ VOID PhTickProcessNodes()
     }
 }
 
-HICON PhGetStockAppIcon()
-{
-    if (!StockAppIcon)
-    {
-        SHFILEINFO fileInfo = { 0 };
-
-        SHGetFileInfo(
-            L".exe",
-            FILE_ATTRIBUTE_NORMAL,
-            &fileInfo,
-            sizeof(SHFILEINFO),
-            SHGFI_USEFILEATTRIBUTES | SHGFI_ICON | SHGFI_SMALLICON
-            );
-        StockAppIcon = fileInfo.hIcon;
-    }
-
-    return StockAppIcon;
-}
-
 VOID PhpUpdateProcessNodeWsCounters(
     __inout PPH_PROCESS_NODE ProcessNode
     )
@@ -1480,7 +1461,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             }
             else
             {
-                getNodeIcon->Icon = PhGetStockAppIcon();
+                PhGetStockApplicationIcon(&getNodeIcon->Icon, NULL);
             }
 
             getNodeIcon->Flags = TLC_CACHE;
