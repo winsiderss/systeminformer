@@ -2598,6 +2598,43 @@ PhRemoveEntryHashtable(
     __in PVOID Entry
     );
 
+// New faster enumeration method
+
+typedef struct _PH_HASHTABLE_ENUM_CONTEXT
+{
+    ULONG_PTR Current;
+    ULONG_PTR End;
+    ULONG_PTR Step;
+} PH_HASHTABLE_ENUM_CONTEXT, *PPH_HASHTABLE_ENUM_CONTEXT;
+
+FORCEINLINE VOID PhBeginEnumHashtable(
+    __in PPH_HASHTABLE Hashtable,
+    __out PPH_HASHTABLE_ENUM_CONTEXT Context
+    )
+{
+    Context->Current = (ULONG_PTR)Hashtable->Entries;
+    Context->Step = PH_HASHTABLE_ENTRY_SIZE(Hashtable->EntrySize);
+    Context->End = Context->Current + (ULONG_PTR)Hashtable->NextEntry * Context->Step;
+}
+
+FORCEINLINE PVOID PhNextEnumHashtable(
+    __inout PPH_HASHTABLE_ENUM_CONTEXT Context
+    )
+{
+    PPH_HASHTABLE_ENTRY entry;
+
+    while (Context->Current != Context->End)
+    {
+        entry = (PPH_HASHTABLE_ENTRY)Context->Current;
+        Context->Current += Context->Step;
+
+        if (entry->HashCode != -1)
+            return &entry->Body;
+    }
+
+    return NULL;
+}
+
 #define PhHashBytes PhHashBytesSdbm
 
 #define PhHashBytesHsieh PhfHashBytesHsieh

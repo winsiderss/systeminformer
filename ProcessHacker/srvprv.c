@@ -277,14 +277,16 @@ VOID PhUpdateProcessItemServices(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    ULONG enumerationKey = 0;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_SERVICE_ITEM *serviceItem;
 
     // We don't need to lock as long as the service provider 
     // never runs concurrently with the process provider. This 
     // is currently true.
 
-    while (PhEnumHashtable(PhServiceHashtable, (PPVOID)&serviceItem, &enumerationKey))
+    PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
+
+    while (serviceItem = PhNextEnumHashtable(&enumContext))
     {
         if (
             (*serviceItem)->PendingProcess &&
@@ -445,10 +447,12 @@ VOID PhServiceProviderUpdate(
     // Look for dead services.
     {
         PPH_LIST servicesToRemove = NULL;
-        ULONG enumerationKey = 0;
+        PH_HASHTABLE_ENUM_CONTEXT enumContext;
         PPH_SERVICE_ITEM *serviceItem;
 
-        while (PhEnumHashtable(PhServiceHashtable, (PPVOID)&serviceItem, &enumerationKey))
+        PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
+
+        while (serviceItem = PhNextEnumHashtable(&enumContext))
         {
             BOOLEAN found = FALSE;
             PHP_SERVICE_NAME_ENTRY lookupNameEntry;
