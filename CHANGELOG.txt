@@ -2,6 +2,7 @@ Process Hacker
 
 2.7
  * NEW/IMPROVED:
+   * Vastly improved startup time, and lower memory usage
  * FIXED:
    * ToolStatus layout problems
 

@@ -1706,9 +1706,21 @@ PPH_STRING PhGetBaseName(
 
 PPH_STRING PhGetSystemDirectory()
 {
+    static PPH_STRING cachedSystemDirectory = NULL;
+
     PPH_STRING systemDirectory;
     ULONG bufferSize;
     ULONG returnLength;
+
+    // Use the cached value if possible.
+
+    systemDirectory = cachedSystemDirectory;
+
+    if (systemDirectory)
+    {
+        PhReferenceObject(systemDirectory);
+        return systemDirectory;
+    }
 
     bufferSize = 0x40;
     systemDirectory = PhCreateStringEx(NULL, bufferSize * 2);
@@ -1731,6 +1743,17 @@ PPH_STRING PhGetSystemDirectory()
     }
 
     PhTrimToNullTerminatorString(systemDirectory);
+
+    // Try to cache the value.
+    if (_InterlockedCompareExchangePointer(
+        &cachedSystemDirectory,
+        systemDirectory,
+        NULL
+        ) == NULL)
+    {
+        // Success, add one more reference for the cache.
+        PhReferenceObject(systemDirectory);
+    }
 
     return systemDirectory;
 }

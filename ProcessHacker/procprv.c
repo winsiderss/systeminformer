@@ -582,26 +582,16 @@ VOID PhpProcessQueryStage1(
     if (processItem->FileName)
     {
         // Small icon, large icon.
+        if (ExtractIconEx(
+            processItem->FileName->Buffer,
+            0,
+            &Data->LargeIcon,
+            &Data->SmallIcon,
+            1
+            ) == 0)
         {
-            SHFILEINFO fileInfo;
-
-            if (SHGetFileInfo(
-                processItem->FileName->Buffer,
-                0,
-                &fileInfo,
-                sizeof(SHFILEINFO),
-                SHGFI_ICON | SHGFI_SMALLICON
-                ))
-                Data->SmallIcon = fileInfo.hIcon;
-
-            if (SHGetFileInfo(
-                processItem->FileName->Buffer,
-                0,
-                &fileInfo,
-                sizeof(SHFILEINFO),
-                SHGFI_ICON | SHGFI_LARGEICON
-                ))
-                Data->LargeIcon = fileInfo.hIcon;
+            Data->LargeIcon = NULL;
+            Data->SmallIcon = NULL;
         }
 
         // Version info.
@@ -610,30 +600,22 @@ VOID PhpProcessQueryStage1(
 
     // Use the default EXE icon if we didn't get the file's icon.
     {
-        SHFILEINFO fileInfo;
-
-        if (!Data->SmallIcon)
+        if (!Data->SmallIcon || !Data->LargeIcon)
         {
-            if (SHGetFileInfo(
-                L".exe",
-                FILE_ATTRIBUTE_NORMAL,
-                &fileInfo,
-                sizeof(SHFILEINFO),
-                SHGFI_ICON | SHGFI_SMALLICON | SHGFI_USEFILEATTRIBUTES
-                ))
-                Data->SmallIcon = fileInfo.hIcon;
-        }
+            if (Data->SmallIcon)
+            {
+                DestroyIcon(Data->SmallIcon);
+                Data->SmallIcon = NULL;
+            }
+            else if (Data->LargeIcon)
+            {
+                DestroyIcon(Data->LargeIcon);
+                Data->LargeIcon = NULL;
+            }
 
-        if (!Data->LargeIcon)
-        {
-            if (SHGetFileInfo(
-                L".exe",
-                FILE_ATTRIBUTE_NORMAL,
-                &fileInfo,
-                sizeof(SHFILEINFO),
-                SHGFI_ICON | SHGFI_LARGEICON | SHGFI_USEFILEATTRIBUTES
-                ))
-                Data->LargeIcon = fileInfo.hIcon;
+            PhGetStockApplicationIcon(&Data->SmallIcon, &Data->LargeIcon);
+            Data->SmallIcon = DuplicateIcon(NULL, Data->SmallIcon);
+            Data->LargeIcon = DuplicateIcon(NULL, Data->LargeIcon);
         }
     }
 

@@ -444,6 +444,12 @@ VOID PhImageListWrapperRemove(
     );
 
 PHLIBAPI
+VOID PhGetStockApplicationIcon(
+    __out_opt HICON *SmallIcon,
+    __out_opt HICON *LargeIcon
+    );
+
+PHLIBAPI
 HICON PhGetFileShellIcon(
     __in_opt PWSTR FileName,
     __in_opt PWSTR DefaultExtension,

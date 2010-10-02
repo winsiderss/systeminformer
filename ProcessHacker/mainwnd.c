@@ -33,10 +33,6 @@
 #include <iphlpapi.h>
 #include <wtsapi32.h>
 
-typedef BOOL (WINAPI *_FileIconInit)(
-    __in BOOL RestoreCache
-    );
-
 typedef HRESULT (WINAPI *_LoadIconMetric)(
     __in HINSTANCE hinst,
     __in PCWSTR pszName,
@@ -271,22 +267,6 @@ BOOLEAN PhMainWndInitialization(
     )
 {
     PH_RECTANGLE windowRectangle;
-
-    // Initialize the system image lists.
-    {
-        HMODULE shell32;
-        _FileIconInit fileIconInit;
-
-        shell32 = LoadLibrary(L"shell32.dll");
-
-        if (shell32)
-        {
-            fileIconInit = (_FileIconInit)GetProcAddress(shell32, (PSTR)660);
-
-            if (fileIconInit)
-                fileIconInit(FALSE);
-        }
-    }
 
     if (PhGetIntegerSetting(L"FirstRun"))
     {
@@ -2495,9 +2475,23 @@ VOID PhpAddIconProcesses(
 
         // Menu icons only work properly on Vista and above.
         if (WindowsVersion >= WINDOWS_VISTA)
-            iconBitmap = PhIconToBitmap(processItem->SmallIcon ? processItem->SmallIcon : PhGetStockAppIcon(), 16, 16);
+        {
+            if (processItem->SmallIcon)
+            {
+                iconBitmap = PhIconToBitmap(processItem->SmallIcon, 16, 16);
+            }
+            else
+            {
+                HICON icon;
+
+                PhGetStockApplicationIcon(&icon, NULL);
+                iconBitmap = PhIconToBitmap(icon, 16, 16);
+            }
+        }
         else
+        {
             iconBitmap = NULL;
+        }
 
         subMenu->Bitmap = iconBitmap;
         Bitmaps[i] = iconBitmap;
@@ -4321,8 +4315,11 @@ VOID PhMainWndOnNetworkItemAdded(
 
     if (!NetworkImageListWrapper.Handle)
     {
+        HICON icon;
+
+        PhGetStockApplicationIcon(&icon, NULL);
         PhInitializeImageListWrapper(&NetworkImageListWrapper, 16, 16, ILC_COLOR32 | ILC_MASK);
-        PhImageListWrapperAddIcon(&NetworkImageListWrapper, PhGetStockAppIcon());
+        PhImageListWrapperAddIcon(&NetworkImageListWrapper, icon);
         ListView_SetImageList(NetworkListViewHandle, NetworkImageListWrapper.Handle, LVSIL_SMALL);
     }
 
