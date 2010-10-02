@@ -855,9 +855,9 @@ NTSTATUS PhSaveSettings(
 
         for (i = 0; i < PhIgnoredSettings->Count; i++)
         {
-            PPH_SETTING setting = PhIgnoredSettings->Items[i];
             PPH_STRING settingValue;
 
+            setting = PhIgnoredSettings->Items[i];
             settingValue = setting->u.Pointer;
             PhpCreateSettingElement(topNode, &setting->Name, &settingValue->sr);
         }

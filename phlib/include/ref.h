@@ -249,7 +249,7 @@ PhGetObjectTypeInformation(
 
 FORCEINLINE VOID PhSwapReference(
     __inout PPVOID ObjectReference,
-    __in PVOID NewObject
+    __in_opt PVOID NewObject
     )
 {
     PVOID oldObject;
@@ -263,7 +263,7 @@ FORCEINLINE VOID PhSwapReference(
 
 FORCEINLINE VOID PhSwapReference2(
     __inout PPVOID ObjectReference,
-    __in __assumeRefs(1) PVOID NewObject
+    __in_opt __assumeRefs(1) PVOID NewObject
     )
 {
     PVOID oldObject;

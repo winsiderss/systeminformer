@@ -1030,6 +1030,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (ProcessTreeListSortColumn < PHTLC_MAXIMUM)
                         sortFunction = sortFunctions[ProcessTreeListSortColumn];
+                    else
+                        sortFunction = NULL;
 
                     if (sortFunction)
                     {
