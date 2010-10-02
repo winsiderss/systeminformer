@@ -588,9 +588,14 @@ PPH_STRING PhGetSymbolFromAddress(
 
     if (symbolInfo->NameLen == 0)
     {
+        PH_FORMAT format[3];
+
         resolveLevel = PhsrlModule;
 
-        symbol = PhFormatString(L"%s+0x%Ix", modBaseName->Buffer, (PVOID)(Address - modBase));
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatS(&format[1], L"+0x");
+        PhInitFormatIX(&format[2], (ULONG_PTR)(Address - modBase));
+        symbol = PhFormat(format, 3, modBaseName->Length + 6 + 32);
 
         goto CleanupExit;
     }
@@ -607,16 +612,25 @@ PPH_STRING PhGetSymbolFromAddress(
 
     if (displacement == 0)
     {
-        symbol = PhConcatStrings(
-            3,
-            modBaseName->Buffer,
-            L"!",
-            symbolName->Buffer
-            );
+        PH_FORMAT format[3];
+
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatC(&format[1], '!');
+        PhInitFormatSR(&format[2], symbolName->sr);
+
+        symbol = PhFormat(format, 3, modBaseName->Length + 2 + symbolName->Length);
     }
     else
     {
-        symbol = PhFormatString(L"%s!%s+0x%Ix", modBaseName->Buffer, symbolName->Buffer, (PVOID)displacement);
+        PH_FORMAT format[5];
+
+        PhInitFormatSR(&format[0], modBaseName->sr);
+        PhInitFormatC(&format[1], '!');
+        PhInitFormatSR(&format[2], symbolName->sr);
+        PhInitFormatS(&format[3], L"+0x");
+        PhInitFormatIX(&format[4], (ULONG_PTR)displacement);
+
+        symbol = PhFormat(format, 5, modBaseName->Length + 2 + symbolName->Length + 6 + 32);
     }
 
 CleanupExit:
