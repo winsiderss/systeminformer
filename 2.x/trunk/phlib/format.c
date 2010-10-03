@@ -34,7 +34,9 @@ extern ULONG PhMaxSizeUnit;
 #define SMALL_BUFFER_LENGTH (PHOBJ_SMALL_OBJECT_SIZE - FIELD_OFFSET(PH_STRING, Buffer) - sizeof(WCHAR))
 #define BUFFER_SIZE 512
 
-#define PHP_FORMAT_NEGATIVE 0x1000
+#define PHP_FORMAT_NEGATIVE 0x1
+#define PHP_FORMAT_POSITIVE 0x2
+#define PHP_FORMAT_PAD 0x4
 
 // Internal CRT routines needed for floating-point conversion
 
@@ -60,6 +62,31 @@ static PH_INITONCE PhpFormatInitOnce = PH_INITONCE_INIT;
 static WCHAR PhpFormatDecimalSeparator = '.';
 static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
+
+PPH_STRING PhpResizeFormatBuffer(
+    __in PPH_STRING String,
+    __inout PSIZE_T AllocatedLength,
+    __in SIZE_T UsedLength,
+    __in SIZE_T NeededLength
+    )
+{
+    PPH_STRING newString;
+    SIZE_T allocatedLength;
+
+    allocatedLength = *AllocatedLength;
+    allocatedLength *= 2;
+
+    if (allocatedLength < UsedLength + NeededLength)
+        allocatedLength = UsedLength + NeededLength;
+
+    newString = PhCreateStringEx(NULL, allocatedLength);
+    memcpy(newString->Buffer, String->Buffer, UsedLength);
+    PhDereferenceObject(String);
+
+    *AllocatedLength = allocatedLength;
+
+    return newString;
+}
 
 PPH_STRING PhFormat(
     __in PPH_FORMAT Format,
@@ -90,17 +117,7 @@ PPH_STRING PhFormat(
     do { \
         if (allocatedLength < usedLength + (NeededLength)) \
         { \
-            PPH_STRING newString; \
-            \
-            allocatedLength *= 2; \
-            \
-            if (allocatedLength < usedLength + (NeededLength)) \
-                allocatedLength = usedLength + (NeededLength); \
-            \
-            newString = PhCreateStringEx(NULL, allocatedLength); \
-            memcpy(newString->Buffer, string->Buffer, usedLength); \
-            PhDereferenceObject(string); \
-            string = newString; \
+            string = PhpResizeFormatBuffer(string, &allocatedLength, usedLength, (NeededLength)); \
             buffer = string->Buffer + usedLength / sizeof(WCHAR); \
         } \
     } while (0)

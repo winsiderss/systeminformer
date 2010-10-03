@@ -1426,10 +1426,19 @@ PPH_STRING PhGetFileVersionInfoString2(
     )
 {
     WCHAR subBlock[65];
+    PH_FORMAT format[4];
 
-    _snwprintf(subBlock, 64, L"\\StringFileInfo\\%08X\\%s", LangCodePage, StringName);
+    PhInitFormatS(&format[0], L"\\StringFileInfo\\");
+    PhInitFormatX(&format[1], LangCodePage);
+    format[1].Type |= FormatPadZeros | FormatUpperCase;
+    format[1].Width = 8;
+    PhInitFormatC(&format[2], '\\');
+    PhInitFormatS(&format[3], StringName);
 
-    return PhGetFileVersionInfoString(VersionInfo, subBlock);
+    if (PhFormatToBuffer(format, 4, subBlock, sizeof(subBlock), NULL))
+        return PhGetFileVersionInfoString(VersionInfo, subBlock);
+    else
+        return NULL;
 }
 
 BOOLEAN PhInitializeImageVersionInfo(
