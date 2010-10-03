@@ -345,8 +345,6 @@ BOOLEAN PhMainWndInitialization(
     MoveWindow(PhMainWndHandle, windowRectangle.Left, windowRectangle.Top,
         windowRectangle.Width, windowRectangle.Height, FALSE);
 
-    PhInitializeFont(PhMainWndHandle);
-
     // Allow WM_PH_ACTIVATE to pass through UIPI.
     if (WINDOWS_HAS_UAC)
         ChangeWindowMessageFilter_I(WM_PH_ACTIVATE, MSGFLT_ADD);
@@ -1936,8 +1934,10 @@ VOID PhReloadSysParameters()
 {
     PhSysWindowColor = GetSysColor(COLOR_WINDOW);
 
-    DeleteObject(PhApplicationFont);
-    DeleteObject(PhBoldMessageFont);
+    if (PhApplicationFont)
+        DeleteObject(PhApplicationFont);
+    if (PhBoldMessageFont)
+        DeleteObject(PhBoldMessageFont);
     PhInitializeFont(PhMainWndHandle);
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
 
