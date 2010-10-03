@@ -114,21 +114,6 @@ VOID PhListTick(
     __in PPH_EXTLV_CONTEXT Context
     );
 
-static BOOLEAN NTAPI PhpTickHashtableCompareFunction(
-    __in PVOID Entry1,
-    __in PVOID Entry2
-    )
-{
-    return ((PPH_TICK_ENTRY)Entry1)->Id == ((PPH_TICK_ENTRY)Entry2)->Id;
-}
-
-static ULONG NTAPI PhpTickHashtableHashFunction(
-    __in PVOID Entry
-    )
-{
-    return ((PPH_TICK_ENTRY)Entry)->Id;
-}
-
 static PWSTR PhpMakeExtLvContextAtom()
 {
     PH_DEFINE_MAKE_ATOM(L"PhLib_ExtLvContext");
@@ -163,12 +148,7 @@ VOID PhSetExtendedListView(
     context->RemovingColor = RGB(0xff, 0x00, 0x00);
     context->ItemColorFunction = NULL;
     context->ItemFontFunction = NULL;
-    context->TickHashtable = PhCreateHashtable(
-        sizeof(PH_TICK_ENTRY),
-        PhpTickHashtableCompareFunction,
-        PhpTickHashtableHashFunction,
-        20
-        );
+    context->TickHashtable = NULL;
 
     context->EnableRedraw = 1;
     context->Cursor = NULL;
@@ -176,6 +156,36 @@ VOID PhSetExtendedListView(
     SetProp(hWnd, PhpMakeExtLvContextAtom(), (HANDLE)context);
 
     ExtendedListView_Init(hWnd);
+}
+
+static BOOLEAN NTAPI PhpTickHashtableCompareFunction(
+    __in PVOID Entry1,
+    __in PVOID Entry2
+    )
+{
+    return ((PPH_TICK_ENTRY)Entry1)->Id == ((PPH_TICK_ENTRY)Entry2)->Id;
+}
+
+static ULONG NTAPI PhpTickHashtableHashFunction(
+    __in PVOID Entry
+    )
+{
+    return ((PPH_TICK_ENTRY)Entry)->Id;
+}
+
+FORCEINLINE VOID PhpEnsureTickHashtableCreated(
+    __in PPH_EXTLV_CONTEXT Context
+    )
+{
+    if (!Context->TickHashtable)
+    {
+        Context->TickHashtable = PhCreateHashtable(
+            sizeof(PH_TICK_ENTRY),
+            PhpTickHashtableCompareFunction,
+            PhpTickHashtableHashFunction,
+            20
+            );
+    }
 }
 
 LRESULT CALLBACK PhpExtendedListViewWndProc(
@@ -197,7 +207,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
-            PhDereferenceObject(context->TickHashtable);
+            if (context->TickHashtable)
+                PhDereferenceObject(context->TickHashtable);
 
             PhFree(context);
             RemoveProp(hwnd, PhpMakeExtLvContextAtom());
@@ -380,6 +391,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 PH_TICK_ENTRY entry;
 
+                PhpEnsureTickHashtableCreated(context);
+
                 entry.Id = ListView_MapIndexToID(hwnd, index);
                 entry.TickCount = GetTickCount();
 
@@ -418,6 +431,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     PH_TICK_ENTRY localEntry;
                     PPH_TICK_ENTRY entry;
 
+                    PhpEnsureTickHashtableCreated(context);
+
                     localEntry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
                     entry = PhAddEntryHashtableEx(context->TickHashtable, &localEntry, NULL);
 
@@ -428,11 +443,14 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
             else
             {
-                PH_TICK_ENTRY entry;
+                // The item may still be under state highlighting.
+                if (context->TickHashtable)
+                {
+                    PH_TICK_ENTRY entry;
 
-                entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
-
-                PhRemoveEntryHashtable(context->TickHashtable, &entry);
+                    entry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
+                    PhRemoveEntryHashtable(context->TickHashtable, &entry);
+                }
             }
         }
         break;
@@ -631,7 +649,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         return TRUE;
     case ELVM_TICK:
         {
-            if (context->EnableStateHighlighting > 0 && context->TickHashtable->Count != 0)
+            if (
+                context->EnableStateHighlighting > 0 &&
+                context->TickHashtable &&
+                context->TickHashtable->Count != 0
+                )
             {
                 PhListTick(context);
             }
@@ -912,6 +934,9 @@ static VOID PhListTick(
     PPH_LIST itemsToRemove = NULL;
     PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_TICK_ENTRY entry;
+
+    if (!Context->TickHashtable)
+        return;
 
     tickCount = GetTickCount();
 
