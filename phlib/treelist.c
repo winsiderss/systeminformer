@@ -1950,6 +1950,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
     PH_STRINGREF stringRef;
     ULONG64 integer;
     PPH_HASHTABLE columnHashtable;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_KEY_VALUE_PAIR pair;
     INT orderArray[ORDER_LIMIT];
     INT maxOrder;
@@ -2066,11 +2067,11 @@ BOOLEAN PhLoadTreeListColumnSettings(
         i++;
     }
 
-    i = 0;
+    PhBeginEnumHashtable(columnHashtable, &enumContext);
 
     // Do a second pass to create the order array. This is because the ViewIndex of each column 
     // were unstable in the previous pass since we were both adding and removing columns.
-    while (PhEnumHashtable(columnHashtable, &pair, &i))
+    while (pair = PhNextEnumHashtable(&enumContext))
     {
         PPH_TREELIST_COLUMN column;
 
@@ -2093,9 +2094,9 @@ BOOLEAN PhLoadTreeListColumnSettings(
 
 CleanupExit:
 
-    i = 0;
+    PhBeginEnumHashtable(columnHashtable, &enumContext);
 
-    while (PhEnumHashtable(columnHashtable, &pair, &i))
+    while (pair = PhNextEnumHashtable(&enumContext))
         PhFree(pair->Value);
 
     PhDereferenceObject(columnHashtable);
