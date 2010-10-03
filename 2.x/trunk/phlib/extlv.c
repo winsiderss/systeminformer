@@ -910,16 +910,16 @@ static VOID PhListTick(
     ULONG tickCount;
     BOOLEAN redrawDisabled = FALSE;
     PPH_LIST itemsToRemove = NULL;
-    ULONG enumerationKey;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_TICK_ENTRY entry;
 
     tickCount = GetTickCount();
 
     // First pass
 
-    enumerationKey = 0;
+    PhBeginEnumHashtable(Context->TickHashtable, &enumContext);
 
-    while (PhEnumHashtable(Context->TickHashtable, &entry, &enumerationKey))
+    while (entry = PhNextEnumHashtable(&enumContext))
     {
         LVITEM item;
         PH_ITEM_STATE itemState;
@@ -951,9 +951,9 @@ static VOID PhListTick(
     // Second pass
     // This pass is specifically for deleting items.
 
-    enumerationKey = 0;
+    PhBeginEnumHashtable(Context->TickHashtable, &enumContext);
 
-    while (PhEnumHashtable(Context->TickHashtable, &entry, &enumerationKey))
+    while (entry = PhNextEnumHashtable(&enumContext))
     {
         LVITEM item;
         PH_ITEM_STATE itemState;

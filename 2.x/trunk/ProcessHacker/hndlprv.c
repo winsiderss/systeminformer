@@ -415,6 +415,7 @@ VOID PhHandleProviderUpdate(
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handles;
     ULONG numberOfHandles;
     ULONG i;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
     PPH_KEY_VALUE_PAIR handlePair;
 
     if (!handleProvider->ProcessHandle)
@@ -528,9 +529,9 @@ VOID PhHandleProviderUpdate(
 
     // Look for new handles and update existing ones.
 
-    i = 0;
+    PhBeginEnumHashtable(handleProvider->TempListHashtable, &enumContext);
 
-    while (PhEnumHashtable(handleProvider->TempListHashtable, &handlePair, &i))
+    while (handlePair = PhNextEnumHashtable(&enumContext))
     {
         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX handle = handlePair->Value;
         PPH_HANDLE_ITEM handleItem;
