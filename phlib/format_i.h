@@ -127,6 +127,8 @@
         PWSTR temp; \
         ULONG tempCount; \
         ULONG r; \
+        ULONG preCount; \
+        ULONG padCount; \
         \
         radix = 10; \
         if (((Format)->Type & FormatUseRadix) && (Format)->Radix >= 2 && (Format)->Radix <= 69) \
@@ -169,22 +171,42 @@
             tempCount++; \
         } \
         \
+        preCount = 0; \
+        \
         if (flags & PHP_FORMAT_NEGATIVE) \
-        { \
-            *temp-- = '-'; \
-            tempCount++; \
-        } \
+            preCount++; \
         else if ((Format)->Type & FormatPrefixSign) \
+            preCount++; \
+        \
+        if (((Format)->Type & FormatPadZeros) && !((Format)->Type & FormatGroupDigits)) \
         { \
-            *temp-- = '+'; \
-            tempCount++; \
+            if (preCount + tempCount < (Format)->Width) \
+            { \
+                flags |= PHP_FORMAT_PAD; \
+                padCount = (Format)->Width - (preCount + tempCount); \
+                preCount += padCount; \
+            } \
         } \
         \
         temp++; \
-        ENSURE_BUFFER(tempCount * sizeof(WCHAR)); \
+        ENSURE_BUFFER((preCount + tempCount) * sizeof(WCHAR)); \
         if (OK_BUFFER) \
+        { \
+            if (flags & PHP_FORMAT_NEGATIVE) \
+                *buffer++ = '-'; \
+            else if ((Format)->Type & FormatPrefixSign) \
+                *buffer++ = '+'; \
+            \
+            if (flags & PHP_FORMAT_PAD) \
+            { \
+                wmemset(buffer, '0', padCount); \
+                buffer += padCount; \
+            } \
+            \
             memcpy(buffer, temp, tempCount * sizeof(WCHAR)); \
-        ADVANCE_BUFFER(tempCount * sizeof(WCHAR)); \
+            buffer += tempCount; \
+        } \
+        usedLength += (preCount + tempCount) * sizeof(WCHAR); \
     } while (0)
 
 #ifdef _M_IX86
@@ -241,14 +263,15 @@ CommonInt64Format:
         ULONG precision; \
         DOUBLE value; \
         CHAR c; \
+        PSTR temp; \
         ULONG length; \
         \
         if ((Format)->Type & FormatUsePrecision) \
         { \
             precision = (Format)->Precision; \
             \
-            if (precision > BUFFER_SIZE - _CVTBUFSIZE) \
-                precision = BUFFER_SIZE - _CVTBUFSIZE; \
+            if (precision > BUFFER_SIZE - 1 - _CVTBUFSIZE) \
+                precision = BUFFER_SIZE - 1 - _CVTBUFSIZE; \
         } \
         else \
         { \
@@ -268,10 +291,11 @@ CommonInt64Format:
         /* Use MS CRT routines to do the work. */ \
         \
         value = (Format)->u.Double; \
+        temp = (PSTR)tempBuffer + 1; /* leave one character so we can insert a prefix if needed */ \
         _cfltcvt_l( \
             &value, \
-            (PSTR)tempBuffer, \
-            sizeof(tempBuffer), \
+            temp, \
+            sizeof(tempBuffer) - 1, \
             c, \
             precision, \
             !!((Format)->Type & FormatUpperCase), \
@@ -281,9 +305,20 @@ CommonInt64Format:
         /* if (((Format)->Type & FormatForceDecimalPoint) && precision == 0) */ \
              /* _forcdecpt_l(tempBufferAnsi, PhpFormatUserLocale); */ \
         if ((Format)->Type & FormatCropZeros) \
-            _cropzeros_l((PSTR)tempBuffer, PhpFormatUserLocale); \
+            _cropzeros_l(temp, PhpFormatUserLocale); \
         \
-        length = (ULONG)strlen((PSTR)tempBuffer); \
+        length = (ULONG)strlen(temp); \
+        \
+        if (temp[0] == '-') \
+        { \
+            flags |= PHP_FORMAT_NEGATIVE; \
+            temp++; \
+            length--; \
+        } \
+        else if ((Format)->Type & FormatPrefixSign) \
+        { \
+            flags |= PHP_FORMAT_POSITIVE; \
+        } \
         \
         if (((Format)->Type & FormatGroupDigits) && !((Format)->Type & (FormatStandardForm | FormatHexadecimalForm))) \
         { \
@@ -291,14 +326,15 @@ CommonInt64Format:
             PSTR decimalPoint; \
             ULONG wholeCount; \
             ULONG sepsCount; \
+            ULONG ensureLength; \
             ULONG copyCount; \
             ULONG needsSep; \
             \
             /* Find the first non-digit character and assume that is the */ \
             /* decimal point (or the end of the string). */ \
             \
-            whole = (PSTR)tempBuffer; \
-            decimalPoint = (PSTR)tempBuffer; \
+            whole = temp; \
+            decimalPoint = temp; \
             \
             while ((UCHAR)(*decimalPoint - '0') < 10) \
                 decimalPoint++; \
@@ -306,20 +342,28 @@ CommonInt64Format:
             /* Copy the characters to the output buffer, and at the same time */ \
             /* insert the separators. */ \
             \
-            wholeCount = (ULONG)(decimalPoint - (PSTR)tempBuffer); \
+            wholeCount = (ULONG)(decimalPoint - temp); \
             \
             if (wholeCount != 0) \
                 sepsCount = (wholeCount + 2) / 3 - 1; \
             else \
                 sepsCount = 0; \
             \
-            ENSURE_BUFFER((length + sepsCount) * sizeof(WCHAR)); \
+            ensureLength = (length + sepsCount) * sizeof(WCHAR); \
+            if (flags & (PHP_FORMAT_NEGATIVE | PHP_FORMAT_POSITIVE)) \
+                ensureLength += sizeof(WCHAR); \
+            ENSURE_BUFFER(ensureLength); \
             \
             copyCount = wholeCount; \
             needsSep = (wholeCount + 2) % 3; \
             \
             if (OK_BUFFER) \
             { \
+                if (flags & PHP_FORMAT_NEGATIVE) \
+                    *buffer++ = '-'; \
+                else if (flags & PHP_FORMAT_POSITIVE) \
+                    *buffer++ = '+'; \
+                \
                 while (copyCount--) \
                 { \
                     *buffer++ = *whole++; \
@@ -332,6 +376,8 @@ CommonInt64Format:
                 } \
             } \
             \
+            if (flags & (PHP_FORMAT_NEGATIVE | PHP_FORMAT_POSITIVE)) \
+                usedLength += sizeof(WCHAR); \
             usedLength += (wholeCount + sepsCount) * sizeof(WCHAR); \
             \
             /* Copy the rest. */ \
@@ -351,16 +397,50 @@ CommonInt64Format:
         } \
         else \
         { \
+            SIZE_T preLength; \
+            SIZE_T padLength; \
+            \
+            /* Take care of the sign and zero padding. */ \
+            preLength = 0; \
+            \
+            if (flags & (PHP_FORMAT_NEGATIVE | PHP_FORMAT_POSITIVE)) \
+                preLength++; \
+            \
+            if ((Format)->Type & FormatPadZeros) \
+            { \
+                if (preLength + length < (Format)->Width) \
+                { \
+                    flags |= PHP_FORMAT_PAD; \
+                    padLength = (Format)->Width - (preLength + length); \
+                    preLength += padLength; \
+                } \
+            } \
             /* We don't need to group digits, so directly copy the characters */ \
             /* to the output buffer. */ \
             \
-            ENSURE_BUFFER(length * sizeof(WCHAR)); \
+            ENSURE_BUFFER((preLength + length) * sizeof(WCHAR)); \
+            \
+            if (OK_BUFFER) \
+            { \
+                if (flags & PHP_FORMAT_NEGATIVE) \
+                    *buffer++ = '-'; \
+                else if (flags & PHP_FORMAT_POSITIVE) \
+                    *buffer++ = '+'; \
+                \
+                if (flags & PHP_FORMAT_PAD) \
+                { \
+                    wmemset(buffer, '0', padLength); \
+                    buffer += padLength; \
+                } \
+            } \
+            \
+            usedLength += preLength * sizeof(WCHAR); \
             \
             if (!OK_BUFFER || NT_SUCCESS(RtlMultiByteToUnicodeN( \
                 buffer, \
                 length * sizeof(WCHAR), \
                 NULL, \
-                (PSTR)tempBuffer, \
+                (PSTR)temp, \
                 length \
                 ))) \
             { \
@@ -370,6 +450,7 @@ CommonInt64Format:
     } while (0)
 
         case DoubleFormatType:
+            flags = 0;
             COMMON_DOUBLE_FORMAT(format);
             break;
 
@@ -412,7 +493,9 @@ CommonInt64Format:
 
                 doubleFormat.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros | FormatGroupDigits;
                 doubleFormat.Precision = 2;
+                doubleFormat.Width = 0; // stupid compiler
                 doubleFormat.u.Double = s;
+                flags = 0;
                 COMMON_DOUBLE_FORMAT(&doubleFormat);
 
                 ENSURE_BUFFER(sizeof(WCHAR) + PhpSizeUnitNamesCounted[i].Length);
@@ -428,5 +511,49 @@ CommonInt64Format:
 
 ContinueLoop:
         partLength = usedLength - partLength;
+
+        if (format->Type & (FormatLeftAlign | FormatRightAlign))
+        {
+            SIZE_T newLength;
+            SIZE_T addLength;
+
+            newLength = format->Width * sizeof(WCHAR);
+
+            // We only pad and never truncate.
+            if (partLength < newLength)
+            {
+                addLength = newLength - partLength;
+                ENSURE_BUFFER(addLength);
+
+                if (OK_BUFFER)
+                {
+                    WCHAR pad;
+
+                    if (format->Type & FormatUsePad)
+                        pad = format->Pad;
+                    else
+                        pad = ' ';
+
+                    if (format->Type & FormatLeftAlign)
+                    {
+                        // Left alignment is easy; we just fill the remaining space 
+                        // with the pad character.
+                        wmemset(buffer, pad, addLength / sizeof(WCHAR));
+                    }
+                    else
+                    {
+                        PWSTR start;
+
+                        // Right alignment is much slower and involves moving the 
+                        // text forward, then filling in the space before it.
+                        start = buffer - partLength / sizeof(WCHAR);
+                        memmove(start + addLength / sizeof(WCHAR), start, partLength);
+                        wmemset(start, pad, addLength / sizeof(WCHAR));
+                    }
+                }
+
+                ADVANCE_BUFFER(addLength);
+            }
+        }
     }
 }

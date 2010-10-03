@@ -2999,26 +2999,44 @@ typedef enum _PH_FORMAT_TYPE
     UIntPtrFormatType,
     DoubleFormatType,
     SizeFormatType,
-    FormatTypeMask = 0xff,
+    FormatTypeMask = 0x3f,
 
-    FormatUsePrecision = 0x100,
-    FormatUseWidth = 0x200,
-    FormatUseRadix = 0x400,
+    /** If not specified, for floating-point 6 is assumed **/
+    FormatUsePrecision = 0x40,
+    /** If not specified, ' ' is assumed */
+    FormatUsePad = 0x80,
+    /** If not specified, 10 is assumed */
+    FormatUseRadix = 0x100,
+    /** Reserved */
+    FormatUseReserved = 0x200,
 
     // Floating-point flags
-    FormatStandardForm = 0x1000, // Use standard form instead of normal form
-    FormatHexadecimalForm = 0x2000, // Use hexadecimal form instead of normal form
-    FormatForceDecimalPoint = 0x4000, // Reserved
+    /** Use standard form instead of normal form */
+    FormatStandardForm = 0x1000,
+    /** Use hexadecimal form instead of normal form */
+    FormatHexadecimalForm = 0x2000,
+    /** Reserved */
+    FormatForceDecimalPoint = 0x4000,
+    /** Trailing zeros and possibly the decimal point are trimmed */
     FormatCropZeros = 0x8000,
 
     // Floating-point and integer flags
-    FormatGroupDigits = 0x10000, // Group digits (with floating-point, only works when in normal form)
-    FormatPrefixSign = 0x20000, // Always insert a prefix, '+' for positive and '-' for negative
+    /** Group digits (with floating-point, only works when in normal form) */
+    FormatGroupDigits = 0x10000,
+    /** Always insert a prefix, '+' for positive and '-' for negative */
+    FormatPrefixSign = 0x20000,
+    /** Pad left with zeros, taking into consideration the sign. Width must be specified. 
+     * Format*Align cannot be used in conjunction with this flag. If FormatGroupDigits is specified, 
+     * this flag is ignored. */
+    FormatPadZeros = 0x40000,
 
     // General flags
+    /** Applies left alignment. Width must be specified. */
     FormatLeftAlign = 0x80000000,
+    /** Applies right alignment. Width must be specified. */
     FormatRightAlign = 0x40000000,
-    FormatUpperCase = 0x20000000 // Make characters uppercase (only available for some types)
+    /** Make characters uppercase (only available for some types) */
+    FormatUpperCase = 0x20000000
 } PH_FORMAT_TYPE;
 
 typedef struct _PH_FORMAT
