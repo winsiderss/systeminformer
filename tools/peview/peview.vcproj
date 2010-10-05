@@ -66,7 +66,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="noarg.obj noenv.obj phlib.lib ntdll.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../phlib/bin/$(ConfigurationName)32;../../lib/lib32"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
@@ -144,7 +144,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="noarg.obj noenv.obj phlib.lib ntdll.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../phlib/bin/$(ConfigurationName)64;../../lib/lib64"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
@@ -222,7 +222,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="noarg.obj noenv.obj phlib.lib ntdll.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../phlib/bin/$(ConfigurationName)32;../../lib/lib32"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;x86&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
@@ -303,7 +303,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="phlib.lib ntdll.lib"
+				AdditionalDependencies="noarg.obj noenv.obj phlib.lib ntdll.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../phlib/bin/$(ConfigurationName)64;../../lib/lib64"
 				AdditionalManifestDependencies="type=&apos;win32&apos; name=&apos;Microsoft.Windows.Common-Controls&apos; version=&apos;6.0.0.0&apos; processorArchitecture=&apos;amd64&apos; publicKeyToken=&apos;6595b64144ccf1df&apos; language=&apos;*&apos;"
