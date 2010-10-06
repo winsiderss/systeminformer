@@ -385,6 +385,8 @@ extern PH_CALLBACK PhNetworkItemAddedEvent;
 extern PH_CALLBACK PhNetworkItemModifiedEvent;
 extern PH_CALLBACK PhNetworkItemRemovedEvent;
 extern PH_CALLBACK PhNetworkItemsUpdatedEvent;
+
+extern BOOLEAN PhEnableNetworkProviderResolve;
 #endif
 
 #define PH_NETWORK_OWNER_INFO_SIZE 16

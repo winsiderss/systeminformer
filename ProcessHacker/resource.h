@@ -405,6 +405,7 @@
 #define IDC_SERVICES_LAYOUT             1266
 #define IDC_LINK_SF                     1267
 #define IDC_CREDITS                     1270
+#define IDC_ENABLENETWORKRESOLVE        1271
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -621,7 +622,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40235
-#define _APS_NEXT_CONTROL_VALUE         1271
+#define _APS_NEXT_CONTROL_VALUE         1272
 #define _APS_NEXT_SYMED_VALUE           132
 #endif
 #endif

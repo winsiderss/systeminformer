@@ -346,6 +346,7 @@ VOID PhpAdvancedPageLoad(
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
     SetDlgItemCheckForSetting(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
 
     // Replace Task Manager
 
@@ -429,6 +430,7 @@ VOID PhpAdvancedPageSave(
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEKERNELMODEDRIVER, L"EnableKph");
     SetSettingForDlgItemCheck(hwndDlg, IDC_HIDEUNNAMEDHANDLES, L"HideUnnamedHandles");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
 
     // Replace Task Manager
     if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)))
@@ -522,6 +524,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEKERNELMODEDRIVER), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_HIDEUNNAMEDHANDLES), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLESTAGE2), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLENETWORKRESOLVE), FALSE);
             }
         }
         break;
