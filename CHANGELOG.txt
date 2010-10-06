@@ -2,7 +2,9 @@ Process Hacker
 
 2.7
  * NEW/IMPROVED:
-   * Vastly improved startup time, and lower memory usage
+   * Vastly improved startup time and lower memory usage
+   * Added option to disable address resolution for 
+     network connections
  * FIXED:
    * ToolStatus layout problems
 

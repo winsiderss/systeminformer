@@ -132,6 +132,8 @@ PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
 PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
 PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
 
+BOOLEAN PhEnableNetworkProviderResolve = TRUE;
+
 PH_INITONCE PhNetworkProviderWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhNetworkProviderWorkQueue;
 SLIST_HEADER PhNetworkItemQueryListHead;
@@ -463,6 +465,9 @@ VOID PhpQueueNetworkItemQuery(
 {
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
+    if (!PhEnableNetworkProviderResolve)
+        return;
+
     data = PhAllocate(sizeof(PH_NETWORK_ITEM_QUERY_DATA));
     memset(data, 0, sizeof(PH_NETWORK_ITEM_QUERY_DATA));
     data->NetworkItem = NetworkItem;
@@ -524,6 +529,7 @@ VOID PhNetworkProviderUpdate(
         GetNameInfoW_I = PhGetProcAddress(L"ws2_32.dll", "GetNameInfoW");
         gethostbyaddr_I = PhGetProcAddress(L"ws2_32.dll", "gethostbyaddr");
 
+        // Make sure WSA is initialized.
         if (WSAStartup_I)
         {
             WSAStartup_I(MAKEWORD(2, 2), &wsaData);
@@ -537,10 +543,12 @@ VOID PhNetworkProviderUpdate(
 
     {
         PPH_LIST connectionsToRemove = NULL;
-        ULONG enumerationKey = 0;
+        PH_HASHTABLE_ENUM_CONTEXT enumContext;
         PPH_NETWORK_ITEM *networkItem;
 
-        while (PhEnumHashtable(PhNetworkHashtable, (PPVOID)&networkItem, &enumerationKey))
+        PhBeginEnumHashtable(PhNetworkHashtable, &enumContext);
+
+        while (networkItem = PhNextEnumHashtable(&enumContext))
         {
             BOOLEAN found = FALSE;
 

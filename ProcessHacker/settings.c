@@ -61,6 +61,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
     PhpAddIntegerSetting(L"EnableKph", L"1");
+    PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"0");
     PhpAddIntegerSetting(L"EnableStage2", L"0");
     PhpAddIntegerSetting(L"EnableWarnings", L"1");
