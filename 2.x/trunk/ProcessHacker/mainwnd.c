@@ -2000,6 +2000,7 @@ VOID PhpInitialLoadSettings()
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+    PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
 
     NotifyIconMask = PhGetIntegerSetting(L"IconMask");
 
