@@ -513,6 +513,8 @@ VOID PhNetworkProviderUpdate(
 
     if (!NetworkImportDone)
     {
+        WSADATA wsaData;
+
         LoadLibrary(L"iphlpapi.dll");
         GetExtendedTcpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedTcpTable");
         GetExtendedUdpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedUdpTable");
@@ -521,6 +523,11 @@ VOID PhNetworkProviderUpdate(
         WSAGetLastError_I = PhGetProcAddress(L"ws2_32.dll", "WSAGetLastError");
         GetNameInfoW_I = PhGetProcAddress(L"ws2_32.dll", "GetNameInfoW");
         gethostbyaddr_I = PhGetProcAddress(L"ws2_32.dll", "gethostbyaddr");
+
+        if (WSAStartup_I)
+        {
+            WSAStartup_I(MAKEWORD(2, 2), &wsaData);
+        }
 
         NetworkImportDone = TRUE;
     }
