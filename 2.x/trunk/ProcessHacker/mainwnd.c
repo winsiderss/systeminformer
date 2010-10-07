@@ -1242,7 +1242,7 @@ LRESULT CALLBACK PhMainWndProc(
                         GetWindowPlacement(SelectedProcessWindowHandle, &placement);
 
                         if (placement.showCmd == SW_MINIMIZE)
-                            ShowWindow(SelectedProcessWindowHandle, SW_RESTORE);
+                            ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
                         else
                             SetForegroundWindow(SelectedProcessWindowHandle);
                     }
@@ -1252,7 +1252,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (IsWindow(SelectedProcessWindowHandle))
                     {
-                        ShowWindow(SelectedProcessWindowHandle, SW_RESTORE);
+                        ShowWindowAsync(SelectedProcessWindowHandle, SW_RESTORE);
                     }
                 }
                 break;
@@ -1260,7 +1260,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (IsWindow(SelectedProcessWindowHandle))
                     {
-                        ShowWindow(SelectedProcessWindowHandle, SW_MINIMIZE);
+                        ShowWindowAsync(SelectedProcessWindowHandle, SW_MINIMIZE);
                     }
                 }
                 break;
@@ -1268,7 +1268,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (IsWindow(SelectedProcessWindowHandle))
                     {
-                        ShowWindow(SelectedProcessWindowHandle, SW_MAXIMIZE);
+                        ShowWindowAsync(SelectedProcessWindowHandle, SW_MAXIMIZE);
                     }
                 }
                 break;
