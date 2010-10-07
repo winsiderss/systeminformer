@@ -155,6 +155,18 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_TARGETMACHINE, type);
 
+            {
+                LARGE_INTEGER time;
+                SYSTEMTIME systemTime;
+
+                RtlSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
+                PhLargeIntegerToLocalSystemTime(&systemTime, &time);
+
+                string = PhFormatDateTime(&systemTime);
+                SetDlgItemText(hwndDlg, IDC_TIMESTAMP, string->Buffer);
+                PhDereferenceObject(string);
+            }
+
             string = PhFormatString(L"0x%Ix (verifying...)", PvMappedImage.NtHeaders->OptionalHeader.CheckSum);
             SetDlgItemText(hwndDlg, IDC_CHECKSUM, string->Buffer);
             PhDereferenceObject(string);
