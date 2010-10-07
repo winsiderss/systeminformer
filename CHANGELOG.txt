@@ -5,6 +5,7 @@ Process Hacker
    * Vastly improved startup time and lower memory usage
    * Added option to disable address resolution for 
      network connections
+   * Added time stamp display to peview
  * FIXED:
    * ToolStatus layout problems
 
