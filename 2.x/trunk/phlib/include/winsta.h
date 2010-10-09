@@ -70,20 +70,20 @@
 #define DIRECTORY_LENGTH 256
 #define CLIENTLICENSE_LENGTH 32
 #define CLIENTMODEM_LENGTH 40
-#define CLIENT_PRODUCT_ID_LENGTH  32
-#define MAX_COUNTER_EXTENSIONS 2    
+#define CLIENT_PRODUCT_ID_LENGTH 32
+#define MAX_COUNTER_EXTENSIONS 2
 #define WINSTATIONNAME_LENGTH 32
 
-#define TERMSRV_TOTAL_SESSIONS 1     
-#define TERMSRV_DISC_SESSIONS 2     
-#define TERMSRV_RECON_SESSIONS 3     
-#define TERMSRV_CURRENT_ACTIVE_SESSIONS 4   
-#define TERMSRV_CURRENT_DISC_SESSIONS 5   
-#define TERMSRV_PENDING_SESSIONS 6   
-#define TERMSRV_SUCC_TOTAL_LOGONS 7   
-#define TERMSRV_SUCC_LOCAL_LOGONS 8   
-#define TERMSRV_SUCC_REMOTE_LOGONS 9   
-#define TERMSRV_SUCC_SESSION0_LOGONS 10   
+#define TERMSRV_TOTAL_SESSIONS 1
+#define TERMSRV_DISC_SESSIONS 2
+#define TERMSRV_RECON_SESSIONS 3
+#define TERMSRV_CURRENT_ACTIVE_SESSIONS 4
+#define TERMSRV_CURRENT_DISC_SESSIONS 5
+#define TERMSRV_PENDING_SESSIONS 6
+#define TERMSRV_SUCC_TOTAL_LOGONS 7
+#define TERMSRV_SUCC_LOCAL_LOGONS 8
+#define TERMSRV_SUCC_REMOTE_LOGONS 9
+#define TERMSRV_SUCC_SESSION0_LOGONS 10
 #define TERMSRV_CURRENT_TERMINATING_SESSIONS 11
 #define TERMSRV_CURRENT_LOGGEDON_SESSIONS 12
 
@@ -491,70 +491,10 @@ WinStationServerPing(
 
 BOOLEAN
 NTAPI
-WinStationEnumerateW(
+WinStationGetTermSrvCountersValue(
     __in_opt HANDLE ServerHandle,
-    __out PSESSIONIDW *SessionIds,
-    __out PULONG Count
-    );
-
-BOOLEAN
-NTAPI
-WinStationQueryInformationW(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in WINSTATIONINFOCLASS WinStationInformationClass,
-    __out PVOID WinStationInformation,
-    __in ULONG WinStationInformationLength,
-    __out PULONG ReturnLength
-    );
-
-BOOLEAN
-NTAPI
-WinStationSendMessageW(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in PWSTR Title,
-    __in ULONG TitleLength,
-    __in PWSTR Message,
-    __in ULONG MessageLength,
-    __in ULONG Style,
-    __in ULONG Timeout,
-    __out PULONG Response,
-    __in BOOLEAN DoNotWait
-    );
-
-BOOLEAN
-NTAPI
-WinStationNameFromLogonIdW(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __out_ecount(WINSTATIONNAME_LENGTH + 1) PWSTR WinStationName
-    );
-
-BOOLEAN
-NTAPI
-WinStationConnectW(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG TargetSessionId,
-    __in ULONG CurrentSessionId,
-    __in_opt PWSTR Password,
-    __in BOOLEAN Wait
-    );
-
-BOOLEAN
-NTAPI
-WinStationDisconnect(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in BOOLEAN Wait
-    );
-
-BOOLEAN
-NTAPI
-WinStationReset(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in BOOLEAN Wait
+    __in ULONG Count,
+    __inout PTS_COUNTER Counters // set counter IDs before calling
     );
 
 BOOLEAN
@@ -574,27 +514,114 @@ WinStationWaitSystemEvent(
 
 BOOLEAN
 NTAPI
+WinStationRegisterConsoleNotification(
+    __in_opt HANDLE ServerHandle,
+    __in HWND WindowHandle,
+    __in ULONG Flags
+    );
+
+BOOLEAN
+NTAPI
+WinStationUnRegisterConsoleNotification(
+    __in_opt HANDLE ServerHandle,
+    __in HWND WindowHandle
+    );
+
+// Sessions
+
+BOOLEAN
+NTAPI
+WinStationEnumerateW(
+    __in_opt HANDLE ServerHandle,
+    __out PSESSIONIDW *SessionIds,
+    __out PULONG Count
+    );
+
+BOOLEAN
+NTAPI
+WinStationQueryInformationW(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __in WINSTATIONINFOCLASS WinStationInformationClass,
+    __out_bcount(WinStationInformationLength) PVOID WinStationInformation,
+    __in ULONG WinStationInformationLength,
+    __out PULONG ReturnLength
+    );
+
+BOOLEAN
+NTAPI
+WinStationNameFromLogonIdW(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __out_ecount(WINSTATIONNAME_LENGTH + 1) PWSTR WinStationName
+    );
+
+BOOLEAN
+NTAPI
+WinStationSendMessageW(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __in PWSTR Title,
+    __in ULONG TitleLength,
+    __in PWSTR Message,
+    __in ULONG MessageLength,
+    __in ULONG Style,
+    __in ULONG Timeout,
+    __out PULONG Response,
+    __in BOOLEAN DoNotWait
+    );
+
+BOOLEAN
+NTAPI
+WinStationConnectW(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG TargetLogonId,
+    __in ULONG CurrentLogonId,
+    __in_opt PWSTR Password,
+    __in BOOLEAN Wait
+    );
+
+BOOLEAN
+NTAPI
+WinStationDisconnect(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __in BOOLEAN Wait
+    );
+
+BOOLEAN
+NTAPI
+WinStationReset(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __in BOOLEAN Wait
+    );
+
+BOOLEAN
+NTAPI
 WinStationShadow(
     __in_opt HANDLE ServerHandle,
     __in PWSTR TargetServerName,
-    __in ULONG TargetSessionId,
+    __in ULONG TargetLogonId,
     __in UCHAR HotKeyVk,
     __in USHORT HotkeyModifiers // KBD*
     );
 
 BOOLEAN
 NTAPI
-WinStationEnumerateProcesses(
+WinStationShadowStop(
     __in_opt HANDLE ServerHandle,
-    __out PVOID *Processes
+    __in ULONG LogonId,
+    __in BOOLEAN Wait // ignored
     );
+
+// Processes
 
 BOOLEAN
 NTAPI
-WinStationTerminateProcess(
+WinStationEnumerateProcesses(
     __in_opt HANDLE ServerHandle,
-    __in HANDLE ProcessId,
-    __in NTSTATUS ExitStatus
+    __out PVOID *Processes
     );
 
 BOOLEAN
@@ -616,6 +643,14 @@ WinStationFreeGAPMemory(
 
 BOOLEAN
 NTAPI
+WinStationTerminateProcess(
+    __in_opt HANDLE ServerHandle,
+    __in HANDLE ProcessId,
+    __in NTSTATUS ExitStatus
+    );
+
+BOOLEAN
+NTAPI
 WinStationGetProcessSid(
     __in_opt HANDLE ServerHandle,
     __in HANDLE ProcessId,
@@ -624,36 +659,15 @@ WinStationGetProcessSid(
     __inout PULONG SidLength
     );
 
-BOOLEAN
-NTAPI
-WinStationGetTermSrvCountersValue(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG Count,
-    __inout PTS_COUNTER Counters // set counter IDs before calling
-    );
+// Services isolation
 
 BOOLEAN
 NTAPI
-WinStationShadowStop(
-    __in_opt HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in BOOLEAN Wait // ignored
-    );
+WinStationSwitchToServicesSession();
 
 BOOLEAN
 NTAPI
-WinStationRegisterConsoleNotification(
-    __in_opt HANDLE ServerHandle,
-    __in HWND WindowHandle,
-    __in ULONG Flags
-    );
-
-BOOLEAN
-NTAPI
-WinStationUnRegisterConsoleNotification(
-    __in_opt HANDLE ServerHandle,
-    __in HWND WindowHandle
-    );
+WinStationRevertFromServicesSession();
 
 // end_rev
 
