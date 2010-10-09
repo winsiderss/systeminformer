@@ -91,6 +91,13 @@ typedef RTL_TIME_ZONE_INFORMATION TS_TIME_ZONE_INFORMATION, *PTS_TIME_ZONE_INFOR
 
 typedef WCHAR WINSTATIONNAME[WINSTATIONNAME_LENGTH + 1];
 
+// Variable length data descriptor (not needed)
+typedef struct _VARDATA_WIRE
+{
+    USHORT Size;
+    USHORT Offset;
+} VARDATA_WIRE, *PVARDATA_WIRE;
+
 typedef enum _WINSTATIONSTATECLASS
 {
     State_Active = 0,
@@ -226,22 +233,22 @@ typedef struct _TSHARE_COUNTERS
 
 typedef struct _PROTOCOLCOUNTERS
 {
-    ULONG WdBytes;             
-    ULONG WdFrames;            
-    ULONG WaitForOutBuf;       
-    ULONG Frames;              
-    ULONG Bytes;               
-    ULONG CompressedBytes;     
-    ULONG CompressFlushes;     
-    ULONG Errors;              
-    ULONG Timeouts;            
-    ULONG AsyncFramingError;   
-    ULONG AsyncOverrunError;   
-    ULONG AsyncOverflowError;  
-    ULONG AsyncParityError;    
-    ULONG TdErrors;            
-    USHORT ProtocolType;       
-    USHORT Length;             
+    ULONG WdBytes;
+    ULONG WdFrames;
+    ULONG WaitForOutBuf;
+    ULONG Frames;
+    ULONG Bytes;
+    ULONG CompressedBytes;
+    ULONG CompressFlushes;
+    ULONG Errors;
+    ULONG Timeouts;
+    ULONG AsyncFramingError;
+    ULONG AsyncOverrunError;
+    ULONG AsyncOverflowError;
+    ULONG AsyncParityError;
+    ULONG TdErrors;
+    USHORT ProtocolType;
+    USHORT Length;
     union
     {
         TSHARE_COUNTERS TShareCounters;
@@ -269,8 +276,8 @@ typedef struct _TSHARE_CACHE
 
 typedef struct CACHE_STATISTICS
 {
-    USHORT ProtocolType;    
-    USHORT Length;          
+    USHORT ProtocolType;
+    USHORT Length;
     union
     {
         RESERVED_CACHE ReservedCacheStats;
@@ -445,11 +452,24 @@ typedef struct _TS_COUNTER
 #define KBDCTRL 0x2
 #define KBDALT 0x4
 
+// begin_rev
+// Flags for WinStationRegisterConsoleNotification
+#define WNOTIFY_ALL_SESSIONS 0x1
+// end_rev
+
 // In the functions below, memory returned can be freed using LocalFree.
 // NULL can be specified for server handles to indicate the local server.
 // -1 can be specified for session IDs to indicate the current session ID.
 
 #define LOGONID_CURRENT (-1)
+
+// begin_rev
+
+BOOLEAN
+NTAPI
+WinStationFreeMemory(
+    __in PVOID Buffer
+    );
 
 HANDLE
 NTAPI
@@ -588,6 +608,14 @@ WinStationGetAllProcesses(
 
 BOOLEAN
 NTAPI
+WinStationFreeGAPMemory(
+    __in ULONG Level,
+    __in PTS_ALL_PROCESSES_INFO Processes,
+    __in ULONG NumberOfProcesses
+    );
+
+BOOLEAN
+NTAPI
 WinStationGetProcessSid(
     __in_opt HANDLE ServerHandle,
     __in HANDLE ProcessId,
@@ -612,15 +640,22 @@ WinStationShadowStop(
     __in BOOLEAN Wait // ignored
     );
 
-// typedefs
-
-typedef BOOLEAN (NTAPI *_WinStationConnectW)(
+BOOLEAN
+NTAPI
+WinStationRegisterConsoleNotification(
     __in_opt HANDLE ServerHandle,
-    __in ULONG TargetSessionId,
-    __in ULONG CurrentSessionId,
-    __in_opt PWSTR Password,
-    __in BOOLEAN Wait
+    __in HWND WindowHandle,
+    __in ULONG Flags
     );
+
+BOOLEAN
+NTAPI
+WinStationUnRegisterConsoleNotification(
+    __in_opt HANDLE ServerHandle,
+    __in HWND WindowHandle
+    );
+
+// end_rev
 
 // end_msdn
 

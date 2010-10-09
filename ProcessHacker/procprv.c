@@ -24,7 +24,7 @@
 #include <phapp.h>
 #include <kph.h>
 #include <phplug.h>
-#include <wtsapi32.h>
+#include <winsta.h>
 
 typedef struct _PH_PROCESS_QUERY_DATA
 {
@@ -191,8 +191,8 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxIoWriteHistory;
 
 static PPH_IS_DOT_NET_CONTEXT PhpIsDotNetContext = NULL;
 
-static PWTS_PROCESS_INFO PhpWtsProcesses = NULL;
-static ULONG PhpWtsNumberOfProcesses;
+static PTS_ALL_PROCESSES_INFO PhpTsProcesses = NULL;
+static ULONG PhpTsNumberOfProcesses;
 
 #ifdef PH_ENABLE_VERIFY_CACHE
 static PH_AVL_TREE PhpVerifyCacheSet = PH_AVL_TREE_INIT(PhpVerifyCacheCompareFunction);
@@ -1084,19 +1084,27 @@ VOID PhpFillProcessItem(
     {
         // In some cases we can get the user SID using WTS (only works on XP and below).
 
-        if (!PhpWtsProcesses)
+        if (!PhpTsProcesses)
         {
-            WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, 0, 1, &PhpWtsProcesses, &PhpWtsNumberOfProcesses);
+            WinStationGetAllProcesses(
+                NULL,
+                0,
+                &PhpTsNumberOfProcesses,
+                &PhpTsProcesses
+                );
         }
 
-        if (PhpWtsProcesses)
+        if (PhpTsProcesses)
         {
             ULONG i;
 
-            for (i = 0; i < PhpWtsNumberOfProcesses; i++)
+            for (i = 0; i < PhpTsNumberOfProcesses; i++)
             {
-                if (PhpWtsProcesses[i].ProcessId == (ULONG)ProcessItem->ProcessId)
-                    ProcessItem->UserName = PhGetSidFullName(PhpWtsProcesses[i].pUserSid, TRUE, NULL);
+                if (UlongToHandle(PhpTsProcesses[i].pTsProcessInfo->UniqueProcessId) == ProcessItem->ProcessId)
+                {
+                    ProcessItem->UserName = PhGetSidFullName(PhpTsProcesses[i].pSid, TRUE, NULL);
+                    break;
+                }
             }
         }
     }
@@ -1756,10 +1764,10 @@ VOID PhProcessProviderUpdate(
     PhClearList(pids);
     PhFree(processes);
 
-    if (PhpWtsProcesses)
+    if (PhpTsProcesses)
     {
-        WTSFreeMemory(PhpWtsProcesses);
-        PhpWtsProcesses = NULL;
+        WinStationFreeGAPMemory(0, PhpTsProcesses, PhpTsNumberOfProcesses);
+        PhpTsProcesses = NULL;
     }
 
     if (runCount != 0)

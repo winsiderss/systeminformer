@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-#include <wtsapi32.h>
+#include <winsta.h>
 #include <ws2tcpip.h>
 
 INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
@@ -35,16 +35,16 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
 
 static PH_KEY_VALUE_PAIR PhpConnectStatePairs[] =
 {
-    SIP(L"Active", WTSActive),
-    SIP(L"Connected", WTSConnected),
-    SIP(L"ConnectQuery", WTSConnectQuery),
-    SIP(L"Shadow", WTSShadow),
-    SIP(L"Disconnected", WTSDisconnected),
-    SIP(L"Idle", WTSIdle),
-    SIP(L"Listen", WTSListen),
-    SIP(L"Reset", WTSReset),
-    SIP(L"Down", WTSDown),
-    SIP(L"Init", WTSInit)
+    SIP(L"Active", State_Active),
+    SIP(L"Connected", State_Connected),
+    SIP(L"ConnectQuery", State_ConnectQuery),
+    SIP(L"Shadow", State_Shadow),
+    SIP(L"Disconnected", State_Disconnected),
+    SIP(L"Idle", State_Idle),
+    SIP(L"Listen", State_Listen),
+    SIP(L"Reset", State_Reset),
+    SIP(L"Down", State_Down),
+    SIP(L"Init", State_Init)
 };
 
 VOID PhShowSessionProperties(
@@ -73,103 +73,98 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
     case WM_INITDIALOG:
         {
             ULONG sessionId = (ULONG)lParam;
-            PPH_STRING domainName = NULL;
-            PPH_STRING userName = NULL;
-            PULONG state = NULL;
+            WINSTATIONINFORMATION winStationInfo;
+            WINSTATIONCLIENT clientInfo;
+            BOOLEAN haveClientInfo;
+            ULONG returnLength;
             PWSTR stateString;
-            PPH_STRING clientName = NULL;
-            PWTS_CLIENT_ADDRESS clientAddress = NULL;
-            WCHAR clientAddressString[65] = L"N/A";
-            PWTS_CLIENT_DISPLAY clientDisplay = NULL;
-            ULONG length;
 
             SetProp(hwndDlg, L"SessionId", (HANDLE)sessionId);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            domainName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                WTS_CURRENT_SERVER_HANDLE, sessionId, WTSDomainName));
-            userName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                WTS_CURRENT_SERVER_HANDLE, sessionId, WTSUserName));
-            clientName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                WTS_CURRENT_SERVER_HANDLE, sessionId, WTSClientName));
+            // Query basic session information
 
-            SetDlgItemText(hwndDlg, IDC_USERNAME,
-                PhaFormatString(L"%s\\%s", PhGetStringOrEmpty(domainName), PhGetStringOrEmpty(userName))->Buffer);
-            SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
-
-            WTSQuerySessionInformation(
-                WTS_CURRENT_SERVER_HANDLE,
+            if (!WinStationQueryInformationW(
+                NULL,
                 sessionId,
-                WTSConnectState,
-                (PWSTR *)&state,
-                &length
+                WinStationInformation,
+                &winStationInfo,
+                sizeof(WINSTATIONINFORMATION),
+                &returnLength
+                ))
+            {
+                winStationInfo.ConnectState = -1;
+                winStationInfo.Domain[0] = 0;
+                winStationInfo.UserName[0] = 0;
+            }
+
+            // Query client information
+
+            haveClientInfo = WinStationQueryInformationW(
+                NULL,
+                sessionId,
+                WinStationClient,
+                &clientInfo,
+                sizeof(WINSTATIONCLIENT),
+                &returnLength
                 );
 
-            if (state)
+            SetDlgItemText(hwndDlg, IDC_USERNAME,
+                PhaFormatString(L"%s\\%s", winStationInfo.Domain, winStationInfo.UserName)->Buffer);
+            SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
+
+            if (winStationInfo.ConnectState != -1)
             {
                 if (PhFindStringSiKeyValuePairs(
                     PhpConnectStatePairs,
                     sizeof(PhpConnectStatePairs),
-                    *state,
+                    winStationInfo.ConnectState,
                     &stateString
                     ))
                 {
                     SetDlgItemText(hwndDlg, IDC_STATE, stateString);
                 }
-
-                WTSFreeMemory(state);
             }
 
-            if (!PhIsNullOrEmptyString(clientName))
-                SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientName->Buffer);
-
-            WTSQuerySessionInformation(
-                WTS_CURRENT_SERVER_HANDLE,
-                sessionId,
-                WTSClientAddress,
-                (PWSTR *)&clientAddress,
-                &length
-                );
-
-            if (clientAddress)
+            if (haveClientInfo && clientInfo.ClientName[0] != 0)
             {
-                if (!PhIsNullOrEmptyString(clientName))
+                WCHAR addressString[65];
+
+                SetDlgItemText(hwndDlg, IDC_CLIENTNAME, clientInfo.ClientName);
+
+                if (clientInfo.ClientAddressFamily == AF_INET6)
                 {
-                    switch (clientAddress->AddressFamily)
+                    struct in6_addr address;
+                    ULONG i;
+                    PUSHORT in;
+                    PUSHORT out;
+
+                    // IPv6 is special - the client address data is a reversed version of 
+                    // the real address.
+
+                    in = (PUSHORT)clientInfo.ClientAddress;
+                    out = (PUSHORT)address.u.Word;
+
+                    for (i = 8; i != 0; i--)
                     {
-                    case AF_INET:
-                        RtlIpv4AddressToString((struct in_addr *)&clientAddress->Address[2], clientAddressString);
-                        break;
-                    case AF_INET6:
-                        RtlIpv6AddressToString((struct in6_addr *)&clientAddress->Address[2], clientAddressString);
-                        break;
+                        *out = _byteswap_ushort(*in);
+                        in++;
+                        out++;
                     }
 
-                    SetDlgItemText(hwndDlg, IDC_CLIENTADDRESS, clientAddressString);
+                    RtlIpv6AddressToString(&address, addressString);
                 }
-
-                WTSFreeMemory(clientAddress);
-            }
-
-            WTSQuerySessionInformation(
-                WTS_CURRENT_SERVER_HANDLE,
-                sessionId,
-                WTSClientDisplay,
-                (PWSTR *)&clientDisplay,
-                &length
-                );
-
-            if (clientDisplay)
-            {
-                if (!PhIsNullOrEmptyString(clientName))
+                else
                 {
-                    SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
-                        PhaFormatString(L"%ux%u@%u", clientDisplay->HorizontalResolution,
-                        clientDisplay->VerticalResolution, clientDisplay->ColorDepth)->Buffer
-                        );
+                    wcscpy_s(addressString, 65, clientInfo.ClientAddress);
                 }
 
-                WTSFreeMemory(clientDisplay);
+                SetDlgItemText(hwndDlg, IDC_CLIENTADDRESS, addressString);
+
+                SetDlgItemText(hwndDlg, IDC_CLIENTDISPLAY,
+                    PhaFormatString(L"%ux%u@%u", clientInfo.HRes,
+                    clientInfo.VRes, clientInfo.ColorDepth)->Buffer
+                    );
             }
 
             SetFocus(GetDlgItem(hwndDlg, IDOK));

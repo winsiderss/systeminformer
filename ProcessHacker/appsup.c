@@ -23,7 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include "mxml/mxml.h"
-#include <wtsapi32.h>
+#include <winsta.h>
 #include <dbghelp.h>
 
 BOOLEAN PhGetProcessIsSuspended(
@@ -352,35 +352,6 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     }
 
     return TRUE;
-}
-
-PPH_STRING PhGetSessionInformationString(
-    __in HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in ULONG InformationClass
-    )
-{
-    PPH_STRING string;
-    PWSTR buffer;
-    ULONG length;
-
-    if (WTSQuerySessionInformation(
-        ServerHandle,
-        SessionId,
-        (WTS_INFO_CLASS)InformationClass,
-        &buffer,
-        &length
-        ))
-    {
-        string = PhCreateString(buffer);
-        WTSFreeMemory(buffer);
-
-        return string;
-    }
-    else
-    {
-        return NULL;
-    }
 }
 
 PPH_STRING PhEscapeStringForDelimiter(
