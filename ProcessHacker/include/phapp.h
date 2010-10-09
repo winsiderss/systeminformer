@@ -166,8 +166,10 @@ ATOM PhRegisterWindowClass();
 #define PHTLC_ELEVATION 41
 #define PHTLC_WINDOWTITLE 42
 #define PHTLC_WINDOWSTATUS 43
+#define PHTLC_CYCLES 44
+#define PHTLC_CYCLESDELTA 45
 
-#define PHTLC_MAXIMUM 44
+#define PHTLC_MAXIMUM 46
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
@@ -208,6 +210,8 @@ typedef struct _PH_PROCESS_NODE
     HWND WindowHandle;
     PPH_STRING WindowText;
     BOOLEAN WindowHung;
+    // Cycles
+    PH_UINT64_DELTA CyclesDelta;
 
     PPH_STRING TooltipText;
 
@@ -238,6 +242,8 @@ typedef struct _PH_PROCESS_NODE
     WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
     PPH_STRING RelativeStartTimeText;
     PPH_STRING WindowTitleText;
+    PPH_STRING CyclesText;
+    PPH_STRING CyclesDeltaText;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();
@@ -245,6 +251,8 @@ VOID PhProcessTreeListInitialization();
 VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     );
+
+VOID PhLoadSettingsProcessTreeList();
 
 PPH_PROCESS_NODE PhAddProcessNode(
     __in PPH_PROCESS_ITEM ProcessItem,
