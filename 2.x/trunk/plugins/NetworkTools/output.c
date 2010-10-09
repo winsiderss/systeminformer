@@ -108,20 +108,21 @@ static NTSTATUS NetworkWorkerThreadStart(
         if (!context->WindowHandle)
         {
             PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
-            return STATUS_SUCCESS;
+            goto ExitCleanup;
         }
 
         if (!NT_SUCCESS(status))
         {
             SendMessage(context->WindowHandle, NTM_DONE, 0, 0);
             PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
-            return STATUS_SUCCESS;
+            goto ExitCleanup;
         }
 
         SendMessage(context->WindowHandle, NTM_RECEIVED, (WPARAM)isb.Information, (LPARAM)buffer);
         PhReleaseQueuedLockExclusive(&context->WindowHandleLock);
     }
 
+ExitCleanup:
     NtClose(context->PipeReadHandle);
 
     return STATUS_SUCCESS;
