@@ -128,8 +128,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_WINDOWTITLE, FALSE, L"Window Title", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHTLC_CYCLES, FALSE, L"Cycles", 120, PH_ALIGN_RIGHT, -1, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 120, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_CYCLES, FALSE, L"Cycles", 110, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
