@@ -2033,7 +2033,7 @@ VOID PhpInitialLoadSettings()
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
-    PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+    PhLoadSettingsProcessTreeList();
     PhLoadListViewColumnsFromSetting(L"ServiceListViewColumns", ServiceListViewHandle);
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
