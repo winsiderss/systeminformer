@@ -1653,6 +1653,19 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             {
                 PhShowChooseColumnsDialog(hwnd, hwnd);
                 PhpUpdateNeedCyclesInformation();
+
+                // Make sure the column we're sorting by is actually visible, 
+                // and if not, don't sort any more.
+                if (ProcessTreeListSortOrder != NoSortOrder)
+                {
+                    PH_TREELIST_COLUMN column;
+
+                    column.Id = ProcessTreeListSortColumn;
+                    TreeList_GetColumn(ProcessTreeListHandle, &column);
+
+                    if (!column.Visible)
+                        TreeList_SetSort(ProcessTreeListHandle, 0, NoSortOrder);
+                }
             }
 
             DestroyMenu(menu);
