@@ -382,12 +382,6 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     );
 
-PPH_STRING PhGetSessionInformationString(
-    __in HANDLE ServerHandle,
-    __in ULONG SessionId,
-    __in ULONG InformationClass
-    );
-
 PPH_STRING PhEscapeStringForDelimiter(
     __in PPH_STRING String,
     __in WCHAR Delimiter

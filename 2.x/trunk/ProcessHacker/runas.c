@@ -24,7 +24,7 @@
 #include <settings.h>
 #include <emenu.h>
 #include <shlwapi.h>
-#include <wtsapi32.h>
+#include <winsta.h>
 #include <windowsx.h>
 
 typedef struct _RUNAS_DIALOG_CONTEXT
@@ -513,7 +513,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             case IDC_SESSIONS:
                 {
                     PPH_EMENU sessionsMenu;
-                    PWTS_SESSION_INFO sessions;
+                    PSESSIONIDW sessions;
                     ULONG numberOfSessions;
                     ULONG i;
                     RECT buttonRect;
@@ -521,54 +521,46 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 
                     sessionsMenu = PhCreateEMenu();
 
-                    if (WTSEnumerateSessions(
-                        WTS_CURRENT_SERVER_HANDLE,
-                        0,
-                        1,
-                        &sessions,
-                        &numberOfSessions
-                        ))
+                    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
                     {
                         for (i = 0; i < numberOfSessions; i++)
                         {
-                            PPH_STRING domainName;
-                            PPH_STRING userName;
                             PPH_STRING menuString;
+                            WINSTATIONINFORMATION winStationInfo;
+                            ULONG returnLength;
 
-                            domainName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                                WTS_CURRENT_SERVER_HANDLE,
+                            if (!WinStationQueryInformationW(
+                                NULL,
                                 sessions[i].SessionId,
-                                WTSDomainName
-                                ));
-                            userName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                                WTS_CURRENT_SERVER_HANDLE,
-                                sessions[i].SessionId,
-                                WTSUserName
-                                ));
+                                WinStationInformation,
+                                &winStationInfo,
+                                sizeof(WINSTATIONINFORMATION),
+                                &returnLength
+                                ))
+                            {
+                                winStationInfo.Domain[0] = 0;
+                                winStationInfo.UserName[0] = 0;
+                            }
 
                             if (
-                                !PhIsNullOrEmptyString(userName) &&
-                                sessions[i].pWinStationName &&
-                                sessions[i].pWinStationName[0] != 0
+                                winStationInfo.UserName[0] &&
+                                sessions[i].WinStationName[0] != 0
                                 )
                             {
                                 menuString = PhFormatString(
                                     L"%u: %s (%s\\%s)",
                                     sessions[i].SessionId,
-                                    sessions[i].pWinStationName,
-                                    PhGetStringOrEmpty(domainName),
-                                    userName->Buffer
+                                    sessions[i].WinStationName,
+                                    winStationInfo.Domain,
+                                    winStationInfo.UserName
                                     );
                             }
-                            else if (
-                                sessions[i].pWinStationName &&
-                                sessions[i].pWinStationName[0] != 0
-                                )
+                            else if (sessions[i].WinStationName[0] != 0)
                             {
                                 menuString = PhFormatString(
                                     L"%u: %s",
                                     sessions[i].SessionId,
-                                    sessions[i].pWinStationName
+                                    sessions[i].WinStationName
                                     );
                             }
                             else
@@ -581,7 +573,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PhaDereferenceObject(menuString);
                         }
 
-                        WTSFreeMemory(sessions);
+                        WinStationFreeMemory(sessions);
 
                         GetWindowRect(GetDlgItem(hwndDlg, IDC_SESSIONS), &buttonRect);
 
