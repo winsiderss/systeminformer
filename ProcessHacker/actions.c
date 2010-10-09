@@ -25,7 +25,6 @@
 #include <kph.h>
 #include <winsta.h>
 #include <iphlpapi.h>
-#include <wtsapi32.h>
 
 typedef DWORD (WINAPI *_SetTcpEntry)(
     __in PMIB_TCPROW pTcpRow
@@ -298,20 +297,10 @@ BOOLEAN PhUiConnectSession(
     __in ULONG SessionId
     )
 {
-    static _WinStationConnectW WinStationConnectW_I = NULL;
     PPH_STRING selectedChoice = NULL;
 
-    if (!WinStationConnectW_I)
-        WinStationConnectW_I = PhGetProcAddress(L"winsta.dll", "WinStationConnectW");
-
-    if (!WinStationConnectW_I)
-    {
-        PhShowError(hWnd, L"This feature is not supported on your operating system.");
-        return FALSE;
-    }
-
     // Try once with no password.
-    if (WinStationConnectW_I(NULL, SessionId, -1, L"", TRUE))
+    if (WinStationConnectW(NULL, SessionId, -1, L"", TRUE))
         return TRUE;
 
     while (PhaChoiceDialog(
@@ -327,7 +316,7 @@ BOOLEAN PhUiConnectSession(
         NULL
         ))
     {
-        if (WinStationConnectW_I(NULL, SessionId, -1, selectedChoice->Buffer, TRUE))
+        if (WinStationConnectW(NULL, SessionId, -1, selectedChoice->Buffer, TRUE))
         {
             return TRUE;
         }
@@ -346,7 +335,7 @@ BOOLEAN PhUiDisconnectSession(
     __in ULONG SessionId
     )
 {
-    if (WTSDisconnectSession(WTS_CURRENT_SERVER_HANDLE, SessionId, FALSE))
+    if (WinStationDisconnect(NULL, SessionId, FALSE))
         return TRUE;
     else
         PhShowStatus(hWnd, L"Unable to disconnect the session", 0, GetLastError());
@@ -367,7 +356,7 @@ BOOLEAN PhUiLogoffSession(
         FALSE
         ))
     {
-        if (WTSLogoffSession(WTS_CURRENT_SERVER_HANDLE, SessionId, FALSE))
+        if (WinStationReset(NULL, SessionId, FALSE))
             return TRUE;
         else
             PhShowStatus(hWnd, L"Unable to logoff the session", 0, GetLastError());

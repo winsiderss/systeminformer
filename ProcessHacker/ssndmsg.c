@@ -22,7 +22,7 @@
 
 #include <phapp.h>
 #include <windowsx.h>
-#include <wtsapi32.h>
+#include <winsta.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
@@ -129,8 +129,8 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                         &timeout
                         );
 
-                    if (WTSSendMessage(
-                        WTS_CURRENT_SERVER_HANDLE,
+                    if (WinStationSendMessageW(
+                        NULL,
                         sessionId,
                         title->Buffer,
                         title->Length,
@@ -139,7 +139,7 @@ INT_PTR CALLBACK PhpSessionSendMessageDlgProc(
                         icon,
                         (ULONG)timeout,
                         &response,
-                        FALSE
+                        TRUE
                         ))
                     {
                         EndDialog(hwndDlg, IDOK);

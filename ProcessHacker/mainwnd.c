@@ -30,19 +30,14 @@
 #include <phplug.h>
 #include <windowsx.h>
 #include <shlobj.h>
+#include <winsta.h>
 #include <iphlpapi.h>
-#include <wtsapi32.h>
 
 typedef HRESULT (WINAPI *_LoadIconMetric)(
     __in HINSTANCE hinst,
     __in PCWSTR pszName,
     __in int lims,
     __out HICON *phico
-    );
-
-typedef BOOL (WINAPI *_WTSRegisterSessionNotification)(
-    __in HWND hWnd,
-    __in DWORD dwFlags
     );
 
 VOID PhMainWndOnCreate();
@@ -2090,18 +2085,8 @@ static NTSTATUS PhpDelayedLoadFunction(
 {
     ULONG i;
 
-    // Register for WTS notifications.
-    {
-        _WTSRegisterSessionNotification WTSRegisterSessionNotification_I;
-
-        WTSRegisterSessionNotification_I = (_WTSRegisterSessionNotification)GetProcAddress(
-            GetModuleHandle(L"wtsapi32.dll"),
-            "WTSRegisterSessionNotification"
-            );
-
-        if (WTSRegisterSessionNotification_I)
-            WTSRegisterSessionNotification_I(PhMainWndHandle, NOTIFY_FOR_ALL_SESSIONS);
-    }
+    // Register for window station notifications.
+    WinStationRegisterConsoleNotification(NULL, PhMainWndHandle, WNOTIFY_ALL_SESSIONS);
 
     for (i = PH_ICON_MINIMUM; i != PH_ICON_MAXIMUM; i <<= 1)
     {
@@ -2280,7 +2265,7 @@ BOOLEAN PhpProcessProcessPriorityCommand(
 VOID PhpRefreshUsersMenu()
 {
     HMENU menu;
-    PWTS_SESSION_INFO sessions;
+    PSESSIONIDW sessions;
     ULONG numberOfSessions;
     ULONG i;
     ULONG j;
@@ -2291,34 +2276,30 @@ VOID PhpRefreshUsersMenu()
     // Delete all items in the Users menu.
     while (DeleteMenu(menu, 0, MF_BYPOSITION)) ;
 
-    if (WTSEnumerateSessions(
-        WTS_CURRENT_SERVER_HANDLE,
-        0,
-        1,
-        &sessions,
-        &numberOfSessions
-        ))
+    if (WinStationEnumerateW(NULL, &sessions, &numberOfSessions))
     {
         for (i = 0; i < numberOfSessions; i++)
         {
             HMENU userMenu;
-            PPH_STRING domainName;
-            PPH_STRING userName;
             PPH_STRING menuText;
+            WINSTATIONINFORMATION winStationInfo;
+            ULONG returnLength;
             ULONG numberOfItems;
 
-            domainName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                WTS_CURRENT_SERVER_HANDLE,
+            if (!WinStationQueryInformationW(
+                NULL,
                 sessions[i].SessionId,
-                WTSDomainName
-                ));
-            userName = PHA_DEREFERENCE(PhGetSessionInformationString(
-                WTS_CURRENT_SERVER_HANDLE,
-                sessions[i].SessionId,
-                WTSUserName
-                ));
+                WinStationInformation,
+                &winStationInfo,
+                sizeof(WINSTATIONINFORMATION),
+                &returnLength
+                ))
+            {
+                winStationInfo.Domain[0] = 0;
+                winStationInfo.UserName[0] = 0;
+            }
 
-            if (PhIsNullOrEmptyString(domainName) || PhIsNullOrEmptyString(userName))
+            if (winStationInfo.Domain[0] == 0 || winStationInfo.UserName[0] == 0)
             {
                 // Probably the Services or RDP-Tcp session.
                 continue;
@@ -2327,8 +2308,8 @@ VOID PhpRefreshUsersMenu()
             menuText = PhaFormatString(
                 L"%u: %s\\%s",
                 sessions[i].SessionId,
-                domainName->Buffer,
-                userName->Buffer
+                winStationInfo.Domain,
+                winStationInfo.UserName
                 );
 
             userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
@@ -2351,7 +2332,7 @@ VOID PhpRefreshUsersMenu()
             }
         }
 
-        WTSFreeMemory(sessions);
+        WinStationFreeMemory(sessions);
     }
 
     DrawMenuBar(PhMainWndHandle);
