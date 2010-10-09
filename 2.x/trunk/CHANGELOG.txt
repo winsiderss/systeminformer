@@ -3,6 +3,7 @@ Process Hacker
 2.7
  * NEW/IMPROVED:
    * Vastly improved startup time and lower memory usage
+   * Added Cycles and Cycles Delta columns
    * Added option to disable address resolution for 
      network connections
    * Added time stamp display to peview

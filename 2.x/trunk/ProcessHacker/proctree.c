@@ -28,6 +28,12 @@ VOID PhpRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
 
+VOID PhpUpdateNeedCyclesInformation();
+
+VOID PhpUpdateProcessNodeCycles(
+    __inout PPH_PROCESS_NODE ProcessNode
+    );
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -52,8 +58,7 @@ BOOLEAN PhProcessTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ProcessNodeStateList; // list of nodes which need to be processed
 
 static PPH_LIST ProcessTreeFilterList = NULL;
-
-static HICON StockAppIcon;
+static BOOLEAN NeedCyclesInformation = FALSE;
 
 VOID PhProcessTreeListInitialization()
 {
@@ -123,9 +128,17 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHTLC_ELEVATION, FALSE, L"Elevation", 60, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_WINDOWTITLE, FALSE, L"Window Title", 120, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHTLC_CYCLES, FALSE, L"Cycles", 120, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 120, PH_ALIGN_RIGHT, -1, DT_RIGHT);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
+}
+
+VOID PhLoadSettingsProcessTreeList()
+{
+    PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+    PhpUpdateNeedCyclesInformation();
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessNode(
@@ -374,6 +387,8 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
     if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
     if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
+    if (ProcessNode->CyclesText) PhDereferenceObject(ProcessNode->CyclesText);
+    if (ProcessNode->CyclesDeltaText) PhDereferenceObject(ProcessNode->CyclesDeltaText);
 
     PhDereferenceObject(ProcessNode->ProcessItem);
 
@@ -399,7 +414,7 @@ VOID PhUpdateProcessNode(
 
 VOID PhTickProcessNodes()
 {
-    // Text invalidation
+    // Text invalidation, node updates
     {
         ULONG i;
 
@@ -410,6 +425,10 @@ VOID PhTickProcessNodes()
             // The name and PID never change, so we don't invalidate that.
             memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHTLC_MAXIMUM - 2));
             node->ValidMask = 0;
+
+            // Updates cycles if necessary.
+            if (NeedCyclesInformation)
+                PhpUpdateProcessNodeCycles(node);
         }
 
         if (ProcessTreeListSortOrder != NoSortOrder)
@@ -463,7 +482,7 @@ VOID PhTickProcessNodes()
     }
 }
 
-VOID PhpUpdateProcessNodeWsCounters(
+static VOID PhpUpdateProcessNodeWsCounters(
     __inout PPH_PROCESS_NODE ProcessNode
     )
 {
@@ -494,7 +513,7 @@ VOID PhpUpdateProcessNodeWsCounters(
     }
 }
 
-VOID PhpUpdateProcessNodeGdiUserHandles(
+static VOID PhpUpdateProcessNodeGdiUserHandles(
     __inout PPH_PROCESS_NODE ProcessNode
     )
 {
@@ -515,7 +534,7 @@ VOID PhpUpdateProcessNodeGdiUserHandles(
     }
 }
 
-VOID PhpUpdateProcessNodeIoPagePriority(
+static VOID PhpUpdateProcessNodeIoPagePriority(
     __inout PPH_PROCESS_NODE ProcessNode
     )
 {
@@ -538,7 +557,7 @@ VOID PhpUpdateProcessNodeIoPagePriority(
     }
 }
 
-BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
+static BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
     __in HWND hwnd,
     __in LPARAM lParam
     )
@@ -567,7 +586,7 @@ BOOL CALLBACK PhpEnumProcessNodeWindowsProc(
     return TRUE;
 }
 
-VOID PhpUpdateProcessNodeWindow(
+static VOID PhpUpdateProcessNodeWindow(
     __inout PPH_PROCESS_NODE ProcessNode
     )
 {
@@ -586,6 +605,88 @@ VOID PhpUpdateProcessNodeWindow(
 
         ProcessNode->ValidMask |= PHPN_WINDOW;
     }
+}
+
+static VOID PhpUpdateNeedCyclesInformation()
+{
+    PH_TREELIST_COLUMN column;
+
+    NeedCyclesInformation = FALSE;
+
+    if (!WINDOWS_HAS_CYCLE_TIME)
+        return;
+
+    column.Id = PHTLC_CYCLES;
+    TreeList_GetColumn(ProcessTreeListHandle, &column);
+
+    if (column.Visible)
+    {
+        NeedCyclesInformation = TRUE;
+        return;
+    }
+
+    column.Id = PHTLC_CYCLESDELTA;
+    TreeList_GetColumn(ProcessTreeListHandle, &column);
+
+    if (column.Visible)
+    {
+        NeedCyclesInformation = TRUE;
+        return;
+    }
+}
+
+static VOID PhpUpdateProcessNodeCycles(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (ProcessNode->ProcessId == SYSTEM_IDLE_PROCESS_ID)
+    {
+        PULARGE_INTEGER idleThreadCycleTimes;
+        ULONG64 cycleTime;
+        ULONG i;
+
+        // System Idle Process requires special treatment.
+
+        idleThreadCycleTimes = PhAllocate(
+            sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors
+            );
+
+        if (NT_SUCCESS(NtQuerySystemInformation(
+            SystemProcessorIdleCycleTimeInformation,
+            idleThreadCycleTimes,
+            sizeof(ULARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+            NULL
+            )))
+        {
+            cycleTime = 0;
+
+            for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+                cycleTime += idleThreadCycleTimes[i].QuadPart;
+
+            PhUpdateDelta(&ProcessNode->CyclesDelta, cycleTime);
+        }
+
+        PhFree(idleThreadCycleTimes);
+    }
+    else if (ProcessNode->ProcessItem->QueryHandle)
+    {
+        ULONG64 cycleTime;
+
+        if (NT_SUCCESS(PhGetProcessCycleTime(ProcessNode->ProcessItem->QueryHandle, &cycleTime)))
+        {
+            PhUpdateDelta(&ProcessNode->CyclesDelta, cycleTime);
+        }
+    }
+
+    if (ProcessNode->CyclesDelta.Value != 0)
+        PhSwapReference2(&ProcessNode->CyclesText, PhFormatUInt64(ProcessNode->CyclesDelta.Value, TRUE));
+    else
+        PhSwapReference2(&ProcessNode->CyclesText, NULL);
+
+    if (ProcessNode->CyclesDelta.Delta != 0)
+        PhSwapReference2(&ProcessNode->CyclesDeltaText, PhFormatUInt64(ProcessNode->CyclesDelta.Delta, TRUE));
+    else
+        PhSwapReference2(&ProcessNode->CyclesDeltaText, NULL);
 }
 
 #define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
@@ -925,6 +1026,18 @@ BEGIN_SORT_FUNCTION(WindowStatus)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Cycles)
+{
+    sortResult = uint64cmp(node1->CyclesDelta.Value, node2->CyclesDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CyclesDelta)
+{
+    sortResult = uint64cmp(node1->CyclesDelta.Delta, node2->CyclesDelta.Delta);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -1005,7 +1118,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(Bits),
                         SORT_FUNCTION(Elevation),
                         SORT_FUNCTION(WindowTitle),
-                        SORT_FUNCTION(WindowStatus)
+                        SORT_FUNCTION(WindowStatus),
+                        SORT_FUNCTION(Cycles),
+                        SORT_FUNCTION(CyclesDelta)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1367,6 +1482,12 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 else
                     PhInitializeEmptyStringRef(&getNodeText->Text);
                 break;
+            case PHTLC_CYCLES:
+                getNodeText->Text = PhGetStringRef(node->CyclesText);
+                break;
+            case PHTLC_CYCLESDELTA:
+                getNodeText->Text = PhGetStringRef(node->CyclesDeltaText);
+                break;
             default:
                 return FALSE;
             }
@@ -1531,6 +1652,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 ) == ID_HEADER_CHOOSECOLUMNS)
             {
                 PhShowChooseColumnsDialog(hwnd, hwnd);
+                PhpUpdateNeedCyclesInformation();
             }
 
             DestroyMenu(menu);
