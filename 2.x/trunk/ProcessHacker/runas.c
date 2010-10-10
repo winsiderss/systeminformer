@@ -543,7 +543,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             }
 
                             if (
-                                winStationInfo.UserName[0] &&
+                                winStationInfo.UserName[0] != 0 &&
                                 sessions[i].WinStationName[0] != 0
                                 )
                             {
@@ -551,6 +551,15 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                                     L"%u: %s (%s\\%s)",
                                     sessions[i].SessionId,
                                     sessions[i].WinStationName,
+                                    winStationInfo.Domain,
+                                    winStationInfo.UserName
+                                    );
+                            }
+                            else if (winStationInfo.UserName[0] != 0)
+                            {
+                                menuString = PhFormatString(
+                                    L"%u: %s\\%s",
+                                    sessions[i].SessionId,
                                     winStationInfo.Domain,
                                     winStationInfo.UserName
                                     );
