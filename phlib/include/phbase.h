@@ -373,6 +373,10 @@ unsigned long
 __cdecl
 ph_crc32(unsigned long crc, char *buf, size_t len);
 
+unsigned short
+__cdecl
+ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count);
+
 // event
 
 #define PH_EVENT_SET 0x1

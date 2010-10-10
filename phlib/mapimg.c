@@ -1080,23 +1080,6 @@ NTSTATUS PhGetMappedImageImportEntry(
     return STATUS_SUCCESS;
 }
 
-USHORT PhComputePartialImageCheckSum(
-    __in ULONG PartialSum,
-    __in PUSHORT Buffer,
-    __in ULONG Count
-    )
-{
-    while (Count--)
-    {
-        PartialSum += *Buffer++;
-        PartialSum = (PartialSum >> 16) + (PartialSum & 0xffff);
-    }
-
-    PartialSum = (PartialSum >> 16) + PartialSum;
-
-    return (USHORT)PartialSum;
-}
-
 ULONG PhCheckSumMappedImage(
     __in PPH_MAPPED_IMAGE MappedImage
     )
@@ -1105,7 +1088,7 @@ ULONG PhCheckSumMappedImage(
     USHORT partialSum;
     PUSHORT adjust;
 
-    partialSum = PhComputePartialImageCheckSum(
+    partialSum = ph_chksum(
         0,
         (PUSHORT)MappedImage->ViewBase,
         (ULONG)(MappedImage->Size + 1) / 2
