@@ -1183,6 +1183,7 @@ VOID PhRunAsServiceStart()
     PPH_STRING domainName;
     PPH_STRING userName;
     PH_CREATE_PROCESS_AS_USER_INFO createInfo;
+    ULONG flags;
 
     // Enable some required privileges.
 
@@ -1240,9 +1241,14 @@ VOID PhRunAsServiceStart()
     createInfo.SessionId = RunAsServiceParameters.SessionId;
     createInfo.DesktopName = PhGetString(RunAsServiceParameters.DesktopName);
 
+    flags = PH_CREATE_PROCESS_SET_SESSION_ID;
+
+    if (RunAsServiceParameters.UseLinkedToken)
+        flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
+
     status = PhCreateProcessAsUser(
         &createInfo,
-        PH_CREATE_PROCESS_USE_LINKED_TOKEN | PH_CREATE_PROCESS_SET_SESSION_ID,
+        flags,
         NULL,
         NULL,
         NULL
