@@ -91,6 +91,8 @@ copy ..\..\lib\lib32\ntdll.lib ..\..\sdk\lib\i386\
 copy ..\..\lib\lib64\ntdll.lib ..\..\sdk\lib\amd64\
 copy ..\..\lib\lib32\samlib.lib ..\..\sdk\lib\i386\
 copy ..\..\lib\lib64\samlib.lib ..\..\sdk\lib\amd64\
+copy ..\..\lib\lib32\winsta.lib ..\..\sdk\lib\i386\
+copy ..\..\lib\lib64\winsta.lib ..\..\sdk\lib\amd64\
 
 copy ..\..\bin\Release32\ProcessHacker.lib ..\..\sdk\lib\i386\
 copy ..\..\bin\Release64\ProcessHacker.lib ..\..\sdk\lib\amd64\ > NUL
