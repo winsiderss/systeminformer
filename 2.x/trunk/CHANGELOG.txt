@@ -10,6 +10,7 @@ Process Hacker
    * Added time stamp display to peview
  * FIXED:
    * ToolStatus layout problems
+   * .NET highlighting crashes
 
 2.6
  * NEW/IMPROVED:

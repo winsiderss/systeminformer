@@ -5405,7 +5405,7 @@ NTSTATUS PhGetProcessIsDotNet(
 
 typedef struct _PH_IS_DOT_NET_ENTRY
 {
-    struct _PH_IS_DOT_NET_ENTRY *Next;
+    ULONG Next; // can't use pointer; if the entries array is resized, the pointer becomes invalid
     ULONG Flags;
     HANDLE ProcessId;
 } PH_IS_DOT_NET_ENTRY, *PPH_IS_DOT_NET_ENTRY;
@@ -5415,7 +5415,7 @@ typedef struct _PH_IS_DOT_NET_CONTEXT
     PPH_IS_DOT_NET_ENTRY Entries;
     ULONG NumberOfEntries;
     ULONG NumberOfAllocatedEntries;
-    PPH_IS_DOT_NET_ENTRY Buckets[16];
+    ULONG Buckets[16];
 } PH_IS_DOT_NET_CONTEXT, *PPH_IS_DOT_NET_CONTEXT;
 
 BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
@@ -5438,6 +5438,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
         ULONG flags;
         PH_STRINGREF name;
         ULONG64 processId;
+        ULONG entryIndex;
         ULONG index;
 
         flags = 0;
@@ -5464,13 +5465,14 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
                     );
             }
 
-            entry = &context->Entries[context->NumberOfEntries++];
+            entryIndex = context->NumberOfEntries++;
+            entry = &context->Entries[entryIndex];
             entry->Flags = flags;
             entry->ProcessId = (HANDLE)processId;
 
-            index = ((ULONG)processId / 4) & (sizeof(context->Buckets) / sizeof(PH_IS_DOT_NET_ENTRY) - 1);
+            index = ((ULONG)processId / 4) & (sizeof(context->Buckets) / sizeof(ULONG) - 1);
             entry->Next = context->Buckets[index];
-            context->Buckets[index] = entry;
+            context->Buckets[index] = entryIndex;
         }
     }
 
@@ -5494,7 +5496,7 @@ NTSTATUS PhCreateIsDotNetContext(
     isDotNetContext->NumberOfEntries = 0;
     isDotNetContext->NumberOfAllocatedEntries = 16;
     isDotNetContext->Entries = PhAllocate(isDotNetContext->NumberOfAllocatedEntries * sizeof(PH_IS_DOT_NET_ENTRY));
-    memset(isDotNetContext->Buckets, 0, sizeof(isDotNetContext->Buckets));
+    memset(isDotNetContext->Buckets, -1, sizeof(isDotNetContext->Buckets));
 
     if (!DirectoryNames || NumberOfDirectoryNames == 0)
     {
@@ -5551,12 +5553,14 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
 {
     PPH_IS_DOT_NET_ENTRY entry;
     ULONG index;
+    ULONG i;
 
-    index = ((ULONG)ProcessId / 4) & (sizeof(IsDotNetContext->Buckets) / sizeof(PH_IS_DOT_NET_ENTRY) - 1);
-    entry = IsDotNetContext->Buckets[index];
+    index = ((ULONG)ProcessId / 4) & (sizeof(IsDotNetContext->Buckets) / sizeof(ULONG) - 1);
 
-    while (entry)
+    for (i = IsDotNetContext->Buckets[index]; i != -1; i = entry->Next)
     {
+        entry = &IsDotNetContext->Entries[i];
+
         if (entry->ProcessId == ProcessId)
         {
             if (Flags)
@@ -5564,8 +5568,6 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
 
             return TRUE;
         }
-
-        entry = entry->Next;
     }
 
     return FALSE;
