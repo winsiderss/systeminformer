@@ -11,6 +11,7 @@ Process Hacker
  * FIXED:
    * ToolStatus layout problems
    * .NET highlighting crashes
+   * Run As on Windows XP
 
 2.6
  * NEW/IMPROVED:
