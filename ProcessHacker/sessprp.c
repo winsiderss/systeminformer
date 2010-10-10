@@ -94,6 +94,7 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 ))
             {
                 winStationInfo.ConnectState = -1;
+                winStationInfo.LogonTime.QuadPart = 0;
                 winStationInfo.Domain[0] = 0;
                 winStationInfo.UserName[0] = 0;
             }
@@ -124,6 +125,17 @@ INT_PTR CALLBACK PhpSessionPropertiesDlgProc(
                 {
                     SetDlgItemText(hwndDlg, IDC_STATE, stateString);
                 }
+            }
+
+            if (winStationInfo.LogonTime.QuadPart != 0)
+            {
+                SYSTEMTIME systemTime;
+                PPH_STRING time;
+
+                PhLargeIntegerToLocalSystemTime(&systemTime, &winStationInfo.LogonTime);
+                time = PhFormatDateTime(&systemTime);
+                SetDlgItemText(hwndDlg, IDC_LOGONTIME, time->Buffer);
+                PhDereferenceObject(time);
             }
 
             if (haveClientInfo && clientInfo.ClientName[0] != 0)

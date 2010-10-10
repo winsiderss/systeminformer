@@ -6,6 +6,7 @@ Process Hacker
    * Added Cycles and Cycles Delta columns
    * Added option to disable address resolution for 
      network connections
+   * Added Logon Time to session properties
    * Added time stamp display to peview
  * FIXED:
    * ToolStatus layout problems
