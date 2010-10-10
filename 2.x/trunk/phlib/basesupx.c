@@ -109,6 +109,114 @@ done:
     }
 }
 
+__declspec(naked) unsigned short __cdecl ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count)
+{
+    __asm
+    {
+        push    esi
+
+        mov     ecx, [esp+0x8+0x8] // count
+        mov     eax, [esp+0x8+0x0] // sum
+        mov     esi, [esp+0x8+0x4] // buf
+
+        // The checksum involves summing the words in the buffer, adding the carry back 
+        // onto the low word of the checksum. We can do this more efficiently by 
+        // working with dwords.
+
+        // Make sure the buffer has 4 byte alignment.
+        test    esi, 0x2
+        jz      do_2
+
+        // Not aligned - process one word.
+        add     ax, [esi]
+        adc     ax, 0
+        add     esi, 2
+        sub     ecx, 1
+
+        // Since the buffer is aligned, we start clearing bits of the 
+        // count starting with 2 words. Once we reach 16 words at a time, 
+        // the higher bits are cleared by a loop. The remaining 1 word is 
+        // then cleared.
+
+do_2:
+        // 2 words
+        test    ecx, 2
+        jz      do_4
+
+        add     eax, [esi]
+        adc     eax, 0
+
+        add     esi, 4
+        sub     ecx, 2
+
+do_4:
+        // 4 words
+        test    ecx, 4
+        jz      do_8
+
+        add     eax, [esi]
+        adc     eax, [esi+4]
+        adc     eax, 0
+
+        add     esi, 8
+        sub     ecx, 4
+
+do_8:
+        // 8 words
+        test    ecx, 8
+        jz      do_16
+
+        add     eax, [esi]
+        adc     eax, [esi+4]
+        adc     eax, [esi+8]
+        adc     eax, [esi+12]
+        adc     eax, 0
+
+        add     esi, 16
+        sub     ecx, 8
+
+do_16:
+        // 16 words
+        mov     edx, ecx
+        and     edx, 15
+        sub     ecx, edx // ignore smaller chunks
+        jz      do_1
+
+do_16_loop_start:
+        add     eax, [esi]
+        adc     eax, [esi+4]
+        adc     eax, [esi+8]
+        adc     eax, [esi+12]
+        adc     eax, [esi+16]
+        adc     eax, [esi+20]
+        adc     eax, [esi+24]
+        adc     eax, [esi+28]
+        adc     eax, 0
+
+        add     esi, 32
+        sub     ecx, 16
+        jnz     do_16_loop_start
+
+do_1:
+        // 1 word
+        test    edx, 1
+        jz      done
+
+        add     ax, [esi]
+        adc     ax, 0
+
+done:
+        // Merge the top 16 bits with the bottom 16 bits.
+        mov     dx, ax
+        shr     eax, 16
+        add     ax, dx
+        adc     ax, 0
+
+        pop     esi
+        ret
+    }
+}
+
 #else
 
 int __cdecl ph_equal_string(wchar_t *s1, wchar_t *s2, size_t len)
@@ -147,6 +255,19 @@ unsigned long __cdecl ph_crc32(unsigned long crc, char *buf, size_t len)
         crc = (crc >> 8) ^ PhCrc32Table[(crc ^ *buf++) & 0xff];
 
     return crc ^ 0xffffffff;
+}
+
+unsigned short __cdecl ph_chksum(unsigned long sum, unsigned short *buf, unsigned long count)
+{
+    while (count--)
+    {
+        sum += *buf++;
+        sum = (sum >> 16) + (sum & 0xffff);
+    }
+
+    sum = (sum >> 16) + sum;
+
+    return (unsigned short)sum;
 }
 
 #endif
