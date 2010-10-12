@@ -107,6 +107,8 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
+    PhpAddIntegerSetting(L"ProcessTreeListSortColumn", L"0");
+    PhpAddIntegerSetting(L"ProcessTreeListSortOrder", L"0");
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");

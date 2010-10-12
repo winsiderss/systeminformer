@@ -2120,7 +2120,8 @@ VOID PhpSaveAllSettings()
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
 
-    PhSaveTreeListColumnsToSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+    PhSaveSettingsProcessTreeList();
+
     PhSaveListViewColumnsToSetting(L"ServiceListViewColumns", ServiceListViewHandle);
     PhSaveListViewColumnsToSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 
