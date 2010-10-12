@@ -254,6 +254,8 @@ VOID PhInitializeProcessTreeList(
 
 VOID PhLoadSettingsProcessTreeList();
 
+VOID PhSaveSettingsProcessTreeList();
+
 PPH_PROCESS_NODE PhAddProcessNode(
     __in PPH_PROCESS_ITEM ProcessItem,
     __in ULONG RunId

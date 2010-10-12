@@ -98,9 +98,9 @@
 
 typedef enum _PH_SORT_ORDER
 {
+    NoSortOrder = 0,
     AscendingSortOrder,
-    DescendingSortOrder,
-    NoSortOrder
+    DescendingSortOrder
 } PH_SORT_ORDER, *PPH_SORT_ORDER;
 
 FORCEINLINE INT PhModifySort(

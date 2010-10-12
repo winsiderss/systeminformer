@@ -137,8 +137,32 @@ VOID PhInitializeProcessTreeList(
 
 VOID PhLoadSettingsProcessTreeList()
 {
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
+
     PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+
+    sortOrder = PhGetIntegerSetting(L"ProcessTreeListSortOrder");
+
+    if (sortOrder != NoSortOrder)
+    {
+        sortColumn = PhGetIntegerSetting(L"ProcessTreeListSortColumn");
+        TreeList_SetSort(ProcessTreeListHandle, sortColumn, sortOrder);
+    }
+
     PhpUpdateNeedCyclesInformation();
+}
+
+VOID PhSaveSettingsProcessTreeList()
+{
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
+
+    PhSaveTreeListColumnsToSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+
+    TreeList_GetSort(ProcessTreeListHandle, &sortColumn, &sortOrder);
+    PhSetIntegerSetting(L"ProcessTreeListSortColumn", sortColumn);
+    PhSetIntegerSetting(L"ProcessTreeListSortOrder", sortOrder);
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessNode(
