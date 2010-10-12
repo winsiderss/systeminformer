@@ -26,6 +26,9 @@
 #include <md5.h>
 #include <sha.h>
 
+// We may want to change this for debugging purposes.
+#define PHP_USE_IFILEDIALOG (WINDOWS_HAS_IFILEDIALOG)
+
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
     __out LPVOID *lpEnvironment,
     __in_opt HANDLE hToken,
@@ -2922,7 +2925,7 @@ VOID PhpFreeOpenFileName(
  */
 PVOID PhCreateOpenFileDialog()
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
 
@@ -2963,7 +2966,7 @@ PVOID PhCreateOpenFileDialog()
  */
 PVOID PhCreateSaveFileDialog()
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog *fileDialog;
 
@@ -3003,7 +3006,7 @@ VOID PhFreeFileDialog(
     __in PVOID FileDialog
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog_Release((IFileDialog *)FileDialog);
     }
@@ -3028,7 +3031,7 @@ BOOLEAN PhShowFileDialog(
     __in PVOID FileDialog
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         // Set a blank default extension. This will have an effect when the user 
         // selects a different file type.
@@ -3090,7 +3093,7 @@ ULONG PhGetFileDialogOptions(
     __in PVOID FileDialog
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         FILEOPENDIALOGOPTIONS dialogOptions;
         ULONG options;
@@ -3159,7 +3162,7 @@ VOID PhSetFileDialogOptions(
     __in ULONG Options
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         FILEOPENDIALOGOPTIONS dialogOptions;
 
@@ -3202,7 +3205,7 @@ VOID PhSetFileDialogFilter(
     __in ULONG NumberOfFilters
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IFileDialog_SetFileTypes(
             (IFileDialog *)FileDialog,
@@ -3251,7 +3254,7 @@ PPH_STRING PhGetFileDialogFileName(
     __in PVOID FileDialog
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IShellItem *result;
         PPH_STRING fileName = NULL;
@@ -3299,7 +3302,7 @@ VOID PhSetFileDialogFileName(
     __in PWSTR FileName
     )
 {
-    if (WINDOWS_HAS_IFILEDIALOG)
+    if (PHP_USE_IFILEDIALOG)
     {
         IShellItem *shellItem = NULL;
         PWSTR baseName;
@@ -3339,9 +3342,9 @@ VOID PhSetFileDialogFileName(
     {
         OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
 
-        if (wcschr(FileName, '/'))
+        if (wcschr(FileName, '/') || wcschr(FileName, '\"'))
         {
-            // It refuses to take any filenames with a slash.
+            // It refuses to take any filenames with a slash or quotation mark.
             return;
         }
 
