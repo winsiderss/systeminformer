@@ -75,7 +75,7 @@ PVOID PhAllocateForMemorySearch(
     {
         assert(PhMemorySearchHeapRefCount == 0);
         PhMemorySearchHeap = RtlCreateHeap(
-            HEAP_GROWABLE | HEAP_CLASS_1 | HEAP_NO_SERIALIZE,
+            HEAP_GROWABLE | HEAP_CLASS_1,
             NULL,
             8192 * 1024, // 8 MB
             2048 * 1024, // 2 MB
@@ -86,6 +86,7 @@ PVOID PhAllocateForMemorySearch(
 
     if (PhMemorySearchHeap)
     {
+        // Don't use HEAP_NO_SERIALIZE - it's very slow on Vista and above.
         memory = RtlAllocateHeap(PhMemorySearchHeap, 0, Size);
 
         if (memory)
