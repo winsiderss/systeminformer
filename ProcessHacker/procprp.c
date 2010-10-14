@@ -1083,6 +1083,7 @@ VOID PhpUpdateProcessStatistics(
     // Optional information
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
+        PPH_STRING peakHandles = NULL;
         PPH_STRING gdiHandles = NULL;
         PPH_STRING userHandles = NULL;
         PPH_STRING cycles = NULL;
@@ -1092,6 +1093,22 @@ VOID PhpUpdateProcessStatistics(
         if (ProcessItem->QueryHandle)
         {
             ULONG64 cycleTime;
+
+            if (WindowsVersion >= WINDOWS_7)
+            {
+                PROCESS_HANDLE_COUNT_EX handleCount;
+
+                if (NT_SUCCESS(NtQueryInformationProcess(
+                    ProcessItem->QueryHandle,
+                    ProcessHandleCount,
+                    &handleCount,
+                    sizeof(PROCESS_HANDLE_COUNT_EX),
+                    NULL
+                    )))
+                {
+                    peakHandles = PhaFormatUInt64(handleCount.PeakHandleCount, TRUE);
+                }
+            }
 
             gdiHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_GDIOBJECTS), TRUE); // GDI handles
             userHandles = PhaFormatUInt64(GetGuiResources(ProcessItem->QueryHandle, GR_USEROBJECTS), TRUE); // USER handles
@@ -1108,6 +1125,11 @@ VOID PhpUpdateProcessStatistics(
                 PhGetProcessIoPriority(ProcessItem->QueryHandle, &ioPriority); 
             }
         }
+
+        if (WindowsVersion >= WINDOWS_7)
+            SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, PhGetStringOrDefault(peakHandles, L"Unknown"));
+        else
+            SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, L"N/A");
 
         SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, PhGetStringOrDefault(gdiHandles, L"Unknown"));
         SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, PhGetStringOrDefault(userHandles, L"Unknown"));
