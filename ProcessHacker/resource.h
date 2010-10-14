@@ -407,6 +407,7 @@
 #define IDC_CREDITS                     1270
 #define IDC_ENABLENETWORKRESOLVE        1271
 #define IDC_LOGONTIME                   1272
+#define IDC_ZPEAKHANDLES_V              1273
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICELV            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -623,7 +624,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
 #define _APS_NEXT_COMMAND_VALUE         40235
-#define _APS_NEXT_CONTROL_VALUE         1273
+#define _APS_NEXT_CONTROL_VALUE         1274
 #define _APS_NEXT_SYMED_VALUE           132
 #endif
 #endif

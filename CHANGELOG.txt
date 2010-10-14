@@ -2,6 +2,7 @@ Process Hacker
 
 2.8
  * NEW/IMPROVED:
+   * Added Peak Handles
    * Process tree sorting is now preserved
 
 2.7
