@@ -84,7 +84,7 @@ typedef enum _PROCESS_INFORMATION_CLASS
     ProcessEnableAlignmentFaultFixup, // s: BOOLEAN
     ProcessPriorityClass, // qs: PROCESS_PRIORITY_CLASS
     ProcessWx86Information,
-    ProcessHandleCount, // 20, q: ULONG
+    ProcessHandleCount, // 20, q: ULONG, PROCESS_HANDLE_COUNT_EX
     ProcessAffinityMask, // s: KAFFINITY
     ProcessPriorityBoost, // qs: ULONG
     ProcessDeviceMap,
@@ -347,6 +347,13 @@ typedef struct _PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION
 } PROCESS_MEMORY_ALLOCATION_MODE_INFORMATION, *PPROCESS_MEMORY_ALLOCATION_MODE_INFORMATION;
 
 // end_rev
+
+// rev
+typedef struct _PROCESS_HANDLE_COUNT_EX
+{
+    ULONG HandleCount;
+    ULONG PeakHandleCount;
+} PROCESS_HANDLE_COUNT_EX, *PPROCESS_HANDLE_COUNT_EX;
 
 // rev
 typedef struct _PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
