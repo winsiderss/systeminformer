@@ -1156,6 +1156,7 @@ VOID PhpUpdateProcessStatistics(
     }
     else
     {
+        SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, L"N/A");
         SetDlgItemText(hwndDlg, IDC_ZGDIHANDLES_V, L"N/A");
         SetDlgItemText(hwndDlg, IDC_ZUSERHANDLES_V, L"N/A");
         SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, L"N/A");
