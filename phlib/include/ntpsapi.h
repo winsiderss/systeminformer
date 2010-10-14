@@ -426,6 +426,47 @@ NtCreateProcessEx(
     __in ULONG JobMemberLevel
     );
 
+typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+// begin_rev
+
+typedef struct _PROCESS_CREATE_ATTRIBUTE
+{
+    ULONG_PTR Type;
+    SIZE_T Size;
+    PVOID Buffer;
+    ULONG_PTR Reserved;
+} PROCESS_CREATE_ATTRIBUTE, *PPROCESS_CREATE_ATTRIBUTE;
+
+typedef struct _PROCESS_CREATE_ATTRIBUTES
+{
+    SIZE_T Size;
+    PROCESS_CREATE_ATTRIBUTE Attributes[1];
+} PROCESS_CREATE_ATTRIBUTES, *PPROCESS_CREATE_ATTRIBUTES;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateUserProcess(
+    __out PHANDLE ProcessHandle,
+    __out PHANDLE ThreadHandle,
+    __in ACCESS_MASK ProcessDesiredAccess,
+    __in ACCESS_MASK ThreadDesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ProcessObjectAttributes,
+    __in_opt POBJECT_ATTRIBUTES ThreadObjectAttributes,
+    __in ULONG Flags, // PROCESS_CREATE_FLAGS_*
+    __in ULONG MoreFlags, // ?
+    __in_opt PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
+    __in PVOID CreateInfo, // ? PspCaptureCreateInfo
+    __in_opt PPROCESS_CREATE_ATTRIBUTES Attributes // ? PspBuildCreateProcessContext
+    );
+
+// end_rev
+
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -552,6 +593,26 @@ NtCreateThread(
     __in PINITIAL_TEB InitialTeb,
     __in BOOLEAN CreateSuspended
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateThreadEx(
+    __out PHANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE ProcessHandle,
+    __in PVOID StartAddress,
+    __in PVOID Parameter,
+    __in ULONG Flags,
+    __in_opt ULONG_PTR StackZeroBits,
+    __in_opt SIZE_T StackCommit,
+    __in_opt SIZE_T StackReserve,
+    __in_opt PPROCESS_CREATE_ATTRIBUTES Attributes // ?
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS

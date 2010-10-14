@@ -1756,6 +1756,40 @@ RtlCreateUserProcess(
     __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+// begin_rev
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCloneUserProcess(
+    __in ULONG Flags,
+    __in_opt PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
+    __in_opt PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
+    __in_opt HANDLE DebugPort,
+    __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
+    );
+
+NTSYSAPI
+PRTL_CRITICAL_SECTION
+NTAPI
+RtlUpdateClonedCriticalSection(
+    __inout PRTL_CRITICAL_SECTION CriticalSection
+    );
+
+NTSYSAPI
+PRTL_SRWLOCK
+NTAPI
+RtlUpdateClonedSRWLock(
+    __inout PRTL_SRWLOCK SRWLock,
+    __in LOGICAL Shared // TRUE to set to shared acquire
+    );
+
+// end_rev
+
+#endif
+
 NTSYSAPI
 NTSTATUS
 STDAPIVCALLTYPE
