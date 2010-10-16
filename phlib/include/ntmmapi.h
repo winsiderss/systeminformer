@@ -87,10 +87,21 @@ typedef struct _SECTION_IMAGE_INFORMATION
     USHORT DllCharacteristics;
     USHORT Machine;
     BOOLEAN ImageContainsCode;
-    BOOLEAN Spare1;
+    union
+    {
+        UCHAR ImageFlags;
+        struct
+        {
+            UCHAR ComPlusNativeReady : 1;
+            UCHAR ComPlusILOnly : 1;
+            UCHAR ImageDynamicallyRelocated : 1;
+            UCHAR ImageMappedFlat : 1;
+            UCHAR Reserved : 4;
+        };
+    };
     ULONG LoaderFlags;
     ULONG ImageFileSize;
-    ULONG Reserved[1];
+    ULONG CheckSum;
 } SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
 
 typedef enum _SECTION_INHERIT

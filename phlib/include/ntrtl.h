@@ -1752,13 +1752,17 @@ RtlCreateUserProcess(
     __in_opt HANDLE ParentProcess,
     __in BOOLEAN InheritHandles,
     __in_opt HANDLE DebugPort,
-    __in_opt HANDLE ExceptionPort,
+    __in_opt HANDLE ExceptionPort, // appears to be TokenHandle now
     __out PRTL_USER_PROCESS_INFORMATION ProcessInformation
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
 // begin_rev
+
+#define RTL_CLONE_PROCESS_FLAGS_CREATE_SUSPENDED 0x00000001
+#define RTL_CLONE_PROCESS_FLAGS_INHERIT_HANDLES 0x00000002
+#define RTL_CLONE_PROCESS_FLAGS_NO_SYNCHRONIZE 0x00000004 // don't update synchronization objects
 
 NTSYSAPI
 NTSTATUS
