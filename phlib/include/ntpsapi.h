@@ -943,8 +943,12 @@ NtCreateThreadEx(
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 
-#define USER_APC_RESERVE_TYPE 0
-#define IO_COMPLETION_RESERVE_TYPE 1
+typedef enum _RESERVE_OBJECT_TYPE
+{
+    ReserveObjectUserApc = 0,
+    ReserveObjectIoCompletion = 1,
+    MaximumReserveObject
+} RESERVE_OBJECT_TYPE;
 
 NTSYSCALLAPI
 NTSTATUS
@@ -952,7 +956,7 @@ NTAPI
 NtAllocateReserveObject(
     __out PHANDLE MemoryReserveHandle,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in ULONG Type
+    __in RESERVE_OBJECT_TYPE Type
     );
 
 NTSYSCALLAPI
