@@ -1804,7 +1804,7 @@ NTAPI
 RtlCreateProcessReflection(
     __in HANDLE ProcessHandle,
     __in ULONG Flags,
-    __in PVOID StartRoutine,
+    __in_opt PVOID StartRoutine,
     __in_opt PVOID StartContext,
     __in_opt HANDLE EventHandle,
     __out_opt PRTL_PROCESS_REFLECTION_INFORMATION ReflectionInformation
