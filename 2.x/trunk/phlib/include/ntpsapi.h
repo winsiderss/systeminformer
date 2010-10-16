@@ -860,8 +860,8 @@ typedef struct _PROCESS_CREATE_INFO_CREATED
     ULONG Reserved2;
     ULONG Unknown4;
     ULONG Unknown5;
-    LARGE_INTEGER ManifestResource;
-    PVOID ManifestResource2;
+    ULONGLONG ManifestBaseAddress;
+    SIZE_T ManifestLength;
     ULONG Unknown8;
 } PROCESS_CREATE_INFO_CREATED;
 
