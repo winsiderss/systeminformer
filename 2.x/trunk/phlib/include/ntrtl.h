@@ -1790,6 +1790,27 @@ RtlUpdateClonedSRWLock(
     __in LOGICAL Shared // TRUE to set to shared acquire
     );
 
+typedef struct _RTL_PROCESS_REFLECTION_INFORMATION
+{
+    HANDLE Process;
+    HANDLE Thread;
+    CLIENT_ID ClientId;
+} RTL_PROCESS_REFLECTION_INFORMATION, *PRTL_PROCESS_REFLECTION_INFORMATION;
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateProcessReflection(
+    __in HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __in PVOID StartRoutine,
+    __in_opt PVOID StartContext,
+    __in_opt HANDLE EventHandle,
+    __out_opt PRTL_PROCESS_REFLECTION_INFORMATION ReflectionInformation
+    );
+#endif
+
 // end_rev
 
 #endif
