@@ -58,6 +58,15 @@ VOID PhShowProcessTerminatorDialog(
         );
 }
 
+static PVOID GetExitProcessFunction()
+{
+    // Vista and above export.
+    if (WindowsVersion >= WINDOWS_VISTA)
+        return PhGetProcAddress(L"ntdll.dll", "RtlExitUserProcess");
+    else
+        return PhGetProcAddress(L"kernel32.dll", "ExitProcess");
+}
+
 static NTSTATUS NTAPI TerminatorTP1(
     __in HANDLE ProcessId
     )
@@ -93,14 +102,6 @@ static NTSTATUS NTAPI TerminatorTP2(
         ProcessId
         )))
     {
-        PUSER_THREAD_START_ROUTINE startAddress;
-
-        // Vista and above export.
-        if (WindowsVersion >= WINDOWS_VISTA)
-            startAddress = (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlExitUserProcess");
-        else
-            startAddress = (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"kernel32.dll", "ExitProcess");
-
         status = RtlCreateUserThread(
             processHandle,
             NULL,
@@ -108,7 +109,7 @@ static NTSTATUS NTAPI TerminatorTP2(
             0,
             0,
             0,
-            startAddress,
+            (PUSER_THREAD_START_ROUTINE)GetExitProcessFunction(),
             NULL,
             NULL,
             NULL
@@ -189,7 +190,7 @@ static NTSTATUS NTAPI TerminatorTT2(
     CONTEXT context;
     PVOID exitProcess;
 
-    exitProcess = PhGetProcAddress(L"kernel32.dll", "ExitProcess");
+    exitProcess = GetExitProcessFunction();
 
     if (!NT_SUCCESS(status = PhEnumProcesses(&processes)))
         return status;

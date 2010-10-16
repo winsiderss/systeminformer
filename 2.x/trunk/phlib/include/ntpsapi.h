@@ -925,7 +925,7 @@ NtCreateThreadEx(
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in HANDLE ProcessHandle,
     __in PVOID StartRoutine,
-    __in PVOID StartContext,
+    __in_opt PVOID StartContext,
     __in ULONG Flags, // THREAD_CREATE_FLAGS_*
     __in_opt ULONG_PTR StackZeroBits,
     __in_opt SIZE_T StackCommit,
