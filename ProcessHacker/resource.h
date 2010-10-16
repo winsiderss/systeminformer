@@ -614,6 +614,7 @@
 #define ID_VIEW_HIDEPROCESSESFROMOTHERUSERS 40232
 #define ID_THREAD_AFFINITY              40233
 #define ID_VIEW_HIDESIGNEDPROCESSES     40234
+#define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -623,7 +624,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        191
-#define _APS_NEXT_COMMAND_VALUE         40235
+#define _APS_NEXT_COMMAND_VALUE         40236
 #define _APS_NEXT_CONTROL_VALUE         1274
 #define _APS_NEXT_SYMED_VALUE           132
 #endif

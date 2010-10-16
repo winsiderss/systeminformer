@@ -220,6 +220,8 @@ static HWND ProcessTreeListHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
 
+static BOOLEAN UpdateAutomatically = TRUE;
+
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
 
 static PH_PROVIDER_REGISTRATION ProcessProviderRegistration;
@@ -795,65 +797,20 @@ LRESULT CALLBACK PhMainWndProc(
                         );
                 }
                 break;
-            case ID_VIEW_UPDATEPROCESSES:
+            case ID_VIEW_UPDATEAUTOMATICALLY:
                 {
-                    BOOLEAN updateProcesses;
+                    UpdateAutomatically = !UpdateAutomatically;
 
-                    updateProcesses = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATEPROCESSES, 0) & MF_CHECKED);
-                    PhSetEnabledProvider(&ProcessProviderRegistration, updateProcesses);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_UPDATEPROCESSES,
-                        updateProcesses ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_VIEW_UPDATESERVICES:
-                {
-                    BOOLEAN updateServices;
+                    PhSetEnabledProvider(&ProcessProviderRegistration, UpdateAutomatically);
+                    PhSetEnabledProvider(&ServiceProviderRegistration, UpdateAutomatically);
 
-                    updateServices = !(GetMenuState(PhMainWndMenuHandle, ID_VIEW_UPDATESERVICES, 0) & MF_CHECKED);
-                    PhSetEnabledProvider(&ServiceProviderRegistration, updateServices);
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_UPDATESERVICES,
-                        updateServices ? MF_CHECKED : MF_UNCHECKED
-                        );
-                }
-                break;
-            case ID_VIEW_PAUSE:
-                {
-                    BOOLEAN updateProcesses;
-                    BOOLEAN updateServices;
-
-                    // Shortcut only
-
-                    updateProcesses = PhGetEnabledProvider(&ProcessProviderRegistration);
-                    updateServices = PhGetEnabledProvider(&ServiceProviderRegistration);
-
-                    if (updateProcesses && updateServices)
-                    {
-                        updateProcesses = FALSE;
-                        updateServices = FALSE;
-                    }
-                    else
-                    {
-                        updateProcesses = TRUE;
-                        updateServices = TRUE;
-                    }
-
-                    PhSetEnabledProvider(&ProcessProviderRegistration, updateProcesses);
-                    PhSetEnabledProvider(&ServiceProviderRegistration, updateServices);
+                    if (TabCtrl_GetCurSel(TabControlHandle) == NetworkTabIndex)
+                        PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
 
                     CheckMenuItem(
                         PhMainWndMenuHandle,
-                        ID_VIEW_UPDATEPROCESSES,
-                        updateProcesses ? MF_CHECKED : MF_UNCHECKED
-                        );
-                    CheckMenuItem(
-                        PhMainWndMenuHandle,
-                        ID_VIEW_UPDATESERVICES,
-                        updateServices ? MF_CHECKED : MF_UNCHECKED
+                        ID_VIEW_UPDATEAUTOMATICALLY,
+                        UpdateAutomatically ? MF_CHECKED : MF_UNCHECKED
                         );
                 }
                 break;
@@ -3209,8 +3166,10 @@ VOID PhMainWndTabControlOnSelectionChanged()
 
     if (selectedIndex == NetworkTabIndex)
     {
-        PhSetEnabledProvider(&NetworkProviderRegistration, TRUE);
-        PhBoostProvider(&NetworkProviderRegistration, NULL);
+        PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
+
+        if (UpdateAutomatically)
+            PhBoostProvider(&NetworkProviderRegistration, NULL);
     }
     else
     {
