@@ -3,6 +3,123 @@
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
+// Worker factory
+
+// begin_rev
+
+typedef enum _WORKER_FACTORY_INFORMATION_CLASS
+{
+    WorkerFactoryBasicInformation,
+    MaxWorkerFactoryInfoClass
+} WORKER_FACTORY_INFORMATION_CLASS, *PWORKER_FACTORY_INFORMATION_CLASS;
+
+typedef struct _WORKER_FACTORY_BASIC_INFORMATION
+{
+    LARGE_INTEGER Timeout1;
+    LARGE_INTEGER Timeout2;
+    LARGE_INTEGER Timeout3;
+    BOOLEAN EventSignalStateIsZero;
+    BOOLEAN Reserved;
+    BOOLEAN CreationTimerSet;
+    BOOLEAN NoWaiters;
+    BOOLEAN InCreationLogic;
+    BOOLEAN Released;
+    BOOLEAN Abandoned;
+    ULONG WaitRelatedBoolean;
+    ULONG MaximumCount2;
+    ULONG MaximumCount;
+    ULONG RefCount;
+    ULONG WaitingCount;
+    ULONG CurrentCount2;
+    ULONG ReleaseCount;
+    LARGE_INTEGER LargeCounter;
+    PVOID WorkerThreadStart;
+    PVOID WorkerThreadContext;
+    HANDLE UniqueProcessId;
+    SIZE_T SizeOfStackReserve;
+    SIZE_T SizeOfStackCommit;
+    NTSTATUS CreateThreadStatus;
+} WORKER_FACTORY_BASIC_INFORMATION, *PWORKER_FACTORY_BASIC_INFORMATION;
+
+typedef struct _IO_COMPLETION_MINIPACKET
+{
+    PVOID KeyContext;
+    PVOID ApcContext;
+    NTSTATUS IoStatus;
+    ULONG_PTR IoStatusInformation;
+} IO_COMPLETION_MINIPACKET, *PIO_COMPLETION_MINIPACKET;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateWorkerFactory(
+    __out PHANDLE WorkerFactoryHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE IoCompletionHandle,
+    __in HANDLE ProcessHandle,
+    __in PVOID WorkerThreadStart,
+    __in_opt PVOID WorkerThreadContext,
+    __in_opt ULONG MaximumCount,
+    __in_opt SIZE_T SizeOfStackReserve,
+    __in_opt SIZE_T SizeOfStackCommit
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQueryInformationWorkerFactory(
+    __in HANDLE WorkerFactoryHandle,
+    __in WORKER_FACTORY_INFORMATION_CLASS WorkerFactoryInformationClass,
+    __out_bcount(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
+    __in ULONG WorkerFactoryInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationWorkerFactory(
+    __in HANDLE WorkerFactoryHandle,
+    __in WORKER_FACTORY_INFORMATION_CLASS WorkerFactoryInformationClass,
+    __in_bcount(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
+    __in ULONG WorkerFactoryInformationLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtShutdownWorkerFactory(
+    __in HANDLE WorkerFactoryHandle,
+    __inout PULONG RefCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReleaseWorkerFactoryWorker(
+    __in HANDLE WorkerFactoryHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWorkerFactoryWorkerReady(
+    __in HANDLE WorkerFactoryHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWaitForWorkViaWorkerFactory(
+    __in HANDLE WorkerFactoryHandle,
+    __out PIO_COMPLETION_MINIPACKET MiniPacket
+    );
+
+// end_rev
+
+// User-mode functions
+
 // rev
 __checkReturn
 NTSYSAPI
