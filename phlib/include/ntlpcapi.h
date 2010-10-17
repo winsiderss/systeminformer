@@ -1,6 +1,8 @@
 #ifndef _NTLPCAPI_H
 #define _NTLPCAPI_H
 
+// Local Inter-process Communication
+
 #define PORT_CONNECT 0x0001
 #define PORT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1)
 
@@ -285,5 +287,158 @@ NtQueryInformationPort(
     __in ULONG Length,
     __out_opt PULONG ReturnLength
     );
+
+// Asynchronous Local Inter-process Communication
+
+// rev
+// ALPC handles aren't NT object manager handles, and 
+// it seems traditional to use a typedef in these cases.
+typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;
+
+// symbols
+typedef struct _ALPC_PORT_ATTRIBUTES
+{
+    ULONG Flags;
+    SECURITY_QUALITY_OF_SERVICE SecurityQos;
+    SIZE_T MaxMessageLength;
+    SIZE_T MemoryBandwidth;
+    SIZE_T MaxPoolUsage;
+    SIZE_T MaxSectionSize;
+    SIZE_T MaxViewSize;
+    SIZE_T MaxTotalSectionSize;
+    ULONG DupObjectTypes;
+#ifdef _M_X64
+    ULONG Reserved;
+#endif
+} ALPC_PORT_ATTRIBUTES, *PALPC_PORT_ATTRIBUTES;
+
+// rev
+typedef struct _ALPC_SECURITY_ATTRIBUTES
+{
+    __in ULONG Flags; // reserved
+    __in_opt PSECURITY_QUALITY_OF_SERVICE SecurityQos;
+    __out ALPC_HANDLE AlpcSecurityHandle;
+} ALPC_SECURITY_ATTRIBUTES, *PALPC_SECURITY_ATTRIBUTES;
+
+// rev
+typedef struct _ALPC_SECTION_VIEW
+{
+    __in ULONG Flags; // reserved
+    __in ALPC_HANDLE AlpcSectionHandle;
+    __inout_opt PVOID ViewBase; // must be zero on input
+    __inout SIZE_T ViewSize;
+} ALPC_SECTION_VIEW, *PALPC_SECTION_VIEW;
+
+// System calls
+
+// begin_rev
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCreatePort(
+    __out PHANDLE PortHandle,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in_opt PALPC_PORT_ATTRIBUTES PortAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDisconnectPort(
+    __in HANDLE PortHandle,
+    __in ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCreatePortSection(
+    __in HANDLE PortHandle,
+    __in ULONG Flags,
+    __in_opt HANDLE SectionHandle,
+    __in SIZE_T SectionSize,
+    __out PALPC_HANDLE AlpcSectionHandle,
+    __out PSIZE_T AlpcSectionSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDeletePortSection(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in ALPC_HANDLE AlpcSectionHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCreateResourceReserve(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in SIZE_T MessageReserveSize,
+    __out PALPC_HANDLE AlpcReserveHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDeleteResourceReserve(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in ALPC_HANDLE AlpcReserveHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCreateSectionView(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __inout PALPC_SECTION_VIEW AlpcSectionView
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDeleteSectionView(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in PVOID ViewBase
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCreateSecurityContext(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __inout PALPC_SECURITY_ATTRIBUTES AlpcSecurityAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDeleteSecurityContext(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in ALPC_HANDLE AlpcSecurityHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcRevokeSecurityContext(
+    __in HANDLE PortHandle,
+    __in ULONG Flags, // reserved
+    __in ALPC_HANDLE AlpcSecurityHandle
+    );
+
+#endif
+
+// end_rev
 
 #endif
