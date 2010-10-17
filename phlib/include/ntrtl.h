@@ -878,6 +878,16 @@ RtlSetCriticalSectionSpinCount(
     __in ULONG SpinCount
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+HANDLE
+NTAPI
+RtlQueryCriticalSectionOwner(
+    __in HANDLE LockSemaphore
+    );
+#endif
+
 // Slim reader-writer locks, condition variables, and barriers
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -1023,6 +1033,13 @@ RtlInitBarrier(
     __out PRTL_BARRIER Barrier,
     __in ULONG MaximumCount,
     __in ULONG SpinCount
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDeleteBarrier(
+    __in PRTL_BARRIER Barrier
     );
 
 NTSYSAPI
@@ -1672,6 +1689,16 @@ RtlGUIDFromString(
     __out PGUID Guid
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+LONG
+NTAPI
+RtlCompareAltitudes(
+    __in PUNICODE_STRING Altitude1,
+    __in PUNICODE_STRING Altitude2
+    );
+#endif
+
 // PEB
 
 NTSYSAPI
@@ -1687,6 +1714,16 @@ NTAPI
 RtlReleasePebLock(
     VOID
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlTryAcquirePebLock(
+    VOID
+    );
+#endif
 
 NTSYSAPI
 NTSTATUS
@@ -1797,6 +1834,26 @@ RtlCreateProcessParameters(
     __in_opt PUNICODE_STRING ShellInfo,
     __in_opt PUNICODE_STRING RuntimeData
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateProcessParametersEx(
+    __out PRTL_USER_PROCESS_PARAMETERS *ProcessParameters,
+    __in PUNICODE_STRING ImagePathName,
+    __in_opt PUNICODE_STRING DllPath,
+    __in_opt PUNICODE_STRING CurrentDirectory,
+    __in_opt PUNICODE_STRING CommandLine,
+    __in_opt PVOID Environment,
+    __in_opt PUNICODE_STRING WindowTitle,
+    __in_opt PUNICODE_STRING DesktopInfo,
+    __in_opt PUNICODE_STRING ShellInfo,
+    __in_opt PUNICODE_STRING RuntimeData,
+    __in ULONG Flags // pass RTL_USER_PROC_PARAMS_NORMALIZED to keep parameters normalized
+    );
+#endif
 
 NTSYSAPI
 NTSTATUS
@@ -2075,6 +2132,25 @@ RtlCreateEnvironment(
     __out PVOID *Environment
     );
 
+// begin_rev
+
+#define RTL_CREATE_ENVIRONMENT_TRANSLATE 0x1 // translate from multi-byte to Unicode
+#define RTL_CREATE_ENVIRONMENT_TRANSLATE_FROM_OEM 0x2 // translate from OEM to Unicode (Translate flag must also be set)
+#define RTL_CREATE_ENVIRONMENT_EMPTY 0x4 // create empty environment block
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateEnvironmentEx(
+    __in PVOID EnvironmentToClone,
+    __out PVOID *Environment,
+    __in ULONG Flags
+    );
+#endif
+
+// end_rev
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2090,6 +2166,20 @@ RtlSetCurrentEnvironment(
     __out_opt PVOID *PreviousEnvironment
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetEnvironmentVar(
+    __in_opt PVOID Environment,
+    __in_ecount(NameLength) PWSTR Name,
+    __in ULONG NameLength,
+    __in_ecount(ValueLength) PWSTR Value,
+    __in ULONG ValueLength
+    );
+#endif
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2099,6 +2189,21 @@ RtlSetEnvironmentVariable(
     __in PUNICODE_STRING Value
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryEnvironmentVariable(
+    __in_opt PVOID Environment,
+    __in_ecount(NameLength) PWSTR Name,
+    __in ULONG NameLength,
+    __out_ecount(ValueLength) PWSTR Value,
+    __in ULONG ValueLength,
+    __out PULONG ReturnLength
+    );
+#endif
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2107,6 +2212,21 @@ RtlQueryEnvironmentVariable_U(
     __in PUNICODE_STRING Name,
     __out PUNICODE_STRING Value
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlExpandEnvironmentStrings(
+    __in_opt PVOID Environment,
+    __in_ecount(SourceLength) PWSTR SourceString,
+    __in ULONG SourceLength,
+    __out_ecount(DestinationLength) PWSTR DestinationString,
+    __in ULONG DestinationLength,
+    __out_opt PULONG ReturnLength
+    );
+#endif
 
 NTSYSAPI
 NTSTATUS
@@ -3006,6 +3126,41 @@ RtlRandomEx(
     __inout PULONG Seed
     );
 
+// Integer conversion
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIntegerToUnicodeString(
+    __in ULONG Value,
+    __in_opt ULONG Base,
+    __inout PUNICODE_STRING String
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInt64ToUnicodeString(
+    __in ULONGLONG Value,
+    __in_opt ULONG Base,
+    __inout PUNICODE_STRING String
+    );
+
+#ifdef _M_X64
+#define RtlIntPtrToUnicodeString(Value, Base, String) RtlInt64ToUnicodeString(Value, Base, String)
+#else
+#define RtlIntPtrToUnicodeString(Value, Base, String) RtlIntegerToUnicodeString(Value, Base, String)
+#endif
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeStringToInteger(
+    __in PUNICODE_STRING String,
+    __in_opt ULONG Base,
+    __out PULONG Value
+    );
+
 // IPv4/6 conversion
 
 struct in_addr;
@@ -3591,6 +3746,17 @@ RtlQueryAtomInAtomTable(
     __inout_opt PULONG AtomNameLength
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlGetIntegerAtom(
+    __in PWSTR AtomName,
+    __out_opt PUSHORT IntegerAtom
+    );
+#endif
+
 // SIDs
 
 __checkReturn
@@ -4079,6 +4245,28 @@ RtlFirstFreeAce(
     __out PVOID *FirstFree
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+PVOID
+NTAPI
+RtlFindAceByType(
+    __in PACL Acl,
+    __in UCHAR AceType,
+    __out_opt PULONG AceIndex
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlOwnerAcesPresent(
+    __in PACL Acl
+    );
+#endif
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4358,6 +4546,18 @@ NTAPI
 RtlImpersonateSelf(
     __in SECURITY_IMPERSONATION_LEVEL ImpersonationLevel
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlImpersonateSelfEx(
+    __in SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    __in_opt ACCESS_MASK TokenDesiredAccess,
+    __out_opt PHANDLE TokenHandle
+    );
+#endif
 
 NTSYSAPI
 NTSTATUS
@@ -4828,5 +5028,106 @@ NTAPI
 RtlDecodeSystemPointer(
     __in PVOID Ptr
     );
+
+// begin_rev
+
+#define RTL_ELEVATION_FLAGS_ELEVATION_ENABLED 0x1
+#define RTL_ELEVATION_FLAGS_VIRTUALIZATION_ENABLED 0x2
+#define RTL_ELEVATION_FLAGS_INSTALLER_DETECT_ENABLED 0x4
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryElevationFlags(
+    __out PULONG ElevationFlags
+    );
+#endif
+
+// end_rev
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRegisterThreadWithCsrss(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLockCurrentThread(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnlockCurrentThread(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLockModuleSection(
+    __in PVOID Address
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnlockModuleSection(
+    __in PVOID Address
+    );
+#endif
+
+// begin_msdn:"Winternl"
+
+#define RTL_UNLOAD_EVENT_TRACE_NUMBER 64
+
+typedef struct _RTL_UNLOAD_EVENT_TRACE
+{
+    PVOID BaseAddress;
+    SIZE_T SizeOfImage;
+    ULONG Sequence;
+    ULONG TimeDateStamp;
+    ULONG CheckSum;
+    WCHAR ImageName[32];
+} RTL_UNLOAD_EVENT_TRACE, *PRTL_UNLOAD_EVENT_TRACE;
+
+NTSYSAPI
+PRTL_UNLOAD_EVENT_TRACE
+NTAPI
+RtlGetUnloadEventTrace(
+    VOID
+    );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+VOID
+NTAPI
+RtlGetUnloadEventTraceEx(
+    __out PULONG *ElementSize,
+    __out PULONG *ElementCount,
+    __out PVOID *EventTrace // works across all processes
+    );
+#endif
+
+// end_msdn
 
 #endif
