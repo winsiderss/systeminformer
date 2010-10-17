@@ -271,6 +271,64 @@ LdrQueryModuleServiceTags(
     );
 #endif
 
+// begin_msdn:"DLL Load Notification"
+
+#define LDR_DLL_NOTIFICATION_REASON_LOADED 1
+#define LDR_DLL_NOTIFICATION_REASON_UNLOADED 2
+
+typedef struct _LDR_DLL_LOADED_NOTIFICATION_DATA
+{
+    ULONG Flags;
+    PUNICODE_STRING FullDllName;
+    PUNICODE_STRING BaseDllName;
+    PVOID DllBase;
+    ULONG SizeOfImage;
+} LDR_DLL_LOADED_NOTIFICATION_DATA, *PLDR_DLL_LOADED_NOTIFICATION_DATA;
+
+typedef struct _LDR_DLL_UNLOADED_NOTIFICATION_DATA
+{
+    ULONG Flags;
+    PCUNICODE_STRING FullDllName;
+    PCUNICODE_STRING BaseDllName;
+    PVOID DllBase;
+    ULONG SizeOfImage;
+} LDR_DLL_UNLOADED_NOTIFICATION_DATA, *PLDR_DLL_UNLOADED_NOTIFICATION_DATA;
+
+typedef union _LDR_DLL_NOTIFICATION_DATA
+{
+    LDR_DLL_LOADED_NOTIFICATION_DATA Loaded;
+    LDR_DLL_UNLOADED_NOTIFICATION_DATA Unloaded;
+} LDR_DLL_NOTIFICATION_DATA, *PLDR_DLL_NOTIFICATION_DATA;
+
+typedef VOID (NTAPI *PLDR_DLL_NOTIFICATION_FUNCTION)(
+    __in ULONG NotificationReason,
+    __in PLDR_DLL_NOTIFICATION_DATA NotificationData,
+    __in_opt PVOID Context
+    );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrRegisterDllNotification(
+    __in ULONG Flags,
+    __in PLDR_DLL_NOTIFICATION_FUNCTION NotificationFunction,
+    __in PVOID Context,
+    __out PVOID *Cookie
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrUnregisterDllNotification(
+    __in PVOID Cookie
+    );
+
+#endif
+
+// end_msdn
+
 // Module information
 
 typedef struct _RTL_PROCESS_MODULE_INFORMATION
