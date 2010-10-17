@@ -4780,7 +4780,7 @@ NTSTATUS PhGetProcedureAddressRemote(
 
     if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
     {
-#if _M_X64
+#ifdef _M_X64
         status = PhEnumProcessModules32(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
 #else
         status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
@@ -4788,7 +4788,7 @@ NTSTATUS PhGetProcedureAddressRemote(
     }
     else
     {
-#if _M_X64
+#ifdef _M_X64
         status = PhEnumProcessModules(ProcessHandle, PhpGetProcedureAddressRemoteCallback, &context);
 #else
         status = STATUS_NOT_SUPPORTED;
