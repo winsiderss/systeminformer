@@ -158,7 +158,6 @@ typedef enum _THREAD_INFORMATION_CLASS
 } THREAD_INFORMATION_CLASS;
 
 // Use with both ProcessPagePriority and ThreadPagePriority
-// ntddk
 typedef struct _PAGE_PRIORITY_INFORMATION
 {
     ULONG PagePriority;
@@ -177,7 +176,6 @@ typedef struct _PROCESS_BASIC_INFORMATION
 } PROCESS_BASIC_INFORMATION;
 typedef PROCESS_BASIC_INFORMATION *PPROCESS_BASIC_INFORMATION;
 
-// ntddk
 typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 {
     SIZE_T Size; // set to sizeof structure on input
@@ -535,7 +533,9 @@ NtSetInformationProcess(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtQueryPortInformationProcess();
+NtQueryPortInformationProcess(
+    VOID
+    );
 
 // Threads
 
@@ -590,7 +590,9 @@ NtResumeThread(
 NTSYSCALLAPI
 ULONG
 NTAPI
-NtGetCurrentProcessorNumber();
+NtGetCurrentProcessorNumber(
+    VOID
+    );
 
 NTSYSCALLAPI
 NTSTATUS
@@ -647,7 +649,9 @@ NtAlertResumeThread(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtTestAlert();
+NtTestAlert(
+    VOID
+    );
 
 NTSYSCALLAPI
 NTSTATUS

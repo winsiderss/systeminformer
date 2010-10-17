@@ -317,8 +317,6 @@ typedef VOID (NTAPI *PTIMER_APC_ROUTINE)(
     __in LONG TimerHighValue
     );
 
-// begin_ntddk
-
 typedef enum _TIMER_SET_INFORMATION_CLASS
 {
     TimerSetCoalescableTimer,
@@ -339,8 +337,6 @@ typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
     __out_opt PBOOLEAN PreviousState;
 } TIMER_SET_COALESCABLE_TIMER_INFO, *PTIMER_SET_COALESCABLE_TIMER_INFO;
 #endif
-
-// end_ntddk
 
 NTSYSCALLAPI
 NTSTATUS
@@ -375,7 +371,6 @@ NtSetTimer(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
-// ntddk:ZwSetTimerEx
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -425,6 +420,25 @@ NtCreateProfile(
     __in KPROFILE_SOURCE ProfileSource,
     __in KAFFINITY Affinity
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateProfileEx(
+    __out PHANDLE ProfileHandle,
+    __in_opt HANDLE Process,
+    __in PVOID ProfileBase,
+    __in SIZE_T ProfileSize,
+    __in ULONG BucketSize,
+    __in PULONG Buffer,
+    __in ULONG BufferSize,
+    __in KPROFILE_SOURCE ProfileSource,
+    __in ULONG GroupAffinityCount,
+    __in_opt PGROUP_AFFINITY GroupAffinity
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1294,17 +1308,20 @@ NtQuerySystemInformation(
     __out_opt PULONG ReturnLength
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemInformationEx(
     __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    __in_bcount(QueryInfomationLength) PVOID QueryInformation,
-    __in ULONG QueryInfomationLength,
+    __in_bcount(QueryInformationLength) PVOID QueryInformation,
+    __in ULONG QueryInformationLength,
     __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
     __in ULONG SystemInformationLength,
     __out_opt PULONG ReturnLength
     );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1768,5 +1785,45 @@ NTAPI
 NtDisplayString(
     __in PUNICODE_STRING String
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnableLastKnownGood(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDisableLastKnownGood(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSerializeBoot(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDrawText(
+    __in PUNICODE_STRING Text
+    );
+#endif
 
 #endif

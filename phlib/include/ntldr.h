@@ -114,6 +114,29 @@ LdrGetDllHandleEx(
     __out_opt PVOID *DllHandle
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandleByMapping(
+    __in PVOID Base,
+    __out PVOID *DllHandle
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetDllHandleByName(
+    __in_opt PUNICODE_STRING BaseDllName,
+    __in_opt PUNICODE_STRING FullDllName,
+    __out PVOID *DllHandle
+    );
+#endif
+
 #define LDR_ADDREF_DLL_PIN 0x00000001
 
 NTSYSAPI
@@ -133,6 +156,25 @@ LdrGetProcedureAddress(
     __in_opt ULONG ProcedureNumber,
     __out PVOID *ProcedureAddress
     );
+
+// begin_rev
+
+#define LDR_GET_PROCEDURE_ADDRESS_DONT_RECORD_FORWARDER 0x00000001
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrGetProcedureAddressEx(
+    __in PVOID DllHandle,
+    __in_opt PANSI_STRING ProcedureName,
+    __in_opt ULONG ProcedureNumber,
+    __out PVOID *ProcedureAddress,
+    __in ULONG Flags
+    );
+#endif
+
+// end_rev
 
 #define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
 #define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
@@ -216,6 +258,18 @@ LdrVerifyImageMatchesChecksum(
     __in PVOID ImportCallbackParameter,
     __out_opt PUSHORT ImageCharacteristics
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrQueryModuleServiceTags(
+    __in PVOID DllHandle,
+    __out_ecount(*NumberOfServiceTags) PULONG ServiceTags,
+    __inout PULONG NumberOfServiceTags
+    );
+#endif
 
 // Module information
 
