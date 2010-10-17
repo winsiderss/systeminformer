@@ -1,8 +1,6 @@
 #ifndef _NTTMAPI_H
 #define _NTTMAPI_H
 
-// begin_wdm
-
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
@@ -483,6 +481,25 @@ NtPropagationFailed(
     );
 #endif
 
-// end_wdm
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFreezeTransactions(
+    __in PLARGE_INTEGER Timeout,
+    __in PLARGE_INTEGER ThawTimeout
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtThawTransactions(
+    VOID
+    );
+#endif
 
 #endif

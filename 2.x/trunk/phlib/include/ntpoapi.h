@@ -150,6 +150,8 @@ NtGetDevicePowerState(
 NTSYSCALLAPI
 BOOLEAN
 NTAPI
-NtIsSystemResumeAutomatic();
+NtIsSystemResumeAutomatic(
+    VOID
+    );
 
 #endif

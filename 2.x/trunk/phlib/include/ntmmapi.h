@@ -324,6 +324,22 @@ NtFreeUserPhysicalPages(
     __in_ecount(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
+// Sessions
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenSession(
+    __out PHANDLE SessionHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+#endif
+
+// missing:NtNotifyChangeSession
+
 // Misc.
 
 NTSYSCALLAPI
@@ -370,6 +386,8 @@ NtFlushInstructionCache(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtFlushWriteBuffer();
+NtFlushWriteBuffer(
+    VOID
+    );
 
 #endif

@@ -217,6 +217,22 @@ NtCreateKey(
     __out_opt PULONG Disposition
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateKeyTransacted(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __reserved ULONG TitleIndex,
+    __in_opt PUNICODE_STRING Class,
+    __in ULONG CreateOptions,
+    __in HANDLE TransactionHandle,
+    __out_opt PULONG Disposition
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -225,6 +241,43 @@ NtOpenKey(
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenKeyTransacted(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in HANDLE TransactionHandle
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenKeyEx(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in ULONG OpenOptions
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwOpenKeyTransactedEx(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in ULONG OpenOptions,
+    __in HANDLE TransactionHandle
+    );
+#endif
 
 NTSYSCALLAPI
 NTSTATUS
@@ -519,5 +572,25 @@ NtLockProductActivationKeys(
     __inout_opt ULONG *pPrivateVer,
     __out_opt ULONG *pSafeMode
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFreezeRegistry(
+    __in ULONG ThawTimeoutInSeconds
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtThawRegistry(
+    VOID
+    );
+#endif
 
 #endif

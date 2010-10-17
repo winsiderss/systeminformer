@@ -3,6 +3,14 @@
 
 // This header file provides access to NT APIs.
 
+// Definitions are annotated to indicate their source.
+// If a definition is not annotated, it has been retrieved 
+// from an official Microsoft source (NT headers, DDK headers, winnt.h).
+
+// "winbase" indicates that a definition has been reconstructed from 
+// a Win32-ized NT definition in winbase.h.
+// "rev" indicates that a definition has been reverse-engineered.
+
 // Version
 
 #define PHNT_WIN2K 50

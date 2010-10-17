@@ -115,14 +115,18 @@ NtSetDebugFilterState(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-NtYieldExecution();
+NtYieldExecution(
+    VOID
+    );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 // winnt:FlushProcessWriteBuffers
 NTSYSCALLAPI
 VOID
 NTAPI
-NtFlushProcessWriteBuffers();
+NtFlushProcessWriteBuffers(
+    VOID
+    );
 #endif
 
 #endif
