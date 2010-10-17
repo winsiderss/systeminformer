@@ -1011,7 +1011,7 @@ NTSTATUS
 NTAPI
 NtCancelIoFileEx(
     __in HANDLE FileHandle,
-    __in PIO_STATUS_BLOCK UserIosb,
+    __in_opt PIO_STATUS_BLOCK UserIosb,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 #endif
@@ -1023,7 +1023,7 @@ NTSTATUS
 NTAPI
 NtCancelSynchronousIoFile(
     __in HANDLE ThreadHandle,
-    __in ULONG Flags,
+    __in_opt PIO_STATUS_BLOCK UserIosb,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 #endif

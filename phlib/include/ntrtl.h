@@ -878,7 +878,7 @@ RtlSetCriticalSectionSpinCount(
     __in ULONG SpinCount
     );
 
-// Slim reader-writer locks and condition variables
+// Slim reader-writer locks, condition variables, and barriers
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
@@ -938,6 +938,20 @@ RtlTryAcquireSRWLockShared(
     __inout PRTL_SRWLOCK SRWLock
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlAcquireReleaseSRWLockExclusive(
+    __inout PRTL_SRWLOCK SRWLock
+    );
+#endif
+
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
 // winbase:InitializeConditionVariable
 NTSYSAPI
 VOID
@@ -984,6 +998,52 @@ RtlWakeAllConditionVariable(
     );
 
 #endif
+
+// begin_rev
+
+typedef struct _RTL_BARRIER
+{
+    ULONG CurrentCount;
+    ULONG MaximumCount;
+    HANDLE Events[2];
+    ULONG NumberOfProcessors;
+    ULONG SpinCount;
+} RTL_BARRIER, *PRTL_BARRIER;
+
+#define RTL_BARRIER_SPIN_ONLY 0x00000001 // never block on event - always spin
+#define RTL_BARRIER_NEVER_SPIN 0x00000002 // always block on event - never spin
+#define RTL_BARRIER_INCREMENT_MAXIMUM_COUNT 0x00010000 // ?
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlInitBarrier(
+    __out PRTL_BARRIER Barrier,
+    __in ULONG MaximumCount,
+    __in ULONG SpinCount
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlBarrier(
+    __inout PRTL_BARRIER Barrier,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlBarrierForDelete(
+    __inout PRTL_BARRIER Barrier,
+    __in ULONG Flags
+    );
+
+#endif
+
+// end_rev
 
 // Strings
 
@@ -1406,10 +1466,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeN(
-    __out PWSTR UnicodeString,
+    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG MaxBytesInUnicodeString,
     __out_opt PULONG BytesInUnicodeString,
-    __in PSTR MultiByteString,
+    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
     __in ULONG BytesInMultiByteString
     );
 
@@ -1418,7 +1478,7 @@ NTSTATUS
 NTAPI
 RtlMultiByteToUnicodeSize(
     __out PULONG BytesInUnicodeString,
-    __in PSTR MultiByteString,
+    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
     __in ULONG BytesInMultiByteString
     );
 
@@ -1426,10 +1486,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteN(
-    __out PSTR MultiByteString,
+    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
     __in ULONG MaxBytesInMultiByteString,
     __out_opt PULONG BytesInMultiByteString,
-    __in PWSTR UnicodeString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG BytesInUnicodeString
     );
 
@@ -1438,7 +1498,7 @@ NTSTATUS
 NTAPI
 RtlUnicodeToMultiByteSize(
     __out PULONG BytesInMultiByteString,
-    __in PWSTR UnicodeString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG BytesInUnicodeString
     );
 
@@ -1446,10 +1506,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeToMultiByteN(
-    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PSTR MultiByteString,
+    __out_bcount_part(MaxBytesInMultiByteString, *BytesInMultiByteString) PCHAR MultiByteString,
     __in ULONG MaxBytesInMultiByteString,
     __out_opt PULONG BytesInMultiByteString,
-    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG BytesInUnicodeString
     );
 
@@ -1460,7 +1520,7 @@ RtlOemToUnicodeN(
     __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
     __in ULONG MaxBytesInUnicodeString,
     __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInOemString) PSTR OemString,
+    __in_bcount(BytesInOemString) PCH OemString,
     __in ULONG BytesInOemString
     );
 
@@ -1468,10 +1528,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUnicodeToOemN(
-    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PSTR OemString,
+    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
     __in ULONG MaxBytesInOemString,
     __out_opt PULONG BytesInOemString,
-    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG BytesInUnicodeString
     );
 
@@ -1479,10 +1539,10 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlUpcaseUnicodeToOemN(
-    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PSTR OemString,
+    __out_bcount_part(MaxBytesInOemString, *BytesInOemString) PCHAR OemString,
     __in ULONG MaxBytesInOemString,
     __out_opt PULONG BytesInOemString,
-    __in_bcount(BytesInUnicodeString) PWSTR UnicodeString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG BytesInUnicodeString
     );
 
@@ -1490,13 +1550,39 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlConsoleMultiByteToUnicodeN(
-    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWSTR UnicodeString,
+    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
     __in ULONG MaxBytesInUnicodeString,
     __out_opt PULONG BytesInUnicodeString,
-    __in_bcount(BytesInMultiByteString) PSTR MultiByteString,
+    __in_bcount(BytesInMultiByteString) PCH MultiByteString,
     __in ULONG BytesInMultiByteString,
     __out PULONG pdwSpecialChar
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUTF8ToUnicodeN(
+    __out_bcount_part(UnicodeStringMaxByteCount, *UnicodeStringActualByteCount) PWSTR UnicodeStringDestination,
+    __in ULONG UnicodeStringMaxByteCount,
+    __out PULONG UnicodeStringActualByteCount,
+    __in_bcount(UTF8StringByteCount) PCH UTF8StringSource,
+    __in ULONG UTF8StringByteCount
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToUTF8N(
+    __out_bcount_part(UTF8StringMaxByteCount, *UTF8StringActualByteCount) PCHAR UTF8StringDestination,
+    __in ULONG UTF8StringMaxByteCount,
+    __out PULONG UTF8StringActualByteCount,
+    __in_bcount(UnicodeStringByteCount) PWCH UnicodeStringSource,
+    __in ULONG UnicodeStringByteCount
+    );
+#endif
 
 NTSYSAPI
 BOOLEAN
@@ -1506,6 +1592,44 @@ RtlIsTextUnicode(
     __in ULONG Size,
     __inout_opt PULONG Result
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNormalizeString(
+    __in ULONG NormForm,
+    __in PCWSTR SourceString,
+    __in LONG SourceStringLength,
+    __out_ecount_part(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
+    __inout PLONG DestinationStringLength
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlIsNormalizedString(
+    __in ULONG NormForm,
+    __in PCWSTR SourceString,
+    __in LONG SourceStringLength,
+    __out PBOOLEAN Normalized
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// ntifs:FsRtlIsNameInExpression
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsNameInExpression(
+    __in PUNICODE_STRING Expression,
+    __in PUNICODE_STRING Name,
+    __in BOOLEAN IgnoreCase,
+    __in_opt PWCH UpcaseTable
+    );
+#endif
 
 NTSYSAPI
 BOOLEAN
@@ -1548,57 +1672,21 @@ RtlGUIDFromString(
     __out PGUID Guid
     );
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-// ntifs
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlNormalizeString(
-    __in ULONG NormForm,
-    __in PCWSTR SourceString,
-    __in LONG SourceStringLength,
-    __out_ecount_part(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
-    __inout PLONG DestinationStringLength
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_VISTA)
-// ntifs
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlIsNormalizedString(
-    __in ULONG NormForm,
-    __in PCWSTR SourceString,
-    __in LONG SourceStringLength,
-    __out PBOOLEAN Normalized
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// ntifs:FsRtlIsNameInExpression
-NTSYSAPI
-BOOLEAN
-NTAPI
-RtlIsNameInExpression(
-    __in PUNICODE_STRING Expression,
-    __in PUNICODE_STRING Name,
-    __in BOOLEAN IgnoreCase,
-    __in_opt PWCH UpcaseTable
-    );
-#endif
-
 // PEB
 
 NTSYSAPI
 VOID
 NTAPI
-RtlAcquirePebLock();
+RtlAcquirePebLock(
+    VOID
+    );
 
 NTSYSAPI
 VOID
 NTAPI
-RtlReleasePebLock();
+RtlReleasePebLock(
+    VOID
+    );
 
 NTSYSAPI
 NTSTATUS
@@ -2122,7 +2210,9 @@ RtlSetCurrentDirectory_U(
 NTSYSAPI
 ULONG
 NTAPI
-RtlGetLongestNtPathLength();
+RtlGetLongestNtPathLength(
+    VOID
+    );
 
 NTSYSAPI
 BOOLEAN
@@ -2500,7 +2590,9 @@ RtlValidateHeap(
 NTSYSAPI
 BOOLEAN
 NTAPI
-RtlValidateProcessHeaps();
+RtlValidateProcessHeaps(
+    VOID
+    );
 
 NTSYSAPI
 ULONG
@@ -2633,6 +2725,15 @@ RtlMultipleFreeHeap(
     __in PVOID *Array
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+VOID
+NTAPI
+RtlDetectHeapLeaks(
+    VOID
+    );
+#endif
+
 // Transactions
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2640,7 +2741,9 @@ RtlMultipleFreeHeap(
 NTSYSAPI
 HANDLE
 NTAPI
-RtlGetCurrentTransaction();
+RtlGetCurrentTransaction(
+    VOID
+    );
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2798,12 +2901,16 @@ RtlNtStatusToDosErrorNoTeb(
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlGetLastNtStatus();
+RtlGetLastNtStatus(
+    VOID
+    );
 
 NTSYSAPI
 LONG
 NTAPI
-RtlGetLastWin32Error();
+RtlGetLastWin32Error(
+    VOID
+    );
 
 NTSYSAPI
 VOID
@@ -2832,7 +2939,9 @@ RtlRestoreLastWin32Error(
 NTSYSAPI
 ULONG
 NTAPI
-RtlGetThreadErrorMode();
+RtlGetThreadErrorMode(
+    VOID
+    );
 
 NTSYSAPI
 NTSTATUS
@@ -4474,8 +4583,6 @@ RtlCheckRegistryKey(
     __in PWSTR Path
     );
 
-// begin_wdm
-
 typedef NTSTATUS (NTAPI *PRTL_QUERY_REGISTRY_ROUTINE)(
     __in PWSTR ValueName,
     __in ULONG ValueType,
@@ -4536,21 +4643,21 @@ RtlDeleteRegistryValue(
     __in PWSTR ValueName
     );
 
-// end_wdm
-
 // Debugging
 
 NTSYSAPI
 VOID
 NTAPI
-DbgUserBreakPoint();
-
-// begin_wdm
+DbgUserBreakPoint(
+    VOID
+    );
 
 NTSYSAPI
 VOID
 NTAPI
-DbgBreakPoint();
+DbgBreakPoint(
+    VOID
+    );
 
 NTSYSAPI
 VOID
@@ -4623,8 +4730,6 @@ DbgSetDebugFilterState(
     __in BOOLEAN State
     );
 
-// end_wdm
-
 NTSYSAPI
 ULONG
 NTAPI
@@ -4634,12 +4739,58 @@ DbgPrompt(
     __in ULONG Length
     );
 
+// Thread profiling
+
+//#if (PHNT_VERSION >= PHNT_WIN7)
+
+// winbase:EnableThreadProfiling
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlEnableThreadProfiling(
+    __in HANDLE ThreadHandle,
+    __in ULONG Flags,
+    __in ULONG64 HardwareCounters,
+    __out PVOID *PerformanceDataHandle
+    );
+
+// winbase:DisableThreadProfiling
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDisableThreadProfiling(
+    __in PVOID PerformanceDataHandle
+    );
+
+// winbase:QueryThreadProfiling
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryThreadProfiling(
+    __in HANDLE ThreadHandle,
+    __out PBOOLEAN Enabled
+    );
+
+// winbase:ReadThreadProfilingData
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlReadThreadProfilingData(
+    __in HANDLE PerformanceDataHandle,
+    __in ULONG Flags,
+    __out PPERFORMANCE_DATA PerformanceData
+    );
+
+//#endif
+
 // Misc.
 
 NTSYSAPI
 ULONG
 NTAPI
-RtlGetCurrentProcessorNumber();
+RtlGetCurrentProcessorNumber(
+    VOID
+    );
 
 NTSYSAPI
 ULONG32

@@ -172,12 +172,16 @@ NtWaitForDebugEvent(
 NTSYSAPI
 NTSTATUS
 NTAPI
-DbgUiConnectToDbg();
+DbgUiConnectToDbg(
+    VOID
+    );
 
 NTSYSAPI
 HANDLE
 NTAPI
-DbgUiGetThreadDebugObject();
+DbgUiGetThreadDebugObject(
+    VOID
+    );
 
 NTSYSAPI
 VOID
