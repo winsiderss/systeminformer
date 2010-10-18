@@ -4941,7 +4941,7 @@ DbgPrompt(
 
 // Thread profiling
 
-//#if (PHNT_VERSION >= PHNT_WIN7)
+#if (PHNT_VERSION >= PHNT_WIN7)
 
 // winbase:EnableThreadProfiling
 NTSYSAPI
@@ -4981,7 +4981,7 @@ RtlReadThreadProfilingData(
     __out PPERFORMANCE_DATA PerformanceData
     );
 
-//#endif
+#endif
 
 // Misc.
 
