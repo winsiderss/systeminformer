@@ -324,7 +324,7 @@ typedef struct _ALPC_CONTEXT_ATTRIBUTES
 {
     PVOID PortContext;
     PVOID Context;
-    ULONG SequenceNo;
+    LONG SequenceNo;
     ULONG MessageId;
     ULONG CallbackId;
 } ALPC_CONTEXT_ATTRIBUTES, *PALPC_CONTEXT_ATTRIBUTES;
@@ -367,6 +367,36 @@ typedef struct _ALPC_VIEW_ATTRIBUTES
 
 // end_rev
 
+// begin_rev
+
+typedef enum _ALPC_PORT_INFORMATION_CLASS
+{
+    AlpcPortBasicInformation = 0,
+    AlpcPortConnectedSidInformation = 3, // input is SID
+    AlpcPortServerInformation = 4, // needs input
+    MaxAlpcPortInfoClass
+} ALPC_PORT_INFORMATION_CLASS;
+
+typedef struct _ALPC_PORT_BASIC_INFORMATION
+{
+    ULONG Flags;
+    LONG SequenceNo;
+    PVOID PortContext;
+} ALPC_PORT_BASIC_INFORMATION, *PALPC_PORT_BASIC_INFORMATION;
+
+typedef struct _ALPC_PORT_SERVER_INFORMATION
+{
+    union
+    {
+        __in HANDLE ThreadHandle;
+        __out BOOLEAN PortNamePresent;
+    };
+    __out HANDLE ServerProcessId;
+    __out UNICODE_STRING PortName;
+} ALPC_PORT_SERVER_INFORMATION, *PALPC_PORT_SERVER_INFORMATION;
+
+// end_rev
+
 // System calls
 
 // begin_rev
@@ -380,6 +410,25 @@ NtAlpcCreatePort(
     __out PHANDLE PortHandle,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PALPC_PORT_ATTRIBUTES PortAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDisconnectPort(
+    __in HANDLE PortHandle,
+    __in ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcQueryInformation(
+    __in HANDLE PortHandle,
+    __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
+    __out_bcount(PortInformationLength) PVOID PortInformation,
+    __in ULONG PortInformationLength,
+    __out_opt PULONG ReturnLength
     );
 
 NTSYSCALLAPI
@@ -467,13 +516,11 @@ NtAlpcRevokeSecurityContext(
     __in ALPC_HANDLE AlpcSecurityHandle
     );
 
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtAlpcDisconnectPort(
-    __in HANDLE PortHandle,
-    __in ULONG Flags
-    );
+#define ALPC_REPLY_MESSAGE 0x1
+#define ALPC_LPC_MODE 0x2 // ?
+#define ALPC_DATAGRAM_MESSAGE 0x10000
+#define ALPC_SYNCHRONOUS 0x20000
+#define ALPC_WAIT_ALERTABLE 0x200000
 
 NTSYSCALLAPI
 NTSTATUS
@@ -489,6 +536,17 @@ NtAlpcSendWaitReceivePort(
     __in_opt PLARGE_INTEGER ReceiveTimeout
     );
 
+#define ALPC_NO_CONTEXT_CHECK 0x8
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcCancelMessage(
+    __in HANDLE PortHandle,
+    __in ULONG Flags,
+    __in PALPC_CONTEXT_ATTRIBUTES ContextAttributes
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -496,6 +554,30 @@ NtAlpcImpersonateClientOfPort(
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE Message,
     __in ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcOpenSenderProcess(
+    __out PHANDLE ProcessHandle,
+    __in HANDLE PortHandle,
+    __in PPORT_MESSAGE Message,
+    __in ULONG Reserved,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcOpenSenderThread(
+    __out PHANDLE ThreadHandle,
+    __in HANDLE PortHandle,
+    __in PPORT_MESSAGE Message,
+    __in ULONG Reserved,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes
     );
 
 #endif
