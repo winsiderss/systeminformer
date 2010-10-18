@@ -312,22 +312,60 @@ typedef struct _ALPC_PORT_ATTRIBUTES
 #endif
 } ALPC_PORT_ATTRIBUTES, *PALPC_PORT_ATTRIBUTES;
 
+// symbols
+typedef struct _ALPC_MESSAGE_ATTRIBUTES
+{
+    ULONG AllocatedAttributes;
+    ULONG ValidAttributes;
+} ALPC_MESSAGE_ATTRIBUTES, *PALPC_MESSAGE_ATTRIBUTES;
+
+// rev
+typedef struct _ALPC_CONTEXT_ATTRIBUTES
+{
+    PVOID PortContext;
+    PVOID Context;
+    ULONG SequenceNo;
+    ULONG MessageId;
+    ULONG CallbackId;
+} ALPC_CONTEXT_ATTRIBUTES, *PALPC_CONTEXT_ATTRIBUTES;
+
+// begin_rev
+
+#define ALPC_HANDLE_DUPLICATE_SAME_ACCESS 0x10000
+#define ALPC_HANDLE_DUPLICATE_SAME_ATTRIBUTES 0x20000
+#define ALPC_HANDLE_DUPLICATE_INHERIT 0x80000
+
+typedef struct _ALPC_HANDLE_ATTRIBUTES
+{
+    ULONG Flags;
+    HANDLE Handle;
+    ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
+    ACCESS_MASK DesiredAccess;
+} ALPC_HANDLE_ATTRIBUTES, *PALPC_HANDLE_ATTRIBUTES;
+
+// end_rev
+
 // rev
 typedef struct _ALPC_SECURITY_ATTRIBUTES
 {
-    __in ULONG Flags; // reserved
-    __in_opt PSECURITY_QUALITY_OF_SERVICE SecurityQos;
-    __out ALPC_HANDLE AlpcSecurityHandle;
+    ULONG Flags;
+    PSECURITY_QUALITY_OF_SERVICE SecurityQos;
+    ALPC_HANDLE AlpcSecurityHandle;
 } ALPC_SECURITY_ATTRIBUTES, *PALPC_SECURITY_ATTRIBUTES;
 
-// rev
-typedef struct _ALPC_SECTION_VIEW
+// begin_rev
+
+#define ALPC_VIEW_NOT_SECURE 0x40000
+
+typedef struct _ALPC_VIEW_ATTRIBUTES
 {
-    __in ULONG Flags; // reserved
-    __in ALPC_HANDLE AlpcSectionHandle;
-    __inout_opt PVOID ViewBase; // must be zero on input
-    __inout SIZE_T ViewSize;
-} ALPC_SECTION_VIEW, *PALPC_SECTION_VIEW;
+    ULONG Flags;
+    ALPC_HANDLE AlpcSectionHandle;
+    PVOID ViewBase; // must be zero on input
+    SIZE_T ViewSize;
+} ALPC_VIEW_ATTRIBUTES, *PALPC_VIEW_ATTRIBUTES;
+
+// end_rev
 
 // System calls
 
@@ -342,14 +380,6 @@ NtAlpcCreatePort(
     __out PHANDLE PortHandle,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PALPC_PORT_ATTRIBUTES PortAttributes
-    );
-
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtAlpcDisconnectPort(
-    __in HANDLE PortHandle,
-    __in ULONG Flags
     );
 
 NTSYSCALLAPI
@@ -398,7 +428,7 @@ NTAPI
 NtAlpcCreateSectionView(
     __in HANDLE PortHandle,
     __in ULONG Flags, // reserved
-    __inout PALPC_SECTION_VIEW AlpcSectionView
+    __inout PALPC_VIEW_ATTRIBUTES ViewAttributes
     );
 
 NTSYSCALLAPI
@@ -416,7 +446,7 @@ NTAPI
 NtAlpcCreateSecurityContext(
     __in HANDLE PortHandle,
     __in ULONG Flags, // reserved
-    __inout PALPC_SECURITY_ATTRIBUTES AlpcSecurityAttributes
+    __inout PALPC_SECURITY_ATTRIBUTES SecurityAttributes
     );
 
 NTSYSCALLAPI
@@ -435,6 +465,37 @@ NtAlpcRevokeSecurityContext(
     __in HANDLE PortHandle,
     __in ULONG Flags, // reserved
     __in ALPC_HANDLE AlpcSecurityHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcDisconnectPort(
+    __in HANDLE PortHandle,
+    __in ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcSendWaitReceivePort(
+    __in HANDLE PortHandle,
+    __in ULONG Flags,
+    __in_opt PPORT_MESSAGE SendMessage,
+    __in_opt PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
+    __inout PPORT_MESSAGE ReceiveMessage,
+    __out_opt PVOID *ReceiveData,
+    __inout PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
+    __in_opt PLARGE_INTEGER ReceiveTimeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlpcImpersonateClientOfPort(
+    __in HANDLE PortHandle,
+    __in PPORT_MESSAGE Message,
+    __in ULONG Flags
     );
 
 #endif
