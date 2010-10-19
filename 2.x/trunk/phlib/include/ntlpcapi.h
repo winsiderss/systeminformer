@@ -649,13 +649,13 @@ NTSTATUS
 NTAPI
 NtAlpcConnectPort(
     __out PHANDLE ClientPortHandle,
-    __in HANDLE PortHandle,
+    __in PUNICODE_STRING PortName,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PALPC_PORT_ATTRIBUTES PortAttributes,
     __in ULONG Flags,
     __in_opt PSID RequiredServerSid,
     __inout PPORT_MESSAGE ConnectMessage,
-    __inout PULONG ReceiveMessageLength,
+    __inout_opt PULONG ReceiveMessageLength,
     __inout_opt PALPC_MESSAGE_ATTRIBUTES ConnectMessageAttributes,
     __inout_opt PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
     __in_opt PLARGE_INTEGER ReceiveTimeout
@@ -685,7 +685,7 @@ NtAlpcSendWaitReceivePort(
     __in_opt PPORT_MESSAGE SendMessage,
     __in_opt PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
     __inout_opt PPORT_MESSAGE ReceiveMessage,
-    __out_opt PVOID *ReceiveData,
+    __inout_opt PULONG ReceiveMessageLength,
     __inout_opt PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
     __in_opt PLARGE_INTEGER ReceiveTimeout
     );
