@@ -473,7 +473,7 @@ typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
     __in PTP_ALPC Alpc, // ?
-    __in PVOID AlpcContext // ?
+    __in PTP_WAIT Wait // ?
     );
 
 NTSYSAPI
