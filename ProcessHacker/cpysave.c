@@ -22,6 +22,21 @@
 
 #include <phapp.h>
 
+#define TAB_SIZE 8
+
+VOID PhapCreateTextTable(
+    __out PPH_STRING ***Table,
+    __in ULONG Rows,
+    __in ULONG Columns
+    );
+
+PPH_LIST PhapFormatTextTable(
+    __in PPH_STRING **Table,
+    __in ULONG Rows,
+    __in ULONG Columns,
+    __in ULONG Mode
+    );
+
 VOID PhpMapDisplayIndexTreeList(
     __in HWND TreeListHandle,
     __out_ecount(PHTLC_MAXIMUM) PULONG DisplayToId,
@@ -161,6 +176,206 @@ VOID PhpPopulateTableWithProcessNodes(
     }
 }
 
+PPH_LIST PhGetProcessTreeListLines(
+    __in HWND TreeListHandle,
+    __in ULONG NumberOfNodes,
+    __in PPH_LIST RootNodes,
+    __in ULONG Mode
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_LIST lines;
+    // The number of rows in the table (including +1 for the column headers).
+    ULONG rows;
+    // The number of columns.
+    ULONG columns;
+    // A column display index to ID map.
+    ULONG displayToId[PHTLC_MAXIMUM];
+    // A column display index to text map.
+    PWSTR displayToText[PHTLC_MAXIMUM];
+    // The actual string table.
+    PPH_STRING **table;
+    ULONG i;
+    ULONG j;
+
+    // Use a local auto-pool to make memory mangement a bit less painful.
+    PhInitializeAutoPool(&autoPool);
+
+    rows = NumberOfNodes + 1;
+
+    // Create the display index to ID map.
+    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, displayToText, &columns);
+
+    PhapCreateTextTable(&table, rows, columns);
+
+    // Populate the first row with the column headers.
+    for (i = 0; i < columns; i++)
+    {
+        table[0][i] = PhaCreateString(displayToText[i]);
+    }
+
+    // Go through the nodes in the process tree and populate each cell of the table.
+
+    j = 1; // index starts at one because the first row contains the column headers.
+
+    for (i = 0; i < RootNodes->Count; i++)
+    {
+        PhpPopulateTableWithProcessNodes(
+            TreeListHandle,
+            RootNodes->Items[i],
+            0,
+            table,
+            &j,
+            displayToId,
+            columns
+            );
+    }
+
+    lines = PhapFormatTextTable(table, rows, columns, Mode);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return lines;
+}
+
+VOID PhapMapDisplayIndexListView(
+    __in HWND ListViewHandle,
+    __out_ecount(Count) PULONG DisplayToId,
+    __out_ecount_opt(Count) PPH_STRING *DisplayToText,
+    __in ULONG Count,
+    __out PULONG NumberOfColumns
+    )
+{
+    LVCOLUMN lvColumn;
+    ULONG i;
+    ULONG count;
+    WCHAR buffer[128];
+
+    count = 0;
+    lvColumn.mask = LVCF_ORDER | LVCF_TEXT;
+    lvColumn.pszText = buffer;
+    lvColumn.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
+
+    for (i = 0; i < Count; i++)
+    {
+        if (ListView_GetColumn(ListViewHandle, i, &lvColumn))
+        {
+            ULONG displayIndex;
+
+            displayIndex = (ULONG)lvColumn.iOrder;
+            assert(displayIndex < Count);
+            DisplayToId[displayIndex] = i;
+
+            if (DisplayToText)
+                DisplayToText[displayIndex] = PhaCreateString(buffer);
+
+            count++;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    *NumberOfColumns = count;
+}
+
+PPH_FULL_STRING PhGetListViewText(
+    __in HWND ListViewHandle
+    )
+{
+    PPH_FULL_STRING string;
+    ULONG displayToId[100];
+    ULONG rows;
+    ULONG columns;
+    ULONG i;
+    ULONG j;
+
+    PhapMapDisplayIndexListView(ListViewHandle, displayToId, NULL, 100, &columns);
+    rows = ListView_GetItemCount(ListViewHandle);
+
+    string = PhCreateFullString2(0x100);
+
+    for (i = 0; i < rows; i++)
+    {
+        if (!(ListView_GetItemState(ListViewHandle, i, LVIS_SELECTED) & LVIS_SELECTED))
+            continue;
+
+        for (j = 0; j < columns; j++)
+        {
+            LVITEM lvItem;
+            WCHAR buffer[512];
+
+            lvItem.mask = LVIF_TEXT;
+            lvItem.iItem = i;
+            lvItem.iSubItem = j;
+            lvItem.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
+            lvItem.pszText = buffer;
+
+            if (ListView_GetItem(ListViewHandle, &lvItem))
+                PhAppendFullString2(string, buffer);
+
+            PhAppendFullString2(string, L", ");
+        }
+
+        // Remove the trailing comma and space.
+        if (string->Length != 0)
+            PhRemoveFullString(string, string->Length / 2 - 2, 2);
+
+        PhAppendFullString2(string, L"\r\n");
+    }
+
+    return string;
+}
+
+PPH_LIST PhGetListViewLines(
+    __in HWND ListViewHandle,
+    __in ULONG Mode
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_LIST lines;
+    ULONG rows;
+    ULONG columns;
+    ULONG displayToId[100];
+    PPH_STRING displayToText[100];
+    PPH_STRING **table;
+    ULONG i;
+    ULONG j;
+
+    PhInitializeAutoPool(&autoPool);
+
+    rows = ListView_GetItemCount(ListViewHandle) + 1; // +1 for column headers
+
+    // Create the display index/text to ID map.
+    PhapMapDisplayIndexListView(ListViewHandle, displayToId, displayToText, 100, &columns);
+
+    PhapCreateTextTable(&table, rows, columns);
+
+    // Populate the first row with the column headers.
+    for (i = 0; i < columns; i++)
+        table[0][i] = displayToText[i];
+
+    // Populate the other rows with text.
+    for (i = 1; i < rows; i++)
+    {
+        for (j = 0; j < columns; j++)
+        {
+            WCHAR buffer[512];
+
+            // Important: use this to bypass extlv's hooking.
+            ListView_GetItemText(ListViewHandle, i - 1, j, buffer, sizeof(buffer) / sizeof(WCHAR));
+            table[i][j] = PhaCreateString(buffer);
+        }
+    }
+
+    lines = PhapFormatTextTable(table, rows, columns, Mode);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return lines;
+}
+
 VOID PhpEscapeStringForCsv(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in PPH_STRING String
@@ -207,90 +422,56 @@ VOID PhpEscapeStringForCsv(
         PhAppendStringBuilderEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
 }
 
-PPH_LIST PhGetProcessTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG NumberOfNodes,
-    __in PPH_LIST RootNodes,
+VOID PhapCreateTextTable(
+    __out PPH_STRING ***Table,
+    __in ULONG Rows,
+    __in ULONG Columns
+    )
+{
+    PPH_STRING **table;
+    ULONG i;
+
+    PhCreateAlloc((PVOID *)&table, sizeof(PPH_STRING *) * Rows);
+    PhaDereferenceObject(table);
+
+    for (i = 0; i < Rows; i++)
+    {
+        PhCreateAlloc((PVOID *)&table[i], sizeof(PPH_STRING) * Columns);
+        PhaDereferenceObject(table[i]);
+    }
+
+    *Table = table;
+}
+
+PPH_LIST PhapFormatTextTable(
+    __in PPH_STRING **Table,
+    __in ULONG Rows,
+    __in ULONG Columns,
     __in ULONG Mode
     )
 {
-#define TAB_SIZE 8
-
-    PH_AUTO_POOL autoPool;
     PPH_LIST lines;
-    // The number of rows in the table (including +1 for the column headers).
-    ULONG rows;
-    // The number of columns.
-    ULONG columns;
-    // A column display index to ID map.
-    ULONG displayToId[PHTLC_MAXIMUM];
-    // A column display index to text map.
-    PWSTR displayToText[PHTLC_MAXIMUM];
-    // The actual string table.
-    PPH_STRING **table;
     // The tab count array contains the number of tabs need to fill the biggest 
     // row cell in each column.
     PULONG tabCount;
     ULONG i;
     ULONG j;
 
-    // Use a local auto-pool to make memory mangement a bit less painful.
-    PhInitializeAutoPool(&autoPool);
-
-    rows = NumberOfNodes + 1;
-
-    // Create the display index to ID map.
-    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, displayToText, &columns);
-
-    // Create the rows.
-
-    PhCreateAlloc((PVOID *)&table, sizeof(PPH_STRING *) * rows);
-    PhaDereferenceObject(table);
-
-    for (i = 0; i < rows; i++)
-    {
-        PhCreateAlloc((PVOID *)&table[i], sizeof(PPH_STRING) * columns);
-        PhaDereferenceObject(table[i]);
-    }
-
-    // Populate the first row with the column headers.
-    for (i = 0; i < columns; i++)
-    {
-        table[0][i] = PhaCreateString(displayToText[i]);
-    }
-
-    // Go through the nodes in the process tree and populate each cell of the table.
-
-    j = 1; // index starts at one because the first row contains the column headers.
-
-    for (i = 0; i < RootNodes->Count; i++)
-    {
-        PhpPopulateTableWithProcessNodes(
-            TreeListHandle,
-            RootNodes->Items[i],
-            0,
-            table,
-            &j,
-            displayToId,
-            columns
-            );
-    }
-
     if (Mode == PH_EXPORT_MODE_TABS || Mode == PH_EXPORT_MODE_SPACES)
     {
         // Create the tab count array.
 
-        PhCreateAlloc(&tabCount, sizeof(ULONG) * columns);
+        PhCreateAlloc(&tabCount, sizeof(ULONG) * Columns);
         PhaDereferenceObject(tabCount);
-        memset(tabCount, 0, sizeof(ULONG) * columns); // zero all values
+        memset(tabCount, 0, sizeof(ULONG) * Columns); // zero all values
 
-        for (i = 0; i < rows; i++)
+        for (i = 0; i < Rows; i++)
         {
-            for (j = 0; j < columns; j++)
+            for (j = 0; j < Columns; j++)
             {
                 ULONG newCount;
 
-                newCount = table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                newCount = Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
                 // Replace the existing count if this tab count is bigger.
                 if (tabCount[j] < newCount)
@@ -303,9 +484,9 @@ PPH_LIST PhGetProcessTreeListLines(
     // the proper tab count (if we are using tabs). This will make sure each column 
     // is properly aligned.
 
-    lines = PhCreateList(rows);
+    lines = PhCreateList(Rows);
 
-    for (i = 0; i < rows; i++)
+    for (i = 0; i < Rows; i++)
     {
         PH_STRING_BUILDER stringBuilder;
 
@@ -315,41 +496,41 @@ PPH_LIST PhGetProcessTreeListLines(
         {
         case PH_EXPORT_MODE_TABS:
             {
-                for (j = 0; j < columns; j++)
+                for (j = 0; j < Columns; j++)
                 {
                     ULONG k;
 
                     // Calculate the number of tabs needed.
-                    k = tabCount[j] + 1 - table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                    k = tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
-                    PhAppendStringBuilder(&stringBuilder, table[i][j]);
+                    PhAppendStringBuilder(&stringBuilder, Table[i][j]);
                     PhAppendCharStringBuilder2(&stringBuilder, '\t', k);
                 }
             }
             break;
         case PH_EXPORT_MODE_SPACES:
             {
-                for (j = 0; j < columns; j++)
+                for (j = 0; j < Columns; j++)
                 {
                     ULONG k;
 
                     // Calculate the number of spaces needed.
-                    k = (tabCount[j] + 1) * TAB_SIZE - table[i][j]->Length / sizeof(WCHAR);
+                    k = (tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR);
 
-                    PhAppendStringBuilder(&stringBuilder, table[i][j]);
+                    PhAppendStringBuilder(&stringBuilder, Table[i][j]);
                     PhAppendCharStringBuilder2(&stringBuilder, ' ', k);
                 }
             }
             break;
         case PH_EXPORT_MODE_CSV:
             {
-                for (j = 0; j < columns; j++)
+                for (j = 0; j < Columns; j++)
                 {
                     PhAppendCharStringBuilder(&stringBuilder, '\"');
-                    PhpEscapeStringForCsv(&stringBuilder, table[i][j]);
+                    PhpEscapeStringForCsv(&stringBuilder, Table[i][j]);
                     PhAppendCharStringBuilder(&stringBuilder, '\"');
 
-                    if (j != columns - 1)
+                    if (j != Columns - 1)
                         PhAppendCharStringBuilder(&stringBuilder, ',');
                 }
             }
@@ -359,90 +540,5 @@ PPH_LIST PhGetProcessTreeListLines(
         PhAddItemList(lines, PhFinalStringBuilderString(&stringBuilder));
     }
 
-    PhDeleteAutoPool(&autoPool);
-
     return lines;
-}
-
-VOID PhpMapDisplayIndexListView(
-    __in HWND ListViewHandle,
-    __out_ecount(Count) PULONG DisplayToId,
-    __in ULONG Count,
-    __out PULONG NumberOfColumns
-    )
-{
-    LVCOLUMN lvColumn;
-    ULONG i;
-    ULONG count;
-
-    count = 0;
-    lvColumn.mask = LVCF_ORDER;
-
-    for (i = 0; i < Count; i++)
-    {
-        if (ListView_GetColumn(ListViewHandle, i, &lvColumn))
-        {
-            ULONG displayIndex;
-
-            displayIndex = (ULONG)lvColumn.iOrder;
-            assert(displayIndex < Count);
-            DisplayToId[displayIndex] = i;
-
-            count++;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    *NumberOfColumns = count;
-}
-
-PPH_FULL_STRING PhGetListViewText(
-    __in HWND ListViewHandle
-    )
-{
-    PPH_FULL_STRING string;
-    ULONG displayToId[100];
-    ULONG rows;
-    ULONG columns;
-    ULONG i;
-    ULONG j;
-
-    PhpMapDisplayIndexListView(ListViewHandle, displayToId, 100, &columns);
-    rows = ListView_GetItemCount(ListViewHandle);
-
-    string = PhCreateFullString2(0x100);
-
-    for (i = 0; i < rows; i++)
-    {
-        if (!(ListView_GetItemState(ListViewHandle, i, LVIS_SELECTED) & LVIS_SELECTED))
-            continue;
-
-        for (j = 0; j < columns; j++)
-        {
-            LVITEM lvItem;
-            WCHAR buffer[512];
-
-            lvItem.mask = LVIF_TEXT;
-            lvItem.iItem = i;
-            lvItem.iSubItem = j;
-            lvItem.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
-            lvItem.pszText = buffer;
-
-            if (ListView_GetItem(ListViewHandle, &lvItem))
-                PhAppendFullString2(string, buffer);
-
-            PhAppendFullString2(string, L", ");
-        }
-
-        // Remove the trailing comma and space.
-        if (string->Length != 0)
-            PhRemoveFullString(string, string->Length / 2 - 2, 2);
-
-        PhAppendFullString2(string, L"\r\n");
-    }
-
-    return string;
 }

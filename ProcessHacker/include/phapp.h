@@ -1267,6 +1267,11 @@ PPH_FULL_STRING PhGetListViewText(
     __in HWND ListViewHandle
     );
 
+PPH_LIST PhGetListViewLines(
+    __in HWND ListViewHandle,
+    __in ULONG Mode
+    );
+
 // findobj
 
 VOID PhShowFindObjectsDialog();
