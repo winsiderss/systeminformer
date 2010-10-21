@@ -349,6 +349,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\thrdact.c"
+				>
+			</File>
+			<File
 				RelativePath=".\unldll.c"
 				>
 			</File>

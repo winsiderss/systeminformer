@@ -12,6 +12,13 @@ VOID EtHandlePropertiesInitializing(
     __in PVOID Parameter
     );
 
+// thrdact
+
+BOOLEAN EtUiCancelIoThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread
+    );
+
 // unldll
 
 VOID EtShowUnloadedDllsDialog(
