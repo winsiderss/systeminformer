@@ -1,11 +1,26 @@
 #ifndef _NTTP_H
 #define _NTTP_H
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-
 // Worker factory
 
 // begin_rev
+
+#define WORKER_FACTORY_RELEASE_WORKER 0x0001
+#define WORKER_FACTORY_WAIT 0x0002
+#define WORKER_FACTORY_SET_INFORMATION 0x0004
+#define WORKER_FACTORY_QUERY_INFORMATION 0x0008
+#define WORKER_FACTORY_READY_WORKER 0x0010
+#define WORKER_FACTORY_SHUTDOWN 0x0020
+
+#define WORKER_FACTORY_ALL_ACCESS ( \
+    STANDARD_RIGHTS_REQUIRED | \
+    WORKER_FACTORY_RELEASE_WORKER | \
+    WORKER_FACTORY_WAIT | \
+    WORKER_FACTORY_SET_INFORMATION | \
+    WORKER_FACTORY_QUERY_INFORMATION | \
+    WORKER_FACTORY_READY_WORKER | \
+    WORKER_FACTORY_SHUTDOWN \
+    )
 
 typedef enum _WORKER_FACTORY_INFORMATION_CLASS
 {
@@ -48,6 +63,8 @@ typedef struct _IO_COMPLETION_MINIPACKET
     NTSTATUS IoStatus;
     ULONG_PTR IoStatusInformation;
 } IO_COMPLETION_MINIPACKET, *PIO_COMPLETION_MINIPACKET;
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -116,9 +133,34 @@ NtWaitForWorkViaWorkerFactory(
     __out PIO_COMPLETION_MINIPACKET MiniPacket
     );
 
+#endif
+
 // end_rev
 
 // User-mode functions
+
+// begin_rev
+
+typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
+
+// unsure
+typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
+    __inout PTP_CALLBACK_INSTANCE Instance,
+    __inout_opt PVOID Context,
+    __in PTP_ALPC Alpc // ?
+    );
+
+// unsure
+typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
+    __inout PTP_CALLBACK_INSTANCE Instance,
+    __inout_opt PVOID Context,
+    __in PTP_ALPC Alpc, // ?
+    __in PTP_WAIT Wait // ?
+    );
+
+// end_rev
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 // rev
 __checkReturn
@@ -458,23 +500,6 @@ TpWaitForIoCompletion(
     );
 
 // begin_rev
-
-typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
-
-// unsure
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
-    __inout PTP_CALLBACK_INSTANCE Instance,
-    __inout_opt PVOID Context,
-    __in PTP_ALPC Alpc // ?
-    );
-
-// unsure
-typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
-    __inout PTP_CALLBACK_INSTANCE Instance,
-    __inout_opt PVOID Context,
-    __in PTP_ALPC Alpc, // ?
-    __in PTP_WAIT Wait // ?
-    );
 
 NTSYSAPI
 NTSTATUS

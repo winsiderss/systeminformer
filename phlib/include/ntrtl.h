@@ -4753,8 +4753,6 @@ RtlDeleteTimerQueueEx(
 
 // Registry access
 
-// begin_wdm
-
 #define RTL_REGISTRY_ABSOLUTE 0
 #define RTL_REGISTRY_SERVICES 1 // \Registry\Machine\System\CurrentControlSet\Services
 #define RTL_REGISTRY_CONTROL 2 // \Registry\Machine\System\CurrentControlSet\Control
@@ -4764,8 +4762,6 @@ RtlDeleteTimerQueueEx(
 #define RTL_REGISTRY_MAXIMUM 6
 #define RTL_REGISTRY_HANDLE 0x40000000
 #define RTL_REGISTRY_OPTIONAL 0x80000000
-
-// end_wdm
 
 NTSYSAPI
 NTSTATUS
@@ -4943,7 +4939,8 @@ DbgPrompt(
 
 #if (PHNT_VERSION >= PHNT_WIN7)
 
-// winbase:EnableThreadProfiling
+// begin_rev
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4954,7 +4951,6 @@ RtlEnableThreadProfiling(
     __out PVOID *PerformanceDataHandle
     );
 
-// winbase:DisableThreadProfiling
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4962,7 +4958,6 @@ RtlDisableThreadProfiling(
     __in PVOID PerformanceDataHandle
     );
 
-// winbase:QueryThreadProfiling
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4971,7 +4966,6 @@ RtlQueryThreadProfiling(
     __out PBOOLEAN Enabled
     );
 
-// winbase:ReadThreadProfilingData
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4980,6 +4974,8 @@ RtlReadThreadProfilingData(
     __in ULONG Flags,
     __out PPERFORMANCE_DATA PerformanceData
     );
+
+// end_rev
 
 #endif
 
