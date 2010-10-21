@@ -809,17 +809,17 @@ typedef struct _PROCESS_EXTENDED_OPTIONS
     ULONG SubSystemType;
 } PROCESS_EXTENDED_OPTIONS, *PPROCESS_EXTENDED_OPTIONS;
 
-typedef enum _PROCESS_CREATE_STATUS
+// windows-internals-book:"Chapter 5"
+typedef enum _PS_CREATE_STATUS
 {
-    ProcessCreateStatusInvalid = 0,
-    ProcessCreateStatusCantOpenFile = 1,
-    ProcessCreateStatusCantCreateSection = 2,
-    ProcessCreateStatusBadImage = 3,
-    ProcessCreateStatusBadImageMachine = 4,
-    ProcessCreateStatusDebuggerNeeded = 5,
-    ProcessCreateStatusCreated = 6,
-    MaximumProcessCreateStatus
-} PROCESS_CREATE_STATUS;
+    PsCreateFailOnFileOpen = 1,
+    PsCreateFailOnSectionCreate = 2,
+    PsCreateFailExeFormat = 3,
+    PsCreateFailMachineMismatch = 4,
+    PsCreateFailExeName = 5, // Debugger specified
+    PsCreateSuccess = 6,
+    MaximumPsCreateStatus
+} PS_CREATE_STATUS;
 
 typedef struct _PROCESS_CREATE_INFO_INPUT
 {
@@ -872,7 +872,7 @@ typedef struct _PROCESS_CREATE_INFO_CREATED
 typedef struct _PROCESS_CREATE_INFO
 {
     SIZE_T Size;
-    PROCESS_CREATE_STATUS Status;
+    PS_CREATE_STATUS Status;
     union
     {
         PROCESS_CREATE_INFO_INPUT Input;
