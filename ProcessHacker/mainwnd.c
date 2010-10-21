@@ -571,6 +571,8 @@ LRESULT CALLBACK PhMainWndProc(
                             )))
                         {
                             ULONG mode;
+                            ULONG selectedTab;
+                            PPH_LIST lines = NULL;
 
                             if (PhEndsWithString2(fileName, L".csv", TRUE))
                                 mode = PH_EXPORT_MODE_CSV;
@@ -578,7 +580,32 @@ LRESULT CALLBACK PhMainWndProc(
                                 mode = PH_EXPORT_MODE_TABS;
 
                             PhWritePhTextHeader(fileStream);
-                            PhWriteProcessTree(fileStream, mode);
+
+                            selectedTab = TabCtrl_GetCurSel(TabControlHandle);
+
+                            if (selectedTab == ProcessesTabIndex)
+                                PhWriteProcessTree(fileStream, mode);
+                            else if (selectedTab == ServicesTabIndex)
+                                lines = PhGetListViewLines(ServiceListViewHandle, mode);
+                            else if (selectedTab == NetworkTabIndex)
+                                lines = PhGetListViewLines(NetworkListViewHandle, mode);
+
+                            if (lines)
+                            {
+                                ULONG i;
+
+                                for (i = 0; i < lines->Count; i++)
+                                {
+                                    PPH_STRING line;
+
+                                    line = lines->Items[i];
+                                    PhWriteStringAsAnsiFileStream(fileStream, &line->sr);
+                                    PhDereferenceObject(line);
+                                    PhWriteStringAsAnsiFileStream2(fileStream, L"\r\n");
+                                }
+
+                                PhDereferenceObject(lines);
+                            }
 
                             PhDereferenceObject(fileStream);
                         }

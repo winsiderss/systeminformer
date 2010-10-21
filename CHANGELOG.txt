@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added Peak Handles
    * Process tree sorting is now preserved
+   * Save works for services and network connections
    * Pausing now works correctly with the Network tab
 
 2.7
