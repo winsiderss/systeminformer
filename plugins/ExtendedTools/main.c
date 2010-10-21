@@ -53,6 +53,11 @@ VOID NTAPI ProcessMenuInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ThreadMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -60,6 +65,7 @@ PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -120,6 +126,12 @@ LOGICAL DllMain(
                 NULL,
                 &ProcessMenuInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackThreadMenuInitializing),
+                ThreadMenuInitializingCallback,
+                NULL,
+                &ThreadMenuInitializingCallbackRegistration
+                );
         }
         break;
     }
@@ -155,6 +167,11 @@ VOID NTAPI MenuItemCallback(
     case ID_PROCESS_UNLOADEDMODULES:
         {
             EtShowUnloadedDllsDialog(PhMainWndHandle, menuItem->Context);
+        }
+        break;
+    case ID_THREAD_CANCELIO:
+        {
+            EtUiCancelIoThread(menuItem->OwnerWindow, menuItem->Context);
         }
         break;
     }
@@ -196,4 +213,30 @@ VOID NTAPI ProcessMenuInitializingCallback(
     {
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_UNLOADEDMODULES, L"Unloaded Modules", processItem), -1);
     }
+}
+
+VOID NTAPI ThreadMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_THREAD_ITEM threadItem;
+    ULONG insertIndex;
+    PPH_EMENU_ITEM menuItem;
+
+    if (menuInfo->u.Thread.NumberOfThreads == 1)
+        threadItem = menuInfo->u.Thread.Threads[0];
+    else
+        threadItem = NULL;
+
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Resume", 0))
+        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
+    else
+        insertIndex = 0;
+
+    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO,
+        L"Cancel I/O", threadItem), insertIndex);
+
+    if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
