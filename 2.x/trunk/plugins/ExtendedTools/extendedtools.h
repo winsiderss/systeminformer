@@ -6,6 +6,12 @@
 
 extern PPH_PLUGIN PluginInstance;
 
+// objprp
+
+VOID EtHandlePropertiesInitializing(
+    __in PVOID Parameter
+    );
+
 // unldll
 
 VOID EtShowUnloadedDllsDialog(

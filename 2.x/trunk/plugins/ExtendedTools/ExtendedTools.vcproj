@@ -345,6 +345,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\objprp.c"
+				>
+			</File>
+			<File
 				RelativePath=".\unldll.c"
 				>
 			</File>

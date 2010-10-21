@@ -497,6 +497,17 @@ ACCESS_ENTRIES(Token)
     { L"Query source", TOKEN_QUERY_SOURCE, FALSE, TRUE }
 };
 
+ACCESS_ENTRIES(TpWorkerFactory)
+{
+    { L"Full control", WORKER_FACTORY_ALL_ACCESS, TRUE, TRUE },
+    { L"Release worker", WORKER_FACTORY_RELEASE_WORKER, FALSE, TRUE },
+    { L"Ready worker", WORKER_FACTORY_READY_WORKER, FALSE, TRUE },
+    { L"Wait", WORKER_FACTORY_WAIT, FALSE, TRUE },
+    { L"Set information", WORKER_FACTORY_SET_INFORMATION, FALSE, TRUE },
+    { L"Query information", WORKER_FACTORY_QUERY_INFORMATION, FALSE, TRUE },
+    { L"Shutdown", WORKER_FACTORY_SHUTDOWN, FALSE, TRUE }
+};
+
 ACCESS_ENTRIES(Type)
 {
     { L"Full control", OBJECT_TYPE_ALL_ACCESS, TRUE, TRUE },
@@ -580,6 +591,7 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(TmTm, FALSE),
     ACCESS_ENTRY(TmTx, FALSE),
     ACCESS_ENTRY(Token, FALSE),
+    ACCESS_ENTRY(TpWorkerFactory, FALSE),
     ACCESS_ENTRY(Type, FALSE),
     ACCESS_ENTRY(WindowStation, FALSE),
     ACCESS_ENTRY(WmiGuid, TRUE)
