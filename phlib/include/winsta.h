@@ -462,6 +462,7 @@ typedef struct _TS_COUNTER
 // -1 can be specified for session IDs to indicate the current session ID.
 
 #define LOGONID_CURRENT (-1)
+#define SERVERNAME_CURRENT (NULL)
 
 // begin_rev
 
