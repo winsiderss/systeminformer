@@ -1064,13 +1064,22 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                     switch (uMsg)
                     {
                     case WM_LBUTTONDOWN:
-                        node->Expanded = !node->Expanded;
+                        {
+                            PH_TREELIST_NODE_EVENT nodeEvent;
 
-                        // Let the LV select the item.
-                        CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+                            memset(&nodeEvent, 0, sizeof(PH_TREELIST_NODE_EVENT));
+                            context->Callback(context->Handle, TreeListNodePlusMinusMouseDown,
+                                node, &nodeEvent, context->Context);
 
-                        SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                            if (!nodeEvent.Handled)
+                                node->Expanded = !node->Expanded;
 
+                            // Let the LV select the item.
+                            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
+                            if (!nodeEvent.Handled)
+                                SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                        }
                         return 0;
                     case WM_LBUTTONDBLCLK:
                         return 0;

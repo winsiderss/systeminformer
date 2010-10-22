@@ -1235,7 +1235,7 @@ BEGIN
     RTEXT           "Static",IDC_ZPEAKHANDLES_V,192,112,55,8,SS_ENDELLIPSIS
 END
 
-IDD_OPTADVANCED DIALOGEX 0, 0, 250, 95
+IDD_OPTADVANCED DIALOGEX 0, 0, 250, 107
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Advanced"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -1245,12 +1245,14 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,99,10
     CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,88,10
     CONTROL         "Replace Task Manager with Process Hacker",IDC_REPLACETASKMANAGER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,71,154,10
-    PUSHBUTTON      "Change...",IDC_CHANGE,161,69,62,14
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,85,154,10
+    PUSHBUTTON      "Change...",IDC_CHANGE,161,83,62,14
     CONTROL         "Check images for digital signatures and packing",IDC_ENABLESTAGE2,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,167,10
     CONTROL         "Resolve addresses for network connections",IDC_ENABLENETWORKRESOLVE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,155,10
+    CONTROL         "Include CPU usage of children in collapsed processes",IDC_PROPAGATECPUUSAGE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,184,10
 END
 
 IDD_SYSINFO_PANEL DIALOGEX 0, 0, 387, 148
@@ -1867,7 +1869,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 243
         TOPMARGIN, 7
-        BOTTOMMARGIN, 88
+        BOTTOMMARGIN, 100
     END
 
     IDD_GDIHANDLES, DIALOG
