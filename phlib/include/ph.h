@@ -2729,10 +2729,38 @@ NTSTATUS PhIsExecutablePacked(
     __out_opt PULONG NumberOfFunctions
     );
 
+typedef enum _PH_HASH_ALGORITHM
+{
+    Md5HashAlgorithm,
+    Sha1HashAlgorithm,
+    Crc32HashAlgorithm
+} PH_HASH_ALGORITHM;
+
+typedef struct _PH_HASH_CONTEXT
+{
+    PH_HASH_ALGORITHM Algorithm;
+    ULONG Context[64];
+} PH_HASH_CONTEXT, *PPH_HASH_CONTEXT;
+
 PHLIBAPI
-NTSTATUS PhMd5File(
-    __in PWSTR FileName,
-    __out_bcount(16) PUCHAR Digest
+VOID PhInitializeHash(
+    __out PPH_HASH_CONTEXT Context,
+    __in PH_HASH_ALGORITHM Algorithm
+    );
+
+PHLIBAPI
+VOID PhUpdateHash(
+    __inout PPH_HASH_CONTEXT Context,
+    __in_bcount(Length) PVOID Buffer,
+    __in ULONG Length
+    );
+
+PHLIBAPI
+BOOLEAN PhFinalHash(
+    __inout PPH_HASH_CONTEXT Context,
+    __out_bcount(HashLength) PUCHAR Hash,
+    __in ULONG HashLength,
+    __out_opt PULONG ReturnLength
     );
 
 typedef enum _PH_COMMAND_LINE_OPTION_TYPE
