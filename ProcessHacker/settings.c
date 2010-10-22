@@ -113,6 +113,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
     PhpAddStringSetting(L"ProgramInspectExecutables", L"peview.exe \"%s\"");
+    PhpAddIntegerSetting(L"PropagateCpuUsage", L"0");
     PhpAddStringSetting(L"RunAsProgram", L"");
     PhpAddStringSetting(L"RunAsUserName", L"");
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
@@ -180,6 +181,7 @@ VOID PhUpdateCachedSettings()
 
     UPDATE_INTEGER_CS(CollapseServicesOnStart);
     UPDATE_INTEGER_CS(HighlightingDuration);
+    UPDATE_INTEGER_CS(PropagateCpuUsage);
     UPDATE_INTEGER_CS(UpdateInterval);
 
     UPDATE_INTEGER_CS(ColorNew);

@@ -506,6 +506,23 @@ VOID PhTickProcessNodes()
     }
 }
 
+static FLOAT PhpCalculateInclusiveCpuUsage(
+    __in PPH_PROCESS_NODE ProcessNode
+    )
+{
+    FLOAT cpuUsage;
+    ULONG i;
+
+    cpuUsage = ProcessNode->ProcessItem->CpuUsage;
+
+    for (i = 0; i < ProcessNode->Children->Count; i++)
+    {
+        cpuUsage += PhpCalculateInclusiveCpuUsage(ProcessNode->Children->Items[i]);
+    }
+
+    return cpuUsage;
+}
+
 static VOID PhpUpdateProcessNodeWsCounters(
     __inout PPH_PROCESS_NODE ProcessNode
     )
@@ -1197,7 +1214,14 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 {
                     FLOAT cpuUsage;
 
-                    cpuUsage = processItem->CpuUsage * 100;
+                    if (!PhCsPropagateCpuUsage || node->Node.Expanded || ProcessTreeListSortOrder != NoSortOrder)
+                    {
+                        cpuUsage = processItem->CpuUsage * 100;
+                    }
+                    else
+                    {
+                        cpuUsage = PhpCalculateInclusiveCpuUsage(node) * 100;
+                    }
 
                     if (cpuUsage >= 0.01)
                     {
@@ -1705,6 +1729,14 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
     case TreeListNodeLeftDoubleClick:
         {
             SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+        }
+        return TRUE;
+    case TreeListNodePlusMinusMouseDown:
+        {
+            node = Parameter1;
+
+            if (PhCsPropagateCpuUsage)
+                PhUpdateProcessNode(node);
         }
         return TRUE;
     }
