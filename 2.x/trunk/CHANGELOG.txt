@@ -8,6 +8,7 @@ Process Hacker
    * Pausing now works correctly with the Network tab
    * Added option to display inclusive CPU usages for 
      collapsed processes
+   * Added CLR tab to peview
 
 2.7
  * NEW/IMPROVED:
