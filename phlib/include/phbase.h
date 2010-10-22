@@ -1007,6 +1007,15 @@ FORCEINLINE ULONG PhFindCharInStringRef(
         return -1;
 }
 
+PHLIBAPI
+ULONG
+NTAPI
+PhFindStringInStringRef(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    );
+
 FORCEINLINE VOID PhReverseStringRef(
     __in PPH_STRINGREF String
     )
@@ -1535,14 +1544,31 @@ FORCEINLINE ULONG PhFindStringInString(
     __in PWSTR String2
     )
 {
-    PWSTR location;
+    PH_STRINGREF sr2;
 
-    location = wcsstr(&String1->Buffer[StartIndex], String2);
+    PhInitializeStringRef(&sr2, String2);
 
-    if (location)
-        return (ULONG)(location - String1->Buffer);
+    if (StartIndex != 0)
+    {
+        ULONG r;
+        PH_STRINGREF sr1;
+
+        sr1 = String1->sr;
+
+        sr1.Buffer += StartIndex;
+        sr1.Length -= (USHORT)(StartIndex * sizeof(WCHAR));
+
+        r = PhFindStringInStringRef(&sr1, &sr2, FALSE);
+
+        if (r != -1)
+            return r + StartIndex;
+        else
+            return -1;
+    }
     else
-        return -1;
+    {
+        return PhFindStringInStringRef(&String1->sr, &sr2, FALSE);
+    }
 }
 
 /**

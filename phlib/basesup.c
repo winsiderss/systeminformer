@@ -1052,6 +1052,103 @@ LONG PhCompareUnicodeStringZNatural(
 }
 
 /**
+ * Locates a string in a string.
+ *
+ * \param String1 The string to search.
+ * \param String2 The string to search for.
+ *
+ * \return The index, in characters, of the first occurrence of 
+ * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 
+ * found, -1 is returned.
+ */
+ULONG PhFindStringInStringRef(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in BOOLEAN IgnoreCase
+    )
+{
+    PWSTR string1;
+    ULONG length1;
+    PWSTR string2;
+    ULONG length2;
+    ULONG i;
+
+    string1 = String1->Buffer;
+    length1 = String1->Length / sizeof(WCHAR);
+    string2 = String2->Buffer;
+    length2 = String2->Length / sizeof(WCHAR);
+
+    // Can't be a substring if it's bigger than the first string.
+    if (length2 > length1)
+        return -1;
+
+    if (!IgnoreCase)
+    {
+        for (i = length1 - length2 + 1; i != 0; i--)
+        {
+            PWSTR s1;
+            PWSTR s2;
+            ULONG l2;
+
+            s1 = string1;
+            s2 = string2;
+            l2 = length2 & -2;
+
+            if (l2)
+            {
+                do
+                {
+                    if (*(PULONG)s1 != *(PULONG)s2)
+                        goto ContinueLoop;
+
+                    s1 += 2;
+                    s2 += 2;
+                    l2 -= 2;
+                } while (l2);
+            }
+
+            if (length2 & 1)
+            {
+                if (*s1 == *s2)
+                    goto FoundString;
+            }
+            else
+            {
+                goto FoundString;
+            }
+
+ContinueLoop:
+            string1++;
+        }
+
+        return -1;
+FoundString:
+        return (ULONG)(string1 - String1->Buffer);
+    }
+    else
+    {
+        UNICODE_STRING us1;
+        UNICODE_STRING us2;
+
+        us1 = String1->us;
+        us2 = String2->us;
+
+        for (i = length1 - length2 + 1; i != 0; i--)
+        {
+            if (RtlPrefixUnicodeString(&us2, &us1, TRUE))
+                goto FoundUString;
+
+            us1.Buffer += 1;
+            us1.Length -= sizeof(WCHAR);
+        }
+
+        return -1;
+FoundUString:
+        return (ULONG)(us1.Buffer - String1->Buffer);
+    }
+}
+
+/**
  * Creates a string object from an existing 
  * null-terminated string.
  *
