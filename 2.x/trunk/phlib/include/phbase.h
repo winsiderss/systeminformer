@@ -1768,6 +1768,14 @@ PhAppendFormatFullString(
     ...
     );
 
+VOID
+NTAPI
+PhAppendFormatFullString_V(
+    __inout PPH_FULL_STRING String,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
+    );
+
 PHLIBAPI
 VOID
 NTAPI
@@ -1904,6 +1912,14 @@ PhAppendFormatStringBuilder(
     __inout PPH_STRING_BUILDER StringBuilder,
     __in __format_string PWSTR Format,
     ...
+    );
+
+VOID
+NTAPI
+PhAppendFormatStringBuilder_V(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
     );
 
 PHLIBAPI
