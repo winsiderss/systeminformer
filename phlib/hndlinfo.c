@@ -880,7 +880,13 @@ NTSTATUS PhpGetBestObjectName(
 
             if (fullName)
             {
-                bestObjectName = PhFormatString(L"%s: 0x%x", fullName->Buffer, statistics.AuthenticationId.LowPart);
+                PH_FORMAT format[3];
+
+                PhInitFormatSR(&format[0], fullName->sr);
+                PhInitFormatS(&format[1], L": 0x");
+                PhInitFormatX(&format[2], statistics.AuthenticationId.LowPart);
+
+                bestObjectName = PhFormat(format, 3, fullName->Length + 8 + 16);
                 PhDereferenceObject(fullName);
             }
 

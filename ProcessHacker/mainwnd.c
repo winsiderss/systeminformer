@@ -4219,13 +4219,25 @@ PWSTR PhpGetNetworkItemProcessName(
     __in PPH_NETWORK_ITEM NetworkItem
     )
 {
+    PPH_STRING string;
+    PH_FORMAT format[4];
+
     if (!NetworkItem->ProcessId)
         return L"Waiting Connections";
 
+    PhInitFormatS(&format[1], L" (");
+    PhInitFormatU(&format[2], (ULONG)NetworkItem->ProcessId);
+    PhInitFormatC(&format[3], ')');
+
     if (NetworkItem->ProcessName)
-        return PhaFormatString(L"%s (%u)", NetworkItem->ProcessName->Buffer, (ULONG)NetworkItem->ProcessId)->Buffer;
+        PhInitFormatSR(&format[0], NetworkItem->ProcessName->sr);
     else
-        return PhaFormatString(L"Unknown Process (%u)", (ULONG)NetworkItem->ProcessId)->Buffer;
+        PhInitFormatS(&format[0], L"Unknown Process");
+
+    string = PhFormat(format, 4, 96);
+    PhaDereferenceObject(string);
+
+    return string->Buffer;
 }
 
 VOID PhpSetNetworkItemImageIndex(
