@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <windowsx.h>
+#include <emenu.h>
 
 typedef struct _PROCESS_HEAPS_CONTEXT
 {
@@ -279,7 +280,53 @@ INT_PTR CALLBACK PhpProcessHeapsDlgProc(
         break;
     case WM_NOTIFY:
         {
+            LPNMHDR header = (LPNMHDR)lParam;
+
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+
+            switch (header->code)
+            {
+            case NM_RCLICK:
+                {
+                    LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                    PRTL_HEAP_INFORMATION heapInfo;
+                    PPH_EMENU menu;
+                    INT selectedCount;
+                    POINT cursorPos;
+                    PPH_EMENU_ITEM menuItem;
+
+                    selectedCount = ListView_GetSelectedCount(context->ListViewHandle);
+                    heapInfo = PhGetSelectedListViewItemParam(context->ListViewHandle);
+
+                    if (selectedCount != 0)
+                    {
+                        menu = PhCreateEMenu();
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(selectedCount != 1 ? PH_EMENU_DISABLED : 0, 1, L"Destroy", NULL, NULL), -1);
+                        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 2, L"Copy\bCtrl+C", NULL, NULL), -1);
+
+                        GetCursorPos(&cursorPos);
+                        menuItem = PhShowEMenu(menu, context->ListViewHandle, PH_EMENU_SHOW_LEFTRIGHT | PH_EMENU_SHOW_NONOTIFY,
+                            PH_ALIGN_LEFT | PH_ALIGN_TOP, cursorPos.x, cursorPos.y);
+
+                        if (menuItem)
+                        {
+                            switch (menuItem->Id)
+                            {
+                            case 1:
+                                if (PhUiDestroyHeap(hwndDlg, context->ProcessItem->ProcessId, heapInfo->BaseAddress))
+                                    ListView_DeleteItem(context->ListViewHandle, PhFindListViewItemByParam(context->ListViewHandle, -1, heapInfo));
+                                break;
+                            case 2:
+                                PhCopyListView(context->ListViewHandle);
+                                break;
+                            }
+                        }
+
+                        PhDestroyEMenu(menu);
+                    }
+                }
+                break;
+            }
         }
         break;
     }
