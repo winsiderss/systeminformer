@@ -111,6 +111,14 @@ VOID PhAdjustRectangleToWorkingArea(
     }
 }
 
+/**
+ * Centers a window.
+ *
+ * \param WindowHandle The window to center.
+ * \param ParentWindowHandle If specified, the window will be positioned 
+ * at the center of this window. Otherwise, the window will be positioned 
+ * at the center of the monitor.
+ */
 VOID PhCenterWindow(
     __in HWND WindowHandle,
     __in_opt HWND ParentWindowHandle
@@ -155,8 +163,14 @@ VOID PhCenterWindow(
     }
 }
 
+/**
+ * References an array of objects.
+ *
+ * \param Objects An array of objects.
+ * \param NumberOfObjects The number of elements in \a Objects.
+ */
 VOID PhReferenceObjects(
-    __in PPVOID Objects,
+    __in_ecount(NumberOfObjects) PPVOID Objects,
     __in ULONG NumberOfObjects
     )
 {
@@ -166,8 +180,14 @@ VOID PhReferenceObjects(
         PhReferenceObject(Objects[i]);
 }
 
+/**
+ * Dereferences an array of objects.
+ *
+ * \param Objects An array of objects.
+ * \param NumberOfObjects The number of elements in \a Objects.
+ */
 VOID PhDereferenceObjects(
-    __in PPVOID Objects,
+    __in_ecount(NumberOfObjects) PPVOID Objects,
     __in ULONG NumberOfObjects
     )
 {
@@ -301,6 +321,15 @@ PPH_STRING PhGetWin32Message(
     return PhGetMessage(GetModuleHandle(L"kernel32.dll"), 0xb, GetUserDefaultLangID(), Result);
 }
 
+/**
+ * Displays a message box.
+ *
+ * \param hWnd The owner window of the message box.
+ * \param Type The type of message box to display.
+ * \param Format A format string.
+ *
+ * \return The user's response.
+ */
 INT PhShowMessage(
     __in HWND hWnd,
     __in ULONG Type,
@@ -361,6 +390,14 @@ PPH_STRING PhpGetStatusMessage(
         return PhGetWin32Message(Win32Result);
 }
 
+/**
+ * Displays an error message for a NTSTATUS value or Win32 error code.
+ *
+ * \param hWnd The owner window of the message box.
+ * \param Message A message describing the operation that failed.
+ * \param Status A NTSTATUS value, or 0 if there is none.
+ * \param Win32Result A Win32 error code, or 0 if there is none.
+ */
 VOID PhShowStatus(
     __in HWND hWnd,
     __in_opt PWSTR Message,
@@ -398,6 +435,18 @@ VOID PhShowStatus(
     PhDereferenceObject(statusMessage);
 }
 
+/**
+ * Displays an error message for a NTSTATUS value or Win32 error code, 
+ * and allows the user to cancel the current operation.
+ *
+ * \param hWnd The owner window of the message box.
+ * \param Message A message describing the operation that failed.
+ * \param Status A NTSTATUS value, or 0 if there is none.
+ * \param Win32Result A Win32 error code, or 0 if there is none.
+ *
+ * \param TRUE if the user wishes to continue with the current operation, 
+ * otherwise FALSE.
+ */
 BOOLEAN PhShowContinueStatus(
     __in HWND hWnd,
     __in_opt PWSTR Message,
@@ -438,6 +487,18 @@ BOOLEAN PhShowContinueStatus(
     return result == IDOK;
 }
 
+/**
+ * Displays a confirmation message.
+ *
+ * \param hWnd The owner window of the message box.
+ * \param Verb A verb describing the operation, e.g. "terminate".
+ * \param Object The object of the operation, e.g. "the process".
+ * \param Message A message describing the operation.
+ * \param Warning TRUE to display the confirmation message as a warning, 
+ * otherwise FALSE.
+ *
+ * \param TRUE if the user wishes to continue, otherwise FALSE.
+ */
 BOOLEAN PhShowConfirmMessage(
     __in HWND hWnd,
     __in PWSTR Verb,
@@ -1315,8 +1376,8 @@ PPH_STRING PhFormatSize(
 
     // PhFormat handles this better than the old method.
 
-    format.Type = SizeFormatType | FormatUsePrecision;
-    format.Precision = (USHORT)(MaxSizeUnit != -1 ? MaxSizeUnit : PhMaxSizeUnit);
+    format.Type = SizeFormatType | FormatUseRadix;
+    format.Radix = (UCHAR)(MaxSizeUnit != -1 ? MaxSizeUnit : PhMaxSizeUnit);
     format.u.Size = Size;
 
     return PhFormat(&format, 1, 0);
@@ -1601,6 +1662,14 @@ PPH_STRING PhFormatImageVersionInfo(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+/**
+ * Gets an absolute file name.
+ *
+ * \param FileName A file name.
+ * \param IndexOfFileName A variable which receives the index of the base name.
+ *
+ * \return An absolute file name, or NULL if the function failed.
+ */
 PPH_STRING PhGetFullPath(
     __in PWSTR FileName,
     __out_opt PULONG IndexOfFileName

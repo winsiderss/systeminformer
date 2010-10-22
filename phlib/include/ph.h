@@ -2163,13 +2163,13 @@ FORCEINLINE FILETIME PhSubtractFileTime(
 
 PHLIBAPI
 VOID PhReferenceObjects(
-    __in PPVOID Objects,
+    __in_ecount(NumberOfObjects) PPVOID Objects,
     __in ULONG NumberOfObjects
     );
 
 PHLIBAPI
 VOID PhDereferenceObjects(
-    __in PPVOID Objects,
+    __in_ecount(NumberOfObjects) PPVOID Objects,
     __in ULONG NumberOfObjects
     );
 

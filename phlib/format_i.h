@@ -474,8 +474,8 @@ CommonInt64Format:
                     goto ContinueLoop;
                 }
 
-                if (format->Type & FormatUsePrecision)
-                    maxSizeUnit = format->Precision;
+                if (format->Type & FormatUseRadix)
+                    maxSizeUnit = format->Radix;
                 else
                     maxSizeUnit = PhMaxSizeUnit;
 
@@ -492,7 +492,7 @@ CommonInt64Format:
                 // Format the number, then append the unit name.
 
                 doubleFormat.Type = DoubleFormatType | FormatUsePrecision | FormatCropZeros | FormatGroupDigits;
-                doubleFormat.Precision = 2;
+                doubleFormat.Precision = (format->Type & FormatUsePrecision) ? format->Precision : 2;
                 doubleFormat.Width = 0; // stupid compiler
                 doubleFormat.u.Double = s;
                 flags = 0;

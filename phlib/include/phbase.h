@@ -3059,12 +3059,26 @@ typedef enum _PH_FORMAT_TYPE
     FormatUpperCase = 0x20000000
 } PH_FORMAT_TYPE;
 
+/**
+ * Describes an element to be formatted to a string.
+ */
 typedef struct _PH_FORMAT
 {
+    /** Specifies the type of the element and optional flags. */
     PH_FORMAT_TYPE Type;
+    /** The precision of the element. The meaning of this field depends on 
+     * the element type. For \a Double and \a Size, this field specifies 
+     * the number of decimal points to include. */
     USHORT Precision;
+    /** The width of the element. This field specifies the minimum 
+     * number of characters to output. The remaining space is 
+     * padded with either spaces, zeros, or a custom character. */
     USHORT Width;
+    /** The pad character. */
     WCHAR Pad;
+    /** The meaning of this field depends on the element type. For integer 
+     * types, this field specifies the base to convert the number into. 
+     * For \a Size, this field specifies the maximum size unit. */
     UCHAR Radix;
     UCHAR Reserved;
     union
