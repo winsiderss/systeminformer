@@ -2532,3 +2532,84 @@ BOOLEAN PhUiSetAttributesHandle(
 
     return TRUE;
 }
+
+BOOLEAN PhUiDestroyHeap(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PVOID HeapHandle
+    )
+{
+    NTSTATUS status;
+    BOOLEAN cont = FALSE;
+    HANDLE processHandle;
+    HANDLE threadHandle;
+
+    if (PhGetIntegerSetting(L"EnableWarnings"))
+    {
+        cont = PhShowConfirmMessage(
+            hWnd,
+            L"destroy",
+            L"the selected heap",
+            L"Destroying heaps may cause the process to crash.",
+            FALSE
+            );
+    }
+    else
+    {
+        cont = TRUE;
+    }
+
+    if (!cont)
+        return FALSE;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_CREATE_THREAD,
+        ProcessId
+        )))
+    {
+        if (WindowsVersion >= WINDOWS_VISTA)
+        {
+            status = RtlCreateUserThread(
+                processHandle,
+                NULL,
+                FALSE,
+                0,
+                0,
+                0,
+                (PUSER_THREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
+                HeapHandle,
+                &threadHandle,
+                NULL
+                );
+        }
+        else
+        {
+            if (!(threadHandle = CreateRemoteThread(
+                processHandle,
+                NULL,
+                0,
+                (PTHREAD_START_ROUTINE)PhGetProcAddress(L"ntdll.dll", "RtlDestroyHeap"),
+                HeapHandle,
+                0,
+                NULL
+                )))
+            {
+                status = NTSTATUS_FROM_WIN32(GetLastError());
+            }
+        }
+
+        if (NT_SUCCESS(status))
+            NtClose(threadHandle);
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhShowStatus(hWnd, L"Unable to destroy the heap", status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}

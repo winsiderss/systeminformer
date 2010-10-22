@@ -1155,6 +1155,13 @@ BOOLEAN PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+PHAPPAPI
+BOOLEAN PhUiDestroyHeap(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PVOID HeapHandle
+    );
+
 // itemtips
 
 PPH_STRING PhGetProcessTooltipText(
