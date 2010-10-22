@@ -45,14 +45,23 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK PvpPeClrDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 PH_MAPPED_IMAGE PvMappedImage;
+PIMAGE_COR20_HEADER PvImageCor20Header;
 
 VOID PvPeProperties()
 {
     NTSTATUS status;
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[3];
+    HPROPSHEETPAGE pages[4];
+    PIMAGE_DATA_DIRECTORY entry;
 
     status = PhLoadMappedImage(PvFileName->Buffer, NULL, TRUE, &PvMappedImage);
 
@@ -92,6 +101,33 @@ VOID PvPeProperties()
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PEEXPORTS);
     propSheetPage.pfnDlgProc = PvpPeExportsDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // CLR page
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
+        entry->VirtualAddress &&
+        (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
+    {
+        status = STATUS_SUCCESS;
+
+        __try
+        {
+            PhProbeAddress(PvImageCor20Header, sizeof(IMAGE_COR20_HEADER),
+                PvMappedImage.ViewBase, PvMappedImage.Size, 4);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            status = GetExceptionCode();
+        }
+
+        if (NT_SUCCESS(status))
+        {
+            memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+            propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+            propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PECLR);
+            propSheetPage.pfnDlgProc = PvpPeClrDlgProc;
+            pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+        }
+    }
 
     PropertySheet(&propSheetHeader);
 
@@ -466,6 +502,52 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PvpPeClrDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            PH_STRING_BUILDER stringBuilder;
+            PPH_STRING string;
+
+            string = PhFormatString(L"%u.%u", PvImageCor20Header->MajorRuntimeVersion,
+                PvImageCor20Header->MinorRuntimeVersion);
+            SetDlgItemText(hwndDlg, IDC_RUNTIMEVERSION, string->Buffer);
+            PhDereferenceObject(string);
+
+            PhInitializeStringBuilder(&stringBuilder, 256);
+
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_ILONLY)
+                PhAppendStringBuilder2(&stringBuilder, L"IL only, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_32BITREQUIRED)
+                PhAppendStringBuilder2(&stringBuilder, L"32-bit only, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_IL_LIBRARY)
+                PhAppendStringBuilder2(&stringBuilder, L"IL library, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_STRONGNAMESIGNED)
+                PhAppendStringBuilder2(&stringBuilder, L"Strong-name signed, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_NATIVE_ENTRYPOINT)
+                PhAppendStringBuilder2(&stringBuilder, L"Native entry-point, ");
+            if (PvImageCor20Header->Flags & COMIMAGE_FLAGS_TRACKDEBUGDATA)
+                PhAppendStringBuilder2(&stringBuilder, L"Track debug data, ");
+
+            if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
+                PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 2, 2);
+
+            SetDlgItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
+            PhDeleteStringBuilder(&stringBuilder);
         }
         break;
     }
