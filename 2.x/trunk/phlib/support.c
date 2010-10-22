@@ -3576,79 +3576,104 @@ CleanupExit:
     return status;
 }
 
-NTSTATUS PhMd5File(
-    __in PWSTR FileName,
-    __out_bcount(16) PUCHAR Digest
+C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(MD5_CTX));
+C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(A_SHA_CTX));
+
+VOID PhInitializeHash(
+    __out PPH_HASH_CONTEXT Context,
+    __in PH_HASH_ALGORITHM Algorithm
     )
 {
-    NTSTATUS status;
-    HANDLE fileHandle;
-    LARGE_INTEGER fileSize;
-    IO_STATUS_BLOCK isb;
+    Context->Algorithm = Algorithm;
 
-    if (NT_SUCCESS(status = PhCreateFileWin32(
-        &fileHandle,
-        FileName,
-        FILE_GENERIC_READ,
-        0,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
-        )))
+    switch (Algorithm)
     {
-        // Don't try to hash files over 16 MB in size.
-        if (
-            NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)) &&
-            fileSize.QuadPart < 16 * 1024 * 1024
-            )
+    case Md5HashAlgorithm:
+        MD5Init((MD5_CTX *)Context->Context);
+        break;
+    case Sha1HashAlgorithm:
+        A_SHAInit((A_SHA_CTX *)Context->Context);
+        break;
+    case Crc32HashAlgorithm:
+        Context->Context[0] = 128;
+        break;
+    default:
+        PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
+        break;
+    }
+}
+
+VOID PhUpdateHash(
+    __inout PPH_HASH_CONTEXT Context,
+    __in_bcount(Length) PVOID Buffer,
+    __in ULONG Length
+    )
+{
+    switch (Context->Algorithm)
+    {
+    case Md5HashAlgorithm:
+        MD5Update((MD5_CTX *)Context->Context, (PUCHAR)Buffer, Length);
+        break;
+    case Sha1HashAlgorithm:
+        A_SHAUpdate((A_SHA_CTX *)Context->Context, (PUCHAR)Buffer, Length);
+        break;
+    case Crc32HashAlgorithm:
+        Context->Context[0] = ph_crc32(Context->Context[0], (PUCHAR)Buffer, Length);
+        break;
+    }
+}
+
+BOOLEAN PhFinalHash(
+    __inout PPH_HASH_CONTEXT Context,
+    __out_bcount(HashLength) PUCHAR Hash,
+    __in ULONG HashLength,
+    __out_opt PULONG ReturnLength
+    )
+{
+    BOOLEAN result;
+    ULONG returnLength;
+
+    result = FALSE;
+
+    switch (Context->Algorithm)
+    {
+    case Md5HashAlgorithm:
+        if (HashLength >= 16)
         {
-            MD5_CTX context;
-            UCHAR buffer[4096];
-            ULONG64 bytesRemaining;
-
-            bytesRemaining = fileSize.QuadPart;
-
-            MD5Init(&context);
-
-            while (bytesRemaining)
-            {
-                status = NtReadFile(
-                    fileHandle,
-                    NULL,
-                    NULL,
-                    NULL,
-                    &isb,
-                    buffer,
-                    sizeof(buffer),
-                    NULL,
-                    NULL
-                    );
-
-                if (!NT_SUCCESS(status))
-                    break;
-
-                MD5Update(&context, buffer, (ULONG)isb.Information);
-
-                bytesRemaining -= (ULONG)isb.Information;
-            }
-
-            if (status == STATUS_END_OF_FILE)
-                status = STATUS_SUCCESS;
-
-            MD5Final(&context);
-
-            if (NT_SUCCESS(status))
-                memcpy(Digest, context.digest, 16);
+            MD5Final((MD5_CTX *)Context->Context);
+            memcpy(Hash, ((MD5_CTX *)Context->Context)->digest, 16);
+            result = TRUE;
         }
-        else
+
+        returnLength = 16;
+
+        break;
+    case Sha1HashAlgorithm:
+        if (HashLength >= 20)
         {
-            status = STATUS_FILE_TOO_LARGE;
+            A_SHAFinal((A_SHA_CTX *)Context->Context, Hash);
+            result = TRUE;
         }
 
-        NtClose(fileHandle);
+        returnLength = 20;
+
+        break;
+    case Crc32HashAlgorithm:
+        if (HashLength >= 4)
+        {
+            *(PULONG)Hash = Context->Context[0];
+            result = TRUE;
+        }
+
+        returnLength = 4;
+
+        break;
     }
 
-    return status;
+    if (ReturnLength)
+        *ReturnLength = returnLength;
+
+    return result;
 }
 
 PPH_STRING PhParseCommandLinePart(
