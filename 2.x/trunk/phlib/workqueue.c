@@ -44,6 +44,16 @@ VOID PhWorkQueueInitialization()
 #endif
 }
 
+/**
+ * Initializes a work queue.
+ *
+ * \param WorkQueue A work queue object.
+ * \param MinimumThreads The suggested minimum number of threads to keep alive, even 
+ * when there is no work to be performed.
+ * \param MaximumThreads The suggested maximum number of threads to create.
+ * \param NoWorkTimeout The number of milliseconds after which threads without work 
+ * will terminate.
+ */
 VOID PhInitializeWorkQueue(
     __out PPH_WORK_QUEUE WorkQueue,
     __in ULONG MinimumThreads,
@@ -74,6 +84,11 @@ VOID PhInitializeWorkQueue(
 #endif
 }
 
+/**
+ * Frees resources used by a work queue.
+ *
+ * \param WorkQueue A work queue object.
+ */
 VOID PhDeleteWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue
     )
@@ -251,6 +266,13 @@ NTSTATUS PhpWorkQueueThreadStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queues a work item to a work queue.
+ *
+ * \param WorkQueue A work queue object.
+ * \param Function A function to execute.
+ * \param Context A user-defined value to pass to the function.
+ */
 VOID PhQueueItemWorkQueue(
     __inout PPH_WORK_QUEUE WorkQueue,
     __in PTHREAD_START_ROUTINE Function,
@@ -288,6 +310,12 @@ VOID PhQueueItemWorkQueue(
     }
 }
 
+/**
+ * Queues a work item to the global work queue.
+ *
+ * \param Function A function to execute.
+ * \param Context A user-defined value to pass to the function.
+ */
 VOID PhQueueItemGlobalWorkQueue(
     __in PTHREAD_START_ROUTINE Function,
     __in_opt PVOID Context
