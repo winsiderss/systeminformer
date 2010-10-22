@@ -1,0 +1,515 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="phlib">
+      <UniqueIdentifier>{e7aa1e43-4773-4453-a20c-473c48e66901}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Process Hacker">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="PCRE">
+      <UniqueIdentifier>{3fa0b151-12c1-4832-94fb-e16c52584b65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Mini-XML">
+      <UniqueIdentifier>{eaabb14f-9091-4b18-8764-45c8350f4887}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\phlib\basesup.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\basesupa.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\basesupx.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\circbuf.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\clrsup.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\collect.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\colorbox.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\data.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\dspick.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\emenu.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\error.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\extlv.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\fastlock.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\format.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\global.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\graph.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\guisup.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\handle.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\hexedit.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\hndlinfo.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\icotobmp.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\iosup.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\kph.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\lsa.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\mapimg.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\maplib.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\md5.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\native.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\ntimport.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\provider.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\queuedlock.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\ref.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\secdata.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\secedit.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\sha.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\support.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\svcsup.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\symprv.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\sync.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\treelist.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\verify.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\workqueue.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
+    <ClCompile Include="about.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="actions.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="affinity.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="anawait.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="appsup.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="chcol.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="chdlg.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="chproc.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="cmdmode.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="cpysave.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="dbgcon.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="findobj.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="gdihndl.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="heapinfo.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="hidnproc.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="hndlstat.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="infodlg.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="itemtips.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="jobprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="log.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="logwnd.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="main.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="mainwnd.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="mdump.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="memedit.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="memprot.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="memprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="memrslt.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="memsrch.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="modprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="netprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="netstk.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="notifico.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="ntobjprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="pagfiles.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="plugin.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="plugman.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="procprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="procprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="procrec.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="proctree.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="runas.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="sessprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="settings.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="srvcr.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="srvlist.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="srvprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="srvprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="ssndmsg.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="sysinfo.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="termator.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="thrdprv.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="thrdstk.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="tokprp.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_chartables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_compile.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_config.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_dfa_exec.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_exec.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_fullinfo.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_get.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_globals.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_info.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_maketables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_newline.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_ord2utf8.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_refcount.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_study.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_tables.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_try_flipped.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_ucd.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_valid_utf8.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_version.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcre_xclass.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\pcre\pcreposix.c">
+      <Filter>PCRE</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-attr.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-entity.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-file.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-index.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-node.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-private.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-search.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-set.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="mxml\mxml-string.c">
+      <Filter>Mini-XML</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\phlib\circbuf_i.h">
+      <Filter>phlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\phlib\format_i.h">
+      <Filter>phlib</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\config.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\hidnproc.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\memsrch.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml-private.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="mxml\mxml.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phapp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\phapppub.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="sdk\phdk.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phplug.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\procprpp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\providers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\settings.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\settingsp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\application.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\black.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\bricks.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\cog_edit.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\cog_edit.png">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\cross.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\folder.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\magnifier.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\minus.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\pencil.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\plus.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="ProcessHacker.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\ProcessHacker.png">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\tick.bmp">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ProcessHacker.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

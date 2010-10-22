@@ -1,26 +1,17 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHacker\ProcessHacker.vcproj", "{0271DD27-6707-4290-8DFE-285702B7115D}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib", "phlib\phlib.vcproj", "{477D0215-F252-41A1-874B-F27E3EA1ED17}"
-EndProject
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{2758DC86-368B-430C-9D29-F1EF20032A71}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fixlib", "tools\fixlib\fixlib.vcproj", "{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}"
-	ProjectSection(ProjectDependencies) = postProject
-		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessHacker", "ProcessHacker\ProcessHacker.vcxproj", "{0271DD27-6707-4290-8DFE-285702B7115D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\peview.vcproj", "{72C124A2-3C80-41C6-ABA1-C4948B713204}"
-	ProjectSection(ProjectDependencies) = postProject
-		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib", "phlib\phlib.vcxproj", "{477D0215-F252-41A1-874B-F27E3EA1ED17}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiin", "tools\fiin\fiin.vcproj", "{5EAB4888-C299-4C4C-ADB2-212C3735805C}"
-	ProjectSection(ProjectDependencies) = postProject
-		{477D0215-F252-41A1-874B-F27E3EA1ED17} = {477D0215-F252-41A1-874B-F27E3EA1ED17}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fixlib", "tools\fixlib\fixlib.vcxproj", "{31F4AA06-7ED5-4A6D-B901-19AD4BD16175}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\peview.vcxproj", "{72C124A2-3C80-41C6-ABA1-C4948B713204}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiin", "tools\fiin\fiin.vcxproj", "{5EAB4888-C299-4C4C-ADB2-212C3735805C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
