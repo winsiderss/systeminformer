@@ -3595,7 +3595,7 @@ VOID PhInitializeHash(
         A_SHAInit((A_SHA_CTX *)Context->Context);
         break;
     case Crc32HashAlgorithm:
-        Context->Context[0] = 128;
+        Context->Context[0] = 0;
         break;
     default:
         PhRaiseStatus(STATUS_INVALID_PARAMETER_2);
