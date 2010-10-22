@@ -1951,13 +1951,13 @@ PPH_STRING PhGetKnownLocation(
 {
     WCHAR folderPath[MAX_PATH];
 
-    if (SHGetFolderPath(
+    if (SUCCEEDED(SHGetFolderPath(
         NULL,
         Folder,
         NULL,
         SHGFP_TYPE_CURRENT,
         folderPath
-        ) != E_INVALIDARG)
+        )))
     {
         if (AppendPath)
         {
