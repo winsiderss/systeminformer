@@ -1735,12 +1735,39 @@ VOID PhAppendFormatFullString(
     )
 {
     va_list argptr;
-    PPH_STRING string;
 
     va_start(argptr, Format);
-    string = PhFormatString_V(Format, argptr);
-    PhAppendFullString(String, string);
-    PhDereferenceObject(string);
+    PhAppendFormatFullString_V(String, Format, argptr);
+}
+
+VOID PhAppendFormatFullString_V(
+    __inout PPH_FULL_STRING String,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
+    )
+{
+    INT length;
+    SIZE_T lengthInBytes;
+
+    length = _vscwprintf(Format, ArgPtr);
+
+    if (length == -1 || length == 0)
+        return;
+
+    lengthInBytes = (SIZE_T)(ULONG)length * sizeof(WCHAR);
+
+    if (String->AllocatedLength < String->Length + lengthInBytes)
+        PhResizeFullString(String, String->Length + lengthInBytes, TRUE);
+
+    _vsnwprintf(
+        &String->Buffer[String->Length / sizeof(WCHAR)],
+        length,
+        Format,
+        ArgPtr
+        );
+
+    String->Length += lengthInBytes;
+    PhpWriteNullTerminatorFullString(String);
 }
 
 /**
@@ -2142,12 +2169,39 @@ VOID PhAppendFormatStringBuilder(
     )
 {
     va_list argptr;
-    PPH_STRING string;
 
     va_start(argptr, Format);
-    string = PhFormatString_V(Format, argptr);
-    PhAppendStringBuilder(StringBuilder, string);
-    PhDereferenceObject(string);
+    PhAppendFormatStringBuilder_V(StringBuilder, Format, argptr);
+}
+
+VOID PhAppendFormatStringBuilder_V(
+    __inout PPH_STRING_BUILDER StringBuilder,
+    __in __format_string PWSTR Format,
+    __in va_list ArgPtr
+    )
+{
+    INT length;
+    ULONG lengthInBytes;
+
+    length = _vscwprintf(Format, ArgPtr);
+
+    if (length == -1 || length == 0)
+        return;
+
+    lengthInBytes = (ULONG)length * sizeof(WCHAR);
+
+    if (StringBuilder->AllocatedLength < StringBuilder->String->Length + lengthInBytes)
+        PhpResizeStringBuilder(StringBuilder, StringBuilder->String->Length + lengthInBytes);
+
+    _vsnwprintf(
+        &StringBuilder->String->Buffer[StringBuilder->String->Length / sizeof(WCHAR)],
+        length,
+        Format,
+        ArgPtr
+        );
+
+    StringBuilder->String->Length += (USHORT)lengthInBytes;
+    PhpWriteNullTerminatorStringBuilder(StringBuilder);
 }
 
 /**
