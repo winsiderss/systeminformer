@@ -1,23 +1,23 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SbieSupport", "SbieSupport\SbieSupport.vcproj", "{EEF1E81D-D286-422A-89E6-C6C8F3BE648A}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SbieSupport", "SbieSupport\SbieSupport.vcxproj", "{EEF1E81D-D286-422A-89E6-C6C8F3BE648A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecurityExplorer", "SecurityExplorer\SecurityExplorer.vcproj", "{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SecurityExplorer", "SecurityExplorer\SecurityExplorer.vcxproj", "{0DCBC570-B4E3-482A-9872-8BB5678F5E5C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessActions", "ProcessActions\ProcessActions.vcproj", "{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProcessActions", "ProcessActions\ProcessActions.vcxproj", "{6D09DFBB-8841-4F23-A2A0-DDF4BF6B924A}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedNotifications", "ExtendedNotifications\ExtendedNotifications.vcproj", "{80E791B8-AC98-407E-8FF9-5154AF50E887}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedNotifications", "ExtendedNotifications\ExtendedNotifications.vcxproj", "{80E791B8-AC98-407E-8FF9-5154AF50E887}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolStatus", "ToolStatus\ToolStatus.vcproj", "{60B43533-C75E-4741-9E19-C4D581BEF51C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToolStatus", "ToolStatus\ToolStatus.vcxproj", "{60B43533-C75E-4741-9E19-C4D581BEF51C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedServices", "ExtendedServices\ExtendedServices.vcproj", "{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedServices", "ExtendedServices\ExtendedServices.vcxproj", "{AC547368-D861-4B88-B5D4-E3B1F1AEEEDD}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetworkTools", "NetworkTools\NetworkTools.vcproj", "{B5E0DA09-EA01-4D5A-A9D6-5B22DB0C306E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetworkTools", "NetworkTools\NetworkTools.vcxproj", "{B5E0DA09-EA01-4D5A-A9D6-5B22DB0C306E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineChecks", "OnlineChecks\OnlineChecks.vcproj", "{79D24223-1122-40A9-BC8F-46A2089FE089}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineChecks", "OnlineChecks\OnlineChecks.vcxproj", "{79D24223-1122-40A9-BC8F-46A2089FE089}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedTools", "ExtendedTools\ExtendedTools.vcproj", "{3437FD16-A3BF-4938-883A-EB0DF1584A2A}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedTools", "ExtendedTools\ExtendedTools.vcxproj", "{3437FD16-A3BF-4938-883A-EB0DF1584A2A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
