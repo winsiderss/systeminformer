@@ -2,10 +2,9 @@
 Process Hacker must be built using a Microsoft C compiler. 
 Do not attempt to use any other compiler or be prepared to 
 spend a long time trying to fix things. The only tested 
-IDE is Visual Studio 2008. Visual C++ 2008 Express Edition 
-may or may not work. It is recommended that the x64 compiler 
-be installed even if you are not intending to build for that 
-platform.
+IDE is Visual Studio 2010. Note that 
+"Text Editor > C/C++ > Advanced > Disable Error Reporting" should be 
+set to workaround the fact that IntelliSense thinks all C code is C++.
 
 The Windows SDK v7.1 must be installed.
 
