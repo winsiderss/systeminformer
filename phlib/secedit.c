@@ -54,6 +54,18 @@ FORCEINLINE VOID PhpSecurityEditorInitialization()
     }
 }
 
+/**
+ * Creates a security editor page.
+ *
+ * \param ObjectName The name of the object.
+ * \param GetObjectSecurity A callback function executed to retrieve 
+ * the security descriptor of the object.
+ * \param SetObjectSecurity A callback function executed to modify 
+ * the security descriptor of the object.
+ * \param Context A user-defined value to pass to the callback functions.
+ * \param AccessEntries An array of access mask descriptors.
+ * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
+ */
 HPROPSHEETPAGE PhCreateSecurityPage(
     __in PWSTR ObjectName,
     __in PPH_GET_OBJECT_SECURITY GetObjectSecurity,
@@ -87,6 +99,19 @@ HPROPSHEETPAGE PhCreateSecurityPage(
     return page;
 }
 
+/**
+ * Displays a security editor dialog.
+ *
+ * \param hWnd The parent window of the dialog.
+ * \param ObjectName The name of the object.
+ * \param GetObjectSecurity A callback function executed to retrieve 
+ * the security descriptor of the object.
+ * \param SetObjectSecurity A callback function executed to modify 
+ * the security descriptor of the object.
+ * \param Context A user-defined value to pass to the callback functions.
+ * \param AccessEntries An array of access mask descriptors.
+ * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
+ */
 VOID PhEditSecurity(
     __in HWND hWnd,
     __in PWSTR ObjectName,
@@ -329,6 +354,19 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_PropertySheetPageCallback(
     return E_NOTIMPL;
 }
 
+/**
+ * Retrieves the security descriptor of an object.
+ *
+ * \param SecurityDescriptor A variable which receives a pointer to 
+ * the security descriptor of the object. The security descriptor 
+ * must be freed using PhFree() when no longer needed.
+ * \param SecurityInformation The security information to retrieve.
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure 
+ * describing the object.
+ *
+ * \remarks This function may be used for the \a GetObjectSecurity 
+ * callback in PhCreateSecurityPage() or PhEditSecurity().
+ */
 __callback NTSTATUS PhStdGetObjectSecurity(
     __out PSECURITY_DESCRIPTOR *SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
@@ -364,6 +402,18 @@ __callback NTSTATUS PhStdGetObjectSecurity(
     return status;
 }
 
+/**
+ * Modifies the security descriptor of an object.
+ *
+ * \param SecurityDescriptor A security descriptor containing 
+ * security information to set.
+ * \param SecurityInformation The security information to retrieve.
+ * \param Context A pointer to a PH_STD_OBJECT_SECURITY structure 
+ * describing the object.
+ *
+ * \remarks This function may be used for the \a SetObjectSecurity 
+ * callback in PhCreateSecurityPage() or PhEditSecurity().
+ */
 __callback NTSTATUS PhStdSetObjectSecurity(
     __in PSECURITY_DESCRIPTOR SecurityDescriptor,
     __in SECURITY_INFORMATION SecurityInformation,
