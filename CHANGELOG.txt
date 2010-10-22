@@ -6,6 +6,8 @@ Process Hacker
    * Process tree sorting is now preserved
    * Save works for services and network connections
    * Pausing now works correctly with the Network tab
+   * Added option to display inclusive CPU usages for 
+     collapsed processes
 
 2.7
  * NEW/IMPROVED:
