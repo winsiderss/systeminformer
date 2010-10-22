@@ -9,6 +9,7 @@ Process Hacker
    * Added option to display inclusive CPU usages for 
      collapsed processes
    * Added CLR tab to peview
+   * Added ability to destroy heaps
 
 2.7
  * NEW/IMPROVED:
