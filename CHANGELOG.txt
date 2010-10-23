@@ -10,6 +10,8 @@ Process Hacker
      collapsed processes
    * Added CLR tab to peview
    * Added ability to destroy heaps
+ * FIXED:
+   * Memory leaks
 
 2.7
  * NEW/IMPROVED:
