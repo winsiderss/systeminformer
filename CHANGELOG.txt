@@ -11,6 +11,7 @@ Process Hacker
    * Added CLR tab to peview
    * Added ability to destroy heaps
  * FIXED:
+   * Icon handling bugs
    * Memory leaks
 
 2.7
