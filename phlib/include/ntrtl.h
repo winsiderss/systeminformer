@@ -2803,6 +2803,31 @@ RtlWalkHeap(
     __inout PRTL_HEAP_WALK_ENTRY Entry
     );
 
+// rev
+#define HeapDebuggingInformation 0x80000002
+
+// rev
+typedef NTSTATUS (NTAPI *PRTL_HEAP_LEAK_ENUMERATION_ROUTINE)(
+    __in LONG Reserved,
+    __in PVOID HeapHandle,
+    __in PVOID BaseAddress,
+    __in SIZE_T BlockSize,
+    __in ULONG StackTraceDepth,
+    __in PVOID *StackTrace
+    );
+
+// symbols
+typedef struct _HEAP_DEBUGGING_INFORMATION
+{
+    PVOID InterceptorFunction;
+    USHORT InterceptorValue;
+    ULONG ExtendedOptions;
+    ULONG StackTraceDepth;
+    SIZE_T MinTotalBlockSize;
+    SIZE_T MaxTotalBlockSize;
+    PRTL_HEAP_LEAK_ENUMERATION_ROUTINE HeapLeakEnumerationRoutine;
+} HEAP_DEBUGGING_INFORMATION, *PHEAP_DEBUGGING_INFORMATION;
+
 NTSYSAPI
 NTSTATUS
 NTAPI

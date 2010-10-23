@@ -385,6 +385,30 @@ typedef struct _THREAD_CYCLE_TIME_INFORMATION
     ULARGE_INTEGER CurrentCycleCount;
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
+// symbols
+typedef struct _COUNTER_READING
+{
+    HARDWARE_COUNTER_TYPE Type;
+    ULONG Index;
+    ULONG64 Start;
+    ULONG64 Total;
+} COUNTER_READING, *PCOUNTER_READING;
+
+// symbols
+typedef struct _THREAD_PERFORMANCE_DATA
+{
+    USHORT Size;
+    USHORT Version;
+    PROCESSOR_NUMBER ProcessorNumber;
+    ULONG ContextSwitches;
+    ULONG HwCountersCount;
+    ULONG64 UpdateCount;
+    ULONG64 WaitReasonBitMap;
+    ULONG64 HardwareCounters;
+    COUNTER_READING CycleTime;
+    COUNTER_READING HwCounters[MAX_HW_COUNTERS];
+} THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
+
 // System calls
 
 // Processes
