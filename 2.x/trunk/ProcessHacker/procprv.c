@@ -761,7 +761,7 @@ VOID PhpProcessQueryStage1(
     }
 
     // Console host process
-    if (WINDOWS_HAS_CONSOLE_HOST)
+    if (processHandleLimited && WINDOWS_HAS_CONSOLE_HOST)
     {
         PhGetProcessConsoleHostProcessId(processHandleLimited, &Data->ConsoleHostProcessId);
     }
@@ -950,7 +950,7 @@ VOID PhpFillProcessItemStage1(
 
     if (Data->IntegrityString)
     {
-        wcsncpy(processItem->IntegrityString, Data->IntegrityString->Buffer, PH_INTEGRITY_STR_LEN);
+        wcsncpy_s(processItem->IntegrityString, PH_INTEGRITY_STR_LEN, Data->IntegrityString->Buffer, _TRUNCATE);
         PhDereferenceObject(Data->IntegrityString);
     }
 
@@ -1118,7 +1118,12 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     )
 {
     ProcessItem->BasePriority = Process->BasePriority;
-    ProcessItem->PriorityClassWin32 = GetPriorityClass(ProcessItem->QueryHandle);
+
+    if (ProcessItem->QueryHandle)
+        ProcessItem->PriorityClassWin32 = GetPriorityClass(ProcessItem->QueryHandle);
+    else
+        ProcessItem->PriorityClassWin32 = 0;
+
     ProcessItem->KernelTime = Process->KernelTime;
     ProcessItem->UserTime = Process->UserTime;
     ProcessItem->NumberOfHandles = Process->HandleCount;
@@ -1698,6 +1703,7 @@ VOID PhProcessProviderUpdate(
             }
 
             // Debugged
+            if (processItem->QueryHandle)
             {
                 BOOLEAN isBeingDebugged;
 
