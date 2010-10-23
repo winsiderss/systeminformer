@@ -295,6 +295,9 @@ NtQueryInformationPort(
 // it seems traditional to use a typedef in these cases.
 typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;
 
+#define ALPC_PORFLG_WAITABLE_PORT 0x40000 // dbg
+#define ALPC_PORFLG_SYSTEM_PROCESS 0x100000 // dbg
+
 // symbols
 typedef struct _ALPC_PORT_ATTRIBUTES
 {
@@ -341,6 +344,8 @@ typedef struct _ALPC_COMPLETION_LIST_STATE
     } u1;
 } ALPC_COMPLETION_LIST_STATE, *PALPC_COMPLETION_LIST_STATE;
 
+#define ALPC_COMPLETION_LIST_BUFFER_GRANULARITY_MASK 0x3f // dbg
+
 // symbols
 typedef struct DECLSPEC_ALIGN(128) _ALPC_COMPLETION_LIST_HEADER
 {
@@ -379,9 +384,9 @@ typedef struct _ALPC_CONTEXT_ATTRIBUTES
 
 // begin_rev
 
-#define ALPC_HANDLE_DUPLICATE_SAME_ACCESS 0x10000
-#define ALPC_HANDLE_DUPLICATE_SAME_ATTRIBUTES 0x20000
-#define ALPC_HANDLE_DUPLICATE_INHERIT 0x80000
+#define ALPC_HANDLEFLG_DUPLICATE_SAME_ACCESS 0x10000
+#define ALPC_HANDLEFLG_DUPLICATE_SAME_ATTRIBUTES 0x20000
+#define ALPC_HANDLEFLG_DUPLICATE_INHERIT 0x80000
 
 typedef struct _ALPC_HANDLE_ATTRIBUTES
 {
@@ -393,19 +398,21 @@ typedef struct _ALPC_HANDLE_ATTRIBUTES
 
 // end_rev
 
+#define ALPC_SECFLG_CREATE_HANDLE 0x20000 // dbg
+
 // rev
 typedef struct _ALPC_SECURITY_ATTRIBUTES
 {
     ULONG Flags;
     PSECURITY_QUALITY_OF_SERVICE SecurityQos;
-    ALPC_HANDLE AlpcSecurityHandle;
+    ALPC_HANDLE ContextHandle; // dbg
     ULONG Reserved1;
     ULONG Reserved2;
 } ALPC_SECURITY_ATTRIBUTES, *PALPC_SECURITY_ATTRIBUTES;
 
 // begin_rev
 
-#define ALPC_VIEW_NOT_SECURE 0x40000
+#define ALPC_VIEWFLG_NOT_SECURE 0x40000
 
 typedef struct _ALPC_VIEW_ATTRIBUTES
 {
@@ -637,12 +644,13 @@ NtAlpcQueryInformationMessage(
     __out_opt PULONG ReturnLength
     );
 
-#define ALPC_REPLY_MESSAGE 0x1
-#define ALPC_LPC_MODE 0x2 // ?
-#define ALPC_DATAGRAM_MESSAGE 0x10000
-#define ALPC_SYNCHRONOUS 0x20000
-#define ALPC_WAIT_USER_MODE 0x100000
-#define ALPC_WAIT_ALERTABLE 0x200000
+#define ALPC_MSGFLG_REPLY_MESSAGE 0x1
+#define ALPC_MSGFLG_LPC_MODE 0x2 // ?
+#define ALPC_MSGFLG_RELEASE_MESSAGE 0x10000 // dbg
+#define ALPC_MSGFLG_SYNC_REQUEST 0x20000 // dbg
+#define ALPC_MSGFLG_WAIT_USER_MODE 0x100000
+#define ALPC_MSGFLG_WAIT_ALERTABLE 0x200000
+#define ALPC_MSGFLG_WOW64_CALL 0x80000000 // dbg
 
 NTSYSCALLAPI
 NTSTATUS
@@ -690,7 +698,9 @@ NtAlpcSendWaitReceivePort(
     __in_opt PLARGE_INTEGER ReceiveTimeout
     );
 
-#define ALPC_NO_CONTEXT_CHECK 0x8
+#define ALPC_CANCELFLG_TRY_CANCEL 0x1 // dbg
+#define ALPC_CANCELFLG_NO_CONTEXT_CHECK 0x8
+#define ALPC_CANCELFLGP_FLUSH 0x10000 // dbg
 
 NTSYSCALLAPI
 NTSTATUS
@@ -717,7 +727,7 @@ NtAlpcOpenSenderProcess(
     __out PHANDLE ProcessHandle,
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE Message,
-    __in ULONG Reserved,
+    __in ULONG Flags,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -729,7 +739,7 @@ NtAlpcOpenSenderThread(
     __out PHANDLE ThreadHandle,
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE Message,
-    __in ULONG Reserved,
+    __in ULONG Flags,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
