@@ -74,13 +74,17 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
     return item;
 }
 
-VOID PhDestroyEMenuItem(
-    __in PPH_EMENU_ITEM Item
+VOID PhpDestroyEMenuItem(
+    __in PPH_EMENU_ITEM Item,
+    __in BOOLEAN Enumerating
     )
 {
-    // Remove the item from its parent, if it has one.
-    if (Item->Parent)
-        PhRemoveEMenuItem(NULL, Item, 0);
+    if (!Enumerating)
+    {
+        // Remove the item from its parent, if it has one.
+        if (Item->Parent)
+            PhRemoveEMenuItem(NULL, Item, 0);
+    }
 
     if (Item->DeleteFunction)
         Item->DeleteFunction(Item);
@@ -94,13 +98,20 @@ VOID PhDestroyEMenuItem(
 
         for (i = 0; i < Item->Items->Count; i++)
         {
-            PhDestroyEMenuItem(Item->Items->Items[i]);
+            PhpDestroyEMenuItem(Item->Items->Items[i], TRUE);
         }
 
         PhDereferenceObject(Item->Items);
     }
 
     PhFree(Item);
+}
+
+VOID PhDestroyEMenuItem(
+    __in PPH_EMENU_ITEM Item
+    )
+{
+    PhpDestroyEMenuItem(Item, FALSE);
 }
 
 PPH_EMENU_ITEM PhFindEMenuItem(
@@ -239,7 +250,7 @@ VOID PhRemoveAllEMenuItems(
 
     for (i = 0; i < Parent->Items->Count; i++)
     {
-        PhDestroyEMenuItem(Parent->Items->Items[i]);
+        PhpDestroyEMenuItem(Parent->Items->Items[i], TRUE);
     }
 
     PhClearList(Parent->Items);
@@ -264,7 +275,7 @@ VOID PhDestroyEMenu(
 
     for (i = 0; i < Menu->Items->Count; i++)
     {
-        PhDestroyEMenuItem(Menu->Items->Items[i]);
+        PhpDestroyEMenuItem(Menu->Items->Items[i], TRUE);
     }
 
     PhDereferenceObject(Menu->Items);
