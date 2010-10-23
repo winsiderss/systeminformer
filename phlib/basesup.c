@@ -1132,14 +1132,14 @@ FoundString:
 
         us1 = String1->us;
         us2 = String2->us;
+        us1.Length = us2.Length;
 
         for (i = length1 - length2 + 1; i != 0; i--)
         {
-            if (RtlPrefixUnicodeString(&us2, &us1, TRUE))
+            if (RtlEqualUnicodeString(&us1, &us2, TRUE))
                 goto FoundUString;
 
-            us1.Buffer += 1;
-            us1.Length -= sizeof(WCHAR);
+            us1.Buffer++;
         }
 
         return -1;
