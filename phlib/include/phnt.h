@@ -10,6 +10,8 @@
 // "winbase" indicates that a definition has been reconstructed from 
 // a Win32-ized NT definition in winbase.h.
 // "rev" indicates that a definition has been reverse-engineered.
+// "dbg" indicates that a definition has been obtained from a debug 
+// message or assertion in a checked build of the kernel or file.
 
 // Version
 
