@@ -27,9 +27,6 @@
     <ClCompile Include="circbuf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="clrsup.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="collect.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -216,9 +213,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="circbuf_i.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\clrsup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\colorbox.h">

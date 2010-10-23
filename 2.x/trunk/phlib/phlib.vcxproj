@@ -160,7 +160,6 @@
     <ClCompile Include="basesupa.c" />
     <ClCompile Include="basesupx.c" />
     <ClCompile Include="circbuf.c" />
-    <ClCompile Include="clrsup.c" />
     <ClCompile Include="collect.c" />
     <ClCompile Include="colorbox.c" />
     <ClCompile Include="data.c" />
@@ -225,7 +224,6 @@
     <ClInclude Include="include\circbuf.h" />
     <ClInclude Include="include\circbuf_h.h" />
     <ClInclude Include="circbuf_i.h" />
-    <ClInclude Include="include\clrsup.h" />
     <ClInclude Include="include\colorbox.h" />
     <ClInclude Include="pcre\config.h" />
     <ClInclude Include="include\dltmgr.h" />

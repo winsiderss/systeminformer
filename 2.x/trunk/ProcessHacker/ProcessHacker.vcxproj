@@ -204,7 +204,6 @@
     <ClCompile Include="..\phlib\basesupa.c" />
     <ClCompile Include="..\phlib\basesupx.c" />
     <ClCompile Include="..\phlib\circbuf.c" />
-    <ClCompile Include="..\phlib\clrsup.c" />
     <ClCompile Include="..\phlib\collect.c" />
     <ClCompile Include="..\phlib\colorbox.c" />
     <ClCompile Include="..\phlib\data.c" />
