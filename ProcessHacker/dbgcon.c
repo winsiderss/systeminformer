@@ -47,6 +47,9 @@ static PPH_LIST NewObjectList = NULL;
 static PH_QUEUED_LOCK NewObjectListLock;
 #endif
 
+static BOOLEAN ShowAllLeaks = FALSE;
+static BOOLEAN InLeakDetection = FALSE;
+
 VOID PhShowDebugConsole()
 {
     if (!AllocConsole())
@@ -326,6 +329,45 @@ static int __cdecl PhpStringEntryCompareByCount(
     return uintptrcmp(entry2->Count, entry1->Count);
 }
 
+static NTSTATUS PhpLeakEnumerationRoutine(
+    __in LONG Reserved,
+    __in PVOID HeapHandle,
+    __in PVOID BaseAddress,
+    __in SIZE_T BlockSize,
+    __in ULONG StackTraceDepth,
+    __in PVOID *StackTrace
+    )
+{
+    ULONG i;
+
+    if (!InLeakDetection)
+        return 0;
+
+    if (!HeapHandle) // means no more entries
+        return 0;
+
+    if (ShowAllLeaks || HeapHandle == PhHeapHandle)
+    {
+        wprintf(L"Leak at 0x%Ix (%Iu bytes). Stack trace:\n", BaseAddress, BlockSize);
+
+        for (i = 0; i < StackTraceDepth; i++)
+        {
+            PPH_STRING symbol;
+
+            symbol = PhGetSymbolFromAddress(DebugConsoleSymbolProvider, (ULONG64)StackTrace[i], NULL, NULL, NULL, NULL);
+
+            if (symbol)
+                wprintf(L"\t%s\n", symbol->Buffer);
+            else
+                wprintf(L"\t?\n");
+
+            PhDereferenceObject(symbol);
+        }
+    }
+
+    return 0;
+}
+
 typedef struct _STOPWATCH
 {
     LARGE_INTEGER StartCounter;
@@ -533,7 +575,24 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhInitializeAutoPool(&autoPool);
 
     DebugConsoleSymbolProvider = PhCreateSymbolProvider(NtCurrentProcessId());
-    PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, PhApplicationDirectory->Buffer);
+
+    {
+        WCHAR buffer[512];
+        PH_STRINGREF name = PH_STRINGREF_INIT(L"_NT_SYMBOL_PATH");
+        UNICODE_STRING var;
+        PPH_STRING newSearchPath;
+
+        var.Buffer = buffer;
+        var.MaximumLength = sizeof(buffer);
+
+        if (!NT_SUCCESS(RtlQueryEnvironmentVariable_U(NULL, &name.us, &var)))
+            buffer[0] = 0;
+
+        newSearchPath = PhFormatString(L"%s;%s", buffer, PhApplicationDirectory->Buffer);
+        PhSetSearchPathSymbolProvider(DebugConsoleSymbolProvider, newSearchPath->Buffer);
+        PhDereferenceObject(newSearchPath);
+    }
+
     PhEnumGenericModules(NtCurrentProcessId(), NtCurrentProcess(),
         0, PhpLoadCurrentProcessSymbolsCallback, DebugConsoleSymbolProvider);
 
@@ -587,6 +646,8 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"workqueues\n"
                 L"procrecords\n"
                 L"uniquestr\n"
+                L"enableleakdetect\n"
+                L"leakdetect\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
@@ -1322,6 +1383,46 @@ NTSTATUS PhpDebugConsoleThreadStart(
 #else
             wprintf(commandDebugOnly);
 #endif
+        }
+        else if (WSTR_IEQUAL(command, L"enableleakdetect"))
+        {
+            HEAP_DEBUGGING_INFORMATION debuggingInfo;
+
+            memset(&debuggingInfo, 0, sizeof(HEAP_DEBUGGING_INFORMATION));
+            debuggingInfo.StackTraceDepth = 32;
+            debuggingInfo.HeapLeakEnumerationRoutine = PhpLeakEnumerationRoutine;
+
+            if (!NT_SUCCESS(RtlSetHeapInformation(NULL, HeapDebuggingInformation, &debuggingInfo, sizeof(HEAP_DEBUGGING_INFORMATION))))
+            {
+                wprintf(L"Unable to initialize heap debugging. Make sure that you are using Windows 7 or above.");
+            }
+        }
+        else if (WSTR_IEQUAL(command, L"leakdetect"))
+        {
+            VOID (NTAPI *rtlDetectHeapLeaks)();
+            PWSTR options = wcstok_s(NULL, delims, &context);
+
+            rtlDetectHeapLeaks = PhGetProcAddress(L"ntdll.dll", "RtlDetectHeapLeaks");
+
+            if (!(NtCurrentPeb()->NtGlobalFlag & FLG_USER_STACK_TRACE_DB))
+            {
+                wprintf(L"Warning: user-mode stack trace database is not enabled. Stack traces will not be displayed.\n");
+            }
+
+            ShowAllLeaks = FALSE;
+
+            if (options)
+            {
+                if (WSTR_IEQUAL(options, L"all"))
+                    ShowAllLeaks = TRUE;
+            }
+
+            if (rtlDetectHeapLeaks)
+            {
+                InLeakDetection = TRUE;
+                rtlDetectHeapLeaks();
+                InLeakDetection = FALSE;
+            }
         }
         else
         {
