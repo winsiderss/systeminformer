@@ -25,6 +25,7 @@
 typedef struct _PROCESS_RECORD_CONTEXT
 {
     PPH_PROCESS_RECORD Record;
+    HICON FileIcon;
 } PROCESS_RECORD_CONTEXT, *PPROCESS_RECORD_CONTEXT;
 
 INT_PTR CALLBACK PhpProcessRecordDlgProc(
@@ -115,7 +116,6 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
         {
             PH_IMAGE_VERSION_INFO versionInfo;
             BOOLEAN versionInfoInitialized;
-            HICON icon;
             PPH_STRING processNameString;
             PPH_PROCESS_ITEM processItem;
 
@@ -179,12 +179,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                     versionInfoInitialized = TRUE;
             }
 
-            icon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
+            context->FileIcon = PhGetFileShellIcon(PhGetString(context->Record->FileName), L".exe", TRUE);
 
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_BITMAP,
                 (LPARAM)PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_FOLDER), IMAGE_BITMAP));
             SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON,
-                (WPARAM)icon, 0);
+                (WPARAM)context->FileIcon, 0);
 
             SetDlgItemText(hwndDlg, IDC_NAME, PhpGetStringOrNa(versionInfo.FileDescription));
             SetDlgItemText(hwndDlg, IDC_COMPANYNAME, PhpGetStringOrNa(versionInfo.CompanyName));
@@ -210,6 +210,12 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 SetDlgItemText(hwndDlg, IDC_TERMINATED, L"N/A");
 
             SetDlgItemInt(hwndDlg, IDC_SESSIONID, context->Record->SessionId, FALSE);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (context->FileIcon)
+                DestroyIcon(context->FileIcon);
         }
         break;
     case WM_COMMAND:

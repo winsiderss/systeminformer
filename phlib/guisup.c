@@ -774,6 +774,14 @@ VOID PhImageListWrapperRemove(
     PhAddItemList(Wrapper->FreeList, (PVOID)Index);
 }
 
+/**
+ * Gets the default icon used for executable files.
+ *
+ * \param SmallIcon A variable which receives the small default executable icon. 
+ * Do not destroy the icon using DestroyIcon(); it is shared between callers.
+ * \param LargeIcon A variable which receives the large default executable icon. 
+ * Do not destroy the icon using DestroyIcon(); it is shared between callers.
+ */
 VOID PhGetStockApplicationIcon(
     __out_opt HICON *SmallIcon,
     __out_opt HICON *LargeIcon
@@ -866,6 +874,9 @@ HICON PhGetFileShellIcon(
                 !LargeIcon ? &icon : NULL,
                 LargeIcon ? &icon : NULL
                 );
+
+            if (icon)
+                icon = DuplicateIcon(NULL, icon);
         }
 
         return icon;
