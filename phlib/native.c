@@ -1860,7 +1860,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
     }
     else
     {
-        if (!(threadHandle = CreateRemoteThread(
+        if (threadHandle = CreateRemoteThread(
             ProcessHandle,
             NULL,
             0,
@@ -1868,7 +1868,11 @@ NTSTATUS PhSetProcessDepStatusInvasive(
             (PVOID)flags,
             0,
             NULL
-            )))
+            ))
+        {
+            status = STATUS_SUCCESS;
+        }
+        else
         {
             status = NTSTATUS_FROM_WIN32(GetLastError());
         }

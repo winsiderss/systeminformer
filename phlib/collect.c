@@ -428,8 +428,6 @@ ULONG PhpRebalanceAvlLinks(
     }
     else
     {
-        PPH_AVL_LINKS Q;
-
         Q = P->Right;
 
         if (Q->Balance == 1)
@@ -846,10 +844,13 @@ PPH_AVL_LINKS PhPredecessorElementAvlTree(
             links = links->Parent;
         }
 
-        // We need an additional check because the tree root is 
-        // stored in Root.Right, not Left.
-        if (!links->Parent)
-            return NULL; // reached Root, so no more elements
+        if (links)
+        {
+            // We need an additional check because the tree root is 
+            // stored in Root.Right, not Left.
+            if (!links->Parent)
+                return NULL; // reached Root, so no more elements
+        }
 
         return links;
     }

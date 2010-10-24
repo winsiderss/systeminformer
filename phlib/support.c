@@ -3620,6 +3620,8 @@ VOID PhUpdateHash(
     case Crc32HashAlgorithm:
         Context->Context[0] = ph_crc32(Context->Context[0], (PUCHAR)Buffer, Length);
         break;
+    default:
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
     }
 }
 
@@ -3668,6 +3670,8 @@ BOOLEAN PhFinalHash(
         returnLength = 4;
 
         break;
+    default:
+        PhRaiseStatus(STATUS_INVALID_PARAMETER);
     }
 
     if (ReturnLength)
