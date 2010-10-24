@@ -37,6 +37,8 @@ typedef struct _PHP_HEXEDIT_CONTEXT
     POINT EditPosition;
 } PHP_HEXEDIT_CONTEXT, *PPHP_HEXEDIT_CONTEXT;
 
+#define IS_PRINTABLE(Byte) ((ULONG)((Byte) - ' ') <= (ULONG)('~' - ' '))
+
 #define TO_HEX(Buffer, Byte) \
 { \
     *(Buffer)++ = PhIntegerToChar[(Byte) >> 4]; \
