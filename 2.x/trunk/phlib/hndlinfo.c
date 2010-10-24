@@ -354,6 +354,8 @@ PPH_STRING PhFormatNativeKeyName(
 
             hkcuPrefix = PhConcatStringRef2(&registryUserPrefix, &stringSid->sr);
             hkcucrPrefix = PhConcatStringRef2(&hkcuPrefix->sr, &classesString);
+
+            PhDereferenceObject(stringSid);
         }
         else
         {

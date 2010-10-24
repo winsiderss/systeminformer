@@ -648,6 +648,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"uniquestr\n"
                 L"enableleakdetect\n"
                 L"leakdetect\n"
+                L"mem\n"
                 );
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
@@ -1423,6 +1424,87 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 rtlDetectHeapLeaks();
                 InLeakDetection = FALSE;
             }
+        }
+        else if (WSTR_IEQUAL(command, L"mem"))
+        {
+            PWSTR addressString;
+            PWSTR bytesString;
+            PH_STRINGREF addressStringRef;
+            PH_STRINGREF bytesStringRef;
+            ULONG64 address64;
+            ULONG64 numberOfBytes64;
+            PUCHAR address;
+            ULONG numberOfBytes;
+            ULONG blockSize;
+            UCHAR buffer[16];
+            ULONG i;
+
+            addressString = wcstok_s(NULL, delims, &context);
+
+            if (!addressString)
+                goto PrintMemUsage;
+
+            bytesString = wcstok_s(NULL, delims, &context);
+
+            if (!bytesString)
+                goto PrintMemUsage;
+
+            PhInitializeStringRef(&addressStringRef, addressString);
+            PhInitializeStringRef(&bytesStringRef, bytesString);
+
+            if (PhStringToInteger64(&addressStringRef, 16, &address64) && PhStringToInteger64(&bytesStringRef, 10, &numberOfBytes64))
+            {
+                address = (PUCHAR)address64;
+                numberOfBytes = (ULONG)numberOfBytes64;
+
+                if (numberOfBytes > 256)
+                {
+                    wprintf(L"Number of bytes must be 256 or smaller.\n");
+                    goto EndCommand;
+                }
+
+                blockSize = sizeof(buffer);
+
+                while (numberOfBytes != 0)
+                {
+                    if (blockSize > numberOfBytes)
+                        blockSize = numberOfBytes;
+
+                    __try
+                    {
+                        memcpy(buffer, address, blockSize);
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        wprintf(L"Error reading address near %Ix.\n", address);
+                        goto EndCommand;
+                    }
+
+                    // Print hex dump
+                    for (i = 0; i < blockSize; i++)
+                        wprintf(L"%02x ", buffer[i]);
+
+                    // Fill remaining space (for last, possibly partial block)
+                    for (; i < sizeof(buffer); i++)
+                        wprintf(L"   ");
+
+                    wprintf(L"   ");
+
+                    // Print ASCII dump
+                    for (i = 0; i < blockSize; i++)
+                        putwchar((ULONG)(buffer[i] - ' ') <= (ULONG)('~' - ' ') ? buffer[i] : '.');
+
+                    wprintf(L"\n");
+
+                    address += blockSize;
+                    numberOfBytes -= blockSize;
+                }
+            }
+
+            goto EndCommand;
+PrintMemUsage:
+            wprintf(L"Usage: mem address numberOfBytes\n");
+            wprintf(L"Example: mem 12345678 16\n");
         }
         else
         {
