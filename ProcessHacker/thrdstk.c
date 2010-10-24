@@ -181,12 +181,16 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PTHREAD_STACK_CONTEXT threadStackContext;
             WINDOWPLACEMENT windowPlacement = { sizeof(windowPlacement) };
             PH_RECTANGLE windowRectangle;
+            ULONG i;
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
             PhDeleteLayoutManager(layoutManager);
             PhFree(layoutManager);
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
+
+            for (i = 0; i < threadStackContext->List->Count; i++)
+                PhFree(threadStackContext->List->Items[i]);
 
             PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
 
