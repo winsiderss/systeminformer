@@ -49,6 +49,8 @@ static PH_QUEUED_LOCK NewObjectListLock;
 
 static BOOLEAN ShowAllLeaks = FALSE;
 static BOOLEAN InLeakDetection = FALSE;
+static ULONG NumberOfLeaks;
+static ULONG NumberOfLeaksShown;
 
 VOID PhShowDebugConsole()
 {
@@ -363,7 +365,11 @@ static NTSTATUS PhpLeakEnumerationRoutine(
 
             PhDereferenceObject(symbol);
         }
+
+        NumberOfLeaksShown++;
     }
+
+    NumberOfLeaks++;
 
     return 0;
 }
@@ -1421,8 +1427,12 @@ NTSTATUS PhpDebugConsoleThreadStart(
             if (rtlDetectHeapLeaks)
             {
                 InLeakDetection = TRUE;
+                NumberOfLeaks = 0;
+                NumberOfLeaksShown = 0;
                 rtlDetectHeapLeaks();
                 InLeakDetection = FALSE;
+
+                wprintf(L"\nNumber of leaks: %u (%u displayed)\n", NumberOfLeaks, NumberOfLeaksShown);
             }
         }
         else if (WSTR_IEQUAL(command, L"mem"))
