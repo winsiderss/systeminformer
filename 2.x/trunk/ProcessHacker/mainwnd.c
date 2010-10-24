@@ -220,6 +220,7 @@ static HWND ProcessTreeListHandle;
 static HWND ServiceListViewHandle;
 static HWND NetworkListViewHandle;
 
+static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN UpdateAutomatically = TRUE;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
@@ -3195,8 +3196,11 @@ VOID PhMainWndTabControlOnSelectionChanged()
     {
         PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
 
-        if (UpdateAutomatically)
+        if (UpdateAutomatically || NetworkFirstTime)
+        {
             PhBoostProvider(&NetworkProviderRegistration, NULL);
+            NetworkFirstTime = FALSE;
+        }
     }
     else
     {
