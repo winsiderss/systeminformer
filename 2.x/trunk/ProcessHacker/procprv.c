@@ -441,6 +441,7 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->LargeIcon) DestroyIcon(processItem->LargeIcon);
     PhDeleteImageVersionInfo(&processItem->VersionInfo);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
+    if (processItem->JobName) PhDereferenceObject(processItem->JobName);
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
 
     if (processItem->QueryHandle) NtClose(processItem->QueryHandle);
