@@ -3030,6 +3030,13 @@ PhPrintTimeSpan(
 
 // format
 
+VOID
+PhZeroExtendToUnicode(
+    __in_bcount(InputLength) PSTR Input,
+    __in ULONG InputLength,
+    __out_bcount(InputLength * 2) PWSTR Output
+    );
+
 typedef enum _PH_FORMAT_TYPE
 {
     CharFormatType,
@@ -3148,7 +3155,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhFormat(
-    __in PPH_FORMAT Format,
+    __in_ecount(Count) PPH_FORMAT Format,
     __in ULONG Count,
     __in_opt SIZE_T InitialCapacity
     );
@@ -3157,7 +3164,7 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhFormatToBuffer(
-    __in PPH_FORMAT Format,
+    __in_ecount(Count) PPH_FORMAT Format,
     __in ULONG Count,
     __out_bcount_opt(BufferLength) PWSTR Buffer,
     __in_opt SIZE_T BufferLength,
