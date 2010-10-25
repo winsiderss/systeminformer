@@ -63,6 +63,41 @@ static WCHAR PhpFormatDecimalSeparator = '.';
 static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
 
+VOID PhZeroExtendToUnicode(
+    __in_bcount(InputLength) PSTR Input,
+    __in ULONG InputLength,
+    __out_bcount(InputLength * 2) PWSTR Output
+    )
+{
+    ULONG inputLength;
+
+    inputLength = InputLength & -4;
+
+    if (inputLength)
+    {
+        do
+        {
+            Output[0] = C_1uTo2(Input[0]);
+            Output[1] = C_1uTo2(Input[1]);
+            Output[2] = C_1uTo2(Input[2]);
+            Output[3] = C_1uTo2(Input[3]);
+            Input += 4;
+            Output += 4;
+            inputLength -= 4;
+        } while (inputLength != 0);
+    }
+
+    switch (InputLength & 3)
+    {
+    case 3:
+        *Output++ = C_1uTo2(*Input++);
+    case 2:
+        *Output++ = C_1uTo2(*Input++);
+    case 1:
+        *Output++ = C_1uTo2(*Input++);
+    }
+}
+
 PPH_STRING PhpResizeFormatBuffer(
     __in PPH_STRING String,
     __inout PSIZE_T AllocatedLength,
@@ -97,7 +132,7 @@ PPH_STRING PhpResizeFormatBuffer(
  * the string. If 0 is specified, a default value is used.
  */
 PPH_STRING PhFormat(
-    __in PPH_FORMAT Format,
+    __in_ecount(Count) PPH_FORMAT Format,
     __in ULONG Count,
     __in_opt SIZE_T InitialCapacity
     )
@@ -167,7 +202,7 @@ PPH_STRING PhFormat(
  * single null byte is written to the start of \a Buffer.
  */
 BOOLEAN PhFormatToBuffer(
-    __in PPH_FORMAT Format,
+    __in_ecount(Count) PPH_FORMAT Format,
     __in ULONG Count,
     __out_bcount_opt(BufferLength) PWSTR Buffer,
     __in_opt SIZE_T BufferLength,
@@ -182,6 +217,10 @@ BOOLEAN PhFormatToBuffer(
     usedLength = 0;
     overrun = FALSE;
 
+    // Make sure we don't try to write anything if we don't have a buffer.
+    if (!Buffer)
+        overrun = TRUE;
+
 #undef ENSURE_BUFFER
 #undef OK_BUFFER
 #undef ADVANCE_BUFFER
@@ -192,7 +231,7 @@ BOOLEAN PhFormatToBuffer(
             overrun = TRUE; \
     } while (0)
 
-#define OK_BUFFER (Buffer && !overrun)
+#define OK_BUFFER (!overrun)
 
 #define ADVANCE_BUFFER(Length) \
     do { \

@@ -94,6 +94,18 @@
  */
 #define __needsAlign(align)
 
+// Casts
+
+// Zero extension and sign extension macros
+#define C_1uTo2(x) ((unsigned short)(unsigned char)(x))
+#define C_1sTo2(x) ((unsigned short)(signed char)(x))
+#define C_1uTo4(x) ((unsigned int)(unsigned char)(x))
+#define C_1sTo4(x) ((unsigned int)(signed char)(x))
+#define C_2uTo4(x) ((unsigned int)(unsigned short)(x))
+#define C_2sTo4(x) ((unsigned int)(signed short)(x))
+#define C_4uTo8(x) ((unsigned __int64)(unsigned int)(x))
+#define C_4sTo8(x) ((unsigned __int64)(signed int)(x))
+
 // Sorting
 
 typedef enum _PH_SORT_ORDER

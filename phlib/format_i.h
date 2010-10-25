@@ -384,14 +384,9 @@ CommonInt64Format:
             \
             copyCount = length - wholeCount; \
             \
-            if (!OK_BUFFER || NT_SUCCESS(RtlMultiByteToUnicodeN( \
-                buffer, \
-                copyCount * sizeof(WCHAR), \
-                NULL, \
-                decimalPoint, \
-                copyCount \
-                ))) \
+            if (OK_BUFFER) \
             { \
+                PhZeroExtendToUnicode(decimalPoint, copyCount, buffer); \
                 ADVANCE_BUFFER(copyCount * sizeof(WCHAR)); \
             } \
         } \
@@ -436,14 +431,9 @@ CommonInt64Format:
             \
             usedLength += preLength * sizeof(WCHAR); \
             \
-            if (!OK_BUFFER || NT_SUCCESS(RtlMultiByteToUnicodeN( \
-                buffer, \
-                length * sizeof(WCHAR), \
-                NULL, \
-                (PSTR)temp, \
-                length \
-                ))) \
+            if (OK_BUFFER) \
             { \
+                PhZeroExtendToUnicode((PSTR)temp, length, buffer); \
                 ADVANCE_BUFFER(length * sizeof(WCHAR)); \
             } \
         } \
