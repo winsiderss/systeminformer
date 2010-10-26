@@ -99,38 +99,7 @@ typedef struct _PH_OBJECT_TYPE_INFORMATION
     ULONG NumberOfObjects;
 } PH_OBJECT_TYPE_INFORMATION, *PPH_OBJECT_TYPE_INFORMATION;
 
-typedef struct _PH_REF_STATISTICS
-{
-    ULONG ObjectsCreated;
-    ULONG ObjectsDestroyed;
-    ULONG ObjectsAllocated;
-    ULONG ObjectsFreed;
-    ULONG ObjectsAllocatedFromSmallFreeList;
-    ULONG ObjectsFreedToSmallFreeList;
-    ULONG ObjectsAllocatedFromTypeFreeList;
-    ULONG ObjectsFreedToTypeFreeList;
-    ULONG ObjectsDeleteDeferred;
-    ULONG AutoPoolsCreated;
-    ULONG AutoPoolsDestroyed;
-    ULONG AutoPoolsDynamicAllocated;
-    ULONG AutoPoolsDynamicResized;
-} PH_REF_STATISTICS, *PPH_REF_STATISTICS;
-
-typedef struct _PH_REF_DEBUG_INFORMATION
-{
-    ULONG ObjectSmallFreeListCount;
-    PH_REF_STATISTICS Statistics;
-} PH_REF_DEBUG_INFORMATION, *PPH_REF_DEBUG_INFORMATION;
-
 NTSTATUS PhInitializeRef();
-
-#ifdef DEBUG
-VOID
-NTAPI
-PhGetRefDebugInformation(
-    __out PPH_REF_DEBUG_INFORMATION Information
-    );
-#endif
 
 __mayRaise
 PHLIBAPI

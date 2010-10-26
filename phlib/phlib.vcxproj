@@ -220,6 +220,7 @@
     <ClCompile Include="workqueue.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phsync.h" />
     <ClInclude Include="include\circbuf.h" />
     <ClInclude Include="include\circbuf_h.h" />

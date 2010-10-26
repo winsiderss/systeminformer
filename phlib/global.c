@@ -22,6 +22,7 @@
 
 #define _PH_GLOBAL_PRIVATE
 #include <ph.h>
+#include <phintrnl.h>
 
 VOID PhInitializeSecurity(
     __in ULONG Flags
@@ -53,6 +54,11 @@ PHLIBAPI ACCESS_MASK ProcessAllAccess;
 PHLIBAPI ACCESS_MASK ThreadQueryAccess;
 PHLIBAPI ACCESS_MASK ThreadSetAccess;
 PHLIBAPI ACCESS_MASK ThreadAllAccess;
+
+// Internal data
+#ifdef DEBUG
+PHLIB_STATISTICS_BLOCK PhLibStatisticsBlock;
+#endif
 
 NTSTATUS PhInitializePhLib()
 {

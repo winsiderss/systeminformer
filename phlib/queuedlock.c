@@ -85,6 +85,7 @@
  */
 
 #include <phbase.h>
+#include <phintrnl.h>
 
 VOID FASTCALL PhpfOptimizeQueuedLockList(
     __inout PPH_QUEUED_LOCK QueuedLock,
@@ -303,6 +304,8 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
 
     if (Spin)
     {
+        PHLIB_INC_STATISTIC(QlBlockSpins);
+
         for (i = PhQueuedLockSpinCount; i != 0; i--)
         {
             if (!(*(volatile ULONG *)&WaitBlock->Flags & PH_QUEUED_WAITER_SPINNING))
@@ -314,6 +317,8 @@ __mayRaise FORCEINLINE NTSTATUS PhpBlockOnQueuedWaitBlock(
 
     if (_interlockedbittestandreset((PLONG)&WaitBlock->Flags, PH_QUEUED_WAITER_SPINNING_SHIFT))
     {
+        PHLIB_INC_STATISTIC(QlBlockWaits);
+
         status = NtWaitForKeyedEvent(
             PhQueuedLockKeyedEventHandle,
             WaitBlock,
@@ -706,6 +711,7 @@ VOID FASTCALL PhfAcquireQueuedLockExclusive(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
+                PHLIB_INC_STATISTIC(QlAcquireExclusiveBlocks);
                 PhpBlockOnQueuedWaitBlock(&waitBlock, TRUE, NULL);
             }
         }
@@ -767,6 +773,7 @@ VOID FASTCALL PhfAcquireQueuedLockShared(
                 if (optimize)
                     PhpfOptimizeQueuedLockList(QueuedLock, currentValue);
 
+                PHLIB_INC_STATISTIC(QlAcquireSharedBlocks);
                 PhpBlockOnQueuedWaitBlock(&waitBlock, TRUE, NULL);
             }
         }

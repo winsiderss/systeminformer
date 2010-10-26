@@ -410,6 +410,9 @@
     <ClInclude Include="include\winsta.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\phintrnl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pcre\pcre_printint.src" />

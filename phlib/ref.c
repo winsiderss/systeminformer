@@ -24,16 +24,17 @@
 
 #define _PH_REF_PRIVATE
 #include <phbase.h>
+#include <phintrnl.h>
 #include <refp.h>
 
 /** The type object type. */
 PPH_OBJECT_TYPE PhObjectTypeObject = NULL;
 
 /** The next object to delete. */
-static PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
+PPH_OBJECT_HEADER PhObjectNextToFree = NULL;
 
 /** Free list for small objects. */
-static PH_FREE_LIST PhObjectSmallFreeList;
+PH_FREE_LIST PhObjectSmallFreeList;
 
 /** The allocated memory object type. */
 PPH_OBJECT_TYPE PhAllocType = NULL;
@@ -46,14 +47,7 @@ PH_QUEUED_LOCK PhDbgObjectListLock = PH_QUEUED_LOCK_INIT;
 PPH_CREATE_OBJECT_HOOK PhDbgCreateObjectHook = NULL;
 #endif
 
-#ifdef DEBUG
-static PH_REF_STATISTICS Statistics = { 0 };
-#define REF_STAT_UP(Name) _InterlockedIncrement(&Statistics.Name)
-#define REF_STAT_DOWN(Name) _InterlockedDecrement(&Statistics.Name)
-#else
-#define REF_STAT_UP(Name)
-#define REF_STAT_DOWN(Name)
-#endif
+#define REF_STAT_UP(Name) PHLIB_INC_STATISTIC(Name)
 
 /**
  * Initializes the object manager module.
@@ -111,16 +105,6 @@ NTSTATUS PhInitializeRef()
 
     return status;
 }
-
-#ifdef DEBUG
-VOID PhGetRefDebugInformation(
-    __out PPH_REF_DEBUG_INFORMATION Information
-    )
-{
-    Information->ObjectSmallFreeListCount = PhObjectSmallFreeList.Count;
-    Information->Statistics = Statistics;
-}
-#endif
 
 /**
  * Allocates a object.
@@ -187,7 +171,7 @@ __mayRaise NTSTATUS PhCreateObject(
     objectHeader->Size = ObjectSize;
     objectHeader->Type = ObjectType;
 
-    REF_STAT_UP(ObjectsCreated);
+    REF_STAT_UP(RefObjectsCreated);
 
 #ifdef DEBUG
     {
@@ -597,19 +581,19 @@ PPH_OBJECT_HEADER PhpAllocateObject(
 
         objectHeader = PhAllocateFromFreeList(&ObjectType->FreeList);
         objectHeader->Flags = PHOBJ_FROM_TYPE_FREE_LIST;
-        REF_STAT_UP(ObjectsAllocatedFromTypeFreeList);
+        REF_STAT_UP(RefObjectsAllocatedFromTypeFreeList);
     }
     else if (ObjectSize <= PHOBJ_SMALL_OBJECT_SIZE)
     {
         objectHeader = PhAllocateFromFreeList(&PhObjectSmallFreeList);
         objectHeader->Flags = PHOBJ_FROM_SMALL_FREE_LIST;
-        REF_STAT_UP(ObjectsAllocatedFromSmallFreeList);
+        REF_STAT_UP(RefObjectsAllocatedFromSmallFreeList);
     }
     else
     {
         objectHeader = PhAllocate(PhpAddObjectHeaderSize(ObjectSize));
         objectHeader->Flags = 0;
-        REF_STAT_UP(ObjectsAllocated);
+        REF_STAT_UP(RefObjectsAllocated);
     }
 
     return objectHeader;
@@ -634,7 +618,7 @@ VOID PhpFreeObject(
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
 
-    REF_STAT_UP(ObjectsDestroyed);
+    REF_STAT_UP(RefObjectsDestroyed);
 
     /* Call the delete procedure if we have one. */
     if (ObjectHeader->Type->DeleteProcedure)
@@ -648,17 +632,17 @@ VOID PhpFreeObject(
     if (ObjectHeader->Flags & PHOBJ_FROM_TYPE_FREE_LIST)
     {
         PhFreeToFreeList(&ObjectHeader->Type->FreeList, ObjectHeader);
-        REF_STAT_UP(ObjectsFreedToTypeFreeList);
+        REF_STAT_UP(RefObjectsFreedToTypeFreeList);
     }
     else if (ObjectHeader->Flags & PHOBJ_FROM_SMALL_FREE_LIST)
     {
         PhFreeToFreeList(&PhObjectSmallFreeList, ObjectHeader);
-        REF_STAT_UP(ObjectsFreedToSmallFreeList);
+        REF_STAT_UP(RefObjectsFreedToSmallFreeList);
     }
     else
     {
         PhFree(ObjectHeader);
-        REF_STAT_UP(ObjectsFreed);
+        REF_STAT_UP(RefObjectsFreed);
     }
 }
 
@@ -698,7 +682,7 @@ VOID PhpDeferDeleteObject(
          */
     }
 
-    REF_STAT_UP(ObjectsDeleteDeferred);
+    REF_STAT_UP(RefObjectsDeleteDeferred);
 
     /* Was the to-free list empty before? If so, we need to queue 
      * a work item.
@@ -809,7 +793,7 @@ VOID PhInitializeAutoPool(
     AutoPool->NextPool = PhpGetCurrentAutoPool();
     PhpSetCurrentAutoPool(AutoPool);
 
-    REF_STAT_UP(AutoPoolsCreated);
+    REF_STAT_UP(RefAutoPoolsCreated);
 }
 
 /**
@@ -837,7 +821,7 @@ __mayRaise VOID PhDeleteAutoPool(
     if (AutoPool->DynamicObjects)
         PhFree(AutoPool->DynamicObjects);
 
-    REF_STAT_UP(AutoPoolsDestroyed);
+    REF_STAT_UP(RefAutoPoolsDestroyed);
 }
 
 /**
@@ -880,7 +864,7 @@ __mayRaise VOID PhaDereferenceObject(
         autoPool->DynamicObjects = PhAllocate(
             sizeof(PVOID) * autoPool->DynamicAllocated
             );
-        REF_STAT_UP(AutoPoolsDynamicAllocated);
+        REF_STAT_UP(RefAutoPoolsDynamicAllocated);
     }
 
     // See if we need to resize the array.
@@ -891,7 +875,7 @@ __mayRaise VOID PhaDereferenceObject(
             autoPool->DynamicObjects,
             sizeof(PVOID) * autoPool->DynamicAllocated
             );
-        REF_STAT_UP(AutoPoolsDynamicResized);
+        REF_STAT_UP(RefAutoPoolsDynamicResized);
     }
 
     autoPool->DynamicObjects[autoPool->DynamicCount++] = Object;

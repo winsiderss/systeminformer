@@ -22,6 +22,7 @@
 
 #define _PH_BASESUP_PRIVATE
 #include <phbase.h>
+#include <phintrnl.h>
 #include <math.h>
 
 typedef struct _PHP_BASE_THREAD_CONTEXT
@@ -260,10 +261,12 @@ HANDLE PhCreateThread(
 
     if (threadHandle)
     {
+        PHLIB_INC_STATISTIC(BaseThreadsCreated);
         return threadHandle;
     }
     else
     {
+        PHLIB_INC_STATISTIC(BaseThreadsCreateFailed);
         PhFreeToFreeList(&PhpBaseThreadContextFreeList, context);
         return NULL;
     }
@@ -2017,6 +2020,8 @@ VOID PhInitializeStringBuilder(
 
     // Write the null terminator.
     StringBuilder->String->Buffer[0] = 0;
+
+    PHLIB_INC_STATISTIC(BaseStringBuildersCreated);
 }
 
 /**
@@ -2063,6 +2068,8 @@ VOID PhpResizeStringBuilder(
     // the new string.
     PhDereferenceObject(StringBuilder->String);
     StringBuilder->String = newString;
+
+    PHLIB_INC_STATISTIC(BaseStringBuildersResized);
 }
 
 FORCEINLINE VOID PhpWriteNullTerminatorStringBuilder(
