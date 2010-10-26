@@ -22,6 +22,7 @@
 
 #define _PH_WORKQUEUE_PRIVATE
 #include <phbase.h>
+#include <phintrnl.h>
 
 NTSTATUS PhpWorkQueueThreadStart(
     __in PVOID Parameter
@@ -152,6 +153,7 @@ BOOLEAN PhpCreateWorkQueueThread(
 
     if (threadHandle)
     {
+        PHLIB_INC_STATISTIC(WqWorkQueueThreadsCreated);
         WorkQueue->CurrentThreads++;
         NtClose(threadHandle);
 
@@ -159,6 +161,7 @@ BOOLEAN PhpCreateWorkQueueThread(
     }
     else
     {
+        PHLIB_INC_STATISTIC(WqWorkQueueThreadsCreateFailed);
         PhReleaseRundownProtection(&WorkQueue->RundownProtect);
         return FALSE;
     }
@@ -290,6 +293,8 @@ VOID PhQueueItemWorkQueue(
     PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
     NtReleaseSemaphore(WorkQueue->SemaphoreHandle, 1, NULL);
+
+    PHLIB_INC_STATISTIC(WqWorkItemsQueued);
 
     // Check if all worker threads are currently busy, 
     // and if we can create more threads.
