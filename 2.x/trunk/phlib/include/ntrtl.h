@@ -888,6 +888,85 @@ RtlQueryCriticalSectionOwner(
     );
 #endif
 
+NTSYSAPI
+VOID
+NTAPI
+RtlCheckForOrphanedCriticalSections(
+    __in HANDLE hThread
+    );
+
+// Resources
+
+typedef struct _RTL_RESOURCE
+{
+    RTL_CRITICAL_SECTION CriticalSection;
+
+    HANDLE SharedSemaphore;
+    ULONG NumberOfWaitingShared;
+    HANDLE ExclusiveSemaphore;
+    ULONG NumberOfWaitingExclusive;
+
+    LONG NumberOfActive; // negative: exclusive acquire; zero: not acquired; positive: shared acquire(s)
+    HANDLE ExclusiveOwnerThread;
+
+    ULONG Flags; // RTL_RESOURCE_FLAG_*
+
+    PRTL_RESOURCE_DEBUG DebugInfo;
+} RTL_RESOURCE, *PRTL_RESOURCE;
+
+#define RTL_RESOURCE_FLAG_LONG_TERM ((ULONG)0x00000001)
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeResource(
+    __out PRTL_RESOURCE Resource
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlDeleteResource(
+    __inout PRTL_RESOURCE Resource
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAcquireResourceShared(
+    __inout PRTL_RESOURCE Resource,
+    __in BOOLEAN Wait
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlAcquireResourceExclusive(
+    __inout PRTL_RESOURCE Resource,
+    __in BOOLEAN Wait
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlReleaseResource(
+    __inout PRTL_RESOURCE Resource
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlConvertSharedToExclusive(
+    __inout PRTL_RESOURCE Resource
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlConvertExclusiveToShared(
+    __inout PRTL_RESOURCE Resource
+    );
+
 // Slim reader-writer locks, condition variables, and barriers
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -1602,6 +1681,67 @@ RtlUnicodeToUTF8N(
 #endif
 
 NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCustomCPToUnicodeN(
+    __in PCPTABLEINFO CustomCP,
+    __out_bcount_part(MaxBytesInUnicodeString, *BytesInUnicodeString) PWCH UnicodeString,
+    __in ULONG MaxBytesInUnicodeString,
+    __out_opt PULONG BytesInUnicodeString,
+    __in_bcount(BytesInCustomCPString) PCH CustomCPString,
+    __in ULONG BytesInCustomCPString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnicodeToCustomCPN(
+    __in PCPTABLEINFO CustomCP,
+    __out_bcount_part(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
+    __in ULONG MaxBytesInCustomCPString,
+    __out_opt PULONG BytesInCustomCPString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUpcaseUnicodeToCustomCPN(
+    __in PCPTABLEINFO CustomCP,
+    __out_bcount_part(MaxBytesInCustomCPString, *BytesInCustomCPString) PCH CustomCPString,
+    __in ULONG MaxBytesInCustomCPString,
+    __out_opt PULONG BytesInCustomCPString,
+    __in_bcount(BytesInUnicodeString) PWCH UnicodeString,
+    __in ULONG BytesInUnicodeString
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitCodePageTable(
+    __in PUSHORT TableBase,
+    __out PCPTABLEINFO CodePageTable
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitNlsTables(
+    __in PUSHORT AnsiNlsBase,
+    __in PUSHORT OemNlsBase,
+    __in PUSHORT LanguageNlsBase,
+    __out PNLSTABLEINFO TableInfo
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlResetRtlTranslations(
+    __in PNLSTABLEINFO TableInfo
+    );
+
+NTSYSAPI
 BOOLEAN
 NTAPI
 RtlIsTextUnicode(
@@ -2236,6 +2376,14 @@ RtlExpandEnvironmentStrings_U(
     __in PUNICODE_STRING Source,
     __out PUNICODE_STRING Destination,
     __out_opt PULONG ReturnedLength
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSetEnvironmentStrings(
+    __in PWCHAR NewEnvironment,
+    __in SIZE_T NewEnvironmentSize
     );
 
 // Current directory and paths
@@ -3027,6 +3175,56 @@ RtlFindMessage(
     __out PMESSAGE_RESOURCE_ENTRY *MessageEntry
     );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFormatMessage(
+    __in PWSTR MessageFormat,
+    __in ULONG MaximumWidth,
+    __in BOOLEAN IgnoreInserts,
+    __in BOOLEAN ArgumentsAreAnsi,
+    __in BOOLEAN ArgumentsAreAnArray,
+    __in va_list *Arguments,
+    __out_bcount_part(Length, *ReturnLength) PWSTR Buffer,
+    __in ULONG Length,
+    __out_opt PULONG ReturnLength
+    );
+
+typedef struct _PARSE_MESSAGE_CONTEXT
+{
+    ULONG fFlags;
+    ULONG cwSavColumn;
+    SIZE_T iwSrc;
+    SIZE_T iwDst;
+    SIZE_T iwDstSpace;
+    va_list lpvArgStart;
+} PARSE_MESSAGE_CONTEXT, *PPARSE_MESSAGE_CONTEXT;
+
+#define INIT_PARSE_MESSAGE_CONTEXT(ctx) \
+    { \
+        (ctx)->fFlags = 0; \
+    }
+
+#define TEST_PARSE_MESSAGE_CONTEXT_FLAG(ctx, flag) ((ctx)->fFlags & (flag))
+#define SET_PARSE_MESSAGE_CONTEXT_FLAG(ctx, flag) ((ctx)->fFlags |= (flag))
+#define CLEAR_PARSE_MESSAGE_CONTEXT_FLAG(ctx, flag) ((ctx)->fFlags &= ~(flag))
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFormatMessageEx(
+    __in PWSTR MessageFormat,
+    __in ULONG MaximumWidth,
+    __in BOOLEAN IgnoreInserts,
+    __in BOOLEAN ArgumentsAreAnsi,
+    __in BOOLEAN ArgumentsAreAnArray,
+    __in va_list *Arguments,
+    __out_bcount_part(Length, *ReturnLength) PWSTR Buffer,
+    __in ULONG Length,
+    __out_opt PULONG ReturnLength,
+    __out_opt PPARSE_MESSAGE_CONTEXT ParseContext
+    );
+
 // Errors
 
 NTSYSAPI
@@ -3149,6 +3347,15 @@ ULONG
 NTAPI
 RtlRandomEx(
     __inout PULONG Seed
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlComputeImportTableHash(
+    __in HANDLE hFile,
+    __out_bcount(16) PCHAR Hash,
+    __in ULONG ImportTableHashRevision // must be 1
     );
 
 // Integer conversion
@@ -3961,6 +4168,27 @@ RtlConvertSidToUnicodeString(
     __in PSID Sid,
     __in BOOLEAN AllocateDestinationString
     );
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlSidHashInitialize(
+    __in_ecount(Count) PSID_AND_ATTRIBUTES SidAndAttributes,
+    __in ULONG Count,
+    __out PSID_AND_ATTRIBUTES_HASH SidAndAttributesHash
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+NTSYSAPI
+PSID_AND_ATTRIBUTES
+NTAPI
+RtlSidHashLookup(
+    __in PSID_AND_ATTRIBUTES_HASH SidAndAttributesHash,
+    __in PSID Sid
+    );
+#endif
 
 // Security Descriptors
 
