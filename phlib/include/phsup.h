@@ -141,7 +141,7 @@ FORCEINLINE int intcmp(
     __in int value2
     )
 {
-    PH_BUILTIN_COMPARE(value1, value2);
+    return value1 - value2;
 }
 
 FORCEINLINE int uintcmp(
