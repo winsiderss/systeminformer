@@ -355,25 +355,68 @@ PPH_STRING PhGetSidFullName(
     __out_opt PSID_NAME_USE NameUse
     )
 {
+    NTSTATUS status;
     PPH_STRING fullName;
-    PPH_STRING name;
-    PPH_STRING domainName;
+    LSA_HANDLE policyHandle;
+    PLSA_REFERENCED_DOMAIN_LIST referencedDomains;
+    PLSA_TRANSLATED_NAME names;
 
-    if (!NT_SUCCESS(PhLookupSid(Sid, &name, &domainName, NameUse)))
+    policyHandle = PhGetLookupPolicyHandle();
+
+    status = LsaLookupSids(
+        policyHandle,
+        1,
+        &Sid,
+        &referencedDomains,
+        &names
+        );
+
+    if (!NT_SUCCESS(status))
         return NULL;
 
-    if (domainName->Length != 0 && IncludeDomain)
+    if (names[0].Use != SidTypeInvalid && names[0].Use != SidTypeUnknown)
     {
-        fullName = PhConcatStrings(3, domainName->Buffer, L"\\", name->Buffer);
+        PWSTR domainNameBuffer;
+        ULONG domainNameLength;
+
+        if (IncludeDomain && names[0].DomainIndex >= 0)
+        {
+            PLSA_TRUST_INFORMATION trustInfo;
+
+            trustInfo = &referencedDomains->Domains[names[0].DomainIndex];
+            domainNameBuffer = trustInfo->Name.Buffer;
+            domainNameLength = trustInfo->Name.Length;
+        }
+        else
+        {
+            domainNameBuffer = NULL;
+            domainNameLength = 0;
+        }
+
+        if (domainNameBuffer && domainNameLength != 0)
+        {
+            fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(WCHAR) + names[0].Name.Length);
+            memcpy(&fullName->Buffer[0], domainNameBuffer, domainNameLength);
+            fullName->Buffer[domainNameLength / sizeof(WCHAR)] = '\\';
+            memcpy(&fullName->Buffer[domainNameLength / sizeof(WCHAR) + 1], names[0].Name.Buffer, names[0].Name.Length);
+        }
+        else
+        {
+            fullName = PhCreateStringEx(names[0].Name.Buffer, names[0].Name.Length);
+        }
+
+        if (NameUse)
+        {
+            *NameUse = names[0].Use;
+        }
     }
     else
     {
-        fullName = name;
-        PhReferenceObject(name);
+        fullName = NULL;
     }
 
-    PhDereferenceObject(name);
-    PhDereferenceObject(domainName);
+    LsaFreeMemory(referencedDomains);
+    LsaFreeMemory(names);
 
     return fullName;
 }
@@ -393,21 +436,22 @@ PPH_STRING PhSidToStringSid(
     __in PSID Sid
     )
 {
-    WCHAR buffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
-    UNICODE_STRING string;
+    PPH_STRING string;
 
-    string.Length = 0;
-    string.MaximumLength = MAX_UNICODE_STACK_BUFFER_LENGTH * sizeof(WCHAR);
-    string.Buffer = buffer;
+    string = PhCreateStringEx(NULL, MAX_UNICODE_STACK_BUFFER_LENGTH * sizeof(WCHAR));
 
-    if (!NT_SUCCESS(RtlConvertSidToUnicodeString(
-        &string,
+    if (NT_SUCCESS(RtlConvertSidToUnicodeString(
+        &string->us,
         Sid,
         FALSE
         )))
+    {
+        return string;
+    }
+    else
+    {
         return NULL;
-
-    return PhCreateStringEx(string.Buffer, string.Length);
+    }
 }
 
 NTSTATUS PhEnumAccounts(
