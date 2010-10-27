@@ -350,7 +350,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         BOOLEAN stringSearch = FALSE;
                         BOOLEAN partialSearch;
                         BOOLEAN wrapSearch = FALSE;
-                        SIZE_T searchLength;
+                        PH_STRINGREF searchText;
                         INT startIndex;
                         INT currentIndex;
                         INT foundIndex;
@@ -385,8 +385,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
                         if (stringSearch)
                         {
-                            if (partialSearch)
-                                searchLength = wcslen(fi->lvfi.psz);
+                            PhInitializeStringRef(&searchText, (PWSTR)fi->lvfi.psz);
 
                             // We do actually need to check the start index.
                             startIndex = (ULONG)fi->iStart < context->List->Count ? fi->iStart : 0;
@@ -417,7 +416,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                 {
                                     if (partialSearch)
                                     {
-                                        if (wcsnicmp(text.Buffer, fi->lvfi.psz, searchLength) == 0)
+                                        if (PhStartsWithStringRef(&text, &searchText, TRUE))
                                         {
                                             foundIndex = currentIndex;
                                             break;
@@ -425,7 +424,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                                     }
                                     else
                                     {
-                                        if (wcsicmp(text.Buffer, fi->lvfi.psz) == 0)
+                                        if (PhEqualStringRef(&text, &searchText, TRUE))
                                         {
                                             foundIndex = currentIndex;
                                             break;
@@ -685,16 +684,16 @@ LRESULT CALLBACK PhpTreeListWndProc(
             // Boring array management
             if (context->AllocatedColumns < context->MaxId + 1)
             {
-                ULONG oldAllocatedColumns;
-
-                oldAllocatedColumns = context->AllocatedColumns;
-                context->AllocatedColumns *= 2;
-
-                if (context->AllocatedColumns < context->MaxId + 1)
-                    context->AllocatedColumns = context->MaxId + 1;
-
                 if (context->Columns)
                 {
+                    ULONG oldAllocatedColumns;
+
+                    oldAllocatedColumns = context->AllocatedColumns;
+                    context->AllocatedColumns *= 2;
+
+                    if (context->AllocatedColumns < context->MaxId + 1)
+                        context->AllocatedColumns = context->MaxId + 1;
+
                     context->Columns = PhReAllocate(
                         context->Columns,
                         context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
@@ -709,6 +708,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 }
                 else
                 {
+                    context->AllocatedColumns = 64;
+
                     context->Columns = PhAllocate(
                         context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
                         );
