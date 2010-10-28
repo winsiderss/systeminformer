@@ -263,6 +263,9 @@ PhLocalTimeToSystemTime(
 // heap
 
 __mayRaise
+__checkReturn
+__notnull
+__bcount(Size)
 PHLIBAPI
 PVOID
 NTAPI
@@ -309,6 +312,8 @@ PhReAllocateSafe(
     __in SIZE_T Size
     );
 
+__checkReturn
+__maybenull
 PHLIBAPI
 PVOID
 NTAPI
@@ -321,7 +326,7 @@ PHLIBAPI
 VOID
 NTAPI
 PhFreePage(
-    __in PVOID Memory
+    __in __post_invalid PVOID Memory
     );
 
 FORCEINLINE PVOID PhAllocateAligned(
