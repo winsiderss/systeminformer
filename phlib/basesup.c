@@ -404,7 +404,11 @@ VOID PhLocalTimeToSystemTime(
  * The block is guaranteed to be aligned at 
  * MEMORY_ALLOCATION_ALIGNMENT bytes.
  */
-__mayRaise PVOID PhAllocate(
+__mayRaise
+__checkReturn
+__notnull
+__bcount(Size)
+PVOID PhAllocate(
     __in SIZE_T Size
     )
 {
@@ -511,6 +515,8 @@ PVOID PhReAllocateSafe(
  * \return A pointer to the allocated block of memory, or NULL 
  * if the block could not be allocated.
  */
+__checkReturn
+__maybenull
 PVOID PhAllocatePage(
     __in SIZE_T Size,
     __out_opt PSIZE_T NewSize
@@ -546,7 +552,7 @@ PVOID PhAllocatePage(
  * \param Memory A pointer to a block of memory.
  */
 VOID PhFreePage(
-    __in PVOID Memory
+    __in __post_invalid PVOID Memory
     )
 {
     SIZE_T size;
