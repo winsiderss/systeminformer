@@ -57,6 +57,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     RECT RowRect;
     HTHEME ThemeData;
     BOOLEAN ThemeActive;
+    BOOLEAN EnableExplorerStyle;
     HBITMAP PlusBitmap;
     PH_INTEGER_PAIR PlusBitmapSize;
     HBITMAP MinusBitmap;

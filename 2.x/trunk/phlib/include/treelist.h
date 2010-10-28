@@ -2,7 +2,6 @@
 #define _PH_TREELIST_H
 
 #define PH_TREELIST_CLASSNAME L"PhTreeList"
-//#define PH_TREELIST_ENABLE_EXPLORER_STYLE
 
 typedef struct _PH_TREELIST_COLUMN
 {
@@ -221,6 +220,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_GETVISIBLENODECOUNT (WM_APP + 1224)
 #define TLM_GETVISIBLENODE (WM_APP + 1225)
 #define TLM_GETLISTVIEW (WM_APP + 1226)
+#define TLM_ENABLEEXPLORERSTYLE (WM_APP + 1227)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -312,6 +312,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_GetListView(hWnd) \
     ((HWND)SendMessage((hWnd), TLM_GETLISTVIEW, 0, 0))
+
+#define TreeList_EnableExplorerStyle(hWnd) \
+    SendMessage((hWnd), TLM_ENABLEEXPLORERSTYLE, 0, 0)
 
 BOOLEAN PhTreeListInitialization();
 
