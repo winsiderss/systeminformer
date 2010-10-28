@@ -73,6 +73,7 @@ VOID PhInitializeProcessTreeList(
 {
     ProcessTreeListHandle = hwnd;
     SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
+    TreeList_EnableExplorerStyle(hwnd);
 
     TreeList_SetCallback(hwnd, PhpProcessTreeListCallback);
     TreeList_SetPlusMinus(
