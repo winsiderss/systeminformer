@@ -120,6 +120,7 @@ VOID PhInitializeServiceTreeList(
 
     PhAddTreeListColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
     PhAddTreeListColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeListColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, 7, 0);
 
     TreeList_SetSort(hwnd, 0, AscendingSortOrder);
 }
@@ -249,6 +250,7 @@ VOID PhpRemoveServiceNode(
         PhRemoveItemList(ServiceNodeList, index);
 
     if (ServiceNode->BinaryPath) PhDereferenceObject(ServiceNode->BinaryPath);
+    if (ServiceNode->LoadOrderGroup) PhDereferenceObject(ServiceNode->LoadOrderGroup);
 
     if (ServiceNode->TooltipText) PhDereferenceObject(ServiceNode->TooltipText);
 
@@ -335,6 +337,8 @@ static VOID PhpUpdateServiceNodeConfig(
             {
                 if (serviceConfig->lpBinaryPathName)
                     PhSwapReference2(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
+                if (serviceConfig->lpLoadOrderGroup)
+                    PhSwapReference2(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
 
                 PhFree(serviceConfig);
             }
@@ -416,6 +420,14 @@ BEGIN_SORT_FUNCTION(ErrorControl)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Group)
+{
+    PhpUpdateServiceNodeConfig(node1);
+    PhpUpdateServiceNodeConfig(node2);
+    sortResult = PhCompareStringWithNull(node1->LoadOrderGroup, node2->LoadOrderGroup, TRUE);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -443,7 +455,8 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                     SORT_FUNCTION(StartType),
                     SORT_FUNCTION(Pid),
                     SORT_FUNCTION(BinaryPath),
-                    SORT_FUNCTION(ErrorControl)
+                    SORT_FUNCTION(ErrorControl),
+                    SORT_FUNCTION(Group)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -504,6 +517,10 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                 break;
             case PHSVTLC_ERRORCONTROL:
                 PhInitializeStringRef(&getNodeText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
+                break;
+            case PHSVTLC_GROUP:
+                PhpUpdateServiceNodeConfig(node);
+                getNodeText->Text = PhGetStringRef(node->LoadOrderGroup);
                 break;
             default:
                 return FALSE;
