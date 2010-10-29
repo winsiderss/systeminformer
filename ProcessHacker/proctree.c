@@ -468,8 +468,6 @@ VOID PhTickProcessNodes()
             // Force a rebuild to sort the items.
             TreeList_NodesStructured(ProcessTreeListHandle);
         }
-
-        InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
     }
 
     // State highlighting
@@ -512,6 +510,8 @@ VOID PhTickProcessNodes()
         if (redrawDisabled)
             TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
     }
+
+    InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
 }
 
 static FLOAT PhpCalculateInclusiveCpuUsage(

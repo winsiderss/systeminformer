@@ -281,6 +281,7 @@ VOID PhTickServiceNodes()
         ULONG tickCount;
         HANDLE stateListHandle;
         BOOLEAN redrawDisabled = FALSE;
+        BOOLEAN changed = FALSE;
 
         tickCount = GetTickCount();
 
@@ -295,6 +296,7 @@ VOID PhTickServiceNodes()
             {
                 node->State = NormalItemState;
                 node->Node.UseTempBackColor = FALSE;
+                changed = TRUE;
             }
             else if (node->State == RemovingItemState)
             {
@@ -305,6 +307,7 @@ VOID PhTickServiceNodes()
                 }
 
                 PhpRemoveServiceNode(node);
+                changed = TRUE;
             }
 
             PhRemoveItemPointerList(ServiceNodeStateList, stateListHandle);
@@ -312,6 +315,8 @@ VOID PhTickServiceNodes()
 
         if (redrawDisabled)
             TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
+        if (changed)
+            InvalidateRect(ServiceTreeListHandle, NULL, FALSE);
     }
 }
 
