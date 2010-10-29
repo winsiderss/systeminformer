@@ -12,6 +12,7 @@
 #include <circbuf.h>
 #include <phnet.h>
 #include <providers.h>
+#include <uimodels.h>
 #include "../resource.h"
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
@@ -113,221 +114,6 @@ VOID PhInitializeKph();
 BOOLEAN PhInitializeAppSystem();
 
 ATOM PhRegisterWindowClass();
-
-// proctree
-
-// Columns
-
-// Default columns should go first
-#define PHTLC_NAME 0
-#define PHTLC_PID 1
-#define PHTLC_CPU 2
-#define PHTLC_IOTOTAL 3
-#define PHTLC_PVTMEMORY 4
-#define PHTLC_USERNAME 5
-#define PHTLC_DESCRIPTION 6
-
-#define PHTLC_COMPANYNAME 7
-#define PHTLC_VERSION 8
-#define PHTLC_FILENAME 9
-#define PHTLC_COMMANDLINE 10
-
-#define PHTLC_PEAKPVTMEMORY 11
-#define PHTLC_WORKINGSET 12
-#define PHTLC_PEAKWORKINGSET 13
-#define PHTLC_PRIVATEWS 14
-#define PHTLC_SHAREDWS 15
-#define PHTLC_SHAREABLEWS 16
-#define PHTLC_VIRTUALSIZE 17
-#define PHTLC_PEAKVIRTUALSIZE 18
-#define PHTLC_PAGEFAULTS 19
-#define PHTLC_SESSIONID 20
-#define PHTLC_PRIORITYCLASS 21
-#define PHTLC_BASEPRIORITY 22
-
-#define PHTLC_THREADS 23
-#define PHTLC_HANDLES 24
-#define PHTLC_GDIHANDLES 25
-#define PHTLC_USERHANDLES 26
-#define PHTLC_IORO 27
-#define PHTLC_IOW 28
-#define PHTLC_INTEGRITY 29
-#define PHTLC_IOPRIORITY 30
-#define PHTLC_PAGEPRIORITY 31
-#define PHTLC_STARTTIME 32
-#define PHTLC_TOTALCPUTIME 33
-#define PHTLC_KERNELCPUTIME 34
-#define PHTLC_USERCPUTIME 35
-#define PHTLC_VERIFICATIONSTATUS 36
-#define PHTLC_VERIFIEDSIGNER 37
-#define PHTLC_RESERVED1 38
-#define PHTLC_RELATIVESTARTTIME 39
-#define PHTLC_BITS 40
-#define PHTLC_ELEVATION 41
-#define PHTLC_WINDOWTITLE 42
-#define PHTLC_WINDOWSTATUS 43
-#define PHTLC_CYCLES 44
-#define PHTLC_CYCLESDELTA 45
-
-#define PHTLC_MAXIMUM 46
-
-#define PHPN_WSCOUNTERS 0x1
-#define PHPN_GDIUSERHANDLES 0x2
-#define PHPN_IOPAGEPRIORITY 0x4
-#define PHPN_WINDOW 0x8
-
-typedef struct _PH_PROCESS_NODE
-{
-    PH_TREELIST_NODE Node;
-
-    PH_HASH_ENTRY HashEntry;
-
-    PH_ITEM_STATE State;
-    HANDLE StateListHandle;
-    ULONG TickCount;
-
-    HANDLE ProcessId;
-    PPH_PROCESS_ITEM ProcessItem;
-
-    struct _PH_PROCESS_NODE *Parent;
-    PPH_LIST Children;
-
-    PH_STRINGREF TextCache[PHTLC_MAXIMUM];
-
-    // If the user has selected certain columns we need extra information 
-    // that isn't retrieved by the process provider.
-    ULONG ValidMask;
-
-    // WS counters
-    PH_PROCESS_WS_COUNTERS WsCounters;
-    // GDI, USER handles
-    ULONG GdiHandles;
-    ULONG UserHandles;
-    // I/O, Page priority
-    ULONG IoPriority;
-    ULONG PagePriority;
-    // Window
-    HWND WindowHandle;
-    PPH_STRING WindowText;
-    BOOLEAN WindowHung;
-    // Cycles
-    PH_UINT64_DELTA CyclesDelta;
-
-    PPH_STRING TooltipText;
-
-    WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
-    PPH_STRING IoTotalText;
-    PPH_STRING PrivateMemoryText;
-    PPH_STRING PeakPrivateMemoryText;
-    PPH_STRING WorkingSetText;
-    PPH_STRING PeakWorkingSetText;
-    PPH_STRING PrivateWsText;
-    PPH_STRING SharedWsText;
-    PPH_STRING ShareableWsText;
-    PPH_STRING VirtualSizeText;
-    PPH_STRING PeakVirtualSizeText;
-    PPH_STRING PageFaultsText;
-    WCHAR BasePriorityText[PH_INT32_STR_LEN_1];
-    WCHAR ThreadsText[PH_INT32_STR_LEN_1];
-    WCHAR HandlesText[PH_INT32_STR_LEN_1];
-    WCHAR GdiHandlesText[PH_INT32_STR_LEN_1];
-    WCHAR UserHandlesText[PH_INT32_STR_LEN_1];
-    PPH_STRING IoRoText;
-    PPH_STRING IoWText;
-    WCHAR IoPriorityText[PH_INT32_STR_LEN_1];
-    WCHAR PagePriorityText[PH_INT32_STR_LEN_1];
-    PPH_STRING StartTimeText;
-    WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
-    WCHAR KernelCpuTimeText[PH_TIMESPAN_STR_LEN_1];
-    WCHAR UserCpuTimeText[PH_TIMESPAN_STR_LEN_1];
-    PPH_STRING RelativeStartTimeText;
-    PPH_STRING WindowTitleText;
-    PPH_STRING CyclesText;
-    PPH_STRING CyclesDeltaText;
-} PH_PROCESS_NODE, *PPH_PROCESS_NODE;
-
-VOID PhProcessTreeListInitialization();
-
-VOID PhInitializeProcessTreeList(
-    __in HWND hwnd
-    );
-
-VOID PhLoadSettingsProcessTreeList();
-
-VOID PhSaveSettingsProcessTreeList();
-
-PPH_PROCESS_NODE PhAddProcessNode(
-    __in PPH_PROCESS_ITEM ProcessItem,
-    __in ULONG RunId
-    );
-
-PHAPPAPI
-PPH_PROCESS_NODE PhFindProcessNode(
-   __in HANDLE ProcessId
-   );
-
-VOID PhRemoveProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
-    );
-
-PHAPPAPI
-VOID PhUpdateProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
-    );
-
-VOID PhTickProcessNodes();
-
-PHAPPAPI
-PPH_PROCESS_ITEM PhGetSelectedProcessItem();
-
-PHAPPAPI
-VOID PhGetSelectedProcessItems(
-    __out PPH_PROCESS_ITEM **Processes,
-    __out PULONG NumberOfProcesses
-    );
-
-PHAPPAPI
-VOID PhDeselectAllProcessNodes();
-
-PHAPPAPI
-VOID PhInvalidateAllProcessNodes();
-
-PHAPPAPI
-VOID PhSelectAndEnsureVisibleProcessNode(
-    __in PPH_PROCESS_NODE ProcessNode
-    );
-
-typedef BOOLEAN (NTAPI *PPH_PROCESS_TREE_FILTER)(
-    __in PPH_PROCESS_NODE ProcessNode,
-    __in_opt PVOID Context
-    );
-
-typedef struct _PH_PROCESS_TREE_FILTER_ENTRY
-{
-    PPH_PROCESS_TREE_FILTER Filter;
-    PVOID Context;
-} PH_PROCESS_TREE_FILTER_ENTRY, *PPH_PROCESS_TREE_FILTER_ENTRY;
-
-PHAPPAPI
-PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
-    __in PPH_PROCESS_TREE_FILTER Filter,
-    __in_opt PVOID Context
-    );
-
-PHAPPAPI
-VOID PhRemoveProcessTreeFilter(
-    __in PPH_PROCESS_TREE_FILTER_ENTRY Entry
-    );
-
-PHAPPAPI
-VOID PhApplyProcessTreeFilters();
-
-VOID PhCopyProcessTree();
-
-VOID PhWriteProcessTree(
-    __inout PPH_FILE_STREAM FileStream,
-    __in ULONG Mode
-    );
 
 // appsup
 
@@ -642,6 +428,10 @@ VOID PhShowIconNotification(
     );
 
 VOID PhShowProcessContextMenu(
+    __in POINT Location
+    );
+
+VOID PhShowServiceContextMenu(
     __in POINT Location
     );
 
@@ -1482,7 +1272,7 @@ VOID PhShowCreateServiceDialog(
     __in HWND ParentWindowHandle
     );
 
-// srvlist
+// srvctl
 
 #define WM_PH_SET_LIST_VIEW_SETTINGS (WM_APP + 701)
 

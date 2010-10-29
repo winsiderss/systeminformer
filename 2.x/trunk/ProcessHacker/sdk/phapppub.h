@@ -1,5 +1,5 @@
-#ifndef _PH_PHAPPPUB_H
-#define _PH_PHAPPPUB_H
+#ifndef PH_PHAPPPUB_H
+#define PH_PHAPPPUB_H
 
 // Process Hacker application functions exposed to plugins
 
@@ -791,6 +791,15 @@ PhUiSetAttributesHandle(
     __in ULONG Attributes
     );
 
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiDestroyHeap(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in PVOID HeapHandle
+    );
+
 // affinity
 
 PHAPPAPI
@@ -813,7 +822,7 @@ PhShowChooseProcessDialog(
     __out PHANDLE ProcessId
     );
 
-// srvlist
+// srvctl
 
 #define WM_PH_SET_LIST_VIEW_SETTINGS (WM_APP + 701)
 
