@@ -2,7 +2,7 @@ Process Hacker
 
 2.8
  * NEW/IMPROVED:
-   * Better service list, with column selection and more
+   * Better service list (including column selection)
    * Added Peak Handles
    * Process tree sorting is now preserved
    * Save works for services and network connections
