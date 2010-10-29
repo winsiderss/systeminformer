@@ -408,6 +408,9 @@
     <ClCompile Include="srvctl.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="srvlist.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -458,6 +461,9 @@
     <ClInclude Include="include\settingsp.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\uimodels.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">
@@ -503,6 +509,12 @@
       <Filter>Resources</Filter>
     </None>
     <None Include="TODO.txt" />
+    <None Include="resources\application.ico">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="resources\cog.ico">
+      <Filter>Resources</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ProcessHacker.rc">

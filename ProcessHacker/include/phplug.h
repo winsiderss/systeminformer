@@ -1,5 +1,5 @@
-#ifndef _PH_PHPLUG_H
-#define _PH_PHPLUG_H
+#ifndef PH_PHPLUG_H
+#define PH_PHPLUG_H
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
-#ifndef HIDNPROC_H
-#define HIDNPROC_H
+#ifndef PH_HIDNPROC_H
+#define PH_HIDNPROC_H
 
 typedef enum _PH_HIDDEN_PROCESS_METHOD
 {

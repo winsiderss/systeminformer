@@ -47,12 +47,6 @@ VOID PhMainWndTabControlOnNotify(
     __in LPNMHDR Header
     );
 VOID PhMainWndTabControlOnSelectionChanged();
-VOID PhMainWndProcessListViewOnNotify(
-    __in LPNMHDR Header
-    );
-VOID PhMainWndServiceListViewOnNotify(
-    __in LPNMHDR Header
-    );
 VOID PhMainWndNetworkListViewOnNotify(
     __in LPNMHDR Header
     );
@@ -170,8 +164,8 @@ VOID PhMainWndOnProcessRemoved(
 VOID PhMainWndOnProcessesUpdated();
 
 VOID PhMainWndOnServiceAdded(
-    __in ULONG RunId,
-    __in PPH_SERVICE_ITEM ServiceItem
+    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
+    __in ULONG RunId
     );
 
 VOID PhMainWndOnServiceModified(
@@ -217,7 +211,7 @@ static INT ServicesTabIndex;
 static INT NetworkTabIndex;
 static INT MaxTabIndex;
 static HWND ProcessTreeListHandle;
-static HWND ServiceListViewHandle;
+static HWND ServiceTreeListHandle;
 static HWND NetworkListViewHandle;
 
 static BOOLEAN NetworkFirstTime = TRUE;
@@ -239,8 +233,6 @@ static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
 static BOOLEAN ServicesNeedsRedraw = FALSE;
-static BOOLEAN ServicesNeedsSort = FALSE;
-static HIMAGELIST ServiceImageList;
 
 static PH_PROVIDER_REGISTRATION NetworkProviderRegistration;
 static PH_CALLBACK_REGISTRATION NetworkItemAddedRegistration;
@@ -587,7 +579,7 @@ LRESULT CALLBACK PhMainWndProc(
                             if (selectedTab == ProcessesTabIndex)
                                 PhWriteProcessTree(fileStream, mode);
                             else if (selectedTab == ServicesTabIndex)
-                                lines = PhGetListViewLines(ServiceListViewHandle, mode);
+                                PhWriteServiceList(fileStream, mode);
                             else if (selectedTab == NetworkTabIndex)
                                 lines = PhGetListViewLines(NetworkListViewHandle, mode);
 
@@ -1359,7 +1351,7 @@ LRESULT CALLBACK PhMainWndProc(
                         PhReferenceObject(serviceItem);
 
                         if (PhUiDeleteService(hWnd, serviceItem))
-                            PhSetStateAllListViewItems(ServiceListViewHandle, 0, LVIS_SELECTED);
+                            PhDeselectAllServiceNodes();
 
                         PhDereferenceObject(serviceItem);
                     }
@@ -1381,7 +1373,7 @@ LRESULT CALLBACK PhMainWndProc(
                 break;
             case ID_SERVICE_COPY:
                 {
-                    PhCopyListView(ServiceListViewHandle);
+                    PhCopyServiceList();
                 }
                 break;
             case ID_NETWORK_GOTOPROCESS:
@@ -1577,7 +1569,7 @@ LRESULT CALLBACK PhMainWndProc(
             if (selectedIndex == ProcessesTabIndex)
                 SetFocus(ProcessTreeListHandle);
             else if (selectedIndex == ServicesTabIndex)
-                SetFocus(ServiceListViewHandle);
+                SetFocus(ServiceTreeListHandle);
             else if (selectedIndex == NetworkTabIndex)
                 SetFocus(NetworkListViewHandle);
         }
@@ -1589,10 +1581,6 @@ LRESULT CALLBACK PhMainWndProc(
             if (header->hwndFrom == TabControlHandle)
             {
                 PhMainWndTabControlOnNotify(header);
-            }
-            else if (header->hwndFrom == ServiceListViewHandle)
-            {
-                PhMainWndServiceListViewOnNotify(header);
             }
             else if (header->hwndFrom == NetworkListViewHandle)
             {
@@ -1753,7 +1741,7 @@ LRESULT CALLBACK PhMainWndProc(
             if (index == ProcessesTabIndex)
                 SetFocus(ProcessTreeListHandle);
             else if (index == ServicesTabIndex)
-                SetFocus(ServiceListViewHandle);
+                SetFocus(ServiceTreeListHandle);
             else if (index == NetworkTabIndex)
                 SetFocus(NetworkListViewHandle);
         }
@@ -1779,15 +1767,12 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_SELECT_SERVICE_ITEM:
         {
-            INT lvItemIndex;
+            PPH_SERVICE_NODE serviceNode;
 
-            PhSetStateAllListViewItems(ServiceListViewHandle, 0, LVIS_SELECTED);
-            lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, (PVOID)lParam);
-
-            if (lvItemIndex != -1)
+            // For compatibility, lParam is a service item, not node.
+            if (serviceNode = PhFindServiceNode((PPH_SERVICE_ITEM)lParam))
             {
-                ListView_SetItemState(ServiceListViewHandle, lvItemIndex,
-                    LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+                PhSelectAndEnsureVisibleServiceNode(serviceNode);
             }
         }
         break;
@@ -1833,8 +1818,7 @@ LRESULT CALLBACK PhMainWndProc(
             ULONG runId = (ULONG)wParam;
             PPH_SERVICE_ITEM serviceItem = (PPH_SERVICE_ITEM)lParam;
 
-            PhMainWndOnServiceAdded(runId, serviceItem);
-            PhDereferenceObject(serviceItem);
+            PhMainWndOnServiceAdded(serviceItem, runId);
         }
         break;
     case WM_PH_SERVICE_MODIFIED:
@@ -1881,7 +1865,6 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     }
 
-    REFLECT_MESSAGE(ServiceListViewHandle, uMsg, wParam, lParam);
     REFLECT_MESSAGE(NetworkListViewHandle, uMsg, wParam, lParam);
 
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -1892,7 +1875,7 @@ VOID PhpReloadListViewFont()
     HFONT fontHandle;
     LOGFONT font;
 
-    if (ServiceListViewHandle && (fontHandle = (HFONT)SendMessage(ServiceListViewHandle, WM_GETFONT, 0, 0)))
+    if (NetworkListViewHandle && (fontHandle = (HFONT)SendMessage(NetworkListViewHandle, WM_GETFONT, 0, 0)))
     {
         if (GetObject(fontHandle, sizeof(LOGFONT), &font))
         {
@@ -2014,7 +1997,7 @@ VOID PhpInitialLoadSettings()
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
     PhLoadSettingsProcessTreeList();
-    PhLoadListViewColumnsFromSetting(L"ServiceListViewColumns", ServiceListViewHandle);
+    PhLoadSettingsServiceTreeList();
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
 
@@ -2106,8 +2089,7 @@ VOID PhpSaveAllSettings()
     PH_RECTANGLE windowRectangle;
 
     PhSaveSettingsProcessTreeList();
-
-    PhSaveListViewColumnsToSetting(L"ServiceListViewColumns", ServiceListViewHandle);
+    PhSaveSettingsServiceTreeList();
     PhSaveListViewColumnsToSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 
     PhSetIntegerSetting(L"IconMask", NotifyIconMask);
@@ -2776,9 +2758,7 @@ VOID PhpShowProcessProperties(
 
 PPH_SERVICE_ITEM PhpGetSelectedService()
 {
-    return PhGetSelectedListViewItemParam(
-        ServiceListViewHandle
-        );
+    return PhGetSelectedServiceItem();
 }
 
 VOID PhpGetSelectedServices(
@@ -2786,11 +2766,7 @@ VOID PhpGetSelectedServices(
     __out PULONG NumberOfServices
     )
 {
-    PhGetSelectedListViewItemParams(
-        ServiceListViewHandle,
-        Services,
-        NumberOfServices
-        );
+    PhGetSelectedServiceItems(Services, NumberOfServices);
 }
 
 PPH_NETWORK_ITEM PhpGetSelectedNetworkItem()
@@ -2984,31 +2960,15 @@ VOID PhMainWndOnCreate()
     ProcessTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_PROCESSTL);
     BringWindowToTop(ProcessTreeListHandle);
 
-    ServiceListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_SERVICELV);
-    PhSetListViewStyle(ServiceListViewHandle, TRUE, TRUE);
-    BringWindowToTop(ServiceListViewHandle);
-    PhpReloadListViewFont();
+    ServiceTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_SERVICETL);
+    BringWindowToTop(ServiceTreeListHandle);
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     PhSetListViewStyle(NetworkListViewHandle, TRUE, TRUE);
     BringWindowToTop(NetworkListViewHandle);
+    PhpReloadListViewFont();
 
-    PhSetControlTheme(ServiceListViewHandle, L"explorer");
     PhSetControlTheme(NetworkListViewHandle, L"explorer");
-
-    PhAddListViewColumn(ServiceListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-    PhAddListViewColumn(ServiceListViewHandle, 1, 1, 1, LVCFMT_LEFT, 180, L"Display Name");
-    PhAddListViewColumn(ServiceListViewHandle, 2, 2, 2, LVCFMT_LEFT, 110, L"Type");
-    PhAddListViewColumn(ServiceListViewHandle, 3, 3, 3, LVCFMT_LEFT, 70, L"Status");
-    PhAddListViewColumn(ServiceListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Start Type");
-    PhAddListViewColumn(ServiceListViewHandle, 5, 5, 5, LVCFMT_RIGHT, 50, L"PID");
-
-    ServiceImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 2);
-    ImageList_Add(ServiceImageList, LoadImage(PhInstanceHandle,
-        MAKEINTRESOURCE(IDB_APPLICATION), IMAGE_BITMAP, 16, 16, LR_SHARED), NULL);
-    ImageList_Add(ServiceImageList, LoadImage(PhInstanceHandle,
-        MAKEINTRESOURCE(IDB_BRICKS), IMAGE_BITMAP, 16, 16, LR_SHARED), NULL);
-    ListView_SetImageList(ServiceListViewHandle, ServiceImageList, LVSIL_SMALL);
 
     PhAddListViewColumn(NetworkListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Process");
     PhAddListViewColumn(NetworkListViewHandle, 1, 1, 1, LVCFMT_LEFT, 120, L"Local Address");
@@ -3022,8 +2982,8 @@ VOID PhMainWndOnCreate()
     PhProcessTreeListInitialization();
     PhInitializeProcessTreeList(ProcessTreeListHandle);
 
-    PhSetExtendedListViewWithSettings(ServiceListViewHandle);
-    ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
+    PhServiceTreeListInitialization();
+    PhInitializeServiceTreeList(ServiceTreeListHandle);
 
     PhSetExtendedListViewWithSettings(NetworkListViewHandle);
     ExtendedListView_SetStateHighlighting(NetworkListViewHandle, TRUE);
@@ -3158,7 +3118,7 @@ VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
     }
     else if (selectedIndex == ServicesTabIndex)
     {
-        *deferHandle = DeferWindowPos(*deferHandle, ServiceListViewHandle, NULL,
+        *deferHandle = DeferWindowPos(*deferHandle, ServiceTreeListHandle, NULL,
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
@@ -3208,7 +3168,7 @@ VOID PhMainWndTabControlOnSelectionChanged()
     }
 
     ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
-    ShowWindow(ServiceListViewHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
+    ShowWindow(ServiceTreeListHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
 }
 
@@ -3609,117 +3569,64 @@ VOID PhpInitializeServiceMenu(
     }
 }
 
-VOID PhMainWndServiceListViewOnNotify(
-    __in LPNMHDR Header
+VOID PhShowServiceContextMenu(
+    __in POINT Location
     )
 {
-    switch (Header->code)
+    PPH_SERVICE_ITEM *services;
+    ULONG numberOfServices;
+
+    PhpGetSelectedServices(&services, &numberOfServices);
+
+    if (numberOfServices != 0)
     {
-    case NM_DBLCLK:
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
+
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICE), 0);
+        PhSetFlagsEMenuItem(menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+        PhpInitializeServiceMenu(menu, services, numberOfServices);
+
+        if (PhPluginsEnabled)
         {
-            SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_PROPERTIES, 0);
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+            menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = PhMainWndHandle;
+            menuInfo.u.Service.Services = services;
+            menuInfo.u.Service.NumberOfServices = numberOfServices;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing), &menuInfo);
         }
-        break;
-    case NM_RCLICK:
+
+        ClientToScreen(ServiceTreeListHandle, &Location);
+
+        item = PhShowEMenu(
+            menu,
+            PhMainWndHandle,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            Location.x,
+            Location.y
+            );
+
+        if (item)
         {
-            LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
-            PPH_SERVICE_ITEM *services;
-            ULONG numberOfServices;
+            BOOLEAN handled = FALSE;
 
-            PhpGetSelectedServices(&services, &numberOfServices);
+            if (PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
 
-            if (numberOfServices != 0)
-            {
-                PPH_EMENU menu;
-                PPH_EMENU_ITEM item;
-                POINT location;
-
-                menu = PhCreateEMenu();
-                PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_SERVICE), 0);
-                PhSetFlagsEMenuItem(menu, ID_SERVICE_PROPERTIES, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-
-                PhpInitializeServiceMenu(menu, services, numberOfServices);
-
-                if (PhPluginsEnabled)
-                {
-                    PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-                    menuInfo.Menu = menu;
-                    menuInfo.OwnerWindow = PhMainWndHandle;
-                    menuInfo.u.Service.Services = services;
-                    menuInfo.u.Service.NumberOfServices = numberOfServices;
-
-                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing), &menuInfo);
-                }
-
-                location = itemActivate->ptAction;
-                ClientToScreen(ServiceListViewHandle, &location);
-
-                item = PhShowEMenu(
-                    menu,
-                    PhMainWndHandle,
-                    PH_EMENU_SHOW_LEFTRIGHT,
-                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                    location.x,
-                    location.y
-                    );
-
-                if (item)
-                {
-                    BOOLEAN handled = FALSE;
-
-                    if (PhPluginsEnabled)
-                        handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
-
-                    if (!handled)
-                        SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
-                }
-
-                PhDestroyEMenu(menu);
-            }
-
-            PhFree(services);
+            if (!handled)
+                SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
         }
-        break;
-    case LVN_KEYDOWN:
-        {
-            LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)Header;
 
-            switch (keyDown->wVKey)
-            {
-            case 'C':
-                if (GetKeyState(VK_CONTROL) < 0)
-                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_COPY, 0);
-                break;
-            case VK_DELETE:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_DELETE, 0);
-                break;
-            case VK_RETURN:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_PROPERTIES, 0);
-                break;
-            }
-        }
-        break;
-    case LVN_GETINFOTIP:
-        {
-            LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)Header;
-            PPH_SERVICE_ITEM serviceItem;
-
-            if (getInfoTip->iSubItem == 0 && PhGetListViewItemParam(
-                ServiceListViewHandle,
-                getInfoTip->iItem,
-                &serviceItem
-                ))
-            {
-                PPH_STRING tip;
-
-                tip = PhGetServiceTooltipText(serviceItem);
-                PhCopyListViewInfoTip(getInfoTip, &tip->sr);  
-                PhDereferenceObject(tip);
-            }
-        }
-        break;
+        PhDestroyEMenu(menu);
     }
+
+    PhFree(services);
 }
 
 VOID PhpInitializeNetworkMenu(
@@ -4022,54 +3929,20 @@ VOID PhMainWndOnProcessesUpdated()
     }
 }
 
-VOID PhpSetServiceItemImageIndex(
-    __in INT ItemIndex,
-    __in PPH_SERVICE_ITEM ServiceItem
-    )
-{
-    INT index;
-
-    if (ServiceItem->Type != SERVICE_KERNEL_DRIVER && ServiceItem->Type != SERVICE_FILE_SYSTEM_DRIVER)
-        index = 0;
-    else
-        index = 1;
-
-    PhSetListViewItemImageIndex(ServiceListViewHandle, ItemIndex, index);
-}
-
 VOID PhMainWndOnServiceAdded(
-    __in ULONG RunId,
-    __in PPH_SERVICE_ITEM ServiceItem
+    __in __assumeRefs(1) PPH_SERVICE_ITEM ServiceItem,
+    __in ULONG RunId
     )
 {
-    INT lvItemIndex;
+    PPH_SERVICE_NODE serviceNode;
 
     if (!ServicesNeedsRedraw)
     {
-        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
+        TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
         ServicesNeedsRedraw = TRUE;
     }
 
-    // Add a reference for the pointer being stored in the list view item.
-    PhReferenceObject(ServiceItem);
-
-    if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, FALSE);
-    lvItemIndex = PhAddListViewItem(
-        ServiceListViewHandle,
-        MAXINT,
-        ServiceItem->Name->Buffer,
-        ServiceItem
-        );
-    if (RunId == 1) ExtendedListView_SetStateHighlighting(ServiceListViewHandle, TRUE);
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 1, PhGetString(ServiceItem->DisplayName));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, PhGetServiceTypeString(ServiceItem->Type));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 3, PhGetServiceStateString(ServiceItem->State));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 4, PhGetServiceStartTypeString(ServiceItem->StartType));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 5, ServiceItem->ProcessIdString);
-
-    PhpSetServiceItemImageIndex(lvItemIndex, ServiceItem);
-
-    ServicesNeedsSort = TRUE;
+    serviceNode = PhAddServiceNode(ServiceItem, RunId);
 
     if (RunId != 1)
     {
@@ -4087,32 +3960,24 @@ VOID PhMainWndOnServiceAdded(
             }
         }
     }
+
+    PhDereferenceObject(ServiceItem);
 }
 
 VOID PhMainWndOnServiceModified(
     __in PPH_SERVICE_MODIFIED_DATA ServiceModifiedData
     )
 {
-    INT lvItemIndex;
     PH_SERVICE_CHANGE serviceChange;
     UCHAR logEntryType;
 
-    if (!ServicesNeedsRedraw)
-    {
-        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
-        ServicesNeedsRedraw = TRUE;
-    }
+    //if (!ServicesNeedsRedraw)
+    //{
+    //    TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+    //    ServicesNeedsRedraw = TRUE;
+    //}
 
-    lvItemIndex = PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceModifiedData->Service);
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 2, PhGetServiceTypeString(ServiceModifiedData->Service->Type));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 3, PhGetServiceStateString(ServiceModifiedData->Service->State));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 4, PhGetServiceStartTypeString(ServiceModifiedData->Service->StartType));
-    PhSetListViewSubItem(ServiceListViewHandle, lvItemIndex, 5, ServiceModifiedData->Service->ProcessIdString);
-
-    if (ServiceModifiedData->Service->Type != ServiceModifiedData->OldService.Type)
-        PhpSetServiceItemImageIndex(lvItemIndex, ServiceModifiedData->Service);
-
-    ServicesNeedsSort = TRUE;
+    PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
 
@@ -4175,14 +4040,9 @@ VOID PhMainWndOnServiceRemoved(
 {
     if (!ServicesNeedsRedraw)
     {
-        ExtendedListView_SetRedraw(ServiceListViewHandle, FALSE);
+        TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
         ServicesNeedsRedraw = TRUE;
     }
-
-    PhRemoveListViewItem(
-        ServiceListViewHandle,
-        PhFindListViewItemByParam(ServiceListViewHandle, -1, ServiceItem)
-        );
 
     PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
 
@@ -4198,23 +4058,16 @@ VOID PhMainWndOnServiceRemoved(
         }
     }
 
-    // Remove the reference we added in PhMainWndOnServiceAdded.
-    PhDereferenceObject(ServiceItem);
+    PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
 }
 
 VOID PhMainWndOnServicesUpdated()
 {
-    ExtendedListView_Tick(ServiceListViewHandle);
-
-    if (ServicesNeedsSort)
-    {
-        ExtendedListView_SortItems(ServiceListViewHandle);
-        ServicesNeedsSort = FALSE;
-    }
+    PhTickServiceNodes();
 
     if (ServicesNeedsRedraw)
     {
-        ExtendedListView_SetRedraw(ServiceListViewHandle, TRUE);
+        TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
         ServicesNeedsRedraw = FALSE;
     }
 }
