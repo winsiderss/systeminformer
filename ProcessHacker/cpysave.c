@@ -75,18 +75,21 @@ VOID PhpMapDisplayIndexTreeList(
     *NumberOfColumns = count;
 }
 
-PPH_FULL_STRING PhGetProcessTreeListText(
-    __in HWND TreeListHandle
+PPH_FULL_STRING PhGetTreeListText(
+    __in HWND TreeListHandle,
+    __in ULONG MaximumNumberOfColumns
     )
 {
     PPH_FULL_STRING string;
-    ULONG displayToId[PHPRTLC_MAXIMUM];
+    PULONG displayToId;
     ULONG rows;
     ULONG columns;
     ULONG i;
     ULONG j;
 
-    PhpMapDisplayIndexTreeList(TreeListHandle, PHPRTLC_MAXIMUM, displayToId, NULL, &columns);
+    displayToId = PhAllocate(MaximumNumberOfColumns * sizeof(ULONG));
+
+    PhpMapDisplayIndexTreeList(TreeListHandle, MaximumNumberOfColumns, displayToId, NULL, &columns);
     rows = TreeList_GetVisibleNodeCount(TreeListHandle);
 
     string = PhCreateFullString2(0x100);
@@ -117,6 +120,8 @@ PPH_FULL_STRING PhGetProcessTreeListText(
 
         PhAppendFullString2(string, L"\r\n");
     }
+
+    PhFree(displayToId);
 
     return string;
 }
@@ -231,6 +236,54 @@ PPH_LIST PhGetProcessTreeListLines(
             displayToId,
             columns
             );
+    }
+
+    lines = PhapFormatTextTable(table, rows, columns, Mode);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return lines;
+}
+
+PPH_LIST PhGetServiceTreeListLines(
+    __in HWND TreeListHandle,
+    __in PPH_LIST Nodes,
+    __in ULONG Mode
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_LIST lines;
+    ULONG rows;
+    ULONG columns;
+    ULONG displayToId[PHSVTLC_MAXIMUM];
+    PWSTR displayToText[PHSVTLC_MAXIMUM];
+    PPH_STRING **table;
+    ULONG i;
+    ULONG j;
+
+    PhInitializeAutoPool(&autoPool);
+
+    rows = Nodes->Count + 1;
+    PhpMapDisplayIndexTreeList(TreeListHandle, PHSVTLC_MAXIMUM, displayToId, displayToText, &columns);
+
+    PhapCreateTextTable(&table, rows, columns);
+
+    for (i = 0; i < columns; i++)
+        table[0][i] = PhaCreateString(displayToText[i]);
+
+    for (i = 0; i < Nodes->Count; i++)
+    {
+        for (j = 0; j < columns; j++)
+        {
+            PH_TL_GETNODETEXT getNodeText;
+
+            getNodeText.Node = &((PPH_SERVICE_NODE)Nodes->Items[i])->Node;
+            getNodeText.Id = displayToId[j];
+            PhInitializeEmptyStringRef(&getNodeText.Text);
+            TreeList_GetNodeText(TreeListHandle, &getNodeText);
+
+            table[i + 1][j] = PhaCreateStringEx(getNodeText.Text.Buffer, getNodeText.Text.Length);
+        }
     }
 
     lines = PhapFormatTextTable(table, rows, columns, Mode);
