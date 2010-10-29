@@ -96,12 +96,15 @@
 #define IDD_MEMRESULTS                  183
 #define IDR_MEMFILTER                   184
 #define IDD_MEMSTRING                   185
+#define IDR_SERVICEHEADER               185
 #define IDD_OPTGRAPHS                   186
 #define IDD_PLUGINS                     187
 #define IDD_HANDLESTATS                 188
 #define IDD_PROCRECORD                  189
 #define IDD_CHOOSEPROCESS               190
 #define IDD_PROCSERVICES                191
+#define IDI_PHAPPLICATION               191
+#define IDI_COG                         192
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -411,7 +414,7 @@
 #define IDC_CHECK1                      1274
 #define IDC_PROPAGATECPUUSAGE           1274
 #define ID_MAINWND_PROCESSTL            2001
-#define ID_MAINWND_SERVICELV            2002
+#define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
 #define ID_MAINWND_PROCESSLV            2004
 #define ID_HACKER_EXIT                  40001
@@ -625,7 +628,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        191
+#define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40236
 #define _APS_NEXT_CONTROL_VALUE         1275
 #define _APS_NEXT_SYMED_VALUE           132

@@ -294,6 +294,7 @@
     <ClCompile Include="settings.c" />
     <ClCompile Include="srvcr.c" />
     <ClCompile Include="srvctl.c" />
+    <ClCompile Include="srvlist.c" />
     <ClCompile Include="srvprp.c" />
     <ClCompile Include="srvprv.c" />
     <ClCompile Include="ssndmsg.c" />
@@ -336,6 +337,7 @@
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h" />
     <ClInclude Include="..\phlib\format_i.h" />
+    <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="include\hidnproc.h" />
     <ClInclude Include="include\memsrch.h" />
@@ -353,8 +355,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp" />
+    <None Include="resources\application.ico" />
     <None Include="resources\black.ico" />
     <None Include="resources\bricks.bmp" />
+    <None Include="resources\cog.ico" />
     <None Include="resources\cog_edit.bmp" />
     <None Include="resources\cog_edit.png" />
     <None Include="resources\cross.bmp" />

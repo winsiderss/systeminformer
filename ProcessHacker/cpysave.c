@@ -39,8 +39,9 @@ PPH_LIST PhapFormatTextTable(
 
 VOID PhpMapDisplayIndexTreeList(
     __in HWND TreeListHandle,
-    __out_ecount(PHTLC_MAXIMUM) PULONG DisplayToId,
-    __out_ecount_opt(PHTLC_MAXIMUM) PWSTR *DisplayToText,
+    __in ULONG MaximumNumberOfColumns,
+    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
+    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
     __out PULONG NumberOfColumns
     )
 {
@@ -50,7 +51,7 @@ VOID PhpMapDisplayIndexTreeList(
 
     count = 0;
 
-    for (i = 0; i < PHTLC_MAXIMUM; i++)
+    for (i = 0; i < MaximumNumberOfColumns; i++)
     {
         column.Id = i;
 
@@ -58,14 +59,15 @@ VOID PhpMapDisplayIndexTreeList(
         {
             if (column.Visible)
             {
-                assert(column.DisplayIndex < PHTLC_MAXIMUM);
+                if (column.DisplayIndex < MaximumNumberOfColumns)
+                {
+                    DisplayToId[column.DisplayIndex] = i;
 
-                DisplayToId[column.DisplayIndex] = i;
+                    if (DisplayToText)
+                        DisplayToText[column.DisplayIndex] = column.Text;
 
-                if (DisplayToText)
-                    DisplayToText[column.DisplayIndex] = column.Text;
-
-                count++;
+                    count++;
+                }
             }
         }
     }
@@ -78,13 +80,13 @@ PPH_FULL_STRING PhGetProcessTreeListText(
     )
 {
     PPH_FULL_STRING string;
-    ULONG displayToId[PHTLC_MAXIMUM];
+    ULONG displayToId[PHPRTLC_MAXIMUM];
     ULONG rows;
     ULONG columns;
     ULONG i;
     ULONG j;
 
-    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, NULL, &columns);
+    PhpMapDisplayIndexTreeList(TreeListHandle, PHPRTLC_MAXIMUM, displayToId, NULL, &columns);
     rows = TreeList_GetVisibleNodeCount(TreeListHandle);
 
     string = PhCreateFullString2(0x100);
@@ -190,9 +192,9 @@ PPH_LIST PhGetProcessTreeListLines(
     // The number of columns.
     ULONG columns;
     // A column display index to ID map.
-    ULONG displayToId[PHTLC_MAXIMUM];
+    ULONG displayToId[PHPRTLC_MAXIMUM];
     // A column display index to text map.
-    PWSTR displayToText[PHTLC_MAXIMUM];
+    PWSTR displayToText[PHPRTLC_MAXIMUM];
     // The actual string table.
     PPH_STRING **table;
     ULONG i;
@@ -204,7 +206,7 @@ PPH_LIST PhGetProcessTreeListLines(
     rows = NumberOfNodes + 1;
 
     // Create the display index to ID map.
-    PhpMapDisplayIndexTreeList(TreeListHandle, displayToId, displayToText, &columns);
+    PhpMapDisplayIndexTreeList(TreeListHandle, PHPRTLC_MAXIMUM, displayToId, displayToText, &columns);
 
     PhapCreateTextTable(&table, rows, columns);
 

@@ -119,6 +119,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerSetting(L"SampleCount", L"200"); // 512
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
+    PhpAddStringSetting(L"ServiceTreeListColumns", L"");
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");

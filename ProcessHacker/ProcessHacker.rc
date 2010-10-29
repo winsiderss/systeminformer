@@ -54,6 +54,8 @@ END
 // remains consistent on all systems.
 IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
 IDI_BLACK               ICON                    "resources\\black.ico"
+IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
+IDI_COG                 ICON                    "resources\\cog.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -421,6 +423,14 @@ BEGIN
         MENUITEM "Contains (case-insensitive)...", ID_FILTER_CONTAINS_CASEINSENSITIVE
         MENUITEM "Regex...",                    ID_FILTER_REGEX
         MENUITEM "Regex (case-insensitive)...", ID_FILTER_REGEX_CASEINSENSITIVE
+    END
+END
+
+IDR_SERVICEHEADER MENU
+BEGIN
+    POPUP "Header"
+    BEGIN
+        MENUITEM "Choose Columns...",           ID_HEADER_CHOOSECOLUMNS
     END
 END
 
