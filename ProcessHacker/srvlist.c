@@ -118,6 +118,9 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeListColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 100, PH_ALIGN_LEFT, 4, 0);
     PhAddTreeListColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
 
+    PhAddTreeListColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
+    PhAddTreeListColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
+
     TreeList_SetSort(hwnd, 0, AscendingSortOrder);
 }
 
@@ -245,6 +248,8 @@ VOID PhpRemoveServiceNode(
     if ((index = PhFindItemList(ServiceNodeList, ServiceNode)) != -1)
         PhRemoveItemList(ServiceNodeList, index);
 
+    if (ServiceNode->BinaryPath) PhDereferenceObject(ServiceNode->BinaryPath);
+
     if (ServiceNode->TooltipText) PhDereferenceObject(ServiceNode->TooltipText);
 
     PhDereferenceObject(ServiceNode->ServiceItem);
@@ -261,6 +266,7 @@ VOID PhUpdateServiceNode(
     memset(ServiceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
     PhSwapReference(&ServiceNode->TooltipText, NULL);
 
+    ServiceNode->ValidMask = 0;
     PhInvalidateTreeListNode(&ServiceNode->Node, TLIN_COLOR | TLIN_ICON);
     TreeList_NodesStructured(ServiceTreeListHandle);
 }
@@ -306,6 +312,32 @@ VOID PhTickServiceNodes()
 
         if (redrawDisabled)
             TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
+    }
+}
+
+static VOID PhpUpdateServiceNodeConfig(
+    __inout PPH_SERVICE_NODE ServiceNode
+    )
+{
+    if (!(ServiceNode->ValidMask & PHSN_CONFIG))
+    {
+        SC_HANDLE serviceHandle;
+        LPQUERY_SERVICE_CONFIG serviceConfig;
+
+        if (serviceHandle = PhOpenService(ServiceNode->ServiceItem->Name->Buffer, SERVICE_QUERY_CONFIG))
+        {
+            if (serviceConfig = PhGetServiceConfig(serviceHandle))
+            {
+                if (serviceConfig->lpBinaryPathName)
+                    PhSwapReference2(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
+
+                PhFree(serviceConfig);
+            }
+
+            CloseServiceHandle(serviceHandle);
+        }
+
+        ServiceNode->ValidMask |= PHSN_CONFIG;
     }
 }
 
@@ -365,6 +397,20 @@ BEGIN_SORT_FUNCTION(Pid)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(BinaryPath)
+{
+    PhpUpdateServiceNodeConfig(node1);
+    PhpUpdateServiceNodeConfig(node2);
+    sortResult = PhCompareStringWithNull(node1->BinaryPath, node2->BinaryPath, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ErrorControl)
+{
+    sortResult = intcmp(serviceItem1->ErrorControl, serviceItem2->ErrorControl);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpServiceTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -390,7 +436,9 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Status),
                     SORT_FUNCTION(StartType),
-                    SORT_FUNCTION(Pid)
+                    SORT_FUNCTION(Pid),
+                    SORT_FUNCTION(BinaryPath),
+                    SORT_FUNCTION(ErrorControl)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -444,6 +492,13 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                 break;
             case PHSVTLC_PID:
                 PhInitializeStringRef(&getNodeText->Text, serviceItem->ProcessIdString);
+                break;
+            case PHSVTLC_BINARYPATH:
+                PhpUpdateServiceNodeConfig(node);
+                getNodeText->Text = PhGetStringRef(node->BinaryPath);
+                break;
+            case PHSVTLC_ERRORCONTROL:
+                PhInitializeStringRef(&getNodeText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
                 break;
             default:
                 return FALSE;
