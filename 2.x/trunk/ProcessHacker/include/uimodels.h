@@ -227,7 +227,12 @@ VOID PhWriteProcessTree(
 #define PHSVTLC_STARTTYPE 4
 #define PHSVTLC_PID 5
 
+#define PHSVTLC_BINARYPATH 6
+#define PHSVTLC_ERRORCONTROL 7
+
 #define PHSVTLC_MAXIMUM 6
+
+#define PHSN_CONFIG 0x1
 
 typedef struct _PH_SERVICE_NODE
 {
@@ -240,6 +245,11 @@ typedef struct _PH_SERVICE_NODE
     PPH_SERVICE_ITEM ServiceItem;
 
     PH_STRINGREF TextCache[PHSVTLC_MAXIMUM];
+
+    ULONG ValidMask;
+
+    // Binary Path
+    PPH_STRING BinaryPath;
 
     PPH_STRING TooltipText;
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
