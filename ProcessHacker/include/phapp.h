@@ -1045,18 +1045,25 @@ BOOLEAN PhShowChooseProcessDialog(
 
 // cpysave
 
-PPH_FULL_STRING PhGetProcessTreeListText(
-    __in HWND TreeListHandle
-    );
-
 #define PH_EXPORT_MODE_TABS 0
 #define PH_EXPORT_MODE_SPACES 1
 #define PH_EXPORT_MODE_CSV 2
+
+PPH_FULL_STRING PhGetTreeListText(
+    __in HWND TreeListHandle,
+    __in ULONG MaximumNumberOfColumns
+    );
 
 PPH_LIST PhGetProcessTreeListLines(
     __in HWND TreeListHandle,
     __in ULONG NumberOfNodes,
     __in PPH_LIST RootNodes,
+    __in ULONG Mode
+    );
+
+PPH_LIST PhGetServiceTreeListLines(
+    __in HWND TreeListHandle,
+    __in PPH_LIST Nodes,
     __in ULONG Mode
     );
 

@@ -719,8 +719,7 @@ VOID PhCopyServiceList()
 {
     PPH_FULL_STRING text;
 
-    // TODO: Get text
-    PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+    text = PhGetTreeListText(ServiceTreeListHandle, PHSVTLC_MAXIMUM);
     PhSetClipboardStringEx(ServiceTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
@@ -733,8 +732,7 @@ VOID PhWriteServiceList(
     PPH_LIST lines;
     ULONG i;
 
-    // TODO: Get lines
-    PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+    lines = PhGetServiceTreeListLines(ServiceTreeListHandle, ServiceNodeList, Mode);
 
     for (i = 0; i < lines->Count; i++)
     {
