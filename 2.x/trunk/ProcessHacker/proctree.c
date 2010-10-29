@@ -1961,7 +1961,7 @@ VOID PhCopyProcessTree()
 {
     PPH_FULL_STRING text;
 
-    text = PhGetProcessTreeListText(ProcessTreeListHandle);
+    text = PhGetTreeListText(ProcessTreeListHandle, PHPRTLC_MAXIMUM);
     PhSetClipboardStringEx(ProcessTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
