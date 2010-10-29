@@ -32,7 +32,7 @@ typedef struct _PH_PROCESS_NODE
     PH_HASH_ENTRY HashEntry;
 
     PH_ITEM_STATE State;
-    PVOID Private1;
+    ULONG_PTR Private1;
     ULONG Private2;
 
     HANDLE ProcessId;
@@ -111,6 +111,60 @@ PHAPPAPI
 VOID
 NTAPI
 PhApplyProcessTreeFilters();
+
+// srvlist
+
+typedef struct _PH_SERVICE_NODE
+{
+    PH_TREELIST_NODE Node;
+
+    PH_ITEM_STATE State;
+    ULONG_PTR Private1;
+    ULONG Private2;
+
+    PPH_SERVICE_ITEM ServiceItem;
+
+    // Other members are not exposed.
+} PH_SERVICE_NODE, *PPH_SERVICE_NODE;
+
+PHAPPAPI
+PPH_SERVICE_NODE
+NTAPI
+PhFindServiceNode(
+    __in PPH_SERVICE_ITEM ServiceItem
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhUpdateServiceNode(
+    __in PPH_SERVICE_NODE ServiceNode
+    );
+
+PHAPPAPI
+PPH_SERVICE_ITEM
+NTAPI
+PhGetSelectedServiceItem();
+
+PHAPPAPI
+VOID
+NTAPI
+PhGetSelectedServiceItems(
+    __out PPH_SERVICE_ITEM **Services,
+    __out PULONG NumberOfServices
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhDeselectAllServiceNodes();
+
+PHAPPAPI
+VOID
+NTAPI
+PhSelectAndEnsureVisibleServiceNode(
+    __in PPH_SERVICE_NODE ServiceNode
+    );
 
 // appsup
 
