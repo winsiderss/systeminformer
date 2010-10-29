@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   service list
+ *   service list control
  * 
  * Copyright (C) 2010 wj32
  * 

@@ -293,7 +293,7 @@
     <ClCompile Include="sessprp.c" />
     <ClCompile Include="settings.c" />
     <ClCompile Include="srvcr.c" />
-    <ClCompile Include="srvlist.c" />
+    <ClCompile Include="srvctl.c" />
     <ClCompile Include="srvprp.c" />
     <ClCompile Include="srvprv.c" />
     <ClCompile Include="ssndmsg.c" />
