@@ -85,6 +85,8 @@ VOID PhpPrepareForEarlyShutdown();
 
 VOID PhpCancelEarlyShutdown();
 
+VOID PhpNeedServiceTreeList();
+
 BOOLEAN PhpProcessComputerCommand(
     __in ULONG Id
     );
@@ -215,6 +217,7 @@ static HWND ServiceTreeListHandle;
 static HWND NetworkListViewHandle;
 
 static BOOLEAN NetworkFirstTime = TRUE;
+static BOOLEAN ServiceTreeListLoaded = FALSE;
 static BOOLEAN UpdateAutomatically = TRUE;
 
 static PH_CALLBACK_REGISTRATION SymInitRegistration;
@@ -232,6 +235,7 @@ static PH_CALLBACK_REGISTRATION ServiceAddedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceModifiedRegistration;
 static PH_CALLBACK_REGISTRATION ServiceRemovedRegistration;
 static PH_CALLBACK_REGISTRATION ServicesUpdatedRegistration;
+static PPH_POINTER_LIST ServicesPendingList;
 static BOOLEAN ServicesNeedsRedraw = FALSE;
 
 static PH_PROVIDER_REGISTRATION NetworkProviderRegistration;
@@ -1769,6 +1773,8 @@ LRESULT CALLBACK PhMainWndProc(
         {
             PPH_SERVICE_NODE serviceNode;
 
+            PhpNeedServiceTreeList();
+
             // For compatibility, lParam is a service item, not node.
             if (serviceNode = PhFindServiceNode((PPH_SERVICE_ITEM)lParam))
             {
@@ -2160,6 +2166,30 @@ VOID PhpPrepareForEarlyShutdown()
 VOID PhpCancelEarlyShutdown()
 {
     PhMainWndExiting = FALSE;
+}
+
+VOID PhpNeedServiceTreeList()
+{
+    if (!ServiceTreeListLoaded)
+    {
+        ServiceTreeListLoaded = TRUE;
+
+        if (ServicesPendingList)
+        {
+            PPH_SERVICE_ITEM serviceItem;
+            ULONG enumerationKey = 0;
+
+            while (PhEnumPointerList(ServicesPendingList, &enumerationKey, (PPVOID)&serviceItem))
+            {
+                PhMainWndOnServiceAdded(serviceItem, 1);
+            }
+
+            // Force a re-draw.
+            PhMainWndOnServicesUpdated();
+
+            PhSwapReference2(&ServicesPendingList, NULL);
+        }
+    }
 }
 
 BOOLEAN PhpProcessComputerCommand(
@@ -3152,6 +3182,9 @@ VOID PhMainWndTabControlOnSelectionChanged()
         EndDeferWindowPos(deferHandle);
     }
 
+    if (selectedIndex == ServicesTabIndex)
+        PhpNeedServiceTreeList();
+
     if (selectedIndex == NetworkTabIndex)
     {
         PhSetEnabledProvider(&NetworkProviderRegistration, UpdateAutomatically);
@@ -3936,13 +3969,23 @@ VOID PhMainWndOnServiceAdded(
 {
     PPH_SERVICE_NODE serviceNode;
 
-    if (!ServicesNeedsRedraw)
+    if (ServiceTreeListLoaded)
     {
-        TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
-        ServicesNeedsRedraw = TRUE;
-    }
+        if (!ServicesNeedsRedraw)
+        {
+            TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+            ServicesNeedsRedraw = TRUE;
+        }
 
-    serviceNode = PhAddServiceNode(ServiceItem, RunId);
+        serviceNode = PhAddServiceNode(ServiceItem, RunId);
+    }
+    else
+    {
+        if (!ServicesPendingList)
+            ServicesPendingList = PhCreatePointerList(100);
+
+        PhAddItemPointerList(ServicesPendingList, ServiceItem);
+    }
 
     if (RunId != 1)
     {
@@ -3961,7 +4004,8 @@ VOID PhMainWndOnServiceAdded(
         }
     }
 
-    PhDereferenceObject(ServiceItem);
+    if (ServiceTreeListLoaded)
+        PhDereferenceObject(ServiceItem);
 }
 
 VOID PhMainWndOnServiceModified(
@@ -3971,13 +4015,16 @@ VOID PhMainWndOnServiceModified(
     PH_SERVICE_CHANGE serviceChange;
     UCHAR logEntryType;
 
-    //if (!ServicesNeedsRedraw)
-    //{
-    //    TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
-    //    ServicesNeedsRedraw = TRUE;
-    //}
+    if (ServiceTreeListLoaded)
+    {
+        //if (!ServicesNeedsRedraw)
+        //{
+        //    TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+        //    ServicesNeedsRedraw = TRUE;
+        //}
 
-    PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
+        PhUpdateServiceNode(PhFindServiceNode(ServiceModifiedData->Service));
+    }
 
     serviceChange = PhGetServiceChange(ServiceModifiedData);
 
@@ -4038,10 +4085,13 @@ VOID PhMainWndOnServiceRemoved(
     __in PPH_SERVICE_ITEM ServiceItem
     )
 {
-    if (!ServicesNeedsRedraw)
+    if (ServiceTreeListLoaded)
     {
-        TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
-        ServicesNeedsRedraw = TRUE;
+        if (!ServicesNeedsRedraw)
+        {
+            TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+            ServicesNeedsRedraw = TRUE;
+        }
     }
 
     PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
@@ -4058,17 +4108,38 @@ VOID PhMainWndOnServiceRemoved(
         }
     }
 
-    PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
+    if (ServiceTreeListLoaded)
+    {
+        PhRemoveServiceNode(PhFindServiceNode(ServiceItem));
+    }
+    else
+    {
+        if (ServicesPendingList)
+        {
+            HANDLE pointerHandle;
+
+            // Remove the service from the pending list so we don't try to add it 
+            // later.
+
+            if (pointerHandle = PhFindItemPointerList(ServicesPendingList, ServiceItem))
+                PhRemoveItemPointerList(ServicesPendingList, pointerHandle);
+
+            PhDereferenceObject(ServiceItem);
+        }
+    }
 }
 
 VOID PhMainWndOnServicesUpdated()
 {
-    PhTickServiceNodes();
-
-    if (ServicesNeedsRedraw)
+    if (ServiceTreeListLoaded)
     {
-        TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
-        ServicesNeedsRedraw = FALSE;
+        PhTickServiceNodes();
+
+        if (ServicesNeedsRedraw)
+        {
+            TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
+            ServicesNeedsRedraw = FALSE;
+        }
     }
 }
 
