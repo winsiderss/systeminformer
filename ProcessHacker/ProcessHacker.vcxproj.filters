@@ -291,9 +291,6 @@
     <ClCompile Include="srvcr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="srvlist.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="srvprp.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -407,6 +404,9 @@
     </ClCompile>
     <ClCompile Include="mxml\mxml-string.c">
       <Filter>Mini-XML</Filter>
+    </ClCompile>
+    <ClCompile Include="srvctl.c">
+      <Filter>Process Hacker</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
