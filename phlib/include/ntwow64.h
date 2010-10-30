@@ -76,7 +76,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     LIST_ENTRY32 ForwarderLinks;
     LIST_ENTRY32 ServiceTagLinks;
     LIST_ENTRY32 StaticLinks;
-    WOW64_POINTER(PVOID) ConextInformation;
+    WOW64_POINTER(PVOID) ContextInformation;
     WOW64_POINTER(ULONG_PTR) OriginalBase;
     LARGE_INTEGER LoadTime;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
