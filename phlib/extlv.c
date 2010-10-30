@@ -358,6 +358,21 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             }
         }
         break;
+    case WM_UPDATEUISTATE:
+        {
+            // Disable focus rectangles by setting or masking out the flag where appropriate.
+            switch (LOWORD(wParam))
+            {
+            case UIS_SET:
+                wParam |= UISF_HIDEFOCUS << 16;
+                break;
+            case UIS_CLEAR:
+            case UIS_INITIALIZE:
+                wParam &= ~(UISF_HIDEFOCUS << 16);
+                break;
+            }
+        }
+        break;
     case LVM_INSERTITEM:
         {
             LPLVITEM item = (LPLVITEM)lParam;
@@ -525,6 +540,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     case ELVM_INIT:
         {
             PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
+
+            // Make sure focus rectangles are disabled.
+            SendMessage(hwnd, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEFOCUS), 0);
         }
         return TRUE;
     case ELVM_SETCOMPAREFUNCTION:
