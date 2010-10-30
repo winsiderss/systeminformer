@@ -62,7 +62,7 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     LIST_ENTRY ForwarderLinks;
     LIST_ENTRY ServiceTagLinks;
     LIST_ENTRY StaticLinks;
-    PVOID ConextInformation;
+    PVOID ContextInformation;
     ULONG_PTR OriginalBase;
     LARGE_INTEGER LoadTime;
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
