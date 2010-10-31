@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -119,6 +117,16 @@ BEGIN
     LTEXT           "Worker Thread Context: Unknown",IDC_WORKERTHREADCONTEXT,7,18,172,8,SS_ENDELLIPSIS
 END
 
+IDD_MODSERVICES DIALOGEX 0, 0, 276, 209
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Services"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,219,188,50,14
+    LTEXT           "Static",IDC_SERVICES_LAYOUT,7,22,262,162,NOT WS_VISIBLE
+    LTEXT           "Static",IDC_MESSAGE,7,7,262,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -126,7 +134,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_UNLOADEDDLLS, DIALOG
     BEGIN
@@ -150,6 +158,14 @@ BEGIN
         RIGHTMARGIN, 179
         TOPMARGIN, 7
         BOTTOMMARGIN, 94
+    END
+
+    IDD_MODSERVICES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 269
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 202
     END
 END
 #endif    // APSTUDIO_INVOKED
