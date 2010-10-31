@@ -92,9 +92,10 @@ Name                Use                     Type
 ------------------- ----------------------- ---------------
 PH_LIST             Array                   Non-intrusive
 LIST_ENTRY          Doubly linked list      Intrusive
-SLIST_ENTRY         Singly linked list      Intrusive
+SINGLE_LIST_ENTRY   Singly linked list      Intrusive
 PH_POINTER_LIST     Array                   Non-intrusive
 LIST_ENTRY          Stack                   Intrusive
+SINGLE_LIST_ENTRY   Stack                   Intrusive
 PH_QUEUE            Queue                   Non-intrusive
 LIST_ENTRY          Queue                   Intrusive
 RTL_AVL_TABLE       Binary tree (AVL)       Non-intrusive
