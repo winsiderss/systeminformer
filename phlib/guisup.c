@@ -792,7 +792,12 @@ VOID PhGetStockApplicationIcon(
     static HICON largeIcon = NULL;
 
     // This no longer uses SHGetFileInfo because it is *very* slow and causes 
-    // many other DLLs to be loaded, increasing memory usage.
+    // many other DLLs to be loaded, increasing memory usage. The worst thing 
+    // about it, however, is that it is horribly incompatible with multi-threading. 
+    // The first time it is called, it tries to perform some one-time initialization. 
+    // It guards this with a lock, but when multiple threads try to call the function 
+    // at the same time, instead of waiting for initialization to finish it simply 
+    // fails the other threads.
 
     if (PhBeginInitOnce(&initOnce))
     {
