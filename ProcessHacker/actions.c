@@ -129,12 +129,12 @@ BOOLEAN PhpShowErrorAndElevateAction(
         LARGE_INTEGER timeout;
         PROCESS_BASIC_INFORMATION basicInfo;
 
-        if (PhShellExecuteEx(
+        if (PhShellProcessHacker(
             hWnd,
-            PhApplicationFileName->Buffer,
             Command,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
+            TRUE,
             0,
             &processHandle
             ))

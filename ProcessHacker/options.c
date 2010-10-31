@@ -489,12 +489,12 @@ NTSTATUS PhpElevateAdvancedThreadStart(
     PPH_STRING arguments;
 
     arguments = Parameter;
-    PhShellExecuteEx(
+    PhShellProcessHacker(
         WindowHandleForElevate,
-        PhApplicationFileName->Buffer,
         arguments->Buffer,
         SW_SHOW,
         PH_SHELL_EXECUTE_ADMIN,
+        TRUE,
         INFINITE,
         NULL
         );
