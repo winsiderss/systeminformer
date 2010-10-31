@@ -986,12 +986,12 @@ NTSTATUS PhRunAsCommandStart2(
             serviceName
             );
 
-        if (PhShellExecuteEx(
+        if (PhShellProcessHacker(
             hWnd,
-            PhApplicationFileName->Buffer,
             argumentsBuilder.String->Buffer,
             SW_SHOW,
             PH_SHELL_EXECUTE_ADMIN,
+            TRUE,
             0,
             &processHandle
             ))

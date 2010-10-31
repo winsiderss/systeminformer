@@ -525,8 +525,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     ProcessHacker_PrepareForEarlyShutdown(hWnd);
 
-                    if (PhShellExecuteEx(hWnd, PhApplicationFileName->Buffer,
-                        L"-v", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+                    if (PhShellProcessHacker(hWnd, L"-v", SW_SHOW, PH_SHELL_EXECUTE_ADMIN, TRUE, 0, NULL))
                     {
                         ProcessHacker_Destroy(hWnd);
                     }

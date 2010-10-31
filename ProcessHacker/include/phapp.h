@@ -281,6 +281,16 @@ VOID PhWritePhTextHeader(
     __inout PPH_FILE_STREAM FileStream
     );
 
+BOOLEAN PhShellProcessHacker(
+    __in HWND hWnd,
+    __in_opt PWSTR Parameters,
+    __in ULONG ShowWindowType,
+    __in ULONG Flags,
+    __in BOOLEAN PropagateParameters,
+    __in_opt ULONG Timeout,
+    __out_opt PHANDLE ProcessHandle
+    );
+
 #define PH_LOAD_SHARED_IMAGE(Name, Type) LoadImage(PhInstanceHandle, (Name), (Type), 0, 0, LR_SHARED)
 
 FORCEINLINE PVOID PhpGenericPropertyPageHeader(
