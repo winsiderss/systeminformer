@@ -177,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.c" />
+    <ClCompile Include="modsrv.c" />
     <ClCompile Include="objprp.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />

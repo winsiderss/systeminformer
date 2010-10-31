@@ -51,8 +51,8 @@ typedef struct _SC_SERVICE_NAMES_REFERENCING_MODULE_QUERY
 {
     ULONG ProcessId;
     PWSTR Module;
-    ULONG Count;
-    PWSTR *ServiceNames;
+    ULONG Unknown;
+    PWSTR ServiceNames; // multi-string
 } SC_SERVICE_NAMES_REFERENCING_MODULE_QUERY, *PSC_SERVICE_NAMES_REFERENCING_MODULE_QUERY;
 
 // ServiceNameTagMappingInformation

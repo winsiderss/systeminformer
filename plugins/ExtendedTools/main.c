@@ -58,6 +58,11 @@ VOID NTAPI ThreadMenuInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ModuleMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -66,6 +71,9 @@ PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+
+static HANDLE ModuleProcessId;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -132,6 +140,12 @@ LOGICAL DllMain(
                 NULL,
                 &ThreadMenuInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing),
+                ModuleMenuInitializingCallback,
+                NULL,
+                &ModuleMenuInitializingCallbackRegistration
+                );
         }
         break;
     }
@@ -172,6 +186,15 @@ VOID NTAPI MenuItemCallback(
     case ID_THREAD_CANCELIO:
         {
             EtUiCancelIoThread(menuItem->OwnerWindow, menuItem->Context);
+        }
+        break;
+    case ID_MODULE_SERVICES:
+        {
+            EtShowModuleServicesDialog(
+                menuItem->OwnerWindow,
+                ModuleProcessId,
+                ((PPH_MODULE_ITEM)menuItem->Context)->Name->Buffer
+                );
         }
         break;
     }
@@ -239,4 +262,47 @@ VOID NTAPI ThreadMenuInitializingCallback(
         L"Cancel I/O", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
+}
+
+VOID NTAPI ModuleMenuInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_INFORMATION menuInfo = Parameter;
+    PPH_PROCESS_ITEM processItem;
+    BOOLEAN addMenuItem;
+    PPH_MODULE_ITEM moduleItem;
+    ULONG insertIndex;
+    PPH_EMENU_ITEM menuItem;
+
+    addMenuItem = FALSE;
+
+    if (processItem = PhReferenceProcessItem(menuInfo->u.Module.ProcessId))
+    {
+        if (processItem->ServiceList && processItem->ServiceList->Count != 0)
+            addMenuItem = TRUE;
+
+        PhDereferenceObject(processItem);
+    }
+
+    if (!addMenuItem)
+        return;
+
+    if (menuInfo->u.Module.NumberOfModules == 1)
+        moduleItem = menuInfo->u.Module.Modules[0];
+    else
+        moduleItem = NULL;
+
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Inspect", 0))
+        insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
+    else
+        insertIndex = 0;
+
+    ModuleProcessId = menuInfo->u.Module.ProcessId;
+
+    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_MODULE_SERVICES,
+        L"Services", moduleItem), insertIndex);
+
+    if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }
