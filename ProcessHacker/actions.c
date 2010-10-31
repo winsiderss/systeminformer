@@ -997,9 +997,11 @@ BOOLEAN PhUiDebugProcess(
         ULONG firstIndex;
         ULONG secondIndex;
 
-        if (RegOpenKey(
+        if (RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
             L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug",
+            0,
+            KEY_READ,
             &keyHandle
             ) == ERROR_SUCCESS)
         {

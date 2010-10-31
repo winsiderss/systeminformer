@@ -46,16 +46,19 @@ BOOLEAN PhGetProcessIsSuspended(
 
 NTSTATUS PhGetProcessKnownType(
     __in HANDLE ProcessHandle,
-    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    __out PH_KNOWN_PROCESS_TYPE *KnownProcessType
     )
 {
     NTSTATUS status;
     PH_KNOWN_PROCESS_TYPE knownProcessType;
     PROCESS_BASIC_INFORMATION basicInfo;
-    PPH_STRING systemDirectory;
+    PH_STRINGREF systemRootPrefix;
     PPH_STRING fileName;
     PPH_STRING newFileName;
-    PPH_STRING baseName;
+    PH_STRINGREF name;
+#ifdef _M_X64
+    BOOLEAN isWow64 = FALSE;
+#endif
 
     if (!NT_SUCCESS(status = PhGetProcessBasicInformation(
         ProcessHandle,
@@ -69,66 +72,85 @@ NTSTATUS PhGetProcessKnownType(
         return STATUS_SUCCESS;
     }
 
-    systemDirectory = PhGetSystemDirectory();
+    PhInitializeStringRef(&systemRootPrefix, USER_SHARED_DATA->NtSystemRoot);
 
-    if (!systemDirectory)
-        return STATUS_UNSUCCESSFUL;
+    // Make sure the system root string doesn't have a trailing backslash.
+    if (systemRootPrefix.Buffer[systemRootPrefix.Length / 2 - 1] == '\\')
+        systemRootPrefix.Length -= 2;
 
     if (!NT_SUCCESS(status = PhGetProcessImageFileName(
         ProcessHandle,
         &fileName
         )))
     {
-        PhDereferenceObject(systemDirectory);
         return status;
     }
 
     newFileName = PhGetFileName(fileName);
     PhDereferenceObject(fileName);
+    name = newFileName->sr;
 
     knownProcessType = UnknownProcessType;
 
-    if (PhStartsWithString(newFileName, systemDirectory, TRUE))
+    if (PhStartsWithStringRef(&name, &systemRootPrefix, TRUE))
     {
-        baseName = PhSubstring(
-            newFileName,
-            systemDirectory->Length / 2,
-            (newFileName->Length - systemDirectory->Length) / 2
-            );
+        // Skip the system root, and we now have three cases:
+        // 1. \\xyz.exe - Windows executable.
+        // 2. \\System32\\xyz.exe - system32 executable.
+        // 3. \\SysWow64\\xyz.exe - system32 executable + WOW64.
+        name.Buffer += systemRootPrefix.Length / 2;
+        name.Length -= systemRootPrefix.Length;
 
-        // The system directory string never ends in a backslash, unless 
-        // it is a drive root. We're not going to account for that case.
+        if (PhEqualStringRef2(&name, L"\\explorer.exe", TRUE))
+        {
+            knownProcessType = ExplorerProcessType;
+        }
+        else if (
+            PhStartsWithStringRef2(&name, L"\\System32", TRUE)
+#ifdef _M_X64
+            || (PhStartsWithStringRef2(&name, L"\\SysWow64", TRUE) && (isWow64 = TRUE, TRUE)) // ugly but necessary
+#endif
+            )
+        {
+            // SysTem32 and SysWow64 are both 8 characters long.
+            name.Buffer += 9;
+            name.Length -= 9 * 2;
 
-        if (!baseName)
-            ; // Dummy
-        else if (PhEqualString2(baseName, L"\\smss.exe", TRUE))
-            knownProcessType = SessionManagerProcessType;
-        else if (PhEqualString2(baseName, L"\\csrss.exe", TRUE))
-            knownProcessType = WindowsSubsystemProcessType;
-        else if (PhEqualString2(baseName, L"\\wininit.exe", TRUE))
-            knownProcessType = WindowsStartupProcessType;
-        else if (PhEqualString2(baseName, L"\\services.exe", TRUE))
-            knownProcessType = ServiceControlManagerProcessType;
-        else if (PhEqualString2(baseName, L"\\lsass.exe", TRUE))
-            knownProcessType = LocalSecurityAuthorityProcessType;
-        else if (PhEqualString2(baseName, L"\\lsm.exe", TRUE))
-            knownProcessType = LocalSessionManagerProcessType;
-        else if (PhEqualString2(baseName, L"\\svchost.exe", TRUE))
-            knownProcessType = ServiceHostProcessType;
-        else if (PhEqualString2(baseName, L"\\rundll32.exe", TRUE))
-            knownProcessType = RunDllAsAppProcessType;
-        else if (PhEqualString2(baseName, L"\\dllhost.exe", TRUE))
-            knownProcessType = ComSurrogateProcessType;
-        else if (PhEqualString2(baseName, L"\\taskeng.exe", TRUE))
-            knownProcessType = TaskHostProcessType;
-        else if (PhEqualString2(baseName, L"\\taskhost.exe", TRUE))
-            knownProcessType = TaskHostProcessType;
-
-        PhDereferenceObject(baseName);
+            if (FALSE)
+                ; // Dummy
+            else if (PhEqualStringRef2(&name, L"\\smss.exe", TRUE))
+                knownProcessType = SessionManagerProcessType;
+            else if (PhEqualStringRef2(&name, L"\\csrss.exe", TRUE))
+                knownProcessType = WindowsSubsystemProcessType;
+            else if (PhEqualStringRef2(&name, L"\\wininit.exe", TRUE))
+                knownProcessType = WindowsStartupProcessType;
+            else if (PhEqualStringRef2(&name, L"\\services.exe", TRUE))
+                knownProcessType = ServiceControlManagerProcessType;
+            else if (PhEqualStringRef2(&name, L"\\lsass.exe", TRUE))
+                knownProcessType = LocalSecurityAuthorityProcessType;
+            else if (PhEqualStringRef2(&name, L"\\lsm.exe", TRUE))
+                knownProcessType = LocalSessionManagerProcessType;
+            else if (PhEqualStringRef2(&name, L"\\winlogon.exe", TRUE))
+                knownProcessType = WindowsLogonProcessType;
+            else if (PhEqualStringRef2(&name, L"\\svchost.exe", TRUE))
+                knownProcessType = ServiceHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\rundll32.exe", TRUE))
+                knownProcessType = RunDllAsAppProcessType;
+            else if (PhEqualStringRef2(&name, L"\\dllhost.exe", TRUE))
+                knownProcessType = ComSurrogateProcessType;
+            else if (PhEqualStringRef2(&name, L"\\taskeng.exe", TRUE))
+                knownProcessType = TaskHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\taskhost.exe", TRUE))
+                knownProcessType = TaskHostProcessType;
+        }
     }
 
-    PhDereferenceObject(systemDirectory);
     PhDereferenceObject(newFileName);
+
+#ifdef _M_X64
+    if (isWow64)
+        knownProcessType |= KnownProcessWow64;
+#endif
 
     *KnownProcessType = knownProcessType;
 
@@ -157,7 +179,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
     __out PPH_KNOWN_PROCESS_COMMAND_LINE KnownCommandLine
     )
 {
-    switch (KnownProcessType)
+    switch (KnownProcessType & KnownProcessTypeMask)
     {
     case ServiceHostProcessType:
         {
@@ -315,18 +337,22 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Lookup the GUID in the registry to determine the name and file name.
 
-            if (RegOpenKey(
+            if (RegOpenKeyEx(
                 HKEY_CLASSES_ROOT,
                 PhaConcatStrings2(L"CLSID\\", guidString->Buffer)->Buffer,
+                0,
+                KEY_READ,
                 &clsidKeyHandle
                 ) == ERROR_SUCCESS)
             {
                 KnownCommandLine->ComSurrogate.Name =
                     PHA_DEREFERENCE(PhQueryRegistryString(clsidKeyHandle, NULL));
 
-                if (RegOpenKey(
+                if (RegOpenKeyEx(
                     clsidKeyHandle,
                     L"InprocServer32",
+                    0,
+                    KEY_READ,
                     &inprocServer32KeyHandle
                     ) == ERROR_SUCCESS)
                 {

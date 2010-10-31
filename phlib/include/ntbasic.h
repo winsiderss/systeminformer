@@ -3,6 +3,10 @@
 
 // This header file provides basic NT types not included in Win32.
 
+#ifndef NOTHING
+#define NOTHING
+#endif
+
 // Basic types
 
 typedef struct _QUAD
@@ -59,7 +63,11 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 
 // Functions
 
+#ifdef _M_IX86
 #define FASTCALL __fastcall
+#else
+#define FASTCALL
+#endif
 
 // Synchronization enumerations
 
