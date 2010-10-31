@@ -6,6 +6,14 @@
 
 extern PPH_PLUGIN PluginInstance;
 
+// modsrv
+
+VOID EtShowModuleServicesDialog(
+    __in HWND ParentWindowHandle,
+    __in HANDLE ProcessId,
+    __in PWSTR ModuleName
+    );
+
 // objprp
 
 VOID EtHandlePropertiesInitializing(
