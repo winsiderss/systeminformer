@@ -12,6 +12,7 @@ Process Hacker
    * Added CLR tab to peview
    * Added ability to destroy heaps
    * Improved process tree list appearance
+   * Certain command line parameters are now propagated
  * FIXED:
    * Icon handling bugs
    * Memory leaks

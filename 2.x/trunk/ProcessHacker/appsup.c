@@ -766,3 +766,68 @@ VOID PhWritePhTextHeader(
     PhDereferenceObject(dateString);
     PhDereferenceObject(timeString);
 }
+
+BOOLEAN PhShellProcessHacker(
+    __in HWND hWnd,
+    __in_opt PWSTR Parameters,
+    __in ULONG ShowWindowType,
+    __in ULONG Flags,
+    __in BOOLEAN PropagateParameters,
+    __in_opt ULONG Timeout,
+    __out_opt PHANDLE ProcessHandle
+    )
+{
+    BOOLEAN result;
+    PH_STRING_BUILDER sb;
+    PWSTR parameters;
+    PPH_STRING temp;
+
+    if (PropagateParameters)
+    {
+        PhInitializeStringBuilder(&sb, 128);
+
+        if (Parameters)
+            PhAppendStringBuilder2(&sb, Parameters);
+
+        // Propagate parameters.
+
+        if (PhStartupParameters.NoSettings)
+        {
+            PhAppendStringBuilder2(&sb, L" -nosettings");
+        }
+        else if (PhStartupParameters.SettingsFileName)
+        {
+            PhAppendStringBuilder2(&sb, L" -settings \"");
+            temp = PhEscapeCommandLinePart(&PhStartupParameters.SettingsFileName->sr);
+            PhAppendStringBuilder(&sb, temp);
+            PhDereferenceObject(temp);
+            PhAppendCharStringBuilder(&sb, '\"');
+        }
+
+        if (PhStartupParameters.NoKph)
+        {
+            PhAppendStringBuilder2(&sb, L" -nokph");
+        }
+
+        parameters = sb.String->Buffer;
+    }
+    else
+    {
+        parameters = Parameters;
+    }
+
+    result = PhShellExecuteEx(
+        hWnd,
+        PhApplicationFileName->Buffer,
+        parameters,
+        ShowWindowType,
+        Flags,
+        Timeout,
+        ProcessHandle
+        );
+
+    if (PropagateParameters)
+        PhDeleteStringBuilder(&sb);
+
+    return result;
+}
