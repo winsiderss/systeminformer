@@ -545,9 +545,11 @@ NTSTATUS PhpGetBestObjectName(
                     guidString->Buffer
                     );
 
-                if (RegOpenKey(
+                if (RegOpenKeyEx(
                     HKEY_LOCAL_MACHINE,
                     keyName->Buffer,
+                    0,
+                    KEY_READ,
                     &keyHandle
                     ) == ERROR_SUCCESS)
                 {

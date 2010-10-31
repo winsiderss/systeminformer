@@ -2695,10 +2695,16 @@ VOID PhShellOpenKey(
     HKEY regeditKeyHandle;
     PPH_STRING regeditFileName;
 
-    if (RegCreateKey(
+    if (RegCreateKeyEx(
         HKEY_CURRENT_USER,
         L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit",
-        &regeditKeyHandle
+        0,
+        NULL,
+        0,
+        KEY_WRITE,
+        NULL,
+        &regeditKeyHandle,
+        NULL
         ) != ERROR_SUCCESS)
         return;
 

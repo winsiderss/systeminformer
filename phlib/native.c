@@ -4031,10 +4031,16 @@ NTSTATUS PhpUnloadDriver(
     ULONG disposition;
     PPH_STRING servicePath;
 
-    if ((win32Result = RegCreateKey(
+    if ((win32Result = RegCreateKeyEx(
         HKEY_LOCAL_MACHINE,
         L"System\\CurrentControlSet\\Services",
-        &servicesKeyHandle
+        0,
+        NULL,
+        0,
+        KEY_WRITE,
+        NULL,
+        &servicesKeyHandle,
+        NULL
         )) != ERROR_SUCCESS)
     {
         return NTSTATUS_FROM_WIN32(win32Result);
@@ -4078,6 +4084,7 @@ NTSTATUS PhpUnloadDriver(
 
     if (disposition == REG_CREATED_NEW_KEY)
     {
+        // We added values, not subkeys, so this function will work correctly.
         RegDeleteKey(servicesKeyHandle, ServiceKeyName->Buffer);
     }
 
@@ -5840,9 +5847,11 @@ VOID PhRefreshMupDevicePrefixes()
     // Note that we assume the providers only claim their device name. Some providers 
     // such as DFS claim an extra part, and are not resolved correctly here.
 
-    if (RegOpenKey(
+    if (RegOpenKeyEx(
         HKEY_LOCAL_MACHINE,
         L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order",
+        0,
+        KEY_READ,
         &orderKeyHandle
         ) == ERROR_SUCCESS)
     {
@@ -5898,9 +5907,11 @@ VOID PhRefreshMupDevicePrefixes()
             L"\\NetworkProvider"
             );
 
-        if (RegOpenKey(
+        if (RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
             serviceKeyName->Buffer,
+            0,
+            KEY_READ,
             &networkProviderKeyHandle
             ) == ERROR_SUCCESS)
         {

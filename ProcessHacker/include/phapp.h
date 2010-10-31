@@ -132,16 +132,22 @@ typedef enum _PH_KNOWN_PROCESS_TYPE
     ServiceControlManagerProcessType, // services
     LocalSecurityAuthorityProcessType, // lsass
     LocalSessionManagerProcessType, // lsm
+    WindowsLogonProcessType, // winlogon
     ServiceHostProcessType, // svchost
     RunDllAsAppProcessType, // rundll32
     ComSurrogateProcessType, // dllhost
-    TaskHostProcessType // taskeng, taskhost
-} PH_KNOWN_PROCESS_TYPE, *PPH_KNOWN_PROCESS_TYPE;
+    TaskHostProcessType, // taskeng, taskhost
+    ExplorerProcessType, // explorer
+    MaximumProcessType,
+    KnownProcessTypeMask = 0xffff,
+
+    KnownProcessWow64 = 0x20000
+} PH_KNOWN_PROCESS_TYPE;
 
 PHAPPAPI
 NTSTATUS PhGetProcessKnownType(
     __in HANDLE ProcessHandle,
-    __out PPH_KNOWN_PROCESS_TYPE KnownProcessType
+    __out PH_KNOWN_PROCESS_TYPE *KnownProcessType
     );
 
 typedef union _PH_KNOWN_PROCESS_COMMAND_LINE
