@@ -710,7 +710,7 @@ NTSTATUS PhpOpenCsrProcesses(
                 processHandle,
                 &knownProcessType
                 )) &&
-                knownProcessType == WindowsSubsystemProcessType)
+                (knownProcessType & KnownProcessTypeMask) == WindowsSubsystemProcessType)
             {
                 PhAddItemList(processHandleList, processHandle);
             }

@@ -96,7 +96,7 @@ PPH_STRING PhGetProcessTooltipText(
             &knownCommandLine
             ))
         {
-            switch (knownProcessType)
+            switch (knownProcessType & KnownProcessTypeMask)
             {
             case ServiceHostProcessType:
                 PhAppendStringBuilder2(&stringBuilder, L"Service group name:\n    ");
