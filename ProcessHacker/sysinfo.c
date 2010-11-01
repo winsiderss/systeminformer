@@ -406,8 +406,12 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 &ProcessesUpdatedRegistration
                 );
 
+            PhFree(CpusGraphHandle);
+
             for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
                 PhDeleteGraphState(&CpusGraphState[i]);
+
+            PhFree(CpusGraphState);
 
             PhDeleteGraphState(&CpuGraphState);
             PhDeleteGraphState(&IoGraphState);
