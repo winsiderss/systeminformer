@@ -132,8 +132,8 @@ VOID PhLoadSettingsServiceTreeList()
 
     PhLoadTreeListColumnsFromSetting(L"ServiceTreeListColumns", ServiceTreeListHandle);
 
-    sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
     sortColumn = PhGetIntegerSetting(L"ServiceTreeListSortColumn");
+    sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
     TreeList_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
 }
 
