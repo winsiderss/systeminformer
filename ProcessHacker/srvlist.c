@@ -127,30 +127,26 @@ VOID PhInitializeServiceTreeList(
 
 VOID PhLoadSettingsServiceTreeList()
 {
-    //ULONG sortColumn;
-    //PH_SORT_ORDER sortOrder;
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
 
     PhLoadTreeListColumnsFromSetting(L"ServiceTreeListColumns", ServiceTreeListHandle);
 
-    //sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
-
-    //if (sortOrder != NoSortOrder)
-    //{
-    //    sortColumn = PhGetIntegerSetting(L"ServiceTreeListSortColumn");
-    //    TreeList_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
-    //}
+    sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
+    sortColumn = PhGetIntegerSetting(L"ServiceTreeListSortColumn");
+    TreeList_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
 }
 
 VOID PhSaveSettingsServiceTreeList()
 {
-    //ULONG sortColumn;
-    //PH_SORT_ORDER sortOrder;
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
 
     PhSaveTreeListColumnsToSetting(L"ServiceTreeListColumns", ServiceTreeListHandle);
 
-    //TreeList_GetSort(ServiceTreeListHandle, &sortColumn, &sortOrder);
-    //PhSetIntegerSetting(L"ServiceTreeListSortColumn", sortColumn);
-    //PhSetIntegerSetting(L"ServiceTreeListSortOrder", sortOrder);
+    TreeList_GetSort(ServiceTreeListHandle, &sortColumn, &sortOrder);
+    PhSetIntegerSetting(L"ServiceTreeListSortColumn", sortColumn);
+    PhSetIntegerSetting(L"ServiceTreeListSortOrder", sortOrder);
 }
 
 PPH_SERVICE_NODE PhAddServiceNode(
@@ -614,7 +610,7 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                     TreeList_GetColumn(ServiceTreeListHandle, &column);
 
                     if (!column.Visible)
-                        TreeList_SetSort(ServiceTreeListHandle, 0, NoSortOrder);
+                        TreeList_SetSort(ServiceTreeListHandle, 0, AscendingSortOrder);
                 }
             }
 

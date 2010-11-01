@@ -2002,7 +2002,7 @@ VOID PhpInitialLoadSettings()
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
 
     PhLoadSettingsProcessTreeList();
-    PhLoadSettingsServiceTreeList();
+    // Service list settings are loaded on demand.
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
 
@@ -2094,7 +2094,8 @@ VOID PhpSaveAllSettings()
     PH_RECTANGLE windowRectangle;
 
     PhSaveSettingsProcessTreeList();
-    PhSaveSettingsServiceTreeList();
+    if (ServiceTreeListLoaded)
+        PhSaveSettingsServiceTreeList();
     PhSaveListViewColumnsToSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 
     PhSetIntegerSetting(L"IconMask", NotifyIconMask);
@@ -2172,6 +2173,8 @@ VOID PhpNeedServiceTreeList()
     if (!ServiceTreeListLoaded)
     {
         ServiceTreeListLoaded = TRUE;
+
+        PhLoadSettingsServiceTreeList();
 
         if (ServicesPendingList)
         {
