@@ -120,6 +120,8 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
+    PhpAddIntegerSetting(L"ServiceTreeListSortColumn", L"0");
+    PhpAddIntegerSetting(L"ServiceTreeListSortOrder", L"1"); // AscendingSortOrder
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowOneGraphPerCpu", L"0");
