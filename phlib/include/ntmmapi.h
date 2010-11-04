@@ -56,6 +56,7 @@ typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation,
     SectionImageInformation,
+    SectionRelocationInformation, // name:wow64:whNtQuerySection_SectionRelocationInformation
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
