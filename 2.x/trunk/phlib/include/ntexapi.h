@@ -539,11 +539,12 @@ NtWaitForKeyedEvent(
 
 typedef enum _WORKER_FACTORY_INFORMATION_CLASS
 {
-    WorkerFactoryAllInformation = 7,
+    WorkerFactoryBasicInformation = 7, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryBasicInformation
+    WorkerFactoryStackInformation = 10, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryStackInformation
     MaxWorkerFactoryInfoClass
 } WORKER_FACTORY_INFORMATION_CLASS, *PWORKER_FACTORY_INFORMATION_CLASS;
 
-typedef struct _WORKER_FACTORY_ALL_INFORMATION
+typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 {
     LARGE_INTEGER Timeout1;
     LARGE_INTEGER Timeout2;
@@ -569,7 +570,7 @@ typedef struct _WORKER_FACTORY_ALL_INFORMATION
     SIZE_T SizeOfStackReserve;
     SIZE_T SizeOfStackCommit;
     NTSTATUS CreateThreadStatus;
-} WORKER_FACTORY_ALL_INFORMATION, *PWORKER_FACTORY_ALL_INFORMATION;
+} WORKER_FACTORY_BASIC_INFORMATION, *PWORKER_FACTORY_BASIC_INFORMATION;
 
 typedef struct _IO_COMPLETION_MINIPACKET
 {
