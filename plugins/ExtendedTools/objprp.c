@@ -261,28 +261,28 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
 
             if (NT_SUCCESS(EtpDuplicateHandleFromProcess(&workerFactoryHandle, WORKER_FACTORY_QUERY_INFORMATION, context)))
             {
-                WORKER_FACTORY_ALL_INFORMATION allInfo;
+                WORKER_FACTORY_BASIC_INFORMATION basicInfo;
 
                 if (NT_SUCCESS(NtQueryInformationWorkerFactory(
                     workerFactoryHandle,
-                    WorkerFactoryAllInformation,
-                    &allInfo,
-                    sizeof(WORKER_FACTORY_ALL_INFORMATION),
+                    WorkerFactoryBasicInformation,
+                    &basicInfo,
+                    sizeof(WORKER_FACTORY_BASIC_INFORMATION),
                     NULL
                     )))
                 {
                     PPH_SYMBOL_PROVIDER symbolProvider;
                     PPH_STRING symbol = NULL;
 
-                    symbolProvider = PhCreateSymbolProvider(allInfo.UniqueProcessId);
+                    symbolProvider = PhCreateSymbolProvider(basicInfo.UniqueProcessId);
                     PhLoadSymbolProviderOptions(symbolProvider);
 
                     if (symbolProvider->IsRealHandle)
                     {
-                        PhEnumGenericModules(allInfo.UniqueProcessId, symbolProvider->ProcessHandle,
+                        PhEnumGenericModules(basicInfo.UniqueProcessId, symbolProvider->ProcessHandle,
                             0, EnumGenericModulesCallback, symbolProvider);
 
-                        symbol = PhGetSymbolFromAddress(symbolProvider, (ULONG64)allInfo.WorkerThreadStart,
+                        symbol = PhGetSymbolFromAddress(symbolProvider, (ULONG64)basicInfo.WorkerThreadStart,
                             NULL, NULL, NULL, NULL);
                     }
 
@@ -297,11 +297,11 @@ INT_PTR CALLBACK EtpTpWorkerFactoryPageDlgProc(
                     else
                     {
                         SetDlgItemText(hwndDlg, IDC_WORKERTHREADSTART,
-                            PhaFormatString(L"Worker Thread Start: 0x%Ix", allInfo.WorkerThreadStart)->Buffer);
+                            PhaFormatString(L"Worker Thread Start: 0x%Ix", basicInfo.WorkerThreadStart)->Buffer);
                     }
 
                     SetDlgItemText(hwndDlg, IDC_WORKERTHREADCONTEXT,
-                        PhaFormatString(L"Worker Thread Context: 0x%Ix", allInfo.WorkerThreadContext)->Buffer);
+                        PhaFormatString(L"Worker Thread Context: 0x%Ix", basicInfo.WorkerThreadContext)->Buffer);
                 }
 
                 NtClose(workerFactoryHandle);
