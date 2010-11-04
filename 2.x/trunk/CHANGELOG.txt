@@ -1,5 +1,10 @@
 Process Hacker
 
+2.9
+ * NEW/IMPROVED:
+ * FIXED:
+   * Network list bug
+
 2.8
  * NEW/IMPROVED:
    * Better service list (including column selection)

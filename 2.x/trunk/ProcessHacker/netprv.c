@@ -371,7 +371,7 @@ PPH_STRING PhGetHostNameFromAddress(
         address,
         length,
         hostName->Buffer,
-        hostName->Length + 2,
+        hostName->Length / 2 + 1,
         NULL,
         0,
         NI_NAMEREQD
@@ -385,7 +385,7 @@ PPH_STRING PhGetHostNameFromAddress(
             address,
             length,
             hostName->Buffer,
-            hostName->Length + 2,
+            hostName->Length / 2 + 1,
             NULL,
             0,
             NI_NAMEREQD
