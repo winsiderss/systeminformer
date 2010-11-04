@@ -819,7 +819,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemFileCacheInformationEx,
     SystemNotImplemented19,
     SystemProcessorIdleCycleTimeInformation, // array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
-    SystemVerifierInformation2,
+    SystemVerifierCancellationInformation, // name:wow64:whNT32QuerySystemVerifierCancellationInformation
     SystemNotImplemented20,
     SystemRefTraceInformation, // ObQueryRefTraceInformation
     SystemSpecialPoolTagInformation, // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
@@ -830,7 +830,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierInformationEx,
     SystemNotImplemented22,
     SystemNotImplemented23,
-    SystemCovInformation, // ExpCovQueryInformation
+    SystemCoverageInformation, // name:wow64:whNT32QuerySystemCoverageInformation; ExpCovQueryInformation
     SystemNotImplemented24,
     SystemNotImplemented25,
     SystemPartitionDeviceNameInformation,
@@ -858,7 +858,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWorkingSetInformation2, // 120
     SystemNumaDistanceInformation,
     SystemProcessorBrandStringInformation2, // HalDispatchTable -> HalpGetProcessorBrandString, info class 26
-    SystemMemoryCommitmentInformation,
+    SystemBasicPerformanceInformation, // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
