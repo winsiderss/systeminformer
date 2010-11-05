@@ -141,12 +141,12 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadBreakOnTermination, // qs: ULONG
     ThreadSwitchLegacyState,
     ThreadIsTerminated, // 20, q: ULONG
-    ThreadLastSystemCall,
+    ThreadLastSystemCall, // q: THREAD_LAST_SYSTEM_CALL
     ThreadIoPriority, // qs: ULONG
     ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
     ThreadPagePriority, // q: ULONG
     ThreadActualBasePriority,
-    ThreadTebInformation,
+    ThreadTebInformation, // q: THREAD_TEB_INFORMATION
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
     ThreadWow64Context, // q: WOW64_CONTEXT
