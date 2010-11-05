@@ -379,11 +379,26 @@ typedef struct _THREAD_BASIC_INFORMATION
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
 // rev
+typedef struct _THREAD_LAST_SYSTEM_CALL
+{
+    PVOID FirstArgument;
+    USHORT SystemCallNumber;
+} THREAD_LAST_SYSTEM_CALL, *PTHREAD_LAST_SYSTEM_CALL;
+
+// rev
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
     ULARGE_INTEGER AccumulatedCycles;
     ULARGE_INTEGER CurrentCycleCount;
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
+
+// rev
+typedef struct _THREAD_TEB_INFORMATION
+{
+    PVOID Buffer; // buffer to place data in
+    ULONG Offset; // offset in TEB to begin reading from
+    ULONG Length; // number of bytes to read
+} THREAD_TEB_INFORMATION, *PTHREAD_TEB_INFORMATION;
 
 // symbols
 typedef struct _COUNTER_READING
