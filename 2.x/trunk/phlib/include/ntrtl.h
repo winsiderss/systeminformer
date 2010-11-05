@@ -1375,6 +1375,20 @@ RtlCompareUnicodeString(
     __in BOOLEAN CaseInSensitive
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+LONG
+NTAPI
+RtlCompareUnicodeStrings(
+    __in_ecount(Length1) PWSTR Buffer1,
+    __in SIZE_T Length1,
+    __in_ecount(Length2) PWSTR Buffer2,
+    __in SIZE_T Length2,
+    __in BOOLEAN CaseInSensitive
+    );
+#endif
+
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -3294,6 +3308,33 @@ RtlSetThreadErrorMode(
     __out_opt PULONG OldMode
     );
 
+// Windows Error Reporting
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlReportException(
+    __in PEXCEPTION_RECORD ExceptionRecord,
+    __in PCONTEXT ContextRecord,
+    __in ULONG Flags
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlWerpReportException(
+    __in HANDLE ProcessId,
+    __in HANDLE SectionHandle,
+    __in ULONG Flags,
+    __out PHANDLE SynchronizeHandle
+    );
+#endif
+
 // Vectored Exception Handlers
 
 NTSYSAPI
@@ -3604,13 +3645,6 @@ NTSTATUS
 NTAPI
 RtlSetTimeZoneInformation(
     __in PRTL_TIME_ZONE_INFORMATION TimeZoneInformation
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
-RtlSetActiveTimeBias(
-    __in LONG ActiveBias
     );
 
 // Bitmaps
@@ -4903,6 +4937,32 @@ RtlVerifyVersionInfo(
     __in ULONGLONG ConditionMask
     );
 
+// System information
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetNtGlobalFlags(
+    VOID
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlGetNtProductType(
+    __out PNT_PRODUCT_TYPE NtProductType
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+RtlGetNtVersionNumbers(
+    __out_opt PULONG MajorVersion,
+    __out_opt PULONG MinorVersion,
+    __out_opt PULONG BuildNumber
+    );
+
 // Thread pool (old)
 
 NTSYSAPI
@@ -5005,6 +5065,21 @@ RtlDeleteTimerQueueEx(
     );
 
 // Registry access
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFormatCurrentUserKeyPath(
+    __out PUNICODE_STRING CurrentUserKeyPath
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlOpenCurrentUser(
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE CurrentUserKey
+    );
 
 #define RTL_REGISTRY_ABSOLUTE 0
 #define RTL_REGISTRY_SERVICES 1 // \Registry\Machine\System\CurrentControlSet\Services
@@ -5276,6 +5351,13 @@ PVOID
 NTAPI
 RtlDecodeSystemPointer(
     __in PVOID Ptr
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsThreadWithinLoaderCallout(
+    VOID
     );
 
 // begin_rev
