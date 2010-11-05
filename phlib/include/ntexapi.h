@@ -1379,6 +1379,32 @@ typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
 
+// begin_msdn
+
+// For SystemQueryPerformanceCounterInformation (unknown value)
+
+typedef struct _QUERY_PERFORMANCE_COUNTER_FLAGS
+{
+    union
+    {
+        struct
+        {
+            ULONG KernelTransition : 1;
+            ULONG Reserved : 31;
+        };
+        ULONG ul;
+    };
+} QUERY_PERFORMANCE_COUNTER_FLAGS;
+
+typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
+{
+    ULONG Version;
+    QUERY_PERFORMANCE_COUNTER_FLAGS Flags;
+    QUERY_PERFORMANCE_COUNTER_FLAGS ValidFlags;
+} SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
+
+// end_msdn
+
 // msdn
 typedef struct _SYSTEM_VHD_BOOT_INFORMATION
 {
