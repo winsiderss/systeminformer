@@ -4879,6 +4879,52 @@ NTSTATUS PhEnumKernelModules(
 }
 
 /**
+ * Enumerates the modules loaded by the kernel.
+ *
+ * \param Modules A variable which receives a pointer 
+ * to a structure containing information about 
+ * the kernel modules. You must free the structure 
+ * using PhFree() when you no longer need it.
+ */
+NTSTATUS PhEnumKernelModulesEx(
+    __out PRTL_PROCESS_MODULE_INFORMATION_EX *Modules
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 2048;
+
+    buffer = PhAllocate(bufferSize);
+
+    status = NtQuerySystemInformation(
+        SystemModuleInformationEx,
+        buffer,
+        bufferSize,
+        &bufferSize
+        );
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        buffer = PhAllocate(bufferSize);
+
+        status = NtQuerySystemInformation(
+            SystemModuleInformationEx,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    *Modules = buffer;
+
+    return status;
+}
+
+/**
  * Gets the file name of the kernel image.
  *
  * \return A pointer to a string containing the 
@@ -6244,7 +6290,7 @@ VOID PhpRtlModulesToGenericModules(
         fileName = PhCreateStringFromAnsi(module->FullPathName);
 
         if ((ULONG_PTR)module->ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
-            moduleInfo.Type = PH_MODULE_TYPE_WOW64_MODULE;
+            moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
             moduleInfo.Type = PH_MODULE_TYPE_KERNEL_MODULE;
 
@@ -6264,6 +6310,61 @@ VOID PhpRtlModulesToGenericModules(
 
         if (!cont)
             break;
+    }
+}
+
+VOID PhpRtlModulesExToGenericModules(
+    __in PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
+    __in PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    __in_opt PVOID Context,
+    __in PPH_LIST BaseAddressList
+    )
+{
+    PRTL_PROCESS_MODULE_INFORMATION_EX module;
+    PH_MODULE_INFO moduleInfo;
+    BOOLEAN cont;
+
+    module = Modules;
+
+    while (module->NextEntryOffset != 0)
+    {
+        PPH_STRING fileName;
+
+        // Check if we have a duplicate base address.
+        if (PhFindItemList(BaseAddressList, module->ModuleInfo.ImageBase) != -1)
+        {
+            continue;
+        }
+        else
+        {
+            PhAddItemList(BaseAddressList, module->ModuleInfo.ImageBase);
+        }
+
+        fileName = PhCreateStringFromAnsi(module->ModuleInfo.FullPathName);
+
+        if ((ULONG_PTR)module->ModuleInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
+            moduleInfo.Type = PH_MODULE_TYPE_MODULE;
+        else
+            moduleInfo.Type = PH_MODULE_TYPE_KERNEL_MODULE;
+
+        moduleInfo.BaseAddress = module->ModuleInfo.ImageBase;
+        moduleInfo.Size = module->ModuleInfo.ImageSize;
+        moduleInfo.EntryPoint = NULL;
+        moduleInfo.Flags = module->ModuleInfo.Flags;
+        moduleInfo.Name = PhCreateStringFromAnsi(&module->ModuleInfo.FullPathName[module->ModuleInfo.OffsetToFileName]);
+        moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+
+        PhDereferenceObject(fileName);
+
+        cont = Callback(&moduleInfo, Context);
+
+        PhDereferenceObject(moduleInfo.Name);
+        PhDereferenceObject(moduleInfo.FileName);
+
+        if (!cont)
+            break;
+
+        module = PTR_ADD_OFFSET(module, module->NextEntryOffset);
     }
 }
 
@@ -6372,21 +6473,39 @@ NTSTATUS PhEnumGenericModules(
     {
         // Kernel modules
 
-        PRTL_PROCESS_MODULES modules;
+        PVOID modules;
 
-        if (!NT_SUCCESS(status = PhEnumKernelModules(&modules)))
+        //if (WindowsVersion >= WINDOWS_VISTA && NT_SUCCESS(status = PhEnumKernelModulesEx((PRTL_PROCESS_MODULE_INFORMATION_EX *)&modules)))
+        //{
+        //    PhpRtlModulesExToGenericModules(
+        //        modules,
+        //        Callback,
+        //        Context,
+        //        baseAddressList
+        //        );
+        //    PhFree(modules);
+        //}
+        //else if (NT_SUCCESS(status = PhEnumKernelModules((PRTL_PROCESS_MODULES *)&modules)))
+        //{
+        //    PhpRtlModulesToGenericModules(
+        //        modules,
+        //        Callback,
+        //        Context,
+        //        baseAddressList
+        //        );
+        //    PhFree(modules);
+        //}
+
+        if (NT_SUCCESS(status = PhEnumKernelModules((PRTL_PROCESS_MODULES *)&modules)))
         {
-            goto CleanupExit;
+            PhpRtlModulesToGenericModules(
+                modules,
+                Callback,
+                Context,
+                baseAddressList
+                );
+            PhFree(modules);
         }
-
-        PhpRtlModulesToGenericModules(
-            modules,
-            Callback,
-            Context,
-            baseAddressList
-            );
-
-        PhFree(modules);
     }
     else
     {
