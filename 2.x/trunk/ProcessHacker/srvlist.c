@@ -728,7 +728,7 @@ VOID PhWriteServiceList(
     PPH_LIST lines;
     ULONG i;
 
-    lines = PhGetServiceTreeListLines(ServiceTreeListHandle, ServiceNodeList, Mode);
+    lines = PhGetGenericTreeListLines(ServiceTreeListHandle, Mode);
 
     for (i = 0; i < lines->Count; i++)
     {
