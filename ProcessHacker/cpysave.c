@@ -245,9 +245,8 @@ PPH_LIST PhGetProcessTreeListLines(
     return lines;
 }
 
-PPH_LIST PhGetServiceTreeListLines(
+PPH_LIST PhGetGenericTreeListLines(
     __in HWND TreeListHandle,
-    __in PPH_LIST Nodes,
     __in ULONG Mode
     )
 {
@@ -255,36 +254,60 @@ PPH_LIST PhGetServiceTreeListLines(
     PPH_LIST lines;
     ULONG rows;
     ULONG columns;
-    ULONG displayToId[PHSVTLC_MAXIMUM];
-    PWSTR displayToText[PHSVTLC_MAXIMUM];
+    ULONG numberOfNodes;
+    ULONG maxId;
+    PULONG displayToId;
+    PWSTR *displayToText;
     PPH_STRING **table;
     ULONG i;
     ULONG j;
 
     PhInitializeAutoPool(&autoPool);
 
-    rows = Nodes->Count + 1;
-    PhpMapDisplayIndexTreeList(TreeListHandle, PHSVTLC_MAXIMUM, displayToId, displayToText, &columns);
+    numberOfNodes = TreeList_GetVisibleNodeCount(TreeListHandle);
+    maxId = TreeList_GetMaxId(TreeListHandle) + 1;
+    displayToId = PhAllocate(sizeof(ULONG) * maxId);
+    displayToText = PhAllocate(sizeof(PWSTR) * maxId);
+
+    rows = numberOfNodes + 1;
+    PhpMapDisplayIndexTreeList(TreeListHandle, maxId, displayToId, displayToText, &columns);
 
     PhapCreateTextTable(&table, rows, columns);
 
     for (i = 0; i < columns; i++)
         table[0][i] = PhaCreateString(displayToText[i]);
 
-    for (i = 0; i < Nodes->Count; i++)
+    for (i = 0; i < numberOfNodes; i++)
     {
-        for (j = 0; j < columns; j++)
+        PPH_TREELIST_NODE node;
+
+        node = TreeList_GetVisibleNode(TreeListHandle, i);
+
+        if (node)
         {
-            PH_TL_GETNODETEXT getNodeText;
+            for (j = 0; j < columns; j++)
+            {
+                PH_TL_GETNODETEXT getNodeText;
 
-            getNodeText.Node = &((PPH_SERVICE_NODE)Nodes->Items[i])->Node;
-            getNodeText.Id = displayToId[j];
-            PhInitializeEmptyStringRef(&getNodeText.Text);
-            TreeList_GetNodeText(TreeListHandle, &getNodeText);
+                getNodeText.Node = node;
+                getNodeText.Id = displayToId[j];
+                PhInitializeEmptyStringRef(&getNodeText.Text);
+                TreeList_GetNodeText(TreeListHandle, &getNodeText);
 
-            table[i + 1][j] = PhaCreateStringEx(getNodeText.Text.Buffer, getNodeText.Text.Length);
+                table[i + 1][j] = PhaCreateStringEx(getNodeText.Text.Buffer, getNodeText.Text.Length);
+            }
+        }
+        else
+        {
+            for (j = 0; j < columns; j++)
+            {
+                table[i + 1][j] = PHA_DEREFERENCE(PhReferenceEmptyString());
+            }
         }
     }
+
+    PhFree(displayToText);
+    PhFree(displayToId);
 
     lines = PhapFormatTextTable(table, rows, columns, Mode);
 
@@ -358,17 +381,11 @@ PPH_FULL_STRING PhGetListViewText(
 
         for (j = 0; j < columns; j++)
         {
-            LVITEM lvItem;
             WCHAR buffer[512];
 
-            lvItem.mask = LVIF_TEXT;
-            lvItem.iItem = i;
-            lvItem.iSubItem = j;
-            lvItem.cchTextMax = sizeof(buffer) / sizeof(WCHAR);
-            lvItem.pszText = buffer;
-
-            if (ListView_GetItem(ListViewHandle, &lvItem))
-                PhAppendFullString2(string, buffer);
+            buffer[0] = 0;
+            ListView_GetItemText(ListViewHandle, i, j, buffer, sizeof(buffer) / sizeof(WCHAR));
+            PhAppendFullString2(string, buffer);
 
             PhAppendFullString2(string, L", ");
         }
@@ -419,6 +436,8 @@ PPH_LIST PhGetListViewLines(
             WCHAR buffer[512];
 
             // Important: use this to bypass extlv's hooking.
+            // extlv only hooks LVM_GETITEM, not LVM_GETITEMTEXT.
+            buffer[0] = 0;
             ListView_GetItemText(ListViewHandle, i - 1, j, buffer, sizeof(buffer) / sizeof(WCHAR));
             table[i][j] = PhaCreateString(buffer);
         }

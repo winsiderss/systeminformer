@@ -1077,9 +1077,8 @@ PPH_LIST PhGetProcessTreeListLines(
     __in ULONG Mode
     );
 
-PPH_LIST PhGetServiceTreeListLines(
+PPH_LIST PhGetGenericTreeListLines(
     __in HWND TreeListHandle,
-    __in PPH_LIST Nodes,
     __in ULONG Mode
     );
 
