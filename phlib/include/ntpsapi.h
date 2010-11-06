@@ -146,7 +146,7 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
     ThreadPagePriority, // q: ULONG
     ThreadActualBasePriority,
-    ThreadTebInformation, // q: THREAD_TEB_INFORMATION
+    ThreadTebInformation, // q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
     ThreadCSwitchMon,
     ThreadCSwitchPmu,
     ThreadWow64Context, // q: WOW64_CONTEXT
