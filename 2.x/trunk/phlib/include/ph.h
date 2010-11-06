@@ -792,6 +792,10 @@ NTSTATUS PhEnumKernelModules(
     __out PRTL_PROCESS_MODULES *Modules
     );
 
+NTSTATUS PhEnumKernelModulesEx(
+    __out PRTL_PROCESS_MODULE_INFORMATION_EX *Modules
+    );
+
 PHLIBAPI
 PPH_STRING PhGetKernelFileName();
 
