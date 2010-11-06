@@ -221,6 +221,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_GETVISIBLENODE (WM_APP + 1225)
 #define TLM_GETLISTVIEW (WM_APP + 1226)
 #define TLM_ENABLEEXPLORERSTYLE (WM_APP + 1227)
+#define TLM_GETMAXID (WM_APP + 1228)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -315,6 +316,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_EnableExplorerStyle(hWnd) \
     SendMessage((hWnd), TLM_ENABLEEXPLORERSTYLE, 0, 0)
+
+#define TreeList_GetMaxId(hWnd) \
+    ((ULONG)SendMessage((hWnd), TLM_GETMAXID, 0, 0))
 
 BOOLEAN PhTreeListInitialization();
 

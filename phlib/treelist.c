@@ -987,6 +987,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
         PhSetControlTheme(context->ListViewHandle, L"explorer");
         context->EnableExplorerStyle = TRUE;
         return TRUE;
+    case TLM_GETMAXID:
+        return (LRESULT)context->MaxId;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
