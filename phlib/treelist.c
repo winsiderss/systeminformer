@@ -101,7 +101,7 @@ VOID PhpCreateTreeListContext(
 
     context->RefCount = 1;
 
-    context->LvRecursionGuard = 0;
+    //context->LvRecursionGuard = 0;
 
     context->Callback = PhTreeListNullCallback;
     context->Context = NULL;
@@ -131,10 +131,14 @@ VOID PhpCreateTreeListContext(
 
     context->TextMetricsValid = FALSE;
     context->ThemeData = NULL;
+    context->ThemeInitialized = FALSE;
     context->EnableExplorerStyle = FALSE;
+    context->EnableExplorerGlyphs = FALSE;
     context->PlusBitmap = NULL;
     context->MinusBitmap = NULL;
     context->IconDc = NULL;
+    context->LastMouseLocation.x = MINLONG;
+    context->LastMouseLocation.y = MINLONG;
 
     *Context = context;
 }
@@ -247,9 +251,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
             SetWindowLongPtr(context->ListViewHandle, GWLP_WNDPROC, (LONG_PTR)PhpTreeListLvHookWndProc);
             PhpReferenceTreeListContext(context);
             SetProp(context->ListViewHandle, PhpMakeTreeListContextAtom(), (HANDLE)context);
-
-            // Open theme data if available.
-            PhpReloadThemeData(context);
 
             // Make sure we have a minimum size of 16 pixels for each row using this hack.
             ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);
@@ -542,6 +543,13 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 case NM_CUSTOMDRAW:
                     {
                         LPNMLVCUSTOMDRAW customDraw = (LPNMLVCUSTOMDRAW)hdr;
+
+                        // Open the theme data if available. This is delay-loaded.
+                        if (!context->ThemeInitialized)
+                        {
+                            PhpReloadThemeData(context);
+                            context->ThemeInitialized = TRUE;
+                        }
 
                         switch (customDraw->nmcd.dwDrawStage)
                         {
@@ -1007,8 +1015,8 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
     context = (PPHP_TREELIST_CONTEXT)GetProp(hwnd, PhpMakeTreeListContextAtom());
     oldWndProc = context->OldLvWndProc;
 
-    if (context->LvRecursionGuard > 0)
-        return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+    //if (context->LvRecursionGuard > 0)
+    //    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 
     switch (uMsg)
     {
@@ -1031,6 +1039,55 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
             InvalidateRect(context->Handle, NULL, TRUE); // refresh the backgrounds
         }
         break;
+    case WM_MOUSEMOVE:
+        {
+            if (context->EnableExplorerGlyphs)
+            {
+                LONG oldX;
+                LONG newX;
+                LONG newY;
+
+                oldX = context->LastMouseLocation.x;
+                newX = LOWORD(lParam);
+                newY = HIWORD(lParam);
+
+                if (context->NumberOfColumns != 0 && newX < (LONG)context->ColumnsForViewX[0]->Width)
+                {
+                    LVHITTESTINFO htInfo = { 0 };
+                    INT itemIndex;
+                    PPH_TREELIST_NODE node;
+                    BOOLEAN oldInX;
+                    BOOLEAN newInX;
+
+                    // The mouse is in the first column, and may have entered or left the glyph area. 
+                    // Redraw the node if necessary.
+                    // Note that we don't handle the case where the mouse moves from one item to 
+                    // another - this is already handled by the "explorer" style.
+
+                    htInfo.pt.x = newX;
+                    htInfo.pt.y = newY;
+
+                    if (
+                        (itemIndex = ListView_HitTest(hwnd, &htInfo)) != -1 &&
+                        (ULONG)itemIndex < context->List->Count
+                        )
+                    {
+                        node = context->List->Items[itemIndex];
+
+                        oldInX = IS_X_IN_GLYPH(oldX, node->Level);
+                        newInX = IS_X_IN_GLYPH(newX, node->Level);
+
+                        if (oldInX != newInX)
+                        {
+                            ListView_RedrawItems(hwnd, itemIndex, itemIndex);
+                        }
+                    }
+                }
+
+                context->LastMouseLocation.x = newX;
+            }
+        }
+        break;
     case WM_LBUTTONDOWN:
     case WM_LBUTTONDBLCLK:
         {
@@ -1039,7 +1096,6 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
             LVHITTESTINFO htInfo = { 0 };
             INT itemIndex;
             PPH_TREELIST_NODE node;
-            LONG glyphX;
 
             // Process mouse events taking place on the plus/minus glyph.
 
@@ -1055,15 +1111,13 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                 // plus/minus glyph.
 
                 node = context->List->Items[itemIndex];
-                glyphX = node->Level * 16;
 
                 if (
                     !node->s.IsLeaf &&
-                    x >= glyphX &&
-                    x < glyphX + 16 + 5 && // allow for some extra space
+                    IS_X_IN_GLYPH(x, node->Level) &&
                     // make sure the click resides in the first column; important when it's getting clipped
                     context->NumberOfColumns != 0 &&
-                    (ULONG)x < context->ColumnsForViewX[0]->Width
+                    x < (LONG)context->ColumnsForViewX[0]->Width
                     )
                 {
                     switch (uMsg)
@@ -1471,11 +1525,34 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
                 if (Context->ThemeData)
                 {
+                    INT partId;
+                    INT stateId;
+
+                    if (Context->EnableExplorerGlyphs && (CustomDraw->nmcd.uItemState & CDIS_HOT))
+                    {
+                        // Determine if the mouse is actually over the glyph, not just some part of the item.
+                        if (IS_X_IN_GLYPH(Context->LastMouseLocation.x, node->Level) &&
+                            Context->LastMouseLocation.x < (LONG)column->Width)
+                        {
+                            partId = TVP_HOTGLYPH;
+                        }
+                        else
+                        {
+                            partId = TVP_GLYPH;
+                        }
+                    }
+                    else
+                    {
+                        partId = TVP_GLYPH;
+                    }
+
+                    stateId = node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
+
                     if (SUCCEEDED(DrawThemeBackground_I(
                         Context->ThemeData,
                         CustomDraw->nmcd.hdc,
-                        TVP_GLYPH,
-                        node->Expanded ? GLPS_OPENED : GLPS_CLOSED,
+                        partId,
+                        stateId,
                         &themeRect,
                         NULL
                         )))
@@ -1874,9 +1951,23 @@ static VOID PhpReloadThemeData(
         Context->ThemeActive = !!IsThemeActive_I();
 
         if (Context->ThemeData)
+        {
             CloseThemeData_I(Context->ThemeData);
+            Context->ThemeData = NULL;
+        }
 
-        Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
+        Context->EnableExplorerGlyphs = FALSE;
+
+        if (Context->EnableExplorerStyle)
+        {
+            Context->ThemeData = OpenThemeData_I(Context->Handle, L"EXPLORER::TREEVIEW");
+
+            if (Context->ThemeData)
+                Context->EnableExplorerGlyphs = TRUE;
+        }
+
+        if (!Context->ThemeData)
+            Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
     }
     else
     {
