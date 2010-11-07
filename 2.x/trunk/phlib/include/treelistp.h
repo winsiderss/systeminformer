@@ -11,7 +11,7 @@ typedef struct _PHP_TREELIST_CONTEXT
 
     HWND Handle;
     HWND ListViewHandle;
-    LONG LvRecursionGuard; // unused
+    //LONG LvRecursionGuard;
 
     PPH_TREELIST_CALLBACK Callback;
     PVOID Context;
@@ -55,15 +55,22 @@ typedef struct _PHP_TREELIST_CONTEXT
     BOOLEAN TextMetricsValid;
     TEXTMETRIC TextMetrics;
     RECT RowRect;
+
+    // Plus-minus glyph
     HTHEME ThemeData;
+    BOOLEAN ThemeInitialized; // delay load theme data
     BOOLEAN ThemeActive;
     BOOLEAN EnableExplorerStyle;
+    BOOLEAN EnableExplorerGlyphs;
     HBITMAP PlusBitmap;
     PH_INTEGER_PAIR PlusBitmapSize;
     HBITMAP MinusBitmap;
     PH_INTEGER_PAIR MinusBitmapSize;
     HDC IconDc;
+    POINT LastMouseLocation;
 } PHP_TREELIST_CONTEXT, *PPHP_TREELIST_CONTEXT;
+
+#define IS_X_IN_GLYPH(X, NodeLevel) (((X) >= (LONG)((NodeLevel) * 16)) && ((X) < (LONG)((NodeLevel) * 16) + 16 + 5)) // allow for some extra space
 
 BOOLEAN NTAPI PhpColumnHashtableCompareFunction(
     __in PVOID Entry1,
