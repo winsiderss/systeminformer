@@ -748,8 +748,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHandleInformation, // q: SYSTEM_HANDLE_INFORMATION
     SystemObjectInformation, // q: SYSTEM_OBJECTTYPE_INFORMATION // mixed with SYSTEM_OBJECT_INFORMATION
     SystemPageFileInformation, // q: SYSTEM_PAGEFILE_INFORMATION
-    SystemVdmInstemulInformation,
-    SystemVdmBopInformation, // 20
+    SystemVdmInstemulInformation, // q
+    SystemVdmBopInformation, // 20, not implemented
     SystemFileCacheInformation, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemCache)
     SystemPoolTagInformation, // q: SYSTEM_POOLTAG_INFORMATION
     SystemInterruptInformation, // q: SYSTEM_INTERRUPT_INFORMATION
@@ -760,8 +760,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemTimeAdjustmentInformation, // q: SYSTEM_QUERY_TIME_ADJUST_INFORMATION; s: SYSTEM_SET_TIME_ADJUST_INFORMATION (requires SeSystemtimePrivilege)
     SystemSummaryMemoryInformation, // not implemented
     SystemMirrorMemoryInformation, // 30, s (requires license value "Kernel-MemoryMirroringSupported") (requires SeShutdownPrivilege)
-    SystemPerformanceTraceInformation, // q; s
-    SystemCrashDumpInformation,
+    SystemPerformanceTraceInformation, // s
+    SystemCrashDumpInformation, // not implemented
     SystemExceptionInformation, // q: SYSTEM_EXCEPTION_INFORMATION
     SystemCrashDumpStateInformation, // s (requires SeDebugPrivilege)
     SystemKernelDebuggerInformation, // q: SYSTEM_KERNEL_DEBUGGER_INFORMATION
@@ -778,13 +778,13 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemTimeSlipNotification, // s (requires SeSystemtimePrivilege)
     SystemSessionCreate, // not implemented
     SystemSessionDetach, // not implemented
-    SystemSessionInformation,
+    SystemSessionInformation, // not implemented
     SystemRangeStartInformation, // 50, q
-    SystemVerifierInformation, // s (requires SeDebugPrivilege)
+    SystemVerifierInformation, // q; s (requires SeDebugPrivilege)
     SystemVerifierThunkExtend, // s (kernel-mode only)
     SystemSessionProcessInformation, // q: SYSTEM_SESSION_PROCESS_INFORMATION
     SystemLoadGdiDriverInSystemSpace, // s (kernel-mode only) (same as SystemLoadGdiDriverInformation)
-    SystemNumaProcessorMap,
+    SystemNumaProcessorMap, // q
     SystemPrefetcherInformation, // q: SYSTEM_EXTENDED_INFORMATION; s: SYSTEM_EXTENDED_INFORMATION // PfSnQueryPrefetcherInformation
     SystemExtendedProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
     SystemRecommendedSharedDataAlignment, // q
@@ -801,19 +801,19 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHotpatchInformation, // q; s
     SystemObjectSecurityMode, // 70, q
     SystemWatchdogTimerHandler, // s (kernel-mode only)
-    SystemWatchdogTimerInformation, // s (kernel-mode only)
-    SystemLogicalProcessorInformation,
+    SystemWatchdogTimerInformation, // q (kernel-mode only); s (kernel-mode only)
+    SystemLogicalProcessorInformation, // q
     SystemWow64SharedInformation, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s (kernel-mode only)
-    SystemFirmwareTableInformation, // q
+    SystemFirmwareTableInformation, // not implemented
     SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
-    SystemVerifierTriageInformation,
+    SystemVerifierTriageInformation, // not implemented
     SystemSuperfetchInformation, // q: SYSTEM_EXTENDED_INFORMATION; s: SYSTEM_EXTENDED_INFORMATION // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // 80, q: SYSTEM_MEMORY_LIST_INFORMATION; s (requires SeProfileSingleProcessPrivilege)
     SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (same as SystemFileCacheInformation)
     SystemThreadPriorityInformation, // s: SYSTEM_THREAD_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege)
     SystemProcessorIdleCycleTimeInformation, // q: array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
-    SystemVerifierCancellationInformation, // s // name:wow64:whNT32QuerySystemVerifierCancellationInformation
+    SystemVerifierCancellationInformation, // not implemented // name:wow64:whNT32QuerySystemVerifierCancellationInformation
     SystemNotImplemented85, // not implemented
     SystemRefTraceInformation, // q; s // ObQueryRefTraceInformation
     SystemSpecialPoolTagInformation, // q; s (requires SeDebugPrivilege) // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
@@ -832,7 +832,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorPerformanceDistribution, // 100, q
     SystemNumaProximityNodeInformation, // q
     SystemDynamicTimeZoneInformation2, // q; s (requires SeTimeZonePrivilege)
-    SystemCodeIntegrityInformation, // SeCodeIntegrityQueryInformation
+    SystemCodeIntegrityInformation, // q // SeCodeIntegrityQueryInformation
     SystemProcessorMicroCodeUpdateInformation, // s
     SystemProcessorBrandStringInformation, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVaInformation, // q; s // MmQuerySystemVaInformation
@@ -1512,32 +1512,6 @@ typedef struct _SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
     UNICODE_STRING ImageName;
 } SYSTEM_PROCESS_IMAGE_NAME_INFORMATION, *PSYSTEM_PROCESS_IMAGE_NAME_INFORMATION;
 
-// begin_msdn
-
-// For SystemQueryPerformanceCounterInformation (unknown value)
-
-typedef struct _QUERY_PERFORMANCE_COUNTER_FLAGS
-{
-    union
-    {
-        struct
-        {
-            ULONG KernelTransition : 1;
-            ULONG Reserved : 31;
-        };
-        ULONG ul;
-    };
-} QUERY_PERFORMANCE_COUNTER_FLAGS;
-
-typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
-{
-    ULONG Version;
-    QUERY_PERFORMANCE_COUNTER_FLAGS Flags;
-    QUERY_PERFORMANCE_COUNTER_FLAGS ValidFlags;
-} SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
-
-// end_msdn
-
 // rev
 typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
 {
@@ -1607,6 +1581,32 @@ typedef struct _SYSTEM_BASIC_PERFORMANCE_INFORMATION
     ULONG CommitLimit;
     ULONG PeakCommitment;
 } SYSTEM_BASIC_PERFORMANCE_INFORMATION, *PSYSTEM_BASIC_PERFORMANCE_INFORMATION;
+
+// begin_msdn
+
+// For SystemQueryPerformanceCounterInformation (unknown value)
+
+typedef struct _QUERY_PERFORMANCE_COUNTER_FLAGS
+{
+    union
+    {
+        struct
+        {
+            ULONG KernelTransition : 1;
+            ULONG Reserved : 31;
+        };
+        ULONG ul;
+    };
+} QUERY_PERFORMANCE_COUNTER_FLAGS;
+
+typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
+{
+    ULONG Version;
+    QUERY_PERFORMANCE_COUNTER_FLAGS Flags;
+    QUERY_PERFORMANCE_COUNTER_FLAGS ValidFlags;
+} SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
+
+// end_msdn
 
 NTSYSCALLAPI
 NTSTATUS
