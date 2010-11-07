@@ -738,7 +738,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCallCountInformation,
     SystemDeviceInformation,
     SystemProcessorPerformanceInformation, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
-    SystemFlagsInformation,
+    SystemFlagsInformation, // q: ULONG
     SystemCallTimeInformation, // 10
     SystemModuleInformation, // q: RTL_PROCESS_MODULES
     SystemLocksInformation,
@@ -750,7 +750,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemPageFileInformation,
     SystemVdmInstemulInformation,
     SystemVdmBopInformation, // 20
-    SystemFileCacheInformation, // q: SYSTEM_FILECACHE_INFORMATION
+    SystemFileCacheInformation, // q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypeSystemCache)
     SystemPoolTagInformation, // q: SYSTEM_POOLTAG_INFORMATION
     SystemInterruptInformation, // q: SYSTEM_INTERRUPT_INFORMATION
     SystemDpcBehaviorInformation, // q: SYSTEM_DPC_BEHAVIOR_INFORMATION
@@ -794,7 +794,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemEmulationBasicInformation,
     SystemEmulationProcessorInformation,
     SystemExtendedHandleInformation,
-    SystemLostDelayedWriteInformation,
+    SystemLostDelayedWriteInformation, // q: ULONG
     SystemBigPoolInformation, // q: SYSTEM_BIGPOOL_INFORMATION
     SystemSessionPoolTagInformation, // q: SYSTEM_SESSION_POOLTAG_INFORMATION
     SystemSessionMappedViewInformation, // q: SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
@@ -809,8 +809,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
     SystemVerifierTriageInformation,
     SystemSuperfetchInformation, // q: SYSTEM_EXTENDED_INFORMATION // PfQuerySuperfetchInformation
-    SystemMemoryListInformation, // 80
-    SystemFileCacheInformationEx,
+    SystemMemoryListInformation, // 80, q: SYSTEM_MEMORY_LIST_INFORMATION
+    SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION (same as SystemFileCacheInformation)
     SystemThreadPriorityInformation, // s: SYSTEM_THREAD_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege)
     SystemProcessorIdleCycleTimeInformation, // q: array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
     SystemVerifierCancellationInformation, // name:wow64:whNT32QuerySystemVerifierCancellationInformation
@@ -819,7 +819,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSpecialPoolTagInformation, // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
     SystemProcessImageNameInformation, // q: SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
     SystemDebugErrorPort, // s (requires SeTcbPrivilege)
-    SystemBootEnvironmentInformation, // 90
+    SystemBootEnvironmentInformation, // 90, q: SYSTEM_BOOT_ENVIRONMENT_INFORMATION
     SystemEnlightenmentInformation,
     SystemVerifierInformationEx,
     SystemDynamicTimeZoneInformation, // s (requires SeTimeZonePrivilege)
@@ -848,8 +848,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemLowPriorityIoInformation, // q: SYSTEM_LOW_PRIORITY_IO_INFORMATION
     SystemTpmBootEntropyInformation, // q: SYSTEM_TPM_BOOT_ENTROPY_INFORMATION // ExQueryTpmBootEntropyInformation
     SystemVerifierInformation3,
-    SystemWorkingSetInformation, // MmQuerySystemWorkingSetInformation
-    SystemWorkingSetInformation2, // 120
+    SystemPagedPoolWorkingSetInformation, // q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypePagedPool)
+    SystemSystemPtesWorkingSetInformation, // 120, q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypeSystemPtes)
     SystemNumaDistanceInformation,
     SystemProcessorBrandStringInformation2, // HalDispatchTable -> HalpGetProcessorBrandString, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
@@ -1136,6 +1136,14 @@ typedef struct _SYSTEM_PAGEFILE_INFORMATION
 #define MM_WORKING_SET_MIN_HARD_ENABLE 0x4
 #define MM_WORKING_SET_MIN_HARD_DISABLE 0x8
 
+typedef struct _SYSTEM_BASIC_WORKING_SET_INFORMATION
+{
+    SIZE_T CurrentSize;
+    SIZE_T PeakSize;
+    ULONG PageFaultCount;
+} SYSTEM_BASIC_WORKING_SET_INFORMATION, *PSYSTEM_BASIC_WORKING_SET_INFORMATION;
+
+// misnomer - should be named SYSTEM_WORKING_SET_INFORMATION
 typedef struct _SYSTEM_FILECACHE_INFORMATION
 {
     SIZE_T CurrentSize;
@@ -1367,6 +1375,18 @@ typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
 // end_rev
 
 // rev
+typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
+{
+    ULONG ZeroedPageListTotal;
+    ULONG FreePageListTotal;
+    ULONG ModifiedPageListTotal;
+    ULONG ModifiedNoWritePageListTotal;
+    ULONG BadPageListTotal;
+    ULONG StandbyPageListTotals[8];
+    ULONG StandbyRePurposeCount[8];
+} SYSTEM_MEMORY_LIST_INFORMATION, *PSYSTEM_MEMORY_LIST_INFORMATION;
+
+// rev
 typedef struct _SYSTEM_THREAD_PRIORITY_INFORMATION
 {
     CLIENT_ID ClientId;
@@ -1405,6 +1425,13 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
 } SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
 
 // end_msdn
+
+// rev
+typedef struct _SYSTEM_BOOT_ENVIRONMENT_INFORMATION
+{
+    GUID BootIdentifier;
+    ULONG FirmwareType; // 2 - EFI
+} SYSTEM_BOOT_ENVIRONMENT_INFORMATION, PSYSTEM_BOOT_ENVIRONMENT_INFORMATION;
 
 // rev
 typedef struct _SYSTEM_IMAGE_FILE_EXECUTION_OPTIONS
