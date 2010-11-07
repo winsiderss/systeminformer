@@ -62,7 +62,9 @@ typedef struct _PORT_DATA_INFORMATION
 #define LPC_ERROR_EVENT 9
 #define LPC_CONNECTION_REQUEST 10
 
-#define LPC_KERNELMODE_MESSAGE  (CSHORT)0x8000
+#define LPC_KERNELMODE_MESSAGE (CSHORT)0x8000
+#define LPC_NO_IMPERSONATE (CSHORT)0x4000
+
 #define PORT_VALID_OBJECT_ATTRIBUTES OBJ_CASE_INSENSITIVE
 
 #ifdef _M_IX86
@@ -295,6 +297,7 @@ NtQueryInformationPort(
 // it seems traditional to use a typedef in these cases.
 typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;
 
+#define ALPC_PORFLG_ALLOW_LPC_REQUESTS 0x20000
 #define ALPC_PORFLG_WAITABLE_PORT 0x40000 // dbg
 #define ALPC_PORFLG_SYSTEM_PROCESS 0x100000 // dbg
 
@@ -679,7 +682,7 @@ NtAlpcAcceptConnectPort(
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in PALPC_PORT_ATTRIBUTES PortAttributes,
     __in_opt PVOID PortContext,
-    __in PPORT_MESSAGE RequestMessage,
+    __in PPORT_MESSAGE ConnectMessage,
     __inout_opt PALPC_MESSAGE_ATTRIBUTES ReplyMessageAttributes,
     __in BOOLEAN AcceptConnection
     );
