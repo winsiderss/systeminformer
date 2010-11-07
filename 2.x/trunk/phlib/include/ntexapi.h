@@ -733,125 +733,125 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorInformation, // q: SYSTEM_PROCESSOR_INFORMATION
     SystemPerformanceInformation, // q: SYSTEM_PERFORMANCE_INFORMATION
     SystemTimeOfDayInformation, // q: SYSTEM_TIMEOFDAY_INFORMATION
-    SystemPathInformation,
+    SystemPathInformation, // not implemented
     SystemProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
-    SystemCallCountInformation,
-    SystemDeviceInformation,
+    SystemCallCountInformation, // q: SYSTEM_CALL_COUNT_INFORMATION
+    SystemDeviceInformation, // q: SYSTEM_DEVICE_INFORMATION
     SystemProcessorPerformanceInformation, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
-    SystemFlagsInformation, // q: ULONG
-    SystemCallTimeInformation, // 10
+    SystemFlagsInformation, // q: SYSTEM_FLAGS_INFORMATION
+    SystemCallTimeInformation, // 10, not implemented
     SystemModuleInformation, // q: RTL_PROCESS_MODULES
     SystemLocksInformation,
     SystemStackTraceInformation,
     SystemPagedPoolInformation, // not implemented
     SystemNonPagedPoolInformation, // not implemented
     SystemHandleInformation, // q: SYSTEM_HANDLE_INFORMATION
-    SystemObjectInformation, // q: SYSTEM_OBJECT_INFORMATION
-    SystemPageFileInformation,
+    SystemObjectInformation, // q: SYSTEM_OBJECTTYPE_INFORMATION // mixed with SYSTEM_OBJECT_INFORMATION
+    SystemPageFileInformation, // q: SYSTEM_PAGEFILE_INFORMATION
     SystemVdmInstemulInformation,
     SystemVdmBopInformation, // 20
-    SystemFileCacheInformation, // q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypeSystemCache)
+    SystemFileCacheInformation, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemCache)
     SystemPoolTagInformation, // q: SYSTEM_POOLTAG_INFORMATION
     SystemInterruptInformation, // q: SYSTEM_INTERRUPT_INFORMATION
-    SystemDpcBehaviorInformation, // q: SYSTEM_DPC_BEHAVIOR_INFORMATION
-    SystemFullMemoryInformation,
-    SystemLoadGdiDriverInformation,
-    SystemUnloadGdiDriverInformation,
-    SystemTimeAdjustmentInformation,
-    SystemSummaryMemoryInformation,
-    SystemMirrorMemoryInformation, // 30
-    SystemPerformanceTraceInformation,
+    SystemDpcBehaviorInformation, // q: SYSTEM_DPC_BEHAVIOR_INFORMATION; s: SYSTEM_DPC_BEHAVIOR_INFORMATION (requires SeLoadDriverPrivilege)
+    SystemFullMemoryInformation, // not implemented
+    SystemLoadGdiDriverInformation, // s (kernel-mode only)
+    SystemUnloadGdiDriverInformation, // s (kernel-mode only)
+    SystemTimeAdjustmentInformation, // q: SYSTEM_QUERY_TIME_ADJUST_INFORMATION; s: SYSTEM_SET_TIME_ADJUST_INFORMATION (requires SeSystemtimePrivilege)
+    SystemSummaryMemoryInformation, // not implemented
+    SystemMirrorMemoryInformation, // 30, s (requires license value "Kernel-MemoryMirroringSupported") (requires SeShutdownPrivilege)
+    SystemPerformanceTraceInformation, // q; s
     SystemCrashDumpInformation,
-    SystemExceptionInformation,
-    SystemCrashDumpStateInformation,
-    SystemKernelDebuggerInformation,
+    SystemExceptionInformation, // q: SYSTEM_EXCEPTION_INFORMATION
+    SystemCrashDumpStateInformation, // s (requires SeDebugPrivilege)
+    SystemKernelDebuggerInformation, // q: SYSTEM_KERNEL_DEBUGGER_INFORMATION
     SystemContextSwitchInformation, // q: SYSTEM_CONTEXT_SWITCH_INFORMATION
-    SystemRegistryQuotaInformation, // q: SYSTEM_REGISTRY_QUOTA_INFORMATION
-    SystemExtendServiceTableInformation, // used to be SystemLoadAndCallImage
-    SystemPrioritySeparation,
-    SystemVerifierAddDriverInformation, // 40
-    SystemVerifierRemoveDriverInformation,
+    SystemRegistryQuotaInformation, // q: SYSTEM_REGISTRY_QUOTA_INFORMATION; s (requires SeIncreaseQuotaPrivilege)
+    SystemExtendServiceTableInformation, // s (requires SeLoadDriverPrivilege) // loads win32k only
+    SystemPrioritySeparation, // s (requires SeTcbPrivilege)
+    SystemVerifierAddDriverInformation, // 40, s (requires SeDebugPrivilege)
+    SystemVerifierRemoveDriverInformation, // s (requires SeDebugPrivilege)
     SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION
-    SystemLegacyDriverInformation,
-    SystemCurrentTimeZoneInformation,
+    SystemLegacyDriverInformation, // q: SYSTEM_LEGACY_DRIVER_INFORMATION
+    SystemCurrentTimeZoneInformation, // q
     SystemLookasideInformation, // q: SYSTEM_LOOKASIDE_INFORMATION
-    SystemTimeSlipNotification,
-    SystemSessionCreate,
-    SystemSessionDetach,
+    SystemTimeSlipNotification, // s (requires SeSystemtimePrivilege)
+    SystemSessionCreate, // not implemented
+    SystemSessionDetach, // not implemented
     SystemSessionInformation,
-    SystemRangeStartInformation, // 50
-    SystemVerifierInformation,
-    SystemVerifierThunkExtend,
+    SystemRangeStartInformation, // 50, q
+    SystemVerifierInformation, // s (requires SeDebugPrivilege)
+    SystemVerifierThunkExtend, // s (kernel-mode only)
     SystemSessionProcessInformation, // q: SYSTEM_SESSION_PROCESS_INFORMATION
-    SystemLoadGdiDriverInSystemSpace,
+    SystemLoadGdiDriverInSystemSpace, // s (kernel-mode only) (same as SystemLoadGdiDriverInformation)
     SystemNumaProcessorMap,
-    SystemPrefetcherInformation, // q: SYSTEM_EXTENDED_INFORMATION // PfSnQueryPrefetcherInformation
+    SystemPrefetcherInformation, // q: SYSTEM_EXTENDED_INFORMATION; s: SYSTEM_EXTENDED_INFORMATION // PfSnQueryPrefetcherInformation
     SystemExtendedProcessInformation, // q: SYSTEM_PROCESS_INFORMATION
-    SystemRecommendedSharedDataAlignment,
-    SystemComPlusPackage,
+    SystemRecommendedSharedDataAlignment, // q
+    SystemComPlusPackage, // q; s
     SystemNumaAvailableMemory, // 60
-    SystemProcessorPowerInformation,
-    SystemEmulationBasicInformation,
+    SystemProcessorPowerInformation, // q: SYSTEM_PROCESSOR_POWER_INFORMATION
+    SystemEmulationBasicInformation, // q
     SystemEmulationProcessorInformation,
-    SystemExtendedHandleInformation,
+    SystemExtendedHandleInformation, // q: SYSTEM_HANDLE_INFORMATION_EX
     SystemLostDelayedWriteInformation, // q: ULONG
     SystemBigPoolInformation, // q: SYSTEM_BIGPOOL_INFORMATION
     SystemSessionPoolTagInformation, // q: SYSTEM_SESSION_POOLTAG_INFORMATION
     SystemSessionMappedViewInformation, // q: SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
-    SystemHotpatchInformation,
-    SystemObjectSecurityMode, // 70
-    SystemWatchdogTimerHandler, // doesn't seem to be implemented
-    SystemWatchdogTimerInformation,
+    SystemHotpatchInformation, // q; s
+    SystemObjectSecurityMode, // 70, q
+    SystemWatchdogTimerHandler, // s (kernel-mode only)
+    SystemWatchdogTimerInformation, // s (kernel-mode only)
     SystemLogicalProcessorInformation,
-    SystemWow64SharedInformation,
-    SystemRegisterFirmwareTableInformationHandler,
-    SystemFirmwareTableInformation,
+    SystemWow64SharedInformation, // not implemented
+    SystemRegisterFirmwareTableInformationHandler, // s (kernel-mode only)
+    SystemFirmwareTableInformation, // q
     SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
     SystemVerifierTriageInformation,
-    SystemSuperfetchInformation, // q: SYSTEM_EXTENDED_INFORMATION // PfQuerySuperfetchInformation
-    SystemMemoryListInformation, // 80, q: SYSTEM_MEMORY_LIST_INFORMATION
-    SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION (same as SystemFileCacheInformation)
+    SystemSuperfetchInformation, // q: SYSTEM_EXTENDED_INFORMATION; s: SYSTEM_EXTENDED_INFORMATION // PfQuerySuperfetchInformation
+    SystemMemoryListInformation, // 80, q: SYSTEM_MEMORY_LIST_INFORMATION; s (requires SeProfileSingleProcessPrivilege)
+    SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (same as SystemFileCacheInformation)
     SystemThreadPriorityInformation, // s: SYSTEM_THREAD_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege)
     SystemProcessorIdleCycleTimeInformation, // q: array of ULARGE_INTEGERs, one for each idle thread (in System Idle Process)
-    SystemVerifierCancellationInformation, // name:wow64:whNT32QuerySystemVerifierCancellationInformation
-    SystemNotImplemented20,
-    SystemRefTraceInformation, // ObQueryRefTraceInformation
-    SystemSpecialPoolTagInformation, // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
+    SystemVerifierCancellationInformation, // s // name:wow64:whNT32QuerySystemVerifierCancellationInformation
+    SystemNotImplemented85, // not implemented
+    SystemRefTraceInformation, // q; s // ObQueryRefTraceInformation
+    SystemSpecialPoolTagInformation, // q; s (requires SeDebugPrivilege) // MmSpecialPoolTag, then MmSpecialPoolCatchOverruns != 0
     SystemProcessImageNameInformation, // q: SYSTEM_PROCESS_IMAGE_NAME_INFORMATION
     SystemDebugErrorPort, // s (requires SeTcbPrivilege)
     SystemBootEnvironmentInformation, // 90, q: SYSTEM_BOOT_ENVIRONMENT_INFORMATION
-    SystemEnlightenmentInformation,
-    SystemVerifierInformationEx,
+    SystemEnlightenmentInformation, // q; s (kernel-mode only)
+    SystemVerifierInformationEx, // q; s
     SystemDynamicTimeZoneInformation, // s (requires SeTimeZonePrivilege)
     SystemImageFileExecutionOptions, // s: SYSTEM_IMAGE_FILE_EXECUTION_OPTIONS (requires SeTcbPrivilege)
-    SystemCoverageInformation, // name:wow64:whNT32QuerySystemCoverageInformation; ExpCovQueryInformation
-    SystemNotImplemented24,
+    SystemCoverageInformation, // q; s // name:wow64:whNT32QuerySystemCoverageInformation; ExpCovQueryInformation
+    SystemNotImplemented96, // not implemented
     SystemVerifierFaultInjectionInformation, // s (requires SeDebugPrivilege)
-    SystemPartitionDeviceNameInformation,
-    SystemDiskDeviceNameInformation, // this and SystemPartitionInformation both call IoQuerySystemDeviceName
-    SystemProcessorPerformanceDistribution, // 100
-    SystemNumaProximityNodeInformation,
-    SystemDynamicTimeZoneInformation2, // s (requires SeTimeZonePrivilege)
+    SystemPartitionDeviceNameInformation, // q
+    SystemDiskDeviceNameInformation, // q // this and SystemPartitionInformation both call IoQuerySystemDeviceName
+    SystemProcessorPerformanceDistribution, // 100, q
+    SystemNumaProximityNodeInformation, // q
+    SystemDynamicTimeZoneInformation2, // q; s (requires SeTimeZonePrivilege)
     SystemCodeIntegrityInformation, // SeCodeIntegrityQueryInformation
-    SystemProcessorMicroCodeUpdateInformation,
-    SystemProcessorBrandStringInformation, // HalDispatchTable -> HalpGetProcessorBrandString, info class 23
-    SystemVaInformation, // MmQuerySystemVaInformation
-    SystemLogicalProcessorRelationshipInformation, // KeQueryLogicalProcessorRelationship
+    SystemProcessorMicroCodeUpdateInformation, // s
+    SystemProcessorBrandStringInformation, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
+    SystemVaInformation, // q; s // MmQuerySystemVaInformation
+    SystemLogicalProcessorRelationshipInformation, // q // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: array of ULARGE_INTEGERs, one for each processor
-    SystemStoreInformation, // SmQueryStoreInformation
-    SystemRegistryAppendStringInformation, // 110
+    SystemStoreInformation, // q; s // SmQueryStoreInformation
+    SystemRegistryAppendStringInformation, // 110, s
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
     SystemVhdBootInformation, // q: SYSTEM_VHD_BOOT_INFORMATION
-    SystemCpuQuotaInformation, // PsQueryCpuQuotaInformation
-    SystemNotImplemented29,
-    SystemNotImplemented30,
+    SystemCpuQuotaInformation, // q; s // PsQueryCpuQuotaInformation
+    SystemNotImplemented114, // not implemented
+    SystemNotImplemented115, // not implemented
     SystemLowPriorityIoInformation, // q: SYSTEM_LOW_PRIORITY_IO_INFORMATION
     SystemTpmBootEntropyInformation, // q: SYSTEM_TPM_BOOT_ENTROPY_INFORMATION // ExQueryTpmBootEntropyInformation
-    SystemVerifierInformation3,
-    SystemPagedPoolWorkingSetInformation, // q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypePagedPool)
-    SystemSystemPtesWorkingSetInformation, // 120, q: SYSTEM_FILECACHE_INFORMATION (info for WorkingSetTypeSystemPtes)
-    SystemNumaDistanceInformation,
-    SystemProcessorBrandStringInformation2, // HalDispatchTable -> HalpGetProcessorBrandString, info class 26
+    SystemVerifierInformation2, // q
+    SystemPagedPoolWorkingSetInformation, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
+    SystemSystemPtesWorkingSetInformation, // 120, q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes)
+    SystemNumaDistanceInformation, // q
+    SystemSlicAuditResultsInformation, // q // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
@@ -914,6 +914,42 @@ typedef struct _SYSTEM_PROCESSOR_IDLE_INFORMATION
     ULONG C3Transitions;
     ULONG Padding;
 } SYSTEM_PROCESSOR_IDLE_INFORMATION, *PSYSTEM_PROCESSOR_IDLE_INFORMATION;
+
+typedef struct _SYSTEM_PROCESSOR_POWER_INFORMATION
+{
+    UCHAR CurrentFrequency;
+    UCHAR ThermalLimitFrequency;
+    UCHAR ConstantThrottleFrequency;
+    UCHAR DegradedThrottleFrequency;
+    UCHAR LastBusyFrequency;
+    UCHAR LastC3Frequency;
+    UCHAR LastAdjustedBusyFrequency;
+    UCHAR ProcessorMinThrottle;
+    UCHAR ProcessorMaxThrottle;
+    ULONG NumberOfFrequencies;
+    ULONG PromotionCount;
+    ULONG DemotionCount;
+    ULONG ErrorCount;
+    ULONG RetryCount;
+    ULONGLONG CurrentFrequencyTime;
+    ULONGLONG CurrentProcessorTime;
+    ULONGLONG CurrentProcessorIdleTime;
+    ULONGLONG LastProcessorTime;
+    ULONGLONG LastProcessorIdleTime;
+} SYSTEM_PROCESSOR_POWER_INFORMATION, *PSYSTEM_PROCESSOR_POWER_INFORMATION;
+
+typedef struct _SYSTEM_QUERY_TIME_ADJUST_INFORMATION
+{
+    ULONG TimeAdjustment;
+    ULONG TimeIncrement;
+    BOOLEAN Enable;
+} SYSTEM_QUERY_TIME_ADJUST_INFORMATION, *PSYSTEM_QUERY_TIME_ADJUST_INFORMATION;
+
+typedef struct _SYSTEM_SET_TIME_ADJUST_INFORMATION
+{
+    ULONG TimeAdjustment;
+    BOOLEAN Enable;
+} SYSTEM_SET_TIME_ADJUST_INFORMATION, *PSYSTEM_SET_TIME_ADJUST_INFORMATION;
 
 typedef struct _SYSTEM_PERFORMANCE_INFORMATION
 {
@@ -1067,6 +1103,41 @@ typedef struct _SYSTEM_SESSION_PROCESS_INFORMATION
     PVOID Buffer;
 } SYSTEM_SESSION_PROCESS_INFORMATION, *PSYSTEM_SESSION_PROCESS_INFORMATION;
 
+typedef struct _SYSTEM_CALL_COUNT_INFORMATION
+{
+    ULONG Length;
+    ULONG NumberOfTables;
+} SYSTEM_CALL_COUNT_INFORMATION, *PSYSTEM_CALL_COUNT_INFORMATION;
+
+typedef struct _SYSTEM_DEVICE_INFORMATION
+{
+    ULONG NumberOfDisks;
+    ULONG NumberOfFloppies;
+    ULONG NumberOfCdRoms;
+    ULONG NumberOfTapes;
+    ULONG NumberOfSerialPorts;
+    ULONG NumberOfParallelPorts;
+} SYSTEM_DEVICE_INFORMATION, *PSYSTEM_DEVICE_INFORMATION;
+
+typedef struct _SYSTEM_EXCEPTION_INFORMATION
+{
+    ULONG AlignmentFixupCount;
+    ULONG ExceptionDispatchCount;
+    ULONG FloatingEmulationCount;
+    ULONG ByteWordEmulationCount;
+} SYSTEM_EXCEPTION_INFORMATION, *PSYSTEM_EXCEPTION_INFORMATION;
+
+typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
+{
+    BOOLEAN KernelDebuggerEnabled;
+    BOOLEAN KernelDebuggerNotPresent;
+} SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
+
+typedef struct _SYSTEM_FLAGS_INFORMATION
+{
+    ULONG Flags; // NtGlobalFlag
+} SYSTEM_FLAGS_INFORMATION, *PSYSTEM_FLAGS_INFORMATION;
+
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
 {
     USHORT UniqueProcessId;
@@ -1130,6 +1201,41 @@ typedef struct _SYSTEM_PAGEFILE_INFORMATION
     ULONG PeakUsage;
     UNICODE_STRING PageFileName;
 } SYSTEM_PAGEFILE_INFORMATION, *PSYSTEM_PAGEFILE_INFORMATION;
+
+typedef struct _SYSTEM_VERIFIER_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG Level;
+    UNICODE_STRING DriverName;
+
+    ULONG RaiseIrqls;
+    ULONG AcquireSpinLocks;
+    ULONG SynchronizeExecutions;
+    ULONG AllocationsAttempted;
+
+    ULONG AllocationsSucceeded;
+    ULONG AllocationsSucceededSpecialPool;
+    ULONG AllocationsWithNoTag;
+    ULONG TrimRequests;
+
+    ULONG Trims;
+    ULONG AllocationsFailed;
+    ULONG AllocationsFailedDeliberately;
+    ULONG Loads;
+
+    ULONG Unloads;
+    ULONG UnTrackedPool;
+    ULONG CurrentPagedPoolAllocations;
+    ULONG CurrentNonPagedPoolAllocations;
+
+    ULONG PeakPagedPoolAllocations;
+    ULONG PeakNonPagedPoolAllocations;
+
+    SIZE_T PagedPoolUsageInBytes;
+    SIZE_T NonPagedPoolUsageInBytes;
+    SIZE_T PeakPagedPoolUsageInBytes;
+    SIZE_T PeakNonPagedPoolUsageInBytes;
+} SYSTEM_VERIFIER_INFORMATION, *PSYSTEM_VERIFIER_INFORMATION;
 
 #define MM_WORKING_SET_MAX_HARD_ENABLE 0x1
 #define MM_WORKING_SET_MAX_HARD_DISABLE 0x2
@@ -1307,6 +1413,12 @@ typedef struct _SYSTEM_LOOKASIDE_INFORMATION
     ULONG Tag;
     ULONG Size;
 } SYSTEM_LOOKASIDE_INFORMATION, *PSYSTEM_LOOKASIDE_INFORMATION;
+
+typedef struct _SYSTEM_LEGACY_DRIVER_INFORMATION
+{
+    ULONG VetoType;
+    UNICODE_STRING VetoList;
+} SYSTEM_LEGACY_DRIVER_INFORMATION, *PSYSTEM_LEGACY_DRIVER_INFORMATION;
 
 // Common structure used by a few info classes
 
