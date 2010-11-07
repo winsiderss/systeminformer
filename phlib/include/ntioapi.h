@@ -155,6 +155,15 @@ typedef VOID (NTAPI *PIO_APC_ROUTINE)(
     __in ULONG Reserved
     );
 
+// rev
+// Used for worker factory objects
+typedef struct _IO_COMPLETION_MINIPACKET
+{
+    PVOID KeyContext;
+    PVOID ApcContext;
+    IO_STATUS_BLOCK Iosb;
+} IO_COMPLETION_MINIPACKET, *PIO_COMPLETION_MINIPACKET;
+
 typedef enum _FILE_INFORMATION_CLASS
 {
     FileDirectoryInformation = 1,
