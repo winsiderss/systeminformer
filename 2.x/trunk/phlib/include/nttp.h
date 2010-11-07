@@ -5,19 +5,17 @@
 
 typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
 
-// unsure
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
-    __in PTP_ALPC Alpc // ?
+    __in PTP_ALPC Alpc
     );
 
-// unsure
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
-    __in PTP_ALPC Alpc, // ?
-    __in PTP_WAIT Wait // ?
+    __in PTP_ALPC Alpc,
+    __in PVOID ApcContext
     );
 
 // end_rev

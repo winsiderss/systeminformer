@@ -572,14 +572,6 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
     NTSTATUS CreateThreadStatus;
 } WORKER_FACTORY_BASIC_INFORMATION, *PWORKER_FACTORY_BASIC_INFORMATION;
 
-typedef struct _IO_COMPLETION_MINIPACKET
-{
-    PVOID KeyContext;
-    PVOID ApcContext;
-    NTSTATUS IoStatus;
-    ULONG_PTR IoStatusInformation;
-} IO_COMPLETION_MINIPACKET, *PIO_COMPLETION_MINIPACKET;
-
 #if (PHNT_VERSION >= PHNT_VISTA)
 
 NTSYSCALLAPI
@@ -641,12 +633,14 @@ NtWorkerFactoryWorkerReady(
     __in HANDLE WorkerFactoryHandle
     );
 
+struct _IO_COMPLETION_MINIPACKET;
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWaitForWorkViaWorkerFactory(
     __in HANDLE WorkerFactoryHandle,
-    __out PIO_COMPLETION_MINIPACKET MiniPacket
+    __out struct _IO_COMPLETION_MINIPACKET *MiniPacket
     );
 
 #endif
