@@ -853,6 +853,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemNumaDistanceInformation, // q
     SystemSlicAuditResultsInformation, // q // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
+    SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1583,8 +1584,6 @@ typedef struct _SYSTEM_BASIC_PERFORMANCE_INFORMATION
 } SYSTEM_BASIC_PERFORMANCE_INFORMATION, *PSYSTEM_BASIC_PERFORMANCE_INFORMATION;
 
 // begin_msdn
-
-// For SystemQueryPerformanceCounterInformation (unknown value)
 
 typedef struct _QUERY_PERFORMANCE_COUNTER_FLAGS
 {
