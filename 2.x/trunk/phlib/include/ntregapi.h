@@ -221,7 +221,7 @@ NtCreateKey(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwCreateKeyTransacted(
+NtCreateKeyTransacted(
     __out PHANDLE KeyHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -246,7 +246,7 @@ NtOpenKey(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwOpenKeyTransacted(
+NtOpenKeyTransacted(
     __out PHANDLE KeyHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
@@ -270,7 +270,7 @@ NtOpenKeyEx(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
-ZwOpenKeyTransactedEx(
+NtOpenKeyTransactedEx(
     __out PHANDLE KeyHandle,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
