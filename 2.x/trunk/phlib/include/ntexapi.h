@@ -802,7 +802,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemObjectSecurityMode, // 70, q
     SystemWatchdogTimerHandler, // s (kernel-mode only)
     SystemWatchdogTimerInformation, // q (kernel-mode only); s (kernel-mode only)
-    SystemLogicalProcessorInformation, // q
+    SystemLogicalProcessorInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION
     SystemWow64SharedInformation, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s (kernel-mode only)
     SystemFirmwareTableInformation, // not implemented
@@ -836,7 +836,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorMicroCodeUpdateInformation, // s
     SystemProcessorBrandStringInformation, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVaInformation, // q; s // MmQuerySystemVaInformation
-    SystemLogicalProcessorRelationshipInformation, // q // KeQueryLogicalProcessorRelationship
+    SystemLogicalProcessorInformationEx, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: array of ULARGE_INTEGERs, one for each processor
     SystemStoreInformation, // q; s // SmQueryStoreInformation
     SystemRegistryAppendStringInformation, // 110, s
