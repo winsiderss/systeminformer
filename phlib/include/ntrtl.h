@@ -3,11 +3,6 @@
 
 #include <ntldr.h>
 
-// Defines for forwarded ntdll functions
-
-#define RtlExitUserProcess ExitProcess
-#define RtlExitUserThread ExitThread
-
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
@@ -2056,6 +2051,24 @@ RtlCreateUserProcess(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+DECLSPEC_NORETURN
+NTSYSAPI
+VOID
+NTAPI
+RtlExitUserProcess(
+    __in NTSTATUS ExitStatus
+    );
+#else
+DECLSPEC_NORETURN
+FORCEINLINE VOID RtlExitUserProcess(
+    __in NTSTATUS ExitStatus
+    )
+{
+    ExitProcess(ExitStatus);
+}
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
 
 // begin_rev
 
@@ -2153,6 +2166,24 @@ RtlCreateUserThread(
     __out_opt PHANDLE Thread,
     __out_opt PCLIENT_ID ClientId
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA) // should be PHNT_WINXP, but is PHNT_VISTA for consistency with RtlExitUserProcess
+DECLSPEC_NORETURN
+NTSYSAPI
+VOID
+NTAPI
+RtlExitUserThread(
+    __in NTSTATUS ExitStatus
+    );
+#else
+DECLSPEC_NORETURN
+FORCEINLINE VOID RtlExitUserThread(
+    __in NTSTATUS ExitStatus
+    )
+{
+    ExitThread(ExitStatus);
+}
+#endif
 
 NTSYSAPI
 VOID
@@ -2456,7 +2487,19 @@ RtlGetFullPathName_U(
     __out_opt PWSTR *FilePart
     );
 
-// missing:RtlGetFullPathName_UEx
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetFullPathName_UEx(
+    __in PWSTR FileName,
+    __in ULONG BufferLength,
+    __out_bcount(BufferLength) PWSTR Buffer,
+    __out_opt PWSTR *FilePart,
+    __out_opt RTL_PATH_TYPE *InputPathType
+    );
+#endif
 
 #if (PHNT_VERSION >= PHNT_WS03)
 NTSYSAPI
@@ -3333,6 +3376,17 @@ RtlWerpReportException(
     __in HANDLE SectionHandle,
     __in ULONG Flags,
     __out PHANDLE SynchronizeHandle
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlReportSilentProcessExit(
+    __in HANDLE ProcessHandle,
+    __in NTSTATUS ExitStatus
     );
 #endif
 
