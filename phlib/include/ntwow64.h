@@ -81,6 +81,60 @@ typedef struct _LDR_DATA_TABLE_ENTRY32
     LARGE_INTEGER LoadTime;
 } LDR_DATA_TABLE_ENTRY32, *PLDR_DATA_TABLE_ENTRY32;
 
+typedef struct _CURDIR32
+{
+    UNICODE_STRING32 DosPath;
+    WOW64_POINTER(HANDLE) Handle;
+} CURDIR32, *PCURDIR32;
+
+typedef struct _RTL_DRIVE_LETTER_CURDIR32
+{
+    USHORT Flags;
+    USHORT Length;
+    ULONG TimeStamp;
+    STRING32 DosPath;
+} RTL_DRIVE_LETTER_CURDIR32, *PRTL_DRIVE_LETTER_CURDIR32;
+
+typedef struct _RTL_USER_PROCESS_PARAMETERS32
+{
+    ULONG MaximumLength;
+    ULONG Length;
+
+    ULONG Flags;
+    ULONG DebugFlags;
+
+    WOW64_POINTER(HANDLE) ConsoleHandle;
+    ULONG ConsoleFlags;
+    WOW64_POINTER(HANDLE) StandardInput;
+    WOW64_POINTER(HANDLE) StandardOutput;
+    WOW64_POINTER(HANDLE) StandardError;
+
+    CURDIR32 CurrentDirectory;
+    UNICODE_STRING32 DllPath;
+    UNICODE_STRING32 ImagePathName;
+    UNICODE_STRING32 CommandLine;
+    WOW64_POINTER(PVOID) Environment;
+
+    ULONG StartingX;
+    ULONG StartingY;
+    ULONG CountX;
+    ULONG CountY;
+    ULONG CountCharsX;
+    ULONG CountCharsY;
+    ULONG FillAttribute;
+
+    ULONG WindowFlags;
+    ULONG ShowWindowFlags;
+    UNICODE_STRING32 WindowTitle;
+    UNICODE_STRING32 DesktopInfo;
+    UNICODE_STRING32 ShellInfo;
+    UNICODE_STRING32 RuntimeData;
+    RTL_DRIVE_LETTER_CURDIR32 CurrentDirectories[RTL_MAX_DRIVE_LETTERS];
+
+    ULONG EnvironmentSize;
+    ULONG EnvironmentVersion;
+} RTL_USER_PROCESS_PARAMETERS32, *PRTL_USER_PROCESS_PARAMETERS32;
+
 typedef struct _PEB32
 {
     BOOLEAN InheritedAddressSpace;
