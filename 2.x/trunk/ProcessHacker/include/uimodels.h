@@ -1,6 +1,94 @@
 #ifndef UIMODELS_H
 #define UIMODELS_H
 
+// Common state highlighting support
+
+typedef struct _PH_SH_STATE
+{
+    PH_ITEM_STATE State;
+    HANDLE StateListHandle;
+    ULONG TickCount;
+} PH_SH_STATE, *PPH_SH_STATE;
+
+FORCEINLINE VOID PhChangeShState(
+    __inout PPH_TREELIST_NODE Node,
+    __inout PPH_SH_STATE ShState,
+    __inout PPH_POINTER_LIST *StateList,
+    __in PH_ITEM_STATE NewState,
+    __in COLORREF NewTempBackColor,
+    __in_opt HWND TreeListHandleForUpdate
+    )
+{
+    if (!*StateList)
+        *StateList = PhCreatePointerList(4);
+
+    if (ShState->State == NormalItemState)
+        ShState->StateListHandle = PhAddItemPointerList(*StateList, Node);
+
+    ShState->TickCount = GetTickCount();
+    ShState->State = NewState;
+
+    Node->UseTempBackColor = TRUE;
+    Node->TempBackColor = NewTempBackColor;
+
+    if (TreeListHandleForUpdate)
+        TreeList_UpdateNode(TreeListHandleForUpdate, Node);
+}
+
+#define PH_TICK_SH_STATE(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeListHandleForUpdate, Invalidate) \
+    do { \
+        NodeType *node; \
+        ULONG enumerationKey = 0; \
+        ULONG tickCount; \
+        HANDLE stateListHandle; \
+        BOOLEAN redrawDisabled = FALSE; \
+        BOOLEAN changed = FALSE; \
+\
+        if (!StateList || StateList->Count == 0) \
+            break; \
+\
+        tickCount = GetTickCount(); \
+\
+        while (PhEnumPointerList(StateList, &enumerationKey, &node)) \
+        { \
+            if (PhRoundNumber(tickCount - node->ShStateFieldName.TickCount, 100) < (HighlightingDuration)) \
+                continue; \
+\
+            stateListHandle = node->ShStateFieldName.StateListHandle; \
+\
+            if (node->ShStateFieldName.State == NewItemState) \
+            { \
+                node->ShStateFieldName.State = NormalItemState; \
+                ((PPH_TREELIST_NODE)node)->UseTempBackColor = FALSE; \
+                changed = TRUE; \
+            } \
+            else if (node->ShStateFieldName.State == RemovingItemState) \
+            { \
+                if (TreeListHandleForUpdate) \
+                { \
+                    if (!redrawDisabled) \
+                    { \
+                        TreeList_SetRedraw((TreeListHandleForUpdate), FALSE); \
+                        redrawDisabled = TRUE; \
+                    } \
+                } \
+\
+                RemoveFunction(node); \
+                changed = TRUE; \
+            } \
+\
+            PhRemoveItemPointerList(StateList, stateListHandle); \
+        } \
+\
+        if (TreeListHandleForUpdate) \
+        { \
+            if (redrawDisabled) \
+                TreeList_SetRedraw((TreeListHandleForUpdate), TRUE); \
+            if ((Invalidate) && changed) \
+                InvalidateRect((TreeListHandleForUpdate), NULL, FALSE); \
+        } \
+    } while (0)
+
 // proctree
 
 // Columns
@@ -69,9 +157,7 @@ typedef struct _PH_PROCESS_NODE
 
     PH_HASH_ENTRY HashEntry;
 
-    PH_ITEM_STATE State;
-    HANDLE StateListHandle;
-    ULONG TickCount;
+    PH_SH_STATE ShState;
 
     HANDLE ProcessId;
     PPH_PROCESS_ITEM ProcessItem;
@@ -239,9 +325,7 @@ typedef struct _PH_SERVICE_NODE
 {
     PH_TREELIST_NODE Node;
 
-    PH_ITEM_STATE State;
-    HANDLE StateListHandle;
-    ULONG TickCount;
+    PH_SH_STATE ShState;
 
     PPH_SERVICE_ITEM ServiceItem;
 
