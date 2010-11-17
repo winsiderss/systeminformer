@@ -66,12 +66,6 @@ VOID PhProcessTreeListInitialization()
     ProcessNodeRootList = PhCreateList(10);
 }
 
-FORCEINLINE VOID PhpEnsureProcessNodeStateListCreated()
-{
-    if (!ProcessNodeStateList)
-        ProcessNodeStateList = PhCreatePointerList(4);
-}
-
 VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     )
@@ -201,16 +195,14 @@ PPH_PROCESS_NODE PhAddProcessNode(
 
     if (PhProcessTreeListStateHighlighting && RunId != 1)
     {
-        PhpEnsureProcessNodeStateListCreated();
-        processNode->TickCount = GetTickCount();
-        processNode->Node.UseTempBackColor = TRUE;
-        processNode->Node.TempBackColor = PhCsColorNew;
-        processNode->StateListHandle = PhAddItemPointerList(ProcessNodeStateList, processNode);
-        processNode->State = NewItemState;
-    }
-    else
-    {
-        processNode->State = NormalItemState;
+        PhChangeShState(
+            &processNode->Node,
+            &processNode->ShState,
+            &ProcessNodeStateList,
+            NewItemState,
+            PhCsColorNew,
+            NULL
+            );
     }
 
     processNode->ProcessId = ProcessItem->ProcessId;
@@ -343,15 +335,14 @@ VOID PhRemoveProcessNode(
 {
     if (PhProcessTreeListStateHighlighting)
     {
-        PhpEnsureProcessNodeStateListCreated();
-        ProcessNode->TickCount = GetTickCount();
-        ProcessNode->Node.UseTempBackColor = TRUE;
-        ProcessNode->Node.TempBackColor = PhCsColorRemoved;
-        if (ProcessNode->State == NormalItemState)
-            ProcessNode->StateListHandle = PhAddItemPointerList(ProcessNodeStateList, ProcessNode);
-        ProcessNode->State = RemovingItemState;
-
-        TreeList_UpdateNode(ProcessTreeListHandle, &ProcessNode->Node);
+        PhChangeShState(
+            &ProcessNode->Node,
+            &ProcessNode->ShState,
+            &ProcessNodeStateList,
+            RemovingItemState,
+            PhCsColorRemoved,
+            ProcessTreeListHandle
+            );
     }
     else
     {
@@ -471,45 +462,7 @@ VOID PhTickProcessNodes()
     }
 
     // State highlighting
-    if (ProcessNodeStateList && ProcessNodeStateList->Count != 0)
-    {
-        PPH_PROCESS_NODE node;
-        ULONG enumerationKey = 0;
-        ULONG tickCount;
-        HANDLE stateListHandle;
-        BOOLEAN redrawDisabled = FALSE;
-
-        tickCount = GetTickCount();
-
-        while (PhEnumPointerList(ProcessNodeStateList, &enumerationKey, &node))
-        {
-            if (PhRoundNumber(tickCount - node->TickCount, 100) < PhCsHighlightingDuration)
-                continue;
-
-            stateListHandle = node->StateListHandle;
-
-            if (node->State == NewItemState)
-            {
-                node->State = NormalItemState;
-                node->Node.UseTempBackColor = FALSE;
-            }
-            else if (node->State == RemovingItemState)
-            {
-                if (!redrawDisabled)
-                {
-                    TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
-                    redrawDisabled = TRUE;
-                }
-
-                PhpRemoveProcessNode(node);
-            }
-
-            PhRemoveItemPointerList(ProcessNodeStateList, stateListHandle);
-        }
-
-        if (redrawDisabled)
-            TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
-    }
+    PH_TICK_SH_STATE(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, FALSE);
 
     InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
 }

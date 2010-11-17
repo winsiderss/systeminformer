@@ -72,12 +72,6 @@ VOID PhServiceTreeListInitialization()
     ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
 }
 
-FORCEINLINE VOID PhpEnsureServiceNodeStateListCreated()
-{
-    if (!ServiceNodeStateList)
-        ServiceNodeStateList = PhCreatePointerList(4);
-}
-
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
     __in PVOID Entry1,
     __in PVOID Entry2
@@ -162,16 +156,14 @@ PPH_SERVICE_NODE PhAddServiceNode(
 
     if (PhServiceTreeListStateHighlighting && RunId != 1)
     {
-        PhpEnsureServiceNodeStateListCreated();
-        serviceNode->TickCount = GetTickCount();
-        serviceNode->Node.UseTempBackColor = TRUE;
-        serviceNode->Node.TempBackColor = PhCsColorNew;
-        serviceNode->StateListHandle = PhAddItemPointerList(ServiceNodeStateList, serviceNode);
-        serviceNode->State = NewItemState;
-    }
-    else
-    {
-        serviceNode->State = NormalItemState;
+        PhChangeShState(
+            &serviceNode->Node,
+            &serviceNode->ShState,
+            &ServiceNodeStateList,
+            NewItemState,
+            PhCsColorNew,
+            NULL
+            );
     }
 
     serviceNode->ServiceItem = ServiceItem;
@@ -216,15 +208,14 @@ VOID PhRemoveServiceNode(
 {
     if (PhServiceTreeListStateHighlighting)
     {
-        PhpEnsureServiceNodeStateListCreated();
-        ServiceNode->TickCount = GetTickCount();
-        ServiceNode->Node.UseTempBackColor = TRUE;
-        ServiceNode->Node.TempBackColor = PhCsColorRemoved;
-        if (ServiceNode->State == NormalItemState)
-            ServiceNode->StateListHandle = PhAddItemPointerList(ServiceNodeStateList, ServiceNode);
-        ServiceNode->State = RemovingItemState;
-
-        TreeList_UpdateNode(ServiceTreeListHandle, &ServiceNode->Node);
+        PhChangeShState(
+            &ServiceNode->Node,
+            &ServiceNode->ShState,
+            &ServiceNodeStateList,
+            RemovingItemState,
+            PhCsColorRemoved,
+            ServiceTreeListHandle
+            );
     }
     else
     {
@@ -271,51 +262,7 @@ VOID PhUpdateServiceNode(
 
 VOID PhTickServiceNodes()
 {
-    // State highlighting
-    if (ServiceNodeStateList && ServiceNodeStateList->Count != 0)
-    {
-        PPH_SERVICE_NODE node;
-        ULONG enumerationKey = 0;
-        ULONG tickCount;
-        HANDLE stateListHandle;
-        BOOLEAN redrawDisabled = FALSE;
-        BOOLEAN changed = FALSE;
-
-        tickCount = GetTickCount();
-
-        while (PhEnumPointerList(ServiceNodeStateList, &enumerationKey, &node))
-        {
-            if (PhRoundNumber(tickCount - node->TickCount, 100) < PhCsHighlightingDuration)
-                continue;
-
-            stateListHandle = node->StateListHandle;
-
-            if (node->State == NewItemState)
-            {
-                node->State = NormalItemState;
-                node->Node.UseTempBackColor = FALSE;
-                changed = TRUE;
-            }
-            else if (node->State == RemovingItemState)
-            {
-                if (!redrawDisabled)
-                {
-                    TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
-                    redrawDisabled = TRUE;
-                }
-
-                PhpRemoveServiceNode(node);
-                changed = TRUE;
-            }
-
-            PhRemoveItemPointerList(ServiceNodeStateList, stateListHandle);
-        }
-
-        if (redrawDisabled)
-            TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
-        if (changed)
-            InvalidateRect(ServiceTreeListHandle, NULL, FALSE);
-    }
+    PH_TICK_SH_STATE(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE);
 }
 
 static VOID PhpUpdateServiceNodeConfig(
