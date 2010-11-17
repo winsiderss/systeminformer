@@ -23,6 +23,15 @@ PhUnregisterDialog(
     __in HWND DialogWindowHandle
     );
 
+// Common state highlighting support
+
+typedef struct _PH_SH_STATE
+{
+    PH_ITEM_STATE State;
+    ULONG_PTR Private1;
+    ULONG Private2;
+} PH_SH_STATE, *PPH_SH_STATE;
+
 // proctree
 
 typedef struct _PH_PROCESS_NODE
@@ -31,9 +40,7 @@ typedef struct _PH_PROCESS_NODE
 
     PH_HASH_ENTRY HashEntry;
 
-    PH_ITEM_STATE State;
-    ULONG_PTR Private1;
-    ULONG Private2;
+    PH_SH_STATE ShState;
 
     HANDLE ProcessId;
     PPH_PROCESS_ITEM ProcessItem;
@@ -118,9 +125,7 @@ typedef struct _PH_SERVICE_NODE
 {
     PH_TREELIST_NODE Node;
 
-    PH_ITEM_STATE State;
-    ULONG_PTR Private1;
-    ULONG Private2;
+    PH_SH_STATE ShState;
 
     PPH_SERVICE_ITEM ServiceItem;
 
