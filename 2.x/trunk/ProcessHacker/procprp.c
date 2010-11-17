@@ -729,9 +729,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 processItem->ProcessId
                 )))
             {
+                PH_PEB_OFFSET pebOffset;
+
+                pebOffset = PhpoCurrentDirectory;
+
+#ifdef _M_X64
+                // Tell the function to get the WOW64 current directory, because that's 
+                // the one that actually gets updated.
+                if (processItem->IsWow64)
+                    pebOffset |= PhpoWow64;
+#endif
+
                 PhGetProcessPebString(
                     processHandle,
-                    PhpoCurrentDirectory,
+                    pebOffset,
                     &curdir
                     );
 
@@ -4135,8 +4146,18 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                 processItem->ProcessId
                 )))
             {
-                if (NT_SUCCESS(PhGetProcessEnvironmentVariables(
+                ULONG flags;
+
+                flags = 0;
+
+#ifdef _M_X64
+                if (processItem->IsWow64)
+                    flags |= PH_GET_PROCESS_ENVIRONMENT_WOW64;
+#endif
+
+                if (NT_SUCCESS(PhGetProcessEnvironmentVariablesEx(
                     processHandle,
+                    flags,
                     &variables,
                     &numberOfVariables
                     )))
