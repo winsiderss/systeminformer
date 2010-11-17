@@ -762,77 +762,111 @@ NTSTATUS PhGetProcessPebString(
     NTSTATUS status;
     PPH_STRING string;
     ULONG offset;
-    PROCESS_BASIC_INFORMATION basicInfo;
-    PVOID processParameters;
-    UNICODE_STRING unicodeString;
+
+#define PEB_OFFSET_CASE(Enum, Field) \
+    case Enum: offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Field); break; \
+    case Enum | PhpoWow64: offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Field); break
 
     switch (Offset)
     {
-    case PhpoCurrentDirectory:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, CurrentDirectory);
-        break;
-    case PhpoDllPath:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, DllPath);
-        break;
-    case PhpoImagePathName:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, ImagePathName);
-        break;
-    case PhpoCommandLine:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, CommandLine);
-        break;
-    case PhpoWindowTitle:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, WindowTitle);
-        break;
-    case PhpoDesktopName:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, DesktopInfo);
-        break;
-    case PhpoShellInfo:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, ShellInfo);
-        break;
-    case PhpoRuntimeData:
-        offset = FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, RuntimeData);
-        break;
+        PEB_OFFSET_CASE(PhpoCurrentDirectory, CurrentDirectory);
+        PEB_OFFSET_CASE(PhpoDllPath, DllPath);
+        PEB_OFFSET_CASE(PhpoImagePathName, ImagePathName);
+        PEB_OFFSET_CASE(PhpoCommandLine, CommandLine);
+        PEB_OFFSET_CASE(PhpoWindowTitle, WindowTitle);
+        PEB_OFFSET_CASE(PhpoDesktopInfo, DesktopInfo);
+        PEB_OFFSET_CASE(PhpoShellInfo, ShellInfo);
+        PEB_OFFSET_CASE(PhpoRuntimeData, RuntimeData);
     default:
         return STATUS_INVALID_PARAMETER_2;
     }
 
-    // Get the PEB address.
-    if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
-        return status;
-
-    // Read the address of the process parameters.
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
-        &processParameters,
-        sizeof(PVOID),
-        NULL
-        )))
-        return status;
-
-    // Read the string structure.
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(processParameters, offset),
-        &unicodeString,
-        sizeof(UNICODE_STRING),
-        NULL
-        )))
-        return status;
-
-    string = PhCreateStringEx(NULL, unicodeString.Length);
-
-    // Read the string contents.
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        unicodeString.Buffer,
-        string->Buffer,
-        string->Length,
-        NULL
-        )))
+    if (!(Offset & PhpoWow64))
     {
-        PhDereferenceObject(string);
-        return status;
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID processParameters;
+        UNICODE_STRING unicodeString;
+
+        // Get the PEB address.
+        if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+            return status;
+
+        // Read the address of the process parameters.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            &processParameters,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+
+        // Read the string structure.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters, offset),
+            &unicodeString,
+            sizeof(UNICODE_STRING),
+            NULL
+            )))
+            return status;
+
+        string = PhCreateStringEx(NULL, unicodeString.Length);
+
+        // Read the string contents.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            unicodeString.Buffer,
+            string->Buffer,
+            string->Length,
+            NULL
+            )))
+        {
+            PhDereferenceObject(string);
+            return status;
+        }
+    }
+    else
+    {
+        PVOID peb32;
+        ULONG processParameters32;
+        UNICODE_STRING32 unicodeString32;
+
+        if (!NT_SUCCESS(status = PhGetProcessPeb32(ProcessHandle, &peb32)))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            &processParameters32,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters32, offset),
+            &unicodeString32,
+            sizeof(UNICODE_STRING32),
+            NULL
+            )))
+            return status;
+
+        string = PhCreateStringEx(NULL, unicodeString32.Length);
+
+        // Read the string contents.
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            UlongToPtr(unicodeString32.Buffer),
+            string->Buffer,
+            string->Length,
+            NULL
+            )))
+        {
+            PhDereferenceObject(string);
+            return status;
+        }
     }
 
     *String = string;
@@ -1372,9 +1406,40 @@ NTSTATUS PhGetProcessEnvironmentVariables(
     __out PULONG NumberOfVariables
     )
 {
+    return PhGetProcessEnvironmentVariablesEx(
+        ProcessHandle,
+        0,
+        Variables,
+        NumberOfVariables
+        );
+}
+
+/**
+ * Gets a process' environment variables.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
+ * access.
+ * \param Flags A combination of the following flags:
+ * \li \c PH_GET_PROCESS_ENVIRONMENT_WOW64 Retrieve the WOW64 
+ * environment block.
+ * \param Variables A variable which will receive a pointer 
+ * to an array of \ref PH_ENVIRONMENT_VARIABLE structures, one 
+ * for each variable. You must free the array using 
+ * PhFreeProcessEnvironmentVariables() when you no longer 
+ * need it.
+ * \param NumberOfVariables A variable which will receive 
+ * the number of environment variables returned in the 
+ * array.
+ */
+NTSTATUS PhGetProcessEnvironmentVariablesEx(
+    __in HANDLE ProcessHandle,
+    __in ULONG Flags,
+    __out PPH_ENVIRONMENT_VARIABLE *Variables,
+    __out PULONG NumberOfVariables
+    )
+{
     NTSTATUS status;
-    PROCESS_BASIC_INFORMATION basicInfo;
-    PVOID processParameters;
     PVOID environment;
     ULONG environmentLength;
     PWSTR buffer;
@@ -1382,28 +1447,65 @@ NTSTATUS PhGetProcessEnvironmentVariables(
     ULONG i;
     PPH_ENVIRONMENT_VARIABLE variables;
 
-    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+    if (!(Flags & PH_GET_PROCESS_ENVIRONMENT_WOW64))
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+        PVOID processParameters;
 
-    if (!NT_SUCCESS(status))
-        return status;
+        status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
-        &processParameters,
-        sizeof(PVOID),
-        NULL
-        )))
-        return status;
+        if (!NT_SUCCESS(status))
+            return status;
 
-    if (!NT_SUCCESS(status = PhReadVirtualMemory(
-        ProcessHandle,
-        PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
-        &environment,
-        sizeof(PVOID),
-        NULL
-        )))
-        return status;
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+            &processParameters,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, Environment)),
+            &environment,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+    }
+    else
+    {
+        PVOID peb32;
+        ULONG processParameters32;
+        ULONG environment32;
+
+        status = PhGetProcessPeb32(ProcessHandle, &peb32);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, ProcessParameters)),
+            &processParameters32,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(processParameters32, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS32, Environment)),
+            &environment32,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+
+        environment = UlongToPtr(environment32);
+    }
 
     {
         MEMORY_BASIC_INFORMATION mbi;

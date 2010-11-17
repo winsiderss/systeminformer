@@ -20,61 +20,6 @@ extern "C" {
 
 #define SYSTEM_IDLE_PROCESS_NAME (L"System Idle Process")
 
-/** Specifies a PEB string. */
-typedef enum _PH_PEB_OFFSET
-{
-    PhpoCurrentDirectory,
-    PhpoDllPath,
-    PhpoImagePathName,
-    PhpoCommandLine,
-    PhpoWindowTitle,
-    PhpoDesktopName,
-    PhpoShellInfo,
-    PhpoRuntimeData
-} PH_PEB_OFFSET;
-
-/** Specifies a token integrity level. */
-typedef enum _PH_INTEGRITY
-{
-    PiUntrusted = 0,
-    PiLow = 1,
-    PiMedium = 2,
-    PiMediumPlus = 3, // unused
-    PiHigh = 4,
-    PiSystem = 5,
-    PiInstaller = 6,
-    PiProtected = 7, // unused
-    PiSecure = 8 // unused
-} PH_INTEGRITY, *PPH_INTEGRITY;
-
-typedef struct _PH_PROCESS_WS_COUNTERS
-{
-    ULONG NumberOfPages;
-    ULONG NumberOfPrivatePages;
-    ULONG NumberOfSharedPages;
-    ULONG NumberOfShareablePages;
-} PH_PROCESS_WS_COUNTERS, *PPH_PROCESS_WS_COUNTERS;
-
-/** Contains information about an environment variable. */
-typedef struct _PH_ENVIRONMENT_VARIABLE
-{
-    /** A string containing the variable name. */
-    PPH_STRING Name;
-    /** A string containing the variable value. */
-    PPH_STRING Value;
-} PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
-
-/** Contains information about a thread stack frame. */
-typedef struct _PH_THREAD_STACK_FRAME
-{
-    PVOID PcAddress;
-    PVOID ReturnAddress;
-    PVOID FrameAddress;
-    PVOID StackAddress;
-    PVOID BStoreAddress;
-    PVOID Params[4];
-} PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
-
 PHLIBAPI
 NTSTATUS PhOpenProcess(
     __out PHANDLE ProcessHandle,
@@ -219,6 +164,29 @@ NTSTATUS PhGetProcessImageFileNameWin32(
     __out PPH_STRING *FileName
     );
 
+/** Specifies a PEB string. */
+typedef enum _PH_PEB_OFFSET
+{
+    PhpoCurrentDirectory,
+    PhpoDllPath,
+    PhpoImagePathName,
+    PhpoCommandLine,
+    PhpoWindowTitle,
+    PhpoDesktopInfo,
+    PhpoShellInfo,
+    PhpoRuntimeData,
+    PhpoTypeMask = 0xffff,
+
+    PhpoWow64 = 0x10000
+} PH_PEB_OFFSET;
+
+PHLIBAPI
+NTSTATUS PhGetProcessPebString(
+    __in HANDLE ProcessHandle,
+    __in PH_PEB_OFFSET Offset,
+    __out PPH_STRING *String
+    );
+
 /**
  * Gets a process' command line.
  *
@@ -231,13 +199,6 @@ NTSTATUS PhGetProcessImageFileNameWin32(
  */
 #define PhGetProcessCommandLine(ProcessHandle, String) \
     PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
-
-PHLIBAPI
-NTSTATUS PhGetProcessPebString(
-    __in HANDLE ProcessHandle,
-    __in PH_PEB_OFFSET Offset,
-    __out PPH_STRING *String
-    );
 
 PHLIBAPI
 NTSTATUS PhGetProcessSessionId(
@@ -321,9 +282,28 @@ NTSTATUS PhGetProcessPosixCommandLine(
     __out PPH_STRING *CommandLine
     );
 
+/** Contains information about an environment variable. */
+typedef struct _PH_ENVIRONMENT_VARIABLE
+{
+    /** A string containing the variable name. */
+    PPH_STRING Name;
+    /** A string containing the variable value. */
+    PPH_STRING Value;
+} PH_ENVIRONMENT_VARIABLE, *PPH_ENVIRONMENT_VARIABLE;
+
 PHLIBAPI
 NTSTATUS PhGetProcessEnvironmentVariables(
     __in HANDLE ProcessHandle,
+    __out PPH_ENVIRONMENT_VARIABLE *Variables,
+    __out PULONG NumberOfVariables
+    );
+
+#define PH_GET_PROCESS_ENVIRONMENT_WOW64 0x1 // retrieve the WOW64 environment
+
+PHLIBAPI
+NTSTATUS PhGetProcessEnvironmentVariablesEx(
+    __in HANDLE ProcessHandle,
+    __in ULONG Flags,
     __out PPH_ENVIRONMENT_VARIABLE *Variables,
     __out PULONG NumberOfVariables
     );
@@ -346,6 +326,14 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     __in HANDLE ProcessHandle,
     __out PMEMORY_WORKING_SET_INFORMATION *WorkingSetInformation
     );
+
+typedef struct _PH_PROCESS_WS_COUNTERS
+{
+    ULONG NumberOfPages;
+    ULONG NumberOfPrivatePages;
+    ULONG NumberOfSharedPages;
+    ULONG NumberOfShareablePages;
+} PH_PROCESS_WS_COUNTERS, *PPH_PROCESS_WS_COUNTERS;
 
 PHLIBAPI
 NTSTATUS PhGetProcessWsCounters(
@@ -441,6 +429,17 @@ NTSTATUS PhSetThreadIoPriority(
     __in HANDLE ThreadHandle,
     __in ULONG IoPriority
     );
+
+/** Contains information about a thread stack frame. */
+typedef struct _PH_THREAD_STACK_FRAME
+{
+    PVOID PcAddress;
+    PVOID ReturnAddress;
+    PVOID FrameAddress;
+    PVOID StackAddress;
+    PVOID BStoreAddress;
+    PVOID Params[4];
+} PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
 
 #define PH_WALK_I386_STACK 0x1
 #define PH_WALK_AMD64_STACK 0x2
@@ -606,6 +605,20 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
     __in HANDLE TokenHandle,
     __in BOOLEAN IsVirtualizationEnabled
     );
+
+/** Specifies a token integrity level. */
+typedef enum _PH_INTEGRITY
+{
+    PiUntrusted = 0,
+    PiLow = 1,
+    PiMedium = 2,
+    PiMediumPlus = 3, // unused
+    PiHigh = 4,
+    PiSystem = 5,
+    PiInstaller = 6,
+    PiProtected = 7, // unused
+    PiSecure = 8 // unused
+} PH_INTEGRITY, *PPH_INTEGRITY;
 
 PHLIBAPI
 NTSTATUS PhGetTokenIntegrityLevel(

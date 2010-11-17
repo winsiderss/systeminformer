@@ -2,6 +2,8 @@ Process Hacker
 
 2.9
  * NEW/IMPROVED:
+   * Environment variables and current directory are 
+     now correctly shown for WOW64 processes
  * FIXED:
    * Network list bug
 
