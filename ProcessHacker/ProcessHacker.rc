@@ -434,6 +434,14 @@ BEGIN
     END
 END
 
+IDR_GENERICHEADER MENU
+BEGIN
+    POPUP "Header"
+    BEGIN
+        MENUITEM "Choose Columns...",           ID_HEADER_CHOOSECOLUMNS
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -522,7 +530,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Modules"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,246,246
+    LTEXT           "Static",IDC_LIST_LAYOUT,7,7,246,246,NOT WS_VISIBLE
 END
 
 IDD_PROCTHREADS DIALOGEX 0, 0, 260, 260

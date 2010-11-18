@@ -76,10 +76,19 @@ HWND PhCreateTreeListControl(
     __in INT_PTR Id
     )
 {
+    return PhCreateTreeListControlEx(ParentHandle, Id, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLCREATE_BORDER);
+}
+
+HWND PhCreateTreeListControlEx(
+    __in HWND ParentHandle,
+    __in INT_PTR Id,
+    __in ULONG Style
+    )
+{
     return CreateWindow(
         PH_TREELIST_CLASSNAME,
         L"",
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+        Style,
         0,
         0,
         3,
@@ -219,14 +228,25 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case WM_CREATE:
         {
             LPCREATESTRUCT createStruct = (LPCREATESTRUCT)lParam;
+            ULONG style;
+            ULONG exStyle;
 
             context->Handle = hwnd;
 
-            context->ListViewHandle = CreateWindow(
+            style = WS_CHILD | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS |
+                WS_VISIBLE | WS_CLIPSIBLINGS;
+            exStyle = 0;
+
+            if (createStruct->style & TLCREATE_BORDER)
+                style |= WS_BORDER;
+            if (createStruct->style & TLCREATE_CLIENTEDGE)
+                exStyle |= WS_EX_CLIENTEDGE;
+
+            context->ListViewHandle = CreateWindowEx(
+                exStyle,
                 WC_LISTVIEW,
                 L"",
-                WS_CHILD | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS |
-                WS_VISIBLE | WS_BORDER | WS_CLIPSIBLINGS,
+                style,
                 0,
                 0,
                 createStruct->cx,
@@ -276,6 +296,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
     case WM_SETFONT:
         {
             SendMessage(context->ListViewHandle, WM_SETFONT, wParam, lParam);
+            context->TextMetricsValid = FALSE;
         }
         break;
     case WM_THEMECHANGED:
@@ -1417,6 +1438,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     ULONG subItemIndex;
     HDC hdc;
     HFONT font; // font to use
+    HFONT oldFont;
     PH_STRINGREF text; // text to draw
     PPH_TREELIST_COLUMN column; // column of sub item
     RECT origTextRect; // original draw rectangle
@@ -1636,6 +1658,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
         textRect.top = origTextRect.top + textVertMargin;
         textRect.bottom = origTextRect.bottom - textVertMargin;
 
+        if (font)
+            oldFont = SelectObject(CustomDraw->nmcd.hdc, font);
+
         DrawText(
             CustomDraw->nmcd.hdc,
             text.Buffer,
@@ -1643,6 +1668,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
             &textRect,
             textFlags
             );
+
+        if (font)
+            SelectObject(CustomDraw->nmcd.hdc, oldFont);
     }
 }
 

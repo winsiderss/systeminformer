@@ -138,8 +138,8 @@ typedef struct _PH_MODULES_CONTEXT
 
     HWND WindowHandle;
 
+    PH_MODULE_LIST_CONTEXT ListContext;
     BOOLEAN NeedsRedraw;
-    BOOLEAN NeedsSort;
 } PH_MODULES_CONTEXT, *PPH_MODULES_CONTEXT;
 
 #define WM_PH_HANDLE_ADDED (WM_APP + 221)
