@@ -96,6 +96,13 @@ VOID PhInitializeModuleList(
     PhAddTreeListColumn(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 2, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 3, 0);
 
+    PhAddTreeListColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+
+    PhAddTreeListColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0);
+
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
 }
@@ -105,6 +112,9 @@ VOID PhDeleteModuleList(
     )
 {
     ULONG i;
+
+    if (Context->BoldFont)
+        DeleteObject(Context->BoldFont);
 
     for (i = 0; i < Context->NodeList->Count; i++)
         PhpDestroyModuleNode(Context->NodeList->Items[i]);
@@ -345,6 +355,36 @@ BEGIN_SORT_FUNCTION(Description)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CompanyName)
+{
+    sortResult = PhCompareStringWithNull(moduleItem1->VersionInfo.CompanyName, moduleItem2->VersionInfo.CompanyName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Version)
+{
+    sortResult = PhCompareStringWithNull(moduleItem1->VersionInfo.FileVersion, moduleItem2->VersionInfo.FileVersion, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(FileName)
+{
+    sortResult = PhCompareStringWithNull(moduleItem1->FileName, moduleItem2->FileName, TRUE);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Type)
+{
+    sortResult = uintcmp(moduleItem1->Type, moduleItem2->Type);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(LoadCount)
+{
+    sortResult = uintcmp(moduleItem1->LoadCount, moduleItem2->LoadCount);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -371,7 +411,12 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(BaseAddress),
                     SORT_FUNCTION(Size),
-                    SORT_FUNCTION(Description)
+                    SORT_FUNCTION(Description),
+                    SORT_FUNCTION(CompanyName),
+                    SORT_FUNCTION(Version),
+                    SORT_FUNCTION(FileName),
+                    SORT_FUNCTION(Type),
+                    SORT_FUNCTION(LoadCount)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -421,6 +466,59 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             case PHMOTLC_DESCRIPTION:
                 getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.FileDescription);
                 break;
+            case PHMOTLC_COMPANYNAME:
+                getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.CompanyName);
+                break;
+            case PHMOTLC_VERSION:
+                getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
+                break;
+            case PHMOTLC_FILENAME:
+                getNodeText->Text = PhGetStringRef(moduleItem->FileName);
+                break;
+            case PHMOTLC_TYPE:
+                {
+                    PWSTR typeString;
+
+                    switch (moduleItem->Type)
+                    {
+                    case PH_MODULE_TYPE_MODULE:
+                        typeString = L"DLL";
+                        break;
+                    case PH_MODULE_TYPE_MAPPED_FILE:
+                        typeString = L"Mapped File";
+                        break;
+                    case PH_MODULE_TYPE_WOW64_MODULE:
+                        typeString = L"WOW64 DLL";
+                        break;
+                    case PH_MODULE_TYPE_KERNEL_MODULE:
+                        typeString = L"Kernel Module";
+                        break;
+                    default:
+                        typeString = L"Unknown";
+                        break;
+                    }
+
+                    PhInitializeStringRef(&getNodeText->Text, typeString);
+                }
+                break;
+            case PHMOTLC_LOADCOUNT:
+                if (moduleItem->Type != PH_MODULE_TYPE_MAPPED_FILE)
+                {
+                    if (moduleItem->LoadCount != (USHORT)-1)
+                    {
+                        PhPrintInt32(node->LoadCountString, moduleItem->LoadCount);
+                        PhInitializeStringRef(&getNodeText->Text, node->LoadCountString);
+                    }
+                    else
+                    {
+                        PhInitializeStringRef(&getNodeText->Text, L"Static");
+                    }
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -455,7 +553,18 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             // Make the executable file module item bold.
             if (node->ModuleItem->IsFirst)
             {
-                getNodeFont->Font = PhBoldListViewFont;
+                if (!context->BoldFont)
+                {
+                    LOGFONT logFont;
+
+                    if (GetObject((HFONT)SendMessage(hwnd, WM_GETFONT, 0, 0), sizeof(LOGFONT), &logFont))
+                    {
+                        logFont.lfWeight = FW_BOLD;
+                        context->BoldFont = CreateFontIndirect(&logFont);
+                    }
+                }
+
+                getNodeFont->Font = context->BoldFont ? context->BoldFont : PhBoldListViewFont;
                 getNodeFont->Flags = TLC_CACHE;
                 return TRUE;
             }

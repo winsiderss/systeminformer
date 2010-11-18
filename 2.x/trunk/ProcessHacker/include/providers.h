@@ -459,6 +459,8 @@ typedef struct _PH_MODULE_ITEM
     ULONG Size;
     ULONG Flags;
     ULONG Type;
+    USHORT Reserved;
+    USHORT LoadCount;
     PPH_STRING Name;
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;

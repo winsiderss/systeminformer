@@ -6311,6 +6311,8 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
     PVOID Context;
     ULONG Type;
     PPH_LIST BaseAddressList;
+
+    ULONG LoadOrderIndex;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
 
 static BOOLEAN EnumGenericProcessModulesCallback(
@@ -6350,6 +6352,8 @@ static BOOLEAN EnumGenericProcessModulesCallback(
         Module->BaseDllName.Length
         );
     moduleInfo.FileName = PhGetFileName(fileName);
+    moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
+    moduleInfo.LoadCount = Module->LoadCount;
 
     PhDereferenceObject(fileName);
 
@@ -6402,6 +6406,8 @@ VOID PhpRtlModulesToGenericModules(
         moduleInfo.Flags = module->Flags;
         moduleInfo.Name = PhCreateStringFromAnsi(&module->FullPathName[module->OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+        moduleInfo.LoadOrderIndex = module->LoadOrderIndex;
+        moduleInfo.LoadCount = module->LoadCount;
 
         PhDereferenceObject(fileName);
 
@@ -6455,6 +6461,8 @@ VOID PhpRtlModulesExToGenericModules(
         moduleInfo.Flags = module->ModuleInfo.Flags;
         moduleInfo.Name = PhCreateStringFromAnsi(&module->ModuleInfo.FullPathName[module->ModuleInfo.OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
+        moduleInfo.LoadOrderIndex = module->ModuleInfo.LoadOrderIndex;
+        moduleInfo.LoadCount = module->ModuleInfo.LoadCount;
 
         PhDereferenceObject(fileName);
 
@@ -6527,6 +6535,8 @@ VOID PhpEnumGenericMappedFiles(
             moduleInfo.Flags = 0;
             moduleInfo.FileName = newFileName;
             moduleInfo.Name = PhGetBaseName(newFileName);
+            moduleInfo.LoadOrderIndex = -1;
+            moduleInfo.LoadCount = -1;
 
             cont = Callback(&moduleInfo, Context);
 
@@ -6644,6 +6654,7 @@ NTSTATUS PhEnumGenericModules(
         context.Context = Context;
         context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressList = baseAddressList;
+        context.LoadOrderIndex = 0;
 
         status = PhEnumProcessModules(
             ProcessHandle,
@@ -6673,6 +6684,7 @@ NTSTATUS PhEnumGenericModules(
             context.Context = Context;
             context.Type = PH_MODULE_TYPE_WOW64_MODULE;
             context.BaseAddressList = baseAddressList;
+            context.LoadOrderIndex = 0;
 
             status = PhEnumProcessModules32(
                 ProcessHandle,
