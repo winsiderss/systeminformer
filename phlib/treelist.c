@@ -1659,7 +1659,14 @@ static VOID PhpCustomDrawPrePaintSubItem(
         textRect.bottom = origTextRect.bottom - textVertMargin;
 
         if (font)
+        {
+            // The list view draws bold text without any clipping, somehow 
+            // squeezing the text vertically. Here we'll just remove 
+            // vertical clipping.
+            textRect.bottom += 10;
+            textFlags &= ~DT_VCENTER;
             oldFont = SelectObject(CustomDraw->nmcd.hdc, font);
+        }
 
         DrawText(
             CustomDraw->nmcd.hdc,
