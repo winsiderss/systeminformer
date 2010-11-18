@@ -3337,6 +3337,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
 
             PhAddModuleNode(&modulesContext->ListContext, moduleItem, runId);
+            PhDereferenceObject(moduleItem);
         }
         break;
     case WM_PH_MODULE_REMOVED:

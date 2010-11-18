@@ -136,6 +136,38 @@ FORCEINLINE INT PhModifySort(
     \
     return 0
 
+FORCEINLINE int charcmp(
+    __in signed char value1,
+    __in signed char value2
+    )
+{
+    return C_1sTo4(value1 - value2);
+}
+
+FORCEINLINE int ucharcmp(
+    __in unsigned char value1,
+    __in unsigned char value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
+}
+
+FORCEINLINE int shortcmp(
+    __in signed short value1,
+    __in signed short value2
+    )
+{
+    return C_2sTo4(value1 - value2);
+}
+
+FORCEINLINE int ushortcmp(
+    __in unsigned short value1,
+    __in unsigned short value2
+    )
+{
+    PH_BUILTIN_COMPARE(value1, value2);
+}
+
 FORCEINLINE int intcmp(
     __in int value1,
     __in int value2
