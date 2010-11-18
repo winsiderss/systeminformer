@@ -404,7 +404,14 @@ VOID PhWriteServiceList(
 #define PHMOTLC_SIZE 2
 #define PHMOTLC_DESCRIPTION 3
 
-#define PHMOTLC_MAXIMUM 4
+#define PHMOTLC_COMPANYNAME 4
+#define PHMOTLC_VERSION 5
+#define PHMOTLC_FILENAME 6
+
+#define PHMOTLC_TYPE 7
+#define PHMOTLC_LOADCOUNT 8
+
+#define PHMOTLC_MAXIMUM 9
 
 typedef struct _PH_MODULE_NODE
 {
@@ -419,6 +426,8 @@ typedef struct _PH_MODULE_NODE
     ULONG ValidMask;
 
     PPH_STRING TooltipText;
+
+    WCHAR LoadCountString[PH_INT32_STR_LEN_1];
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 
 typedef struct _PH_MODULE_LIST_CONTEXT
@@ -433,6 +442,8 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 
     BOOLEAN EnableStateHighlighting;
     PPH_POINTER_LIST NodeStateList;
+
+    HFONT BoldFont;
 } PH_MODULE_LIST_CONTEXT, *PPH_MODULE_LIST_CONTEXT;
 
 VOID PhInitializeModuleList(

@@ -3980,6 +3980,7 @@ VOID PhMainWndOnServiceAdded(
         }
 
         serviceNode = PhAddServiceNode(ServiceItem, RunId);
+        PhDereferenceObject(ServiceItem);
     }
     else
     {

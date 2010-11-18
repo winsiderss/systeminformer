@@ -359,6 +359,8 @@ VOID PhModuleProviderUpdate(
             moduleItem->Size = module->Size;
             moduleItem->Flags = module->Flags;
             moduleItem->Type = module->Type;
+            moduleItem->Reserved = 0;
+            moduleItem->LoadCount = module->LoadCount;
 
             moduleItem->Name = module->Name;
             PhReferenceObject(moduleItem->Name);

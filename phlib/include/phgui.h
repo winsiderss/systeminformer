@@ -72,6 +72,18 @@ typedef HRESULT (WINAPI *_DrawThemeBackground)(
     __in const RECT *pClipRect
     );
 
+typedef HRESULT (WINAPI *_DrawThemeText)(
+    __in HTHEME hTheme,
+    __in HDC hdc,
+    __in int iPartId,
+    __in int iStateId,
+    __in_ecount(cchText) LPCWSTR pszText,
+    __in int cchText,
+    __in DWORD dwTextFlags,
+    __reserved DWORD dwTextFlags2,
+    __in LPCRECT pRect
+    );
+
 typedef HRESULT (WINAPI *_SHAutoComplete)(
     __in HWND hwndEdit,
     __in DWORD dwFlags
@@ -91,6 +103,7 @@ extern _IsThemeActive IsThemeActive_I;
 extern _OpenThemeData OpenThemeData_I;
 extern _CloseThemeData CloseThemeData_I;
 extern _DrawThemeBackground DrawThemeBackground_I;
+extern _DrawThemeText DrawThemeText_I;
 extern _SHAutoComplete SHAutoComplete_I;
 extern _TaskDialogIndirect TaskDialogIndirect_I;
 #endif
