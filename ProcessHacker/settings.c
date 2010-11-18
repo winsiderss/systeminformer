@@ -101,7 +101,8 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"MemResultsSize", L"500,520");
     PhpAddStringSetting(L"MemoryListViewColumns", L"");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
-    PhpAddStringSetting(L"ModuleListViewColumns", L"");
+    PhpAddStringSetting(L"ModuleTreeListColumns", L"");
+    PhpAddIntegerPairSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkListViewColumns", L"");
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");

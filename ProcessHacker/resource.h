@@ -42,6 +42,7 @@
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
 #define IDD_HEAPS                       132
+#define ID_SHOWCONTEXTMENU              132
 #define IDR_PRIVILEGE                   133
 #define IDR_FINDOBJ                     134
 #define IDD_HIDDENPROCESSES             135
@@ -98,6 +99,7 @@
 #define IDD_MEMSTRING                   185
 #define IDR_SERVICEHEADER               185
 #define IDD_OPTGRAPHS                   186
+#define IDR_GENERICHEADER               186
 #define IDD_PLUGINS                     187
 #define IDD_HANDLESTATS                 188
 #define IDD_PROCRECORD                  189
@@ -413,6 +415,7 @@
 #define IDC_ZPEAKHANDLES_V              1273
 #define IDC_CHECK1                      1274
 #define IDC_PROPAGATECPUUSAGE           1274
+#define IDC_LIST_LAYOUT                 1275
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -630,7 +633,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40236
-#define _APS_NEXT_CONTROL_VALUE         1275
-#define _APS_NEXT_SYMED_VALUE           132
+#define _APS_NEXT_CONTROL_VALUE         1276
+#define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif

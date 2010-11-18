@@ -322,9 +322,18 @@ typedef struct _PH_TL_GETNODETEXT
 
 BOOLEAN PhTreeListInitialization();
 
+#define TLCREATE_BORDER 0x1
+#define TLCREATE_CLIENTEDGE 0x2
+
 HWND PhCreateTreeListControl(
     __in HWND ParentHandle,
     __in INT_PTR Id
+    );
+
+HWND PhCreateTreeListControlEx(
+    __in HWND ParentHandle,
+    __in INT_PTR Id,
+    __in ULONG Style
     );
 
 PHLIBAPI
