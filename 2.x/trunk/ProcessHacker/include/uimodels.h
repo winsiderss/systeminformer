@@ -35,7 +35,7 @@ FORCEINLINE VOID PhChangeShState(
         TreeList_UpdateNode(TreeListHandleForUpdate, Node);
 }
 
-#define PH_TICK_SH_STATE(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeListHandleForUpdate, Invalidate) \
+#define PH_TICK_SH_STATE(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeListHandleForUpdate, Invalidate, ...) \
     do { \
         NodeType *node; \
         ULONG enumerationKey = 0; \
@@ -73,7 +73,7 @@ FORCEINLINE VOID PhChangeShState(
                     } \
                 } \
 \
-                RemoveFunction(node); \
+                RemoveFunction(node, __VA_ARGS__); \
                 changed = TRUE; \
             } \
 \
@@ -393,6 +393,103 @@ VOID PhCopyServiceList();
 VOID PhWriteServiceList(
     __inout PPH_FILE_STREAM FileStream,
     __in ULONG Mode
+    );
+
+// modlist
+
+// Columns
+
+#define PHMOTLC_NAME 0
+#define PHMOTLC_BASEADDRESS 1
+#define PHMOTLC_SIZE 2
+#define PHMOTLC_DESCRIPTION 3
+
+#define PHMOTLC_MAXIMUM 4
+
+typedef struct _PH_MODULE_NODE
+{
+    PH_TREELIST_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    PPH_MODULE_ITEM ModuleItem;
+
+    PH_STRINGREF TextCache[PHMOTLC_MAXIMUM];
+
+    ULONG ValidMask;
+
+    PPH_STRING TooltipText;
+} PH_MODULE_NODE, *PPH_MODULE_NODE;
+
+typedef struct _PH_MODULE_LIST_CONTEXT
+{
+    HWND ParentWindowHandle;
+    HWND TreeListHandle;
+    ULONG TreeListSortColumn;
+    PH_SORT_ORDER TreeListSortOrder;
+
+    PPH_HASHTABLE NodeHashtable;
+    PPH_LIST NodeList;
+
+    BOOLEAN EnableStateHighlighting;
+    PPH_POINTER_LIST NodeStateList;
+} PH_MODULE_LIST_CONTEXT, *PPH_MODULE_LIST_CONTEXT;
+
+VOID PhInitializeModuleList(
+    __in HWND ParentWindowHandle,
+    __in HWND TreeListHandle,
+    __out PPH_MODULE_LIST_CONTEXT Context
+    );
+
+VOID PhDeleteModuleList(
+    __in PPH_MODULE_LIST_CONTEXT Context
+    );
+
+VOID PhLoadSettingsModuleTreeList(
+    __inout PPH_MODULE_LIST_CONTEXT Context
+    );
+
+VOID PhSaveSettingsModuleTreeList(
+    __inout PPH_MODULE_LIST_CONTEXT Context
+    );
+
+PPH_MODULE_NODE PhAddModuleNode(
+    __inout PPH_MODULE_LIST_CONTEXT Context,
+    __in PPH_MODULE_ITEM ModuleItem,
+    __in ULONG RunId
+    );
+
+PPH_MODULE_NODE PhFindModuleNode(
+    __in PPH_MODULE_LIST_CONTEXT Context,
+    __in PPH_MODULE_ITEM ModuleItem
+    );
+
+VOID PhRemoveModuleNode(
+    __in PPH_MODULE_LIST_CONTEXT Context,
+    __in PPH_MODULE_NODE ModuleNode
+    );
+
+VOID PhUpdateModuleNode(
+    __in PPH_MODULE_LIST_CONTEXT Context,
+    __in PPH_MODULE_NODE ModuleNode
+    );
+
+VOID PhTickModuleNodes(
+    __in PPH_MODULE_LIST_CONTEXT Context
+    );
+
+PPH_MODULE_ITEM PhGetSelectedModuleItem(
+    __in PPH_MODULE_LIST_CONTEXT Context
+    );
+
+VOID PhGetSelectedModuleItems(
+    __in PPH_MODULE_LIST_CONTEXT Context,
+    __out PPH_MODULE_ITEM **Modules,
+    __out PULONG NumberOfModules
+    );
+
+VOID PhDeselectAllModuleNodes(
+    __in PPH_MODULE_LIST_CONTEXT Context
     );
 
 #endif

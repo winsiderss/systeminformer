@@ -3040,100 +3040,67 @@ VOID PhpInitializeModuleMenu(
     }
 }
 
-static INT NTAPI PhpModuleTriStateCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+VOID PhShowModuleContextMenu(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in PPH_MODULES_CONTEXT Context,
+    __in POINT Location
     )
 {
-    PPH_MODULE_ITEM item1 = Item1;
-    PPH_MODULE_ITEM item2 = Item2;
+    PPH_MODULE_ITEM *modules;
+    ULONG numberOfModules;
 
-    // Place the primary module above the others.
-    if (item1->IsFirst)
-        return -1;
-    else if (item2->IsFirst)
-        return 1;
+    PhGetSelectedModuleItems(&Context->ListContext, &modules, &numberOfModules);
 
-    return 0;
-}
+    if (numberOfModules != 0)
+    {
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
 
-static INT NTAPI PhpModuleNameCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item1 = Item1;
-    PPH_MODULE_ITEM item2 = Item2;
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
 
-    return PhCompareString(item1->Name, item2->Name, TRUE);
-}
+        PhpInitializeModuleMenu(menu, ProcessItem->ProcessId, modules, numberOfModules);
 
-static INT NTAPI PhpModuleBaseAddressCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item1 = Item1;
-    PPH_MODULE_ITEM item2 = Item2;
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
 
-    return uintptrcmp((ULONG_PTR)item1->BaseAddress, (ULONG_PTR)item2->BaseAddress);
-}
+            menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = hwndDlg;
+            menuInfo.u.Module.ProcessId = ProcessItem->ProcessId;
+            menuInfo.u.Module.Modules = modules;
+            menuInfo.u.Module.NumberOfModules = numberOfModules;
 
-static INT NTAPI PhpModuleSizeCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item1 = Item1;
-    PPH_MODULE_ITEM item2 = Item2;
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing), &menuInfo);
+        }
 
-    return uintcmp(item1->Size, item2->Size);
-}
+        ClientToScreen(Context->ListContext.TreeListHandle, &Location);
 
-static INT NTAPI PhpModuleDescriptionCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item1 = Item1;
-    PPH_MODULE_ITEM item2 = Item2;
+        item = PhShowEMenu(
+            menu,
+            hwndDlg,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            Location.x,
+            Location.y
+            );
 
-    return PhCompareStringWithNull(item1->VersionInfo.FileDescription, item2->VersionInfo.FileDescription, TRUE);
-}
+        if (item)
+        {
+            BOOLEAN handled = FALSE;
 
-static COLORREF NTAPI PhpModuleColorFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item = Param;
+            if (PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(hwndDlg, item);
 
-    if (PhCsUseColorDotNet && (item->Flags & LDRP_COR_IMAGE))
-        return PhCsColorDotNet;
-    if (PhCsUseColorRelocatedModules && (item->Flags & LDRP_IMAGE_NOT_AT_BASE))
-        return PhCsColorRelocatedModules;
+            if (!handled)
+                SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
+        }
 
-    return PhSysWindowColor;
-}
+        PhDestroyEMenu(menu);
+    }
 
-static HFONT NTAPI PhpModuleFontFunction(
-    __in INT Index,
-    __in PVOID Param,
-    __in_opt PVOID Context
-    )
-{
-    PPH_MODULE_ITEM item = Param;
-
-    if (item->IsFirst)
-        return PhBoldMessageFont;
-
-    return NULL;
+    PhFree(modules);
 }
 
 INT_PTR CALLBACK PhpProcessModulesDlgProc(
@@ -3147,19 +3114,20 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_MODULES_CONTEXT modulesContext;
-    HWND lvHandle;
+    HWND tlHandle;
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
     {
         modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
+
+        if (modulesContext)
+            tlHandle = modulesContext->ListContext.TreeListHandle;
     }
     else
     {
         return FALSE;
     }
-
-    lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
     switch (uMsg)
     {
@@ -3198,38 +3166,18 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->UpdatedEventRegistration
                 );
             modulesContext->WindowHandle = hwndDlg;
-            modulesContext->NeedsRedraw = FALSE;
-            modulesContext->NeedsSort = FALSE;
 
             // Initialize the list.
-            PhSetListViewStyle(lvHandle, TRUE, TRUE);
-            PhSetControlTheme(lvHandle, L"explorer");
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Base Address"); 
-            PhAddListViewColumn(lvHandle, 2, 2, 2, LVCFMT_LEFT, 60, L"Size");
-            PhAddListViewColumn(lvHandle, 3, 3, 3, LVCFMT_LEFT, 160, L"Description");
+            modulesContext->ListContext.TreeListHandle = PhCreateTreeListControlEx(hwndDlg, IDC_LIST,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLCREATE_CLIENTEDGE);
+            tlHandle = modulesContext->ListContext.TreeListHandle;
+            BringWindowToTop(tlHandle);
+            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST_LAYOUT), tlHandle);
+            PhInitializeModuleList(hwndDlg, tlHandle, &modulesContext->ListContext);
+            SendMessage(tlHandle, WM_SETFONT, (WPARAM)SendMessage(hwndDlg, WM_GETFONT, 0, 0), FALSE);
+            modulesContext->NeedsRedraw = FALSE;
 
-            PhSetExtendedListViewWithSettings(lvHandle);
-            PhLoadListViewColumnsFromSetting(L"ModuleListViewColumns", lvHandle);
-            ExtendedListView_SetSortFast(lvHandle, TRUE);
-            ExtendedListView_SetTriState(lvHandle, TRUE);
-            ExtendedListView_SetTriStateCompareFunction(lvHandle, PhpModuleTriStateCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 0, PhpModuleNameCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 1, PhpModuleBaseAddressCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 2, PhpModuleSizeCompareFunction);
-            ExtendedListView_SetCompareFunction(lvHandle, 3, PhpModuleDescriptionCompareFunction);
-            ExtendedListView_SetSort(lvHandle, 0, NoSortOrder);
-            ExtendedListView_SetItemColorFunction(lvHandle, PhpModuleColorFunction);
-            ExtendedListView_SetItemFontFunction(lvHandle, PhpModuleFontFunction);
-            ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-
-            // Sort by Name, Base Address, Size.
-            {
-                ULONG fallbackColumns[] = { 0, 1, 2 };
-
-                ExtendedListView_AddFallbackColumns(lvHandle,
-                    sizeof(fallbackColumns) / sizeof(ULONG), fallbackColumns);
-            }
+            PhLoadSettingsModuleTreeList(&modulesContext->ListContext);
 
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
@@ -3250,13 +3198,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->UpdatedEventRegistration
                 );
             PhUnregisterProvider(&modulesContext->ProviderRegistration);
-
-            PhDereferenceAllModuleItems(modulesContext->Provider);
-
             PhDereferenceObject(modulesContext->Provider);
-            PhFree(modulesContext);
 
-            PhSaveListViewColumnsToSetting(L"ModuleListViewColumns", lvHandle);
+            PhSaveSettingsModuleTreeList(&modulesContext->ListContext);
+            PhDeleteModuleList(&modulesContext->ListContext);
+
+            PhFree(modulesContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
         }
@@ -3269,7 +3216,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST),
+                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeListHandle,
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
@@ -3282,16 +3229,25 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         {
             switch (LOWORD(wParam))
             {
+            case ID_SHOWCONTEXTMENU:
+                {
+                    POINT location;
+
+                    location.x = LOWORD(lParam);
+                    location.y = HIWORD(lParam);
+                    PhShowModuleContextMenu(hwndDlg, processItem, modulesContext, location);
+                }
+                break;
             case ID_MODULE_UNLOAD:
                 {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 
                     if (moduleItem)
                     {
                         PhReferenceObject(moduleItem);
 
                         if (PhUiUnloadModule(hwndDlg, processItem->ProcessId, moduleItem))
-                            PhSetStateAllListViewItems(lvHandle, 0, LVIS_SELECTED);
+                            PhDeselectAllModuleNodes(&modulesContext->ListContext);
 
                         PhDereferenceObject(moduleItem);
                     }
@@ -3299,7 +3255,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 break;
             case ID_MODULE_INSPECT:
                 {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 
                     if (moduleItem)
                     {
@@ -3314,7 +3270,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 break;
             case ID_MODULE_SEARCHONLINE:
                 {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 
                     if (moduleItem)
                     {
@@ -3324,7 +3280,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 break;
             case ID_MODULE_OPENCONTAININGFOLDER:
                 {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 
                     if (moduleItem)
                     {
@@ -3334,7 +3290,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 break;
             case ID_MODULE_PROPERTIES:
                 {
-                    PPH_MODULE_ITEM moduleItem = PhGetSelectedListViewItemParam(lvHandle);
+                    PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 
                     if (moduleItem)
                     {
@@ -3344,7 +3300,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 break;
             case ID_MODULE_COPY:
                 {
-                    PhCopyListView(lvHandle);
+                    PPH_FULL_STRING text;
+
+                    text = PhGetTreeListText(tlHandle, PHMOTLC_MAXIMUM);
+                    PhSetClipboardStringEx(tlHandle, text->Buffer, text->Length);
+                    PhDereferenceObject(text);
                 }
                 break;
             }
@@ -3354,8 +3314,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            PhHandleListViewNotifyForCopy(lParam, lvHandle);
-
             switch (header->code)
             {
             case PSN_SETACTIVE:
@@ -3364,125 +3322,21 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetEnabledProvider(&modulesContext->ProviderRegistration, FALSE);
                 break;
-            case LVN_GETINFOTIP:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        LPNMLVGETINFOTIP getInfoTip = (LPNMLVGETINFOTIP)header;
-                        PPH_MODULE_ITEM moduleItem;
-
-                        if (getInfoTip->iSubItem == 0 && PhGetListViewItemParam(
-                            lvHandle,
-                            getInfoTip->iItem,
-                            &moduleItem
-                            ))
-                        {
-                            PPH_STRING toolTip;
-
-                            toolTip = PHA_DEREFERENCE(PhFormatImageVersionInfo(
-                                moduleItem->FileName,
-                                &moduleItem->VersionInfo,
-                                NULL,
-                                80
-                                ));
-
-                            PhCopyListViewInfoTip(getInfoTip, &toolTip->sr);
-                        }
-                    }
-                }
-                break;
-            case NM_RCLICK:
-                {
-                    if (header->hwndFrom == lvHandle)
-                    {
-                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
-                        PPH_MODULE_ITEM *modules;
-                        ULONG numberOfModules;
-
-                        PhGetSelectedListViewItemParams(lvHandle, &modules, &numberOfModules);
-
-                        if (numberOfModules != 0)
-                        {
-                            PPH_EMENU menu;
-                            PPH_EMENU_ITEM item;
-                            POINT location;
-
-                            menu = PhCreateEMenu();
-                            PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_MODULE), 0);
-
-                            PhpInitializeModuleMenu(menu, processItem->ProcessId, modules, numberOfModules);
-
-                            if (PhPluginsEnabled)
-                            {
-                                PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-                                menuInfo.Menu = menu;
-                                menuInfo.OwnerWindow = hwndDlg;
-                                menuInfo.u.Module.ProcessId = processItem->ProcessId;
-                                menuInfo.u.Module.Modules = modules;
-                                menuInfo.u.Module.NumberOfModules = numberOfModules;
-
-                                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing), &menuInfo);
-                            }
-
-                            location = itemActivate->ptAction;
-                            ClientToScreen(lvHandle, &location);
-
-                            item = PhShowEMenu(
-                                menu,
-                                hwndDlg,
-                                PH_EMENU_SHOW_LEFTRIGHT,
-                                PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                                location.x,
-                                location.y
-                                );
-
-                            if (item)
-                            {
-                                BOOLEAN handled = FALSE;
-
-                                if (PhPluginsEnabled)
-                                    handled = PhPluginTriggerEMenuItem(hwndDlg, item);
-
-                                if (!handled)
-                                    SendMessage(hwndDlg, WM_COMMAND, item->Id, 0);
-                            }
-
-                            PhDestroyEMenu(menu);
-                        }
-
-                        PhFree(modules);
-                    }
-                }
-                break;
             }
         }
         break;
     case WM_PH_MODULE_ADDED:
         {
-            INT lvItemIndex;
             ULONG runId = (ULONG)wParam;
             PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
 
             if (!modulesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                TreeList_SetRedraw(tlHandle, FALSE);
                 modulesContext->NeedsRedraw = TRUE;
             }
 
-            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, FALSE);
-            lvItemIndex = PhAddListViewItem(
-                lvHandle,
-                MAXINT,
-                moduleItem->Name->Buffer,
-                moduleItem
-                );
-            if (runId == 1) ExtendedListView_SetStateHighlighting(lvHandle, TRUE);
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 1, moduleItem->BaseAddressString);
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 2, PhGetString(moduleItem->SizeString));
-            PhSetListViewSubItem(lvHandle, lvItemIndex, 3, PhGetString(moduleItem->VersionInfo.FileDescription));
-
-            modulesContext->NeedsSort = TRUE;
+            PhAddModuleNode(&modulesContext->ListContext, moduleItem, runId);
         }
         break;
     case WM_PH_MODULE_REMOVED:
@@ -3491,37 +3345,25 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (!modulesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, FALSE);
+                TreeList_SetRedraw(tlHandle, FALSE);
                 modulesContext->NeedsRedraw = TRUE;
             }
 
-            PhRemoveListViewItem(
-                lvHandle,
-                PhFindListViewItemByParam(lvHandle, -1, moduleItem)
-                );
-            PhDereferenceObject(moduleItem);
+            PhRemoveModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
         }
         break;
     case WM_PH_MODULES_UPDATED:
         {
-            ExtendedListView_Tick(lvHandle);
-
-            if (modulesContext->NeedsSort)
-            {
-                ExtendedListView_SortItems(lvHandle);
-                modulesContext->NeedsSort = FALSE;
-            }
+            PhTickModuleNodes(&modulesContext->ListContext);
 
             if (modulesContext->NeedsRedraw)
             {
-                ExtendedListView_SetRedraw(lvHandle, TRUE);
+                TreeList_SetRedraw(tlHandle, TRUE);
                 modulesContext->NeedsRedraw = FALSE;
             }
         }
         break;
     }
-
-    REFLECT_MESSAGE_DLG(hwndDlg, lvHandle, uMsg, wParam, lParam);
 
     return FALSE;
 }

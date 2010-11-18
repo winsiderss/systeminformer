@@ -276,6 +276,7 @@
     <ClCompile Include="memprv.c" />
     <ClCompile Include="memrslt.c" />
     <ClCompile Include="memsrch.c" />
+    <ClCompile Include="modlist.c" />
     <ClCompile Include="modprv.c" />
     <ClCompile Include="netprv.c" />
     <ClCompile Include="netstk.c" />
