@@ -24,3 +24,6 @@ To use plugins, follow these steps:
 4. Restart Process Hacker if necessary.
 
 Plugins can be configured from Hacker > Plugins.
+
+If you experience any crashes involving plugins, make sure they 
+are up to date.
