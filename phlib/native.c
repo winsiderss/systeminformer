@@ -4445,31 +4445,19 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     __in_opt PVOID Context2
     )
 {
+    NTSTATUS status;
     BOOLEAN cont;
-    PWSTR baseDllNameBuffer;
+    PWSTR fullDllNameOriginal;
     PWSTR fullDllNameBuffer;
-
-    // Read the base DLL name string and add a null terminator.
-
-    baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
-
-    if (NT_SUCCESS(PhReadVirtualMemory(
-        ProcessHandle,
-        Entry->BaseDllName.Buffer,
-        baseDllNameBuffer,
-        Entry->BaseDllName.Length,
-        NULL
-        )))
-    {
-        baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
-        Entry->BaseDllName.Buffer = baseDllNameBuffer;
-    }
+    PWSTR baseDllNameOriginal;
+    PWSTR baseDllNameBuffer;
 
     // Read the full DLL name string and add a null terminator.
 
+    fullDllNameOriginal = Entry->FullDllName.Buffer;
     fullDllNameBuffer = PhAllocate(Entry->FullDllName.Length + 2);
 
-    if (NT_SUCCESS(PhReadVirtualMemory(
+    if (NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
         Entry->FullDllName.Buffer,
         fullDllNameBuffer,
@@ -4481,11 +4469,47 @@ BOOLEAN NTAPI PhpEnumProcessModulesCallback(
         Entry->FullDllName.Buffer = fullDllNameBuffer;
     }
 
+    baseDllNameOriginal = Entry->BaseDllName.Buffer;
+
+    // Try to use the buffer we just read in.
+    if (
+        NT_SUCCESS(status) &&
+        (ULONG_PTR)baseDllNameOriginal >= (ULONG_PTR)fullDllNameOriginal &&
+        (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length >= (ULONG_PTR)baseDllNameOriginal &&
+        (ULONG_PTR)baseDllNameOriginal + Entry->BaseDllName.Length <= (ULONG_PTR)fullDllNameOriginal + Entry->FullDllName.Length
+        )
+    {
+        baseDllNameBuffer = NULL;
+
+        Entry->BaseDllName.Buffer = (PWSTR)((ULONG_PTR)Entry->FullDllName.Buffer +
+            ((ULONG_PTR)baseDllNameOriginal - (ULONG_PTR)fullDllNameOriginal));
+    }
+    else
+    {
+        // Read the base DLL name string and add a null terminator.
+
+        baseDllNameBuffer = PhAllocate(Entry->BaseDllName.Length + 2);
+
+        if (NT_SUCCESS(PhReadVirtualMemory(
+            ProcessHandle,
+            Entry->BaseDllName.Buffer,
+            baseDllNameBuffer,
+            Entry->BaseDllName.Length,
+            NULL
+            )))
+        {
+            baseDllNameBuffer[Entry->BaseDllName.Length / 2] = 0;
+            Entry->BaseDllName.Buffer = baseDllNameBuffer;
+        }
+    }
+
     // Execute the callback.
     cont = ((PPH_ENUM_PROCESS_MODULES_CALLBACK)Context1)(Entry, Context2);
 
-    PhFree(baseDllNameBuffer);
     PhFree(fullDllNameBuffer);
+
+    if (baseDllNameBuffer)
+        PhFree(baseDllNameBuffer);
 
     return cont;
 }
