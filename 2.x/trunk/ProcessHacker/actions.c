@@ -2132,6 +2132,7 @@ BOOLEAN PhUiUnloadModule(
             message = L"Unloading a driver may cause system instability.";
             break;
         case PH_MODULE_TYPE_MAPPED_FILE:
+        case PH_MODULE_TYPE_MAPPED_IMAGE:
             verb = L"unmap";
             message = L"Unmapping a section view may cause the process to crash.";
             break;
@@ -2234,6 +2235,7 @@ BOOLEAN PhUiUnloadModule(
         break;
 
     case PH_MODULE_TYPE_MAPPED_FILE:
+    case PH_MODULE_TYPE_MAPPED_IMAGE:
         if (NT_SUCCESS(status = PhOpenProcess(
             &processHandle,
             PROCESS_VM_OPERATION,

@@ -193,49 +193,17 @@ PWSTR PhGetMemoryTypeString(
         return L"Unknown";
 }
 
-BOOLEAN NTAPI PhpMemoryProviderEnumGenericModulesCallback(
-    __in PPH_MODULE_INFO Module,
-    __in_opt PVOID Context
-    )
-{
-    PPH_HASHTABLE moduleHashtable = Context;
-    PPH_MODULE_INFO module;
-
-    module = PhAllocateCopy(Module, sizeof(PH_MODULE_INFO));
-    PhReferenceObject(module->Name);
-    module->FileName = NULL;
-
-    PhAddItemSimpleHashtable(moduleHashtable, module->BaseAddress, module);
-
-    return TRUE;
-}
-
 VOID PhMemoryProviderUpdate(
     __in PPH_MEMORY_PROVIDER Provider
     )
 {
-    PPH_HASHTABLE moduleHashtable;
     PVOID baseAddress;
     MEMORY_BASIC_INFORMATION basicInfo;
-    PPH_MODULE_INFO lastModule;
-    ULONG enumerationKey;
-    PPH_KEY_VALUE_PAIR pair;
 
     if (!Provider->ProcessHandle)
         return;
 
-    moduleHashtable = PhCreateSimpleHashtable(20);
-
-    PhEnumGenericModules(
-        Provider->ProcessId,
-        Provider->ProcessHandle,
-        0,
-        PhpMemoryProviderEnumGenericModulesCallback,
-        moduleHashtable
-        );
-
     baseAddress = (PVOID)0;
-    lastModule = NULL;
 
     while (NT_SUCCESS(NtQueryVirtualMemory(
         Provider->ProcessHandle,
@@ -247,7 +215,6 @@ VOID PhMemoryProviderUpdate(
         )))
     {
         PPH_MEMORY_ITEM memoryItem;
-        PPH_MODULE_INFO *module;
         BOOLEAN cont;
 
         if (Provider->IgnoreFreeRegions && basicInfo.Type == MEM_FREE)
@@ -261,26 +228,8 @@ VOID PhMemoryProviderUpdate(
         memoryItem->Flags = basicInfo.State | basicInfo.Type;
         memoryItem->Protection = basicInfo.Protect;
 
-        // Get the associated module.
-        if (memoryItem->Flags & MEM_IMAGE)
-        {
-            module = (PPH_MODULE_INFO *)PhFindItemSimpleHashtable(moduleHashtable, memoryItem->BaseAddress);
-
-            if (module)
-                lastModule = *module;
-
-            if (
-                lastModule &&
-                (ULONG_PTR)memoryItem->BaseAddress >= (ULONG_PTR)lastModule->BaseAddress &&
-                (ULONG_PTR)memoryItem->BaseAddress < (ULONG_PTR)lastModule->BaseAddress + lastModule->Size
-                )
-            {
-                memoryItem->Name = lastModule->Name;
-                PhReferenceObject(lastModule->Name);
-            }
-        }
         // Get the mapped file name.
-        else if (memoryItem->Flags & MEM_MAPPED)
+        if (memoryItem->Flags & (MEM_MAPPED | MEM_IMAGE))
         {
             PPH_STRING fileName;
 
@@ -303,16 +252,4 @@ VOID PhMemoryProviderUpdate(
 ContinueLoop:
         baseAddress = PTR_ADD_OFFSET(baseAddress, basicInfo.RegionSize);
     }
-
-    enumerationKey = 0;
-
-    while (PhEnumHashtable(moduleHashtable, &pair, &enumerationKey))
-    {
-        PPH_MODULE_INFO module = pair->Value;
-
-        PhDereferenceObject(module->Name);
-        PhFree(module);
-    }
-
-    PhDereferenceObject(moduleHashtable);
 }
