@@ -6662,18 +6662,6 @@ NTSTATUS PhEnumGenericModules(
             &context
             );
 
-        // Mapped files
-
-        if (Flags & PH_ENUM_GENERIC_MAPPED_FILES)
-        {
-            PhpEnumGenericMappedFiles(
-                ProcessHandle,
-                Callback,
-                Context,
-                baseAddressList
-                );
-        }
-
 #ifdef _M_X64
         PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
@@ -6693,6 +6681,19 @@ NTSTATUS PhEnumGenericModules(
                 );
         }
 #endif
+
+        // Mapped files
+        // This is done last because it provides the least amount of information.
+
+        if (Flags & PH_ENUM_GENERIC_MAPPED_FILES)
+        {
+            PhpEnumGenericMappedFiles(
+                ProcessHandle,
+                Callback,
+                Context,
+                baseAddressList
+                );
+        }
 
         if (opened)
             NtClose(ProcessHandle);
