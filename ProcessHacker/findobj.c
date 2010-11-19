@@ -622,12 +622,26 @@ static BOOLEAN NTAPI EnumModulesCallback(
         )
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
+        PWSTR typeName;
+
+        switch (Module->Type)
+        {
+        case PH_MODULE_TYPE_MAPPED_FILE:
+            typeName = L"Mapped File";
+            break;
+        case PH_MODULE_TYPE_MAPPED_IMAGE:
+            typeName = L"Mapped Image";
+            break;
+        default:
+            typeName = L"DLL";
+            break;
+        }
 
         searchResult = PhAllocate(sizeof(PHP_OBJECT_SEARCH_RESULT));
         searchResult->ProcessId = (HANDLE)Context;
-        searchResult->ResultType = Module->Type == PH_MODULE_TYPE_MAPPED_FILE ? MappedFileSearchResult : ModuleSearchResult;
+        searchResult->ResultType = (Module->Type == PH_MODULE_TYPE_MAPPED_FILE || Module->Type == PH_MODULE_TYPE_MAPPED_IMAGE) ? MappedFileSearchResult : ModuleSearchResult;
         searchResult->Handle = (HANDLE)Module->BaseAddress;
-        searchResult->TypeName = PhCreateString(Module->Type == PH_MODULE_TYPE_MAPPED_FILE ? L"Mapped File" : L"DLL");
+        searchResult->TypeName = PhCreateString(typeName);
         PhReferenceObject(Module->FileName);
         searchResult->Name = Module->FileName;
         PhPrintPointer(searchResult->HandleString, Module->BaseAddress);

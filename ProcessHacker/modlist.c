@@ -487,6 +487,9 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     case PH_MODULE_TYPE_MAPPED_FILE:
                         typeString = L"Mapped File";
                         break;
+                    case PH_MODULE_TYPE_MAPPED_IMAGE:
+                        typeString = L"Mapped Image";
+                        break;
                     case PH_MODULE_TYPE_WOW64_MODULE:
                         typeString = L"WOW64 DLL";
                         break;
@@ -502,7 +505,8 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
-                if (moduleItem->Type != PH_MODULE_TYPE_MAPPED_FILE)
+                if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
+                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                 {
                     if (moduleItem->LoadCount != (USHORT)-1)
                     {
