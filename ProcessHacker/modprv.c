@@ -376,6 +376,30 @@ VOID PhModuleProviderUpdate(
 
             moduleItem->IsFirst = i == 0;
 
+            if (WindowsVersion >= WINDOWS_7 && (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE))
+            {
+                PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
+
+                // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used 
+                // anymore. We need to read some memory.
+
+                if (NT_SUCCESS(PhLoadRemoteMappedImage(moduleProvider->ProcessHandle, moduleItem->BaseAddress, &remoteMappedImage)))
+                {
+                    if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+                    {
+                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER32)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
+                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                    }
+                    else if (remoteMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+                    {
+                        if ((ULONG_PTR)((PIMAGE_OPTIONAL_HEADER64)&remoteMappedImage.NtHeaders->OptionalHeader)->ImageBase != (ULONG_PTR)moduleItem->BaseAddress)
+                            moduleItem->Flags |= LDRP_IMAGE_NOT_AT_BASE;
+                    }
+
+                    PhUnloadRemoteMappedImage(&remoteMappedImage);
+                }
+            }
+
             // Add the module item to the hashtable.
             PhAcquireFastLockExclusive(&moduleProvider->ModuleHashtableLock);
             PhAddEntryHashtable(moduleProvider->ModuleHashtable, &moduleItem);
