@@ -28,7 +28,7 @@
 
 // Use the size of the structure as it was in 
 // Windows XP.
-#define LDR_DATA_TABLE_ENTRY_SIZE FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ForwarderLinks)
+#define LDR_DATA_TABLE_ENTRY_SIZE_WINXP FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, ForwarderLinks)
 
 typedef struct _LDR_DATA_TABLE_ENTRY
 {

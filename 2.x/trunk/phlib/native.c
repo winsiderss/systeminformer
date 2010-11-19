@@ -4349,6 +4349,7 @@ NTSTATUS PhpEnumProcessModules(
     PEB_LDR_DATA pebLdrData;
     PLIST_ENTRY startLink;
     PLIST_ENTRY currentLink;
+    ULONG dataTableEntrySize;
     LDR_DATA_TABLE_ENTRY currentEntry;
     ULONG i;
 
@@ -4385,6 +4386,11 @@ NTSTATUS PhpEnumProcessModules(
     if (!pebLdrData.Initialized)
         return STATUS_UNSUCCESSFUL;
 
+    if (WindowsVersion >= WINDOWS_7)
+        dataTableEntrySize = sizeof(LDR_DATA_TABLE_ENTRY);
+    else
+        dataTableEntrySize = LDR_DATA_TABLE_ENTRY_SIZE_WINXP;
+
     // Traverse the linked list (in load order).
 
     i = 0;
@@ -4403,7 +4409,7 @@ NTSTATUS PhpEnumProcessModules(
             ProcessHandle,
             addressOfEntry,
             &currentEntry,
-            LDR_DATA_TABLE_ENTRY_SIZE,
+            dataTableEntrySize,
             NULL
             );
 
@@ -4534,7 +4540,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
             ProcessHandle,
             AddressOfEntry,
             Entry,
-            LDR_DATA_TABLE_ENTRY_SIZE,
+            LDR_DATA_TABLE_ENTRY_SIZE_WINXP,
             NULL
             );
 
@@ -4651,7 +4657,7 @@ NTSTATUS PhpEnumProcessModules32(
             ProcessHandle,
             UlongToPtr(addressOfEntry),
             &currentEntry,
-            LDR_DATA_TABLE_ENTRY_SIZE32,
+            LDR_DATA_TABLE_ENTRY_SIZE_WINXP32,
             NULL
             );
 
@@ -4794,7 +4800,7 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
             ProcessHandle,
             UlongToPtr(AddressOfEntry),
             Entry,
-            LDR_DATA_TABLE_ENTRY_SIZE32,
+            LDR_DATA_TABLE_ENTRY_SIZE_WINXP32,
             NULL
             );
 
