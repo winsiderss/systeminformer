@@ -20,22 +20,74 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * There are two ways of seeing what a thread is waiting on. The first method 
+ * is to walk the stack of a thread and read the arguments to whatever system 
+ * call it is blocking on; this only works on x86 because on x64 the arguments 
+ * are passed in registers (at least the first four are). The second method 
+ * involves using the ThreadLastSystemCall info class for NtQueryInformationThread 
+ * to retrieve the first argument to the system call the thread is blocking on. 
+ * This is obviously only useful for NtWaitForSingleObject.
+ *
+ * There are other methods for specific scenarios, like USER messages.
+ */
+
 #include <phapp.h>
+
+typedef HWND (WINAPI *_GetSendMessageReceiver)(
+    __in HANDLE ThreadId
+    );
+
+typedef NTSTATUS (NTAPI *_NtAlpcQueryInformation)(
+    __in HANDLE PortHandle,
+    __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
+    __out_bcount(PortInformationLength) PVOID PortInformation,
+    __in ULONG PortInformationLength,
+    __out_opt PULONG ReturnLength
+    );
 
 typedef struct _ANALYZE_WAIT_CONTEXT
 {
     BOOLEAN Found;
+    BOOLEAN IsWow64;
+    HANDLE ProcessId;
+    HANDLE ThreadId;
     HANDLE ProcessHandle;
+
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PH_STRING_BUILDER StringBuilder;
 
     PVOID PrevParams[4];
 } ANALYZE_WAIT_CONTEXT, *PANALYZE_WAIT_CONTEXT;
 
+VOID PhpAnalyzeWaitPassive(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId
+    );
+
 BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     __in PPH_THREAD_STACK_FRAME StackFrame,
     __in_opt PVOID Context
     );
+
+VOID PhpInitializeWfsoNumber();
+
+PPH_STRING PhapGetHandleString(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle
+    );
+
+PPH_STRING PhapGetSendMessageReceiver(
+    __in HANDLE ThreadId
+    );
+
+PPH_STRING PhapGetAlpcInformation(
+    __in HANDLE ThreadId
+    );
+
+static PH_INITONCE WfsoInitOnce = PH_INITONCE_INIT;
+static USHORT WfsoNumber = -1;
 
 VOID PhUiAnalyzeWaitThread(
     __in HWND hWnd,
@@ -46,7 +98,29 @@ VOID PhUiAnalyzeWaitThread(
 {
     NTSTATUS status;
     HANDLE threadHandle;
+#ifdef _M_X64
+    HANDLE processHandle;
+    BOOLEAN isWow64;
+#endif
     ANALYZE_WAIT_CONTEXT context;
+
+#ifdef _M_X64
+    // Determine if the process is WOW64. If not, we use the passive method.
+
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, ProcessQueryAccess, ProcessId)))
+    {
+        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        return;
+    }
+
+    if (!NT_SUCCESS(status = PhGetProcessIsWow64(processHandle, &isWow64)) || !isWow64)
+    {
+        PhpAnalyzeWaitPassive(hWnd, ProcessId, ThreadId);
+        return;
+    }
+
+    NtClose(processHandle);
+#endif
 
     if (!NT_SUCCESS(status = PhOpenThread(
         &threadHandle,
@@ -58,9 +132,12 @@ VOID PhUiAnalyzeWaitThread(
         return;
     }
 
+    context.ProcessId = ProcessId;
+    context.ThreadId = ThreadId;
+
     context.ProcessHandle = SymbolProvider->ProcessHandle;
     context.SymbolProvider = SymbolProvider;
-    PhInitializeStringBuilder(&context.StringBuilder, 10);
+    PhInitializeStringBuilder(&context.StringBuilder, 100);
 
     PhWalkThreadStack(
         threadHandle,
@@ -83,48 +160,85 @@ VOID PhUiAnalyzeWaitThread(
     PhDeleteStringBuilder(&context.StringBuilder);
 }
 
-static PPH_STRING PhapGetHandleString(
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle
+VOID PhpAnalyzeWaitPassive(
+    __in HWND hWnd,
+    __in HANDLE ProcessId,
+    __in HANDLE ThreadId
     )
 {
-    PPH_STRING typeName = NULL;
-    PPH_STRING name = NULL;
-    PPH_STRING result;
+    NTSTATUS status;
+    HANDLE processHandle;
+    HANDLE threadHandle;
+    THREAD_LAST_SYSTEM_CALL lastSystemCall;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING string;
 
-    PhGetHandleInformation(
-        ProcessHandle,
-        Handle,
-        -1,
-        NULL,
-        &typeName,
-        NULL,
-        &name
-        );
+    PhpInitializeWfsoNumber();
 
-    if (typeName && name)
+    if (!NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ThreadId)))
     {
-        result = PhaFormatString(
-            L"Handle 0x%Ix (%s): %s",
-            Handle,
-            typeName->Buffer,
-            !PhIsNullOrEmptyString(name) ? name->Buffer : L"(unnamed object)"
-            );
+        PhShowStatus(hWnd, L"Unable to open the thread", status, 0);
+        return;
+    }
+
+    if (!NT_SUCCESS(status = NtQueryInformationThread(
+        threadHandle,
+        ThreadLastSystemCall,
+        &lastSystemCall,
+        sizeof(THREAD_LAST_SYSTEM_CALL),
+        NULL
+        )))
+    {
+        NtClose(threadHandle);
+        PhShowInformation(hWnd, L"Unable to determine whether the thread is waiting.");
+        return;
+    }
+
+    NtClose(threadHandle);
+
+    if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, ProcessId)))
+    {
+        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        return;
+    }
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    if (lastSystemCall.SystemCallNumber == WfsoNumber)
+    {
+        string = PhapGetHandleString(processHandle, lastSystemCall.FirstArgument);
+
+        PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for:\r\n");
+        PhAppendStringBuilder(&stringBuilder, string);
     }
     else
     {
-        result = PhaFormatString(
-            L"Handle 0x%Ix: (error querying handle)",
-            Handle
-            );
+        string = PhapGetSendMessageReceiver(ThreadId);
+
+        if (string)
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Thread is sending a USER message:\r\n");
+            PhAppendStringBuilder(&stringBuilder, string);
+        }
+        else
+        {
+            string = PhapGetAlpcInformation(ThreadId);
+
+            if (string)
+            {
+                PhAppendStringBuilder2(&stringBuilder, L"Thread is waiting for an ALPC port:\r\n");
+                PhAppendStringBuilder(&stringBuilder, string);
+            }
+        }
     }
 
-    if (typeName)
-        PhDereferenceObject(typeName);
-    if (name)
-        PhDereferenceObject(name);
+    if (stringBuilder.String->Length == 0)
+        PhAppendStringBuilder2(&stringBuilder, L"Unable to determine why the thread is waiting.");
 
-    return result;
+    PhShowInformationDialog(hWnd, stringBuilder.String->Buffer);
+
+    PhDeleteStringBuilder(&stringBuilder);
+    NtClose(processHandle);
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
@@ -320,6 +434,27 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
             L"Thread is waiting for a USER message.\r\n"
             );
     }
+    else if (FUNC_MATCH("user32.dll!NtUserMessageCall"))
+    {
+        PPH_STRING receiverString;
+
+        PhAppendStringBuilder2(
+            &context->StringBuilder,
+            L"Thread is sending a USER message:\r\n"
+            );
+
+        receiverString = PhapGetSendMessageReceiver(context->ThreadId);
+
+        if (receiverString)
+        {
+            PhAppendStringBuilder(&context->StringBuilder, receiverString);
+            PhAppendStringBuilder2(&context->StringBuilder, L"\r\n");
+        }
+        else
+        {
+            PhAppendStringBuilder2(&context->StringBuilder, L"Unknown.\r\n");
+        }
+    }
     else if (NT_FUNC_MATCH("WaitForDebugEvent"))
     {
         HANDLE handle = StackFrame->Params[0];
@@ -361,7 +496,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PVOID addressOfHandles = StackFrame->Params[1];
         WAIT_TYPE waitType = (WAIT_TYPE)StackFrame->Params[2];
         BOOLEAN alertable = !!StackFrame->Params[3];
-        HANDLE handles[MAXIMUM_WAIT_OBJECTS];
+        ULONG handles[MAXIMUM_WAIT_OBJECTS]; // must be ULONG, because on x64 this function will only be called on WOW64 processes
         ULONG i;
 
         if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
@@ -377,7 +512,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
                 context->ProcessHandle,
                 addressOfHandles,
                 handles,
-                numberOfHandles * sizeof(HANDLE),
+                numberOfHandles * sizeof(ULONG),
                 NULL
                 )))
             {
@@ -392,7 +527,7 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
                 {
                     PhAppendStringBuilder(
                         &context->StringBuilder,
-                        PhapGetHandleString(context->ProcessHandle, handles[i])
+                        PhapGetHandleString(context->ProcessHandle, UlongToHandle(handles[i]))
                         );
                     PhAppendStringBuilder2(
                         &context->StringBuilder,
@@ -461,4 +596,249 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     memcpy(&context->PrevParams, StackFrame->Params, sizeof(StackFrame->Params));
 
     return !context->Found;
+}
+
+static NTSTATUS PhpWfsoThreadStart(
+    __in PVOID Parameter
+    )
+{
+    HANDLE eventHandle;
+    LARGE_INTEGER timeout;
+
+    eventHandle = Parameter;
+
+    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    NtWaitForSingleObject(eventHandle, FALSE, &timeout);
+
+    return STATUS_SUCCESS;
+}
+
+static BOOLEAN PhpWaitUntilThreadIsWaiting(
+    __in HANDLE ThreadHandle
+    )
+{
+    ULONG attempts;
+    BOOLEAN isWaiting = FALSE;
+    THREAD_BASIC_INFORMATION basicInfo;
+
+    if (!NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)))
+        return FALSE;
+
+    for (attempts = 0; attempts < 5; attempts++)
+    {
+        PVOID processes;
+        PSYSTEM_PROCESS_INFORMATION processInfo;
+        ULONG i;
+
+        Sleep(100);
+
+        if (!NT_SUCCESS(PhEnumProcesses(&processes)))
+            break;
+
+        processInfo = PhFindProcessInformation(processes, NtCurrentProcessId());
+
+        for (i = 0; i < processInfo->NumberOfThreads; i++)
+        {
+            if (
+                processInfo->Threads[i].ClientId.UniqueThread == basicInfo.ClientId.UniqueThread &&
+                processInfo->Threads[i].ThreadState == Waiting &&
+                processInfo->Threads[i].WaitReason == WrUserRequest
+                )
+            {
+                isWaiting = TRUE;
+                break;
+            }
+        }
+
+        PhFree(processes);
+
+        if (isWaiting)
+            break;
+
+        Sleep(500);
+    }
+
+    return isWaiting;
+}
+
+static VOID PhpInitializeWfsoNumber()
+{
+    if (PhBeginInitOnce(&WfsoInitOnce))
+    {
+        NTSTATUS status;
+        HANDLE eventHandle;
+        HANDLE threadHandle;
+
+        // The ThreadLastSystemCall info class only works when the thread is in the Waiting 
+        // state. We'll create a thread which blocks on an event object we create, then wait 
+        // until it is in the Waiting state. Only then can we query the thread using 
+        // ThreadLastSystemCall.
+
+        status = NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+
+        if (NT_SUCCESS(status))
+        {
+            if (threadHandle = PhCreateThread(0, PhpWfsoThreadStart, eventHandle))
+            {
+                if (PhpWaitUntilThreadIsWaiting(threadHandle))
+                {
+                    THREAD_LAST_SYSTEM_CALL lastSystemCall;
+
+                    if (NT_SUCCESS(NtQueryInformationThread(
+                        threadHandle,
+                        ThreadLastSystemCall,
+                        &lastSystemCall,
+                        sizeof(THREAD_LAST_SYSTEM_CALL),
+                        NULL
+                        )))
+                    {
+                        WfsoNumber = lastSystemCall.SystemCallNumber;
+                    }
+                }
+
+                // Allow the thread to exit.
+                NtSetEvent(eventHandle, NULL);
+
+                NtClose(threadHandle);
+            }
+
+            NtClose(eventHandle);
+        }
+
+        PhEndInitOnce(&WfsoInitOnce);
+    }
+}
+
+static PPH_STRING PhapGetHandleString(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle
+    )
+{
+    PPH_STRING typeName = NULL;
+    PPH_STRING name = NULL;
+    PPH_STRING result;
+
+    PhGetHandleInformation(
+        ProcessHandle,
+        Handle,
+        -1,
+        NULL,
+        &typeName,
+        NULL,
+        &name
+        );
+
+    if (typeName && name)
+    {
+        result = PhaFormatString(
+            L"Handle 0x%Ix (%s): %s",
+            Handle,
+            typeName->Buffer,
+            !PhIsNullOrEmptyString(name) ? name->Buffer : L"(unnamed object)"
+            );
+    }
+    else
+    {
+        result = PhaFormatString(
+            L"Handle 0x%Ix: (error querying handle)",
+            Handle
+            );
+    }
+
+    if (typeName)
+        PhDereferenceObject(typeName);
+    if (name)
+        PhDereferenceObject(name);
+
+    return result;
+}
+
+static PPH_STRING PhapGetSendMessageReceiver(
+    __in HANDLE ThreadId
+    )
+{
+    static _GetSendMessageReceiver GetSendMessageReceiver_I;
+
+    HWND windowHandle;
+    ULONG threadId;
+    ULONG processId;
+    CLIENT_ID clientId;
+    PPH_STRING clientIdName;
+
+    // GetSendMessageReceiver is an undocumented function exported by 
+    // user32.dll. It retrieves the handle of the window which a thread 
+    // is sending a message to.
+
+    if (!GetSendMessageReceiver_I)
+        GetSendMessageReceiver_I = PhGetProcAddress(L"user32.dll", "GetSendMessageReceiver");
+
+    if (!GetSendMessageReceiver_I)
+        return NULL;
+
+    windowHandle = GetSendMessageReceiver_I(ThreadId);
+
+    if (!windowHandle)
+        return NULL;
+
+    threadId = GetWindowThreadProcessId(windowHandle, &processId);
+
+    clientId.UniqueProcess = UlongToPtr(processId);
+    clientId.UniqueThread = UlongToPtr(threadId);
+    clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+
+    return PhaFormatString(L"Window 0x%Ix (%s)", windowHandle, clientIdName->Buffer);
+}
+
+static PPH_STRING PhapGetAlpcInformation(
+    __in HANDLE ThreadId
+    )
+{
+    static _NtAlpcQueryInformation NtAlpcQueryInformation_I;
+
+    NTSTATUS status;
+    PPH_STRING string = NULL;
+    HANDLE threadHandle;
+    PALPC_PORT_SERVER_INFORMATION serverInfo;
+    ULONG bufferLength;
+
+    if (!NtAlpcQueryInformation_I)
+        NtAlpcQueryInformation_I = PhGetProcAddress(L"ntdll.dll", "NtAlpcQueryInformation");
+
+    if (!NtAlpcQueryInformation_I)
+        return NULL;
+
+    if (!NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_INFORMATION, ThreadId)))
+        return NULL;
+
+    bufferLength = 0x110;
+    serverInfo = PhAllocate(bufferLength);
+    serverInfo->ThreadHandle = threadHandle;
+
+    status = NtAlpcQueryInformation_I(NULL, AlpcPortServerInformation, serverInfo, bufferLength, &bufferLength);
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(serverInfo);
+        serverInfo = PhAllocate(bufferLength);
+        serverInfo->ThreadHandle = threadHandle;
+
+        status = NtAlpcQueryInformation_I(NULL, AlpcPortServerInformation, serverInfo, bufferLength, &bufferLength);
+    }
+
+    if (NT_SUCCESS(status) && serverInfo->MessageFound)
+    {
+        CLIENT_ID clientId;
+        PPH_STRING clientIdName;
+
+        clientId.UniqueProcess = serverInfo->ServerProcessId;
+        clientId.UniqueThread = NULL;
+        clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
+
+        string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->PortName.Length / 2, serverInfo->PortName.Buffer, clientIdName->Buffer);
+    }
+
+    PhFree(serverInfo);
+    NtClose(threadHandle);
+
+    return string;
 }

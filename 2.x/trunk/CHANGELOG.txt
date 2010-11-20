@@ -3,6 +3,7 @@ Process Hacker
 2.9
  * NEW/IMPROVED:
    * Added column selection for modules list
+   * Added wait analysis for 64-bit systems
    * Environment variables and current directory are 
      now correctly shown for WOW64 processes
  * FIXED:
