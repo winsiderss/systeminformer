@@ -1856,12 +1856,6 @@ VOID PhpInitializeThreadMenu(
             PhDestroyEMenuItem(item);
     }
 
-#ifndef _M_IX86
-    // Remove Analyze.
-    if (item = PhFindEMenuItem(Menu, 0, L"Analyze", 0))
-        PhDestroyEMenuItem(item);
-#endif
-
     if (!PhKphHandle)
     {
         // Remove Force Terminate.

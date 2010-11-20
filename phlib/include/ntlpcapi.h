@@ -463,7 +463,7 @@ typedef struct _ALPC_PORT_SERVER_INFORMATION
     union
     {
         __in HANDLE ThreadHandle;
-        __out BOOLEAN PortNamePresent;
+        __out BOOLEAN MessageFound;
     };
     __out HANDLE ServerProcessId;
     __out UNICODE_STRING PortName;
