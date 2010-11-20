@@ -158,30 +158,27 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
 
     if (ProcessId)
     {
-        symbolProvider->IsRealHandle = TRUE;
+        static ACCESS_MASK accesses[] =
+        {
+            STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xfff, // pre-Vista full access
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE,
+            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            MAXIMUM_ALLOWED
+        };
+
+        ULONG i;
+
+        symbolProvider->IsRealHandle = FALSE;
 
         // Try to open the process with many different accesses. 
-        // This handle will be re-used when walking stacks.
-        if (!NT_SUCCESS(PhOpenProcess(
-            &symbolProvider->ProcessHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
-            ProcessId
-            )))
+        // This handle will be re-used when walking stacks, and doing 
+        // various other things.
+        for (i = 0; i < sizeof(accesses) / sizeof(ACCESS_MASK); i++)
         {
-            if (!NT_SUCCESS(PhOpenProcess(
-                &symbolProvider->ProcessHandle,
-                ProcessQueryAccess | PROCESS_VM_READ,
-                ProcessId
-                )))
+            if (NT_SUCCESS(PhOpenProcess(&symbolProvider->ProcessHandle, accesses[i], ProcessId)))
             {
-                if (!NT_SUCCESS(PhOpenProcess(
-                    &symbolProvider->ProcessHandle,
-                    ProcessQueryAccess,
-                    ProcessId
-                    )))
-                {
-                    symbolProvider->IsRealHandle = FALSE;
-                }
+                symbolProvider->IsRealHandle = TRUE;
+                break;
             }
         }
     }
