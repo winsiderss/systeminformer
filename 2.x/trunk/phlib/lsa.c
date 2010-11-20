@@ -40,6 +40,12 @@ NTSTATUS PhOpenLsaPolicy(
         );
 }
 
+/**
+ * Retrieves a handle to the local LSA policy with 
+ * POLICY_LOOKUP_NAMES access.
+ *
+ * \remarks Do not close the handle; it is cached.
+ */
 LSA_HANDLE PhGetLookupPolicyHandle()
 {
     LSA_HANDLE lookupPolicyHandle;
