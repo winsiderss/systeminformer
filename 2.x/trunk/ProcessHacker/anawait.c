@@ -71,11 +71,21 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     __in_opt PVOID Context
     );
 
-VOID PhpInitializeWfsoNumber();
+VOID PhpInitializeServiceNumbers();
 
 PPH_STRING PhapGetHandleString(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle
+    );
+
+VOID PhpGetWfmoInformation(
+    __in HANDLE ProcessHandle,
+    __in BOOLEAN IsWow64,
+    __in ULONG NumberOfHandles,
+    __in PHANDLE AddressOfHandles,
+    __in WAIT_TYPE WaitType,
+    __in BOOLEAN Alertable,
+    __inout PPH_STRING_BUILDER StringBuilder
     );
 
 PPH_STRING PhapGetSendMessageReceiver(
@@ -86,8 +96,9 @@ PPH_STRING PhapGetAlpcInformation(
     __in HANDLE ThreadId
     );
 
-static PH_INITONCE WfsoInitOnce = PH_INITONCE_INIT;
+static PH_INITONCE ServiceNumbersInitOnce = PH_INITONCE_INIT;
 static USHORT WfsoNumber = -1;
+static USHORT WfmoNumber = -1;
 
 VOID PhUiAnalyzeWaitThread(
     __in HWND hWnd,
@@ -173,7 +184,7 @@ VOID PhpAnalyzeWaitPassive(
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
 
-    PhpInitializeWfsoNumber();
+    PhpInitializeServiceNumbers();
 
     if (!NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_GET_CONTEXT, ThreadId)))
     {
@@ -194,10 +205,9 @@ VOID PhpAnalyzeWaitPassive(
         return;
     }
 
-    NtClose(threadHandle);
-
     if (!NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, ProcessId)))
     {
+        NtClose(threadHandle);
         PhShowStatus(hWnd, L"Unable to open the process", status, 0);
         return;
     }
@@ -210,6 +220,10 @@ VOID PhpAnalyzeWaitPassive(
 
         PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for:\r\n");
         PhAppendStringBuilder(&stringBuilder, string);
+    }
+    else if (lastSystemCall.SystemCallNumber == WfmoNumber)
+    {
+        PhAppendStringBuilder2(&stringBuilder, L"Thread is waiting for multiple objects.");
     }
     else
     {
@@ -239,6 +253,7 @@ VOID PhpAnalyzeWaitPassive(
 
     PhDeleteStringBuilder(&stringBuilder);
     NtClose(processHandle);
+    NtClose(threadHandle);
 }
 
 static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
@@ -496,59 +511,24 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PVOID addressOfHandles = StackFrame->Params[1];
         WAIT_TYPE waitType = (WAIT_TYPE)StackFrame->Params[2];
         BOOLEAN alertable = !!StackFrame->Params[3];
-        ULONG handles[MAXIMUM_WAIT_OBJECTS]; // must be ULONG, because on x64 this function will only be called on WOW64 processes
-        ULONG i;
 
         if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
         {
             numberOfHandles = (ULONG)context->PrevParams[1];
             addressOfHandles = context->PrevParams[2];
             waitType = (WAIT_TYPE)context->PrevParams[3];
+            alertable = FALSE;
         }
 
-        if (numberOfHandles <= MAXIMUM_WAIT_OBJECTS)
-        {
-            if (NT_SUCCESS(PhReadVirtualMemory(
-                context->ProcessHandle,
-                addressOfHandles,
-                handles,
-                numberOfHandles * sizeof(ULONG),
-                NULL
-                )))
-            {
-                PhAppendFormatStringBuilder(
-                    &context->StringBuilder,
-                    L"Thread is waiting (%s, %s) for:\r\n",
-                    alertable ? L"alertable" : L"non-alertable",
-                    waitType == WaitAll ? L"wait all" : L"wait any"
-                    );
-
-                for (i = 0; i < numberOfHandles; i++)
-                {
-                    PhAppendStringBuilder(
-                        &context->StringBuilder,
-                        PhapGetHandleString(context->ProcessHandle, UlongToHandle(handles[i]))
-                        );
-                    PhAppendStringBuilder2(
-                        &context->StringBuilder,
-                        L"\r\n"
-                        );
-                }
-            }
-            else
-            {
-                // Indicate that we failed.
-                numberOfHandles = MAXIMUM_WAIT_OBJECTS + 1;
-            }
-        }
-
-        if (numberOfHandles > MAXIMUM_WAIT_OBJECTS)
-        {
-            PhAppendStringBuilder2(
-                &context->StringBuilder,
-                L"Thread is waiting for multiple objects."
-                );
-        }
+        PhpGetWfmoInformation(
+            context->ProcessHandle,
+            TRUE, // on x64 this function is only called for WOW64 processes
+            numberOfHandles,
+            addressOfHandles,
+            waitType,
+            alertable,
+            &context->StringBuilder
+            );
     }
     else if (
         NT_FUNC_MATCH("WaitForSingleObject") ||
@@ -598,21 +578,6 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     return !context->Found;
 }
 
-static NTSTATUS PhpWfsoThreadStart(
-    __in PVOID Parameter
-    )
-{
-    HANDLE eventHandle;
-    LARGE_INTEGER timeout;
-
-    eventHandle = Parameter;
-
-    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
-    NtWaitForSingleObject(eventHandle, FALSE, &timeout);
-
-    return STATUS_SUCCESS;
-}
-
 static BOOLEAN PhpWaitUntilThreadIsWaiting(
     __in HANDLE ThreadHandle
     )
@@ -635,18 +600,21 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
         if (!NT_SUCCESS(PhEnumProcesses(&processes)))
             break;
 
-        processInfo = PhFindProcessInformation(processes, NtCurrentProcessId());
+        processInfo = PhFindProcessInformation(processes, basicInfo.ClientId.UniqueProcess);
 
-        for (i = 0; i < processInfo->NumberOfThreads; i++)
+        if (processInfo)
         {
-            if (
-                processInfo->Threads[i].ClientId.UniqueThread == basicInfo.ClientId.UniqueThread &&
-                processInfo->Threads[i].ThreadState == Waiting &&
-                processInfo->Threads[i].WaitReason == WrUserRequest
-                )
+            for (i = 0; i < processInfo->NumberOfThreads; i++)
             {
-                isWaiting = TRUE;
-                break;
+                if (
+                    processInfo->Threads[i].ClientId.UniqueThread == basicInfo.ClientId.UniqueThread &&
+                    processInfo->Threads[i].ThreadState == Waiting &&
+                    processInfo->Threads[i].WaitReason == UserRequest
+                    )
+                {
+                    isWaiting = TRUE;
+                    break;
+                }
             }
         }
 
@@ -661,9 +629,58 @@ static BOOLEAN PhpWaitUntilThreadIsWaiting(
     return isWaiting;
 }
 
-static VOID PhpInitializeWfsoNumber()
+static VOID PhpGetThreadLastSystemCallNumber(
+    __in HANDLE ThreadHandle,
+    __out PUSHORT LastSystemCallNumber
+    )
 {
-    if (PhBeginInitOnce(&WfsoInitOnce))
+    THREAD_LAST_SYSTEM_CALL lastSystemCall;
+
+    if (NT_SUCCESS(NtQueryInformationThread(
+        ThreadHandle,
+        ThreadLastSystemCall,
+        &lastSystemCall,
+        sizeof(THREAD_LAST_SYSTEM_CALL),
+        NULL
+        )))
+    {
+        *LastSystemCallNumber = lastSystemCall.SystemCallNumber;
+    }
+}
+
+static NTSTATUS PhpWfsoThreadStart(
+    __in PVOID Parameter
+    )
+{
+    HANDLE eventHandle;
+    LARGE_INTEGER timeout;
+
+    eventHandle = Parameter;
+
+    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    NtWaitForSingleObject(eventHandle, FALSE, &timeout);
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpWfmoThreadStart(
+    __in PVOID Parameter
+    )
+{
+    HANDLE eventHandle;
+    LARGE_INTEGER timeout;
+
+    eventHandle = Parameter;
+
+    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+    NtWaitForMultipleObjects(1, &eventHandle, WaitAll, FALSE, &timeout);
+
+    return STATUS_SUCCESS;
+}
+
+static VOID PhpInitializeServiceNumbers()
+{
+    if (PhBeginInitOnce(&ServiceNumbersInitOnce))
     {
         NTSTATUS status;
         HANDLE eventHandle;
@@ -674,6 +691,8 @@ static VOID PhpInitializeWfsoNumber()
         // until it is in the Waiting state. Only then can we query the thread using 
         // ThreadLastSystemCall.
 
+        // NtWaitForSingleObject
+
         status = NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
 
         if (NT_SUCCESS(status))
@@ -682,30 +701,38 @@ static VOID PhpInitializeWfsoNumber()
             {
                 if (PhpWaitUntilThreadIsWaiting(threadHandle))
                 {
-                    THREAD_LAST_SYSTEM_CALL lastSystemCall;
-
-                    if (NT_SUCCESS(NtQueryInformationThread(
-                        threadHandle,
-                        ThreadLastSystemCall,
-                        &lastSystemCall,
-                        sizeof(THREAD_LAST_SYSTEM_CALL),
-                        NULL
-                        )))
-                    {
-                        WfsoNumber = lastSystemCall.SystemCallNumber;
-                    }
+                    PhpGetThreadLastSystemCallNumber(threadHandle, &WfsoNumber);
                 }
 
                 // Allow the thread to exit.
                 NtSetEvent(eventHandle, NULL);
-
                 NtClose(threadHandle);
             }
 
             NtClose(eventHandle);
         }
 
-        PhEndInitOnce(&WfsoInitOnce);
+        // NtWaitForMultipleObjects
+
+        status = NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+
+        if (NT_SUCCESS(status))
+        {
+            if (threadHandle = PhCreateThread(0, PhpWfmoThreadStart, eventHandle))
+            {
+                if (PhpWaitUntilThreadIsWaiting(threadHandle))
+                {
+                    PhpGetThreadLastSystemCallNumber(threadHandle, &WfmoNumber);
+                }
+
+                NtSetEvent(eventHandle, NULL);
+                NtClose(threadHandle);
+            }
+
+            NtClose(eventHandle);
+        }
+
+        PhEndInitOnce(&ServiceNumbersInitOnce);
     }
 }
 
@@ -751,6 +778,87 @@ static PPH_STRING PhapGetHandleString(
         PhDereferenceObject(name);
 
     return result;
+}
+
+static VOID PhpGetWfmoInformation(
+    __in HANDLE ProcessHandle,
+    __in BOOLEAN IsWow64,
+    __in ULONG NumberOfHandles,
+    __in PHANDLE AddressOfHandles,
+    __in WAIT_TYPE WaitType,
+    __in BOOLEAN Alertable,
+    __inout PPH_STRING_BUILDER StringBuilder
+    )
+{
+    NTSTATUS status;
+    HANDLE handles[MAXIMUM_WAIT_OBJECTS];
+    ULONG i;
+
+    status = STATUS_SUCCESS;
+
+    if (NumberOfHandles <= MAXIMUM_WAIT_OBJECTS)
+    {
+#ifdef _M_X64
+        if (IsWow64)
+        {
+            ULONG handles32[MAXIMUM_WAIT_OBJECTS];
+
+            if (NT_SUCCESS(status = PhReadVirtualMemory(
+                ProcessHandle,
+                AddressOfHandles,
+                handles32,
+                NumberOfHandles * sizeof(ULONG),
+                NULL
+                )))
+            {
+                for (i = 0; i < NumberOfHandles; i++)
+                    handles[i] = UlongToHandle(handles32[i]);
+            }
+        }
+        else
+        {
+#endif
+            status = PhReadVirtualMemory(
+                ProcessHandle,
+                AddressOfHandles,
+                handles,
+                NumberOfHandles * sizeof(HANDLE),
+                NULL
+                );
+#ifdef _M_X64
+        }
+#endif
+
+        if (NT_SUCCESS(status))
+        {
+            PhAppendFormatStringBuilder(
+                StringBuilder,
+                L"Thread is waiting (%s, %s) for:\r\n",
+                Alertable ? L"alertable" : L"non-alertable",
+                WaitType == WaitAll ? L"wait all" : L"wait any"
+                );
+
+            for (i = 0; i < NumberOfHandles; i++)
+            {
+                PhAppendStringBuilder(
+                    StringBuilder,
+                    PhapGetHandleString(ProcessHandle, handles[i])
+                    );
+                PhAppendStringBuilder2(
+                    StringBuilder,
+                    L"\r\n"
+                    );
+            }
+        }
+    }
+
+    if (!NT_SUCCESS(status) || NumberOfHandles > MAXIMUM_WAIT_OBJECTS)
+    {
+        PhAppendStringBuilder2(
+            StringBuilder,
+            L"Thread is waiting for multiple objects."
+            );
+    }
 }
 
 static PPH_STRING PhapGetSendMessageReceiver(
