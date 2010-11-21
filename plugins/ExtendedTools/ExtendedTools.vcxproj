@@ -176,6 +176,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="etwmon.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="modsrv.c" />
     <ClCompile Include="objprp.c" />
