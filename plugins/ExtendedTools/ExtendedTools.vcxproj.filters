@@ -30,6 +30,9 @@
     <ClCompile Include="modsrv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="etwmon.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extendedtools.h">
