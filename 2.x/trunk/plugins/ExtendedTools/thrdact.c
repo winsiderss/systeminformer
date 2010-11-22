@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "extendedtools.h"
+#include "exttools.h"
 #include "resource.h"
 
 BOOLEAN EtUiCancelIoThread(

@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "extendedtools.h"
+#include "exttools.h"
 #include "resource.h"
 
 VOID NTAPI LoadCallback(
@@ -116,12 +116,12 @@ LOGICAL DllMain(
                 &PluginMenuItemCallbackRegistration
                 );
 
-            //PhRegisterCallback(
-            //    PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
-            //    MainWindowShowingCallback,
-            //    NULL,
-            //    &MainWindowShowingCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing),
                 HandlePropertiesInitializingCallback,
@@ -146,6 +146,15 @@ LOGICAL DllMain(
                 NULL,
                 &ModuleMenuInitializingCallbackRegistration
                 );
+
+            {
+                static PH_SETTING_CREATE settings[] =
+                {
+                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" }
+                };
+
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            }
         }
         break;
     }
@@ -178,6 +187,11 @@ VOID NTAPI MenuItemCallback(
 
     switch (menuItem->Id)
     {
+    case ID_VIEW_MEMORYLISTS:
+        {
+            EtShowMemoryListsDialog();
+        }
+        break;
     case ID_PROCESS_UNLOADEDMODULES:
         {
             EtShowUnloadedDllsDialog(PhMainWndHandle, menuItem->Context);
@@ -205,7 +219,7 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    // Nothing
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
 }
 
 VOID NTAPI HandlePropertiesInitializingCallback(
