@@ -297,8 +297,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhLoadWindowPlacementFromSetting(
-    __in PWSTR PositionSettingName,
-    __in PWSTR SizeSettingName,
+    __in_opt PWSTR PositionSettingName,
+    __in_opt PWSTR SizeSettingName,
     __in HWND WindowHandle
     );
 
@@ -306,8 +306,8 @@ PHAPPAPI
 VOID
 NTAPI
 PhSaveWindowPlacementToSetting(
-    __in PWSTR PositionSettingName,
-    __in PWSTR SizeSettingName,
+    __in_opt PWSTR PositionSettingName,
+    __in_opt PWSTR SizeSettingName,
     __in HWND WindowHandle
     );
 

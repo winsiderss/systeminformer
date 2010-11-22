@@ -6,6 +6,13 @@
 
 extern PPH_PLUGIN PluginInstance;
 
+#define SETTING_PREFIX L"ProcessHacker.ExtendedTools."
+#define SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION (SETTING_PREFIX L"MemoryListsWindowPosition")
+
+// memlists
+
+VOID EtShowMemoryListsDialog();
+
 // modsrv
 
 VOID EtShowModuleServicesDialog(

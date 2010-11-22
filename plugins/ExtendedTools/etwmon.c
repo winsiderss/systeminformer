@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "extendedtools.h"
+#include "exttools.h"
 #include <evntcons.h>
 
 static PH_STRINGREF EtpLoggerName = PH_STRINGREF_INIT(L"PH2 ET");
@@ -52,7 +52,9 @@ VOID EtpStartEtwSession()
     properties->LogFileNameOffset = 0;
     properties->LoggerNameOffset = 0;
 
-    StartTrace(&EtpSessionHandle, EtpLoggerName.Buffer, &properties);
+    StartTrace(&EtpSessionHandle, EtpLoggerName.Buffer, properties);
+
+    PhFree(properties);
 }
 
 VOID EtpStartEtwTrace()
@@ -80,7 +82,8 @@ VOID NTAPI EtpEtwEventRecordCallback(
     __in PEVENT_RECORD EventRecord
     )
 {
-    EtpStartEtwMonitor();
+    EtpStartEtwSession();
+    EtpStartEtwTrace();
 
     while (ProcessTrace(&EtpTraceHandle, 1, NULL, NULL) == ERROR_SUCCESS)
     {

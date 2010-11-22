@@ -1481,8 +1481,8 @@ typedef struct _PHYSICAL_MEMORY_RUN
 typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
 {
     ULONG Revision;
-    ULONG NumberOfRanges;
-    PHYSICAL_MEMORY_RUN Ranges[1];
+    ULONG NumberOfRuns;
+    PHYSICAL_MEMORY_RUN Runs[1];
 } SUPERFETCH_MEMORY_RANGES_INFORMATION, *PSUPERFETCH_MEMORY_RANGES_INFORMATION;
 
 // end_rev
@@ -1490,13 +1490,13 @@ typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
 // rev
 typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
 {
-    ULONG ZeroedPageListTotal;
-    ULONG FreePageListTotal;
-    ULONG ModifiedPageListTotal;
-    ULONG ModifiedNoWritePageListTotal;
-    ULONG BadPageListTotal;
-    ULONG StandbyPageListTotals[8];
-    ULONG StandbyRePurposeCount[8];
+    ULONG_PTR ZeroedPageListTotal;
+    ULONG_PTR FreePageListTotal;
+    ULONG_PTR ModifiedPageListTotal;
+    ULONG_PTR ModifiedNoWritePageListTotal;
+    ULONG_PTR BadPageListTotal;
+    ULONG_PTR StandbyPageListTotals[8];
+    ULONG_PTR StandbyRePurposeCount[8];
 } SYSTEM_MEMORY_LIST_INFORMATION, *PSYSTEM_MEMORY_LIST_INFORMATION;
 
 // rev
