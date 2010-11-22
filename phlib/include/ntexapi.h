@@ -1462,15 +1462,48 @@ typedef enum _PREFETCHER_INFORMATION_CLASS
 typedef enum _SUPERFETCH_INFORMATION_CLASS
 {
     SuperfetchCompletedTraceInformation = 1,
-    SuperfetchUnknownInformation2 = 2, // size 24
-    SuperfetchPfnPrioRequestInformation = 6,
+    SuperfetchTraceInformation = 2, // size 24
+    SuperfetchPfnListInformation = 6,
+    SuperfetchPfnListPriorities = 7, // set only
     SuperfetchPrivSourceInformation = 8,
-    SuperfetchUnknownInformation9 = 9, // size 4
+    SuperfetchStreamSequenceNumber = 9, // size 4
     SuperfetchScenarioInformation = 12,
     SuperfetchMemoryListInformation = 16,
     SuperfetchMemoryRangesInformation = 17,
     SuperfetchUnknownInformation20 = 20 // size 8
 } SUPERFETCH_INFORMATION_CLASS;
+
+typedef enum _SUPERFETCH_PRIV_SOURCE_TYPE
+{
+    PrivSourceKernelSpace,
+    PrivSourceSession,
+    PrivSourceProcess
+} SUPERFETCH_PRIV_SOURCE_TYPE;
+
+typedef struct _SUPERFETCH_PRIV_SOURCE_ENTRY
+{
+    SUPERFETCH_PRIV_SOURCE_TYPE Type;
+    ULONG UniqueId;
+    ULONG ImagePathHash;
+    ULONG ProcessHash;
+    PVOID Object;
+    SIZE_T WorkingSetPrivateSize;
+    SIZE_T NumberOfPrivatePages;
+    ULONG SessionId;
+    CHAR Name[16];
+} SUPERFETCH_PRIV_SOURCE_ENTRY, *PSUPERFETCH_PRIV_SOURCE_ENTRY;
+
+typedef struct _SUPERFETCH_PRIV_SOURCE_INFORMATION
+{
+    ULONG Type; // must be set to 3
+    ULONG Unknown;
+    SUPERFETCH_PRIV_SOURCE_ENTRY Entries[1];
+} SUPERFETCH_PRIV_SOURCE_INFORMATION, *PSUPERFETCH_PRIV_SOURCE_INFORMATION;
+
+typedef struct _SUPERFETCH_STREAM_SEQUENCE_NUMBER
+{
+    LONG StreamSequenceNumber;
+} SUPERFETCH_STREAM_SEQUENCE_NUMBER, *PSUPERFETCH_STREAM_SEQUENCE_NUMBER;
 
 typedef struct _PHYSICAL_MEMORY_RUN
 {
