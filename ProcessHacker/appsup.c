@@ -631,27 +631,62 @@ VOID PhHandleListViewNotifyForCopy(
 }
 
 VOID PhLoadWindowPlacementFromSetting(
-    __in PWSTR PositionSettingName,
-    __in PWSTR SizeSettingName,
+    __in_opt PWSTR PositionSettingName,
+    __in_opt PWSTR SizeSettingName,
     __in HWND WindowHandle
     )
 {
     PH_RECTANGLE windowRectangle;
 
-    windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
-    windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
+    if (PositionSettingName && SizeSettingName)
+    {
+        windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
+        windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
 
-    PhAdjustRectangleToWorkingArea(
-        WindowHandle,
-        &windowRectangle
-        );
-    MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
-        windowRectangle.Width, windowRectangle.Height, FALSE);
+        PhAdjustRectangleToWorkingArea(
+            WindowHandle,
+            &windowRectangle
+            );
+        MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
+            windowRectangle.Width, windowRectangle.Height, FALSE);
+    }
+    else
+    {
+        PH_INTEGER_PAIR position;
+        PH_INTEGER_PAIR size;
+        ULONG flags;
+
+        flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER;
+
+        if (PositionSettingName)
+        {
+            position = PhGetIntegerPairSetting(PositionSettingName);
+            flags &= ~SWP_NOMOVE;
+        }
+        else
+        {
+            position.X = 0;
+            position.Y = 0;
+        }
+
+        if (SizeSettingName)
+        {
+            size = PhGetIntegerPairSetting(SizeSettingName);
+            flags &= ~SWP_NOSIZE;
+        }
+        else
+        {
+            size.X = 16;
+            size.Y = 16;
+        }
+
+        SetWindowPos(WindowHandle, NULL, position.X, position.Y, size.X, size.Y, flags);
+    }
 }
 
 VOID PhSaveWindowPlacementToSetting(
-    __in PWSTR PositionSettingName,
-    __in PWSTR SizeSettingName,
+    __in_opt PWSTR PositionSettingName,
+    __in_opt PWSTR SizeSettingName,
     __in HWND WindowHandle
     )
 {
@@ -661,8 +696,10 @@ VOID PhSaveWindowPlacementToSetting(
     GetWindowPlacement(WindowHandle, &placement);
     windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
 
-    PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
-    PhSetIntegerPairSetting(SizeSettingName, windowRectangle.Size);
+    if (PositionSettingName)
+        PhSetIntegerPairSetting(PositionSettingName, windowRectangle.Position);
+    if (SizeSettingName)
+        PhSetIntegerPairSetting(SizeSettingName, windowRectangle.Size);
 }
 
 VOID PhLoadListViewColumnsFromSetting(

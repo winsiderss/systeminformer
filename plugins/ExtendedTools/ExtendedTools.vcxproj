@@ -178,13 +178,14 @@
   <ItemGroup>
     <ClCompile Include="etwmon.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="memlists.c" />
     <ClCompile Include="modsrv.c" />
     <ClCompile Include="objprp.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="extendedtools.h" />
+    <ClInclude Include="exttools.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
