@@ -2059,13 +2059,17 @@ RtlExitUserProcess(
     __in NTSTATUS ExitStatus
     );
 #else
+
+#define RtlExitUserProcess RtlExitUserProcess_R
+
 DECLSPEC_NORETURN
-FORCEINLINE VOID RtlExitUserProcess(
+FORCEINLINE VOID RtlExitUserProcess_R(
     __in NTSTATUS ExitStatus
     )
 {
     ExitProcess(ExitStatus);
 }
+
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
@@ -2176,13 +2180,17 @@ RtlExitUserThread(
     __in NTSTATUS ExitStatus
     );
 #else
+
+#define RtlExitUserThread RtlExitUserThread_R
+
 DECLSPEC_NORETURN
-FORCEINLINE VOID RtlExitUserThread(
+FORCEINLINE VOID RtlExitUserThread_R(
     __in NTSTATUS ExitStatus
     )
 {
     ExitThread(ExitStatus);
 }
+
 #endif
 
 NTSYSAPI
