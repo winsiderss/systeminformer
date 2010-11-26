@@ -410,8 +410,10 @@ VOID PhWriteServiceList(
 
 #define PHMOTLC_TYPE 7
 #define PHMOTLC_LOADCOUNT 8
+#define PHMOTLC_VERIFICATIONSTATUS 9
+#define PHMOTLC_VERIFIEDSIGNER 10
 
-#define PHMOTLC_MAXIMUM 9
+#define PHMOTLC_MAXIMUM 11
 
 typedef struct _PH_MODULE_NODE
 {
@@ -427,6 +429,7 @@ typedef struct _PH_MODULE_NODE
 
     PPH_STRING TooltipText;
 
+    PPH_STRING SizeText;
     WCHAR LoadCountString[PH_INT32_STR_LEN_1];
 } PH_MODULE_NODE, *PPH_MODULE_NODE;
 

@@ -23,6 +23,16 @@
 #define PH_MODPRV_PRIVATE
 #include <phapp.h>
 
+typedef struct _PH_MODULE_QUERY_DATA
+{
+    SLIST_ENTRY ListEntry;
+    PPH_MODULE_PROVIDER ModuleProvider;
+    PPH_MODULE_ITEM ModuleItem;
+
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
+} PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
+
 VOID NTAPI PhpModuleProviderDeleteProcedure(
     __in PVOID Object,
     __in ULONG Flags
@@ -89,6 +99,7 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     PhInitializeFastLock(&moduleProvider->ModuleHashtableLock);
 
     PhInitializeCallback(&moduleProvider->ModuleAddedEvent);
+    PhInitializeCallback(&moduleProvider->ModuleModifiedEvent);
     PhInitializeCallback(&moduleProvider->ModuleRemovedEvent);
     PhInitializeCallback(&moduleProvider->UpdatedEvent);
 
@@ -115,6 +126,8 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
         }
     }
 
+    RtlInitializeSListHead(&moduleProvider->QueryListHead);
+
     return moduleProvider;
 }
 
@@ -132,8 +145,27 @@ VOID PhpModuleProviderDeleteProcedure(
     PhDereferenceObject(moduleProvider->ModuleHashtable);
     PhDeleteFastLock(&moduleProvider->ModuleHashtableLock);
     PhDeleteCallback(&moduleProvider->ModuleAddedEvent);
+    PhDeleteCallback(&moduleProvider->ModuleModifiedEvent);
     PhDeleteCallback(&moduleProvider->ModuleRemovedEvent);
     PhDeleteCallback(&moduleProvider->UpdatedEvent);
+
+    // Destroy all queue items.
+    {
+        PSLIST_ENTRY entry;
+        PPH_MODULE_QUERY_DATA data;
+
+        entry = RtlInterlockedFlushSList(&moduleProvider->QueryListHead);
+
+        while (entry)
+        {
+            data = CONTAINING_RECORD(entry, PH_MODULE_QUERY_DATA, ListEntry);
+            entry = entry->Next;
+
+            if (data->VerifySignerName) PhDereferenceObject(data->VerifySignerName);
+            PhDereferenceObject(data->ModuleItem);
+            PhFree(data);
+        }
+    }
 
     if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
@@ -164,7 +196,7 @@ VOID PhpModuleItemDeleteProcedure(
 
     if (moduleItem->Name) PhDereferenceObject(moduleItem->Name);
     if (moduleItem->FileName) PhDereferenceObject(moduleItem->FileName);
-    if (moduleItem->SizeString) PhDereferenceObject(moduleItem->SizeString);
+    if (moduleItem->VerifySignerName) PhDereferenceObject(moduleItem->VerifySignerName);
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
@@ -249,6 +281,45 @@ __assumeLocked VOID PhpRemoveModuleItem(
 {
     PhRemoveEntryHashtable(ModuleProvider->ModuleHashtable, &ModuleItem);
     PhDereferenceObject(ModuleItem);
+}
+
+NTSTATUS PhpModuleQueryWorker(
+    __in PVOID Parameter
+    )
+{
+    PPH_MODULE_QUERY_DATA data = (PPH_MODULE_QUERY_DATA)Parameter;
+
+    data->VerifyResult = PhVerifyFileCached(
+        data->ModuleItem->FileName,
+        &data->VerifySignerName,
+        FALSE
+        );
+
+    RtlInterlockedPushEntrySList(&data->ModuleProvider->QueryListHead, &data->ListEntry);
+
+    PhDereferenceObject(data->ModuleProvider);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpQueueModuleQuery(
+    __in PPH_MODULE_PROVIDER ModuleProvider,
+    __in PPH_MODULE_ITEM ModuleItem
+    )
+{
+    PPH_MODULE_QUERY_DATA data;
+
+    if (!PhEnableProcessQueryStage2)
+        return;
+
+    data = PhAllocate(sizeof(PH_MODULE_QUERY_DATA));
+    memset(data, 0, sizeof(PH_MODULE_QUERY_DATA));
+    data->ModuleProvider = ModuleProvider;
+    data->ModuleItem = ModuleItem;
+
+    PhReferenceObject(ModuleProvider);
+    PhReferenceObject(ModuleItem);
+    PhQueueItemGlobalWorkQueue(PhpModuleQueryWorker, data);
 }
 
 static BOOLEAN NTAPI EnumModulesCallback(
@@ -342,6 +413,27 @@ VOID PhModuleProviderUpdate(
         }
     }
 
+    // Go through the queued thread query data.
+    {
+        PSLIST_ENTRY entry;
+        PPH_MODULE_QUERY_DATA data;
+
+        entry = RtlInterlockedFlushSList(&moduleProvider->QueryListHead);
+
+        while (entry)
+        {
+            data = CONTAINING_RECORD(entry, PH_MODULE_QUERY_DATA, ListEntry);
+            entry = entry->Next;
+
+            data->ModuleItem->VerifyResult = data->VerifyResult;
+            data->ModuleItem->VerifySignerName = data->VerifySignerName;
+            data->ModuleItem->JustProcessed = TRUE;
+
+            PhDereferenceObject(data->ModuleItem);
+            PhFree(data);
+        }
+    }
+
     // Look for new modules.
     for (i = 0; i < modules->Count; i++)
     {
@@ -366,8 +458,6 @@ VOID PhModuleProviderUpdate(
             PhReferenceObject(moduleItem->Name);
             moduleItem->FileName = module->FileName;
             PhReferenceObject(moduleItem->FileName);
-
-            moduleItem->SizeString = PhFormatSize(moduleItem->Size, -1);
 
             PhInitializeImageVersionInfo(
                 &moduleItem->VersionInfo,
@@ -400,6 +490,17 @@ VOID PhModuleProviderUpdate(
                 }
             }
 
+            if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
+                moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+            {
+                // See if the file has already been verified; if not, queue for verification.
+
+                moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, &moduleItem->VerifySignerName, TRUE);
+
+                if (moduleItem->VerifyResult == VrUnknown)
+                    PhpQueueModuleQuery(moduleProvider, moduleItem);
+            }
+
             // Add the module item to the hashtable.
             PhAcquireFastLockExclusive(&moduleProvider->ModuleHashtableLock);
             PhAddEntryHashtable(moduleProvider->ModuleHashtable, &moduleItem);
@@ -410,6 +511,16 @@ VOID PhModuleProviderUpdate(
         }
         else
         {
+            BOOLEAN modified = FALSE;
+
+            if (moduleItem->JustProcessed)
+                modified = TRUE;
+
+            moduleItem->JustProcessed = FALSE;
+
+            if (modified)
+                PhInvokeCallback(&moduleProvider->ModuleModifiedEvent, moduleItem);
+
             PhDereferenceObject(moduleItem);
         }
     }

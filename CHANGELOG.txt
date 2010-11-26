@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added column selection for modules list
    * Added wait analysis for 64-bit systems
+   * Added signature verification for modules
    * Environment variables and current directory are 
      now correctly shown for WOW64 processes
  * FIXED:
