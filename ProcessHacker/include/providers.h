@@ -4,7 +4,7 @@
 // procprv
 
 #define PH_RECORD_MAX_USAGE
-//#define PH_ENABLE_VERIFY_CACHE
+#define PH_ENABLE_VERIFY_CACHE
 
 #ifndef PH_PROCPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhProcessItemType;
@@ -249,6 +249,12 @@ VOID PhEnumProcessItems(
     __out PULONG NumberOfProcessItems
     );
 
+VERIFY_RESULT PhVerifyFileCached(
+    __in PPH_STRING FileName,
+    __out_opt PPH_STRING *SignerName,
+    __in BOOLEAN CachedOnly
+    );
+
 PHAPPAPI
 BOOLEAN PhGetStatisticsTime(
     __in_opt PPH_PROCESS_ITEM ProcessItem,
@@ -465,11 +471,13 @@ typedef struct _PH_MODULE_ITEM
     PPH_STRING FileName;
     PH_IMAGE_VERSION_INFO VersionInfo;
 
-    PPH_STRING SizeString;
-
     WCHAR BaseAddressString[PH_PTR_STR_LEN_1];
 
     BOOLEAN IsFirst;
+    BOOLEAN JustProcessed;
+
+    VERIFY_RESULT VerifyResult;
+    PPH_STRING VerifySignerName;
 } PH_MODULE_ITEM, *PPH_MODULE_ITEM;
 
 typedef struct _PH_MODULE_PROVIDER
@@ -477,11 +485,13 @@ typedef struct _PH_MODULE_PROVIDER
     PPH_HASHTABLE ModuleHashtable;
     PH_FAST_LOCK ModuleHashtableLock;
     PH_CALLBACK ModuleAddedEvent;
+    PH_CALLBACK ModuleModifiedEvent;
     PH_CALLBACK ModuleRemovedEvent;
     PH_CALLBACK UpdatedEvent;
 
     HANDLE ProcessId;
     HANDLE ProcessHandle;
+    SLIST_HEADER QueryListHead;
 } PH_MODULE_PROVIDER, *PPH_MODULE_PROVIDER;
 
 BOOLEAN PhModuleProviderInitialization();
