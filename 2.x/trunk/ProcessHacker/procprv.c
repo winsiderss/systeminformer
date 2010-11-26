@@ -569,6 +569,105 @@ __assumeLocked VOID PhpRemoveProcessItem(
     PhDereferenceObject(ProcessItem);
 }
 
+INT NTAPI PhpVerifyCacheCompareFunction(
+    __in PPH_AVL_LINKS Links1,
+    __in PPH_AVL_LINKS Links2
+    )
+{
+    PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
+    PPH_VERIFY_CACHE_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_VERIFY_CACHE_ENTRY, Links);
+
+    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
+}
+
+VERIFY_RESULT PhVerifyFileCached(
+    __in PPH_STRING FileName,
+    __out_opt PPH_STRING *SignerName,
+    __in BOOLEAN CachedOnly
+    )
+{
+#ifdef PH_ENABLE_VERIFY_CACHE
+    PPH_AVL_LINKS links;
+    PPH_VERIFY_CACHE_ENTRY entry;
+    PH_VERIFY_CACHE_ENTRY lookupEntry;
+
+    lookupEntry.FileName = FileName;
+
+    PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
+    links = PhFindElementAvlTree(&PhpVerifyCacheSet, &lookupEntry.Links);
+    PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
+
+    if (links)
+    {
+        entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
+
+        if (SignerName)
+        {
+            if (entry->VerifySignerName)
+                PhReferenceObject(entry->VerifySignerName);
+
+            *SignerName = entry->VerifySignerName;
+        }
+
+        return entry->VerifyResult;
+    }
+    else
+    {
+        VERIFY_RESULT result;
+        PPH_STRING signerName;
+
+        if (!CachedOnly)
+            result = PhVerifyFile(FileName->Buffer, &signerName);
+        else
+            result = VrUnknown;
+
+        if (result != VrUnknown)
+        {
+            entry = PhAllocate(sizeof(PH_VERIFY_CACHE_ENTRY));
+            entry->FileName = FileName;
+            entry->VerifyResult = result;
+            entry->VerifySignerName = signerName;
+
+            PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
+            links = PhAddElementAvlTree(&PhpVerifyCacheSet, &entry->Links);
+            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
+
+            if (!links)
+            {
+                // We successfully added the cache entry. Add references.
+
+                PhReferenceObject(entry->FileName);
+
+                if (entry->VerifySignerName)
+                    PhReferenceObject(entry->VerifySignerName);
+            }
+            else
+            {
+                // Entry already exists.
+                PhFree(entry);
+            }
+        }
+
+        if (SignerName)
+        {
+            *SignerName = signerName;
+        }
+        else
+        {
+            if (signerName)
+                PhDereferenceObject(signerName);
+        }
+
+        return result;
+    }
+#else
+    return PhVerifyFile(
+        FileName->Buffer,
+        SignerName
+        );
+#endif
+}
+
 VOID PhpProcessQueryStage1(
     __inout PPH_PROCESS_QUERY_S1_DATA Data
     )
@@ -773,17 +872,6 @@ VOID PhpProcessQueryStage1(
     PhpQueueProcessQueryStage2(processItem);
 }
 
-INT NTAPI PhpVerifyCacheCompareFunction(
-    __in PPH_AVL_LINKS Links1,
-    __in PPH_AVL_LINKS Links2
-    )
-{
-    PPH_VERIFY_CACHE_ENTRY entry1 = CONTAINING_RECORD(Links1, PH_VERIFY_CACHE_ENTRY, Links);
-    PPH_VERIFY_CACHE_ENTRY entry2 = CONTAINING_RECORD(Links2, PH_VERIFY_CACHE_ENTRY, Links);
-
-    return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
-}
-
 VOID PhpProcessQueryStage2(
     __inout PPH_PROCESS_QUERY_S2_DATA Data
     )
@@ -794,60 +882,11 @@ VOID PhpProcessQueryStage2(
 
     if (PhEnableProcessQueryStage2 && processItem->FileName)
     {
-#ifdef PH_ENABLE_VERIFY_CACHE
-        PPH_AVL_LINKS links;
-        PPH_VERIFY_CACHE_ENTRY entry;
-        PH_VERIFY_CACHE_ENTRY lookupEntry;
-
-        lookupEntry.FileName = processItem->FileName;
-
-        PhAcquireQueuedLockShared(&PhpVerifyCacheLock);
-        links = PhFindElementAvlTree(&PhpVerifyCacheSet, &lookupEntry.Links);
-        PhReleaseQueuedLockShared(&PhpVerifyCacheLock);
-
-        if (links)
-        {
-            entry = CONTAINING_RECORD(links, PH_VERIFY_CACHE_ENTRY, Links);
-            Data->VerifyResult = entry->VerifyResult;
-            Data->VerifySignerName = entry->VerifySignerName;
-
-            if (Data->VerifySignerName)
-                PhReferenceObject(Data->VerifySignerName);
-        }
-        else
-        {
-#endif
-            Data->VerifyResult = PhVerifyFile(
-                processItem->FileName->Buffer,
-                &Data->VerifySignerName
-                );
-
-#ifdef PH_ENABLE_VERIFY_CACHE
-            entry = PhAllocate(sizeof(PH_VERIFY_CACHE_ENTRY));
-            entry->FileName = processItem->FileName;
-            entry->VerifyResult = Data->VerifyResult;
-            entry->VerifySignerName = Data->VerifySignerName;
-
-            PhAcquireQueuedLockExclusive(&PhpVerifyCacheLock);
-            links = PhAddElementAvlTree(&PhpVerifyCacheSet, &entry->Links);
-            PhReleaseQueuedLockExclusive(&PhpVerifyCacheLock);
-
-            if (!links)
-            {
-                // We successfully added the cache entry. Add references.
-
-                PhReferenceObject(entry->FileName);
-
-                if (entry->VerifySignerName)
-                    PhReferenceObject(entry->VerifySignerName);
-            }
-            else
-            {
-                // Entry already exists.
-                PhFree(entry);
-            }
-        }
-#endif
+        Data->VerifyResult = PhVerifyFileCached(
+            processItem->FileName,
+            &Data->VerifySignerName,
+            FALSE
+            );
 
         status = PhIsExecutablePacked(
             processItem->FileName->Buffer,

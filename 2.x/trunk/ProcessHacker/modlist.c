@@ -102,6 +102,8 @@ VOID PhInitializeModuleList(
 
     PhAddTreeListColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -258,6 +260,8 @@ VOID PhpDestroyModuleNode(
 {
     if (ModuleNode->TooltipText) PhDereferenceObject(ModuleNode->TooltipText);
 
+    if (ModuleNode->SizeText) PhDereferenceObject(ModuleNode->SizeText);
+
     PhDereferenceObject(ModuleNode->ModuleItem);
 
     PhFree(ModuleNode);
@@ -291,7 +295,7 @@ VOID PhUpdateModuleNode(
     PhSwapReference(&ModuleNode->TooltipText, NULL);
 
     ModuleNode->ValidMask = 0;
-    PhInvalidateTreeListNode(&ModuleNode->Node, TLIN_COLOR | TLIN_ICON);
+    PhInvalidateTreeListNode(&ModuleNode->Node, TLIN_COLOR);
     TreeList_NodesStructured(Context->TreeListHandle);
 }
 
@@ -385,6 +389,22 @@ BEGIN_SORT_FUNCTION(LoadCount)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(VerificationStatus)
+{
+    sortResult = intcmp(moduleItem1->VerifyResult == VrTrusted, moduleItem2->VerifyResult == VrTrusted);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(VerifiedSigner)
+{
+    sortResult = PhCompareStringWithNull(
+        moduleItem1->VerifySignerName,
+        moduleItem2->VerifySignerName,
+        TRUE
+        );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpModuleTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -416,7 +436,9 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     SORT_FUNCTION(Version),
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(Type),
-                    SORT_FUNCTION(LoadCount)
+                    SORT_FUNCTION(LoadCount),
+                    SORT_FUNCTION(VerificationStatus),
+                    SORT_FUNCTION(VerifiedSigner)
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
@@ -461,7 +483,9 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 PhInitializeStringRef(&getNodeText->Text, moduleItem->BaseAddressString);
                 break;
             case PHMOTLC_SIZE:
-                getNodeText->Text = PhGetStringRef(moduleItem->SizeString);
+                if (!node->SizeText)
+                    node->SizeText = PhFormatSize(moduleItem->Size, -1);
+                getNodeText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMOTLC_DESCRIPTION:
                 getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.FileDescription);
@@ -522,6 +546,21 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 {
                     PhInitializeEmptyStringRef(&getNodeText->Text);
                 }
+                break;
+            case PHMOTLC_VERIFICATIONSTATUS:
+                if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
+                    moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
+                {
+                    PhInitializeStringRef(&getNodeText->Text,
+                        moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+                break;
+            case PHMOTLC_VERIFIEDSIGNER:
+                getNodeText->Text = PhGetStringRefOrEmpty(moduleItem->VerifySignerName);
                 break;
             default:
                 return FALSE;

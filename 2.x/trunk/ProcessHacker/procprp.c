@@ -2979,6 +2979,16 @@ static VOID NTAPI ModuleAddedHandler(
         );
 }
 
+static VOID NTAPI ModuleModifiedHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_MODULES_CONTEXT modulesContext = (PPH_MODULES_CONTEXT)Context;
+
+    PostMessage(modulesContext->WindowHandle, WM_PH_MODULE_MODIFIED, 0, (LPARAM)Parameter);
+}
+
 static VOID NTAPI ModuleRemovedHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -3148,6 +3158,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 &modulesContext->AddedEventRegistration
                 );
             PhRegisterCallback(
+                &modulesContext->Provider->ModuleModifiedEvent,
+                ModuleModifiedHandler,
+                modulesContext,
+                &modulesContext->ModifiedEventRegistration
+                );
+            PhRegisterCallback(
                 &modulesContext->Provider->ModuleRemovedEvent,
                 ModuleRemovedHandler,
                 modulesContext,
@@ -3182,6 +3198,10 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhUnregisterCallback(
                 &modulesContext->Provider->ModuleAddedEvent,
                 &modulesContext->AddedEventRegistration
+                );
+            PhUnregisterCallback(
+                &modulesContext->Provider->ModuleModifiedEvent,
+                &modulesContext->ModifiedEventRegistration
                 );
             PhUnregisterCallback(
                 &modulesContext->Provider->ModuleRemovedEvent,
@@ -3332,6 +3352,19 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             PhAddModuleNode(&modulesContext->ListContext, moduleItem, runId);
             PhDereferenceObject(moduleItem);
+        }
+        break;
+    case WM_PH_MODULE_MODIFIED:
+        {
+            PPH_MODULE_ITEM moduleItem = (PPH_MODULE_ITEM)lParam;
+
+            if (!modulesContext->NeedsRedraw)
+            {
+                TreeList_SetRedraw(tlHandle, FALSE);
+                modulesContext->NeedsRedraw = TRUE;
+            }
+
+            PhUpdateModuleNode(&modulesContext->ListContext, PhFindModuleNode(&modulesContext->ListContext, moduleItem));
         }
         break;
     case WM_PH_MODULE_REMOVED:
