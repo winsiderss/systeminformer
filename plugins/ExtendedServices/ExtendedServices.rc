@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -53,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Services for Process Hacker"
-            VALUE "FileVersion", "1.1"
+            VALUE "FileVersion", "1.2"
             VALUE "InternalName", "ExtendedServices"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedServices.dll"
             VALUE "ProductName", "Extended Services for Process Hacker"
-            VALUE "ProductVersion", "1.1"
+            VALUE "ProductVersion", "1.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -161,6 +159,20 @@ BEGIN
     CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,21,190,14
 END
 
+IDD_SRVOTHER DIALOGEX 0, 0, 282, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Other"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Preshutdown timeout:",IDC_STATIC,7,8,72,8
+    EDITTEXT        IDC_PRESHUTDOWNTIMEOUT,85,7,75,12,ES_AUTOHSCROLL | ES_READONLY
+    LTEXT           "milliseconds",IDC_STATIC,166,8,38,8
+    LTEXT           "Required privileges:",IDC_STATIC,7,21,64,8
+    CONTROL         "",IDC_PRIVILEGES,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,32,268,59
+    LTEXT           "Triggers:",IDC_TRIGGERS_LABEL,7,95,30,8
+    CONTROL         "",IDC_TRIGGERS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,106,268,70
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -168,7 +180,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_SRVLIST, DIALOG
     BEGIN
@@ -208,6 +220,14 @@ BEGIN
         RIGHTMARGIN, 197
         TOPMARGIN, 7
         BOTTOMMARGIN, 54
+    END
+
+    IDD_SRVOTHER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
     END
 END
 #endif    // APSTUDIO_INVOKED

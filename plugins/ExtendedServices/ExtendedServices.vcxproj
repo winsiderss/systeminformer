@@ -178,6 +178,7 @@
   <ItemGroup>
     <ClCompile Include="depend.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="other.c" />
     <ClCompile Include="srvprgrs.c" />
     <ClCompile Include="recovery.c" />
   </ItemGroup>
