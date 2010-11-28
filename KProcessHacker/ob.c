@@ -996,7 +996,7 @@ NTSTATUS KphQueryInformationEtwReg(
                 }
                 
                 if (ReturnLength)
-                    *ReturnLength = sizeof(DRIVER_BASIC_INFORMATION);
+                    *ReturnLength = sizeof(ETWREG_BASIC_INFORMATION);
             }
             break;
             
