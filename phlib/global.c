@@ -184,11 +184,12 @@ static VOID PhInitializeSystemInformation()
         NULL
         )))
     {
-        PhShowWarning(
-            NULL,
-            L"Unable to query basic system information. "
-            L"Some functionality may not work as expected."
-            );
+        // Disabled message because it's not appropriate at this abstraction layer.
+        //PhShowWarning(
+        //    NULL,
+        //    L"Unable to query basic system information. "
+        //    L"Some functionality may not work as expected."
+        //    );
     }
 }
 
@@ -202,11 +203,11 @@ static VOID PhInitializeWindowsVersion()
 
     if (!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&versionInfo)))
     {
-        PhShowWarning(
-            NULL,
-            L"Unable to determine the Windows version. "
-            L"Some functionality may not work as expected."
-            );
+        //PhShowWarning(
+        //    NULL,
+        //    L"Unable to determine the Windows version. "
+        //    L"Some functionality may not work as expected."
+        //    );
         WindowsVersion = WINDOWS_NEW;
         return;
     }
