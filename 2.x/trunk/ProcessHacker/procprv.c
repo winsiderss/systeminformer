@@ -2141,7 +2141,7 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
                 break;
 
             i--;
-        };
+        }
     }
     else
     {
