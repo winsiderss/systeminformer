@@ -29,6 +29,15 @@ INT_PTR CALLBACK EspServiceDependentsDlgProc(
     __in LPARAM lParam
     );
 
+// other
+
+INT_PTR CALLBACK EspServiceOtherDlgProc(      
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 // recovery
 
 INT_PTR CALLBACK EspServiceRecoveryDlgProc(      

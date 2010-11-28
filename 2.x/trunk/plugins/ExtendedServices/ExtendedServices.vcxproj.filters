@@ -27,6 +27,9 @@
     <ClCompile Include="recovery.c">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="other.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h">
