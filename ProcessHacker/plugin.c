@@ -192,18 +192,23 @@ VOID PhLoadPlugin(
                     PhPluginsClrHost = clrHost;
                 }
             }
+
+            PhPluginsClrHostInitialized = TRUE;
         }
 
         clrHost = (ICLRRuntimeHost *)PhPluginsClrHost;
 
-        ICLRRuntimeHost_ExecuteInDefaultAppDomain(
-            clrHost,
-            fileName->Buffer,
-            L"ProcessHacker2.Plugin",
-            L"PluginEntry",
-            fileName->Buffer,
-            &returnValue
-            );
+        if (clrHost)
+        {
+            ICLRRuntimeHost_ExecuteInDefaultAppDomain(
+                clrHost,
+                fileName->Buffer,
+                L"ProcessHacker2.Plugin",
+                L"PluginEntry",
+                fileName->Buffer,
+                &returnValue
+                );
+        }
     }
 
     PhDereferenceObject(fileName);
