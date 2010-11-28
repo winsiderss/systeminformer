@@ -471,7 +471,11 @@ VOID PhModuleProviderUpdate(
                 PH_REMOTE_MAPPED_IMAGE remoteMappedImage;
 
                 // On Windows 7 the LDRP_IMAGE_NOT_AT_BASE flag doesn't appear to be used 
-                // anymore. We need to read some memory.
+                // anymore. Instead we'll check ImageBase in the image headers. We read this in 
+                // from the process' memory because:
+                //
+                // 1. It (should be) faster than opening the file and mapping it in, and
+                // 2. It contains the correct original image base relocated by ASLR, if present.
 
                 if (NT_SUCCESS(PhLoadRemoteMappedImage(moduleProvider->ProcessHandle, moduleItem->BaseAddress, &remoteMappedImage)))
                 {
