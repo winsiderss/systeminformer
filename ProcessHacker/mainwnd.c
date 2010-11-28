@@ -3980,7 +3980,7 @@ VOID PhMainWndOnServiceAdded(
         }
 
         serviceNode = PhAddServiceNode(ServiceItem, RunId);
-        PhDereferenceObject(ServiceItem);
+        // ServiceItem dereferenced below
     }
     else
     {

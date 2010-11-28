@@ -1,3 +1,6 @@
+1.2
+ * Added Other tab
+
 1.1
  * Added Restart menu item for services
  * Fixed service handle leak
