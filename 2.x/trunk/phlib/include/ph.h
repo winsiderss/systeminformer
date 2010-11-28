@@ -2290,34 +2290,31 @@ BOOLEAN PhFindStringSiKeyValuePairs(
 #define GUID_VARIANT_RESERVED_MASK 0xe0
 #define GUID_VARIANT_RESERVED 0xe0
 
-typedef struct _GUID_EX
+typedef union _GUID_EX
 {
-    union
+    GUID Guid;
+    UCHAR Data[16];
+    struct
     {
-        GUID Guid;
-        UCHAR Data[16];
-        struct
-        {
-            ULONG TimeLowPart;
-            USHORT TimeMidPart;
-            USHORT TimeHighPart;
-            UCHAR ClockSequenceHigh;
-            UCHAR ClockSequenceLow;
-            UCHAR Node[6];
-        } s;
-        struct
-        {
-            ULONG Part0;
-            USHORT Part32;
-            UCHAR Part48;
-            UCHAR Part56 : 4;
-            UCHAR Version : 4;
-            UCHAR Variant;
-            UCHAR Part72;
-            USHORT Part80;
-            ULONG Part96;
-        } s2;
-    };
+        ULONG TimeLowPart;
+        USHORT TimeMidPart;
+        USHORT TimeHighPart;
+        UCHAR ClockSequenceHigh;
+        UCHAR ClockSequenceLow;
+        UCHAR Node[6];
+    } s;
+    struct
+    {
+        ULONG Part0;
+        USHORT Part32;
+        UCHAR Part48;
+        UCHAR Part56 : 4;
+        UCHAR Version : 4;
+        UCHAR Variant;
+        UCHAR Part72;
+        USHORT Part80;
+        ULONG Part96;
+    } s2;
 } GUID_EX, *PGUID_EX;
 
 PHLIBAPI
