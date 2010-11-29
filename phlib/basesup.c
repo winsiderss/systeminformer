@@ -20,6 +20,52 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This file contains basic low-level code as well as general algorithmic code.
+ *
+ * Memory allocation. PhAllocate is a wrapper around RtlAllocateHeap, and always allocates 
+ * from the phlib heap. PhAllocatePage is a wrapper around NtAllocateVirtualMemory and allocates 
+ * pages.
+ *
+ * Null-terminated strings. The Ph*StringZ functions manipulate null-terminated strings. The 
+ * copying functions provide a simple way to copy strings which may not be null-terminated, but 
+ * have a specified limit.
+ *
+ * String. The design of the string object was chosen for maximum compatibility. As such each 
+ * string buffer must be null-terminated, and each object contains an embedded UNICODE_STRING 
+ * structure. Note that efficient sub-string creation (no copying, only references the parent 
+ * string object) could not be implemented due to the mandatory null-termination. String objects 
+ * must be regarded as immutable (for thread-safety reasons) unless the object has just been 
+ * created and no references have been shared.
+ *
+ * Full string. These strings use full SIZE_T length fields, bypassing the 32k size limit 
+ * imposed on normal string objects which use USHORT length fields. Since full string objects 
+ * are rare, they are mutable and have functions similar to those of string builders.
+ *
+ * String builder. This is a set of functions which allow for efficient modification of strings. 
+ * For performance reasons, these functions modify string objects directly, even though they are 
+ * normally immutable.
+ *
+ * List. A simple PVOID list that resizes itself when needed.
+ *
+ * Pointer list. Similar to the normal list object, but uses a free list in order to support 
+ * constant time insertion and deletion. In order for the free list to work, normal entries 
+ * have their lowest bit clear while free entries have their lowest bit set, with the index of 
+ * the next free entry in the upper bits.
+ *
+ * Hashtable. A hashtable with power-of-two bucket sizes and with all entries stored in a 
+ * single array. This improves locality but may be inefficient when resizing the hashtable. It 
+ * is a good idea to store pointers to objects as entries, as opposed to the objects themselves.
+ *
+ * Simple hashtable. A wrapper around the normal hashtable, with PVOID keys and PVOID values.
+ *
+ * Free list. A thread-safe memory allocation method where freed blocks are stored in a S-list, 
+ * and allocations are made from this list whenever possible.
+ *
+ * Callback. A thread-safe notification mechanism where clients can register callback functions 
+ * which are then invoked by other code.
+ */
+
 #define _PH_BASESUP_PRIVATE
 #include <phbase.h>
 #include <phintrnl.h>
@@ -3944,7 +3990,8 @@ VOID PhRegisterCallbackEx(
  *
  * \remarks It is guaranteed that the callback 
  * function will not be in execution once this function 
- * returns.
+ * returns. Attempting to unregister a callback function 
+ * from within the same function will result in a deadlock.
  */
 VOID PhUnregisterCallback(
     __inout PPH_CALLBACK Callback,

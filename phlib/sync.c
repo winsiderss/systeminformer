@@ -20,6 +20,34 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This file contains code for several synchronization objects.
+ *
+ * Event. This is a lightweight notification event object that does not 
+ * create a kernel event object until needed. Additionally the kernel 
+ * event object is automatically freed when no longer needed. Note that 
+ * PhfResetEvent is NOT thread-safe.
+ *
+ * Barrier. This is a non-traditional implementation of a barrier, built 
+ * on the wake event object. I have identified three types of participants 
+ * in this process:
+ * 1. The slaves, who wait for the master to release them. This is the 
+ *    main mechanism through which the threads are synchronized.
+ * 2. The master, who is the last thread to wait on the barrier. This thread 
+ *    triggers the waking process, and waits until all slaves have woken.
+ * 3. The observers, who are simply threads which were slaves before, were 
+ *    woken, and have tried to wait on the barrier again before all other 
+ *    slaves have woken.
+ *
+ * Rundown protection. This object allows a thread to wait until all other 
+ * threads have finished using a particular resource before freeing the 
+ * resource.
+ *
+ * Init-once. This is a lightweight one-time initialization mechanism which 
+ * uses the event object for any required blocking. The overhead is very 
+ * small - only a single inlined comparison.
+ */
+
 #include <phbase.h>
 
 /**
