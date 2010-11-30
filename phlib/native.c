@@ -3309,91 +3309,66 @@ NTSTATUS PhSetTokenIsVirtualizationEnabled(
  * the integrity level of the token.
  * \param IntegrityString A variable which receives a 
  * pointer to a string containing a string representation 
- * of the integrity level. You must free the string 
- * using PhDereferenceObject() when you no longer need it.
+ * of the integrity level.
  */
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
     __out_opt PPH_INTEGRITY IntegrityLevel, 
-    __out_opt PPH_STRING *IntegrityString
+    __out_opt PWSTR *IntegrityString
     )
 {
     NTSTATUS status;
-    PTOKEN_GROUPS groups;
-    ULONG i;
-    PPH_STRING sidName = NULL;
+    PTOKEN_MANDATORY_LABEL mandatoryLabel;
+    ULONG subAuthority;
     PH_INTEGRITY integrityLevel;
-    PPH_STRING integrityString;
+    PWSTR integrityString;
 
-    status = PhGetTokenGroups(TokenHandle, &groups);
+    status = PhpQueryTokenVariableSize(TokenHandle, TokenIntegrityLevel, &mandatoryLabel);
 
     if (!NT_SUCCESS(status))
         return status;
 
-    // Look for an integrity SID.
-    for (i = 0; i < groups->GroupCount; i++)
+    subAuthority = *RtlSubAuthoritySid(mandatoryLabel->Label.Sid, 0);
+    PhFree(mandatoryLabel);
+
+    switch (subAuthority)
     {
-        if (groups->Groups[i].Attributes & SE_GROUP_INTEGRITY_ENABLED)
-        {
-            PhLookupSid(groups->Groups[i].Sid, &sidName, NULL, NULL);
-            break;
-        }
-    }
-
-    PhFree(groups);
-
-    // Did we get the SID name successfully?
-    if (!sidName)
-        return STATUS_UNSUCCESSFUL;
-
-    // Look for " Mandatory Level".
-    i = PhFindStringInString(sidName, 0, L" Mandatory Level");
-
-    if (i == -1)
-    {
-        PhDereferenceObject(sidName);
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    // Get the string before the suffix.
-    integrityString = PhSubstring(sidName, 0, i);
-    PhDereferenceObject(sidName);
-
-    // Compute the integer integrity level.
-    if (PhEqualString2(integrityString, L"Untrusted", FALSE))
+    case SECURITY_MANDATORY_UNTRUSTED_RID:
         integrityLevel = PiUntrusted;
-    else if (PhEqualString2(integrityString, L"Low", FALSE))
+        integrityString = L"Untrusted";
+        break;
+    case SECURITY_MANDATORY_LOW_RID:
         integrityLevel = PiLow;
-    else if (PhEqualString2(integrityString, L"Medium", FALSE))
+        integrityString = L"Low";
+        break;
+    case SECURITY_MANDATORY_MEDIUM_RID:
         integrityLevel = PiMedium;
-    else if (PhEqualString2(integrityString, L"High", FALSE))
+        integrityString = L"Medium";
+        break;
+    case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+        integrityLevel = PiMediumPlus;
+        integrityString = L"MediumPlus";
+        break;
+    case SECURITY_MANDATORY_HIGH_RID:
         integrityLevel = PiHigh;
-    else if (PhEqualString2(integrityString, L"System", FALSE))
+        integrityString = L"High";
+        break;
+    case SECURITY_MANDATORY_SYSTEM_RID:
         integrityLevel = PiSystem;
-    else if (PhEqualString2(integrityString, L"Installer", FALSE))
-        integrityLevel = PiInstaller;
-    else
-        integrityLevel = -1;
-
-    if (integrityLevel == -1)
-    {
-        PhDereferenceObject(integrityString);
+        integrityString = L"System";
+        break;
+    case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+        integrityLevel = PiProtected;
+        integrityString = L"Protected";
+        break;
+    default:
         return STATUS_UNSUCCESSFUL;
     }
 
     if (IntegrityLevel)
-    {
         *IntegrityLevel = integrityLevel;
-    }
-
     if (IntegrityString)
-    {
         *IntegrityString = integrityString;
-    }
-    else
-    {
-        PhDereferenceObject(integrityString);
-    }
 
     return status;
 }
