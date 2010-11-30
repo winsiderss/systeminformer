@@ -624,7 +624,7 @@ PHLIBAPI
 NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
     __out_opt PPH_INTEGRITY IntegrityLevel, 
-    __out_opt PPH_STRING *IntegrityString
+    __out_opt PWSTR *IntegrityString
     );
 
 PHLIBAPI
