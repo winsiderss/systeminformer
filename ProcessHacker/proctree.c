@@ -1375,7 +1375,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 }
                 break;
             case PHPRTLC_INTEGRITY:
-                PhInitializeStringRef(&getNodeText->Text, processItem->IntegrityString);
+                if (processItem->IntegrityString)
+                    PhInitializeStringRef(&getNodeText->Text, processItem->IntegrityString);
+                else
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);

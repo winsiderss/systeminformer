@@ -46,7 +46,7 @@ typedef struct _PH_PROCESS_QUERY_S1_DATA
     TOKEN_ELEVATION_TYPE ElevationType;
     BOOLEAN IsElevated;
     PH_INTEGRITY IntegrityLevel;
-    PPH_STRING IntegrityString;
+    PWSTR IntegrityString;
 
     PPH_STRING JobName;
     BOOLEAN IsInJob;
@@ -980,6 +980,7 @@ VOID PhpFillProcessItemStage1(
     memcpy(&processItem->VersionInfo, &Data->VersionInfo, sizeof(PH_IMAGE_VERSION_INFO));
     processItem->ElevationType = Data->ElevationType;
     processItem->IntegrityLevel = Data->IntegrityLevel;
+    processItem->IntegrityString = Data->IntegrityString;
     processItem->JobName = Data->JobName;
     processItem->ConsoleHostProcessId = Data->ConsoleHostProcessId;
     processItem->IsElevated = Data->IsElevated;
@@ -987,12 +988,6 @@ VOID PhpFillProcessItemStage1(
     processItem->IsInSignificantJob = Data->IsInSignificantJob;
     processItem->IsPosix = Data->IsPosix;
     processItem->IsWow64 = Data->IsWow64;
-
-    if (Data->IntegrityString)
-    {
-        wcsncpy_s(processItem->IntegrityString, PH_INTEGRITY_STR_LEN, Data->IntegrityString->Buffer, _TRUNCATE);
-        PhDereferenceObject(Data->IntegrityString);
-    }
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
 }

@@ -122,6 +122,7 @@ typedef struct _PH_PROCESS_ITEM
     PPH_STRING UserName;
     TOKEN_ELEVATION_TYPE ElevationType;
     PH_INTEGRITY IntegrityLevel;
+    PWSTR IntegrityString;
 
     // Other
 
@@ -159,7 +160,6 @@ typedef struct _PH_PROCESS_ITEM
     WCHAR ProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR ParentProcessIdString[PH_INT32_STR_LEN_1];
     WCHAR SessionIdString[PH_INT32_STR_LEN_1];
-    WCHAR IntegrityString[PH_INTEGRITY_STR_LEN_1];
 
     // Dynamic
 
