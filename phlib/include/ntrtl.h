@@ -1848,6 +1848,87 @@ RtlCompareAltitudes(
     );
 #endif
 
+// Locale
+
+// begin_rev
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlConvertLCIDToString(
+    __in LCID Lcid,
+    __in ULONG Base,
+    __in ULONG Width, // string is padded to Width
+    __out_ecount(BufferLength) PWSTR Buffer,
+    __in ULONG BufferLength
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsValidLocaleName(
+    __in PWSTR LocaleName,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlGetParentLocaleName(
+    __in PWSTR LocaleName,
+    __inout PUNICODE_STRING ParentLocaleName,
+    __in ULONG Flags,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLcidToLocaleName(
+    __in LCID Lcid,
+    __inout PUNICODE_STRING LocaleName,
+    __in ULONG Flags,
+    __in BOOLEAN AllocateDestinationString
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLocaleNameToLcid(
+    __in PWSTR LocaleName,
+    __out PLCID Lcid,
+    __in ULONG Flags
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlLCIDToCultureName(
+    __in LCID Lcid,
+    __inout PUNICODE_STRING CultureName
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCultureNameToLCID(
+    __in PUNICODE_STRING CultureName,
+    __out PLCID Lcid
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCleanUpTEBLangLists(
+    VOID
+    );
+
+#endif
+
+// end_rev
+
 // PEB
 
 NTSYSAPI
@@ -3091,6 +3172,78 @@ RtlDetectHeapLeaks(
     VOID
     );
 #endif
+
+// Memory zones
+
+// begin_rev
+
+typedef struct _RTL_MEMORY_SEGMENT
+{
+    struct _RTL_MEMORY_SEGMENT *Next;
+    SIZE_T Size;
+    PVOID Base;
+    PVOID Limit;
+} RTL_MEMORY_SEGMENT, *PRTL_MEMORY_SEGMENT;
+
+typedef struct _RTL_MEMORY_ZONE
+{
+    RTL_MEMORY_SEGMENT Header;
+    RTL_SRWLOCK Lock;
+    ULONG LockCount;
+    PRTL_MEMORY_SEGMENT FirstSegment;
+} RTL_MEMORY_ZONE, *PRTL_MEMORY_ZONE;
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCreateMemoryZone(
+    __out PRTL_MEMORY_ZONE *MemoryZone,
+    __in SIZE_T Size,
+    __reserved ULONG Flags
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlDestroyMemoryZone(
+    __in __post_invalid PRTL_MEMORY_ZONE MemoryZone
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlAllocateMemoryZone(
+    __inout PRTL_MEMORY_ZONE MemoryZone,
+    __in SIZE_T Size,
+    __out PVOID *Memory
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlResetMemoryZone(
+    __inout PRTL_MEMORY_ZONE MemoryZone
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLockMemoryZone(
+    __inout PRTL_MEMORY_ZONE MemoryZone
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlUnlockMemoryZone(
+    __inout PRTL_MEMORY_ZONE MemoryZone
+    );
+
+#endif
+
+// end_rev
 
 // Transactions
 
