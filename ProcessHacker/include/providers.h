@@ -283,6 +283,11 @@ BOOLEAN PhReferenceProcessRecordSafe(
     );
 
 PHAPPAPI
+VOID PhReferenceProcessRecordForStatistics(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    );
+
+PHAPPAPI
 VOID PhDereferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     );
