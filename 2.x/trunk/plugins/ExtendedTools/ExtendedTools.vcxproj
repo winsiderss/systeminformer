@@ -177,6 +177,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="etwstat.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="memlists.c" />
     <ClCompile Include="modsrv.c" />
@@ -185,6 +186,7 @@
     <ClCompile Include="unldll.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="etwmon.h" />
     <ClInclude Include="exttools.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

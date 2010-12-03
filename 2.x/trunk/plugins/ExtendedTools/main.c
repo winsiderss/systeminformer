@@ -28,6 +28,11 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI UnloadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -65,6 +70,7 @@ VOID NTAPI ModuleMenuInitializingCallback(
 
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
@@ -97,12 +103,18 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-            //    LoadCallback,
-            //    NULL,
-            //    &PluginLoadCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
             //PhRegisterCallback(
             //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
             //    ShowOptionsCallback,
@@ -150,7 +162,8 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
-                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" }
+                    { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" },
+                    { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" }
                 };
 
                 PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
@@ -167,7 +180,15 @@ VOID NTAPI LoadCallback(
     __in_opt PVOID Context
     )
 {
-    // Nothing
+    EtEtwStatisticsInitialization();
+}
+
+VOID NTAPI UnloadCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    EtEtwStatisticsUninitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(
