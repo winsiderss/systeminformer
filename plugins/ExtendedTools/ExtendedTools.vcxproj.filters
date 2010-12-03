@@ -36,12 +36,18 @@
     <ClCompile Include="memlists.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="etwstat.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="exttools.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="etwmon.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

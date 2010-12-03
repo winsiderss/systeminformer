@@ -2040,6 +2040,17 @@ BOOLEAN PhReferenceProcessRecordSafe(
     return _InterlockedIncrementNoZero(&ProcessRecord->RefCount);
 }
 
+VOID PhReferenceProcessRecordForStatistics(
+    __in PPH_PROCESS_RECORD ProcessRecord
+    )
+{
+    if (!(ProcessRecord->Flags & PH_PROCESS_RECORD_STAT_REF))
+    {
+        PhReferenceProcessRecord(ProcessRecord);
+        ProcessRecord->Flags |= PH_PROCESS_RECORD_STAT_REF;
+    }
+}
+
 VOID PhDereferenceProcessRecord(
     __in PPH_PROCESS_RECORD ProcessRecord
     )
