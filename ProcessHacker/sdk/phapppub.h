@@ -464,7 +464,8 @@ PhAddProcessPropPage2(
 PHAPPAPI
 PPH_PROCESS_PROPPAGECONTEXT
 NTAPI
-PhCreateProcessPropPageContext(
+PhCreateProcessPropPageContextEx(
+    __in_opt PVOID InstanceHandle,
     __in LPCWSTR Template,
     __in DLGPROC DlgProc,
     __in_opt PVOID Context
@@ -483,6 +484,15 @@ PhPropPageDlgProcHeader(
     );
 
 PHAPPAPI
+VOID
+NTAPI
+PhPropPageDlgProcDestroy(
+    __in HWND hwndDlg
+    );
+
+#define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
+
+PHAPPAPI
 PPH_LAYOUT_ITEM
 NTAPI
 PhAddPropPageLayoutItem(
@@ -498,6 +508,31 @@ NTAPI
 PhDoPropPageLayout(
     __in HWND hwnd
     );
+
+FORCEINLINE PPH_LAYOUT_ITEM PhBeginPropPageLayout(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    )
+{
+    if (!PropPageContext->LayoutInitialized)
+    {
+        return PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
+            PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
+FORCEINLINE VOID PhEndPropPageLayout(
+    __in HWND hwndDlg,
+    __in PPH_PROCESS_PROPPAGECONTEXT PropPageContext
+    )
+{
+    PhDoPropPageLayout(hwndDlg);
+    PropPageContext->LayoutInitialized = TRUE;
+}
 
 PHAPPAPI
 BOOLEAN

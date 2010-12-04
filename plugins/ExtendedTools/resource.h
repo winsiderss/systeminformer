@@ -11,6 +11,10 @@
 #define IDD_MODSERVICES                 104
 #define ID_VIEW_MEMORYLISTS             104
 #define IDD_MEMLISTS                    105
+#define IDD_DIALOG1                     106
+#define IDD_PROCDISKNET                 106
+#define IDD_SYSDISKNET                  107
+#define IDD_SYSDISKNET_PANEL            108
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -33,14 +37,26 @@
 #define IDC_ZSTANDBY5_V                 1020
 #define IDC_ZSTANDBY6_V                 1021
 #define IDC_ZSTANDBY7_V                 1022
+#define IDC_ZREADS_V                    1023
+#define IDC_ZREADBYTES_V                1024
+#define IDC_ZREADBYTESDELTA_V           1025
+#define IDC_ZWRITES_V                   1026
+#define IDC_ZWRITEBYTES_V               1027
+#define IDC_ZWRITEBYTESDELTA_V          1028
+#define IDC_ZRECEIVES_V                 1029
+#define IDC_ZRECEIVEBYTES_V             1030
+#define IDC_ZRECEIVEBYTESDELTA_V        1031
+#define IDC_ZSENDS_V                    1032
+#define IDC_ZSENDBYTES_V                1033
+#define IDC_ZSENDBYTESDELTA_V           1034
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        106
+#define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1023
+#define _APS_NEXT_CONTROL_VALUE         1035
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

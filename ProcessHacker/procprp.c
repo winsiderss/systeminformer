@@ -380,6 +380,16 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
     __in_opt PVOID Context
     )
 {
+    return PhCreateProcessPropPageContextEx(NULL, Template, DlgProc, Context);
+}
+
+PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContextEx(
+    __in_opt PVOID InstanceHandle,
+    __in LPCWSTR Template,
+    __in DLGPROC DlgProc,
+    __in_opt PVOID Context
+    )
+{
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
 
     if (!NT_SUCCESS(PhCreateObject(
@@ -390,17 +400,18 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateProcessPropPageContext(
         )))
         return NULL;
 
-    memset(&propPageContext->PropSheetPage, 0, sizeof(PROPSHEETPAGE));
+    memset(propPageContext, 0, sizeof(PH_PROCESS_PROPPAGECONTEXT));
+
     propPageContext->PropSheetPage.dwSize = sizeof(PROPSHEETPAGE);
     propPageContext->PropSheetPage.dwFlags =
         PSP_USECALLBACK;
+    propPageContext->PropSheetPage.hInstance = InstanceHandle;
     propPageContext->PropSheetPage.pszTemplate = Template;
     propPageContext->PropSheetPage.pfnDlgProc = DlgProc;
     propPageContext->PropSheetPage.lParam = (LPARAM)propPageContext;
     propPageContext->PropSheetPage.pfnCallback = PhpStandardPropPageProc;
 
     propPageContext->Context = Context;
-    propPageContext->LayoutInitialized = FALSE;
 
     return propPageContext;
 }
@@ -481,6 +492,13 @@ VOID PhpPropPageDlgProcDestroy(
     )
 {
     RemoveProp(hwndDlg, L"PropSheetPage");
+}
+
+VOID PhPropPageDlgProcDestroy(
+    __in HWND hwndDlg
+    )
+{
+    PhpPropPageDlgProcDestroy(hwndDlg);
 }
 
 PPH_LAYOUT_ITEM PhAddPropPageLayoutItem(
@@ -1205,14 +1223,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             statisticsContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_STATISTICS_CONTEXT));
 
+            statisticsContext->WindowHandle = hwndDlg;
+            statisticsContext->Enabled = TRUE;
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 StatisticsUpdateHandler,
                 statisticsContext,
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
-            statisticsContext->WindowHandle = hwndDlg;
-            statisticsContext->Enabled = TRUE;
 
             PhpUpdateProcessStatistics(hwndDlg, processItem);
         }
@@ -1319,13 +1338,14 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext = propPageContext->Context =
                 PhAllocate(sizeof(PH_PERFORMANCE_CONTEXT));
 
+            performanceContext->WindowHandle = hwndDlg;
+
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
                 PerformanceUpdateHandler,
                 performanceContext,
                 &performanceContext->ProcessesUpdatedRegistration
                 );
-            performanceContext->WindowHandle = hwndDlg;
 
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix 
             // the drawing issue that arises when using WS_CLIPCHILDREN. However 

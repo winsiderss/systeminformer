@@ -123,8 +123,7 @@ ULONG EtpControlEtwSession(
 
 VOID EtStopEtwSession()
 {
-    // Don't stop the session if we didn't create it (if it was created by someone else).
-    if (EtEtwEnabled && EtpStartedSession)
+    if (EtEtwEnabled)
         EtpControlEtwSession(EVENT_TRACE_CONTROL_STOP);
 
     PhFree(EtpTraceProperties);
@@ -234,6 +233,8 @@ NTSTATUS NTAPI EtpEtwMonitorThreadStart(
     __in PVOID Parameter
     )
 {
+    ULONG result;
+
     memset(&EtpLogFile, 0, sizeof(EVENT_TRACE_LOGFILE));
     EtpLogFile.LoggerName = EtpLoggerName.Buffer;
     EtpLogFile.ProcessTraceMode = PROCESS_TRACE_MODE_REAL_TIME;
@@ -241,14 +242,24 @@ NTSTATUS NTAPI EtpEtwMonitorThreadStart(
     EtpLogFile.EventCallback = EtpEtwEventCallback;
     EtpLogFile.IsKernelTrace = TRUE;
 
-    EtpTraceHandle = OpenTrace(&EtpLogFile);
-
-    while (!EtpEtwExiting && ProcessTrace(&EtpTraceHandle, 1, NULL, NULL) == ERROR_SUCCESS)
+    while (TRUE)
     {
-        // Nothing
-    }
+        EtpTraceHandle = OpenTrace(&EtpLogFile);
 
-    CloseTrace(EtpTraceHandle);
+        while (!EtpEtwExiting && (result = ProcessTrace(&EtpTraceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
+            NOTHING;
+
+        CloseTrace(EtpTraceHandle);
+
+        if (EtpEtwExiting)
+            break;
+
+        if (result == ERROR_WMI_INSTANCE_NOT_FOUND)
+        {
+            // The session was stopped by another program. Try to start it again.
+            EtStartEtwSession();
+        }
+    }
 
     return STATUS_SUCCESS;
 }
