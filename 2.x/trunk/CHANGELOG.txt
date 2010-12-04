@@ -5,6 +5,8 @@ Process Hacker
    * Added column selection for modules list
    * Added wait analysis for 64-bit systems
    * Added signature verification for modules
+   * Added ExtendedTools plugin (Vista and above only) 
+     with Disk and Network information
    * Updated ExtendedServices plugin
    * Environment variables and current directory are 
      now correctly shown for WOW64 processes

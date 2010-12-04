@@ -5,9 +5,11 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
+#endif 
 
 // main
+
+PHAPPAPI extern HFONT PhApplicationFont;
 
 PHAPPAPI
 VOID
@@ -920,6 +922,16 @@ PhShowChooseProcessDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Message,
     __out PHANDLE ProcessId
+    );
+
+// procrec
+
+PHAPPAPI
+VOID
+NTAPI
+PhShowProcessRecordDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_RECORD Record
     );
 
 // srvctl

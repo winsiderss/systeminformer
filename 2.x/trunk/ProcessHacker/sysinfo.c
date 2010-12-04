@@ -231,8 +231,10 @@ static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
 
     // Find the process record for the max. CPU process for the particular time.
 
-    PhGetStatisticsTime(NULL, Index, &time);
     maxProcessId = PhGetItemCircularBuffer_ULONG(&PhMaxCpuHistory, Index);
+
+    if (!maxProcessId)
+        return NULL;
 
     // Note that the time we get has its components beyond seconds cleared. 
     // For example:
@@ -246,6 +248,7 @@ static PPH_PROCESS_RECORD PhpReferenceMaxCpuRecord(
     //
     // This mean we must add one second minus one tick (100ns) to the time, giving us 
     // 2.9999999 seconds. This will then make sure we find the process.
+    PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
     return PhFindProcessRecord((HANDLE)maxProcessId, &time);
@@ -267,8 +270,9 @@ static PPH_STRING PhapGetMaxCpuString(
 #ifdef PH_RECORD_MAX_USAGE
         maxCpuUsage = PhGetItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, Index);
         maxUsageString = PhaFormatString(
-            L"\n%s: %.2f%%",
+            L"\n%s (%u): %.2f%%",
             maxProcessRecord->ProcessName->Buffer,
+            (ULONG)maxProcessRecord->ProcessId,
             maxCpuUsage * 100
             );
 #else
@@ -289,10 +293,13 @@ static PPH_PROCESS_RECORD PhpReferenceMaxIoRecord(
 
     // Find the process record for the max. I/O process for the particular time.
 
-    PhGetStatisticsTime(NULL, Index, &time);
     maxProcessId = PhGetItemCircularBuffer_ULONG(&PhMaxIoHistory, Index);
 
+    if (!maxProcessId)
+        return NULL;
+
     // See above for the explanation.
+    PhGetStatisticsTime(NULL, Index, &time);
     time.QuadPart += PH_TICKS_PER_SEC - 1;
 
     return PhFindProcessRecord((HANDLE)maxProcessId, &time);
@@ -316,8 +323,9 @@ static PPH_STRING PhapGetMaxIoString(
         maxIoReadOther = PhGetItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, Index);
         maxIoWrite = PhGetItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, Index);
         maxUsageString = PhaFormatString(
-            L"\n%s: R+O: %s, W: %s",
+            L"\n%s (%u): R+O: %s, W: %s",
             maxProcessRecord->ProcessName->Buffer,
+            (ULONG)maxProcessRecord->ProcessId,
             PhaFormatSize(maxIoReadOther, -1)->Buffer,
             PhaFormatSize(maxIoWrite, -1)->Buffer
             );
