@@ -179,6 +179,7 @@
     <ClCompile Include="etwmon.c" />
     <ClCompile Include="etwstat.c" />
     <ClCompile Include="etwprprp.c" />
+    <ClCompile Include="etwsys.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="memlists.c" />
     <ClCompile Include="modsrv.c" />

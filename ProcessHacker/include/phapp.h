@@ -1290,6 +1290,7 @@ VOID PhShowPluginsDialog(
 
 // procrec
 
+PHAPPAPI
 VOID PhShowProcessRecordDialog(
     __in HWND ParentWindowHandle,
     __in PPH_PROCESS_RECORD Record

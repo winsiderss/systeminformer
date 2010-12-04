@@ -144,14 +144,17 @@ typedef struct _PH_GRAPH_STATE
     ULONG TooltipIndex; // indicates the tooltip text is valid for this index
 } PH_GRAPH_STATE, *PPH_GRAPH_STATE;
 
+PHLIBAPI
 VOID PhInitializeGraphState(
     __out PPH_GRAPH_STATE State
     );
 
+PHLIBAPI
 VOID PhDeleteGraphState(
     __inout PPH_GRAPH_STATE State
     );
 
+PHLIBAPI
 VOID PhGraphStateGetDrawInfo(
     __inout PPH_GRAPH_STATE State,
     __in PPH_GRAPH_GETDRAWINFO GetDrawInfo,

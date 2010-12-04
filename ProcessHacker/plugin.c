@@ -87,15 +87,22 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     __in_opt PVOID Context
     )
 {
+    PH_STRINGREF baseName;
     PPH_STRING fileName;
 
-    fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-    memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-    memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
+    baseName.Buffer = Information->FileName;
+    baseName.Length = (USHORT)Information->FileNameLength;
 
-    PhLoadPlugin(fileName);
+    if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
+    {
+        fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
+        memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
+        memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
 
-    PhDereferenceObject(fileName);
+        PhLoadPlugin(fileName);
+
+        PhDereferenceObject(fileName);
+    }
 
     return TRUE;
 }
@@ -335,7 +342,12 @@ ULONG PhPluginReserveIds(
     __in ULONG Count
     )
 {
-    return NextPluginId += Count;
+    ULONG nextPluginId;
+
+    nextPluginId = NextPluginId;
+    NextPluginId += Count;
+
+    return nextPluginId;
 }
 
 BOOLEAN PhPluginAddMenuItem(
@@ -403,17 +415,21 @@ BOOLEAN PhPluginAddMenuItem(
         insertIndex = 0;
     }
 
-    menuItem->RealId = PhPluginReserveIds(1);
-
-    menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-    menuItemInfo.wID = menuItem->RealId;
-    menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
-    menuItemInfo.dwTypeData = Text;
-
     if (textCount == 1 && Text[0] == '-')
     {
-        menuItemInfo.fMask = MIIM_ID;
+        menuItem->RealId = 0;
+
+        menuItemInfo.fMask = 0;
         menuItemInfo.fType = MFT_SEPARATOR;
+    }
+    else
+    {
+        menuItem->RealId = PhPluginReserveIds(1);
+
+        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
+        menuItemInfo.wID = menuItem->RealId;
+        menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
+        menuItemInfo.dwTypeData = Text;
     }
 
     InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);

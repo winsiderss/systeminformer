@@ -30,7 +30,7 @@ BOOLEAN PhHexEditInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = 0;
+    c.style = CS_GLOBALCLASS;
     c.lpfnWndProc = PhpHexEditWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
