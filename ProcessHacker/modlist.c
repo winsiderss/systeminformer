@@ -327,11 +327,20 @@ VOID PhTickModuleNodes(
 BEGIN_SORT_FUNCTION(TriState)
 {
     if (moduleItem1->IsFirst)
+    {
         sortResult = -1;
+    }
     else if (moduleItem2->IsFirst)
+    {
         sortResult = 1;
+    }
     else
+    {
         sortResult = PhCompareString(moduleItem1->Name, moduleItem2->Name, TRUE); // fall back to sorting by name
+
+        if (sortResult == 0)
+            sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress); // last resort: sort by base address
+    }
 }
 END_SORT_FUNCTION
 

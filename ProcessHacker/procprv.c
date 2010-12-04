@@ -617,9 +617,14 @@ VERIFY_RESULT PhVerifyFileCached(
         PPH_STRING signerName;
 
         if (!CachedOnly)
+        {
             result = PhVerifyFile(FileName->Buffer, &signerName);
+        }
         else
+        {
             result = VrUnknown;
+            signerName = NULL;
+        }
 
         if (result != VrUnknown)
         {
