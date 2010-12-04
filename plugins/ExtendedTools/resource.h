@@ -11,9 +11,12 @@
 #define IDD_MODSERVICES                 104
 #define ID_VIEW_MEMORYLISTS             104
 #define IDD_MEMLISTS                    105
+#define IDC_DISK                        105
 #define IDD_DIALOG1                     106
 #define IDD_PROCDISKNET                 106
+#define IDC_NETWORK                     106
 #define IDD_SYSDISKNET                  107
+#define ID_VIEW_DISKANDNETWORK          107
 #define IDD_SYSDISKNET_PANEL            108
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
@@ -49,6 +52,10 @@
 #define IDC_ZSENDS_V                    1032
 #define IDC_ZSENDBYTES_V                1033
 #define IDC_ZSENDBYTESDELTA_V           1034
+#define IDC_GROUPDISK                   1035
+#define IDC_GROUPNETWORK                1036
+#define IDC_CHECK1                      1037
+#define IDC_ALWAYSONTOP                 1037
 
 // Next default values for new objects
 // 
@@ -56,7 +63,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        109
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1035
-#define _APS_NEXT_SYMED_VALUE           105
+#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif

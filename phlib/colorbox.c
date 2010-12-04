@@ -40,7 +40,7 @@ BOOLEAN PhColorBoxInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = 0;
+    c.style = CS_GLOBALCLASS;
     c.lpfnWndProc = PhpColorBoxWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
