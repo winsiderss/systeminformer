@@ -27,3 +27,8 @@ Plugins can be configured from Hacker > Plugins.
 
 If you experience any crashes involving plugins, make sure they 
 are up to date.
+
+The ExtendedTools plugin is only available for Windows Vista and 
+above. Disk and Network information provided by this plugin is 
+only available when running Process Hacker with administrative 
+rights.
