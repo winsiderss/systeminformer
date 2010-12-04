@@ -1,8 +1,6 @@
 #ifndef PROCPRPP_H
 #define PROCPRPP_H
 
-#define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
-
 LRESULT CALLBACK PhpPropSheetWndProc(
     __in HWND hwnd,
     __in UINT uMsg,

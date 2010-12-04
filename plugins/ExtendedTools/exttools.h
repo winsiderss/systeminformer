@@ -14,6 +14,12 @@ extern PPH_PLUGIN PluginInstance;
 
 extern BOOLEAN EtEtwEnabled;
 
+// etwprprp
+
+VOID EtEtwProcessPropertiesInitializing(
+    __in PVOID Parameter
+    );
+
 // etwstat
 
 typedef struct _ET_PROCESS_ETW_BLOCK

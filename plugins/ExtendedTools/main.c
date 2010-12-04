@@ -48,6 +48,11 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ProcessPropertiesInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI HandlePropertiesInitializingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -74,6 +79,7 @@ PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
@@ -133,6 +139,12 @@ LOGICAL DllMain(
                 MainWindowShowingCallback,
                 NULL,
                 &MainWindowShowingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
+                ProcessPropertiesInitializingCallback,
+                NULL,
+                &ProcessPropertiesInitializingCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing),
@@ -241,6 +253,14 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
+}
+
+VOID NTAPI ProcessPropertiesInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    EtEtwProcessPropertiesInitializing(Parameter);
 }
 
 VOID NTAPI HandlePropertiesInitializingCallback(
