@@ -224,6 +224,7 @@
     <ClCompile Include="workqueue.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\ntzwapi.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phsync.h" />
     <ClInclude Include="include\circbuf.h" />
