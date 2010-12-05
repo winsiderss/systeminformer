@@ -52,6 +52,7 @@ for %%a in (
     ntwin.h
     ntwow64.h
     ntxcapi.h
+    ntzwapi.h
     ph.h
     phbase.h
     phgui.h

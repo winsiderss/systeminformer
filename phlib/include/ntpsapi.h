@@ -501,6 +501,7 @@ NtResumeProcess(
 #define ZwCurrentThread() NtCurrentThread()
 #define NtCurrentPeb() (NtCurrentTeb()->ProcessEnvironmentBlock)
 
+// Not NT, but useful.
 #define NtCurrentProcessId() (NtCurrentTeb()->ClientId.UniqueProcess)
 #define NtCurrentThreadId() (NtCurrentTeb()->ClientId.UniqueThread)
 
@@ -526,14 +527,6 @@ NtGetNextProcess(
     __in ULONG Flags,
     __out PHANDLE NewProcessHandle
     );
-#else
-typedef NTSTATUS (NTAPI *_NtGetNextProcess)(
-    __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Flags,
-    __out PHANDLE NewProcessHandle
-    );
 #endif
 
 #if (PHNT_VERSION >= PHNT_WS03)
@@ -541,15 +534,6 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtGetNextThread(
-    __in HANDLE ProcessHandle,
-    __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in ULONG HandleAttributes,
-    __in ULONG Flags,
-    __out PHANDLE NewThreadHandle
-    );
-#else
-typedef NTSTATUS (NTAPI *_NtGetNextThread)(
     __in HANDLE ProcessHandle,
     __in HANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -927,14 +911,13 @@ typedef struct _PROCESS_CREATE_INFO
     };
 } PROCESS_CREATE_INFO, *PPROCESS_CREATE_INFO;
 
-#if (PHNT_VERSION >= PHNT_VISTA)
-
 // Extended PROCESS_CREATE_FLAGS_*
 #define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020
 #define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040
 #define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // ?
 #define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100
 
+#if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -951,6 +934,7 @@ NtCreateUserProcess(
     __inout PPROCESS_CREATE_INFO CreateInfo,
     __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
     );
+#endif
 
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001
 #define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH 0x00000002 // ?
@@ -959,6 +943,7 @@ NtCreateUserProcess(
 #define THREAD_CREATE_FLAGS_ACCESS_CHECK_IN_TARGET 0x00000020 // ?
 #define THREAD_CREATE_FLAGS_INITIAL_THREAD 0x00000080
 
+#if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -975,7 +960,6 @@ NtCreateThreadEx(
     __in_opt SIZE_T StackReserve,
     __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
     );
-
 #endif
 
 // end_rev
@@ -984,8 +968,6 @@ NtCreateThreadEx(
 
 // begin_rev
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-
 typedef enum _RESERVE_OBJECT_TYPE
 {
     ReserveObjectUserApc = 0,
@@ -993,6 +975,7 @@ typedef enum _RESERVE_OBJECT_TYPE
     MaximumReserveObject
 } RESERVE_OBJECT_TYPE;
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1001,7 +984,9 @@ NtAllocateReserveObject(
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in RESERVE_OBJECT_TYPE Type
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WIN7)
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1013,7 +998,6 @@ NtQueueApcThreadEx(
     __in_opt PVOID ApcArgument2,
     __in_opt PVOID ApcArgument3
     );
-
 #endif
 
 // end_rev
