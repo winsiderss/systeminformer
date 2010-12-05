@@ -3620,6 +3620,35 @@ RtlComputeImportTableHash(
 NTSYSAPI
 NTSTATUS
 NTAPI
+RtlIntegerToChar(
+    __in ULONG Value,
+    __in_opt ULONG Base,
+    __in LONG OutputLength, // negative to pad to width
+    __out PSTR String
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCharToInteger(
+    __in PSTR String,
+    __in_opt ULONG Base,
+    __out PULONG Value
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlLargeIntegerToChar(
+    __in PLARGE_INTEGER Value,
+    __in_opt ULONG Base,
+    __in LONG OutputLength,
+    __out PSTR String
+    );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
 RtlIntegerToUnicodeString(
     __in ULONG Value,
     __in_opt ULONG Base,
