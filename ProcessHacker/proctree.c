@@ -86,7 +86,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 2, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_IOTOTAL, TRUE, L"I/O Total", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHPRTLC_PVTMEMORY, TRUE, L"Pvt. Memory", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHPRTLC_PRIVATEBYTES, TRUE, L"Private Bytes", 70, PH_ALIGN_RIGHT, 4, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_DESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, 6, 0);
 
@@ -95,7 +95,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHPRTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
     PhAddTreeListColumn(hwnd, PHPRTLC_COMMANDLINE, FALSE, L"Command Line", 180, PH_ALIGN_LEFT, -1, 0);
 
-    PhAddTreeListColumn(hwnd, PHPRTLC_PEAKPVTMEMORY, FALSE, L"Peak Pvt. Memory", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHPRTLC_PEAKPRIVATEBYTES, FALSE, L"Peak Private Bytes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_WORKINGSET, FALSE, L"Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_PEAKWORKINGSET, FALSE, L"Peak Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_PRIVATEWS, FALSE, L"Private WS", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
@@ -739,7 +739,7 @@ BEGIN_SORT_FUNCTION(IoTotal)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(PvtMemory)
+BEGIN_SORT_FUNCTION(PrivateBytes)
 {
     sortResult = uintptrcmp(processItem1->VmCounters.PagefileUsage, processItem2->VmCounters.PagefileUsage);
 }
@@ -801,7 +801,7 @@ BEGIN_SORT_FUNCTION(CommandLine)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(PeakPvtMemory)
+BEGIN_SORT_FUNCTION(PeakPrivateBytes)
 {
     sortResult = uintptrcmp(processItem1->VmCounters.PeakPagefileUsage, processItem2->VmCounters.PeakPagefileUsage);
 }
@@ -1081,14 +1081,14 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(Pid),
                         SORT_FUNCTION(Cpu),
                         SORT_FUNCTION(IoTotal),
-                        SORT_FUNCTION(PvtMemory),
+                        SORT_FUNCTION(PrivateBytes),
                         SORT_FUNCTION(UserName),
                         SORT_FUNCTION(Description),
                         SORT_FUNCTION(CompanyName),
                         SORT_FUNCTION(Version),
                         SORT_FUNCTION(FileName),
                         SORT_FUNCTION(CommandLine),
-                        SORT_FUNCTION(PeakPvtMemory),
+                        SORT_FUNCTION(PeakPrivateBytes),
                         SORT_FUNCTION(WorkingSet),
                         SORT_FUNCTION(PeakWorkingSet),
                         SORT_FUNCTION(PrivateWs),
@@ -1225,7 +1225,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     }
                 }
                 break;
-            case PHPRTLC_PVTMEMORY:
+            case PHPRTLC_PRIVATEBYTES:
                 PhSwapReference2(&node->PrivateMemoryText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
                 getNodeText->Text = node->PrivateMemoryText->sr;
                 break;
@@ -1247,7 +1247,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             case PHPRTLC_COMMANDLINE:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
                 break;
-            case PHPRTLC_PEAKPVTMEMORY:
+            case PHPRTLC_PEAKPRIVATEBYTES:
                 PhSwapReference2(&node->PeakPrivateMemoryText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
                 getNodeText->Text = node->PeakPrivateMemoryText->sr;
                 break;
