@@ -52,6 +52,85 @@ typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
     MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
+#define MMPFNLIST_ZERO 0
+#define MMPFNLIST_FREE 1
+#define MMPFNLIST_STANDBY 2
+#define MMPFNLIST_MODIFIED 3
+#define MMPFNLIST_MODIFIEDNOWRITE 4
+#define MMPFNLIST_BAD 5
+#define MMPFNLIST_ACTIVE 6
+#define MMPFNLIST_TRANSITION 7
+
+#define MMPFNUSE_PROCESSPRIVATE 0
+#define MMPFNUSE_FILE 1
+#define MMPFNUSE_PAGEFILEMAPPED 2
+#define MMPFNUSE_PAGETABLE 3
+#define MMPFNUSE_PAGEDPOOL 4
+#define MMPFNUSE_NONPAGEDPOOL 5
+#define MMPFNUSE_SYSTEMPTE 6
+#define MMPFNUSE_SESSIONPRIVATE 7
+#define MMPFNUSE_METAFILE 8
+#define MMPFNUSE_AWEPAGE 9
+#define MMPFNUSE_DRIVERLOCKPAGE 10
+
+typedef struct _MEMORY_FRAME_INFORMATION
+{
+    ULONGLONG UseDescription : 4; // MMPFNUSE_*
+    ULONGLONG ListDescription : 3; // MMPFNLIST_*
+    ULONGLONG Reserved0 : 1; // reserved for future expansion
+    ULONGLONG Pinned : 1; // 1 - pinned, 0 - not pinned
+    ULONGLONG DontUse : 48; // *_INFORMATION overlay
+    ULONGLONG Priority : 3; // rev
+    ULONGLONG Reserved : 4; // reserved for future expansion
+} MEMORY_FRAME_INFORMATION;
+
+typedef struct _FILEOFFSET_INFORMATION
+{
+    ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ULONGLONG Offset : 48; // mapped files
+    ULONGLONG Reserved : 7; // reserved for future expansion
+} FILEOFFSET_INFORMATION;
+
+typedef struct _PAGEDIR_INFORMATION
+{
+    ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ULONGLONG PageDirectoryBase : 48; // private pages
+    ULONGLONG Reserved : 7; // reserved for future expansion
+} PAGEDIR_INFORMATION;
+
+typedef struct _MMPFN_IDENTITY
+{
+    union
+    {
+        MEMORY_FRAME_INFORMATION e1; // all
+        FILEOFFSET_INFORMATION e2; // mapped files
+        PAGEDIR_INFORMATION e3; // private pages
+    } u1;
+    ULONG_PTR PageFrameIndex; // all
+    union
+    {
+        PVOID FileObject; // mapped files
+        PVOID VirtualAddress; // everything else
+    } u2;
+} MMPFN_IDENTITY, *PMMPFN_IDENTITY;
+
+typedef struct _MMPFN_MEMSNAP_INFORMATION
+{
+    ULONG_PTR InitialPageFrameIndex;
+    ULONG_PTR Count;
+} MMPFN_MEMSNAP_INFORMATION, *PMMPFN_MEMSNAP_INFORMATION;
+
+// For NtQuerySystemInformation -> SystemSuperfetchInformation -> SuperfetchPfnListInformation
+// rev
+typedef struct _SUPERFETCH_PFN_PRIO_REQUEST
+{
+    ULONG Revision;
+    ULONG Flags;
+    ULONG NumberOfEntries;
+    SYSTEM_MEMORY_LIST_INFORMATION MemoryListInformation; // filled only if SUPERFETCH_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST is set in Flags
+    MMPFN_IDENTITY Entries[1]; // page frame indicies must be initialized before querying
+} SUPERFETCH_PFN_PRIO_REQUEST, *PSUPERFETCH_PFN_PRIO_REQUEST;
+
 typedef enum _SECTION_INFORMATION_CLASS
 {
     SectionBasicInformation,

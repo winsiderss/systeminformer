@@ -1421,105 +1421,6 @@ typedef struct _SYSTEM_LEGACY_DRIVER_INFORMATION
     UNICODE_STRING VetoList;
 } SYSTEM_LEGACY_DRIVER_INFORMATION, *PSYSTEM_LEGACY_DRIVER_INFORMATION;
 
-// Common structure used by a few info classes
-
-// begin_rev
-
-typedef enum _SYSTEM_EXTENDED_INFORMATION_TYPE
-{
-    ExtendedPrefetcherInformation = 23,
-    ExtendedSuperfetchInformation = 45
-} SYSTEM_EXTENDED_INFORMATION_TYPE;
-
-#define SYSTEM_EXTENDED_INFORMATION_MAGIC ('kuhC') 
-
-typedef struct _SYSTEM_EXTENDED_INFORMATION
-{
-    SYSTEM_EXTENDED_INFORMATION_TYPE Type;
-    ULONG Magic;
-    ULONG InformationClass;
-    PVOID Buffer;
-    ULONG BufferSize;
-} SYSTEM_EXTENDED_INFORMATION, *PSYSTEM_EXTENDED_INFORMATION;
-
-// end_rev
-
-// begin_rev
-
-typedef enum _PREFETCHER_INFORMATION_CLASS
-{
-    PrefetcherCompletedTraceInformation = 1,
-    PrefetcherUnknownInformation = 2, // ???
-    PrefetcherBootLoaderTraceInformation = 4
-} PREFETCHER_INFORMATION_CLASS;
-
-// end_rev
-
-// begin_rev
-
-#define SUPERFETCH_INFORMATION_REVISION 1
-
-typedef enum _SUPERFETCH_INFORMATION_CLASS
-{
-    SuperfetchCompletedTraceInformation = 1,
-    SuperfetchTraceInformation = 2, // size 24
-    SuperfetchPfnListInformation = 6,
-    SuperfetchPfnListPriorities = 7, // set only
-    SuperfetchPrivSourceInformation = 8,
-    SuperfetchStreamSequenceNumber = 9, // size 4
-    SuperfetchScenarioInformation = 12,
-    SuperfetchMemoryListInformation = 16,
-    SuperfetchMemoryRangesInformation = 17,
-    SuperfetchUnknownInformation20 = 20 // size 8
-} SUPERFETCH_INFORMATION_CLASS;
-
-typedef enum _SUPERFETCH_PRIV_SOURCE_TYPE
-{
-    PrivSourceKernelSpace,
-    PrivSourceSession,
-    PrivSourceProcess
-} SUPERFETCH_PRIV_SOURCE_TYPE;
-
-typedef struct _SUPERFETCH_PRIV_SOURCE_ENTRY
-{
-    SUPERFETCH_PRIV_SOURCE_TYPE Type;
-    ULONG UniqueId;
-    ULONG ImagePathHash;
-    ULONG ProcessHash;
-    PVOID Object;
-    SIZE_T WorkingSetPrivateSize;
-    SIZE_T NumberOfPrivatePages;
-    ULONG SessionId;
-    CHAR Name[16];
-} SUPERFETCH_PRIV_SOURCE_ENTRY, *PSUPERFETCH_PRIV_SOURCE_ENTRY;
-
-typedef struct _SUPERFETCH_PRIV_SOURCE_INFORMATION
-{
-    ULONG Type; // must be set to 3
-    ULONG Unknown;
-    SUPERFETCH_PRIV_SOURCE_ENTRY Entries[1];
-} SUPERFETCH_PRIV_SOURCE_INFORMATION, *PSUPERFETCH_PRIV_SOURCE_INFORMATION;
-
-typedef struct _SUPERFETCH_STREAM_SEQUENCE_NUMBER
-{
-    LONG StreamSequenceNumber;
-} SUPERFETCH_STREAM_SEQUENCE_NUMBER, *PSUPERFETCH_STREAM_SEQUENCE_NUMBER;
-
-typedef struct _PHYSICAL_MEMORY_RUN
-{
-    ULONG_PTR BasePage; // multiply by PAGE_SIZE to get base address
-    ULONG_PTR PageCount; // multiply by PAGE_SIZE to get number of bytes
-} PHYSICAL_MEMORY_RUN, *PPHYSICAL_MEMORY_RUN;
-
-typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
-{
-    ULONG Revision;
-    ULONG NumberOfRuns;
-    PHYSICAL_MEMORY_RUN Runs[1];
-} SUPERFETCH_MEMORY_RANGES_INFORMATION, *PSUPERFETCH_MEMORY_RANGES_INFORMATION;
-
-// end_rev
-
 // rev
 typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
 {
@@ -1639,6 +1540,116 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
 } SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION, *PSYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION;
 
 // end_msdn
+
+// Common structure used by SystemPrefetcherInformation and SystemSuperfetchInformation
+
+// begin_rev
+
+typedef enum _SYSTEM_EXTENDED_INFORMATION_TYPE
+{
+    ExtendedPrefetcherInformation = 23,
+    ExtendedSuperfetchInformation = 45
+} SYSTEM_EXTENDED_INFORMATION_TYPE;
+
+#define SYSTEM_EXTENDED_INFORMATION_MAGIC ('kuhC') 
+
+typedef struct _SYSTEM_EXTENDED_INFORMATION
+{
+    SYSTEM_EXTENDED_INFORMATION_TYPE Type;
+    ULONG Magic;
+    ULONG InformationClass;
+    PVOID Buffer;
+    ULONG BufferSize;
+} SYSTEM_EXTENDED_INFORMATION, *PSYSTEM_EXTENDED_INFORMATION;
+
+// end_rev
+
+// begin_rev
+
+typedef enum _PREFETCHER_INFORMATION_CLASS
+{
+    PrefetcherCompletedTraceInformation = 1,
+    PrefetcherUnknownInformation = 2, // ???
+    PrefetcherBootLoaderTraceInformation = 4
+} PREFETCHER_INFORMATION_CLASS;
+
+// end_rev
+
+// begin_rev
+
+#define SUPERFETCH_INFORMATION_REVISION 1
+
+typedef enum _SUPERFETCH_INFORMATION_CLASS
+{
+    SuperfetchCompletedTraceInformation = 1,
+    SuperfetchTraceInformation = 2, // size 24
+    SuperfetchPfnListInformation = 6,
+    SuperfetchPfnListPriorities = 7, // set only
+    SuperfetchPrivSourceInformation = 8,
+    SuperfetchStreamSequenceNumber = 9, // size 4
+    SuperfetchScenarioInformation = 12,
+    SuperfetchMemoryListInformation = 16,
+    SuperfetchMemoryRangesInformation = 17,
+    SuperfetchRepurposedByPrefetchInformation = 20 // size 8
+} SUPERFETCH_INFORMATION_CLASS;
+
+#define SUPERFETCH_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST 0x1
+#define SUPERFETCH_PFN_PRIO_REQUEST_VALID_FLAGS 0x1
+
+// See ntmmapi.h for the definition of SUPERFETCH_PFN_PRIO_REQUEST.
+
+typedef enum _SUPERFETCH_PRIV_SOURCE_TYPE
+{
+    PrivSourceKernelSpace,
+    PrivSourceSession,
+    PrivSourceProcess
+} SUPERFETCH_PRIV_SOURCE_TYPE;
+
+typedef struct _SUPERFETCH_PRIV_SOURCE_ENTRY
+{
+    SUPERFETCH_PRIV_SOURCE_TYPE Type;
+    ULONG UniqueId;
+    ULONG ImagePathHash;
+    ULONG ProcessHash;
+    PVOID Object;
+    SIZE_T WorkingSetPrivateSize;
+    SIZE_T NumberOfPrivatePages;
+    ULONG SessionId;
+    CHAR Name[16];
+} SUPERFETCH_PRIV_SOURCE_ENTRY, *PSUPERFETCH_PRIV_SOURCE_ENTRY;
+
+typedef struct _SUPERFETCH_PRIV_SOURCE_INFORMATION
+{
+    ULONG Type; // must be set to 3
+    ULONG Unknown;
+    SUPERFETCH_PRIV_SOURCE_ENTRY Entries[1];
+} SUPERFETCH_PRIV_SOURCE_INFORMATION, *PSUPERFETCH_PRIV_SOURCE_INFORMATION;
+
+typedef struct _SUPERFETCH_STREAM_SEQUENCE_NUMBER
+{
+    LONG StreamSequenceNumber;
+} SUPERFETCH_STREAM_SEQUENCE_NUMBER, *PSUPERFETCH_STREAM_SEQUENCE_NUMBER;
+
+typedef struct _PHYSICAL_MEMORY_RUN
+{
+    ULONG_PTR BasePage; // multiply by PAGE_SIZE to get base address
+    ULONG_PTR PageCount; // multiply by PAGE_SIZE to get number of bytes
+} PHYSICAL_MEMORY_RUN, *PPHYSICAL_MEMORY_RUN;
+
+typedef struct _SUPERFETCH_MEMORY_RANGES_INFORMATION
+{
+    ULONG Revision;
+    ULONG NumberOfRuns;
+    PHYSICAL_MEMORY_RUN Runs[1];
+} SUPERFETCH_MEMORY_RANGES_INFORMATION, *PSUPERFETCH_MEMORY_RANGES_INFORMATION;
+
+typedef struct _SUPERFETCH_REPURPOSED_BY_PREFETCH_INFORMATION
+{
+    ULONG Revision;
+    ULONG RepurposedByPrefetch;
+} SUPERFETCH_REPURPOSED_BY_PREFETCH_INFORMATION, *PSUPERFETCH_REPURPOSED_BY_PREFETCH_INFORMATION;
+
+// end_rev
 
 NTSYSCALLAPI
 NTSTATUS
