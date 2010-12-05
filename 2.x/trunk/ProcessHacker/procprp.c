@@ -3456,10 +3456,12 @@ BOOLEAN NTAPI PhpProcessMemoryCallback(
     if (MemoryItem->Name)
     {
         string = PhConcatStrings(
-            4,
+            6,
             MemoryItem->Name->Buffer,
-            L" (",
+            L": ",
             PhGetMemoryTypeString(MemoryItem->Flags),
+            L" (",
+            PhGetMemoryStateString(MemoryItem->Flags),
             L")"
             );
         name = string->Buffer;
