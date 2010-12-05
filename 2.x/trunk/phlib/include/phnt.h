@@ -61,6 +61,8 @@ extern "C" {
 
 #include <ntmisc.h>
 
+#include <ntzwapi.h>
+
 #include <rev.h>
 
 #ifdef __cplusplus
