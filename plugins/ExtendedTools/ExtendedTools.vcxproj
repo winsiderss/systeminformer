@@ -184,6 +184,7 @@
     <ClCompile Include="memlists.c" />
     <ClCompile Include="modsrv.c" />
     <ClCompile Include="objprp.c" />
+    <ClCompile Include="options.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
   </ItemGroup>

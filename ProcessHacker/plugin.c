@@ -55,6 +55,7 @@ PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static PPH_STRING PluginsDirectory;
 static PPH_STRING LoadingPluginFileName;
+static BOOLEAN LoadingPluginIsClr = FALSE;
 static ULONG NextPluginId = IDPLUGINS + 1;
 
 static BOOLEAN PhPluginsClrHostInitialized = FALSE;
@@ -207,6 +208,7 @@ VOID PhLoadPlugin(
 
         if (clrHost)
         {
+            LoadingPluginIsClr = TRUE;
             ICLRRuntimeHost_ExecuteInDefaultAppDomain(
                 clrHost,
                 fileName->Buffer,
@@ -215,6 +217,7 @@ VOID PhLoadPlugin(
                 fileName->Buffer,
                 &returnValue
                 );
+            LoadingPluginIsClr = FALSE;
         }
     }
 
@@ -287,12 +290,17 @@ PPH_PLUGIN PhRegisterPlugin(
         return NULL;
     }
 
+    if (LoadingPluginIsClr)
+        plugin->Flags |= PH_PLUGIN_FLAG_IS_CLR;
+
     if (Information)
     {
         plugin->DisplayName = Information->DisplayName;
         plugin->Author = Information->Author;
         plugin->Description = Information->Description;
-        plugin->HasOptions = Information->HasOptions;
+
+        if (Information->HasOptions)
+            plugin->Flags |= PH_PLUGIN_FLAG_HAS_OPTIONS;
     }
 
     for (i = 0; i < PluginCallbackMaximum; i++)
