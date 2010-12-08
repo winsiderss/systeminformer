@@ -152,6 +152,9 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
 
+#define PH_PLUGIN_FLAG_HAS_OPTIONS 0x1 // plugin can show options dialog
+#define PH_PLUGIN_FLAG_IS_CLR 0x2 // plugin is .NET
+
 typedef struct _PH_PLUGIN
 {
     PH_AVL_LINKS Links;
@@ -163,7 +166,7 @@ typedef struct _PH_PLUGIN
     PWSTR DisplayName;
     PWSTR Author;
     PWSTR Description;
-    BOOLEAN HasOptions;
+    ULONG Flags;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
 } PH_PLUGIN, *PPH_PLUGIN;

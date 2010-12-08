@@ -102,7 +102,7 @@ LOGICAL DllMain(
             info.DisplayName = L"Extended Tools";
             info.Author = L"wj32";
             info.Description = L"Extended functionality for Windows Vista and above.";
-            info.HasOptions = FALSE;
+            info.HasOptions = TRUE;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ExtendedTools", Instance, &info);
 
@@ -121,12 +121,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginUnloadCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
-            //    ShowOptionsCallback,
-            //    NULL,
-            //    &PluginShowOptionsCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
+                ShowOptionsCallback,
+                NULL,
+                &PluginShowOptionsCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,
@@ -211,7 +211,7 @@ VOID NTAPI ShowOptionsCallback(
     __in_opt PVOID Context
     )
 {
-    // Nothing
+    EtShowOptionsDialog((HWND)Parameter);
 }
 
 VOID NTAPI MenuItemCallback(

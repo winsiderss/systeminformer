@@ -21,9 +21,9 @@
  */
 
 #include "exttools.h"
+#include "resource.h"
 #include <windowsx.h>
 #include <graph.h>
-#include "resource.h"
 
 #define WM_ET_ETWSYS_ACTIVATE (WM_APP + 150)
 #define WM_ET_ETWSYS_UPDATE (WM_APP + 151)
@@ -125,7 +125,7 @@ static NTSTATUS EtpEtwSysThreadStart(
     return STATUS_SUCCESS;
 }
 
-static VOID PhpSetAlwaysOnTop()
+static VOID EtpSetAlwaysOnTop()
 {
     SetWindowPos(EtpEtwSysWindowHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0,
         SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
@@ -312,7 +312,7 @@ INT_PTR CALLBACK EtpEtwSysDlgProc(
 
             AlwaysOnTop = (BOOLEAN)PhGetIntegerSetting(SETTING_NAME_ETWSYS_ALWAYS_ON_TOP);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), AlwaysOnTop ? BST_CHECKED : BST_UNCHECKED);
-            PhpSetAlwaysOnTop();
+            EtpSetAlwaysOnTop();
 
             margin.left = 0;
             margin.top = 0;
@@ -400,7 +400,7 @@ INT_PTR CALLBACK EtpEtwSysDlgProc(
             case IDC_ALWAYSONTOP:
                 {
                     AlwaysOnTop = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ALWAYSONTOP)) == BST_CHECKED;
-                    PhpSetAlwaysOnTop();
+                    EtpSetAlwaysOnTop();
                 }
                 break;
             }

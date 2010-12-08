@@ -232,6 +232,18 @@ BEGIN
     RTEXT           "Static",IDC_ZSENDBYTES_V,198,44,38,8,SS_ENDELLIPSIS
 END
 
+IDD_OPTIONS DIALOGEX 0, 0, 215, 70
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,104,49,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,158,49,50,14
+    CONTROL         "Enable Disk and Network monitoring",IDC_ENABLEETWMONITOR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,20,130,10
+    LTEXT           "Changes to settings will require a restart of Process Hacker.",IDC_STATIC,7,7,193,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -299,6 +311,14 @@ BEGIN
 
     IDD_SYSDISKNET_PANEL, DIALOG
     BEGIN
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 208
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 63
     END
 END
 #endif    // APSTUDIO_INVOKED

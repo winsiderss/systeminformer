@@ -18,6 +18,7 @@
 #define IDD_SYSDISKNET                  107
 #define ID_VIEW_DISKANDNETWORK          107
 #define IDD_SYSDISKNET_PANEL            108
+#define IDD_OPTIONS                     109
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -54,16 +55,17 @@
 #define IDC_ZSENDBYTESDELTA_V           1034
 #define IDC_GROUPDISK                   1035
 #define IDC_GROUPNETWORK                1036
-#define IDC_CHECK1                      1037
 #define IDC_ALWAYSONTOP                 1037
+#define IDC_ENABLEETW                   1038
+#define IDC_ENABLEETWMONITOR            1038
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        109
+#define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_CONTROL_VALUE         1039
 #define _APS_NEXT_SYMED_VALUE           108
 #endif
 #endif
