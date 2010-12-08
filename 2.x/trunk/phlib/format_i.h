@@ -1,3 +1,24 @@
+/*
+ * This file contains the actual formatting code used by various public interface 
+ * functions.
+ *
+ * There are three macros defined by the parent function which control how this code 
+ * writes the formatted string:
+ * * ENSURE_BUFFER - This macro is passed the number of bytes required whenever 
+ *   characters need to be written to the buffer. The macro can resize the buffer 
+ *   if needed.
+ * * OK_BUFFER - This macro returns TRUE if it is OK to write to the buffer, otherwise 
+ *   FALSE when the buffer is too large, is not specified, or some other error has 
+ *   occurred.
+ * * ADVANCE_BUFFER - This macro is passed the number of bytes written to the buffer 
+ *   and should increment the "buffer" pointer and "usedLength" counter.
+ * In addition to these macros, the "buffer" and "usedLength" variables are assumed to 
+ * be present.
+ *
+ * The below code defines many macros; this is so that composite formatting types can 
+ * be constructed (e.g. the "size" type).
+ */
+
 {
     if (PhBeginInitOnce(&PhpFormatInitOnce))
     {

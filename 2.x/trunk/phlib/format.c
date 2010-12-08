@@ -24,6 +24,12 @@
  * This module provides a high-performance string formatting mechanism.
  * Instead of using format strings, the user supplies an array of 
  * structures. This system is 2-5 times faster than printf-based functions.
+ *
+ * This file contains the public interfaces, while including the real 
+ * formatting code from elsewhere. There are currently two functions: 
+ * PhFormat, which returns a string object containing the formatted string, 
+ * and PhFormatToBuffer, which writes the formatted string to a buffer. The 
+ * latter is a bit faster due to the lack of resizing logic.
  */
 
 #include <phbase.h>

@@ -105,6 +105,12 @@ VOID EtHandlePropertiesInitializing(
     __in PVOID Parameter
     );
 
+// options
+
+VOID EtShowOptionsDialog(
+    __in HWND ParentWindowHandle
+    );
+
 // thrdact
 
 BOOLEAN EtUiCancelIoThread(

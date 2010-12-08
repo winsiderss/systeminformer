@@ -20,6 +20,12 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The extended list view adds some functionality to the default list view control, such 
+ * as sorting, (state) highlighting, better redraw disabling, and the ability to change 
+ * the cursor. This is currently implemented by hooking the window procedure.
+ */
+
 #include <phgui.h>
 #include <windowsx.h>
 

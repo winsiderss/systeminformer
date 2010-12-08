@@ -81,7 +81,7 @@ VOID PhpRefreshPluginDetails(
             SetDlgItemText(hwndDlg, IDC_VERSION, L"Unknown");
         }
 
-        EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->HasOptions);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Flags & PH_PLUGIN_FLAG_HAS_OPTIONS);
     }
     else
     {
