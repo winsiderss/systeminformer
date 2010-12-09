@@ -143,6 +143,14 @@ extern WCHAR *PhKWaitReasonNames[MaximumWaitReason];
 
 #endif
 
+// debugging
+
+#ifdef DEBUG
+#define dprintf(format, ...) DbgPrint(format, __VA_ARGS__)
+#else
+#define dprintf(format, ...)
+#endif
+
 // global
 
 // Initialization flags

@@ -102,6 +102,7 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             __except (SIMPLE_EXCEPTION_FILTER(GetExceptionCode() == STATUS_ACCESS_VIOLATION))
             {
                 // Seems that the SysLink control is a bit retarded.
+                dprintf("About dialog exception in WM_NOTIFY: 0x%x\n", GetExceptionCode());
             }
         }
         break;

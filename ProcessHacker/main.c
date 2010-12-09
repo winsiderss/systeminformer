@@ -55,26 +55,6 @@ COLORREF PhSysWindowColor;
 static PPH_LIST DialogList;
 static PH_AUTO_POOL BaseAutoPool;
 
-VOID PhDebugPrintLine(
-    __in __format_string PWSTR Format,
-    ...
-    )
-{
-    va_list argptr;
-    LARGE_INTEGER time;
-    TIME_FIELDS timeFields;
-
-    va_start(argptr, Format);
-
-    PhQuerySystemTime(&time);
-    PhSystemTimeToLocalTime(&time, &time);
-    RtlTimeToTimeFields(&time, &timeFields);
-
-    fwprintf(stderr, L"%02u:%02u:%02u.%03u: ", timeFields.Hour, timeFields.Minute, timeFields.Second, timeFields.Milliseconds);
-    vfwprintf(stderr, Format, argptr);
-    fputwc('\n', stderr);
-}
-
 INT WINAPI WinMain(
     __in HINSTANCE hInstance,
     __in_opt HINSTANCE hPrevInstance,

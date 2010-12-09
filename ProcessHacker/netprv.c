@@ -444,7 +444,7 @@ NTSTATUS PhpNetworkItemQueryWorker(
         }
         else
         {
-            dwlprintf(L"resolve failed, error %u", WSAGetLastError_I());
+            dprintf("resolve failed, error %u\n", WSAGetLastError_I());
         }
     }
     else
