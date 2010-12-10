@@ -547,12 +547,23 @@ PhShowProcessProperties(
 
 #define PH_LOG_ENTRY_MESSAGE 9
 
+typedef struct _PH_LOG_ENTRY *PPH_LOG_ENTRY;
+
+PHAPPAPI extern PH_CALLBACK PhLoggedCallback;
+
 PHAPPAPI
 VOID
 NTAPI
 PhLogMessageEntry(
     __in UCHAR Type,
     __in PPH_STRING Message
+    );
+
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhFormatLogEntry(
+    __in PPH_LOG_ENTRY Entry
     );
 
 // actions

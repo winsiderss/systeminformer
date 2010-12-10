@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -53,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Notifications for Process Hacker"
-            VALUE "FileVersion", "1.1"
+            VALUE "FileVersion", "1.2"
             VALUE "InternalName", "ExtendedNotifications"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedNotifications.dll"
             VALUE "ProductName", "Extended Notifications for Process Hacker"
-            VALUE "ProductVersion", "1.1"
+            VALUE "ProductVersion", "1.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -125,6 +123,18 @@ BEGIN
     PUSHBUTTON      "Move Down",IDC_MOVEDOWN,198,47,50,14
 END
 
+IDD_LOGGING DIALOGEX 0, 0, 255, 229
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Logging"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "File",IDC_STATIC,7,7,241,53
+    LTEXT           "Log all events to this file (leave blank to disable this feature):",IDC_STATIC,13,18,196,8
+    EDITTEXT        IDC_LOGFILENAME,13,29,178,12,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BROWSE,194,28,50,14
+    LTEXT           "Changes will require a restart of Process Hacker.",IDC_STATIC,14,45,157,8
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -132,7 +142,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_PROCESSES, DIALOG
     BEGIN
@@ -143,6 +153,14 @@ BEGIN
     END
 
     IDD_SERVICES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 248
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 222
+    END
+
+    IDD_LOGGING, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 248

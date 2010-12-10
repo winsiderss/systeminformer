@@ -176,6 +176,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="filelog.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>

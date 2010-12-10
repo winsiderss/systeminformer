@@ -421,19 +421,11 @@ NTSTATUS PhCreateFileStream(
     PPH_FILE_STREAM fileStream;
     HANDLE fileHandle;
     ULONG createOptions;
-    ULONG flags;
-
-    flags = 0;
 
     if (Flags & PH_FILE_STREAM_ASYNCHRONOUS)
-    {
         createOptions = FILE_NON_DIRECTORY_FILE;
-        flags |= PH_FILE_STREAM_ASYNCHRONOUS;
-    }
     else
-    {
         createOptions = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT;
-    }
 
     if (!NT_SUCCESS(status = PhCreateFileWin32(
         &fileHandle,
@@ -449,7 +441,7 @@ NTSTATUS PhCreateFileStream(
     if (!NT_SUCCESS(status = PhCreateFileStream2(
         &fileStream,
         fileHandle,
-        flags,
+        Flags,
         PAGE_SIZE
         )))
     {
