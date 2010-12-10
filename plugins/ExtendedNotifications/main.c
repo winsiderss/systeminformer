@@ -54,6 +54,13 @@ INT_PTR CALLBACK ServicesDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK LoggingDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -107,6 +114,7 @@ LOGICAL DllMain(
             {
                 static PH_SETTING_CREATE settings[] =
                 {
+                    { StringSettingType, SETTING_NAME_LOG_FILENAME, L"" },
                     { StringSettingType, SETTING_NAME_PROCESS_LIST, L"\\i*" },
                     { StringSettingType, SETTING_NAME_SERVICE_LIST, L"\\i*" }
                 };
@@ -290,6 +298,8 @@ VOID NTAPI LoadCallback(
     string = PhGetStringSetting(SETTING_NAME_SERVICE_LIST);
     LoadFilterList(ServiceFilterList, string);
     PhDereferenceObject(string);
+
+    FileLogInitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(
@@ -299,7 +309,7 @@ VOID NTAPI ShowOptionsCallback(
 {
     PROPSHEETHEADER propSheetHeader = { sizeof(propSheetHeader) };
     PROPSHEETPAGE propSheetPage;
-    HPROPSHEETPAGE pages[2];
+    HPROPSHEETPAGE pages[3];
 
     propSheetHeader.dwFlags =
         PSH_NOAPPLYNOW |
@@ -325,6 +335,14 @@ VOID NTAPI ShowOptionsCallback(
     propSheetPage.hInstance = PluginInstance->DllBase;
     propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_SERVICES);
     propSheetPage.pfnDlgProc = ServicesDlgProc;
+    pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+
+    // Logging
+    memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+    propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+    propSheetPage.hInstance = PluginInstance->DllBase;
+    propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_LOGGING);
+    propSheetPage.pfnDlgProc = LoggingDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
     PropertySheet(&propSheetHeader);
@@ -807,6 +825,75 @@ INT_PTR CALLBACK ServicesDlgProc(
                     string = SaveFilterList(ServiceFilterList);
                     PhSetStringSetting2(SETTING_NAME_SERVICE_LIST, &string->sr);
                     PhDereferenceObject(string);
+
+                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
+                }
+                return TRUE;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK LoggingDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            SetDlgItemText(hwndDlg, IDC_LOGFILENAME, ((PPH_STRING)PHA_DEREFERENCE(PhGetStringSetting(SETTING_NAME_LOG_FILENAME)))->Buffer);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_BROWSE:
+                {
+                    static PH_FILETYPE_FILTER filters[] =
+                    {
+                        { L"Log files (*.txt;*.log)", L"*.txt;*.log" },
+                        { L"All files (*.*)", L"*.*" }
+                    };
+                    PVOID fileDialog;
+                    PPH_STRING fileName;
+
+                    fileDialog = PhCreateSaveFileDialog();
+                    PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
+
+                    fileName = PhGetFileName(PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_LOGFILENAME));
+                    PhSetFileDialogFileName(fileDialog, fileName->Buffer);
+                    PhDereferenceObject(fileName);
+
+                    if (PhShowFileDialog(NULL, fileDialog))
+                    {
+                        fileName = PhGetFileDialogFileName(fileDialog);
+                        SetDlgItemText(hwndDlg, IDC_LOGFILENAME, fileName->Buffer);
+                        PhDereferenceObject(fileName);
+                    }
+
+                    PhFreeFileDialog(fileDialog);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            switch (header->code)
+            {
+            case PSN_APPLY:
+                {
+                    PhSetStringSetting2(SETTING_NAME_LOG_FILENAME, &PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_LOGFILENAME)->sr);
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }

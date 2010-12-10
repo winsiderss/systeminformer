@@ -713,6 +713,7 @@ VOID PhLogMessageEntry(
     __in PPH_STRING Message
     );
 
+PHAPPAPI
 PPH_STRING PhFormatLogEntry(
     __in PPH_LOG_ENTRY Entry
     );

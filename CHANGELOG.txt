@@ -7,7 +7,10 @@ Process Hacker
    * Added signature verification for modules
    * Added ExtendedTools plugin (Vista and above only) 
      with Disk and Network information
-   * Updated ExtendedServices plugin
+   * Updated ExtendedNotifications plugin: added ability 
+     to log events to a file
+   * Updated ExtendedServices plugin: new tab on Vista 
+     and above
    * Environment variables and current directory are 
      now correctly shown for WOW64 processes
  * FIXED:

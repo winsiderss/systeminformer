@@ -25,7 +25,7 @@
 #include <settings.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
-PH_CALLBACK_DECLARE(PhLoggedCallback);
+PHAPPAPI PH_CALLBACK_DECLARE(PhLoggedCallback);
 
 VOID PhLogInitialization()
 {
