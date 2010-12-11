@@ -111,6 +111,7 @@ LOGICAL DllMain(
                 {
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableToolBar", L"1" },
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.EnableStatusBar", L"1" },
+                    { IntegerSettingType, L"ProcessHacker.ToolStatus.ResolveGhostWindows", L"1" },
                     { IntegerSettingType, L"ProcessHacker.ToolStatus.StatusMask", L"d" }
                 };
 
@@ -454,6 +455,30 @@ LRESULT CALLBACK MainWndSubclassProc(
                     {
                         // Remove the border on the window we found.
                         DrawWindowBorderForTargeting(TargetingCurrentWindow);
+                    }
+
+                    if (PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows"))
+                    {
+                        // This is an undocumented function exported by user32.dll that 
+                        // retrieves the hung window represented by a ghost window.
+                        static HWND (WINAPI *HungWindowFromGhostWindow_I)(
+                            __in HWND hWnd
+                            );
+
+                        if (!HungWindowFromGhostWindow_I)
+                            HungWindowFromGhostWindow_I = PhGetProcAddress(L"user32.dll", "HungWindowFromGhostWindow");
+
+                        if (HungWindowFromGhostWindow_I)
+                        {
+                            HWND hungWindow;
+
+                            hungWindow = HungWindowFromGhostWindow_I(TargetingCurrentWindow);
+
+                            // The call will have failed if the window wasn't actually a ghost 
+                            // window.
+                            if (hungWindow)
+                                TargetingCurrentWindow = hungWindow;
+                        }
                     }
 
                     threadId = GetWindowThreadProcessId(TargetingCurrentWindow, &processId);
@@ -823,6 +848,7 @@ INT_PTR CALLBACK OptionsDlgProc(
         {
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR), EnableStatusBar ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS), PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows") ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_COMMAND:
@@ -838,6 +864,8 @@ INT_PTR CALLBACK OptionsDlgProc(
                         (EnableToolBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR)) == BST_CHECKED));
                     PhSetIntegerSetting(L"ProcessHacker.ToolStatus.EnableStatusBar",
                         (EnableStatusBar = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLESTATUSBAR)) == BST_CHECKED));
+                    PhSetIntegerSetting(L"ProcessHacker.ToolStatus.ResolveGhostWindows",
+                        Button_GetCheck(GetDlgItem(hwndDlg, IDC_RESOLVEGHOSTWINDOWS)) == BST_CHECKED);
 
                     ShowWindow(ToolBarHandle, EnableToolBar ? SW_SHOW : SW_HIDE);
                     ShowWindow(StatusBarHandle, EnableStatusBar ? SW_SHOW : SW_HIDE);

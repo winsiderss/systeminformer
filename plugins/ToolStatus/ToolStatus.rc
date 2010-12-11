@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -53,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,3,0,0
- PRODUCTVERSION 1,3,0,0
+ FILEVERSION 1,4,0,0
+ PRODUCTVERSION 1,4,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -71,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "ToolStatus plugin for Process Hacker"
-            VALUE "FileVersion", "1.3"
+            VALUE "FileVersion", "1.4"
             VALUE "InternalName", "ToolStatus"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ToolStatus.dll"
             VALUE "ProductName", "ToolStatus plugin for Process Hacker"
-            VALUE "ProductVersion", "1.3"
+            VALUE "ProductVersion", "1.4"
         END
     END
     BLOCK "VarFileInfo"
@@ -104,7 +102,7 @@ IDB_LIGHTBULB_OFF       BITMAP                  "resources\\lightbulb_off.bmp"
 // Menu
 //
 
-IDR_STATUS MENU 
+IDR_STATUS MENU
 BEGIN
     POPUP "Status"
     BEGIN
@@ -127,15 +125,17 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 236, 59
+IDD_OPTIONS DIALOGEX 0, 0, 236, 67
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,125,38,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,179,38,50,14
+    DEFPUSHBUTTON   "OK",IDOK,125,46,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,179,46,50,14
     CONTROL         "Enable Toolbar",IDC_ENABLETOOLBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,63,10
     CONTROL         "Enable Status Bar",IDC_ENABLESTATUSBAR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,73,10
+    CONTROL         "Resolve ghost windows to hung windows",IDC_RESOLVEGHOSTWINDOWS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,32,147,10
 END
 
 
@@ -145,14 +145,14 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_OPTIONS, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 229
         TOPMARGIN, 7
-        BOTTOMMARGIN, 52
+        BOTTOMMARGIN, 60
     END
 END
 #endif    // APSTUDIO_INVOKED
