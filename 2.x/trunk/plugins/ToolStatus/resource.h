@@ -12,8 +12,9 @@
 #define IDR_STATUS                      108
 #define IDD_OPTIONS                     109
 #define IDC_ENABLETOOLBAR               1001
-#define IDC_CHECK2                      1002
 #define IDC_ENABLESTATUSBAR             1002
+#define IDC_CHECK1                      1003
+#define IDC_RESOLVEGHOSTWINDOWS         1003
 #define ID_STATUS_CPUUSAGE              40001
 #define ID_STATUS_COMMITCHARGE          40002
 #define ID_STATUS_PHYSICALMEMORY        40003
@@ -31,7 +32,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40016
-#define _APS_NEXT_CONTROL_VALUE         1003
+#define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           103
 #endif
 #endif
