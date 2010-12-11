@@ -11,6 +11,8 @@ Process Hacker
      to log events to a file
    * Updated ExtendedServices plugin: new tab on Vista 
      and above
+   * Updated ToolStatus plugin: resolves ghost windows 
+     to hung windows
    * Environment variables and current directory are 
      now correctly shown for WOW64 processes
  * FIXED:
