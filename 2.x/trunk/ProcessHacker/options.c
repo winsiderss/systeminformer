@@ -737,7 +737,6 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND hwnd;
             ULONG i;
 
             PhpPageInit(hwndDlg);
@@ -746,16 +745,10 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             SetDlgItemInt(hwndDlg, IDC_HIGHLIGHTINGDURATION, PhCsHighlightingDuration, FALSE);
 
             // New Objects
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_NEWOBJECTS);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_NEWOBJECTS_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorNew);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS), PhCsColorNew);
 
             // Removed Objects
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_REMOVEDOBJECTS);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorRemoved);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS), PhCsColorRemoved);
 
             // Highlighting
             HighlightingListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
@@ -921,48 +914,17 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND hwnd;
-
             PhpPageInit(hwndDlg);
 
             // Show Text
             SetDlgItemCheckForSetting(hwndDlg, IDC_SHOWTEXT, L"GraphShowText");
 
-            // CPU User
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_CPUUSER);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_CPUUSER_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorCpuUser);
-
-            // CPU Kernel
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_CPUKERNEL);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_CPUKERNEL_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorCpuKernel);
-
-            // I/O R+O
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_IORO);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_IORO_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorIoReadOther);
-
-            // I/O W
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_IOW);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_IOW_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorIoWrite);
-
-            // Private
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_PRIVATE);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_PRIVATE_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorPrivate);
-
-            // Physical
-            hwnd = PhCreateColorBoxControl(hwndDlg, IDC_PHYSICAL);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_PHYSICAL_LAYOUT), hwnd);
-            ShowWindow(hwnd, SW_SHOW);
-            ColorBox_SetColor(hwnd, PhCsColorPhysical);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUUSER), PhCsColorCpuUser);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_CPUKERNEL), PhCsColorCpuKernel);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_IORO), PhCsColorIoReadOther);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_IOW), PhCsColorIoWrite);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_PRIVATE), PhCsColorPrivate);
+            ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_PHYSICAL), PhCsColorPhysical);
         }
         break;
     case WM_NOTIFY:
