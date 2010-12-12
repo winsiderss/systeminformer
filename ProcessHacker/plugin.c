@@ -256,12 +256,10 @@ PPH_PLUGIN PhRegisterPlugin(
 
     if (DllBase)
     {
-        PLDR_DATA_TABLE_ENTRY loaderEntry;
+        fileName = PhGetDllFileName(DllBase, NULL);
 
-        if (!(loaderEntry = PhFindLoaderEntry(DllBase)))
+        if (!fileName)
             return NULL;
-
-        fileName = PhCreateStringEx(loaderEntry->FullDllName.Buffer, loaderEntry->FullDllName.Length);
     }
     else
     {

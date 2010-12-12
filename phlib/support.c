@@ -444,7 +444,7 @@ VOID PhShowStatus(
  * \param Status A NTSTATUS value, or 0 if there is none.
  * \param Win32Result A Win32 error code, or 0 if there is none.
  *
- * \param TRUE if the user wishes to continue with the current operation, 
+ * \return TRUE if the user wishes to continue with the current operation, 
  * otherwise FALSE.
  */
 BOOLEAN PhShowContinueStatus(
@@ -497,7 +497,7 @@ BOOLEAN PhShowContinueStatus(
  * \param Warning TRUE to display the confirmation message as a warning, 
  * otherwise FALSE.
  *
- * \param TRUE if the user wishes to continue, otherwise FALSE.
+ * \return TRUE if the user wishes to continue, otherwise FALSE.
  */
 BOOLEAN PhShowConfirmMessage(
     __in HWND hWnd,
@@ -1404,6 +1404,14 @@ PPH_STRING PhFormatGuid(
     return string;
 }
 
+/**
+ * Retrieves image version information for a file.
+ *
+ * \param FileName The file name.
+ *
+ * \return A version information block. You must 
+ * free this using PhFree() when you no longer need it.
+ */
 PVOID PhGetFileVersionInfo(
     __in PWSTR FileName
     )
@@ -1441,6 +1449,12 @@ PVOID PhGetFileVersionInfo(
     return versionInfo;
 }
 
+/**
+ * Retrieves the language ID and code page used by a version 
+ * information block.
+ *
+ * \param VersionInfo The version information block.
+ */
 ULONG PhGetFileVersionInfoLangCodePage(
     __in PVOID VersionInfo
     )
@@ -1459,6 +1473,12 @@ ULONG PhGetFileVersionInfoLangCodePage(
     }
 }
 
+/**
+ * Retrieves a string in a version information block.
+ *
+ * \param VersionInfo The version information block.
+ * \param SubBlock The path to the sub-block.
+ */
 PPH_STRING PhGetFileVersionInfoString(
     __in PVOID VersionInfo,
     __in PWSTR SubBlock
@@ -1483,6 +1503,13 @@ PPH_STRING PhGetFileVersionInfoString(
     }
 }
 
+/**
+ * Retrieves a string in a version information block.
+ *
+ * \param VersionInfo The version information block.
+ * \param LangCodePage The language ID and code page of the string.
+ * \param StringName The name of the string.
+ */
 PPH_STRING PhGetFileVersionInfoString2(
     __in PVOID VersionInfo,
     __in ULONG LangCodePage,
@@ -1505,6 +1532,12 @@ PPH_STRING PhGetFileVersionInfoString2(
         return NULL;
 }
 
+/**
+ * Initializes a structure with version information.
+ *
+ * \param ImageVersionInfo The version information structure.
+ * \param FileName The file name of an image.
+ */
 BOOLEAN PhInitializeImageVersionInfo(
     __out PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     __in PWSTR FileName
@@ -1530,6 +1563,12 @@ BOOLEAN PhInitializeImageVersionInfo(
     return TRUE;
 }
 
+/**
+ * Frees a version information structure initialized by 
+ * PhInitializeImageVersionInfo().
+ *
+ * \param ImageVersionInfo The version information structure.
+ */
 VOID PhDeleteImageVersionInfo(
     __inout PPH_IMAGE_VERSION_INFO ImageVersionInfo
     )
@@ -1719,6 +1758,11 @@ PPH_STRING PhGetFullPath(
     return fullPath;
 }
 
+/**
+ * Expands environment variables in a string.
+ *
+ * \param String The string.
+ */
 PPH_STRING PhExpandEnvironmentStrings(
     __in PPH_STRINGREF String
     )
@@ -1844,16 +1888,30 @@ PPH_STRING PhGetSystemRoot()
     return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
 }
 
+/**
+ * Locates a loader entry in the current process.
+ *
+ * \param DllBase The base address of the DLL. Specify NULL 
+ * if this is not a search criteria.
+ * \param FullDllName The full name of the DLL. Specify NULL 
+ * if this is not a search criteria.
+ * \param BaseDllName The base name of the DLL. Specify NULL 
+ * if this is not a search criteria.
+ *
+ * \remarks This function must be called with the loader lock 
+ * acquired. The first entry matching all of the specified 
+ * values is returned.
+ */
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
-    __in PVOID DllHandle
+    __in_opt PVOID DllBase,
+    __in_opt PPH_STRINGREF FullDllName,
+    __in_opt PPH_STRINGREF BaseDllName
     )
 {
     PLDR_DATA_TABLE_ENTRY result = NULL;
     PLDR_DATA_TABLE_ENTRY entry;
     PLIST_ENTRY listHead;
     PLIST_ENTRY listEntry;
-
-    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
 
     listHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
     listEntry = listHead->Flink;
@@ -1862,7 +1920,11 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
     {
         entry = CONTAINING_RECORD(listEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
 
-        if (entry->DllBase == DllHandle)
+        if (
+            (!DllBase || entry->DllBase == DllBase) &&
+            (!FullDllName || RtlEqualUnicodeString(&entry->FullDllName, &FullDllName->us, TRUE)) &&
+            (!BaseDllName || RtlEqualUnicodeString(&entry->BaseDllName, &BaseDllName->us, TRUE))
+            )
         {
             result = entry;
             break;
@@ -1871,11 +1933,19 @@ PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
         listEntry = listEntry->Flink;
     }
 
-    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
-
     return result;
 }
 
+/**
+ * Retrieves the file name of a DLL loaded by the current process.
+ *
+ * \param DllHandle The base address of the DLL.
+ * \param IndexOfFileName A variable which receives the index of 
+ * the base name of the DLL in the returned string.
+ *
+ * \return The file name of the DLL, or NULL if the DLL could not 
+ * be found.
+ */
 PPH_STRING PhGetDllFileName(
     __in PVOID DllHandle,
     __out_opt PULONG IndexOfFileName
@@ -1886,12 +1956,20 @@ PPH_STRING PhGetDllFileName(
     PPH_STRING newFileName;
     ULONG indexOfFileName;
 
-    entry = PhFindLoaderEntry(DllHandle);
+    RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
 
-    if (!entry)
+    entry = PhFindLoaderEntry(DllHandle, NULL, NULL);
+
+    if (entry)
+        fileName = PhCreateStringEx(entry->FullDllName.Buffer, entry->FullDllName.Length);
+    else
+        fileName = NULL;
+
+    RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);
+
+    if (!fileName)
         return NULL;
 
-    fileName = PhCreateStringEx(entry->FullDllName.Buffer, entry->FullDllName.Length);
     newFileName = PhGetFileName(fileName);
     PhDereferenceObject(fileName);
     fileName = newFileName;
@@ -1911,11 +1989,17 @@ PPH_STRING PhGetDllFileName(
     return fileName;
 }
 
+/**
+ * Retrieves the file name of the current process image.
+ */
 PPH_STRING PhGetApplicationFileName()
 {
     return PhGetDllFileName(NtCurrentPeb()->ImageBaseAddress, NULL);
 }
 
+/**
+ * Retrieves the directory of the current process image.
+ */
 PPH_STRING PhGetApplicationDirectory()
 {
     PPH_STRING fileName;
@@ -2031,6 +2115,33 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     }
 }
 
+/**
+ * Creates a native process and an initial thread.
+ *
+ * \param FileName The Win32 file name of the image.
+ * \param CommandLine The command line string to pass to the process. 
+ * This string cannot be used to specify the image to execute.
+ * \param Environment The environment block for the process. Specify 
+ * NULL to use the environment of the current process.
+ * \param CurrentDirectory The current directory string to pass to the 
+ * process.
+ * \param Information Additional parameters to pass to the process.
+ * \param Flags A combination of the following:
+ * \li \c PH_CREATE_PROCESS_INHERIT_HANDLES Inheritable handles will be 
+ * duplicated to the process from the parent process.
+ * \li \c PH_CREATE_PROCESS_SUSPENDED The initial thread will be created 
+ * suspended.
+ * \li \c PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB The process will not be 
+ * assigned to the job object associated with the parent process.
+ * \li \c PH_CREATE_PROCESS_NEW_CONSOLE The process will have its own 
+ * console, instead of inheriting the console of the parent process.
+ * \param ParentProcessHandle The process from which the new process will 
+ * inherit attributes. Specify NULL for the current process.
+ * \param ClientId A variable which recieves the identifier of the initial 
+ * thread.
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread.
+ */
 NTSTATUS PhCreateProcess(
     __in PWSTR FileName,
     __in_opt PPH_STRINGREF CommandLine,
@@ -2130,6 +2241,22 @@ NTSTATUS PhCreateProcess(
     return status;
 }
 
+/**
+ * Creates a Win32 process and an initial thread.
+ *
+ * \param FileName The Win32 file name of the image.
+ * \param CommandLine The command line to execute. This can be specified 
+ * instead of \a FileName to indicate the image to execute.
+ * \param Environment The environment block for the process. Specify 
+ * NULL to use the environment of the current process.
+ * \param CurrentDirectory The current directory string to pass to the 
+ * process.
+ * \param Flags See PhCreateProcess().
+ * \param TokenHandle The token of the process. Specify NULL for the token 
+ * of the parent process.
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread.
+ */
 NTSTATUS PhCreateProcessWin32(
     __in_opt PWSTR FileName,
     __in_opt PWSTR CommandLine,
@@ -2187,6 +2314,26 @@ FORCEINLINE VOID PhpConvertProcessInformation(
         NtClose(ProcessInfo->hThread);
 }
 
+/**
+ * Creates a Win32 process and an initial thread.
+ *
+ * \param FileName The Win32 file name of the image.
+ * \param CommandLine The command line to execute. This can be specified 
+ * instead of \a FileName to indicate the image to execute.
+ * \param Environment The environment block for the process. Specify 
+ * NULL to use the environment of the current process.
+ * \param CurrentDirectory The current directory string to pass to the 
+ * process.
+ * \param StartupInfo A STARTUPINFO structure containing additional 
+ * parameters for the process.
+ * \param Flags See PhCreateProcess().
+ * \param TokenHandle The token of the process. Specify NULL for the token 
+ * of the parent process.
+ * \param ClientId A variable which recieves the identifier of the initial 
+ * thread.
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread.
+ */
 NTSTATUS PhCreateProcessWin32Ex(
     __in_opt PWSTR FileName,
     __in_opt PWSTR CommandLine,
@@ -2271,6 +2418,22 @@ NTSTATUS PhCreateProcessWin32Ex(
     return status;
 }
 
+/**
+ * Creates a Win32 process and an initial thread under the specified 
+ * user.
+ *
+ * \param Information Parameters specifying how to create the process.
+ * \param Flags See PhCreateProcess(). Additional flags may be used:
+ * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the 
+ * process; this causes the process to be elevated or unelevated depending on the 
+ * specified options.
+ * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
+ * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
+ * \param ClientId A variable which recieves the identifier of the initial 
+ * thread.
+ * \param ProcessHandle A variable which receives a handle to the process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread.
+ */
 NTSTATUS PhCreateProcessAsUser(
     __in PPH_CREATE_PROCESS_AS_USER_INFO Information,
     __in ULONG Flags,
