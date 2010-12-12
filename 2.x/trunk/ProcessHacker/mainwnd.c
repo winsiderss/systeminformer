@@ -2989,10 +2989,10 @@ VOID PhMainWndOnCreate()
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
     MaxTabIndex = NetworkTabIndex;
 
-    ProcessTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_PROCESSTL);
+    ProcessTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_PROCESSTL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
     BringWindowToTop(ProcessTreeListHandle);
 
-    ServiceTreeListHandle = PhCreateTreeListControl(PhMainWndHandle, ID_MAINWND_SERVICETL);
+    ServiceTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_SERVICETL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
     BringWindowToTop(ServiceTreeListHandle);
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
