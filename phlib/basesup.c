@@ -1111,6 +1111,8 @@ LONG PhCompareUnicodeStringZNatural(
  *
  * \param String1 The string to search.
  * \param String2 The string to search for.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
+ * FALSE.
  *
  * \return The index, in characters, of the first occurrence of 
  * \a String2 in \a String1 after \a StartIndex. If \a String2 was not 

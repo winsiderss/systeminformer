@@ -2492,7 +2492,9 @@ PPH_STRING PhGetSystemRoot();
 
 PHLIBAPI
 PLDR_DATA_TABLE_ENTRY PhFindLoaderEntry(
-    __in PVOID DllHandle
+    __in_opt PVOID DllBase,
+    __in_opt PPH_STRINGREF FullDllName,
+    __in_opt PPH_STRINGREF BaseDllName
     );
 
 PHLIBAPI
