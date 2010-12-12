@@ -142,16 +142,19 @@ LRESULT CALLBACK PhpColorBoxWndProc(
             {
                 GetClientRect(hwnd, &clientRect);
 
+                // Border color
+                SetDCPenColor(hdc, RGB(0x44, 0x44, 0x44));
+
+                // Fill color
                 if (!context->Hot)
-                {
                     SetDCBrushColor(hdc, context->SelectedColor);
-                    FillRect(hdc, &clientRect, GetStockObject(DC_BRUSH));
-                }
                 else
-                {
                     SetDCBrushColor(hdc, PhMakeColorBrighter(context->SelectedColor, 64));
-                    FillRect(hdc, &clientRect, GetStockObject(DC_BRUSH));
-                }
+
+                // Draw the rectangle.
+                SelectObject(hdc, GetStockObject(DC_PEN));
+                SelectObject(hdc, GetStockObject(DC_BRUSH));
+                Rectangle(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
                 EndPaint(hwnd, &paintStruct);
             }
