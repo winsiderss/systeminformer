@@ -48,6 +48,7 @@ static TRACEHANDLE EtpSessionHandle;
 static TRACEHANDLE EtpTraceHandle;
 static PEVENT_TRACE_PROPERTIES EtpTraceProperties;
 static EVENT_TRACE_LOGFILE EtpLogFile;
+static BOOLEAN EtpEtwActive;
 static BOOLEAN EtpStartedSession;
 static BOOLEAN EtpEtwExiting;
 static HANDLE EtpEtwMonitorThreadHandle;
@@ -78,7 +79,10 @@ VOID EtStartEtwSession()
     ULONG bufferSize;
 
     bufferSize = sizeof(EVENT_TRACE_PROPERTIES) + EtpLoggerName.Length + sizeof(WCHAR);
-    EtpTraceProperties = PhAllocate(bufferSize);
+
+    if (!EtpTraceProperties)
+        EtpTraceProperties = PhAllocate(bufferSize);
+
     memset(EtpTraceProperties, 0, sizeof(EVENT_TRACE_PROPERTIES));
 
     EtpTraceProperties->Wnode.BufferSize = bufferSize;
@@ -97,13 +101,21 @@ VOID EtStartEtwSession()
     if (result == ERROR_SUCCESS)
     {
         EtEtwEnabled = TRUE;
+        EtpEtwActive = TRUE;
         EtpStartedSession = TRUE;
     }
     else if (result == ERROR_ALREADY_EXISTS)
     {
         EtEtwEnabled = TRUE;
+        EtpEtwActive = TRUE;
+        EtpStartedSession = FALSE;
         // The session already exists.
         //result = ControlTrace(0, EtpLoggerName.Buffer, EtpTraceProperties, EVENT_TRACE_CONTROL_UPDATE);
+    }
+    else
+    {
+        EtpEtwActive = FALSE;
+        EtpStartedSession = FALSE;
     }
 }
 
@@ -246,10 +258,13 @@ NTSTATUS NTAPI EtpEtwMonitorThreadStart(
     {
         EtpTraceHandle = OpenTrace(&EtpLogFile);
 
-        while (!EtpEtwExiting && (result = ProcessTrace(&EtpTraceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
-            NOTHING;
+        if (EtpTraceHandle != INVALID_PROCESSTRACE_HANDLE)
+        {
+            while (!EtpEtwExiting && (result = ProcessTrace(&EtpTraceHandle, 1, NULL, NULL)) == ERROR_SUCCESS)
+                NOTHING;
 
-        CloseTrace(EtpTraceHandle);
+            CloseTrace(EtpTraceHandle);
+        }
 
         if (EtpEtwExiting)
             break;
@@ -259,6 +274,11 @@ NTSTATUS NTAPI EtpEtwMonitorThreadStart(
             // The session was stopped by another program. Try to start it again.
             EtStartEtwSession();
         }
+
+        // Some error occurred, so sleep for a while before trying again.
+        // Don't sleep if we just successfully started a session, though.
+        if (!EtpEtwActive)
+            Sleep(250);
     }
 
     return STATUS_SUCCESS;
