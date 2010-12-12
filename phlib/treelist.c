@@ -76,7 +76,7 @@ HWND PhCreateTreeListControl(
     __in INT_PTR Id
     )
 {
-    return PhCreateTreeListControlEx(ParentHandle, Id, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLCREATE_BORDER);
+    return PhCreateTreeListControlEx(ParentHandle, Id, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER);
 }
 
 HWND PhCreateTreeListControlEx(
@@ -237,9 +237,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 WS_VISIBLE | WS_CLIPSIBLINGS;
             exStyle = 0;
 
-            if (createStruct->style & TLCREATE_BORDER)
+            if (createStruct->style & TLSTYLE_BORDER)
                 style |= WS_BORDER;
-            if (createStruct->style & TLCREATE_CLIENTEDGE)
+            if (createStruct->style & TLSTYLE_CLIENTEDGE)
                 exStyle |= WS_EX_CLIENTEDGE;
 
             context->ListViewHandle = CreateWindowEx(
@@ -272,8 +272,11 @@ LRESULT CALLBACK PhpTreeListWndProc(
             PhpReferenceTreeListContext(context);
             SetProp(context->ListViewHandle, PhpMakeTreeListContextAtom(), (HANDLE)context);
 
-            // Make sure we have a minimum size of 16 pixels for each row using this hack.
-            ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);
+            if (createStruct->style & TLSTYLE_ICONS)
+            {
+                // Make sure we have a minimum size of 16 pixels for each row using this hack.
+                ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);
+            }
         }
         break;
     case WM_DESTROY:

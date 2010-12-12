@@ -3202,7 +3202,6 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             tlHandle = modulesContext->ListContext.TreeListHandle;
             BringWindowToTop(tlHandle);
             PhInitializeModuleList(hwndDlg, tlHandle, &modulesContext->ListContext);
-            //SendMessage(tlHandle, WM_SETFONT, (WPARAM)SendMessage(hwndDlg, WM_GETFONT, 0, 0), FALSE);
             modulesContext->NeedsRedraw = FALSE;
 
             PhLoadSettingsModuleTreeList(&modulesContext->ListContext);

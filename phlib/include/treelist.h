@@ -322,8 +322,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 BOOLEAN PhTreeListInitialization();
 
-#define TLCREATE_BORDER 0x1
-#define TLCREATE_CLIENTEDGE 0x2
+#define TLSTYLE_BORDER 0x1
+#define TLSTYLE_CLIENTEDGE 0x2
+#define TLSTYLE_ICONS 0x4
 
 HWND PhCreateTreeListControl(
     __in HWND ParentHandle,
