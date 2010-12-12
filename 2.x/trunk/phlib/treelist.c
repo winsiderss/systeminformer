@@ -1631,6 +1631,11 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
             textRect.left += 16 + 4; // 4px margin
         }
+        else if (PH_TREELIST_USE_HACKAROUNDS)
+        {
+            // XP is weird.
+            textRect.left += 4;
+        }
 
         if (needsClip && oldClipRegion)
         {
@@ -1660,12 +1665,10 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
         if (font)
         {
-            // The list view draws bold text without any clipping, somehow 
-            // squeezing the text vertically. Here we'll just remove 
-            // vertical clipping.
-            textRect.top -= 1;
-            textRect.bottom += 10;
-            textFlags &= ~DT_VCENTER;
+            // Remove the margins we calculated, because they don't actually apply here 
+            // since we're using a custom font...
+            textRect.top = origTextRect.top;
+            textRect.bottom = origTextRect.bottom;
             oldFont = SelectObject(CustomDraw->nmcd.hdc, font);
         }
 
