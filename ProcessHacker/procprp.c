@@ -3198,13 +3198,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            modulesContext->ListContext.TreeListHandle = PhCreateTreeListControlEx(hwndDlg, IDC_LIST,
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLCREATE_CLIENTEDGE);
+            modulesContext->ListContext.TreeListHandle = GetDlgItem(hwndDlg, IDC_LIST);
             tlHandle = modulesContext->ListContext.TreeListHandle;
             BringWindowToTop(tlHandle);
-            PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_LIST_LAYOUT), tlHandle);
             PhInitializeModuleList(hwndDlg, tlHandle, &modulesContext->ListContext);
-            SendMessage(tlHandle, WM_SETFONT, (WPARAM)SendMessage(hwndDlg, WM_GETFONT, 0, 0), FALSE);
+            //SendMessage(tlHandle, WM_SETFONT, (WPARAM)SendMessage(hwndDlg, WM_GETFONT, 0, 0), FALSE);
             modulesContext->NeedsRedraw = FALSE;
 
             PhLoadSettingsModuleTreeList(&modulesContext->ListContext);
