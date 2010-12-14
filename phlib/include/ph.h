@@ -2778,7 +2778,7 @@ VOID PhUpdateHash(
 PHLIBAPI
 BOOLEAN PhFinalHash(
     __inout PPH_HASH_CONTEXT Context,
-    __out_bcount(HashLength) PUCHAR Hash,
+    __out_bcount(HashLength) PVOID Hash,
     __in ULONG HashLength,
     __out_opt PULONG ReturnLength
     );

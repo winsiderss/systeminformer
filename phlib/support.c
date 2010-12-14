@@ -570,6 +570,18 @@ BOOLEAN PhShowConfirmMessage(
     }
 }
 
+/**
+ * Finds an integer in an array of string-integer pairs.
+ *
+ * \param KeyValuePairs The array.
+ * \param SizeOfKeyValuePairs The size of the array, in bytes.
+ * \param String The string to search for.
+ * \param Integer A variable which receives the found integer.
+ *
+ * \return TRUE if the string was found, otherwise FALSE.
+ *
+ * \remarks The search is case-sensitive.
+ */
 BOOLEAN PhFindIntegerSiKeyValuePairs(
     __in PPH_KEY_VALUE_PAIR KeyValuePairs,
     __in ULONG SizeOfKeyValuePairs,
@@ -591,6 +603,16 @@ BOOLEAN PhFindIntegerSiKeyValuePairs(
     return FALSE;
 }
 
+/**
+ * Finds a string in an array of string-integer pairs.
+ *
+ * \param KeyValuePairs The array.
+ * \param SizeOfKeyValuePairs The size of the array, in bytes.
+ * \param Integer The integer to search for.
+ * \param String A variable which receives the found string.
+ *
+ * \return TRUE if the integer was found, otherwise FALSE.
+ */
 BOOLEAN PhFindStringSiKeyValuePairs(
     __in PPH_KEY_VALUE_PAIR KeyValuePairs,
     __in ULONG SizeOfKeyValuePairs,
@@ -951,6 +973,13 @@ BOOLEAN PhMatchWildcards(
         return PhpMatchWildcards(Pattern, String, TRUE);
 }
 
+/**
+ * Formats a date using the user's default locale.
+ *
+ * \param Date The time structure. If NULL, the current time is used.
+ * \param Format The format of the date. If NULL, the format appropriate 
+ * to the user's locale is used.
+ */
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format
@@ -973,6 +1002,13 @@ PPH_STRING PhFormatDate(
     return string;
 }
 
+/**
+ * Formats a time using the user's default locale.
+ *
+ * \param Time The time structure. If NULL, the current time is used.
+ * \param Format The format of the time. If NULL, the format appropriate 
+ * to the user's locale is used.
+ */
 PPH_STRING PhFormatTime(
     __in_opt PSYSTEMTIME Time,
     __in_opt PWSTR Format
@@ -995,6 +1031,13 @@ PPH_STRING PhFormatTime(
     return string;
 }
 
+/**
+ * Formats a date and time using the user's default locale.
+ *
+ * \param DateTime The time structure. If NULL, the current time is used.
+ *
+ * \return A string containing the date, a space character, then the time.
+ */
 PPH_STRING PhFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
     )
@@ -1029,6 +1072,11 @@ PPH_STRING PhFormatDateTime(
     return string;
 }
 
+/**
+ * Formats a relative time span.
+ *
+ * \param TimeSpan The time span, in ticks.
+ */
 PPH_STRING PhFormatTimeSpanRelative(
     __in ULONG64 TimeSpan
     )
@@ -1147,6 +1195,12 @@ PPH_STRING PhFormatTimeSpanRelative(
     return string;
 }
 
+/**
+ * Formats a 64-bit unsigned integer.
+ *
+ * \param Value The integer.
+ * \param GroupDigits TRUE to group digits, otherwise FALSE.
+ */
 PPH_STRING PhFormatUInt64(
     __in ULONG64 Value,
     __in BOOLEAN GroupDigits
@@ -1808,6 +1862,11 @@ PPH_STRING PhExpandEnvironmentStrings(
     return string;
 }
 
+/**
+ * Gets the base name from a file name.
+ *
+ * \param FileName The file name.
+ */
 PPH_STRING PhGetBaseName(
     __in PPH_STRING FileName
     )
@@ -1829,6 +1888,9 @@ PPH_STRING PhGetBaseName(
         );
 }
 
+/**
+ * Retrieves the system directory path.
+ */
 PPH_STRING PhGetSystemDirectory()
 {
     static PPH_STRING cachedSystemDirectory = NULL;
@@ -1883,6 +1945,9 @@ PPH_STRING PhGetSystemDirectory()
     return systemDirectory;
 }
 
+/**
+ * Retrieves the Windows directory path.
+ */
 PPH_STRING PhGetSystemRoot()
 {
     return PhCreateString(USER_SHARED_DATA->NtSystemRoot);
@@ -2056,6 +2121,19 @@ PPH_STRING PhGetKnownLocation(
     return NULL;
 }
 
+/**
+ * Waits on multiple objects while processing window messages.
+ *
+ * \param hWnd The window to process messages for, or NULL to 
+ * process all messages for the current thread.
+ * \param NumberOfHandles The number of handles specified in 
+ * \a Handles. This must not be greater than MAXIMUM_WAIT_OBJECTS - 1.
+ * \param Handles An array of handles.
+ * \param Timeout The number of milliseconds to wait on the objects, 
+ * or INFINITE for no timeout.
+ *
+ * \remarks The wait is always in WaitAny mode.
+ */
 NTSTATUS PhWaitForMultipleObjectsAndPump(
     __in_opt HWND hWnd,
     __in ULONG NumberOfHandles,
@@ -2711,6 +2789,13 @@ NTSTATUS PhCreateProcessAsUser(
     return status;
 }
 
+/**
+ * Opens a file or location through the shell.
+ *
+ * \param hWnd The window to display user interface components on.
+ * \param FileName A file name or location.
+ * \param Parameters The parameters to pass to the executed application.
+ */
 VOID PhShellExecute(
     __in HWND hWnd,
     __in PWSTR FileName,
@@ -2731,6 +2816,21 @@ VOID PhShellExecute(
     }
 }
 
+/**
+ * Opens a file or location through the shell.
+ *
+ * \param hWnd The window to display user interface components on.
+ * \param FileName A file name or location.
+ * \param Parameters The parameters to pass to the executed application.
+ * \param ShowWindowType A value specifying how to show the application.
+ * \param Flags A combination of the following:
+ * \li \c PH_SHELL_EXECUTE_ADMIN Execute the application elevated.
+ * \li \c PH_SHELL_EXECUTE_PUMP_MESSAGES Waits on the application while 
+ * pumping messages, if \a Timeout is specified.
+ * \param Timeout The number of milliseconds to wait on the application, or 0 
+ * to return immediately after the application is started.
+ * \param ProcessHandle A variable which receives a handle to the new process.
+ */
 BOOLEAN PhShellExecuteEx(
     __in HWND hWnd,
     __in PWSTR FileName,
@@ -3592,6 +3692,17 @@ VOID PhSetFileDialogFileName(
     }
 }
 
+/**
+ * Determines if an executable image is packed.
+ *
+ * \param FileName The file name of the image.
+ * \param IsPacked A variable that receives TRUE if the image is packed,
+ * otherwise FALSE.
+ * \param NumberOfModules A variable that receives the number of DLLs that 
+ * the image imports functions from.
+ * \param NumberOfFunctions A variable that receives the number of functions 
+ * that the image imports.
+ */
 NTSTATUS PhIsExecutablePacked(
     __in PWSTR FileName,
     __out PBOOLEAN IsPacked,
@@ -3748,6 +3859,15 @@ CleanupExit:
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(MD5_CTX));
 C_ASSERT(RTL_FIELD_SIZE(PH_HASH_CONTEXT, Context) >= sizeof(A_SHA_CTX));
 
+/**
+ * Initializes hashing.
+ *
+ * \param Context A hashing context structure.
+ * \param Algorithm The hash algorithm to use:
+ * \li \c Md5HashAlgorithm MD5 (128 bits)
+ * \li \c Sha1HashAlgorithm SHA-1 (160 bits)
+ * \li \c Crc32HashAlgorithm CRC-32-IEEE 802.3 (32 bits)
+ */
 VOID PhInitializeHash(
     __out PPH_HASH_CONTEXT Context,
     __in PH_HASH_ALGORITHM Algorithm
@@ -3772,6 +3892,13 @@ VOID PhInitializeHash(
     }
 }
 
+/**
+ * Hashes a block of data.
+ *
+ * \param Context A hashing context structure.
+ * \param Buffer The block of data.
+ * \param Length The number of bytes in the block.
+ */
 VOID PhUpdateHash(
     __inout PPH_HASH_CONTEXT Context,
     __in_bcount(Length) PVOID Buffer,
@@ -3794,9 +3921,18 @@ VOID PhUpdateHash(
     }
 }
 
+/**
+ * Computes the final hash value.
+ *
+ * \param Context A hashing context structure.
+ * \param Hash A buffer which receives the final hash value.
+ * \param HashLength The size of the buffer, in bytes.
+ * \param ReturnLength A variable which receives the required size of 
+ * the buffer, in bytes.
+ */
 BOOLEAN PhFinalHash(
     __inout PPH_HASH_CONTEXT Context,
-    __out_bcount(HashLength) PUCHAR Hash,
+    __out_bcount(HashLength) PVOID Hash,
     __in ULONG HashLength,
     __out_opt PULONG ReturnLength
     )
@@ -3822,7 +3958,7 @@ BOOLEAN PhFinalHash(
     case Sha1HashAlgorithm:
         if (HashLength >= 20)
         {
-            A_SHAFinal((A_SHA_CTX *)Context->Context, Hash);
+            A_SHAFinal((A_SHA_CTX *)Context->Context, (PUCHAR)Hash);
             result = TRUE;
         }
 
