@@ -1172,8 +1172,8 @@ VOID PhpUpdateProcessStatistics(
             else
                 SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"Unknown");
 
-            if (ioPriority != -1)
-                SetDlgItemInt(hwndDlg, IDC_ZIOPRIORITY_V, ioPriority, FALSE);
+            if (ioPriority != -1 && ioPriority < MaxIoPriorityTypes)
+                SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, PhIoPriorityHintNames[ioPriority]);
             else
                 SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"Unknown");
         }
@@ -2123,7 +2123,7 @@ VOID PhpUpdateThreadDetails(
     PPH_STRING state = NULL;
     WCHAR priority[PH_INT32_STR_LEN_1] = L"N/A";
     WCHAR basePriority[PH_INT32_STR_LEN_1] = L"N/A";
-    WCHAR ioPriority[PH_INT32_STR_LEN_1] = L"N/A";
+    PWSTR ioPriority = L"N/A";
     WCHAR pagePriority[PH_INT32_STR_LEN_1] = L"N/A";
     HANDLE threadHandle;
     SYSTEMTIME time;
@@ -2174,8 +2174,9 @@ VOID PhpUpdateThreadDetails(
 
         if (NT_SUCCESS(PhOpenThread(&threadHandle, ThreadQueryAccess, threadItem->ThreadId)))
         {
-            if (NT_SUCCESS(PhGetThreadIoPriority(threadHandle, &ioPriorityInteger)))
-                PhPrintUInt32(ioPriority, ioPriorityInteger);
+            if (NT_SUCCESS(PhGetThreadIoPriority(threadHandle, &ioPriorityInteger)) &&
+                ioPriorityInteger < MaxIoPriorityTypes)
+                ioPriority = PhIoPriorityHintNames[ioPriorityInteger];
             if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriorityInteger)))
                 PhPrintUInt32(pagePriority, pagePriorityInteger);
 

@@ -179,10 +179,10 @@ BEGIN
         END
         POPUP "I/O Priority"
         BEGIN
-            MENUITEM "0",                           ID_I_0
-            MENUITEM "1",                           ID_I_1
-            MENUITEM "2",                           ID_I_2
-            MENUITEM "3",                           ID_I_3
+            MENUITEM "High",                        ID_I_3
+            MENUITEM "Normal",                      ID_I_2
+            MENUITEM "Low",                         ID_I_1
+            MENUITEM "Very Low",                    ID_I_0
         END
         MENUITEM SEPARATOR
         MENUITEM "Copy\aCtrl+C",                ID_THREAD_COPY
@@ -256,10 +256,10 @@ BEGIN
             MENUITEM "Inject DLL...",               ID_MISCELLANEOUS_INJECTDLL
             POPUP "I/O Priority"
             BEGIN
-                MENUITEM "High (3)",                    ID_I_3
-                MENUITEM "Normal (2)",                  ID_I_2
-                MENUITEM "Low (1)",                     ID_I_1
-                MENUITEM "Very Low (0)",                ID_I_0
+                MENUITEM "High",                        ID_I_3
+                MENUITEM "Normal",                      ID_I_2
+                MENUITEM "Low",                         ID_I_1
+                MENUITEM "Very Low",                    ID_I_0
             END
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
