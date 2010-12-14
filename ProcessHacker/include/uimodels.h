@@ -207,7 +207,6 @@ typedef struct _PH_PROCESS_NODE
     WCHAR UserHandlesText[PH_INT32_STR_LEN_1];
     PPH_STRING IoRoText;
     PPH_STRING IoWText;
-    WCHAR IoPriorityText[PH_INT32_STR_LEN_1];
     WCHAR PagePriorityText[PH_INT32_STR_LEN_1];
     PPH_STRING StartTimeText;
     WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];
