@@ -135,6 +135,16 @@ ULONG PhCrc32Table[256] =
 // Enums
 
 DECLSPEC_SELECTANY
+WCHAR *PhIoPriorityHintNames[MaxIoPriorityTypes] =
+{
+    L"Very Low",
+    L"Low",
+    L"Normal",
+    L"High",
+    L"Critical"
+};
+
+DECLSPEC_SELECTANY
 WCHAR *PhKThreadStateNames[MaximumThreadState] =
 {
     L"Initialized",

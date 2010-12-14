@@ -115,7 +115,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHPRTLC_IORO, FALSE, L"I/O R+O", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_IOW, FALSE, L"I/O W", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_INTEGRITY, FALSE, L"Integrity", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHPRTLC_IOPRIORITY, FALSE, L"I/O Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHPRTLC_IOPRIORITY, FALSE, L"I/O Priority", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_PAGEPRIORITY, FALSE, L"Page Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_STARTTIME, FALSE, L"Start Time", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_TOTALCPUTIME, FALSE, L"Total CPU Time", 90, PH_ALIGN_LEFT, -1, 0);
@@ -545,14 +545,14 @@ static VOID PhpUpdateProcessNodeIoPagePriority(
         if (ProcessNode->ProcessItem->QueryHandle)
         {
             if (!NT_SUCCESS(PhGetProcessIoPriority(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->IoPriority)))
-                ProcessNode->IoPriority = 0;
+                ProcessNode->IoPriority = -1;
             if (!NT_SUCCESS(PhGetProcessPagePriority(ProcessNode->ProcessItem->QueryHandle, &ProcessNode->PagePriority)))
-                ProcessNode->PagePriority = 0;
+                ProcessNode->PagePriority = -1;
         }
         else
         {
-            ProcessNode->IoPriority = 0;
-            ProcessNode->PagePriority = 0;
+            ProcessNode->IoPriority = -1;
+            ProcessNode->PagePriority = -1;
         }
 
         ProcessNode->ValidMask |= PHPN_IOPAGEPRIORITY;
@@ -1382,13 +1382,31 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
-                PhPrintUInt32(node->IoPriorityText, node->IoPriority);
-                PhInitializeStringRef(&getNodeText->Text, node->IoPriorityText);
+
+                if (node->IoPriority != -1)
+                {
+                    if (node->IoPriority < MaxIoPriorityTypes)
+                        PhInitializeStringRef(&getNodeText->Text, PhIoPriorityHintNames[node->IoPriority]);
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+
                 break;
             case PHPRTLC_PAGEPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
-                PhPrintUInt32(node->PagePriorityText, node->PagePriority);
-                PhInitializeStringRef(&getNodeText->Text, node->PagePriorityText);
+
+                if (node->PagePriority != -1)
+                {
+                    PhPrintUInt32(node->PagePriorityText, node->PagePriority);
+                    PhInitializeStringRef(&getNodeText->Text, node->PagePriorityText);
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+
                 break;
             case PHPRTLC_STARTTIME:
                 {
