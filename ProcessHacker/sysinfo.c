@@ -539,6 +539,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                 for (i = 0; i < processors; i++)
                 {
+                    // Give the last graph the remaining space; the width we calculated might be off by a few 
+                    // pixels due to integer division.
                     if (i == processors - 1)
                     {
                         graphWidth = clientRect.right - margin.right - innerMargin.right - x;

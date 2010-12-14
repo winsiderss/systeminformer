@@ -93,7 +93,7 @@ CHAR PhIntegerToCharUpper[69] =
 "{|}~" /* 65 - 68 */
 ;
 
-// CRC32
+// CRC32 (IEEE 802.3)
 
 DECLSPEC_SELECTANY
 ULONG PhCrc32Table[256] =
