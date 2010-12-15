@@ -28,7 +28,7 @@ HWND PhCreateHexEditControl(
     SendMessage((hWnd), HEM_SETDATA, (WPARAM)(Length), (LPARAM)(Buffer))
 
 #define HexEdit_GetBuffer(hWnd, Buffer, Length) \
-    ((PUCHAR)SendMessage((hWnd), HEM_GETBUFFER, 0, 0)
+    ((PUCHAR)SendMessage((hWnd), HEM_GETBUFFER, 0, 0))
 
 #define HexEdit_SetSel(hWnd, Start, End) \
     SendMessage((hWnd), HEM_SETSEL, (WPARAM)(Start), (LPARAM)(End))

@@ -664,11 +664,15 @@ WinStationGetProcessSid(
 
 BOOLEAN
 NTAPI
-WinStationSwitchToServicesSession();
+WinStationSwitchToServicesSession(
+    VOID
+    );
 
 BOOLEAN
 NTAPI
-WinStationRevertFromServicesSession();
+WinStationRevertFromServicesSession(
+    VOID
+    );
 
 // end_rev
 
