@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
  * FIXED:
    * ExtendedTools plugin crash
+   * Notification icon menu crash
 
 2.9
  * NEW/IMPROVED:
