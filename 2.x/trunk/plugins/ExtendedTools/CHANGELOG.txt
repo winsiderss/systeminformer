@@ -1,2 +1,5 @@
+1.1
+ * Fixed ETW crash
+
 1.0
  * Initial release
