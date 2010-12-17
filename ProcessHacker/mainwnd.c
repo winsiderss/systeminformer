@@ -100,8 +100,7 @@ VOID PhpRefreshUsersMenu();
 
 VOID PhpAddIconProcesses(
     __in PPH_EMENU_ITEM Menu,
-    __in ULONG NumberOfProcesses,
-    __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
+    __in ULONG NumberOfProcesses
     );
 
 VOID PhpShowIconContextMenu(
@@ -204,7 +203,6 @@ static BOOLEAN NeedsMaximize = FALSE;
 static BOOLEAN DelayedLoadCompleted = FALSE;
 static ULONG NotifyIconMask;
 static ULONG NotifyIconNotifyMask;
-static HBITMAP *IconProcessBitmaps;
 
 static RECT LayoutPadding = { 0, 0, 0, 0 };
 static HWND TabControlHandle;
@@ -2362,8 +2360,7 @@ static int __cdecl IconProcessesNameCompare(
 
 VOID PhpAddIconProcesses(
     __in PPH_EMENU_ITEM Menu,
-    __in ULONG NumberOfProcesses,
-    __out_ecount(NumberOfProcesses) HBITMAP *Bitmaps
+    __in ULONG NumberOfProcesses
     )
 {
     ULONG i;
@@ -2476,7 +2473,7 @@ VOID PhpAddIconProcesses(
         }
 
         subMenu->Bitmap = iconBitmap;
-        Bitmaps[i] = iconBitmap;
+        subMenu->Flags |= PH_EMENU_BITMAP_OWNED; // automatically destroy the bitmap when necessary
 
         PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_TERMINATE, L"Terminate", NULL, NULL), -1);
         PhInsertEMenuItem(subMenu, PhCreateEMenuItem(0, ID_PROCESS_SUSPEND, L"Suspend", NULL, NULL), -1);
@@ -2501,6 +2498,12 @@ VOID PhpShowIconContextMenu(
     ULONG numberOfProcesses;
     ULONG id;
     ULONG i;
+
+    // This function seems to be called recursively under some circumstances.
+    // To reproduce:
+    // 1. Hold right mouse button on tray icon, then left click.
+    // 2. Make the menu disappear by clicking on the menu then clicking somewhere else.
+    // So, don't store any global state or bad things will happen.
 
     menu = PhCreateEMenu();
     PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_ICON), 0);
@@ -2537,14 +2540,14 @@ VOID PhpShowIconContextMenu(
     }
 
     // Add processes to the menu.
-    numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
-    IconProcessBitmaps = PhAllocate(sizeof(HBITMAP) * numberOfProcesses);
-    memset(IconProcessBitmaps, 0, sizeof(HBITMAP) * numberOfProcesses);
 
+    numberOfProcesses = PhGetIntegerSetting(L"IconProcesses");
     item = PhFindEMenuItem(menu, 0, L"Processes", 0);
 
     if (item)
-        PhpAddIconProcesses(item, numberOfProcesses, IconProcessBitmaps);
+        PhpAddIconProcesses(item, numberOfProcesses);
+
+    // Give plugins a chance to modify the menu.
 
     if (PhPluginsEnabled)
     {
@@ -2565,15 +2568,6 @@ VOID PhpShowIconContextMenu(
         Location.x,
         Location.y
         );
-
-    // Destroy the bitmaps.
-    for (i = 0; i < numberOfProcesses; i++)
-    {
-        if (IconProcessBitmaps[i])
-            DeleteObject(IconProcessBitmaps[i]);
-    }
-
-    PhFree(IconProcessBitmaps);
 
     if (item)
     {

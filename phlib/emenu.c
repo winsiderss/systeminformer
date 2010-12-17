@@ -97,25 +97,21 @@ PPH_EMENU_ITEM PhCreateEMenuItem(
  * Frees resources used by a menu item and its children.
  *
  * \param Item The menu item.
- * \param Enumerating TRUE to skip removal from the parent menu item.
+ *
+ * \remarks The menu item is NOT automatically removed from its parent. 
+ * It is safe to call this function while enumerating menu items.
  */
 VOID PhpDestroyEMenuItem(
-    __in PPH_EMENU_ITEM Item,
-    __in BOOLEAN Enumerating
+    __in PPH_EMENU_ITEM Item
     )
 {
-    if (!Enumerating)
-    {
-        // Remove the item from its parent, if it has one.
-        if (Item->Parent)
-            PhRemoveEMenuItem(NULL, Item, 0);
-    }
-
     if (Item->DeleteFunction)
         Item->DeleteFunction(Item);
 
-    if (Item->Flags & PH_EMENU_TEXT_OWNED)
+    if ((Item->Flags & PH_EMENU_TEXT_OWNED) && Item->Text)
         PhFree(Item->Text);
+    if ((Item->Flags & PH_EMENU_BITMAP_OWNED) && Item->Bitmap)
+        DeleteObject(Item->Bitmap);
 
     if (Item->Items)
     {
@@ -123,7 +119,7 @@ VOID PhpDestroyEMenuItem(
 
         for (i = 0; i < Item->Items->Count; i++)
         {
-            PhpDestroyEMenuItem(Item->Items->Items[i], TRUE);
+            PhpDestroyEMenuItem(Item->Items->Items[i]);
         }
 
         PhDereferenceObject(Item->Items);
@@ -143,7 +139,11 @@ VOID PhDestroyEMenuItem(
     __in PPH_EMENU_ITEM Item
     )
 {
-    PhpDestroyEMenuItem(Item, FALSE);
+    // Remove the item from its parent, if it has one.
+    if (Item->Parent)
+        PhRemoveEMenuItem(NULL, Item, -1);
+
+    PhpDestroyEMenuItem(Item);
 }
 
 /**
@@ -332,7 +332,7 @@ VOID PhRemoveAllEMenuItems(
 
     for (i = 0; i < Parent->Items->Count; i++)
     {
-        PhpDestroyEMenuItem(Parent->Items->Items[i], TRUE);
+        PhpDestroyEMenuItem(Parent->Items->Items[i]);
     }
 
     PhClearList(Parent->Items);
@@ -365,7 +365,7 @@ VOID PhDestroyEMenu(
 
     for (i = 0; i < Menu->Items->Count; i++)
     {
-        PhpDestroyEMenuItem(Menu->Items->Items[i], TRUE);
+        PhpDestroyEMenuItem(Menu->Items->Items[i]);
     }
 
     PhDereferenceObject(Menu->Items);
