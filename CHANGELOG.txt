@@ -3,6 +3,7 @@ Process Hacker
 2.10
  * NEW/IMPROVED:
  * FIXED:
+   * ExtendedTools plugin crash
 
 2.9
  * NEW/IMPROVED:

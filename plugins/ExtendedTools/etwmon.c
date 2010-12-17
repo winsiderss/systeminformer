@@ -125,6 +125,8 @@ ULONG EtpControlEtwSession(
 {
     // If we have a session handle, we use that instead of the logger name.
 
+    EtpTraceProperties->LogFileNameOffset = 0; // make sure it is 0, otherwise ControlTrace crashes
+
     return ControlTrace(
         EtpStartedSession ? EtpSessionHandle : 0,
         EtpStartedSession ? NULL : EtpLoggerName.Buffer,
@@ -137,8 +139,6 @@ VOID EtStopEtwSession()
 {
     if (EtEtwEnabled)
         EtpControlEtwSession(EVENT_TRACE_CONTROL_STOP);
-
-    PhFree(EtpTraceProperties);
 }
 
 VOID EtFlushEtwSession()
