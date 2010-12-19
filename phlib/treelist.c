@@ -296,6 +296,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
         break;
     case WM_ERASEBKGND:
         return TRUE;
+    case WM_GETFONT:
+        return SendMessage(context->ListViewHandle, WM_GETFONT, wParam, lParam);
     case WM_SETFONT:
         {
             SendMessage(context->ListViewHandle, WM_SETFONT, wParam, lParam);
