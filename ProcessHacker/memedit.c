@@ -326,6 +326,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         PhSetFileDialogFileName(fileDialog,
                             PhaFormatString(L"%s_0x%Ix-0x%Ix.bin", processItem->ProcessName->Buffer,
                             context->BaseAddress, context->RegionSize)->Buffer);
+                        PhDereferenceObject(processItem);
                     }
                     else
                     {
