@@ -20,6 +20,12 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This is a simple debugging console which is able to explore phlib's 
+ * systems easily. Commands are provided to debug reference counting 
+ * problems and memory usage, as well as to do general performance testing.
+ */
+
 #include <phapp.h>
 #include <phintrnl.h>
 #include <refp.h>

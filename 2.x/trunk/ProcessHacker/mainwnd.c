@@ -287,6 +287,7 @@ BOOLEAN PhMainWndInitialization(
         PhSetIntegerSetting(L"FirstRun", FALSE);
     }
 
+    // This was added to be able to delay-load dbghelp.dll and symsrv.dll.
     PhRegisterCallback(&PhSymInitCallback, PhpSymInitHandler, NULL, &SymInitRegistration);
 
     // Initialize the providers.
@@ -377,6 +378,9 @@ BOOLEAN PhMainWndInitialization(
         HICON shieldIcon;
         MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
 
+        // It is necessary to use LoadIconMetric because otherwise the icons are at the wrong 
+        // resolution and look very bad when scaled down to 16x16.
+
         loadIconMetric = (_LoadIconMetric)PhGetProcAddress(L"comctl32.dll", "LoadIconMetric");
 
         if (loadIconMetric && SUCCEEDED(loadIconMetric(NULL, IDI_SHIELD, LIM_SMALL, &shieldIcon)))
@@ -458,6 +462,8 @@ LRESULT CALLBACK PhMainWndProc(
             if (!PhMainWndExiting)
                 ProcessHacker_SaveAllSettings(hWnd);
 
+            // Remove all icons to prevent them hanging around after we exit.
+
             mask = NotifyIconMask;
             NotifyIconMask = 0; // prevent further icon updating
 
@@ -466,6 +472,8 @@ LRESULT CALLBACK PhMainWndProc(
                 if (mask & i)
                     PhRemoveNotifyIcon(i);
             }
+
+            // Notify plugins that we are shutting down.
 
             if (PhPluginsEnabled)
                 PhUnloadPlugins();

@@ -20,6 +20,37 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This provider module handles the collection of process information and 
+ * system-wide statistics. A list of all running processes is kept and 
+ * periodically scanned to detected new and terminated processes.
+ *
+ * The retrieval of certain information is delayed in order to improve 
+ * performance. This includes things such as file icons, version information, 
+ * digital signature verification, and packed executable detection. These 
+ * requests are handed to worker threads which then post back information 
+ * to a S-list.
+ *
+ * Also contained in this module is the storage of process records, which 
+ * contain static information about processes. Unlike process items which are 
+ * removed as soon as their corresponding process exits, process records 
+ * remain as long as they are needed by the statistics system, and more 
+ * specifically the max. CPU and I/O history buffers. In PH 1.x, a new 
+ * formatted string was created at each update containing information about 
+ * the maximum-usage process within that interval. Here we use a much more 
+ * storage-efficient method, where the raw maximum-usage PIDs are stored for 
+ * each interval, and the process record list is searched when the name of a 
+ * process is needed.
+ *
+ * The process record list is stored as a list of records sorted by process 
+ * creation time. If two or more processes have the same creation time, they 
+ * are added to a doubly-linked list. This structure allows for fast searching 
+ * in the typical scenario where we know the PID of a process and a specific 
+ * time in which the process was running. In this case a binary search is used 
+ * and then the list is traversed backwards until the process is found. Binary 
+ * search is similarly used for insertion and removal.
+ */
+
 #define PH_PROCPRV_PRIVATE
 #include <phapp.h>
 #include <kph.h>
