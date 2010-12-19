@@ -108,6 +108,9 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     return TRUE;
 }
 
+/**
+ * Loads plugins from the default plugins directory.
+ */
 VOID PhLoadPlugins()
 {
     HANDLE pluginsDirectoryHandle;
@@ -153,11 +156,19 @@ VOID PhLoadPlugins()
     PhpExecuteCallbackForAllPlugins(PluginCallbackLoad);
 }
 
+/**
+ * Notifies all plugins that the program is shutting down.
+ */
 VOID PhUnloadPlugins()
 {
     PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
 }
 
+/**
+ * Loads a plugin.
+ *
+ * \param FileName The full file name of the plugin.
+ */
 VOID PhLoadPlugin(
     __in PPH_STRING FileName
     )
@@ -243,6 +254,18 @@ VOID PhpExecuteCallbackForAllPlugins(
     }
 }
 
+/**
+ * Registers a plugin with the host.
+ *
+ * \param Name A unique identifier for the plugin. The function fails 
+ * if another plugin has already been registered with the same name.
+ * \param DllBase The base address of the plugin DLL. This is passed 
+ * to the DllMain function.
+ * \param Information Additional information about the plugin.
+ *
+ * \return A pointer to the plugin instance structure, or NULL if the 
+ * function failed.
+ */
 PPH_PLUGIN PhRegisterPlugin(
     __in PWSTR Name,
     __in PVOID DllBase,
@@ -284,6 +307,7 @@ PPH_PLUGIN PhRegisterPlugin(
 
     if (existingLinks)
     {
+        // Another plugin has already been registered with the same name.
         PhFree(plugin);
         return NULL;
     }
@@ -307,6 +331,14 @@ PPH_PLUGIN PhRegisterPlugin(
     return plugin;
 }
 
+/**
+ * Locates a plugin instance structure.
+ *
+ * \param Name The name of the plugin.
+ *
+ * \return A plugin instance structure, or NULL if the plugin 
+ * was not found.
+ */
 PPH_PLUGIN PhFindPlugin(
     __in PWSTR Name
     )
@@ -323,6 +355,15 @@ PPH_PLUGIN PhFindPlugin(
         return NULL;
 }
 
+/**
+ * Retrieves a pointer to a plugin callback.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param Callback The type of callback.
+ *
+ * \remarks The program invokes plugin callbacks for notifications 
+ * specific to a plugin.
+ */
 PPH_CALLBACK PhGetPluginCallback(
     __in PPH_PLUGIN Plugin,
     __in PH_PLUGIN_CALLBACK Callback
@@ -334,6 +375,14 @@ PPH_CALLBACK PhGetPluginCallback(
     return &Plugin->Callbacks[Callback];
 }
 
+/**
+ * Retrieves a pointer to a general callback.
+ *
+ * \param Callback The type of callback.
+ *
+ * \remarks The program invokes general callbacks for system-wide 
+ * notifications.
+ */
 PPH_CALLBACK PhGetGeneralCallback(
     __in PH_GENERAL_CALLBACK Callback
     )
@@ -344,6 +393,16 @@ PPH_CALLBACK PhGetGeneralCallback(
     return &GeneralCallbacks[Callback];
 }
 
+/**
+ * Reserves unique GUI identifiers.
+ *
+ * \param Count The number of identifiers to reserve.
+ *
+ * \return The start of the reserved range.
+ *
+ * \remarks The identifiers reserved by this function are 
+ * guaranteed to be unique throughout the program.
+ */
 ULONG PhPluginReserveIds(
     __in ULONG Count
     )
@@ -356,6 +415,24 @@ ULONG PhPluginReserveIds(
     return nextPluginId;
 }
 
+/**
+ * Adds a menu item to the program's main menu.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param Location One of the following:
+ * \li \c PH_MENU_ITEM_LOCATION_VIEW The "View" menu.
+ * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
+ * \param InsertAfter The text of the menu item to insert the 
+ * new menu item after. The search is a case-insensitive prefix search.
+ * \param Id An identifier for the menu item. This should be unique 
+ * within the plugin.
+ * \param Text The text of the menu item.
+ * \param Context A user-defined value for the menu item.
+ *
+ * \remarks The \ref PluginCallbackMenuItem callback is invoked when 
+ * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure 
+ * will contain the \a Id and \a Context values passed to this function.
+ */
 BOOLEAN PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG Location,
@@ -443,6 +520,9 @@ BOOLEAN PhPluginAddMenuItem(
     return TRUE;
 }
 
+/**
+ * Retrieves current system statistics.
+ */
 VOID PhPluginGetSystemStatistics(
     __out PPH_PLUGIN_SYSTEM_STATISTICS Statistics
     )
@@ -474,6 +554,23 @@ static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
     PhFree(Item->Context);
 }
 
+/**
+ * Creates a menu item.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param Flags A combination of flags.
+ * \param Id An identifier for the menu item. This should be unique 
+ * within the plugin.
+ * \param Text The text of the menu item.
+ * \param Context A user-defined value for the menu item.
+ *
+ * \return A menu item object. This can then be inserted into another 
+ * menu using PhInsertEMenuItem().
+ *
+ * \remarks The \ref PluginCallbackMenuItem callback is invoked when 
+ * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure 
+ * will contain the \a Id and \a Context values passed to this function.
+ */
 PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG Flags,
@@ -499,6 +596,14 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     return item;
 }
 
+/**
+ * Triggers a plugin menu item.
+ *
+ * \param OwnerWindow The window that owns the menu containing the menu item.
+ * \param Item The menu item chosen by the user.
+ *
+ * \remarks This function is reserved for internal use.
+ */
 BOOLEAN PhPluginTriggerEMenuItem(
     __in HWND OwnerWindow,
     __in PPH_EMENU_ITEM Item
