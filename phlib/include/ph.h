@@ -6,6 +6,7 @@
 #include <phbase.h>
 #include <stdarg.h>
 #include <dltmgr.h>
+#include <phnatinl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -135,24 +136,6 @@ NTSTATUS PhWriteVirtualMemory(
     );
 
 PHLIBAPI
-NTSTATUS PhGetProcessBasicInformation(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessExtendedBasicInformation(
-    __in HANDLE ProcessHandle,
-    __out PPROCESS_EXTENDED_BASIC_INFORMATION ExtendedBasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessTimes(
-    __in HANDLE ProcessHandle,
-    __out PKERNEL_USER_TIMES Times
-    );
-
-PHLIBAPI
 NTSTATUS PhGetProcessImageFileName(
     __in HANDLE ProcessHandle,
     __out PPH_STRING *FileName
@@ -201,69 +184,9 @@ NTSTATUS PhGetProcessPebString(
     PhGetProcessPebString(ProcessHandle, PhpoCommandLine, String)
 
 PHLIBAPI
-NTSTATUS PhGetProcessSessionId(
-    __in HANDLE ProcessHandle,
-    __out PULONG SessionId
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessExecuteFlags(
-    __in HANDLE ProcessHandle,
-    __out PULONG ExecuteFlags
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessIsWow64(
-    __in HANDLE ProcessHandle,
-    __out PBOOLEAN IsWow64
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessPeb32(
-    __in HANDLE ProcessHandle,
-    __out PPVOID Peb32
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessIsBeingDebugged(
-    __in HANDLE ProcessHandle,
-    __out PBOOLEAN IsBeingDebugged
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessDebugObject(
-    __in HANDLE ProcessHandle,
-    __out PHANDLE DebugObjectHandle
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessIoPriority(
-    __in HANDLE ProcessHandle,
-    __out PULONG IoPriority
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessPagePriority(
-    __in HANDLE ProcessHandle,
-    __out PULONG PagePriority
-    );
-
-PHLIBAPI
 NTSTATUS PhGetProcessIsPosix(
     __in HANDLE ProcessHandle,
     __out PBOOLEAN IsPosix
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessCycleTime(
-    __in HANDLE ProcessHandle,
-    __out PULONG64 CycleTime
-    );
-
-PHLIBAPI
-NTSTATUS PhGetProcessConsoleHostProcessId(
-    __in HANDLE ProcessHandle,
-    __out PHANDLE ConsoleHostProcessId
     );
 
 #define PH_PROCESS_DEP_ENABLED 0x1
@@ -395,30 +318,6 @@ NTSTATUS PhUnloadDllProcess(
     );
 
 PHLIBAPI
-NTSTATUS PhGetThreadBasicInformation(
-    __in HANDLE ThreadHandle,
-    __out PTHREAD_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetThreadIoPriority(
-    __in HANDLE ThreadHandle,
-    __out PULONG IoPriority
-    );
-
-PHLIBAPI
-NTSTATUS PhGetThreadPagePriority(
-    __in HANDLE ThreadHandle,
-    __out PULONG PagePriority
-    );
-
-PHLIBAPI
-NTSTATUS PhGetThreadCycleTime(
-    __in HANDLE ThreadHandle,
-    __out PULONG64 CycleTime
-    );
-
-PHLIBAPI
 NTSTATUS PhSetThreadAffinityMask(
     __in HANDLE ThreadHandle,
     __in ULONG_PTR AffinityMask
@@ -472,30 +371,6 @@ NTSTATUS PhWalkThreadStack(
     );
 
 PHLIBAPI
-NTSTATUS PhGetJobBasicAndIoAccounting(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION BasicAndIoAccounting
-    );
-
-PHLIBAPI
-NTSTATUS PhGetJobBasicLimits(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_LIMIT_INFORMATION BasicLimits
-    );
-
-PHLIBAPI
-NTSTATUS PhGetJobExtendedLimits(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimits
-    );
-
-PHLIBAPI
-NTSTATUS PhGetJobBasicUiRestrictions(
-    __in HANDLE JobHandle,
-    __out PJOBOBJECT_BASIC_UI_RESTRICTIONS BasicUiRestrictions
-    );
-
-PHLIBAPI
 NTSTATUS PhGetJobProcessIdList(
     __in HANDLE JobHandle,
     __out PJOBOBJECT_BASIC_PROCESS_ID_LIST *ProcessIdList
@@ -520,36 +395,6 @@ NTSTATUS PhGetTokenPrimaryGroup(
     );
 
 PHLIBAPI
-NTSTATUS PhGetTokenSessionId(
-    __in HANDLE TokenHandle,
-    __out PULONG SessionId
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenElevationType(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_ELEVATION_TYPE ElevationType
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenIsElevated(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN Elevated
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenStatistics(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_STATISTICS Statistics
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenSource(
-    __in HANDLE TokenHandle,
-    __out PTOKEN_SOURCE Source
-    );
-
-PHLIBAPI
 NTSTATUS PhGetTokenGroups(
     __in HANDLE TokenHandle,
     __out PTOKEN_GROUPS *Groups
@@ -559,24 +404,6 @@ PHLIBAPI
 NTSTATUS PhGetTokenPrivileges(
     __in HANDLE TokenHandle,
     __out PTOKEN_PRIVILEGES *Privileges
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenLinkedToken(
-    __in HANDLE TokenHandle,
-    __out PHANDLE LinkedTokenHandle
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenIsVirtualizationAllowed(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN IsVirtualizationAllowed
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTokenIsVirtualizationEnabled(
-    __in HANDLE TokenHandle,
-    __out PBOOLEAN IsVirtualizationEnabled
     );
 
 PHLIBAPI
@@ -625,42 +452,6 @@ NTSTATUS PhGetTokenIntegrityLevel(
     __in HANDLE TokenHandle,
     __out_opt PPH_INTEGRITY IntegrityLevel, 
     __out_opt PWSTR *IntegrityString
-    );
-
-PHLIBAPI
-NTSTATUS PhGetEventBasicInformation(
-    __in HANDLE EventHandle,
-    __out PEVENT_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetMutantBasicInformation(
-    __in HANDLE MutantHandle,
-    __out PMUTANT_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetMutantOwnerInformation(
-    __in HANDLE MutantHandle,
-    __out PMUTANT_OWNER_INFORMATION OwnerInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetSectionBasicInformation(
-    __in HANDLE SectionHandle,
-    __out PSECTION_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetSemaphoreBasicInformation(
-    __in HANDLE SemaphoreHandle,
-    __out PSEMAPHORE_BASIC_INFORMATION BasicInformation
-    );
-
-PHLIBAPI
-NTSTATUS PhGetTimerBasicInformation(
-    __in HANDLE TimerHandle,
-    __out PTIMER_BASIC_INFORMATION BasicInformation
     );
 
 PHLIBAPI
