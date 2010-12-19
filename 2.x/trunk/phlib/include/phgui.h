@@ -683,10 +683,11 @@ PhSetHeaderSortIcon(
     __in PH_SORT_ORDER Order
     );
 
-// next 1120
+// next 1121
 
 #define ELVM_ADDFALLBACKCOLUMN (WM_APP + 1106)
 #define ELVM_ADDFALLBACKCOLUMNS (WM_APP + 1109)
+#define ELVM_ENABLESTATE (WM_APP + 1120)
 #define ELVM_INIT (WM_APP + 1102)
 #define ELVM_SETCOMPAREFUNCTION (WM_APP + 1104)
 #define ELVM_SETCONTEXT (WM_APP + 1103)
@@ -709,6 +710,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMN, (WPARAM)(Column), 0)
 #define ExtendedListView_AddFallbackColumns(hWnd, NumberOfColumns, Columns) \
     SendMessage((hWnd), ELVM_ADDFALLBACKCOLUMNS, (WPARAM)(NumberOfColumns), (LPARAM)(Columns))
+#define ExtendedListView_EnableState(hWnd, Enable) \
+    SendMessage((hWnd), ELVM_ENABLESTATE, (WPARAM)(Enable), 0)
 #define ExtendedListView_Init(hWnd) \
     SendMessage((hWnd), ELVM_INIT, 0, 0)
 #define ExtendedListView_SetCompareFunction(hWnd, Column, CompareFunction) \

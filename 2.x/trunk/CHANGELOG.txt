@@ -3,6 +3,7 @@ Process Hacker
 2.10
  * NEW/IMPROVED:
    * Added font selection
+   * Slightly improved highlighting configuration
  * FIXED:
    * ExtendedTools plugin crash
    * Notification icon menu crash
