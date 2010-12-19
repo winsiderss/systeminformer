@@ -226,6 +226,7 @@
   <ItemGroup>
     <ClInclude Include="include\ntzwapi.h" />
     <ClInclude Include="include\phintrnl.h" />
+    <ClInclude Include="include\phnatinl.h" />
     <ClInclude Include="include\phsync.h" />
     <ClInclude Include="include\circbuf.h" />
     <ClInclude Include="include\circbuf_h.h" />

@@ -56,6 +56,7 @@ for %%a in (
     ph.h
     phbase.h
     phgui.h
+    phnatinl.h
     phnet.h
     phnt.h
     phsup.h
