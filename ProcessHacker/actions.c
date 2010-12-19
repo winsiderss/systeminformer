@@ -20,6 +20,13 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * These are a set of consistent functions which will perform actions 
+ * on objects such as processes, threads and services, while displaying 
+ * any necessary prompts and error messages. Automatic elevation can also 
+ * easily be added if necessary.
+ */
+
 #include <phapp.h>
 #include <settings.h>
 #include <kph.h>
@@ -85,6 +92,10 @@ BOOLEAN PhpShowErrorAndElevateAction(
     {
         TASKDIALOGCONFIG config = { sizeof(config) };
         TASKDIALOG_BUTTON buttons[1];
+
+        // Currently the error dialog box is similar to the one displayed 
+        // when you try to label a drive in Windows Explorer. It's much better 
+        // than the clunky dialog in PH 1.x.
 
         config.hwndParent = hWnd;
         config.hInstance = PhInstanceHandle;
