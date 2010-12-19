@@ -556,6 +556,7 @@ VOID PhSetExtendedListViewWithSettings(
     )
 {
     PhSetExtendedListView(hWnd);
+    ExtendedListView_EnableState(hWnd, TRUE); // enable item state storage and state highlighting
     ExtendedListView_SetNewColor(hWnd, PhCsColorNew);
     ExtendedListView_SetRemovingColor(hWnd, PhCsColorRemoved);
     ExtendedListView_SetHighlightingDuration(hWnd, PhCsHighlightingDuration);

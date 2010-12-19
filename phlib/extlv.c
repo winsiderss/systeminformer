@@ -60,6 +60,7 @@ typedef struct _PH_EXTLV_CONTEXT
 
     // State Highlighting
 
+    BOOLEAN EnableState;
     LONG EnableStateHighlighting;
     ULONG HighlightingDuration;
     COLORREF NewColor;
@@ -148,6 +149,7 @@ VOID PhSetExtendedListView(
     memset(context->CompareFunctions, 0, sizeof(context->CompareFunctions));
     context->NumberOfFallbackColumns = 0;
 
+    context->EnableState = FALSE;
     context->EnableStateHighlighting = 0;
     context->HighlightingDuration = 1000;
     context->NewColor = RGB(0x00, 0xff, 0x00);
@@ -299,7 +301,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                 CallWindowProc(oldWndProc, hwnd, LVM_GETITEM, 0, (LPARAM)&item);
                                 itemState = PH_GET_ITEM_STATE(item.state);
 
-                                if (itemState == NormalItemState)
+                                if (!context->EnableState || itemState == NormalItemState)
                                 {
                                     if (context->ItemColorFunction)
                                     {
@@ -384,6 +386,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             LPLVITEM item = (LPLVITEM)lParam;
             INT index;
 
+            if (!context->EnableState)
+                break; // pass through
+
             if (!(item->mask & LVIF_STATE))
             {
                 item->mask |= LVIF_STATE;
@@ -424,6 +429,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         }
     case LVM_DELETEITEM:
         {
+            if (!context->EnableState)
+                break; // pass through
+
             if (context->EnableStateHighlighting > 0)
             {
                 LVITEM item;
@@ -481,6 +489,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             ULONG itemState;
             ULONG oldMask;
             ULONG oldStateMask;
+
+            if (!context->EnableState)
+                break; // pass through
 
             memcpy(&item, (LPLVITEM)lParam, sizeof(LVITEM));
 
@@ -541,6 +552,11 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 return FALSE;
             }
+        }
+        return TRUE;
+    case ELVM_ENABLESTATE:
+        {
+            context->EnableState = !!wParam;
         }
         return TRUE;
     case ELVM_INIT:
