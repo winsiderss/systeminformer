@@ -85,7 +85,6 @@ static HWND WindowHandleForElevate;
 
 // Highlighting
 static HWND HighlightingListViewHandle;
-static HIMAGELIST HighlightingImageListHandle;
 
 VOID PhShowOptionsDialog(
     __in HWND ParentWindowHandle
@@ -797,21 +796,6 @@ static COLOR_ITEM ColorItems[] =
     COLOR_ITEM(L"ColorInheritHandles", L"Inheritable Handles", L"Handles that can be inherited by child processes.")
 };
 
-VOID PhpRefreshColorItems()
-{
-    ULONG i;
-
-    for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
-    {
-        PCOLOR_ITEM item = &ColorItems[i];
-
-        PhSetListViewItemImageIndex(HighlightingListViewHandle, i,
-            item->CurrentUse ? TICK_INDEX : CROSS_INDEX);
-    }
-
-    InvalidateRect(HighlightingListViewHandle, NULL, TRUE);
-}
-
 COLORREF NTAPI PhpColorItemColorFunction(
     __in INT Index,
     __in PVOID Param,
@@ -850,15 +834,10 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             // Highlighting
             HighlightingListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(HighlightingListViewHandle, FALSE, TRUE);
+            ListView_SetExtendedListViewStyleEx(HighlightingListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
             PhAddListViewColumn(HighlightingListViewHandle, 0, 0, 0, LVCFMT_LEFT, 240, L"Name");
             PhSetExtendedListView(HighlightingListViewHandle);
             ExtendedListView_SetItemColorFunction(HighlightingListViewHandle, PhpColorItemColorFunction);
-
-            HighlightingImageListHandle = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
-            ImageList_SetImageCount(HighlightingImageListHandle, 2);
-            PhSetImageListBitmap(HighlightingImageListHandle, CROSS_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_CROSS));
-            PhSetImageListBitmap(HighlightingImageListHandle, TICK_INDEX, PhInstanceHandle, MAKEINTRESOURCE(IDB_TICK));
-            ListView_SetImageList(HighlightingListViewHandle, HighlightingImageListHandle, LVSIL_SMALL);
 
             for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
             {
@@ -867,9 +846,9 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                 lvItemIndex = PhAddListViewItem(HighlightingListViewHandle, MAXINT, ColorItems[i].Name, &ColorItems[i]);
                 ColorItems[i].CurrentColor = PhGetIntegerSetting(ColorItems[i].SettingName);
                 ColorItems[i].CurrentUse = !!PhGetIntegerSetting(ColorItems[i].UseSettingName);
+                ListView_SetCheckState(HighlightingListViewHandle, lvItemIndex, ColorItems[i].CurrentUse);
             }
 
-            PhpRefreshColorItems();
             EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
         }
         break;
@@ -877,24 +856,12 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
         {
             switch (LOWORD(wParam))
             {
-            case IDC_ENABLE:
-                {
-                    PCOLOR_ITEM item;
-
-                    if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
-                        item->CurrentUse = !item->CurrentUse;
-
-                    PhpRefreshColorItems();
-                }
-                break;
             case IDC_ENABLEALL:
                 {
                     ULONG i;
 
                     for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
-                        ColorItems[i].CurrentUse = TRUE;
-
-                    PhpRefreshColorItems();
+                        ListView_SetCheckState(HighlightingListViewHandle, i, TRUE);
                 }
                 break;
             case IDC_DISABLEALL:
@@ -902,9 +869,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                     ULONG i;
 
                     for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
-                        ColorItems[i].CurrentUse = FALSE;
-
-                    PhpRefreshColorItems();
+                        ListView_SetCheckState(HighlightingListViewHandle, i, FALSE);
                 }
                 break;
             }
@@ -926,6 +891,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
                     for (i = 0; i < sizeof(ColorItems) / sizeof(COLOR_ITEM); i++)
                     {
+                        ColorItems[i].CurrentUse = !!ListView_GetCheckState(HighlightingListViewHandle, i);
                         PhSetIntegerSetting(ColorItems[i].SettingName, ColorItems[i].CurrentColor);
                         PhSetIntegerSetting(ColorItems[i].UseSettingName, ColorItems[i].CurrentUse);
                     }
@@ -952,29 +918,9 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
                             if (ChooseColor(&chooseColor))
                             {
                                 item->CurrentColor = chooseColor.rgbResult;
-                                PhpRefreshColorItems();
+                                InvalidateRect(HighlightingListViewHandle, NULL, TRUE);
                             }
                         }
-                    }
-                }
-                break;
-            case LVN_ITEMCHANGED:
-                {
-                    if (header->hwndFrom == HighlightingListViewHandle)
-                    {
-                        PCOLOR_ITEM item;
-
-                        if (item = PhGetSelectedListViewItemParam(HighlightingListViewHandle))
-                        {
-                            SetWindowText(GetDlgItem(hwndDlg, IDC_ENABLE),
-                                item->CurrentUse ? L"Disable" : L"Enable");
-                        }
-                        else
-                        {
-                            SetWindowText(GetDlgItem(hwndDlg, IDC_ENABLE), L"Enable");
-                        }
-
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), ListView_GetSelectedCount(HighlightingListViewHandle) == 1);
                     }
                 }
                 break;
