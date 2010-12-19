@@ -213,6 +213,7 @@ static INT MaxTabIndex;
 static HWND ProcessTreeListHandle;
 static HWND ServiceTreeListHandle;
 static HWND NetworkListViewHandle;
+static HFONT CurrentCustomFont;
 
 static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN ServiceTreeListLoaded = FALSE;
@@ -1793,6 +1794,40 @@ LRESULT CALLBACK PhMainWndProc(
             }
         }
         break;
+    case WM_PH_UPDATE_FONT:
+        {
+            PPH_STRING fontHexString;
+            LOGFONT font;
+
+            fontHexString = PhGetStringSetting(L"Font");
+
+            if (
+                fontHexString->Length / 2 / 2 == sizeof(LOGFONT) &&
+                PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
+                )
+            {
+                HFONT newFont;
+
+                newFont = CreateFontIndirect(&font);
+
+                if (newFont)
+                {
+                    if (CurrentCustomFont)
+                        DeleteObject(CurrentCustomFont);
+
+                    CurrentCustomFont = newFont;
+
+                    SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                    SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                    SendMessage(NetworkListViewHandle, WM_SETFONT, (WPARAM)newFont, TRUE);
+                }
+            }
+
+            PhDereferenceObject(fontHexString);
+        }
+        break;
+    case WM_PH_GET_FONT:
+        return SendMessage(ProcessTreeListHandle, WM_GETFONT, 0, 0);
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;
@@ -1914,6 +1949,7 @@ VOID PhpInitialLoadSettings()
 {
     ULONG opacity;
     ULONG id;
+    PPH_STRING customFont;
     ULONG i;
 
     if (PhGetIntegerSetting(L"MainWindowAlwaysOnTop"))
@@ -1998,6 +2034,13 @@ VOID PhpInitialLoadSettings()
     }
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
+
+    customFont = PhGetStringSetting(L"Font");
+
+    if (customFont->Length / 2 / 2 == sizeof(LOGFONT))
+        SendMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+
+    PhDereferenceObject(customFont);
 
     PhLoadSettingsProcessTreeList();
     // Service list settings are loaded on demand.
@@ -2187,7 +2230,7 @@ VOID PhpNeedServiceTreeList()
             // Force a re-draw.
             PhMainWndOnServicesUpdated();
 
-            PhSwapReference2(&ServicesPendingList, NULL);
+            PhSwapReference(&ServicesPendingList, NULL);
         }
     }
 }

@@ -201,6 +201,7 @@
 #define IDC_OPTIONS                     1079
 #define IDC_DETAILS                     1079
 #define IDC_ADD                         1079
+#define IDC_FONT                        1079
 #define IDC_EDITDEP                     1080
 #define IDC_VIEWPARENTPROCESS           1081
 #define IDC_OPENFILENAME                1082

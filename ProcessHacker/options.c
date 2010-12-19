@@ -68,16 +68,22 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
     __in LPARAM lParam
     );
 
+// All
 static BOOLEAN ColorBoxInitialized = FALSE;
-
 static BOOLEAN PageInit;
 static BOOLEAN PressedOk;
 static POINT StartLocation;
 
+// General
+static HFONT CurrentFontInstance;
+static PPH_STRING NewFontSelection;
+
+// Advanced
 static PPH_STRING OldTaskMgrDebugger;
 static BOOLEAN OldReplaceTaskMgr;
 static HWND WindowHandleForElevate;
 
+// Highlighting
 static HWND HighlightingListViewHandle;
 static HIMAGELIST HighlightingImageListHandle;
 
@@ -236,6 +242,33 @@ static VOID PhpPageInit(
     PhSetIntegerSetting(Name, Button_GetCheck(GetDlgItem(hwndDlg, Id)) == BST_CHECKED)
 #define DialogChanged PropSheet_Changed(GetParent(hwndDlg), hwndDlg)
 
+static BOOLEAN GetCurrentFont(
+    __out PLOGFONT Font
+    )
+{
+    BOOLEAN result;
+    PPH_STRING fontHexString;
+
+    if (NewFontSelection)
+    {
+        fontHexString = NewFontSelection;
+        PhReferenceObject(NewFontSelection);
+    }
+    else
+    {
+        fontHexString = PhGetStringSetting(L"Font");
+    }
+
+    if (fontHexString->Length / 2 / 2 == sizeof(LOGFONT))
+        result = PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)Font);
+    else
+        result = FALSE;
+
+    PhDereferenceObject(fontHexString);
+
+    return result;
+}
+
 INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -249,6 +282,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
         {
             HWND comboBoxHandle;
             ULONG i;
+            LOGFONT font;
 
             PhpPageInit(hwndDlg);
 
@@ -274,6 +308,63 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
             SetDlgItemCheckForSetting(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
             SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
+
+            // Set the font of the button for a nice preview.
+            if (GetCurrentFont(&font))
+            {
+                CurrentFontInstance = CreateFontIndirect(&font);
+
+                if (CurrentFontInstance)
+                    SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+            }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            if (CurrentFontInstance)
+                DeleteObject(CurrentFontInstance);
+
+            PhSwapReference(&NewFontSelection, NULL);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_FONT:
+                {
+                    LOGFONT font;
+                    CHOOSEFONT chooseFont;
+
+                    if (!GetCurrentFont(&font))
+                    {
+                        // Can't get LOGFONT from the existing setting, probably 
+                        // because the user hasn't ever chosen a font before.
+                        // Set the font to something familiar.
+                        GetObject((HFONT)SendMessage(PhMainWndHandle, WM_PH_GET_FONT, 0, 0), sizeof(LOGFONT), &font);
+                    }
+
+                    memset(&chooseFont, 0, sizeof(CHOOSEFONT));
+                    chooseFont.lStructSize = sizeof(CHOOSEFONT);
+                    chooseFont.hwndOwner = hwndDlg;
+                    chooseFont.lpLogFont = &font;
+                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
+
+                    if (ChooseFont(&chooseFont))
+                    {
+                        PhSwapReference2(&NewFontSelection, PhBufferToHexString((PUCHAR)&font, sizeof(LOGFONT)));
+
+                        // Update the button's font.
+
+                        if (CurrentFontInstance)
+                            DeleteObject(CurrentFontInstance);
+
+                        CurrentFontInstance = CreateFontIndirect(&font);
+                        SendMessage(GetDlgItem(hwndDlg, IDC_FONT), WM_SETFONT, (WPARAM)CurrentFontInstance, TRUE);
+                    }
+                }
+                break;
+            }
         }
         break;
     case WM_NOTIFY:
@@ -295,6 +386,12 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     SetSettingForDlgItemCheck(hwndDlg, IDC_COLLAPSESERVICES, L"CollapseServicesOnStart");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ICONSINGLECLICK, L"IconSingleClick");
                     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEPLUGINS, L"EnablePlugins");
+
+                    if (NewFontSelection)
+                    {
+                        PhSetStringSetting2(L"Font", &NewFontSelection->sr);
+                        PostMessage(PhMainWndHandle, WM_PH_UPDATE_FONT, 0, 0);
+                    }
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
                 }

@@ -70,6 +70,7 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"FindObjWindowPosition", L"350,350");
     PhpAddIntegerPairSetting(L"FindObjWindowSize", L"550,420");
     PhpAddIntegerSetting(L"FirstRun", L"1");
+    PhpAddStringSetting(L"Font", L""); // null
     PhpAddStringSetting(L"HandleListViewColumns", L"");
     PhpAddStringSetting(L"HiddenProcessesListViewColumns", L"");
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowPosition", L"400,400");
