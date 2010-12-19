@@ -20,6 +20,13 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The affinity dialog was originally created to support the modification 
+ * of process affinity masks, but now supports modifying thread affinity 
+ * and generic masks. It still only supports a maximum of 32 processors 
+ * though.
+ */
+
 #include <phapp.h>
 #include <windowsx.h>
 

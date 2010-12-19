@@ -20,6 +20,20 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * This file contains a program-specific settings system. All possible 
+ * settings are defined at program startup and added to a hashtable. 
+ * The values of these settings can then be read in from a XML file or 
+ * saved to a XML file at any time. Settings which are not recognized 
+ * are added to a list of "ignored settings"; this is necessary to 
+ * support plugin settings, as we don't want their settings to get 
+ * deleted whenever the plugins are disabled.
+ *
+ * The get/set functions are very strict. If the wrong function is used 
+ * (the get-integer-setting function is used on a string setting) or 
+ * the setting does not exist, an exception will be raised.
+ */
+
 #define PH_SETTINGS_PRIVATE
 #include <phapp.h>
 #include <settings.h>

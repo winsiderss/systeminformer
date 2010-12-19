@@ -417,6 +417,10 @@ VOID PhServiceProviderUpdate(
 
     // Build a hash set containing the service names.
 
+    // This has caused a massive decrease in background CPU usage, and 
+    // is certainly much better than the quadratic-time string comparisons 
+    // we were doing before (in the "Look for dead services" section).
+
     nameEntriesCount = 0;
 
     if (nameEntriesAllocated < numberOfServices)
