@@ -149,7 +149,7 @@ typedef struct _KEY_VALUE_FULL_INFORMATION
     ULONG NameLength;
     WCHAR Name[1];
     // ...
-    // WCHAR Data[1];
+    // UCHAR Data[1];
 } KEY_VALUE_FULL_INFORMATION, *PKEY_VALUE_FULL_INFORMATION;
 
 typedef struct _KEY_VALUE_PARTIAL_INFORMATION
