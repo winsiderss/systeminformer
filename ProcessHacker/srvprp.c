@@ -228,23 +228,23 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             SetDlgItemText(hwndDlg, IDC_SERVICEDLL, L"N/A");
 
             {
-                HKEY keyHandle;
+                HANDLE keyHandle;
                 PPH_STRING keyName;
 
                 keyName = PhConcatStrings(
                     3,
-                    L"SYSTEM\\CurrentControlSet\\Services\\",
+                    L"System\\CurrentControlSet\\Services\\",
                     serviceItem->Name->Buffer,
                     L"\\Parameters"
                     );
 
-                if (RegOpenKeyEx(
-                    HKEY_LOCAL_MACHINE,
-                    keyName->Buffer,
-                    0,
+                if (NT_SUCCESS(PhOpenKey(
+                    &keyHandle,
                     KEY_READ,
-                    &keyHandle
-                    ) == ERROR_SUCCESS)
+                    PH_KEY_LOCAL_MACHINE,
+                    &keyName->sr,
+                    0
+                    )))
                 {
                     PPH_STRING serviceDllString;
 
@@ -261,7 +261,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         PhDereferenceObject(serviceDllString);
                     }
 
-                    RegCloseKey(keyHandle);
+                    NtClose(keyHandle);
                 }
 
                 PhDereferenceObject(keyName);

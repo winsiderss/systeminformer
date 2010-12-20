@@ -833,6 +833,37 @@ NTSTATUS PhEnumGenericModules(
     __in_opt PVOID Context
     );
 
+#define PH_KEY_PREDEFINE(Number) ((HANDLE)(LONG_PTR)(-3 - (Number) * 2))
+#define PH_KEY_IS_PREDEFINED(Predefine) (((LONG_PTR)(Predefine) < 0) && ((LONG_PTR)(Predefine) & 0x1))
+#define PH_KEY_PREDEFINE_TO_NUMBER(Predefine) (ULONG)(((-(LONG_PTR)(Predefine) - 3) >> 1))
+
+#define PH_KEY_LOCAL_MACHINE PH_KEY_PREDEFINE(0) // \Registry\Machine
+#define PH_KEY_USERS PH_KEY_PREDEFINE(1) // \Registry\User
+#define PH_KEY_CLASSES_ROOT PH_KEY_PREDEFINE(2) // \Registry\Machine\Software\Classes
+#define PH_KEY_CURRENT_USER PH_KEY_PREDEFINE(3) // \Registry\User\<SID>
+#define PH_KEY_CURRENT_USER_NUMBER 3
+#define PH_KEY_MAXIMUM_PREDEFINE 4
+
+PHLIBAPI
+NTSTATUS PhCreateKey(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt HANDLE RootDirectory,
+    __in PPH_STRINGREF ObjectName,
+    __in ULONG Attributes,
+    __in ULONG CreateOptions,
+    __out_opt PULONG Disposition
+    );
+
+PHLIBAPI
+NTSTATUS PhOpenKey(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt HANDLE RootDirectory,
+    __in PPH_STRINGREF ObjectName,
+    __in ULONG Attributes
+    );
+
 // lsa
 
 PHLIBAPI
@@ -2443,9 +2474,14 @@ VOID PhShellOpenKey(
     __in PPH_STRING KeyName
     );
 
+PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
+    __in HANDLE KeyHandle,
+    __in_opt PWSTR ValueName
+    );
+
 PHLIBAPI
 PPH_STRING PhQueryRegistryString(
-    __in HKEY KeyHandle,
+    __in HANDLE KeyHandle,
     __in_opt PWSTR ValueName
     );
 

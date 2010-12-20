@@ -2955,20 +2955,22 @@ VOID PhShellOpenKey(
 {
     PPH_STRING lastKey;
     PPH_STRING tempString;
-    HKEY regeditKeyHandle;
+    HANDLE regeditKeyHandle;
+    PH_STRINGREF regeditKeyName;
+    UNICODE_STRING valueName;
     PPH_STRING regeditFileName;
 
-    if (RegCreateKeyEx(
-        HKEY_CURRENT_USER,
-        L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit",
-        0,
-        NULL,
-        0,
-        KEY_WRITE,
-        NULL,
+    PhInitializeStringRef(&regeditKeyName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Applets\\Regedit");
+
+    if (!NT_SUCCESS(PhCreateKey(
         &regeditKeyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &regeditKeyName,
+        0,
+        0,
         NULL
-        ) != ERROR_SUCCESS)
+        )))
         return;
 
     // Expand the abbreviations.
@@ -3004,9 +3006,10 @@ VOID PhShellOpenKey(
         lastKey = tempString;
     }
 
-    RegSetValueEx(regeditKeyHandle, L"LastKey", 0, REG_SZ, (PBYTE)lastKey->Buffer, lastKey->Length + 2);
+    RtlInitUnicodeString(&valueName, L"LastKey");
+    NtSetValueKey(regeditKeyHandle, &valueName, 0, REG_SZ, lastKey->Buffer, lastKey->Length + 2);
     PhDereferenceObject(lastKey);
-    RegCloseKey(regeditKeyHandle);
+    NtClose(regeditKeyHandle);
 
     // Start regedit.
     // If we aren't elevated, request that regedit be elevated. 
@@ -3031,65 +3034,97 @@ VOID PhShellOpenKey(
 }
 
 /**
+ * Gets a registry value of any type.
+ *
+ * \param KeyHandle A handle to the key.
+ * \param ValueName The name of the value.
+ *
+ * \return A buffer containing information about the 
+ * registry value, or NULL if the function failed. You 
+ * must free the buffer with PhFree() when you no longer 
+ * need it.
+ */
+PKEY_VALUE_PARTIAL_INFORMATION PhQueryRegistryValue(
+    __in HANDLE KeyHandle,
+    __in_opt PWSTR ValueName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING valueName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+    ULONG bufferSize;
+    ULONG attempts = 16;
+
+    RtlInitUnicodeString(&valueName, ValueName);
+
+    bufferSize = 0x100;
+    buffer = PhAllocate(bufferSize);
+
+    do
+    {
+        status = NtQueryValueKey(
+            KeyHandle,
+            &valueName,
+            KeyValuePartialInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+
+        if (status == STATUS_BUFFER_OVERFLOW)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            PhFree(buffer);
+            return NULL;
+        }
+    } while (--attempts);
+
+    return buffer;
+}
+
+/**
  * Gets a registry string value.
  *
  * \param KeyHandle A handle to the key.
  * \param ValueName The name of the value.
  *
  * \return A pointer to a string containing the 
- * value. You must free the string using 
- * PhDereferenceObject() when you no longer need 
- * it.
+ * value, or NULL if the function failed. You must 
+ * free the string using PhDereferenceObject() when 
+ * you no longer need it.
  */
 PPH_STRING PhQueryRegistryString(
-    __in HKEY KeyHandle,
+    __in HANDLE KeyHandle,
     __in_opt PWSTR ValueName
     )
 {
-    ULONG win32Result;
     PPH_STRING string = NULL;
-    ULONG bufferSize = 0x80;
-    ULONG type;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
 
-    string = PhCreateStringEx(NULL, bufferSize);
+    buffer = PhQueryRegistryValue(KeyHandle, ValueName);
 
-    if ((win32Result = RegQueryValueEx(
-        KeyHandle,
-        ValueName,
-        NULL,
-        &type,
-        (PBYTE)string->Buffer,
-        &bufferSize
-        )) == ERROR_MORE_DATA)
+    if (buffer)
     {
-        PhDereferenceObject(string);
-        string = PhCreateStringEx(NULL, bufferSize);
+        if (
+            buffer->Type == REG_SZ ||
+            buffer->Type == REG_MULTI_SZ ||
+            buffer->Type == REG_EXPAND_SZ
+            )
+        {
+            if (buffer->DataLength >= sizeof(WCHAR))
+                string = PhCreateStringEx((PWSTR)buffer->Data, buffer->DataLength - sizeof(WCHAR));
+            else
+                string = PhReferenceEmptyString();
+        }
 
-        win32Result = RegQueryValueEx(
-            KeyHandle,
-            ValueName,
-            NULL,
-            &type,
-            (PBYTE)string->Buffer,
-            &bufferSize
-            );
-    }
-
-    if (win32Result != ERROR_SUCCESS ||
-        (
-        type != REG_SZ &&
-        type != REG_MULTI_SZ &&
-        type != REG_EXPAND_SZ
-        ))
-    {
-        PhDereferenceObject(string);
-        SetLastError(win32Result);
-        return NULL;
-    }
-
-    if (bufferSize > sizeof(WCHAR))
-    {
-        string->Length = (USHORT)(bufferSize - sizeof(WCHAR));
+        PhFree(buffer);
     }
 
     return string;

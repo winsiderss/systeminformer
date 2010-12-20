@@ -79,6 +79,7 @@ static HFONT CurrentFontInstance;
 static PPH_STRING NewFontSelection;
 
 // Advanced
+static PH_STRINGREF TaskMgrImageOptionsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe");
 static PPH_STRING OldTaskMgrDebugger;
 static BOOLEAN OldReplaceTaskMgr;
 static HWND WindowHandleForElevate;
@@ -459,46 +460,32 @@ VOID PhpAdvancedPageLoad(
     }
 
     {
-        HKEY keyHandle;
-        HKEY taskmgrKeyHandle = NULL;
+        HANDLE taskmgrKeyHandle = NULL;
         ULONG disposition;
         BOOLEAN success = FALSE;
         BOOLEAN alreadyReplaced = FALSE;
 
         // See if we can write to the key.
-        if (RegOpenKeyEx(
-            HKEY_LOCAL_MACHINE,
-            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options",
+        if (NT_SUCCESS(PhCreateKey(
+            &taskmgrKeyHandle,
+            KEY_READ | KEY_WRITE,
+            PH_KEY_LOCAL_MACHINE,
+            &TaskMgrImageOptionsKeyName,
             0,
-            KEY_CREATE_SUB_KEY,
-            &keyHandle
-            ) == ERROR_SUCCESS)
+            0,
+            &disposition
+            )))
         {
-            if (RegCreateKeyEx(
-                keyHandle,
-                L"taskmgr.exe",
-                0,
-                NULL,
-                0,
-                KEY_READ | KEY_WRITE,
-                NULL,
-                &taskmgrKeyHandle,
-                &disposition
-                ) == ERROR_SUCCESS)
-            {
-                success = TRUE;
-            }
-
-            RegCloseKey(keyHandle);
+            success = TRUE;
         }
 
-        if (taskmgrKeyHandle || RegOpenKeyEx(
-            HKEY_LOCAL_MACHINE,
-            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe",
-            0,
+        if (taskmgrKeyHandle || NT_SUCCESS(PhOpenKey(
+            &taskmgrKeyHandle,
             KEY_READ,
-            &taskmgrKeyHandle
-            ) == ERROR_SUCCESS)
+            PH_KEY_LOCAL_MACHINE,
+            &TaskMgrImageOptionsKeyName,
+            0
+            )))
         {
             if (OldTaskMgrDebugger)
                 PhDereferenceObject(OldTaskMgrDebugger);
@@ -508,7 +495,7 @@ VOID PhpAdvancedPageLoad(
                 alreadyReplaced = PathMatchesPh(OldTaskMgrDebugger);
             }
 
-            RegCloseKey(taskmgrKeyHandle);
+            NtClose(taskmgrKeyHandle);
         }
 
         if (!success)
@@ -533,46 +520,44 @@ VOID PhpAdvancedPageSave(
     // Replace Task Manager
     if (IsWindowEnabled(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)))
     {
-        HKEY taskmgrKeyHandle;
-        ULONG win32Result = 0;
+        NTSTATUS status;
+        HANDLE taskmgrKeyHandle;
         BOOLEAN replaceTaskMgr;
+        UNICODE_STRING valueName;
 
         replaceTaskMgr = Button_GetCheck(GetDlgItem(hwndDlg, IDC_REPLACETASKMANAGER)) == BST_CHECKED;
 
         if (OldReplaceTaskMgr != replaceTaskMgr)
         {
-            if ((win32Result = RegOpenKeyEx(
-                HKEY_LOCAL_MACHINE,
-                L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\taskmgr.exe",
-                0,
+            // We should have created the key back in PhpAdvancedPageLoad, which is why 
+            // we're opening the key here.
+            if (NT_SUCCESS(PhOpenKey(
+                &taskmgrKeyHandle,
                 KEY_WRITE,
-                &taskmgrKeyHandle
-                )) == ERROR_SUCCESS)
+                PH_KEY_LOCAL_MACHINE,
+                &TaskMgrImageOptionsKeyName,
+                0
+                )))
             {
+                RtlInitUnicodeString(&valueName, L"Debugger");
+
                 if (replaceTaskMgr)
                 {
                     PPH_STRING quotedFileName;
 
                     quotedFileName = PhConcatStrings(3, L"\"", PhApplicationFileName->Buffer, L"\"");
-                    win32Result = RegSetValueEx(
-                        taskmgrKeyHandle,
-                        L"Debugger",
-                        0,
-                        REG_SZ,
-                        (PBYTE)quotedFileName->Buffer,
-                        quotedFileName->Length + 2
-                        );
+                    status = NtSetValueKey(taskmgrKeyHandle, &valueName, 0, REG_SZ, quotedFileName->Buffer, quotedFileName->Length + 2);
                     PhDereferenceObject(quotedFileName);
                 }
                 else
                 {
-                    RegDeleteValue(taskmgrKeyHandle, L"Debugger");
+                    status = NtDeleteValueKey(taskmgrKeyHandle, &valueName);
                 }
 
-                if (win32Result != 0)
-                    PhShowStatus(hwndDlg, L"Unable to replace Task Manager", 0, win32Result);
+                if (!NT_SUCCESS(status))
+                    PhShowStatus(hwndDlg, L"Unable to replace Task Manager", status, 0);
 
-                RegCloseKey(taskmgrKeyHandle);
+                NtClose(taskmgrKeyHandle);
             }
         }
     }

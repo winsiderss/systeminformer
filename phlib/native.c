@@ -52,6 +52,16 @@ static PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
 static ULONG PhDeviceMupPrefixesCount = 0;
 static PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
 
+static PH_INITONCE PhPredefineKeyInitOnce = PH_INITONCE_INIT;
+static PH_STRINGREF PhPredefineKeyNames[PH_KEY_MAXIMUM_PREDEFINE] =
+{
+    PH_STRINGREF_INIT(L"\\Registry\\Machine"),
+    PH_STRINGREF_INIT(L"\\Registry\\User"),
+    PH_STRINGREF_INIT(L"\\Registry\\Machine\\Software\\Classes"),
+    { 0, 0, NULL }
+};
+static HANDLE PhPredefineKeyHandles[PH_KEY_MAXIMUM_PREDEFINE] = { 0 };
+
 /**
  * Opens a process.
  *
@@ -3255,74 +3265,58 @@ NTSTATUS PhpUnloadDriver(
     __in PPH_STRING ServiceKeyName
     )
 {
-    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF fullServicesKeyName = PH_STRINGREF_INIT(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\");
 
     NTSTATUS status;
-    ULONG win32Result;
-    HKEY servicesKeyHandle;
-    HKEY serviceKeyHandle;
+    PPH_STRING fullServiceKeyName;
+    HANDLE serviceKeyHandle;
     ULONG disposition;
-    PPH_STRING servicePath;
 
-    if ((win32Result = RegCreateKeyEx(
-        HKEY_LOCAL_MACHINE,
-        L"System\\CurrentControlSet\\Services",
-        0,
-        NULL,
-        0,
-        KEY_WRITE,
-        NULL,
-        &servicesKeyHandle,
-        NULL
-        )) != ERROR_SUCCESS)
-    {
-        return NTSTATUS_FROM_WIN32(win32Result);
-    }
+    fullServiceKeyName = PhConcatStringRef2(&fullServicesKeyName, &ServiceKeyName->sr);
 
-    if ((win32Result = RegCreateKeyEx(
-        servicesKeyHandle,
-        ServiceKeyName->Buffer,
-        0,
-        NULL,
-        0,
-        KEY_WRITE,
-        NULL,
+    if (NT_SUCCESS(status = PhCreateKey(
         &serviceKeyHandle,
+        KEY_WRITE | DELETE,
+        NULL,
+        &fullServiceKeyName->sr,
+        0,
+        0,
         &disposition
-        )) != ERROR_SUCCESS)
+        )))
     {
-        RegCloseKey(servicesKeyHandle);
-        return NTSTATUS_FROM_WIN32(win32Result);
+        if (disposition == REG_CREATED_NEW_KEY)
+        {
+            static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
+
+            UNICODE_STRING valueName;
+            ULONG dword;
+
+            // Set up the required values.
+            dword = 1;
+            RtlInitUnicodeString(&valueName, L"ErrorControl");
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
+            RtlInitUnicodeString(&valueName, L"Start");
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
+            RtlInitUnicodeString(&valueName, L"Type");
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_DWORD, &dword, sizeof(ULONG));
+
+            // Use a bogus name.
+            RtlInitUnicodeString(&valueName, L"ImagePath");
+            NtSetValueKey(serviceKeyHandle, &valueName, 0, REG_SZ, imagePath.Buffer, imagePath.Length + 2);
+        }
+
+        status = NtUnloadDriver(&fullServiceKeyName->us);
+
+        if (disposition == REG_CREATED_NEW_KEY)
+        {
+            // We added values, not subkeys, so this function will work correctly.
+            NtDeleteKey(serviceKeyHandle);
+        }
+
+        NtClose(serviceKeyHandle);
     }
 
-    if (disposition == REG_CREATED_NEW_KEY)
-    {
-        static PH_STRINGREF imagePath = PH_STRINGREF_INIT(L"\\SystemRoot\\system32\\drivers\\ntfs.sys");
-
-        ULONG dword;
-
-        // Set up the required values.
-        dword = 1;
-        RegSetValueEx(serviceKeyHandle, L"ErrorControl", 0, REG_DWORD, (PBYTE)&dword, sizeof(ULONG));
-        RegSetValueEx(serviceKeyHandle, L"Start", 0, REG_DWORD, (PBYTE)&dword, sizeof(ULONG));
-        RegSetValueEx(serviceKeyHandle, L"Type", 0, REG_DWORD, (PBYTE)&dword, sizeof(ULONG));
-
-        // Use a bogus name.
-        RegSetValueEx(serviceKeyHandle, L"ImagePath", 0, REG_SZ, (PBYTE)imagePath.Buffer, imagePath.Length + 2);
-    }
-
-    servicePath = PhConcatStringRef2(&servicesKeyName, &ServiceKeyName->sr);
-    status = NtUnloadDriver(&servicePath->us);
-    PhDereferenceObject(servicePath);
-
-    if (disposition == REG_CREATED_NEW_KEY)
-    {
-        // We added values, not subkeys, so this function will work correctly.
-        RegDeleteKey(servicesKeyHandle, ServiceKeyName->Buffer);
-    }
-
-    RegCloseKey(serviceKeyHandle);
-    RegCloseKey(servicesKeyHandle);
+    PhDereferenceObject(fullServiceKeyName);
 
     return status;
 }
@@ -5143,7 +5137,9 @@ VOID PhInitializeDevicePrefixes()
 
 VOID PhRefreshMupDevicePrefixes()
 {
-    HKEY orderKeyHandle;
+    static PH_STRINGREF orderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order");
+
+    HANDLE orderKeyHandle;
     PPH_STRING providerOrder = NULL;
     ULONG i;
     ULONG indexOfComma;
@@ -5156,16 +5152,16 @@ VOID PhRefreshMupDevicePrefixes()
     // Note that we assume the providers only claim their device name. Some providers 
     // such as DFS claim an extra part, and are not resolved correctly here.
 
-    if (RegOpenKeyEx(
-        HKEY_LOCAL_MACHINE,
-        L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order",
-        0,
+    if (NT_SUCCESS(PhOpenKey(
+        &orderKeyHandle,
         KEY_READ,
-        &orderKeyHandle
-        ) == ERROR_SUCCESS)
+        PH_KEY_LOCAL_MACHINE,
+        &orderKeyName,
+        0
+        )))
     {
         providerOrder = PhQueryRegistryString(orderKeyHandle, L"ProviderOrder");
-        RegCloseKey(orderKeyHandle);
+        NtClose(orderKeyHandle);
     }
 
     if (!providerOrder)
@@ -5193,7 +5189,7 @@ VOID PhRefreshMupDevicePrefixes()
     {
         PPH_STRING serviceName;
         PPH_STRING serviceKeyName;
-        HKEY networkProviderKeyHandle;
+        HANDLE networkProviderKeyHandle;
         PPH_STRING deviceName;
 
         if (PhDeviceMupPrefixesCount == PH_DEVICE_MUP_PREFIX_MAX_COUNT)
@@ -5216,13 +5212,13 @@ VOID PhRefreshMupDevicePrefixes()
             L"\\NetworkProvider"
             );
 
-        if (RegOpenKeyEx(
-            HKEY_LOCAL_MACHINE,
-            serviceKeyName->Buffer,
-            0,
+        if (NT_SUCCESS(PhOpenKey(
+            &networkProviderKeyHandle,
             KEY_READ,
-            &networkProviderKeyHandle
-            ) == ERROR_SUCCESS)
+            PH_KEY_LOCAL_MACHINE,
+            &serviceKeyName->sr,
+            0
+            )))
         {
             if (deviceName = PhQueryRegistryString(networkProviderKeyHandle, L"DeviceName"))
             {
@@ -5230,7 +5226,7 @@ VOID PhRefreshMupDevicePrefixes()
                 PhDeviceMupPrefixesCount++;
             }
 
-            RegCloseKey(networkProviderKeyHandle);
+            NtClose(networkProviderKeyHandle);
         }
 
         PhDereferenceObject(serviceKeyName);
@@ -5862,6 +5858,248 @@ NTSTATUS PhEnumGenericModules(
 
 CleanupExit:
     PhDereferenceObject(baseAddressList);
+
+    return status;
+}
+
+/**
+ * Initializes usage of predefined keys.
+ */
+VOID PhpInitializePredefineKeys()
+{
+    static PH_STRINGREF currentUserPrefix = PH_STRINGREF_INIT(L"\\Registry\\User\\");
+
+    NTSTATUS status;
+    HANDLE tokenHandle;
+    PTOKEN_USER tokenUser;
+    UNICODE_STRING stringSid;
+    WCHAR stringSidBuffer[MAX_UNICODE_STACK_BUFFER_LENGTH];
+    PPH_STRINGREF currentUserKeyName;
+
+    // Get the string SID of the current user.
+    if (NT_SUCCESS(status = NtOpenProcessToken(NtCurrentProcess(), TOKEN_QUERY, &tokenHandle)))
+    {
+        if (NT_SUCCESS(status = PhGetTokenUser(tokenHandle, &tokenUser)))
+        {
+            stringSid.Buffer = stringSidBuffer;
+            stringSid.MaximumLength = sizeof(stringSidBuffer);
+
+            status = RtlConvertSidToUnicodeString(
+                &stringSid,
+                tokenUser->User.Sid,
+                FALSE
+                );
+
+            PhFree(tokenUser);
+        }
+
+        NtClose(tokenHandle);
+    }
+
+    // Construct the current user key name.
+    if (NT_SUCCESS(status))
+    {
+        currentUserKeyName = &PhPredefineKeyNames[PH_KEY_CURRENT_USER_NUMBER];
+        currentUserKeyName->Length = currentUserPrefix.Length + stringSid.Length;
+        currentUserKeyName->Buffer = PhAllocate(currentUserKeyName->Length + sizeof(WCHAR));
+        memcpy(currentUserKeyName->Buffer, currentUserPrefix.Buffer, currentUserPrefix.Length);
+        memcpy(&currentUserKeyName->Buffer[currentUserPrefix.Length / sizeof(WCHAR)], stringSid.Buffer, stringSid.Length);
+    }
+}
+
+/**
+ * Initializes the attributes of a key object for creating/opening.
+ *
+ * \param RootDirectory A handle to a root key, or one of the predefined 
+ * keys. See PhCreateKey() for details.
+ * \param ObjectName The path to the key.
+ * \param Attributes Additional object flags.
+ * \param ObjectAttributes The OBJECT_ATTRIBUTES structure to initialize.
+ * \param NeedsClose A variable which receives a handle that must be 
+ * closed when the create/open operation is finished. The variable may 
+ * be set to NULL if no handle needs to be closed.
+ */
+NTSTATUS PhpInitializeKeyObjectAttributes(
+    __in_opt HANDLE RootDirectory,
+    __in PPH_STRINGREF ObjectName,
+    __in ULONG Attributes,
+    __out POBJECT_ATTRIBUTES ObjectAttributes,
+    __out PHANDLE NeedsClose
+    )
+{
+    NTSTATUS status;
+    ULONG predefineIndex;
+    HANDLE predefineHandle;
+    OBJECT_ATTRIBUTES predefineObjectAttributes;
+
+    InitializeObjectAttributes(
+        ObjectAttributes,
+        &ObjectName->us,
+        Attributes | OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    *NeedsClose = NULL;
+
+    if (RootDirectory && PH_KEY_IS_PREDEFINED(RootDirectory))
+    {
+        predefineIndex = PH_KEY_PREDEFINE_TO_NUMBER(RootDirectory);
+
+        if (predefineIndex < PH_KEY_MAXIMUM_PREDEFINE)
+        {
+            if (PhBeginInitOnce(&PhPredefineKeyInitOnce))
+            {
+                PhpInitializePredefineKeys();
+                PhEndInitOnce(&PhPredefineKeyInitOnce);
+            }
+
+            predefineHandle = PhPredefineKeyHandles[predefineIndex];
+
+            if (!predefineHandle)
+            {
+                // The predefined key has not been opened yet. Do so now.
+
+                if (!PhPredefineKeyNames[predefineIndex].Buffer) // we may have failed in getting the current user key name
+                    return STATUS_UNSUCCESSFUL;
+
+                InitializeObjectAttributes(
+                    &predefineObjectAttributes,
+                    &PhPredefineKeyNames[predefineIndex].us,
+                    OBJ_CASE_INSENSITIVE,
+                    NULL,
+                    NULL
+                    );
+
+                status = NtOpenKey(
+                    &predefineHandle,
+                    KEY_READ,
+                    &predefineObjectAttributes
+                    );
+
+                if (!NT_SUCCESS(status))
+                    return status;
+
+                if (_InterlockedCompareExchangePointer(
+                    &PhPredefineKeyHandles[predefineIndex],
+                    predefineHandle,
+                    NULL
+                    ) != NULL)
+                {
+                    // Someone else already opened the key and cached it. Indicate that 
+                    // the caller needs to close the handle later, since it isn't shared.
+                    *NeedsClose = predefineHandle;
+                }
+            }
+
+            ObjectAttributes->RootDirectory = predefineHandle;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Creates or opens a registry key.
+ *
+ * \param KeyHandle A variable which receives a handle to the key.
+ * \param DesiredAccess The desired access to the key.
+ * \param RootDirectory A handle to a root key, or one of the following predefined 
+ * keys:
+ * \li \c PH_KEY_LOCAL_MACHINE Represents \Registry\Machine.
+ * \li \c PH_KEY_USERS Represents \Registry\User.
+ * \li \c PH_KEY_CLASSES_ROOT Represents \Registry\Machine\Software\Classes.
+ * \li \c PH_KEY_CURRENT_USER Represents \Registry\User\<SID of current user>.
+ * \param ObjectName The path to the key.
+ * \param Attributes Additional object flags.
+ * \param CreateOptions The options to apply when creating or opening the key.
+ * \param Disposition A variable which receives a value indicating whether a 
+ * new key was created or an existing key was opened:
+ * \li \c REG_CREATED_NEW_KEY A new key was created.
+ * \li \c REG_OPENED_EXISTING_KEY An existing key was opened.
+ */
+NTSTATUS PhCreateKey(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt HANDLE RootDirectory,
+    __in PPH_STRINGREF ObjectName,
+    __in ULONG Attributes,
+    __in ULONG CreateOptions,
+    __out_opt PULONG Disposition
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE needsClose;
+
+    if (!NT_SUCCESS(status = PhpInitializeKeyObjectAttributes(
+        RootDirectory,
+        ObjectName,
+        Attributes,
+        &objectAttributes,
+        &needsClose
+        )))
+    {
+        return status;
+    }
+
+    status = NtCreateKey(
+        KeyHandle,
+        DesiredAccess,
+        &objectAttributes,
+        0,
+        NULL,
+        CreateOptions,
+        Disposition
+        );
+
+    if (needsClose)
+        NtClose(needsClose);
+
+    return status;
+}
+
+/**
+ * Opens a registry key.
+ *
+ * \param KeyHandle A variable which receives a handle to the key.
+ * \param DesiredAccess The desired access to the key.
+ * \param RootDirectory A handle to a root key, or one of the predefined 
+ * keys. See PhCreateKey() for details.
+ * \param ObjectName The path to the key.
+ * \param Attributes Additional object flags.
+ */
+NTSTATUS PhOpenKey(
+    __out PHANDLE KeyHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt HANDLE RootDirectory,
+    __in PPH_STRINGREF ObjectName,
+    __in ULONG Attributes
+    )
+{
+    NTSTATUS status;
+    OBJECT_ATTRIBUTES objectAttributes;
+    HANDLE needsClose;
+
+    if (!NT_SUCCESS(status = PhpInitializeKeyObjectAttributes(
+        RootDirectory,
+        ObjectName,
+        Attributes,
+        &objectAttributes,
+        &needsClose
+        )))
+    {
+        return status;
+    }
+
+    status = NtOpenKey(
+        KeyHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+
+    if (needsClose)
+        NtClose(needsClose);
 
     return status;
 }

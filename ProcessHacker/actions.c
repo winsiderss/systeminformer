@@ -1003,18 +1003,20 @@ BOOLEAN PhUiDebugProcess(
 
     if (PhBeginInitOnce(&DebuggerCommandInitOnce))
     {
-        HKEY keyHandle;
+        static PH_STRINGREF aeDebugKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug");
+
+        HANDLE keyHandle;
         PPH_STRING debugger;
         ULONG firstIndex;
         ULONG secondIndex;
 
-        if (RegOpenKeyEx(
-            HKEY_LOCAL_MACHINE,
-            L"Software\\Microsoft\\Windows NT\\CurrentVersion\\AeDebug",
-            0,
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
             KEY_READ,
-            &keyHandle
-            ) == ERROR_SUCCESS)
+            PH_KEY_LOCAL_MACHINE,
+            &aeDebugKeyName,
+            0
+            )))
         {
             debugger = PhQueryRegistryString(keyHandle, L"Debugger");
 
@@ -1036,7 +1038,7 @@ BOOLEAN PhUiDebugProcess(
                 PhDereferenceObject(debugger);
             }
 
-            RegCloseKey(keyHandle);
+            NtClose(keyHandle);
         }
 
         PhEndInitOnce(&DebuggerCommandInitOnce);
