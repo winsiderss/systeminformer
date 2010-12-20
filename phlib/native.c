@@ -1664,7 +1664,6 @@ NTSTATUS PhInjectDllProcess(
     PVOID threadStart;
     PH_STRINGREF fileName;
     PVOID baseAddress = NULL;
-    ULONG_PTR zeroBits;
     SIZE_T allocSize;
     HANDLE threadHandle;
 
@@ -1716,16 +1715,10 @@ NTSTATUS PhInjectDllProcess(
     PhInitializeStringRef(&fileName, FileName);
     allocSize = fileName.Length + sizeof(WCHAR);
 
-#ifdef _M_X64
-    zeroBits = isWow64 ? 0xffffffff : 0; // if this is a WOW64 process, make sure the region fits inside 32 bits.
-#else
-    zeroBits = 0;
-#endif
-
     if (!NT_SUCCESS(status = NtAllocateVirtualMemory(
         ProcessHandle,
         &baseAddress,
-        zeroBits,
+        0,
         &allocSize,
         MEM_COMMIT,
         PAGE_READWRITE
