@@ -1291,12 +1291,12 @@ VOID PhShowRunAsDialog(
     __in_opt HANDLE ProcessId
     );
 
-NTSTATUS PhRunAsCommandStart(
+NTSTATUS PhExecuteRunAsCommand(
     __in PWSTR ServiceCommandLine,
     __in PWSTR ServiceName
     );
 
-NTSTATUS PhRunAsCommandStart2(
+NTSTATUS PhExecuteRunAsCommand2(
     __in HWND hWnd,
     __in PWSTR Program,
     __in_opt PWSTR UserName,
