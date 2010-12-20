@@ -499,7 +499,7 @@ NTSTATUS PhReadVirtualMemory(
         NumberOfBytesRead
         );
 
-    if (status == STATUS_ACCESS_DENIED && BufferSize <= MAXULONG32)
+    if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
         ULONG returnLength;
 
@@ -548,7 +548,7 @@ NTSTATUS PhWriteVirtualMemory(
         NumberOfBytesWritten
         );
 
-    if (status == STATUS_ACCESS_DENIED && BufferSize <= MAXULONG32)
+    if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
         ULONG returnLength;
 
