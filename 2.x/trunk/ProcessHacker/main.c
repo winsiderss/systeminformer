@@ -52,7 +52,7 @@ PH_PROVIDER_THREAD PhSecondaryProviderThread;
 
 COLORREF PhSysWindowColor;
 
-static PPH_LIST DialogList;
+static PPH_LIST DialogList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
 
 INT WINAPI WinMain(
@@ -229,8 +229,6 @@ INT WINAPI WinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-    DialogList = PhCreateList(1);
-
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
 
     if (PhPluginsEnabled)
@@ -276,12 +274,15 @@ INT PhMainMessageLoop()
                 processed = TRUE;
         }
 
-        for (i = 0; i < DialogList->Count; i++)
+        if (DialogList)
         {
-            if (IsDialogMessage((HWND)DialogList->Items[i], &message))
+            for (i = 0; i < DialogList->Count; i++)
             {
-                processed = TRUE;
-                break;
+                if (IsDialogMessage((HWND)DialogList->Items[i], &message))
+                {
+                    processed = TRUE;
+                    break;
+                }
             }
         }
 
@@ -301,6 +302,9 @@ VOID PhRegisterDialog(
     __in HWND DialogWindowHandle
     )
 {
+    if (!DialogList)
+        DialogList = PhCreateList(2);
+
     PhAddItemList(DialogList, (PVOID)DialogWindowHandle);
 }
 
@@ -309,6 +313,9 @@ VOID PhUnregisterDialog(
     )
 {
     ULONG indexOfDialog;
+
+    if (!DialogList)
+        return;
 
     indexOfDialog = PhFindItemList(DialogList, (PVOID)DialogWindowHandle);
 
