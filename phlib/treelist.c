@@ -808,8 +808,10 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 )
                 return FALSE;
 
-            if (mask & TLCM_VISIBLE)
+            if (mask & TLCM_FLAGS)
             {
+                realColumn->CustomDraw = column->CustomDraw;
+
                 if (realColumn->Visible != column->Visible)
                 {
                     if (column->Visible)
@@ -859,7 +861,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 }
 
                 ListView_SetColumn(context->ListViewHandle, realColumn->s.ViewIndex, &lvColumn);
-                PhpRefreshColumnsLookup(context);
+                PhpRefreshColumnsLookup(context); // display indicies have changed
             }
         }
         return TRUE;
@@ -1446,7 +1448,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     HFONT oldFont;
     PH_STRINGREF text; // text to draw
     PPH_TREELIST_COLUMN column; // column of sub item
-    RECT origTextRect; // original draw rectangle
+    RECT cellRect; // original draw rectangle
     RECT textRect; // working rectangle, modified as needed
     ULONG textFlags; // DT_* flags
     ULONG textVertMargin; // top/bottom margin for text (determined using height of font)
@@ -1462,17 +1464,17 @@ static VOID PhpCustomDrawPrePaintSubItem(
     subItemIndex = column->Id;
     textFlags = column->TextFlags;
 
-    origTextRect = CustomDraw->nmcd.rc;
+    cellRect = CustomDraw->nmcd.rc;
 
     if (PH_TREELIST_USE_HACKAROUNDS)
     {
-        origTextRect.left = Context->RowRect.left + column->s.ViewX; // left may be negative if scrolled horizontally
-        origTextRect.top = Context->RowRect.top;
-        origTextRect.right = origTextRect.left + column->Width;
-        origTextRect.bottom = Context->RowRect.bottom;
+        cellRect.left = Context->RowRect.left + column->s.ViewX; // left may be negative if scrolled horizontally
+        cellRect.top = Context->RowRect.top;
+        cellRect.right = cellRect.left + column->Width;
+        cellRect.bottom = Context->RowRect.bottom;
     }
 
-    textRect = origTextRect;
+    textRect = cellRect;
 
     // Initial margins used by default list view
     textRect.left += 2;
@@ -1577,7 +1579,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
                     if (SUCCEEDED(DrawThemeBackground_I(
                         Context->ThemeData,
-                        CustomDraw->nmcd.hdc,
+                        hdc,
                         partId,
                         stateId,
                         &themeRect,
@@ -1589,7 +1591,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
                 if (!drewUsingTheme)
                 {
                     if (!Context->IconDc)
-                        Context->IconDc = CreateCompatibleDC(CustomDraw->nmcd.hdc);
+                        Context->IconDc = CreateCompatibleDC(hdc);
 
                     if (node->Expanded)
                     {
@@ -1603,7 +1605,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
                     }
 
                     BitBlt(
-                        CustomDraw->nmcd.hdc,
+                        hdc,
                         textRect.left + (16 - glyphSize.X) / 2,
                         textRect.top + (16 - glyphSize.Y) / 2,
                         glyphSize.X,
@@ -1623,7 +1625,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
         if (node->Icon)
         {
             DrawIconEx(
-                CustomDraw->nmcd.hdc,
+                hdc,
                 textRect.left,
                 textRect.top,
                 node->Icon,
@@ -1658,6 +1660,26 @@ static VOID PhpCustomDrawPrePaintSubItem(
         textRect.right -= 4;
     }
 
+    if (column->CustomDraw)
+    {
+        BOOLEAN result;
+        PH_TREELIST_CUSTOM_DRAW tlCustomDraw;
+        INT savedDc;
+
+        tlCustomDraw.Node = node;
+        tlCustomDraw.Column = column;
+        tlCustomDraw.Dc = hdc;
+        tlCustomDraw.CellRect = cellRect;
+        tlCustomDraw.TextRect = textRect;
+
+        savedDc = SaveDC(hdc);
+        result = Context->Callback(Context->Handle, TreeListCustomDraw, &tlCustomDraw, NULL, Context->Context);
+        RestoreDC(hdc, savedDc);
+
+        if (result)
+            return;
+    }
+
     if (PhpGetNodeText(Context, node, subItemIndex, &text))
     {
         if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
@@ -1665,20 +1687,20 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
         textFlags |= DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE;
 
-        textRect.top = origTextRect.top + textVertMargin;
-        textRect.bottom = origTextRect.bottom - textVertMargin;
+        textRect.top = cellRect.top + textVertMargin;
+        textRect.bottom = cellRect.bottom - textVertMargin;
 
         if (font)
         {
             // Remove the margins we calculated, because they don't actually apply here 
             // since we're using a custom font...
-            textRect.top = origTextRect.top;
-            textRect.bottom = origTextRect.bottom;
-            oldFont = SelectObject(CustomDraw->nmcd.hdc, font);
+            textRect.top = cellRect.top;
+            textRect.bottom = cellRect.bottom;
+            oldFont = SelectObject(hdc, font);
         }
 
         DrawText(
-            CustomDraw->nmcd.hdc,
+            hdc,
             text.Buffer,
             text.Length / 2,
             &textRect,
@@ -1686,7 +1708,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
             );
 
         if (font)
-            SelectObject(CustomDraw->nmcd.hdc, oldFont);
+            SelectObject(hdc, oldFont);
     }
 }
 
@@ -2195,7 +2217,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
             {
                 setColumn.Width = (*columnPtr)->Width;
                 setColumn.Visible = TRUE;
-                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE | TLCM_WIDTH);
+                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_FLAGS | TLCM_WIDTH);
 
                 TreeList_GetColumn(TreeListHandle, &setColumn); // get the ViewIndex for use in the second pass
                 (*columnPtr)->s.ViewIndex = setColumn.s.ViewIndex;
@@ -2203,7 +2225,7 @@ BOOLEAN PhLoadTreeListColumnSettings(
             else
             {
                 setColumn.Visible = FALSE;
-                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_VISIBLE);
+                TreeList_SetColumn(TreeListHandle, &setColumn, TLCM_FLAGS);
             }
 
             count++;
