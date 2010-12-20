@@ -1290,7 +1290,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 PhInitializeStringRef(&getNodeText->Text, processItem->SessionIdString);
                 break;
             case PHPRTLC_PRIORITYCLASS:
-                PhInitializeStringRef(&getNodeText->Text, PhGetProcessPriorityClassWin32String(processItem->PriorityClassWin32));
+                PhInitializeStringRef(&getNodeText->Text, PhGetProcessPriorityClassString(processItem->PriorityClass));
                 break;
             case PHPRTLC_BASEPRIORITY:
                 PhPrintInt32(node->BasePriorityText, processItem->BasePriority);

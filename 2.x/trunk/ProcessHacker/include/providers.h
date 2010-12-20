@@ -164,7 +164,7 @@ typedef struct _PH_PROCESS_ITEM
     // Dynamic
 
     KPRIORITY BasePriority;
-    ULONG PriorityClassWin32;
+    ULONG PriorityClass;
     LARGE_INTEGER KernelTime;
     LARGE_INTEGER UserTime;
     ULONG NumberOfHandles;
@@ -230,8 +230,8 @@ PPH_STRING PhGetClientIdNameEx(
     );
 
 PHAPPAPI
-PWSTR PhGetProcessPriorityClassWin32String(
-    __in ULONG PriorityClassWin32
+PWSTR PhGetProcessPriorityClassString(
+    __in ULONG PriorityClass
     );
 
 PPH_PROCESS_ITEM PhCreateProcessItem(

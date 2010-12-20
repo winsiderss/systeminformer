@@ -1921,16 +1921,48 @@ FORCEINLINE ULONGLONG NtGetTickCount64()
 
 #else
 
-    do
+    while (TRUE)
     {
         tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
         tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
-    } while (tickCount.HighPart != (ULONG)USER_SHARED_DATA->TickCount.High2Time);
+
+        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
+            break;
+
+        YieldProcessor();
+    }
 
 #endif
 
     return (UInt32x32To64(tickCount.LowPart, USER_SHARED_DATA->TickCountMultiplier) >> 24) +
         (UInt32x32To64(tickCount.HighPart, USER_SHARED_DATA->TickCountMultiplier) << 8);
+}
+
+FORCEINLINE ULONG NtGetTickCount()
+{
+#ifdef _M_X64
+
+    return (ULONG)((USER_SHARED_DATA->TickCountQuad * USER_SHARED_DATA->TickCountMultiplier) >> 24);
+
+#else
+
+    ULARGE_INTEGER tickCount;
+
+    while (TRUE)
+    {
+        tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
+        tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
+
+        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
+            break;
+
+        YieldProcessor();
+    }
+
+    return (ULONG)((UInt32x32To64(tickCount.LowPart, USER_SHARED_DATA->TickCountMultiplier) >> 24) +
+        UInt32x32To64((tickCount.HighPart << 8) & 0xffffffff, USER_SHARED_DATA->TickCountMultiplier));
+
+#endif
 }
 
 // Locale
