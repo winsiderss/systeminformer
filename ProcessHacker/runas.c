@@ -411,7 +411,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                         }
                         else
                         {
-                            status = PhRunAsCommandStart2(
+                            status = PhExecuteRunAsCommand2(
                                 hwndDlg,
                                 program->Buffer,
                                 userName->Buffer,
@@ -801,7 +801,7 @@ PPH_STRING PhpBuildRunAsServiceCommandLine(
  * \param ServiceName The name of the service. This will 
  * also be used as the name of the error mailslot.
  */
-NTSTATUS PhRunAsCommandStart(
+NTSTATUS PhExecuteRunAsCommand(
     __in PWSTR ServiceCommandLine,
     __in PWSTR ServiceName
     )
@@ -923,7 +923,7 @@ CleanupExit:
  * does not have sufficient system access. This is done 
  * through a UAC elevation prompt.
  */
-NTSTATUS PhRunAsCommandStart2(
+NTSTATUS PhExecuteRunAsCommand2(
     __in HWND hWnd,
     __in PWSTR Program,
     __in_opt PWSTR UserName,
@@ -960,7 +960,7 @@ NTSTATUS PhRunAsCommandStart2(
 
     if (PhElevated)
     {
-        status = PhRunAsCommandStart(commandLine->Buffer, serviceName);
+        status = PhExecuteRunAsCommand(commandLine->Buffer, serviceName);
     }
     else
     {

@@ -95,7 +95,7 @@ NTSTATUS PhCommandModeStart()
             if (!OptionRunAsServiceName || !PhStartupParameters.CommandObject)
                 return STATUS_INVALID_PARAMETER;
 
-            status = PhRunAsCommandStart(
+            status = PhExecuteRunAsCommand(
                 PhStartupParameters.CommandObject->Buffer,
                 OptionRunAsServiceName->Buffer
                 );
