@@ -279,13 +279,15 @@ BOOLEAN PhaGetProcessKnownCommandLine(
         {
             // dllhost.exe /processid:<Guid>
 
+            static PH_STRINGREF inprocServer32Name = PH_STRINGREF_INIT(L"InprocServer32");
+
             ULONG i;
             ULONG indexOfProcessId;
             PPH_STRING argPart;
             PPH_STRING guidString;
             GUID guid;
-            HKEY clsidKeyHandle;
-            HKEY inprocServer32KeyHandle;
+            HANDLE clsidKeyHandle;
+            HANDLE inprocServer32KeyHandle;
             PPH_STRING fileName;
 
             i = 0;
@@ -337,24 +339,24 @@ BOOLEAN PhaGetProcessKnownCommandLine(
 
             // Lookup the GUID in the registry to determine the name and file name.
 
-            if (RegOpenKeyEx(
-                HKEY_CLASSES_ROOT,
-                PhaConcatStrings2(L"CLSID\\", guidString->Buffer)->Buffer,
-                0,
+            if (NT_SUCCESS(PhOpenKey(
+                &clsidKeyHandle,
                 KEY_READ,
-                &clsidKeyHandle
-                ) == ERROR_SUCCESS)
+                PH_KEY_CLASSES_ROOT,
+                &PhaConcatStrings2(L"CLSID\\", guidString->Buffer)->sr,
+                0
+                )))
             {
                 KnownCommandLine->ComSurrogate.Name =
                     PHA_DEREFERENCE(PhQueryRegistryString(clsidKeyHandle, NULL));
 
-                if (RegOpenKeyEx(
-                    clsidKeyHandle,
-                    L"InprocServer32",
-                    0,
+                if (NT_SUCCESS(PhOpenKey(
+                    &inprocServer32KeyHandle,
                     KEY_READ,
-                    &inprocServer32KeyHandle
-                    ) == ERROR_SUCCESS)
+                    clsidKeyHandle,
+                    &inprocServer32Name,
+                    0
+                    )))
                 {
                     KnownCommandLine->ComSurrogate.FileName =
                         PHA_DEREFERENCE(PhQueryRegistryString(inprocServer32KeyHandle, NULL));
@@ -366,10 +368,10 @@ BOOLEAN PhaGetProcessKnownCommandLine(
                         KnownCommandLine->ComSurrogate.FileName = fileName;
                     }
 
-                    RegCloseKey(inprocServer32KeyHandle);
+                    NtClose(inprocServer32KeyHandle);
                 }
 
-                RegCloseKey(clsidKeyHandle);
+                NtClose(clsidKeyHandle);
             }
         }
         break;

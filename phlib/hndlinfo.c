@@ -533,7 +533,7 @@ NTSTATUS PhpGetBestObjectName(
             {
                 PPH_STRING guidString;
                 PPH_STRING keyName;
-                HKEY keyHandle;
+                HANDLE keyHandle;
                 PPH_STRING publisherName = NULL;
 
                 guidString = PhFormatGuid(&basicInfo.Guid);
@@ -545,13 +545,13 @@ NTSTATUS PhpGetBestObjectName(
                     guidString->Buffer
                     );
 
-                if (RegOpenKeyEx(
-                    HKEY_LOCAL_MACHINE,
-                    keyName->Buffer,
-                    0,
+                if (NT_SUCCESS(PhOpenKey(
+                    &keyHandle,
                     KEY_READ,
-                    &keyHandle
-                    ) == ERROR_SUCCESS)
+                    PH_KEY_LOCAL_MACHINE,
+                    &keyName->sr,
+                    0
+                    )))
                 {
                     publisherName = PhQueryRegistryString(keyHandle, NULL);
 
@@ -561,7 +561,7 @@ NTSTATUS PhpGetBestObjectName(
                         publisherName = NULL;
                     }
 
-                    RegCloseKey(keyHandle);
+                    NtClose(keyHandle);
                 }
 
                 PhDereferenceObject(keyName);
