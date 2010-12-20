@@ -383,23 +383,23 @@ PPH_STRING PhGetClientIdNameEx(
     return name;
 }
 
-PWSTR PhGetProcessPriorityClassWin32String(
-    __in ULONG PriorityClassWin32
+PWSTR PhGetProcessPriorityClassString(
+    __in ULONG PriorityClass
     )
 {
-    switch (PriorityClassWin32)
+    switch (PriorityClass)
     {
-    case REALTIME_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_REALTIME:
         return L"Real Time";
-    case HIGH_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_HIGH:
         return L"High";
-    case ABOVE_NORMAL_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
         return L"Above Normal";
-    case NORMAL_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_NORMAL:
         return L"Normal";
-    case BELOW_NORMAL_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
         return L"Below Normal";
-    case IDLE_PRIORITY_CLASS:
+    case PROCESS_PRIORITY_CLASS_IDLE:
         return L"Idle";
     default:
         return L"Unknown";
@@ -1191,9 +1191,24 @@ FORCEINLINE VOID PhpUpdateDynamicInfoProcessItem(
     ProcessItem->BasePriority = Process->BasePriority;
 
     if (ProcessItem->QueryHandle)
-        ProcessItem->PriorityClassWin32 = GetPriorityClass(ProcessItem->QueryHandle);
+    {
+        PROCESS_PRIORITY_CLASS priorityClass;
+
+        if (NT_SUCCESS(NtQueryInformationProcess(
+            ProcessItem->QueryHandle,
+            ProcessPriorityClass,
+            &priorityClass,
+            sizeof(PROCESS_PRIORITY_CLASS),
+            NULL
+            )))
+        {
+            ProcessItem->PriorityClass = priorityClass.PriorityClass;
+        }
+    }
     else
-        ProcessItem->PriorityClassWin32 = 0;
+    {
+        ProcessItem->PriorityClass = 0;
+    }
 
     ProcessItem->KernelTime = Process->KernelTime;
     ProcessItem->UserTime = Process->UserTime;

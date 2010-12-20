@@ -2337,13 +2337,6 @@ PPH_STRING PhGetKnownLocation(
     __in_opt PWSTR AppendPath
     );
 
-FORCEINLINE BOOLEAN PhFileExists(
-    __in PWSTR FileName
-    )
-{
-    return GetFileAttributes(FileName) != INVALID_FILE_ATTRIBUTES;
-}
-
 PHLIBAPI
 NTSTATUS PhWaitForMultipleObjectsAndPump(
     __in_opt HWND hWnd,
