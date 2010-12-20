@@ -862,7 +862,7 @@ PHAPPAPI
 BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
-    __in ULONG PriorityClassWin32
+    __in ULONG PriorityClass
     );
 
 PHAPPAPI

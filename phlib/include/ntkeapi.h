@@ -1,6 +1,11 @@
 #ifndef _NTKEAPI_H
 #define _NTKEAPI_H
 
+#define LOW_PRIORITY 0 // Lowest thread priority level
+#define LOW_REALTIME_PRIORITY 16 // Lowest realtime priority level
+#define HIGH_PRIORITY 31 // Highest thread priority level
+#define MAXIMUM_PRIORITY 32 // Number of thread priority levels
+
 typedef enum _KTHREAD_STATE
 {
     Initialized,

@@ -1329,12 +1329,12 @@ BOOLEAN PhUiSetIoPriorityProcess(
 BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
-    __in ULONG PriorityClassWin32
+    __in ULONG PriorityClass
     )
 {
     NTSTATUS status;
-    ULONG win32Result = 0;
     HANDLE processHandle;
+    PROCESS_PRIORITY_CLASS priorityClass;
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
@@ -1342,13 +1342,14 @@ BOOLEAN PhUiSetPriorityProcess(
         Process->ProcessId
         )))
     {
-        if (!SetPriorityClass(processHandle, PriorityClassWin32))
-            win32Result = GetLastError();
+        priorityClass.Foreground = FALSE;
+        priorityClass.PriorityClass = (UCHAR)PriorityClass;
+        status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
 
         NtClose(processHandle);
     }
 
-    if (!NT_SUCCESS(status) || win32Result)
+    if (!NT_SUCCESS(status))
     {
         PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
         return FALSE;

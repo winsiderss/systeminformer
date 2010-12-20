@@ -315,7 +315,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                     if (flags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
                     {
                         PhpAddLimit(limitsLv, L"Priority Class",
-                            PhGetProcessPriorityClassWin32String(extendedLimits.BasicLimitInformation.PriorityClass));
+                            PhGetProcessPriorityClassString(extendedLimits.BasicLimitInformation.PriorityClass));
                     }
 
                     if (flags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)

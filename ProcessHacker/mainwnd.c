@@ -278,7 +278,7 @@ BOOLEAN PhMainWndInitialization(
 
         if (autoDbghelpPath)
         {
-            if (PhFileExists(autoDbghelpPath->Buffer))
+            if (RtlDoesFileExists_U(autoDbghelpPath->Buffer))
             {
                 PhSetStringSetting2(L"DbgHelpPath", &autoDbghelpPath->sr);
             }
@@ -2280,33 +2280,33 @@ BOOLEAN PhpProcessProcessPriorityCommand(
     __in PPH_PROCESS_ITEM ProcessItem
     )
 {
-    ULONG priorityClassWin32;
+    ULONG priorityClass;
 
     switch (Id)
     {
     case ID_PRIORITY_REALTIME:
-        priorityClassWin32 = REALTIME_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
         break;
     case ID_PRIORITY_HIGH:
-        priorityClassWin32 = HIGH_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_HIGH;
         break;
     case ID_PRIORITY_ABOVENORMAL:
-        priorityClassWin32 = ABOVE_NORMAL_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
         break;
     case ID_PRIORITY_NORMAL:
-        priorityClassWin32 = NORMAL_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
         break;
     case ID_PRIORITY_BELOWNORMAL:
-        priorityClassWin32 = BELOW_NORMAL_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
         break;
     case ID_PRIORITY_IDLE:
-        priorityClassWin32 = IDLE_PRIORITY_CLASS;
+        priorityClass = PROCESS_PRIORITY_CLASS_IDLE;
         break;
     default:
         return FALSE;
     }
 
-    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClassWin32);
+    PhUiSetPriorityProcess(PhMainWndHandle, ProcessItem, priorityClass);
 
     return TRUE;
 }
@@ -3286,7 +3286,7 @@ VOID PhpSetProcessMenuPriorityChecks(
     )
 {
     HANDLE processHandle;
-    ULONG priorityClass = 0;
+    PROCESS_PRIORITY_CLASS priorityClass = { 0 };
     ULONG ioPriority = -1;
     ULONG id = 0;
 
@@ -3297,7 +3297,9 @@ VOID PhpSetProcessMenuPriorityChecks(
         )))
     {
         if (SetPriority)
-            priorityClass = GetPriorityClass(processHandle);
+        {
+            NtQueryInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS), NULL);
+        }
 
         if (SetIoPriority && WindowsVersion >= WINDOWS_VISTA)
         {
@@ -3315,24 +3317,24 @@ VOID PhpSetProcessMenuPriorityChecks(
 
     if (SetPriority)
     {
-        switch (priorityClass)
+        switch (priorityClass.PriorityClass)
         {
-        case REALTIME_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_REALTIME:
             id = ID_PRIORITY_REALTIME;
             break;
-        case HIGH_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_HIGH:
             id = ID_PRIORITY_HIGH;
             break;
-        case ABOVE_NORMAL_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_ABOVE_NORMAL:
             id = ID_PRIORITY_ABOVENORMAL;
             break;
-        case NORMAL_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_NORMAL:
             id = ID_PRIORITY_NORMAL;
             break;
-        case BELOW_NORMAL_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_BELOW_NORMAL:
             id = ID_PRIORITY_BELOWNORMAL;
             break;
-        case IDLE_PRIORITY_CLASS:
+        case PROCESS_PRIORITY_CLASS_IDLE:
             id = ID_PRIORITY_IDLE;
             break;
         }
