@@ -11,7 +11,8 @@ typedef struct _PH_TREELIST_COLUMN
         struct
         {
             ULONG Visible : 1;
-            ULONG Spare : 31;
+            ULONG CustomDraw : 1;
+            ULONG Spare : 30;
         };
     };
     ULONG Id; // becomes the subitem index for the column
@@ -86,6 +87,7 @@ typedef enum _PH_TREELIST_MESSAGE
     TreeListGetNodeFont, // PPH_TREELIST_GET_NODE_FONT Parameter1
     TreeListGetNodeIcon, // PPH_TREELIST_GET_NODE_ICON Parameter1
     TreeListGetNodeTooltip, // PPH_TREELIST_GET_NODE_TOOLTIP Parameter1
+    TreeListCustomDraw, // PPH_TREELIST_CUSTOM_DRAW Parameter1
 
     // Notifications
     TreeListSortChanged,
@@ -178,6 +180,16 @@ typedef struct _PH_TREELIST_GET_NODE_TOOLTIP
     PH_STRINGREF Text;
 } PH_TREELIST_GET_NODE_TOOLTIP, *PPH_TREELIST_GET_NODE_TOOLTIP;
 
+typedef struct _PH_TREELIST_CUSTOM_DRAW
+{
+    PPH_TREELIST_NODE Node;
+    PPH_TREELIST_COLUMN Column;
+
+    HDC Dc;
+    RECT CellRect;
+    RECT TextRect;
+} PH_TREELIST_CUSTOM_DRAW, *PPH_TREELIST_CUSTOM_DRAW;
+
 typedef struct _PH_TREELIST_MOUSE_EVENT
 {
     ULONG Index;
@@ -251,7 +263,7 @@ typedef struct _PH_TL_GETNODETEXT
 #define TreeList_RemoveColumn(hWnd, Column) \
     SendMessage((hWnd), TLM_REMOVECOLUMN, 0, (LPARAM)(Column))
 
-#define TLCM_VISIBLE 0x1
+#define TLCM_FLAGS 0x1
 #define TLCM_TEXT 0x2
 #define TLCM_WIDTH 0x4
 #define TLCM_ALIGNMENT 0x8
