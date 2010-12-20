@@ -219,7 +219,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                         column->Visible = index != -1;
                         column->DisplayIndex = index; // the active list box order is the actual display order
 
-                        TreeList_SetColumn(context->TreeListHandle, column, TLCM_VISIBLE);
+                        TreeList_SetColumn(context->TreeListHandle, column, TLCM_FLAGS);
 
                         // Get the ViewIndex for use in the second pass.
                         tempColumn.Id = column->Id;
