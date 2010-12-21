@@ -873,6 +873,8 @@ NTSTATUS PhOpenLsaPolicy(
     __in_opt PUNICODE_STRING SystemName
     );
 
+LSA_HANDLE PhGetLookupPolicyHandle();
+
 PHLIBAPI
 BOOLEAN PhLookupPrivilegeName(
     __in PLUID PrivilegeValue,
