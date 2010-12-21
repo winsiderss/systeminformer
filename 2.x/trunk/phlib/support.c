@@ -2686,6 +2686,9 @@ NTSTATUS PhCreateProcessAsUser(
         }
 
         tokenHandle = userToken.UserToken;
+
+        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+            needsDuplicate = TRUE; // not sure if this is necessary
     }
     else
     {
@@ -2754,6 +2757,7 @@ NTSTATUS PhCreateProcessAsUser(
             {
                 NtClose(tokenHandle);
                 tokenHandle = linkedTokenHandle;
+                needsDuplicate = FALSE; // the linked token that is returned is always a copy, so no need to duplicate
             }
             else
             {
