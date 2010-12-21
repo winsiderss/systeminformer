@@ -2789,6 +2789,254 @@ NTSTATUS PhCreateProcessAsUser(
     return status;
 }
 
+NTSTATUS PhpGetAccountPrivileges(
+    __in PSID Account,
+    __out PTOKEN_PRIVILEGES *Privileges
+    )
+{
+    NTSTATUS status;
+    LSA_HANDLE policyHandle;
+    PUNICODE_STRING userRights;
+    ULONG countOfRights;
+    PTOKEN_PRIVILEGES privileges;
+    ULONG i;
+
+    if (!NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES, NULL)))
+        return status;
+
+    status = LsaEnumerateAccountRights(policyHandle, Account, &userRights, &countOfRights);
+
+    if (NT_SUCCESS(status))
+    {
+        privileges = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * countOfRights);
+        privileges->PrivilegeCount = countOfRights;
+
+        for (i = 0; i < countOfRights; i++)
+        {
+            privileges->Privileges[i].Attributes = 0;
+            LsaLookupPrivilegeValue(policyHandle, &userRights[i], &privileges->Privileges[i].Luid);
+        }
+
+        LsaFreeMemory(userRights);
+
+        *Privileges = privileges;
+    }
+
+    LsaClose(policyHandle);
+
+    return status;
+}
+
+/**
+ * Filters a token to create a limited user security context.
+ *
+ * \param TokenHandle A handle to an existing token. The handle must have 
+ * TOKEN_DUPLICATE, TOKEN_QUERY, TOKEN_ADJUST_GROUPS, TOKEN_ADJUST_DEFAULT, 
+ * READ_CONTROL and WRITE_DAC access.
+ * \param NewTokenHandle A variable which receives a handle to the filtered 
+ * token. The handle will have the same granted access as \a TokenHandle.
+ */
+NTSTATUS PhFilterTokenForLimitedUser(
+    __in HANDLE TokenHandle,
+    __out PHANDLE NewTokenHandle
+    )
+{
+    static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
+    static SID_IDENTIFIER_AUTHORITY mandatoryLabelAuthority = SECURITY_MANDATORY_LABEL_AUTHORITY;
+    static LUID_AND_ATTRIBUTES defaultAllowedPrivileges[] =
+    {
+        { { SE_SHUTDOWN_PRIVILEGE, 0 }, 0 },
+        { { SE_CHANGE_NOTIFY_PRIVILEGE, 0 }, 0 },
+        { { SE_UNDOCK_PRIVILEGE, 0 }, 0 },
+        { { SE_INC_WORKING_SET_PRIVILEGE, 0 }, 0 },
+        { { SE_TIME_ZONE_PRIVILEGE, 0 }, 0 }
+    };
+
+    NTSTATUS status;
+    UCHAR administratorsSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    PSID administratorsSid;
+    UCHAR usersSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * 2];
+    PSID usersSid;
+    UCHAR sidsToDisableBuffer[FIELD_OFFSET(TOKEN_GROUPS, Groups) + sizeof(SID_AND_ATTRIBUTES)];
+    PTOKEN_GROUPS sidsToDisable;
+    ULONG i;
+    ULONG j;
+    ULONG deleteIndex;
+    BOOLEAN found;
+    PTOKEN_PRIVILEGES privilegesOfToken;
+    PTOKEN_PRIVILEGES privilegesOfUsers;
+    PTOKEN_PRIVILEGES privilegesToDelete;
+    UCHAR lowMandatoryLevelSidBuffer[FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG)];
+    PSID lowMandatoryLevelSid;
+    TOKEN_MANDATORY_LABEL mandatoryLabel;
+    PSECURITY_DESCRIPTOR currentSecurityDescriptor;
+    BOOLEAN currentDaclPresent;
+    BOOLEAN currentDaclDefaulted;
+    PACL currentDacl;
+    PTOKEN_USER currentUser;
+    PACE_HEADER currentAce;
+    ULONG newDaclLength;
+    PACL newDacl;
+    SECURITY_DESCRIPTOR newSecurityDescriptor;
+    TOKEN_DEFAULT_DACL newDefaultDacl;
+    HANDLE newTokenHandle;
+
+    // Set up the SIDs to Disable structure.
+
+    // Initialize the Administrators SID.
+    administratorsSid = (PSID)administratorsSidBuffer;
+    RtlInitializeSid(administratorsSid, &ntAuthority, 2);
+    *RtlSubAuthoritySid(administratorsSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(administratorsSid, 1) = DOMAIN_ALIAS_RID_ADMINS;
+
+    // Initialize the Users SID.
+    usersSid = (PSID)usersSidBuffer;
+    RtlInitializeSid(usersSid, &ntAuthority, 2);
+    *RtlSubAuthoritySid(usersSid, 0) = SECURITY_BUILTIN_DOMAIN_RID;
+    *RtlSubAuthoritySid(usersSid, 1) = DOMAIN_ALIAS_RID_USERS;
+
+    sidsToDisable = (PTOKEN_GROUPS)sidsToDisableBuffer;
+    sidsToDisable->GroupCount = 1;
+    sidsToDisable->Groups[0].Sid = administratorsSid;
+    sidsToDisable->Groups[0].Attributes = 0;
+
+    // Set up the Privileges to Delete structure.
+
+    // Get the privileges that the input token contains.
+    if (!NT_SUCCESS(status = PhGetTokenPrivileges(TokenHandle, &privilegesOfToken)))
+        return status;
+
+    // Get the privileges of the Users group - the privileges that we are going to allow.
+    if (!NT_SUCCESS(PhpGetAccountPrivileges(usersSid, &privilegesOfUsers)))
+    {
+        // Unsuccessful, so use the default set of privileges.
+        privilegesOfUsers = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(defaultAllowedPrivileges));
+        privilegesOfUsers->PrivilegeCount = sizeof(defaultAllowedPrivileges) / sizeof(LUID_AND_ATTRIBUTES);
+        memcpy(privilegesOfUsers->Privileges, defaultAllowedPrivileges, sizeof(defaultAllowedPrivileges));
+    }
+
+    // Allocate storage for the privileges we need to delete. The worst case scenario is that 
+    // all privileges in the token need to be deleted.
+    privilegesToDelete = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * privilegesOfToken->PrivilegeCount);
+    deleteIndex = 0;
+
+    // Compute the privileges that we need to delete.
+    for (i = 0; i < privilegesOfToken->PrivilegeCount; i++)
+    {
+        found = FALSE;
+
+        // Is the privilege allowed?
+        for (j = 0; j < privilegesOfUsers->PrivilegeCount; j++)
+        {
+            if (RtlIsEqualLuid(&privilegesOfToken->Privileges[i].Luid, &privilegesOfUsers->Privileges[j].Luid))
+            {
+                found = TRUE;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            // This privilege needs to be deleted.
+            privilegesToDelete->Privileges[deleteIndex].Attributes = 0;
+            privilegesToDelete->Privileges[deleteIndex].Luid = privilegesOfToken->Privileges[i].Luid;
+            deleteIndex++;
+        }
+    }
+
+    privilegesToDelete->PrivilegeCount = deleteIndex;
+
+    // Filter the token.
+
+    status = NtFilterToken(
+        TokenHandle,
+        0,
+        sidsToDisable,
+        privilegesToDelete,
+        NULL,
+        &newTokenHandle
+        );
+    PhFree(privilegesToDelete);
+    PhFree(privilegesOfUsers);
+    PhFree(privilegesOfToken);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Set the integrity level to Low if we're on Vista and above.
+    if (WINDOWS_HAS_UAC)
+    {
+        lowMandatoryLevelSid = (PSID)lowMandatoryLevelSidBuffer;
+        RtlInitializeSid(lowMandatoryLevelSid, &mandatoryLabelAuthority, 1);
+        *RtlSubAuthoritySid(lowMandatoryLevelSid, 0) = SECURITY_MANDATORY_LOW_RID;
+
+        mandatoryLabel.Label.Sid = lowMandatoryLevelSid;
+        mandatoryLabel.Label.Attributes = SE_GROUP_INTEGRITY;
+
+        NtSetInformationToken(newTokenHandle, TokenIntegrityLevel, &mandatoryLabel, sizeof(TOKEN_MANDATORY_LABEL));
+    }
+
+    // Fix up the security descriptor and default DACL.
+    if (NT_SUCCESS(PhGetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &currentSecurityDescriptor)))
+    {
+        if (NT_SUCCESS(PhGetTokenUser(TokenHandle, &currentUser)))
+        {
+            if (!NT_SUCCESS(RtlGetDaclSecurityDescriptor(
+                currentSecurityDescriptor,
+                &currentDaclPresent,
+                &currentDacl,
+                &currentDaclDefaulted
+                )))
+            {
+                currentDaclPresent = FALSE;
+            }
+
+            newDaclLength = sizeof(ACL) + FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + RtlLengthSid(currentUser->User.Sid);
+
+            if (currentDaclPresent)
+                newDaclLength += currentDacl->AclSize - sizeof(ACL);
+
+            newDacl = PhAllocate(newDaclLength);
+            RtlCreateAcl(newDacl, newDaclLength, ACL_REVISION);
+
+            // Add the existing DACL entries.
+            if (currentDaclPresent)
+            {
+                for (i = 0; i < currentDacl->AceCount; i++)
+                {
+                    if (NT_SUCCESS(RtlGetAce(currentDacl, i, &currentAce)))
+                        RtlAddAce(newDacl, ACL_REVISION, MAXULONG32, currentAce, currentAce->AceSize);
+                }
+            }
+
+            // Allow access for the current user.
+            RtlAddAccessAllowedAce(newDacl, ACL_REVISION, GENERIC_ALL, currentUser->User.Sid);
+
+            // Set the security descriptor of the new token.
+
+            RtlCreateSecurityDescriptor(&newSecurityDescriptor, SECURITY_DESCRIPTOR_REVISION);
+
+            if (NT_SUCCESS(RtlSetDaclSecurityDescriptor(&newSecurityDescriptor, TRUE, newDacl, FALSE)))
+                PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
+
+            // Set the default DACL.
+
+            newDefaultDacl.DefaultDacl = newDacl;
+            NtSetInformationToken(newTokenHandle, TokenDefaultDacl, &newDefaultDacl, sizeof(TOKEN_DEFAULT_DACL));
+
+            PhFree(newDacl);
+
+            PhFree(currentUser);
+        }
+
+        PhFree(currentSecurityDescriptor);
+    }
+
+    *NewTokenHandle = newTokenHandle;
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * Opens a file or location through the shell.
  *
