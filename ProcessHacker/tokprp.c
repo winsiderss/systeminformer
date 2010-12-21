@@ -972,20 +972,27 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                         break;
                     }
 
-                    switch (statistics.ImpersonationLevel)
+                    if (statistics.TokenType == TokenImpersonation)
                     {
-                    case SecurityAnonymous:
-                        tokenImpersonationLevel = L"Anonymous";
-                        break;
-                    case SecurityIdentification:
-                        tokenImpersonationLevel = L"Identification";
-                        break;
-                    case SecurityImpersonation:
-                        tokenImpersonationLevel = L"Impersonation";
-                        break;
-                    case SecurityDelegation:
-                        tokenImpersonationLevel = L"Delegation";
-                        break;
+                        switch (statistics.ImpersonationLevel)
+                        {
+                        case SecurityAnonymous:
+                            tokenImpersonationLevel = L"Anonymous";
+                            break;
+                        case SecurityIdentification:
+                            tokenImpersonationLevel = L"Identification";
+                            break;
+                        case SecurityImpersonation:
+                            tokenImpersonationLevel = L"Impersonation";
+                            break;
+                        case SecurityDelegation:
+                            tokenImpersonationLevel = L"Delegation";
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        tokenImpersonationLevel = L"N/A";
                     }
 
                     PhPrintPointer(tokenLuid, (PVOID)statistics.TokenId.LowPart);
