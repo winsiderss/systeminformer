@@ -902,12 +902,6 @@ BEGIN_SORT_FUNCTION(SessionId)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(PriorityClass)
-{
-    sortResult = intcmp(processItem1->BasePriority, processItem2->BasePriority);
-}
-END_SORT_FUNCTION
-
 BEGIN_SORT_FUNCTION(BasePriority)
 {
     sortResult = intcmp(processItem1->BasePriority, processItem2->BasePriority);
@@ -1133,7 +1127,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(PeakVirtualSize),
                         SORT_FUNCTION(PageFaults),
                         SORT_FUNCTION(SessionId),
-                        SORT_FUNCTION(PriorityClass),
+                        SORT_FUNCTION(BasePriority), // Priority Class
                         SORT_FUNCTION(BasePriority),
                         SORT_FUNCTION(Threads),
                         SORT_FUNCTION(Handles),
@@ -1157,7 +1151,10 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(WindowTitle),
                         SORT_FUNCTION(WindowStatus),
                         SORT_FUNCTION(Cycles),
-                        SORT_FUNCTION(CyclesDelta)
+                        SORT_FUNCTION(CyclesDelta),
+                        SORT_FUNCTION(Cpu), // CPU History
+                        SORT_FUNCTION(PrivateBytes), // Private Bytes History
+                        SORT_FUNCTION(IoTotal) // I/O History
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
