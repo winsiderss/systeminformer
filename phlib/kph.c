@@ -233,7 +233,7 @@ NTSTATUS KphInstall(
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
 
     if (!scmHandle)
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhGetLastWin32ErrorAsNtStatus();
 
     serviceHandle = CreateService(
         scmHandle,
@@ -254,13 +254,13 @@ NTSTATUS KphInstall(
     if (serviceHandle)
     {
         if (!StartService(serviceHandle, 0, NULL))
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
 
         CloseServiceHandle(serviceHandle);
     }
     else
     {
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
     }
 
     CloseServiceHandle(scmHandle);
@@ -282,7 +282,7 @@ NTSTATUS KphUninstall(
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
 
     if (!scmHandle)
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhGetLastWin32ErrorAsNtStatus();
 
     serviceHandle = OpenService(scmHandle, DeviceName, SERVICE_STOP | DELETE);
 
@@ -293,13 +293,13 @@ NTSTATUS KphUninstall(
         ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus);
 
         if (!DeleteService(serviceHandle))
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
 
         CloseServiceHandle(serviceHandle);
     }
     else
     {
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
     }
 
     CloseServiceHandle(scmHandle);

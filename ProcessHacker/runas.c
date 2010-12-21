@@ -813,7 +813,7 @@ NTSTATUS PhExecuteRunAsCommand(
     HANDLE mailslotFileHandle = NULL;
 
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhGetLastWin32ErrorAsNtStatus();
 
     serviceHandle = CreateService(
         scManagerHandle,
@@ -1237,11 +1237,16 @@ VOID PhRunAsServiceStart()
     createInfo.UserName = PhGetString(userName);
     createInfo.Password = PhGetString(RunAsServiceParameters.Password);
     createInfo.LogonType = RunAsServiceParameters.LogonType;
-    createInfo.ProcessIdWithToken = UlongToHandle(RunAsServiceParameters.ProcessId);
     createInfo.SessionId = RunAsServiceParameters.SessionId;
     createInfo.DesktopName = PhGetString(RunAsServiceParameters.DesktopName);
 
     flags = PH_CREATE_PROCESS_SET_SESSION_ID;
+
+    if (RunAsServiceParameters.ProcessId)
+    {
+        createInfo.ProcessIdWithToken = UlongToHandle(RunAsServiceParameters.ProcessId);
+        flags |= PH_CREATE_PROCESS_USE_PROCESS_TOKEN;
+    }
 
     if (RunAsServiceParameters.UseLinkedToken)
         flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;

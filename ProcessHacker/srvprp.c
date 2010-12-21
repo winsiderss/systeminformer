@@ -52,7 +52,7 @@ static NTSTATUS PhpOpenService(
         ((PPH_SERVICE_ITEM)Context)->Name->Buffer,
         DesiredAccess
         )))
-        return NTSTATUS_FROM_WIN32(GetLastError());
+        return PhGetLastWin32ErrorAsNtStatus();
 
     *Handle = serviceHandle;
 

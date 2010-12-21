@@ -1627,7 +1627,7 @@ NTSTATUS PhSetProcessDepStatusInvasive(
         }
         else
         {
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
         }
     }
 
@@ -1773,7 +1773,7 @@ NTSTATUS PhInjectDllProcess(
             NULL
             )))
         {
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
             goto FreeExit;
         }
     }
@@ -1913,7 +1913,7 @@ NTSTATUS PhUnloadDllProcess(
             NULL
             )))
         {
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
         }
     }
 
