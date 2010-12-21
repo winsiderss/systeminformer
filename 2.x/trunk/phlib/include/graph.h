@@ -128,18 +128,53 @@ typedef struct _PH_GRAPH_MOUSEEVENT
     POINT Point;
 } PH_GRAPH_MOUSEEVENT, *PPH_GRAPH_MOUSEEVENT;
 
+// Graph buffer management
+
 #define PH_GRAPH_DATA_COUNT(Width, Step) (((Width) + (Step) - 1) / (Step) + 1) // round up in division
 
-// Graph control state
-
-typedef struct _PH_GRAPH_STATE
+typedef struct _PH_GRAPH_BUFFERS
 {
     PFLOAT Data1; // invalidate by setting Valid to FALSE
     PFLOAT Data2; // invalidate by setting Valid to FALSE
     ULONG AllocatedCount;
     BOOLEAN Valid; // indicates the data is valid
-    PPH_STRING Text;
+} PH_GRAPH_BUFFERS, *PPH_GRAPH_BUFFERS;
 
+VOID PhInitializeGraphBuffers(
+    __out PPH_GRAPH_BUFFERS Buffers
+    );
+
+VOID PhDeleteGraphBuffers(
+    __inout PPH_GRAPH_BUFFERS Buffers
+    );
+
+VOID PhGetDrawInfoGraphBuffers(
+    __inout PPH_GRAPH_BUFFERS Buffers,
+    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in ULONG DataCount
+    );
+
+// Graph control state
+
+// The basic buffer management structure was moved out of this section because 
+// the text management is not needed for most cases.
+
+typedef struct _PH_GRAPH_STATE
+{
+    // Union for compatibility
+    union
+    {
+        struct
+        {
+            PFLOAT Data1; // invalidate by setting Valid to FALSE
+            PFLOAT Data2; // invalidate by setting Valid to FALSE
+            ULONG AllocatedCount;
+            BOOLEAN Valid; // indicates the data is valid
+        };
+        PH_GRAPH_BUFFERS Buffers;
+    };
+
+    PPH_STRING Text;
     PPH_STRING TooltipText; // invalidate by setting TooltipIndex to -1
     ULONG TooltipIndex; // indicates the tooltip text is valid for this index
 } PH_GRAPH_STATE, *PPH_GRAPH_STATE;

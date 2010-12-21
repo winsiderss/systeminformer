@@ -24,6 +24,11 @@
 #include <settings.h>
 #include <phplug.h>
 
+VOID PhpEnableColumnCustomDraw(
+    __in HWND hwnd,
+    __in ULONG Id
+    );
+
 VOID PhpRemoveProcessNode(
     __in PPH_PROCESS_NODE ProcessNode
     );
@@ -130,9 +135,30 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHPRTLC_WINDOWSTATUS, FALSE, L"Window Status", 60, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_CYCLES, FALSE, L"Cycles", 110, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeListColumn(hwnd, PHPRTLC_CYCLESDELTA, FALSE, L"Cycles Delta", 90, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeListColumn(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU History", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0);
+
+    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_CPUHISTORY);
+    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_PRIVATEBYTESHISTORY);
+    PhpEnableColumnCustomDraw(hwnd, PHPRTLC_IOHISTORY);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
+}
+
+static VOID PhpEnableColumnCustomDraw(
+    __in HWND hwnd,
+    __in ULONG Id
+    )
+{
+    PH_TREELIST_COLUMN column;
+
+    column.Id = Id;
+    column.Flags = 0;
+    column.Visible = FALSE;
+    column.CustomDraw = TRUE;
+    TreeList_SetColumn(hwnd, &column, TLCM_FLAGS);
 }
 
 VOID PhLoadSettingsProcessTreeList()
@@ -395,8 +421,8 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
 
     if (ProcessNode->IoTotalText) PhDereferenceObject(ProcessNode->IoTotalText);
-    if (ProcessNode->PrivateMemoryText) PhDereferenceObject(ProcessNode->PrivateMemoryText);
-    if (ProcessNode->PeakPrivateMemoryText) PhDereferenceObject(ProcessNode->PeakPrivateMemoryText);
+    if (ProcessNode->PrivateBytesText) PhDereferenceObject(ProcessNode->PrivateBytesText);
+    if (ProcessNode->PeakPrivateBytesText) PhDereferenceObject(ProcessNode->PeakPrivateBytesText);
     if (ProcessNode->WorkingSetText) PhDereferenceObject(ProcessNode->WorkingSetText);
     if (ProcessNode->PeakWorkingSetText) PhDereferenceObject(ProcessNode->PeakWorkingSetText);
     if (ProcessNode->PrivateWsText) PhDereferenceObject(ProcessNode->PrivateWsText);
@@ -412,6 +438,10 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
     if (ProcessNode->CyclesText) PhDereferenceObject(ProcessNode->CyclesText);
     if (ProcessNode->CyclesDeltaText) PhDereferenceObject(ProcessNode->CyclesDeltaText);
+
+    PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
+    PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
+    PhDeleteGraphBuffers(&ProcessNode->IoGraphBuffers);
 
     PhDereferenceObject(ProcessNode->ProcessItem);
 
@@ -448,6 +478,11 @@ VOID PhTickProcessNodes()
             // The name and PID never change, so we don't invalidate that.
             memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
             node->ValidMask = 0;
+
+            // Invalidate graph buffers.
+            node->CpuGraphBuffers.Valid = FALSE;
+            node->PrivateGraphBuffers.Valid = FALSE;
+            node->IoGraphBuffers.Valid = FALSE;
 
             // Updates cycles if necessary.
             if (NeedCyclesInformation)
@@ -1226,8 +1261,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 }
                 break;
             case PHPRTLC_PRIVATEBYTES:
-                PhSwapReference2(&node->PrivateMemoryText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
-                getNodeText->Text = node->PrivateMemoryText->sr;
+                PhSwapReference2(&node->PrivateBytesText, PhFormatSize(processItem->VmCounters.PagefileUsage, -1));
+                getNodeText->Text = node->PrivateBytesText->sr;
                 break;
             case PHPRTLC_USERNAME:
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->UserName);
@@ -1248,8 +1283,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 getNodeText->Text = PhGetStringRefOrEmpty(processItem->CommandLine);
                 break;
             case PHPRTLC_PEAKPRIVATEBYTES:
-                PhSwapReference2(&node->PeakPrivateMemoryText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
-                getNodeText->Text = node->PeakPrivateMemoryText->sr;
+                PhSwapReference2(&node->PeakPrivateBytesText, PhFormatSize(processItem->VmCounters.PeakPagefileUsage, -1));
+                getNodeText->Text = node->PeakPrivateBytesText->sr;
                 break;
             case PHPRTLC_WORKINGSET:
                 PhSwapReference2(&node->WorkingSetText, PhFormatSize(processItem->VmCounters.WorkingSetSize, -1));
@@ -1631,6 +1666,168 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 getNodeTooltip->Text = node->TooltipText->sr;
             else
                 return FALSE;
+        }
+        return TRUE;
+    case TreeListCustomDraw:
+        {
+            PPH_TREELIST_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_PROCESS_ITEM processItem;
+            RECT rect;
+            PH_GRAPH_DRAW_INFO drawInfo;
+            POINT origPoint;
+
+            node = (PPH_PROCESS_NODE)customDraw->Node;
+            processItem = node->ProcessItem;
+            rect = customDraw->CellRect;
+
+            // Fix for the first column.
+            if (customDraw->Column->DisplayIndex == 0)
+                rect.left = customDraw->TextRect.left;
+
+            // Generic graph pre-processing
+            switch (customDraw->Column->Id)
+            {
+            case PHPRTLC_CPUHISTORY:
+            case PHPRTLC_PRIVATEBYTESHISTORY:
+            case PHPRTLC_IOHISTORY:
+                memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
+                drawInfo.Width = rect.right - rect.left;
+                drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
+                drawInfo.Step = 2;
+                drawInfo.BackColor = RGB(0x00, 0x00, 0x00);
+                break;
+            }
+
+            // Specific graph processing
+            switch (customDraw->Column->Id)
+            {
+            case PHPRTLC_CPUHISTORY:
+                {
+                    drawInfo.Flags = PH_GRAPH_USE_LINE_2;
+                    drawInfo.LineColor1 = PhCsColorCpuKernel;
+                    drawInfo.LineColor2 = PhCsColorCpuUser;
+                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
+                    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
+
+                    PhGetDrawInfoGraphBuffers(
+                        &node->CpuGraphBuffers,
+                        &drawInfo,
+                        processItem->CpuKernelHistory.Count
+                        );
+
+                    if (!node->CpuGraphBuffers.Valid)
+                    {
+                        PhCopyCircularBuffer_FLOAT(&processItem->CpuKernelHistory,
+                            node->CpuGraphBuffers.Data1, drawInfo.LineDataCount);
+                        PhCopyCircularBuffer_FLOAT(&processItem->CpuUserHistory,
+                            node->CpuGraphBuffers.Data2, drawInfo.LineDataCount);
+                        node->CpuGraphBuffers.Valid = TRUE;
+                    }
+                }
+                break;
+            case PHPRTLC_PRIVATEBYTESHISTORY:
+                {
+                    drawInfo.Flags = 0;
+                    drawInfo.LineColor1 = PhCsColorPrivate;
+                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
+
+                    PhGetDrawInfoGraphBuffers(
+                        &node->PrivateGraphBuffers,
+                        &drawInfo,
+                        processItem->PrivateBytesHistory.Count
+                        );
+
+                    if (!node->PrivateGraphBuffers.Valid)
+                    {
+                        ULONG i;
+
+                        for (i = 0; i < drawInfo.LineDataCount; i++)
+                        {
+                            node->PrivateGraphBuffers.Data1[i] =
+                                (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
+                        }
+
+                        if (processItem->VmCounters.PeakPagefileUsage != 0)
+                        {
+                            // Scale the data.
+                            PhxfDivideSingle2U(
+                                node->PrivateGraphBuffers.Data1,
+                                (FLOAT)processItem->VmCounters.PeakPagefileUsage,
+                                drawInfo.LineDataCount
+                                );
+                        }
+
+                        node->PrivateGraphBuffers.Valid = TRUE;
+                    }
+                }
+                break;
+            case PHPRTLC_IOHISTORY:
+                {
+                    drawInfo.Flags = PH_GRAPH_USE_LINE_2;
+                    drawInfo.LineColor1 = PhCsColorIoReadOther;
+                    drawInfo.LineColor2 = PhCsColorIoWrite;
+                    drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
+                    drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
+
+                    PhGetDrawInfoGraphBuffers(
+                        &node->IoGraphBuffers,
+                        &drawInfo,
+                        processItem->IoReadHistory.Count
+                        );
+
+                    if (!node->IoGraphBuffers.Valid)
+                    {
+                        ULONG i;
+                        FLOAT max = 0;
+
+                        for (i = 0; i < drawInfo.LineDataCount; i++)
+                        {
+                            FLOAT data1;
+                            FLOAT data2;
+
+                            node->IoGraphBuffers.Data1[i] = data1 =
+                                (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoReadHistory, i) +
+                                (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, i);
+                            node->IoGraphBuffers.Data2[i] = data2 =
+                                (FLOAT)PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, i);
+
+                            if (max < data1 + data2)
+                                max = data1 + data2;
+                        }
+
+                        if (max != 0)
+                        {
+                            // Scale the data.
+
+                            PhxfDivideSingle2U(
+                                node->IoGraphBuffers.Data1,
+                                max,
+                                drawInfo.LineDataCount
+                                );
+                            PhxfDivideSingle2U(
+                                node->IoGraphBuffers.Data2,
+                                max,
+                                drawInfo.LineDataCount
+                                );
+                        }
+
+                        node->IoGraphBuffers.Valid = TRUE;
+                    }
+                }
+                break;
+            }
+
+            // Draw the graph.
+            switch (customDraw->Column->Id)
+            {
+            case PHPRTLC_CPUHISTORY:
+            case PHPRTLC_PRIVATEBYTESHISTORY:
+            case PHPRTLC_IOHISTORY:
+                SetViewportOrgEx(customDraw->Dc, rect.left, rect.top + 1, &origPoint); // + 1 for small gap
+                PhDrawGraph(customDraw->Dc, &drawInfo);
+                SetViewportOrgEx(customDraw->Dc, origPoint.x, origPoint.y, NULL);
+                break;
+            }
         }
         return TRUE;
     case TreeListSortChanged:

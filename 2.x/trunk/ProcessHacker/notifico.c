@@ -1,6 +1,5 @@
 #include <phapp.h>
 #include <settings.h>
-#include <graph.h>
 
 static HICON BlackIcon = NULL;
 static HBITMAP BlackIconMask = NULL;

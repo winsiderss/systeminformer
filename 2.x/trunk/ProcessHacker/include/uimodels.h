@@ -143,8 +143,11 @@ FORCEINLINE VOID PhChangeShState(
 #define PHPRTLC_WINDOWSTATUS 43
 #define PHPRTLC_CYCLES 44
 #define PHPRTLC_CYCLESDELTA 45
+#define PHPRTLC_CPUHISTORY 46
+#define PHPRTLC_PRIVATEBYTESHISTORY 47
+#define PHPRTLC_IOHISTORY 48
 
-#define PHPRTLC_MAXIMUM 46
+#define PHPRTLC_MAXIMUM 49
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
@@ -188,10 +191,11 @@ typedef struct _PH_PROCESS_NODE
 
     PPH_STRING TooltipText;
 
+    // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
     PPH_STRING IoTotalText;
-    PPH_STRING PrivateMemoryText;
-    PPH_STRING PeakPrivateMemoryText;
+    PPH_STRING PrivateBytesText;
+    PPH_STRING PeakPrivateBytesText;
     PPH_STRING WorkingSetText;
     PPH_STRING PeakWorkingSetText;
     PPH_STRING PrivateWsText;
@@ -216,6 +220,11 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING WindowTitleText;
     PPH_STRING CyclesText;
     PPH_STRING CyclesDeltaText;
+
+    // Graph buffers
+    PH_GRAPH_BUFFERS CpuGraphBuffers;
+    PH_GRAPH_BUFFERS PrivateGraphBuffers;
+    PH_GRAPH_BUFFERS IoGraphBuffers;
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
 
 VOID PhProcessTreeListInitialization();
