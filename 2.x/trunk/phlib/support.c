@@ -2695,39 +2695,51 @@ NTSTATUS PhCreateProcessAsUser(
     if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
     {
         HANDLE linkedTokenHandle;
+        TOKEN_TYPE tokenType;
+        ULONG returnLength;
+
+        // NtQueryInformationToken normally returns an impersonation token with SecurityIdentification,
+        // but if the process is running with SeTcbPrivilege, it returns a primary token. We can never 
+        // duplicate a SecurityIdentification impersonation token to make it a primary token, so we just 
+        // check if the token is primary before using it.
 
         if (NT_SUCCESS(PhGetTokenLinkedToken(tokenHandle, &linkedTokenHandle)))
         {
-            NtClose(tokenHandle);
-            tokenHandle = linkedTokenHandle;
-            needsDuplicate = TRUE; // returned linked token handle is an impersonation token; need to convert to primary
+            if (NT_SUCCESS(NtQueryInformationToken(
+                linkedTokenHandle,
+                TokenType,
+                &tokenType,
+                sizeof(TOKEN_TYPE),
+                &returnLength
+                )) && tokenType == TokenPrimary)
+            {
+                NtClose(tokenHandle);
+                tokenHandle = linkedTokenHandle;
+            }
+            else
+            {
+                NtClose(linkedTokenHandle);
+            }
         }
     }
 
     if (needsDuplicate)
     {
         HANDLE newTokenHandle;
-        OBJECT_ATTRIBUTES oa;
-        SECURITY_QUALITY_OF_SERVICE securityQos;
-
-        securityQos.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
-        securityQos.ImpersonationLevel = SecurityImpersonation;
-        securityQos.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
-        securityQos.EffectiveOnly = FALSE;
+        OBJECT_ATTRIBUTES objectAttributes;
 
         InitializeObjectAttributes(
-            &oa,
+            &objectAttributes,
             NULL,
             0,
             NULL,
             NULL
             );
-        oa.SecurityQualityOfService = &securityQos;
 
         status = NtDuplicateToken(
             tokenHandle,
             TOKEN_ALL_ACCESS,
-            &oa,
+            &objectAttributes,
             FALSE,
             TokenPrimary,
             &newTokenHandle
