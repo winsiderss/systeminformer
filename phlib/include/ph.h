@@ -2406,18 +2406,27 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
     __in_opt PWSTR CommandLine;
     __in_opt PWSTR CurrentDirectory;
     __in_opt PVOID Environment;
-    __in_opt PWSTR DomainName;
-    __in_opt PWSTR UserName;
-    __in_opt PWSTR Password;
-    __in_opt ULONG LogonType;
-    __in_opt HANDLE ProcessIdWithToken; // can't use with DomainName/UserName/Password
-    __in_opt ULONG SessionId; // need to specify PH_CREATE_PROCESS_SET_SESSION_ID
     __in_opt PWSTR DesktopName;
+    __in_opt ULONG SessionId; // use PH_CREATE_PROCESS_SET_SESSION_ID
+    union
+    {
+        struct
+        {
+            __in PWSTR DomainName;
+            __in PWSTR UserName;
+            __in PWSTR Password;
+            __in_opt ULONG LogonType;
+        };
+        __in HANDLE ProcessIdWithToken; // use PH_CREATE_PROCESS_USE_PROCESS_TOKEN
+        __in ULONG SessionIdWithToken; // use PH_CREATE_PROCESS_USE_SESSION_TOKEN
+    };
 } PH_CREATE_PROCESS_AS_USER_INFO, *PPH_CREATE_PROCESS_AS_USER_INFO;
 
-#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x1000
-#define PH_CREATE_PROCESS_SET_SESSION_ID 0x2000
-#define PH_CREATE_PROCESS_WITH_PROFILE 0x4000
+#define PH_CREATE_PROCESS_USE_PROCESS_TOKEN 0x1000
+#define PH_CREATE_PROCESS_USE_SESSION_TOKEN 0x2000
+#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x10000
+#define PH_CREATE_PROCESS_SET_SESSION_ID 0x20000
+#define PH_CREATE_PROCESS_WITH_PROFILE 0x40000
 
 PHLIBAPI
 NTSTATUS PhCreateProcessAsUser(

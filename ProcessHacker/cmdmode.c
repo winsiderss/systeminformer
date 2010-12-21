@@ -161,10 +161,10 @@ NTSTATUS PhCommandModeStart()
                 PhStartupParameters.CommandObject->Buffer,
                 SERVICE_START
                 )))
-                return NTSTATUS_FROM_WIN32(GetLastError());
+                return PhGetLastWin32ErrorAsNtStatus();
 
             if (!StartService(serviceHandle, 0, NULL))
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             CloseServiceHandle(serviceHandle);
         }
@@ -174,10 +174,10 @@ NTSTATUS PhCommandModeStart()
                 PhStartupParameters.CommandObject->Buffer,
                 SERVICE_PAUSE_CONTINUE
                 )))
-                return NTSTATUS_FROM_WIN32(GetLastError());
+                return PhGetLastWin32ErrorAsNtStatus();
 
             if (!ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             CloseServiceHandle(serviceHandle);
         }
@@ -187,10 +187,10 @@ NTSTATUS PhCommandModeStart()
                 PhStartupParameters.CommandObject->Buffer,
                 SERVICE_PAUSE_CONTINUE
                 )))
-                return NTSTATUS_FROM_WIN32(GetLastError());
+                return PhGetLastWin32ErrorAsNtStatus();
 
             if (!ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             CloseServiceHandle(serviceHandle);
         }
@@ -200,10 +200,10 @@ NTSTATUS PhCommandModeStart()
                 PhStartupParameters.CommandObject->Buffer,
                 SERVICE_STOP
                 )))
-                return NTSTATUS_FROM_WIN32(GetLastError());
+                return PhGetLastWin32ErrorAsNtStatus();
 
             if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             CloseServiceHandle(serviceHandle);
         }
@@ -213,10 +213,10 @@ NTSTATUS PhCommandModeStart()
                 PhStartupParameters.CommandObject->Buffer,
                 DELETE
                 )))
-                return NTSTATUS_FROM_WIN32(GetLastError());
+                return PhGetLastWin32ErrorAsNtStatus();
 
             if (!DeleteService(serviceHandle))
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             CloseServiceHandle(serviceHandle);
         }
