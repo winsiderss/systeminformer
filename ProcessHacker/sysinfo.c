@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <kph.h>
 #include <settings.h>
-#include <graph.h>
 #include <windowsx.h>
 
 #define WM_PH_SYSINFO_ACTIVATE (WM_APP + 150)

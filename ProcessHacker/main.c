@@ -24,8 +24,6 @@
 #include <phapp.h>
 #include <kph.h>
 #include <settings.h>
-#include <treelist.h>
-#include <graph.h>
 #include <hexedit.h>
 #include <shlobj.h>
 

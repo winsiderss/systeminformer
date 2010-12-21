@@ -3,6 +3,7 @@ Process Hacker
 2.10
  * NEW/IMPROVED:
    * Added Run As Limited User
+   * Added CPU, private bytes and I/O history columns
    * Added font selection
    * Slightly improved highlighting configuration
  * FIXED:
