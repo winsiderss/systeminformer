@@ -864,14 +864,64 @@ LRESULT CALLBACK PhpGraphWndProc(
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+VOID PhInitializeGraphBuffers(
+    __out PPH_GRAPH_BUFFERS Buffers
+    )
+{
+    Buffers->AllocatedCount = 0;
+    Buffers->Data1 = NULL;
+    Buffers->Data2 = NULL;
+    Buffers->Valid = FALSE;
+}
+
+VOID PhDeleteGraphBuffers(
+    __inout PPH_GRAPH_BUFFERS Buffers
+    )
+{
+    if (Buffers->Data1) PhFree(Buffers->Data1);
+    if (Buffers->Data2) PhFree(Buffers->Data2);
+}
+
+VOID PhGetDrawInfoGraphBuffers(
+    __inout PPH_GRAPH_BUFFERS Buffers,
+    __inout PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in ULONG DataCount
+    )
+{
+    DrawInfo->LineDataCount = min(DataCount, PH_GRAPH_DATA_COUNT(DrawInfo->Width, DrawInfo->Step));
+
+    // Do we need to allocate or re-allocate the data buffers?
+    if (Buffers->AllocatedCount < DrawInfo->LineDataCount)
+    {
+        if (Buffers->Data1)
+            PhFree(Buffers->Data1);
+        if ((DrawInfo->Flags & PH_GRAPH_USE_LINE_2) && Buffers->Data2)
+            PhFree(Buffers->Data2);
+
+        Buffers->AllocatedCount *= 2;
+
+        if (Buffers->AllocatedCount < DrawInfo->LineDataCount)
+            Buffers->AllocatedCount = DrawInfo->LineDataCount;
+
+        Buffers->Data1 = PhAllocate(Buffers->AllocatedCount * sizeof(FLOAT));
+
+        if (DrawInfo->Flags & PH_GRAPH_USE_LINE_2)
+        {
+            Buffers->Data2 = PhAllocate(Buffers->AllocatedCount * sizeof(FLOAT));
+        }
+
+        Buffers->Valid = FALSE;
+    }
+
+    DrawInfo->LineData1 = Buffers->Data1;
+    DrawInfo->LineData2 = Buffers->Data2;
+}
+
 VOID PhInitializeGraphState(
     __out PPH_GRAPH_STATE State
     )
 {
-    State->AllocatedCount = 0;
-    State->Data1 = NULL;
-    State->Data2 = NULL;
-    State->Valid = FALSE;
+    PhInitializeGraphBuffers(&State->Buffers);
     State->Text = NULL;
     State->TooltipText = NULL;
     State->TooltipIndex = -1;
@@ -881,8 +931,7 @@ VOID PhDeleteGraphState(
     __inout PPH_GRAPH_STATE State
     )
 {
-    if (State->Data1) PhFree(State->Data1);
-    if (State->Data2) PhFree(State->Data2);
+    PhDeleteGraphBuffers(&State->Buffers);
     if (State->Text) PhDereferenceObject(State->Text);
     if (State->TooltipText) PhDereferenceObject(State->TooltipText);
 }
@@ -893,34 +942,5 @@ VOID PhGraphStateGetDrawInfo(
     __in ULONG DataCount
     )
 {
-    PPH_GRAPH_DRAW_INFO drawInfo;
-
-    drawInfo = GetDrawInfo->DrawInfo;
-
-    drawInfo->LineDataCount = min(DataCount, PH_GRAPH_DATA_COUNT(drawInfo->Width, drawInfo->Step));
-
-    // Do we need to allocate or re-allocate the data buffers?
-    if (State->AllocatedCount < drawInfo->LineDataCount)
-    {
-        if (State->Data1)
-            PhFree(State->Data1);
-        if ((drawInfo->Flags & PH_GRAPH_USE_LINE_2) && State->Data2)
-            PhFree(State->Data2);
-
-        State->AllocatedCount *= 2;
-
-        if (State->AllocatedCount < drawInfo->LineDataCount)
-            State->AllocatedCount = drawInfo->LineDataCount;
-
-        State->Data1 = PhAllocate(State->AllocatedCount * sizeof(FLOAT));
-        drawInfo->LineData1 = State->Data1;
-
-        if (drawInfo->Flags & PH_GRAPH_USE_LINE_2)
-        {
-            State->Data2 = PhAllocate(State->AllocatedCount * sizeof(FLOAT));
-            drawInfo->LineData2 = State->Data2;
-        }
-
-        State->Valid = FALSE;
-    }
+    PhGetDrawInfoGraphBuffers(&State->Buffers, GetDrawInfo->DrawInfo, DataCount);
 }

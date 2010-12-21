@@ -1672,6 +1672,13 @@ static VOID PhpCustomDrawPrePaintSubItem(
         tlCustomDraw.CellRect = cellRect;
         tlCustomDraw.TextRect = textRect;
 
+        // Fix up the rectangles so the caller doesn't get confused.
+        // Some of the x values may be larger than the y values, for example.
+        if (tlCustomDraw.CellRect.right < tlCustomDraw.CellRect.left)
+            tlCustomDraw.CellRect.right = tlCustomDraw.CellRect.left;
+        if (tlCustomDraw.TextRect.right < tlCustomDraw.TextRect.left)
+            tlCustomDraw.TextRect.right = tlCustomDraw.TextRect.left;
+
         savedDc = SaveDC(hdc);
         result = Context->Callback(Context->Handle, TreeListCustomDraw, &tlCustomDraw, NULL, Context->Context);
         RestoreDC(hdc, savedDc);
