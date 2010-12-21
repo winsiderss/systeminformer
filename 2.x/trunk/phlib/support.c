@@ -23,11 +23,21 @@
 #define _PH_SUPPORT_PRIVATE
 #include <phgui.h>
 #include <guisupp.h>
+#include <winsta.h>
 #include <md5.h>
 #include <sha.h>
 
 // We may want to change this for debugging purposes.
 #define PHP_USE_IFILEDIALOG (WINDOWS_HAS_IFILEDIALOG)
+
+typedef BOOLEAN (NTAPI *_WinStationQueryInformationW)(
+    __in_opt HANDLE ServerHandle,
+    __in ULONG LogonId,
+    __in WINSTATIONINFOCLASS WinStationInformationClass,
+    __out_bcount(WinStationInformationLength) PVOID WinStationInformation,
+    __in ULONG WinStationInformationLength,
+    __out PULONG ReturnLength
+    );
 
 typedef BOOL (WINAPI *_CreateEnvironmentBlock)(
     __out LPVOID *lpEnvironment,
@@ -2463,7 +2473,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             ))
             status = STATUS_SUCCESS;
         else
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
     }
     else
     {
@@ -2482,7 +2492,7 @@ NTSTATUS PhCreateProcessWin32Ex(
             ))
             status = STATUS_SUCCESS;
         else
-            status = NTSTATUS_FROM_WIN32(GetLastError());
+            status = PhGetLastWin32ErrorAsNtStatus();
     }
 
     if (commandLine)
@@ -2502,6 +2512,10 @@ NTSTATUS PhCreateProcessWin32Ex(
  *
  * \param Information Parameters specifying how to create the process.
  * \param Flags See PhCreateProcess(). Additional flags may be used:
+ * \li \c PH_CREATE_PROCESS_USE_PROCESS_TOKEN Use the token of the process specified 
+ * by \a ProcessIdWithToken in \a Information.
+ * \li \c PH_CREATE_PROCESS_USE_SESSION_TOKEN Use the token of the session specified 
+ * by \a SessionIdWithToken in \a Information.
  * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the 
  * process; this causes the process to be elevated or unelevated depending on the 
  * specified options.
@@ -2520,7 +2534,8 @@ NTSTATUS PhCreateProcessAsUser(
     __out_opt PHANDLE ThreadHandle
     )
 {
-    static PH_INITONCE userEnvInitOnce = PH_INITONCE_INIT;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static _WinStationQueryInformationW WinStationQueryInformationW_I = NULL;
     static _CreateEnvironmentBlock CreateEnvironmentBlock_I = NULL;
     static _DestroyEnvironmentBlock DestroyEnvironmentBlock_I = NULL;
 
@@ -2530,20 +2545,24 @@ NTSTATUS PhCreateProcessAsUser(
     STARTUPINFO startupInfo = { sizeof(startupInfo) };
     BOOLEAN needsDuplicate = FALSE;
 
-    if (PhBeginInitOnce(&userEnvInitOnce))
+    if (PhBeginInitOnce(&initOnce))
     {
+        HMODULE winsta;
         HMODULE userEnv;
+
+        winsta = LoadLibrary(L"winsta.dll");
+        WinStationQueryInformationW_I = (_WinStationQueryInformationW)GetProcAddress(winsta, "WinStationQueryInformationW");
 
         userEnv = LoadLibrary(L"userenv.dll");
         CreateEnvironmentBlock_I = (_CreateEnvironmentBlock)GetProcAddress(userEnv, "CreateEnvironmentBlock");
         DestroyEnvironmentBlock_I = (_DestroyEnvironmentBlock)GetProcAddress(userEnv, "DestroyEnvironmentBlock");
 
-        PhEndInitOnce(&userEnvInitOnce);
+        PhEndInitOnce(&initOnce);
     }
 
+    if ((Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN))
+        return STATUS_INVALID_PARAMETER_2;
     if (!Information->ApplicationName && !Information->CommandLine)
-        return STATUS_INVALID_PARAMETER_MIX;
-    if ((!Information->DomainName || !Information->UserName || !Information->Password) && !Information->ProcessIdWithToken)
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Whenever we can, try not to set the desktop name; it breaks a lot of things.
@@ -2559,7 +2578,7 @@ NTSTATUS PhCreateProcessAsUser(
 
         useWithLogon = TRUE;
 
-        if (!Information->DomainName || !Information->UserName || !Information->Password)
+        if (Flags & (PH_CREATE_PROCESS_USE_PROCESS_TOKEN | PH_CREATE_PROCESS_USE_SESSION_TOKEN))
             useWithLogon = FALSE;
 
         if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
@@ -2606,7 +2625,7 @@ NTSTATUS PhCreateProcessAsUser(
                 ))
                 status = STATUS_SUCCESS;
             else
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
 
             if (commandLine)
                 PhDereferenceObject(commandLine);
@@ -2620,11 +2639,55 @@ NTSTATUS PhCreateProcessAsUser(
         }
     }
 
-    // Get the token handle, either obtained by 
-    // logging in as a user or stealing a token from 
-    // another process.
+    // Get the token handle. Various methods are supported.
 
-    if (!Information->ProcessIdWithToken)
+    if (Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN)
+    {
+        HANDLE processHandle;
+
+        if (!NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            ProcessQueryAccess,
+            Information->ProcessIdWithToken
+            )))
+            return status;
+
+        status = PhOpenProcessToken(
+            &tokenHandle,
+            TOKEN_ALL_ACCESS,
+            processHandle
+            );
+        NtClose(processHandle);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+            needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
+    }
+    else if (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN)
+    {
+        WINSTATIONUSERTOKEN userToken;
+        ULONG returnLength;
+
+        if (!WinStationQueryInformationW_I)
+            return STATUS_PROCEDURE_NOT_FOUND;
+
+        if (!WinStationQueryInformationW_I(
+            NULL,
+            Information->SessionIdWithToken,
+            WinStationUserToken,
+            &userToken,
+            sizeof(WINSTATIONUSERTOKEN),
+            &returnLength
+            ))
+        {
+            return PhGetLastWin32ErrorAsNtStatus();
+        }
+
+        tokenHandle = userToken.UserToken;
+    }
+    else
     {
         ULONG logonType;
 
@@ -2665,31 +2728,7 @@ NTSTATUS PhCreateProcessAsUser(
             LOGON32_PROVIDER_DEFAULT,
             &tokenHandle
             ))
-            return NTSTATUS_FROM_WIN32(GetLastError());
-    }
-    else
-    {
-        HANDLE processHandle;
-
-        if (!NT_SUCCESS(status = PhOpenProcess(
-            &processHandle,
-            ProcessQueryAccess,
-            Information->ProcessIdWithToken
-            )))
-            return status;
-
-        status = PhOpenProcessToken(
-            &tokenHandle,
-            TOKEN_ALL_ACCESS,
-            processHandle
-            );
-        NtClose(processHandle);
-
-        if (!NT_SUCCESS(status))
-            return status;
-
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
-            needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
+            return PhGetLastWin32ErrorAsNtStatus();
     }
 
     if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)

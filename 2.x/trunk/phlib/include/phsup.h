@@ -425,6 +425,16 @@ FORCEINLINE VOID PhPrintPointer(
 
 // Misc.
 
+FORCEINLINE NTSTATUS PhGetLastWin32ErrorAsNtStatus()
+{
+    ULONG win32Result;
+
+    // This is needed because NTSTATUS_FROM_WIN32 uses the argument multiple times.
+    win32Result = GetLastError();
+
+    return NTSTATUS_FROM_WIN32(win32Result);
+}
+
 FORCEINLINE ULONG PhCountBits(
     __in ULONG Value
     )

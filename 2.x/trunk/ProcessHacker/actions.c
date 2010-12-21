@@ -1566,7 +1566,7 @@ BOOLEAN PhUiStartService(
     {
         NTSTATUS status;
 
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (!PhpShowErrorAndElevateAction(
             hWnd,
@@ -1607,7 +1607,7 @@ BOOLEAN PhUiContinueService(
     {
         NTSTATUS status;
 
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (!PhpShowErrorAndElevateAction(
             hWnd,
@@ -1648,7 +1648,7 @@ BOOLEAN PhUiPauseService(
     {
         NTSTATUS status;
 
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (!PhpShowErrorAndElevateAction(
             hWnd,
@@ -1689,7 +1689,7 @@ BOOLEAN PhUiStopService(
     {
         NTSTATUS status;
 
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (!PhpShowErrorAndElevateAction(
             hWnd,
@@ -1739,7 +1739,7 @@ BOOLEAN PhUiDeleteService(
     {
         NTSTATUS status;
 
-        status = NTSTATUS_FROM_WIN32(GetLastError());
+        status = PhGetLastWin32ErrorAsNtStatus();
 
         if (!PhpShowErrorAndElevateAction(
             hWnd,
@@ -2613,7 +2613,7 @@ BOOLEAN PhUiDestroyHeap(
                 NULL
                 )))
             {
-                status = NTSTATUS_FROM_WIN32(GetLastError());
+                status = PhGetLastWin32ErrorAsNtStatus();
             }
         }
 
