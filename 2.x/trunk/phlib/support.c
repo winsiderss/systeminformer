@@ -2841,39 +2841,33 @@ NTSTATUS PhCreateProcessAsUser(
 }
 
 NTSTATUS PhpGetAccountPrivileges(
-    __in PSID Account,
+    __in PSID AccountSid,
     __out PTOKEN_PRIVILEGES *Privileges
     )
 {
     NTSTATUS status;
-    LSA_HANDLE policyHandle;
-    PUNICODE_STRING userRights;
-    ULONG countOfRights;
+    LSA_HANDLE accountHandle;
+    PPRIVILEGE_SET accountPrivileges;
     PTOKEN_PRIVILEGES privileges;
-    ULONG i;
 
-    if (!NT_SUCCESS(status = PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES, NULL)))
+    status = LsaOpenAccount(PhGetLookupPolicyHandle(), AccountSid, ACCOUNT_VIEW, &accountHandle);
+
+    if (!NT_SUCCESS(status))
         return status;
 
-    status = LsaEnumerateAccountRights(policyHandle, Account, &userRights, &countOfRights);
+    status = LsaEnumeratePrivilegesOfAccount(accountHandle, &accountPrivileges);
+    LsaClose(accountHandle);
 
-    if (NT_SUCCESS(status))
-    {
-        privileges = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * countOfRights);
-        privileges->PrivilegeCount = countOfRights;
+    if (!NT_SUCCESS(status))
+        return status;
 
-        for (i = 0; i < countOfRights; i++)
-        {
-            privileges->Privileges[i].Attributes = 0;
-            LsaLookupPrivilegeValue(policyHandle, &userRights[i], &privileges->Privileges[i].Luid);
-        }
+    privileges = PhAllocate(FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
+    privileges->PrivilegeCount = accountPrivileges->PrivilegeCount;
+    memcpy(privileges->Privileges, accountPrivileges->Privilege, sizeof(LUID_AND_ATTRIBUTES) * accountPrivileges->PrivilegeCount);
 
-        LsaFreeMemory(userRights);
+    LsaFreeMemory(accountPrivileges);
 
-        *Privileges = privileges;
-    }
-
-    LsaClose(policyHandle);
+    *Privileges = privileges;
 
     return status;
 }
