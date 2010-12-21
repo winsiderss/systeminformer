@@ -33,6 +33,9 @@
 #include <winsta.h>
 #include <iphlpapi.h>
 
+#define RUNAS_MODE_ADMIN 1
+#define RUNAS_MODE_LIMITED 2
+
 typedef HRESULT (WINAPI *_LoadIconMetric)(
     __in HINSTANCE hinst,
     __in PCWSTR pszName,
@@ -247,7 +250,7 @@ static BOOLEAN NetworkNeedsSort = FALSE;
 static PH_IMAGE_LIST_WRAPPER NetworkImageListWrapper;
 
 static PPH_PLUGIN_MENU_ITEM SelectedMenuItemPlugin;
-static BOOLEAN SelectedRunAsAdmin;
+static ULONG SelectedRunAsMode;
 static HWND SelectedProcessWindowHandle;
 static BOOLEAN SelectedProcessVirtualizationEnabled;
 static ULONG SelectedUserSessionId;
@@ -502,7 +505,7 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (RunFileDlg)
                     {
-                        SelectedRunAsAdmin = FALSE;
+                        SelectedRunAsMode = 0;
                         RunFileDlg(hWnd, NULL, NULL, NULL, NULL, 0);
                     }
                 }
@@ -511,13 +514,29 @@ LRESULT CALLBACK PhMainWndProc(
                 {
                     if (RunFileDlg)
                     {
-                        SelectedRunAsAdmin = TRUE;
+                        SelectedRunAsMode = RUNAS_MODE_ADMIN;
                         RunFileDlg(
                             hWnd,
                             NULL,
                             NULL,
                             NULL, 
                             L"Type the name of a program that will be opened under alternate credentials.",
+                            0
+                            );
+                    }
+                }
+                break;
+            case ID_HACKER_RUNASLIMITEDUSER:
+                {
+                    if (RunFileDlg)
+                    {
+                        SelectedRunAsMode = RUNAS_MODE_LIMITED;
+                        RunFileDlg(
+                            hWnd,
+                            NULL,
+                            NULL,
+                            NULL, 
+                            L"Type the name of a program that will be opened under standard user privileges.",
                             0
                             );
                     }
@@ -1596,18 +1615,66 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 PhMainWndNetworkListViewOnNotify(header);
             }
-            else if (header->code == RFN_VALIDATE && SelectedRunAsAdmin)
+            else if (header->code == RFN_VALIDATE)
             {
                 LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
 
-                if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
-                    NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+                if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
                 {
-                    return RF_CANCEL;
+                    if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
+                        NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+                    {
+                        return RF_CANCEL;
+                    }
+                    else
+                    {
+                        return RF_RETRY;
+                    }
                 }
-                else
+                else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
                 {
-                    return RF_RETRY;
+                    NTSTATUS status;
+                    HANDLE tokenHandle;
+                    HANDLE newTokenHandle;
+
+                    if (NT_SUCCESS(status = NtOpenProcessToken(
+                        NtCurrentProcess(),
+                        TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS | 
+                        TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
+                        &tokenHandle
+                        )))
+                    {
+                        if (NT_SUCCESS(status = PhFilterTokenForLimitedUser(
+                            tokenHandle,
+                            &newTokenHandle
+                            )))
+                        {
+                            status = PhCreateProcessWin32(
+                                NULL,
+                                (PWSTR)runFileDlg->lpszFile,
+                                NULL,
+                                NULL,
+                                0,
+                                newTokenHandle,
+                                NULL,
+                                NULL
+                                );
+
+                            NtClose(newTokenHandle);
+                        }
+
+                        NtClose(tokenHandle);
+                    }
+
+                    if (NT_SUCCESS(status))
+                    {
+                        return RF_CANCEL;
+                    }
+                    else
+                    {
+                        PhShowStatus(hWnd, L"Unable to execute the program", status, 0);
+                        return RF_RETRY;
+                    }
                 }
             }
         }

@@ -2428,6 +2428,11 @@ NTSTATUS PhCreateProcessAsUser(
     __out_opt PHANDLE ThreadHandle
     );
 
+NTSTATUS PhFilterTokenForLimitedUser(
+    __in HANDLE TokenHandle,
+    __out PHANDLE NewTokenHandle
+    );
+
 PHLIBAPI
 VOID PhShellExecute(
     __in HWND hWnd,

@@ -2,6 +2,7 @@ Process Hacker
 
 2.10
  * NEW/IMPROVED:
+   * Added Run As Limited User
    * Added font selection
    * Slightly improved highlighting configuration
  * FIXED:

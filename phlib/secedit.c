@@ -491,7 +491,8 @@ NTSTATUS PhSetSeObjectSecurity(
 {
     ULONG win32Result;
     SECURITY_INFORMATION securityInformation = 0;
-    BOOLEAN dummy;
+    BOOLEAN present;
+    BOOLEAN defaulted;
     PSID owner = NULL;
     PSID group = NULL;
     PACL dacl = NULL;
@@ -499,25 +500,25 @@ NTSTATUS PhSetSeObjectSecurity(
 
     if (SecurityInformation & OWNER_SECURITY_INFORMATION)
     {
-        if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &dummy)))
+        if (NT_SUCCESS(RtlGetOwnerSecurityDescriptor(SecurityDescriptor, &owner, &defaulted)))
             securityInformation |= OWNER_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & GROUP_SECURITY_INFORMATION)
     {
-        if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &dummy)))
+        if (NT_SUCCESS(RtlGetGroupSecurityDescriptor(SecurityDescriptor, &group, &defaulted)))
             securityInformation |= GROUP_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & DACL_SECURITY_INFORMATION)
     {
-        if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &dummy, &dacl, &dummy)))
+        if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(SecurityDescriptor, &present, &dacl, &defaulted)) && present)
             securityInformation |= DACL_SECURITY_INFORMATION;
     }
 
     if (SecurityInformation & SACL_SECURITY_INFORMATION)
     {
-        if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &dummy, &sacl, &dummy)))
+        if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(SecurityDescriptor, &present, &sacl, &defaulted)) && present)
             securityInformation |= SACL_SECURITY_INFORMATION;
     }
 
