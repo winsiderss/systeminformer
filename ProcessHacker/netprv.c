@@ -519,15 +519,17 @@ VOID PhNetworkProviderUpdate(
     if (!NetworkImportDone)
     {
         WSADATA wsaData;
+        HMODULE iphlpapi;
+        HMODULE ws2_32;
 
-        LoadLibrary(L"iphlpapi.dll");
-        GetExtendedTcpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedTcpTable");
-        GetExtendedUdpTable_I = PhGetProcAddress(L"iphlpapi.dll", "GetExtendedUdpTable");
-        LoadLibrary(L"ws2_32.dll");
-        WSAStartup_I = PhGetProcAddress(L"ws2_32.dll", "WSAStartup");
-        WSAGetLastError_I = PhGetProcAddress(L"ws2_32.dll", "WSAGetLastError");
-        GetNameInfoW_I = PhGetProcAddress(L"ws2_32.dll", "GetNameInfoW");
-        gethostbyaddr_I = PhGetProcAddress(L"ws2_32.dll", "gethostbyaddr");
+        iphlpapi = LoadLibrary(L"iphlpapi.dll");
+        GetExtendedTcpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedTcpTable");
+        GetExtendedUdpTable_I = (PVOID)GetProcAddress(iphlpapi, "GetExtendedUdpTable");
+        ws2_32 = LoadLibrary(L"ws2_32.dll");
+        WSAStartup_I = (PVOID)GetProcAddress(ws2_32, "WSAStartup");
+        WSAGetLastError_I = (PVOID)GetProcAddress(ws2_32, "WSAGetLastError");
+        GetNameInfoW_I = (PVOID)GetProcAddress(ws2_32, "GetNameInfoW");
+        gethostbyaddr_I = (PVOID)GetProcAddress(ws2_32, "gethostbyaddr");
 
         // Make sure WSA is initialized.
         if (WSAStartup_I)

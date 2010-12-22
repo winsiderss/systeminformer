@@ -710,7 +710,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                         if (!IoGraphState.Valid)
                         {
-                            ULONG i;
                             FLOAT max = 0;
 
                             for (i = 0; i < drawInfo->LineDataCount; i++)
@@ -787,8 +786,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
 
                         if (!PhysicalGraphState.Valid)
                         {
-                            ULONG i;
-
                             for (i = 0; i < drawInfo->LineDataCount; i++)
                             {
                                 PhysicalGraphState.Data1[i] =

@@ -48,7 +48,7 @@ VOID
 NTAPI
 T___(PhCopyCircularBuffer, T)(
     __inout T___(PPH_CIRCULAR_BUFFER, T) Buffer,
-    __out T *Destination,
+    __out_ecount(Count) T *Destination,
     __in ULONG Count
     );
 

@@ -185,9 +185,12 @@ HBITMAP PhIconToBitmap(
 
     if (!ImportsInitialized)
     {
-        BeginBufferedPaint_I = PhGetProcAddress(L"uxtheme.dll", "BeginBufferedPaint");
-        EndBufferedPaint_I = PhGetProcAddress(L"uxtheme.dll", "EndBufferedPaint");
-        GetBufferedPaintBits_I = PhGetProcAddress(L"uxtheme.dll", "GetBufferedPaintBits");
+        HMODULE uxtheme;
+
+        uxtheme = GetModuleHandle(L"uxtheme.dll");
+        BeginBufferedPaint_I = (PVOID)GetProcAddress(uxtheme, "BeginBufferedPaint");
+        EndBufferedPaint_I = (PVOID)GetProcAddress(uxtheme, "EndBufferedPaint");
+        GetBufferedPaintBits_I = (PVOID)GetProcAddress(uxtheme, "GetBufferedPaintBits");
         ImportsInitialized = TRUE;
     }
 

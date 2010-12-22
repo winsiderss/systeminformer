@@ -142,7 +142,6 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
             else if (type == PH_CHOICE_DIALOG_USER_CHOICE && context->SavedChoicesSettingName)
             {
                 PPH_STRING savedChoices = PhGetStringSetting(context->SavedChoicesSettingName);
-                ULONG i;
                 ULONG indexOfDelim;
                 PPH_STRING savedChoice;
 
