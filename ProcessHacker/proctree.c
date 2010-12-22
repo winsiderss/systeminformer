@@ -1737,6 +1737,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     if (!node->PrivateGraphBuffers.Valid)
                     {
                         ULONG i;
+                        FLOAT total;
+                        FLOAT max;
 
                         for (i = 0; i < drawInfo.LineDataCount; i++)
                         {
@@ -1744,12 +1746,20 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                                 (FLOAT)PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, i);
                         }
 
-                        if (processItem->VmCounters.PeakPagefileUsage != 0)
+                        // This makes it easier for the user to see what processes are hogging memory.
+                        // Scaling is still *not* consistent across all graphs.
+                        total = (FLOAT)PhPerfInformation.CommittedPages * PAGE_SIZE / 4; // divide by 4 to make the scaling a bit better
+                        max = (FLOAT)processItem->VmCounters.PeakPagefileUsage;
+
+                        if (max < total)
+                            max = total;
+
+                        if (max != 0)
                         {
                             // Scale the data.
                             PhxfDivideSingle2U(
                                 node->PrivateGraphBuffers.Data1,
-                                (FLOAT)processItem->VmCounters.PeakPagefileUsage,
+                                max,
                                 drawInfo.LineDataCount
                                 );
                         }
@@ -1775,6 +1785,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                     if (!node->IoGraphBuffers.Valid)
                     {
                         ULONG i;
+                        FLOAT total;
                         FLOAT max = 0;
 
                         for (i = 0; i < drawInfo.LineDataCount; i++)
@@ -1791,6 +1802,13 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                             if (max < data1 + data2)
                                 max = data1 + data2;
                         }
+
+                        // Make the scaling a bit more consistent across the processes.
+                        // It does *not* scale all graphs using the same maximum.
+                        total = (FLOAT)(PhIoReadDelta.Delta + PhIoWriteDelta.Delta + PhIoOtherDelta.Delta);
+
+                        if (max < total)
+                            max = total;
 
                         if (max != 0)
                         {
