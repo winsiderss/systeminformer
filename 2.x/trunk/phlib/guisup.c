@@ -123,7 +123,7 @@ INT PhAddListViewItem(
     __in HWND ListViewHandle,
     __in INT Index,
     __in PWSTR Text,
-    __in PVOID Param
+    __in_opt PVOID Param
     )
 {
     LVITEM item;
@@ -149,7 +149,7 @@ INT PhFindListViewItemByFlags(
 INT PhFindListViewItemByParam(
     __in HWND ListViewHandle,
     __in INT StartIndex,
-    __in PVOID Param
+    __in_opt PVOID Param
     )
 {
     LVFINDINFO findInfo;
