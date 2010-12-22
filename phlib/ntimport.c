@@ -31,17 +31,20 @@ BOOLEAN PhInitializeImports()
 
     ntdll = GetModuleHandle(L"ntdll.dll");
 
+    if (ntdll)
+    {
 #if !(PHNT_VERSION >= PHNT_WS03)
-    InitProc(ntdll, NtGetNextProcess);
-    InitProc(ntdll, NtGetNextThread);
+        InitProc(ntdll, NtGetNextProcess);
+        InitProc(ntdll, NtGetNextThread);
 #endif
 
 #if !(PHNT_VERSION >= PHNT_VISTA)
-    InitProc(ntdll, NtQueryInformationEnlistment);
-    InitProc(ntdll, NtQueryInformationResourceManager);
-    InitProc(ntdll, NtQueryInformationTransaction);
-    InitProc(ntdll, NtQueryInformationTransactionManager);
+        InitProc(ntdll, NtQueryInformationEnlistment);
+        InitProc(ntdll, NtQueryInformationResourceManager);
+        InitProc(ntdll, NtQueryInformationTransaction);
+        InitProc(ntdll, NtQueryInformationTransactionManager);
 #endif
+    }
 
     return TRUE;
 }

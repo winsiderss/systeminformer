@@ -480,7 +480,14 @@ FORCEINLINE PVOID PhGetProcAddress(
     __in PSTR ProcName
     )
 {
-    return GetProcAddress(GetModuleHandle(LibraryName), ProcName);
+    HMODULE module;
+
+    module = GetModuleHandle(LibraryName);
+
+    if (module)
+        return GetProcAddress(module, ProcName);
+    else
+        return NULL;
 }
 
 FORCEINLINE VOID PhProbeAddress(

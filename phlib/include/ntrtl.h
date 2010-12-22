@@ -2482,7 +2482,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryEnvironmentVariable_U(
-    __in PVOID Environment,
+    __in_opt PVOID Environment,
     __in PUNICODE_STRING Name,
     __out PUNICODE_STRING Value
     );

@@ -3198,7 +3198,7 @@ PHLIBAPI
 PPH_STRING
 NTAPI
 PhaCreateStringEx(
-    __in PWSTR Buffer,
+    __in_opt PWSTR Buffer,
     __in SIZE_T Length
     );
 

@@ -1985,6 +1985,9 @@ static VOID PhpRefreshColumnsLookup(
 
         if (Context->Columns[i]->s.ViewIndex != -1)
         {
+            if (Context->Columns[i]->s.ViewIndex >= Context->NumberOfColumns)
+                PhRaiseStatus(STATUS_INTERNAL_ERROR);
+
             Context->ColumnsForDraw[Context->Columns[i]->s.ViewIndex] = Context->Columns[i];
         }
     }

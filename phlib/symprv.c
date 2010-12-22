@@ -37,7 +37,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     );
 
 VOID PhpRegisterSymbolProvider(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+    __in_opt PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
 VOID PhpFreeSymbolModule(
@@ -106,8 +106,10 @@ VOID PhSymbolProviderDynamicImport()
     // we fallback on the ANSI versions.
 
     HMODULE dbghelpHandle;
+    HMODULE symsrvHandle;
 
     dbghelpHandle = GetModuleHandle(L"dbghelp.dll");
+    symsrvHandle = GetModuleHandle(L"symsrv.dll");
 
     SymInitialize_I = (PVOID)GetProcAddress(dbghelpHandle, "SymInitialize");
     SymCleanup_I = (PVOID)GetProcAddress(dbghelpHandle, "SymCleanup");
@@ -131,8 +133,8 @@ VOID PhSymbolProviderDynamicImport()
     SymGetModuleBase64_I = (PVOID)GetProcAddress(dbghelpHandle, "SymGetModuleBase64");
     StackWalk64_I = (PVOID)GetProcAddress(dbghelpHandle, "StackWalk64");
     MiniDumpWriteDump_I = (PVOID)GetProcAddress(dbghelpHandle, "MiniDumpWriteDump");
-    SymbolServerGetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerGetOptions");
-    SymbolServerSetOptions = PhGetProcAddress(L"symsrv.dll", "SymbolServerSetOptions");
+    SymbolServerGetOptions = (PVOID)GetProcAddress(symsrvHandle, "SymbolServerGetOptions");
+    SymbolServerSetOptions = (PVOID)GetProcAddress(symsrvHandle, "SymbolServerSetOptions");
 
     if (SymGetOptions_I && SymSetOptions_I)
         SymSetOptions_I(SymGetOptions_I() | SYMOPT_DEFERRED_LOADS);
