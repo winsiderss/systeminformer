@@ -319,52 +319,6 @@ HANDLE PhCreateThread(
 }
 
 /**
- * Gets the address of an exported function.
- *
- * \param DllHandle A handle to a DLL.
- * \param ProcedureName The name of the function. The value must be NULL if 
- * \a ProcedureNumber is specified.
- * \param ProcedureNumber The ordinal of the function.
- *
- * \return The address of the function.
- */
-PVOID PhGetProcedureAddress(
-    __in PVOID DllHandle,
-    __in_opt PSTR ProcedureName,
-    __in_opt ULONG ProcedureNumber
-    )
-{
-    NTSTATUS status;
-    ANSI_STRING procedureName;
-    PVOID procedureAddress;
-
-    if (ProcedureName)
-    {
-        RtlInitAnsiString(&procedureName, ProcedureName);
-        status = LdrGetProcedureAddress(
-            DllHandle,
-            &procedureName,
-            0,
-            &procedureAddress
-            );
-    }
-    else
-    {
-        status = LdrGetProcedureAddress(
-            DllHandle,
-            NULL,
-            ProcedureNumber,
-            &procedureAddress
-            );
-    }
-
-    if (!NT_SUCCESS(status))
-        return NULL;
-
-    return procedureAddress;
-}
-
-/**
  * Gets the current system time (UTC).
  *
  * \remarks Use this function instead of NtQuerySystemTime() 
