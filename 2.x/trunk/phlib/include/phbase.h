@@ -228,16 +228,60 @@ PhCreateThread(
     __in_opt PVOID Parameter
     );
 
-// misc. system
+// DLLs
 
-PHLIBAPI
-PVOID
-NTAPI
-PhGetProcedureAddress(
+FORCEINLINE PVOID PhGetDllHandle(
+    __in PWSTR DllName
+    )
+{
+    UNICODE_STRING dllName;
+    PVOID dllHandle;
+
+    RtlInitUnicodeString(&dllName, DllName);
+
+    if (NT_SUCCESS(LdrGetDllHandle(NULL, NULL, &dllName, &dllHandle)))
+        return dllHandle;
+    else
+        return NULL;
+}
+
+FORCEINLINE PVOID PhGetProcedureAddress(
     __in PVOID DllHandle,
     __in_opt PSTR ProcedureName,
     __in_opt ULONG ProcedureNumber
-    );
+    )
+{
+    NTSTATUS status;
+    ANSI_STRING procedureName;
+    PVOID procedureAddress;
+
+    if (ProcedureName)
+    {
+        RtlInitAnsiString(&procedureName, ProcedureName);
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            &procedureName,
+            0,
+            &procedureAddress
+            );
+    }
+    else
+    {
+        status = LdrGetProcedureAddress(
+            DllHandle,
+            NULL,
+            ProcedureNumber,
+            &procedureAddress
+            );
+    }
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return procedureAddress;
+}
+
+// misc. system
 
 PHLIBAPI
 VOID
