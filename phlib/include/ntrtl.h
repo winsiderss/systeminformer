@@ -4449,6 +4449,7 @@ RtlConvertSidToUnicodeString(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4460,6 +4461,7 @@ RtlSidHashInitialize(
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSAPI
 PSID_AND_ATTRIBUTES
 NTAPI

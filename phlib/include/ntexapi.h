@@ -1582,15 +1582,15 @@ typedef enum _PREFETCHER_INFORMATION_CLASS
 typedef enum _SUPERFETCH_INFORMATION_CLASS
 {
     SuperfetchCompletedTraceInformation = 1,
-    SuperfetchTraceInformation = 2, // size 24
-    SuperfetchPfnListInformation = 6,
-    SuperfetchPfnListPriorities = 7, // set only
-    SuperfetchPrivSourceInformation = 8,
-    SuperfetchStreamSequenceNumber = 9, // size 4
+    SuperfetchTraceInformation = 2, // q // size 24
+    SuperfetchPfnListInformation = 6, // q: SUPERFETCH_PFN_PRIO_REQUEST; s
+    SuperfetchPfnListPriorities = 7, // s
+    SuperfetchPrivSourceInformation = 8, // q: SUPERFETCH_PRIV_SOURCE_INFORMATION
+    SuperfetchStreamSequenceNumber = 9, // q: SUPERFETCH_STREAM_SEQUENCE_NUMBER
     SuperfetchScenarioInformation = 12,
     SuperfetchMemoryListInformation = 16,
-    SuperfetchMemoryRangesInformation = 17,
-    SuperfetchRepurposedByPrefetchInformation = 20 // size 8
+    SuperfetchMemoryRangesInformation = 17, // q: SUPERFETCH_MEMORY_RANGES_INFORMATION
+    SuperfetchRepurposedByPrefetchInformation = 20 // q: SUPERFETCH_REPURPOSED_BY_PREFETCH_INFORMATION
 } SUPERFETCH_INFORMATION_CLASS;
 
 #define SUPERFETCH_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST 0x1
@@ -1602,7 +1602,8 @@ typedef enum _SUPERFETCH_PRIV_SOURCE_TYPE
 {
     PrivSourceKernelSpace,
     PrivSourceSession,
-    PrivSourceProcess
+    PrivSourceProcess,
+    MaxPrivSource
 } SUPERFETCH_PRIV_SOURCE_TYPE;
 
 typedef struct _SUPERFETCH_PRIV_SOURCE_ENTRY
@@ -1620,7 +1621,7 @@ typedef struct _SUPERFETCH_PRIV_SOURCE_ENTRY
 
 typedef struct _SUPERFETCH_PRIV_SOURCE_INFORMATION
 {
-    ULONG Type; // must be set to 3
+    ULONG MaxType; // must be set to MaxPrivSource (3)
     ULONG Unknown;
     SUPERFETCH_PRIV_SOURCE_ENTRY Entries[1];
 } SUPERFETCH_PRIV_SOURCE_INFORMATION, *PSUPERFETCH_PRIV_SOURCE_INFORMATION;
