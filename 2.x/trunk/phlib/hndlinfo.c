@@ -413,16 +413,16 @@ __callback PPH_STRING PhStdGetClientIdName(
 {
     static PH_QUEUED_LOCK cachedProcessesLock = PH_QUEUED_LOCK_INIT;
     static PVOID processes = NULL;
-    static ULONG64 lastProcessesTickCount = 0;
+    static ULONG lastProcessesTickCount = 0;
 
     PPH_STRING name;
-    ULONG64 tickCount;
+    ULONG tickCount;
     PSYSTEM_PROCESS_INFORMATION processInfo;
 
     // Get a new process list only if 2 seconds have passed 
     // since the last update.
 
-    tickCount = NtGetTickCount64();
+    tickCount = GetTickCount();
 
     if (tickCount - lastProcessesTickCount >= 2000)
     {
