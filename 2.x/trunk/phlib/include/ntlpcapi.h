@@ -292,12 +292,12 @@ NtQueryInformationPort(
 
 // Asynchronous Local Inter-process Communication
 
-// rev
 // ALPC handles aren't NT object manager handles, and 
 // it seems traditional to use a typedef in these cases.
+// rev
 typedef PVOID ALPC_HANDLE, *PALPC_HANDLE;
 
-#define ALPC_PORFLG_ALLOW_LPC_REQUESTS 0x20000
+#define ALPC_PORFLG_ALLOW_LPC_REQUESTS 0x20000 // rev
 #define ALPC_PORFLG_WAITABLE_PORT 0x40000 // dbg
 #define ALPC_PORFLG_SYSTEM_PROCESS 0x100000 // dbg
 
@@ -420,7 +420,7 @@ typedef struct _ALPC_SECURITY_ATTRIBUTES
 typedef struct _ALPC_VIEW_ATTRIBUTES
 {
     ULONG Flags;
-    ALPC_HANDLE AlpcSectionHandle;
+    ALPC_HANDLE SectionHandle;
     PVOID ViewBase; // must be zero on input
     SIZE_T ViewSize;
 } ALPC_VIEW_ATTRIBUTES, *PALPC_VIEW_ATTRIBUTES;
@@ -558,8 +558,8 @@ NtAlpcCreatePortSection(
     __in ULONG Flags,
     __in_opt HANDLE SectionHandle,
     __in SIZE_T SectionSize,
-    __out PALPC_HANDLE AlpcSectionHandle,
-    __out PSIZE_T AlpcSectionSize
+    __out PALPC_HANDLE NewSectionHandle,
+    __out PSIZE_T NewSectionSize
     );
 
 NTSYSCALLAPI
@@ -568,7 +568,7 @@ NTAPI
 NtAlpcDeletePortSection(
     __in HANDLE PortHandle,
     __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSectionHandle
+    __in ALPC_HANDLE SectionHandle
     );
 
 NTSYSCALLAPI
@@ -576,9 +576,9 @@ NTSTATUS
 NTAPI
 NtAlpcCreateResourceReserve(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
+    __reserved ULONG Flags,
     __in SIZE_T MessageReserveSize,
-    __out PALPC_HANDLE AlpcReserveHandle
+    __out PALPC_HANDLE ReserveHandle
     );
 
 NTSYSCALLAPI
@@ -586,8 +586,8 @@ NTSTATUS
 NTAPI
 NtAlpcDeleteResourceReserve(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcReserveHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ReserveHandle
     );
 
 NTSYSCALLAPI
@@ -595,7 +595,7 @@ NTSTATUS
 NTAPI
 NtAlpcCreateSectionView(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
+    __reserved ULONG Flags,
     __inout PALPC_VIEW_ATTRIBUTES ViewAttributes
     );
 
@@ -604,7 +604,7 @@ NTSTATUS
 NTAPI
 NtAlpcDeleteSectionView(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
+    __reserved ULONG Flags,
     __in PVOID ViewBase
     );
 
@@ -613,7 +613,7 @@ NTSTATUS
 NTAPI
 NtAlpcCreateSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
+    __reserved ULONG Flags,
     __inout PALPC_SECURITY_ATTRIBUTES SecurityAttributes
     );
 
@@ -622,8 +622,8 @@ NTSTATUS
 NTAPI
 NtAlpcDeleteSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSecurityHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ContextHandle
     );
 
 NTSYSCALLAPI
@@ -631,8 +631,8 @@ NTSTATUS
 NTAPI
 NtAlpcRevokeSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSecurityHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ContextHandle
     );
 
 NTSYSCALLAPI
@@ -730,7 +730,7 @@ NtAlpcOpenSenderProcess(
     __out PHANDLE ProcessHandle,
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE Message,
-    __in ULONG Flags,
+    __reserved ULONG Flags, // unsure
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -742,7 +742,7 @@ NtAlpcOpenSenderThread(
     __out PHANDLE ThreadHandle,
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE Message,
-    __in ULONG Flags,
+    __reserved ULONG Flags, // unsure
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
