@@ -25,7 +25,7 @@ FORCEINLINE VOID PhChangeShState(
     if (ShState->State == NormalItemState)
         ShState->StateListHandle = PhAddItemPointerList(*StateList, Node);
 
-    ShState->TickCount = NtGetTickCount();
+    ShState->TickCount = GetTickCount();
     ShState->State = NewState;
 
     Node->UseTempBackColor = TRUE;
@@ -47,7 +47,7 @@ FORCEINLINE VOID PhChangeShState(
         if (!StateList || StateList->Count == 0) \
             break; \
 \
-        tickCount = NtGetTickCount(); \
+        tickCount = GetTickCount(); \
 \
         while (PhEnumPointerList(StateList, &enumerationKey, &node)) \
         { \

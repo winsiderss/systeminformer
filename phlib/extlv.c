@@ -420,7 +420,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                 PhpEnsureTickHashtableCreated(context);
 
                 entry.Id = ListView_MapIndexToID(hwnd, index);
-                entry.TickCount = NtGetTickCount();
+                entry.TickCount = GetTickCount();
 
                 PhAddEntryHashtable(context->TickHashtable, &entry);
             }
@@ -465,7 +465,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     localEntry.Id = ListView_MapIndexToID(hwnd, (INT)wParam);
                     entry = PhAddEntryHashtableEx(context->TickHashtable, &localEntry, NULL);
 
-                    entry->TickCount = NtGetTickCount();
+                    entry->TickCount = GetTickCount();
                 }
 
                 return TRUE;
@@ -978,7 +978,7 @@ static VOID PhListTick(
     if (!Context->TickHashtable)
         return;
 
-    tickCount = NtGetTickCount();
+    tickCount = GetTickCount();
 
     // First pass
 
