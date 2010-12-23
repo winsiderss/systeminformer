@@ -11,6 +11,7 @@ Process Hacker
    * ExtendedTools plugin crash
    * Notification icon menu crash
    * Memory leaks
+   * Other small bug fixes
 
 2.9
  * NEW/IMPROVED:
