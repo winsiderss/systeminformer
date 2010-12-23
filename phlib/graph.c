@@ -35,6 +35,7 @@ typedef struct _PHP_GRAPH_CONTEXT
     RECT BufferedContextRect;
 
     HWND TooltipHandle;
+    WNDPROC TooltipOldWndProc;
     BOOLEAN TooltipVisible;
     HMONITOR ValidMonitor;
     MONITORINFO MonitorInfo;
@@ -430,6 +431,7 @@ VOID PhpCreateGraphContext(
     context->BufferedContext = NULL;
 
     context->TooltipHandle = NULL;
+    context->TooltipOldWndProc = NULL;
     context->TooltipVisible = FALSE;
     context->ValidMonitor = NULL;
     memset(&context->MonitorInfo, 0, sizeof(MONITORINFO));
@@ -443,6 +445,11 @@ VOID PhpFreeGraphContext(
     )
 {
     PhFree(Context);
+}
+
+static PWSTR PhpMakeGraphTooltipContextAtom()
+{
+    PH_DEFINE_MAKE_ATOM(L"PhLib_GraphTooltipContext");
 }
 
 static VOID PhpDeleteBufferedContext(
@@ -544,9 +551,11 @@ static LRESULT CALLBACK PhpTooltipWndProc(
     __in LPARAM lParam
     )
 {
+    PPHP_GRAPH_CONTEXT context;
     WNDPROC oldWndProc;
 
-    oldWndProc = (WNDPROC)GetProp(hwnd, L"OldWndProc");
+    context = (PPHP_GRAPH_CONTEXT)GetProp(hwnd, PhpMakeGraphTooltipContextAtom());
+    oldWndProc = context->TooltipOldWndProc;
 
     switch (uMsg)
     {
@@ -554,21 +563,17 @@ static LRESULT CALLBACK PhpTooltipWndProc(
         {
             SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
 
-            RemoveProp(hwnd, L"OldWndProc");
-            RemoveProp(hwnd, L"Context");
+            RemoveProp(hwnd, PhpMakeGraphTooltipContextAtom());
         }
         break;
     case WM_MOVE:
         {
-            PPHP_GRAPH_CONTEXT context;
             TOOLINFO toolInfo = { sizeof(toolInfo) };
             RECT windowRect;
             BOOLEAN needsMove;
 
             if (CallWindowProc(oldWndProc, hwnd, TTM_GETCURRENTTOOL, 0, (LPARAM)&toolInfo))
             {
-                context = (PPHP_GRAPH_CONTEXT)GetProp(hwnd, L"Context");
-
                 GetWindowRect(hwnd, &windowRect);
                 needsMove = FALSE;
 
@@ -806,7 +811,6 @@ LRESULT CALLBACK PhpGraphWndProc(
             if (wParam)
             {
                 TOOLINFO toolInfo = { sizeof(toolInfo) };
-                WNDPROC oldWndProc;
 
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
@@ -821,9 +825,8 @@ LRESULT CALLBACK PhpGraphWndProc(
                     PhLibImageBase,
                     NULL
                     );
-                oldWndProc = (WNDPROC)GetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC);
-                SetProp(context->TooltipHandle, L"OldWndProc", (HANDLE)oldWndProc);
-                SetProp(context->TooltipHandle, L"Context", (HANDLE)context);
+                context->TooltipOldWndProc = (WNDPROC)GetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC);
+                SetProp(context->TooltipHandle, PhpMakeGraphTooltipContextAtom(), (HANDLE)context);
                 SetWindowLongPtr(context->TooltipHandle, GWLP_WNDPROC, (LONG_PTR)PhpTooltipWndProc);
 
                 SetWindowPos(context->TooltipHandle, HWND_TOPMOST, 0, 0, 0, 0,
