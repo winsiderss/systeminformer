@@ -1985,16 +1985,7 @@ VOID PhGetSelectedProcessItems(
 
 VOID PhDeselectAllProcessNodes()
 {
-    ULONG i;
-
-    for (i = 0; i < ProcessNodeList->Count; i++)
-    {
-        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
-
-        node->Node.Selected = FALSE;
-        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
-    }
-
+    TreeList_SetStateAll(ProcessTreeListHandle, 0, LVIS_SELECTED);
     InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
 }
 
@@ -2039,22 +2030,13 @@ VOID PhSelectAndEnsureVisibleProcessNode(
         processNode = processNode->Parent;
     }
 
-    // ListView_SetItemState is used as well.
-    // To reproduce the bug:
-    // 1. Select and then deselect an item.
-    // 2. Call PhSelectAndEnsureVisibleProcessNode.
-    // 3. Select another item (without Ctrl). The existing item doesn't get deselected.
-
     ProcessNode->Node.Selected = TRUE;
     ProcessNode->Node.Focused = TRUE;
-    PhInvalidateTreeListNode(&ProcessNode->Node, TLIN_STATE);
 
     if (needsRestructure)
         TreeList_NodesStructured(ProcessTreeListHandle);
 
-    ListView_SetItemState(TreeList_GetListView(ProcessTreeListHandle), ProcessNode->Node.s.ViewIndex,
-        LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-
+    PhInvalidateStateTreeListNode(ProcessTreeListHandle, &ProcessNode->Node);
     TreeList_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node, FALSE);
 }
 
@@ -2134,10 +2116,11 @@ VOID PhApplyProcessTreeFilters()
         node = ProcessNodeList->Items[i];
         node->Node.Visible = PhpApplyProcessTreeFiltersToNode(node);
 
-        if (!node->Node.Visible)
+        if (!node->Node.Visible && node->Node.Selected)
+        {
             node->Node.Selected = FALSE;
-
-        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
+            PhInvalidateStateTreeListNode(ProcessTreeListHandle, &node->Node);
+        }
     }
 
     TreeList_NodesStructured(ProcessTreeListHandle);

@@ -774,15 +774,6 @@ VOID PhDeselectAllModuleNodes(
     __in PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    ULONG i;
-
-    for (i = 0; i < Context->NodeList->Count; i++)
-    {
-        PPH_MODULE_NODE node = Context->NodeList->Items[i];
-
-        node->Node.Selected = FALSE;
-        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
-    }
-
+    TreeList_SetStateAll(Context->TreeListHandle, 0, LVIS_SELECTED);
     InvalidateRect(Context->TreeListHandle, NULL, TRUE);
 }

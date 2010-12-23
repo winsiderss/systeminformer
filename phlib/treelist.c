@@ -1025,6 +1025,17 @@ LRESULT CALLBACK PhpTreeListWndProc(
         return TRUE;
     case TLM_GETMAXID:
         return (LRESULT)context->MaxId;
+    case TLM_SETNODESTATE:
+        {
+            PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
+            ULONG state = (ULONG)wParam;
+            LVITEM lvItem;
+
+            lvItem.stateMask = LVIS_FOCUSED | LVIS_SELECTED;
+            lvItem.state = state;
+
+            return CallWindowProc(context->OldLvWndProc, context->ListViewHandle, LVM_SETITEMSTATE, (WPARAM)node->s.ViewIndex, (LPARAM)&lvItem);
+        }
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -2067,22 +2078,33 @@ VOID PhInvalidateTreeListNode(
     __in ULONG Flags
     )
 {
-    if (Flags & TLIN_STATE)
-    {
-        Node->s.ViewState = 0;
-
-        if (Node->Selected)
-            Node->s.ViewState |= LVIS_SELECTED;
-        if (Node->Focused)
-            Node->s.ViewState |= LVIS_FOCUSED;
-    }
-
     if (Flags & TLIN_COLOR)
         Node->s.CachedColorValid = FALSE;
     if (Flags & TLIN_FONT)
         Node->s.CachedFontValid = FALSE;
     if (Flags & TLIN_ICON)
         Node->s.CachedIconValid = FALSE;
+}
+
+VOID PhInvalidateStateTreeListNode(
+    __in HWND hwnd,
+    __inout PPH_TREELIST_NODE Node
+    )
+{
+    // This function is required because the LV control is a piece of shit 
+    // and has bugs left over from NT4 which still haven't been fixed.
+
+    Node->s.ViewState = 0;
+
+    if (Node->Selected)
+        Node->s.ViewState |= LVIS_SELECTED;
+    if (Node->Focused)
+        Node->s.ViewState |= LVIS_FOCUSED;
+
+    // Update the LV with the real state of the item so it doesn't get 
+    // confused. Even though it should be asking us for the state of each 
+    // item when it is required, it doesn't because it's retarded.
+    TreeList_SetNodeState(hwnd, Node, Node->s.ViewState);
 }
 
 BOOLEAN PhAddTreeListColumn(
