@@ -542,14 +542,17 @@ VOID PhHandleProviderUpdate(
         {
             handleItem = PhCreateHandleItem(handle);
 
-            PhGetHandleInformation(
+            PhGetHandleInformationEx(
                 handleProvider->ProcessHandle,
                 handleItem->Handle,
                 handle->ObjectTypeIndex,
+                0,
+                NULL,
                 NULL,
                 &handleItem->TypeName,
                 &handleItem->ObjectName,
-                &handleItem->BestObjectName
+                &handleItem->BestObjectName,
+                NULL
                 );
 
             // We need at least a type name to continue.
