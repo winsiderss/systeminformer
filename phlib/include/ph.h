@@ -968,6 +968,20 @@ NTSTATUS PhGetHandleInformation(
     __out_opt PPH_STRING *BestObjectName
     );
 
+PHLIBAPI
+NTSTATUS PhGetHandleInformationEx(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in ULONG ObjectTypeNumber,
+    __reserved ULONG Flags,
+    __out_opt PNTSTATUS SubStatus,
+    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
+    __out_opt PPH_STRING *TypeName,
+    __out_opt PPH_STRING *ObjectName,
+    __out_opt PPH_STRING *BestObjectName,
+    __reserved PVOID *ExtraInformation
+    );
+
 NTSTATUS PhQueryObjectNameHack(
     __in HANDLE Handle,
     __out_bcount(ObjectNameInformationLength) POBJECT_NAME_INFORMATION ObjectNameInformation,

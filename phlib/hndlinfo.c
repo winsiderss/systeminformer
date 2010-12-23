@@ -944,7 +944,78 @@ NTSTATUS PhGetHandleInformation(
     __out_opt PPH_STRING *BestObjectName
     )
 {
+    NTSTATUS status;
+    NTSTATUS subStatus;
+
+    status = PhGetHandleInformationEx(
+        ProcessHandle,
+        Handle,
+        ObjectTypeNumber,
+        0,
+        &subStatus,
+        BasicInformation,
+        TypeName,
+        ObjectName,
+        BestObjectName,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Fail if any component failed, for compatibility reasons.
+    if (!NT_SUCCESS(subStatus))
+        return subStatus;
+
+    return status;
+}
+
+/**
+ * Gets information for a handle.
+ *
+ * \param ProcessHandle A handle to the process in which the 
+ * handle resides.
+ * \param Handle The handle value.
+ * \param ObjectTypeNumber The object type number of the handle. 
+ * You can specify -1 for this parameter if the object type number 
+ * is not known.
+ * \param Flags Reserved.
+ * \param SubStatus A variable which receives the NTSTATUS value of 
+ * the last component that fails. If all operations succeed, the 
+ * value will be to STATUS_SUCCESS.
+ * \param BasicInformation A variable which receives basic 
+ * information about the object.
+ * \param TypeName A variable which receives the object type name.
+ * \param ObjectName A variable which receives the object name.
+ * \param BestObjectName A variable which receives the formatted 
+ * object name.
+ * \param ExtraInformation Reserved.
+ *
+ * \retval STATUS_INVALID_HANDLE The handle specified in
+ * \c ProcessHandle or \c Handle is invalid.
+ * \retval STATUS_INVALID_PARAMETER_3 The value specified in 
+ * \c ObjectTypeNumber is invalid.
+ *
+ * \remarks If \a BasicInformation or \a TypeName are specified, 
+ * the function will fail if either cannot be queried. \a ObjectName, 
+ * \a BestObjectName and \a ExtraInformation will return NULL if they 
+ * cannot be queried.
+ */
+NTSTATUS PhGetHandleInformationEx(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in ULONG ObjectTypeNumber,
+    __reserved ULONG Flags,
+    __out_opt PNTSTATUS SubStatus,
+    __out_opt POBJECT_BASIC_INFORMATION BasicInformation,
+    __out_opt PPH_STRING *TypeName,
+    __out_opt PPH_STRING *ObjectName,
+    __out_opt PPH_STRING *BestObjectName,
+    __reserved PVOID *ExtraInformation
+    )
+{
     NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS subStatus = STATUS_SUCCESS;
     HANDLE dupHandle = NULL;
     PPH_STRING typeName = NULL;
     PPH_STRING objectName = NULL;
@@ -1096,7 +1167,11 @@ NTSTATUS PhGetHandleInformation(
     }
 
     if (!NT_SUCCESS(status))
+    {
+        subStatus = status;
+        status = STATUS_SUCCESS;
         goto CleanupExit;
+    }
 
     // Exit early if we don't need to get the best object name.
     if (!BestObjectName)
@@ -1110,10 +1185,22 @@ NTSTATUS PhGetHandleInformation(
         &bestObjectName
         );
 
+    if (!NT_SUCCESS(status))
+    {
+        subStatus = status;
+        status = STATUS_SUCCESS;
+        goto CleanupExit;
+    }
+
 CleanupExit:
 
     if (NT_SUCCESS(status))
     {
+        if (SubStatus)
+        {
+            *SubStatus = subStatus;
+        }
+
         if (TypeName && typeName)
         {
             *TypeName = typeName;
