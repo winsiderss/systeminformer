@@ -234,6 +234,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_GETLISTVIEW (WM_APP + 1226)
 #define TLM_ENABLEEXPLORERSTYLE (WM_APP + 1227)
 #define TLM_GETMAXID (WM_APP + 1228)
+#define TLM_SETNODESTATE (WM_APP + 1229)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -332,6 +333,9 @@ typedef struct _PH_TL_GETNODETEXT
 #define TreeList_GetMaxId(hWnd) \
     ((ULONG)SendMessage((hWnd), TLM_GETMAXID, 0, 0))
 
+#define TreeList_SetNodeState(hWnd, Node, State) \
+    SendMessage((hWnd), TLM_SETNODESTATE, (WPARAM)(State), (LPARAM)(Node))
+
 BOOLEAN PhTreeListInitialization();
 
 #define TLSTYLE_BORDER 0x1
@@ -354,7 +358,7 @@ VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     );
 
-#define TLIN_STATE 0x1
+#define TLIN_RESERVED 0x1
 #define TLIN_COLOR 0x2
 #define TLIN_FONT 0x4
 #define TLIN_ICON 0x8
@@ -363,6 +367,12 @@ PHLIBAPI
 VOID PhInvalidateTreeListNode(
     __inout PPH_TREELIST_NODE Node,
     __in ULONG Flags
+    );
+
+PHLIBAPI
+VOID PhInvalidateStateTreeListNode(
+    __in HWND hwnd,
+    __inout PPH_TREELIST_NODE Node
     );
 
 PHLIBAPI

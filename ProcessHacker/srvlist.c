@@ -628,16 +628,7 @@ VOID PhGetSelectedServiceItems(
 
 VOID PhDeselectAllServiceNodes()
 {
-    ULONG i;
-
-    for (i = 0; i < ServiceNodeList->Count; i++)
-    {
-        PPH_SERVICE_NODE node = ServiceNodeList->Items[i];
-
-        node->Node.Selected = FALSE;
-        PhInvalidateTreeListNode(&node->Node, TLIN_STATE);
-    }
-
+    TreeList_SetStateAll(ServiceTreeListHandle, 0, LVIS_SELECTED);
     InvalidateRect(ServiceTreeListHandle, NULL, TRUE);
 }
 
@@ -652,9 +643,7 @@ VOID PhSelectAndEnsureVisibleServiceNode(
 
     ServiceNode->Node.Selected = TRUE;
     ServiceNode->Node.Focused = TRUE;
-    PhInvalidateTreeListNode(&ServiceNode->Node, TLIN_STATE);
-    ListView_SetItemState(TreeList_GetListView(ServiceTreeListHandle), ServiceNode->Node.s.ViewIndex,
-        LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+    PhInvalidateStateTreeListNode(ServiceTreeListHandle, &ServiceNode->Node);
     TreeList_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node, FALSE);
 }
 
