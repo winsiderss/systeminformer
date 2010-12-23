@@ -345,7 +345,10 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     }
                     else if (PhEqualString2(context->HandleItem->TypeName, L"File", TRUE))
                     {
-                        PhShellProperties(hwndDlg, context->HandleItem->BestObjectName->Buffer);
+                        if (context->HandleItem->BestObjectName)
+                            PhShellProperties(hwndDlg, context->HandleItem->BestObjectName->Buffer);
+                        else
+                            PhShowError(hwndDlg, L"Unable to open file properties because the object is unnamed.");
                     }
                     else if (PhEqualString2(context->HandleItem->TypeName, L"Key", TRUE))
                     {

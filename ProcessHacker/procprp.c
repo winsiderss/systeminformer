@@ -4227,7 +4227,7 @@ static INT NTAPI PhpHandleNameCompareFunction(
     PPH_HANDLE_ITEM item1 = Item1;
     PPH_HANDLE_ITEM item2 = Item2;
 
-    return PhCompareString(item1->BestObjectName, item2->BestObjectName, TRUE);
+    return PhCompareStringWithNull(item1->BestObjectName, item2->BestObjectName, TRUE);
 }
 
 static INT NTAPI PhpHandleHandleCompareFunction(
