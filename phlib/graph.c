@@ -36,6 +36,7 @@ typedef struct _PHP_GRAPH_CONTEXT
 
     HWND TooltipHandle;
     BOOLEAN TooltipVisible;
+    HMONITOR ValidMonitor;
     MONITORINFO MonitorInfo;
 } PHP_GRAPH_CONTEXT, *PPHP_GRAPH_CONTEXT;
 
@@ -430,6 +431,7 @@ VOID PhpCreateGraphContext(
 
     context->TooltipHandle = NULL;
     context->TooltipVisible = FALSE;
+    context->ValidMonitor = NULL;
     memset(&context->MonitorInfo, 0, sizeof(MONITORINFO));
     context->MonitorInfo.cbSize = sizeof(MONITORINFO);
 
@@ -486,6 +488,7 @@ static VOID PhpUpdateTooltip(
     RECT windowRect;
     HWND hwnd;
     TOOLINFO toolInfo = { sizeof(toolInfo) };
+    HMONITOR monitor;
 
     GetCursorPos(&point);
     GetWindowRect(Context->Handle, &windowRect);
@@ -508,18 +511,23 @@ static VOID PhpUpdateTooltip(
     {
         TRACKMOUSEEVENT trackMouseEvent = { sizeof(trackMouseEvent) };
 
-        // this must go *before* SendMessage; our TTN_GETDISPINFO might reset TooltipVisible
-        Context->TooltipVisible = TRUE;
         SendMessage(Context->TooltipHandle, TTM_TRACKACTIVATE, TRUE, (LPARAM)&toolInfo);
 
         trackMouseEvent.dwFlags = TME_LEAVE;
         trackMouseEvent.hwndTrack = Context->Handle;
         TrackMouseEvent(&trackMouseEvent);
 
-        GetMonitorInfo(
-            MonitorFromWindow(Context->TooltipHandle, MONITOR_DEFAULTTONEAREST),
-            &Context->MonitorInfo
-            );
+        Context->ValidMonitor = NULL; // force a refresh of monitor info
+    }
+
+    // Update monitor information only if the tooltip has moved onto another monitor.
+
+    monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+
+    if (Context->ValidMonitor != monitor)
+    {
+        GetMonitorInfo(monitor, &Context->MonitorInfo);
+        Context->ValidMonitor = monitor;
     }
 
     // Add an offset to fix the case where the user moves the mouse to the bottom-right.
@@ -686,15 +694,13 @@ LRESULT CALLBACK PhpGraphWndProc(
                     {
                         dispInfo->lpszText = getTooltipText.Text.Buffer;
                     }
-                    else
-                    {
-                        if (dispInfo->lpszText[0] == 0)
-                        {
-                            // No text, so the tooltip will be closed. Update our boolean.
-                            context->TooltipVisible = FALSE;
-                        }
-                    }
                 }
+                break;
+            case TTN_SHOW:
+                context->TooltipVisible = TRUE;
+                break;
+            case TTN_POP:
+                context->TooltipVisible = FALSE;
                 break;
             }
         }
@@ -717,7 +723,6 @@ LRESULT CALLBACK PhpGraphWndProc(
                 toolInfo.uId = 1;
 
                 SendMessage(context->TooltipHandle, TTM_TRACKACTIVATE, FALSE, (LPARAM)&toolInfo);
-                context->TooltipVisible = FALSE;
             }
         }
         break;
