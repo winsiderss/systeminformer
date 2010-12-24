@@ -29,7 +29,7 @@
 
 #include <phapp.h>
 #include <settings.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <winsta.h>
 #include <iphlpapi.h>
 

@@ -22,7 +22,7 @@
 
 #define PH_HNDLPRV_PRIVATE
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 
 VOID NTAPI PhpHandleProviderDeleteProcedure(
     __in PVOID Object,

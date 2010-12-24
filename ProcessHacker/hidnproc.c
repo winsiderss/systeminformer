@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <settings.h>
 #include <hidnproc.h>
 #include <windowsx.h>

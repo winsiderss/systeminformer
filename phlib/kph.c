@@ -21,7 +21,7 @@
  */
 
 #include <phbase.h>
-#include <kph.h>
+#include <kphuser.h>
 
 typedef struct _KPH_ZWQUERYOBJECT_BUFFER
 {
@@ -630,7 +630,7 @@ NTSTATUS KphWriteVirtualMemory(
         );
 }
 
-NTSTATUS KphUnsafeReadVirtualMemory(
+NTSTATUS KphReadVirtualMemoryUnsafe(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -1026,7 +1026,7 @@ NTSTATUS KphTerminateThread(
     return status;
 }
 
-NTSTATUS KphDangerousTerminateThread(
+NTSTATUS KphTerminateThreadUnsafe(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus

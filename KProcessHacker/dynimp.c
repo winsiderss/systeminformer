@@ -1,8 +1,7 @@
 /*
- * Process Hacker Driver - 
- *   memory manager
+ * KProcessHacker
  * 
- * Copyright (C) 2009 wj32
+ * Copyright (C) 2010 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -20,18 +19,26 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _MM_H
-#define _MM_H
+#include <kph.h>
 
-#define MI_MAX_TRANSFER_SIZE (0x10000)
-#define MI_COPY_STACK_SIZE (0x200)
-#define MI_MAPPED_COPY_PAGES (14)
-#define MM_POOL_COPY_THRESHOLD (0x1ff)
-#define TAG_POOL_COPY ('CPhP')
+_PsSuspendProcess PsSuspendProcess_I;
+_PsResumeProcess PsResumeProcess_I;
 
-#define MEM_EXECUTE_OPTION_DISABLE 0x1 
-#define MEM_EXECUTE_OPTION_ENABLE 0x2
-#define MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION 0x4
-#define MEM_EXECUTE_OPTION_PERMANENT 0x8
+PVOID KphpGetSystemRoutineAddress(
+    __in PWSTR SystemRoutineName
+    )
+{
+    UNICODE_STRING systemRoutineName;
 
-#endif
+    RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
+
+    return MmGetSystemRoutineAddress(&systemRoutineName);
+}
+
+VOID KphDynamicImport(
+    VOID
+    )
+{
+    PsSuspendProcess_I = KphpGetSystemRoutineAddress(L"PsSuspendProcess");
+    PsResumeProcess_I = KphpGetSystemRoutineAddress(L"PsResumeProcess");
+}

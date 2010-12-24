@@ -13,13 +13,20 @@
 // "dbg" indicates that a definition has been obtained from a debug 
 // message or assertion in a checked build of the kernel or file.
 
-// Version
+// Mode
+#define PHNT_MODE_KERNEL 0
+#define PHNT_MODE_USER 1
 
+// Version
 #define PHNT_WIN2K 50
 #define PHNT_WINXP 51
 #define PHNT_WS03 52
 #define PHNT_VISTA 60
 #define PHNT_WIN7 61
+
+#ifndef PHNT_MODE
+#define PHNT_MODE PHNT_MODE_USER
+#endif
 
 #ifndef PHNT_VERSION
 #define PHNT_VERSION PHNT_WINXP
@@ -33,20 +40,27 @@
 extern "C" {
 #endif
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 #include <ntbasic.h>
 #include <ntnls.h>
+#include <ntexapi.h>
+#include <ntkeapi.h>
+#include <ntmmapi.h>
+
+#endif
+
+#include <ntobapi.h>
+#include <ntpsapi.h>
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #include <ntcm.h>
 #include <ntdbg.h>
-#include <ntexapi.h>
 #include <ntioapi.h>
-#include <ntkeapi.h>
 #include <ntlpcapi.h>
-#include <ntmmapi.h>
-#include <ntobapi.h>
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
-#include <ntpsapi.h>
 #include <ntregapi.h>
 #include <ntrtl.h>
 #include <ntseapi.h>
@@ -64,6 +78,8 @@ extern "C" {
 #include <ntzwapi.h>
 
 #include <rev.h>
+
+#endif
 
 #ifdef __cplusplus
 }

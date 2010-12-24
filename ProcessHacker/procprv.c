@@ -53,7 +53,7 @@
 
 #define PH_PROCPRV_PRIVATE
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <phplug.h>
 #include <winsta.h>
 
