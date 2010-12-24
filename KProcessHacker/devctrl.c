@@ -154,6 +154,23 @@ NTSTATUS KphDispatchDeviceControl(
                     );
             }
             break;
+        case KPH_TERMINATEPROCESS:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    NTSTATUS ExitStatus;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiTerminateProcess(
+                    input->ProcessHandle,
+                    input->ExitStatus,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
         case KPH_READVIRTUALMEMORY:
             {
                 struct
@@ -219,6 +236,122 @@ NTSTATUS KphDispatchDeviceControl(
                     input->Buffer,
                     input->BufferSize,
                     input->NumberOfBytesRead,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_QUERYINFORMATIONPROCESS:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
+                    PVOID ProcessInformation;
+                    ULONG ProcessInformationLength;
+                    PULONG ReturnLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiQueryInformationProcess(
+                    input->ProcessHandle,
+                    input->ProcessInformationClass,
+                    input->ProcessInformation,
+                    input->ProcessInformationLength,
+                    input->ReturnLength,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_SETINFORMATIONPROCESS:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
+                    PVOID ProcessInformation;
+                    ULONG ProcessInformationLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiSetInformationProcess(
+                    input->ProcessHandle,
+                    input->ProcessInformationClass,
+                    input->ProcessInformation,
+                    input->ProcessInformationLength,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_OPENTHREAD:
+            {
+                struct
+                {
+                    PHANDLE ThreadHandle;
+                    ACCESS_MASK DesiredAccess;
+                    PCLIENT_ID ClientId;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiOpenThread(
+                    input->ThreadHandle,
+                    input->DesiredAccess,
+                    input->ClientId,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_OPENTHREADPROCESS:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    ACCESS_MASK DesiredAccess;
+                    PHANDLE ProcessHandle;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiOpenThreadProcess(
+                    input->ThreadHandle,
+                    input->DesiredAccess,
+                    input->ProcessHandle,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_TERMINATETHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    NTSTATUS ExitStatus;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiTerminateThread(
+                    input->ThreadHandle,
+                    input->ExitStatus,
+                    Irp->RequestorMode
+                    );
+            }
+            break;
+        case KPH_TERMINATETHREADUNSAFE:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    NTSTATUS ExitStatus;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiTerminateThreadUnsafe(
+                    input->ThreadHandle,
+                    input->ExitStatus,
                     Irp->RequestorMode
                     );
             }

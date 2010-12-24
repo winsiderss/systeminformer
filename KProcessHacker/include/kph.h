@@ -102,6 +102,34 @@ NTSTATUS KpiSetInformationProcess(
     __in KPROCESSOR_MODE AccessMode
     );
 
+// thread
+
+NTSTATUS KpiOpenThread(
+    __out PHANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in PCLIENT_ID ClientId,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiOpenThreadProcess(
+    __in HANDLE ThreadHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE ProcessHandle,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiTerminateThread(
+    __in HANDLE ThreadHandle,
+    __in NTSTATUS ExitStatus,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiTerminateThreadUnsafe(
+    __in HANDLE ThreadHandle,
+    __in NTSTATUS ExitStatus,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
 // vm
 
 NTSTATUS KphCopyVirtualMemory(

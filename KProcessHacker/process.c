@@ -28,6 +28,8 @@
 #pragma alloc_text(PAGE, KpiSuspendProcess)
 #pragma alloc_text(PAGE, KpiResumeProcess)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
+#pragma alloc_text(PAGE, KpiQueryInformationProcess)
+#pragma alloc_text(PAGE, KpiSetInformationProcess)
 #endif
 
 NTSTATUS KpiOpenProcess(
@@ -40,6 +42,7 @@ NTSTATUS KpiOpenProcess(
     NTSTATUS status;
     CLIENT_ID clientId;
     PEPROCESS process;
+    PETHREAD thread;
     HANDLE processHandle;
 
     if (AccessMode != KernelMode)
@@ -60,7 +63,21 @@ NTSTATUS KpiOpenProcess(
         clientId = *ClientId;
     }
 
-    status = PsLookupProcessByProcessId(clientId.UniqueProcess, &process);
+    // Use the thread ID if it was specified.
+    if (clientId.UniqueThread)
+    {
+        status = PsLookupProcessThreadByCid(&clientId, &process, &thread);
+
+        if (NT_SUCCESS(status))
+        {
+            // We don't actually need the thread.
+            ObDereferenceObject(thread);
+        }
+    }
+    else
+    {
+        status = PsLookupProcessByProcessId(clientId.UniqueProcess, &process);
+    }
 
     if (!NT_SUCCESS(status))
         return status;
@@ -136,7 +153,6 @@ NTSTATUS KpiOpenProcessToken(
         return status;
 
     primaryToken = PsReferencePrimaryToken(process);
-    ObDereferenceObject(process);
 
     status = ObOpenObjectByPointer(
         primaryToken,
@@ -147,7 +163,9 @@ NTSTATUS KpiOpenProcessToken(
         KernelMode,
         &tokenHandle
         );
+
     PsDereferencePrimaryToken(primaryToken);
+    ObDereferenceObject(process);
 
     if (NT_SUCCESS(status))
     {
@@ -374,7 +392,119 @@ NTSTATUS KpiQueryInformationProcess(
     __in KPROCESSOR_MODE AccessMode
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status;
+    PEPROCESS process;
+    HANDLE newProcessHandle;
+    ULONG returnLength;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeForWrite(ProcessInformation, ProcessInformationLength, sizeof(ULONG));
+
+            if (ReturnLength)
+                ProbeForWrite(ReturnLength, sizeof(ULONG), sizeof(ULONG));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        0,
+        *PsProcessType,
+        AccessMode,
+        &process,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    switch (ProcessInformationClass)
+    {
+    case KphProcessProtectionInformation:
+        {
+            status = STATUS_NOT_IMPLEMENTED;
+            returnLength = 0;
+        }
+        break;
+    case KphProcessIoPriority:
+        {
+            if (NT_SUCCESS(status = ObOpenObjectByPointer(
+                process,
+                OBJ_KERNEL_HANDLE,
+                NULL,
+                PROCESS_QUERY_INFORMATION,
+                *PsProcessType,
+                KernelMode,
+                &newProcessHandle
+                )))
+            {
+                ULONG ioPriority;
+
+                if (NT_SUCCESS(status = ZwQueryInformationProcess(
+                    newProcessHandle,
+                    ProcessIoPriority,
+                    &ioPriority,
+                    sizeof(ULONG),
+                    NULL
+                    )))
+                {
+                    if (ProcessInformationLength == sizeof(ULONG))
+                    {
+                        __try
+                        {
+                            *(PULONG)ProcessInformation = ioPriority;
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            status = GetExceptionCode();
+                        }
+                    }
+                    else
+                    {
+                        status = STATUS_INFO_LENGTH_MISMATCH;
+                    }
+                }
+
+                ZwClose(newProcessHandle);
+            }
+
+            returnLength = sizeof(ULONG);
+        }
+        break;
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+        returnLength = 0;
+        break;
+    }
+
+    ObDereferenceObject(process);
+
+    if (ReturnLength)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                *ReturnLength = returnLength;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                NOTHING;
+            }
+        }
+        else
+        {
+            *ReturnLength = returnLength;
+        }
+    }
+
+    return status;
 }
 
 NTSTATUS KpiSetInformationProcess(
@@ -385,5 +515,121 @@ NTSTATUS KpiSetInformationProcess(
     __in KPROCESSOR_MODE AccessMode
     )
 {
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status;
+    PEPROCESS process;
+    HANDLE newProcessHandle;
+
+    if (AccessMode != KernelMode)
+    {
+        __try
+        {
+            ProbeForRead(ProcessInformation, ProcessInformationLength, sizeof(ULONG));
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+    }
+
+    status = ObReferenceObjectByHandle(
+        ProcessHandle,
+        0,
+        *PsProcessType,
+        AccessMode,
+        &process,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    switch (ProcessInformationClass)
+    {
+    case KphProcessExecuteFlags:
+        {
+            ULONG executeFlags;
+            KAPC_STATE apcState;
+
+            if (ProcessInformationLength == sizeof(ULONG))
+            {
+                __try
+                {
+                    executeFlags = *(PULONG)ProcessInformation;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                // We can only set execute options on the current process.
+                // So, we simply attach to the target process.
+                KeStackAttachProcess(process, &apcState);
+                status = ZwSetInformationProcess(
+                    NtCurrentProcess(),
+                    ProcessExecuteFlags,
+                    &executeFlags,
+                    sizeof(ULONG)
+                    );
+                KeUnstackDetachProcess(&apcState);
+            }
+        }
+        break;
+    case KphProcessIoPriority:
+        {
+            ULONG ioPriority;
+
+            if (ProcessInformationLength == sizeof(ULONG))
+            {
+                __try
+                {
+                    ioPriority = *(PULONG)ProcessInformation;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                if (NT_SUCCESS(status = ObOpenObjectByPointer(
+                    process,
+                    OBJ_KERNEL_HANDLE,
+                    NULL,
+                    PROCESS_SET_INFORMATION,
+                    *PsProcessType,
+                    KernelMode,
+                    &newProcessHandle
+                    )))
+                {
+                    status = ZwSetInformationProcess(
+                        newProcessHandle,
+                        ProcessIoPriority,
+                        &ioPriority,
+                        sizeof(ULONG)
+                        );
+                    ZwClose(newProcessHandle);
+                }
+            }
+        }
+        break;
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+        break;
+    }
+
+    ObDereferenceObject(process);
+
+    return status;
 }

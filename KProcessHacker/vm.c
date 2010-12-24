@@ -32,6 +32,7 @@ ULONG KphpGetCopyExceptionInfo(
 #pragma alloc_text(PAGE, KphCopyVirtualMemory)
 #pragma alloc_text(PAGE, KpiReadVirtualMemory)
 #pragma alloc_text(PAGE, KpiWriteVirtualMemory)
+#pragma alloc_text(PAGE, KpiReadVirtualMemoryUnsafe)
 #endif
 
 #define KPH_STACK_COPY_BYTES 0x200
