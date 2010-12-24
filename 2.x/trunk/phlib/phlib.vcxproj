@@ -224,6 +224,7 @@
     <ClCompile Include="workqueue.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\kphapi.h" />
     <ClInclude Include="include\ntzwapi.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phnatinl.h" />
@@ -244,7 +245,7 @@
     <ClInclude Include="include\hexedit.h" />
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\iosupp.h" />
-    <ClInclude Include="include\kph.h" />
+    <ClInclude Include="include\kphuser.h" />
     <ClInclude Include="include\md5.h" />
     <ClInclude Include="include\ntbasic.h" />
     <ClInclude Include="include\ntcm.h" />

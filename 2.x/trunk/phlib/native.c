@@ -21,7 +21,7 @@
  */
 
 #include <ph.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <symprv.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64

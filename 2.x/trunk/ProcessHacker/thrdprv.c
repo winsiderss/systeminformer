@@ -22,7 +22,7 @@
 
 #define PH_THRDPRV_PRIVATE
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 
 typedef struct _PH_THREAD_QUERY_DATA
 {

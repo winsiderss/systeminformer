@@ -1,6 +1,8 @@
 #ifndef _NTBASIC_H
 #define _NTBASIC_H
 
+#ifndef _NTDEF_
+
 // This header file provides basic NT types not included in Win32.
 
 #ifndef NOTHING
@@ -257,5 +259,7 @@ typedef struct _KSYSTEM_TIME
 } KSYSTEM_TIME, *PKSYSTEM_TIME;
 
 #include <poppack.h>
+
+#endif
 
 #endif

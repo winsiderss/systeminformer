@@ -254,9 +254,6 @@
     <ClInclude Include="include\iosupp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\kph.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\md5.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -417,6 +414,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phnatinl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\kphuser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

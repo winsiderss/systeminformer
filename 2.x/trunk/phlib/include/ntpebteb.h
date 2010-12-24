@@ -1,8 +1,12 @@
 #ifndef _NTPEBTEB_H
 #define _NTPEBTEB_H
 
-#include <ntldr.h>
-#include <ntrtl.h>
+#if (PHNT_MODE == PHNT_MODE_KERNEL)
+typedef PVOID *PPVOID;
+#endif
+
+typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
+typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
 
 // symbols
 typedef struct _PEB
@@ -182,9 +186,9 @@ typedef struct _TEB
     NTSTATUS ExceptionCode;
     PVOID ActivationContextStackPointer;
 #ifdef _M_X64
-    BYTE SpareBytes[24];
+    UCHAR SpareBytes[24];
 #else
-    BYTE SpareBytes[36];
+    UCHAR SpareBytes[36];
 #endif
     ULONG TxFsContext;
 
@@ -236,10 +240,10 @@ typedef struct _TEB
         ULONG IdealProcessorValue;
         struct
         {
-            BYTE ReservedPad0;
-            BYTE ReservedPad1;
-            BYTE ReservedPad2;
-            BYTE IdealProcessor;
+            UCHAR ReservedPad0;
+            UCHAR ReservedPad1;
+            UCHAR ReservedPad2;
+            UCHAR IdealProcessor;
         };
     };
 
