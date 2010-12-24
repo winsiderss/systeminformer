@@ -7,6 +7,8 @@ LIBS=%BUILD%\lib
 
 SOURCES= \
     main.c \
+    devctrl.c \
     dynimp.c \
     process.c \
+    vm.c \
     resource.rc
