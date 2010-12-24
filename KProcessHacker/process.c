@@ -21,6 +21,15 @@
 
 #include <kph.h>
 
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, KpiOpenProcess)
+#pragma alloc_text(PAGE, KpiOpenProcessToken)
+#pragma alloc_text(PAGE, KpiOpenProcessJob)
+#pragma alloc_text(PAGE, KpiSuspendProcess)
+#pragma alloc_text(PAGE, KpiResumeProcess)
+#pragma alloc_text(PAGE, KpiTerminateProcess)
+#endif
+
 NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -354,4 +363,27 @@ NTSTATUS KpiTerminateProcess(
     ObDereferenceObject(process);
 
     return status;
+}
+
+NTSTATUS KpiQueryInformationProcess(
+    __in HANDLE ProcessHandle,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS KpiSetInformationProcess(
+    __in HANDLE ProcessHandle,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __in KPROCESSOR_MODE AccessMode
+    )
+{
+    return STATUS_NOT_IMPLEMENTED;
 }

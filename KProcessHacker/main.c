@@ -21,14 +21,27 @@
 
 #include <kph.h>
 
+DRIVER_INITIALIZE DriverEntry;
+DRIVER_UNLOAD DriverUnload;
+DRIVER_DISPATCH KphDispatchCreate;
+
+ULONG KphpReadIntegerParameter(
+    __in_opt HANDLE KeyHandle,
+    __in PUNICODE_STRING ValueName,
+    __in ULONG DefaultValue
+    );
+
 NTSTATUS KphpReadDriverParameters(
     __in PUNICODE_STRING RegistryPath
     );
 
-DRIVER_INITIALIZE DriverEntry;
-DRIVER_UNLOAD DriverUnload;
-DRIVER_DISPATCH KphDispatchCreate;
-DRIVER_DISPATCH KphDispatchDeviceControl;
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, DriverEntry)
+#pragma alloc_text(PAGE, DriverUnload)
+#pragma alloc_text(PAGE, KphpReadIntegerParameter)
+#pragma alloc_text(PAGE, KphpReadDriverParameters)
+#pragma alloc_text(PAGE, KpiGetFeatures)
+#endif
 
 PDRIVER_OBJECT KphDriverObject;
 PDEVICE_OBJECT KphDeviceObject;
@@ -132,150 +145,8 @@ NTSTATUS KphDispatchCreate(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS KphDispatchDeviceControl(
-    __in PDEVICE_OBJECT DeviceObject,
-    __in PIRP Irp
-    )
-{
-    NTSTATUS status;
-    PIO_STACK_LOCATION stackLocation;
-    PVOID systemBuffer;
-    ULONG inputBufferLength;
-    ULONG ioControlCode;
-    ULONG returnLength;
-
-#define VERIFY_INPUT_LENGTH \
-    do { if (inputBufferLength != sizeof(*input)) \
-    { \
-        status = STATUS_INFO_LENGTH_MISMATCH; \
-        goto ControlEnd; \
-    } } while (0)
-
-    stackLocation = IoGetCurrentIrpStackLocation(Irp);
-    systemBuffer = Irp->AssociatedIrp.SystemBuffer;
-    inputBufferLength = stackLocation->Parameters.DeviceIoControl.InputBufferLength;
-    ioControlCode = stackLocation->Parameters.DeviceIoControl.IoControlCode;
-    returnLength = 0;
-
-    if (systemBuffer)
-    {
-        switch (ioControlCode)
-        {
-        case KPH_GETFEATURES:
-            {
-                struct
-                {
-                    PULONG Features;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiGetFeatures(
-                    input->Features,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        case KPH_OPENPROCESS:
-            {
-                struct
-                {
-                    PHANDLE ProcessHandle;
-                    ACCESS_MASK DesiredAccess;
-                    PCLIENT_ID ClientId;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiOpenProcess(
-                    input->ProcessHandle,
-                    input->DesiredAccess,
-                    input->ClientId,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        case KPH_OPENPROCESSTOKEN:
-            {
-                struct
-                {
-                    HANDLE ProcessHandle;
-                    ACCESS_MASK DesiredAccess;
-                    PHANDLE TokenHandle;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiOpenProcessToken(
-                    input->ProcessHandle,
-                    input->DesiredAccess,
-                    input->TokenHandle,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        case KPH_OPENPROCESSJOB:
-            {
-                struct
-                {
-                    HANDLE ProcessHandle;
-                    ACCESS_MASK DesiredAccess;
-                    PHANDLE JobHandle;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiOpenProcessJob(
-                    input->ProcessHandle,
-                    input->DesiredAccess,
-                    input->JobHandle,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        case KPH_SUSPENDPROCESS:
-            {
-                struct
-                {
-                    HANDLE ProcessHandle;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiSuspendProcess(
-                    input->ProcessHandle,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        case KPH_RESUMEPROCESS:
-            {
-                struct
-                {
-                    HANDLE ProcessHandle;
-                } *input = systemBuffer;
-
-                VERIFY_INPUT_LENGTH;
-
-                status = KpiResumeProcess(
-                    input->ProcessHandle,
-                    Irp->RequestorMode
-                    );
-            }
-            break;
-        }
-    }
-
-ControlEnd:
-    Irp->IoStatus.Status = status;
-    Irp->IoStatus.Information = returnLength;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-
-    return STATUS_SUCCESS;
-}
-
 ULONG KphpReadIntegerParameter(
-    __in HANDLE KeyHandle,
+    __in_opt HANDLE KeyHandle,
     __in PUNICODE_STRING ValueName,
     __in ULONG DefaultValue
     )
@@ -284,6 +155,9 @@ ULONG KphpReadIntegerParameter(
     UCHAR buffer[FIELD_OFFSET(KEY_VALUE_PARTIAL_INFORMATION, Data) + sizeof(ULONG)];
     PKEY_VALUE_PARTIAL_INFORMATION info;
     ULONG resultLength;
+
+    if (!KeyHandle)
+        return DefaultValue;
 
     info = (PKEY_VALUE_PARTIAL_INFORMATION)buffer;
 
@@ -321,8 +195,8 @@ NTSTATUS KphpReadDriverParameters(
     RtlInitUnicodeString(&parametersString, L"\\Parameters");
 
     parametersKeyName.Length = RegistryPath->Length + parametersString.Length;
-    parametersKeyName.MaximumLength = parametersKeyName.Length + sizeof(WCHAR);
-    parametersKeyName.Buffer = ExAllocatePoolWithTag(parametersKeyName.MaximumLength, PagedPool, 'ThpK');
+    parametersKeyName.MaximumLength = parametersKeyName.Length;
+    parametersKeyName.Buffer = ExAllocatePoolWithTag(PagedPool, parametersKeyName.MaximumLength, 'ThpK');
 
     if (!parametersKeyName.Buffer)
         return STATUS_INSUFFICIENT_RESOURCES;
@@ -337,7 +211,6 @@ NTSTATUS KphpReadDriverParameters(
         NULL,
         NULL
         );
-
     status = ZwOpenKey(
         &parametersKeyHandle,
         KEY_READ,
@@ -346,14 +219,20 @@ NTSTATUS KphpReadDriverParameters(
     ExFreePoolWithTag(parametersKeyName.Buffer, 'ThpK');
 
     if (!NT_SUCCESS(status))
-        return status;
+    {
+        dprintf(L"Unable to open Parameters key: 0x%x\n", status);
+        status = STATUS_SUCCESS;
+        parametersKeyHandle = NULL;
+        // Continue so we can set up defaults.
+    }
 
     // Read in the parameters.
 
     RtlInitUnicodeString(&valueName, L"SecurityLevel");
     KphParameters.SecurityLevel = KphpReadIntegerParameter(parametersKeyHandle, &valueName, KphSecurityNone);
 
-    ZwClose(parametersKeyHandle);
+    if (parametersKeyHandle)
+        ZwClose(parametersKeyHandle);
 
     return status;
 }
