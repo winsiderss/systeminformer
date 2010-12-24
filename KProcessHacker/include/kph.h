@@ -30,6 +30,13 @@ NTSTATUS KpiGetFeatures(
     __in KPROCESSOR_MODE AccessMode
     );
 
+// devctrl
+
+NTSTATUS KphDispatchDeviceControl(
+    __in PDEVICE_OBJECT DeviceObject,
+    __in PIRP Irp
+    );
+
 // dynimp
 
 extern _PsSuspendProcess PsSuspendProcess_I;
@@ -75,6 +82,62 @@ NTSTATUS KpiResumeProcess(
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiQueryInformationProcess(
+    __in HANDLE ProcessHandle,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiSetInformationProcess(
+    __in HANDLE ProcessHandle,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
+    __in ULONG ProcessInformationLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+// vm
+
+NTSTATUS KphCopyVirtualMemory(
+    __in PEPROCESS FromProcess,
+    __in PVOID FromAddress,
+    __in PEPROCESS ToProcess,
+    __in PVOID ToAddress,
+    __in SIZE_T BufferLength,
+    __in KPROCESSOR_MODE AccessMode,
+    __out PSIZE_T ReturnLength
+    );
+
+NTSTATUS KpiReadVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiWriteVirtualMemory(
+    __in HANDLE ProcessHandle,
+    __in_opt PVOID BaseAddress,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesWritten,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiReadVirtualMemoryUnsafe(
+    __in_opt HANDLE ProcessHandle,
+    __in PVOID BaseAddress,
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead,
     __in KPROCESSOR_MODE AccessMode
     );
 

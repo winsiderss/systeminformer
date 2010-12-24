@@ -21,6 +21,15 @@
 
 #include <kph.h>
 
+PVOID KphpGetSystemRoutineAddress(
+    __in PWSTR SystemRoutineName
+    );
+
+#ifdef ALLOC_PRAGMA
+#pragma alloc_text(PAGE, KphpGetSystemRoutineAddress)
+#pragma alloc_text(PAGE, KphDynamicImport)
+#endif
+
 _PsSuspendProcess PsSuspendProcess_I;
 _PsResumeProcess PsResumeProcess_I;
 
