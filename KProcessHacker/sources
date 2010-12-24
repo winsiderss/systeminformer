@@ -10,5 +10,6 @@ SOURCES= \
     devctrl.c \
     dynimp.c \
     process.c \
+    thread.c \
     vm.c \
     resource.rc
