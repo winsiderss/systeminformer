@@ -13,6 +13,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "peview", "tools\peview\pevi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fiin", "tools\fiin\fiin.vcxproj", "{5EAB4888-C299-4C4C-ADB2-212C3735805C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{FD3C278D-BD40-4551-AE67-4DE196F8D7F6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phlib-test", "tests\phlib-test\phlib-test.vcxproj", "{0C21014E-BC90-4AE5-AA32-398445C13B28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -57,6 +61,12 @@ Global
 		{5EAB4888-C299-4C4C-ADB2-212C3735805C}.Release|Win32.Build.0 = Release|Win32
 		{5EAB4888-C299-4C4C-ADB2-212C3735805C}.Release|x64.ActiveCfg = Release|Win32
 		{5EAB4888-C299-4C4C-ADB2-212C3735805C}.Release|x64.Build.0 = Release|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Debug|Win32.Build.0 = Debug|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Debug|x64.ActiveCfg = Debug|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|Win32.ActiveCfg = Release|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|Win32.Build.0 = Release|Win32
+		{0C21014E-BC90-4AE5-AA32-398445C13B28}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -65,5 +75,6 @@ Global
 		{31F4AA06-7ED5-4A6D-B901-19AD4BD16175} = {2758DC86-368B-430C-9D29-F1EF20032A71}
 		{72C124A2-3C80-41C6-ABA1-C4948B713204} = {2758DC86-368B-430C-9D29-F1EF20032A71}
 		{5EAB4888-C299-4C4C-ADB2-212C3735805C} = {2758DC86-368B-430C-9D29-F1EF20032A71}
+		{0C21014E-BC90-4AE5-AA32-398445C13B28} = {FD3C278D-BD40-4551-AE67-4DE196F8D7F6}
 	EndGlobalSection
 EndGlobal
