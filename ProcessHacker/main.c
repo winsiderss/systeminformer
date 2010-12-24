@@ -22,7 +22,7 @@
 
 #define PH_MAIN_PRIVATE
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <settings.h>
 #include <hexedit.h>
 #include <shlobj.h>

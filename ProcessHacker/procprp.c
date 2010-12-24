@@ -22,7 +22,7 @@
 
 #include <phapp.h>
 #include <procprpp.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <settings.h>
 #include <emenu.h>
 #include <phplug.h>

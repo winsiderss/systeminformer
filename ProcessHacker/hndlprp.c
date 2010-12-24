@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 #include <phplug.h>
 
 typedef struct _HANDLE_PROPERTIES_CONTEXT

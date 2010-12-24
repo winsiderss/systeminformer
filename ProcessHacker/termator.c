@@ -21,7 +21,7 @@
  */
 
 #include <phapp.h>
-#include <kph.h>
+#include <kphuser.h>
 
 #define CROSS_INDEX 0
 #define TICK_INDEX 1
@@ -157,7 +157,7 @@ static NTSTATUS NTAPI TerminatorTTGeneric(
             )))
         {
             if (UseKphDangerous)
-                KphDangerousTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+                KphTerminateThreadUnsafe(PhKphHandle, threadHandle, STATUS_SUCCESS);
             else if (UseKph)
                 KphTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
             else
