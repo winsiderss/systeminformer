@@ -481,7 +481,11 @@ NTSTATUS KpiQueryInformationProcess(
         {
             BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
 
-            if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
+            if (PsIsProtectedProcess_I)
+            {
+                protectedProcess = PsIsProtectedProcess_I(process);
+            }
+            else if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
             {
                 protectedProcess = (*(PULONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff) >> KphDynEpProtectedProcessBit) & 0x1;
             }

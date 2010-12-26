@@ -23,22 +23,11 @@
 #include <phbase.h>
 #include <kphuser.h>
 
-typedef struct _KPH_ZWQUERYOBJECT_BUFFER
-{
-    NTSTATUS Status;
-    ULONG ReturnLength;
-    PVOID BufferBase;
-    UCHAR Buffer[1];
-} KPH_ZWQUERYOBJECT_BUFFER, *PKPH_ZWQUERYOBJECT_BUFFER;
-
 NTSTATUS KphpDeviceIoControl(
-    HANDLE KphHandle,
-    ULONG KphControlCode,
-    PVOID InBuffer,
-    ULONG InBufferLength,
-    PVOID OutBuffer,
-    ULONG OutBufferLength,
-    PULONG ReturnLength
+    __in HANDLE KphHandle,
+    __in ULONG KphControlCode,
+    __in PVOID InBuffer,
+    __in ULONG InBufferLength
     );
 
 NTSTATUS KphConnect(
@@ -109,7 +98,7 @@ NTSTATUS KphConnect2(
     BOOLEAN created = FALSE;
 
     if (!DeviceName)
-        DeviceName = KPH_SHORT_DEVICE_NAME;
+        DeviceName = KPH_DEVICE_SHORT_NAME;
 
     _snwprintf(fullDeviceName, MAX_PATH, L"\\Device\\%s", DeviceName);
 
@@ -228,7 +217,7 @@ NTSTATUS KphInstall(
     SC_HANDLE serviceHandle;
 
     if (!DeviceName)
-        DeviceName = KPH_SHORT_DEVICE_NAME;
+        DeviceName = KPH_DEVICE_SHORT_NAME;
 
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE);
 
@@ -277,7 +266,7 @@ NTSTATUS KphUninstall(
     SC_HANDLE serviceHandle;
 
     if (!DeviceName)
-        DeviceName = KPH_SHORT_DEVICE_NAME;
+        DeviceName = KPH_DEVICE_SHORT_NAME;
 
     scmHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
 
@@ -308,35 +297,26 @@ NTSTATUS KphUninstall(
 }
 
 NTSTATUS KphpDeviceIoControl(
-    HANDLE KphHandle,
-    ULONG KphControlCode,
-    PVOID InBuffer,
-    ULONG InBufferLength,
-    PVOID OutBuffer,
-    ULONG OutBufferLength,
-    PULONG ReturnLength
+    __in HANDLE KphHandle,
+    __in ULONG KphControlCode,
+    __in PVOID InBuffer,
+    __in ULONG InBufferLength
     )
 {
-    NTSTATUS status;
-    IO_STATUS_BLOCK ioStatusBlock;
+    IO_STATUS_BLOCK isb;
 
-    status = NtDeviceIoControlFile(
+    return NtDeviceIoControlFile(
         KphHandle,
         NULL,
         NULL,
         NULL,
-        &ioStatusBlock,
+        &isb,
         KphControlCode,
         InBuffer,
         InBufferLength,
-        OutBuffer,
-        OutBufferLength
+        NULL,
+        0
         );
-
-    if (NT_SUCCESS(status) && ReturnLength)
-        *ReturnLength = (ULONG)ioStatusBlock.Information;
-
-    return status;
 }
 
 NTSTATUS KphGetFeatures(
@@ -344,138 +324,83 @@ NTSTATUS KphGetFeatures(
     __out PULONG Features
     )
 {
-    NTSTATUS status;
-    ULONG features;
+    struct
+    {
+        PULONG Features;
+    } input = { Features };
 
-    if (NT_SUCCESS(status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_GETFEATURES,
-        NULL,
-        0,
-        &features,
-        sizeof(ULONG),
-        NULL
-        )))
-        *Features = features;
-
-    return status;
+        &input,
+        sizeof(input)
+        );
 }
 
 NTSTATUS KphOpenProcess(
     __in HANDLE KphHandle,
     __out PHANDLE ProcessHandle,
-    __in HANDLE ProcessId,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __in PCLIENT_ID ClientId
     )
 {
-    NTSTATUS status;
     struct
     {
-        HANDLE ProcessId;
+        PHANDLE ProcessHandle;
         ACCESS_MASK DesiredAccess;
-    } args;
-    struct
-    {
-        HANDLE ProcessHandle;
-    } ret;
+        PCLIENT_ID ClientId;
+    } input = { ProcessHandle, DesiredAccess, ClientId };
 
-    args.ProcessId = ProcessId;
-    args.DesiredAccess = DesiredAccess;
-
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENPROCESS,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
+        &input,
+        sizeof(input)
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *ProcessHandle = ret.ProcessHandle;
-    }
-
-    return status;
 }
 
 NTSTATUS KphOpenProcessToken(
     __in HANDLE KphHandle,
-    __out PHANDLE TokenHandle,
     __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE TokenHandle
     )
 {
-    NTSTATUS status;
     struct
     {
         HANDLE ProcessHandle;
         ACCESS_MASK DesiredAccess;
-    } args;
-    struct
-    {
-        HANDLE TokenHandle;
-    } ret;
+        PHANDLE TokenHandle;
+    } input = { ProcessHandle, DesiredAccess, TokenHandle };
 
-    args.ProcessHandle = ProcessHandle;
-    args.DesiredAccess = DesiredAccess;
-
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENPROCESSTOKEN,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
+        &input,
+        sizeof(input)
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *TokenHandle = ret.TokenHandle;
-    }
-
-    return status;
 }
 
 NTSTATUS KphOpenProcessJob(
     __in HANDLE KphHandle,
-    __out PHANDLE JobHandle,
     __in HANDLE ProcessHandle,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE JobHandle
     )
 {
-    NTSTATUS status;
     struct
     {
         HANDLE ProcessHandle;
         ACCESS_MASK DesiredAccess;
-    } args;
-    struct
-    {
-        HANDLE JobHandle;
-    } ret;
+        PHANDLE JobHandle;
+    } input = { ProcessHandle, DesiredAccess, JobHandle };
 
-    args.ProcessHandle = ProcessHandle;
-    args.DesiredAccess = DesiredAccess;
-
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENPROCESSJOB,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
+        &input,
+        sizeof(input)
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *JobHandle = ret.JobHandle;
-    }
-
-    return status;
 }
 
 NTSTATUS KphSuspendProcess(
@@ -486,18 +411,13 @@ NTSTATUS KphSuspendProcess(
     struct
     {
         HANDLE ProcessHandle;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
+    } input = { ProcessHandle };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_SUSPENDPROCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
@@ -509,18 +429,13 @@ NTSTATUS KphResumeProcess(
     struct
     {
         HANDLE ProcessHandle;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
+    } input = { ProcessHandle };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_RESUMEPROCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
@@ -530,28 +445,22 @@ NTSTATUS KphTerminateProcess(
     __in NTSTATUS ExitStatus
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     struct
     {
         HANDLE ProcessHandle;
         NTSTATUS ExitStatus;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.ExitStatus = ExitStatus;
+    } input = { ProcessHandle, ExitStatus };
 
     status = KphpDeviceIoControl(
         KphHandle,
         KPH_TERMINATEPROCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 
-    /* Check if we were trying to terminate the current 
-     * process and do it now. */
+    // Check if we're trying to terminate the current process, 
+    // because kernel-mode can't do it.
     if (status == STATUS_CANT_TERMINATE_SELF)
     {
         RtlExitUserProcess(ExitStatus);
@@ -564,9 +473,9 @@ NTSTATUS KphReadVirtualMemory(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __out_bcount(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out_opt PULONG ReturnLength
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead
     )
 {
     struct
@@ -574,34 +483,25 @@ NTSTATUS KphReadVirtualMemory(
         HANDLE ProcessHandle;
         PVOID BaseAddress;
         PVOID Buffer;
-        ULONG BufferLength;
-        PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.BaseAddress = BaseAddress;
-    args.Buffer = Buffer;
-    args.BufferLength = BufferLength;
-    args.ReturnLength = ReturnLength;
+        SIZE_T BufferSize;
+        PSIZE_T NumberOfBytesRead;
+    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_READVIRTUALMEMORY,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
 NTSTATUS KphWriteVirtualMemory(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
-    __in PVOID BaseAddress,
-    __in_bcount(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out_opt PULONG ReturnLength
+    __in_opt PVOID BaseAddress,
+    __in_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesWritten
     )
 {
     struct
@@ -609,34 +509,25 @@ NTSTATUS KphWriteVirtualMemory(
         HANDLE ProcessHandle;
         PVOID BaseAddress;
         PVOID Buffer;
-        ULONG BufferLength;
-        PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.BaseAddress = BaseAddress;
-    args.Buffer = Buffer;
-    args.BufferLength = BufferLength;
-    args.ReturnLength = ReturnLength;
+        SIZE_T BufferSize;
+        PSIZE_T NumberOfBytesWritten;
+    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesWritten };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_WRITEVIRTUALMEMORY,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
 NTSTATUS KphReadVirtualMemoryUnsafe(
     __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
+    __in_opt HANDLE ProcessHandle,
     __in PVOID BaseAddress,
-    __in_bcount(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out_opt PULONG ReturnLength
+    __out_bcount(BufferSize) PVOID Buffer,
+    __in SIZE_T BufferSize,
+    __out_opt PSIZE_T NumberOfBytesRead
     )
 {
     struct
@@ -644,146 +535,23 @@ NTSTATUS KphReadVirtualMemoryUnsafe(
         HANDLE ProcessHandle;
         PVOID BaseAddress;
         PVOID Buffer;
-        ULONG BufferLength;
-        PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.BaseAddress = BaseAddress;
-    args.Buffer = Buffer;
-    args.BufferLength = BufferLength;
-    args.ReturnLength = ReturnLength;
+        SIZE_T BufferSize;
+        PSIZE_T NumberOfBytesRead;
+    } input = { ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead };
 
     return KphpDeviceIoControl(
         KphHandle,
-        KPH_UNSAFEREADVIRTUALMEMORY,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphGetProcessProtected(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessId,
-    __out PBOOLEAN IsProtected
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ProcessId;
-    } args;
-    struct
-    {
-        BOOLEAN IsProtected;
-    } ret;
-
-    args.ProcessId = ProcessId;
-
-    status = KphpDeviceIoControl(
-        KphHandle,
-        KPH_GETPROCESSPROTECTED,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *IsProtected = ret.IsProtected;
-    }
-
-    return status;
-}
-
-NTSTATUS KphSetProcessProtected(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessId,
-    __in BOOLEAN IsProtected
-    )
-{
-    struct
-    {
-        HANDLE ProcessId;
-        BOOLEAN IsProtected;
-    } args;
-
-    args.ProcessId = ProcessId;
-    args.IsProtected = IsProtected;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETPROCESSPROTECTED,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphSetExecuteOptions(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in ULONG ExecuteOptions
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        ULONG ExecuteOptions;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.ExecuteOptions = ExecuteOptions;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETEXECUTEOPTIONS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphSetProcessToken(
-    __in HANDLE KphHandle,
-    __in HANDLE SourceProcessId,
-    __in HANDLE TargetProcessId
-    )
-{
-    struct
-    {
-        HANDLE SourceProcessId;
-        HANDLE TargetProcessId;
-    } args;
-
-    args.SourceProcessId = SourceProcessId;
-    args.TargetProcessId = TargetProcessId;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETPROCESSTOKEN,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        KPH_READVIRTUALMEMORYUNSAFE,
+        &input,
+        sizeof(input)
         );
 }
 
 NTSTATUS KphQueryInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
-    __out_bcount_opt(ProcessInformationLength) PVOID ProcessInformation,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __out_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength,
     __out_opt PULONG ReturnLength
     )
@@ -791,68 +559,24 @@ NTSTATUS KphQueryInformationProcess(
     struct
     {
         HANDLE ProcessHandle;
-        PROCESS_INFORMATION_CLASS ProcessInformationClass;
+        KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
         PVOID ProcessInformation;
         ULONG ProcessInformationLength;
         PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.ProcessInformationClass = ProcessInformationClass;
-    args.ProcessInformation = ProcessInformation;
-    args.ProcessInformationLength = ProcessInformationLength;
-    args.ReturnLength = ReturnLength;
+    } input = { ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_QUERYINFORMATIONPROCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphQueryInformationThread(
-    __in HANDLE KphHandle,
-    __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __out_bcount_opt(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength,
-    __out_opt PULONG ReturnLength
-    )
-{
-    struct
-    {
-        HANDLE ThreadHandle;
-        THREAD_INFORMATION_CLASS ThreadInformationClass;
-        PVOID ThreadInformation;
-        ULONG ThreadInformationLength;
-        PULONG ReturnLength;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ThreadInformationClass = ThreadInformationClass;
-    args.ThreadInformation = ThreadInformation;
-    args.ThreadInformationLength = ThreadInformationLength;
-    args.ReturnLength = ReturnLength;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_QUERYINFORMATIONTHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
 NTSTATUS KphSetInformationProcess(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
-    __in PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
     __in_bcount(ProcessInformationLength) PVOID ProcessInformation,
     __in ULONG ProcessInformationLength
     )
@@ -860,136 +584,61 @@ NTSTATUS KphSetInformationProcess(
     struct
     {
         HANDLE ProcessHandle;
-        PROCESS_INFORMATION_CLASS ProcessInformationClass;
+        KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass;
         PVOID ProcessInformation;
         ULONG ProcessInformationLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.ProcessInformationClass = ProcessInformationClass;
-    args.ProcessInformation = ProcessInformation;
-    args.ProcessInformationLength = ProcessInformationLength;
+    } input = { ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_SETINFORMATIONPROCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphSetInformationThread(
-    __in HANDLE KphHandle,
-    __in HANDLE ThreadHandle,
-    __in THREAD_INFORMATION_CLASS ThreadInformationClass,
-    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
-    __in ULONG ThreadInformationLength
-    )
-{
-    struct
-    {
-        HANDLE ThreadHandle;
-        THREAD_INFORMATION_CLASS ThreadInformationClass;
-        PVOID ThreadInformation;
-        ULONG ThreadInformationLength;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ThreadInformationClass = ThreadInformationClass;
-    args.ThreadInformation = ThreadInformation;
-    args.ThreadInformationLength = ThreadInformationLength;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETINFORMATIONTHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
 NTSTATUS KphOpenThread(
     __in HANDLE KphHandle,
     __out PHANDLE ThreadHandle,
-    __in HANDLE ThreadId,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __in PCLIENT_ID ClientId
     )
 {
-    NTSTATUS status;
     struct
     {
-        HANDLE ThreadId;
+        PHANDLE ThreadHandle;
         ACCESS_MASK DesiredAccess;
-    } args;
-    struct
-    {
-        HANDLE ThreadHandle;
-    } ret;
+        PCLIENT_ID ClientId;
+    } input = { ThreadHandle, DesiredAccess, ClientId };
 
-    args.ThreadId = ThreadId;
-    args.DesiredAccess = DesiredAccess;
-
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENTHREAD,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
+        &input,
+        sizeof(input)
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *ThreadHandle = ret.ThreadHandle;
-    }
-
-    return status;
 }
 
 NTSTATUS KphOpenThreadProcess(
     __in HANDLE KphHandle,
-    __out PHANDLE ProcessHandle,
     __in HANDLE ThreadHandle,
-    __in ACCESS_MASK DesiredAccess
+    __in ACCESS_MASK DesiredAccess,
+    __out PHANDLE ProcessHandle
     )
 {
-    NTSTATUS status;
-
     struct
     {
         HANDLE ThreadHandle;
         ACCESS_MASK DesiredAccess;
-    } args;
-    struct
-    {
-        HANDLE ProcessHandle;
-    } ret;
+        PHANDLE ProcessHandle;
+    } input = { ThreadHandle, DesiredAccess, ProcessHandle };
 
-    args.ThreadHandle = ThreadHandle;
-    args.DesiredAccess = DesiredAccess;
-
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENTHREADPROCESS,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
+        &input,
+        sizeof(input)
         );
-
-    if (NT_SUCCESS(status))
-    {
-        *ProcessHandle = ret.ProcessHandle;
-    }
-
-    return status;
 }
 
 NTSTATUS KphTerminateThread(
@@ -998,24 +647,18 @@ NTSTATUS KphTerminateThread(
     __in NTSTATUS ExitStatus
     )
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status;
     struct
     {
         HANDLE ThreadHandle;
         NTSTATUS ExitStatus;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ExitStatus = ExitStatus;
+    } input = { ThreadHandle, ExitStatus };
 
     status = KphpDeviceIoControl(
         KphHandle,
         KPH_TERMINATETHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 
     if (status == STATUS_CANT_TERMINATE_SELF)
@@ -1036,19 +679,13 @@ NTSTATUS KphTerminateThreadUnsafe(
     {
         HANDLE ThreadHandle;
         NTSTATUS ExitStatus;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ExitStatus = ExitStatus;
+    } input = { ThreadHandle, ExitStatus };
 
     return KphpDeviceIoControl(
         KphHandle,
-        KPH_DANGEROUSTERMINATETHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        KPH_TERMINATETHREADUNSAFE,
+        &input,
+        sizeof(input)
         );
 }
 
@@ -1062,19 +699,13 @@ NTSTATUS KphGetContextThread(
     {
         HANDLE ThreadHandle;
         PCONTEXT ThreadContext;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ThreadContext = ThreadContext;
+    } input = { ThreadHandle, ThreadContext };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_GETCONTEXTTHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
@@ -1088,19 +719,13 @@ NTSTATUS KphSetContextThread(
     {
         HANDLE ThreadHandle;
         PCONTEXT ThreadContext;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.ThreadContext = ThreadContext;
+    } input = { ThreadHandle, ThreadContext };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_SETCONTEXTTHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
@@ -1109,7 +734,7 @@ NTSTATUS KphCaptureStackBackTraceThread(
     __in HANDLE ThreadHandle,
     __in ULONG FramesToSkip,
     __in ULONG FramesToCapture,
-    __out_ecount(FramesToCapture) PPVOID BackTrace,
+    __out_ecount(FramesToCapture) PVOID *BackTrace,
     __out_opt PULONG CapturedFrames,
     __out_opt PULONG BackTraceHash
     )
@@ -1122,92 +747,70 @@ NTSTATUS KphCaptureStackBackTraceThread(
         PPVOID BackTrace;
         PULONG CapturedFrames;
         PULONG BackTraceHash;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.FramesToSkip = FramesToSkip;
-    args.FramesToCapture = FramesToCapture;
-    args.BackTrace = BackTrace;
-    args.CapturedFrames = CapturedFrames;
-    args.BackTraceHash = BackTraceHash;
+    } input = { ThreadHandle, FramesToSkip, FramesToCapture, BackTrace, CapturedFrames, BackTraceHash };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_CAPTURESTACKBACKTRACETHREAD,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
-NTSTATUS KphGetThreadWin32Thread(
+NTSTATUS KphQueryInformationThread(
     __in HANDLE KphHandle,
     __in HANDLE ThreadHandle,
-    __out PPVOID Win32Thread
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ThreadHandle;
-    } args;
-    struct
-    {
-        PVOID Win32Thread;
-    } ret;
-
-    args.ThreadHandle = ThreadHandle;
-
-    status = KphpDeviceIoControl(
-        KphHandle,
-        KPH_GETTHREADWIN32THREAD,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *Win32Thread = ret.Win32Thread;
-    }
-
-    return status;
-}
-
-NTSTATUS KphAssignImpersonationToken(
-    __in HANDLE KphHandle,
-    __in HANDLE ThreadHandle,
-    __in HANDLE TokenHandle
+    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __out_bcount(ProcessInformationLength) PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength,
+    __out_opt PULONG ReturnLength
     )
 {
     struct
     {
         HANDLE ThreadHandle;
-        HANDLE TokenHandle;
-    } args;
-
-    args.ThreadHandle = ThreadHandle;
-    args.TokenHandle = TokenHandle;
+        KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+        PVOID ThreadInformation;
+        ULONG ThreadInformationLength;
+        PULONG ReturnLength;
+    } input = { ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength };
 
     return KphpDeviceIoControl(
         KphHandle,
-        KPH_ASSIGNIMPERSONATIONTOKEN,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        KPH_QUERYINFORMATIONTHREAD,
+        &input,
+        sizeof(input)
         );
 }
 
-NTSTATUS KphQueryProcessHandles(
+NTSTATUS KphSetInformationThread(
+    __in HANDLE KphHandle,
+    __in HANDLE ThreadHandle,
+    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength
+    )
+{
+    struct
+    {
+        HANDLE ThreadHandle;
+        KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+        PVOID ThreadInformation;
+        ULONG ThreadInformationLength;
+    } input = { ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength };
+
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_SETINFORMATIONTHREAD,
+        &input,
+        sizeof(input)
+        );
+}
+
+NTSTATUS KphEnumerateProcessHandles(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
-    __out_bcount_opt(BufferLength) PVOID Buffer,
+    __out_bcount(BufferLength) PVOID Buffer,
     __in_opt ULONG BufferLength,
     __out_opt PULONG ReturnLength
     )
@@ -1218,182 +821,68 @@ NTSTATUS KphQueryProcessHandles(
         PVOID Buffer;
         ULONG BufferLength;
         PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.Buffer = Buffer;
-    args.BufferLength = BufferLength;
-    args.ReturnLength = ReturnLength;
+    } input = { ProcessHandle, Buffer, BufferLength, ReturnLength };
 
     return KphpDeviceIoControl(
         KphHandle,
-        KPH_QUERYPROCESSHANDLES,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        KPH_ENUMERATEPROCESSHANDLES,
+        &input,
+        sizeof(input)
         );
 }
 
-NTSTATUS KphGetHandleObjectName(
+NTSTATUS KphQueryInformationObject(
     __in HANDLE KphHandle,
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
-    __out_bcount_opt(BufferLength) PUNICODE_STRING Buffer,
-    __in ULONG BufferLength,
+    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    __out_bcount(ObjectInformationLength) PVOID ObjectInformation,
+    __in ULONG ObjectInformationLength,
     __out_opt PULONG ReturnLength
     )
 {
-    NTSTATUS status;
-    UNICODE_STRING buffer;
-    ULONG returnLength;
     struct
     {
         HANDLE ProcessHandle;
         HANDLE Handle;
-    } args;
+        KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass;
+        PVOID ObjectInformation;
+        ULONG ObjectInformationLength;
+        PULONG ReturnLength;
+    } input = { ProcessHandle, Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength };
 
-    args.ProcessHandle = ProcessHandle;
-    args.Handle = Handle;
-
-    if (Buffer && BufferLength >= sizeof(UNICODE_STRING))
-    {
-        status = KphpDeviceIoControl(
-            KphHandle,
-            KPH_GETHANDLEOBJECTNAME,
-            &args,
-            sizeof(args),
-            Buffer,
-            BufferLength,
-            &returnLength
-            );
-
-        Buffer->Buffer = (PWSTR)PTR_ADD_OFFSET(Buffer, sizeof(UNICODE_STRING));
-
-        if (ReturnLength)
-        {
-            if (status == STATUS_BUFFER_TOO_SMALL)
-                *ReturnLength = Buffer->Length;
-            else
-                *ReturnLength = returnLength;
-        }
-    }
-    else
-    {
-        // User doesn't give us a buffer, or it was too small.
-        // Use our internal buffer.
-        status = KphpDeviceIoControl(
-            KphHandle,
-            KPH_GETHANDLEOBJECTNAME,
-            &args,
-            sizeof(args),
-            &buffer,
-            sizeof(UNICODE_STRING),
-            &returnLength
-            );
-
-        if (ReturnLength)
-        {
-            if (status == STATUS_BUFFER_TOO_SMALL)
-                *ReturnLength = buffer.Length;
-            else
-                *ReturnLength = returnLength;
-        }
-    }
-
-    return status;
-}
-
-NTSTATUS KphZwQueryObject(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    __in_bcount_opt(BufferLength) PVOID Buffer,
-    __in ULONG BufferLength,
-    __out_opt PULONG ReturnLength
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ProcessHandle;
-        HANDLE Handle;
-        OBJECT_INFORMATION_CLASS ObjectInformationClass;
-    } args;
-    PKPH_ZWQUERYOBJECT_BUFFER ret;
-    ULONG retLength;
-
-    // Make sure we understand the object information class 
-    // because we will be fixing the buffer later.
-    if (
-        ObjectInformationClass != ObjectBasicInformation &&
-        ObjectInformationClass != ObjectNameInformation &&
-        ObjectInformationClass != ObjectTypeInformation
-        )
-        return STATUS_INVALID_INFO_CLASS;
-
-    args.ProcessHandle = ProcessHandle;
-    args.Handle = Handle;
-    args.ObjectInformationClass = ObjectInformationClass;
-
-    retLength = FIELD_OFFSET(KPH_ZWQUERYOBJECT_BUFFER, Buffer) + BufferLength;
-    ret = PhAllocate(retLength);
-    status = KphpDeviceIoControl(
+    return KphpDeviceIoControl(
         KphHandle,
-        KPH_ZWQUERYOBJECT,
-        &args,
-        sizeof(args),
-        ret,
-        retLength,
-        NULL
+        KPH_QUERYINFORMATIONOBJECT,
+        &input,
+        sizeof(input)
         );
+}
 
-    // Make sure the actual I/O control request succeeded.
-    if (NT_SUCCESS(status))
+NTSTATUS KphSetInformationObject(
+    __in HANDLE KphHandle,
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
+    __in ULONG ObjectInformationLength
+    )
+{
+    struct
     {
-        // Check if ZwQueryObject succeeded.
-        status = ret->Status;
+        HANDLE ProcessHandle;
+        HANDLE Handle;
+        KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass;
+        PVOID ObjectInformation;
+        ULONG ObjectInformationLength;
+    } input = { ProcessHandle, Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength };
 
-        if (NT_SUCCESS(status))
-        {
-            if (Buffer)
-            {
-                // Copy the buffer contents to the user buffer.
-                memcpy(Buffer, ret->Buffer, ret->ReturnLength);
-
-                // Rebase pointers in the buffer.
-                if (ObjectInformationClass == ObjectNameInformation)
-                {
-                    POBJECT_NAME_INFORMATION nameInfo = (POBJECT_NAME_INFORMATION)Buffer;
-
-                    nameInfo->Name.Buffer = (PWSTR)REBASE_ADDRESS(
-                        nameInfo->Name.Buffer,
-                        ret->BufferBase,
-                        Buffer
-                        );
-                }
-                else if (ObjectInformationClass == ObjectTypeInformation)
-                {
-                    POBJECT_TYPE_INFORMATION typeInfo = (POBJECT_TYPE_INFORMATION)Buffer;
-
-                    typeInfo->TypeName.Buffer = (PWSTR)REBASE_ADDRESS(
-                        typeInfo->TypeName.Buffer,
-                        ret->BufferBase,
-                        Buffer
-                        );
-                }
-            }
-        }
-
-        if (ReturnLength)
-            *ReturnLength = ret->ReturnLength;
-    }
-
-    PhFree(ret);
-
-    return status;
+    return KphpDeviceIoControl(
+        KphHandle,
+        KPH_SETINFORMATIONOBJECT,
+        &input,
+        sizeof(input)
+        );
 }
 
 NTSTATUS KphDuplicateObject(
@@ -1417,230 +906,23 @@ NTSTATUS KphDuplicateObject(
         ACCESS_MASK DesiredAccess;
         ULONG HandleAttributes;
         ULONG Options;
-    } args;
-
-    args.SourceProcessHandle = SourceProcessHandle;
-    args.SourceHandle = SourceHandle;
-    args.TargetProcessHandle = TargetProcessHandle;
-    args.TargetHandle = TargetHandle;
-    args.DesiredAccess = DesiredAccess;
-    args.HandleAttributes = HandleAttributes;
-    args.Options = Options;
+    } input = { SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options };
 
     status = KphpDeviceIoControl(
         KphHandle,
         KPH_DUPLICATEOBJECT,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 
     if (status == STATUS_CANT_TERMINATE_SELF)
     {
-        /* Means we tried to close a handle in the current process.
-         * Do it now. */
-        status = NtClose(SourceHandle);
+        // We tried to close a handle in the current process.
+        if (Options & DUPLICATE_CLOSE_SOURCE)
+            status = NtClose(SourceHandle);
     }
 
     return status;
-}
-
-NTSTATUS KphSetHandleAttributes(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __in ULONG Flags
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        HANDLE Handle;
-        ULONG Flags;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.Handle = Handle;
-    args.Flags = Flags;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETHANDLEATTRIBUTES,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphSetHandleGrantedAccess(
-    __in HANDLE KphHandle,
-    __in HANDLE Handle,
-    __in ACCESS_MASK GrantedAccess
-    )
-{
-    struct
-    {
-        HANDLE Handle;
-        ACCESS_MASK GrantedAccess;
-    } args;
-
-    args.Handle = Handle;
-    args.GrantedAccess = GrantedAccess;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_SETHANDLEGRANTEDACCESS,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphGetProcessId(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __out PHANDLE ProcessId
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ProcessHandle;
-        HANDLE Handle;
-    } args;
-    struct
-    {
-        HANDLE ProcessId;
-    } ret;
-
-    args.ProcessHandle = ProcessHandle;
-    args.Handle = Handle;
-
-    status = KphpDeviceIoControl(
-        KphHandle,
-        KPH_GETPROCESSID,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *ProcessId = ret.ProcessId;
-    }
-
-    return status;
-}
-
-NTSTATUS KphGetThreadId(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in HANDLE Handle,
-    __out PHANDLE ThreadId,
-    __out_opt PHANDLE ProcessId
-    )
-{
-    NTSTATUS status;
-    struct
-    {
-        HANDLE ProcessHandle;
-        HANDLE Handle;
-    } args;
-    struct
-    {
-        HANDLE ThreadId;
-        HANDLE ProcessId;
-    } ret;
-
-    args.ProcessHandle = ProcessHandle;
-    args.Handle = Handle;
-
-    status = KphpDeviceIoControl(
-        KphHandle,
-        KPH_GETTHREADID,
-        &args,
-        sizeof(args),
-        &ret,
-        sizeof(ret),
-        NULL
-        );
-
-    if (NT_SUCCESS(status))
-    {
-        *ThreadId = ret.ThreadId;
-
-        if (ProcessId)
-            *ProcessId = ret.ProcessId;
-    }
-
-    return status;
-}
-
-NTSTATUS KphOpenNamedObject(
-    __in HANDLE KphHandle,
-    __out PHANDLE Handle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
-    )
-{
-    struct
-    {
-        PHANDLE Handle;
-        ACCESS_MASK DesiredAccess;
-        POBJECT_ATTRIBUTES ObjectAttributes;
-    } args;
-
-    args.Handle = Handle;
-    args.DesiredAccess = DesiredAccess;
-    args.ObjectAttributes = ObjectAttributes;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_OPENNAMEDOBJECT,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphOpenDirectoryObject(
-    __in HANDLE KphHandle,
-    __out PHANDLE DirectoryHandle,
-    __in ACCESS_MASK DesiredAccess,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
-    )
-{
-    struct
-    {
-        PHANDLE DirectoryHandle;
-        ACCESS_MASK DesiredAccess;
-        POBJECT_ATTRIBUTES ObjectAttributes;
-    } args;
-
-    args.DirectoryHandle = DirectoryHandle;
-    args.DesiredAccess = DesiredAccess;
-    args.ObjectAttributes = ObjectAttributes;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_OPENDIRECTORYOBJECT,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
 }
 
 NTSTATUS KphOpenDriver(
@@ -1653,19 +935,13 @@ NTSTATUS KphOpenDriver(
     {
         PHANDLE DriverHandle;
         POBJECT_ATTRIBUTES ObjectAttributes;
-    } args;
-
-    args.DriverHandle = DriverHandle;
-    args.ObjectAttributes = ObjectAttributes;
+    } input = { DriverHandle, ObjectAttributes };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_OPENDRIVER,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }
 
@@ -1673,97 +949,24 @@ NTSTATUS KphQueryInformationDriver(
     __in HANDLE KphHandle,
     __in HANDLE DriverHandle,
     __in DRIVER_INFORMATION_CLASS DriverInformationClass,
-    __out_bcount_opt(DriverInformationLength) PVOID DriverInformation,
+    __out_bcount(DriverInformationLength) PVOID DriverInformation,
     __in ULONG DriverInformationLength,
     __out_opt PULONG ReturnLength
     )
 {
     struct
-    {
+    {     
         HANDLE DriverHandle;
         DRIVER_INFORMATION_CLASS DriverInformationClass;
         PVOID DriverInformation;
         ULONG DriverInformationLength;
         PULONG ReturnLength;
-    } args;
-
-    args.DriverHandle = DriverHandle;
-    args.DriverInformationClass = DriverInformationClass;
-    args.DriverInformation = DriverInformation;
-    args.DriverInformationLength = DriverInformationLength;
-    args.ReturnLength = ReturnLength;
+    } input = { DriverHandle, DriverInformationClass, DriverInformation, DriverInformationLength, ReturnLength };
 
     return KphpDeviceIoControl(
         KphHandle,
         KPH_QUERYINFORMATIONDRIVER,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphOpenType(
-    __in HANDLE KphHandle,
-    __out PHANDLE TypeHandle,
-    __in POBJECT_ATTRIBUTES ObjectAttributes
-    )
-{
-    struct
-    {
-        PHANDLE TypeHandle;
-        POBJECT_ATTRIBUTES ObjectAttributes;
-    } args;
-
-    args.TypeHandle = TypeHandle;
-    args.ObjectAttributes = ObjectAttributes;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_OPENTYPE,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
-        );
-}
-
-NTSTATUS KphQueryInformationEtwReg(
-    __in HANDLE KphHandle,
-    __in HANDLE ProcessHandle,
-    __in HANDLE EtwRegHandle,
-    __in ETWREG_INFORMATION_CLASS EtwRegInformationClass,
-    __out_bcount_opt(EtwRegInformationLength) PVOID EtwRegInformation,
-    __in ULONG EtwRegInformationLength,
-    __out_opt PULONG ReturnLength
-    )
-{
-    struct
-    {
-        HANDLE ProcessHandle;
-        HANDLE EtwRegHandle;
-        ETWREG_INFORMATION_CLASS EtwRegInformationClass;
-        PVOID EtwRegInformation;
-        ULONG EtwRegInformationLength;
-        PULONG ReturnLength;
-    } args;
-
-    args.ProcessHandle = ProcessHandle;
-    args.EtwRegHandle = EtwRegHandle;
-    args.EtwRegInformationClass = EtwRegInformationClass;
-    args.EtwRegInformation = EtwRegInformation;
-    args.EtwRegInformationLength = EtwRegInformationLength;
-    args.ReturnLength = ReturnLength;
-
-    return KphpDeviceIoControl(
-        KphHandle,
-        KPH_QUERYINFORMATIONETWREG,
-        &args,
-        sizeof(args),
-        NULL,
-        0,
-        NULL
+        &input,
+        sizeof(input)
         );
 }

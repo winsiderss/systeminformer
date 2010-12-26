@@ -605,5 +605,5 @@ ControlEnd:
     Irp->IoStatus.Information = returnLength;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
-    return STATUS_SUCCESS;
+    return status;
 }

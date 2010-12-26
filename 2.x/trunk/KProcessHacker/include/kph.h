@@ -40,8 +40,9 @@ NTSTATUS KphDispatchDeviceControl(
 // dynimp
 
 extern _ObGetObjectType ObGetObjectType_I;
-extern _PsSuspendProcess PsSuspendProcess_I;
+extern _PsIsProtectedProcess PsIsProtectedProcess_I;
 extern _PsResumeProcess PsResumeProcess_I;
+extern _PsSuspendProcess PsSuspendProcess_I;
 
 VOID KphDynamicImport(
     VOID

@@ -77,7 +77,7 @@ NTSTATUS KphCopyVirtualMemory(
     )
 {
     UCHAR stackBuffer[KPH_STACK_COPY_BYTES];
-    PVOID buffer = NULL;
+    PVOID buffer;
     PFN_NUMBER mdlBuffer[(sizeof(MDL) / sizeof(PFN_NUMBER)) + KPH_MAPPED_COPY_PAGES + 1];
     PMDL mdl = (PMDL)mdlBuffer;
     PVOID mappedAddress;
@@ -97,6 +97,10 @@ NTSTATUS KphCopyVirtualMemory(
 
     sourceAddress = FromAddress;
     targetAddress = ToAddress;
+
+    // We don't check if buffer == NULL when freeing. If buffer doesn't need 
+    // to be freed, set to stackBuffer, not NULL.
+    buffer = stackBuffer;
 
     mappedTotalSize = (KPH_MAPPED_COPY_PAGES - 2) * PAGE_SIZE;
 
@@ -124,7 +128,7 @@ NTSTATUS KphCopyVirtualMemory(
 
             if (blockSize <= KPH_STACK_COPY_BYTES)
             {
-                if (buffer)
+                if (buffer != stackBuffer)
                     ExFreePoolWithTag(buffer, 'ChpK');
 
                 buffer = stackBuffer;
@@ -134,7 +138,7 @@ NTSTATUS KphCopyVirtualMemory(
                 // Don't allocate the buffer if we've done so already. 
                 // Note that the block size never increases, so this allocation 
                 // will always be OK.
-                if (!buffer)
+                if (buffer == stackBuffer)
                 {
                     // Keep trying to allocate a buffer.
 
@@ -264,8 +268,12 @@ NTSTATUS KphCopyVirtualMemory(
         }
 
         KeUnstackDetachProcess(&apcState);
-        MmUnmapLockedPages(mappedAddress, mdl);
-        MmUnlockPages(mdl);
+
+        if (doMappedCopy)
+        {
+            MmUnmapLockedPages(mappedAddress, mdl);
+            MmUnlockPages(mdl);
+        }
 
         stillToCopy -= blockSize;
         sourceAddress = (PVOID)((ULONG_PTR)sourceAddress + blockSize);

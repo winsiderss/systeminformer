@@ -176,6 +176,10 @@ typedef NTSTATUS (NTAPI *_PsResumeProcess)(
     __in PEPROCESS Process
     );
 
+typedef BOOLEAN (NTAPI *_PsIsProtectedProcess)(
+    __in PEPROCESS Process
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

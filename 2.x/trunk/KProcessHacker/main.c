@@ -96,7 +96,7 @@ NTSTATUS DriverEntry(
     deviceObject->Flags |= DO_BUFFERED_IO;
     deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
-    dprintf(L"Driver loaded\n");
+    dprintf("Driver loaded\n");
 
     return status;
 }
@@ -105,7 +105,9 @@ VOID DriverUnload(
     __in PDRIVER_OBJECT DriverObject
     )
 {
-    dprintf(L"Driver unloaded\n");
+    IoDeleteDevice(KphDeviceObject);
+
+    dprintf("Driver unloaded\n");
 }
 
 NTSTATUS KphDispatchCreate(
@@ -113,12 +115,14 @@ NTSTATUS KphDispatchCreate(
     __in PIRP Irp
     )
 {
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
     PIO_STACK_LOCATION stackLocation;
     PIO_SECURITY_CONTEXT securityContext;
 
     stackLocation = IoGetCurrentIrpStackLocation(Irp);
     securityContext = stackLocation->Parameters.Create.SecurityContext;
+
+    dprintf("Client (PID %Iu) is connecting\n", PsGetCurrentProcessId());
 
     if (KphParameters.SecurityLevel == KphSecurityPrivilegeCheck)
     {
@@ -141,6 +145,7 @@ NTSTATUS KphDispatchCreate(
             ))
         {
             status = STATUS_PRIVILEGE_NOT_HELD;
+            dprintf("Client (PID %Iu) was rejected\n", PsGetCurrentProcessId());
         }
     }
 
@@ -148,7 +153,7 @@ NTSTATUS KphDispatchCreate(
     Irp->IoStatus.Information = 0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 ULONG KphpReadIntegerParameter(
@@ -178,7 +183,7 @@ ULONG KphpReadIntegerParameter(
 
     if (!NT_SUCCESS(status))
     {
-        dprintf("Unable to query parameter %.*s: 0x%x", ValueName->Length / sizeof(WCHAR), ValueName->Buffer, status);
+        dprintf("Unable to query parameter %.*S: 0x%x", ValueName->Length / sizeof(WCHAR), ValueName->Buffer, status);
         return DefaultValue;
     }
 
@@ -226,7 +231,7 @@ NTSTATUS KphpReadDriverParameters(
 
     if (!NT_SUCCESS(status))
     {
-        dprintf(L"Unable to open Parameters key: 0x%x\n", status);
+        dprintf("Unable to open Parameters key: 0x%x\n", status);
         status = STATUS_SUCCESS;
         parametersKeyHandle = NULL;
         // Continue so we can set up defaults.

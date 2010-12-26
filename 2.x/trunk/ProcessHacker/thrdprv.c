@@ -890,10 +890,13 @@ VOID PhThreadProviderUpdate(
             {
                 PVOID win32Thread;
 
-                if (NT_SUCCESS(KphGetThreadWin32Thread(
+                if (NT_SUCCESS(KphQueryInformationThread(
                     PhKphHandle,
                     threadItem->ThreadHandle,
-                    &win32Thread
+                    KphThreadWin32Thread,
+                    &win32Thread,
+                    sizeof(PVOID),
+                    NULL
                     )))
                 {
                     threadItem->IsGuiThread = win32Thread != NULL;
@@ -1065,10 +1068,13 @@ VOID PhThreadProviderUpdate(
             {
                 PVOID win32Thread;
 
-                if (NT_SUCCESS(KphGetThreadWin32Thread(
+                if (NT_SUCCESS(KphQueryInformationThread(
                     PhKphHandle,
                     threadItem->ThreadHandle,
-                    &win32Thread
+                    KphThreadWin32Thread,
+                    &win32Thread,
+                    sizeof(PVOID),
+                    NULL
                     )))
                 {
                     BOOLEAN oldIsGuiThread = threadItem->IsGuiThread;

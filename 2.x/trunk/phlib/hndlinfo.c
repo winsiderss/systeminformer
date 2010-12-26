@@ -21,7 +21,7 @@
  */
 
 #include <ph.h>
-#include <kph.h>
+#include <kphuser.h>
 
 typedef enum _PH_QUERY_OBJECT_WORK
 {
@@ -83,11 +83,11 @@ NTSTATUS PhpGetObjectBasicInformation(
 
     if (PhKphHandle)
     {
-        status = KphZwQueryObject(
+        status = KphQueryInformationObject(
             PhKphHandle,
             ProcessHandle,
             Handle,
-            ObjectBasicInformation,
+            KphObjectBasicInformation,
             BasicInformation,
             sizeof(OBJECT_BASIC_INFORMATION),
             NULL
@@ -153,11 +153,11 @@ NTSTATUS PhpGetObjectTypeName(
         // Get the needed buffer size.
         if (PhKphHandle)
         {
-            status = KphZwQueryObject(
+            status = KphQueryInformationObject(
                 PhKphHandle,
                 ProcessHandle,
                 Handle,
-                ObjectTypeInformation,
+                KphObjectTypeInformation,
                 NULL,
                 0,
                 &returnLength
@@ -181,11 +181,11 @@ NTSTATUS PhpGetObjectTypeName(
 
         if (PhKphHandle)
         {
-            status = KphZwQueryObject(
+            status = KphQueryInformationObject(
                 PhKphHandle,
                 ProcessHandle,
                 Handle,
-                ObjectTypeInformation,
+                KphObjectTypeInformation,
                 buffer,
                 returnLength,
                 &returnLength
@@ -245,59 +245,49 @@ NTSTATUS PhpGetObjectName(
 {
     NTSTATUS status;
     POBJECT_NAME_INFORMATION buffer;
-    ULONG returnLength = 0;
+    ULONG bufferSize;
+    ULONG attempts = 8;
 
-    // Get the needed buffer size.
-    if (PhKphHandle)
-    {
-        status = KphZwQueryObject(
-            PhKphHandle,
-            ProcessHandle,
-            Handle,
-            ObjectNameInformation,
-            NULL,
-            0,
-            &returnLength
-            );
-    }
-    else
-    {
-        status = NtQueryObject(
-            Handle,
-            ObjectNameInformation,
-            NULL,
-            0,
-            &returnLength
-            );
-    }
+    bufferSize = 0x200;
+    buffer = PhAllocate(bufferSize);
 
-    if (returnLength == 0)
-        return status;
-
-    buffer = PhAllocate(returnLength);
-
-    if (PhKphHandle)
+    // A loop is needed because the I/O subsystem likes to give us the wrong return lengths...
+    do
     {
-        status = KphZwQueryObject(
-            PhKphHandle,
-            ProcessHandle,
-            Handle,
-            ObjectNameInformation,
-            buffer,
-            returnLength,
-            &returnLength
-            );
-    }
-    else
-    {
-        status = NtQueryObject(
-            Handle,
-            ObjectNameInformation,
-            buffer,
-            returnLength,
-            &returnLength
-            );
-    }
+        if (PhKphHandle)
+        {
+            status = KphQueryInformationObject(
+                PhKphHandle,
+                ProcessHandle,
+                Handle,
+                KphObjectNameInformation,
+                buffer,
+                bufferSize,
+                &bufferSize
+                );
+        }
+        else
+        {
+            status = NtQueryObject(
+                Handle,
+                ObjectNameInformation,
+                buffer,
+                bufferSize,
+                &bufferSize
+                );
+        }
+
+        if (status == STATUS_BUFFER_OVERFLOW || status == STATUS_INFO_LENGTH_MISMATCH ||
+            status == STATUS_BUFFER_TOO_SMALL)
+        {
+            PhFree(buffer);
+            buffer = PhAllocate(bufferSize);
+        }
+        else
+        {
+            break;
+        }
+    } while (--attempts);
 
     if (NT_SUCCESS(status))
     {
@@ -519,11 +509,11 @@ NTSTATUS PhpGetBestObjectName(
         {
             ETWREG_BASIC_INFORMATION basicInfo;
 
-            status = KphQueryInformationEtwReg(
+            status = KphQueryInformationObject(
                 PhKphHandle,
                 ProcessHandle,
                 Handle,
-                EtwRegBasicInformation,
+                KphObjectEtwRegBasicInformation,
                 &basicInfo,
                 sizeof(ETWREG_BASIC_INFORMATION),
                 NULL
@@ -601,15 +591,22 @@ NTSTATUS PhpGetBestObjectName(
 
         if (PhKphHandle)
         {
-            status = KphGetProcessId(
+            PROCESS_BASIC_INFORMATION basicInfo;
+
+            status = KphQueryInformationObject(
                 PhKphHandle,
                 ProcessHandle,
                 Handle,
-                &clientId.UniqueProcess
+                KphObjectProcessBasicInformation,
+                &basicInfo,
+                sizeof(PROCESS_BASIC_INFORMATION),
+                NULL
                 );
 
-            if (!NT_SUCCESS(status) || !clientId.UniqueProcess)
+            if (!NT_SUCCESS(status))
                 goto CleanupExit;
+
+            clientId.UniqueProcess = basicInfo.UniqueProcessId;
         }
         else
         {
@@ -649,16 +646,22 @@ NTSTATUS PhpGetBestObjectName(
 
         if (PhKphHandle)
         {
-            status = KphGetThreadId(
+            THREAD_BASIC_INFORMATION basicInfo;
+
+            status = KphQueryInformationObject(
                 PhKphHandle,
                 ProcessHandle,
                 Handle,
-                &clientId.UniqueThread,
-                &clientId.UniqueProcess
+                KphObjectThreadBasicInformation,
+                &basicInfo,
+                sizeof(THREAD_BASIC_INFORMATION),
+                NULL
                 );
 
-            if (!NT_SUCCESS(status) || !clientId.UniqueThread || !clientId.UniqueProcess)
+            if (!NT_SUCCESS(status))
                 goto CleanupExit;
+
+            clientId = basicInfo.ClientId;
         }
         else
         {
@@ -1087,73 +1090,49 @@ NTSTATUS PhGetHandleInformationEx(
     // Get the object name.
     // If we're dealing with a file handle we must take 
     // special precautions so we don't hang.
-    if (PhEqualString2(typeName, L"File", TRUE))
+    if (PhEqualString2(typeName, L"File", TRUE) && !PhKphHandle)
     {
-        // Use KPH if we can.
-        if (PhKphHandle)
+        // 0: Query normally.
+        // 1: Hack.
+        // 2: Fail.
+        ULONG hackLevel = 1;
+
+        // We can't use the hack on XP because hanging threads 
+        // can't even be terminated!
+        if (WindowsVersion <= WINDOWS_XP)
+            hackLevel = 2;
+
+        if (hackLevel == 0)
         {
-            PUNICODE_STRING buffer;
+            status = PhpGetObjectName(
+                ProcessHandle,
+                PhKphHandle ? Handle : dupHandle,
+                &objectName
+                );
+        }
+        else if (hackLevel == 1)
+        {
+            POBJECT_NAME_INFORMATION buffer;
 
             buffer = PhAllocate(0x800);
 
-            status = KphGetHandleObjectName(
-                PhKphHandle,
-                ProcessHandle,
-                Handle,
+            status = PhQueryObjectNameHack(
+                dupHandle,
                 buffer,
                 0x800,
                 NULL
                 );
 
             if (NT_SUCCESS(status))
-                objectName = PhCreateStringEx(buffer->Buffer, buffer->Length);
+                objectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
 
             PhFree(buffer);
         }
         else
         {
-            // 0: Query normally.
-            // 1: Hack.
-            // 2: Fail.
-            ULONG hackLevel = 1;
-
-            // We can't use the hack on XP because hanging threads 
-            // can't even be terminated!
-            if (WindowsVersion <= WINDOWS_XP)
-                hackLevel = 2;
-
-            if (hackLevel == 0)
-            {
-                status = PhpGetObjectName(
-                    ProcessHandle,
-                    PhKphHandle ? Handle : dupHandle,
-                    &objectName
-                    );
-            }
-            else if (hackLevel == 1)
-            {
-                POBJECT_NAME_INFORMATION buffer;
-
-                buffer = PhAllocate(0x800);
-
-                status = PhQueryObjectNameHack(
-                    dupHandle,
-                    buffer,
-                    0x800,
-                    NULL
-                    );
-
-                if (NT_SUCCESS(status))
-                    objectName = PhCreateStringEx(buffer->Name.Buffer, buffer->Name.Length);
-
-                PhFree(buffer);
-            }
-            else
-            {
-                // Pretend the file object has no name.
-                objectName = PhReferenceEmptyString();
-                status = STATUS_SUCCESS;
-            }
+            // Pretend the file object has no name.
+            objectName = PhReferenceEmptyString();
+            status = STATUS_SUCCESS;
         }
     }
     else
