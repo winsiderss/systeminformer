@@ -34,6 +34,16 @@
 #pragma alloc_text(PAGE, KpiSetInformationProcess)
 #endif
 
+/**
+ * Opens a process.
+ *
+ * \param ProcessHandle A variable which receives the process handle.
+ * \param DesiredAccess The desired access to the process.
+ * \param ClientId The identifier of a process or thread. If \a UniqueThread 
+ * is present, the process of the identified thread will be opened. If 
+ * \a UniqueProcess is present, the identified process will be opened.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiOpenProcess(
     __out PHANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -118,6 +128,14 @@ NTSTATUS KpiOpenProcess(
     return status;
 }
 
+/**
+ * Opens the token of a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param TokenHandle A variable which receives the token handle.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiOpenProcessToken(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -191,6 +209,14 @@ NTSTATUS KpiOpenProcessToken(
     return status;
 }
 
+/**
+ * Opens the job object of a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param DesiredAccess The desired access to the token.
+ * \param JobHandle A variable which receives the job object handle.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiOpenProcessJob(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -270,6 +296,12 @@ NTSTATUS KpiOpenProcessJob(
     return status;
 }
 
+/**
+ * Suspends a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiSuspendProcess(
     __in HANDLE ProcessHandle,
     __in KPROCESSOR_MODE AccessMode
@@ -299,6 +331,12 @@ NTSTATUS KpiSuspendProcess(
     return status;
 }
 
+/**
+ * Resumes a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiResumeProcess(
     __in HANDLE ProcessHandle,
     __in KPROCESSOR_MODE AccessMode
@@ -328,6 +366,13 @@ NTSTATUS KpiResumeProcess(
     return status;
 }
 
+/**
+ * Terminates a process using PsTerminateProcess.
+ *
+ * \param Process A process object.
+ * \param ExitStatus A status value which indicates why the process 
+ * is being terminated.
+ */
 NTSTATUS KphTerminateProcessInternal(
     __in PEPROCESS Process,
     __in NTSTATUS ExitStatus
@@ -380,6 +425,14 @@ NTSTATUS KphTerminateProcessInternal(
     return status;
 }
 
+/**
+ * Terminates a process using PsTerminateProcess.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ExitStatus A status value which indicates why the process 
+ * is being terminated.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
@@ -435,6 +488,18 @@ NTSTATUS KpiTerminateProcess(
     return status;
 }
 
+/**
+ * Queries process information.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessInformationClass The type of information to query.
+ * \param ProcessInformation The buffer in which the information will be stored.
+ * \param ProcessInformationLength The number of bytes available in 
+ * \a ProcessInformation.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a ProcessInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiQueryInformationProcess(
     __in HANDLE ProcessHandle,
     __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -589,6 +654,16 @@ NTSTATUS KpiQueryInformationProcess(
     return status;
 }
 
+/**
+ * Sets process information.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param ProcessInformationClass The type of information to set.
+ * \param ProcessInformation A buffer which contains the information to set.
+ * \param ProcessInformationLength The number of bytes present in 
+ * \a ProcessInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiSetInformationProcess(
     __in HANDLE ProcessHandle,
     __in KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -754,6 +829,14 @@ NTSTATUS KpiSetInformationProcess(
     return status;
 }
 
+/**
+ * Prevents a process from terminating.
+ *
+ * \param Process A process object.
+ *
+ * \return TRUE if the function succeeded, FALSE if the process is 
+ * currently terminating or the request is not supported.
+ */
 BOOLEAN KphAcquireProcessRundownProtection(
     __in PEPROCESS Process
     )
@@ -765,6 +848,11 @@ BOOLEAN KphAcquireProcessRundownProtection(
     return ExAcquireRundownProtection((PEX_RUNDOWN_REF)((ULONG_PTR)Process + KphDynEpRundownProtect));
 }
 
+/**
+ * Allows a process to terminate.
+ *
+ * \param Process A process object.
+ */
 VOID KphReleaseProcessRundownProtection(
     __in PEPROCESS Process
     )
