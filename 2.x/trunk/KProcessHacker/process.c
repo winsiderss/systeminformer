@@ -515,9 +515,21 @@ NTSTATUS KpiQueryInformationProcess(
 
     if (AccessMode != KernelMode)
     {
+        ULONG alignment;
+
+        switch (ProcessInformationClass)
+        {
+        case KphProcessProtectionInformation:
+            alignment = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
+            break;
+        default:
+            alignment = sizeof(ULONG);
+            break;
+        }
+
         __try
         {
-            ProbeForWrite(ProcessInformation, ProcessInformationLength, sizeof(ULONG));
+            ProbeForWrite(ProcessInformation, ProcessInformationLength, alignment);
 
             if (ReturnLength)
                 ProbeForWrite(ReturnLength, sizeof(ULONG), sizeof(ULONG));
@@ -561,20 +573,23 @@ NTSTATUS KpiQueryInformationProcess(
                 status = STATUS_NOT_SUPPORTED;
             }
 
-            if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
+            if (NT_SUCCESS(status))
             {
-                __try
+                if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
                 {
-                    ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess = protectedProcess;
+                    __try
+                    {
+                        ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess = protectedProcess;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
                 }
-                __except (EXCEPTION_EXECUTE_HANDLER)
+                else
                 {
-                    status = GetExceptionCode();
+                    status = STATUS_INFO_LENGTH_MISMATCH;
                 }
-            }
-            else
-            {
-                status = STATUS_INFO_LENGTH_MISMATCH;
             }
 
             returnLength = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
@@ -679,9 +694,21 @@ NTSTATUS KpiSetInformationProcess(
 
     if (AccessMode != KernelMode)
     {
+        ULONG alignment;
+
+        switch (ProcessInformationClass)
+        {
+        case KphProcessProtectionInformation:
+            alignment = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
+            break;
+        default:
+            alignment = sizeof(ULONG);
+            break;
+        }
+
         __try
         {
-            ProbeForRead(ProcessInformation, ProcessInformationLength, sizeof(ULONG));
+            ProbeForRead(ProcessInformation, ProcessInformationLength, alignment);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {

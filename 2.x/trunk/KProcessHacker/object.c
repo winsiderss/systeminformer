@@ -1021,9 +1021,21 @@ NTSTATUS KpiSetInformationObject(
 
     if (AccessMode != KernelMode)
     {
+        ULONG alignment;
+
+        switch (ObjectInformationClass)
+        {
+        case KphObjectHandleFlagInformation:
+            alignment = sizeof(BOOLEAN);
+            break;
+        default:
+            alignment = sizeof(ULONG);
+            break;
+        }
+
         __try
         {
-            ProbeForRead(ObjectInformation, ObjectInformationLength, sizeof(ULONG));
+            ProbeForRead(ObjectInformation, ObjectInformationLength, alignment);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
