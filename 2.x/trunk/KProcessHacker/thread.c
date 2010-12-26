@@ -595,6 +595,12 @@ NTSTATUS KphCaptureStackBackTraceThread(
     ULONG backTraceSize;
     PVOID *backTrace;
 
+    // Make sure the caller didn't request too many frames.
+    // This also restricts the amount of memory we will try to 
+    // allocate later.
+    if (FramesToCapture > MAX_STACK_DEPTH)
+        return STATUS_INVALID_PARAMETER_3;
+
     backTraceSize = FramesToCapture * sizeof(PVOID);
 
     if (AccessMode != KernelMode)
