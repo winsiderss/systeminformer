@@ -1507,7 +1507,7 @@ NTSTATUS PhSetProcessIoPriority(
         return KphSetInformationProcess(
             PhKphHandle,
             ProcessHandle,
-            ProcessIoPriority,
+            KphProcessIoPriority,
             &IoPriority,
             sizeof(ULONG)
             );
@@ -1965,7 +1965,7 @@ NTSTATUS PhSetThreadIoPriority(
         return KphSetInformationThread(
             PhKphHandle,
             ThreadHandle,
-            ThreadIoPriority,
+            KphThreadIoPriority,
             &IoPriority,
             sizeof(ULONG)
             );
