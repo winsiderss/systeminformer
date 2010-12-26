@@ -63,6 +63,14 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
 /* This attribute is now stored in the GrantedAccess field. */
 ULONG ObpAccessProtectCloseBit = 0x2000000;
 
+/**
+ * Gets the type of an object.
+ *
+ * \param Object A pointer to an object.
+ *
+ * \return A pointer to the object's type object, or NULL if an error 
+ * occurred.
+ */
 POBJECT_TYPE KphGetObjectType(
     __in PVOID Object
     )
@@ -93,6 +101,16 @@ POBJECT_TYPE KphGetObjectType(
     }
 }
 
+/**
+ * Gets a pointer to the handle table of a process.
+ *
+ * \param Process A process object.
+ *
+ * \return A pointer to the handle table, or NULL if the process is 
+ * terminating or the request is not supported. You must call 
+ * KphDereferenceProcessHandleTable() when the handle table is no longer 
+ * needed.
+ */
 PHANDLE_TABLE KphReferenceProcessHandleTable(
     __in PEPROCESS Process
     )
@@ -115,6 +133,11 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
     return handleTable;
 }
 
+/**
+ * Dereferences the handle table of a process.
+ *
+ * \param Process A process object.
+ */
 VOID KphDereferenceProcessHandleTable(
     __in PEPROCESS Process
     )
@@ -185,6 +208,17 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     return FALSE;
 }
 
+/**
+ * Enumerates the handles of a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param Buffer The buffer in which the handle information will 
+ * be stored.
+ * \param BufferLength The number of bytes available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a Buffer.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiEnumerateProcessHandles(
     __in HANDLE ProcessHandle,
     __out_bcount(BufferLength) PVOID Buffer,
@@ -301,6 +335,15 @@ NTSTATUS KpiEnumerateProcessHandles(
     return context.Status;
 }
 
+/**
+ * Queries the name of an object.
+ *
+ * \param Object A pointer to an object.
+ * \param Buffer The buffer in which the object name will be stored.
+ * \param BufferLength The number of bytes available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a Buffer.
+ */
 NTSTATUS KphQueryNameObject(
     __in PVOID Object,
     __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
@@ -341,6 +384,15 @@ NTSTATUS KphQueryNameObject(
     return status;
 }
 
+/**
+ * Queries the name of a file object.
+ *
+ * \param FileObject A pointer to a file object.
+ * \param Buffer The buffer in which the object name will be stored.
+ * \param BufferLength The number of bytes available in \a Buffer.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a Buffer.
+ */
 NTSTATUS KphQueryNameFileObject(
     __in PFILE_OBJECT FileObject,
     __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
@@ -478,6 +530,20 @@ NTSTATUS KphQueryNameFileObject(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queries object information.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param Handle A handle which is present in the process referenced 
+ * by \a ProcessHandle.
+ * \param ObjectInformationClass The type of information to retrieve.
+ * \param ObjectInformation The buffer in which the information will be stored.
+ * \param ObjectInformationLength The number of bytes available in \a 
+ * ObjectInformation.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a ObjectInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiQueryInformationObject(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
@@ -916,6 +982,18 @@ NTSTATUS KpiQueryInformationObject(
     return status;
 }
 
+/**
+ * Sets object information.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param Handle A handle which is present in the process referenced 
+ * by \a ProcessHandle.
+ * \param ObjectInformationClass The type of information to set.
+ * \param ObjectInformation A buffer which contains the information to set.
+ * \param ObjectInformationLength The number of bytes present in 
+ * \a ObjectInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiSetInformationObject(
     __in HANDLE ProcessHandle,
     __in HANDLE Handle,
@@ -1003,6 +1081,27 @@ NTSTATUS KpiSetInformationObject(
     return status;
 }
 
+/**
+ * Re-opens an object.
+ *
+ * \param SourceProcess The source process from which the object 
+ * will be referenced.
+ * \param TargetProcess The target process to which the object 
+ * handle will be duplicated.
+ * \param SourceHandle The source handle, present in \a SourceProcess.
+ * \param TargetHandle A variable which receives the new handle.
+ * \param DesiredAccess The desired access to the object for the new handle.
+ * \param HandleAttributes The attributes of the new handle.
+ * \param Options A combination of the following:
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source 
+ * process instead of being duplicated to the target process. The \a TargetProcess 
+ * and \a TargetHandle parameters are ignored.
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted 
+ * access as the existing handle.
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes 
+ * as the existing handle.
+ * \param AccessMode The mode in which access checks will be performed.
+ */
 NTSTATUS KphDuplicateObject(
     __in PEPROCESS SourceProcess,
     __in_opt PEPROCESS TargetProcess,
@@ -1124,6 +1223,27 @@ NTSTATUS KphDuplicateObject(
     return status;
 }
 
+/**
+ * Re-opens an object.
+ *
+ * \param SourceProcessHandle A handle to the source process from which the 
+ * object will be referenced.
+ * \param SourceHandle The source handle, present in \a SourceProcess.
+ * \param TargetProcessHandle A handle to the target process to which the object 
+ * handle will be duplicated.
+ * \param TargetHandle A variable which receives the new handle.
+ * \param DesiredAccess The desired access to the object for the new handle.
+ * \param HandleAttributes The attributes of the new handle.
+ * \param Options A combination of the following:
+ * \li \c DUPLICATE_CLOSE_SOURCE The handle will be closed in the source 
+ * process instead of being duplicated to the target process. The \a TargetProcess 
+ * and \a TargetHandle parameters are ignored.
+ * \li \c DUPLICATE_SAME_ACCESS The new handle will have the same granted 
+ * access as the existing handle.
+ * \li \c DUPLICATE_SAME_ATTRIBUTES The new handle will have the same attributes 
+ * as the existing handle.
+ * \param AccessMode The mode in which access checks will be performed.
+ */
 NTSTATUS KpiDuplicateObject(
     __in HANDLE SourceProcessHandle,
     __in HANDLE SourceHandle,
