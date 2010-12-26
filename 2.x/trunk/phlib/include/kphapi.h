@@ -25,6 +25,7 @@ typedef enum _KPH_THREAD_INFORMATION_CLASS
 {
     KphThreadWin32Thread = 1, // q: PVOID
     KphThreadImpersonationToken = 2, // s: HANDLE
+    KphThreadIoPriority = 3, // qs: ULONG
     MaxKphThreadInfoClass
 } KPH_THREAD_INFORMATION_CLASS;
 
