@@ -74,6 +74,16 @@ VOID KphpExitThreadSpecialApc(
 #pragma alloc_text(PAGE, KpiSetInformationThread)
 #endif
 
+/**
+ * Opens a thread.
+ *
+ * \param ThreadHandle A variable which receives the thread handle.
+ * \param DesiredAccess The desired access to the thread.
+ * \param ClientId The identifier of a thread. \a UniqueThread must be 
+ * present. If \a UniqueProcess is present, the process of the referenced 
+ * thread will be checked against this identifier.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiOpenThread(
     __out PHANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -151,6 +161,14 @@ NTSTATUS KpiOpenThread(
     return status;
 }
 
+/**
+ * Opens the process of a thread.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param DesiredAccess The desired access to the process.
+ * \param ProcessHandle A variable which receives the process handle.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiOpenThreadProcess(
     __in HANDLE ThreadHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -223,6 +241,13 @@ NTSTATUS KpiOpenThreadProcess(
     return status;
 }
 
+/**
+ * Terminates a thread using PspTerminateThreadByPointer.
+ *
+ * \param Thread A thread object.
+ * \param ExitStatus A status value which indicates why the thread 
+ * is being terminated.
+ */
 NTSTATUS KphTerminateThreadByPointerInternal(
     __in PETHREAD Thread,
     __in NTSTATUS ExitStatus
@@ -260,6 +285,14 @@ NTSTATUS KphTerminateThreadByPointerInternal(
     }
 }
 
+/**
+ * Terminates a thread.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ExitStatus A status value which indicates why the thread 
+ * is being terminated.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiTerminateThread(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus,
@@ -295,6 +328,18 @@ NTSTATUS KpiTerminateThread(
     return status;
 }
 
+/**
+ * Terminates a thread using an unsafe method.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ExitStatus A status value which indicates why the thread 
+ * is being terminated.
+ * \param AccessMode The mode in which to perform access checks.
+ *
+ * \remarks The thread will be terminated even if it is currently 
+ * running kernel-mode code. Therefore, resources may be leaked 
+ * or remain locked indefinitely.
+ */
 NTSTATUS KpiTerminateThreadUnsafe(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus,
@@ -381,6 +426,14 @@ VOID KphpExitThreadSpecialApc(
     KphTerminateThreadByPointerInternal(PsGetCurrentThread(), exitStatus);
 }
 
+/**
+ * Gets the context of a thread.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ThreadContext A pointer to a context structure. \a ContextFlags must be 
+ * set.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiGetContextThread(
     __in HANDLE ThreadHandle,
     __inout PCONTEXT ThreadContext,
@@ -408,6 +461,13 @@ NTSTATUS KpiGetContextThread(
     return status;
 }
 
+/**
+ * Sets the context of a thread.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ThreadContext The new context of the thread.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiSetContextThread(
     __in HANDLE ThreadHandle,
     __in PCONTEXT ThreadContext,
@@ -435,6 +495,22 @@ NTSTATUS KpiSetContextThread(
     return status;
 }
 
+/**
+ * Captures a stack trace of the current thread.
+ *
+ * \param FramesToSkip The number of frames to skip from the 
+ * bottom of the stack.
+ * \param FramesToCapture The number of frames to capture.
+ * \param Flags A combination of the following:
+ * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will 
+ * be retrieved instead of the kernel-mode stack.
+ * \param BackTrace An array in which the stack trace will be 
+ * stored.
+ * \param BackTraceHash A variable which receives a hash of 
+ * the stack trace.
+ *
+ * \return The number of frames captured.
+ */
 ULONG KphCaptureStackBackTrace(
     __in ULONG FramesToSkip,
     __in ULONG FramesToCapture,
@@ -486,6 +562,24 @@ ULONG KphCaptureStackBackTrace(
     return i;
 }
 
+/**
+ * Captures the stack trace of a thread.
+ *
+ * \param Thread The thread to capture the stack trace of.
+ * \param FramesToSkip The number of frames to skip from the 
+ * bottom of the stack.
+ * \param FramesToCapture The number of frames to capture.
+ * \param Flags A combination of the following:
+ * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will 
+ * be retrieved instead of the kernel-mode stack.
+ * \param BackTrace An array in which the stack trace will be 
+ * stored.
+ * \param BackTraceHash A variable which receives a hash of 
+ * the stack trace.
+ * \param AccessMode The mode in which to perform access checks.
+ *
+ * \return The number of frames captured.
+ */
 NTSTATUS KphCaptureStackBackTraceThread(
     __in PETHREAD Thread,
     __in ULONG FramesToSkip,
@@ -634,6 +728,25 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
     }
 }
 
+/**
+ * Captures the stack trace of a thread.
+ *
+ * \param ThreadHandle A handle to the thread to capture the 
+ * stack trace of.
+ * \param FramesToSkip The number of frames to skip from the 
+ * bottom of the stack.
+ * \param FramesToCapture The number of frames to capture.
+ * \param Flags A combination of the following:
+ * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will 
+ * be retrieved instead of the kernel-mode stack.
+ * \param BackTrace An array in which the stack trace will be 
+ * stored.
+ * \param BackTraceHash A variable which receives a hash of 
+ * the stack trace.
+ * \param AccessMode The mode in which to perform access checks.
+ *
+ * \return The number of frames captured.
+ */
 NTSTATUS KpiCaptureStackBackTraceThread(
     __in HANDLE ThreadHandle,
     __in ULONG FramesToSkip,
@@ -673,6 +786,18 @@ NTSTATUS KpiCaptureStackBackTraceThread(
     return status;
 }
 
+/**
+ * Queries thread information.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ThreadInformationClass The type of information to query.
+ * \param ThreadInformation The buffer in which the information will be stored.
+ * \param ThreadInformationLength The number of bytes available in 
+ * \a ThreadInformation.
+ * \param ReturnLength A variable which receives the number of bytes 
+ * required to be available in \a ThreadInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiQueryInformationThread(
     __in HANDLE ThreadHandle,
     __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
@@ -816,6 +941,16 @@ NTSTATUS KpiQueryInformationThread(
     return status;
 }
 
+/**
+ * Sets thread information.
+ *
+ * \param ThreadHandle A handle to a thread.
+ * \param ThreadInformationClass The type of information to set.
+ * \param ThreadInformation A buffer which contains the information to set.
+ * \param ThreadInformationLength The number of bytes present in 
+ * \a ThreadInformation.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiSetInformationThread(
     __in HANDLE ThreadHandle,
     __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,

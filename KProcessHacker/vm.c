@@ -66,6 +66,18 @@ ULONG KphpGetCopyExceptionInfo(
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+/**
+ * Copies memory from one process to another.
+ *
+ * \param FromProcess The source process.
+ * \param FromAddress The source address.
+ * \param ToProcess The target process.
+ * \param ToAddress The target address.
+ * \param BufferLength The number of bytes to copy.
+ * \param AccessMode The mode in which to perform access checks.
+ * \param ReturnLength A variable which receives the number of 
+ * bytes copied.
+ */
 NTSTATUS KphCopyVirtualMemory(
     __in PEPROCESS FromProcess,
     __in PVOID FromAddress,
@@ -288,6 +300,18 @@ NTSTATUS KphCopyVirtualMemory(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Copies memory from another process into the current process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_VM_READ access.
+ * \param BaseAddress The address from which memory is to be copied.
+ * \param Buffer A buffer which receives the copied memory.
+ * \param BufferSize The number of bytes to copy.
+ * \param NumberOfBytesRead A variable which receives the number 
+ * of bytes copied to the buffer.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiReadVirtualMemory(
     __in HANDLE ProcessHandle,
     __in PVOID BaseAddress,
@@ -380,6 +404,18 @@ NTSTATUS KpiReadVirtualMemory(
     return status;
 }
 
+/**
+ * Copies memory from the current process into another process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_VM_WRITE access.
+ * \param BaseAddress The address to which memory is to be copied.
+ * \param Buffer A buffer which contains the memory to copy.
+ * \param BufferSize The number of bytes to copy.
+ * \param NumberOfBytesWritten A variable which receives the number 
+ * of bytes copied from the buffer.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiWriteVirtualMemory(
     __in HANDLE ProcessHandle,
     __in_opt PVOID BaseAddress,
@@ -472,6 +508,19 @@ NTSTATUS KpiWriteVirtualMemory(
     return status;
 }
 
+/**
+ * Copies process or kernel memory into the current process.
+ *
+ * \param ProcessHandle A handle to a process. The handle must 
+ * have PROCESS_VM_READ access. This parameter may be NULL if 
+ * \a BaseAddress lies above the user-mode range.
+ * \param BaseAddress The address from which memory is to be copied.
+ * \param Buffer A buffer which receives the copied memory.
+ * \param BufferSize The number of bytes to copy.
+ * \param NumberOfBytesRead A variable which receives the number 
+ * of bytes copied to the buffer.
+ * \param AccessMode The mode in which to perform access checks.
+ */
 NTSTATUS KpiReadVirtualMemoryUnsafe(
     __in_opt HANDLE ProcessHandle,
     __in PVOID BaseAddress,
