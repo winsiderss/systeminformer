@@ -740,6 +740,52 @@ NTSTATUS KpiQueryInformationThread(
             returnLength = sizeof(PVOID);
         }
         break;
+    case KphThreadIoPriority:
+        {
+            HANDLE newThreadHandle;
+            ULONG ioPriority;
+
+            if (NT_SUCCESS(status = ObOpenObjectByPointer(
+                thread,
+                OBJ_KERNEL_HANDLE,
+                NULL,
+                THREAD_QUERY_INFORMATION,
+                *PsThreadType,
+                KernelMode,
+                &newThreadHandle
+                )))
+            {
+                if (NT_SUCCESS(status = ZwQueryInformationThread(
+                    newThreadHandle,
+                    ThreadIoPriority,
+                    &ioPriority,
+                    sizeof(ULONG),
+                    NULL
+                    )))
+                {
+                    if (ThreadInformationLength == sizeof(ULONG))
+                    {
+                        __try
+                        {
+                            *(PULONG)ThreadInformation = ioPriority;
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            status = GetExceptionCode();
+                        }
+                    }
+                    else
+                    {
+                        status = STATUS_INFO_LENGTH_MISMATCH;
+                    }
+                }
+
+                ZwClose(newThreadHandle);
+            }
+
+            returnLength = sizeof(ULONG);
+        }
+        break;
     default:
         status = STATUS_INVALID_INFO_CLASS;
         returnLength = 0;
@@ -855,6 +901,50 @@ NTSTATUS KpiSetInformationThread(
                     }
 
                     ObDereferenceObject(token);
+                }
+            }
+        }
+        break;
+    case KphThreadIoPriority:
+        {
+            ULONG ioPriority;
+            HANDLE newThreadHandle;
+
+            if (ThreadInformationLength == sizeof(ULONG))
+            {
+                __try
+                {
+                    ioPriority = *(PULONG)ThreadInformation;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                if (NT_SUCCESS(status = ObOpenObjectByPointer(
+                    thread,
+                    OBJ_KERNEL_HANDLE,
+                    NULL,
+                    THREAD_SET_INFORMATION,
+                    *PsThreadType,
+                    KernelMode,
+                    &newThreadHandle
+                    )))
+                {
+                    status = ZwSetInformationThread(
+                        newThreadHandle,
+                        ThreadIoPriority,
+                        &ioPriority,
+                        sizeof(ULONG)
+                        );
+                    ZwClose(newThreadHandle);
                 }
             }
         }
