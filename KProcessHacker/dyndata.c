@@ -439,6 +439,11 @@ static NTSTATUS KphpAmd64DataInitialization(
     {
         KphDynNtVersion = PHNT_VISTA;
 
+        KphDynEgeGuid = 0x14;
+        KphDynEreGuidEntry = 0x10;
+        KphDynOtName = 0x10;
+        KphDynOtIndex = 0x28;
+
         if (servicePack == 0)
         {
         }
@@ -472,18 +477,19 @@ static NTSTATUS KphpAmd64DataInitialization(
 
         if (searchOffset)
         {
-            INIT_SCAN(
-                &KphDynPsTerminateProcessScan,
-                PsTerminateProcess61Bytes,
-                sizeof(PsTerminateProcess61Bytes),
-                searchOffset, scanLength, 0
-                );
-            INIT_SCAN(
-                &KphDynPspTerminateThreadByPointerScan,
-                PspTerminateThreadByPointer61Bytes,
-                sizeof(PspTerminateThreadByPointer61Bytes),
-                searchOffset, scanLength, 0
-                );
+            // Disabled for now because they aren't really necessary on x64.
+            //INIT_SCAN(
+            //    &KphDynPsTerminateProcessScan,
+            //    PsTerminateProcess61Bytes,
+            //    sizeof(PsTerminateProcess61Bytes),
+            //    searchOffset, scanLength, 0
+            //    );
+            //INIT_SCAN(
+            //    &KphDynPspTerminateThreadByPointerScan,
+            //    PspTerminateThreadByPointer61Bytes,
+            //    sizeof(PspTerminateThreadByPointer61Bytes),
+            //    searchOffset, scanLength, 0
+            //    );
         }
 
         if (servicePack == 0)

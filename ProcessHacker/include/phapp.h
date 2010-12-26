@@ -18,7 +18,7 @@
 
 #define KPH_ERROR_MESSAGE (L"KProcessHacker does not support your operating system " \
             L"or could not be loaded. Make sure Process Hacker is running " \
-            L"on a 32-bit system and with administrative privileges.")
+            L"with administrative privileges.")
 
 #ifndef PH_MAIN_PRIVATE
 
