@@ -31,6 +31,9 @@ _PsIsProtectedProcess PsIsProtectedProcess_I;
 _PsResumeProcess PsResumeProcess_I;
 _PsSuspendProcess PsSuspendProcess_I;
 
+/**
+ * Dynamically imports routines.
+ */
 VOID KphDynamicImport(
     VOID
     )
@@ -41,6 +44,14 @@ VOID KphDynamicImport(
     PsSuspendProcess_I = KphGetSystemRoutineAddress(L"PsSuspendProcess");
 }
 
+/**
+ * Retrieves the address of a function exported by NTOS or HAL.
+ *
+ * \param SystemRoutineName The name of the function.
+ *
+ * \return The address of the function, or NULL if the function could 
+ * not be found.
+ */
 PVOID KphGetSystemRoutineAddress(
     __in PWSTR SystemRoutineName
     )
