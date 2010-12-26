@@ -20,7 +20,7 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <phbase.h>
+#include <ph.h>
 #include <kphuser.h>
 
 NTSTATUS KphpDeviceIoControl(
@@ -88,6 +88,16 @@ NTSTATUS KphConnect2(
     __out PHANDLE KphHandle,
     __in_opt PWSTR DeviceName,
     __in PWSTR FileName
+    )
+{
+    return KphConnect2Ex(KphHandle, DeviceName, FileName, NULL);
+}
+
+NTSTATUS KphConnect2Ex(
+    __out PHANDLE KphHandle,
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName,
+    __in_opt PKPH_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
@@ -164,6 +174,22 @@ NTSTATUS KphConnect2(
             if (serviceHandle)
             {
                 created = TRUE;
+
+                // Set parameters if the caller supplied them. 
+                // Note that we fail the entire function if this fails, 
+                // because failing to set parameters like SecurityLevel may 
+                // result in security vulnerabilities.
+                if (Parameters)
+                {
+                    status = KphSetParameters(DeviceName, Parameters);
+
+                    if (!NT_SUCCESS(status))
+                    {
+                        // Delete the service and fail.
+                        goto CreateAndConnectEnd;
+                    }
+                }
+
                 StartService(serviceHandle, 0, NULL);
             }
 
@@ -174,11 +200,14 @@ NTSTATUS KphConnect2(
     // Try to open the device again.
     status = KphConnect(KphHandle, fullDeviceName);
 
+CreateAndConnectEnd:
     if (created)
     {
         // "Delete" the service. Since we (may) have a handle to 
         // the device, the SCM will delete the service automatically 
-        // when it is stopped (upon reboot).
+        // when it is stopped (upon reboot). If we don't have a 
+        // handle to the device, the service will get deleted immediately, 
+        // which is a good thing anyway.
         DeleteService(serviceHandle);
         CloseServiceHandle(serviceHandle);
     }
@@ -207,9 +236,73 @@ NTSTATUS KphDisconnect(
     return NtClose(KphHandle);
 }
 
+NTSTATUS KphSetParameters(
+    __in_opt PWSTR DeviceName,
+    __in PKPH_PARAMETERS Parameters
+    )
+{
+    NTSTATUS status;
+    HANDLE parametersKeyHandle = NULL;
+    PPH_STRING parametersKeyName;
+    ULONG disposition;
+    UNICODE_STRING valueName;
+
+    if (!DeviceName)
+        DeviceName = KPH_DEVICE_SHORT_NAME;
+
+    parametersKeyName = PhConcatStrings(
+        3,
+        L"System\\CurrentControlSet\\Services\\",
+        DeviceName,
+        L"\\Parameters"
+        );
+    status = PhCreateKey(
+        &parametersKeyHandle,
+        KEY_WRITE | DELETE,
+        PH_KEY_LOCAL_MACHINE,
+        &parametersKeyName->sr,
+        0,
+        0,
+        &disposition
+        );
+    PhDereferenceObject(parametersKeyName);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    RtlInitUnicodeString(&valueName, L"SecurityLevel");
+    status = NtSetValueKey(parametersKeyHandle, &valueName, 0, REG_DWORD, &Parameters->SecurityLevel, sizeof(ULONG));
+
+    if (!NT_SUCCESS(status))
+        goto SetValuesEnd;
+
+    // Put more parameters here...
+
+SetValuesEnd:
+    if (!NT_SUCCESS(status))
+    {
+        // Delete the key if we created it.
+        if (disposition == REG_CREATED_NEW_KEY)
+            NtDeleteKey(parametersKeyHandle);
+    }
+
+    NtClose(parametersKeyHandle);
+
+    return status;
+}
+
 NTSTATUS KphInstall(
     __in_opt PWSTR DeviceName,
     __in PWSTR FileName
+    )
+{
+    return KphInstallEx(DeviceName, FileName, NULL);
+}
+
+NTSTATUS KphInstallEx(
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName,
+    __in_opt PKPH_PARAMETERS Parameters
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -242,9 +335,22 @@ NTSTATUS KphInstall(
 
     if (serviceHandle)
     {
+        // See KphConnect2Ex for more details.
+        if (Parameters)
+        {
+            status = KphSetParameters(DeviceName, Parameters);
+
+            if (!NT_SUCCESS(status))
+            {
+                DeleteService(serviceHandle);
+                goto CreateEnd;
+            }
+        }
+
         if (!StartService(serviceHandle, 0, NULL))
             status = PhGetLastWin32ErrorAsNtStatus();
 
+CreateEnd:
         CloseServiceHandle(serviceHandle);
     }
     else
