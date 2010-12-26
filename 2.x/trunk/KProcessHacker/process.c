@@ -703,6 +703,9 @@ NTSTATUS KpiSetInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
+#ifdef KPH_CONFIG_CLEAN
+            status = STATUS_IMPLEMENTATION_LIMIT;
+#else
             BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
             BOOLEAN change;
 
@@ -737,6 +740,7 @@ NTSTATUS KpiSetInformationProcess(
                 else
                     InterlockedAnd((PLONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff), ~(ULONG)(1 << KphDynEpProtectedProcessBit));
             }
+#endif
         }
         break;
     case KphProcessExecuteFlags:

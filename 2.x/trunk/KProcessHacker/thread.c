@@ -620,6 +620,34 @@ NTSTATUS KphCaptureStackBackTraceThread(
         }
     }
 
+    // If the caller doesn't want to capture anything, return immediately.
+    if (backTraceSize == 0)
+    {
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                if (CapturedFrames)
+                    *CapturedFrames = 0;
+                if (BackTraceHash)
+                    *BackTraceHash = 0;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
+        {
+            if (CapturedFrames)
+                *CapturedFrames = 0;
+            if (BackTraceHash)
+                *BackTraceHash = 0;
+        }
+
+        return status;
+    }
+
     // Allocate storage for the stack trace.
     backTrace = ExAllocatePoolWithTag(NonPagedPool, backTraceSize, 'bhpK');
 
@@ -689,7 +717,23 @@ NTSTATUS KphCaptureStackBackTraceThread(
     {
         ASSERT(context.CapturedFrames <= FramesToCapture);
 
-        __try
+        if (AccessMode != KernelMode)
+        {
+            __try
+            {
+                memcpy(BackTrace, backTrace, context.CapturedFrames * sizeof(PVOID));
+
+                if (CapturedFrames)
+                    *CapturedFrames = context.CapturedFrames;
+                if (BackTraceHash)
+                    *BackTraceHash = context.BackTraceHash;
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                status = GetExceptionCode();
+            }
+        }
+        else
         {
             memcpy(BackTrace, backTrace, context.CapturedFrames * sizeof(PVOID));
 
@@ -697,10 +741,6 @@ NTSTATUS KphCaptureStackBackTraceThread(
                 *CapturedFrames = context.CapturedFrames;
             if (BackTraceHash)
                 *BackTraceHash = context.BackTraceHash;
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            status = GetExceptionCode();
         }
     }
 
