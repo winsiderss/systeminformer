@@ -12,10 +12,6 @@
 // Disable features that conflict with driver signing requirements.
 // KPH_CONFIG_CLEAN
 
-#ifndef _X86_
-#define KPH_CONFIG_CLEAN
-#endif
-
 // Debugging
 
 #ifdef DBG

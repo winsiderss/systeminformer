@@ -61,6 +61,8 @@ NTSTATUS KphpAmd64DataInitialization(
 
 #ifdef _X86_
 
+// x86
+
 // PsTerminateProcess/PspTerminateProcess
 static UCHAR PspTerminateProcess51Bytes[] =
 {
@@ -112,6 +114,8 @@ static UCHAR PspTerminateThreadByPointer61Bytes[] =
 };
 
 #else
+
+// AMD64
 
 static UCHAR PsTerminateProcess61Bytes[] =
 {
@@ -469,8 +473,8 @@ static NTSTATUS KphpAmd64DataInitialization(
     // Windows 7, Windows Server 2008 R2
     else if (majorVersion == 6 && minorVersion == 1)
     {
-        ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"ObQueryNameString");
-        ULONG scanLength = 0x100000;
+        //ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"ObQueryNameString");
+        //ULONG scanLength = 0x100000;
 
         KphDynNtVersion = PHNT_WIN7;
 

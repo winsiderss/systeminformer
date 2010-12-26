@@ -550,10 +550,12 @@ NTSTATUS KpiQueryInformationProcess(
             {
                 protectedProcess = PsIsProtectedProcess_I(process);
             }
+#if !defined(KPH_CONFIG_CLEAN)
             else if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
             {
                 protectedProcess = (*(PULONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff) >> KphDynEpProtectedProcessBit) & 0x1;
             }
+#endif
             else
             {
                 status = STATUS_NOT_SUPPORTED;
@@ -703,7 +705,7 @@ NTSTATUS KpiSetInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
-#ifdef KPH_CONFIG_CLEAN
+#if defined(KPH_CONFIG_CLEAN)
             status = STATUS_IMPLEMENTATION_LIMIT;
 #else
             BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
