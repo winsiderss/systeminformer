@@ -8,8 +8,11 @@ LIBS=%BUILD%\lib
 SOURCES= \
     main.c \
     devctrl.c \
+    dyndata.c \
     dynimp.c \
+    object.c \
     process.c \
+    qrydrv.c \
     thread.c \
     vm.c \
     resource.rc
