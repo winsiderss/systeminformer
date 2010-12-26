@@ -1079,7 +1079,7 @@ static VOID PhpGetPoolLimits(
 
     if (MmSizeOfPagedPoolInBytes)
     {
-        KphUnsafeReadVirtualMemory(
+        KphReadVirtualMemoryUnsafe(
             PhKphHandle,
             NtCurrentProcess(),
             MmSizeOfPagedPoolInBytes,
@@ -1091,7 +1091,7 @@ static VOID PhpGetPoolLimits(
 
     if (MmMaximumNonPagedPoolInBytes)
     {
-        KphUnsafeReadVirtualMemory(
+        KphReadVirtualMemoryUnsafe(
             PhKphHandle,
             NtCurrentProcess(),
             MmMaximumNonPagedPoolInBytes,

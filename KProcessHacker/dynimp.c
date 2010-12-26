@@ -27,16 +27,18 @@
 #endif
 
 _ObGetObjectType ObGetObjectType_I;
-_PsSuspendProcess PsSuspendProcess_I;
+_PsIsProtectedProcess PsIsProtectedProcess_I;
 _PsResumeProcess PsResumeProcess_I;
+_PsSuspendProcess PsSuspendProcess_I;
 
 VOID KphDynamicImport(
     VOID
     )
 {
     ObGetObjectType_I = KphGetSystemRoutineAddress(L"ObGetObjectType");
-    PsSuspendProcess_I = KphGetSystemRoutineAddress(L"PsSuspendProcess");
+    PsIsProtectedProcess_I = KphGetSystemRoutineAddress(L"PsIsProtectedProcess");
     PsResumeProcess_I = KphGetSystemRoutineAddress(L"PsResumeProcess");
+    PsSuspendProcess_I = KphGetSystemRoutineAddress(L"PsSuspendProcess");
 }
 
 PVOID KphGetSystemRoutineAddress(

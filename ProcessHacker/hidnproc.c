@@ -736,6 +736,8 @@ NTSTATUS PhpGetCsrHandleProcessId(
     )
 {
     NTSTATUS status;
+    PROCESS_BASIC_INFORMATION processBasicInfo;
+    THREAD_BASIC_INFORMATION threadBasicInfo;
 
     Handle->IsThreadHandle = FALSE;
     Handle->ProcessId = NULL;
@@ -743,36 +745,40 @@ NTSTATUS PhpGetCsrHandleProcessId(
     // Assume the handle is a process handle, and get the 
     // process ID.
 
-    status = KphGetProcessId(
+    status = KphQueryInformationObject(
         PhKphHandle,
         Handle->CsrProcessHandle,
         Handle->Handle,
-        &Handle->ProcessId
+        KphObjectProcessBasicInformation,
+        &processBasicInfo,
+        sizeof(PROCESS_BASIC_INFORMATION),
+        NULL
         );
 
-    if (!Handle->ProcessId)
-        status = STATUS_UNSUCCESSFUL;
-
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        HANDLE threadId;
-
+        Handle->ProcessId = processBasicInfo.UniqueProcessId;
+    }
+    else
+    {
         // We failed to get the process ID. Assume the handle 
         // is a thread handle, and get the process ID.
 
-        status = KphGetThreadId(
+        status = KphQueryInformationObject(
             PhKphHandle,
             Handle->CsrProcessHandle,
             Handle->Handle,
-            &threadId,
-            &Handle->ProcessId
+            KphObjectThreadBasicInformation,
+            &threadBasicInfo,
+            sizeof(THREAD_BASIC_INFORMATION),
+            NULL
             );
 
-        if (!threadId || !Handle->ProcessId)
-            status = STATUS_UNSUCCESSFUL;
-
         if (NT_SUCCESS(status))
+        {
+            Handle->ProcessId = threadBasicInfo.ClientId.UniqueProcess;
             Handle->IsThreadHandle = TRUE;
+        }
     }
 
     return status;
@@ -800,7 +806,7 @@ NTSTATUS PhEnumCsrProcessHandles(
 
     for (i = 0; i < numberOfCsrProcessHandles; i++)
     {
-        PPROCESS_HANDLE_INFORMATION handles;
+        PKPH_PROCESS_HANDLE_INFORMATION handles;
         ULONG j;
 
         if (stop)
@@ -885,9 +891,9 @@ NTSTATUS PhOpenProcessByCsrHandle(
 
         status = KphOpenThreadProcess(
             PhKphHandle,
-            ProcessHandle,
             threadHandle,
-            DesiredAccess
+            DesiredAccess,
+            ProcessHandle
             );
         NtClose(threadHandle);
     }

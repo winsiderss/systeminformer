@@ -78,19 +78,20 @@ NTSTATUS PhOpenProcess(
     OBJECT_ATTRIBUTES objectAttributes = { 0 };
     CLIENT_ID clientId;
 
+    clientId.UniqueProcess = ProcessId;
+    clientId.UniqueThread = NULL;
+
     if (PhKphHandle)
     {
         return KphOpenProcess(
             PhKphHandle,
             ProcessHandle,
-            ProcessId,
-            DesiredAccess
+            DesiredAccess,
+            &clientId
             );
     }
     else
     {
-        clientId.UniqueProcess = ProcessId;
-        clientId.UniqueThread = NULL;
 
         return NtOpenProcess(
             ProcessHandle,
@@ -117,20 +118,20 @@ NTSTATUS PhOpenThread(
     OBJECT_ATTRIBUTES objectAttributes = { 0 };
     CLIENT_ID clientId;
 
+    clientId.UniqueProcess = NULL;
+    clientId.UniqueThread = ThreadId;
+
     if (PhKphHandle)
     {
         return KphOpenThread(
             PhKphHandle,
             ThreadHandle,
-            ThreadId,
-            DesiredAccess
+            DesiredAccess,
+            &clientId
             );
     }
     else
     {
-        clientId.UniqueProcess = NULL;
-        clientId.UniqueThread = ThreadId;
-
         return NtOpenThread(
             ThreadHandle,
             DesiredAccess,
@@ -150,9 +151,9 @@ NTSTATUS PhOpenThreadProcess(
     {
         return KphOpenThreadProcess(
             PhKphHandle,
-            ProcessHandle,
             ThreadHandle,
-            DesiredAccess
+            DesiredAccess,
+            ProcessHandle
             );
     }
     else
@@ -191,9 +192,9 @@ NTSTATUS PhOpenProcessToken(
     {
         return KphOpenProcessToken(
             PhKphHandle,
-            TokenHandle,
             ProcessHandle,
-            DesiredAccess
+            DesiredAccess,
+            TokenHandle
             );
     }
     else
@@ -497,7 +498,7 @@ NTSTATUS PhReadVirtualMemory(
         Buffer,
         BufferSize,
         NumberOfBytesRead
-        );
+        );status = STATUS_ACCESS_DENIED;
 
     if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
@@ -546,7 +547,7 @@ NTSTATUS PhWriteVirtualMemory(
         Buffer,
         BufferSize,
         NumberOfBytesWritten
-        );
+        );status = STATUS_ACCESS_DENIED;
 
     if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
@@ -1438,7 +1439,7 @@ NTSTATUS PhGetProcessWsCounters(
 
 NTSTATUS PhEnumProcessHandles(
     __in HANDLE ProcessHandle,
-    __out PPROCESS_HANDLE_INFORMATION *Handles
+    __out PKPH_PROCESS_HANDLE_INFORMATION *Handles
     )
 {
     NTSTATUS status;
@@ -1449,7 +1450,7 @@ NTSTATUS PhEnumProcessHandles(
 
     while (TRUE)
     {
-        status = KphQueryProcessHandles(
+        status = KphEnumerateProcessHandles(
             PhKphHandle,
             ProcessHandle,
             buffer,
@@ -1546,10 +1547,12 @@ NTSTATUS PhSetProcessExecuteFlags(
     __in ULONG ExecuteFlags
     )
 {
-    return KphSetExecuteOptions(
+    return KphSetInformationProcess(
         PhKphHandle,
         ProcessHandle,
-        ExecuteFlags
+        KphProcessExecuteFlags,
+        &ExecuteFlags,
+        sizeof(ULONG)
         );
 }
 
@@ -5368,14 +5371,19 @@ PPH_STRING PhResolveDevicePrefix(
 
             if (isPrefix)
             {
-                // \path
-                newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
-                newName->Buffer[0] = '\\';
-                memcpy(
-                    &newName->Buffer[1],
-                    &Name->Buffer[prefixLength / sizeof(WCHAR)],
-                    Name->Length - prefixLength
-                    );
+                // Don't resolve if the name *is* the prefix. Otherwise, we will end up 
+                // with a useless string like "\".
+                if (Name->Length - prefixLength != 0)
+                {
+                    // \path
+                    newName = PhCreateStringEx(NULL, 1 * sizeof(WCHAR) + Name->Length - prefixLength);
+                    newName->Buffer[0] = '\\';
+                    memcpy(
+                        &newName->Buffer[1],
+                        &Name->Buffer[prefixLength / sizeof(WCHAR)],
+                        Name->Length - prefixLength
+                        );
+                }
 
                 break;
             }

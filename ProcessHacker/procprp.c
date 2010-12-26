@@ -675,7 +675,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 #endif
             PPH_PROCESS_ITEM parentProcess;
             CLIENT_ID clientId;
-            BOOLEAN isProtected;
 
             {
                 HBITMAP folder;
@@ -860,17 +859,26 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_PROTECTION, L"N/A");
 
-            if (WINDOWS_HAS_LIMITED_ACCESS)
+            if (WINDOWS_HAS_LIMITED_ACCESS && processHandle)
             {
                 if (PhKphHandle)
                 {
-                    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
+                    KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
+
+                    if (NT_SUCCESS(KphQueryInformationProcess(
+                        PhKphHandle,
+                        processHandle,
+                        KphProcessProtectionInformation,
+                        &protectionInfo,
+                        sizeof(KPH_PROCESS_PROTECTION_INFORMATION),
+                        NULL
+                        )))
                     {
-                        SetDlgItemText(hwndDlg, IDC_PROTECTION, isProtected ? L"Protected" : L"Not Protected");
+                        SetDlgItemText(hwndDlg, IDC_PROTECTION, protectionInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
                         EnableWindow(GetDlgItem(hwndDlg, IDC_EDITPROTECTION), TRUE);
                     }
                 }
-                else if (processHandle)
+                else
                 {
                     PROCESS_EXTENDED_BASIC_INFORMATION extendedBasicInfo;
 
@@ -998,12 +1006,29 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 {
                     if (PhUiSetProtectionProcess(hwndDlg, processItem))
                     {
-                        BOOLEAN isProtected;
+                        HANDLE processHandle;
+                        KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
 
-                        if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, processItem->ProcessId, &isProtected)))
+                        if (NT_SUCCESS(PhOpenProcess(
+                            &processHandle,
+                            ProcessQueryAccess,
+                            processItem->ProcessId
+                            )))
                         {
-                            SetDlgItemText(hwndDlg, IDC_PROTECTION,
-                                isProtected ? L"Protected" : L"Not Protected");
+                            if (NT_SUCCESS(KphQueryInformationProcess(
+                                PhKphHandle,
+                                processHandle,
+                                KphProcessProtectionInformation,
+                                &protectionInfo,
+                                sizeof(KPH_PROCESS_PROTECTION_INFORMATION),
+                                NULL
+                                )))
+                            {
+                                SetDlgItemText(hwndDlg, IDC_PROTECTION,
+                                    protectionInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
+                            }
+
+                            NtClose(processHandle);
                         }
                     }
                 }
@@ -4781,7 +4806,7 @@ static NTSTATUS NTAPI PhpOpenProcessJob(
         )))
         return status;
 
-    status = KphOpenProcessJob(PhKphHandle, &jobHandle, processHandle, DesiredAccess);
+    status = KphOpenProcessJob(PhKphHandle, processHandle, DesiredAccess, &jobHandle);
     NtClose(processHandle);
 
     if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)

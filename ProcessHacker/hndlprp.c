@@ -370,12 +370,21 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                                 context->ProcessId
                                 )))
                             {
-                                KphGetProcessId(
+                                PROCESS_BASIC_INFORMATION basicInfo;
+
+                                if (NT_SUCCESS(KphQueryInformationObject(
                                     PhKphHandle,
                                     processHandle,
                                     context->HandleItem->Handle,
-                                    &processId
-                                    );
+                                    KphObjectProcessBasicInformation,
+                                    &basicInfo,
+                                    sizeof(PROCESS_BASIC_INFORMATION),
+                                    NULL
+                                    )))
+                                {
+                                    processId = basicInfo.UniqueProcessId;
+                                }
+
                                 NtClose(processHandle);
                             }
                         }

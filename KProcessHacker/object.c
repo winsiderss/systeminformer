@@ -319,11 +319,24 @@ NTSTATUS KphQueryNameObject(
         (((PFILE_OBJECT)Object)->Busy || ((PFILE_OBJECT)Object)->Waiters))
     {
         status = KphQueryNameFileObject(Object, Buffer, BufferLength, ReturnLength);
+        dprintf("KphQueryNameFileObject: status 0x%x\n", status);
     }
     else
     {
         status = ObQueryNameString(Object, Buffer, BufferLength, ReturnLength);
+        dprintf("ObQueryNameString: status 0x%x\n", status);
     }
+
+    // Make the error returns consistent.
+    if (status == STATUS_BUFFER_OVERFLOW) // returned by I/O subsystem
+        status = STATUS_BUFFER_TOO_SMALL;
+    if (status == STATUS_INFO_LENGTH_MISMATCH) // returned by ObQueryNameString
+        status = STATUS_BUFFER_TOO_SMALL;
+
+    if (NT_SUCCESS(status))
+        dprintf("KphQueryNameObject: %.*S\n", Buffer->Name.Length / sizeof(WCHAR), Buffer->Name.Buffer);
+    else
+        dprintf("KphQueryNameObject: status 0x%x\n", status);
 
     return status;
 }
@@ -379,6 +392,9 @@ NTSTATUS KphQueryNameFileObject(
 
         if (!NT_SUCCESS(status))
         {
+            if (status == STATUS_INFO_LENGTH_MISMATCH)
+                status = STATUS_BUFFER_TOO_SMALL;
+
             *ReturnLength = returnLength;
 
             return status;
@@ -474,6 +490,7 @@ NTSTATUS KpiQueryInformationObject(
 {
     NTSTATUS status;
     PEPROCESS process;
+    KPROCESSOR_MODE referenceMode;
     KAPC_STATE apcState;
     ULONG returnLength;
 
@@ -509,16 +526,20 @@ NTSTATUS KpiQueryInformationObject(
         // A check was added in Windows 7 - if we're attached to the System process,
         // the handle must be a kernel handle.
         Handle = MakeKernelHandle(Handle);
+        referenceMode = KernelMode;
     }
     else
     {
         // Make sure the handle isn't a kernel handle if we're not attached to the 
-        // System process.
+        // System process. This means we can avoid referencing then opening the objects 
+        // later when calling ZwQueryObject, etc.
         if (IsKernelHandle(Handle))
         {
             ObDereferenceObject(process);
             return STATUS_INVALID_HANDLE;
         }
+
+        referenceMode = AccessMode;
     }
 
     switch (ObjectInformationClass)
@@ -561,50 +582,73 @@ NTSTATUS KpiQueryInformationObject(
         break;
     case KphObjectNameInformation:
         {
+            PVOID object;
             POBJECT_NAME_INFORMATION nameInfo;
 
-            nameInfo = ExAllocatePoolWithQuotaTag(PagedPool, ObjectInformationLength, 'QhpK');
+            returnLength = sizeof(OBJECT_TYPE_INFORMATION);
 
-            if (nameInfo)
+            // Attach to the process a get a pointer to the object.
+            KeStackAttachProcess(process, &apcState);
+            status = ObReferenceObjectByHandle(
+                Handle,
+                0,
+                NULL,
+                referenceMode,
+                &object,
+                NULL
+                );
+            KeUnstackDetachProcess(&apcState);
+
+            if (NT_SUCCESS(status))
             {
-                // Make sure we don't leak any data.
-                memset(nameInfo, 0, ObjectInformationLength);
+                nameInfo = ExAllocatePoolWithQuotaTag(PagedPool, ObjectInformationLength, 'QhpK');
 
-                KeStackAttachProcess(process, &apcState);
-                status = KphQueryNameObject(
-                    Handle,
-                    nameInfo,
-                    ObjectInformationLength,
-                    &returnLength
-                    );
-                KeUnstackDetachProcess(&apcState);
-
-                if (NT_SUCCESS(status))
+                if (nameInfo)
                 {
-                    // Fix up the buffer pointer.
-                    nameInfo->Name.Buffer = (PVOID)((ULONG_PTR)nameInfo->Name.Buffer - (ULONG_PTR)nameInfo + (ULONG_PTR)ObjectInformation);
+                    // Make sure we don't leak any data.
+                    memset(nameInfo, 0, ObjectInformationLength);
 
-                    __try
+                    status = KphQueryNameObject(
+                        object,
+                        nameInfo,
+                        ObjectInformationLength,
+                        &returnLength
+                        );
+                    dprintf("KpiQueryInformationObject: called KphQueryNameObject: Handle: 0x%Ix, ObjectInformationLength: %u, returnLength: %u\n",
+                        Handle, ObjectInformationLength, returnLength);
+
+                    if (NT_SUCCESS(status))
                     {
-                        memcpy(ObjectInformation, nameInfo, ObjectInformationLength);
+                        // Fix up the buffer pointer.
+                        if (nameInfo->Name.Buffer)
+                            nameInfo->Name.Buffer = (PVOID)((ULONG_PTR)nameInfo->Name.Buffer - (ULONG_PTR)nameInfo + (ULONG_PTR)ObjectInformation);
+
+                        __try
+                        {
+                            memcpy(ObjectInformation, nameInfo, ObjectInformationLength);
+                        }
+                        __except (EXCEPTION_EXECUTE_HANDLER)
+                        {
+                            status = GetExceptionCode();
+                        }
                     }
-                    __except (EXCEPTION_EXECUTE_HANDLER)
-                    {
-                        status = GetExceptionCode();
-                    }
+
+                    ExFreePoolWithTag(nameInfo, 'QhpK');
+                }
+                else
+                {
+                    status = STATUS_INSUFFICIENT_RESOURCES;
                 }
 
-                ExFreePoolWithTag(nameInfo, 'QhpK');
-            }
-            else
-            {
-                status = STATUS_INSUFFICIENT_RESOURCES;
+                ObDereferenceObject(object);
             }
         }
         break;
     case KphObjectTypeInformation:
         {
             POBJECT_TYPE_INFORMATION typeInfo;
+
+            returnLength = sizeof(OBJECT_TYPE_INFORMATION);
 
             typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, ObjectInformationLength, 'QhpK');
 
@@ -625,7 +669,8 @@ NTSTATUS KpiQueryInformationObject(
                 if (NT_SUCCESS(status))
                 {
                     // Fix up the buffer pointer.
-                    typeInfo->TypeName.Buffer = (PVOID)((ULONG_PTR)typeInfo->TypeName.Buffer - (ULONG_PTR)typeInfo + (ULONG_PTR)ObjectInformation);
+                    if (typeInfo->TypeName.Buffer)
+                        typeInfo->TypeName.Buffer = (PVOID)((ULONG_PTR)typeInfo->TypeName.Buffer - (ULONG_PTR)typeInfo + (ULONG_PTR)ObjectInformation);
 
                     __try
                     {
@@ -778,7 +823,7 @@ NTSTATUS KpiQueryInformationObject(
                     Handle,
                     0,
                     NULL,
-                    AccessMode,
+                    referenceMode,
                     &etwReg,
                     NULL
                     );
@@ -998,7 +1043,7 @@ NTSTATUS KphDuplicateObject(
     }
     else
     {
-        referenceMode = UserMode;
+        referenceMode = AccessMode;
     }
 
     // Closing handles in the current process from kernel-mode is *bad*.
