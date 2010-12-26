@@ -39,11 +39,101 @@ NTSTATUS KphDispatchDeviceControl(
 
 // dynimp
 
+extern _ObGetObjectType ObGetObjectType_I;
 extern _PsSuspendProcess PsSuspendProcess_I;
 extern _PsResumeProcess PsResumeProcess_I;
 
 VOID KphDynamicImport(
     VOID
+    );
+
+PVOID KphGetSystemRoutineAddress(
+    __in PWSTR SystemRoutineName
+    );
+
+// object
+
+POBJECT_TYPE KphGetObjectType(
+    __in PVOID Object
+    );
+
+PHANDLE_TABLE KphReferenceProcessHandleTable(
+    __in PEPROCESS Process
+    );
+
+VOID KphDereferenceProcessHandleTable(
+    __in PEPROCESS Process
+    );
+
+NTSTATUS KpiEnumerateProcessHandles(
+    __in HANDLE ProcessHandle,
+    __out_bcount(BufferLength) PVOID Buffer,
+    __in_opt ULONG BufferLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KphQueryNameObject(
+    __in PVOID Object,
+    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    __in ULONG BufferLength,
+    __out PULONG ReturnLength
+    );
+
+NTSTATUS KphQueryNameFileObject(
+    __in PFILE_OBJECT FileObject,
+    __out_bcount(BufferLength) POBJECT_NAME_INFORMATION Buffer,
+    __in ULONG BufferLength,
+    __out PULONG ReturnLength
+    );
+
+NTSTATUS KpiQueryInformationObject(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    __out_bcount(ObjectInformationLength) PVOID ObjectInformation,
+    __in ULONG ObjectInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiSetInformationObject(
+    __in HANDLE ProcessHandle,
+    __in HANDLE Handle,
+    __in KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    __in_bcount(ObjectInformationLength) PVOID ObjectInformation,
+    __in ULONG ObjectInformationLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KphDuplicateObject(
+    __in PEPROCESS SourceProcess,
+    __in_opt PEPROCESS TargetProcess,
+    __in HANDLE SourceHandle,
+    __out_opt PHANDLE TargetHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Options,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiDuplicateObject(
+    __in HANDLE SourceProcessHandle,
+    __in HANDLE SourceHandle,
+    __in_opt HANDLE TargetProcessHandle,
+    __out_opt PHANDLE TargetHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in ULONG HandleAttributes,
+    __in ULONG Options,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KphOpenNamedObject(
+    __out PHANDLE ObjectHandle,
+    __in ACCESS_MASK DesiredAccess,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in POBJECT_TYPE ObjectType,
+    __in KPROCESSOR_MODE AccessMode
     );
 
 // process
@@ -79,6 +169,11 @@ NTSTATUS KpiResumeProcess(
     __in KPROCESSOR_MODE AccessMode
     );
 
+NTSTATUS KphTerminateProcessInternal(
+    __in PEPROCESS Process,
+    __in NTSTATUS ExitStatus
+    );
+
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
@@ -102,6 +197,31 @@ NTSTATUS KpiSetInformationProcess(
     __in KPROCESSOR_MODE AccessMode
     );
 
+BOOLEAN KphAcquireProcessRundownProtection(
+    __in PEPROCESS Process
+    );
+
+VOID KphReleaseProcessRundownProtection(
+    __in PEPROCESS Process
+    );
+
+// qrydrv
+
+NTSTATUS KpiOpenDriver(
+    __out PHANDLE DriverHandle,
+    __in POBJECT_ATTRIBUTES ObjectAttributes,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiQueryInformationDriver(
+    __in HANDLE DriverHandle,
+    __in DRIVER_INFORMATION_CLASS DriverInformationClass,
+    __out_bcount(DriverInformationLength) PVOID DriverInformation,
+    __in ULONG DriverInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
 // thread
 
 NTSTATUS KpiOpenThread(
@@ -118,6 +238,11 @@ NTSTATUS KpiOpenThreadProcess(
     __in KPROCESSOR_MODE AccessMode
     );
 
+NTSTATUS KphTerminateThreadByPointerInternal(
+    __in PETHREAD Thread,
+    __in NTSTATUS ExitStatus
+    );
+
 NTSTATUS KpiTerminateThread(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus,
@@ -127,6 +252,63 @@ NTSTATUS KpiTerminateThread(
 NTSTATUS KpiTerminateThreadUnsafe(
     __in HANDLE ThreadHandle,
     __in NTSTATUS ExitStatus,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiGetContextThread(
+    __in HANDLE ThreadHandle,
+    __inout PCONTEXT ThreadContext,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiSetContextThread(
+    __in HANDLE ThreadHandle,
+    __in PCONTEXT ThreadContext,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+ULONG KphCaptureStackBackTrace(
+    __in ULONG FramesToSkip,
+    __in ULONG FramesToCapture,
+    __in_opt ULONG Flags,
+    __out_ecount(FramesToCapture) PVOID *BackTrace,
+    __out_opt PULONG BackTraceHash
+    );
+
+NTSTATUS KphCaptureStackBackTraceThread(
+    __in PETHREAD Thread,
+    __in ULONG FramesToSkip,
+    __in ULONG FramesToCapture,
+    __out_ecount(FramesToCapture) PVOID *BackTrace,
+    __out_opt PULONG CapturedFrames,
+    __out_opt PULONG BackTraceHash,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiCaptureStackBackTraceThread(
+    __in HANDLE ThreadHandle,
+    __in ULONG FramesToSkip,
+    __in ULONG FramesToCapture,
+    __out_ecount(FramesToCapture) PVOID *BackTrace,
+    __out_opt PULONG CapturedFrames,
+    __out_opt PULONG BackTraceHash,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiQueryInformationThread(
+    __in HANDLE ThreadHandle,
+    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __out_bcount(ProcessInformationLength) PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength,
+    __out_opt PULONG ReturnLength,
+    __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KpiSetInformationThread(
+    __in HANDLE ThreadHandle,
+    __in KPH_THREAD_INFORMATION_CLASS ThreadInformationClass,
+    __in_bcount(ThreadInformationLength) PVOID ThreadInformation,
+    __in ULONG ThreadInformationLength,
     __in KPROCESSOR_MODE AccessMode
     );
 
@@ -168,5 +350,63 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     __out_opt PSIZE_T NumberOfBytesRead,
     __in KPROCESSOR_MODE AccessMode
     );
+
+// Inline support functions
+
+FORCEINLINE VOID KphProbeForReadUnicodeString(
+    __in PUNICODE_STRING UnicodeString
+    )
+{
+    ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), 1);
+    ProbeForRead(UnicodeString->Buffer, UnicodeString->Length, 1);
+}
+
+FORCEINLINE VOID KphFreeCapturedUnicodeString(
+    __in PUNICODE_STRING CapturedUnicodeString
+    )
+{
+    ExFreePoolWithTag(CapturedUnicodeString->Buffer, 'UhpK');
+}
+
+FORCEINLINE NTSTATUS KphCaptureUnicodeString(
+    __in PUNICODE_STRING UnicodeString,
+    __out PUNICODE_STRING CapturedUnicodeString
+    )
+{
+    __try
+    {
+        CapturedUnicodeString->Length = UnicodeString->Length;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    CapturedUnicodeString->MaximumLength = CapturedUnicodeString->Length;
+    CapturedUnicodeString->Buffer = ExAllocatePoolWithTag(
+        PagedPool,
+        CapturedUnicodeString->Length,
+        'UhpK'
+        );
+
+    if (!CapturedUnicodeString->Buffer)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    __try
+    {
+        memcpy(
+            CapturedUnicodeString->Buffer,
+            UnicodeString->Buffer,
+            CapturedUnicodeString->Length
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        KphFreeCapturedUnicodeString(CapturedUnicodeString);
+        return GetExceptionCode();
+    }
+
+    return STATUS_SUCCESS;
+}
 
 #endif
