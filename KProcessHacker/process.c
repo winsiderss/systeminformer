@@ -479,7 +479,7 @@ NTSTATUS KpiQueryInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
-            BOOLEAN protectedProcess;
+            BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
 
             if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
             {
@@ -624,7 +624,8 @@ NTSTATUS KpiSetInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
-            BOOLEAN protectedProcess;
+            BOOLEAN protectedProcess = FALSE; // stupid x64 compiler
+            BOOLEAN change;
 
             if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
             {
@@ -633,6 +634,7 @@ NTSTATUS KpiSetInformationProcess(
                     __try
                     {
                         protectedProcess = ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess;
+                        change = TRUE;
                     }
                     __except (EXCEPTION_EXECUTE_HANDLER)
                     {
