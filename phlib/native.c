@@ -498,23 +498,18 @@ NTSTATUS PhReadVirtualMemory(
         Buffer,
         BufferSize,
         NumberOfBytesRead
-        );status = STATUS_ACCESS_DENIED;
+        );
 
     if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
-        ULONG returnLength;
-
         status = KphReadVirtualMemory(
             PhKphHandle,
             ProcessHandle,
             BaseAddress,
             Buffer,
-            (ULONG)BufferSize,
-            &returnLength
+            BufferSize,
+            NumberOfBytesRead
             );
-
-        if (NT_SUCCESS(status) && NumberOfBytesRead)
-            *NumberOfBytesRead = returnLength;
     }
 
     return status;
@@ -547,23 +542,18 @@ NTSTATUS PhWriteVirtualMemory(
         Buffer,
         BufferSize,
         NumberOfBytesWritten
-        );status = STATUS_ACCESS_DENIED;
+        );
 
     if (status == STATUS_ACCESS_DENIED && PhKphHandle && BufferSize <= MAXULONG32)
     {
-        ULONG returnLength;
-
         status = KphWriteVirtualMemory(
             PhKphHandle,
             ProcessHandle,
             BaseAddress,
             Buffer,
-            (ULONG)BufferSize,
-            &returnLength
+            BufferSize,
+            NumberOfBytesWritten
             );
-
-        if (NT_SUCCESS(status) && NumberOfBytesWritten)
-            *NumberOfBytesWritten = returnLength;
     }
 
     return status;
