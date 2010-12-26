@@ -487,22 +487,22 @@ static NTSTATUS KphpAmd64DataInitialization(
         KphDynOtName = 0x10;
         KphDynOtIndex = 0x28; // now only a UCHAR, not a ULONG
 
-        if (searchOffset)
-        {
-            // Disabled for now because they aren't really necessary on x64.
-            //INIT_SCAN(
-            //    &KphDynPsTerminateProcessScan,
-            //    PsTerminateProcess61Bytes,
-            //    sizeof(PsTerminateProcess61Bytes),
-            //    searchOffset, scanLength, 0
-            //    );
-            //INIT_SCAN(
-            //    &KphDynPspTerminateThreadByPointerScan,
-            //    PspTerminateThreadByPointer61Bytes,
-            //    sizeof(PspTerminateThreadByPointer61Bytes),
-            //    searchOffset, scanLength, 0
-            //    );
-        }
+        // Disabled for now because they aren't really necessary on x64.
+        //if (searchOffset)
+        //{
+        //    INIT_SCAN(
+        //        &KphDynPsTerminateProcessScan,
+        //        PsTerminateProcess61Bytes,
+        //        sizeof(PsTerminateProcess61Bytes),
+        //        searchOffset, scanLength, 0
+        //        );
+        //    INIT_SCAN(
+        //        &KphDynPspTerminateThreadByPointerScan,
+        //        PspTerminateThreadByPointer61Bytes,
+        //        sizeof(PspTerminateThreadByPointer61Bytes),
+        //        searchOffset, scanLength, 0
+        //        );
+        //}
 
         if (servicePack == 0)
         {
