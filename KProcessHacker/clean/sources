@@ -1,0 +1,8 @@
+!IF 0
+
+This builds a clean version of KProcessHacker suitable for driver signing.
+
+!ENDIF
+
+C_DEFINES = $(C_DEFINES) /DKPH_CONFIG_CLEAN
+!include ..\sources.inc

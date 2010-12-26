@@ -1,0 +1,2 @@
+DIRS=clean
+OPTIONAL_DIRS=dirty
