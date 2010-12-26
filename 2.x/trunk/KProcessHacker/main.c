@@ -156,6 +156,17 @@ NTSTATUS KphDispatchCreate(
     return status;
 }
 
+/**
+ * Reads an integer parameter from the registry.
+ *
+ * \param KeyHandle A handle to the Parameters key. If NULL, the function 
+ * fails immediately and returns \a DefaultValue.
+ * \param ValueName The name of the parameter.
+ * \param DefaultValue The value that is returned if the function fails 
+ * to retrieve the parameter from the registry.
+ *
+ * \return The parameter value, or \a DefaultValue if the function failed.
+ */
 ULONG KphpReadIntegerParameter(
     __in_opt HANDLE KeyHandle,
     __in PUNICODE_STRING ValueName,
@@ -190,6 +201,11 @@ ULONG KphpReadIntegerParameter(
     return *(PULONG)info->Data;
 }
 
+/**
+ * Reads the driver parameters.
+ *
+ * \param RegistryPath The registry path of the driver.
+ */
 NTSTATUS KphpReadDriverParameters(
     __in PUNICODE_STRING RegistryPath
     )
