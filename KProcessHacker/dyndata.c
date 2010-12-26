@@ -113,6 +113,21 @@ static UCHAR PspTerminateThreadByPointer61Bytes[] =
 
 #else
 
+static UCHAR PsTerminateProcess61Bytes[] =
+{
+    0x48, 0x89, 0x5c, 0x24, 0x08, 0x48, 0x89, 0x74,
+    0x24, 0x10, 0x57, 0x48, 0x83, 0xec, 0x20, 0x65,
+    0x48, 0x8b, 0x1c, 0x25, 0x88, 0x01, 0x00, 0x00,
+    0x4c, 0x8b, 0xd1, 0xbe, 0x01, 0x00, 0x00, 0x00
+};
+static UCHAR PspTerminateThreadByPointer61Bytes[] =
+{
+    0x48, 0x89, 0x5c, 0x24, 0x08, 0x48, 0x89, 0x6c,
+    0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18, 0x57,
+    0x48, 0x83, 0xec, 0x40, 0xf6, 0x81, 0x48, 0x04,
+    0x00, 0x00, 0x40, 0x41, 0x8a, 0xf0, 0x8b, 0xea
+};
+
 #endif
 
 NTSTATUS KphDynamicDataInitialization(
@@ -132,7 +147,7 @@ NTSTATUS KphDynamicDataInitialization(
 #ifdef _X86_
     return KphpX86DataInitialization();
 #else
-    return KphpAMD64DataInitialization();
+    return KphpAmd64DataInitialization();
 #endif
 }
 
@@ -365,7 +380,128 @@ static NTSTATUS KphpAmd64DataInitialization(
     VOID
     )
 {
+    ULONG majorVersion, minorVersion, servicePack, buildNumber;
 
+    majorVersion = KphDynOsVersionInfo.dwMajorVersion;
+    minorVersion = KphDynOsVersionInfo.dwMinorVersion;
+    servicePack = KphDynOsVersionInfo.wServicePackMajor;
+    buildNumber = KphDynOsVersionInfo.dwBuildNumber;
+    dprintf("Windows %d.%d, SP%d.%d, build %d\n",
+        majorVersion, minorVersion, servicePack,
+        KphDynOsVersionInfo.wServicePackMinor, buildNumber
+        );
+
+    // Windows XP
+    if (majorVersion == 5 && minorVersion == 1)
+    {
+        KphDynNtVersion = PHNT_WINXP;
+
+        if (servicePack == 0)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 1)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 2)
+        {
+        }
+        else if (servicePack == 3)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+    // Windows Server 2003
+    else if (majorVersion == 5 && minorVersion == 2)
+    {
+        KphDynNtVersion = PHNT_WS03;
+
+        if (servicePack == 0)
+        {
+        }
+        else if (servicePack == 1)
+        {
+        }
+        else if (servicePack == 2)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+    // Windows Vista, Windows Server 2008
+    else if (majorVersion == 6 && minorVersion == 0)
+    {
+        KphDynNtVersion = PHNT_VISTA;
+
+        if (servicePack == 0)
+        {
+        }
+        else if (servicePack == 1)
+        {
+        }
+        else if (servicePack == 2)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+    }
+    // Windows 7, Windows Server 2008 R2
+    else if (majorVersion == 6 && minorVersion == 1)
+    {
+        ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"ObQueryNameString");
+        ULONG scanLength = 0x100000;
+
+        KphDynNtVersion = PHNT_WIN7;
+
+        KphDynEgeGuid = 0x14;
+        KphDynEpObjectTable = 0x200;
+        KphDynEpProtectedProcessOff = 0x43c;
+        KphDynEpProtectedProcessBit = 0xb;
+        KphDynEpRundownProtect = 0x178;
+        KphDynEreGuidEntry = 0x10;
+        KphDynOtName = 0x10;
+        KphDynOtIndex = 0x28; // now only a UCHAR, not a ULONG
+
+        if (searchOffset)
+        {
+            INIT_SCAN(
+                &KphDynPsTerminateProcessScan,
+                PsTerminateProcess61Bytes,
+                sizeof(PsTerminateProcess61Bytes),
+                searchOffset, scanLength, 0
+                );
+            INIT_SCAN(
+                &KphDynPspTerminateThreadByPointerScan,
+                PspTerminateThreadByPointer61Bytes,
+                sizeof(PspTerminateThreadByPointer61Bytes),
+                searchOffset, scanLength, 0
+                );
+        }
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
+        dprintf("Initialized version-specific data for Windows 7 SP%d\n", servicePack);
+    }
+    else
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 #endif
