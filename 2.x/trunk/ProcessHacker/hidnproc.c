@@ -63,14 +63,6 @@ VOID PhShowHiddenProcessesDialog()
             PhMainWndHandle,
             PhpHiddenProcessesDlgProc
             );
-
-#ifdef _M_X64
-        PhShowWarning(
-            PhHiddenProcessesWindowHandle,
-            L"The hidden processes feature is only fully implemented on 32-bit systems. "
-            L"Some features may not work as expected."
-            );
-#endif
     }
 
     if (!IsWindowVisible(PhHiddenProcessesWindowHandle))

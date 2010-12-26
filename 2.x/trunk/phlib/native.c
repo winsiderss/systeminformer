@@ -303,21 +303,24 @@ NTSTATUS PhTerminateProcess(
     __in NTSTATUS ExitStatus
     )
 {
+    NTSTATUS status;
+
     if (PhKphHandle)
     {
-        return KphTerminateProcess(
+        status = KphTerminateProcess(
             PhKphHandle,
             ProcessHandle,
             ExitStatus
             );
+
+        if (status != STATUS_NOT_SUPPORTED)
+            return status;
     }
-    else
-    {
-        return NtTerminateProcess(
-            ProcessHandle,
-            ExitStatus
-            );
-    }
+
+    return NtTerminateProcess(
+        ProcessHandle,
+        ExitStatus
+        );
 }
 
 /**
@@ -373,21 +376,24 @@ NTSTATUS PhTerminateThread(
     __in NTSTATUS ExitStatus
     )
 {
+    NTSTATUS status;
+
     if (PhKphHandle)
     {
-        return KphTerminateThread(
+        status = KphTerminateThread(
             PhKphHandle,
             ThreadHandle,
             ExitStatus
             );
+
+        if (status != STATUS_NOT_SUPPORTED)
+            return status;
     }
-    else
-    {
-        return NtTerminateThread(
-            ThreadHandle,
-            ExitStatus
-            );
-    }
+
+    return NtTerminateThread(
+        ThreadHandle,
+        ExitStatus
+        );
 }
 
 /**
