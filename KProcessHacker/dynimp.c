@@ -21,19 +21,25 @@
 
 #include <kph.h>
 
-PVOID KphpGetSystemRoutineAddress(
-    __in PWSTR SystemRoutineName
-    );
-
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, KphpGetSystemRoutineAddress)
+#pragma alloc_text(PAGE, KphGetSystemRoutineAddress)
 #pragma alloc_text(PAGE, KphDynamicImport)
 #endif
 
+_ObGetObjectType ObGetObjectType_I;
 _PsSuspendProcess PsSuspendProcess_I;
 _PsResumeProcess PsResumeProcess_I;
 
-PVOID KphpGetSystemRoutineAddress(
+VOID KphDynamicImport(
+    VOID
+    )
+{
+    ObGetObjectType_I = KphGetSystemRoutineAddress(L"ObGetObjectType");
+    PsSuspendProcess_I = KphGetSystemRoutineAddress(L"PsSuspendProcess");
+    PsResumeProcess_I = KphGetSystemRoutineAddress(L"PsResumeProcess");
+}
+
+PVOID KphGetSystemRoutineAddress(
     __in PWSTR SystemRoutineName
     )
 {
@@ -42,12 +48,4 @@ PVOID KphpGetSystemRoutineAddress(
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
     return MmGetSystemRoutineAddress(&systemRoutineName);
-}
-
-VOID KphDynamicImport(
-    VOID
-    )
-{
-    PsSuspendProcess_I = KphpGetSystemRoutineAddress(L"PsSuspendProcess");
-    PsResumeProcess_I = KphpGetSystemRoutineAddress(L"PsResumeProcess");
 }

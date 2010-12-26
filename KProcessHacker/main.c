@@ -20,6 +20,7 @@
  */
 
 #include <kph.h>
+#include <dyndata.h>
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
@@ -58,6 +59,9 @@ NTSTATUS DriverEntry(
     PDEVICE_OBJECT deviceObject;
 
     KphDriverObject = DriverObject;
+
+    KphDynamicImport();
+    KphDynamicDataInitialization();
 
     if (!NT_SUCCESS(status = KphpReadDriverParameters(RegistryPath)))
         return status;

@@ -20,6 +20,7 @@
  */
 
 #include <kph.h>
+#include <dyndata.h>
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text(PAGE, KpiOpenProcess)
@@ -27,6 +28,7 @@
 #pragma alloc_text(PAGE, KpiOpenProcessJob)
 #pragma alloc_text(PAGE, KpiSuspendProcess)
 #pragma alloc_text(PAGE, KpiResumeProcess)
+#pragma alloc_text(PAGE, KphTerminateProcessInternal)
 #pragma alloc_text(PAGE, KpiTerminateProcess)
 #pragma alloc_text(PAGE, KpiQueryInformationProcess)
 #pragma alloc_text(PAGE, KpiSetInformationProcess)
@@ -326,6 +328,58 @@ NTSTATUS KpiResumeProcess(
     return status;
 }
 
+NTSTATUS KphTerminateProcessInternal(
+    __in PEPROCESS Process,
+    __in NTSTATUS ExitStatus
+    )
+{
+    NTSTATUS status;
+    _PsTerminateProcess PsTerminateProcess_I;
+
+    PsTerminateProcess_I = KphGetDynamicProcedureScan(&KphDynPsTerminateProcessScan);
+
+    if (!PsTerminateProcess_I)
+        return STATUS_NOT_SUPPORTED;
+
+#ifdef _X86_
+
+    if (
+        KphDynNtVersion == PHNT_WINXP || 
+        KphDynNtVersion == PHNT_WS03
+        )
+    {
+        // PspTerminateProcess on XP and Server 2003 is normal.
+        status = PsTerminateProcess_I(Process, ExitStatus);
+    }
+    else if (
+        KphDynNtVersion == PHNT_VISTA || 
+        KphDynNtVersion == PHNT_WIN7
+        )
+    {
+        // PsTerminateProcess on Vista and above has its first argument 
+        // in ecx.
+        __asm
+        {
+            push    [ExitStatus]
+            mov     ecx, [Process]
+            call    [PsTerminateProcess_I]
+            mov     [status], eax
+        }
+    }
+    else
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+
+#else
+
+    status = PsTerminateProcess_I(Process, ExitStatus);
+
+#endif
+
+    return status;
+}
+
 NTSTATUS KpiTerminateProcess(
     __in HANDLE ProcessHandle,
     __in NTSTATUS ExitStatus,
@@ -349,11 +403,9 @@ NTSTATUS KpiTerminateProcess(
 
     if (process != PsGetCurrentProcess())
     {
-        if (FALSE)
-        {
-            // TODO: Use PsTerminateProcess.
-        }
-        else
+        status = KphTerminateProcessInternal(process, ExitStatus);
+
+        if (status == STATUS_NOT_SUPPORTED)
         {
             HANDLE newProcessHandle;
 
@@ -394,7 +446,6 @@ NTSTATUS KpiQueryInformationProcess(
 {
     NTSTATUS status;
     PEPROCESS process;
-    HANDLE newProcessHandle;
     ULONG returnLength;
 
     if (AccessMode != KernelMode)
@@ -428,12 +479,41 @@ NTSTATUS KpiQueryInformationProcess(
     {
     case KphProcessProtectionInformation:
         {
-            status = STATUS_NOT_IMPLEMENTED;
-            returnLength = 0;
+            BOOLEAN protectedProcess;
+
+            if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
+            {
+                protectedProcess = (*(PULONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff) >> KphDynEpProtectedProcessBit) & 0x1;
+            }
+            else
+            {
+                status = STATUS_NOT_SUPPORTED;
+            }
+
+            if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
+            {
+                __try
+                {
+                    ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess = protectedProcess;
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                }
+            }
+            else
+            {
+                status = STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            returnLength = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
         }
         break;
     case KphProcessIoPriority:
         {
+            HANDLE newProcessHandle;
+            ULONG ioPriority;
+
             if (NT_SUCCESS(status = ObOpenObjectByPointer(
                 process,
                 OBJ_KERNEL_HANDLE,
@@ -444,8 +524,6 @@ NTSTATUS KpiQueryInformationProcess(
                 &newProcessHandle
                 )))
             {
-                ULONG ioPriority;
-
                 if (NT_SUCCESS(status = ZwQueryInformationProcess(
                     newProcessHandle,
                     ProcessIoPriority,
@@ -517,7 +595,6 @@ NTSTATUS KpiSetInformationProcess(
 {
     NTSTATUS status;
     PEPROCESS process;
-    HANDLE newProcessHandle;
 
     if (AccessMode != KernelMode)
     {
@@ -545,6 +622,42 @@ NTSTATUS KpiSetInformationProcess(
 
     switch (ProcessInformationClass)
     {
+    case KphProcessProtectionInformation:
+        {
+            BOOLEAN protectedProcess;
+
+            if (KphDynEpProtectedProcessOff != -1 && KphDynEpProtectedProcessBit != -1)
+            {
+                if (ProcessInformationLength == sizeof(KPH_PROCESS_PROTECTION_INFORMATION))
+                {
+                    __try
+                    {
+                        protectedProcess = ((PKPH_PROCESS_PROTECTION_INFORMATION)ProcessInformation)->IsProtectedProcess;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
+                }
+                else
+                {
+                    status = STATUS_INFO_LENGTH_MISMATCH;
+                }
+            }
+            else
+            {
+                status = STATUS_NOT_SUPPORTED;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                if (protectedProcess)
+                    InterlockedOr((PLONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff), (ULONG)(1 << KphDynEpProtectedProcessBit));
+                else
+                    InterlockedAnd((PLONG)((ULONG_PTR)process + KphDynEpProtectedProcessOff), ~(ULONG)(1 << KphDynEpProtectedProcessBit));
+            }
+        }
+        break;
     case KphProcessExecuteFlags:
         {
             ULONG executeFlags;
@@ -584,6 +697,7 @@ NTSTATUS KpiSetInformationProcess(
     case KphProcessIoPriority:
         {
             ULONG ioPriority;
+            HANDLE newProcessHandle;
 
             if (ProcessInformationLength == sizeof(ULONG))
             {
@@ -632,4 +746,25 @@ NTSTATUS KpiSetInformationProcess(
     ObDereferenceObject(process);
 
     return status;
+}
+
+BOOLEAN KphAcquireProcessRundownProtection(
+    __in PEPROCESS Process
+    )
+{
+    // Fail if we don't have an offset.
+    if (KphDynEpRundownProtect == -1)
+        return FALSE;
+
+    return ExAcquireRundownProtection((PEX_RUNDOWN_REF)((ULONG_PTR)Process + KphDynEpRundownProtect));
+}
+
+VOID KphReleaseProcessRundownProtection(
+    __in PEPROCESS Process
+    )
+{
+    if (KphDynEpRundownProtect == -1)
+        return;
+
+    ExReleaseRundownProtection((PEX_RUNDOWN_REF)((ULONG_PTR)Process + KphDynEpRundownProtect));
 }

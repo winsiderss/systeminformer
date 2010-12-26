@@ -33,6 +33,7 @@ NTSTATUS KphDispatchDeviceControl(
     PVOID systemBuffer;
     ULONG inputBufferLength;
     ULONG ioControlCode;
+    KPROCESSOR_MODE accessMode;
     ULONG returnLength;
 
 #define VERIFY_INPUT_LENGTH \
@@ -46,6 +47,7 @@ NTSTATUS KphDispatchDeviceControl(
     systemBuffer = Irp->AssociatedIrp.SystemBuffer;
     inputBufferLength = stackLocation->Parameters.DeviceIoControl.InputBufferLength;
     ioControlCode = stackLocation->Parameters.DeviceIoControl.IoControlCode;
+    accessMode = Irp->RequestorMode;
     returnLength = 0;
 
     if (systemBuffer)
@@ -63,7 +65,7 @@ NTSTATUS KphDispatchDeviceControl(
 
                 status = KpiGetFeatures(
                     input->Features,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -82,7 +84,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ProcessHandle,
                     input->DesiredAccess,
                     input->ClientId,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -101,7 +103,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ProcessHandle,
                     input->DesiredAccess,
                     input->TokenHandle,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -120,7 +122,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ProcessHandle,
                     input->DesiredAccess,
                     input->JobHandle,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -135,7 +137,7 @@ NTSTATUS KphDispatchDeviceControl(
 
                 status = KpiSuspendProcess(
                     input->ProcessHandle,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -150,7 +152,7 @@ NTSTATUS KphDispatchDeviceControl(
 
                 status = KpiResumeProcess(
                     input->ProcessHandle,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -167,7 +169,7 @@ NTSTATUS KphDispatchDeviceControl(
                 status = KpiTerminateProcess(
                     input->ProcessHandle,
                     input->ExitStatus,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -190,7 +192,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->Buffer,
                     input->BufferSize,
                     input->NumberOfBytesRead,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -213,7 +215,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->Buffer,
                     input->BufferSize,
                     input->NumberOfBytesRead,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -236,7 +238,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->Buffer,
                     input->BufferSize,
                     input->NumberOfBytesRead,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -259,7 +261,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ProcessInformation,
                     input->ProcessInformationLength,
                     input->ReturnLength,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -280,7 +282,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ProcessInformationClass,
                     input->ProcessInformation,
                     input->ProcessInformationLength,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -299,7 +301,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ThreadHandle,
                     input->DesiredAccess,
                     input->ClientId,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -318,7 +320,7 @@ NTSTATUS KphDispatchDeviceControl(
                     input->ThreadHandle,
                     input->DesiredAccess,
                     input->ProcessHandle,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -335,7 +337,7 @@ NTSTATUS KphDispatchDeviceControl(
                 status = KpiTerminateThread(
                     input->ThreadHandle,
                     input->ExitStatus,
-                    Irp->RequestorMode
+                    accessMode
                     );
             }
             break;
@@ -352,7 +354,246 @@ NTSTATUS KphDispatchDeviceControl(
                 status = KpiTerminateThreadUnsafe(
                     input->ThreadHandle,
                     input->ExitStatus,
-                    Irp->RequestorMode
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_GETCONTEXTTHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    PCONTEXT ThreadContext;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiGetContextThread(
+                    input->ThreadHandle,
+                    input->ThreadContext,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_SETCONTEXTTHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    PCONTEXT ThreadContext;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiSetContextThread(
+                    input->ThreadHandle,
+                    input->ThreadContext,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_CAPTURESTACKBACKTRACETHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    ULONG FramesToSkip;
+                    ULONG FramesToCapture;
+                    PVOID *BackTrace;
+                    PULONG CapturedFrames;
+                    PULONG BackTraceHash;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiCaptureStackBackTraceThread(
+                    input->ThreadHandle,
+                    input->FramesToSkip,
+                    input->FramesToCapture,
+                    input->BackTrace,
+                    input->CapturedFrames,
+                    input->BackTraceHash,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_QUERYINFORMATIONTHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+                    PVOID ThreadInformation;
+                    ULONG ThreadInformationLength;
+                    PULONG ReturnLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiQueryInformationThread(
+                    input->ThreadHandle,
+                    input->ThreadInformationClass,
+                    input->ThreadInformation,
+                    input->ThreadInformationLength,
+                    input->ReturnLength,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_SETINFORMATIONTHREAD:
+            {
+                struct
+                {
+                    HANDLE ThreadHandle;
+                    KPH_THREAD_INFORMATION_CLASS ThreadInformationClass;
+                    PVOID ThreadInformation;
+                    ULONG ThreadInformationLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiSetInformationThread(
+                    input->ThreadHandle,
+                    input->ThreadInformationClass,
+                    input->ThreadInformation,
+                    input->ThreadInformationLength,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_ENUMERATEPROCESSHANDLES:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    PVOID Buffer;
+                    ULONG BufferLength;
+                    PULONG ReturnLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiEnumerateProcessHandles(
+                    input->ProcessHandle,
+                    input->Buffer,
+                    input->BufferLength,
+                    input->ReturnLength,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_QUERYINFORMATIONOBJECT:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    HANDLE Handle;
+                    KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass;
+                    PVOID ObjectInformation;
+                    ULONG ObjectInformationLength;
+                    PULONG ReturnLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiQueryInformationObject(
+                    input->ProcessHandle,
+                    input->Handle,
+                    input->ObjectInformationClass,
+                    input->ObjectInformation,
+                    input->ObjectInformationLength,
+                    input->ReturnLength,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_SETINFORMATIONOBJECT:
+            {
+                struct
+                {
+                    HANDLE ProcessHandle;
+                    HANDLE Handle;
+                    KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass;
+                    PVOID ObjectInformation;
+                    ULONG ObjectInformationLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiSetInformationObject(
+                    input->ProcessHandle,
+                    input->Handle,
+                    input->ObjectInformationClass,
+                    input->ObjectInformation,
+                    input->ObjectInformationLength,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_DUPLICATEOBJECT:
+            {
+                struct
+                {
+                    HANDLE SourceProcessHandle;
+                    HANDLE SourceHandle;
+                    HANDLE TargetProcessHandle;
+                    PHANDLE TargetHandle;
+                    ACCESS_MASK DesiredAccess;
+                    ULONG HandleAttributes;
+                    ULONG Options;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiDuplicateObject(
+                    input->SourceProcessHandle,
+                    input->SourceHandle,
+                    input->TargetProcessHandle,
+                    input->TargetHandle,
+                    input->DesiredAccess,
+                    input->HandleAttributes,
+                    input->Options,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_OPENDRIVER:
+            {
+                struct
+                {
+                    PHANDLE DriverHandle;
+                    POBJECT_ATTRIBUTES ObjectAttributes;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiOpenDriver(
+                    input->DriverHandle,
+                    input->ObjectAttributes,
+                    accessMode
+                    );
+            }
+            break;
+        case KPH_QUERYINFORMATIONDRIVER:
+            {
+                struct
+                {
+                    HANDLE DriverHandle;
+                    DRIVER_INFORMATION_CLASS DriverInformationClass;
+                    PVOID DriverInformation;
+                    ULONG DriverInformationLength;
+                    PULONG ReturnLength;
+                } *input = systemBuffer;
+
+                VERIFY_INPUT_LENGTH;
+
+                status = KpiQueryInformationDriver(
+                    input->DriverHandle,
+                    input->DriverInformationClass,
+                    input->DriverInformation,
+                    input->DriverInformationLength,
+                    input->ReturnLength,
+                    accessMode
                     );
             }
             break;
