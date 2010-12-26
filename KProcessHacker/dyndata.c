@@ -308,7 +308,7 @@ static NTSTATUS KphpX86DataInitialization(
         }
         else if (servicePack == 1)
         {
-            KphDynOtName = 0x8; // they got rid of Mutex (ERESOURCE)
+            KphDynOtName = 0x8; // they moved Mutex (ERESOURCE) further down
             KphDynOtIndex = 0x14;
         }
         else if (servicePack == 2)
@@ -440,18 +440,26 @@ static NTSTATUS KphpAmd64DataInitialization(
         KphDynNtVersion = PHNT_VISTA;
 
         KphDynEgeGuid = 0x14;
+        KphDynEpObjectTable = 0x160;
+        KphDynEpProtectedProcessOff = 0x36c;
+        KphDynEpProtectedProcessBit = 0xb;
+        KphDynEpRundownProtect = 0xd8;
         KphDynEreGuidEntry = 0x10;
-        KphDynOtName = 0x10;
-        KphDynOtIndex = 0x28;
 
         if (servicePack == 0)
         {
+            KphDynOtName = 0x78;
+            KphDynOtIndex = 0x90;
         }
         else if (servicePack == 1)
         {
+            KphDynOtName = 0x10;
+            KphDynOtIndex = 0x28;
         }
         else if (servicePack == 2)
         {
+            KphDynOtName = 0x10;
+            KphDynOtIndex = 0x28;
         }
         else
         {
