@@ -60,8 +60,10 @@ NTSTATUS DriverEntry(
 
     KphDriverObject = DriverObject;
 
+    if (!NT_SUCCESS(status = KphDynamicDataInitialization()))
+        return status;
+
     KphDynamicImport();
-    KphDynamicDataInitialization();
 
     if (!NT_SUCCESS(status = KphpReadDriverParameters(RegistryPath)))
         return status;
