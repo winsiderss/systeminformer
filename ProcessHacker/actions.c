@@ -1487,7 +1487,9 @@ BOOLEAN PhUiSetProtectionProcess(
 {
     static WCHAR *choices[] = { L"Protected", L"Not Protected" };
     NTSTATUS status;
-    BOOLEAN isProtected;
+    BOOLEAN result;
+    HANDLE processHandle;
+    KPH_PROCESS_PROTECTION_INFORMATION protectionInfo;
     PPH_STRING selectedChoice;
 
     if (!WINDOWS_HAS_LIMITED_ACCESS)
@@ -1499,19 +1501,45 @@ BOOLEAN PhUiSetProtectionProcess(
         return FALSE;
     }
 
-    if (NT_SUCCESS(KphGetProcessProtected(PhKphHandle, Process->ProcessId, &isProtected)))
+    if (!NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        ProcessQueryAccess,
+        Process->ProcessId
+        )))
     {
-        selectedChoice = PhaCreateString(isProtected ? L"Protected" : L"Not Protected");
+        PhShowStatus(hWnd, L"Unable to open the process", status, 0);
+        return FALSE;
+    }
+
+    result = FALSE;
+
+    if (NT_SUCCESS(KphQueryInformationProcess(
+        PhKphHandle,
+        processHandle,
+        KphProcessProtectionInformation,
+        &protectionInfo,
+        sizeof(KPH_PROCESS_PROTECTION_INFORMATION),
+        NULL
+        )))
+    {
+        selectedChoice = PhaCreateString(protectionInfo.IsProtectedProcess ? L"Protected" : L"Not Protected");
 
         while (PhaChoiceDialog(hWnd, L"Protection", L"Protection:", choices, sizeof(choices) / sizeof(PWSTR),
             NULL, 0, &selectedChoice, NULL, NULL))
         {
-            status = KphSetProcessProtected(PhKphHandle, Process->ProcessId,
-                PhEqualString2(selectedChoice, L"Protected", FALSE));
+            protectionInfo.IsProtectedProcess = PhEqualString2(selectedChoice, L"Protected", FALSE);
+            status = KphSetInformationProcess(
+                PhKphHandle,
+                processHandle,
+                KphProcessProtectionInformation,
+                &protectionInfo,
+                sizeof(KPH_PROCESS_PROTECTION_INFORMATION)
+                );
 
             if (NT_SUCCESS(status))
             {
-                return TRUE;
+                result = TRUE;
+                break;
             }
             else
             {
@@ -1520,8 +1548,14 @@ BOOLEAN PhUiSetProtectionProcess(
             }
         }
     }
+    else
+    {
+        PhShowStatus(hWnd, L"Unable to query process protection", status, 0);
+    }
 
-    return FALSE;
+    NtClose(processHandle);
+
+    return result;
 }
 
 static VOID PhpShowErrorService(
@@ -1971,7 +2005,7 @@ BOOLEAN PhUiForceTerminateThreads(
             Threads[i]->ThreadId
             )))
         {
-            status = KphDangerousTerminateThread(PhKphHandle, threadHandle, STATUS_SUCCESS);
+            status = KphTerminateThreadUnsafe(PhKphHandle, threadHandle, STATUS_SUCCESS);
             NtClose(threadHandle);
         }
 
@@ -2532,11 +2566,18 @@ BOOLEAN PhUiSetAttributesHandle(
         ProcessId
         )))
     {
-        status = KphSetHandleAttributes(
+        OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
+
+        handleFlagInfo.Inherit = !!(Attributes & OBJ_INHERIT);
+        handleFlagInfo.ProtectFromClose = !!(Attributes & OBJ_PROTECT_CLOSE);
+
+        status = KphSetInformationObject(
             PhKphHandle,
             processHandle,
             Handle->Handle,
-            Attributes
+            KphObjectHandleFlagInformation,
+            &handleFlagInfo,
+            sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
             );
 
         NtClose(processHandle);

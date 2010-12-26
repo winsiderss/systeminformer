@@ -851,9 +851,9 @@ VOID PhpProcessQueryStage1(
 
             status = KphOpenProcessJob(
                 PhKphHandle,
-                &jobHandle,
                 processHandleLimited,
-                JOB_OBJECT_QUERY
+                JOB_OBJECT_QUERY,
+                &jobHandle
                 );
 
             if (NT_SUCCESS(status) && status != STATUS_PROCESS_NOT_IN_JOB && jobHandle)

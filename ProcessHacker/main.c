@@ -440,8 +440,6 @@ VOID PhInitializeFont(
 
 VOID PhInitializeKph()
 {
-    // KProcessHacker doesn't support 64-bit systems.
-#ifdef _M_IX86
     static PH_STRINGREF kprocesshacker = PH_STRINGREF_INIT(L"kprocesshacker.sys");
     PPH_STRING kprocesshackerFileName;
 
@@ -450,7 +448,6 @@ VOID PhInitializeKph()
 
     KphConnect2(&PhKphHandle, L"KProcessHacker2", kprocesshackerFileName->Buffer);
     PhDereferenceObject(kprocesshackerFileName);
-#endif
 
     if (PhKphHandle)
     {

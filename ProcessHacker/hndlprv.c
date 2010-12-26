@@ -297,7 +297,7 @@ NTSTATUS PhEnumHandlesGeneric(
 
     if (PhKphHandle)
     {
-        PPROCESS_HANDLE_INFORMATION handles;
+        PKPH_PROCESS_HANDLE_INFORMATION handles;
         PSYSTEM_HANDLE_INFORMATION_EX convertedHandles;
         ULONG i;
 
