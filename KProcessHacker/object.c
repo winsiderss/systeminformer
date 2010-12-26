@@ -649,6 +649,7 @@ NTSTATUS KpiQueryInformationObject(
     case KphObjectNameInformation:
         {
             PVOID object;
+            ULONG allocateSize;
             POBJECT_NAME_INFORMATION nameInfo;
 
             returnLength = sizeof(OBJECT_TYPE_INFORMATION);
@@ -667,7 +668,12 @@ NTSTATUS KpiQueryInformationObject(
 
             if (NT_SUCCESS(status))
             {
-                nameInfo = ExAllocatePoolWithQuotaTag(PagedPool, ObjectInformationLength, 'QhpK');
+                allocateSize = ObjectInformationLength;
+
+                if (allocateSize < sizeof(OBJECT_NAME_INFORMATION)) // make sure we never try to allocate 0 bytes
+                    allocateSize = sizeof(OBJECT_NAME_INFORMATION);
+
+                nameInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
 
                 if (nameInfo)
                 {
@@ -712,11 +718,17 @@ NTSTATUS KpiQueryInformationObject(
         break;
     case KphObjectTypeInformation:
         {
+            ULONG allocateSize;
             POBJECT_TYPE_INFORMATION typeInfo;
 
             returnLength = sizeof(OBJECT_TYPE_INFORMATION);
 
-            typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, ObjectInformationLength, 'QhpK');
+            allocateSize = ObjectInformationLength;
+
+            if (allocateSize < sizeof(OBJECT_TYPE_INFORMATION)) // make sure we never try to allocate 0 bytes
+                allocateSize = sizeof(OBJECT_TYPE_INFORMATION);
+
+            typeInfo = ExAllocatePoolWithQuotaTag(PagedPool, allocateSize, 'QhpK');
 
             if (typeInfo)
             {
