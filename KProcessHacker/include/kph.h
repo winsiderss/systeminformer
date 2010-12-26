@@ -7,6 +7,15 @@
 #include <ntfill.h>
 #include <kphapi.h>
 
+// Configuration
+
+// Disable features that conflict with driver signing requirements.
+// KPH_CONFIG_CLEAN
+
+#ifndef _X86_
+#define KPH_CONFIG_CLEAN
+#endif
+
 // Debugging
 
 #ifdef DBG
@@ -358,15 +367,16 @@ FORCEINLINE VOID KphProbeForReadUnicodeString(
     __in PUNICODE_STRING UnicodeString
     )
 {
-    ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), 1);
-    ProbeForRead(UnicodeString->Buffer, UnicodeString->Length, 1);
+    ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), sizeof(ULONG));
+    ProbeForRead(UnicodeString->Buffer, UnicodeString->Length, sizeof(WCHAR));
 }
 
 FORCEINLINE VOID KphFreeCapturedUnicodeString(
     __in PUNICODE_STRING CapturedUnicodeString
     )
 {
-    ExFreePoolWithTag(CapturedUnicodeString->Buffer, 'UhpK');
+    if (CapturedUnicodeString->Buffer)
+        ExFreePoolWithTag(CapturedUnicodeString->Buffer, 'UhpK');
 }
 
 FORCEINLINE NTSTATUS KphCaptureUnicodeString(
@@ -384,27 +394,31 @@ FORCEINLINE NTSTATUS KphCaptureUnicodeString(
     }
 
     CapturedUnicodeString->MaximumLength = CapturedUnicodeString->Length;
-    CapturedUnicodeString->Buffer = ExAllocatePoolWithTag(
-        PagedPool,
-        CapturedUnicodeString->Length,
-        'UhpK'
-        );
 
-    if (!CapturedUnicodeString->Buffer)
-        return STATUS_INSUFFICIENT_RESOURCES;
-
-    __try
+    if (CapturedUnicodeString->Length != 0)
     {
-        memcpy(
-            CapturedUnicodeString->Buffer,
-            UnicodeString->Buffer,
-            CapturedUnicodeString->Length
+        CapturedUnicodeString->Buffer = ExAllocatePoolWithTag(
+            PagedPool,
+            CapturedUnicodeString->Length,
+            'UhpK'
             );
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        KphFreeCapturedUnicodeString(CapturedUnicodeString);
-        return GetExceptionCode();
+
+        if (!CapturedUnicodeString->Buffer)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        __try
+        {
+            memcpy(
+                CapturedUnicodeString->Buffer,
+                UnicodeString->Buffer,
+                CapturedUnicodeString->Length
+                );
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            KphFreeCapturedUnicodeString(CapturedUnicodeString);
+            return GetExceptionCode();
+        }
     }
 
     return STATUS_SUCCESS;
