@@ -3,6 +3,11 @@
 
 #include <kphapi.h>
 
+typedef struct _KPH_PARAMETERS
+{
+    KPH_SECURITY_LEVEL SecurityLevel;
+} KPH_PARAMETERS, *PKPH_PARAMETERS;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -23,8 +28,26 @@ KphConnect2(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphConnect2Ex(
+    __out PHANDLE KphHandle,
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName,
+    __in_opt PKPH_PARAMETERS Parameters
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphDisconnect(
     __in HANDLE KphHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphSetParameters(
+    __in_opt PWSTR DeviceName,
+    __in PKPH_PARAMETERS Parameters
     );
 
 PHLIBAPI
@@ -33,6 +56,15 @@ NTAPI
 KphInstall(
     __in_opt PWSTR DeviceName,
     __in PWSTR FileName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphInstallEx(
+    __in_opt PWSTR DeviceName,
+    __in PWSTR FileName,
+    __in_opt PKPH_PARAMETERS Parameters
     );
 
 PHLIBAPI
