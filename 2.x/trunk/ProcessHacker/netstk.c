@@ -37,6 +37,8 @@ INT_PTR CALLBACK PhpNetworkStackDlgProc(
     __in LPARAM lParam
     );
 
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
 static BOOLEAN LoadSymbolsEnumGenericModulesCallback(
     __in PPH_MODULE_INFO Module,
     __in_opt PVOID Context
@@ -152,6 +154,19 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 190;
+                rect.bottom = 120;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
+
             for (i = 0; i < PH_NETWORK_OWNER_INFO_SIZE; i++)
             {
                 PPH_STRING name;
@@ -212,7 +227,7 @@ static INT_PTR CALLBACK PhpNetworkStackDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 250, 350);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     }

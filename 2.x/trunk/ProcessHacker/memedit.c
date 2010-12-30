@@ -64,6 +64,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
     );
 
 PH_AVL_TREE PhMemoryEditorSet = PH_AVL_TREE_INIT(PhpMemoryEditorCompareFunction);
+static RECT MinimumSize = { -1, -1, -1, -1 };
 
 VOID PhShowMemoryEditorDialog(
     __in HANDLE ProcessId,
@@ -241,6 +242,19 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REREAD), NULL,
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 290;
+                rect.bottom = 140;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
 
             GetWindowRect(GetDlgItem(hwndDlg, IDC_MEMORY_LAYOUT), &rect);
             MapWindowPoints(NULL, hwndDlg, (POINT *)&rect, 2);
@@ -443,7 +457,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 450, 300);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_PH_SELECT_OFFSET:

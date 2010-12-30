@@ -34,6 +34,8 @@
 PPH_OBJECT_TYPE PhpProcessPropContextType;
 PPH_OBJECT_TYPE PhpProcessPropPageContextType;
 
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
 BOOLEAN PhProcessPropInitialization()
 {
     if (!NT_SUCCESS(PhCreateObjectType(
@@ -181,6 +183,19 @@ INT CALLBACK PhpPropSheetProc(
             layoutManager = PhAllocate(sizeof(PH_LAYOUT_MANAGER));
             PhInitializeLayoutManager(layoutManager, hwndDlg);
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
+
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 290;
+                rect.bottom = 320;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
         }
         break;
     }
@@ -265,7 +280,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 460, 530);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     }

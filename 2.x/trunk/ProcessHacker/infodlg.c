@@ -23,6 +23,8 @@
 #include <phapp.h>
 #include <windowsx.h>
 
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
 static INT_PTR CALLBACK PhpInformationDlgProc(      
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -51,6 +53,19 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDC_SAVE), NULL,
                 PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 200;
+                rect.bottom = 140;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
 
             SetProp(hwndDlg, L"LayoutManager", (HANDLE)layoutManager);
             SetProp(hwndDlg, L"String", (HANDLE)string);
@@ -162,7 +177,7 @@ static INT_PTR CALLBACK PhpInformationDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 280, 200);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     }

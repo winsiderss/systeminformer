@@ -46,6 +46,8 @@ NTSTATUS PhpRefreshThreadStack(
     __in PTHREAD_STACK_CONTEXT ThreadStackContext
     );
 
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
 VOID PhShowThreadStackDialog(
     __in HWND ParentWindowHandle,
     __in HANDLE ProcessId,
@@ -167,6 +169,19 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(layoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 190;
+                rect.bottom = 120;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
 
             size = PhGetIntegerPairSetting(L"ThreadStackWindowSize");
             SetWindowPos(hwndDlg, NULL, 0, 0, size.X, size.Y, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
@@ -314,7 +329,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 250, 350);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     }
