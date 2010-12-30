@@ -42,6 +42,7 @@ PPH_STRING PhLocalSystemName = NULL;
 BOOLEAN PhPluginsEnabled = FALSE;
 PPH_STRING PhProcDbFileName = NULL;
 PPH_STRING PhSettingsFileName = NULL;
+PH_INTEGER_PAIR PhSmallIconSize = { 16, 16 };
 PH_STARTUP_PARAMETERS PhStartupParameters;
 PWSTR PhWindowClassName = L"ProcessHacker";
 
@@ -225,6 +226,9 @@ INT WINAPI WinMain(
     PhTreeListInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();
+
+    PhSmallIconSize.X = GetSystemMetrics(SM_CXSMICON);
+    PhSmallIconSize.Y = GetSystemMetrics(SM_CYSMICON);
 
     if (PhStartupParameters.ShowOptions)
     {

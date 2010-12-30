@@ -10,6 +10,8 @@ HICON PhpGetBlackIcon()
     {
         ICONINFO iconInfo;
 
+        // It doesn't really matter what resolution the icon is at because when it's scaled up, it will 
+        // still be all black.
         BlackIcon = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_BLACK), IMAGE_ICON, 16, 16, 0);
 
         GetIconInfo(BlackIcon, &iconInfo);
