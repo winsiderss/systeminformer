@@ -861,6 +861,42 @@ NTSTATUS PhGetProcessIsPosix(
     return status;
 }
 
+/**
+ * Gets a process' no-execute status.
+ *
+ * \param ProcessHandle A handle to a process. The handle 
+ * must have PROCESS_QUERY_INFORMATION access.
+ * \param ExecuteFlags A variable which receives the 
+ * no-execute flags.
+ */
+NTSTATUS PhGetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __out PULONG ExecuteFlags
+    )
+{
+    if (PhKphHandle)
+    {
+        return KphQueryInformationProcess(
+            PhKphHandle,
+            ProcessHandle,
+            KphProcessExecuteFlags,
+            ExecuteFlags,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+    else
+    {
+        return NtQueryInformationProcess(
+            ProcessHandle,
+            ProcessExecuteFlags,
+            ExecuteFlags,
+            sizeof(ULONG),
+            NULL
+            );
+    }
+}
+
 NTSTATUS PhGetProcessDepStatus(
     __in HANDLE ProcessHandle,
     __out PULONG DepStatus
@@ -879,10 +915,6 @@ NTSTATUS PhGetProcessDepStatus(
     // Check if execution of data pages is enabled.
     if (executeFlags & MEM_EXECUTE_OPTION_ENABLE)
         depStatus = 0;
-    // Check if execution of data pages is disabled.
-    else if (executeFlags & MEM_EXECUTE_OPTION_DISABLE)
-        depStatus = PH_PROCESS_DEP_ENABLED;
-    // Neither flag is set in OptOut mode.
     else
         depStatus = PH_PROCESS_DEP_ENABLED;
 

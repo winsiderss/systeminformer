@@ -595,6 +595,43 @@ NTSTATUS KpiQueryInformationProcess(
             returnLength = sizeof(KPH_PROCESS_PROTECTION_INFORMATION);
         }
         break;
+    case KphProcessExecuteFlags:
+        {
+            KAPC_STATE apcState;
+            ULONG executeFlags;
+
+            KeStackAttachProcess(process, &apcState);
+            status = ZwQueryInformationProcess(
+                NtCurrentProcess(),
+                ProcessExecuteFlags,
+                &executeFlags,
+                sizeof(ULONG),
+                NULL
+                );
+            KeUnstackDetachProcess(&apcState);
+
+            if (NT_SUCCESS(status))
+            {
+                if (ProcessInformationLength == sizeof(ULONG))
+                {
+                    __try
+                    {
+                        *(PULONG)ProcessInformation = executeFlags;
+                    }
+                    __except (EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        status = GetExceptionCode();
+                    }
+                }
+                else
+                {
+                    status = STATUS_INFO_LENGTH_MISMATCH;
+                }
+            }
+
+            returnLength = sizeof(ULONG);
+        }
+        break;
     case KphProcessIoPriority:
         {
             HANDLE newProcessHandle;
