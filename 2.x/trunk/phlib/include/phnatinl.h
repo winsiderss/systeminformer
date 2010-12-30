@@ -106,28 +106,6 @@ FORCEINLINE NTSTATUS PhGetProcessSessionId(
 }
 
 /**
- * Gets a process' no-execute status.
- *
- * \param ProcessHandle A handle to a process. The handle 
- * must have PROCESS_QUERY_INFORMATION access.
- * \param ExecuteFlags A variable which receives the 
- * no-execute flags.
- */
-FORCEINLINE NTSTATUS PhGetProcessExecuteFlags(
-    __in HANDLE ProcessHandle,
-    __out PULONG ExecuteFlags
-    )
-{
-    return NtQueryInformationProcess(
-        ProcessHandle,
-        ProcessExecuteFlags,
-        ExecuteFlags,
-        sizeof(ULONG),
-        NULL
-        );
-}
-
-/**
  * Gets whether a process is running under 32-bit 
  * emulation.
  *

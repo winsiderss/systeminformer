@@ -189,6 +189,12 @@ NTSTATUS PhGetProcessIsPosix(
     __out PBOOLEAN IsPosix
     );
 
+PHLIBAPI
+NTSTATUS PhGetProcessExecuteFlags(
+    __in HANDLE ProcessHandle,
+    __out PULONG ExecuteFlags
+    );
+
 #define PH_PROCESS_DEP_ENABLED 0x1
 #define PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED 0x2
 #define PH_PROCESS_DEP_PERMANENT 0x4
