@@ -7,6 +7,7 @@ Process Hacker
    * Added font selection
    * Slightly improved highlighting configuration
  * FIXED:
+   * High DPI support
    * Multi-monitor support in graph tooltips
    * ExtendedTools plugin crash
    * Notification icon menu crash
