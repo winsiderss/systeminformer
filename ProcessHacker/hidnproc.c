@@ -47,6 +47,7 @@ BOOLEAN NTAPI PhpHiddenProcessesCallback(
 HWND PhHiddenProcessesWindowHandle = NULL;
 HWND PhHiddenProcessesListViewHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
+static RECT MinimumSize;
 
 static PH_HIDDEN_PROCESS_METHOD ProcessesMethod;
 static PPH_LIST ProcessesList = NULL;
@@ -104,6 +105,12 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK),
                 NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 330;
+            MinimumSize.bottom = 140;
+            MapDialogRect(hwndDlg, &MinimumSize);
 
             PhRegisterDialog(hwndDlg);
 
@@ -376,7 +383,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 476, 380);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_CTLCOLORSTATIC:

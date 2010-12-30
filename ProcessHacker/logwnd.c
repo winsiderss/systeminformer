@@ -34,6 +34,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
 HWND PhLogWindowHandle = NULL;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
+static RECT MinimumSize;
 static HWND ListViewHandle;
 static ULONG ListViewCount;
 static PH_CALLBACK_REGISTRATION LoggedRegistration;
@@ -167,6 +168,12 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_CLEAR), NULL,
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 290;
+            MinimumSize.bottom = 150;
+            MapDialogRect(hwndDlg, &MinimumSize);
 
             PhLoadWindowPlacementFromSetting(L"LogWindowPosition", L"LogWindowSize", hwndDlg);
 
@@ -328,7 +335,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 450, 250);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_PH_LOG_UPDATED:

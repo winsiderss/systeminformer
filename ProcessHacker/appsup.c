@@ -643,6 +643,8 @@ VOID PhLoadWindowPlacementFromSetting(
 
     if (PositionSettingName && SizeSettingName)
     {
+        RECT rectForAdjust;
+
         windowRectangle.Position = PhGetIntegerPairSetting(PositionSettingName);
         windowRectangle.Size = PhGetIntegerPairSetting(SizeSettingName);
 
@@ -650,6 +652,12 @@ VOID PhLoadWindowPlacementFromSetting(
             WindowHandle,
             &windowRectangle
             );
+
+        // Let the window adjust the minimum size if needed.
+        rectForAdjust = PhRectangleToRect(windowRectangle);
+        SendMessage(WindowHandle, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&rectForAdjust);
+        windowRectangle = PhRectToRectangle(rectForAdjust);
+
         MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
             windowRectangle.Width, windowRectangle.Height, FALSE);
     }
