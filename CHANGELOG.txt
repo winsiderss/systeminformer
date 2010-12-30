@@ -9,6 +9,7 @@ Process Hacker
  * FIXED:
    * High DPI support
    * Multi-monitor support in graph tooltips
+   * DEP status retrieval
    * ExtendedTools plugin crash
    * Notification icon menu crash
    * Memory leaks
