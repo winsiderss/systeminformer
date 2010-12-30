@@ -28,6 +28,7 @@ typedef struct _CHOOSE_PROCESS_DIALOG_CONTEXT
     HANDLE ProcessId;
 
     PH_LAYOUT_MANAGER LayoutManager;
+    RECT MinimumSize;
     HIMAGELIST ImageList;
     HWND ListViewHandle;
 } CHOOSE_PROCESS_DIALOG_CONTEXT, *PCHOOSE_PROCESS_DIALOG_CONTEXT;
@@ -226,8 +227,14 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhLayoutManagerLayout(&context->LayoutManager);
 
+            context->MinimumSize.left = 0;
+            context->MinimumSize.top = 0;
+            context->MinimumSize.right = 280;
+            context->MinimumSize.bottom = 170;
+            MapDialogRect(hwndDlg, &context->MinimumSize);
+
             context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            context->ImageList = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 0, 40);
+            context->ImageList = ImageList_Create(PhSmallIconSize.X, PhSmallIconSize.Y, ILC_COLOR32 | ILC_MASK, 0, 40);
 
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -301,7 +308,7 @@ INT_PTR CALLBACK PhpChooseProcessDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 400, 400);
+            PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
         }
         break;
     }

@@ -46,6 +46,8 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
     __in LPARAM lParam
     );
 
+static RECT MinimumSize = { -1, -1, -1, -1 };
+
 VOID PhShowMemoryResultsDialog(
     __in HANDLE ProcessId,
     __in PPH_LIST Results
@@ -341,6 +343,19 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FILTER), NULL,
                 PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 250;
+                rect.bottom = 180;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
+
             ListView_SetItemCount(lvHandle, context->Results->Count);
 
             SetDlgItemText(hwndDlg, IDC_INTRO, PhaFormatString(L"%s results.",
@@ -629,7 +644,7 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 450, 300);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     }

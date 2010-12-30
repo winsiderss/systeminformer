@@ -52,6 +52,7 @@ HWND PhSysInfoWindowHandle = NULL;
 HWND PhSysInfoPanelWindowHandle = NULL;
 static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
+static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 
 static BOOLEAN OneGraphPerCpu;
@@ -363,6 +364,12 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDC_ALWAYSONTOP), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&WindowLayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
+            MinimumSize.left = 0;
+            MinimumSize.top = 0;
+            MinimumSize.right = 413;
+            MinimumSize.bottom = 360;
+            MapDialogRect(hwndDlg, &MinimumSize);
+
             PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
 
             PhInitializeGraphState(&CpuGraphState);
@@ -590,7 +597,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
         break;
     case WM_SIZING:
         {
-            PhResizingMinimumSize((PRECT)lParam, wParam, 620, 590);
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_COMMAND:
