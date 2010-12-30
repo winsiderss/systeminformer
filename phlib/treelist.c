@@ -46,6 +46,8 @@
 #include <vsstyle.h>
 
 static HIMAGELIST PhpTreeListDummyImageList;
+static LONG SmallIconWidth;
+static LONG SmallIconHeight;
 
 BOOLEAN PhTreeListInitialization()
 {
@@ -66,7 +68,10 @@ BOOLEAN PhTreeListInitialization()
     if (!RegisterClassEx(&c))
         return FALSE;
 
-    PhpTreeListDummyImageList = ImageList_Create(16, 16, ILC_COLOR, 1, 1);
+    SmallIconWidth = GetSystemMetrics(SM_CXSMICON);
+    SmallIconHeight = GetSystemMetrics(SM_CYSMICON);
+
+    PhpTreeListDummyImageList = ImageList_Create(SmallIconWidth, SmallIconHeight, ILC_COLOR, 1, 1);
 
     return TRUE;
 }
@@ -274,7 +279,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             if (createStruct->style & TLSTYLE_ICONS)
             {
-                // Make sure we have a minimum size of 16 pixels for each row using this hack.
+                // Make sure we have a minimum size of 16 pixels (or whatever the small icon height is) for each row using this hack.
                 ListView_SetImageList(context->ListViewHandle, PhpTreeListDummyImageList, LVSIL_SMALL);
             }
         }
@@ -1463,7 +1468,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
     RECT textRect; // working rectangle, modified as needed
     ULONG textFlags; // DT_* flags
     ULONG textVertMargin; // top/bottom margin for text (determined using height of font)
-    ULONG iconVertMargin; // top/bottom margin for icons (determined using height 16)
+    ULONG iconVertMargin; // top/bottom margin for icons (determined using height of small icon)
 
     itemIndex = (ULONG)CustomDraw->nmcd.dwItemSpec;
     node = Context->List->Items[itemIndex];
@@ -1492,9 +1497,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
     textRect.right -= 2;
 
     // text margin = (height of row - height of font) / 2
-    // icon margin = (height of row - 16) / 2
+    // icon margin = (height of row - height of small icon) / 2
     textVertMargin = ((textRect.bottom - textRect.top) - Context->TextMetrics.tmHeight) / 2;
-    iconVertMargin = ((textRect.bottom - textRect.top) - 16) / 2;
+    iconVertMargin = ((textRect.bottom - textRect.top) - SmallIconHeight) / 2;
 
     textRect.top += iconVertMargin;
     textRect.bottom -= iconVertMargin;
@@ -1505,10 +1510,10 @@ static VOID PhpCustomDrawPrePaintSubItem(
         HRGN oldClipRegion;
         HRGN newClipRegion;
 
-        textRect.left += node->Level * 16;
+        textRect.left += node->Level * SmallIconWidth;
 
         needsClip = column->Width <
-            (ULONG)(textRect.left + (Context->CanAnyExpand ? 16 : 0) + (node->Icon ? 16 : 0));
+            (ULONG)(textRect.left + (Context->CanAnyExpand ? SmallIconWidth : 0) + (node->Icon ? SmallIconWidth : 0));
 
         if (needsClip)
         {
@@ -1559,9 +1564,9 @@ static VOID PhpCustomDrawPrePaintSubItem(
                 // Draw the plus/minus glyph.
 
                 themeRect.left = textRect.left;
-                themeRect.right = themeRect.left + 16;
+                themeRect.right = themeRect.left + SmallIconWidth;
                 themeRect.top = textRect.top;
-                themeRect.bottom = themeRect.top + 16;
+                themeRect.bottom = themeRect.top + SmallIconHeight;
 
                 if (Context->ThemeData)
                 {
@@ -1617,8 +1622,8 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
                     BitBlt(
                         hdc,
-                        textRect.left + (16 - glyphSize.X) / 2,
-                        textRect.top + (16 - glyphSize.Y) / 2,
+                        textRect.left + (SmallIconWidth - glyphSize.X) / 2,
+                        textRect.top + (SmallIconHeight - glyphSize.Y) / 2,
                         glyphSize.X,
                         glyphSize.Y,
                         Context->IconDc,
@@ -1629,7 +1634,7 @@ static VOID PhpCustomDrawPrePaintSubItem(
                 }
             }
 
-            textRect.left += 16;
+            textRect.left += SmallIconWidth;
         }
 
         // Draw the icon.
@@ -1640,14 +1645,14 @@ static VOID PhpCustomDrawPrePaintSubItem(
                 textRect.left,
                 textRect.top,
                 node->Icon,
-                16,
-                16,
+                SmallIconWidth,
+                SmallIconHeight,
                 0,
                 NULL,
                 DI_NORMAL
                 );
 
-            textRect.left += 16 + 4; // 4px margin
+            textRect.left += SmallIconWidth + 4; // 4px margin
         }
         else if (PH_TREELIST_USE_HACKAROUNDS)
         {

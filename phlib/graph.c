@@ -837,7 +837,10 @@ LRESULT CALLBACK PhpGraphWndProc(
                 toolInfo.uId = 1;
                 toolInfo.lpszText = LPSTR_TEXTCALLBACK;
                 SendMessage(context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-                SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXINT); // allow newlines (-1 doesn't work)
+
+                // Allow newlines (-1 doesn't work)
+                // MAXINT doesn't work either on high DPI configurations for some reason.
+                SendMessage(context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, 4096);
             }
             else
             {

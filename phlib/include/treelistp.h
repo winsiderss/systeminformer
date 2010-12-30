@@ -70,7 +70,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     POINT LastMouseLocation;
 } PHP_TREELIST_CONTEXT, *PPHP_TREELIST_CONTEXT;
 
-#define IS_X_IN_GLYPH(X, NodeLevel) (((X) >= (LONG)((NodeLevel) * 16)) && ((X) < (LONG)((NodeLevel) * 16) + 16 + 5)) // allow for some extra space
+#define IS_X_IN_GLYPH(X, NodeLevel) (((X) >= (LONG)((NodeLevel) * SmallIconWidth)) && ((X) < (LONG)((NodeLevel) * SmallIconWidth) + SmallIconWidth + 5)) // allow for some extra space
 
 BOOLEAN NTAPI PhpColumnHashtableCompareFunction(
     __in PVOID Entry1,

@@ -34,6 +34,7 @@ extern PPH_STRING PhLocalSystemName;
 extern BOOLEAN PhPluginsEnabled;
 extern PPH_STRING PhProcDbFileName;
 extern PPH_STRING PhSettingsFileName;
+extern PH_INTEGER_PAIR PhSmallIconSize;
 extern PH_STARTUP_PARAMETERS PhStartupParameters;
 extern PWSTR PhWindowClassName;
 
