@@ -69,7 +69,7 @@ NTSTATUS KphDispatchDeviceControl(
     // store the arguments for all the calls.
     if (inputLength > sizeof(capturedInput))
     {
-        status = STATUS_INFO_LENGTH_MISMATCH;
+        status = STATUS_INVALID_BUFFER_SIZE;
         goto ControlEnd;
     }
 
@@ -638,6 +638,9 @@ NTSTATUS KphDispatchDeviceControl(
                 accessMode
                 );
         }
+        break;
+    default:
+        status = STATUS_INVALID_DEVICE_REQUEST;
         break;
     }
 
