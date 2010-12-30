@@ -1098,6 +1098,9 @@ NTSTATUS KpiSetInformationObject(
             }
         }
         break;
+    default:
+        status = STATUS_INVALID_INFO_CLASS;
+        break;
     }
 
     ObDereferenceObject(process);
