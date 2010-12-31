@@ -402,7 +402,7 @@ INT_PTR CALLBACK PhpMemoryEditorDlgProc(
                         {
                             if (offset >= context->RegionSize)
                             {
-                                PhShowError(hwndDlg, L"The offset is too large.");
+                                PhShowError(hwndDlg, L"The offset is too large. Make sure it is less than the size of the region.");
                                 continue;
                             }
 
