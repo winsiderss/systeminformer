@@ -179,16 +179,6 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     __in mxml_node_t *node
     );
 
-BOOLEAN PhUiUserStatusMessageCallback(
-    __in HWND hWnd,
-    __in_opt PWSTR Message,
-    __in NTSTATUS Status,
-    __in_opt ULONG Win32Result,
-    __in_opt PPH_STRING SystemMessage,
-    __in ULONG Type,
-    __out_opt PULONG_PTR Result
-    );
-
 PHAPPAPI
 VOID PhSearchOnlineString(
     __in HWND hWnd,
