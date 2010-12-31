@@ -403,6 +403,7 @@ BOOLEAN PhMainWndInitialization(
     // Initialize child controls.
     PhMainWndOnCreate();
 
+    PhSetUserStatusMessageCallback(PhUiUserStatusMessageCallback);
     PhpInitialLoadSettings();
     PhLogInitialization();
     PhQueueItemGlobalWorkQueue(PhpDelayedLoadFunction, NULL);

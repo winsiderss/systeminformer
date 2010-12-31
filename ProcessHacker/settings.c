@@ -74,6 +74,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"DbgHelpSearchPath", L"");
     PhpAddIntegerSetting(L"DbgHelpUndecorate", L"1");
     PhpAddIntegerSetting(L"ElevationLevel", L"1"); // PromptElevateAction
+    PhpAddIntegerSetting(L"EnableFriendly", L"0");
     PhpAddIntegerSetting(L"EnableKph", L"1");
     PhpAddIntegerSetting(L"EnableNetworkResolve", L"1");
     PhpAddIntegerSetting(L"EnablePlugins", L"0");
