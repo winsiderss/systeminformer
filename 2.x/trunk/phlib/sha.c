@@ -17,6 +17,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+/* This code was modified for Process Hacker. */
+
 #include <phbase.h>
 #include <sha.h>
 
