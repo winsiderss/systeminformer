@@ -1,4 +1,10 @@
 /*
+ * This code is based on handle table code from ReactOS, licensed under the 
+ * GNU GPL v2 and written by Alex Ionescu (alex.ionescu@reactos.org) and 
+ * Thomas Weidenmueller (w3seek@reactos.org).
+ */
+
+/*
  * Process Hacker - 
  *   handle table
  * 
