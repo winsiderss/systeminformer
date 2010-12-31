@@ -1408,8 +1408,12 @@ NTSTATUS KphOpenNamedObject(
         return GetExceptionCode();
     }
 
-    // Verify parameters.
+    // We're opening an object, so we need a name.
     if (!objectAttributes.ObjectName)
+        return STATUS_INVALID_PARAMETER;
+
+    // Make sure we don't create a kernel handle if we're from user-mode.
+    if (AccessMode != KernelMode && (objectAttributes.Attributes & OBJ_KERNEL_HANDLE))
         return STATUS_INVALID_PARAMETER;
 
     // Make sure the root directory handle isn't a kernel handle if
