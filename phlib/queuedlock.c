@@ -1,4 +1,9 @@
 /*
+ * This code is based on push lock code from ReactOS, licensed under the 
+ * GNU GPL v2 and written by Alex Ionescu (alex.ionescu@reactos.com).
+ */
+
+/*
  * Process Hacker - 
  *   queued lock
  * 

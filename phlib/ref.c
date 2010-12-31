@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   internal object manager
+ *   object manager
  * 
  * Copyright (C) 2009-2010 wj32
  * 
@@ -19,8 +19,6 @@
  * You should have received a copy of the GNU General Public License
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// This code was initially ported from KProcessHacker.
 
 #define _PH_REF_PRIVATE
 #include <phbase.h>
