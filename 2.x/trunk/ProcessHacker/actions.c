@@ -1046,7 +1046,7 @@ BOOLEAN PhUiDebugProcess(
 
     if (!DebuggerCommand)
     {
-        PhShowError(hWnd, L"Unable to locate the debugger.");
+        PhShowError(hWnd, L"Unable to locate the debugger. Make sure you have installed and configured a debugger correctly.");
         return FALSE;
     }
 

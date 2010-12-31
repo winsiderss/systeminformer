@@ -463,6 +463,147 @@ PPH_STRING PhGetOpaqueXmlNodeText(
     }
 }
 
+PWSTR PhpGetFriendlyErrorMessage(
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result
+    )
+{
+    if (!Win32Result)
+        Win32Result = PhNtStatusToDosError(Status);
+
+    switch (Win32Result)
+    {
+    case ERROR_ACCESS_DENIED:
+        if (PhElevated)
+            return L"Permission was denied.";
+        else
+            return L"Permission was denied. Run Process Hacker with administrative privileges and try again.";
+    }
+
+    switch (Status)
+    {
+    case STATUS_INVALID_CID:
+        return L"The process or thread does not exist. It may have terminated already.";
+    case STATUS_HANDLE_NOT_CLOSABLE:
+        if (PhKphHandle)
+            return L"The handle is protected. Remove the Protected attribute of the handle and try again.";
+        else
+            return L"The handle is protected.";
+    }
+
+    return NULL;
+}
+
+BOOLEAN PhUiUserStatusMessageCallback(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result,
+    __in_opt PPH_STRING SystemMessage,
+    __in ULONG Type,
+    __out_opt PULONG_PTR Result
+    )
+{
+    BOOLEAN result = TRUE;
+    PH_AUTO_POOL autoPool;
+    TASKDIALOGCONFIG config = { sizeof(config) };
+    TASKDIALOG_BUTTON buttons[1];
+    INT button;
+
+    if (!PhGetIntegerSetting(L"EnableFriendly"))
+        return FALSE;
+    if (!TaskDialogIndirect_I)
+        return FALSE;
+
+    PhInitializeAutoPool(&autoPool);
+
+    config.hwndParent = hWnd;
+    config.hInstance = PhInstanceHandle;
+    config.pszWindowTitle = L"Process Hacker";
+    config.pszMainIcon = TD_ERROR_ICON;
+
+    if (Message)
+    {
+        config.pszMainInstruction = PhaConcatStrings2(Message, L".")->Buffer;
+    }
+    else
+    {
+        config.pszMainInstruction = L"Unable to perform the operation.";
+    }
+
+    config.pszCollapsedControlText = L"Show details";
+    config.pszExpandedControlText = L"Hide details";
+
+    config.pszContent = PhpGetFriendlyErrorMessage(Status, Win32Result);
+
+    if (config.pszContent)
+    {
+        // We put the friendly message in the content area, so put the details 
+        // in the expanded information area.
+
+        if (Win32Result)
+            config.pszExpandedInformation = PhaFormatString(L"Win32 error %u: %s", Win32Result, PhGetStringOrDefault(SystemMessage, L"Unknown"))->Buffer;
+        else
+            config.pszExpandedInformation = PhaFormatString(L"Status 0x%x: %s", Status, PhGetStringOrDefault(SystemMessage, L"Unknown"))->Buffer;
+    }
+    else
+    {
+        // We don't have a friendly message, so put the deails in the content area.
+
+        config.pszContent = PhGetStringOrDefault(SystemMessage, L"An unknown error occurred.");
+
+        if (Win32Result)
+            config.pszExpandedInformation = PhaFormatString(L"Win32 error %u.", Win32Result)->Buffer;
+        else
+            config.pszExpandedInformation = PhaFormatString(L"Status 0x%x.", Status)->Buffer;
+    }
+
+    if (Type == 0)
+    {
+        config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
+        config.nDefaultButton = TDCBF_CLOSE_BUTTON;
+
+        if (TaskDialogIndirect_I(
+            &config,
+            NULL,
+            NULL,
+            NULL
+            ) != S_OK)
+        {
+            result = FALSE;
+        }
+    }
+    else if (Type == PH_USER_STATUS_QUERY_CONTINUE)
+    {
+        config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+
+        buttons[0].nButtonID = IDYES;
+        buttons[0].pszButtonText = L"Continue";
+
+        config.cButtons = 1;
+        config.pButtons = buttons;
+        config.nDefaultButton = IDYES;
+
+        if (TaskDialogIndirect_I(
+            &config,
+            &button,
+            NULL,
+            NULL
+            ) == S_OK)
+        {
+            *Result = button == IDYES;
+        }
+        else
+        {
+            result = FALSE;
+        }
+    }
+
+    PhDeleteAutoPool(&autoPool);
+
+    return result;
+}
+
 VOID PhSearchOnlineString(
     __in HWND hWnd,
     __in PWSTR String

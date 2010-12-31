@@ -52,6 +52,8 @@ typedef BOOL (WINAPI *_DestroyEnvironmentBlock)(
 DECLSPEC_SELECTANY WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
 DECLSPEC_SELECTANY ULONG PhMaxSizeUnit = MAXULONG32;
 
+static PPH_USER_STATUS_MESSAGE_CALLBACK PhUserStatusMessageCallback = NULL;
+
 /**
  * Ensures a rectangle is positioned within the 
  * specified bounds.
@@ -400,6 +402,16 @@ PPH_STRING PhpGetStatusMessage(
         return PhGetWin32Message(Win32Result);
 }
 
+PPH_USER_STATUS_MESSAGE_CALLBACK PhSetUserStatusMessageCallback(
+    __in PPH_USER_STATUS_MESSAGE_CALLBACK Callback
+    )
+{
+    return _InterlockedExchangePointer(
+        (PPVOID)&PhUserStatusMessageCallback,
+        Callback
+        );
+}
+
 /**
  * Displays an error message for a NTSTATUS value or Win32 error code.
  *
@@ -416,8 +428,29 @@ VOID PhShowStatus(
     )
 {
     PPH_STRING statusMessage;
+    PPH_USER_STATUS_MESSAGE_CALLBACK callback;
 
     statusMessage = PhpGetStatusMessage(Status, Win32Result);
+    callback = PhUserStatusMessageCallback;
+
+    if (callback)
+    {
+        if (callback(
+            hWnd,
+            Message,
+            Status,
+            Win32Result,
+            statusMessage,
+            0,
+            NULL
+            ))
+        {
+            if (statusMessage)
+                PhDereferenceObject(statusMessage);
+
+            return;
+        }
+    }
 
     if (!statusMessage)
     {
@@ -465,9 +498,32 @@ BOOLEAN PhShowContinueStatus(
     )
 {
     PPH_STRING statusMessage;
+    PPH_USER_STATUS_MESSAGE_CALLBACK callback;
     INT result;
 
     statusMessage = PhpGetStatusMessage(Status, Win32Result);
+    callback = PhUserStatusMessageCallback;
+
+    if (callback)
+    {
+        ULONG_PTR callbackResult = 0;
+
+        if (callback(
+            hWnd,
+            Message,
+            Status,
+            Win32Result,
+            statusMessage,
+            PH_USER_STATUS_QUERY_CONTINUE,
+            &callbackResult
+            ))
+        {
+            if (statusMessage)
+                PhDereferenceObject(statusMessage);
+
+            return !!callbackResult;
+        }
+    }
 
     if (!statusMessage)
     {

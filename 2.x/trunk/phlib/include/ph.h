@@ -2078,6 +2078,22 @@ INT PhShowMessage_V(
 #define PhShowWarning(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONWARNING, Format, __VA_ARGS__)
 #define PhShowInformation(hWnd, Format, ...) PhShowMessage(hWnd, MB_OK | MB_ICONINFORMATION, Format, __VA_ARGS__)
 
+#define PH_USER_STATUS_QUERY_CONTINUE 0x1
+
+typedef BOOLEAN (NTAPI *PPH_USER_STATUS_MESSAGE_CALLBACK)(
+    __in HWND hWnd,
+    __in_opt PWSTR Message,
+    __in NTSTATUS Status,
+    __in_opt ULONG Win32Result,
+    __in_opt PPH_STRING SystemMessage,
+    __in ULONG Type,
+    __out_opt PULONG_PTR Result
+    );
+
+PPH_USER_STATUS_MESSAGE_CALLBACK PhSetUserStatusMessageCallback(
+    __in PPH_USER_STATUS_MESSAGE_CALLBACK Callback
+    );
+
 PHLIBAPI
 VOID PhShowStatus(
     __in HWND hWnd,
