@@ -38,6 +38,8 @@ NTSTATUS KpiOpenDriver(
     __in KPROCESSOR_MODE AccessMode
     )
 {
+    PAGED_CODE();
+
     return KphOpenNamedObject(
         DriverHandle,
         0,
@@ -58,6 +60,8 @@ NTSTATUS KpiQueryInformationDriver(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PDRIVER_OBJECT driverObject;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -214,6 +218,8 @@ VOID KphpCopyInfoUnicodeString(
     )
 {
     PUNICODE_STRING targetUnicodeString = (PUNICODE_STRING)Information;
+
+    PAGED_CODE();
 
     if (UnicodeString)
     {

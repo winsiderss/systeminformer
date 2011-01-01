@@ -21,8 +21,6 @@
 
 #include <kph.h>
 
-DRIVER_DISPATCH KphDispatchDeviceControl;
-
 NTSTATUS KphDispatchDeviceControl(
     __in PDEVICE_OBJECT DeviceObject,
     __in PIRP Irp

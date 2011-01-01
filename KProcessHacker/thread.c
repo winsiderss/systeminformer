@@ -41,6 +41,9 @@ typedef struct _CAPTURE_BACKTRACE_THREAD_CONTEXT
     ULONG BackTraceHash;
 } CAPTURE_BACKTRACE_THREAD_CONTEXT, *PCAPTURE_BACKTRACE_THREAD_CONTEXT;
 
+KKERNEL_ROUTINE KphpCaptureStackBackTraceThreadSpecialApc;
+KKERNEL_ROUTINE KphpExitThreadSpecialApc;
+
 VOID KphpCaptureStackBackTraceThreadSpecialApc(
     __in PRKAPC Apc,
     __inout PKNORMAL_ROUTINE *NormalRoutine,
@@ -66,7 +69,6 @@ VOID KphpExitThreadSpecialApc(
 #pragma alloc_text(PAGE, KphpExitThreadSpecialApc)
 #pragma alloc_text(PAGE, KpiGetContextThread)
 #pragma alloc_text(PAGE, KpiSetContextThread)
-#pragma alloc_text(PAGE, KphCaptureStackBackTrace)
 #pragma alloc_text(PAGE, KphCaptureStackBackTraceThread)
 #pragma alloc_text(PAGE, KphpCaptureStackBackTraceThreadSpecialApc)
 #pragma alloc_text(PAGE, KpiCaptureStackBackTraceThread)
@@ -95,6 +97,8 @@ NTSTATUS KpiOpenThread(
     CLIENT_ID clientId;
     PETHREAD thread;
     HANDLE threadHandle;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -181,6 +185,8 @@ NTSTATUS KpiOpenThreadProcess(
     PEPROCESS process;
     HANDLE processHandle;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -255,6 +261,8 @@ NTSTATUS KphTerminateThreadByPointerInternal(
 {
     PVOID PspTerminateThreadByPointer_I;
 
+    PAGED_CODE();
+
     PspTerminateThreadByPointer_I = KphGetDynamicProcedureScan(&KphDynPspTerminateThreadByPointerScan);
 
     if (!PspTerminateThreadByPointer_I)
@@ -302,6 +310,8 @@ NTSTATUS KpiTerminateThread(
     NTSTATUS status;
     PETHREAD thread;
 
+    PAGED_CODE();
+
     status = ObReferenceObjectByHandle(
         ThreadHandle,
         0,
@@ -348,6 +358,8 @@ NTSTATUS KpiTerminateThreadUnsafe(
 {
     NTSTATUS status;
     PETHREAD thread;
+
+    PAGED_CODE();
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
@@ -418,6 +430,8 @@ VOID KphpExitThreadSpecialApc(
     PEXIT_THREAD_CONTEXT context = *SystemArgument1;
     NTSTATUS exitStatus;
 
+    PAGED_CODE();
+
     exitStatus = context->ExitStatus;
     // That's the best we can do. Once we exit the current thread we can't
     // signal the event, so just signal it now.
@@ -442,6 +456,8 @@ NTSTATUS KpiGetContextThread(
 {
     NTSTATUS status;
     PETHREAD thread;
+
+    PAGED_CODE();
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
@@ -476,6 +492,8 @@ NTSTATUS KpiSetContextThread(
 {
     NTSTATUS status;
     PETHREAD thread;
+
+    PAGED_CODE();
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
@@ -594,6 +612,8 @@ NTSTATUS KphCaptureStackBackTraceThread(
     CAPTURE_BACKTRACE_THREAD_CONTEXT context;
     ULONG backTraceSize;
     PVOID *backTrace;
+
+    PAGED_CODE();
 
     // Make sure the caller didn't request too many frames.
     // This also restricts the amount of memory we will try to 
@@ -759,6 +779,8 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
 {
     PCAPTURE_BACKTRACE_THREAD_CONTEXT context = *SystemArgument1;
 
+    PAGED_CODE();
+
     context->CapturedFrames = KphCaptureStackBackTrace(
         context->FramesToSkip,
         context->FramesToCapture,
@@ -805,6 +827,8 @@ NTSTATUS KpiCaptureStackBackTraceThread(
 {
     NTSTATUS status = STATUS_SUCCESS;
     PETHREAD thread;
+
+    PAGED_CODE();
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
@@ -856,6 +880,8 @@ NTSTATUS KpiQueryInformationThread(
     NTSTATUS status;
     PETHREAD thread;
     ULONG returnLength;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -1007,6 +1033,8 @@ NTSTATUS KpiSetInformationThread(
 {
     NTSTATUS status;
     PETHREAD thread;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {

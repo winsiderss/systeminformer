@@ -38,6 +38,8 @@ VOID KphDynamicImport(
     VOID
     )
 {
+    PAGED_CODE();
+
     ObGetObjectType_I = KphGetSystemRoutineAddress(L"ObGetObjectType");
     PsIsProtectedProcess_I = KphGetSystemRoutineAddress(L"PsIsProtectedProcess");
     PsResumeProcess_I = KphGetSystemRoutineAddress(L"PsResumeProcess");
@@ -62,6 +64,8 @@ PVOID KphGetSystemRoutineAddress(
     )
 {
     UNICODE_STRING systemRoutineName;
+
+    PAGED_CODE();
 
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
