@@ -523,7 +523,7 @@ static NTSTATUS NTAPI TerminatorTP3(
 
     if (NT_SUCCESS(status = PhOpenProcess(
         &processHandle,
-        PROCESS_TERMINATE,
+        SYNCHRONIZE, // KPH doesn't require any access for this operation
         ProcessId
         )))
     {
