@@ -359,14 +359,6 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
 
 // Inline support functions
 
-FORCEINLINE VOID KphProbeForReadUnicodeString(
-    __in PUNICODE_STRING UnicodeString
-    )
-{
-    ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), sizeof(ULONG));
-    ProbeForRead(UnicodeString->Buffer, UnicodeString->Length, sizeof(WCHAR));
-}
-
 FORCEINLINE VOID KphFreeCapturedUnicodeString(
     __in PUNICODE_STRING CapturedUnicodeString
     )
@@ -380,42 +372,51 @@ FORCEINLINE NTSTATUS KphCaptureUnicodeString(
     __out PUNICODE_STRING CapturedUnicodeString
     )
 {
+    UNICODE_STRING unicodeString;
+    PWSTR userBuffer;
+
     __try
     {
-        CapturedUnicodeString->Length = UnicodeString->Length;
+        ProbeForRead(UnicodeString, sizeof(UNICODE_STRING), sizeof(ULONG));
+        unicodeString.Length = UnicodeString->Length;
+        unicodeString.MaximumLength = unicodeString.Length;
+        unicodeString.Buffer = NULL;
+
+        userBuffer = UnicodeString->Buffer;
+        ProbeForRead(userBuffer, unicodeString.Length, sizeof(WCHAR));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
         return GetExceptionCode();
     }
 
-    CapturedUnicodeString->MaximumLength = CapturedUnicodeString->Length;
-
-    if (CapturedUnicodeString->Length != 0)
+    if (unicodeString.Length != 0)
     {
-        CapturedUnicodeString->Buffer = ExAllocatePoolWithTag(
+        unicodeString.Buffer = ExAllocatePoolWithTag(
             PagedPool,
-            CapturedUnicodeString->Length,
+            unicodeString.Length,
             'UhpK'
             );
 
-        if (!CapturedUnicodeString->Buffer)
+        if (!unicodeString.Buffer)
             return STATUS_INSUFFICIENT_RESOURCES;
 
         __try
         {
             memcpy(
-                CapturedUnicodeString->Buffer,
-                UnicodeString->Buffer,
-                CapturedUnicodeString->Length
+                unicodeString.Buffer,
+                userBuffer,
+                unicodeString.Length
                 );
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
-            KphFreeCapturedUnicodeString(CapturedUnicodeString);
+            KphFreeCapturedUnicodeString(&unicodeString);
             return GetExceptionCode();
         }
     }
+
+    *CapturedUnicodeString = unicodeString;
 
     return STATUS_SUCCESS;
 }

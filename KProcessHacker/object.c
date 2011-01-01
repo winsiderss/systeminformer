@@ -1388,24 +1388,16 @@ NTSTATUS KphOpenNamedObject(
         {
             ProbeForWrite(ObjectHandle, sizeof(HANDLE), sizeof(HANDLE));
             ProbeForRead(ObjectAttributes, sizeof(OBJECT_ATTRIBUTES), sizeof(ULONG));
-
-            if (ObjectAttributes->ObjectName)
-                KphProbeForReadUnicodeString(ObjectAttributes->ObjectName);
+            memcpy(&objectAttributes, ObjectAttributes, sizeof(OBJECT_ATTRIBUTES));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
             return GetExceptionCode();
         }
     }
-
-    __try
+    else
     {
-        // Copy the object attributes structure.
         memcpy(&objectAttributes, ObjectAttributes, sizeof(OBJECT_ATTRIBUTES));
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        return GetExceptionCode();
     }
 
     // We're opening an object, so we need a name.
