@@ -354,7 +354,7 @@ NTSTATUS KpiReadVirtualMemory(
     {
         status = ObReferenceObjectByHandle(
             ProcessHandle,
-            PROCESS_VM_READ,
+            0,
             *PsProcessType,
             AccessMode,
             &process,
@@ -458,7 +458,7 @@ NTSTATUS KpiWriteVirtualMemory(
     {
         status = ObReferenceObjectByHandle(
             ProcessHandle,
-            PROCESS_VM_WRITE,
+            0,
             *PsProcessType,
             AccessMode,
             &process,
@@ -596,7 +596,7 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
 
             status = ObReferenceObjectByHandle(
                 ProcessHandle,
-                PROCESS_VM_READ,
+                0,
                 *PsProcessType,
                 AccessMode,
                 &process,

@@ -304,7 +304,7 @@ NTSTATUS KpiTerminateThread(
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
-        THREAD_TERMINATE,
+        0,
         *PsThreadType,
         AccessMode,
         &thread,
@@ -351,7 +351,7 @@ NTSTATUS KpiTerminateThreadUnsafe(
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
-        THREAD_TERMINATE,
+        0,
         *PsThreadType,
         AccessMode,
         &thread,
@@ -445,7 +445,7 @@ NTSTATUS KpiGetContextThread(
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
-        THREAD_GET_CONTEXT,
+        0,
         *PsThreadType,
         AccessMode,
         &thread,
@@ -479,7 +479,7 @@ NTSTATUS KpiSetContextThread(
 
     status = ObReferenceObjectByHandle(
         ThreadHandle,
-        THREAD_SET_CONTEXT,
+        0,
         *PsThreadType,
         AccessMode,
         &thread,
