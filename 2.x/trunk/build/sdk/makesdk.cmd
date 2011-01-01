@@ -23,7 +23,8 @@ for %%a in (
     fastlock.h
     graph.h
     hexedit.h
-    kph.h
+    kphapi.h
+    kphuser.h
     ntbasic.h
     ntcm.h
     ntdbg.h
