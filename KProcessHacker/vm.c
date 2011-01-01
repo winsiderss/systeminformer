@@ -28,7 +28,6 @@ ULONG KphpGetCopyExceptionInfo(
     );
 
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text(PAGE, KphpGetCopyExceptionInfo)
 #pragma alloc_text(PAGE, KphCopyVirtualMemory)
 #pragma alloc_text(PAGE, KpiReadVirtualMemory)
 #pragma alloc_text(PAGE, KpiWriteVirtualMemory)
@@ -106,6 +105,8 @@ NTSTATUS KphCopyVirtualMemory(
     BOOLEAN mapping = FALSE;
     BOOLEAN haveBadAddress;
     ULONG_PTR badAddress;
+
+    PAGED_CODE();
 
     sourceAddress = FromAddress;
     targetAddress = ToAddress;
@@ -325,6 +326,8 @@ NTSTATUS KpiReadVirtualMemory(
     PEPROCESS process;
     SIZE_T numberOfBytesRead;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         if (
@@ -428,6 +431,8 @@ NTSTATUS KpiWriteVirtualMemory(
     NTSTATUS status;
     PEPROCESS process;
     SIZE_T numberOfBytesWritten;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -533,6 +538,8 @@ NTSTATUS KpiReadVirtualMemoryUnsafe(
     NTSTATUS status;
     PEPROCESS process;
     SIZE_T numberOfBytesRead;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {

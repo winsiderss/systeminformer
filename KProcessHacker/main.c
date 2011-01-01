@@ -24,7 +24,7 @@
 
 DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
-DRIVER_DISPATCH KphDispatchCreate;
+__drv_dispatchType(IRP_MJ_CREATE) DRIVER_DISPATCH KphDispatchCreate;
 
 ULONG KphpReadIntegerParameter(
     __in_opt HANDLE KeyHandle,
@@ -57,6 +57,8 @@ NTSTATUS DriverEntry(
     NTSTATUS status;
     UNICODE_STRING deviceName;
     PDEVICE_OBJECT deviceObject;
+
+    PAGED_CODE();
 
     KphDriverObject = DriverObject;
 
@@ -105,6 +107,8 @@ VOID DriverUnload(
     __in PDRIVER_OBJECT DriverObject
     )
 {
+    PAGED_CODE();
+
     IoDeleteDevice(KphDeviceObject);
 
     dprintf("Driver unloaded\n");
@@ -178,6 +182,8 @@ ULONG KphpReadIntegerParameter(
     PKEY_VALUE_PARTIAL_INFORMATION info;
     ULONG resultLength;
 
+    PAGED_CODE();
+
     if (!KeyHandle)
         return DefaultValue;
 
@@ -216,6 +222,8 @@ NTSTATUS KphpReadDriverParameters(
     UNICODE_STRING parametersKeyName;
     OBJECT_ATTRIBUTES objectAttributes;
     UNICODE_STRING valueName;
+
+    PAGED_CODE();
 
     // Open the Parameters key.
 
@@ -269,6 +277,8 @@ NTSTATUS KpiGetFeatures(
     __in KPROCESSOR_MODE AccessMode
     )
 {
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         __try

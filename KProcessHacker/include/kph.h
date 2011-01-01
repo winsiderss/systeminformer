@@ -37,6 +37,8 @@ NTSTATUS KpiGetFeatures(
 
 // devctrl
 
+__drv_dispatchType(IRP_MJ_DEVICE_CONTROL) DRIVER_DISPATCH KphDispatchDeviceControl;
+
 NTSTATUS KphDispatchDeviceControl(
     __in PDEVICE_OBJECT DeviceObject,
     __in PIRP Irp

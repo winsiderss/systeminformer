@@ -140,6 +140,8 @@ NTSTATUS KphDynamicDataInitialization(
 {
     NTSTATUS status = STATUS_SUCCESS;
 
+    PAGED_CODE();
+
     // Get Windows version information.
 
     KphDynOsVersionInfo.dwOSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEXW);
@@ -162,6 +164,8 @@ static NTSTATUS KphpX86DataInitialization(
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;
+
+    PAGED_CODE();
 
     majorVersion = KphDynOsVersionInfo.dwMajorVersion;
     minorVersion = KphDynOsVersionInfo.dwMinorVersion;
@@ -385,6 +389,8 @@ static NTSTATUS KphpAmd64DataInitialization(
     )
 {
     ULONG majorVersion, minorVersion, servicePack, buildNumber;
+
+    PAGED_CODE();
 
     majorVersion = KphDynOsVersionInfo.dwMajorVersion;
     minorVersion = KphDynOsVersionInfo.dwMinorVersion;
