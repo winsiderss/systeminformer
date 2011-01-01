@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   process properties
  * 
- * Copyright (C) 2009-2010 wj32
+ * Copyright (C) 2009-2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -1915,11 +1915,14 @@ VOID PhpInitializeThreadMenu(
             PhDestroyEMenuItem(item);
     }
 
+#ifndef _M_X64
     if (!PhKphHandle)
     {
-        // Remove Force Terminate.
+#endif
+        // Remove Force Terminate (this is always done on x64).
         if (item = PhFindEMenuItem(Menu, 0, NULL, ID_THREAD_FORCETERMINATE))
             PhDestroyEMenuItem(item);
+#ifndef _M_X64
     }
     else
     {
@@ -1931,6 +1934,7 @@ VOID PhpInitializeThreadMenu(
                 PhDestroyEMenuItem(item);
         }
     }
+#endif
 
     PhEnableEMenuItem(Menu, ID_THREAD_TOKEN, FALSE);
 
