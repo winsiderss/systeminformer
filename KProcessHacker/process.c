@@ -315,7 +315,7 @@ NTSTATUS KpiSuspendProcess(
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
-        PROCESS_SUSPEND_RESUME,
+        0,
         *PsProcessType,
         AccessMode,
         &process,
@@ -350,7 +350,7 @@ NTSTATUS KpiResumeProcess(
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
-        PROCESS_SUSPEND_RESUME,
+        0,
         *PsProcessType,
         AccessMode,
         &process,
@@ -444,7 +444,7 @@ NTSTATUS KpiTerminateProcess(
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
-        PROCESS_TERMINATE,
+        0,
         *PsProcessType,
         AccessMode,
         &process,
