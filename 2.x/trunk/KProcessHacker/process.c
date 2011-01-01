@@ -57,6 +57,8 @@ NTSTATUS KpiOpenProcess(
     PETHREAD thread;
     HANDLE processHandle;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -148,6 +150,8 @@ NTSTATUS KpiOpenProcessToken(
     PACCESS_TOKEN primaryToken;
     HANDLE tokenHandle;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -228,6 +232,8 @@ NTSTATUS KpiOpenProcessJob(
     PEPROCESS process;
     PEJOB job;
     HANDLE jobHandle;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -310,6 +316,8 @@ NTSTATUS KpiSuspendProcess(
     NTSTATUS status;
     PEPROCESS process;
 
+    PAGED_CODE();
+
     if (!PsSuspendProcess_I)
         return STATUS_NOT_SUPPORTED;
 
@@ -344,6 +352,8 @@ NTSTATUS KpiResumeProcess(
 {
     NTSTATUS status;
     PEPROCESS process;
+
+    PAGED_CODE();
 
     if (!PsResumeProcess_I)
         return STATUS_NOT_SUPPORTED;
@@ -380,6 +390,8 @@ NTSTATUS KphTerminateProcessInternal(
 {
     NTSTATUS status;
     _PsTerminateProcess PsTerminateProcess_I;
+
+    PAGED_CODE();
 
     PsTerminateProcess_I = KphGetDynamicProcedureScan(&KphDynPsTerminateProcessScan);
 
@@ -441,6 +453,8 @@ NTSTATUS KpiTerminateProcess(
 {
     NTSTATUS status;
     PEPROCESS process;
+
+    PAGED_CODE();
 
     status = ObReferenceObjectByHandle(
         ProcessHandle,
@@ -512,6 +526,8 @@ NTSTATUS KpiQueryInformationProcess(
     NTSTATUS status;
     PEPROCESS process;
     ULONG returnLength;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -728,6 +744,8 @@ NTSTATUS KpiSetInformationProcess(
 {
     NTSTATUS status;
     PEPROCESS process;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {

@@ -75,6 +75,8 @@ POBJECT_TYPE KphGetObjectType(
     __in PVOID Object
     )
 {
+    PAGED_CODE();
+
     // XP to Vista: A pointer to the object type is 
     // stored in the object header.
     if (
@@ -117,6 +119,8 @@ PHANDLE_TABLE KphReferenceProcessHandleTable(
 {
     PHANDLE_TABLE handleTable = NULL;
 
+    PAGED_CODE();
+
     // Fail if we don't have an offset.
     if (KphDynEpObjectTable == -1)
         return NULL;
@@ -142,6 +146,8 @@ VOID KphDereferenceProcessHandleTable(
     __in PEPROCESS Process
     )
 {
+    PAGED_CODE();
+
     KphReleaseProcessRundownProtection(Process);
 }
 
@@ -156,6 +162,8 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     POBJECT_TYPE objectType;
     PKPH_PROCESS_HANDLE_INFORMATION buffer;
     ULONG i;
+
+    PAGED_CODE();
 
     buffer = context->Buffer;
 
@@ -232,6 +240,8 @@ NTSTATUS KpiEnumerateProcessHandles(
     PEPROCESS process;
     PHANDLE_TABLE handleTable;
     KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -354,6 +364,8 @@ NTSTATUS KphQueryNameObject(
     NTSTATUS status;
     POBJECT_TYPE objectType;
 
+    PAGED_CODE();
+
     objectType = KphGetObjectType(Object);
 
     // Check if we are going to hang when querying the object, and use
@@ -406,6 +418,8 @@ NTSTATUS KphQueryNameFileObject(
     ULONG usedLength;
     ULONG subNameLength;
     PFILE_OBJECT relatedFileObject;
+
+    PAGED_CODE();
 
     // We need at least the size of OBJECT_NAME_INFORMATION to
     // continue.
@@ -559,6 +573,8 @@ NTSTATUS KpiQueryInformationObject(
     KPROCESSOR_MODE referenceMode;
     KAPC_STATE apcState;
     ULONG returnLength;
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
@@ -1019,6 +1035,8 @@ NTSTATUS KpiSetInformationObject(
     PEPROCESS process;
     KAPC_STATE apcState;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         ULONG alignment;
@@ -1147,6 +1165,8 @@ NTSTATUS KphDuplicateObject(
     KAPC_STATE apcState;
     PVOID object;
     HANDLE objectHandle;
+
+    PAGED_CODE();
 
     // Validate the parameters.
 
@@ -1287,6 +1307,8 @@ NTSTATUS KpiDuplicateObject(
     PEPROCESS targetProcess = NULL;
     HANDLE targetHandle;
 
+    PAGED_CODE();
+
     if (AccessMode != KernelMode)
     {
         __try
@@ -1381,6 +1403,8 @@ NTSTATUS KphOpenNamedObject(
     HANDLE objectHandle;
     UNICODE_STRING capturedObjectName;
     OBJECT_ATTRIBUTES objectAttributes = { 0 };
+
+    PAGED_CODE();
 
     if (AccessMode != KernelMode)
     {
