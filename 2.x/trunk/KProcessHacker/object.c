@@ -1302,7 +1302,7 @@ NTSTATUS KpiDuplicateObject(
 
     status = ObReferenceObjectByHandle(
         SourceProcessHandle,
-        PROCESS_DUP_HANDLE,
+        0,
         *PsProcessType,
         AccessMode,
         &sourceProcess,
@@ -1317,7 +1317,7 @@ NTSTATUS KpiDuplicateObject(
     {
         status = ObReferenceObjectByHandle(
             TargetProcessHandle,
-            PROCESS_DUP_HANDLE,
+            0,
             *PsProcessType,
             AccessMode,
             &targetProcess,
