@@ -32,3 +32,27 @@ The ExtendedTools plugin is only available for Windows Vista and
 above. Disk and Network information provided by this plugin is 
 only available when running Process Hacker with administrative 
 rights.
+
+== KProcessHacker ==
+
+Process Hacker uses a kernel-mode driver, KProcessHacker, to 
+assist with certain functionality. This includes:
+
+* Bypassing security software and rootkits in limited ways
+* More powerful process and thread termination (*)
+* Setting DEP status of processes
+* Capturing kernel-mode stack traces
+* More efficiently enumerating process handles (*)
+* Retrieving names for file handles
+* Retrieving names for EtwRegistration objects (*)
+* Setting handle attributes
+
+The features marked with an asterisk (*) currently rely on 
+kernel version-dependent data embedded into the driver. In the event 
+that there is a new major release of Windows (e.g. new version or 
+service pack) and the driver has not yet been updated for that version, 
+the aforementioned features will not work.
+
+Certain features such as modifying process protection are disabled 
+in the released driver binary due to legal reasons. You can enable 
+them by building KProcessHacker with the "dirty" configuration.
