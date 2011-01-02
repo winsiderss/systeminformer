@@ -24,7 +24,7 @@
 ; *Inno Setup QuickStart Pack v5.3.10(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
-#define installer_build_number "03"
+#define installer_build_number "04"
 
 #define VerMajor
 #define VerMinor
