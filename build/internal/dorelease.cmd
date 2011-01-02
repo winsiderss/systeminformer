@@ -7,7 +7,7 @@ rem Source distribution
 if exist "%SVNBIN%\svn.exe". (
     if exist %2\ProcessHacker2 rmdir /S /Q %2\ProcessHacker2
     "%SVNBIN%\svn.exe" export %1 %2\ProcessHacker2
-    if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
+    if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
     )
 
 rem Binary distribution
@@ -54,5 +54,5 @@ for %%a in (
     ToolStatus
     ) do copy %1\plugins\%%a\bin\Release64\%%a.dll %2\bin\plugins\x64\%%a.dll
 
-if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
+if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
 if exist %1\build\Installer\processhacker-*-setup.exe copy %1\build\Installer\processhacker-*-setup.exe %2\
