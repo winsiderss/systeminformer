@@ -102,9 +102,28 @@ Name: gr; MessagesFile: Languages\Greek.isl
 BeveledLabel=Process Hacker v{#= simple_app_version}, Setup v{#= installer_build_number} built on {#= installer_build_date}
 
 
+[Types]
+Name: "full"; Description: "Full installation"
+Name: "minimal"; Description: "Minimal installation"
+Name: "custom"; Description: "Custom installation"; Flags: iscustom
+
+
+[Components]
+Name: "main"; Description: "Main application"; Types: full minimal custom; Flags: fixed
+Name: "plugins"; Description: "Plugins"; Types: full
+Name: "plugins\extendednotifications"; Description: "Extended Notifications"; Types: full
+Name: "plugins\extendedservices"; Description: "Extended Services"; Types: full
+Name: "plugins\extendedtools"; Description: "Extended Tools"; Types: full; MinVersion: 0,6.01
+Name: "plugins\networktools"; Description: "Network Tools"; Types: full
+Name: "plugins\onlinechecks"; Description: "Online Checks"; Types: full
+Name: "plugins\sbiesupport"; Description: "Sandboxie Support"; Types: full
+Name: "plugins\toolstatus"; Description: "Toolbar and Status Bar"; Types: full
+
+
 [Files]
 Source: ..\..\CHANGELOG.txt; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\LICENSE.txt; DestDir: {app}; Flags: ignoreversion
+Source: ..\..\README.txt; DestDir: {app}; Flags: ignoreversion isreadme
 Source: ..\..\doc\Help.htm; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\tools\peview\bin\Release32\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\tools\peview\bin\Release64\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
@@ -113,6 +132,20 @@ Source: ..\..\bin\Release64\ProcessHacker.exe; DestDir: {app}; Flags: ignorevers
 Source: ..\..\KProcessHacker\bin\i386\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\KProcessHacker\bin\amd64\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: Icons\uninstall.ico; DestDir: {app}; Flags: ignoreversion
+Source: ..\..\plugins\ExtendedNotifications\bin\Release32\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedNotifications\bin\Release64\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedServices\bin\Release32\ExtendedServices.dll; DestDir: {app}\plugins; Components: plugins\extendedservices; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedServices\bin\Release64\ExtendedServices.dll; DestDir: {app}\plugins; Components: plugins\extendedservices; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedTools\bin\Release32\ExtendedTools.dll; DestDir: {app}\plugins; Components: plugins\extendedtools; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedTools\bin\Release64\ExtendedTools.dll; DestDir: {app}\plugins; Components: plugins\extendedtools; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\NetworkTools\bin\Release32\NetworkTools.dll; DestDir: {app}\plugins; Components: plugins\networktools; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\NetworkTools\bin\Release64\NetworkTools.dll; DestDir: {app}\plugins; Components: plugins\networktools; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\OnlineChecks\bin\Release32\OnlineChecks.dll; DestDir: {app}\plugins; Components: plugins\onlinechecks; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\OnlineChecks\bin\Release64\OnlineChecks.dll; DestDir: {app}\plugins; Components: plugins\onlinechecks; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\SbieSupport\bin\Release32\SbieSupport.dll; DestDir: {app}\plugins; Components: plugins\sbiesupport; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\SbieSupport\bin\Release64\SbieSupport.dll; DestDir: {app}\plugins; Components: plugins\sbiesupport; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ToolStatus\bin\Release32\ToolStatus.dll; DestDir: {app}\plugins; Components: plugins\toolstatus; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ToolStatus\bin\Release64\ToolStatus.dll; DestDir: {app}\plugins; Components: plugins\toolstatus; Flags: ignoreversion; Check: Is64BitInstallMode()
 
 
 [Tasks]
