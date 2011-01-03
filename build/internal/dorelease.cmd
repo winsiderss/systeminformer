@@ -25,11 +25,12 @@ copy %1\doc\Help.htm %2\bin\
 
 mkdir %2\bin\x86
 copy %1\bin\Release32\ProcessHacker.exe %2\bin\x86\
-copy %1\bin\Release32\kprocesshacker.sys %2\bin\x86\
+copy %1\KProcessHacker\bin-signed\i386\kprocesshacker.sys %2\bin\x86\
 copy %1\tools\peview\bin\Release32\peview.exe %2\bin\x86\
 
 mkdir %2\bin\x64
 copy %1\bin\Release64\ProcessHacker.exe %2\bin\x64\
+copy %1\KProcessHacker\bin-signed\amd64\kprocesshacker.sys %2\bin\x64\
 copy %1\tools\peview\bin\Release64\peview.exe %2\bin\x64\
 
 mkdir %2\bin\plugins\x86
