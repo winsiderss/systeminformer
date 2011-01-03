@@ -1,0 +1,1 @@
+These binaries have been signed by the ReactOS Foundation.
