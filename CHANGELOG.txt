@@ -2,6 +2,8 @@ Process Hacker
 
 2.10
  * NEW/IMPROVED:
+   * KProcessHacker is now signed, so it works on 64-bit 
+     systems. Thank you to the ReactOS Foundation.
    * Added Run As Limited User
    * Added CPU, private bytes and I/O history columns
    * Added font selection

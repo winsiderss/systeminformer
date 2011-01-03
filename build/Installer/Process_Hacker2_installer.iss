@@ -129,8 +129,8 @@ Source: ..\..\tools\peview\bin\Release32\peview.exe; DestDir: {app}; Flags: igno
 Source: ..\..\tools\peview\bin\Release64\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\bin\Release32\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\KProcessHacker\bin\i386\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\KProcessHacker\bin\amd64\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\KProcessHacker\bin-signed\i386\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: Icons\uninstall.ico; DestDir: {app}; Flags: ignoreversion
 Source: ..\..\plugins\ExtendedNotifications\bin\Release32\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedNotifications\bin\Release64\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
