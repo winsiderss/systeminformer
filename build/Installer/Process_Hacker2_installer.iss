@@ -21,10 +21,10 @@
 ;
 ;
 ; Requirements:
-; *Inno Setup QuickStart Pack v5.3.10(+): http://www.jrsoftware.org/isdl.php#qsp
+; *Inno Setup QuickStart Pack v5.4.0(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
-#define installer_build_number "04"
+#define installer_build_number "06"
 
 #define VerMajor
 #define VerMinor
@@ -39,7 +39,7 @@
 
 [Setup]
 AppID=Process_Hacker2
-AppCopyright=Copyright © 2010-2011 wj32. Installer originally by XhmikosR. Licensed under the GNU GPL, v3.
+AppCopyright=Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3.
 AppContact=http://sourceforge.net/tracker/?group_id=242527
 AppName=Process Hacker
 AppVerName=Process Hacker {#= simple_app_version}
@@ -63,7 +63,6 @@ MinVersion=0,5.01.2600sp2
 AppReadmeFile={app}\Help.htm
 LicenseFile=..\..\LICENSE.txt
 InfoAfterFile=..\..\CHANGELOG.txt
-;InfoBeforeFile=..\..\doc\Help.htm
 SetupIconFile=..\..\ProcessHacker\ProcessHacker.ico
 UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
@@ -71,10 +70,9 @@ WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
 OutputBaseFilename=processhacker-{#= simple_app_version}-setup
 AllowNoIcons=yes
-Compression=lzma2/max
+Compression=lzma/ultra
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
-DirExistsWarning=no
 ShowTasksTreeLines=yes
 AlwaysShowDirOnReadyPage=yes
 AlwaysShowGroupOnReadyPage=yes
@@ -103,72 +101,77 @@ BeveledLabel=Process Hacker v{#= simple_app_version}, Setup v{#= installer_build
 
 
 [Types]
-Name: "full"; Description: "Full installation"
+Name: "full";    Description: "Full installation"
 Name: "minimal"; Description: "Minimal installation"
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
+Name: "custom";  Description: "Custom installation"; Flags: iscustom
 
 
 [Components]
-Name: "main"; Description: "Main application"; Types: full minimal custom; Flags: fixed
-Name: "plugins"; Description: "Plugins"; Types: full
-Name: "plugins\extendednotifications"; Description: "Extended Notifications"; Types: full
-Name: "plugins\extendedservices"; Description: "Extended Services"; Types: full
-Name: "plugins\extendedtools"; Description: "Extended Tools"; Types: full; MinVersion: 0,6.01
-Name: "plugins\networktools"; Description: "Network Tools"; Types: full
-Name: "plugins\onlinechecks"; Description: "Online Checks"; Types: full
-Name: "plugins\sbiesupport"; Description: "Sandboxie Support"; Types: full
-Name: "plugins\toolstatus"; Description: "Toolbar and Status Bar"; Types: full
+Name: "main";                          Description: "Main application";       Types: full minimal custom; Flags: fixed
+Name: peview;                          Description: "PE Viewer";              Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins";                       Description: "Plugins";                Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendednotifications"; Description: "Extended Notifications"; Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendedservices";      Description: "Extended Services";      Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendedtools";         Description: "Extended Tools";         Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 0,6.01
+Name: "plugins\networktools";          Description: "Network Tools";          Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\onlinechecks";          Description: "Online Checks";          Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\sbiesupport";           Description: "Sandboxie Support";      Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar"; Types: full custom;         Flags: disablenouninstallwarning
 
 
 [Files]
-Source: ..\..\CHANGELOG.txt; DestDir: {app}; Flags: ignoreversion
-Source: ..\..\LICENSE.txt; DestDir: {app}; Flags: ignoreversion
-Source: ..\..\README.txt; DestDir: {app}; Flags: ignoreversion isreadme
-Source: ..\..\doc\Help.htm; DestDir: {app}; Flags: ignoreversion
-Source: ..\..\tools\peview\bin\Release32\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\tools\peview\bin\Release64\peview.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\bin\Release32\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\bin\Release64\ProcessHacker.exe; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\KProcessHacker\bin-signed\i386\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys; DestDir: {app}; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: Icons\uninstall.ico; DestDir: {app}; Flags: ignoreversion
+Source: ..\..\CHANGELOG.txt;                                                         DestDir: {app};                                                    Flags: ignoreversion
+Source: ..\..\LICENSE.txt;                                                           DestDir: {app};                                                    Flags: ignoreversion
+Source: ..\..\README.txt;                                                            DestDir: {app};                                                    Flags: ignoreversion
+Source: ..\..\doc\Help.htm;                                                          DestDir: {app};                                                    Flags: ignoreversion
+
+Source: ..\..\tools\peview\bin\Release32\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\tools\peview\bin\Release64\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: Is64BitInstallMode()
+
+Source: ..\..\bin\Release32\ProcessHacker.exe;                                       DestDir: {app};                                                    Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\bin\Release64\ProcessHacker.exe;                                       DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
+
+Source: ..\..\KProcessHacker\bin-signed\i386\kprocesshacker.sys;                     DestDir: {app};                                                    Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
+
 Source: ..\..\plugins\ExtendedNotifications\bin\Release32\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedNotifications\bin\Release64\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\ExtendedServices\bin\Release32\ExtendedServices.dll; DestDir: {app}\plugins; Components: plugins\extendedservices; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\ExtendedServices\bin\Release64\ExtendedServices.dll; DestDir: {app}\plugins; Components: plugins\extendedservices; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\ExtendedTools\bin\Release32\ExtendedTools.dll; DestDir: {app}\plugins; Components: plugins\extendedtools; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\ExtendedTools\bin\Release64\ExtendedTools.dll; DestDir: {app}\plugins; Components: plugins\extendedtools; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\NetworkTools\bin\Release32\NetworkTools.dll; DestDir: {app}\plugins; Components: plugins\networktools; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\NetworkTools\bin\Release64\NetworkTools.dll; DestDir: {app}\plugins; Components: plugins\networktools; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\OnlineChecks\bin\Release32\OnlineChecks.dll; DestDir: {app}\plugins; Components: plugins\onlinechecks; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\OnlineChecks\bin\Release64\OnlineChecks.dll; DestDir: {app}\plugins; Components: plugins\onlinechecks; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\SbieSupport\bin\Release32\SbieSupport.dll; DestDir: {app}\plugins; Components: plugins\sbiesupport; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\SbieSupport\bin\Release64\SbieSupport.dll; DestDir: {app}\plugins; Components: plugins\sbiesupport; Flags: ignoreversion; Check: Is64BitInstallMode()
-Source: ..\..\plugins\ToolStatus\bin\Release32\ToolStatus.dll; DestDir: {app}\plugins; Components: plugins\toolstatus; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\plugins\ToolStatus\bin\Release64\ToolStatus.dll; DestDir: {app}\plugins; Components: plugins\toolstatus; Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedServices\bin\Release32\ExtendedServices.dll;           DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedServices\bin\Release64\ExtendedServices.dll;           DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedTools\bin\Release32\ExtendedTools.dll;                 DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ExtendedTools\bin\Release64\ExtendedTools.dll;                 DestDir: {app}\plugins; Components: plugins\extendedtools;         Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\NetworkTools\bin\Release32\NetworkTools.dll;                   DestDir: {app}\plugins; Components: plugins\networktools;          Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\NetworkTools\bin\Release64\NetworkTools.dll;                   DestDir: {app}\plugins; Components: plugins\networktools;          Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\OnlineChecks\bin\Release32\OnlineChecks.dll;                   DestDir: {app}\plugins; Components: plugins\onlinechecks;          Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\OnlineChecks\bin\Release64\OnlineChecks.dll;                   DestDir: {app}\plugins; Components: plugins\onlinechecks;          Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\SbieSupport\bin\Release32\SbieSupport.dll;                     DestDir: {app}\plugins; Components: plugins\sbiesupport;           Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\SbieSupport\bin\Release64\SbieSupport.dll;                     DestDir: {app}\plugins; Components: plugins\sbiesupport;           Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\ToolStatus\bin\Release32\ToolStatus.dll;                       DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\ToolStatus\bin\Release64\ToolStatus.dll;                       DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: Is64BitInstallMode()
+
+Source: Icons\uninstall.ico;                                                         DestDir: {app};                                                    Flags: ignoreversion
 
 
 [Tasks]
-Name: desktopicon; Description: {cm:CreateDesktopIcon}; GroupDescription: {cm:AdditionalIcons}
-Name: desktopicon\user; Description: {cm:tsk_CurrentUser}; GroupDescription: {cm:AdditionalIcons}; Flags: exclusive
-Name: desktopicon\common; Description: {cm:tsk_AllUsers}; GroupDescription: {cm:AdditionalIcons}; Flags: unchecked exclusive
-Name: quicklaunchicon; Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01; Flags: unchecked
+Name: desktopicon;         Description: {cm:CreateDesktopIcon};     GroupDescription: {cm:AdditionalIcons}
+Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                Flags: exclusive
+Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                Flags: unchecked exclusive
+Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;      Flags: unchecked
 
-Name: startup_task; Description: {cm:tsk_StartupDescr}; GroupDescription: {cm:tsk_Startup}; Check: StartupCheck(); Flags: unchecked checkablealone
-;Name: startup_task\minimized; Description: {cm:tsk_StartupDescrMin}; GroupDescription: {cm:tsk_Startup}; Check: StartupCheck(); Flags: unchecked
-Name: remove_startup_task; Description: {cm:tsk_RemoveStartup}; GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck(); Flags: unchecked
+Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup}; Check: StartupCheck();             Flags: unchecked checkablealone
+Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck();         Flags: unchecked
 
-Name: create_KPH_service; Description: {cm:tsk_CreateKPHService}; GroupDescription: {cm:tsk_Other}; Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
-Name: delete_KPH_service; Description: {cm:tsk_DeleteKPHService}; GroupDescription: {cm:tsk_Other}; Check: KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
+Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};   Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
+Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};   Check: KPHServiceCheck()     AND NOT Is64BitInstallMode(); Flags: unchecked
 
-Name: reset_settings; Description: {cm:tsk_ResetSettings}; GroupDescription: {cm:tsk_Other}; Check: SettingsExistCheck(); Flags: checkedonce unchecked
+Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};   Check: SettingsExistCheck();       Flags: checkedonce unchecked
 
-Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other}; Check: PHDefaulTaskmgrCheck(); Flags: unchecked
-Name: restore_taskmgr; Description: {cm:tsk_RestoreTaskmgr}; GroupDescription: {cm:tsk_Other}; Check: NOT PHDefaulTaskmgrCheck(); Flags: unchecked
+Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};   Check: PHDefaulTaskmgrCheck();     Flags: unchecked
+Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};   Check: NOT PHDefaulTaskmgrCheck(); Flags: unchecked
 
 
 [Icons]
-Name: {group}\peview; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0
+Name: {group}\peview; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
@@ -181,17 +184,26 @@ Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2; F
 
 
 [InstallDelete]
-Type: files; Name: {userdesktop}\Process Hacker 2.lnk; Tasks: NOT desktopicon\user
-Type: files; Name: {commondesktop}\Process Hacker 2.lnk; Tasks: NOT desktopicon\common
+Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Tasks: NOT desktopicon\user
+Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Tasks: NOT desktopicon\common
 
-Type: files; Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
-Type: dirifempty; Name: {userappdata}\Process Hacker; Tasks: reset_settings
+Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
+Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
+
+Type: files; Name: {app}\peview.exe;                        Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
+Type: files; Name: {app}\plugins\ExtendedNotifications.dll; Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
+Type: files; Name: {app}\plugins\ExtendedServices.dll;      Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
+Type: files; Name: {app}\plugins\ExtendedTools.dll;         Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
+Type: files; Name: {app}\plugins\NetworkTools.dll;          Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
+Type: files; Name: {app}\plugins\OnlineChecks.dll;          Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
+Type: files; Name: {app}\plugins\SbieSupport.dll;           Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
+Type: files; Name: {app}\plugins\ToolStatus.dll;            Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
+;Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Tasks: startup_task; Flags: uninsdeletevalue
-;Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"" -m"; Tasks: startup_task\minimized; Flags: uninsdeletevalue
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Tasks: remove_startup_task; Flags: deletevalue uninsdeletevalue
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
@@ -199,13 +211,34 @@ Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Exec
 
 
 [Run]
-Filename: {app}\ProcessHacker.exe; Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
-Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite}; Flags: nowait postinstall skipifsilent shellexec runascurrentuser unchecked
+Filename: {app}\ProcessHacker.exe;               Description: {cm:LaunchProgram,Process Hacker 2}; Flags: nowait postinstall skipifsilent runascurrentuser
+Filename: http://processhacker.sourceforge.net/; Description: {cm:run_VisitWebsite};               Flags: nowait postinstall skipifsilent shellexec runascurrentuser unchecked
 
 
 [Code]
 // Global variables and constants
 const installer_mutex_name = 'process_hacker2_setup_mutex';
+var
+  is_update: Boolean;
+
+
+function IsUpdate(): Boolean;
+begin
+  Result := is_update;
+end;
+
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  if IsUpdate then begin
+    Case PageID of
+      // Hide the license page
+      wpLicense: Result := True;
+    else
+      Result := False;
+    end;
+  end;
+end;
 
 
 // Check if Process Hacker is configured to run on startup in order to control
@@ -297,6 +330,7 @@ begin
      mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
        CleanUpFiles;
      end;
+      RemoveDir(ExpandConstant('{app}\plugins'));
       RemoveDir(ExpandConstant('{app}'));
     end;
   end;
@@ -314,6 +348,9 @@ begin
     Result := False;
   end;
   CreateMutex(installer_mutex_name);
+
+  is_update := RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Process_Hacker2_is1');
+
 end;
 
 
