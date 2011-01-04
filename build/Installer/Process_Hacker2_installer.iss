@@ -108,7 +108,7 @@ Name: "custom";  Description: "Custom installation"; Flags: iscustom
 
 [Components]
 Name: "main";                          Description: "Main application";       Types: full minimal custom; Flags: fixed
-Name: peview;                          Description: "PE Viewer";              Types: full custom;         Flags: disablenouninstallwarning
+Name: "peview";                        Description: "PE Viewer";              Types: full minimal custom; Flags: disablenouninstallwarning
 Name: "plugins";                       Description: "Plugins";                Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendednotifications"; Description: "Extended Notifications"; Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendedservices";      Description: "Extended Services";      Types: full custom;         Flags: disablenouninstallwarning
@@ -171,7 +171,7 @@ Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescrip
 
 
 [Icons]
-Name: {group}\peview; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
+Name: {group}\PE Viewer; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
