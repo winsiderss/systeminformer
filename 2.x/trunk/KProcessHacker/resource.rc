@@ -19,7 +19,7 @@
 
 #define VER_COMPANYNAME_STR "wj32\0"
 #define VER_FILEDESCRIPTION_STR "KProcessHacker\0"
-#define VER_LEGALCOPYRIGHT_STR "Copyright (c) 2009 wj32. Licensed under the GNU GPL, v3.\0"
+#define VER_LEGALCOPYRIGHT_STR "Licensed under the GNU GPL, v3.\0"
 #define VER_ORIGINALFILENAME_STR "kprocesshacker.sys\0"
 #define VER_PRODUCTNAME_STR "KProcessHacker\0"
 
