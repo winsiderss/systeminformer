@@ -586,7 +586,7 @@ static LRESULT CALLBACK PhpTooltipWndProc(
 
                 if (windowRect.bottom >context->MonitorInfo.rcWork.bottom)
                 {
-                    windowRect.top = context->MonitorInfo.rcWork.bottom - (windowRect.bottom - windowRect.left);
+                    windowRect.top = context->MonitorInfo.rcWork.bottom - (windowRect.bottom - windowRect.top);
                     needsMove = TRUE;
                 }
 
