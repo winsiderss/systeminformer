@@ -10,6 +10,10 @@ if exist "%SVNBIN%\svn.exe". (
     if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-src.zip %2\ProcessHacker2\*
     )
 
+rem SDK distribution
+
+if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-sdk.zip %1\sdk\*
+
 rem Binary distribution
 
 if exist %2\bin rmdir /S /Q %2\bin
