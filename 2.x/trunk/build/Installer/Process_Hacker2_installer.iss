@@ -77,7 +77,7 @@ ShowTasksTreeLines=yes
 AlwaysShowDirOnReadyPage=yes
 AlwaysShowGroupOnReadyPage=yes
 PrivilegesRequired=admin
-ShowLanguageDialog=auto
+ShowLanguageDialog=no
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 AppMutex=Global\ProcessHacker2Mutant
@@ -87,8 +87,6 @@ ArchitecturesInstallIn64BitMode=x64
 [Languages]
 ; Installer's languages
 Name: en; MessagesFile: compiler:Default.isl
-Name: de; MessagesFile: compiler:Languages\German.isl
-Name: gr; MessagesFile: Languages\Greek.isl
 
 
 ; Include the installer's custom messages and services stuff
@@ -117,6 +115,24 @@ Name: "plugins\networktools";          Description: "Network Tools";          Ty
 Name: "plugins\onlinechecks";          Description: "Online Checks";          Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\sbiesupport";           Description: "Sandboxie Support";      Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar"; Types: full custom;         Flags: disablenouninstallwarning
+
+
+[Tasks]
+Name: desktopicon;         Description: {cm:CreateDesktopIcon};     GroupDescription: {cm:AdditionalIcons}
+Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                Flags: exclusive
+Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                Flags: unchecked exclusive
+Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;      Flags: unchecked
+
+Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup}; Check: StartupCheck();             Flags: unchecked checkablealone
+Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck();         Flags: unchecked
+
+Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};   Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
+Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};   Check: KPHServiceCheck()     AND NOT Is64BitInstallMode(); Flags: unchecked
+
+Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};   Check: SettingsExistCheck();       Flags: checkedonce unchecked
+
+Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};   Check: PHDefaulTaskmgrCheck();     Flags: checkedonce unchecked
+Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};   Check: NOT PHDefaulTaskmgrCheck(); Flags: checkedonce unchecked
 
 
 [Files]
@@ -150,24 +166,6 @@ Source: ..\..\plugins\ToolStatus\bin\Release32\ToolStatus.dll;                  
 Source: ..\..\plugins\ToolStatus\bin\Release64\ToolStatus.dll;                       DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: Is64BitInstallMode()
 
 Source: Icons\uninstall.ico;                                                         DestDir: {app};                                                    Flags: ignoreversion
-
-
-[Tasks]
-Name: desktopicon;         Description: {cm:CreateDesktopIcon};     GroupDescription: {cm:AdditionalIcons}
-Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                Flags: exclusive
-Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                Flags: unchecked exclusive
-Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;      Flags: unchecked
-
-Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup}; Check: StartupCheck();             Flags: unchecked checkablealone
-Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck();         Flags: unchecked
-
-Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};   Check: NOT KPHServiceCheck() AND NOT Is64BitInstallMode(); Flags: unchecked
-Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};   Check: KPHServiceCheck()     AND NOT Is64BitInstallMode(); Flags: unchecked
-
-Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};   Check: SettingsExistCheck();       Flags: checkedonce unchecked
-
-Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};   Check: PHDefaulTaskmgrCheck();     Flags: unchecked
-Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};   Check: NOT PHDefaulTaskmgrCheck(); Flags: unchecked
 
 
 [Icons]
@@ -245,18 +243,20 @@ end;
 // startup choice from within the installer
 function StartupCheck(): Boolean;
 begin
-  Result := True;
-  if RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Process Hacker 2') then
-  Result := False;
+  if RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Process Hacker 2') then begin
+    Result := False;
+  end else
+    Result := True;
 end;
 
 
 // Check if Process Hacker's settings exist
 function SettingsExistCheck(): Boolean;
 begin
-  Result := False;
-  if FileExists(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml')) then
-  Result := True;
+  if FileExists(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml')) then begin
+    Result := True;
+  end else
+    Result := False;
 end;
 
 
@@ -265,13 +265,13 @@ function PHDefaulTaskmgrCheck(): Boolean;
 var
   svalue: String;
 begin
-  Result := True;
-  if RegQueryStringValue(HKLM,
-  'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe', 'Debugger', svalue) then begin
+  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe', 'Debugger', svalue) then begin
     if svalue = (ExpandConstant('"{app}\ProcessHacker.exe"')) then
-    Result := False;
-  end;
+      Result := False;
+  end else
+    Result := True;
 end;
+
 
 
 // Check if KProcessHacker is installed as a service
@@ -279,10 +279,11 @@ function KPHServiceCheck(): Boolean;
 var
   dvalue: DWORD;
 begin
-  Result := False;
   if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dvalue) then begin
-    if dvalue = 1 then
-    Result := True;
+    if dvalue = 1 then begin
+      Result := True;
+    end else
+      Result := False;
   end;
 end;
 
@@ -310,7 +311,7 @@ begin
     if (KPHServiceCheck AND NOT IsTaskSelected('delete_KPH_service') OR (IsTaskSelected('create_KPH_service'))) then begin
       StopService('KProcessHacker2');
       RemoveService('KProcessHacker2');
-      InstallService(ExpandConstant('{app}\kprocesshacker.sys'),'KProcessHacker2','KProcessHacker2','KProcessHacker2 driver',SERVICE_KERNEL_DRIVER,SERVICE_SYSTEM_START);
+      InstallService(ExpandConstant('{app}\kprocesshacker.sys'), 'KProcessHacker2', 'KProcessHacker2', 'KProcessHacker2 driver', SERVICE_KERNEL_DRIVER, SERVICE_SYSTEM_START);
       StartService('KProcessHacker2');
     end;
   end;
@@ -326,8 +327,7 @@ begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
   if SettingsExistCheck then begin
-    if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'),
-     mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
+    if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
        CleanUpFiles;
      end;
       RemoveDir(ExpandConstant('{app}\plugins'));
@@ -340,27 +340,28 @@ end;
 function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
-  Result := True;
   if CheckForMutexes(installer_mutex_name) then begin
-    if not WizardSilent() then
-      MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbCriticalError, MB_OK);
-    exit;
-    Result := False;
-  end;
-  CreateMutex(installer_mutex_name);
+    if not WizardSilent() then begin
+      MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
+      Result := False;
+    end;
+  end else begin
+    CreateMutex(installer_mutex_name);
 
   is_update := RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Process_Hacker2_is1');
+  Result := True;
 
+  end;
 end;
 
 
 function InitializeUninstall(): Boolean;
 begin
-  Result := True;
   if CheckForMutexes(installer_mutex_name) then begin
-    if not WizardSilent() then
-      MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbCriticalError, MB_OK);
-      exit;
-   end;
-   CreateMutex(installer_mutex_name);
+    MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
+    Result := False;
+  end else begin
+    CreateMutex(installer_mutex_name);
+    Result := True;
+  end;
 end;
