@@ -450,18 +450,18 @@ NtPropagationFailed(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFreezeTransactions(
-    __in PLARGE_INTEGER Timeout,
+    __in PLARGE_INTEGER FreezeTimeout,
     __in PLARGE_INTEGER ThawTimeout
     );
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

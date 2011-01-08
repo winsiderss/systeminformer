@@ -1762,12 +1762,28 @@ RtlIsTextUnicode(
     __inout_opt PULONG Result
     );
 
+typedef enum _RTL_NORM_FORM
+{
+    NormOther = 0x0,
+    NormC = 0x1,
+    NormD = 0x2,
+    NormKC = 0x5,
+    NormKD = 0x6,
+    NormIdna = 0xd,
+    DisallowUnassigned = 0x100,
+    NormCDisallowUnassigned = 0x101,
+    NormDDisallowUnassigned = 0x102,
+    NormKCDisallowUnassigned = 0x105,
+    NormKDDisallowUnassigned = 0x106,
+    NormIdnaDisallowUnassigned = 0x10d
+} RTL_NORM_FORM;
+
 #if (PHNT_VERSION >= PHNT_VISTA)
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlNormalizeString(
-    __in ULONG NormForm,
+    __in ULONG NormForm, // RTL_NORM_FORM
     __in PCWSTR SourceString,
     __in LONG SourceStringLength,
     __out_ecount_part(*DestinationStringLength, *DestinationStringLength) PWSTR DestinationString,
@@ -1780,7 +1796,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlIsNormalizedString(
-    __in ULONG NormForm,
+    __in ULONG NormForm, // RTL_NORM_FORM
     __in PCWSTR SourceString,
     __in LONG SourceStringLength,
     __out PBOOLEAN Normalized

@@ -1,6 +1,18 @@
 #ifndef _NTMISC_H
 #define _NTMISC_H
 
+// Boot graphics
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDrawText(
+    __in PUNICODE_STRING Text
+    );
+#endif
+
 // Filter manager
 
 #define FLT_PORT_CONNECT 0x0001
@@ -35,7 +47,7 @@ NtVdmControl(
     __inout PVOID ServiceData
     );
 
-// WMI
+// WMI/ETW
 
 NTSYSCALLAPI
 NTSTATUS
@@ -46,5 +58,20 @@ NtTraceEvent(
     __in ULONG FieldSize,
     __in PVOID Fields
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtTraceControl(
+    __in ULONG FunctionCode,
+    __in_bcount_opt(InBufferLen) PVOID InBuffer,
+    __in ULONG InBufferLen,
+    __out_bcount_opt(OutBufferLen) PVOID OutBuffer,
+    __in ULONG OutBufferLen,
+    __out PULONG ReturnLength
+    );
+#endif
 
 #endif
