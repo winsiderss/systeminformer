@@ -263,13 +263,13 @@ NtQueryDirectoryObject(
 
 #if (PHNT_VERSION >= PHNT_VISTA)
 
-// begin_rev
+// begin_private
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreatePrivateNamespace(
-    __out PHANDLE DirectoryHandle,
+    __out PHANDLE NamespaceHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in PVOID BoundaryDescriptor
@@ -279,7 +279,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenPrivateNamespace(
-    __out PHANDLE DirectoryHandle,
+    __out PHANDLE NamespaceHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in PVOID BoundaryDescriptor
@@ -289,10 +289,10 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtDeletePrivateNamespace(
-    __in HANDLE DirectoryHandle
+    __in HANDLE NamespaceHandle
     );
 
-// end_rev
+// end_private
 
 #endif
 

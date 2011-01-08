@@ -155,14 +155,13 @@ typedef VOID (NTAPI *PIO_APC_ROUTINE)(
     __in ULONG Reserved
     );
 
-// rev
-// Used for worker factory objects
-typedef struct _IO_COMPLETION_MINIPACKET
+// private
+typedef struct _FILE_IO_COMPLETION_INFORMATION
 {
     PVOID KeyContext;
     PVOID ApcContext;
-    IO_STATUS_BLOCK Iosb;
-} IO_COMPLETION_MINIPACKET, *PIO_COMPLETION_MINIPACKET;
+    IO_STATUS_BLOCK IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
 typedef enum _FILE_INFORMATION_CLASS
 {
@@ -206,7 +205,7 @@ typedef enum _FILE_INFORMATION_CLASS
     FileIdFullDirectoryInformation, 
     FileValidDataLengthInformation, 
     FileShortNameInformation,
-    FileIoCompletionNotificationInformation, 
+    FileIoCompletionNotificationInformation,
     FileIoStatusBlockRangeInformation,
     FileIoPriorityHintInformation,
     FileSfioReserveInformation,

@@ -1,16 +1,18 @@
 #ifndef _NTTP_H
 #define _NTTP_H
 
-// begin_rev
+// Some types are already defined in winnt.h.
 
 typedef struct _TP_ALPC TP_ALPC, *PTP_ALPC;
 
+// private
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
     __in PTP_ALPC Alpc
     );
 
+// rev
 typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
@@ -18,11 +20,9 @@ typedef VOID (NTAPI *PTP_ALPC_CALLBACK_EX)(
     __in PVOID ApcContext
     );
 
-// end_rev
-
 #if (PHNT_VERSION >= PHNT_VISTA)
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -49,7 +49,7 @@ TpSetPoolMaxThreads(
     __in LONG MaxThreads
     );
 
-// rev
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -80,7 +80,7 @@ TpSetPoolStackInformation(
     );
 #endif
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -180,7 +180,7 @@ TpSimpleTryPost(
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
     );
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -217,7 +217,7 @@ TpWaitForWork(
     __in LOGICAL CancelPendingCallbacks
     );
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -265,7 +265,7 @@ TpWaitForTimer(
     __in LOGICAL CancelPendingCallbacks
     );
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
@@ -304,7 +304,7 @@ TpWaitForWait(
     __in LOGICAL CancelPendingCallbacks
     );
 
-// rev
+// private
 typedef VOID (NTAPI *PTP_IO_CALLBACK)(
     __inout PTP_CALLBACK_INSTANCE Instance,
     __inout_opt PVOID Context,
@@ -313,14 +313,14 @@ typedef VOID (NTAPI *PTP_IO_CALLBACK)(
     __in PTP_IO Io
     );
 
-// rev
+// private
 __checkReturn
 NTSYSAPI
 NTSTATUS
 NTAPI
 TpAllocIoCompletion(
     __out PTP_IO *IoReturn,
-    __in HANDLE FileHandle,
+    __in HANDLE File,
     __in PTP_IO_CALLBACK Callback,
     __inout_opt PVOID Context,
     __in_opt PTP_CALLBACK_ENVIRON CallbackEnviron
@@ -359,8 +359,7 @@ TpWaitForIoCompletion(
     __in LOGICAL CancelPendingCallbacks
     );
 
-// begin_rev
-
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -373,6 +372,7 @@ TpAllocAlpcCompletion(
     );
 
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -385,6 +385,7 @@ TpAllocAlpcCompletionEx(
     );
 #endif
 
+// private
 NTSYSAPI
 VOID
 NTAPI
@@ -392,6 +393,7 @@ TpReleaseAlpcCompletion(
     __inout PTP_ALPC Alpc
     );
 
+// private
 NTSYSAPI
 VOID
 NTAPI
@@ -399,14 +401,28 @@ TpWaitForAlpcCompletion(
     __inout PTP_ALPC Alpc
     );
 
-// end_rev
+// private
+typedef enum _TP_TRACE_TYPE
+{
+    TpTraceThreadPriority = 1,
+    TpTraceThreadAffinity,
+    MaxTpTraceType
+} TP_TRACE_TYPE;
 
-// rev
+// private
+NTSYSAPI
+VOID
+NTAPI
+TpCaptureCaller(
+    __in TP_TRACE_TYPE Type
+    );
+
+// private
 NTSYSAPI
 VOID
 NTAPI
 TpCheckTerminateWorker(
-    __in_opt HANDLE Thread
+    __in HANDLE Thread
     );
 
 #endif

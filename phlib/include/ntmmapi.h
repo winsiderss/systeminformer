@@ -29,6 +29,15 @@ typedef struct _MEMORY_WORKING_SET_INFORMATION
     MEMORY_WORKING_SET_BLOCK WorkingSetInfo[1];
 } MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
 
+// private
+typedef struct _MEMORY_REGION_INFORMATION
+{
+    PVOID AllocationBase;
+    ULONG AllocationProtect;
+    ULONG RegionType;
+    SIZE_T RegionSize;
+} MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
+
 typedef struct _MEMORY_WORKING_SET_EX_BLOCK
 {
     ULONG_PTR Valid : 1;
@@ -49,7 +58,11 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
     PVOID VirtualAddress;
-    MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
+    union
+    {
+        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
+        ULONG Long;
+    };
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
 #define MMPFNLIST_ZERO 0
@@ -119,17 +132,6 @@ typedef struct _MMPFN_MEMSNAP_INFORMATION
     ULONG_PTR InitialPageFrameIndex;
     ULONG_PTR Count;
 } MMPFN_MEMSNAP_INFORMATION, *PMMPFN_MEMSNAP_INFORMATION;
-
-// For NtQuerySystemInformation -> SystemSuperfetchInformation -> SuperfetchPfnListInformation
-// rev
-typedef struct _SUPERFETCH_PFN_PRIO_REQUEST
-{
-    ULONG Revision;
-    ULONG Flags;
-    ULONG NumberOfEntries;
-    SYSTEM_MEMORY_LIST_INFORMATION MemoryListInformation; // filled only if SUPERFETCH_PFN_PRIO_REQUEST_QUERY_MEMORY_LIST is set in Flags
-    MMPFN_IDENTITY Entries[1]; // page frame indicies must be initialized before querying
-} SUPERFETCH_PFN_PRIO_REQUEST, *PSUPERFETCH_PFN_PRIO_REQUEST;
 
 typedef enum _SECTION_INFORMATION_CLASS
 {
