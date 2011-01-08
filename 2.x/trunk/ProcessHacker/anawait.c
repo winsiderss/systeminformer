@@ -41,8 +41,8 @@ typedef HWND (WINAPI *_GetSendMessageReceiver)(
 typedef NTSTATUS (NTAPI *_NtAlpcQueryInformation)(
     __in HANDLE PortHandle,
     __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    __out_bcount(PortInformationLength) PVOID PortInformation,
-    __in ULONG PortInformationLength,
+    __out_bcount(Length) PVOID PortInformation,
+    __in ULONG Length,
     __out_opt PULONG ReturnLength
     );
 
@@ -180,7 +180,7 @@ VOID PhpAnalyzeWaitPassive(
     NTSTATUS status;
     HANDLE processHandle;
     HANDLE threadHandle;
-    THREAD_LAST_SYSTEM_CALL lastSystemCall;
+    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
     PH_STRING_BUILDER stringBuilder;
     PPH_STRING string;
 
@@ -196,7 +196,7 @@ VOID PhpAnalyzeWaitPassive(
         threadHandle,
         ThreadLastSystemCall,
         &lastSystemCall,
-        sizeof(THREAD_LAST_SYSTEM_CALL),
+        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
         NULL
         )))
     {
@@ -634,13 +634,13 @@ static VOID PhpGetThreadLastSystemCallNumber(
     __out PUSHORT LastSystemCallNumber
     )
 {
-    THREAD_LAST_SYSTEM_CALL lastSystemCall;
+    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
 
     if (NT_SUCCESS(NtQueryInformationThread(
         ThreadHandle,
         ThreadLastSystemCall,
         &lastSystemCall,
-        sizeof(THREAD_LAST_SYSTEM_CALL),
+        sizeof(THREAD_LAST_SYSCALL_INFORMATION),
         NULL
         )))
     {
@@ -906,7 +906,7 @@ static PPH_STRING PhapGetAlpcInformation(
     NTSTATUS status;
     PPH_STRING string = NULL;
     HANDLE threadHandle;
-    PALPC_PORT_SERVER_INFORMATION serverInfo;
+    PALPC_SERVER_INFORMATION serverInfo;
     ULONG bufferLength;
 
     if (!NtAlpcQueryInformation_I)
@@ -920,29 +920,29 @@ static PPH_STRING PhapGetAlpcInformation(
 
     bufferLength = 0x110;
     serverInfo = PhAllocate(bufferLength);
-    serverInfo->ThreadHandle = threadHandle;
+    serverInfo->In.ThreadHandle = threadHandle;
 
-    status = NtAlpcQueryInformation_I(NULL, AlpcPortServerInformation, serverInfo, bufferLength, &bufferLength);
+    status = NtAlpcQueryInformation_I(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
 
     if (status == STATUS_INFO_LENGTH_MISMATCH)
     {
         PhFree(serverInfo);
         serverInfo = PhAllocate(bufferLength);
-        serverInfo->ThreadHandle = threadHandle;
+        serverInfo->In.ThreadHandle = threadHandle;
 
-        status = NtAlpcQueryInformation_I(NULL, AlpcPortServerInformation, serverInfo, bufferLength, &bufferLength);
+        status = NtAlpcQueryInformation_I(NULL, AlpcServerInformation, serverInfo, bufferLength, &bufferLength);
     }
 
-    if (NT_SUCCESS(status) && serverInfo->MessageFound)
+    if (NT_SUCCESS(status) && serverInfo->Out.ThreadBlocked)
     {
         CLIENT_ID clientId;
         PPH_STRING clientIdName;
 
-        clientId.UniqueProcess = serverInfo->ServerProcessId;
+        clientId.UniqueProcess = serverInfo->Out.ConnectedProcessId;
         clientId.UniqueThread = NULL;
         clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
 
-        string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->PortName.Length / 2, serverInfo->PortName.Buffer, clientIdName->Buffer);
+        string = PhaFormatString(L"ALPC Port: %.*s (%s)", serverInfo->Out.ConnectionPortName.Length / 2, serverInfo->Out.ConnectionPortName.Buffer, clientIdName->Buffer);
     }
 
     PhFree(serverInfo);

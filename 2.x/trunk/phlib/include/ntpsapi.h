@@ -176,7 +176,7 @@ typedef enum _THREAD_INFORMATION_CLASS
     ThreadBreakOnTermination, // qs: ULONG
     ThreadSwitchLegacyState,
     ThreadIsTerminated, // 20, q: ULONG
-    ThreadLastSystemCall, // q: THREAD_LAST_SYSTEM_CALL
+    ThreadLastSystemCall, // q: THREAD_LAST_SYSCALL_INFORMATION
     ThreadIoPriority, // qs: ULONG
     ThreadCycleTime, // q: THREAD_CYCLE_TIME_INFORMATION
     ThreadPagePriority, // q: ULONG
@@ -404,11 +404,11 @@ typedef struct _PROCESS_CONSOLE_HOST_PROCESS_INFORMATION
     ULONG_PTR ConsoleHostProcess;
 } PROCESS_CONSOLE_HOST_PROCESS_INFORMATION, *PPROCESS_CONSOLE_HOST_PROCESS_INFORMATION;
 
-// rev
+// private
 typedef struct _PROCESS_CYCLE_TIME_INFORMATION
 {
-    ULARGE_INTEGER AccumulatedCycles;
-    ULARGE_INTEGER CurrentCycleCount;
+    ULONGLONG AccumulatedCycles;
+    ULONGLONG CurrentCycleCount;
 } PROCESS_CYCLE_TIME_INFORMATION, *PPROCESS_CYCLE_TIME_INFORMATION;
 
 // Thread information structures
@@ -423,26 +423,26 @@ typedef struct _THREAD_BASIC_INFORMATION
     LONG BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
 
-// rev
-typedef struct _THREAD_LAST_SYSTEM_CALL
+// private
+typedef struct _THREAD_LAST_SYSCALL_INFORMATION
 {
     PVOID FirstArgument;
     USHORT SystemCallNumber;
-} THREAD_LAST_SYSTEM_CALL, *PTHREAD_LAST_SYSTEM_CALL;
+} THREAD_LAST_SYSCALL_INFORMATION, *PTHREAD_LAST_SYSCALL_INFORMATION;
 
-// rev
+// private
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
-    ULARGE_INTEGER AccumulatedCycles;
-    ULARGE_INTEGER CurrentCycleCount;
+    ULONGLONG AccumulatedCycles;
+    ULONGLONG CurrentCycleCount;
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
 
 // rev
 typedef struct _THREAD_TEB_INFORMATION
 {
-    PVOID Buffer; // buffer to place data in
-    ULONG Offset; // offset in TEB to begin reading from
-    ULONG Length; // number of bytes to read
+    PVOID TebInformation; // buffer to place data in
+    ULONG TebOffset; // offset in TEB to begin reading from
+    ULONG BytesToRead; // number of bytes to read
 } THREAD_TEB_INFORMATION, *PTHREAD_TEB_INFORMATION;
 
 // symbols
@@ -779,193 +779,214 @@ NtQueueApcThread(
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
-typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
+// Attributes
+
+// begin_rev
+#define PS_ATTRIBUTE_NUMBER_MASK 0x0000ffff
+#define PS_ATTRIBUTE_THREAD 0x00010000 // can be used with threads
+#define PS_ATTRIBUTE_INPUT 0x00020000 // input only
+#define PS_ATTRIBUTE_UNKNOWN 0x00040000
+// end_rev
+
+// private
+typedef enum _PS_ATTRIBUTE_NUM
+{
+    PsAttributeParentProcess, // in HANDLE
+    PsAttributeDebugPort, // in HANDLE
+    PsAttributeToken, // in HANDLE
+    PsAttributeClientId, // out PCLIENT_ID
+    PsAttributeTebAddress, // out PTEB *
+    PsAttributeImageName, // in PWSTR
+    PsAttributeImageInfo, // out PSECTION_IMAGE_INFORMATION
+    PsAttributeMemoryReserve, // in PPROCESS_MEMORY_RESERVE_RANGE
+    PsAttributePriorityClass, // in UCHAR
+    PsAttributeErrorMode, // in ULONG
+    PsAttributeStdHandleInfo, // 10, in PPROCESS_EXTENDED_OPTIONS
+    PsAttributeHandleList, // in PHANDLE
+    PsAttributeGroupAffinity, // in PGROUP_AFFINITY // rev
+    PsAttributePreferredNode, // in PUSHORT // rev
+    PsAttributeIdealProcessor, // in PPROCESSOR_NUMBER // rev
+    PsAttributeUmsThread, // ? in PUMS_CREATE_THREAD_ATTRIBUTES // rev
+    PsAttributeExecuteOptions, // in UCHAR // rev
+    PsAttributeMax
+} PS_ATTRIBUTE_NUM;
 
 // begin_rev
 
-// Attributes
+#define PsAttributeValue(Number, Thread, Input, Unknown) \
+    (((Number) & PS_ATTRIBUTE_NUMBER_MASK) | \
+    ((Thread) ? PS_ATTRIBUTE_THREAD : 0) | \
+    ((Input) ? PS_ATTRIBUTE_INPUT : 0) | \
+    ((Unknown) ? PS_ATTRIBUTE_UNKNOWN : 0))
 
-#define PROCESS_ATTRIBUTE_NUMBER_MASK 0x0000ffff
-#define PROCESS_ATTRIBUTE_THREAD 0x00010000 // can be used with threads
-#define PROCESS_ATTRIBUTE_INPUT 0x00020000 // input only
-#define PROCESS_ATTRIBUTE_UNKNOWN 0x00040000
+#define PS_ATTRIBUTE_PARENT_PROCESS \
+    PsAttributeValue(PsAttributeParentProcess, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_DEBUG_PORT \
+    PsAttributeValue(PsAttributeDebugPort, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_TOKEN \
+    PsAttributeValue(PsAttributeToken, FALSE, TRUE, TRUE)
+#define PS_ATTRIBUTE_CLIENT_ID \
+    PsAttributeValue(PsAttributeClientId, TRUE, FALSE, FALSE)
+#define PS_ATTRIBUTE_TEB_ADDRESS \
+    PsAttributeValue(PsAttributeTebAddress, TRUE, FALSE, FALSE)
+#define PS_ATTRIBUTE_IMAGE_NAME \
+    PsAttributeValue(PsAttributeImageName, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_IMAGE_INFO \
+    PsAttributeValue(PsAttributeImageInfo, FALSE, FALSE, FALSE)
+#define PS_ATTRIBUTE_MEMORY_RESERVE \
+    PsAttributeValue(PsAttributeMemoryReserve, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_PRIORITY_CLASS \
+    PsAttributeValue(PsAttributePriorityClass, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_ERROR_MODE \
+    PsAttributeValue(PsAttributeErrorMode, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_STD_HANDLE_INFO \
+    PsAttributeValue(PsAttributeStdHandleInfo, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_HANDLE_LIST \
+    PsAttributeValue(PsAttributeHandleList, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_GROUP_AFFINITY \
+    PsAttributeValue(PsAttributeGroupAffinity, TRUE, TRUE, FALSE)
+#define PS_ATTRIBUTE_PREFERRED_NODE \
+    PsAttributeValue(PsAttributePreferredNode, FALSE, TRUE, FALSE)
+#define PS_ATTRIBUTE_IDEAL_PROCESSOR \
+    PsAttributeValue(PsAttributeIdealProcessor, TRUE, TRUE, FALSE)
+#define PS_ATTRIBUTE_EXECUTE_OPTIONS \
+    PsAttributeValue(PsAttributeExecuteOptions, FALSE, TRUE, TRUE)
 
-typedef enum _PROCESS_ATTRIBUTE_NUMBER
-{
-    ProcessAttributeParentProcess = 0, // in HANDLE
-    ProcessAttributeDebugPort = 1, // in HANDLE
-    ProcessAttributeToken = 2, // in HANDLE
-    ProcessAttributeClientId = 3, // out PCLIENT_ID
-    ProcessAttributeTebBaseAddress = 4, // out PTEB *
-    ProcessAttributeImagePath = 5, // in PWSTR
-    ProcessAttributeImageInformation = 6, // out PSECTION_IMAGE_INFORMATION
-    ProcessAttributeMemoryReserveList = 7, // in PPROCESS_MEMORY_RESERVE_RANGE
-    ProcessAttributePriorityClass = 8, // in UCHAR
-    ProcessAttributeDefaultHardErrorProcessing = 9, // in ULONG
-    ProcessAttributeExtendedOptions = 10, // in PPROCESS_EXTENDED_OPTIONS
-    ProcessAttributeHandleList = 11, // in PHANDLE
-    ProcessAttributeGroupAffinity = 12, // in PGROUP_AFFINITY
-    ProcessAttributePreferredNode = 13, // in PUSHORT
-    ProcessAttributeIdealProcessor = 14, // in PPROCESSOR_NUMBER
-    ProcessAttributeUmsThread = 15, // ? in PUMS_CREATE_THREAD_ATTRIBUTES
-    ProcessAttributeExecuteOptions = 16, // in UCHAR
-    ProcessAttributeMaximum
-} PROCESS_ATTRIBUTE_NUMBER;
+// end_rev
 
-#define ProcessAttributeValue(Number, Thread, Input, Unknown) \
-    (((Number) & PROCESS_ATTRIBUTE_NUMBER_MASK) | \
-    ((Thread) ? PROCESS_ATTRIBUTE_THREAD : 0) | \
-    ((Input) ? PROCESS_ATTRIBUTE_INPUT : 0) | \
-    ((Unknown) ? PROCESS_ATTRIBUTE_UNKNOWN : 0))
+// begin_private
 
-#define PROCESS_ATTRIBUTE_PARENT_PROCESS \
-    ProcessAttributeValue(ProcessAttributeParentProcess, FALSE, TRUE, TRUE)
-#define PROCESS_ATTRIBUTE_DEBUG_PORT \
-    ProcessAttributeValue(ProcessAttributeDebugPort, FALSE, TRUE, TRUE)
-#define PROCESS_ATTRIBUTE_TOKEN \
-    ProcessAttributeValue(ProcessAttributeToken, FALSE, TRUE, TRUE)
-#define PROCESS_ATTRIBUTE_CLIENT_ID \
-    ProcessAttributeValue(ProcessAttributeClientId, TRUE, FALSE, FALSE)
-#define PROCESS_ATTRIBUTE_TEB_BASE_ADDRESS \
-    ProcessAttributeValue(ProcessAttributeTebBaseAddress, TRUE, FALSE, FALSE)
-#define PROCESS_ATTRIBUTE_IMAGE_INFORMATION \
-    ProcessAttributeValue(ProcessAttributeImageInformation, FALSE, FALSE, FALSE)
-#define PROCESS_ATTRIBUTE_MEMORY_RESERVE_LIST \
-    ProcessAttributeValue(ProcessAttributeMemoryReserveList, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_IMAGE_PATH \
-    ProcessAttributeValue(ProcessAttributeImagePath, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_PRIORITY_CLASS \
-    ProcessAttributeValue(ProcessAttributePriorityClass, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_DEFAULT_HARD_ERROR_PROCESSING \
-    ProcessAttributeValue(ProcessAttributeDefaultHardErrorProcessing, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_HANDLE_LIST \
-    ProcessAttributeValue(ProcessAttributeHandleList, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_GROUP_AFFINITY \
-    ProcessAttributeValue(ProcessAttributeGroupAffinity, TRUE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_PREFERRED_NODE \
-    ProcessAttributeValue(ProcessAttributePreferredNode, FALSE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_IDEAL_PROCESSOR \
-    ProcessAttributeValue(ProcessAttributeIdealProcessor, TRUE, TRUE, FALSE)
-#define PROCESS_ATTRIBUTE_EXECUTE_OPTIONS \
-    ProcessAttributeValue(ProcessAttributeExecuteOptions, FALSE, TRUE, TRUE)
-
-typedef struct _PROCESS_ATTRIBUTE
+typedef struct _PS_ATTRIBUTE
 {
     ULONG Attribute;
-    SIZE_T Length;
-    PVOID Value;
-    PSIZE_T ReturnLength;
-} PROCESS_ATTRIBUTE, *PPROCESS_ATTRIBUTE;
+    ULONG Size;
+    union
+    {
+        ULONG Value;
+        PVOID ValuePtr;
+    };
+    PULONG ReturnLength;
+} PS_ATTRIBUTE, *PPS_ATTRIBUTE;
 
-typedef struct _PROCESS_ATTRIBUTE_LIST
+typedef struct _PS_ATTRIBUTE_LIST
 {
-    SIZE_T Size;
-    PROCESS_ATTRIBUTE Attributes[1];
-} PROCESS_ATTRIBUTE_LIST, *PPROCESS_ATTRIBUTE_LIST;
+    ULONG TotalLength;
+    PS_ATTRIBUTE Attributes[1];
+} PS_ATTRIBUTE_LIST, *PPS_ATTRIBUTE_LIST;
 
-typedef struct _PROCESS_MEMORY_RESERVE_RANGE
+typedef struct _PS_MEMORY_RESERVE
 {
-    PVOID BaseAddress;
-    SIZE_T RegionSize;
-} PROCESS_MEMORY_RESERVE_RANGE, *PPROCESS_MEMORY_RESERVE_RANGE;
+    PVOID ReserveAddress;
+    SIZE_T ReserveSize;
+} PS_MEMORY_RESERVE, *PPS_MEMORY_RESERVE;
 
-#define PROCESS_INHERIT_STANDARD_INPUT_HANDLE 0x1
-#define PROCESS_INHERIT_STANDARD_OUTPUT_HANDLE 0x2
-#define PROCESS_INHERIT_STANDARD_ERROR_HANDLE 0x4
+typedef enum _PS_STD_HANDLE_STATE
+{
+    PsNeverDuplicate,
+    PsRequestDuplicate,
+    PsAlwaysDuplicate,
+    PsMaxStdHandleStates
+} PS_STD_HANDLE_STATE;
 
-typedef struct _PROCESS_EXTENDED_OPTIONS
+// begin_rev
+#define PS_STD_INPUT_HANDLE 0x1
+#define PS_STD_OUTPUT_HANDLE 0x2
+#define PS_STD_ERROR_HANDLE 0x4
+// end_rev
+
+typedef struct _PS_STD_HANDLE_INFO
 {
     union
     {
         ULONG Flags;
         struct
         {
-            ULONG ImageStandardHandlesOptions : 2; // can't be 3
-            ULONG StandardHandlesInheritMask : 3; // PROCESS_INHERIT_STANDARD_*
-            ULONG Reserved : 27;
+            ULONG StdHandleState : 2; // PS_STD_HANDLE_STATE
+            ULONG PseudoHandleMask : 3; // PS_STD_*
         };
     };
-    ULONG SubSystemType;
-} PROCESS_EXTENDED_OPTIONS, *PPROCESS_EXTENDED_OPTIONS;
+    ULONG StdHandleSubsystemType;
+} PS_STD_HANDLE_INFO, *PPS_STD_HANDLE_INFO;
 
 // windows-internals-book:"Chapter 5"
-typedef enum _PS_CREATE_STATUS
+typedef enum _PS_CREATE_STATE
 {
-    PsCreateFailOnFileOpen = 1,
-    PsCreateFailOnSectionCreate = 2,
-    PsCreateFailExeFormat = 3,
-    PsCreateFailMachineMismatch = 4,
-    PsCreateFailExeName = 5, // Debugger specified
-    PsCreateSuccess = 6,
-    MaximumPsCreateStatus
-} PS_CREATE_STATUS;
+    PsCreateInitialState,
+    PsCreateFailOnFileOpen,
+    PsCreateFailOnSectionCreate,
+    PsCreateFailExeFormat,
+    PsCreateFailMachineMismatch,
+    PsCreateFailExeName, // Debugger specified
+    PsCreateSuccess,
+    PsCreateMaximumStates
+} PS_CREATE_STATE;
 
-typedef struct _PROCESS_CREATE_INFO_INPUT
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG FillCreateInfo : 1;
-            ULONG LocateManifest : 1;
-            ULONG Flags2 : 6;
-            ULONG ImageFileOptionsLevel : 2;
-            ULONG Flags10 : 6;
-            ULONG ExtendedFlagsHiWord : 16;
-        };
-    };
-    ACCESS_MASK FileDesiredAccess;
-} PROCESS_CREATE_INFO_INPUT;
-
-typedef struct _PROCESS_CREATE_INFO_CREATED
-{
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG IsProtectedProcess : 1;
-            ULONG OverrideAddressSpace : 1;
-            ULONG DevOverrideEnable : 1; // from Image File Execution Options
-            ULONG ManifestLocated : 1;
-            ULONG Reserved : 28;
-        };
-    };
-    HANDLE FileHandle;
-    HANDLE SectionHandle;
-    ULONG Unknown1;
-    PRTL_USER_PROCESS_PARAMETERS ProcessParameters;
-    ULONG Reserved1;
-    ULONG Unknown3;
-    ULONG FlagsInProcessParameters;
-    PPEB PebBaseAddress;
-    ULONG Reserved2;
-    ULONG Unknown4;
-    ULONG Unknown5;
-    ULONGLONG ManifestBaseAddress;
-    SIZE_T ManifestLength;
-    ULONG Unknown8;
-} PROCESS_CREATE_INFO_CREATED;
-
-typedef struct _PROCESS_CREATE_INFO
+typedef struct _PS_CREATE_INFO
 {
     SIZE_T Size;
-    PS_CREATE_STATUS Status;
+    PS_CREATE_STATE State;
     union
     {
-        PROCESS_CREATE_INFO_INPUT Input;
+        // PsCreateInitialState
+        struct
+        {
+            union
+            {
+                ULONG InitFlags;
+                struct
+                {
+                    UCHAR WriteOutputOnExit : 1;
+                    UCHAR DetectManifest : 1;
+                    UCHAR SpareBits1 : 6;
+                    UCHAR IFEOKeyState : 2;
+                    UCHAR SpareBits2 : 6;
+                    USHORT ProhibitedImageCharacteristics : 16;
+                };
+            };
+            ACCESS_MASK AdditionalFileAccess;
+        } InitState;
+        
+        // PsCreateFailOnSectionCreate
         struct
         {
             HANDLE FileHandle;
-        } CantCreateSection;
+        } FailSection;
+        
+        // PsCreateFailExeName
         struct
         {
-            HANDLE ImageFileOptionsKeyHandle;
-        } DebuggerNeeded;
-        PROCESS_CREATE_INFO_CREATED Created;
+            HANDLE IFEOKey;
+        } ExeName;
+        
+        // PsCreateSuccess
+        struct
+        {
+            union
+            {
+                ULONG OutputFlags;
+                struct
+                {
+                    UCHAR ProtectedProcess : 1;
+                    UCHAR AddressSpaceOverride : 1;
+                    UCHAR DevOverrideEnabled : 1; // from Image File Execution Options
+                    UCHAR ManifestDetected : 1;
+                    UCHAR SpareBits1 : 4;
+                    UCHAR SpareBits2 : 8;
+                    USHORT SpareBits3 : 16;
+                };
+            };
+            HANDLE FileHandle;
+            HANDLE SectionHandle;
+            ULONGLONG UserProcessParametersNative;
+            ULONG UserProcessParametersWow64;
+            ULONG CurrentParameterFlags;
+            ULONGLONG PebAddressNative;
+            ULONG PebAddressWow64;
+            ULONGLONG ManifestAddress;
+            ULONG ManifestSize;
+        } SuccessState;
     };
-} PROCESS_CREATE_INFO, *PPROCESS_CREATE_INFO;
+} PS_CREATE_INFO, *PPS_CREATE_INFO;
 
 // Extended PROCESS_CREATE_FLAGS_*
 #define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020
@@ -986,9 +1007,9 @@ NtCreateUserProcess(
     __in_opt POBJECT_ATTRIBUTES ThreadObjectAttributes,
     __in ULONG ProcessFlags, // PROCESS_CREATE_FLAGS_*
     __in ULONG ThreadFlags, // THREAD_CREATE_FLAGS_*
-    __in_opt PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
-    __inout PPROCESS_CREATE_INFO CreateInfo,
-    __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
+    __in_opt PVOID ProcessParameters,
+    __inout PPS_CREATE_INFO CreateInfo,
+    __in_opt PPS_ATTRIBUTE_LIST AttributeList
     );
 #endif
 
@@ -1009,16 +1030,16 @@ NtCreateThreadEx(
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in HANDLE ProcessHandle,
     __in PVOID StartRoutine,
-    __in_opt PVOID StartContext,
-    __in ULONG Flags, // THREAD_CREATE_FLAGS_*
-    __in_opt ULONG_PTR StackZeroBits,
-    __in_opt SIZE_T StackCommit,
-    __in_opt SIZE_T StackReserve,
-    __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
+    __in_opt PVOID Argument,
+    __in ULONG CreateFlags, // THREAD_CREATE_FLAGS_*
+    __in_opt ULONG_PTR ZeroBits,
+    __in_opt SIZE_T StackSize,
+    __in_opt SIZE_T MaximumStackSize,
+    __in_opt PPS_ATTRIBUTE_LIST AttributeList
     );
 #endif
 
-// end_rev
+// end_private
 
 #endif
 

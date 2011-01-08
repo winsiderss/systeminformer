@@ -4614,23 +4614,19 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
     NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize = 0x100;
-    SYSTEM_PROCESS_IMAGE_NAME_INFORMATION imageNameInfo;
+    SYSTEM_PROCESS_ID_INFORMATION processIdInfo;
 
     buffer = PhAllocate(bufferSize);
 
-    imageNameInfo.ProcessId = ProcessId;
-    imageNameInfo.ImageName.Length = 0;
-    imageNameInfo.ImageName.MaximumLength = (USHORT)bufferSize;
-    imageNameInfo.ImageName.Buffer = buffer;
+    processIdInfo.ProcessId = ProcessId;
+    processIdInfo.ImageName.Length = 0;
+    processIdInfo.ImageName.MaximumLength = (USHORT)bufferSize;
+    processIdInfo.ImageName.Buffer = buffer;
 
-    // This info class allows you to get the file name of any process, 
-    // with no security checks!
-    // The only issue is that it's completely undocumented (not in *any* 
-    // public header files).
     status = NtQuerySystemInformation(
-        SystemProcessImageNameInformation,
-        &imageNameInfo,
-        sizeof(SYSTEM_PROCESS_IMAGE_NAME_INFORMATION),
+        SystemProcessIdInformation,
+        &processIdInfo,
+        sizeof(SYSTEM_PROCESS_ID_INFORMATION),
         NULL
         );
 
@@ -4639,13 +4635,13 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
         // Required length is stored in MaximumLength.
 
         PhFree(buffer);
-        buffer = PhAllocate(imageNameInfo.ImageName.MaximumLength);
-        imageNameInfo.ImageName.Buffer = buffer;
+        buffer = PhAllocate(processIdInfo.ImageName.MaximumLength);
+        processIdInfo.ImageName.Buffer = buffer;
 
         status = NtQuerySystemInformation(
-            SystemProcessImageNameInformation,
-            &imageNameInfo,
-            sizeof(SYSTEM_PROCESS_IMAGE_NAME_INFORMATION),
+            SystemProcessIdInformation,
+            &processIdInfo,
+            sizeof(SYSTEM_PROCESS_ID_INFORMATION),
             NULL
             );
     }
@@ -4656,7 +4652,7 @@ NTSTATUS PhGetProcessImageFileNameByProcessId(
         return status;
     }
 
-    *FileName = PhCreateStringEx(imageNameInfo.ImageName.Buffer, imageNameInfo.ImageName.Length);
+    *FileName = PhCreateStringEx(processIdInfo.ImageName.Buffer, processIdInfo.ImageName.Length);
     PhFree(buffer);
 
     return status;
@@ -5627,35 +5623,35 @@ VOID PhpRtlModulesExToGenericModules(
 
     module = Modules;
 
-    while (module->NextEntryOffset != 0)
+    while (module->NextOffset != 0)
     {
         PPH_STRING fileName;
 
         // Check if we have a duplicate base address.
-        if (PhFindItemList(BaseAddressList, module->ModuleInfo.ImageBase) != -1)
+        if (PhFindItemList(BaseAddressList, module->BaseInfo.ImageBase) != -1)
         {
             continue;
         }
         else
         {
-            PhAddItemList(BaseAddressList, module->ModuleInfo.ImageBase);
+            PhAddItemList(BaseAddressList, module->BaseInfo.ImageBase);
         }
 
-        fileName = PhCreateStringFromAnsi(module->ModuleInfo.FullPathName);
+        fileName = PhCreateStringFromAnsi(module->BaseInfo.FullPathName);
 
-        if ((ULONG_PTR)module->ModuleInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
+        if ((ULONG_PTR)module->BaseInfo.ImageBase <= PhSystemBasicInformation.MaximumUserModeAddress)
             moduleInfo.Type = PH_MODULE_TYPE_MODULE;
         else
             moduleInfo.Type = PH_MODULE_TYPE_KERNEL_MODULE;
 
-        moduleInfo.BaseAddress = module->ModuleInfo.ImageBase;
-        moduleInfo.Size = module->ModuleInfo.ImageSize;
+        moduleInfo.BaseAddress = module->BaseInfo.ImageBase;
+        moduleInfo.Size = module->BaseInfo.ImageSize;
         moduleInfo.EntryPoint = NULL;
-        moduleInfo.Flags = module->ModuleInfo.Flags;
-        moduleInfo.Name = PhCreateStringFromAnsi(&module->ModuleInfo.FullPathName[module->ModuleInfo.OffsetToFileName]);
+        moduleInfo.Flags = module->BaseInfo.Flags;
+        moduleInfo.Name = PhCreateStringFromAnsi(&module->BaseInfo.FullPathName[module->BaseInfo.OffsetToFileName]);
         moduleInfo.FileName = PhGetFileName(fileName); // convert to DOS file name
-        moduleInfo.LoadOrderIndex = module->ModuleInfo.LoadOrderIndex;
-        moduleInfo.LoadCount = module->ModuleInfo.LoadCount;
+        moduleInfo.LoadOrderIndex = module->BaseInfo.LoadOrderIndex;
+        moduleInfo.LoadCount = module->BaseInfo.LoadCount;
 
         PhDereferenceObject(fileName);
 
@@ -5667,7 +5663,7 @@ VOID PhpRtlModulesExToGenericModules(
         if (!cont)
             break;
 
-        module = PTR_ADD_OFFSET(module, module->NextEntryOffset);
+        module = PTR_ADD_OFFSET(module, module->NextOffset);
     }
 }
 

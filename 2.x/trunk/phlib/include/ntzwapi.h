@@ -246,14 +246,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwAlpcAcceptConnectPort(
-    __out PHANDLE ServerPortHandle,
-    __in HANDLE PortHandle,
+    __out PHANDLE PortHandle,
+    __in HANDLE ConnectionPortHandle,
     __in ULONG Flags,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in PALPC_PORT_ATTRIBUTES PortAttributes,
     __in_opt PVOID PortContext,
-    __in PPORT_MESSAGE ConnectMessage,
-    __inout_opt PALPC_MESSAGE_ATTRIBUTES ReplyMessageAttributes,
+    __in PPORT_MESSAGE ConnectionRequest,
+    __inout_opt PALPC_MESSAGE_ATTRIBUTES ConnectionMessageAttributes,
     __in BOOLEAN AcceptConnection
     );
 
@@ -263,24 +263,24 @@ NTAPI
 ZwAlpcCancelMessage(
     __in HANDLE PortHandle,
     __in ULONG Flags,
-    __in PALPC_CONTEXT_ATTRIBUTES ContextAttributes
+    __in PALPC_CONTEXT_ATTR MessageContext
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwAlpcConnectPort(
-    __out PHANDLE ClientPortHandle,
+    __out PHANDLE PortHandle,
     __in PUNICODE_STRING PortName,
     __in POBJECT_ATTRIBUTES ObjectAttributes,
     __in_opt PALPC_PORT_ATTRIBUTES PortAttributes,
     __in ULONG Flags,
     __in_opt PSID RequiredServerSid,
-    __inout PPORT_MESSAGE ConnectMessage,
-    __inout_opt PULONG ReceiveMessageLength,
-    __inout_opt PALPC_MESSAGE_ATTRIBUTES ConnectMessageAttributes,
-    __inout_opt PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
-    __in_opt PLARGE_INTEGER ReceiveTimeout
+    __inout PPORT_MESSAGE ConnectionMessage,
+    __inout_opt PULONG BufferLength,
+    __inout_opt PALPC_MESSAGE_ATTRIBUTES OutMessageAttributes,
+    __inout_opt PALPC_MESSAGE_ATTRIBUTES InMessageAttributes,
+    __in_opt PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
@@ -301,7 +301,7 @@ ZwAlpcCreatePortSection(
     __in_opt HANDLE SectionHandle,
     __in SIZE_T SectionSize,
     __out PALPC_HANDLE AlpcSectionHandle,
-    __out PSIZE_T AlpcSectionSize
+    __out PSIZE_T ActualSectionSize
     );
 
 NTSYSCALLAPI
@@ -309,9 +309,9 @@ NTSTATUS
 NTAPI
 ZwAlpcCreateResourceReserve(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in SIZE_T MessageReserveSize,
-    __out PALPC_HANDLE AlpcReserveHandle
+    __reserved ULONG Flags,
+    __in SIZE_T MessageSize,
+    __out PALPC_HANDLE ResourceId
     );
 
 NTSYSCALLAPI
@@ -319,8 +319,8 @@ NTSTATUS
 NTAPI
 ZwAlpcCreateSectionView(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __inout PALPC_VIEW_ATTRIBUTES ViewAttributes
+    __reserved ULONG Flags,
+    __inout PALPC_DATA_VIEW_ATTR ViewAttributes
     );
 
 NTSYSCALLAPI
@@ -328,8 +328,8 @@ NTSTATUS
 NTAPI
 ZwAlpcCreateSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __inout PALPC_SECURITY_ATTRIBUTES SecurityAttributes
+    __reserved ULONG Flags,
+    __inout PALPC_SECURITY_ATTR SecurityAttribute
     );
 
 NTSYSCALLAPI
@@ -337,8 +337,8 @@ NTSTATUS
 NTAPI
 ZwAlpcDeletePortSection(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSectionHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE SectionHandle
     );
 
 NTSYSCALLAPI
@@ -346,8 +346,8 @@ NTSTATUS
 NTAPI
 ZwAlpcDeleteResourceReserve(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcReserveHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ResourceId
     );
 
 NTSYSCALLAPI
@@ -355,7 +355,7 @@ NTSTATUS
 NTAPI
 ZwAlpcDeleteSectionView(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
+    __reserved ULONG Flags,
     __in PVOID ViewBase
     );
 
@@ -364,8 +364,8 @@ NTSTATUS
 NTAPI
 ZwAlpcDeleteSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSecurityHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ContextHandle
     );
 
 NTSYSCALLAPI
@@ -381,8 +381,8 @@ NTSTATUS
 NTAPI
 ZwAlpcImpersonateClientOfPort(
     __in HANDLE PortHandle,
-    __in PPORT_MESSAGE Message,
-    __in ULONG Flags
+    __in PPORT_MESSAGE PortMessage,
+    __reserved PVOID Reserved
     );
 
 NTSYSCALLAPI
@@ -391,8 +391,8 @@ NTAPI
 ZwAlpcOpenSenderProcess(
     __out PHANDLE ProcessHandle,
     __in HANDLE PortHandle,
-    __in PPORT_MESSAGE Message,
-    __in ULONG Flags,
+    __in PPORT_MESSAGE PortMessage,
+    __reserved ULONG Flags,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -403,8 +403,8 @@ NTAPI
 ZwAlpcOpenSenderThread(
     __out PHANDLE ThreadHandle,
     __in HANDLE PortHandle,
-    __in PPORT_MESSAGE Message,
-    __in ULONG Flags,
+    __in PPORT_MESSAGE PortMessage,
+    __reserved ULONG Flags,
     __in ACCESS_MASK DesiredAccess,
     __in POBJECT_ATTRIBUTES ObjectAttributes
     );
@@ -415,8 +415,8 @@ NTAPI
 ZwAlpcQueryInformation(
     __in HANDLE PortHandle,
     __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    __out_bcount(PortInformationLength) PVOID PortInformation,
-    __in ULONG PortInformationLength,
+    __out_bcount(Length) PVOID PortInformation,
+    __in ULONG Length,
     __out_opt PULONG ReturnLength
     );
 
@@ -425,10 +425,10 @@ NTSTATUS
 NTAPI
 ZwAlpcQueryInformationMessage(
     __in HANDLE PortHandle,
-    __in PPORT_MESSAGE Message,
+    __in PPORT_MESSAGE PortMessage,
     __in ALPC_MESSAGE_INFORMATION_CLASS MessageInformationClass,
-    __out_bcount(MessageInformationLength) PVOID MessageInformation,
-    __in ULONG MessageInformationLength,
+    __out_bcount(Length) PVOID MessageInformation,
+    __in ULONG Length,
     __out_opt PULONG ReturnLength
     );
 
@@ -437,8 +437,8 @@ NTSTATUS
 NTAPI
 ZwAlpcRevokeSecurityContext(
     __in HANDLE PortHandle,
-    __in ULONG Flags, // reserved
-    __in ALPC_HANDLE AlpcSecurityHandle
+    __reserved ULONG Flags,
+    __in ALPC_HANDLE ContextHandle
     );
 
 NTSYSCALLAPI
@@ -450,9 +450,9 @@ ZwAlpcSendWaitReceivePort(
     __in_opt PPORT_MESSAGE SendMessage,
     __in_opt PALPC_MESSAGE_ATTRIBUTES SendMessageAttributes,
     __inout_opt PPORT_MESSAGE ReceiveMessage,
-    __inout_opt PULONG ReceiveMessageLength,
+    __inout_opt PULONG BufferLength,
     __inout_opt PALPC_MESSAGE_ATTRIBUTES ReceiveMessageAttributes,
-    __in_opt PLARGE_INTEGER ReceiveTimeout
+    __in_opt PLARGE_INTEGER Timeout
     );
 
 NTSYSCALLAPI
@@ -461,8 +461,8 @@ NTAPI
 ZwAlpcSetInformation(
     __in HANDLE PortHandle,
     __in ALPC_PORT_INFORMATION_CLASS PortInformationClass,
-    __in_bcount(PortInformationLength) PVOID PortInformation,
-    __in ULONG PortInformationLength
+    __in_bcount(Length) PVOID PortInformation,
+    __in ULONG Length
     );
 
 NTSYSCALLAPI
@@ -828,7 +828,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwCreatePrivateNamespace(
-    __out PHANDLE DirectoryHandle,
+    __out PHANDLE NamespaceHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in PVOID BoundaryDescriptor
@@ -964,12 +964,12 @@ ZwCreateThreadEx(
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in HANDLE ProcessHandle,
     __in PVOID StartRoutine,
-    __in_opt PVOID StartContext,
-    __in ULONG Flags, // THREAD_CREATE_FLAGS_*
-    __in_opt ULONG_PTR StackZeroBits,
-    __in_opt SIZE_T StackCommit,
-    __in_opt SIZE_T StackReserve,
-    __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
+    __in_opt PVOID Argument,
+    __in ULONG CreateFlags, // THREAD_CREATE_FLAGS_*
+    __in_opt ULONG_PTR ZeroBits,
+    __in_opt SIZE_T StackSize,
+    __in_opt SIZE_T MaximumStackSize,
+    __in_opt PPS_ATTRIBUTE_LIST AttributeList
     );
 
 NTSYSCALLAPI
@@ -1041,9 +1041,9 @@ ZwCreateUserProcess(
     __in_opt POBJECT_ATTRIBUTES ThreadObjectAttributes,
     __in ULONG ProcessFlags, // PROCESS_CREATE_FLAGS_*
     __in ULONG ThreadFlags, // THREAD_CREATE_FLAGS_*
-    __in_opt PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
-    __inout PPROCESS_CREATE_INFO CreateInfo,
-    __in_opt PPROCESS_ATTRIBUTE_LIST AttributeList
+    __in_opt PVOID ProcessParameters,
+    __inout PPS_CREATE_INFO CreateInfo,
+    __in_opt PPS_ATTRIBUTE_LIST AttributeList
     );
 
 NTSYSCALLAPI
@@ -1061,16 +1061,16 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwCreateWorkerFactory(
-    __out PHANDLE WorkerFactoryHandle,
+    __out PHANDLE WorkerFactoryHandleReturn,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
-    __in HANDLE IoCompletionHandle,
-    __in HANDLE ProcessHandle,
-    __in PVOID WorkerThreadStart,
-    __in_opt PVOID WorkerThreadContext,
-    __in_opt ULONG MaximumCount,
-    __in_opt SIZE_T SizeOfStackReserve,
-    __in_opt SIZE_T SizeOfStackCommit
+    __in HANDLE CompletionPortHandle,
+    __in HANDLE WorkerProcessHandle,
+    __in PVOID StartRoutine,
+    __in_opt PVOID StartParameter,
+    __in_opt ULONG MaxThreadCount,
+    __in_opt SIZE_T StackReserve,
+    __in_opt SIZE_T StackCommit
     );
 
 NTSYSCALLAPI
@@ -1132,7 +1132,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwDeletePrivateNamespace(
-    __in HANDLE DirectoryHandle
+    __in HANDLE NamespaceHandle
     );
 
 NTSYSCALLAPI
@@ -1823,7 +1823,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwOpenPrivateNamespace(
-    __out PHANDLE DirectoryHandle,
+    __out PHANDLE NamespaceHandle,
     __in ACCESS_MASK DesiredAccess,
     __in_opt POBJECT_ATTRIBUTES ObjectAttributes,
     __in PVOID BoundaryDescriptor
@@ -2311,7 +2311,7 @@ NTSTATUS
 NTAPI
 ZwQueryInformationWorkerFactory(
     __in HANDLE WorkerFactoryHandle,
-    __in WORKER_FACTORY_INFORMATION_CLASS WorkerFactoryInformationClass,
+    __in WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
     __out_bcount(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
     __in ULONG WorkerFactoryInformationLength,
     __out_opt PULONG ReturnLength
@@ -3163,7 +3163,7 @@ NTSTATUS
 NTAPI
 ZwSetInformationWorkerFactory(
     __in HANDLE WorkerFactoryHandle,
-    __in WORKER_FACTORY_INFORMATION_CLASS WorkerFactoryInformationClass,
+    __in WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
     __in_bcount(WorkerFactoryInformationLength) PVOID WorkerFactoryInformation,
     __in ULONG WorkerFactoryInformationLength
     );
@@ -3360,7 +3360,7 @@ NTSTATUS
 NTAPI
 ZwShutdownWorkerFactory(
     __in HANDLE WorkerFactoryHandle,
-    __inout PULONG RefCount
+    __inout volatile LONG *PendingWorkerCount
     );
 
 NTSYSCALLAPI
@@ -3577,7 +3577,7 @@ NTSTATUS
 NTAPI
 ZwWaitForWorkViaWorkerFactory(
     __in HANDLE WorkerFactoryHandle,
-    __out struct _IO_COMPLETION_MINIPACKET *MiniPacket
+    __out struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket
     );
 
 NTSYSCALLAPI

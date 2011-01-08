@@ -316,7 +316,7 @@ FORCEINLINE NTSTATUS PhGetProcessCycleTime(
     if (!NT_SUCCESS(status))
         return status;
 
-    *CycleTime = cycleTimeInfo.AccumulatedCycles.QuadPart;
+    *CycleTime = cycleTimeInfo.AccumulatedCycles;
 
     return status;
 }
@@ -447,7 +447,7 @@ FORCEINLINE NTSTATUS PhGetThreadCycleTime(
     if (!NT_SUCCESS(status))
         return status;
 
-    *CycleTime = cycleTimeInfo.AccumulatedCycles.QuadPart;
+    *CycleTime = cycleTimeInfo.AccumulatedCycles;
 
     return status;
 }

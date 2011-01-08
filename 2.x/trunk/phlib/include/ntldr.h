@@ -157,11 +157,11 @@ LdrGetProcedureAddress(
     __out PVOID *ProcedureAddress
     );
 
-// begin_rev
-
+// rev
 #define LDR_GET_PROCEDURE_ADDRESS_DONT_RECORD_FORWARDER 0x00000001
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -173,8 +173,6 @@ LdrGetProcedureAddressEx(
     __in ULONG Flags
     );
 #endif
-
-// end_rev
 
 #define LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS 0x00000001
 #define LDR_LOCK_LOADER_LOCK_FLAG_TRY_ONLY 0x00000002
@@ -260,14 +258,14 @@ LdrVerifyImageMatchesChecksum(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrQueryModuleServiceTags(
     __in PVOID DllHandle,
-    __out_ecount(*NumberOfServiceTags) PULONG ServiceTags,
-    __inout PULONG NumberOfServiceTags
+    __out_ecount(*BufferSize) PULONG ServiceTagBuffer,
+    __inout PULONG BufferSize
     );
 #endif
 
@@ -351,14 +349,14 @@ typedef struct _RTL_PROCESS_MODULES
     RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
 
-// rev
+// private
 typedef struct _RTL_PROCESS_MODULE_INFORMATION_EX
 {
-    USHORT NextEntryOffset;
-    RTL_PROCESS_MODULE_INFORMATION ModuleInfo;
-    ULONG CheckSum;
-    ULONG Reserved1;
-    ULONG Reserved2;
+    USHORT NextOffset;
+    RTL_PROCESS_MODULE_INFORMATION BaseInfo;
+    ULONG ImageChecksum;
+    ULONG TimeDateStamp;
+    PVOID DefaultBase;
 } RTL_PROCESS_MODULE_INFORMATION_EX, *PRTL_PROCESS_MODULE_INFORMATION_EX;
 
 #endif

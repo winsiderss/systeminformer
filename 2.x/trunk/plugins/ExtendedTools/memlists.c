@@ -76,28 +76,28 @@ static VOID EtpUpdateMemoryListInfo(
         NULL
         )))
     {
-        ULONG_PTR standbyPageListTotal;
+        ULONG_PTR standbyPageCount;
         ULONG i;
 
-        standbyPageListTotal = 0;
+        standbyPageCount = 0;
 
         for (i = 0; i < 8; i++)
-            standbyPageListTotal += memoryListInfo.StandbyPageListTotals[i];
+            standbyPageCount += memoryListInfo.PageCountByPriority[i];
 
-        SetDlgItemText(hwndDlg, IDC_ZZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroedPageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZBAD_V, PhaFormatSize((ULONG64)memoryListInfo.BadPageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY_V, PhaFormatSize((ULONG64)standbyPageListTotal * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[0] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[1] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[2] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[3] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[4] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[5] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[6] * PAGE_SIZE, -1)->Buffer);
-        SetDlgItemText(hwndDlg, IDC_ZSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.StandbyPageListTotals[7] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZMODIFIED_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZMODIFIEDNOWRITE_V, PhaFormatSize((ULONG64)memoryListInfo.ModifiedNoWritePageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZBAD_V, PhaFormatSize((ULONG64)memoryListInfo.BadPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY_V, PhaFormatSize((ULONG64)standbyPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY0_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[0] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY1_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[1] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY2_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[2] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY3_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[3] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY4_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[4] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
     }
     else
     {

@@ -41,6 +41,7 @@ for %%a in (
     ntnls.h
     ntobapi.h
     ntpebteb.h
+    ntpfapi.h
     ntpnpapi.h
     ntpoapi.h
     ntpsapi.h
