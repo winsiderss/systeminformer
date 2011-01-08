@@ -13,6 +13,13 @@
 // "dbg" indicates that a definition has been obtained from a debug 
 // message or assertion in a checked build of the kernel or file.
 
+// Reliability:
+// 1. No annotation.
+// 2. dbg.
+// 3. symbols, private. Types may be incorrect.
+// 4. winbase. Names and types may be incorrect.
+// 5. rev.
+
 // Mode
 #define PHNT_MODE_KERNEL 0
 #define PHNT_MODE_USER 1
@@ -59,6 +66,7 @@ extern "C" {
 #include <ntdbg.h>
 #include <ntioapi.h>
 #include <ntlpcapi.h>
+#include <ntpfapi.h>
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
