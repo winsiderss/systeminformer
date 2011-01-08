@@ -1023,7 +1023,7 @@ NTSTATUS
 NTAPI
 NtCancelIoFileEx(
     __in HANDLE FileHandle,
-    __in_opt PIO_STATUS_BLOCK UserIosb,
+    __in_opt PIO_STATUS_BLOCK IoRequestToCancel,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 #endif
@@ -1035,7 +1035,7 @@ NTSTATUS
 NTAPI
 NtCancelSynchronousIoFile(
     __in HANDLE ThreadHandle,
-    __in_opt PIO_STATUS_BLOCK UserIosb,
+    __in_opt PIO_STATUS_BLOCK IoRequestToCancel,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 #endif
@@ -1261,8 +1261,8 @@ NtSetIoCompletion(
     __in ULONG_PTR IoStatusInformation
     );
 
-// begin_rev
 #if (PHNT_VERSION >= PHNT_WIN7)
+// rev
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1275,7 +1275,6 @@ NtSetIoCompletionEx(
     __in ULONG_PTR IoStatusInformation
     );
 #endif
-// end_rev
 
 NTSYSCALLAPI
 NTSTATUS
@@ -1287,6 +1286,21 @@ NtRemoveIoCompletion(
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in_opt PLARGE_INTEGER Timeout
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtRemoveIoCompletionEx(
+    __in HANDLE IoCompletionHandle,
+    __out_ecount(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    __in ULONG Count,
+    __out PULONG NumEntriesRemoved,
+    __in_opt PLARGE_INTEGER Timeout,
+    __in BOOLEAN Alertable
+    );
+#endif
 
 // Control structures
 
