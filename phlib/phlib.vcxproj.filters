@@ -422,6 +422,9 @@
     <ClInclude Include="include\kphuser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\ntpfapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pcre\pcre_printint.src" />

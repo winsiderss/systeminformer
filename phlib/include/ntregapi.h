@@ -574,17 +574,17 @@ NtLockProductActivationKeys(
     );
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtFreezeRegistry(
-    __in ULONG ThawTimeoutInSeconds
+    __in ULONG TimeOutInSeconds
     );
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

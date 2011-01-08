@@ -1302,6 +1302,28 @@ NtRemoveIoCompletionEx(
     );
 #endif
 
+// Misc.
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtEnableLastKnownGood(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDisableLastKnownGood(
+    VOID
+    );
+#endif
+
 // Control structures
 
 // Reparse structure for FSCTL_SET_REPARSE_POINT, FSCTL_GET_REPARSE_POINT, FSCTL_DELETE_REPARSE_POINT
