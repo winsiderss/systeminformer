@@ -503,7 +503,7 @@ NTSTATUS
 NTAPI
 ZwCancelIoFileEx(
     __in HANDLE FileHandle,
-    __in_opt PIO_STATUS_BLOCK UserIosb,
+    __in_opt PIO_STATUS_BLOCK IoRequestToCancel,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 
@@ -512,7 +512,7 @@ NTSTATUS
 NTAPI
 ZwCancelSynchronousIoFile(
     __in HANDLE ThreadHandle,
-    __in_opt PIO_STATUS_BLOCK UserIosb,
+    __in_opt PIO_STATUS_BLOCK IoRequestToCancel,
     __out PIO_STATUS_BLOCK IoStatusBlock
     );
 
@@ -2748,6 +2748,18 @@ ZwRemoveIoCompletion(
     __out PVOID *ApcContext,
     __out PIO_STATUS_BLOCK IoStatusBlock,
     __in_opt PLARGE_INTEGER Timeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRemoveIoCompletionEx(
+    __in HANDLE IoCompletionHandle,
+    __out_ecount(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    __in ULONG Count,
+    __out PULONG NumEntriesRemoved,
+    __in_opt PLARGE_INTEGER Timeout,
+    __in BOOLEAN Alertable
     );
 
 NTSYSCALLAPI
