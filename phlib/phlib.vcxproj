@@ -225,6 +225,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\kphapi.h" />
+    <ClInclude Include="include\ntpfapi.h" />
     <ClInclude Include="include\ntzwapi.h" />
     <ClInclude Include="include\phintrnl.h" />
     <ClInclude Include="include\phnatinl.h" />

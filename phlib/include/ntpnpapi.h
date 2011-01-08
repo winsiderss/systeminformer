@@ -117,4 +117,26 @@ NtPlugPlayControl(
     __in ULONG PnPControlDataLength
     );
 
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSerializeBoot(
+    VOID
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtReplacePartitionUnit(
+    __in PUNICODE_STRING TargetInstancePath,
+    __in PUNICODE_STRING SpareInstancePath,
+    __in ULONG Flags
+    );
+#endif
+
 #endif

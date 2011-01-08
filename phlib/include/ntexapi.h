@@ -2115,44 +2115,4 @@ NtDisplayString(
     __in PUNICODE_STRING String
     );
 
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtEnableLastKnownGood(
-    VOID
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtDisableLastKnownGood(
-    VOID
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtSerializeBoot(
-    VOID
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WIN7)
-// rev
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtDrawText(
-    __in PUNICODE_STRING Text
-    );
-#endif
-
 #endif

@@ -1337,14 +1337,14 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwFreezeRegistry(
-    __in ULONG ThawTimeoutInSeconds
+    __in ULONG TimeOutInSeconds
     );
 
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwFreezeTransactions(
-    __in PLARGE_INTEGER Timeout,
+    __in PLARGE_INTEGER FreezeTimeout,
     __in PLARGE_INTEGER ThawTimeout
     );
 
@@ -2798,6 +2798,15 @@ ZwReplaceKey(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReplacePartitionUnit(
+    __in PUNICODE_STRING TargetInstancePath,
+    __in PUNICODE_STRING SpareInstancePath,
+    __in ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwReplyPort(
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE ReplyMessage
@@ -3465,6 +3474,18 @@ NTSTATUS
 NTAPI
 ZwThawTransactions(
     VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwTraceControl(
+    __in ULONG FunctionCode,
+    __in_bcount_opt(InBufferLen) PVOID InBuffer,
+    __in ULONG InBufferLen,
+    __out_bcount_opt(OutBufferLen) PVOID OutBuffer,
+    __in ULONG OutBufferLen,
+    __out PULONG ReturnLength
     );
 
 NTSYSCALLAPI
