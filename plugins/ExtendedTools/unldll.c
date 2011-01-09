@@ -26,6 +26,7 @@
 typedef struct _UNLOADED_DLLS_CONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
+    HWND ListViewHandle;
     PVOID CapturedEventTrace;
 } UNLOADED_DLLS_CONTEXT, *PUNLOADED_DLLS_CONTEXT;
 
@@ -307,7 +308,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->ListViewHandle = lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
             PhSetControlTheme(lvHandle, L"explorer");
@@ -344,6 +345,11 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
                 EtpRefreshUnloadedDlls(hwndDlg, context);
                 break;
             }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
         }
         break;
     }

@@ -526,6 +526,11 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
+        }
+        break;
     case WM_TIMER:
         {
             switch (wParam)
