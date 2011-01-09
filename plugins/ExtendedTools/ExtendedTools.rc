@@ -51,8 +51,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,0
- PRODUCTVERSION 1,1,0,0
+ FILEVERSION 1,2,0,0
+ PRODUCTVERSION 1,2,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,12 +69,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Extended Tools plugin for Process Hacker"
-            VALUE "FileVersion", "1.1"
+            VALUE "FileVersion", "1.2"
             VALUE "InternalName", "ExtendedTools"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ExtendedTools.dll"
             VALUE "ProductName", "Extended Tools plugin for Process Hacker"
-            VALUE "ProductVersion", "1.1"
+            VALUE "ProductVersion", "1.2"
         END
     END
     BLOCK "VarFileInfo"
@@ -244,6 +244,19 @@ BEGIN
     LTEXT           "Changes to settings will require a restart of Process Hacker.",IDC_STATIC,7,7,193,8
 END
 
+IDD_WSWATCH DIALOGEX 0, 0, 325, 266
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "WS Watch"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Close",IDOK,268,245,50,14
+    LTEXT           "Working set watch allows you to monitor page faults that occur in a process. You must enable WS watch for the process to start the monitoring. Once WS watch is enabled, it cannot be disabled.",IDC_STATIC,7,7,311,27
+    PUSHBUTTON      "Enable",IDC_ENABLE,7,37,50,14
+    LTEXT           "Page faults:",IDC_STATIC,7,54,40,8
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,65,311,175
+    LTEXT           "WS watch is enabled.",IDC_WSWATCHENABLED,63,40,119,8,NOT WS_VISIBLE
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -319,6 +332,14 @@ BEGIN
         RIGHTMARGIN, 208
         TOPMARGIN, 7
         BOTTOMMARGIN, 63
+    END
+
+    IDD_WSWATCH, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 318
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 259
     END
 END
 #endif    // APSTUDIO_INVOKED
