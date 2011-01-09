@@ -238,6 +238,11 @@ VOID NTAPI MenuItemCallback(
             EtShowUnloadedDllsDialog(PhMainWndHandle, menuItem->Context);
         }
         break;
+    case ID_PROCESS_WSWATCH:
+        {
+            EtShowWsWatchDialog(PhMainWndHandle, menuItem->Context);
+        }
+        break;
     case ID_THREAD_CANCELIO:
         {
             EtUiCancelIoThread(menuItem->OwnerWindow, menuItem->Context);
@@ -304,6 +309,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
     if (miscMenu)
     {
         PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_UNLOADEDMODULES, L"Unloaded Modules", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_WSWATCH, L"WS Watch", processItem), -1);
     }
 }
 

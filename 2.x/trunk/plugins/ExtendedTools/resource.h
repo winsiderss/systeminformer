@@ -18,7 +18,9 @@
 #define IDD_SYSDISKNET                  107
 #define ID_VIEW_DISKANDNETWORK          107
 #define IDD_SYSDISKNET_PANEL            108
+#define ID_PROCESS_WSWATCH              108
 #define IDD_OPTIONS                     109
+#define IDD_WSWATCH                     110
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -58,14 +60,16 @@
 #define IDC_ALWAYSONTOP                 1037
 #define IDC_ENABLEETW                   1038
 #define IDC_ENABLEETWMONITOR            1038
+#define IDC_ENABLE                      1039
+#define IDC_WSWATCHENABLED              1041
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        110
+#define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1039
-#define _APS_NEXT_SYMED_VALUE           108
+#define _APS_NEXT_CONTROL_VALUE         1042
+#define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif
