@@ -151,10 +151,12 @@ NTSTATUS KphDynamicDataInitialization(
         return status;
 
 #ifdef _X86_
-    return KphpX86DataInitialization();
+    KphpX86DataInitialization();
 #else
-    return KphpAmd64DataInitialization();
+    KphpAmd64DataInitialization();
 #endif
+
+    return status;
 }
 
 #ifdef _X86_
