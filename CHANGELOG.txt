@@ -1,5 +1,9 @@
 Process Hacker
 
+2.11
+ * NEW/IMPROVED:
+   * Added WS Watch to ExtendedTools plugin
+
 2.10
  * NEW/IMPROVED:
    * KProcessHacker is now signed, so it works on 64-bit 

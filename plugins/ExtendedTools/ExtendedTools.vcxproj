@@ -187,6 +187,7 @@
     <ClCompile Include="options.c" />
     <ClCompile Include="thrdact.c" />
     <ClCompile Include="unldll.c" />
+    <ClCompile Include="wswatch.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="etwmon.h" />

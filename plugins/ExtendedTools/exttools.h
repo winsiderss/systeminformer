@@ -125,4 +125,11 @@ VOID EtShowUnloadedDllsDialog(
     __in PPH_PROCESS_ITEM ProcessItem
     );
 
+// wswatch
+
+VOID EtShowWsWatchDialog(
+    __in HWND ParentWindowHandle,
+    __in PPH_PROCESS_ITEM ProcessItem
+    );
+
 #endif
