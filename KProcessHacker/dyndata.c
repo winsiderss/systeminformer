@@ -186,6 +186,26 @@ static NTSTATUS KphpX86DataInitialization(
 
         KphDynNtVersion = PHNT_WINXP;
 
+        // Windows XP SP0 and 1 are not supported
+        if (servicePack == 0)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 1)
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+        else if (servicePack == 2)
+        {
+        }
+        else if (servicePack == 3)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
+
         KphDynEpObjectTable = 0xc4;
         KphDynEpRundownProtect = 0x80;
         KphDynOtName = 0x40;
@@ -210,26 +230,6 @@ static NTSTATUS KphpX86DataInitialization(
                 );
         }
 
-        // Windows XP SP0 and 1 are not supported
-        if (servicePack == 0)
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-        else if (servicePack == 1)
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-        else if (servicePack == 2)
-        {
-        }
-        else if (servicePack == 3)
-        {
-        }
-        else
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
         dprintf("Initialized version-specific data for Windows XP SP%d\n", servicePack);
     }
     // Windows Server 2003
@@ -239,6 +239,20 @@ static NTSTATUS KphpX86DataInitialization(
         ULONG scanLength = 0x100000;
 
         KphDynNtVersion = PHNT_WS03;
+
+        if (servicePack == 0)
+        {
+        }
+        else if (servicePack == 1)
+        {
+        }
+        else if (servicePack == 2)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
 
         KphDynEpObjectTable = 0xd4;
         KphDynEpRundownProtect = 0x90;
@@ -264,20 +278,6 @@ static NTSTATUS KphpX86DataInitialization(
                 );
         }
 
-        if (servicePack == 0)
-        {
-        }
-        else if (servicePack == 1)
-        {
-        }
-        else if (servicePack == 2)
-        {
-        }
-        else
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
         dprintf("Initialized version-specific data for Windows Server 2003 SP%d\n", servicePack);
     }
     // Windows Vista, Windows Server 2008
@@ -287,6 +287,26 @@ static NTSTATUS KphpX86DataInitialization(
         ULONG scanLength = 0x100000;
 
         KphDynNtVersion = PHNT_VISTA;
+
+        if (servicePack == 0)
+        {
+            KphDynOtName = 0x40;
+            KphDynOtIndex = 0x4c;
+        }
+        else if (servicePack == 1)
+        {
+            KphDynOtName = 0x8; // they moved Mutex (ERESOURCE) further down
+            KphDynOtIndex = 0x14;
+        }
+        else if (servicePack == 2)
+        {
+            KphDynOtName = 0x8;
+            KphDynOtIndex = 0x14;
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
 
         KphDynEgeGuid = 0xc;
         KphDynEpObjectTable = 0xdc;
@@ -311,26 +331,6 @@ static NTSTATUS KphpX86DataInitialization(
                 );
         }
 
-        if (servicePack == 0)
-        {
-            KphDynOtName = 0x40;
-            KphDynOtIndex = 0x4c;
-        }
-        else if (servicePack == 1)
-        {
-            KphDynOtName = 0x8; // they moved Mutex (ERESOURCE) further down
-            KphDynOtIndex = 0x14;
-        }
-        else if (servicePack == 2)
-        {
-            KphDynOtName = 0x8;
-            KphDynOtIndex = 0x14;
-        }
-        else
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
         dprintf("Initialized version-specific data for Windows Vista SP%d/Windows Server 2008\n", servicePack);
     }
     // Windows 7, Windows Server 2008 R2
@@ -340,6 +340,14 @@ static NTSTATUS KphpX86DataInitialization(
         ULONG scanLength = 0x200000;
 
         KphDynNtVersion = PHNT_WIN7;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
 
         KphDynEgeGuid = 0xc;
         KphDynEpObjectTable = 0xf4;
@@ -366,15 +374,12 @@ static NTSTATUS KphpX86DataInitialization(
                 );
         }
 
-        if (servicePack == 0)
-        {
-        }
-        else
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
         dprintf("Initialized version-specific data for Windows 7 SP%d\n", servicePack);
+    }
+    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
+    {
+        KphDynNtVersion = 0xffffffff;
+        return STATUS_NOT_SUPPORTED;
     }
     else
     {
@@ -451,13 +456,6 @@ static NTSTATUS KphpAmd64DataInitialization(
     {
         KphDynNtVersion = PHNT_VISTA;
 
-        KphDynEgeGuid = 0x14;
-        KphDynEpObjectTable = 0x160;
-        KphDynEpProtectedProcessOff = 0x36c;
-        KphDynEpProtectedProcessBit = 0xb;
-        KphDynEpRundownProtect = 0xd8;
-        KphDynEreGuidEntry = 0x10;
-
         if (servicePack == 0)
         {
             KphDynOtName = 0x78;
@@ -477,6 +475,13 @@ static NTSTATUS KphpAmd64DataInitialization(
         {
             return STATUS_NOT_SUPPORTED;
         }
+
+        KphDynEgeGuid = 0x14;
+        KphDynEpObjectTable = 0x160;
+        KphDynEpProtectedProcessOff = 0x36c;
+        KphDynEpProtectedProcessBit = 0xb;
+        KphDynEpRundownProtect = 0xd8;
+        KphDynEreGuidEntry = 0x10;
     }
     // Windows 7, Windows Server 2008 R2
     else if (majorVersion == 6 && minorVersion == 1)
@@ -485,6 +490,14 @@ static NTSTATUS KphpAmd64DataInitialization(
         //ULONG scanLength = 0x100000;
 
         KphDynNtVersion = PHNT_WIN7;
+
+        if (servicePack == 0)
+        {
+        }
+        else
+        {
+            return STATUS_NOT_SUPPORTED;
+        }
 
         KphDynEgeGuid = 0x14;
         KphDynEpObjectTable = 0x200;
@@ -512,15 +525,12 @@ static NTSTATUS KphpAmd64DataInitialization(
         //        );
         //}
 
-        if (servicePack == 0)
-        {
-        }
-        else
-        {
-            return STATUS_NOT_SUPPORTED;
-        }
-
         dprintf("Initialized version-specific data for Windows 7 SP%d\n", servicePack);
+    }
+    else if (majorVersion == 6 && minorVersion > 1 || majorVersion > 6)
+    {
+        KphDynNtVersion = 0xffffffff;
+        return STATUS_NOT_SUPPORTED;
     }
     else
     {
