@@ -62,6 +62,16 @@
 #define IDC_ENABLEETWMONITOR            1038
 #define IDC_ENABLE                      1039
 #define IDC_WSWATCHENABLED              1041
+#define IDC_ZREPURPOSED_V               1042
+#define IDC_ZREPURPOSED0_V              1043
+#define IDC_ZREPURPOSED1_V              1044
+#define IDC_ZREPURPOSED2_V              1045
+#define IDC_ZREPURPOSED3_V              1046
+#define IDC_ZREPURPOSED4_V              1047
+#define IDC_ZREPURPOSED5_V              1048
+#define IDC_ZREPURPOSED6_V              1049
+#define IDC_ZSTDREP7_V                  1050
+#define IDC_ZREPURPOSED7_V              1050
 
 // Next default values for new objects
 // 
@@ -69,7 +79,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1042
+#define _APS_NEXT_CONTROL_VALUE         1051
 #define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif

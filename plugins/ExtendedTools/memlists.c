@@ -77,12 +77,17 @@ static VOID EtpUpdateMemoryListInfo(
         )))
     {
         ULONG_PTR standbyPageCount;
+        ULONG_PTR repurposedPageCount;
         ULONG i;
 
         standbyPageCount = 0;
+        repurposedPageCount = 0;
 
         for (i = 0; i < 8; i++)
+        {
             standbyPageCount += memoryListInfo.PageCountByPriority[i];
+            repurposedPageCount += memoryListInfo.RepurposedPagesByPriority[i];
+        }
 
         SetDlgItemText(hwndDlg, IDC_ZZEROED_V, PhaFormatSize((ULONG64)memoryListInfo.ZeroPageCount * PAGE_SIZE, -1)->Buffer);
         SetDlgItemText(hwndDlg, IDC_ZFREE_V, PhaFormatSize((ULONG64)memoryListInfo.FreePageCount * PAGE_SIZE, -1)->Buffer);
@@ -98,6 +103,15 @@ static VOID EtpUpdateMemoryListInfo(
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY5_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[5] * PAGE_SIZE, -1)->Buffer);
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY6_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[6] * PAGE_SIZE, -1)->Buffer);
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY7_V, PhaFormatSize((ULONG64)memoryListInfo.PageCountByPriority[7] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED_V, PhaFormatSize((ULONG64)repurposedPageCount * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED0_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[0] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED1_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[1] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED2_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[2] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED3_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[3] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED4_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[4] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED5_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[5] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED6_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[6] * PAGE_SIZE, -1)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED7_V, PhaFormatSize((ULONG64)memoryListInfo.RepurposedPagesByPriority[7] * PAGE_SIZE, -1)->Buffer);
     }
     else
     {
@@ -115,6 +129,15 @@ static VOID EtpUpdateMemoryListInfo(
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY5_V, L"Unknown");
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY6_V, L"Unknown");
         SetDlgItemText(hwndDlg, IDC_ZSTANDBY7_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED0_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED1_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED2_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED3_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED4_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED5_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED6_V, L"Unknown");
+        SetDlgItemText(hwndDlg, IDC_ZREPURPOSED7_V, L"Unknown");
     }
 }
 

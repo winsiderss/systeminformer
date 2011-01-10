@@ -2,7 +2,8 @@ Process Hacker
 
 2.11
  * NEW/IMPROVED:
-   * Added WS Watch to ExtendedTools plugin
+   * Added WS Watch and other features to ExtendedTools 
+     plugin
 
 2.10
  * NEW/IMPROVED:
