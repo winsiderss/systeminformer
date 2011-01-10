@@ -391,4 +391,21 @@ NtPrivilegedServiceAuditAlarm(
     __in BOOLEAN AccessGranted
     );
 
+// Authz
+
+#if (PHNT_VERSION >= PHNT_WIN7)
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySecurityAttributesToken(
+    __in HANDLE TokenHandle,
+    __in_ecount_opt(NumberOfAttributes) PUNICODE_STRING Attributes,
+    __in ULONG NumberOfAttributes,
+    __out_bcount(Length) PVOID Buffer, // PAUTHZ_SECURITY_ATTRIBUTES_INFORMATION
+    __in ULONG Length,
+    __out PULONG ReturnLength
+    );
+#endif
+
 #endif
