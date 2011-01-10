@@ -998,13 +998,14 @@ typedef struct _SYSTEM_THREAD_INFORMATION
 
 typedef struct _TEB *PTEB;
 
+// private
 typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION
 {
     SYSTEM_THREAD_INFORMATION ThreadInfo;
     PVOID StackBase;
     PVOID StackLimit;
     PVOID Win32StartAddress;
-    PTEB TebBaseAddress; /* Windows 7 and above */
+    PTEB TebBase;
     ULONG_PTR Reserved2;
     ULONG_PTR Reserved3;
     ULONG_PTR Reserved4;
@@ -1433,13 +1434,13 @@ typedef struct _SYSTEM_SESSION_MAPPED_VIEW_INFORMATION
 // private
 typedef struct _SYSTEM_MEMORY_LIST_INFORMATION
 {
-    ULONG ZeroPageCount;
-    ULONG FreePageCount;
-    ULONG ModifiedPageCount;
-    ULONG ModifiedNoWritePageCount;
-    ULONG BadPageCount;
-    ULONG PageCountByPriority[8];
-    ULONG RepurposedPagesByPriority[8];
+    ULONG_PTR ZeroPageCount;
+    ULONG_PTR FreePageCount;
+    ULONG_PTR ModifiedPageCount;
+    ULONG_PTR ModifiedNoWritePageCount;
+    ULONG_PTR BadPageCount;
+    ULONG_PTR PageCountByPriority[8];
+    ULONG_PTR RepurposedPagesByPriority[8];
 } SYSTEM_MEMORY_LIST_INFORMATION, *PSYSTEM_MEMORY_LIST_INFORMATION;
 
 // private
