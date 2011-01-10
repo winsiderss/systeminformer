@@ -563,6 +563,10 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         {
             PhSetHeaderSortIcon(ListView_GetHeader(hwnd), context->SortColumn, context->SortOrder);
 
+            // HACK to fix tooltips showing behind Always On Top windows.
+            SetWindowPos(ListView_GetToolTips(hwnd), HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
             // Make sure focus rectangles are disabled.
             SendMessage(hwnd, WM_CHANGEUISTATE, MAKELONG(UIS_SET, UISF_HIDEFOCUS), 0);
         }

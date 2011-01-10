@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added WS Watch and other features to ExtendedTools 
      plugin
+ * FIXED:
+   * Always on Top issues
 
 2.10
  * NEW/IMPROVED:
