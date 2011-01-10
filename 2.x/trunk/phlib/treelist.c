@@ -263,6 +263,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 );
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
+            // HACK to fix tooltips showing behind Always On Top windows.
+            SetWindowPos(ListView_GetToolTips(context->ListViewHandle), HWND_TOPMOST, 0, 0, 0, 0,
+                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
 
             // Make sure we get to store item state.
             ListView_SetCallbackMask(
