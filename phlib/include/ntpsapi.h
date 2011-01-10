@@ -945,19 +945,19 @@ typedef struct _PS_CREATE_INFO
             };
             ACCESS_MASK AdditionalFileAccess;
         } InitState;
-        
+
         // PsCreateFailOnSectionCreate
         struct
         {
             HANDLE FileHandle;
         } FailSection;
-        
+
         // PsCreateFailExeName
         struct
         {
             HANDLE IFEOKey;
         } ExeName;
-        
+
         // PsCreateSuccess
         struct
         {
