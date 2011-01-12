@@ -36,6 +36,10 @@ typedef struct _STRING_TABLE_ENTRY
     ULONG_PTR Count;
 } STRING_TABLE_ENTRY, *PSTRING_TABLE_ENTRY;
 
+BOOL ConsoleHandlerRoutine(
+    __in DWORD dwCtrlType
+    );
+
 VOID PhpPrintHashtableStatistics(
     __in PPH_HASHTABLE Hashtable
     );
@@ -62,13 +66,55 @@ static ULONG NumberOfLeaksShown;
 
 VOID PhShowDebugConsole()
 {
-    if (!AllocConsole())
-        return;
+    if (AllocConsole())
+    {
+        HMENU menu;
 
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-    freopen("CONIN$", "r", stdin);
-    DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL); 
+        // Disable the close button because it's impossible to handle 
+        // those events.
+        menu = GetSystemMenu(GetConsoleWindow(), FALSE);
+        EnableMenuItem(menu, SC_CLOSE, MF_GRAYED | MF_DISABLED);
+        DeleteMenu(menu, SC_CLOSE, 0);
+
+        // Set a handler so we can catch Ctrl+C and Ctrl+Break.
+        SetConsoleCtrlHandler(ConsoleHandlerRoutine, TRUE);
+
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        freopen("CONIN$", "r", stdin);
+        DebugConsoleThreadHandle = PhCreateThread(0, PhpDebugConsoleThreadStart, NULL);
+    }
+    else
+    {
+        // Console window already exists, so bring it to the top.
+        BringWindowToTop(GetConsoleWindow());
+        return;
+    }
+}
+
+VOID PhCloseDebugConsole()
+{
+    fclose(stdout);
+    fclose(stderr);
+    fclose(stdin);
+
+    FreeConsole();
+}
+
+static BOOL ConsoleHandlerRoutine(
+    __in DWORD dwCtrlType
+    )
+{
+    switch (dwCtrlType)
+    {
+    case CTRL_C_EVENT:
+    case CTRL_BREAK_EVENT:
+    case CTRL_CLOSE_EVENT:
+        PhCloseDebugConsole();
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 static BOOLEAN NTAPI PhpLoadCurrentProcessSymbolsCallback(
@@ -174,6 +220,9 @@ static VOID PhpDumpObjectInfo(
     __try
     {
         wprintf(L"Type: %s\n", ObjectHeader->Type->Name);
+        wprintf(L"Reference count: %d\n", ObjectHeader->RefCount);
+        wprintf(L"Flags: %x\n", ObjectHeader->Flags);
+        wprintf(L"Size / Next to free: %Iu / %Ix\n", ObjectHeader->Size, ObjectHeader->NextToFree);
 
         if (ObjectHeader->Type == PhObjectTypeObject)
         {
@@ -440,6 +489,7 @@ typedef struct _RW_TEST_CONTEXT
     PVOID Parameter;
 } RW_TEST_CONTEXT, *PRW_TEST_CONTEXT;
 
+static PH_BARRIER RwStartBarrier;
 static LONG RwReadersActive;
 static LONG RwWritersActive;
 
@@ -458,6 +508,8 @@ static NTSTATUS PhpRwLockTestThreadStart(
     ULONG j;
     ULONG k;
     ULONG m;
+
+    PhWaitForBarrier(&RwStartBarrier, FALSE);
 
     for (i = 0; i < RW_ITERS; i++)
     {
@@ -548,6 +600,7 @@ static VOID PhpTestRwLock(
 
     // Stress test
 
+    PhInitializeBarrier(&RwStartBarrier, RW_PROCESSORS + 1);
     RwReadersActive = 0;
     RwWritersActive = 0;
 
@@ -556,6 +609,7 @@ static VOID PhpTestRwLock(
         threadHandles[i] = PhCreateThread(0, PhpRwLockTestThreadStart, Context); 
     }
 
+    PhWaitForBarrier(&RwStartBarrier, FALSE);
     PhStartStopwatch(&stopwatch);
     NtWaitForMultipleObjects(RW_PROCESSORS, threadHandles, WaitAll, FALSE, NULL);
     PhStopStopwatch(&stopwatch);
@@ -615,22 +669,29 @@ NTSTATUS PhpDebugConsoleThreadStart(
     PhDbgCreateObjectHook = PhpDebugCreateObjectHook;
 #endif
 
+    wprintf(L"Press Ctrl+C or type \"exit\" to close the debug console. Type \"help\" for a list of commands.\n");
+
     while (TRUE)
     {
         static PWSTR delims = L" \t";
         static PWSTR commandDebugOnly = L"This command is not available on non-debug builds.\n";
 
         WCHAR line[201];
+        ULONG inputLength;
         PWSTR context;
         PWSTR command;
 
         wprintf(L"dbg>");
 
         if (!fgetws(line, sizeof(line) / 2 - 1, stdin))
-            continue;
+            break;
 
         // Remove the terminating new line character.
-        line[wcslen(line) - 1] = 0;
+
+        inputLength = (ULONG)wcslen(line);
+
+        if (inputLength != 0)
+            line[inputLength - 1] = 0;
 
         context = NULL;
         command = wcstok_s(line, delims, &context);
@@ -643,6 +704,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
         {
             wprintf(
                 L"Commands:\n"
+                L"exit\n"
                 L"testperf\n"
                 L"testlocks\n"
                 L"stats\n"
@@ -659,11 +721,16 @@ NTSTATUS PhpDebugConsoleThreadStart(
                 L"provthreads\n"
                 L"workqueues\n"
                 L"procrecords\n"
+                L"procitem\n"
                 L"uniquestr\n"
                 L"enableleakdetect\n"
                 L"leakdetect\n"
                 L"mem\n"
                 );
+        }
+        else if (WSTR_IEQUAL(command, L"exit"))
+        {
+            PhCloseDebugConsole();
         }
         else if (WSTR_IEQUAL(command, L"testperf"))
         {
@@ -1300,7 +1367,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
                 do
                 {
-                    wprintf(L"\t%s (%u) (refs: %d)\n", record->ProcessName->Buffer, (ULONG)record->ProcessId, record->RefCount);
+                    wprintf(L"\tRecord at %Ix: %s (%u) (refs: %d)\n", record, record->ProcessName->Buffer, (ULONG)record->ProcessId, record->RefCount);
 
                     if (record->FileName)
                         wprintf(L"\t\t%s\n", record->FileName->Buffer);
@@ -1310,6 +1377,82 @@ NTSTATUS PhpDebugConsoleThreadStart(
             }
 
             PhReleaseQueuedLockShared(&PhProcessRecordListLock);
+        }
+        else if (WSTR_IEQUAL(command, L"procitem"))
+        {
+            PWSTR filterString;
+            PH_STRINGREF filterRef;
+            ULONG64 filter64;
+            LONG_PTR processIdFilter = -9; // can't use -2, -1 or 0 because they're all used for process IDs
+            ULONG_PTR processAddressFilter = 0;
+            PWSTR imageNameFilter = NULL;
+            BOOLEAN showAll = FALSE;
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+            ULONG i;
+
+            filterString = wcstok_s(NULL, delims, &context);
+
+            if (filterString)
+            {
+                ULONG length;
+
+                PhInitializeStringRef(&filterRef, filterString);
+
+                // Never interpret the filter string as a process ID if it isn't 
+                // base 10, to reduce FPs (since PhStringToInteger64 never actually fails 
+                // regardless of what characters are in the input).
+
+                length = filterRef.Length / 2;
+
+                for (i = 0; i < length; i++)
+                {
+                    if (!PhIsDigitCharacter(filterRef.Buffer[i]))
+                        break;
+                }
+
+                if (i == filterRef.Length / 2)
+                {
+                    if (PhStringToInteger64(&filterRef, 10, &filter64))
+                        processIdFilter = (LONG_PTR)filter64;
+                }
+
+                // Always try to interpret the filter string as an address or image name, 
+                // because these have very few false positives.
+                if (PhStringToInteger64(&filterRef, 16, &filter64))
+                    processAddressFilter = (ULONG_PTR)filter64;
+
+                imageNameFilter = filterString;
+            }
+            else
+            {
+                showAll = TRUE;
+            }
+
+            PhEnumProcessItems(&processes, &numberOfProcesses);
+
+            for (i = 0; i < numberOfProcesses; i++)
+            {
+                PPH_PROCESS_ITEM process = processes[i];
+
+                if (
+                    showAll ||
+                    (processIdFilter != -9 && (LONG_PTR)process->ProcessId == processIdFilter) ||
+                    (processAddressFilter != 0 && (ULONG_PTR)process == processAddressFilter) ||
+                    (imageNameFilter && PhMatchWildcards(imageNameFilter, process->ProcessName->Buffer, TRUE))
+                    )
+                {
+                    wprintf(L"Process item at %Ix: %s (%u)\n", process, process->ProcessName->Buffer, (ULONG)process->ProcessId);
+                    wprintf(L"\tRecord at %Ix\n", process->Record);
+                    wprintf(L"\tQuery handle %Ix\n", process->QueryHandle);
+                    wprintf(L"\tFile name at %Ix: %s\n", process->FileName, PhGetStringOrDefault(process->FileName, L"(null)"));
+                    wprintf(L"\tCommand line at %Ix: %s\n", process->CommandLine, PhGetStringOrDefault(process->CommandLine, L"(null)"));
+                    wprintf(L"\tFlags: %u\n", process->Flags);
+                    wprintf(L"\n");
+                }
+            }
+
+            PhDereferenceObjects(processes, numberOfProcesses);
         }
         else if (WSTR_IEQUAL(command, L"uniquestr"))
         {
@@ -1472,7 +1615,9 @@ NTSTATUS PhpDebugConsoleThreadStart(
             bytesString = wcstok_s(NULL, delims, &context);
 
             if (!bytesString)
-                goto PrintMemUsage;
+            {
+                bytesString = L"16";
+            }
 
             PhInitializeStringRef(&addressStringRef, addressString);
             PhInitializeStringRef(&bytesStringRef, bytesString);
@@ -1528,7 +1673,7 @@ NTSTATUS PhpDebugConsoleThreadStart(
 
             goto EndCommand;
 PrintMemUsage:
-            wprintf(L"Usage: mem address numberOfBytes\n");
+            wprintf(L"Usage: mem address [numberOfBytes]\n");
             wprintf(L"Example: mem 12345678 16\n");
         }
         else
