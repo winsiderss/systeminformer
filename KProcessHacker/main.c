@@ -95,7 +95,6 @@ NTSTATUS DriverEntry(
     DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = KphDispatchDeviceControl;
     DriverObject->DriverUnload = DriverUnload;
 
-    deviceObject->Flags |= DO_BUFFERED_IO;
     deviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
     dprintf("Driver loaded\n");
