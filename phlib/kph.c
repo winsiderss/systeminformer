@@ -61,7 +61,7 @@ NTSTATUS KphConnect(
         &objectAttributes,
         &isb,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE
         );
 
     if (NT_SUCCESS(status))
