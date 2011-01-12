@@ -138,16 +138,24 @@ typedef struct _PH_PROCESS_ITEM
 
     // Flags
 
-    ULONG HasParent : 1;
-    ULONG IsBeingDebugged : 1;
-    ULONG IsDotNet : 1;
-    ULONG IsElevated : 1;
-    ULONG IsInJob : 1;
-    ULONG IsInSignificantJob : 1;
-    ULONG IsPacked : 1;
-    ULONG IsPosix : 1;
-    ULONG IsSuspended : 1;
-    ULONG IsWow64 : 1;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Reserved1 : 1;
+            ULONG IsBeingDebugged : 1;
+            ULONG IsDotNet : 1;
+            ULONG IsElevated : 1;
+            ULONG IsInJob : 1;
+            ULONG IsInSignificantJob : 1;
+            ULONG IsPacked : 1;
+            ULONG IsPosix : 1;
+            ULONG IsSuspended : 1;
+            ULONG IsWow64 : 1;
+            ULONG Spare : 22;
+        };
+    };
 
     // Misc.
 
