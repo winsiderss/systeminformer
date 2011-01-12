@@ -1,5 +1,8 @@
 @echo off
 
+if "%1" == "" goto :notset
+if "%2" == "" goto :notset
+
 if exist %2\processhacker-*-*.* del %2\processhacker-*-*.*
 
 rem Source distribution
@@ -61,3 +64,11 @@ for %%a in (
 
 if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
 if exist %1\build\Installer\processhacker-*-setup.exe copy %1\build\Installer\processhacker-*-setup.exe %2\
+
+goto :end
+
+:notset
+echo Parameters not set.
+pause
+
+:end
