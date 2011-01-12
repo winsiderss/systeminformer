@@ -6,6 +6,7 @@ Process Hacker
      plugin
  * FIXED:
    * Always on Top issues
+   * Hang when setting DEP status of a terminating process
 
 2.10
  * NEW/IMPROVED:

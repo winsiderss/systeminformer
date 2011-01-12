@@ -850,16 +850,27 @@ NTSTATUS KpiSetInformationProcess(
 
             if (NT_SUCCESS(status))
             {
-                // We can only set execute options on the current process.
-                // So, we simply attach to the target process.
-                KeStackAttachProcess(process, &apcState);
-                status = ZwSetInformationProcess(
-                    NtCurrentProcess(),
-                    ProcessExecuteFlags,
-                    &executeFlags,
-                    sizeof(ULONG)
-                    );
-                KeUnstackDetachProcess(&apcState);
+                // Make sure the process isn't terminating, otherwise the call 
+                // may hang due to a recursive acquire of the working set mutex.
+                if (KphAcquireProcessRundownProtection(process))
+                {
+                    // We can only set execute options on the current process.
+                    // So, we simply attach to the target process.
+                    KeStackAttachProcess(process, &apcState);
+                    status = ZwSetInformationProcess(
+                        NtCurrentProcess(),
+                        ProcessExecuteFlags,
+                        &executeFlags,
+                        sizeof(ULONG)
+                        );
+                    KeUnstackDetachProcess(&apcState);
+
+                    KphReleaseProcessRundownProtection(process);
+                }
+                else
+                {
+                    status = STATUS_PROCESS_IS_TERMINATING;
+                }
             }
         }
         break;
