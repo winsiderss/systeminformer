@@ -798,10 +798,10 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeTebAddress, // out PTEB *
     PsAttributeImageName, // in PWSTR
     PsAttributeImageInfo, // out PSECTION_IMAGE_INFORMATION
-    PsAttributeMemoryReserve, // in PPROCESS_MEMORY_RESERVE_RANGE
+    PsAttributeMemoryReserve, // in PPS_MEMORY_RESERVE
     PsAttributePriorityClass, // in UCHAR
     PsAttributeErrorMode, // in ULONG
-    PsAttributeStdHandleInfo, // 10, in PPROCESS_EXTENDED_OPTIONS
+    PsAttributeStdHandleInfo, // 10, in PPS_STD_HANDLE_INFO
     PsAttributeHandleList, // in PHANDLE
     PsAttributeGroupAffinity, // in PGROUP_AFFINITY // rev
     PsAttributePreferredNode, // in PUSHORT // rev
@@ -883,8 +883,8 @@ typedef struct _PS_MEMORY_RESERVE
 typedef enum _PS_STD_HANDLE_STATE
 {
     PsNeverDuplicate,
-    PsRequestDuplicate,
-    PsAlwaysDuplicate,
+    PsRequestDuplicate, // duplicate standard handles specified by PseudoHandleMask, and only if StdHandleSubsystemType matches the image subsystem
+    PsAlwaysDuplicate, // always duplicate standard handles
     PsMaxStdHandleStates
 } PS_STD_HANDLE_STATE;
 
@@ -921,6 +921,14 @@ typedef enum _PS_CREATE_STATE
     PsCreateMaximumStates
 } PS_CREATE_STATE;
 
+typedef enum _PS_IFEO_KEY_STATE
+{
+    PsReadIFEOAllValues,
+    PsSkipIFEODebugger,
+    PsSkipAllIFEO,
+    PsMaxIFEOKeyStates
+} PS_IFEO_KEY_STATE, *PPS_IFEO_KEY_STATE;
+
 typedef struct _PS_CREATE_INFO
 {
     SIZE_T Size;
@@ -938,7 +946,7 @@ typedef struct _PS_CREATE_INFO
                     UCHAR WriteOutputOnExit : 1;
                     UCHAR DetectManifest : 1;
                     UCHAR SpareBits1 : 6;
-                    UCHAR IFEOKeyState : 2;
+                    UCHAR IFEOKeyState : 2; // PS_IFEO_KEY_STATE
                     UCHAR SpareBits2 : 6;
                     USHORT ProhibitedImageCharacteristics : 16;
                 };
