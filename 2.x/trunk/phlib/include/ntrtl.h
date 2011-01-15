@@ -1546,15 +1546,6 @@ RtlUpcaseUnicodeStringToOemString(
 NTSYSAPI
 NTSTATUS
 NTAPI
-RtlOemStringToCountedUnicodeString(
-    __inout PUNICODE_STRING DestinationString,
-    __in POEM_STRING SourceString,
-    __in BOOLEAN AllocateDestinationString
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
 RtlUnicodeStringToCountedOemString(
     __inout POEM_STRING DestinationString,
     __in PUNICODE_STRING SourceString,

@@ -283,31 +283,37 @@ INT_PTR CALLBACK NetworkOutputDlgProc(
         break;
     case NTM_RECEIVED:
         {
-            PPH_STRING convertedString;
+            OEM_STRING inputString;
+            UNICODE_STRING convertedString;
 
             if (wParam != 0)
             {
-                convertedString = PhCreateStringFromAnsiEx((PSTR)lParam, (SIZE_T)wParam);
-                PhAppendFullString(context->ReceivedString, convertedString);
-                PhDereferenceObject(convertedString);
+                inputString.Buffer = (PCHAR)lParam;
+                inputString.Length = (USHORT)wParam;
 
-                // Remove leading newlines.
-                if (
-                    context->ReceivedString->Length >= 2 * 2 &&
-                    context->ReceivedString->Buffer[0] == '\r' && context->ReceivedString->Buffer[1] == '\n'
-                    )
+                if (NT_SUCCESS(RtlOemStringToUnicodeString(&convertedString, &inputString, TRUE)))
                 {
-                    PhRemoveFullString(context->ReceivedString, 0, 2);
-                }
+                    PhAppendFullStringEx(context->ReceivedString, convertedString.Buffer, convertedString.Length);
+                    RtlFreeUnicodeString(&convertedString);
 
-                SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString->Buffer);
-                SendMessage(
-                    GetDlgItem(hwndDlg, IDC_TEXT),
-                    EM_SETSEL,
-                    context->ReceivedString->Length / 2 - 1,
-                    context->ReceivedString->Length / 2 - 1
-                    );
-                SendMessage(GetDlgItem(hwndDlg, IDC_TEXT), WM_VSCROLL, SB_BOTTOM, 0);
+                    // Remove leading newlines.
+                    if (
+                        context->ReceivedString->Length >= 2 * 2 &&
+                        context->ReceivedString->Buffer[0] == '\r' && context->ReceivedString->Buffer[1] == '\n'
+                        )
+                    {
+                        PhRemoveFullString(context->ReceivedString, 0, 2);
+                    }
+
+                    SetDlgItemText(hwndDlg, IDC_TEXT, context->ReceivedString->Buffer);
+                    SendMessage(
+                        GetDlgItem(hwndDlg, IDC_TEXT),
+                        EM_SETSEL,
+                        context->ReceivedString->Length / 2 - 1,
+                        context->ReceivedString->Length / 2 - 1
+                        );
+                    SendMessage(GetDlgItem(hwndDlg, IDC_TEXT), WM_VSCROLL, SB_BOTTOM, 0);
+                }
             }
         }
         break;

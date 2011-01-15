@@ -7,6 +7,7 @@ Process Hacker
  * FIXED:
    * Always on Top issues
    * Hang when setting DEP status of a terminating process
+   * Encoding bug in NetworkTools plugin
 
 2.10
  * NEW/IMPROVED:
