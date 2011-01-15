@@ -1,3 +1,6 @@
+1.2
+ * Fixed encoding bug
+
 1.1
  * Fixed handle leak
 
