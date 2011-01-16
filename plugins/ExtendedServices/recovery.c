@@ -391,7 +391,7 @@ INT_PTR CALLBACK EspServiceRecoveryDlgProc(
                     fileName = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_RUNPROGRAM);
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
 
-                    if (PhShowFileDialog(NULL, fileDialog))
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
                         SetDlgItemText(hwndDlg, IDC_RUNPROGRAM, fileName->Buffer);
