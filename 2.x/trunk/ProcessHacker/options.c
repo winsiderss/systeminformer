@@ -708,7 +708,7 @@ INT_PTR CALLBACK PhpOptionsSymbolsDlgProc(
                     PhSetFileDialogFileName(fileDialog, fileName->Buffer);
                     PhDereferenceObject(fileName);
 
-                    if (PhShowFileDialog(NULL, fileDialog))
+                    if (PhShowFileDialog(hwndDlg, fileDialog))
                     {
                         fileName = PhGetFileDialogFileName(fileDialog);
                         SetDlgItemText(hwndDlg, IDC_DBGHELPPATH, fileName->Buffer);
