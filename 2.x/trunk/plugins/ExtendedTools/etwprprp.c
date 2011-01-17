@@ -122,8 +122,13 @@ INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(
             propPageContext->Context = context;
             context->WindowHandle = hwndDlg;
             context->Block = EtFindProcessEtwBlock(processItem);
-            assert(context->Block);
             context->Enabled = TRUE;
+
+            if (!context->Block)
+            {
+                // The process has probably terminated. Create a fake block.
+                context->Block = EtCreateProcessEtwBlock(processItem);
+            }
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,

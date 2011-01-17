@@ -1,6 +1,7 @@
 1.2
  * Added WS Watch
  * Added display of standby repurposed pages
+ * Fixed Disk and Network page crash
 
 1.1
  * Fixed ETW crash
