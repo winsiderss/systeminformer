@@ -80,11 +80,6 @@ VOID PhInitializeProcessTreeList(
     TreeList_EnableExplorerStyle(hwnd);
 
     TreeList_SetCallback(hwnd, PhpProcessTreeListCallback);
-    TreeList_SetPlusMinus(
-        hwnd,
-        PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_PLUS), IMAGE_BITMAP),
-        PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDB_MINUS), IMAGE_BITMAP)
-        );
 
     // Default columns
     PhAddTreeListColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);

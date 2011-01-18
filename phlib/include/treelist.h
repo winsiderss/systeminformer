@@ -215,7 +215,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_REMOVECOLUMN (WM_APP + 1207)
 #define TLM_GETCOLUMN (WM_APP + 1208)
 #define TLM_SETCOLUMN (WM_APP + 1209)
-#define TLM_SETPLUSMINUS (WM_APP + 1210)
+#define TLM_RESERVED1 (WM_APP + 1210)
 #define TLM_UPDATENODE (WM_APP + 1211)
 #define TLM_SETCURSOR (WM_APP + 1212)
 #define TLM_SETREDRAW (WM_APP + 1213)
@@ -275,9 +275,6 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_SetColumn(hWnd, Column, Mask) \
     SendMessage((hWnd), TLM_SETCOLUMN, (WPARAM)(Mask), (LPARAM)(Column))
-
-#define TreeList_SetPlusMinus(hWnd, Plus, Minus) \
-    SendMessage((hWnd), TLM_SETPLUSMINUS, (WPARAM)(Plus), (LPARAM)(Minus))
 
 #define TreeList_UpdateNode(hWnd, Node) \
     SendMessage((hWnd), TLM_UPDATENODE, 0, (LPARAM)(Node))
