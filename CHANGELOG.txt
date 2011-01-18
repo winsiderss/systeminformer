@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Added WS Watch and other features to ExtendedTools 
      plugin
+   * Debug console can now be closed without affecting the 
+     entire program
  * FIXED:
    * Always on Top issues
    * Hang when setting DEP status of a terminating process
