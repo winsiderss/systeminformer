@@ -62,11 +62,6 @@ typedef struct _PHP_TREELIST_CONTEXT
     BOOLEAN ThemeActive;
     BOOLEAN EnableExplorerStyle;
     BOOLEAN EnableExplorerGlyphs;
-    HBITMAP PlusBitmap;
-    PH_INTEGER_PAIR PlusBitmapSize;
-    HBITMAP MinusBitmap;
-    PH_INTEGER_PAIR MinusBitmapSize;
-    HDC IconDc;
     POINT LastMouseLocation;
 } PHP_TREELIST_CONTEXT, *PPHP_TREELIST_CONTEXT;
 

@@ -148,9 +148,6 @@ VOID PhpCreateTreeListContext(
     context->ThemeInitialized = FALSE;
     context->EnableExplorerStyle = FALSE;
     context->EnableExplorerGlyphs = FALSE;
-    context->PlusBitmap = NULL;
-    context->MinusBitmap = NULL;
-    context->IconDc = NULL;
     context->LastMouseLocation.x = MINLONG;
     context->LastMouseLocation.y = MINLONG;
 
@@ -181,8 +178,6 @@ VOID PhpDereferenceTreeListContext(
 
         if (Context->ThemeData)
             CloseThemeData_I(Context->ThemeData);
-        if (Context->IconDc)
-            DeleteDC(Context->IconDc);
 
         PhFree(Context);
     }
@@ -873,36 +868,6 @@ LRESULT CALLBACK PhpTreeListWndProc(
             }
         }
         return TRUE;
-    case TLM_SETPLUSMINUS:
-        {
-            HBITMAP plusBitmap = (HBITMAP)wParam;
-            HBITMAP minusBitmap = (HBITMAP)lParam;
-            BITMAP bitmap;
-
-            if (GetObject(plusBitmap, sizeof(BITMAP), &bitmap))
-            {
-                context->PlusBitmapSize.X = bitmap.bmWidth;
-                context->PlusBitmapSize.Y = bitmap.bmHeight;
-            }
-            else
-            {
-                return FALSE;
-            }
-
-            if (GetObject(minusBitmap, sizeof(BITMAP), &bitmap))
-            {
-                context->MinusBitmapSize.X = bitmap.bmWidth;
-                context->MinusBitmapSize.Y = bitmap.bmHeight;
-            }
-            else
-            {
-                return FALSE;
-            }
-
-            context->PlusBitmap = plusBitmap;
-            context->MinusBitmap = minusBitmap;
-        }
-        return TRUE;
     case TLM_UPDATENODE:
         {
             PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
@@ -1454,6 +1419,52 @@ static VOID PhpCustomDrawPrePaintItem(
         );
 }
 
+static VOID PhpDrawPlusMinusGlyph(
+    __in HDC hdc,
+    __in PRECT Rect,
+    __in BOOLEAN Plus
+    )
+{
+    INT savedDc;
+    ULONG width;
+    ULONG height;
+    POINT points[2];
+
+    savedDc = SaveDC(hdc);
+
+    SelectObject(hdc, GetStockObject(DC_PEN));
+    SetDCPenColor(hdc, RGB(0x55, 0x55, 0x55));
+    SelectObject(hdc, GetStockObject(DC_BRUSH));
+    SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+
+    width = Rect->right - Rect->left;
+    height = Rect->bottom - Rect->top;
+
+    // Draw the rectangle.
+    Rectangle(hdc, Rect->left, Rect->top, Rect->right + 1, Rect->bottom + 1);
+
+    SetDCPenColor(hdc, RGB(0x00, 0x00, 0x00));
+
+    // Draw the horizontal line.
+    points[0].x = Rect->left + 2;
+    points[0].y = Rect->top + height / 2;
+    points[1].x = Rect->right - 2 + 1;
+    points[1].y = points[0].y;
+    Polyline(hdc, points, 2);
+
+    if (Plus)
+    {
+        // Draw the vertical line.
+        points[0].x = Rect->left + width / 2;
+        points[0].y = Rect->top + 2;
+        points[1].x = points[0].x;
+        points[1].y = Rect->bottom - 2 + 1;
+        Polyline(hdc, points, 2);
+    }
+
+    RestoreDC(hdc, savedDc);
+}
+
 static VOID PhpCustomDrawPrePaintSubItem(
     __in PPHP_TREELIST_CONTEXT Context,
     __in LPNMLVCUSTOMDRAW CustomDraw
@@ -1560,7 +1571,6 @@ static VOID PhpCustomDrawPrePaintSubItem(
         {
             BOOLEAN drewUsingTheme = FALSE;
             RECT themeRect;
-            PH_INTEGER_PAIR glyphSize;
 
             if (!node->s.IsLeaf)
             {
@@ -1609,31 +1619,19 @@ static VOID PhpCustomDrawPrePaintSubItem(
 
                 if (!drewUsingTheme)
                 {
-                    if (!Context->IconDc)
-                        Context->IconDc = CreateCompatibleDC(hdc);
+                    ULONG glyphWidth;
+                    ULONG glyphHeight;
+                    RECT glyphRect;
 
-                    if (node->Expanded)
-                    {
-                        SelectObject(Context->IconDc, Context->MinusBitmap);
-                        glyphSize = Context->MinusBitmapSize;
-                    }
-                    else
-                    {
-                        SelectObject(Context->IconDc, Context->PlusBitmap);
-                        glyphSize = Context->PlusBitmapSize;
-                    }
+                    glyphWidth = SmallIconWidth / 2;
+                    glyphHeight = SmallIconHeight / 2;
 
-                    BitBlt(
-                        hdc,
-                        textRect.left + (SmallIconWidth - glyphSize.X) / 2,
-                        textRect.top + (SmallIconHeight - glyphSize.Y) / 2,
-                        glyphSize.X,
-                        glyphSize.Y,
-                        Context->IconDc,
-                        0,
-                        0,
-                        SRCCOPY
-                        );
+                    glyphRect.left = textRect.left + (SmallIconWidth - glyphWidth) / 2;
+                    glyphRect.right = glyphRect.left + glyphWidth;
+                    glyphRect.top = textRect.top + (SmallIconHeight - glyphHeight) / 2;
+                    glyphRect.bottom = glyphRect.top + glyphHeight;
+
+                    PhpDrawPlusMinusGlyph(hdc, &glyphRect, !node->Expanded);
                 }
             }
 

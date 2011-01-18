@@ -70,8 +70,6 @@
 #define IDB_PENCIL                      157
 #define IDB_FOLDER                      158
 #define IDB_MAGNIFIER                   159
-#define IDB_MINUS                       160
-#define IDB_PLUS                        161
 #define IDD_OPTGENERAL                  162
 #define IDD_OPTHIGHLIGHTING             163
 #define IDR_MENU1                       164
