@@ -4,7 +4,8 @@
 #define WEWNTLC_CLASS 0
 #define WEWNTLC_HANDLE 1
 #define WEWNTLC_TEXT 2
-#define WEWNTLC_MAXIMUM 3
+#define WEWNTLC_THREAD 3
+#define WEWNTLC_MAXIMUM 4
 
 typedef struct _WE_WINDOW_NODE
 {
@@ -20,8 +21,10 @@ typedef struct _WE_WINDOW_NODE
     HWND WindowHandle;
     WCHAR WindowClass[64];
     PPH_STRING WindowText;
+    CLIENT_ID ClientId;
 
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
+    PPH_STRING ThreadString;
 } WE_WINDOW_NODE, *PWE_WINDOW_NODE;
 
 typedef struct _WE_WINDOW_TREE_CONTEXT
