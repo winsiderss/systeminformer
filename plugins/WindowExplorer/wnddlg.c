@@ -119,6 +119,8 @@ VOID WepFillWindowInfo(
     Node->ClientId.UniqueProcess = UlongToHandle(processId);
     Node->ClientId.UniqueThread = UlongToHandle(threadId);
 
+    Node->WindowVisible = !!IsWindowVisible(hwnd);
+
     // Determine if the window has children.
     EnumChildWindows(hwnd, WepHasChildrenEnumWindowsProc, (LPARAM)Node);
 }
@@ -494,9 +496,18 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
                         if (IsWindowVisible(selectedNode->WindowHandle))
+                        {
+                            selectedNode->WindowVisible = FALSE;
                             ShowWindowAsync(selectedNode->WindowHandle, SW_HIDE);
+                        }
                         else
+                        {
+                            selectedNode->WindowVisible = TRUE;
                             ShowWindowAsync(selectedNode->WindowHandle, SW_SHOW);
+                        }
+
+                        PhInvalidateTreeListNode(&selectedNode->Node, TLIN_COLOR);
+                        InvalidateRect(context->TreeListHandle, NULL, TRUE);
                     }
                 }
                 break;

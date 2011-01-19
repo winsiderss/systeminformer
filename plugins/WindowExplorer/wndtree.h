@@ -22,6 +22,7 @@ typedef struct _WE_WINDOW_NODE
     WCHAR WindowClass[64];
     PPH_STRING WindowText;
     CLIENT_ID ClientId;
+    BOOLEAN WindowVisible;
 
     WCHAR WindowHandleString[PH_PTR_STR_LEN_1];
     PPH_STRING ThreadString;
