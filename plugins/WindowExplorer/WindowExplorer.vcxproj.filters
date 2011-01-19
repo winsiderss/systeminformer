@@ -18,48 +18,21 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="objprp.c">
+    <ClCompile Include="wndtree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="thrdact.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="unldll.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="modsrv.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="etwmon.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="memlists.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="etwstat.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="etwprprp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="etwsys.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="options.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="wswatch.c">
+    <ClCompile Include="wnddlg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="wndexp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="exttools.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="etwmon.h">
+    <ClInclude Include="wndtree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -67,7 +40,7 @@
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ExtendedTools.rc">
+    <ResourceCompile Include="WindowExplorer.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

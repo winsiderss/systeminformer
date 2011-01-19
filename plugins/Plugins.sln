@@ -19,6 +19,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OnlineChecks", "OnlineCheck
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedTools", "ExtendedTools\ExtendedTools.vcxproj", "{3437FD16-A3BF-4938-883A-EB0DF1584A2A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowExplorer", "WindowExplorer\WindowExplorer.vcxproj", "{37488DC1-E45F-4626-A87C-3A854A153D1A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -99,6 +101,14 @@ Global
 		{3437FD16-A3BF-4938-883A-EB0DF1584A2A}.Release|Win32.Build.0 = Release|Win32
 		{3437FD16-A3BF-4938-883A-EB0DF1584A2A}.Release|x64.ActiveCfg = Release|x64
 		{3437FD16-A3BF-4938-883A-EB0DF1584A2A}.Release|x64.Build.0 = Release|x64
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Debug|Win32.Build.0 = Debug|Win32
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Debug|x64.ActiveCfg = Debug|x64
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Debug|x64.Build.0 = Debug|x64
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Release|Win32.ActiveCfg = Release|Win32
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Release|Win32.Build.0 = Release|Win32
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Release|x64.ActiveCfg = Release|x64
+		{37488DC1-E45F-4626-A87C-3A854A153D1A}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
