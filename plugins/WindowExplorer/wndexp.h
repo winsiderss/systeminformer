@@ -33,12 +33,19 @@ typedef struct _WE_WINDOW_SELECTOR
     };
 } WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
 
-HWND WeCreateWindowsDialog(
+VOID WeShowWindowsDialog(
     __in HWND ParentWindowHandle,
     __in PWE_WINDOW_SELECTOR Selector
     );
 
 #define WM_WE_PLUSMINUS (WM_APP + 1)
+
+// wndprp
+
+VOID PhShowWindowProperties(
+    __in HWND ParentWindowHandle,
+    __in HWND WindowHandle
+    );
 
 // utils
 

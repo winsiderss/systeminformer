@@ -344,6 +344,7 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
 #define WM_PH_GET_FONT (WM_APP + 137)
+#define WM_PH_INVOKE (WM_APP + 138)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -388,6 +389,8 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_SELECT_SERVICE_ITEM, 0, (LPARAM)(ServiceItem))
 #define ProcessHacker_SelectNetworkItem(hWnd, NetworkItem) \
     SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
+#define ProcessHacker_Invoke(hWnd, Function, Parameter) \
+    PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
