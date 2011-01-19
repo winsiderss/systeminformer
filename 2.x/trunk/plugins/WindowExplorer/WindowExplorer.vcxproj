@@ -179,6 +179,7 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="utils.c" />
     <ClCompile Include="wnddlg.c" />
+    <ClCompile Include="wndprp.c" />
     <ClCompile Include="wndtree.c" />
   </ItemGroup>
   <ItemGroup>

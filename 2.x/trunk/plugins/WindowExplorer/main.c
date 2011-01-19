@@ -126,12 +126,12 @@ LOGICAL DllMain(
                 NULL,
                 &MainWindowShowingCallbackRegistration
                 );
-            PhRegisterCallback(
-                PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
-                ProcessPropertiesInitializingCallback,
-                NULL,
-                &ProcessPropertiesInitializingCallbackRegistration
-                );
+            //PhRegisterCallback(
+            //    PhGetGeneralCallback(GeneralCallbackProcessPropertiesInitializing),
+            //    ProcessPropertiesInitializingCallback,
+            //    NULL,
+            //    &ProcessPropertiesInitializingCallbackRegistration
+            //    );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing),
                 ProcessMenuInitializingCallback,
@@ -202,7 +202,7 @@ VOID NTAPI MenuItemCallback(
             WE_WINDOW_SELECTOR selector;
 
             selector.Type = WeWindowSelectorAll;
-            WeCreateWindowsDialog(PhMainWndHandle, &selector);
+            WeShowWindowsDialog(PhMainWndHandle, &selector);
         }
         break;
     case ID_PROCESS_WINDOWS:
@@ -211,7 +211,7 @@ VOID NTAPI MenuItemCallback(
 
             selector.Type = WeWindowSelectorProcess;
             selector.Process.ProcessId = ((PPH_PROCESS_ITEM)menuItem->Context)->ProcessId;
-            WeCreateWindowsDialog(PhMainWndHandle, &selector);
+            WeShowWindowsDialog(PhMainWndHandle, &selector);
         }
         break;
     case ID_THREAD_WINDOWS:
@@ -220,7 +220,7 @@ VOID NTAPI MenuItemCallback(
 
             selector.Type = WeWindowSelectorThread;
             selector.Thread.ThreadId = ((PPH_THREAD_ITEM)menuItem->Context)->ThreadId;
-            WeCreateWindowsDialog(PhMainWndHandle, &selector);
+            WeShowWindowsDialog(PhMainWndHandle, &selector);
         }
         break;
     }

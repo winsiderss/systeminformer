@@ -373,6 +373,7 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define WM_PH_SELECT_PROCESS_NODE (WM_APP + 133)
 #define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
 #define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
+#define WM_PH_INVOKE (WM_APP + 138)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
@@ -398,6 +399,8 @@ PHAPPAPI extern HWND PhMainWndHandle;
     SendMessage(hWnd, WM_PH_SELECT_SERVICE_ITEM, 0, (LPARAM)(ServiceItem))
 #define ProcessHacker_SelectNetworkItem(hWnd, NetworkItem) \
     SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
+#define ProcessHacker_Invoke(hWnd, Function, Parameter) \
+    PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
