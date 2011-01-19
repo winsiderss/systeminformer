@@ -28,12 +28,15 @@ typedef struct _WINDOWS_CONTEXT
     HWND TreeListHandle;
     WE_WINDOW_TREE_CONTEXT TreeContext;
     WE_WINDOW_SELECTOR Selector;
+
+    PH_LAYOUT_MANAGER LayoutManager;
 } WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
 
 typedef struct _ADD_CHILD_WINDOWS_CONTEXT
 {
     PWINDOWS_CONTEXT Context;
     PWE_WINDOW_NODE Node;
+    HANDLE FilterProcessId;
     BOOLEAN TopLevelWindows;
 } ADD_CHILD_WINDOWS_CONTEXT, *PADD_CHILD_WINDOWS_CONTEXT;
 
@@ -43,6 +46,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+static RECT MinimumSize = { -1, -1, -1, -1 };
 
 HWND WeCreateWindowsDialog(
     __in HWND ParentWindowHandle,
@@ -85,6 +90,8 @@ VOID WepFillWindowInfo(
     )
 {
     HWND hwnd;
+    ULONG threadId;
+    ULONG processId;
 
     hwnd = Node->WindowHandle;
 
@@ -93,6 +100,10 @@ VOID WepFillWindowInfo(
 
     if (!Node->WindowText)
         Node->WindowText = PhReferenceEmptyString();
+
+    threadId = GetWindowThreadProcessId(hwnd, &processId);
+    Node->ClientId.UniqueProcess = UlongToHandle(processId);
+    Node->ClientId.UniqueThread = UlongToHandle(threadId);
 
     // Determine if the window has children.
     EnumChildWindows(hwnd, WepHasChildrenEnumWindowsProc, (LPARAM)Node);
@@ -108,8 +119,18 @@ BOOL CALLBACK WepEnumChildWindowsProc(
 
     // EnumChildWindows gives you all the child windows, even if they are 
     // indirect descendants. We only want the direct descendants.
-    if (!context->TopLevelWindows && GetParent(hwnd) != context->Node->WindowHandle)
+    if (!context->TopLevelWindows && context->Node && GetParent(hwnd) != context->Node->WindowHandle)
         return TRUE;
+
+    if (context->FilterProcessId)
+    {
+        ULONG processId;
+
+        GetWindowThreadProcessId(hwnd, &processId);
+
+        if (context->FilterProcessId != HandleToUlong(processId))
+            return TRUE;
+    }
 
     childNode = WeAddWindowNode(&context->Context->TreeContext);
     childNode->WindowHandle = hwnd;
@@ -139,6 +160,7 @@ VOID WepAddChildWindows(
 {
     ADD_CHILD_WINDOWS_CONTEXT context;
 
+    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
     context.Context = Context;
     context.Node = Node;
     context.TopLevelWindows = FALSE;
@@ -148,16 +170,34 @@ VOID WepAddChildWindows(
 
 VOID WepAddTopLevelWindows(
     __in PWINDOWS_CONTEXT Context,
-    __in PWE_WINDOW_NODE DesktopNode
+    __in PWE_WINDOW_NODE DesktopNode,
+    __in_opt HANDLE FilterProcessId
     )
 {
     ADD_CHILD_WINDOWS_CONTEXT context;
 
+    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
     context.Context = Context;
     context.Node = DesktopNode;
+    context.FilterProcessId = FilterProcessId;
     context.TopLevelWindows = TRUE;
 
     EnumWindows(WepEnumChildWindowsProc, (LPARAM)&context);
+}
+
+VOID WepAddThreadWindows(
+    __in PWINDOWS_CONTEXT Context,
+    __in HANDLE ThreadId
+    )
+{
+    ADD_CHILD_WINDOWS_CONTEXT context;
+
+    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
+    context.Context = Context;
+    context.Node = NULL;
+    context.TopLevelWindows = TRUE;
+
+    EnumThreadWindows((ULONG)ThreadId, WepEnumChildWindowsProc, (LPARAM)&context);
 }
 
 VOID WepRefreshWindows(
@@ -179,10 +219,20 @@ VOID WepRefreshWindows(
 
             PhAddItemList(Context->TreeContext.NodeRootList, desktopNode);
 
-            WepAddTopLevelWindows(Context, desktopNode);
+            WepAddTopLevelWindows(Context, desktopNode, NULL);
 
             desktopNode->HasChildren = TRUE;
             desktopNode->Opened = TRUE;
+        }
+        break;
+    case WeWindowSelectorThread:
+        {
+            WepAddThreadWindows(Context, Context->Selector.Thread.ThreadId);
+        }
+        break;
+    case WeWindowSelectorProcess:
+        {
+            WepAddTopLevelWindows(Context, NULL, Context->Selector.Process.ProcessId);
         }
         break;
     }
@@ -224,11 +274,28 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             PhRegisterDialog(hwndDlg);
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_LIST), NULL, PH_ANCHOR_ALL);
+
+            if (MinimumSize.left == -1)
+            {
+                RECT rect;
+
+                rect.left = 0;
+                rect.top = 0;
+                rect.right = 160;
+                rect.bottom = 100;
+                MapDialogRect(hwndDlg, &rect);
+                MinimumSize = rect;
+                MinimumSize.left = 0;
+            }
+
             WepRefreshWindows(context);
         }
         break;
     case WM_DESTROY:
         {
+            PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
 
             WeDeleteWindowTree(&context->TreeContext);
@@ -239,13 +306,23 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             switch (LOWORD(wParam))
             {
             case IDCANCEL:
-            case IDOK:
+            //case IDOK:
                 DestroyWindow(hwndDlg);
                 break;
             case IDC_REFRESH:
                 WepRefreshWindows(context);
                 break;
             }
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_SIZING:
+        {
+            PhResizingMinimumSize((PRECT)lParam, wParam, MinimumSize.right, MinimumSize.bottom);
         }
         break;
     case WM_WE_PLUSMINUS:
