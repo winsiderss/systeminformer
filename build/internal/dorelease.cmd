@@ -49,6 +49,7 @@ for %%a in (
     OnlineChecks
     SbieSupport
     ToolStatus
+    WindowExplorer
     ) do copy %1\plugins\%%a\bin\Release32\%%a.dll %2\bin\plugins\x86\%%a.dll
 
 mkdir %2\bin\plugins\x64
@@ -60,6 +61,7 @@ for %%a in (
     OnlineChecks
     SbieSupport
     ToolStatus
+    WindowExplorer
     ) do copy %1\plugins\%%a\bin\Release64\%%a.dll %2\bin\plugins\x64\%%a.dll
 
 if exist "%SEVENZIPBIN%\7z.exe" "%SEVENZIPBIN%\7z.exe" a -mx9 %2\processhacker-2.%MINORVERSION%-bin.zip %2\bin\*
