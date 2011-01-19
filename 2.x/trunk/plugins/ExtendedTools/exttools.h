@@ -1,5 +1,5 @@
-#ifndef EXTENDEDTOOLS_H
-#define EXTENDEDTOOLS_H
+#ifndef EXTTOOLS_H
+#define EXTTOOLS_H
 
 #define PHNT_VERSION PHNT_VISTA
 #include <phdk.h>

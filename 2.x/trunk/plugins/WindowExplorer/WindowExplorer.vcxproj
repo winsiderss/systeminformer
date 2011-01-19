@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{3437FD16-A3BF-4938-883A-EB0DF1584A2A}</ProjectGuid>
-    <RootNamespace>ExtendedTools</RootNamespace>
+    <ProjectGuid>{37488DC1-E45F-4626-A87C-3A854A153D1A}</ProjectGuid>
+    <RootNamespace>WindowExplorer</RootNamespace>
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -176,29 +176,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="etwmon.c" />
-    <ClCompile Include="etwstat.c" />
-    <ClCompile Include="etwprprp.c" />
-    <ClCompile Include="etwsys.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="memlists.c" />
-    <ClCompile Include="modsrv.c" />
-    <ClCompile Include="objprp.c" />
-    <ClCompile Include="options.c" />
-    <ClCompile Include="thrdact.c" />
-    <ClCompile Include="unldll.c" />
-    <ClCompile Include="wswatch.c" />
+    <ClCompile Include="wnddlg.c" />
+    <ClCompile Include="wndtree.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="etwmon.h" />
-    <ClInclude Include="exttools.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="wndexp.h" />
+    <ClInclude Include="wndtree.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="CHANGELOG.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="ExtendedTools.rc" />
+    <ResourceCompile Include="WindowExplorer.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
