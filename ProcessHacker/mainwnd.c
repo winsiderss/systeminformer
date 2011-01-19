@@ -1903,6 +1903,14 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_GET_FONT:
         return SendMessage(ProcessTreeListHandle, WM_GETFONT, 0, 0);
+    case WM_PH_INVOKE:
+        {
+            VOID (NTAPI *function)(PVOID);
+
+            function = (PVOID)lParam;
+            function((PVOID)wParam);
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;

@@ -43,6 +43,10 @@ typedef struct _ADD_CHILD_WINDOWS_CONTEXT
     BOOLEAN TopLevelWindows;
 } ADD_CHILD_WINDOWS_CONTEXT, *PADD_CHILD_WINDOWS_CONTEXT;
 
+VOID WepShowWindowsDialogCallback(
+    __in PVOID Parameter
+    );
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -52,28 +56,35 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
 static RECT MinimumSize = { -1, -1, -1, -1 };
 
-HWND WeCreateWindowsDialog(
+VOID WeShowWindowsDialog(
     __in HWND ParentWindowHandle,
     __in PWE_WINDOW_SELECTOR Selector
     )
 {
-    HWND hwnd;
     PWINDOWS_CONTEXT context;
 
     context = PhAllocate(sizeof(WINDOWS_CONTEXT));
     memset(context, 0, sizeof(WINDOWS_CONTEXT));
     memcpy(&context->Selector, Selector, sizeof(WE_WINDOW_SELECTOR));
 
+    ProcessHacker_Invoke(PhMainWndHandle, WepShowWindowsDialogCallback, context);
+}
+
+VOID WepShowWindowsDialogCallback(
+    __in PVOID Parameter
+    )
+{
+    HWND hwnd;
+    PWINDOWS_CONTEXT context = Parameter;
+
     hwnd = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WNDLIST),
-        ParentWindowHandle,
+        PhMainWndHandle,
         WepWindowsDlgProc,
         (LPARAM)context
         );
     ShowWindow(hwnd, SW_SHOW);
-
-    return hwnd;
 }
 
 BOOL CALLBACK WepHasChildrenEnumWindowsProc(
@@ -346,6 +357,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhUnregisterDialog(hwndDlg);
 
             WeDeleteWindowTree(&context->TreeContext);
+            PhFree(context);
         }
         break;
     case WM_COMMAND:
@@ -514,7 +526,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         }
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
-                        context->HighlightingWindowCount = 6;
+                        context->HighlightingWindowCount = 10;
                         SetTimer(hwndDlg, 9, 100, NULL);
                     }
                 }
