@@ -86,8 +86,16 @@ VOID PhShowDebugConsole()
     }
     else
     {
+        HWND consoleWindow;
+
+        consoleWindow = GetConsoleWindow();
+
         // Console window already exists, so bring it to the top.
-        BringWindowToTop(GetConsoleWindow());
+        if (IsIconic(consoleWindow))
+            ShowWindow(consoleWindow, SW_RESTORE);
+        else
+            BringWindowToTop(consoleWindow);
+
         return;
     }
 }
