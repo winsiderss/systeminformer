@@ -30,6 +30,9 @@ typedef struct _WINDOWS_CONTEXT
     WE_WINDOW_SELECTOR Selector;
 
     PH_LAYOUT_MANAGER LayoutManager;
+
+    HWND HighlightingWindow;
+    ULONG HighlightingWindowCount;
 } WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
 
 typedef struct _ADD_CHILD_WINDOWS_CONTEXT
@@ -128,7 +131,7 @@ BOOL CALLBACK WepEnumChildWindowsProc(
 
         GetWindowThreadProcessId(hwnd, &processId);
 
-        if (context->FilterProcessId != HandleToUlong(processId))
+        if (context->FilterProcessId != UlongToHandle(processId))
             return TRUE;
     }
 
@@ -206,6 +209,7 @@ VOID WepRefreshWindows(
 {
     TreeList_SetRedraw(Context->TreeListHandle, FALSE);
     WeClearWindowTree(&Context->TreeContext);
+    TreeList_NodesStructured(Context->TreeListHandle);
 
     switch (Context->Selector.Type)
     {
@@ -240,6 +244,43 @@ VOID WepRefreshWindows(
     TreeList_SetRedraw(Context->TreeListHandle, TRUE);
 }
 
+PPH_STRING WepGetWindowTitleForSelector(
+    __in PWE_WINDOW_SELECTOR Selector
+    )
+{
+    PPH_STRING title;
+    CLIENT_ID clientId;
+    PPH_STRING clientIdName;
+
+    switch (Selector->Type)
+    {
+    case WeWindowSelectorAll:
+        {
+            return PhCreateString(L"Windows - All");
+        }
+        break;
+    case WeWindowSelectorThread:
+        {
+            return PhFormatString(L"Windows - Thread %u", (ULONG)Selector->Thread.ThreadId);
+        }
+        break;
+    case WeWindowSelectorProcess:
+        {
+            clientId.UniqueProcess = Selector->Process.ProcessId;
+            clientId.UniqueThread = NULL;
+            clientIdName = PhGetClientIdName(&clientId);
+
+            title = PhConcatStrings2(L"Windows - ", clientIdName->Buffer);
+            PhDereferenceObject(clientIdName);
+
+            return title;
+        }
+        break;
+    default:
+        return PhCreateString(L"Windows");
+    }
+}
+
 INT_PTR CALLBACK WepWindowsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -269,6 +310,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            PPH_STRING windowTitle;
+
             context->TreeListHandle = GetDlgItem(hwndDlg, IDC_LIST);
             WeInitializeWindowTree(hwndDlg, context->TreeListHandle, &context->TreeContext);
 
@@ -289,6 +332,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 MinimumSize = rect;
                 MinimumSize.left = 0;
             }
+
+            windowTitle = WepGetWindowTitleForSelector(&context->Selector);
+            SetWindowText(hwndDlg, windowTitle->Buffer);
+            PhDereferenceObject(windowTitle);
 
             WepRefreshWindows(context);
         }
@@ -311,6 +358,221 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_REFRESH:
                 WepRefreshWindows(context);
+                break;
+            case ID_SHOWCONTEXTMENU:
+                {
+                    PWE_WINDOW_NODE *windows;
+                    ULONG numberOfWindows;
+                    HMENU menu;
+                    HMENU subMenu;
+                    POINT location;
+
+                    WeGetSelectedWindowNodes(
+                        &context->TreeContext,
+                        &windows,
+                        &numberOfWindows
+                        );
+
+                    if (numberOfWindows != 0)
+                    {
+                        menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_WINDOW));
+                        subMenu = GetSubMenu(menu, 0);
+                        SetMenuDefaultItem(subMenu, ID_WINDOW_PROPERTIES, FALSE);
+
+                        if (numberOfWindows == 1)
+                        {
+                            WINDOWPLACEMENT placement = { sizeof(placement) };
+
+                            GetWindowPlacement(windows[0]->WindowHandle, &placement);
+
+                            if (placement.showCmd == SW_MINIMIZE)
+                                PhEnableMenuItem(subMenu, ID_WINDOW_MINIMIZE, FALSE);
+                            else if (placement.showCmd == SW_MAXIMIZE)
+                                PhEnableMenuItem(subMenu, ID_WINDOW_MAXIMIZE, FALSE);
+                            else if (placement.showCmd == SW_NORMAL)
+                                PhEnableMenuItem(subMenu, ID_WINDOW_RESTORE, FALSE);
+                        }
+                        else
+                        {
+                            PhEnableAllMenuItems(subMenu, FALSE);
+                            PhEnableMenuItem(subMenu, ID_WINDOW_COPY, TRUE);
+                        }
+
+                        location.x = LOWORD(lParam);
+                        location.y = HIWORD(lParam);
+                        ClientToScreen(context->TreeListHandle, &location);
+
+                        TrackPopupMenu(
+                            subMenu,
+                            TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
+                            location.x,
+                            location.y,
+                            0,
+                            hwndDlg,
+                            NULL
+                            );
+
+                        DestroyMenu(menu);
+                    }
+                }
+                break;
+            case ID_WINDOW_BRINGTOFRONT:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindow(selectedNode->WindowHandle))
+                        {
+                            WINDOWPLACEMENT placement = { sizeof(placement) };
+
+                            GetWindowPlacement(selectedNode->WindowHandle, &placement);
+
+                            if (placement.showCmd == SW_MINIMIZE)
+                                ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
+                            else
+                                SetForegroundWindow(selectedNode->WindowHandle);
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_RESTORE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindow(selectedNode->WindowHandle))
+                        {
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_MINIMIZE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindow(selectedNode->WindowHandle))
+                        {
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_MINIMIZE);
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_MAXIMIZE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindow(selectedNode->WindowHandle))
+                        {
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_MAXIMIZE);
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_SHOWHIDE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindowVisible(selectedNode->WindowHandle))
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_HIDE);
+                        else
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_SHOW);
+                    }
+                }
+                break;
+            case ID_WINDOW_CLOSE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (IsWindow(selectedNode->WindowHandle))
+                        {
+                            PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_HIGHLIGHT:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (context->HighlightingWindow)
+                        {
+                            if (context->HighlightingWindowCount & 1)
+                                WeInvertWindowBorder(context->HighlightingWindow);
+                        }
+
+                        context->HighlightingWindow = selectedNode->WindowHandle;
+                        context->HighlightingWindowCount = 6;
+                        SetTimer(hwndDlg, 9, 100, NULL);
+                    }
+                }
+                break;
+            case ID_WINDOW_GOTOTHREAD:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+                    PPH_PROCESS_ITEM processItem;
+                    PPH_PROCESS_PROPCONTEXT propContext;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
+                        {
+                            if (propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem))
+                            {
+                                PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
+                                PhShowProcessProperties(propContext);
+                                PhDereferenceObject(propContext);
+                            }
+
+                            PhDereferenceObject(processItem);
+                        }
+                        else
+                        {
+                            PhShowError(hwndDlg, L"The process does not exist.");
+                        }
+                    }
+                }
+                break;
+            case ID_WINDOW_PROPERTIES:
+                {
+                    PhShowInformation(hwndDlg, L"Properties");
+                }
+                break;
+            case ID_WINDOW_COPY:
+                {
+                    PPH_FULL_STRING text;
+
+                    text = PhGetTreeListText(context->TreeListHandle, WEWNTLC_MAXIMUM);
+                    PhSetClipboardStringEx(hwndDlg, text->Buffer, text->Length);
+                    PhDereferenceObject(text);
+                }
+                break;
+            }
+        }
+        break;
+    case WM_TIMER:
+        {
+            switch (wParam)
+            {
+            case 9:
+                {
+                    WeInvertWindowBorder(context->HighlightingWindow);
+
+                    if (--context->HighlightingWindowCount == 0)
+                        KillTimer(hwndDlg, 9);
+                }
                 break;
             }
         }
