@@ -346,6 +346,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 MinimumSize.left = 0;
             }
 
+            PhLoadWindowPlacementFromSetting(NULL, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+
             windowTitle = WepGetWindowTitleForSelector(&context->Selector);
             SetWindowText(hwndDlg, windowTitle->Buffer);
             PhDereferenceObject(windowTitle);
@@ -355,6 +357,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveWindowPlacementToSetting(NULL, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
 
