@@ -145,18 +145,15 @@ LOGICAL DllMain(
                 &ThreadMenuInitializingCallbackRegistration
                 );
 
-            //{
-            //    static PH_SETTING_CREATE settings[] =
-            //    {
-            //        { IntegerSettingType, SETTING_NAME_ENABLE_ETW_MONITOR, L"1" },
-            //        { IntegerSettingType, SETTING_NAME_ETWSYS_ALWAYS_ON_TOP, L"0" },
-            //        { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_POSITION, L"400,400" },
-            //        { IntegerPairSettingType, SETTING_NAME_ETWSYS_WINDOW_SIZE, L"500,400" },
-            //        { IntegerPairSettingType, SETTING_NAME_MEMORY_LISTS_WINDOW_POSITION, L"400,400" }
-            //    };
+            {
+                static PH_SETTING_CREATE settings[] =
+                {
+                    { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"690,540" }
+                };
 
-            //    PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
-            //}
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            }
         }
         break;
     }
