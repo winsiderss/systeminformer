@@ -84,13 +84,10 @@ VOID WeDeleteWindowTree(
     __in PWE_WINDOW_TREE_CONTEXT Context
     )
 {
-    PH_HASHTABLE_ENUM_CONTEXT enumContext;
-    PWE_WINDOW_NODE *windowNode;
+    ULONG i;
 
-    PhBeginEnumHashtable(Context->NodeHashtable, &enumContext);
-
-    while (windowNode = PhNextEnumHashtable(&enumContext))
-        WepDestroyWindowNode(*windowNode);
+    for (i = 0; i < Context->NodeList->Count; i++)
+        WepDestroyWindowNode(Context->NodeList->Items[i]);
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
@@ -342,29 +339,29 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             TreeList_NodesStructured(hwnd);
         }
         return TRUE;
-    //case TreeListKeyDown:
-    //    {
-    //        switch ((SHORT)Parameter1)
-    //        {
-    //        case 'C':
-    //            if (GetKeyState(VK_CONTROL) < 0)
-    //                SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_COPY, 0);
-    //            break;
-    //        }
-    //    }
-    //    return TRUE;
-    //case TreeListNodeRightClick:
-    //    {
-    //        PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+    case TreeListKeyDown:
+        {
+            switch ((SHORT)Parameter1)
+            {
+            case 'C':
+                if (GetKeyState(VK_CONTROL) < 0)
+                    SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_COPY, 0);
+                break;
+            }
+        }
+        return TRUE;
+    case TreeListNodeRightClick:
+        {
+            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
 
-    //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
-    //    }
-    //    return TRUE;
-    //case TreeListNodeLeftDoubleClick:
-    //    {
-    //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
-    //    }
-    //    return TRUE;
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
+        }
+        return TRUE;
+    case TreeListNodeLeftDoubleClick:
+        {
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_PROPERTIES, 0);
+        }
+        return TRUE;
     case TreeListNodePlusMinusMouseDown:
         {
             SendMessage(context->ParentWindowHandle, WM_WE_PLUSMINUS, 0, (LPARAM)Parameter1);
@@ -379,15 +376,57 @@ VOID WeClearWindowTree(
     __in PWE_WINDOW_TREE_CONTEXT Context
     )
 {
-    PH_HASHTABLE_ENUM_CONTEXT enumContext;
-    PWE_WINDOW_NODE *windowNode;
+    ULONG i;
 
-    PhBeginEnumHashtable(Context->NodeHashtable, &enumContext);
-
-    while (windowNode = PhNextEnumHashtable(&enumContext))
-        WepDestroyWindowNode(*windowNode);
+    for (i = 0; i < Context->NodeList->Count; i++)
+        WepDestroyWindowNode(Context->NodeList->Items[i]);
 
     PhClearHashtable(Context->NodeHashtable);
     PhClearList(Context->NodeList);
     PhClearList(Context->NodeRootList);
+}
+
+PWE_WINDOW_NODE WeGetSelectedWindowNode(
+    __in PWE_WINDOW_TREE_CONTEXT Context
+    )
+{
+    PWE_WINDOW_NODE windowNode = NULL;
+    ULONG i;
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        windowNode = Context->NodeList->Items[i];
+
+        if (windowNode->Node.Selected)
+            return windowNode;
+    }
+
+    return NULL;
+}
+
+VOID WeGetSelectedWindowNodes(
+    __in PWE_WINDOW_TREE_CONTEXT Context,
+    __out PWE_WINDOW_NODE **Windows,
+    __out PULONG NumberOfWindows
+    )
+{
+    PPH_LIST list;
+    ULONG i;
+
+    list = PhCreateList(2);
+
+    for (i = 0; i < Context->NodeList->Count; i++)
+    {
+        PWE_WINDOW_NODE node = Context->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            PhAddItemList(list, node);
+        }
+    }
+
+    *Windows = PhAllocateCopy(list->Items, sizeof(PVOID) * list->Count);
+    *NumberOfWindows = list->Count;
+
+    PhDereferenceObject(list);
 }

@@ -935,6 +935,16 @@ PhShowChooseProcessDialog(
     __out PHANDLE ProcessId
     );
 
+// cpysave
+
+PHAPPAPI
+PPH_FULL_STRING
+NTAPI
+PhGetTreeListText(
+    __in HWND TreeListHandle,
+    __in ULONG MaximumNumberOfColumns
+    );
+
 // procrec
 
 PHAPPAPI

@@ -40,4 +40,10 @@ HWND WeCreateWindowsDialog(
 
 #define WM_WE_PLUSMINUS (WM_APP + 1)
 
+// utils
+
+VOID WeInvertWindowBorder(
+    __in HWND hWnd
+    );
+
 #endif

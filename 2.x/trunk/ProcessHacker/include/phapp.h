@@ -1095,6 +1095,7 @@ BOOLEAN PhShowChooseProcessDialog(
 #define PH_EXPORT_MODE_SPACES 1
 #define PH_EXPORT_MODE_CSV 2
 
+PHAPPAPI
 PPH_FULL_STRING PhGetTreeListText(
     __in HWND TreeListHandle,
     __in ULONG MaximumNumberOfColumns

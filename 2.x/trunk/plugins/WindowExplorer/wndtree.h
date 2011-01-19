@@ -67,4 +67,14 @@ VOID WeClearWindowTree(
     __in PWE_WINDOW_TREE_CONTEXT Context
     );
 
+PWE_WINDOW_NODE WeGetSelectedWindowNode(
+    __in PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+VOID WeGetSelectedWindowNodes(
+    __in PWE_WINDOW_TREE_CONTEXT Context,
+    __out PWE_WINDOW_NODE **Windows,
+    __out PULONG NumberOfWindows
+    );
+
 #endif
