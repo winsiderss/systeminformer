@@ -205,6 +205,24 @@ VOID NTAPI MenuItemCallback(
             WeCreateWindowsDialog(PhMainWndHandle, &selector);
         }
         break;
+    case ID_PROCESS_WINDOWS:
+        {
+            WE_WINDOW_SELECTOR selector;
+
+            selector.Type = WeWindowSelectorProcess;
+            selector.Process.ProcessId = ((PPH_PROCESS_ITEM)menuItem->Context)->ProcessId;
+            WeCreateWindowsDialog(PhMainWndHandle, &selector);
+        }
+        break;
+    case ID_THREAD_WINDOWS:
+        {
+            WE_WINDOW_SELECTOR selector;
+
+            selector.Type = WeWindowSelectorThread;
+            selector.Thread.ThreadId = ((PPH_THREAD_ITEM)menuItem->Context)->ThreadId;
+            WeCreateWindowsDialog(PhMainWndHandle, &selector);
+        }
+        break;
     }
 }
 
@@ -242,7 +260,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
     if (miscMenu)
     {
-        //PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_UNLOADEDMODULES, L"Unloaded Modules", processItem), -1);
+        PhInsertEMenuItem(miscMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCESS_WINDOWS, L"Windows", processItem), -1);
     }
 }
 
@@ -261,13 +279,13 @@ VOID NTAPI ThreadMenuInitializingCallback(
     else
         threadItem = NULL;
 
-    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Resume", 0))
+    if (menuItem = PhFindEMenuItem(menuInfo->Menu, 0, L"Token", 0))
         insertIndex = PhIndexOfEMenuItem(menuInfo->Menu, menuItem) + 1;
     else
         insertIndex = 0;
 
-    //PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_CANCELIO,
-    //    L"Cancel I/O", threadItem), insertIndex);
+    PhInsertEMenuItem(menuInfo->Menu, menuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_THREAD_WINDOWS,
+        L"Windows", threadItem), insertIndex);
 
     if (!threadItem) menuItem->Flags |= PH_EMENU_DISABLED;
 }

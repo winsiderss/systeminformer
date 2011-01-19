@@ -72,8 +72,9 @@ VOID WeInitializeWindowTree(
     TreeList_SetContext(hwnd, Context);
 
     PhAddTreeListColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeListColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 100, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeListColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 260, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeListColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeListColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeListColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
@@ -190,6 +191,8 @@ VOID WepDestroyWindowNode(
     PhDereferenceObject(WindowNode->Children);
 
     if (WindowNode->WindowText) PhDereferenceObject(WindowNode->WindowText);
+
+    if (WindowNode->ThreadString) PhDereferenceObject(WindowNode->ThreadString);
 
     PhFree(WindowNode);
 }
@@ -319,6 +322,11 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
                 break;
             case WEWNTLC_TEXT:
                 getNodeText->Text = PhGetStringRef(node->WindowText);
+                break;
+            case WEWNTLC_THREAD:
+                if (!node->ThreadString)
+                    node->ThreadString = PhGetClientIdName(&node->ClientId);
+                getNodeText->Text = PhGetStringRef(node->ThreadString);
                 break;
             default:
                 return FALSE;
