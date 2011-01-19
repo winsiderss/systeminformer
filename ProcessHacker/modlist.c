@@ -50,19 +50,6 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
     __in_opt PVOID Context
     );
 
-static HWND ModuleTreeListHandle;
-static ULONG ModuleTreeListSortColumn;
-static PH_SORT_ORDER ModuleTreeListSortOrder;
-
-static PPH_HASHTABLE ModuleNodeHashtable; // hashtable of all nodes
-static PPH_LIST ModuleNodeList; // list of all nodes
-
-static HICON ModuleApplicationIcon;
-static HICON ModuleCogIcon;
-
-BOOLEAN PhModuleTreeListStateHighlighting = TRUE;
-static PPH_POINTER_LIST ModuleNodeStateList = NULL; // list of nodes which need to be processed
-
 VOID PhInitializeModuleList(
     __in HWND ParentWindowHandle,
     __in HWND TreeListHandle,
@@ -237,7 +224,7 @@ VOID PhRemoveModuleNode(
     __in PPH_MODULE_NODE ModuleNode
     )
 {
-    if (PhModuleTreeListStateHighlighting)
+    if (Context->EnableStateHighlighting)
     {
         PhChangeShState(
             &ModuleNode->Node,
