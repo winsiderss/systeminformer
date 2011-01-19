@@ -78,6 +78,8 @@ VOID WeInitializeWindowTree(
 
     TreeList_SetTriState(hwnd, TRUE);
     TreeList_SetSort(hwnd, 0, NoSortOrder);
+
+    PhLoadTreeListColumnsFromSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, hwnd);
 }
 
 VOID WeDeleteWindowTree(
@@ -85,6 +87,8 @@ VOID WeDeleteWindowTree(
     )
 {
     ULONG i;
+
+    PhSaveTreeListColumnsToSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, Context->TreeListHandle);
 
     for (i = 0; i < Context->NodeList->Count; i++)
         WepDestroyWindowNode(Context->NodeList->Items[i]);
