@@ -1070,6 +1070,7 @@ VOID PhShowChooseColumnsDialog(
 #define PH_CHOICE_DIALOG_PASSWORD 0x2
 #define PH_CHOICE_DIALOG_TYPE_MASK 0x3
 
+PHAPPAPI
 BOOLEAN PhaChoiceDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Title,

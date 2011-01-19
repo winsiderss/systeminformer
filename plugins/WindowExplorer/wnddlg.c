@@ -87,6 +87,18 @@ VOID WepShowWindowsDialogCallback(
     ShowWindow(hwnd, SW_SHOW);
 }
 
+VOID WepDeleteWindowSelector(
+    __in PWE_WINDOW_SELECTOR Selector
+    )
+{
+    switch (Selector->Type)
+    {
+    case WeWindowSelectorDesktop:
+        PhDereferenceObject(Selector->Desktop.DesktopName);
+        break;
+    }
+}
+
 BOOL CALLBACK WepHasChildrenEnumWindowsProc(
     __in HWND hwnd,
     __in LPARAM lParam
@@ -216,6 +228,26 @@ VOID WepAddThreadWindows(
     EnumThreadWindows((ULONG)ThreadId, WepEnumChildWindowsProc, (LPARAM)&context);
 }
 
+VOID WepAddDesktopWindows(
+    __in PWINDOWS_CONTEXT Context,
+    __in PWSTR DesktopName
+    )
+{
+    ADD_CHILD_WINDOWS_CONTEXT context;
+    HDESK desktopHandle;
+
+    memset(&context, 0, sizeof(ADD_CHILD_WINDOWS_CONTEXT));
+    context.Context = Context;
+    context.Node = NULL;
+    context.TopLevelWindows = TRUE;
+
+    if (desktopHandle = OpenDesktop(DesktopName, 0, FALSE, DESKTOP_ENUMERATE))
+    {
+        EnumDesktopWindows(desktopHandle, WepEnumChildWindowsProc, (LPARAM)&context);
+        CloseDesktop(desktopHandle);
+    }
+}
+
 VOID WepRefreshWindows(
     __in PWINDOWS_CONTEXT Context
     )
@@ -250,6 +282,11 @@ VOID WepRefreshWindows(
     case WeWindowSelectorProcess:
         {
             WepAddTopLevelWindows(Context, NULL, Context->Selector.Process.ProcessId);
+        }
+        break;
+    case WeWindowSelectorDesktop:
+        {
+            WepAddDesktopWindows(Context, Context->Selector.Desktop.DesktopName->Buffer);
         }
         break;
     }
@@ -287,6 +324,11 @@ PPH_STRING WepGetWindowTitleForSelector(
             PhDereferenceObject(clientIdName);
 
             return title;
+        }
+        break;
+    case WeWindowSelectorDesktop:
+        {
+            return PhFormatString(L"Windows - Desktop \"%s\"", Selector->Desktop.DesktopName->Buffer);
         }
         break;
     default:
@@ -363,6 +405,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PhUnregisterDialog(hwndDlg);
 
             WeDeleteWindowTree(&context->TreeContext);
+            WepDeleteWindowSelector(&context->Selector);
             PhFree(context);
         }
         break;

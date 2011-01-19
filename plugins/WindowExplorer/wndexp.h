@@ -16,7 +16,8 @@ typedef enum _WE_WINDOW_SELECTOR_TYPE
 {
     WeWindowSelectorAll,
     WeWindowSelectorProcess,
-    WeWindowSelectorThread
+    WeWindowSelectorThread,
+    WeWindowSelectorDesktop
 } WE_WINDOW_SELECTOR_TYPE;
 
 typedef struct _WE_WINDOW_SELECTOR
@@ -32,6 +33,10 @@ typedef struct _WE_WINDOW_SELECTOR
         {
             HANDLE ThreadId;
         } Thread;
+        struct
+        {
+            PPH_STRING DesktopName;
+        } Desktop;
     };
 } WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
 

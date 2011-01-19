@@ -185,6 +185,16 @@ VOID NTAPI ShowOptionsCallback(
     NOTHING;
 }
 
+BOOL CALLBACK WepEnumDesktopProc(
+    __in LPTSTR lpszDesktop,
+    __in LPARAM lParam
+    )
+{
+    PhAddItemList((PPH_LIST)lParam, PhaCreateString(lpszDesktop)->Buffer);
+
+    return TRUE;
+}
+
 VOID NTAPI MenuItemCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -200,6 +210,38 @@ VOID NTAPI MenuItemCallback(
 
             selector.Type = WeWindowSelectorAll;
             WeShowWindowsDialog(PhMainWndHandle, &selector);
+        }
+        break;
+    case ID_VIEW_DESKTOPWINDOWS:
+        {
+            PPH_LIST desktopNames;
+            PPH_STRING selectedChoice = NULL;
+
+            desktopNames = PhCreateList(4);
+            EnumDesktops(GetProcessWindowStation(), WepEnumDesktopProc, (LPARAM)desktopNames);
+
+            if (PhaChoiceDialog(
+                PhMainWndHandle,
+                L"Desktop Windows",
+                L"Display windows for the following desktop:",
+                (PWSTR *)desktopNames->Items,
+                desktopNames->Count,
+                NULL,
+                PH_CHOICE_DIALOG_CHOICE,
+                &selectedChoice,
+                NULL,
+                NULL
+                ))
+            {
+                WE_WINDOW_SELECTOR selector;
+
+                selector.Type = WeWindowSelectorDesktop;
+                PhReferenceObject(selectedChoice);
+                selector.Desktop.DesktopName = selectedChoice;
+                WeShowWindowsDialog(PhMainWndHandle, &selector);
+            }
+
+            PhDereferenceObject(desktopNames);
         }
         break;
     case ID_PROCESS_WINDOWS:
@@ -229,6 +271,7 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_WINDOWS, L"Windows", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"Windows", ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL);
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(
