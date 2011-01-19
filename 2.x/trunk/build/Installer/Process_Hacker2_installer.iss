@@ -1,7 +1,7 @@
 ;* Process Hacker 2 - Installer script
 ;*
 ;* Copyright (C) 2011 wj32
-;* Copyright (C) 2010 XhmikosR
+;* Copyright (C) 2010-2011 XhmikosR
 ;*
 ;* This file is part of Process Hacker.
 ;*
@@ -24,7 +24,7 @@
 ; *Inno Setup QuickStart Pack v5.4.0(+): http://www.jrsoftware.org/isdl.php#qsp
 
 
-#define installer_build_number "06"
+#define installer_build_number "07"
 
 #define VerMajor
 #define VerMinor
@@ -105,16 +105,17 @@ Name: "custom";  Description: "Custom installation"; Flags: iscustom
 
 
 [Components]
-Name: "main";                          Description: "Main application";       Types: full minimal custom; Flags: fixed
-Name: "peview";                        Description: "PE Viewer";              Types: full minimal custom; Flags: disablenouninstallwarning
-Name: "plugins";                       Description: "Plugins";                Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendednotifications"; Description: "Extended Notifications"; Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedservices";      Description: "Extended Services";      Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedtools";         Description: "Extended Tools";         Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 0,6.01
-Name: "plugins\networktools";          Description: "Network Tools";          Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\onlinechecks";          Description: "Online Checks";          Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\sbiesupport";           Description: "Sandboxie Support";      Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar"; Types: full custom;         Flags: disablenouninstallwarning
+Name: "main";                          Description: "Main application";        Types: full minimal custom; Flags: fixed
+Name: "peview";                        Description: "PE Viewer";               Types: full minimal custom; Flags: disablenouninstallwarning
+Name: "plugins";                       Description: "Plugins";                 Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendednotifications"; Description: "Extended Notifications";  Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendedservices";      Description: "Extended Services";       Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 0,6.01
+Name: "plugins\networktools";          Description: "Network Tools";           Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\onlinechecks";          Description: "Online Checks";           Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar";  Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\windowexplorer";        Description: "Window Explorer plugin";  Types: full custom;         Flags: disablenouninstallwarning
 
 
 [Tasks]
@@ -141,14 +142,14 @@ Source: ..\..\LICENSE.txt;                                                      
 Source: ..\..\README.txt;                                                            DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\doc\Help.htm;                                                          DestDir: {app};                                                    Flags: ignoreversion
 
-Source: ..\..\tools\peview\bin\Release32\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
-Source: ..\..\tools\peview\bin\Release64\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: Is64BitInstallMode()
-
 Source: ..\..\bin\Release32\ProcessHacker.exe;                                       DestDir: {app};                                                    Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\bin\Release64\ProcessHacker.exe;                                       DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
 
 Source: ..\..\KProcessHacker\bin-signed\i386\kprocesshacker.sys;                     DestDir: {app};                                                    Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys;                    DestDir: {app};                                                    Flags: ignoreversion; Check: Is64BitInstallMode()
+
+Source: ..\..\tools\peview\bin\Release32\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\tools\peview\bin\Release64\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: Is64BitInstallMode()
 
 Source: ..\..\plugins\ExtendedNotifications\bin\Release32\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedNotifications\bin\Release64\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
@@ -164,6 +165,8 @@ Source: ..\..\plugins\SbieSupport\bin\Release32\SbieSupport.dll;                
 Source: ..\..\plugins\SbieSupport\bin\Release64\SbieSupport.dll;                     DestDir: {app}\plugins; Components: plugins\sbiesupport;           Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\plugins\ToolStatus\bin\Release32\ToolStatus.dll;                       DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\plugins\ToolStatus\bin\Release64\ToolStatus.dll;                       DestDir: {app}\plugins; Components: plugins\toolstatus;            Flags: ignoreversion; Check: Is64BitInstallMode()
+Source: ..\..\plugins\WindowExplorer\bin\Release32\WindowExplorer.dll;               DestDir: {app}\plugins; Components: plugins\windowexplorer;        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\WindowExplorer\bin\Release64\WindowExplorer.dll;               DestDir: {app}\plugins; Components: plugins\windowexplorer;        Flags: ignoreversion; Check: Is64BitInstallMode()
 
 Source: Icons\uninstall.ico;                                                         DestDir: {app};                                                    Flags: ignoreversion
 
@@ -188,15 +191,16 @@ Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Tasks: NOT 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
 
-Type: files; Name: {app}\peview.exe;                        Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
-Type: files; Name: {app}\plugins\ExtendedNotifications.dll; Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
-Type: files; Name: {app}\plugins\ExtendedServices.dll;      Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
-Type: files; Name: {app}\plugins\ExtendedTools.dll;         Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
-Type: files; Name: {app}\plugins\NetworkTools.dll;          Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
-Type: files; Name: {app}\plugins\OnlineChecks.dll;          Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
-Type: files; Name: {app}\plugins\SbieSupport.dll;           Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
-Type: files; Name: {app}\plugins\ToolStatus.dll;            Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
-;Type: dirifempty; Name: {app}\plugins
+Type: files;      Name: {app}\peview.exe;                        Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedNotifications.dll; Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedServices.dll;      Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedTools.dll;         Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
+Type: files;      Name: {app}\plugins\NetworkTools.dll;          Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
+Type: files;      Name: {app}\plugins\OnlineChecks.dll;          Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
+Type: files;      Name: {app}\plugins\SbieSupport.dll;           Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
+Type: files;      Name: {app}\plugins\ToolStatus.dll;            Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
+Type: files;      Name: {app}\plugins\WindowExplorer.dll;        Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpdate()
+Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
@@ -288,13 +292,6 @@ begin
 end;
 
 
-Procedure CleanUpFiles();
-begin
-  DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
-  RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
-end;
-
-
 Procedure CurStepChanged(CurStep: TSetupStep);
 begin
   case CurStep of ssInstall:
@@ -306,6 +303,7 @@ begin
       RemoveService('KProcessHacker2');
     end;
   end;
+
   ssPostInstall:
   begin
     if (KPHServiceCheck AND NOT IsTaskSelected('delete_KPH_service') OR (IsTaskSelected('create_KPH_service'))) then begin
@@ -326,10 +324,11 @@ begin
   if CurUninstallStep = usUninstall then begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
-  if SettingsExistCheck then begin
-    if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then begin
-       CleanUpFiles;
-     end;
+    if SettingsExistCheck then begin
+      if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO OR MB_DEFBUTTON2) = IDYES then begin
+        DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
+      end;
+      RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
       RemoveDir(ExpandConstant('{app}\plugins'));
       RemoveDir(ExpandConstant('{app}'));
     end;
@@ -341,15 +340,16 @@ function InitializeSetup(): Boolean;
 begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
   if CheckForMutexes(installer_mutex_name) then begin
-    if not WizardSilent() then begin
+    if NOT WizardSilent() then begin
       MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
       Result := False;
     end;
-  end else begin
+  end
+  else begin
     CreateMutex(installer_mutex_name);
 
-  is_update := RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Process_Hacker2_is1');
-  Result := True;
+    is_update := RegKeyExists(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Process_Hacker2_is1');
+    Result := True;
 
   end;
 end;
@@ -360,7 +360,8 @@ begin
   if CheckForMutexes(installer_mutex_name) then begin
     MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
     Result := False;
-  end else begin
+  end
+  else begin
     CreateMutex(installer_mutex_name);
     Result := True;
   end;

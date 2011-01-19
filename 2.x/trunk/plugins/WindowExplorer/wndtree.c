@@ -332,6 +332,18 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             getNodeText->Flags = TLC_CACHE;
         }
         return TRUE;
+    case TreeListGetNodeColor:
+        {
+            PPH_TREELIST_GET_NODE_COLOR getNodeColor = Parameter1;
+
+            node = (PWE_WINDOW_NODE)getNodeColor->Node;
+
+            if (!node->WindowVisible)
+                getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
+
+            getNodeColor->Flags = TLC_CACHE;
+        }
+        return TRUE;
     case TreeListSortChanged:
         {
             TreeList_GetSort(hwnd, &context->TreeListSortColumn, &context->TreeListSortOrder);
