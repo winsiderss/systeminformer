@@ -617,7 +617,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_WINDOW_PROPERTIES:
                 {
-                    PhShowInformation(hwndDlg, L"Properties");
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                        WeShowWindowProperties(PhMainWndHandle, selectedNode->WindowHandle);
                 }
                 break;
             case ID_WINDOW_COPY:

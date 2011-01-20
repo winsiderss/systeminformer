@@ -49,7 +49,7 @@ VOID WeShowWindowsDialog(
 
 // wndprp
 
-VOID PhShowWindowProperties(
+VOID WeShowWindowProperties(
     __in HWND ParentWindowHandle,
     __in HWND WindowHandle
     );
