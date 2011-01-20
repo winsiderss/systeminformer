@@ -11,6 +11,7 @@ Process Hacker
    * Always on Top issues
    * Hang when setting DEP status of a terminating process
    * Encoding bug in NetworkTools plugin
+   * LSA interfacing issues
 
 2.10
  * NEW/IMPROVED:
