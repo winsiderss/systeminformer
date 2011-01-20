@@ -86,7 +86,7 @@ NTSTATUS EspLoadOtherInfo(
                 privilegeSr.Buffer = privilege;
                 privilegeSr.Length = (USHORT)(privilegeLength * sizeof(WCHAR));
 
-                if (NT_SUCCESS(PhLookupPrivilegeDisplayName(&privilegeSr, &displayName)))
+                if (PhLookupPrivilegeDisplayName(&privilegeSr, &displayName))
                 {
                     PhSetListViewSubItem(Context->PrivilegesLv, lvItemIndex, 1, displayName->Buffer);
                     PhDereferenceObject(displayName);

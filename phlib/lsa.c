@@ -138,12 +138,16 @@ BOOLEAN PhLookupPrivilegeDisplayName(
     )
 {
     NTSTATUS status;
+    UNICODE_STRING privilegeName;
     PUNICODE_STRING displayName;
     SHORT language;
 
+    privilegeName = PrivilegeName->us;
+    privilegeName.MaximumLength = privilegeName.Length; // LSA needs MaximumLength to be valid
+
     status = LsaLookupPrivilegeDisplayName(
         PhGetLookupPolicyHandle(),
-        &PrivilegeName->us,
+        &privilegeName,
         &displayName,
         &language
         );
@@ -169,9 +173,14 @@ BOOLEAN PhLookupPrivilegeValue(
     __out PLUID PrivilegeValue
     )
 {
+    UNICODE_STRING privilegeName;
+
+    privilegeName = PrivilegeName->us;
+    privilegeName.MaximumLength = privilegeName.Length;
+
     return NT_SUCCESS(LsaLookupPrivilegeValue(
         PhGetLookupPolicyHandle(),
-        &PrivilegeName->us,
+        &privilegeName,
         PrivilegeValue
         ));
 }
@@ -277,16 +286,20 @@ NTSTATUS PhLookupName(
 {
     NTSTATUS status;
     LSA_HANDLE policyHandle;
+    UNICODE_STRING name;
     PLSA_REFERENCED_DOMAIN_LIST referencedDomains;
     PLSA_TRANSLATED_SID2 sids;
 
     policyHandle = PhGetLookupPolicyHandle();
 
+    name = Name->us;
+    name.MaximumLength = name.Length;
+
     status = LsaLookupNames2(
         policyHandle,
         0,
         1,
-        &Name->us,
+        &name,
         &referencedDomains,
         &sids
         );
