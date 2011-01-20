@@ -25,14 +25,21 @@
 
 #include "wndexp.h"
 #include "resource.h"
+#include <windowsx.h>
 
-#define NUMBER_OF_PAGES 2
+#define NUMBER_OF_PAGES 3
 
 typedef struct _WINDOW_PROPERTIES_CONTEXT
 {
     HWND ParentWindowHandle;
     HWND WindowHandle;
 } WINDOW_PROPERTIES_CONTEXT, *PWINDOW_PROPERTIES_CONTEXT;
+
+typedef struct _STRING_INTEGER_PAIR
+{
+    PWSTR String;
+    ULONG Integer;
+} STRING_INTEGER_PAIR, *PSTRING_INTEGER_PAIR;
 
 HWND WepCreateWindowProperties(
     __in PWINDOW_PROPERTIES_CONTEXT Context
@@ -74,12 +81,68 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK WepWindowStylesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK WepWindowPropertiesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
+
+#define DEFINE_PAIR(Symbol) { L#Symbol, Symbol }
+
+static STRING_INTEGER_PAIR WepStylePairs[] =
+{
+    DEFINE_PAIR(WS_POPUP),
+    DEFINE_PAIR(WS_CHILD),
+    DEFINE_PAIR(WS_MINIMIZE),
+    DEFINE_PAIR(WS_VISIBLE),
+    DEFINE_PAIR(WS_DISABLED),
+    DEFINE_PAIR(WS_CLIPSIBLINGS),
+    DEFINE_PAIR(WS_CLIPCHILDREN),
+    DEFINE_PAIR(WS_MAXIMIZE),
+    DEFINE_PAIR(WS_BORDER),
+    DEFINE_PAIR(WS_DLGFRAME),
+    DEFINE_PAIR(WS_VSCROLL),
+    DEFINE_PAIR(WS_HSCROLL),
+    DEFINE_PAIR(WS_SYSMENU),
+    DEFINE_PAIR(WS_THICKFRAME),
+    DEFINE_PAIR(WS_GROUP),
+    DEFINE_PAIR(WS_TABSTOP),
+    DEFINE_PAIR(WS_MINIMIZEBOX),
+    DEFINE_PAIR(WS_MAXIMIZEBOX)
+};
+
+static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
+{
+    DEFINE_PAIR(WS_EX_DLGMODALFRAME),
+    DEFINE_PAIR(WS_EX_NOPARENTNOTIFY),
+    DEFINE_PAIR(WS_EX_TOPMOST),
+    DEFINE_PAIR(WS_EX_ACCEPTFILES),
+    DEFINE_PAIR(WS_EX_TRANSPARENT),
+    DEFINE_PAIR(WS_EX_MDICHILD),
+    DEFINE_PAIR(WS_EX_TOOLWINDOW),
+    DEFINE_PAIR(WS_EX_WINDOWEDGE),
+    DEFINE_PAIR(WS_EX_CLIENTEDGE),
+    DEFINE_PAIR(WS_EX_CONTEXTHELP),
+    DEFINE_PAIR(WS_EX_RIGHT),
+    DEFINE_PAIR(WS_EX_RTLREADING),
+    DEFINE_PAIR(WS_EX_LEFTSCROLLBAR),
+    DEFINE_PAIR(WS_EX_CONTROLPARENT),
+    DEFINE_PAIR(WS_EX_STATICEDGE),
+    DEFINE_PAIR(WS_EX_APPWINDOW),
+    DEFINE_PAIR(WS_EX_LAYERED),
+    DEFINE_PAIR(WS_EX_NOINHERITLAYOUT),
+    DEFINE_PAIR(WS_EX_LAYOUTRTL),
+    DEFINE_PAIR(WS_EX_COMPOSITED),
+    DEFINE_PAIR(WS_EX_NOACTIVATE)
+};
 
 HANDLE WePropertiesThreadHandle = NULL;
 CLIENT_ID WePropertiesThreadClientId;
@@ -142,6 +205,12 @@ static HWND WepCreateWindowProperties(
         Context,
         MAKEINTRESOURCE(IDD_WNDGENERAL),
         WepWindowGeneralDlgProc
+        );
+    // Styles
+    pages[propSheetHeader.nPages++] = WepCommonCreatePage(
+        Context,
+        MAKEINTRESOURCE(IDD_WNDSTYLES),
+        WepWindowStylesDlgProc
         );
     // Properties
     pages[propSheetHeader.nPages++] = WepCommonCreatePage(
@@ -393,6 +462,63 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
     return TRUE;
 }
 
+static PPH_STRING WepFormatRect(
+    __in PRECT Rect
+    )
+{
+    return PhaFormatString(L"(%d, %d) - (%d, %d) [%dx%d]",
+        Rect->left, Rect->top, Rect->right, Rect->bottom,
+        Rect->right - Rect->left, Rect->bottom - Rect->top);
+}
+
+static VOID WepRefreshWindowGeneralInfo(
+    __in HWND hwndDlg,
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    PPH_STRING windowText;
+    ULONG threadId;
+    ULONG processId;
+    CLIENT_ID clientId;
+    PPH_STRING clientIdName;
+    WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
+    WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
+
+    threadId = GetWindowThreadProcessId(Context->WindowHandle, &processId);
+
+    if (threadId)
+    {
+        clientId.UniqueProcess = UlongToHandle(processId);
+        clientId.UniqueThread = UlongToHandle(threadId);
+        clientIdName = PhGetClientIdName(&clientId);
+        SetDlgItemText(hwndDlg, IDC_THREAD, clientIdName->Buffer);
+        PhDereferenceObject(clientIdName);
+    }
+
+    windowText = PHA_DEREFERENCE(PhGetWindowText(Context->WindowHandle));
+    SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(windowText));
+
+    if (GetWindowInfo(Context->WindowHandle, &windowInfo))
+    {
+        SetDlgItemText(hwndDlg, IDC_RECTANGLE, WepFormatRect(&windowInfo.rcWindow)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_CLIENTRECTANGLE, WepFormatRect(&windowInfo.rcClient)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(hwndDlg, IDC_RECTANGLE, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_CLIENTRECTANGLE, L"N/A");
+    }
+
+    if (GetWindowPlacement(Context->WindowHandle, &windowPlacement))
+    {
+        SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, WepFormatRect(&windowPlacement.rcNormalPosition)->Buffer);
+    }
+    else
+    {
+        SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, L"N/A");
+    }
+}
+
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -400,6 +526,124 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
     __in LPARAM lParam
     )
 {
+    PWINDOW_PROPERTIES_CONTEXT context;
+
+    if (!WepPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &context))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            WepRefreshWindowGeneralInfo(hwndDlg, context);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_REFRESH:
+                WepRefreshWindowGeneralInfo(hwndDlg, context);
+                break;
+            }
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
+static VOID WepRefreshWindowStyles(
+    __in HWND hwndDlg,
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
+    HWND stylesListBox;
+    HWND extendedStylesListBox;
+    ULONG i;
+
+    stylesListBox = GetDlgItem(hwndDlg, IDC_STYLESLIST);
+    extendedStylesListBox = GetDlgItem(hwndDlg, IDC_EXTENDEDSTYLESLIST);
+
+    ListBox_ResetContent(stylesListBox);
+    ListBox_ResetContent(extendedStylesListBox);
+
+    if (GetWindowInfo(Context->WindowHandle, &windowInfo))
+    {
+        SetDlgItemText(hwndDlg, IDC_STYLES, PhaFormatString(L"0x%x", windowInfo.dwStyle)->Buffer);
+        SetDlgItemText(hwndDlg, IDC_EXTENDEDSTYLES, PhaFormatString(L"0x%x", windowInfo.dwExStyle)->Buffer);
+
+        for (i = 0; i < sizeof(WepStylePairs) / sizeof(STRING_INTEGER_PAIR); i++)
+        {
+            if (windowInfo.dwStyle & WepStylePairs[i].Integer)
+            {
+                // Skip irrelevant styles.
+
+                if (WepStylePairs[i].Integer == WS_MAXIMIZEBOX ||
+                    WepStylePairs[i].Integer == WS_MINIMIZEBOX)
+                {
+                    if (windowInfo.dwStyle & WS_CHILD)
+                        continue;
+                }
+
+                if (WepStylePairs[i].Integer == WS_TABSTOP ||
+                    WepStylePairs[i].Integer == WS_GROUP)
+                {
+                    if (!(windowInfo.dwStyle & WS_CHILD))
+                        continue;
+                }
+
+                ListBox_AddString(stylesListBox, WepStylePairs[i].String);
+            }
+        }
+
+        for (i = 0; i < sizeof(WepExtendedStylePairs) / sizeof(STRING_INTEGER_PAIR); i++)
+        {
+            if (windowInfo.dwExStyle & WepExtendedStylePairs[i].Integer)
+            {
+                ListBox_AddString(extendedStylesListBox, WepExtendedStylePairs[i].String);
+            }
+        }
+    }
+    else
+    {
+        SetDlgItemText(hwndDlg, IDC_STYLES, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_EXTENDEDSTYLES, L"N/A");
+    }
+}
+
+INT_PTR CALLBACK WepWindowStylesDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PWINDOW_PROPERTIES_CONTEXT context;
+
+    if (!WepPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &context))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            WepRefreshWindowStyles(hwndDlg, context);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_REFRESH:
+                WepRefreshWindowStyles(hwndDlg, context);
+                break;
+            }
+        }
+        break;
+    }
+
     return FALSE;
 }
 
