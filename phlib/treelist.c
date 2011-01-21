@@ -1009,6 +1009,26 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             return CallWindowProc(context->OldLvWndProc, context->ListViewHandle, LVM_SETITEMSTATE, (WPARAM)node->s.ViewIndex, (LPARAM)&lvItem);
         }
+    case TLM_SETNODEEXPANDED:
+        {
+            PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
+            BOOLEAN expanded = (BOOLEAN)wParam;
+            PH_TREELIST_NODE_EVENT nodeEvent;
+
+            if (node->Expanded != expanded)
+            {
+                memset(&nodeEvent, 0, sizeof(PH_TREELIST_NODE_EVENT));
+                context->Callback(context->Handle, TreeListNodePlusMinusChanged,
+                    node, &nodeEvent, context->Context);
+
+                if (!nodeEvent.Handled)
+                {
+                    node->Expanded = expanded;
+                    TreeList_NodesStructured(hwnd);
+                }
+            }
+        }
+        break;
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -1139,7 +1159,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                             PH_TREELIST_NODE_EVENT nodeEvent;
 
                             memset(&nodeEvent, 0, sizeof(PH_TREELIST_NODE_EVENT));
-                            context->Callback(context->Handle, TreeListNodePlusMinusMouseDown,
+                            context->Callback(context->Handle, TreeListNodePlusMinusChanged,
                                 node, &nodeEvent, context->Context);
 
                             if (!nodeEvent.Handled)
@@ -1190,8 +1210,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                                     // parent.
                                     if (!node->s.IsLeaf && node->Expanded)
                                     {
-                                        node->Expanded = FALSE;
-                                        SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                                        SendMessage(context->Handle, TLM_SETNODEEXPANDED, (WPARAM)FALSE, (LPARAM)node);
                                     }
                                     else if (node->Level != 0)
                                     {
@@ -1221,8 +1240,7 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                                         // first child.
                                         if (!node->Expanded)
                                         {
-                                            node->Expanded = TRUE;
-                                            SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                                            SendMessage(context->Handle, TLM_SETNODEEXPANDED, (WPARAM)TRUE, (LPARAM)node);
                                         }
                                         else
                                         {
