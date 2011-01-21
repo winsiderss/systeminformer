@@ -408,7 +408,7 @@ FORCEINLINE VOID PhFreeAligned(
 
 FORCEINLINE PVOID PhAllocateCopy(
     __in PVOID Data,
-    __in ULONG Size
+    __in SIZE_T Size
     )
 {
     PVOID copy;

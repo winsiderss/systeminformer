@@ -374,6 +374,8 @@ PHAPPAPI extern HWND PhMainWndHandle;
 #define WM_PH_SELECT_SERVICE_ITEM (WM_APP + 134)
 #define WM_PH_SELECT_NETWORK_ITEM (WM_APP + 135)
 #define WM_PH_INVOKE (WM_APP + 138)
+#define WM_PH_ADD_MENU_ITEM (WM_APP + 139)
+#define WM_PH_ADD_TAB_PAGE (WM_APP + 140)
 
 #define ProcessHacker_ShowProcessProperties(hWnd, ProcessItem) \
     SendMessage(hWnd, WM_PH_SHOW_PROCESS_PROPERTIES, 0, (LPARAM)(ProcessItem))
@@ -401,6 +403,33 @@ PHAPPAPI extern HWND PhMainWndHandle;
     SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
 #define ProcessHacker_Invoke(hWnd, Function, Parameter) \
     PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
+#define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
+    ((BOOLEAN)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
+#define ProcessHacker_AddTabPage(hWnd, TabPage) \
+    SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage))
+
+typedef struct _PH_ADDMENUITEM
+{
+    __in PVOID Plugin;
+    __in ULONG Location;
+    __in_opt PWSTR InsertAfter;
+    __in ULONG Id;
+    __in PWSTR Text;
+    __in_opt PVOID Context;
+} PH_ADDMENUITEM, *PPH_ADDMENUITEM;
+
+typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
+    __in PVOID Context
+    );
+
+typedef struct _PH_ADDITIONAL_TAB_PAGE
+{
+    PWSTR Text;
+    PVOID Context;
+    PPH_TAB_PAGE_CREATE_FUNCTION CreateFunction;
+    HWND WindowHandle;
+    INT Index;
+} PH_ADDITIONAL_TAB_PAGE, *PPH_ADDITIONAL_TAB_PAGE;
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1
