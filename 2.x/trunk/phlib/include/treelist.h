@@ -103,7 +103,7 @@ typedef enum _PH_TREELIST_MESSAGE
     TreeListNodeLeftDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
     TreeListNodeRightDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
 
-    TreeListNodePlusMinusMouseDown, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_NODE_EVENT Parameter2
+    TreeListNodePlusMinusChanged, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_NODE_EVENT Parameter2
 
     MaxTreeListMessage
 } PH_TREELIST_MESSAGE;
@@ -235,6 +235,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_ENABLEEXPLORERSTYLE (WM_APP + 1227)
 #define TLM_GETMAXID (WM_APP + 1228)
 #define TLM_SETNODESTATE (WM_APP + 1229)
+#define TLM_SETNODEEXPANDED (WM_APP + 1230)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -332,6 +333,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_SetNodeState(hWnd, Node, State) \
     SendMessage((hWnd), TLM_SETNODESTATE, (WPARAM)(State), (LPARAM)(Node))
+
+#define TreeList_SetNodeExpanded(hWnd, Node, Expanded) \
+    SendMessage((hWnd), TLM_SETNODEEXPANDED, (WPARAM)(Expanded), (LPARAM)(Node))
 
 BOOLEAN PhTreeListInitialization();
 

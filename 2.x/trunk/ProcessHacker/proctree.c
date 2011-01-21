@@ -1920,7 +1920,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
         }
         return TRUE;
-    case TreeListNodePlusMinusMouseDown:
+    case TreeListNodePlusMinusChanged:
         {
             node = Parameter1;
 
