@@ -60,15 +60,24 @@ namespace ProcessHacker2.Api
 
     public enum PhGeneralCallback
     {
-        MainWindowShowing = 0,
-        ProcessesUpdated = 1,
-        GetProcessHighlightingColor = 2,
-        GetProcessTooltipText = 3,
-        ProcessPropertiesInitializing = 4,
-        GetIsDotNetDirectoryNames = 5,
-        NotifyEvent = 6,
-        ServicePropertiesInitializing = 7,
-        HandlePropertiesInitializing = 8,
+        MainWindowShowing = 0, // INT ShowCommand [main thread]
+        ProcessesUpdated = 1, // [main thread]
+        GetProcessHighlightingColor = 2, // PPH_PLUGIN_GET_HIGHLIGHTING_COLOR Data [main thread]
+        GetProcessTooltipText = 3, // PPH_PLUGIN_GET_TOOLTIP_TEXT Data [main thread]
+        ProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
+        GetIsDotNetDirectoryNames = 5, // PPH_PLUGIN_IS_DOT_NET_DIRECTORY_NAMES Data [process provider thread]
+        NotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
+        ServicePropertiesInitializing = 7, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
+        HandlePropertiesInitializing = 8, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
+        ProcessMenuInitializing = 9, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+        ServiceMenuInitializing = 10, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+        NetworkMenuInitializing = 11, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+        IconMenuInitializing = 12, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
+        ThreadMenuInitializing = 13, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+        ModuleMenuInitializing = 14, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+        MemoryMenuInitializing = 15, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+        HandleMenuInitializing = 16, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+
         Maximum
     }
 
@@ -113,7 +122,7 @@ namespace ProcessHacker2.Api
         public void* DisplayName;
         public void* Author;
         public void* Description;
-        public byte HasOptions;
+        public int Flags;
 
         public PhCallback Callbacks; // PhCallback[PhPluginCallback.Maximum]
     }
@@ -124,6 +133,7 @@ namespace ProcessHacker2.Api
         Unload = 1,
         ShowOptions = 2,
         MenuItem = 3,
+
         Maximum
     }
 
@@ -181,6 +191,7 @@ namespace ProcessHacker2.Api
         public PhString* UserName;
         public TokenElevationType ElevationType;
         public PhIntegrity IntegrityLevel;
+        public void* IntegrityString;
 
         public PhString* JobName;
         public IntPtr ConsoleHostProcessId;
@@ -190,7 +201,7 @@ namespace ProcessHacker2.Api
         public int ImportFunctions;
         public int ImportModules;
 
-        public int BitField;
+        public int Flags;
 
         public byte JustProcessed;
         public PhEvent Stage1Event;
@@ -201,10 +212,9 @@ namespace ProcessHacker2.Api
         public fixed short ProcessIdString[NativeApi.PhInt32StrLen + 1];
         public fixed short ParentProcessIdString[NativeApi.PhInt32StrLen + 1];
         public fixed short SessionIdString[NativeApi.PhInt32StrLen + 1];
-        public fixed short IntegrityString[NativeApi.PhIntegrityStrLen + 1];
 
         public int BasePriority;
-        public int PriorityClassWin32;
+        public int PriorityClass;
         public long KernelTime;
         public long UserTime;
         public int NumberOfHandles;
@@ -582,6 +592,16 @@ namespace ProcessHacker2.Api
             string Name,
             IntPtr DllBase,
             [Optional] PhPluginInformation* Information
+            );
+
+        [DllImport("ProcessHacker.exe", CharSet = CharSet.Unicode)]
+        public static extern byte PhPluginAddMenuItem(
+            PhPlugin* Plugin,
+            int Location,
+            string InsertAfter,
+            int Id,
+            string Text,
+            IntPtr Context
             );
 
         #endregion
