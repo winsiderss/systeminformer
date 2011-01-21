@@ -1159,6 +1159,94 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
             }
         }
         break;
+    case WM_KEYDOWN:
+        {
+            switch (wParam)
+            {
+            case VK_LEFT:
+            case VK_RIGHT:
+                {
+                    ULONG selectedIndex;
+                    PPH_TREELIST_NODE node;
+                    PPH_TREELIST_NODE newNode;
+
+                    if (ListView_GetSelectedCount(hwnd) == 1)
+                        selectedIndex = ListView_GetNextItem(hwnd, -1, LVNI_SELECTED);
+                    else
+                        selectedIndex = -1;
+
+                    if (selectedIndex != -1 && selectedIndex < context->List->Count)
+                    {
+                        node = context->List->Items[selectedIndex];
+
+                        switch (wParam)
+                        {
+                            case VK_LEFT:
+                                {
+                                    ULONG i;
+                                    ULONG targetLevel;
+
+                                    // If the node is expanded, collapse it. Otherwise, select the node's 
+                                    // parent.
+                                    if (!node->s.IsLeaf && node->Expanded)
+                                    {
+                                        node->Expanded = FALSE;
+                                        SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                                    }
+                                    else if (node->Level != 0)
+                                    {
+                                        i = selectedIndex;
+                                        targetLevel = node->Level - 1;
+
+                                        while (i != 0)
+                                        {
+                                            i--;
+                                            newNode = context->List->Items[i];
+
+                                            if (newNode->Level == targetLevel)
+                                            {
+                                                ListView_SetItemState(hwnd, selectedIndex, 0, LVIS_FOCUSED | LVIS_SELECTED);
+                                                ListView_SetItemState(hwnd, i, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                            case VK_RIGHT:
+                                {
+                                    if (!node->s.IsLeaf)
+                                    {
+                                        // If the node is collapsed, expand it. Otherwise, select the node's 
+                                        // first child.
+                                        if (!node->Expanded)
+                                        {
+                                            node->Expanded = TRUE;
+                                            SendMessage(context->Handle, TLM_NODESSTRUCTURED, 0, 0);
+                                        }
+                                        else
+                                        {
+                                            if (selectedIndex + 1 < context->List->Count)
+                                            {
+                                                newNode = context->List->Items[selectedIndex + 1];
+
+                                                if (newNode->Level == node->Level + 1)
+                                                {
+                                                    ListView_SetItemState(hwnd, selectedIndex, 0, LVIS_FOCUSED | LVIS_SELECTED);
+                                                    ListView_SetItemState(hwnd, selectedIndex + 1, LVIS_FOCUSED | LVIS_SELECTED, LVIS_FOCUSED | LVIS_SELECTED);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                break;
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        break;
     case WM_NOTIFY:
         {
             LPNMHDR header = (LPNMHDR)lParam;
