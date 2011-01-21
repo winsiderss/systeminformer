@@ -378,7 +378,7 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_PROPERTIES, 0);
         }
         return TRUE;
-    case TreeListNodePlusMinusMouseDown:
+    case TreeListNodePlusMinusChanged:
         {
             SendMessage(context->ParentWindowHandle, WM_WE_PLUSMINUS, 0, (LPARAM)Parameter1);
         }
