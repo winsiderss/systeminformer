@@ -345,6 +345,8 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_UPDATE_FONT (WM_APP + 136)
 #define WM_PH_GET_FONT (WM_APP + 137)
 #define WM_PH_INVOKE (WM_APP + 138)
+#define WM_PH_ADD_MENU_ITEM (WM_APP + 139)
+#define WM_PH_ADD_TAB_PAGE (WM_APP + 140)
 
 #define WM_PH_PROCESS_ADDED (WM_APP + 101)
 #define WM_PH_PROCESS_MODIFIED (WM_APP + 102)
@@ -391,6 +393,10 @@ extern BOOLEAN PhMainWndExiting;
     SendMessage(hWnd, WM_PH_SELECT_NETWORK_ITEM, 0, (LPARAM)(NetworkItem))
 #define ProcessHacker_Invoke(hWnd, Function, Parameter) \
     PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
+#define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
+    ((BOOLEAN)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
+#define ProcessHacker_AddTabPage(hWnd, TabPage) \
+    SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage))
 
 typedef struct _PH_SHOWMEMORYEDITOR
 {
@@ -406,6 +412,29 @@ typedef struct _PH_SHOWMEMORYRESULTS
     HANDLE ProcessId;
     PPH_LIST Results;
 } PH_SHOWMEMORYRESULTS, *PPH_SHOWMEMORYRESULTS;
+
+typedef struct _PH_ADDMENUITEM
+{
+    __in PVOID Plugin;
+    __in ULONG Location;
+    __in_opt PWSTR InsertAfter;
+    __in ULONG Id;
+    __in PWSTR Text;
+    __in_opt PVOID Context;
+} PH_ADDMENUITEM, *PPH_ADDMENUITEM;
+
+typedef HWND (NTAPI *PPH_TAB_PAGE_CREATE_FUNCTION)(
+    __in PVOID Context
+    );
+
+typedef struct _PH_ADDITIONAL_TAB_PAGE
+{
+    PWSTR Text;
+    PVOID Context;
+    PPH_TAB_PAGE_CREATE_FUNCTION CreateFunction;
+    HWND WindowHandle;
+    INT Index;
+} PH_ADDITIONAL_TAB_PAGE, *PPH_ADDITIONAL_TAB_PAGE;
 
 #define PH_NOTIFY_MINIMUM 0x1
 #define PH_NOTIFY_PROCESS_CREATE 0x1

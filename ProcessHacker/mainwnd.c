@@ -44,12 +44,34 @@ typedef HRESULT (WINAPI *_LoadIconMetric)(
     );
 
 VOID PhMainWndOnCreate();
-VOID PhMainWndOnLayout(HDWP *deferHandle);
-VOID PhMainWndTabControlOnLayout(HDWP *deferHandle);
+
+BOOLEAN PhpMainWndAddMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Location,
+    __in_opt PWSTR InsertAfter,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in_opt PVOID Context
+    );
+
+PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(
+    __in PPH_ADDITIONAL_TAB_PAGE TabPage
+    );
+
+VOID PhMainWndOnLayout(
+    __inout HDWP *deferHandle
+    );
+
+VOID PhMainWndTabControlOnLayout(
+    __inout HDWP *deferHandle
+    );
+
 VOID PhMainWndTabControlOnNotify(
     __in LPNMHDR Header
     );
+
 VOID PhMainWndTabControlOnSelectionChanged();
+
 VOID PhMainWndNetworkListViewOnNotify(
     __in LPNMHDR Header
     );
@@ -213,6 +235,7 @@ static INT ProcessesTabIndex;
 static INT ServicesTabIndex;
 static INT NetworkTabIndex;
 static INT MaxTabIndex;
+static PPH_LIST AdditionalTabPageList = NULL;
 static HWND ProcessTreeListHandle;
 static HWND ServiceTreeListHandle;
 static HWND NetworkListViewHandle;
@@ -1911,6 +1934,25 @@ LRESULT CALLBACK PhMainWndProc(
             function((PVOID)wParam);
         }
         break;
+    case WM_PH_ADD_MENU_ITEM:
+        {
+            PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)lParam;
+
+            return PhpMainWndAddMenuItem(
+                addMenuItem->Plugin,
+                addMenuItem->Location,
+                addMenuItem->InsertAfter,
+                addMenuItem->Id,
+                addMenuItem->Text,
+                addMenuItem->Context
+                );
+        }
+        break;
+    case WM_PH_ADD_TAB_PAGE:
+        {
+            return (LRESULT)PhpAddTabPage((PPH_ADDITIONAL_TAB_PAGE)lParam);
+        }
+        break;
     case WM_PH_PROCESS_ADDED:
         {
             ULONG runId = (ULONG)wParam;
@@ -3101,7 +3143,19 @@ static VOID NTAPI NetworkItemsUpdatedHandler(
 
 VOID PhMainWndOnCreate()
 {
-    TabControlHandle = PhCreateTabControl(PhMainWndHandle);
+    TabControlHandle = CreateWindow(
+        WC_TABCONTROL,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_MULTILINE,
+        0,
+        0,
+        3,
+        3,
+        PhMainWndHandle,
+        NULL,
+        PhInstanceHandle,
+        NULL
+        );
     SendMessage(TabControlHandle, WM_SETFONT, (WPARAM)PhApplicationFont, FALSE);
     BringWindowToTop(TabControlHandle);
     ProcessesTabIndex = PhAddTabControlTab(TabControlHandle, 0, L"Processes");
@@ -3233,7 +3287,123 @@ VOID PhpApplyLayoutPadding(
     Rect->bottom -= Padding->bottom;
 }
 
-VOID PhMainWndOnLayout(HDWP *deferHandle)
+BOOLEAN PhpMainWndAddMenuItem(
+    __in PPH_PLUGIN Plugin,
+    __in ULONG Location,
+    __in_opt PWSTR InsertAfter,
+    __in ULONG Id,
+    __in PWSTR Text,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_MENU_ITEM menuItem;
+    HMENU menu;
+    HMENU subMenu;
+    ULONG insertIndex;
+    ULONG insertAfterCount;
+    ULONG textCount;
+    WCHAR textBuffer[256];
+    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+
+    if (InsertAfter)
+        insertAfterCount = (ULONG)wcslen(InsertAfter);
+
+    textCount = (ULONG)wcslen(Text);
+
+    if (textCount > 128)
+        return FALSE;
+
+    menuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    menuItem->Plugin = Plugin;
+    menuItem->Id = Id;
+    menuItem->Context = Context;
+
+    menu = GetMenu(PhMainWndHandle);
+    subMenu = GetSubMenu(menu, Location);
+
+    if (InsertAfter)
+    {
+        ULONG count;
+
+        menuItemInfo.fMask = MIIM_STRING;
+        menuItemInfo.dwTypeData = textBuffer;
+        menuItemInfo.cch = sizeof(textBuffer) / sizeof(WCHAR);
+
+        insertIndex = 0;
+        count = GetMenuItemCount(subMenu);
+
+        if (count == -1)
+            return FALSE;
+
+        for (insertIndex = 0; insertIndex < count; insertIndex++)
+        {
+            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
+            {
+                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
+                {
+                    insertIndex++;
+                    break;
+                }
+            }
+        }
+    }
+    else
+    {
+        insertIndex = 0;
+    }
+
+    if (textCount == 1 && Text[0] == '-')
+    {
+        menuItem->RealId = 0;
+
+        menuItemInfo.fMask = 0;
+        menuItemInfo.fType = MFT_SEPARATOR;
+    }
+    else
+    {
+        menuItem->RealId = PhPluginReserveIds(1);
+
+        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
+        menuItemInfo.wID = menuItem->RealId;
+        menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
+        menuItemInfo.dwTypeData = Text;
+    }
+
+    InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);
+
+    return TRUE;
+}
+
+PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(
+    __in PPH_ADDITIONAL_TAB_PAGE TabPage
+    )
+{
+    PPH_ADDITIONAL_TAB_PAGE newTabPage;
+    HDWP deferHandle;
+
+    if (!AdditionalTabPageList)
+        AdditionalTabPageList = PhCreateList(2);
+
+    newTabPage = PhAllocateCopy(TabPage, sizeof(PH_ADDITIONAL_TAB_PAGE));
+    PhAddItemList(AdditionalTabPageList, newTabPage);
+
+    newTabPage->Index = PhAddTabControlTab(TabControlHandle, MAXINT, newTabPage->Text);
+    MaxTabIndex = newTabPage->Index;
+
+    if (newTabPage->WindowHandle)
+        BringWindowToTop(newTabPage->WindowHandle);
+
+    // The tab control might need multiple lines, so we need to refresh the layout.
+    deferHandle = BeginDeferWindowPos(1);
+    PhMainWndTabControlOnLayout(&deferHandle);
+    EndDeferWindowPos(deferHandle);
+
+    return newTabPage;
+}
+
+VOID PhMainWndOnLayout(
+    __inout HDWP *deferHandle
+    )
 {
     RECT rect;
 
@@ -3251,7 +3421,9 @@ VOID PhMainWndOnLayout(HDWP *deferHandle)
     PhMainWndTabControlOnLayout(deferHandle);
 }
 
-VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
+VOID PhMainWndTabControlOnLayout(
+    __inout HDWP *deferHandle
+    )
 {
     RECT rect;
     INT selectedIndex;
@@ -3280,6 +3452,34 @@ VOID PhMainWndTabControlOnLayout(HDWP *deferHandle)
             rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
             SWP_NOACTIVATE | SWP_NOZORDER);
     }
+    else if (AdditionalTabPageList)
+    {
+        ULONG i;
+
+        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        {
+            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+            if (selectedIndex == tabPage->Index)
+            {
+                // Create the tab page window if it doesn't exist.
+                if (!tabPage->WindowHandle)
+                {
+                    tabPage->WindowHandle = tabPage->CreateFunction(tabPage->Context);
+                    BringWindowToTop(tabPage->WindowHandle);
+                }
+
+                if (tabPage->WindowHandle)
+                {
+                    *deferHandle = DeferWindowPos(*deferHandle, tabPage->WindowHandle, NULL,
+                        rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                        SWP_NOACTIVATE | SWP_NOZORDER);
+                }
+
+                break;
+            }
+        }
+    }
 }
 
 VOID PhMainWndTabControlOnNotify(
@@ -3295,14 +3495,15 @@ VOID PhMainWndTabControlOnNotify(
 VOID PhMainWndTabControlOnSelectionChanged()
 {
     INT selectedIndex;
+    HDWP deferHandle;
 
     selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
 
-    {
-        HDWP deferHandle = BeginDeferWindowPos(1);
-        PhMainWndTabControlOnLayout(&deferHandle);
-        EndDeferWindowPos(deferHandle);
-    }
+    deferHandle = BeginDeferWindowPos(1);
+    PhMainWndTabControlOnLayout(&deferHandle);
+    EndDeferWindowPos(deferHandle);
+
+    // Built-in tabs
 
     if (selectedIndex == ServicesTabIndex)
         PhpNeedServiceTreeList();
@@ -3325,6 +3526,20 @@ VOID PhMainWndTabControlOnSelectionChanged()
     ShowWindow(ProcessTreeListHandle, selectedIndex == ProcessesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(ServiceTreeListHandle, selectedIndex == ServicesTabIndex ? SW_SHOW : SW_HIDE);
     ShowWindow(NetworkListViewHandle, selectedIndex == NetworkTabIndex ? SW_SHOW : SW_HIDE);
+
+    // Additional tabs
+
+    if (AdditionalTabPageList)
+    {
+        ULONG i;
+
+        for (i = 0; i < AdditionalTabPageList->Count; i++)
+        {
+            PPH_ADDITIONAL_TAB_PAGE tabPage = AdditionalTabPageList->Items[i];
+
+            ShowWindow(tabPage->WindowHandle, selectedIndex == tabPage->Index ? SW_SHOW : SW_HIDE);
+        }
+    }
 }
 
 BOOL CALLBACK PhpEnumProcessWindowsProc(

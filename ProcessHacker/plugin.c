@@ -442,82 +442,15 @@ BOOLEAN PhPluginAddMenuItem(
     __in_opt PVOID Context
     )
 {
-    PPH_PLUGIN_MENU_ITEM menuItem;
-    HMENU menu;
-    HMENU subMenu;
-    ULONG insertIndex;
-    ULONG insertAfterCount;
-    ULONG textCount;
-    WCHAR textBuffer[256];
-    MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+    PH_ADDMENUITEM addMenuItem;
 
-    if (InsertAfter)
-        insertAfterCount = (ULONG)wcslen(InsertAfter);
-
-    textCount = (ULONG)wcslen(Text);
-
-    if (textCount > 128)
-        return FALSE;
-
-    menuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
-    menuItem->Plugin = Plugin;
-    menuItem->Id = Id;
-    menuItem->Context = Context;
-
-    menu = GetMenu(PhMainWndHandle);
-    subMenu = GetSubMenu(menu, Location);
-
-    if (InsertAfter)
-    {
-        ULONG count;
-
-        menuItemInfo.fMask = MIIM_STRING;
-        menuItemInfo.dwTypeData = textBuffer;
-        menuItemInfo.cch = sizeof(textBuffer) / sizeof(WCHAR);
-
-        insertIndex = 0;
-        count = GetMenuItemCount(subMenu);
-
-        if (count == -1)
-            return FALSE;
-
-        for (insertIndex = 0; insertIndex < count; insertIndex++)
-        {
-            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
-            {
-                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
-                {
-                    insertIndex++;
-                    break;
-                }
-            }
-        }
-    }
-    else
-    {
-        insertIndex = 0;
-    }
-
-    if (textCount == 1 && Text[0] == '-')
-    {
-        menuItem->RealId = 0;
-
-        menuItemInfo.fMask = 0;
-        menuItemInfo.fType = MFT_SEPARATOR;
-    }
-    else
-    {
-        menuItem->RealId = PhPluginReserveIds(1);
-
-        menuItemInfo.fMask = MIIM_DATA | MIIM_ID | MIIM_STRING;
-        menuItemInfo.wID = menuItem->RealId;
-        menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
-        menuItemInfo.dwTypeData = Text;
-    }
-
-    InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);
-
-    return TRUE;
+    addMenuItem.Plugin = Plugin;
+    addMenuItem.Location = Location;
+    addMenuItem.InsertAfter = InsertAfter;
+    addMenuItem.Id = Id;
+    addMenuItem.Text = Text;
+    addMenuItem.Context = Context;
+    return ProcessHacker_AddMenuItem(PhMainWndHandle, &addMenuItem);
 }
 
 /**
