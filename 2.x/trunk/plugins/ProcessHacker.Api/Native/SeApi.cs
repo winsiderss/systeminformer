@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace ProcessHacker2.Api
+namespace ProcessHacker.Api
 {
     public enum SecurityInformation : uint
     {

@@ -1,4 +1,4 @@
-﻿namespace ProcessHacker2.Api
+﻿namespace ProcessHacker.Api
 {
     /// <summary>
     /// A NT status value.
