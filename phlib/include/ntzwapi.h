@@ -2450,6 +2450,18 @@ ZwQuerySection(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQuerySecurityAttributesToken(
+    __in HANDLE TokenHandle,
+    __in_ecount_opt(NumberOfAttributes) PUNICODE_STRING Attributes,
+    __in ULONG NumberOfAttributes,
+    __out_bcount(Length) PVOID Buffer, // PAUTHZ_SECURITY_ATTRIBUTES_INFORMATION
+    __in ULONG Length,
+    __out PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwQuerySecurityObject(
     __in HANDLE Handle,
     __in SECURITY_INFORMATION SecurityInformation,
@@ -2602,6 +2614,18 @@ ZwRaiseException(
     __in PEXCEPTION_RECORD ExceptionRecord,
     __in PCONTEXT ContextRecord,
     __in BOOLEAN FirstChance
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRaiseHardError(
+    __in NTSTATUS ErrorStatus,
+    __in ULONG NumberOfParameters,
+    __in ULONG UnicodeStringParameterMask,
+    __in_ecount(NumberOfParameters) PULONG_PTR Parameters,
+    __in ULONG ValidResponseOptions,
+    __out PULONG Response
     );
 
 NTSYSCALLAPI
@@ -3429,6 +3453,18 @@ NTAPI
 ZwSuspendThread(
     __in HANDLE ThreadHandle,
     __out_opt PULONG PreviousSuspendCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwSystemDebugControl(
+    __in SYSDBG_COMMAND Command,
+    __inout_bcount_opt(InputBufferLength) PVOID InputBuffer,
+    __in ULONG InputBufferLength,
+    __out_bcount_opt(OutputBufferLength) PVOID OutputBuffer,
+    __in ULONG OutputBufferLength,
+    __out_opt PULONG ReturnLength
     );
 
 NTSYSCALLAPI
