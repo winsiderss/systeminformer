@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
-namespace ProcessHacker2.Api
+namespace ProcessHacker.Api
 {
     public struct GeneralGetHighlightingColorArgs
     {
