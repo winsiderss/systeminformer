@@ -1324,6 +1324,67 @@ NtDisableLastKnownGood(
     );
 #endif
 
+// Other types
+
+typedef enum _INTERFACE_TYPE
+{
+    InterfaceTypeUndefined = -1,
+    Internal,
+    Isa,
+    Eisa,
+    MicroChannel,
+    TurboChannel,
+    PCIBus,
+    VMEBus,
+    NuBus,
+    PCMCIABus,
+    CBus,
+    MPIBus,
+    MPSABus,
+    ProcessorInternal,
+    InternalPowerBus,
+    PNPISABus,
+    PNPBus,
+    Vmcs,
+    MaximumInterfaceType
+} INTERFACE_TYPE, *PINTERFACE_TYPE;
+
+typedef enum _DMA_WIDTH
+{
+    Width8Bits,
+    Width16Bits,
+    Width32Bits,
+    MaximumDmaWidth
+} DMA_WIDTH, *PDMA_WIDTH;
+
+typedef enum _DMA_SPEED
+{
+    Compatible,
+    TypeA,
+    TypeB,
+    TypeC,
+    TypeF,
+    MaximumDmaSpeed
+} DMA_SPEED, *PDMA_SPEED;
+
+typedef enum _BUS_DATA_TYPE
+{
+    ConfigurationSpaceUndefined = -1,
+    Cmos,
+    EisaConfiguration,
+    Pos,
+    CbusConfiguration,
+    PCIConfiguration,
+    VMEConfiguration,
+    NuBusConfiguration,
+    PCMCIAConfiguration,
+    MPIConfiguration,
+    MPSAConfiguration,
+    PNPISAConfiguration,
+    SgiInternalConfiguration,
+    MaximumBusDataType
+} BUS_DATA_TYPE, *PBUS_DATA_TYPE;
+
 // Control structures
 
 // Reparse structure for FSCTL_SET_REPARSE_POINT, FSCTL_GET_REPARSE_POINT, FSCTL_DELETE_REPARSE_POINT
