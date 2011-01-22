@@ -51,18 +51,18 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Sample Plugin";
-            info.Author = L"Someone";
-            info.Description = L"Description goes here";
-            info.HasOptions = TRUE;
+            PPH_PLUGIN_INFORMATION info;
 
             // Register your plugin with a unique name, otherwise it will fail.
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SamplePlugin", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Sample Plugin";
+            info->Author = L"Someone";
+            info->Description = L"Description goes here";
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

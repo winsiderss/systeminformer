@@ -125,17 +125,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Sandboxie Support";
-            info.Author = L"wj32";
-            info.Description = L"Provides functionality for sandboxed processes.";
-            info.HasOptions = TRUE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SbieSupport", Instance, &info);
             
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Sandboxie Support";
+            info->Author = L"wj32";
+            info->Description = L"Provides functionality for sandboxed processes.";
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

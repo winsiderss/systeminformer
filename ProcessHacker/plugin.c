@@ -192,6 +192,7 @@ VOID PhLoadPlugin(
     else
     {
         ICLRRuntimeHost *clrHost;
+        HRESULT result;
         ULONG returnValue;
 
         if (!PhPluginsClrHostInitialized)
@@ -220,7 +221,7 @@ VOID PhLoadPlugin(
         if (clrHost)
         {
             LoadingPluginIsClr = TRUE;
-            ICLRRuntimeHost_ExecuteInDefaultAppDomain(
+            result = ICLRRuntimeHost_ExecuteInDefaultAppDomain(
                 clrHost,
                 fileName->Buffer,
                 L"ProcessHacker2.Plugin",
@@ -229,6 +230,11 @@ VOID PhLoadPlugin(
                 &returnValue
                 );
             LoadingPluginIsClr = FALSE;
+
+            if (result != S_OK)
+            {
+                PhShowError(NULL, L"Unable to load \"%s\": 0x%x", fileName->Buffer, result);
+            }
         }
     }
 
@@ -261,7 +267,9 @@ VOID PhpExecuteCallbackForAllPlugins(
  * if another plugin has already been registered with the same name.
  * \param DllBase The base address of the plugin DLL. This is passed 
  * to the DllMain function.
- * \param Information Additional information about the plugin.
+ * \param Information A variable which receives a pointer to the 
+ * plugin's additional information block. This should be filled in after 
+ * the function returns.
  *
  * \return A pointer to the plugin instance structure, or NULL if the 
  * function failed.
@@ -269,7 +277,7 @@ VOID PhpExecuteCallbackForAllPlugins(
 PPH_PLUGIN PhRegisterPlugin(
     __in PWSTR Name,
     __in PVOID DllBase,
-    __in_opt PPH_PLUGIN_INFORMATION Information
+    __out_opt PPH_PLUGIN_INFORMATION *Information
     )
 {
     PPH_PLUGIN plugin;
@@ -315,18 +323,11 @@ PPH_PLUGIN PhRegisterPlugin(
     if (LoadingPluginIsClr)
         plugin->Flags |= PH_PLUGIN_FLAG_IS_CLR;
 
-    if (Information)
-    {
-        plugin->DisplayName = Information->DisplayName;
-        plugin->Author = Information->Author;
-        plugin->Description = Information->Description;
-
-        if (Information->HasOptions)
-            plugin->Flags |= PH_PLUGIN_FLAG_HAS_OPTIONS;
-    }
-
     for (i = 0; i < PluginCallbackMaximum; i++)
         PhInitializeCallback(&plugin->Callbacks[i]);
+
+    if (Information)
+        *Information = &plugin->Information;
 
     return plugin;
 }

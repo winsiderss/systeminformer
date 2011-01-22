@@ -68,17 +68,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Toolbar and Status Bar";
-            info.Author = L"wj32";
-            info.Description = L"Adds a toolbar and a status bar.";
-            info.HasOptions = TRUE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ToolStatus", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Toolbar and Status Bar";
+            info->Author = L"wj32";
+            info->Description = L"Adds a toolbar and a status bar.";
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

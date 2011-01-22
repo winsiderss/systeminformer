@@ -151,8 +151,10 @@ namespace ProcessHacker2.Api
     {
         public void* DisplayName;
         public void* Author;
-        public void* Description; 
+        public void* Description;
+        public void* Url;
         public byte HasOptions;
+        public fixed byte Reserved1[3];
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -591,7 +593,7 @@ namespace ProcessHacker2.Api
         public static extern PhPlugin* PhRegisterPlugin(
             string Name,
             IntPtr DllBase,
-            [Optional] PhPluginInformation* Information
+            [Optional] PhPluginInformation** Information
             );
 
         [DllImport("ProcessHacker.exe", CharSet = CharSet.Unicode)]
