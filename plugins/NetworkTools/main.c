@@ -61,17 +61,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Network Tools";
-            info.Author = L"wj32";
-            info.Description = L"Provides ping, traceroute and whois for network connections.";
-            info.HasOptions = FALSE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.NetworkTools", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Network Tools";
+            info->Author = L"wj32";
+            info->Description = L"Provides ping, traceroute and whois for network connections.";
+            info->HasOptions = FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

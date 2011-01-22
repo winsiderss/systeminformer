@@ -31,17 +31,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Security Explorer";
-            info.Author = L"wj32";
-            info.Description = L"Manages LSA and SAM objects.";
-            info.HasOptions = FALSE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.SecurityExplorer", Instance, &info);
             
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Security Explorer";
+            info->Author = L"wj32";
+            info->Description = L"Manages LSA and SAM objects.";
+            info->HasOptions = FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

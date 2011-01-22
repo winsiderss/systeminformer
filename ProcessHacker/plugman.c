@@ -24,6 +24,8 @@
 #include <settings.h>
 #include <phplug.h>
 
+#define STR_OR_DEFAULT(String, Default) ((String) ? (String) : (Default))
+
 static HWND PluginsLv;
 static PPH_PLUGIN SelectedPlugin;
 
@@ -65,11 +67,12 @@ VOID PhpRefreshPluginDetails(
     {
         fileName = SelectedPlugin->FileName;
 
-        SetDlgItemText(hwndDlg, IDC_NAME, SelectedPlugin->DisplayName ? SelectedPlugin->DisplayName : L"(unnamed)");
+        SetDlgItemText(hwndDlg, IDC_NAME, SelectedPlugin->Information.DisplayName ? SelectedPlugin->Information.DisplayName : L"(unnamed)");
         SetDlgItemText(hwndDlg, IDC_INTERNALNAME, SelectedPlugin->Name);
-        SetDlgItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Author);
+        SetDlgItemText(hwndDlg, IDC_AUTHOR, SelectedPlugin->Information.Author);
         SetDlgItemText(hwndDlg, IDC_FILENAME, fileName->Buffer);
-        SetDlgItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Description);
+        SetDlgItemText(hwndDlg, IDC_DESCRIPTION, SelectedPlugin->Information.Description);
+        SetDlgItemText(hwndDlg, IDC_URL, SelectedPlugin->Information.Url);
 
         if (PhInitializeImageVersionInfo(&versionInfo, fileName->Buffer))
         {
@@ -81,7 +84,8 @@ VOID PhpRefreshPluginDetails(
             SetDlgItemText(hwndDlg, IDC_VERSION, L"Unknown");
         }
 
-        EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Flags & PH_PLUGIN_FLAG_HAS_OPTIONS);
+        ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Information.HasOptions);
     }
     else
     {
@@ -89,11 +93,27 @@ VOID PhpRefreshPluginDetails(
         SetDlgItemText(hwndDlg, IDC_VERSION, L"N/A");
         SetDlgItemText(hwndDlg, IDC_INTERNALNAME, L"N/A");
         SetDlgItemText(hwndDlg, IDC_AUTHOR, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_URL, L"N/A");
         SetDlgItemText(hwndDlg, IDC_FILENAME, L"N/A");
         SetDlgItemText(hwndDlg, IDC_DESCRIPTION, L"N/A");
 
+        ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SW_HIDE);
         EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), FALSE);
     }
+}
+
+static COLORREF PhpPluginColorFunction(
+    __in INT Index,
+    __in PVOID Param,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN plugin = Param;
+
+    if (plugin->Flags & PH_PLUGIN_FLAG_IS_CLR)
+        return RGB(0xde, 0xff, 0x00);
+
+    return PhSysWindowColor;
 }
 
 INT_PTR CALLBACK PhpPluginsDlgProc(
@@ -115,6 +135,7 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             PhAddListViewColumn(PluginsLv, 0, 0, 0, LVCFMT_LEFT, 200, L"Name");
             PhAddListViewColumn(PluginsLv, 1, 1, 1, LVCFMT_LEFT, 160, L"Author");
             PhSetExtendedListView(PluginsLv);
+            ExtendedListView_SetItemColorFunction(PluginsLv, PhpPluginColorFunction);
 
             links = PhMinimumElementAvlTree(&PhPluginsByName);
 
@@ -124,10 +145,10 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 INT lvItemIndex;
 
                 lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT,
-                    plugin->DisplayName ? plugin->DisplayName : plugin->Name, plugin);
+                    plugin->Information.DisplayName ? plugin->Information.DisplayName : plugin->Name, plugin);
 
-                if (plugin->Author)
-                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Author);
+                if (plugin->Information.Author)
+                    PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, plugin->Information.Author);
 
                 links = PhSuccessorElementAvlTree(links);
             }
@@ -163,6 +184,13 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                     }
                 }
                 break;
+            case IDC_OPENURL:
+                {
+                    if (SelectedPlugin)
+                    {
+                    }
+                }
+                break;
             }
         }
         break;
@@ -185,10 +213,21 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                     }
                 }
                 break;
+            case NM_CLICK:
+                {
+                    if (header->hwndFrom == GetDlgItem(hwndDlg, IDC_OPENURL))
+                    {
+                        if (SelectedPlugin)
+                            PhShellExecute(hwndDlg, SelectedPlugin->Information.Url, NULL);
+                    }
+                }
+                break;
             }
         }
         break;
     }
+
+    REFLECT_MESSAGE_DLG(hwndDlg, PluginsLv, uMsg, wParam, lParam);
 
     return FALSE;
 }

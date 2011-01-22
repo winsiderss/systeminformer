@@ -117,6 +117,7 @@
 #define IDC_FILENAME                    1020
 #define IDC_RUN_ALL                     1021
 #define IDC_CMDLINE                     1021
+#define IDC_URL                         1021
 #define IDC_TERMINATOR_LIST             1022
 #define IDC_CURDIR                      1022
 #define IDC_TERMINATOR_TEXT             1023
@@ -415,6 +416,8 @@
 #define IDC_CHECK1                      1274
 #define IDC_PROPAGATECPUUSAGE           1274
 #define IDC_CUSTOM1                     1276
+#define IDC_SYSLINK1                    1279
+#define IDC_OPENURL                     1279
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -633,7 +636,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40237
-#define _APS_NEXT_CONTROL_VALUE         1277
+#define _APS_NEXT_CONTROL_VALUE         1280
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif

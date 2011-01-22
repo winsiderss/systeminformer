@@ -46,17 +46,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Process Actions";
-            info.Author = L"wj32";
-            info.Description = L"Provides configurable actions for processes.";
-            info.HasOptions = TRUE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ProcessActions", Instance, &info);
             
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Process Actions";
+            info->Author = L"wj32";
+            info->Description = L"Provides configurable actions for processes.";
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

@@ -22,37 +22,25 @@ namespace ProcessHacker2.Api
         private PhPlugin* _plugin;
         private List<CallbackRegistration> _registrations = new List<CallbackRegistration>();
 
-        public static PluginInstance Register(string name, string displayName, string author, string description, bool hasOptions)
+        public static PluginInstance Register(string name, string displayName, string author, string description, string url, bool hasOptions)
         {
             PhPlugin* plugin;
-            PhPluginInformation info;
-
-            info = new PhPluginInformation();
-
-            if (displayName != null)
-                info.DisplayName = (void*)Marshal.StringToHGlobalUni(displayName);
-            if (author != null)
-                info.Author = (void*)Marshal.StringToHGlobalUni(author);
-            if (description != null)
-                info.Description = (void*)Marshal.StringToHGlobalUni(description);
-
-            info.HasOptions = hasOptions ? (byte)1 : (byte)0;
+            PhPluginInformation* info;
 
             plugin = NativeApi.PhRegisterPlugin(name, IntPtr.Zero, &info);
 
             if (plugin != null)
             {
+                info->DisplayName = (void*)Marshal.StringToHGlobalUni(displayName);
+                info->Author = (void*)Marshal.StringToHGlobalUni(author);
+                info->Description = (void*)Marshal.StringToHGlobalUni(description);
+                info->Url = (void*)Marshal.StringToHGlobalUni(url);
+                info->HasOptions = hasOptions ? (byte)1 : (byte)0;
+
                 return new PluginInstance(plugin);
             }
             else
             {
-                if (info.DisplayName != null)
-                    Marshal.FreeHGlobal((IntPtr)info.DisplayName);
-                if (info.Author != null)
-                    Marshal.FreeHGlobal((IntPtr)info.Author);
-                if (info.Description != null)
-                    Marshal.FreeHGlobal((IntPtr)info.Description);
-
                 return null;
             }
         }
