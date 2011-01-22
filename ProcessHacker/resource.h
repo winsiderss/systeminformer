@@ -418,6 +418,9 @@
 #define IDC_CUSTOM1                     1276
 #define IDC_SYSLINK1                    1279
 #define IDC_OPENURL                     1279
+#define IDC_SAMPLECOUNT                 1280
+#define IDC_SAMPLECOUNT_L               1281
+#define IDC_SAMPLECOUNTLABEL            1281
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -636,7 +639,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40237
-#define _APS_NEXT_CONTROL_VALUE         1280
+#define _APS_NEXT_CONTROL_VALUE         1282
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
