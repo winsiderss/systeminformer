@@ -152,8 +152,17 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
 
-#define PH_PLUGIN_FLAG_HAS_OPTIONS 0x1 // plugin can show options dialog
-#define PH_PLUGIN_FLAG_IS_CLR 0x2 // plugin is .NET
+typedef struct _PH_PLUGIN_INFORMATION
+{
+    PWSTR DisplayName;
+    PWSTR Author;
+    PWSTR Description;
+    PWSTR Url;
+    BOOLEAN HasOptions;
+    BOOLEAN Reserved1[3];
+} PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
+
+#define PH_PLUGIN_FLAG_IS_CLR 0x1 // plugin is .NET
 
 typedef struct _PH_PLUGIN
 {
@@ -162,22 +171,12 @@ typedef struct _PH_PLUGIN
     PWSTR Name;
     PVOID DllBase;
     PPH_STRING FileName;
-
-    PWSTR DisplayName;
-    PWSTR Author;
-    PWSTR Description;
     ULONG Flags;
+
+    PH_PLUGIN_INFORMATION Information;
 
     PH_CALLBACK Callbacks[PluginCallbackMaximum];
 } PH_PLUGIN, *PPH_PLUGIN;
-
-typedef struct _PH_PLUGIN_INFORMATION
-{
-    PWSTR DisplayName;
-    PWSTR Author;
-    PWSTR Description;
-    BOOLEAN HasOptions;
-} PH_PLUGIN_INFORMATION, *PPH_PLUGIN_INFORMATION;
 
 PHAPPAPI
 PPH_PLUGIN
@@ -185,7 +184,7 @@ NTAPI
 PhRegisterPlugin(
     __in PWSTR Name,
     __in PVOID DllBase,
-    __in_opt PPH_PLUGIN_INFORMATION Information
+    __out_opt PPH_PLUGIN_INFORMATION *Information
     );
 
 PHAPPAPI

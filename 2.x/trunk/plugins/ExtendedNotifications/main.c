@@ -79,17 +79,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Extended Notifications";
-            info.Author = L"wj32";
-            info.Description = L"Filters notifications.";
-            info.HasOptions = TRUE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ExtendedNotifications", Instance, &info);
             
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Extended Notifications";
+            info->Author = L"wj32";
+            info->Description = L"Filters notifications.";
+            info->HasOptions = TRUE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

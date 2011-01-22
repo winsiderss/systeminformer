@@ -61,17 +61,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Extended Services";
-            info.Author = L"wj32";
-            info.Description = L"Extends service management capabilities.";
-            info.HasOptions = FALSE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.ExtendedServices", Instance, &info);
             
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Extended Services";
+            info->Author = L"wj32";
+            info->Description = L"Extends service management capabilities.";
+            info->HasOptions = FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),

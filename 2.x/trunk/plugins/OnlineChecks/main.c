@@ -66,17 +66,17 @@ LOGICAL DllMain(
     {
     case DLL_PROCESS_ATTACH:
         {
-            PH_PLUGIN_INFORMATION info;
-
-            info.DisplayName = L"Online Checks";
-            info.Author = L"wj32";
-            info.Description = L"Allows files to be checked with online services.";
-            info.HasOptions = FALSE;
+            PPH_PLUGIN_INFORMATION info;
 
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.OnlineChecks", Instance, &info);
 
             if (!PluginInstance)
                 return FALSE;
+
+            info->DisplayName = L"Online Checks";
+            info->Author = L"wj32";
+            info->Description = L"Allows files to be checked with online services.";
+            info->HasOptions = FALSE;
 
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
