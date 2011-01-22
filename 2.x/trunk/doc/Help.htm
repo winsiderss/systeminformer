@@ -113,12 +113,24 @@ pre {
       <dd>If enabled, unnamed handles will be hidden by default. This can be changed in each 
       process properties window.</dd>
       
-      <dt>Replace Task Manager with Process Hacker</dt>
-      <dd>If enabled, any attempt to start Task Manager will start Process Hacker instead.</dd>
-      
       <dt>Check images for digital signatures and packing</dt>
       <dd>(Recommended) If enabled, Process Hacker will check process images for digital signatures 
       and determine whether they are packed. Note that this may cause internet access on some systems.</dd>
+      
+      <dt>Resolve addresses for network connections</dt>
+      <dd>If enabled, host names for network connections will be retrieved.</dd>
+      
+      <dt>Include CPU usage of children in collapsed processes</dt>
+      <dd>If enabled, processes which are collapsed will have their child processes contribute to the 
+      CPU usage shown.</dd>
+      
+      <dt>Replace Task Manager with Process Hacker</dt>
+      <dd>If enabled, any attempt to start Task Manager will start Process Hacker instead.</dd>
+      
+      <dt>History sample count</dt>
+      <dd>The number of samples preserved for process and system statistics. This value must be a power of 
+      two; otherwise, it is rounded up to the next power of two. Larger values will cause higher memory 
+      consumption. Increase this value if graphs cut off prematurely.</dd>
     </dl>
     
     <h2>Symbols</h2>
