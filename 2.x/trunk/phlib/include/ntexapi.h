@@ -1626,6 +1626,172 @@ NtSetSystemInformation(
     __in ULONG SystemInformationLength
     );
 
+// SysDbg APIs
+
+// private
+typedef enum _SYSDBG_COMMAND
+{
+    SysDbgQueryModuleInformation,
+    SysDbgQueryTraceInformation,
+    SysDbgSetTracepoint,
+    SysDbgSetSpecialCall,
+    SysDbgClearSpecialCalls,
+    SysDbgQuerySpecialCalls,
+    SysDbgBreakPoint,
+    SysDbgQueryVersion,
+    SysDbgReadVirtual,
+    SysDbgWriteVirtual,
+    SysDbgReadPhysical,
+    SysDbgWritePhysical,
+    SysDbgReadControlSpace,
+    SysDbgWriteControlSpace,
+    SysDbgReadIoSpace,
+    SysDbgWriteIoSpace,
+    SysDbgReadMsr,
+    SysDbgWriteMsr,
+    SysDbgReadBusData,
+    SysDbgWriteBusData,
+    SysDbgCheckLowMemory,
+    SysDbgEnableKernelDebugger,
+    SysDbgDisableKernelDebugger,
+    SysDbgGetAutoKdEnable,
+    SysDbgSetAutoKdEnable,
+    SysDbgGetPrintBufferSize,
+    SysDbgSetPrintBufferSize,
+    SysDbgGetKdUmExceptionEnable,
+    SysDbgSetKdUmExceptionEnable,
+    SysDbgGetTriageDump,
+    SysDbgGetKdBlockEnable,
+    SysDbgSetKdBlockEnable,
+    SysDbgRegisterForUmBreakInfo,
+    SysDbgGetUmBreakPid,
+    SysDbgClearUmBreakPid,
+    SysDbgGetUmAttachPid,
+    SysDbgClearUmAttachPid
+} SYSDBG_COMMAND, *PSYSDBG_COMMAND;
+
+typedef struct _SYSDBG_VIRTUAL
+{
+    PVOID Address;
+    PVOID Buffer;
+    ULONG Request;
+} SYSDBG_VIRTUAL, *PSYSDBG_VIRTUAL;
+
+typedef struct _SYSDBG_PHYSICAL
+{
+    PHYSICAL_ADDRESS Address;
+    PVOID Buffer;
+    ULONG Request;
+} SYSDBG_PHYSICAL, *PSYSDBG_PHYSICAL;
+
+typedef struct _SYSDBG_CONTROL_SPACE
+{
+    ULONG64 Address;
+    PVOID Buffer;
+    ULONG Request;
+    ULONG Processor;
+} SYSDBG_CONTROL_SPACE, *PSYSDBG_CONTROL_SPACE;
+
+enum _INTERFACE_TYPE;
+
+typedef struct _SYSDBG_IO_SPACE
+{
+    ULONG64 Address;
+    PVOID Buffer;
+    ULONG Request;
+    enum _INTERFACE_TYPE InterfaceType;
+    ULONG BusNumber;
+    ULONG AddressSpace;
+} SYSDBG_IO_SPACE, *PSYSDBG_IO_SPACE;
+
+typedef struct _SYSDBG_MSR
+{
+    ULONG Msr;
+    ULONG64 Data;
+} SYSDBG_MSR, *PSYSDBG_MSR;
+
+enum _BUS_DATA_TYPE;
+
+typedef struct _SYSDBG_BUS_DATA
+{
+    ULONG Address;
+    PVOID Buffer;
+    ULONG Request;
+    enum _BUS_DATA_TYPE BusDataType;
+    ULONG BusNumber;
+    ULONG SlotNumber;
+} SYSDBG_BUS_DATA, *PSYSDBG_BUS_DATA;
+
+// private
+typedef struct _SYSDBG_TRIAGE_DUMP
+{
+    ULONG Flags;
+    ULONG BugCheckCode;
+    ULONG_PTR BugCheckParam1;
+    ULONG_PTR BugCheckParam2;
+    ULONG_PTR BugCheckParam3;
+    ULONG_PTR BugCheckParam4;
+    ULONG ProcessHandles;
+    ULONG ThreadHandles;
+    PHANDLE Handles;
+} SYSDBG_TRIAGE_DUMP, *PSYSDBG_TRIAGE_DUMP;
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSystemDebugControl(
+    __in SYSDBG_COMMAND Command,
+    __inout_bcount_opt(InputBufferLength) PVOID InputBuffer,
+    __in ULONG InputBufferLength,
+    __out_bcount_opt(OutputBufferLength) PVOID OutputBuffer,
+    __in ULONG OutputBufferLength,
+    __out_opt PULONG ReturnLength
+    );
+
+// Hard errors
+
+typedef enum _HARDERROR_RESPONSE_OPTION
+{
+    OptionAbortRetryIgnore,
+    OptionOk,
+    OptionOkCancel,
+    OptionRetryCancel,
+    OptionYesNo,
+    OptionYesNoCancel,
+    OptionShutdownSystem,
+    OptionOkNoWait,
+    OptionCancelTryContinue
+} HARDERROR_RESPONSE_OPTION;
+
+typedef enum _HARDERROR_RESPONSE
+{
+    ResponseReturnToCaller,
+    ResponseNotHandled,
+    ResponseAbort,
+    ResponseCancel,
+    ResponseIgnore,
+    ResponseNo,
+    ResponseOk,
+    ResponseRetry,
+    ResponseYes,
+    ResponseTryAgain,
+    ResponseContinue
+} HARDERROR_RESPONSE;
+
+// HARDERROR_MSG not included
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtRaiseHardError(
+    __in NTSTATUS ErrorStatus,
+    __in ULONG NumberOfParameters,
+    __in ULONG UnicodeStringParameterMask,
+    __in_ecount(NumberOfParameters) PULONG_PTR Parameters,
+    __in ULONG ValidResponseOptions,
+    __out PULONG Response
+    );
+
 // Kernel-user shared data
 
 typedef enum _ALTERNATIVE_ARCHITECTURE_TYPE
