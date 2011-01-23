@@ -692,18 +692,18 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             DestroyMenu(menu);
         }
         return TRUE;
-    case TreeListNodeRightClick:
+    //case TreeListLeftDoubleClick:
+    //    {
+    //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
+    //    }
+    //    return TRUE;
+    case TreeListContextMenu:
         {
             PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
         return TRUE;
-    //case TreeListNodeLeftDoubleClick:
-    //    {
-    //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
-    //    }
-    //    return TRUE;
     }
 
     return FALSE;

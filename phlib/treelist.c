@@ -627,7 +627,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         PH_TREELIST_MOUSE_EVENT mouseEvent;
 
                         PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
-                        context->Callback(hwnd, TreeListNodeLeftClick,
+                        context->Callback(hwnd, TreeListLeftClick,
                             context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
                     }
                     break;
@@ -637,7 +637,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         PH_TREELIST_MOUSE_EVENT mouseEvent;
 
                         PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
-                        context->Callback(hwnd, TreeListNodeRightClick,
+                        context->Callback(hwnd, TreeListRightClick,
                             context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
                     }
                     break;
@@ -647,7 +647,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         PH_TREELIST_MOUSE_EVENT mouseEvent;
 
                         PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
-                        context->Callback(hwnd, TreeListNodeLeftDoubleClick,
+                        context->Callback(hwnd, TreeListLeftDoubleClick,
                             context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
                     }
                     break;
@@ -657,7 +657,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
                         PH_TREELIST_MOUSE_EVENT mouseEvent;
 
                         PhpFillTreeListMouseEvent(&mouseEvent, itemActivate);
-                        context->Callback(hwnd, TreeListNodeRightDoubleClick,
+                        context->Callback(hwnd, TreeListRightDoubleClick,
                             context->List->Items[itemActivate->iItem], &mouseEvent, context->Context);
                     }
                     break;
@@ -1357,6 +1357,74 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                     context->Callback(context->Handle, TreeListHeaderRightClick, NULL, NULL, context->Context);
                 }
                 break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == hwnd)
+            {
+                PH_TREELIST_MOUSE_EVENT mouseEvent;
+                POINT point;
+                LVHITTESTINFO htInfo = { 0 };
+                PPH_TREELIST_NODE node = NULL;
+
+                point.x = (SHORT)LOWORD(lParam); // force sign extension
+                point.y = (SHORT)HIWORD(lParam);
+
+                if (point.x != -1 || point.y != -1)
+                {
+                    ScreenToClient(hwnd, &point);
+
+                    htInfo.pt = point;
+
+                    if (ListView_HitTest(hwnd, &htInfo))
+                    {
+                        mouseEvent.Index = htInfo.iItem;
+                        mouseEvent.Id = htInfo.iSubItem;
+
+                        if (mouseEvent.Index < context->List->Count)
+                            node = context->List->Items[mouseEvent.Index];
+                    }
+                    else
+                    {
+                        mouseEvent.Index = -1;
+                        mouseEvent.Id = -1;
+                    }
+
+                    mouseEvent.KeyFlags = 0;
+                }
+                else
+                {
+                    INT selectedIndex;
+                    RECT bounds;
+
+                    // The user pressed a key to display the context menu. 
+                    // Suggest where the context menu should display.
+
+                    if (selectedIndex = ListView_GetNextItem(hwnd, -1, LVNI_SELECTED))
+                    {
+                        mouseEvent.Index = selectedIndex;
+
+                        if (mouseEvent.Index < context->List->Count)
+                            node = context->List->Items[mouseEvent.Index];
+
+                        if (ListView_GetItemRect(hwnd, selectedIndex, &bounds, LVIR_BOUNDS))
+                        {
+                            point.x = bounds.left + SmallIconWidth / 2;
+                            point.y = bounds.top + SmallIconHeight / 2;
+                        }
+                    }
+
+                    mouseEvent.KeyFlags = -1;
+                }
+
+                mouseEvent.Location = point;
+
+                if (context->Callback(context->Handle, TreeListContextMenu, node, &mouseEvent, context->Context))
+                {
+                    return 0;
+                }
             }
         }
         break;

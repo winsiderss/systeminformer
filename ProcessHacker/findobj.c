@@ -461,44 +461,6 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     }
                 }
                 break;
-            case NM_RCLICK:
-                {
-                    if (header->hwndFrom == PhFindObjectsListViewHandle)
-                    {
-                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
-                        PPHP_OBJECT_SEARCH_RESULT *results;
-                        ULONG numberOfResults;
-
-                        PhGetSelectedListViewItemParams(PhFindObjectsListViewHandle, &results, &numberOfResults);
-
-                        if (numberOfResults != 0)
-                        {
-                            HMENU menu;
-                            HMENU subMenu;
-
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ));
-                            subMenu = GetSubMenu(menu, 0);
-
-                            SetMenuDefaultItem(subMenu, ID_OBJECT_PROPERTIES, FALSE);
-                            PhpInitializeFindObjMenu(
-                                subMenu,
-                                results,
-                                numberOfResults
-                                );
-
-                            PhShowContextMenu(
-                                hwndDlg,
-                                PhFindObjectsListViewHandle,
-                                subMenu,
-                                itemActivate->ptAction
-                                );
-                            DestroyMenu(menu);
-                        }
-
-                        PhFree(results);
-                    }
-                }
-                break;
             case LVN_KEYDOWN:
                 {
                     if (header->hwndFrom == PhFindObjectsListViewHandle)
@@ -518,6 +480,50 @@ static INT_PTR CALLBACK PhpFindObjectsDlgProc(
                     }
                 }
                 break;
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == PhFindObjectsListViewHandle)
+            {
+                POINT point;
+                PPHP_OBJECT_SEARCH_RESULT *results;
+                ULONG numberOfResults;
+
+                point.x = (SHORT)LOWORD(lParam);
+                point.y = (SHORT)HIWORD(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                PhGetSelectedListViewItemParams(PhFindObjectsListViewHandle, &results, &numberOfResults);
+
+                if (numberOfResults != 0)
+                {
+                    HMENU menu;
+                    HMENU subMenu;
+
+                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_FINDOBJ));
+                    subMenu = GetSubMenu(menu, 0);
+
+                    SetMenuDefaultItem(subMenu, ID_OBJECT_PROPERTIES, FALSE);
+                    PhpInitializeFindObjMenu(
+                        subMenu,
+                        results,
+                        numberOfResults
+                        );
+
+                    PhShowContextMenu(
+                        hwndDlg,
+                        PhFindObjectsListViewHandle,
+                        subMenu,
+                        point
+                        );
+                    DestroyMenu(menu);
+                }
+
+                PhFree(results);
             }
         }
         break;
