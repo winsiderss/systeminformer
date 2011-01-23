@@ -1908,16 +1908,16 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             DestroyMenu(menu);
         }
         return TRUE;
-    case TreeListNodeRightClick:
+    case TreeListLeftDoubleClick:
+        {
+            SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+        }
+        return TRUE;
+    case TreeListContextMenu:
         {
             PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
 
             PhShowProcessContextMenu(mouseEvent->Location);
-        }
-        return TRUE;
-    case TreeListNodeLeftDoubleClick:
-        {
-            SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
         }
         return TRUE;
     case TreeListNodePlusMinusChanged:

@@ -643,38 +643,38 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_NOTIFY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
             PhHandleListViewNotifyForCopy(lParam, tokenPageContext->GroupsListViewHandle);
             PhHandleListViewNotifyForCopy(lParam, tokenPageContext->PrivilegesListViewHandle);
-
-            switch (header->code)
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == tokenPageContext->PrivilegesListViewHandle)
             {
-            case NM_RCLICK:
+                POINT point;
+
+                point.x = (SHORT)LOWORD(lParam);
+                point.y = (SHORT)HIWORD(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint((HWND)wParam, &point);
+
+                if (ListView_GetSelectedCount(tokenPageContext->PrivilegesListViewHandle) != 0)
                 {
-                    if (header->hwndFrom == tokenPageContext->PrivilegesListViewHandle)
-                    {
-                        LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+                    HMENU menu;
+                    HMENU subMenu;
 
-                        if (ListView_GetSelectedCount(tokenPageContext->PrivilegesListViewHandle) != 0)
-                        {
-                            HMENU menu;
-                            HMENU subMenu;
+                    menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PRIVILEGE));
+                    subMenu = GetSubMenu(menu, 0);
 
-                            menu = LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_PRIVILEGE));
-                            subMenu = GetSubMenu(menu, 0);
-
-                            PhShowContextMenu(
-                                hwndDlg,
-                                tokenPageContext->PrivilegesListViewHandle,
-                                subMenu,
-                                itemActivate->ptAction
-                                );
-                            DestroyMenu(menu);
-                        }
-                    }
+                    PhShowContextMenu(
+                        hwndDlg,
+                        tokenPageContext->PrivilegesListViewHandle,
+                        subMenu,
+                        point
+                        );
+                    DestroyMenu(menu);
                 }
-                break;
             }
         }
         break;

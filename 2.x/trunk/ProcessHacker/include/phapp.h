@@ -223,6 +223,12 @@ VOID PhHandleListViewNotifyForCopy(
     );
 
 PHAPPAPI
+BOOLEAN PhGetListViewContextMenuPoint(
+    __in HWND ListViewHandle,
+    __out PPOINT Point
+    );
+
+PHAPPAPI
 VOID PhLoadWindowPlacementFromSetting(
     __in_opt PWSTR PositionSettingName,
     __in_opt PWSTR SizeSettingName,

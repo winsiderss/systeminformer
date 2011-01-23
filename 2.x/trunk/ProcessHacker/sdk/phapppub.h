@@ -296,6 +296,14 @@ PhHandleListViewNotifyForCopy(
     );
 
 PHAPPAPI
+BOOLEAN
+NTAPI
+PhGetListViewContextMenuPoint(
+    __in HWND ListViewHandle,
+    __out PPOINT Point
+    );
+
+PHAPPAPI
 VOID
 NTAPI
 PhLoadWindowPlacementFromSetting(

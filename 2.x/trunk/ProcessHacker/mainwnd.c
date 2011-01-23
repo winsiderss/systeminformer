@@ -77,6 +77,10 @@ VOID PhMainWndNetworkListViewOnNotify(
     __in LPNMHDR Header
     );
 
+VOID PhMainWndNetworkListViewOnContextMenu(
+    __in LPARAM lParam
+    );
+
 VOID PhReloadSysParameters();
 
 VOID PhpInitialLoadSettings();
@@ -1700,6 +1704,14 @@ LRESULT CALLBACK PhMainWndProc(
                         return RF_RETRY;
                     }
                 }
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == NetworkListViewHandle)
+            {
+                PhMainWndNetworkListViewOnContextMenu(lParam);
             }
         }
         break;
@@ -4077,67 +4089,6 @@ VOID PhMainWndNetworkListViewOnNotify(
             SendMessage(PhMainWndHandle, WM_COMMAND, ID_NETWORK_GOTOPROCESS, 0);
         }
         break;
-    case NM_RCLICK:
-        {
-            LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)Header;
-            PPH_NETWORK_ITEM *networkItems;
-            ULONG numberOfNetworkItems;
-
-            PhpGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
-
-            if (numberOfNetworkItems != 0)
-            {
-                PPH_EMENU menu;
-                PPH_EMENU_ITEM item;
-                POINT location;
-
-                menu = PhCreateEMenu();
-                PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK), 0);
-                PhSetFlagsEMenuItem(menu, ID_NETWORK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
-
-                PhpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
-
-                if (PhPluginsEnabled)
-                {
-                    PH_PLUGIN_MENU_INFORMATION menuInfo;
-
-                    menuInfo.Menu = menu;
-                    menuInfo.OwnerWindow = PhMainWndHandle;
-                    menuInfo.u.Network.NetworkItems = networkItems;
-                    menuInfo.u.Network.NumberOfNetworkItems = numberOfNetworkItems;
-
-                    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkMenuInitializing), &menuInfo);
-                }
-
-                location = itemActivate->ptAction;
-                ClientToScreen(NetworkListViewHandle, &location);
-
-                item = PhShowEMenu(
-                    menu,
-                    PhMainWndHandle,
-                    PH_EMENU_SHOW_LEFTRIGHT,
-                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
-                    location.x,
-                    location.y
-                    );
-
-                if (item)
-                {
-                    BOOLEAN handled = FALSE;
-
-                    if (PhPluginsEnabled)
-                        handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
-
-                    if (!handled)
-                        SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
-                }
-
-                PhDestroyEMenu(menu);
-            }
-
-            PhFree(networkItems);
-        }
-        break;
     case LVN_KEYDOWN:
         {
             LPNMLVKEYDOWN keyDown = (LPNMLVKEYDOWN)Header;
@@ -4179,6 +4130,71 @@ VOID PhMainWndNetworkListViewOnNotify(
         }
         break;
     }
+}
+
+VOID PhMainWndNetworkListViewOnContextMenu(
+    __in LPARAM lParam
+    )
+{
+    POINT point;
+    PPH_NETWORK_ITEM *networkItems;
+    ULONG numberOfNetworkItems;
+
+    point.x = (SHORT)LOWORD(lParam);
+    point.y = (SHORT)HIWORD(lParam);
+
+    if (point.x == -1 && point.y == -1)
+        PhGetListViewContextMenuPoint(NetworkListViewHandle, &point);
+
+    PhpGetSelectedNetworkItems(&networkItems, &numberOfNetworkItems);
+
+    if (numberOfNetworkItems != 0)
+    {
+        PPH_EMENU menu;
+        PPH_EMENU_ITEM item;
+
+        menu = PhCreateEMenu();
+        PhLoadResourceEMenuItem(menu, PhInstanceHandle, MAKEINTRESOURCE(IDR_NETWORK), 0);
+        PhSetFlagsEMenuItem(menu, ID_NETWORK_GOTOPROCESS, PH_EMENU_DEFAULT, PH_EMENU_DEFAULT);
+
+        PhpInitializeNetworkMenu(menu, networkItems, numberOfNetworkItems);
+
+        if (PhPluginsEnabled)
+        {
+            PH_PLUGIN_MENU_INFORMATION menuInfo;
+
+            menuInfo.Menu = menu;
+            menuInfo.OwnerWindow = PhMainWndHandle;
+            menuInfo.u.Network.NetworkItems = networkItems;
+            menuInfo.u.Network.NumberOfNetworkItems = numberOfNetworkItems;
+
+            PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkMenuInitializing), &menuInfo);
+        }
+
+        item = PhShowEMenu(
+            menu,
+            PhMainWndHandle,
+            PH_EMENU_SHOW_LEFTRIGHT,
+            PH_ALIGN_LEFT | PH_ALIGN_TOP,
+            point.x,
+            point.y
+            );
+
+        if (item)
+        {
+            BOOLEAN handled = FALSE;
+
+            if (PhPluginsEnabled)
+                handled = PhPluginTriggerEMenuItem(PhMainWndHandle, item);
+
+            if (!handled)
+                SendMessage(PhMainWndHandle, WM_COMMAND, item->Id, 0);
+        }
+
+        PhDestroyEMenu(menu);
+    }
+
+    PhFree(networkItems);
 }
 
 BOOLEAN PhpPluginNotifyEvent(
