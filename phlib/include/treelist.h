@@ -91,17 +91,18 @@ typedef enum _PH_TREELIST_MESSAGE
 
     // Notifications
     TreeListSortChanged,
-
     TreeListSelectionChanged,
 
     TreeListKeyDown, // SHORT Parameter1 (Virtual key code)
 
     TreeListHeaderRightClick,
 
-    TreeListNodeLeftClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
-    TreeListNodeRightClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
-    TreeListNodeLeftDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
-    TreeListNodeRightDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListLeftClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListRightClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListLeftDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+    TreeListRightDoubleClick, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
+
+    TreeListContextMenu, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_MOUSE_EVENT Parameter2
 
     TreeListNodePlusMinusChanged, // PPH_TREELIST_NODE Parameter1, PPH_TREELIST_NODE_EVENT Parameter2
 

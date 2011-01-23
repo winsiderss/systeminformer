@@ -523,8 +523,6 @@ VOID PhShowContextMenu(
     __in POINT point
     )
 {
-    ClientToScreen(subHwnd, &point);
-
     TrackPopupMenu(
         menu,
         TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
@@ -543,8 +541,6 @@ UINT PhShowContextMenu2(
     __in POINT point
     )
 {
-    ClientToScreen(subHwnd, &point);
-
     return (UINT)TrackPopupMenu(
         menu,
         TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON | TPM_RETURNCMD,

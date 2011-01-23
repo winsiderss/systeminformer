@@ -633,6 +633,32 @@ VOID PhHandleListViewNotifyForCopy(
     }
 }
 
+BOOLEAN PhGetListViewContextMenuPoint(
+    __in HWND ListViewHandle,
+    __out PPOINT Point
+    )
+{
+    INT selectedIndex;
+    RECT bounds;
+
+    // The user pressed a key to display the context menu. 
+    // Suggest where the context menu should display.
+
+    if (selectedIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED))
+    {
+        if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
+        {
+            Point->x = bounds.left + PhSmallIconSize.X / 2;
+            Point->y = bounds.top + PhSmallIconSize.Y / 2;
+            ClientToScreen(ListViewHandle, Point);
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 VOID PhLoadWindowPlacementFromSetting(
     __in_opt PWSTR PositionSettingName,
     __in_opt PWSTR SizeSettingName,

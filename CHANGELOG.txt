@@ -6,6 +6,7 @@ Process Hacker
      plugin
    * Added WindowExplorer plugin
    * Properties for hidden processes
+   * Improved menus
    * Debug console can now be closed without affecting the 
      entire program
  * FIXED:
