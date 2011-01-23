@@ -984,6 +984,84 @@ BOOLEAN PhMatchWildcards(
 }
 
 /**
+ * Compares two strings, ignoring prefix characters (ampersands).
+ *
+ * \param A The first string.
+ * \param B The second string.
+ * \param IgnoreCase Whether to ignore character cases.
+ * \param MatchIfPrefix Specify TRUE to return 0 when \a A is a 
+ * prefix of \a B.
+ */
+LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
+    __in PWSTR A,
+    __in PWSTR B,
+    __in BOOLEAN IgnoreCase,
+    __in BOOLEAN MatchIfPrefix
+    )
+{
+    WCHAR t;
+
+    if (!IgnoreCase)
+    {
+        while (TRUE)
+        {
+            // This takes care of double ampersands as well (they are treated as 
+            // one literal ampersand).
+            if (*A == '&')
+                A++;
+            if (*B == '&')
+                B++;
+
+            t = *A;
+
+            if (t == 0)
+            {
+                if (MatchIfPrefix)
+                    return 0;
+
+                break;
+            }
+
+            if (t != *B)
+                break;
+
+            A++;
+            B++;
+        }
+
+        return C_2uTo4(t) - C_2uTo4(*B);
+    }
+    else
+    {
+        while (TRUE)
+        {
+            if (*A == '&')
+                A++;
+            if (*B == '&')
+                B++;
+
+            t = *A;
+
+            if (t == 0)
+            {
+                if (MatchIfPrefix)
+                    return 0;
+
+                break;
+            }
+
+            if (towupper(t) != towupper(*B))
+                break;
+
+            A++;
+            B++;
+        }
+
+        return C_2uTo4(t) - C_2uTo4(*B);
+    }
+}
+
+/**
  * Formats a date using the user's default locale.
  *
  * \param Date The time structure. If NULL, the current time is used.

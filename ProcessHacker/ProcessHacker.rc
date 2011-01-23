@@ -66,35 +66,35 @@ IDR_MAINWND MENU
 BEGIN
     POPUP "&Hacker"
     BEGIN
-        MENUITEM "Run...\aCtrl+R",              ID_HACKER_RUN
+        MENUITEM "&Run...\aCtrl+R",             ID_HACKER_RUN
         MENUITEM "Run As Administrator...",     ID_HACKER_RUNASADMINISTRATOR
-        MENUITEM "Run As Limited User...",      ID_HACKER_RUNASLIMITEDUSER
-        MENUITEM "Run As...\aCtrl+Shift+R",     ID_HACKER_RUNAS
-        MENUITEM "Show Details for All Processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
+        MENUITEM "Run As &Limited User...",     ID_HACKER_RUNASLIMITEDUSER
+        MENUITEM "Run &As...\aCtrl+Shift+R",    ID_HACKER_RUNAS
+        MENUITEM "Show &Details for All Processes", ID_HACKER_SHOWDETAILSFORALLPROCESSES
         MENUITEM SEPARATOR
-        MENUITEM "Save...\aCtrl+S",             ID_HACKER_SAVE
-        MENUITEM "Find Handles or DLLs...\aCtrl+F", ID_HACKER_FINDHANDLESORDLLS
-        MENUITEM "Options...",                  ID_HACKER_OPTIONS
-        MENUITEM "Plugins...",                  ID_HACKER_PLUGINS
+        MENUITEM "&Save...\aCtrl+S",            ID_HACKER_SAVE
+        MENUITEM "&Find Handles or DLLs...\aCtrl+F", ID_HACKER_FINDHANDLESORDLLS
+        MENUITEM "&Options...",                 ID_HACKER_OPTIONS
+        MENUITEM "&Plugins...",                 ID_HACKER_PLUGINS
         MENUITEM SEPARATOR
-        POPUP "Computer"
+        POPUP "&Computer"
         BEGIN
-            MENUITEM "Lock",                        ID_COMPUTER_LOCK
-            MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
+            MENUITEM "&Lock",                       ID_COMPUTER_LOCK
+            MENUITEM "Logo&ff",                     ID_COMPUTER_LOGOFF
             MENUITEM SEPARATOR
-            MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
-            MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
+            MENUITEM "&Sleep",                      ID_COMPUTER_SLEEP
+            MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
-            MENUITEM "Restart",                     ID_COMPUTER_RESTART
-            MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
-            MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
+            MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+            MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
+            MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
         END
         MENUITEM "E&xit",                       ID_HACKER_EXIT
     END
     POPUP "&View"
     BEGIN
-        MENUITEM "System Information\aCtrl+I",  ID_VIEW_SYSTEMINFORMATION
-        POPUP "Tray Icons"
+        MENUITEM "System &Information\aCtrl+I", ID_VIEW_SYSTEMINFORMATION
+        POPUP "&Tray Icons"
         BEGIN
             MENUITEM "CPU History",                 ID_TRAYICONS_CPUHISTORY
             MENUITEM "CPU Usage",                   ID_TRAYICONS_CPUUSAGE
@@ -105,8 +105,8 @@ BEGIN
         MENUITEM "Hide Processes From Other Users", ID_VIEW_HIDEPROCESSESFROMOTHERUSERS
         MENUITEM "Hide Signed Processes",       ID_VIEW_HIDESIGNEDPROCESSES
         MENUITEM SEPARATOR
-        MENUITEM "Always on Top",               ID_VIEW_ALWAYSONTOP
-        POPUP "Opacity"
+        MENUITEM "&Always on Top",              ID_VIEW_ALWAYSONTOP
+        POPUP "&Opacity"
         BEGIN
             MENUITEM "10%",                         ID_OPACITY_10
             MENUITEM "20%",                         ID_OPACITY_20
@@ -120,8 +120,8 @@ BEGIN
             MENUITEM "Opaque",                      ID_OPACITY_OPAQUE
         END
         MENUITEM SEPARATOR
-        MENUITEM "Refresh\aF5",                 ID_VIEW_REFRESH
-        POPUP "Update Interval"
+        MENUITEM "&Refresh\aF5",                ID_VIEW_REFRESH
+        POPUP "Update I&nterval"
         BEGIN
             MENUITEM "Fast (0.5s)",                 ID_UPDATEINTERVAL_FAST
             MENUITEM "Normal (1s)",                 ID_UPDATEINTERVAL_NORMAL
@@ -129,7 +129,7 @@ BEGIN
             MENUITEM "Slow (5s)",                   ID_UPDATEINTERVAL_SLOW
             MENUITEM "Very Slow (10s)",             ID_UPDATEINTERVAL_VERYSLOW
         END
-        MENUITEM "Update Automatically\aPause", ID_VIEW_UPDATEAUTOMATICALLY, CHECKED
+        MENUITEM "&Update Automatically\aPause", ID_VIEW_UPDATEAUTOMATICALLY, CHECKED
     END
     POPUP "&Tools"
     BEGIN
@@ -144,10 +144,10 @@ BEGIN
     END
     POPUP "H&elp"
     BEGIN
-        MENUITEM "Log\aCtrl+L",                 ID_HELP_LOG
-        MENUITEM "Donate",                      ID_HELP_DONATE
-        MENUITEM "Debug Console",               ID_HELP_DEBUGCONSOLE
-        MENUITEM "About",                       ID_HELP_ABOUT
+        MENUITEM "&Log\aCtrl+L",                ID_HELP_LOG
+        MENUITEM "&Donate",                     ID_HELP_DONATE
+        MENUITEM "Debu&g Console",              ID_HELP_DEBUGCONSOLE
+        MENUITEM "&About",                      ID_HELP_ABOUT
     END
 END
 
@@ -155,20 +155,20 @@ IDR_THREAD MENU
 BEGIN
     POPUP "Thread"
     BEGIN
-        MENUITEM "Inspect",                     ID_THREAD_INSPECT
+        MENUITEM "&Inspect",                    ID_THREAD_INSPECT
         MENUITEM "T&erminate\aDel",             ID_THREAD_TERMINATE
         MENUITEM "Force Terminate",             ID_THREAD_FORCETERMINATE
-        MENUITEM "Suspend",                     ID_THREAD_SUSPEND
-        MENUITEM "Resume",                      ID_THREAD_RESUME
+        MENUITEM "&Suspend",                    ID_THREAD_SUSPEND
+        MENUITEM "Res&ume",                     ID_THREAD_RESUME
         MENUITEM SEPARATOR
-        MENUITEM "Affinity",                    ID_THREAD_AFFINITY
-        MENUITEM "Permissions",                 ID_THREAD_PERMISSIONS
-        MENUITEM "Token",                       ID_THREAD_TOKEN
-        POPUP "Analyze"
+        MENUITEM "&Affinity",                   ID_THREAD_AFFINITY
+        MENUITEM "Per&missions",                ID_THREAD_PERMISSIONS
+        MENUITEM "&Token",                      ID_THREAD_TOKEN
+        POPUP "Analy&ze"
         BEGIN
             MENUITEM "Wait",                        ID_ANALYZE_WAIT
         END
-        POPUP "Priority"
+        POPUP "&Priority"
         BEGIN
             MENUITEM "Time Critical",               ID_PRIORITY_TIMECRITICAL
             MENUITEM "Highest",                     ID_PRIORITY_HIGHEST
@@ -186,7 +186,7 @@ BEGIN
             MENUITEM "Very Low",                    ID_I_0
         END
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_THREAD_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_THREAD_COPY
     END
 END
 
@@ -194,11 +194,11 @@ IDR_HANDLE MENU
 BEGIN
     POPUP "Handle"
     BEGIN
-        MENUITEM "Close\aDel",                  ID_HANDLE_CLOSE
-        MENUITEM "Protected",                   ID_HANDLE_PROTECTED
-        MENUITEM "Inherit",                     ID_HANDLE_INHERIT
+        MENUITEM "C&lose\aDel",                 ID_HANDLE_CLOSE
+        MENUITEM "&Protected",                  ID_HANDLE_PROTECTED
+        MENUITEM "&Inherit",                    ID_HANDLE_INHERIT
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_HANDLE_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_HANDLE_COPY
         MENUITEM "Prope&rties",                 ID_HANDLE_PROPERTIES
     END
 END
@@ -207,13 +207,13 @@ IDR_MODULE MENU
 BEGIN
     POPUP "Module"
     BEGIN
-        MENUITEM "Unload",                      ID_MODULE_UNLOAD
+        MENUITEM "&Unload",                     ID_MODULE_UNLOAD
         MENUITEM SEPARATOR
-        MENUITEM "Inspect",                     ID_MODULE_INSPECT
-        MENUITEM "Search Online",               ID_MODULE_SEARCHONLINE
-        MENUITEM "Open Containing Folder",      ID_MODULE_OPENCONTAININGFOLDER
-        MENUITEM "Copy\aCtrl+C",                ID_MODULE_COPY
-        MENUITEM "Properties",                  ID_MODULE_PROPERTIES
+        MENUITEM "&Inspect",                    ID_MODULE_INSPECT
+        MENUITEM "&Search Online",              ID_MODULE_SEARCHONLINE
+        MENUITEM "Open Containing &Folder",     ID_MODULE_OPENCONTAININGFOLDER
+        MENUITEM "&Copy\aCtrl+C",               ID_MODULE_COPY
+        MENUITEM "P&roperties",                 ID_MODULE_PROPERTIES
     END
 END
 
@@ -221,15 +221,15 @@ IDR_COMPUTER MENU
 BEGIN
     POPUP "Computer"
     BEGIN
-        MENUITEM "Lock",                        ID_COMPUTER_LOCK
-        MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
+        MENUITEM "&Lock",                       ID_COMPUTER_LOCK
+        MENUITEM "Logo&ff",                     ID_COMPUTER_LOGOFF
         MENUITEM SEPARATOR
-        MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
-        MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
+        MENUITEM "&Sleep",                      ID_COMPUTER_SLEEP
+        MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
         MENUITEM SEPARATOR
-        MENUITEM "Restart",                     ID_COMPUTER_RESTART
-        MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
-        MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
+        MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+        MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
+        MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
     END
 END
 
@@ -239,17 +239,17 @@ BEGIN
     BEGIN
         MENUITEM "T&erminate\aDel",             ID_PROCESS_TERMINATE
         MENUITEM "Terminate Tree\aShift+Del",   ID_PROCESS_TERMINATETREE
-        MENUITEM "Suspend",                     ID_PROCESS_SUSPEND
-        MENUITEM "Resume",                      ID_PROCESS_RESUME
-        MENUITEM "Restart",                     ID_PROCESS_RESTART
+        MENUITEM "&Suspend",                    ID_PROCESS_SUSPEND
+        MENUITEM "Res&ume",                     ID_PROCESS_RESUME
+        MENUITEM "Res&tart",                    ID_PROCESS_RESTART
         MENUITEM "Debug",                       ID_PROCESS_DEBUG
         MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
         MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
-        MENUITEM "Affinity",                    ID_PROCESS_AFFINITY
+        MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
         MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
         MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
-        POPUP "Miscellaneous"
+        POPUP "&Miscellaneous"
         BEGIN
             MENUITEM "Detach from Debugger",        ID_MISCELLANEOUS_DETACHFROMDEBUGGER
             MENUITEM "GDI Handles",                 ID_MISCELLANEOUS_GDIHANDLES
@@ -265,7 +265,7 @@ BEGIN
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
         END
-        POPUP "Priority"
+        POPUP "&Priority"
         BEGIN
             MENUITEM "Real Time",                   ID_PRIORITY_REALTIME
             MENUITEM "High",                        ID_PRIORITY_HIGH
@@ -274,7 +274,7 @@ BEGIN
             MENUITEM "Below Normal",                ID_PRIORITY_BELOWNORMAL
             MENUITEM "Idle",                        ID_PRIORITY_IDLE
         END
-        POPUP "Window"
+        POPUP "&Window"
         BEGIN
             MENUITEM "Bring to Front",              ID_WINDOW_BRINGTOFRONT
             MENUITEM "Restore",                     ID_WINDOW_RESTORE
@@ -283,10 +283,10 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Close",                       ID_WINDOW_CLOSE
         END
-        MENUITEM "Properties\aEnter",           ID_PROCESS_PROPERTIES
+        MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
-        MENUITEM "Copy\aCtrl+C",                ID_PROCESS_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_PROCESS_COPY
     END
 END
 
@@ -295,14 +295,14 @@ BEGIN
     POPUP "Service"
     BEGIN
         MENUITEM "&Go to Process",              ID_SERVICE_GOTOPROCESS
-        MENUITEM "Start",                       ID_SERVICE_START
-        MENUITEM "Continue",                    ID_SERVICE_CONTINUE
-        MENUITEM "Pause",                       ID_SERVICE_PAUSE
-        MENUITEM "Stop",                        ID_SERVICE_STOP
-        MENUITEM "Delete\aDel",                 ID_SERVICE_DELETE
+        MENUITEM "&Start",                      ID_SERVICE_START
+        MENUITEM "C&ontinue",                   ID_SERVICE_CONTINUE
+        MENUITEM "&Pause",                      ID_SERVICE_PAUSE
+        MENUITEM "S&top",                       ID_SERVICE_STOP
+        MENUITEM "&Delete\aDel",                ID_SERVICE_DELETE
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_SERVICE_COPY
-        MENUITEM "Properties\aEnter",           ID_SERVICE_PROPERTIES
+        MENUITEM "&Copy\aCtrl+C",               ID_SERVICE_COPY
+        MENUITEM "P&roperties\aEnter",          ID_SERVICE_PROPERTIES
     END
 END
 
@@ -310,11 +310,11 @@ IDR_PRIVILEGE MENU
 BEGIN
     POPUP "Privilege"
     BEGIN
-        MENUITEM "Enable",                      ID_PRIVILEGE_ENABLE
-        MENUITEM "Disable",                     ID_PRIVILEGE_DISABLE
-        MENUITEM "Remove",                      ID_PRIVILEGE_REMOVE
+        MENUITEM "&Enable",                     ID_PRIVILEGE_ENABLE
+        MENUITEM "&Disable",                    ID_PRIVILEGE_DISABLE
+        MENUITEM "&Remove",                     ID_PRIVILEGE_REMOVE
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_PRIVILEGE_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_PRIVILEGE_COPY
     END
 END
 
@@ -322,11 +322,11 @@ IDR_FINDOBJ MENU
 BEGIN
     POPUP "Object"
     BEGIN
-        MENUITEM "Close\aDel",                  ID_OBJECT_CLOSE
-        MENUITEM "Process Properties",          ID_OBJECT_PROCESSPROPERTIES
+        MENUITEM "C&lose\aDel",                 ID_OBJECT_CLOSE
+        MENUITEM "&Process Properties",         ID_OBJECT_PROCESSPROPERTIES
         MENUITEM "Prope&rties",                 ID_OBJECT_PROPERTIES
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_OBJECT_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_OBJECT_COPY
     END
 END
 
@@ -334,11 +334,11 @@ IDR_USER MENU
 BEGIN
     POPUP "User"
     BEGIN
-        MENUITEM "Connect",                     ID_USER_CONNECT
-        MENUITEM "Disconnect",                  ID_USER_DISCONNECT
-        MENUITEM "Logoff",                      ID_USER_LOGOFF
-        MENUITEM "Send Message...",             ID_USER_SENDMESSAGE
-        MENUITEM "Properties",                  ID_USER_PROPERTIES
+        MENUITEM "&Connect",                    ID_USER_CONNECT
+        MENUITEM "&Disconnect",                 ID_USER_DISCONNECT
+        MENUITEM "&Logoff",                     ID_USER_LOGOFF
+        MENUITEM "Send &Message...",            ID_USER_SENDMESSAGE
+        MENUITEM "P&roperties",                 ID_USER_PROPERTIES
     END
 END
 
@@ -347,10 +347,10 @@ BEGIN
     POPUP "Network"
     BEGIN
         MENUITEM "&Go to Process\aEnter",       ID_NETWORK_GOTOPROCESS
-        MENUITEM "View Stack",                  ID_NETWORK_VIEWSTACK
-        MENUITEM "Close",                       ID_NETWORK_CLOSE
+        MENUITEM "View &Stack",                 ID_NETWORK_VIEWSTACK
+        MENUITEM "C&lose",                      ID_NETWORK_CLOSE
         MENUITEM SEPARATOR
-        MENUITEM "Copy\aCtrl+C",                ID_NETWORK_COPY
+        MENUITEM "&Copy\aCtrl+C",               ID_NETWORK_COPY
     END
 END
 
@@ -358,9 +358,9 @@ IDR_ICON MENU
 BEGIN
     POPUP "Icon"
     BEGIN
-        MENUITEM "Show/Hide Process Hacker",    ID_ICON_SHOWHIDEPROCESSHACKER
-        MENUITEM "System Information",          ID_ICON_SYSTEMINFORMATION
-        POPUP "Notifications"
+        MENUITEM "&Show/Hide Process Hacker",   ID_ICON_SHOWHIDEPROCESSHACKER
+        MENUITEM "System &Information",         ID_ICON_SYSTEMINFORMATION
+        POPUP "N&otifications"
         BEGIN
             MENUITEM "Enable All",                  ID_NOTIFICATIONS_ENABLEALL
             MENUITEM "Disable All",                 ID_NOTIFICATIONS_DISABLEALL
@@ -372,24 +372,24 @@ BEGIN
             MENUITEM "Stopped Services",            ID_NOTIFICATIONS_STOPPEDSERVICES
             MENUITEM "Deleted Services",            ID_NOTIFICATIONS_DELETEDSERVICES
         END
-        POPUP "Processes"
+        POPUP "&Processes"
         BEGIN
             MENUITEM "Dummy",                       ID_PROCESSES_DUMMY
         END
         MENUITEM SEPARATOR
-        POPUP "Computer"
+        POPUP "&Computer"
         BEGIN
-            MENUITEM "Lock",                        ID_COMPUTER_LOCK
-            MENUITEM "Logoff",                      ID_COMPUTER_LOGOFF
+            MENUITEM "&Lock",                       ID_COMPUTER_LOCK
+            MENUITEM "Logo&ff",                     ID_COMPUTER_LOGOFF
             MENUITEM SEPARATOR
-            MENUITEM "Sleep",                       ID_COMPUTER_SLEEP
-            MENUITEM "Hibernate",                   ID_COMPUTER_HIBERNATE
+            MENUITEM "&Sleep",                      ID_COMPUTER_SLEEP
+            MENUITEM "&Hibernate",                  ID_COMPUTER_HIBERNATE
             MENUITEM SEPARATOR
-            MENUITEM "Restart",                     ID_COMPUTER_RESTART
-            MENUITEM "Shutdown",                    ID_COMPUTER_SHUTDOWN
-            MENUITEM "Poweroff",                    ID_COMPUTER_POWEROFF
+            MENUITEM "R&estart",                    ID_COMPUTER_RESTART
+            MENUITEM "Shu&tdown",                   ID_COMPUTER_SHUTDOWN
+            MENUITEM "&Poweroff",                   ID_COMPUTER_POWEROFF
         END
-        MENUITEM "Exit",                        ID_ICON_EXIT
+        MENUITEM "E&xit",                       ID_ICON_EXIT
     END
 END
 
@@ -397,7 +397,7 @@ IDR_PROCESSHEADER MENU
 BEGIN
     POPUP "Header"
     BEGIN
-        MENUITEM "Choose Columns...",           ID_HEADER_CHOOSECOLUMNS
+        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
     END
 END
 
@@ -405,14 +405,14 @@ IDR_MEMORY MENU
 BEGIN
     POPUP "Memory"
     BEGIN
-        MENUITEM "Read/Write Memory",           ID_MEMORY_READWRITEMEMORY
-        MENUITEM "Save...",                     ID_MEMORY_SAVE
-        MENUITEM "Change Protection...",        ID_MEMORY_CHANGEPROTECTION
-        MENUITEM "Free",                        ID_MEMORY_FREE
-        MENUITEM "Decommit",                    ID_MEMORY_DECOMMIT
+        MENUITEM "&Read/Write Memory",          ID_MEMORY_READWRITEMEMORY
+        MENUITEM "&Save...",                    ID_MEMORY_SAVE
+        MENUITEM "Change &Protection...",       ID_MEMORY_CHANGEPROTECTION
+        MENUITEM "&Free",                       ID_MEMORY_FREE
+        MENUITEM "&Decommit",                   ID_MEMORY_DECOMMIT
         MENUITEM SEPARATOR
-        MENUITEM "Read/Write Address...",       ID_MEMORY_READWRITEADDRESS
-        MENUITEM "Copy",                        ID_MEMORY_COPY
+        MENUITEM "Read/Write &Address...",      ID_MEMORY_READWRITEADDRESS
+        MENUITEM "&Copy\aCtrl+C",               ID_MEMORY_COPY
     END
 END
 
@@ -431,7 +431,7 @@ IDR_SERVICEHEADER MENU
 BEGIN
     POPUP "Header"
     BEGIN
-        MENUITEM "Choose Columns...",           ID_HEADER_CHOOSECOLUMNS
+        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
     END
 END
 
@@ -439,7 +439,7 @@ IDR_GENERICHEADER MENU
 BEGIN
     POPUP "Header"
     BEGIN
-        MENUITEM "Choose Columns...",           ID_HEADER_CHOOSECOLUMNS
+        MENUITEM "&Choose Columns...",          ID_HEADER_CHOOSECOLUMNS
     END
 END
 

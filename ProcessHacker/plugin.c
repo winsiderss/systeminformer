@@ -546,7 +546,8 @@ ULONG PhPluginReserveIds(
  * \li \c PH_MENU_ITEM_LOCATION_VIEW The "View" menu.
  * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
  * \param InsertAfter The text of the menu item to insert the 
- * new menu item after. The search is a case-insensitive prefix search.
+ * new menu item after. The search is a case-insensitive prefix search 
+ * that ignores prefix characters (ampersands).
  * \param Id An identifier for the menu item. This should be unique 
  * within the plugin. You may also specify the following flags:
  * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
