@@ -100,5 +100,5 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"Pagefiles",
-        0, 1, L"Security Explorer", NULL);
+        1, L"Security Explorer", NULL);
 }

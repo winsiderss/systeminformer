@@ -231,8 +231,9 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
-// Flags
-#define PH_MENU_ITEM_SUB_MENU 0x1
+// Id flags
+#define PH_MENU_ITEM_SUB_MENU 0x80000000
+#define PH_MENU_ITEM_VALID_FLAGS 0x80000000
 
 PHAPPAPI
 ULONG_PTR
@@ -241,7 +242,6 @@ PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG_PTR Location,
     __in_opt PWSTR InsertAfter,
-    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context
