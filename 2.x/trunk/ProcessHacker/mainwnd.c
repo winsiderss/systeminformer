@@ -3314,14 +3314,10 @@ ULONG_PTR PhpMainWndAddMenuItem(
     PPH_PLUGIN_MENU_ITEM menuItem;
     HMENU menu;
     ULONG insertIndex;
-    ULONG insertAfterCount;
     ULONG textCount;
     WCHAR textBuffer[256];
     MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
     HMENU subMenu;
-
-    if (InsertAfter)
-        insertAfterCount = (ULONG)wcslen(InsertAfter);
 
     textCount = (ULONG)wcslen(Text);
 
@@ -3353,7 +3349,7 @@ ULONG_PTR PhpMainWndAddMenuItem(
         {
             if (GetMenuItemInfo(menu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
             {
-                if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
+                if (PhCompareUnicodeStringZIgnoreMenuPrefix(InsertAfter, menuItemInfo.dwTypeData, TRUE, TRUE) == 0)
                 {
                     insertIndex++;
                     break;
