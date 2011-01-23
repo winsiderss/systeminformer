@@ -45,10 +45,11 @@ typedef HRESULT (WINAPI *_LoadIconMetric)(
 
 VOID PhMainWndOnCreate();
 
-BOOLEAN PhpMainWndAddMenuItem(
+ULONG_PTR PhpMainWndAddMenuItem(
     __in PPH_PLUGIN Plugin,
-    __in ULONG Location,
+    __in HMENU ParentMenu,
     __in_opt PWSTR InsertAfter,
+    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context
@@ -1938,10 +1939,11 @@ LRESULT CALLBACK PhMainWndProc(
         {
             PPH_ADDMENUITEM addMenuItem = (PPH_ADDMENUITEM)lParam;
 
-            return PhpMainWndAddMenuItem(
+            return (LRESULT)PhpMainWndAddMenuItem(
                 addMenuItem->Plugin,
-                addMenuItem->Location,
+                addMenuItem->ParentMenu,
                 addMenuItem->InsertAfter,
+                addMenuItem->Flags,
                 addMenuItem->Id,
                 addMenuItem->Text,
                 addMenuItem->Context
@@ -3287,10 +3289,11 @@ VOID PhpApplyLayoutPadding(
     Rect->bottom -= Padding->bottom;
 }
 
-BOOLEAN PhpMainWndAddMenuItem(
+ULONG_PTR PhpMainWndAddMenuItem(
     __in PPH_PLUGIN Plugin,
-    __in ULONG Location,
+    __in HMENU ParentMenu,
     __in_opt PWSTR InsertAfter,
+    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context
@@ -3298,12 +3301,12 @@ BOOLEAN PhpMainWndAddMenuItem(
 {
     PPH_PLUGIN_MENU_ITEM menuItem;
     HMENU menu;
-    HMENU subMenu;
     ULONG insertIndex;
     ULONG insertAfterCount;
     ULONG textCount;
     WCHAR textBuffer[256];
     MENUITEMINFO menuItemInfo = { sizeof(menuItemInfo) };
+    HMENU subMenu;
 
     if (InsertAfter)
         insertAfterCount = (ULONG)wcslen(InsertAfter);
@@ -3318,8 +3321,7 @@ BOOLEAN PhpMainWndAddMenuItem(
     menuItem->Id = Id;
     menuItem->Context = Context;
 
-    menu = GetMenu(PhMainWndHandle);
-    subMenu = GetSubMenu(menu, Location);
+    menu = ParentMenu;
 
     if (InsertAfter)
     {
@@ -3330,14 +3332,14 @@ BOOLEAN PhpMainWndAddMenuItem(
         menuItemInfo.cch = sizeof(textBuffer) / sizeof(WCHAR);
 
         insertIndex = 0;
-        count = GetMenuItemCount(subMenu);
+        count = GetMenuItemCount(menu);
 
         if (count == -1)
             return FALSE;
 
         for (insertIndex = 0; insertIndex < count; insertIndex++)
         {
-            if (GetMenuItemInfo(subMenu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
+            if (GetMenuItemInfo(menu, insertIndex, TRUE, &menuItemInfo) && menuItemInfo.dwTypeData)
             {
                 if (wcsnicmp(InsertAfter, menuItemInfo.dwTypeData, insertAfterCount) == 0)
                 {
@@ -3367,11 +3369,21 @@ BOOLEAN PhpMainWndAddMenuItem(
         menuItemInfo.wID = menuItem->RealId;
         menuItemInfo.dwItemData = (ULONG_PTR)menuItem;
         menuItemInfo.dwTypeData = Text;
+
+        if (Flags & PH_MENU_ITEM_SUB_MENU)
+        {
+            subMenu = CreatePopupMenu();
+            menuItemInfo.fMask |= MIIM_SUBMENU;
+            menuItemInfo.hSubMenu = subMenu;
+        }
     }
 
-    InsertMenuItem(subMenu, insertIndex, TRUE, &menuItemInfo);
+    InsertMenuItem(menu, insertIndex, TRUE, &menuItemInfo);
 
-    return TRUE;
+    if (Flags & PH_MENU_ITEM_SUB_MENU)
+        return (ULONG_PTR)subMenu;
+    else
+        return TRUE;
 }
 
 PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(

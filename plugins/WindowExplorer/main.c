@@ -270,8 +270,8 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_WINDOWS, L"Windows", NULL);
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"Windows", ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", 0, ID_VIEW_WINDOWS, L"Windows", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"Windows", 0, ID_VIEW_DESKTOPWINDOWS, L"Desktop Windows...", NULL);
 }
 
 VOID NTAPI ProcessPropertiesInitializingCallback(

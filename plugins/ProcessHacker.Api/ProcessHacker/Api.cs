@@ -597,10 +597,11 @@ namespace ProcessHacker.Api
             );
 
         [DllImport("ProcessHacker.exe", CharSet = CharSet.Unicode)]
-        public static extern byte PhPluginAddMenuItem(
+        public static extern IntPtr PhPluginAddMenuItem(
             PhPlugin* Plugin,
-            int Location,
+            IntPtr Location,
             string InsertAfter,
+            int Flags,
             int Id,
             string Text,
             IntPtr Context

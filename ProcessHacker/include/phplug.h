@@ -227,16 +227,21 @@ typedef struct _PH_PLUGIN_MENU_ITEM
     HWND OwnerWindow;
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
+// Location
 #define PH_MENU_ITEM_LOCATION_VIEW 1
 #define PH_MENU_ITEM_LOCATION_TOOLS 2
 
+// Flags
+#define PH_MENU_ITEM_SUB_MENU 0x1
+
 PHAPPAPI
-BOOLEAN
+ULONG_PTR
 NTAPI
 PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
-    __in ULONG Location,
+    __in ULONG_PTR Location,
     __in_opt PWSTR InsertAfter,
+    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context

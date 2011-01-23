@@ -394,7 +394,7 @@ extern BOOLEAN PhMainWndExiting;
 #define ProcessHacker_Invoke(hWnd, Function, Parameter) \
     PostMessage(hWnd, WM_PH_INVOKE, (WPARAM)(Parameter), (LPARAM)(Function))
 #define ProcessHacker_AddMenuItem(hWnd, AddMenuItem) \
-    ((BOOLEAN)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
+    ((ULONG_PTR)SendMessage(hWnd, WM_PH_ADD_MENU_ITEM, 0, (LPARAM)(AddMenuItem)))
 #define ProcessHacker_AddTabPage(hWnd, TabPage) \
     SendMessage(hWnd, WM_PH_ADD_TAB_PAGE, 0, (LPARAM)(TabPage))
 
@@ -416,8 +416,9 @@ typedef struct _PH_SHOWMEMORYRESULTS
 typedef struct _PH_ADDMENUITEM
 {
     __in PVOID Plugin;
-    __in ULONG Location;
+    __in HMENU ParentMenu;
     __in_opt PWSTR InsertAfter;
+    __in ULONG Flags;
     __in ULONG Id;
     __in PWSTR Text;
     __in_opt PVOID Context;
