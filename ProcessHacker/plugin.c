@@ -547,10 +547,9 @@ ULONG PhPluginReserveIds(
  * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
  * \param InsertAfter The text of the menu item to insert the 
  * new menu item after. The search is a case-insensitive prefix search.
- * \param Flags A combination of the following:
- * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
  * \param Id An identifier for the menu item. This should be unique 
- * within the plugin.
+ * within the plugin. You may also specify the following flags:
+ * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
  * \param Text The text of the menu item.
  * \param Context A user-defined value for the menu item.
  *
@@ -566,7 +565,6 @@ ULONG_PTR PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
     __in ULONG_PTR Location,
     __in_opt PWSTR InsertAfter,
-    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context
@@ -576,8 +574,6 @@ ULONG_PTR PhPluginAddMenuItem(
 
     addMenuItem.Plugin = Plugin;
     addMenuItem.InsertAfter = InsertAfter;
-    addMenuItem.Flags = Flags;
-    addMenuItem.Id = Id;
     addMenuItem.Text = Text;
     addMenuItem.Context = Context;
 
@@ -589,6 +585,10 @@ ULONG_PTR PhPluginAddMenuItem(
     {
         addMenuItem.ParentMenu = (HMENU)Location;
     }
+
+    addMenuItem.Flags = Id & PH_MENU_ITEM_VALID_FLAGS;
+    Id &= ~PH_MENU_ITEM_VALID_FLAGS;
+    addMenuItem.Id = Id;
 
     return ProcessHacker_AddMenuItem(PhMainWndHandle, &addMenuItem);
 }
