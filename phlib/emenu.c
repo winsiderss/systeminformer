@@ -155,6 +155,8 @@ VOID PhDestroyEMenuItem(
  * menu items.
  * \li \c PH_EMENU_FIND_STARTSWITH Performs a partial text search 
  * instead of an exact search.
+ * \li \c PH_EMENU_FIND_LITERAL Performs a literal search instead of 
+ * ignoring prefix characters (ampersands).
  * \param Text The text of the menu item to find. If NULL, the text 
  * is ignored.
  * \param Id The identifier of the menu item to find. If 0, the 
@@ -176,7 +178,7 @@ PPH_EMENU_ITEM PhFindEMenuItem(
     if (!Item->Items)
         return NULL;
 
-    if (Text)
+    if (Text && (Flags & PH_EMENU_FIND_LITERAL))
         PhInitializeStringRef(&searchText, Text);
 
     for (i = 0; i < Item->Items->Count; i++)
@@ -187,18 +189,27 @@ PPH_EMENU_ITEM PhFindEMenuItem(
 
         if (Text)
         {
-            PH_STRINGREF text;
-
-            PhInitializeStringRef(&text, item->Text);
-
-            if (Flags & PH_EMENU_FIND_STARTSWITH)
+            if (Flags & PH_EMENU_FIND_LITERAL)
             {
-                if (PhStartsWithStringRef(&text, &searchText, TRUE))
-                    return item;
+                PH_STRINGREF text;
+
+                PhInitializeStringRef(&text, item->Text);
+
+                if (Flags & PH_EMENU_FIND_STARTSWITH)
+                {
+                    if (PhStartsWithStringRef(&text, &searchText, TRUE))
+                        return item;
+                }
+                else
+                {
+                    if (PhEqualStringRef(&text, &searchText, TRUE))
+                        return item;
+                }
             }
             else
             {
-                if (PhEqualStringRef(&text, &searchText, TRUE))
+                if (PhCompareUnicodeStringZIgnoreMenuPrefix(Text, item->Text,
+                    TRUE, !!(Flags & PH_EMENU_FIND_STARTSWITH)) == 0)
                     return item;
             }
         }

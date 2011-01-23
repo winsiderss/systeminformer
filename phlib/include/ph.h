@@ -2201,6 +2201,14 @@ BOOLEAN PhMatchWildcards(
     );
 
 PHLIBAPI
+LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
+    __in PWSTR A,
+    __in PWSTR B,
+    __in BOOLEAN IgnoreCase,
+    __in BOOLEAN MatchIfPrefix
+    );
+
+PHLIBAPI
 PPH_STRING PhFormatDate(
     __in_opt PSYSTEMTIME Date,
     __in_opt PWSTR Format

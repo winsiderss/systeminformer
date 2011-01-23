@@ -145,9 +145,48 @@ static VOID Test_ellipsis()
     assert(wcscmp(output->Buffer, L"C:\\abcdef\\1234.abc") == 0);
 }
 
+VOID Test_compareignoremenuprefix()
+{
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"", L"", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asdf", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asDF", FALSE, FALSE) > 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asDF", TRUE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asdff", FALSE, FALSE) < 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdfff", L"asdff", FALSE, FALSE) > 0);
+
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&asdf", L"asdf", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&asdf", L"&asdf", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf", L"&asdf", FALSE, FALSE) != 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf", L"&&asdf", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&&asdf", L"&&asdf", FALSE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&&&asdf", L"&&asdf", FALSE, FALSE) != 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"AAA&&asdf", L"aaa&&&asdf", TRUE, FALSE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"AAA&&&&asdf", L"aaa&&&&asdf", TRUE, FALSE) == 0);
+
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"", L"", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asdf", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asDF", FALSE, TRUE) > 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asDF", TRUE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdf", L"asdff", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"asdfff", L"asdff", FALSE, TRUE) != 0);
+
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&asdf", L"asdf", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&asdf", L"&asdf", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf", L"&asdf", FALSE, TRUE) != 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf", L"&&asdf&", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf", L"&&asdf&&", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf&", L"&&asdf", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&asdf&&", L"&&asdf", FALSE, TRUE) != 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&&asdf", L"&&asdf", FALSE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"&&&&asdf", L"&&asdf&&", FALSE, TRUE) != 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"AAA&&asdf", L"aaa&&&asdf&&", TRUE, TRUE) == 0);
+    assert(PhCompareUnicodeStringZIgnoreMenuPrefix(L"AAA&&&&asdf", L"aaa&&&&asdf&&", TRUE, TRUE) == 0);
+}
+
 VOID Test_support()
 {
     Test_rectangle();
     Test_guid();
     Test_ellipsis();
+    Test_compareignoremenuprefix();
 }
