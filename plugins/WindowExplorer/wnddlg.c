@@ -483,17 +483,14 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (IsWindow(selectedNode->WindowHandle))
-                        {
-                            WINDOWPLACEMENT placement = { sizeof(placement) };
+                        WINDOWPLACEMENT placement = { sizeof(placement) };
 
-                            GetWindowPlacement(selectedNode->WindowHandle, &placement);
+                        GetWindowPlacement(selectedNode->WindowHandle, &placement);
 
-                            if (placement.showCmd == SW_MINIMIZE)
-                                ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
-                            else
-                                SetForegroundWindow(selectedNode->WindowHandle);
-                        }
+                        if (placement.showCmd == SW_MINIMIZE)
+                            ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
+                        else
+                            SetForegroundWindow(selectedNode->WindowHandle);
                     }
                 }
                 break;
@@ -503,10 +500,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (IsWindow(selectedNode->WindowHandle))
-                        {
-                            ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
-                        }
+                        ShowWindowAsync(selectedNode->WindowHandle, SW_RESTORE);
                     }
                 }
                 break;
@@ -516,10 +510,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (IsWindow(selectedNode->WindowHandle))
-                        {
-                            ShowWindowAsync(selectedNode->WindowHandle, SW_MINIMIZE);
-                        }
+                        ShowWindowAsync(selectedNode->WindowHandle, SW_MINIMIZE);
                     }
                 }
                 break;
@@ -529,10 +520,17 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (IsWindow(selectedNode->WindowHandle))
-                        {
-                            ShowWindowAsync(selectedNode->WindowHandle, SW_MAXIMIZE);
-                        }
+                        ShowWindowAsync(selectedNode->WindowHandle, SW_MAXIMIZE);
+                    }
+                }
+                break;
+            case ID_WINDOW_CLOSE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
                     }
                 }
                 break;
@@ -558,16 +556,13 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     }
                 }
                 break;
-            case ID_WINDOW_CLOSE:
+            case ID_WINDOW_ENABLEDISABLE:
                 {
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (IsWindow(selectedNode->WindowHandle))
-                        {
-                            PostMessage(selectedNode->WindowHandle, WM_CLOSE, 0, 0);
-                        }
+                        EnableWindow(selectedNode->WindowHandle, !IsWindowEnabled(selectedNode->WindowHandle));
                     }
                 }
                 break;
