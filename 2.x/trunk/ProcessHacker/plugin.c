@@ -542,24 +542,31 @@ ULONG PhPluginReserveIds(
  * Adds a menu item to the program's main menu.
  *
  * \param Plugin A plugin instance structure.
- * \param Location One of the following:
+ * \param Location A handle to the parent menu, or one of the following:
  * \li \c PH_MENU_ITEM_LOCATION_VIEW The "View" menu.
  * \li \c PH_MENU_ITEM_LOCATION_TOOLS The "Tools" menu.
  * \param InsertAfter The text of the menu item to insert the 
  * new menu item after. The search is a case-insensitive prefix search.
+ * \param Flags A combination of the following:
+ * \li \c PH_MENU_ITEM_SUB_MENU The menu item has a submenu.
  * \param Id An identifier for the menu item. This should be unique 
  * within the plugin.
  * \param Text The text of the menu item.
  * \param Context A user-defined value for the menu item.
  *
+ * \return TRUE if the function succeeded, otherwise FALSE. If 
+ * \c PH_MENU_ITEM_SUB_MENU is specified in \a Flags, the return value 
+ * is a handle to the submenu.
+ *
  * \remarks The \ref PluginCallbackMenuItem callback is invoked when 
  * the menu item is chosen, and the \ref PH_PLUGIN_MENU_ITEM structure 
  * will contain the \a Id and \a Context values passed to this function.
  */
-BOOLEAN PhPluginAddMenuItem(
+ULONG_PTR PhPluginAddMenuItem(
     __in PPH_PLUGIN Plugin,
-    __in ULONG Location,
+    __in ULONG_PTR Location,
     __in_opt PWSTR InsertAfter,
+    __in ULONG Flags,
     __in ULONG Id,
     __in PWSTR Text,
     __in_opt PVOID Context
@@ -568,11 +575,21 @@ BOOLEAN PhPluginAddMenuItem(
     PH_ADDMENUITEM addMenuItem;
 
     addMenuItem.Plugin = Plugin;
-    addMenuItem.Location = Location;
     addMenuItem.InsertAfter = InsertAfter;
+    addMenuItem.Flags = Flags;
     addMenuItem.Id = Id;
     addMenuItem.Text = Text;
     addMenuItem.Context = Context;
+
+    if (Location < 0x1000)
+    {
+        addMenuItem.ParentMenu = GetSubMenu(GetMenu(PhMainWndHandle), (ULONG)Location);
+    }
+    else
+    {
+        addMenuItem.ParentMenu = (HMENU)Location;
+    }
+
     return ProcessHacker_AddMenuItem(PhMainWndHandle, &addMenuItem);
 }
 
