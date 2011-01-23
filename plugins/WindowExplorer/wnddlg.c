@@ -422,11 +422,14 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case ID_SHOWCONTEXTMENU:
                 {
+                    POINT point;
                     PWE_WINDOW_NODE *windows;
                     ULONG numberOfWindows;
                     HMENU menu;
                     HMENU subMenu;
-                    POINT location;
+
+                    point.x = (SHORT)LOWORD(lParam);
+                    point.y = (SHORT)HIWORD(lParam);
 
                     WeGetSelectedWindowNodes(
                         &context->TreeContext,
@@ -459,15 +462,13 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             PhEnableMenuItem(subMenu, ID_WINDOW_COPY, TRUE);
                         }
 
-                        location.x = LOWORD(lParam);
-                        location.y = HIWORD(lParam);
-                        ClientToScreen(context->TreeListHandle, &location);
+                        ClientToScreen(context->TreeListHandle, &point);
 
                         TrackPopupMenu(
                             subMenu,
                             TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
-                            location.x,
-                            location.y,
+                            point.x,
+                            point.y,
                             0,
                             hwndDlg,
                             NULL
