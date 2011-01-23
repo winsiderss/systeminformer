@@ -5,6 +5,7 @@ Process Hacker
    * Added WS Watch and other features to ExtendedTools 
      plugin
    * Added WindowExplorer plugin
+   * Properties for hidden processes
    * Debug console can now be closed without affecting the 
      entire program
  * FIXED:
