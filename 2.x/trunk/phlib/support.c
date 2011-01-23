@@ -2108,25 +2108,36 @@ PPH_STRING PhGetKnownLocation(
     __in_opt PWSTR AppendPath
     )
 {
-    WCHAR folderPath[MAX_PATH];
+    PPH_STRING path;
+    SIZE_T appendPathLength;
+
+    if (AppendPath)
+        appendPathLength = wcslen(AppendPath) * 2;
+    else
+        appendPathLength = 0;
+
+    path = PhCreateStringEx(NULL, MAX_PATH * 2 + appendPathLength);
 
     if (SUCCEEDED(SHGetFolderPath(
         NULL,
         Folder,
         NULL,
         SHGFP_TYPE_CURRENT,
-        folderPath
+        path->Buffer
         )))
     {
+        PhTrimToNullTerminatorString(path);
+
         if (AppendPath)
         {
-            return PhConcatStrings2(folderPath, AppendPath);
+            memcpy(&path->Buffer[path->Length / 2], AppendPath, appendPathLength);
+            path->Length += (USHORT)appendPathLength;
         }
-        else
-        {
-            return PhCreateString(folderPath);
-        }
+
+        return path;
     }
+
+    PhDereferenceObject(path);
 
     return NULL;
 }
