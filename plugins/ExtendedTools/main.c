@@ -265,12 +265,12 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
+    PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", 0, ID_VIEW_MEMORYLISTS, L"Memory Lists", NULL);
 
     if (EtEtwEnabled)
     {
         // This will get inserted before Memory Lists.
-        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", ID_VIEW_DISKANDNETWORK, L"Disk and Network", NULL);
+        PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_VIEW, L"System Information", 0, ID_VIEW_DISKANDNETWORK, L"Disk and Network", NULL);
     }
 }
 
