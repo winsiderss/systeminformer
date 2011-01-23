@@ -219,7 +219,7 @@ BOOLEAN PhpLoadV2ClrHost(
 {
     ICLRRuntimeHost *clrHost;
 
-    if (SUCCEEDED(CorBindToRuntimeEx_I(NULL, L"wks", 0, &CLSID_CLRRuntimeHost_I,
+    if (SUCCEEDED(CorBindToRuntimeEx_I(NULL, L"wks", STARTUP_CONCURRENT_GC, &CLSID_CLRRuntimeHost_I,
         &IID_ICLRRuntimeHost_I, &clrHost)))
     {
         PhPluginsClrHost = clrHost;
