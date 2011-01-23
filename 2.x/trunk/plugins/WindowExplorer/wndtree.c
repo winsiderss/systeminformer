@@ -366,14 +366,7 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             }
         }
         return TRUE;
-    case TreeListNodeRightClick:
-        {
-            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
-
-            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
-        }
-        return TRUE;
-    case TreeListNodeLeftDoubleClick:
+    case TreeListLeftDoubleClick:
         {
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_PROPERTIES, 0);
         }
@@ -383,6 +376,13 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             SendMessage(context->ParentWindowHandle, WM_WE_PLUSMINUS, 0, (LPARAM)Parameter1);
         }
         return FALSE;
+    case TreeListContextMenu:
+        {
+            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+
+            SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
+        }
+        return TRUE;
     }
 
     return FALSE;
