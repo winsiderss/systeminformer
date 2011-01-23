@@ -315,9 +315,9 @@ VOID NTAPI MainWindowShowingCallback(
     )
 {
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
-        0, 0, L"-", NULL);
+        0, L"-", NULL);
     PhPluginAddMenuItem(PluginInstance, PH_MENU_ITEM_LOCATION_TOOLS, L"$",
-        0, 1, L"Terminate Sandboxed Processes", NULL);
+        1, L"Terminate Sandboxed Processes", NULL);
 }
 
 VOID NTAPI ProcessesUpdatedCallback(
