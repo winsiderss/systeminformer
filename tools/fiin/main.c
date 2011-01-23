@@ -133,7 +133,26 @@ PPH_STRING FiFormatFileName(
     if (!FiArgNative)
     {
         PPH_STRING fileName;
+        PPH_STRING fullPath;
         UNICODE_STRING fileNameUs;
+
+        // Get the full path first so we can detect long file names.
+        fullPath = PhGetFullPath(FileName->Buffer, NULL);
+
+        if (fullPath)
+        {
+            if (fullPath->Length / 2 > MAX_PATH)
+            {
+                wprintf(L"Warning: Detected long file name \"%s\".\n", fullPath->Buffer);
+
+                fileName = PhConcatStrings2(L"\\??\\", fullPath->Buffer);
+                PhDereferenceObject(fullPath);
+
+                return fileName;
+            }
+
+            PhDereferenceObject(fullPath);
+        }
 
         if (RtlDosPathNameToNtPathName_U(
             FileName->Buffer,
@@ -182,8 +201,9 @@ BOOLEAN FiCreateFile(
     __out PHANDLE FileHandle,
     __in ACCESS_MASK DesiredAccess,
     __in PPH_STRING FileName,
-    __in ULONG CreateDisposition,
     __in_opt ULONG FileAttributes,
+    __in ULONG ShareAccess,
+    __in ULONG CreateDisposition,
     __in_opt ULONG Options
     )
 {
@@ -193,31 +213,32 @@ BOOLEAN FiCreateFile(
     IO_STATUS_BLOCK isb;
     PPH_STRING fileName;
 
-    if (!Options)
-        Options = FILE_SYNCHRONOUS_IO_NONALERT;
     if (!FileAttributes)
         FileAttributes = FILE_ATTRIBUTE_NORMAL;
+    if (!Options)
+        Options = FILE_SYNCHRONOUS_IO_NONALERT;
 
-    if (!(FiArgNative))
-    {
-        status = PhCreateFileWin32(
-            FileHandle,
-            FileName->Buffer,
-            DesiredAccess,
-            FileAttributes,
-            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-            CreateDisposition,
-            Options
-            );
+    // Not needed, because we handle Win32 paths anyway.
+    //if (!(FiArgNative))
+    //{
+    //    status = PhCreateFileWin32(
+    //        FileHandle,
+    //        FileName->Buffer,
+    //        DesiredAccess,
+    //        FileAttributes,
+    //        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+    //        CreateDisposition,
+    //        Options
+    //        );
 
-        if (!NT_SUCCESS(status))
-        {
-            wprintf(L"Error creating/opening file: %s\n", PhGetNtMessage(status)->Buffer);
-            return FALSE;
-        }
+    //    if (!NT_SUCCESS(status))
+    //    {
+    //        wprintf(L"Error creating/opening file: %s\n", PhGetNtMessage(status)->Buffer);
+    //        return FALSE;
+    //    }
 
-        return TRUE;
-    }
+    //    return TRUE;
+    //}
 
     fileName = FiFormatFileName(FileName);
 
@@ -236,7 +257,7 @@ BOOLEAN FiCreateFile(
         &isb,
         NULL,
         FileAttributes,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        ShareAccess,
         CreateDisposition,
         Options,
         NULL,
@@ -313,7 +334,7 @@ int __cdecl main(int argc, char *argv[])
         { FI_ARG_LENGTH, L"L", MandatoryArgumentType }
     };
     PH_STRINGREF commandLine;
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
 
     if (!NT_SUCCESS(PhInitializePhLibEx(0, 0, 0)))
         return 1;
@@ -423,15 +444,15 @@ int __cdecl main(int argc, char *argv[])
             return 1;
         }
 
-        if (NT_SUCCESS(status = PhCreateFileWin32(
+        if (FiCreateFile(
             &fileHandle,
-            FiArgFileName->Buffer,
             FILE_GENERIC_READ,
+            FiArgFileName,
             0,
             FILE_SHARE_READ | FILE_SHARE_DELETE,
             FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_SEQUENTIAL_ONLY
-            )))
+            ))
         {
             if (NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
             {
@@ -575,8 +596,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             DELETE | SYNCHRONIZE,
             FiArgFileName,
-            FILE_OPEN,
             0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
             FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -601,8 +623,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FiArgFileName,
-            FILE_CREATE,
             0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN_IF,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -617,8 +640,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FiArgFileName,
-            FILE_CREATE,
             FILE_ATTRIBUTE_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_CREATE,
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -643,8 +667,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             DELETE | SYNCHRONIZE,
             FiArgFileName,
-            FILE_OPEN,
             0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -688,15 +713,17 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FiArgFileName,
-            FILE_OPEN,
             0,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT
             ) && FiCreateFile(
             &outFileHandle,
             FILE_WRITE_ATTRIBUTES | FILE_WRITE_DATA | SYNCHRONIZE,
             FiArgOutput,
-            !FiArgForce ? FILE_CREATE : FILE_OVERWRITE_IF,
             0,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            !FiArgForce ? FILE_CREATE : FILE_OVERWRITE_IF,
             FILE_NON_DIRECTORY_FILE | FILE_SEQUENTIAL_ONLY | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -796,8 +823,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             FILE_LIST_DIRECTORY | SYNCHRONIZE,
             FiArgFileName,
-            FILE_OPEN,
             0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
             FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
@@ -840,8 +868,9 @@ int __cdecl main(int argc, char *argv[])
             &fileHandle,
             FILE_READ_ATTRIBUTES | SYNCHRONIZE,
             FiArgFileName,
-            FILE_OPEN,
             0,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             ))
         {
