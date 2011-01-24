@@ -834,7 +834,7 @@ NTSTATUS KpiCaptureStackBackTraceThread(
         ThreadHandle,
         0,
         *PsThreadType,
-        KernelMode,
+        AccessMode,
         &thread,
         NULL
         );
