@@ -587,11 +587,10 @@ ULONG KphCaptureStackBackTrace(
  * \param FramesToSkip The number of frames to skip from the 
  * bottom of the stack.
  * \param FramesToCapture The number of frames to capture.
- * \param Flags A combination of the following:
- * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will 
- * be retrieved instead of the kernel-mode stack.
  * \param BackTrace An array in which the stack trace will be 
  * stored.
+ * \param CapturedFrames A variable which receives the number of 
+ * frames captured.
  * \param BackTraceHash A variable which receives a hash of 
  * the stack trace.
  * \param AccessMode The mode in which to perform access checks.
@@ -804,11 +803,10 @@ VOID KphpCaptureStackBackTraceThreadSpecialApc(
  * \param FramesToSkip The number of frames to skip from the 
  * bottom of the stack.
  * \param FramesToCapture The number of frames to capture.
- * \param Flags A combination of the following:
- * \li \c RTL_WALK_USER_MODE_STACK The user-mode stack will 
- * be retrieved instead of the kernel-mode stack.
  * \param BackTrace An array in which the stack trace will be 
  * stored.
+ * \param CapturedFrames A variable which receives the number of 
+ * frames captured.
  * \param BackTraceHash A variable which receives a hash of 
  * the stack trace.
  * \param AccessMode The mode in which to perform access checks.

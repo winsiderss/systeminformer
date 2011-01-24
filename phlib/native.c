@@ -6038,10 +6038,10 @@ NTSTATUS PhpInitializeKeyObjectAttributes(
  * \param DesiredAccess The desired access to the key.
  * \param RootDirectory A handle to a root key, or one of the following predefined 
  * keys:
- * \li \c PH_KEY_LOCAL_MACHINE Represents \Registry\Machine.
- * \li \c PH_KEY_USERS Represents \Registry\User.
- * \li \c PH_KEY_CLASSES_ROOT Represents \Registry\Machine\Software\Classes.
- * \li \c PH_KEY_CURRENT_USER Represents \Registry\User\<SID of current user>.
+ * \li \c PH_KEY_LOCAL_MACHINE Represents \\Registry\\Machine.
+ * \li \c PH_KEY_USERS Represents \\Registry\\User.
+ * \li \c PH_KEY_CLASSES_ROOT Represents \\Registry\\Machine\\Software\\Classes.
+ * \li \c PH_KEY_CURRENT_USER Represents \\Registry\\User\\[SID of current user].
  * \param ObjectName The path to the key.
  * \param Attributes Additional object flags.
  * \param CreateOptions The options to apply when creating or opening the key.
