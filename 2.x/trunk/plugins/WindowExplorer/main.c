@@ -149,6 +149,7 @@ LOGICAL DllMain(
                 static PH_SETTING_CREATE settings[] =
                 {
                     { StringSettingType, SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, L"" },
+                    { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_POSITION, L"100,100" },
                     { IntegerPairSettingType, SETTING_NAME_WINDOWS_WINDOW_SIZE, L"690,540" }
                 };
 

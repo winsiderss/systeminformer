@@ -8,6 +8,7 @@ extern PPH_PLUGIN PluginInstance;
 
 #define SETTING_PREFIX L"ProcessHacker.WindowExplorer."
 #define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (SETTING_PREFIX L"WindowTreeListColumns")
+#define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L"WindowsWindowPosition")
 #define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L"WindowsWindowSize")
 
 // wnddlg
