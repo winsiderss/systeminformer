@@ -99,9 +99,9 @@ BeveledLabel=Process Hacker v{#= simple_app_version}, Setup v{#= installer_build
 
 
 [Types]
-Name: "full";    Description: "Full installation"
-Name: "minimal"; Description: "Minimal installation"
-Name: "custom";  Description: "Custom installation"; Flags: iscustom
+Name: "full";                          Description: "Full installation"
+Name: "minimal";                       Description: "Minimal installation"
+Name: "custom";                        Description: "Custom installation";                                 Flags: iscustom
 
 
 [Components]
@@ -110,7 +110,7 @@ Name: "peview";                        Description: "PE Viewer";               T
 Name: "plugins";                       Description: "Plugins";                 Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendednotifications"; Description: "Extended Notifications";  Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendedservices";      Description: "Extended Services";       Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning; MinVersion: 0,6.01
+Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning;   MinVersion: 0,6.01
 Name: "plugins\networktools";          Description: "Network Tools";           Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\onlinechecks";          Description: "Online Checks";           Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
@@ -120,20 +120,20 @@ Name: "plugins\windowexplorer";        Description: "Window Explorer plugin";  T
 
 [Tasks]
 Name: desktopicon;         Description: {cm:CreateDesktopIcon};     GroupDescription: {cm:AdditionalIcons}
-Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                Flags: exclusive
-Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                Flags: unchecked exclusive
-Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;      Flags: unchecked
+Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescription: {cm:AdditionalIcons};                                    Flags: exclusive
+Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                    Flags: unchecked exclusive
+Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;          Flags: unchecked
 
-Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup}; Check: StartupCheck();             Flags: unchecked
-Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup}; Check: NOT StartupCheck();         Flags: unchecked
+Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup};     Check: StartupCheck();             Flags: unchecked
+Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup};     Check: NOT StartupCheck();         Flags: unchecked
 
-Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};   Check: NOT KPHServiceCheck();      Flags: unchecked
-Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};   Check: KPHServiceCheck();          Flags: unchecked
+Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};       Check: NOT KPHServiceCheck();      Flags: unchecked
+Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};       Check: KPHServiceCheck();          Flags: unchecked
 
-Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};   Check: SettingsExistCheck();       Flags: checkedonce unchecked
+Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};       Check: SettingsExistCheck();       Flags: checkedonce unchecked
 
-Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};   Check: PHDefaulTaskmgrCheck();     Flags: checkedonce unchecked
-Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};   Check: NOT PHDefaulTaskmgrCheck(); Flags: checkedonce unchecked
+Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};       Check: PHDefaulTaskmgrCheck();     Flags: checkedonce unchecked
+Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};       Check: NOT PHDefaulTaskmgrCheck(); Flags: checkedonce unchecked
 
 
 [Files]
@@ -172,16 +172,16 @@ Source: Icons\uninstall.ico;                                                    
 
 
 [Icons]
-Name: {group}\PE Viewer; Filename: {app}\peview.exe; Comment: peview; WorkingDir: {app}; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
-Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt; Comment: {cm:sm_com_Changelog}; WorkingDir: {app}
-Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile}; Filename: {app}\Help.htm; Comment: {cm:sm_HelpFile}; WorkingDir: {app}
+Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: peview; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
+Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
+Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile};  Filename: {app}\Help.htm;         WorkingDir: {app}; Comment: {cm:sm_HelpFile}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
-Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Filename: {uninstallexe}; IconFilename: {app}\uninstall.ico; Comment: {cm:UninstallProgram,Process Hacker 2}; WorkingDir: {app}
+Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Filename: {uninstallexe}; WorkingDir: {app}; Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
-Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\common; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {userdesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: desktopicon\user; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
-Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2; Filename: {app}\ProcessHacker.exe; Tasks: quicklaunchicon; Comment: Process Hacker {#= simple_app_version}; WorkingDir: {app}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
+Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
+Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
 
 
 [InstallDelete]
@@ -191,25 +191,26 @@ Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Tasks: NOT 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
 
-Type: files;      Name: {app}\peview.exe;                        Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedNotifications.dll; Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedServices.dll;      Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
-Type: files;      Name: {app}\plugins\ExtendedTools.dll;         Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
-Type: files;      Name: {app}\plugins\NetworkTools.dll;          Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
-Type: files;      Name: {app}\plugins\OnlineChecks.dll;          Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
-Type: files;      Name: {app}\plugins\SbieSupport.dll;           Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
-Type: files;      Name: {app}\plugins\ToolStatus.dll;            Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
-Type: files;      Name: {app}\plugins\WindowExplorer.dll;        Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpdate()
+Type: files;      Name: {app}\peview.exe;                            Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
+Type: files;      Name: {group}\PE Viewer.lnk;                       Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
+Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()
+Type: files;      Name: {app}\plugins\NetworkTools.dll;              Check: NOT IsComponentSelected('plugins\networktools')          AND IsUpdate()
+Type: files;      Name: {app}\plugins\OnlineChecks.dll;              Check: NOT IsComponentSelected('plugins\onlinechecks')          AND IsUpdate()
+Type: files;      Name: {app}\plugins\SbieSupport.dll;               Check: NOT IsComponentSelected('plugins\sbiesupport')           AND IsUpdate()
+Type: files;      Name: {app}\plugins\ToolStatus.dll;                Check: NOT IsComponentSelected('plugins\toolstatus')            AND IsUpdate()
+Type: files;      Name: {app}\plugins\WindowExplorer.dll;            Check: NOT IsComponentSelected('plugins\windowexplorer')        AND IsUpdate()
 Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Tasks: startup_task; Flags: uninsdeletevalue
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Tasks: remove_startup_task; Flags: deletevalue uninsdeletevalue
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Tasks: startup_task
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Flags: deletevalue uninsdeletevalue; Tasks: remove_startup_task
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Tasks: restore_taskmgr reset_settings; Flags: deletevalue uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
+Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck(); Tasks: restore_taskmgr reset_settings
 
 
 [Run]
@@ -277,7 +278,6 @@ begin
 end;
 
 
-
 // Check if KProcessHacker is installed as a service
 function KPHServiceCheck(): Boolean;
 var
@@ -328,10 +328,10 @@ begin
       if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO OR MB_DEFBUTTON2) = IDYES then begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;
-      RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
-      RemoveDir(ExpandConstant('{app}\plugins'));
-      RemoveDir(ExpandConstant('{app}'));
     end;
+    RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
+    RemoveDir(ExpandConstant('{app}\plugins'));
+    RemoveDir(ExpandConstant('{app}'));
   end;
 end;
 
