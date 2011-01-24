@@ -366,6 +366,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
     case WM_INITDIALOG:
         {
             PPH_STRING windowTitle;
+            PH_RECTANGLE windowRectangle;
 
             context->TreeListHandle = GetDlgItem(hwndDlg, IDC_LIST);
             WeInitializeWindowTree(hwndDlg, context->TreeListHandle, &context->TreeContext);
@@ -388,7 +389,19 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 MinimumSize.left = 0;
             }
 
-            PhLoadWindowPlacementFromSetting(NULL, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            // Set up the window position and size.
+
+            windowRectangle.Position = PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION);
+            windowRectangle.Size = PhGetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_SIZE);
+            PhAdjustRectangleToWorkingArea(hwndDlg, &windowRectangle);
+
+            MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
+                windowRectangle.Width, windowRectangle.Height, FALSE);
+
+            // Implement cascading by saving an offsetted rectangle.
+            windowRectangle.Left += 20;
+            windowRectangle.Top += 20;
+            PhSetIntegerPairSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, windowRectangle.Position);
 
             windowTitle = WepGetWindowTitleForSelector(&context->Selector);
             SetWindowText(hwndDlg, windowTitle->Buffer);
@@ -399,7 +412,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(NULL, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, hwndDlg);
 
             PhDeleteLayoutManager(&context->LayoutManager);
             PhUnregisterDialog(hwndDlg);
