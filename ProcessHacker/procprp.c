@@ -343,7 +343,6 @@ VOID PhpInitializePropSheetLayoutStage2(
     windowRectangle.Top += 20;
 
     PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
-    PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
 }
 
 BOOLEAN PhAddProcessPropPage(
