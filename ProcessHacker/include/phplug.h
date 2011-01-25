@@ -223,8 +223,9 @@ typedef struct _PH_PLUGIN_MENU_ITEM
     ULONG RealId;
     PVOID Context;
 
-    // Parameters
-    HWND OwnerWindow;
+    HWND OwnerWindow; // valid only when the menu item is chosen
+    HMENU ParentMenu; // valid only for main menu items
+    HMENU SubMenu; // valid only for main menu items
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
 // Location
@@ -233,7 +234,8 @@ typedef struct _PH_PLUGIN_MENU_ITEM
 
 // Id flags
 #define PH_MENU_ITEM_SUB_MENU 0x80000000
-#define PH_MENU_ITEM_VALID_FLAGS 0x80000000
+#define PH_MENU_ITEM_RETURN_MENU 0x40000000 // return a pointer to the PH_PLUGIN_MENU_ITEM
+#define PH_MENU_ITEM_VALID_FLAGS 0xc0000000
 
 PHAPPAPI
 ULONG_PTR
