@@ -811,12 +811,12 @@ char *PhpSettingsSaveCallback(
         if (position == MXML_WS_BEFORE_OPEN)
             return "  ";
         else if (position == MXML_WS_AFTER_CLOSE)
-            return "\n";
+            return "\r\n";
     }
     else if (STR_IEQUAL(node->value.element.name, "settings"))
     {
         if (position == MXML_WS_AFTER_OPEN)
-            return "\n";
+            return "\r\n";
     }
 
     return NULL;
