@@ -728,7 +728,7 @@ VOID PhpEnablePrivileges()
         NtCurrentProcess()
         )))
     {
-        PCHAR privilegesBuffer[sizeof(TOKEN_PRIVILEGES) + sizeof(LUID_AND_ATTRIBUTES) * 7];
+        CHAR privilegesBuffer[FIELD_OFFSET(TOKEN_PRIVILEGES, Privileges) + sizeof(LUID_AND_ATTRIBUTES) * 7];
         PTOKEN_PRIVILEGES privileges;
         ULONG i;
 
