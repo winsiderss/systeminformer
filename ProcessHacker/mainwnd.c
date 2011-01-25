@@ -3328,6 +3328,8 @@ ULONG_PTR PhpMainWndAddMenuItem(
     menuItem->Plugin = Plugin;
     menuItem->Id = Id;
     menuItem->Context = Context;
+    menuItem->ParentMenu = ParentMenu;
+    menuItem->SubMenu = NULL;
 
     menu = ParentMenu;
 
@@ -3383,15 +3385,23 @@ ULONG_PTR PhpMainWndAddMenuItem(
             subMenu = CreatePopupMenu();
             menuItemInfo.fMask |= MIIM_SUBMENU;
             menuItemInfo.hSubMenu = subMenu;
+            menuItem->SubMenu = subMenu;
         }
     }
 
     InsertMenuItem(menu, insertIndex, TRUE, &menuItemInfo);
 
-    if (Flags & PH_MENU_ITEM_SUB_MENU)
-        return (ULONG_PTR)subMenu;
+    if (Flags & PH_MENU_ITEM_RETURN_MENU)
+    {
+        return (ULONG_PTR)menuItem;
+    }
     else
-        return TRUE;
+    {
+        if (Flags & PH_MENU_ITEM_SUB_MENU)
+            return (ULONG_PTR)subMenu;
+        else
+            return TRUE;
+    }
 }
 
 PPH_ADDITIONAL_TAB_PAGE PhpAddTabPage(
