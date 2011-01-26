@@ -869,10 +869,10 @@ BOOLEAN PhShellProcessHacker(
         {
             PhAppendStringBuilder2(&sb, L" -nosettings");
         }
-        else if (PhStartupParameters.SettingsFileName)
+        else if (PhStartupParameters.SettingsFileName && PhSettingsFileName)
         {
             PhAppendStringBuilder2(&sb, L" -settings \"");
-            temp = PhEscapeCommandLinePart(&PhStartupParameters.SettingsFileName->sr);
+            temp = PhEscapeCommandLinePart(&PhSettingsFileName->sr);
             PhAppendStringBuilder(&sb, temp);
             PhDereferenceObject(temp);
             PhAppendCharStringBuilder(&sb, '\"');
