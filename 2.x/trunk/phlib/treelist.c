@@ -233,8 +233,8 @@ LRESULT CALLBACK PhpTreeListWndProc(
 
             context->Handle = hwnd;
 
-            style = WS_CHILD | LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS |
-                WS_VISIBLE | WS_CLIPSIBLINGS;
+            style = WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | 
+                LVS_REPORT | LVS_OWNERDATA | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS;
             exStyle = 0;
 
             if (createStruct->style & TLSTYLE_BORDER)
