@@ -14,7 +14,6 @@ Process Hacker
    * Hang when setting DEP status of a terminating process
    * Encoding bug in NetworkTools plugin
    * LSA interfacing issues
-   * Rare modules list crashes
    * Creating dumps of self
 
 2.10
