@@ -236,6 +236,7 @@ NTSTATUS PhpBaseThreadStart(
     )
 {
     NTSTATUS status;
+    HRESULT result;
     PHP_BASE_THREAD_CONTEXT context;
 #ifdef DEBUG
     PHP_BASE_THREAD_DBG dbg;
@@ -260,12 +261,15 @@ NTSTATUS PhpBaseThreadStart(
 
     // Initialization code
 
-    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    result = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 
     // Call the user-supplied function.
     status = context.StartAddress(context.Parameter);
 
     // De-initialization code
+
+    if (result == S_OK || result == S_FALSE)
+        CoUninitialize();
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
