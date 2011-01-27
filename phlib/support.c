@@ -2208,7 +2208,7 @@ PPH_STRING PhGetKnownLocation(
 
         if (AppendPath)
         {
-            memcpy(&path->Buffer[path->Length / 2], AppendPath, appendPathLength);
+            memcpy(&path->Buffer[path->Length / 2], AppendPath, appendPathLength + 2); // +2 for null terminator
             path->Length += (USHORT)appendPathLength;
         }
 

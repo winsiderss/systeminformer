@@ -166,6 +166,10 @@ static BOOL CALLBACK PhpProcessMiniDumpCallback(
     PPROCESS_MINIDUMP_CONTEXT context = CallbackParam;
     PPH_STRING message = NULL;
 
+    // Don't try to send status updates if we're creating a dump of the current process.
+    if (context->ProcessId == NtCurrentProcessId())
+        return TRUE;
+
     // MiniDumpWriteDump seems to get bored of calling the callback
     // after it begins dumping the process handles. The code is 
     // still here in case they fix this problem in the future.
