@@ -859,18 +859,18 @@ typedef enum _PS_ATTRIBUTE_NUM
 typedef struct _PS_ATTRIBUTE
 {
     ULONG Attribute;
-    ULONG Size;
+    SIZE_T Size;
     union
     {
         ULONG Value;
         PVOID ValuePtr;
     };
-    PULONG ReturnLength;
+    PSIZE_T ReturnLength;
 } PS_ATTRIBUTE, *PPS_ATTRIBUTE;
 
 typedef struct _PS_ATTRIBUTE_LIST
 {
-    ULONG TotalLength;
+    SIZE_T TotalLength;
     PS_ATTRIBUTE Attributes[1];
 } PS_ATTRIBUTE_LIST, *PPS_ATTRIBUTE_LIST;
 
