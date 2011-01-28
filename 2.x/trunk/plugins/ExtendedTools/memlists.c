@@ -177,6 +177,76 @@ INT_PTR CALLBACK EtpMemoryListsDlgProc(
             case IDOK:
                 DestroyWindow(hwndDlg);
                 break;
+            case IDC_EMPTY:
+                {
+                    HMENU menu;
+                    HMENU subMenu;
+                    RECT buttonRect;
+                    POINT point;
+                    UINT selectedItem;
+                    SYSTEM_MEMORY_LIST_COMMAND command = -1;
+
+                    menu = LoadMenu(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_EMPTYMEMLISTS));
+                    subMenu = GetSubMenu(menu, 0);
+
+                    GetClientRect(GetDlgItem(hwndDlg, IDC_EMPTY), &buttonRect);
+                    point.x = 0;
+                    point.y = buttonRect.bottom;
+
+                    ClientToScreen(GetDlgItem(hwndDlg, IDC_EMPTY), &point);
+                    selectedItem = PhShowContextMenu2(
+                        hwndDlg,
+                        GetDlgItem(hwndDlg, IDC_EMPTY),
+                        subMenu,
+                        point
+                        );
+
+                    switch (selectedItem)
+                    {
+                    case ID_EMPTY_EMPTYWORKINGSETS:
+                        command = MemoryEmptyWorkingSets;
+                        break;
+                    case ID_EMPTY_EMPTYMODIFIEDPAGELIST:
+                        command = MemoryFlushModifiedList;
+                        break;
+                    case ID_EMPTY_EMPTYSTANDBYLIST:
+                        command = MemoryPurgeStandbyList;
+                        break;
+                    case ID_EMPTY_EMPTYPRIORITY0STANDBYLIST:
+                        command = MemoryPurgeLowPriorityStandbyList;
+                        break;
+                    }
+
+                    if (command != -1)
+                    {
+                        NTSTATUS status;
+                        PVOID returnedState;
+                        ULONG privilege;
+
+                        privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
+
+                        if (NT_SUCCESS(status = RtlAcquirePrivilege(
+                            &privilege,
+                            1,
+                            0,
+                            &returnedState
+                            )))
+                        {
+                            status = NtSetSystemInformation(
+                                SystemMemoryListInformation,
+                                &command,
+                                sizeof(SYSTEM_MEMORY_LIST_COMMAND)
+                                );
+                            RtlReleasePrivilege(returnedState);
+                        }
+
+                        if (!NT_SUCCESS(status))
+                            PhShowStatus(hwndDlg, L"Unable to execute the memory list command", status, 0);
+                    }
+
+                    DestroyMenu(menu);
+                }
+                break;
             }
         }
         break;

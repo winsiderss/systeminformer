@@ -1,6 +1,7 @@
 1.2
  * Added WS Watch
  * Added display of standby repurposed pages
+ * Added Empty commands for memory lists
  * Fixed Disk and Network page crash
 
 1.1

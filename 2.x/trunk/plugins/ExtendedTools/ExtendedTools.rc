@@ -172,6 +172,7 @@ BEGIN
     RTEXT           "Static",IDC_ZREPURPOSED6_V,162,140,59,8,SS_ENDELLIPSIS
     RTEXT           "Static",IDC_ZREPURPOSED7_V,162,151,59,8,SS_ENDELLIPSIS
     RTEXT           "(Repurposed)",IDC_STATIC,162,50,59,8
+    PUSHBUTTON      "Empty",IDC_EMPTY,117,165,50,14
 END
 
 IDD_PROCDISKNET DIALOGEX 0, 0, 260, 260
@@ -353,6 +354,23 @@ BEGIN
     END
 END
 #endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_EMPTYMEMLISTS MENU
+BEGIN
+    POPUP "Empty"
+    BEGIN
+        MENUITEM "Empty Working Sets",          ID_EMPTY_EMPTYWORKINGSETS
+        MENUITEM "Empty Modified Page List",    ID_EMPTY_EMPTYMODIFIEDPAGELIST
+        MENUITEM "Empty Standby List",          ID_EMPTY_EMPTYSTANDBYLIST
+        MENUITEM "Empty Priority 0 Standby List", ID_EMPTY_EMPTYPRIORITY0STANDBYLIST
+    END
+END
 
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////

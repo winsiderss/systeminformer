@@ -21,6 +21,7 @@
 #define ID_PROCESS_WSWATCH              108
 #define IDD_OPTIONS                     109
 #define IDD_WSWATCH                     110
+#define IDR_EMPTYMEMLISTS               111
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_SEQUENCENUMBER              1003
@@ -70,16 +71,21 @@
 #define IDC_ZREPURPOSED4_V              1047
 #define IDC_ZREPURPOSED5_V              1048
 #define IDC_ZREPURPOSED6_V              1049
-#define IDC_ZSTDREP7_V                  1050
 #define IDC_ZREPURPOSED7_V              1050
+#define IDC_BUTTON1                     1051
+#define IDC_EMPTY                       1051
+#define ID_EMPTY_EMPTYWORKINGSETS       40001
+#define ID_EMPTY_EMPTYMODIFIEDPAGELIST  40002
+#define ID_EMPTY_EMPTYSTANDBYLIST       40003
+#define ID_EMPTY_EMPTYPRIORITY0STANDBYLIST 40004
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1051
+#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_COMMAND_VALUE         40005
+#define _APS_NEXT_CONTROL_VALUE         1052
 #define _APS_NEXT_SYMED_VALUE           109
 #endif
 #endif
