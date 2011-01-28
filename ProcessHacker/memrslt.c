@@ -490,9 +490,10 @@ INT_PTR CALLBACK PhpMemoryResultsDlgProc(
                     subMenu = GetSubMenu(menu, 0);
 
                     GetClientRect(GetDlgItem(hwndDlg, IDC_FILTER), &buttonRect);
-                    point.x = buttonRect.right;
-                    point.y = 0;
+                    point.x = 0;
+                    point.y = buttonRect.bottom;
 
+                    ClientToScreen(GetDlgItem(hwndDlg, IDC_FILTER), &point);
                     selectedItem = PhShowContextMenu2(
                         hwndDlg,
                         GetDlgItem(hwndDlg, IDC_FILTER),
