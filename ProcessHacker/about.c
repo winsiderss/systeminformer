@@ -47,10 +47,10 @@ static INT_PTR CALLBACK PhpAboutDlgProc(
             }
 
             SetDlgItemText(hwndDlg, IDC_CREDITS,
-                L"    Help from dmex\n"
                 L"    Installer originally by XhmikosR\n"
                 L"    Driver signed by the ReactOS Foundation\n"
                 L"Thanks to:\n"
+                L"    dmex\n"
                 L"    Donators - thank you for your support!\n"
                 L"    <a href=\"http://forum.sysinternals.com\">Sysinternals Forums</a>\n"
                 L"    <a href=\"http://www.reactos.org\">ReactOS</a>\n"
