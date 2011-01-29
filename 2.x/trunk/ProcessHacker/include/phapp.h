@@ -190,7 +190,8 @@ VOID PhShellExecuteUserString(
     __in HWND hWnd,
     __in PWSTR Setting,
     __in PWSTR String,
-    __in BOOLEAN UseShellExecute
+    __in BOOLEAN UseShellExecute,
+    __in_opt PWSTR ErrorMessage
     );
 
 PHAPPAPI
