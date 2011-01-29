@@ -468,14 +468,15 @@ VOID PhSearchOnlineString(
     __in PWSTR String
     )
 {
-    PhShellExecuteUserString(hWnd, L"SearchEngine", String, TRUE);
+    PhShellExecuteUserString(hWnd, L"SearchEngine", String, TRUE, NULL);
 }
 
 VOID PhShellExecuteUserString(
     __in HWND hWnd,
     __in PWSTR Setting,
     __in PWSTR String,
-    __in BOOLEAN UseShellExecute
+    __in BOOLEAN UseShellExecute,
+    __in_opt PWSTR ErrorMessage
     )
 {
     PPH_STRING executeString = PhGetStringSetting(Setting);
@@ -483,6 +484,7 @@ VOID PhShellExecuteUserString(
     PPH_STRING stringBefore;
     PPH_STRING stringAfter;
     PPH_STRING newString;
+    PPH_STRING ntMessage;
 
     // Make sure the user executable string is absolute.
     if (PhFindCharInString(executeString, 0, L':') == -1)
@@ -523,7 +525,18 @@ VOID PhShellExecuteUserString(
             status = PhCreateProcessWin32(NULL, newString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
 
             if (!NT_SUCCESS(status))
-                PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
+            {
+                if (ErrorMessage)
+                {
+                    ntMessage = PhGetNtMessage(status);
+                    PhShowError(hWnd, L"Unable to execute the command: %s\n%s", PhGetStringOrDefault(ntMessage, L"An unknown error occurred."), ErrorMessage);
+                    PhDereferenceObject(ntMessage);
+                }
+                else
+                {
+                    PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
+                }
+            }
         }
 
         PhDereferenceObject(newString);

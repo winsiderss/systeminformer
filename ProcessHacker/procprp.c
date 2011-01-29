@@ -3339,7 +3339,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             hwndDlg,
                             L"ProgramInspectExecutables",
                             moduleItem->FileName->Buffer,
-                            FALSE
+                            FALSE,
+                            L"Make sure the PE Viewer executable file is present."
                             );
                     }
                 }
