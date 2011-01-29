@@ -2,6 +2,8 @@
 
 if exist ..\..\sdk rmdir /S /Q ..\..\sdk
 if exist ..\..\doc\doxygen mkdir ..\..\sdk\doc\doxygen
+mkdir ..\..\sdk\dbg\amd64
+mkdir ..\..\sdk\dbg\i386
 mkdir ..\..\sdk\include
 mkdir ..\..\sdk\lib\amd64
 mkdir ..\..\sdk\lib\i386
@@ -88,6 +90,11 @@ copy ..\..\ProcessHacker\mxml\mxml.h ..\..\sdk\include\mxml.h
 copy ..\..\ProcessHacker\resource.h ..\..\sdk\include\phappresource.h
 cscript replace.vbs ..\..\sdk\include\phappresource.h "#define ID" "#define PHAPP_ID"
 cscript replace.vbs ..\..\sdk\include\phappresource.h "#ifdef APSTUDIO_INVOKED" "#if 0"
+
+rem Symbols
+
+copy ..\..\bin\Release32\ProcessHacker.pdb ..\..\sdk\dbg\i386\
+copy ..\..\bin\Release64\ProcessHacker.pdb ..\..\sdk\dbg\amd64\
 
 rem Libraries
 
