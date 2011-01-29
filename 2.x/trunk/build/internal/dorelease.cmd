@@ -24,6 +24,7 @@ mkdir %2\bin
 
 for %%a in (
     CHANGELOG.txt
+    COPYRIGHT.txt
     LICENSE.txt
     README.txt
     ) do copy %1\%%a %2\bin\%%a
