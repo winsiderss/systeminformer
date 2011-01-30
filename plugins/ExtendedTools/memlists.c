@@ -221,9 +221,7 @@ INT_PTR CALLBACK EtpMemoryListsDlgProc(
                     {
                         NTSTATUS status;
                         PVOID returnedState;
-                        ULONG privilege;
-
-                        privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
+                        ULONG privilege = SE_PROF_SINGLE_PROCESS_PRIVILEGE;
 
                         if (NT_SUCCESS(status = RtlAcquirePrivilege(
                             &privilege,
@@ -240,7 +238,11 @@ INT_PTR CALLBACK EtpMemoryListsDlgProc(
                             RtlReleasePrivilege(returnedState);
                         }
 
-                        if (!NT_SUCCESS(status))
+						if (status == 0xc0000061 /* STATUS_PRIVILEGE_NOT_HELD */)
+						{
+							PhShowError(hwndDlg, L"Process Hacker must be elevated to execute this command.");
+						}
+						else if (!NT_SUCCESS(status))
                             PhShowStatus(hwndDlg, L"Unable to execute the memory list command", status, 0);
                     }
 
