@@ -238,12 +238,14 @@ INT_PTR CALLBACK EtpMemoryListsDlgProc(
                             RtlReleasePrivilege(returnedState);
                         }
 
-						if (status == 0xc0000061 /* STATUS_PRIVILEGE_NOT_HELD */)
-						{
-							PhShowError(hwndDlg, L"Process Hacker must be elevated to execute this command.");
-						}
-						else if (!NT_SUCCESS(status))
+                        if (status == STATUS_PRIVILEGE_NOT_HELD)
+                        {
+                            PhShowError(hwndDlg, L"Process Hacker must be elevated to execute this command.");
+                        }
+                        else if (!NT_SUCCESS(status))
+                        {
                             PhShowStatus(hwndDlg, L"Unable to execute the memory list command", status, 0);
+                        }
                     }
 
                     DestroyMenu(menu);
