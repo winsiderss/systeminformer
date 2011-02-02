@@ -138,6 +138,7 @@ Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescrip
 
 [Files]
 Source: ..\..\CHANGELOG.txt;                                                         DestDir: {app};                                                    Flags: ignoreversion
+Source: ..\..\COPYRIGHT.txt;                                                         DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\LICENSE.txt;                                                           DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\README.txt;                                                            DestDir: {app};                                                    Flags: ignoreversion
 Source: ..\..\doc\Help.htm;                                                          DestDir: {app};                                                    Flags: ignoreversion
