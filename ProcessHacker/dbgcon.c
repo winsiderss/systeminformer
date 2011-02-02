@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   debug console
  * 
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2010-2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
