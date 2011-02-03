@@ -985,7 +985,7 @@ NTSTATUS PhGetHandleInformation(
  * \param Flags Reserved.
  * \param SubStatus A variable which receives the NTSTATUS value of 
  * the last component that fails. If all operations succeed, the 
- * value will be to STATUS_SUCCESS.
+ * value will be STATUS_SUCCESS.
  * \param BasicInformation A variable which receives basic 
  * information about the object.
  * \param TypeName A variable which receives the object type name.

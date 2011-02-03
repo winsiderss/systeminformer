@@ -1,5 +1,9 @@
 Process Hacker
 
+2.12
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.11
  * NEW/IMPROVED:
    * Added WS Watch and other features to ExtendedTools 
