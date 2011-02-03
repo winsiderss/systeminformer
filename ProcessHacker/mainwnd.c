@@ -422,6 +422,9 @@ BOOLEAN PhMainWndInitialization(
 
             SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
         }
+
+		// Remove Run As Limited User, when already running as limited.	
+		DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASLIMITEDUSER, 0);
     }
 
     DrawMenuBar(PhMainWndHandle);
@@ -565,7 +568,7 @@ LRESULT CALLBACK PhMainWndProc(
                             NULL,
                             NULL, 
                             L"Type the name of a program that will be opened under standard user privileges.",
-                            0
+                            0x40
                             );
                     }
                 }
