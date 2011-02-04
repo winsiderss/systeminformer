@@ -422,9 +422,6 @@ BOOLEAN PhMainWndInitialization(
 
             SetMenuItemInfo(PhMainWndMenuHandle, ID_HACKER_SHOWDETAILSFORALLPROCESSES, FALSE, &menuItemInfo);
         }
-
-		// Remove Run As Limited User, when already running as limited.	
-		DeleteMenu(PhMainWndMenuHandle, ID_HACKER_RUNASLIMITEDUSER, 0);
     }
 
     DrawMenuBar(PhMainWndHandle);
@@ -568,7 +565,7 @@ LRESULT CALLBACK PhMainWndProc(
                             NULL,
                             NULL, 
                             L"Type the name of a program that will be opened under standard user privileges.",
-                            0x40
+                            0
                             );
                     }
                 }
@@ -1646,53 +1643,29 @@ LRESULT CALLBACK PhMainWndProc(
             {
                 PhMainWndNetworkListViewOnNotify(header);
             }
-			else if (header->code == RFN_VALIDATE || header->code == RFN_VALIDATELOWRIGHTS)
-			{
-				LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
+            else if (header->code == RFN_VALIDATE)
+            {
+                LPNMRUNFILEDLG runFileDlg = (LPNMRUNFILEDLG)header;
 
-				if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
-				{
-					if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
-						NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
-					{
-						return RF_CANCEL;
-					}
-					else
-					{
-						return RF_RETRY;
-					}
-				}
-				else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
-				{
-					NTSTATUS status;
-					HANDLE tokenHandle;
-					HANDLE newTokenHandle;
-					HANDLE processHandle;
+                if (SelectedRunAsMode == RUNAS_MODE_ADMIN)
+                {
+                    if (PhShellExecuteEx(hWnd, (PWSTR)runFileDlg->lpszFile,
+                        NULL, runFileDlg->nShow, PH_SHELL_EXECUTE_ADMIN, 0, NULL))
+                    {
+                        return RF_CANCEL;
+                    }
+                    else
+                    {
+                        return RF_RETRY;
+                    }
+                }
+                else if (SelectedRunAsMode == RUNAS_MODE_LIMITED)
+                {
+                    NTSTATUS status;
+                    HANDLE tokenHandle;
+                    HANDLE newTokenHandle;
 
-					// HACK HACK Thanks to the games Microsoft plays with
-					// tokens and privileges, we cant create a low-rights token while elevated.
-					// We look for the 3 most common processes and copy their token,
-					// these three cover 99% of all Windows Vista/Seven users.
-
-					// find desktop shell window to copy low-rights token.
-					HWND window = FindWindow(L"Shell_TrayWnd", NULL); 
-
-					// if shell is not running, find task scheduler service window.
-					if (!window)
-						window = FindWindow(L"COMTASKSWINDOWCLASS", NULL);
-
-					// if task scheduler service is not running, find dwm window.
-					if (!window)
-						window = FindWindow(L"dwm", NULL);
-               
-					// if we didn't find a low rights token after 3 tries, inform the user and bail out.
-					if (!window)
-					{
-						PhShowError(hWnd, L"Unable to obtain a low rights token to execute the program.");
-						return RF_CANCEL;
-					}
-					
-					if (NT_SUCCESS(status = NtOpenProcessToken(
+                    if (NT_SUCCESS(status = NtOpenProcessToken(
                         NtCurrentProcess(),
                         TOKEN_ASSIGN_PRIMARY | TOKEN_DUPLICATE | TOKEN_QUERY | TOKEN_ADJUST_GROUPS | 
                         TOKEN_ADJUST_DEFAULT | READ_CONTROL | WRITE_DAC,
