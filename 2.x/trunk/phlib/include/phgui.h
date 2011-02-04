@@ -24,7 +24,6 @@ typedef BOOL (WINAPI *_ChangeWindowMessageFilter)(
 #define RFF_NOSEPARATEMEM 0x0020
 
 #define RFN_VALIDATE (-510)
-#define RFN_VALIDATELOWRIGHTS (-511)
 
 typedef struct _NMRUNFILEDLGW
 {
