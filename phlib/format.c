@@ -69,6 +69,14 @@ static WCHAR PhpFormatDecimalSeparator = '.';
 static WCHAR PhpFormatThousandSeparator = ',';
 static _locale_t PhpFormatUserLocale = NULL;
 
+/**
+ * Converts an ANSI string to a Unicode string by zero-extending 
+ * each byte.
+ *
+ * \param Input The original ANSI string.
+ * \param InputLength The length of \a Input.
+ * \param Output A buffer which will contain the converted string.
+ */
 VOID PhZeroExtendToUnicode(
     __in_bcount(InputLength) PSTR Input,
     __in ULONG InputLength,

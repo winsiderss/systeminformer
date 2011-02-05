@@ -26,6 +26,12 @@
 #include <winsta.h>
 #include <dbghelp.h>
 
+/**
+ * Determines whether a process is suspended.
+ *
+ * \param Process The SYSTEM_PROCESS_INFORMATION structure 
+ * of the process.
+ */
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process
     )
@@ -44,6 +50,13 @@ BOOLEAN PhGetProcessIsSuspended(
     return Process->NumberOfThreads != 0;
 }
 
+/**
+ * Determines the type of a process based on its image file name.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param KnownProcessType A variable which receives the process 
+ * type.
+ */
 NTSTATUS PhGetProcessKnownType(
     __in HANDLE ProcessHandle,
     __out PH_KNOWN_PROCESS_TYPE *KnownProcessType
@@ -582,6 +595,14 @@ PWSTR PhMakeContextAtom()
     PH_DEFINE_MAKE_ATOM(L"PH2_Context");
 }
 
+/**
+ * Copies a string into a NMLVGETINFOTIP structure.
+ *
+ * \param GetInfoTip The NMLVGETINFOTIP structure.
+ * \param Tip The string to copy.
+ *
+ * \remarks The text is truncated if it is too long.
+ */
 VOID PhCopyListViewInfoTip(
     __inout LPNMLVGETINFOTIP GetInfoTip,
     __in PPH_STRINGREF Tip

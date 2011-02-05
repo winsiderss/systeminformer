@@ -22,6 +22,12 @@
 
 #include <phbase.h>
 
+/**
+ * Converts a NTSTATUS value to a Win32 error code.
+ *
+ * \remarks This function handles FACILITY_NTWIN32 status values 
+ * properly, unlike RtlNtStatusToDosError.
+ */
 ULONG PhNtStatusToDosError(
     __in NTSTATUS Status
     )
@@ -32,6 +38,12 @@ ULONG PhNtStatusToDosError(
         return RtlNtStatusToDosError(Status);
 }
 
+/**
+ * Converts a Win32 error code to a NTSTATUS value.
+ *
+ * \remarks Only a small number of cases are currently supported. 
+ * Other status values are wrapped using FACILITY_NTWIN32.
+ */
 NTSTATUS PhDosErrorToNtStatus(
     __in ULONG DosError
     )
@@ -54,6 +66,10 @@ NTSTATUS PhDosErrorToNtStatus(
     }
 }
 
+/**
+ * Determines whether a NTSTATUS value indicates that a file 
+ * cannot be not found.
+ */
 BOOLEAN PhNtStatusFileNotFound(
     __in NTSTATUS Status
     )
