@@ -597,6 +597,17 @@ static PH_SPECIFIC_TYPE PhSpecificTypes[] =
     ACCESS_ENTRY(WmiGuid, TRUE)
 };
 
+/**
+ * Gets access entries for an object type.
+ *
+ * \param Type The name of the object type.
+ * \param AccessEntries A variable which receives an array of 
+ * access entry structures. You must free the buffer with 
+ * PhFree() when you no longer need it.
+ * \param NumberOfAccessEntries A variable which receives 
+ * the number of access entry structures returned in 
+ * \a AccessEntries.
+ */
 BOOLEAN PhGetAccessEntries(
     __in PWSTR Type,
     __out PPH_ACCESS_ENTRY *AccessEntries,
@@ -697,6 +708,17 @@ static int __cdecl PhpAccessEntryCompare(
     return intcmp(PhCountBits(entry2->Access), PhCountBits(entry1->Access));
 }
 
+/**
+ * Creates a string representation of an access mask.
+ *
+ * \param Access The access mask.
+ * \param AccessEntries An array of access entry structures. You can 
+ * call PhGetAccessEntries() to retrieve the access entry structures 
+ * for a standard object type.
+ * \param NumberOfAccessEntries The number of elements in \a AccessEntries.
+ *
+ * \return The string representation of \a Access.
+ */
 PPH_STRING PhGetAccessString(
     __in ACCESS_MASK Access,
     __in PPH_ACCESS_ENTRY AccessEntries,

@@ -890,8 +890,8 @@ static PPH_STRING PhapGetSendMessageReceiver(
 
     threadId = GetWindowThreadProcessId(windowHandle, &processId);
 
-    clientId.UniqueProcess = UlongToPtr(processId);
-    clientId.UniqueThread = UlongToPtr(threadId);
+    clientId.UniqueProcess = UlongToHandle(processId);
+    clientId.UniqueThread = UlongToHandle(threadId);
     clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
 
     return PhaFormatString(L"Window 0x%Ix (%s)", windowHandle, clientIdName->Buffer);

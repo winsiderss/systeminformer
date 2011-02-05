@@ -406,6 +406,9 @@ PWSTR PhGetProcessPriorityClassString(
     }
 }
 
+/**
+ * Creates a process item.
+ */
 PPH_PROCESS_ITEM PhCreateProcessItem(
     __in HANDLE ProcessId
     )
@@ -495,6 +498,15 @@ FORCEINLINE ULONG PhHashProcessItem(
     return (ULONG)Value->ProcessId / 4;
 }
 
+/**
+ * Finds a process item in the hash set.
+ *
+ * \param ProcessId The process ID of the process item.
+ *
+ * \remarks The hash set must be locked before calling this 
+ * function. The reference count of the found process item is 
+ * not incremented.
+ */
 __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
     __in HANDLE ProcessId
     )
@@ -521,6 +533,13 @@ __assumeLocked PPH_PROCESS_ITEM PhpLookupProcessItem(
     return NULL;
 }
 
+/**
+ * Finds and references a process item.
+ *
+ * \param ProcessId The process ID of the process item.
+ *
+ * \return The found process item.
+ */
 PPH_PROCESS_ITEM PhReferenceProcessItem(
     __in HANDLE ProcessId
     )
@@ -539,6 +558,15 @@ PPH_PROCESS_ITEM PhReferenceProcessItem(
     return processItem;
 }
 
+/**
+ * Enumerates the process items.
+ *
+ * \param ProcessItems A variable which receives an array of 
+ * pointers to process items. You must free the buffer with 
+ * PhFree() when you no longer need it.
+ * \param NumberOfProcessItems A variable which receives the 
+ * number of process items returned in \a ProcessItems.
+ */
 VOID PhEnumProcessItems(
     __out_opt PPH_PROCESS_ITEM **ProcessItems,
     __out PULONG NumberOfProcessItems
@@ -611,6 +639,21 @@ INT NTAPI PhpVerifyCacheCompareFunction(
     return PhCompareString(entry1->FileName, entry2->FileName, TRUE);
 }
 
+/**
+ * Verifies a file's digital signature, using a cached 
+ * result if possible.
+ *
+ * \param FileName A file name.
+ * \param SignerName A variable which receives a pointer 
+ * to a string containing the signer name. You must free 
+ * the string using PhDereferenceObject() when you no 
+ * longer need it. Note that the signer name may be NULL 
+ * if it is not valid.
+ * \param CachedOnly Specify TRUE to fail the function when 
+ * no cached result exists.
+ *
+ * \return A VERIFY_RESULT value.
+ */
 VERIFY_RESULT PhVerifyFileCached(
     __in PPH_STRING FileName,
     __out_opt PPH_STRING *SignerName,
@@ -1374,6 +1417,18 @@ VOID PhpUpdateSystemHistory()
     PhTimeSequenceNumber++;
 }
 
+/**
+ * Retrieves a time value recorded by the statistics system.
+ *
+ * \param ProcessItem A process item to synchronize with, or NULL if 
+ * no synchronization is necessary.
+ * \param Index The history index.
+ * \param Time A variable which receives the time at \a Index.
+ *
+ * \return TRUE if the function succeeded, otherwise FALSE if 
+ * \a ProcessItem was specified and \a Index is too far into the 
+ * past for that process item.
+ */
 BOOLEAN PhGetStatisticsTime(
     __in_opt PPH_PROCESS_ITEM ProcessItem,
     __in ULONG Index,
@@ -2233,6 +2288,9 @@ PPH_PROCESS_RECORD PhFindProcessRecord(
         return NULL;
 }
 
+/**
+ * Deletes unused process records.
+ */
 VOID PhPurgeProcessRecords()
 {
     PPH_PROCESS_RECORD processRecord;
