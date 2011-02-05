@@ -73,6 +73,12 @@ BOOLEAN PhGraphControlInitialization()
     return TRUE;
 }
 
+/**
+ * Draws a graph.
+ *
+ * \param hdc The DC to draw to.
+ * \param DrawInfo A structure which contains graphing information.
+ */
 VOID PhDrawGraph(
     __in HDC hdc,
     __in PPH_GRAPH_DRAW_INFO DrawInfo
@@ -333,6 +339,18 @@ VOID PhDrawGraph(
     }
 }
 
+/**
+ * Sets the text in a graphing information structure.
+ *
+ * \param hdc The DC to perform calculations from.
+ * \param DrawInfo A structure which contains graphing information. 
+ * The structure is modified to contain the new text information.
+ * \param Text The text.
+ * \param Margin The margins of the text box from the edges of the 
+ * graph.
+ * \param Padding The padding within the text box.
+ * \param Align The alignment of the text box.
+ */
 VOID PhSetGraphText(
     __in HDC hdc,
     __inout PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -875,6 +893,11 @@ LRESULT CALLBACK PhpGraphWndProc(
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+/**
+ * Initializes a graph buffer management structure.
+ *
+ * \param Buffers The buffer management structure.
+ */
 VOID PhInitializeGraphBuffers(
     __out PPH_GRAPH_BUFFERS Buffers
     )
@@ -885,6 +908,11 @@ VOID PhInitializeGraphBuffers(
     Buffers->Valid = FALSE;
 }
 
+/**
+ * Frees resources used by a graph buffer management structure.
+ *
+ * \param Buffers The buffer management structure.
+ */
 VOID PhDeleteGraphBuffers(
     __inout PPH_GRAPH_BUFFERS Buffers
     )
@@ -893,6 +921,15 @@ VOID PhDeleteGraphBuffers(
     if (Buffers->Data2) PhFree(Buffers->Data2);
 }
 
+/**
+ * Sets up a graphing information structure with information 
+ * from a graph buffer management structure.
+ *
+ * \param Buffers The buffer management structure.
+ * \param DrawInfo The graphing information structure.
+ * \param DataCount The number of data points currently required. 
+ * The buffers are resized if needed.
+ */
 VOID PhGetDrawInfoGraphBuffers(
     __inout PPH_GRAPH_BUFFERS Buffers,
     __inout PPH_GRAPH_DRAW_INFO DrawInfo,

@@ -126,6 +126,11 @@ static PWSTR PhpMakeExtLvContextAtom()
     PH_DEFINE_MAKE_ATOM(L"PhLib_ExtLvContext");
 }
 
+/**
+ * Enables extended list view support for a list view control.
+ *
+ * \param hWnd A handle to the list view control.
+ */
 VOID PhSetExtendedListView(
     __in HWND hWnd
     )
@@ -708,6 +713,13 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
+/**
+ * Visually indicates the sort order of a header control item.
+ *
+ * \param hwnd A handle to the header control.
+ * \param Index The index of the item.
+ * \param Order The sort order of the item.
+ */
 VOID PhSetHeaderSortIcon(
     __in HWND hwnd,
     __in INT Index,
