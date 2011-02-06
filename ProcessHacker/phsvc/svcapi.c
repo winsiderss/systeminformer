@@ -29,7 +29,10 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiExecuteRunAsCommand,
     PhSvcApiUnloadDriver,
     PhSvcApiControlProcess,
-    PhSvcApiControlService
+    PhSvcApiControlService,
+    PhSvcApiCreateService,
+    PhSvcApiChangeServiceConfig,
+    PhSvcApiChangeServiceConfig2
 };
 
 NTSTATUS PhSvcApiInitialization()
@@ -74,9 +77,6 @@ NTSTATUS PhSvcCaptureBuffer(
     PVOID address;
     PVOID buffer;
 
-    if (String->Offset == 0 && String->Length != 0)
-        return STATUS_ACCESS_VIOLATION;
-
     if (String->Offset != 0)
     {
         address = (PCHAR)client->ClientViewBase + String->Offset;
@@ -117,9 +117,6 @@ NTSTATUS PhSvcCaptureString(
 {
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
-
-    if (String->Offset == 0 && String->Length != 0)
-        return STATUS_ACCESS_VIOLATION;
 
     if (String->Length & 1)
         return STATUS_INVALID_BUFFER_SIZE;
@@ -342,6 +339,205 @@ NTSTATUS PhSvcApiControlService(
             else
             {
                 status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        default:
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        PhDereferenceObject(serviceName);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiCreateService(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName = NULL;
+    PPH_STRING displayName = NULL;
+    PPH_STRING binaryPathName = NULL;
+    PPH_STRING loadOrderGroup = NULL;
+    PPH_STRING dependencies = NULL;
+    PPH_STRING serviceStartName = NULL;
+    PPH_STRING password = NULL;
+    ULONG tagId = 0;
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
+
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.ServiceName, FALSE, &serviceName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.DisplayName, TRUE, &displayName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.BinaryPathName, TRUE, &binaryPathName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.Dependencies, TRUE, &dependencies)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.ServiceStartName, TRUE, &serviceStartName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.CreateService.i.Password, TRUE, &password)))
+        goto CleanupExit;
+
+    if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
+    {
+        if (serviceHandle = CreateService(
+            scManagerHandle,
+            serviceName->Buffer,
+            PhGetString(displayName),
+            SERVICE_CHANGE_CONFIG,
+            Message->u.CreateService.i.ServiceType,
+            Message->u.CreateService.i.StartType,
+            Message->u.CreateService.i.ErrorControl,
+            PhGetString(binaryPathName),
+            PhGetString(loadOrderGroup),
+            Message->u.CreateService.i.TagIdSpecified ? &tagId : NULL,
+            PhGetString(dependencies),
+            PhGetString(serviceStartName),
+            PhGetString(password)
+            ))
+        {
+            Message->u.CreateService.o.TagId = tagId;
+            CloseServiceHandle(serviceHandle);
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
+
+        CloseServiceHandle(scManagerHandle);
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+CleanupExit:
+    PhSwapReference(&password, NULL);
+    PhSwapReference(&serviceStartName, NULL);
+    PhSwapReference(&dependencies, NULL);
+    PhSwapReference(&loadOrderGroup, NULL);
+    PhSwapReference(&binaryPathName, NULL);
+    PhSwapReference(&displayName, NULL);
+    PhSwapReference(&serviceName, NULL);
+
+    return status;
+}
+
+NTSTATUS PhSvcApiChangeServiceConfig(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName = NULL;
+    PPH_STRING binaryPathName = NULL;
+    PPH_STRING loadOrderGroup = NULL;
+    PPH_STRING dependencies = NULL;
+    PPH_STRING serviceStartName = NULL;
+    PPH_STRING password = NULL;
+    PPH_STRING displayName = NULL;
+    ULONG tagId = 0;
+    SC_HANDLE serviceHandle;
+
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.ServiceName, FALSE, &serviceName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.BinaryPathName, TRUE, &binaryPathName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.LoadOrderGroup, TRUE, &loadOrderGroup)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.Dependencies, TRUE, &dependencies)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.ServiceStartName, TRUE, &serviceStartName)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.Password, TRUE, &password)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig.i.DisplayName, TRUE, &displayName)))
+        goto CleanupExit;
+
+    if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
+    {
+        if (ChangeServiceConfig(
+            serviceHandle,
+            Message->u.ChangeServiceConfig.i.ServiceType,
+            Message->u.ChangeServiceConfig.i.StartType,
+            Message->u.ChangeServiceConfig.i.ErrorControl,
+            PhGetString(binaryPathName),
+            PhGetString(loadOrderGroup),
+            Message->u.ChangeServiceConfig.i.TagIdSpecified ? &tagId : NULL,
+            PhGetString(dependencies),
+            PhGetString(serviceStartName),
+            PhGetString(password),
+            PhGetString(displayName)
+            ))
+        {
+            Message->u.ChangeServiceConfig.o.TagId = tagId;
+        }
+        else
+        {
+            status = PhGetLastWin32ErrorAsNtStatus();
+        }
+
+        CloseServiceHandle(serviceHandle);
+    }
+    else
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+    }
+
+CleanupExit:
+    PhSwapReference(&displayName, NULL);
+    PhSwapReference(&password, NULL);
+    PhSwapReference(&serviceStartName, NULL);
+    PhSwapReference(&dependencies, NULL);
+    PhSwapReference(&loadOrderGroup, NULL);
+    PhSwapReference(&binaryPathName, NULL);
+    PhSwapReference(&serviceName, NULL);
+
+    return status;
+}
+
+NTSTATUS PhSvcApiChangeServiceConfig2(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName;
+    PVOID info;
+    SC_HANDLE serviceHandle;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ChangeServiceConfig2.i.ServiceName, FALSE, &serviceName)))
+    {
+        switch (Message->u.ChangeServiceConfig2.i.InfoLevel)
+        {
+        case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
+            if (NT_SUCCESS(status = PhSvcCaptureBuffer(&Message->u.ChangeServiceConfig2.i.Info, FALSE, &info)))
+            {
+                if (serviceHandle = PhOpenService(serviceName->Buffer, SERVICE_CHANGE_CONFIG))
+                {
+                    if (!ChangeServiceConfig2(
+                        serviceHandle,
+                        SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+                        (LPSERVICE_DELAYED_AUTO_START_INFO)info
+                        ))
+                    {
+                        status = PhGetLastWin32ErrorAsNtStatus();
+                    }
+
+                    CloseServiceHandle(serviceHandle);
+                }
+                else
+                {
+                    status = PhGetLastWin32ErrorAsNtStatus();
+                }
+
+                PhFree(info);
             }
             break;
         default:

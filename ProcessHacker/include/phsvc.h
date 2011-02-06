@@ -129,4 +129,19 @@ NTSTATUS PhSvcApiControlService(
     __inout PPHSVC_API_MSG Message
     );
 
+NTSTATUS PhSvcApiCreateService(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiChangeServiceConfig(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiChangeServiceConfig2(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
 #endif

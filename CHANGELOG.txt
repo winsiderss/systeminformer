@@ -2,6 +2,7 @@ Process Hacker
 
 2.12
  * NEW/IMPROVED:
+   * Added elevation support for more actions
  * FIXED:
 
 2.11

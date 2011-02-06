@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsvccl.h>
 #include <windowsx.h>
 
 INT_PTR CALLBACK PhpCreateServiceDlgProc(      
@@ -66,6 +67,11 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
             ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_STARTTYPE), -1, L"Demand Start");
             ComboBox_SelectString(GetDlgItem(hwndDlg, IDC_ERRORCONTROL), -1, L"Ignore");
 
+            if (!PhElevated)
+            {
+                SendMessage(GetDlgItem(hwndDlg, IDOK), BCM_SETSHIELD, 0, TRUE);
+            }
+
             SetFocus(GetDlgItem(hwndDlg, IDC_NAME));
         }
         break;
@@ -80,10 +86,11 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                 break;
             case IDOK:
                 {
+                    NTSTATUS status = 0;
                     BOOLEAN success = FALSE;
                     SC_HANDLE scManagerHandle;
                     SC_HANDLE serviceHandle;
-                    ULONG win32Result;
+                    ULONG win32Result = 0;
                     PPH_STRING serviceName;
                     PPH_STRING serviceDisplayName;
                     PPH_STRING serviceTypeString;
@@ -106,42 +113,76 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
 
                     serviceBinaryPath = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_BINARYPATH)));
 
-                    if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
+                    if (PhElevated)
                     {
-                        if (serviceHandle = CreateService(
-                            scManagerHandle,
-                            serviceName->Buffer,
-                            serviceDisplayName->Buffer,
-                            SERVICE_CHANGE_CONFIG,
-                            serviceType,
-                            serviceStartType,
-                            serviceErrorControl,
-                            serviceBinaryPath->Buffer,
-                            NULL,
-                            NULL,
-                            NULL,
-                            NULL,
-                            L""
-                            ))
+                        if (scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE))
                         {
-                            EndDialog(hwndDlg, IDOK);
-                            CloseServiceHandle(serviceHandle);
-                            success = TRUE;
+                            if (serviceHandle = CreateService(
+                                scManagerHandle,
+                                serviceName->Buffer,
+                                serviceDisplayName->Buffer,
+                                SERVICE_CHANGE_CONFIG,
+                                serviceType,
+                                serviceStartType,
+                                serviceErrorControl,
+                                serviceBinaryPath->Buffer,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                L""
+                                ))
+                            {
+                                EndDialog(hwndDlg, IDOK);
+                                CloseServiceHandle(serviceHandle);
+                                success = TRUE;
+                            }
+                            else
+                            {
+                                win32Result = GetLastError();
+                            }
+
+                            CloseServiceHandle(scManagerHandle);
                         }
                         else
                         {
                             win32Result = GetLastError();
                         }
-
-                        CloseServiceHandle(scManagerHandle);
                     }
                     else
                     {
-                        win32Result = GetLastError();
+                        if (PhUiConnectToPhSvc(hwndDlg))
+                        {
+                            status = PhSvcCallCreateService(
+                                serviceName->Buffer,
+                                serviceDisplayName->Buffer,
+                                serviceType,
+                                serviceStartType,
+                                serviceErrorControl,
+                                serviceBinaryPath->Buffer,
+                                NULL,
+                                NULL,
+                                NULL,
+                                NULL,
+                                L""
+                                );
+                            PhUiDisconnectFromPhSvc();
+
+                            if (NT_SUCCESS(status))
+                            {
+                                EndDialog(hwndDlg, IDOK);
+                                success = TRUE;
+                            }
+                        }
+                        else
+                        {
+                            // User cancelled elevation.
+                            success = TRUE;
+                        }
                     }
 
                     if (!success)
-                        PhShowStatus(hwndDlg, L"Unable to create the service", 0, win32Result);
+                        PhShowStatus(hwndDlg, L"Unable to create the service", status, win32Result);
                 }
                 break;
             case IDC_BROWSE:
