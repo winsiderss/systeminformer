@@ -492,13 +492,13 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                     PhMarkNeedsConfigUpdateServiceItem(serviceItem);
                                 }
 
+                                PhUiDisconnectFromPhSvc();
+
                                 if (!NT_SUCCESS(status))
                                 {
                                     SetLastError(PhNtStatusToDosError(status));
                                     goto ErrorCase;
                                 }
-
-                                PhUiDisconnectFromPhSvc();
                             }
                             else
                             {
