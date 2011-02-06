@@ -213,7 +213,7 @@ NTSTATUS PhSvcCallClose(
         return STATUS_PORT_DISCONNECTED;
 
     m.ApiNumber = PhSvcCloseApiNumber;
-    m.Close.i.Handle = Handle;
+    m.u.Close.i.Handle = Handle;
 
     return PhSvcpCallServer(&m);
 }
@@ -233,8 +233,8 @@ NTSTATUS PhSvcCallExecuteRunAsCommand(
 
     m.ApiNumber = PhSvcExecuteRunAsCommandApiNumber;
 
-    serviceCommandLine = PhSvcpCreateRelativeStringRef(ServiceCommandLine, -1, &m.ExecuteRunAsCommand.i.ServiceCommandLine);
-    serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.ExecuteRunAsCommand.i.ServiceName);
+    serviceCommandLine = PhSvcpCreateRelativeStringRef(ServiceCommandLine, -1, &m.u.ExecuteRunAsCommand.i.ServiceCommandLine);
+    serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.u.ExecuteRunAsCommand.i.ServiceName);
 
     if (serviceCommandLine && serviceName)
     {
@@ -247,6 +247,87 @@ NTSTATUS PhSvcCallExecuteRunAsCommand(
 
     if (serviceCommandLine)
         PhSvcpFreeHeap(serviceCommandLine);
+    if (serviceName)
+        PhSvcpFreeHeap(serviceName);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallUnloadDriver(
+    __in_opt PVOID BaseAddress,
+    __in_opt PWSTR Name
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID name = NULL;
+
+    memset(&m, sizeof(PHSVC_API_MSG), 0);
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcUnloadDriverApiNumber;
+
+    if (Name)
+    {
+        name = PhSvcpCreateRelativeStringRef(Name, -1, &m.u.UnloadDriver.i.Name);
+
+        if (!name)
+            return STATUS_NO_MEMORY;
+    }
+
+    status = PhSvcpCallServer(&m);
+
+    if (name)
+        PhSvcpFreeHeap(name);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallControlProcess(
+    __in HANDLE ProcessId,
+    __in PHSVC_API_CONTROLPROCESS_COMMAND Command
+    )
+{
+    PHSVC_API_MSG m;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcControlProcessApiNumber;
+    m.u.ControlProcess.i.ProcessId = ProcessId;
+    m.u.ControlProcess.i.Command = Command;
+
+    return PhSvcpCallServer(&m);
+}
+
+NTSTATUS PhSvcCallControlService(
+    __in PWSTR ServiceName,
+    __in PHSVC_API_CONTROLSERVICE_COMMAND Command
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID serviceName;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcControlServiceApiNumber;
+
+    serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.u.ControlService.i.ServiceName);
+    m.u.ControlService.i.Command = Command;
+
+    if (serviceName)
+    {
+        status = PhSvcpCallServer(&m);
+    }
+    else
+    {
+        status = STATUS_NO_MEMORY;
+    }
+
     if (serviceName)
         PhSvcpFreeHeap(serviceName);
 
