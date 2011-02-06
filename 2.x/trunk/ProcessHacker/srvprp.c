@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <phplug.h>
+#include <phsvccl.h>
 #include <windowsx.h>
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
@@ -360,6 +361,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 return TRUE;
             case PSN_APPLY:
                 {
+                    NTSTATUS status;
                     PSERVICE_PROPERTIES_CONTEXT context = 
                         (PSERVICE_PROPERTIES_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_SERVICE_ITEM serviceItem = context->ServiceItem;
@@ -449,7 +451,65 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     }
                     else
                     {
-                        goto ErrorCase;
+                        if (GetLastError() == ERROR_ACCESS_DENIED && !PhElevated)
+                        {
+                            // Elevate using phsvc.
+                            if (PhUiConnectToPhSvc(hwndDlg))
+                            {
+                                if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig(
+                                    serviceItem->Name->Buffer,
+                                    newServiceType,
+                                    newServiceStartType,
+                                    newServiceErrorControl,
+                                    newServiceBinaryPath->Buffer,
+                                    newServiceGroup->Buffer,
+                                    NULL,
+                                    NULL,
+                                    PhGetString(newServiceUserAccount),
+                                    PhGetString(newServicePassword),
+                                    NULL
+                                    )))
+                                {
+                                    if (WindowsVersion >= WINDOWS_VISTA)
+                                    {
+                                        BOOLEAN newDelayedStart;
+
+                                        newDelayedStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_DELAYEDSTART)) == BST_CHECKED;
+
+                                        if (newDelayedStart != context->OldDelayedStart)
+                                        {
+                                            SERVICE_DELAYED_AUTO_START_INFO info;
+
+                                            info.fDelayedAutostart = newDelayedStart;
+                                            PhSvcCallChangeServiceConfig2(
+                                                serviceItem->Name->Buffer,
+                                                SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+                                                &info
+                                                );
+                                        }
+                                    }
+
+                                    PhMarkNeedsConfigUpdateServiceItem(serviceItem);
+                                }
+
+                                if (!NT_SUCCESS(status))
+                                {
+                                    SetLastError(PhNtStatusToDosError(status));
+                                    goto ErrorCase;
+                                }
+
+                                PhUiDisconnectFromPhSvc();
+                            }
+                            else
+                            {
+                                // User cancelled elevation.
+                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                            }
+                        }
+                        else
+                        {
+                            goto ErrorCase;
+                        }
                     }
 
                     return TRUE;

@@ -10,6 +10,9 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcUnloadDriverApiNumber = 3,
     PhSvcControlProcessApiNumber = 4,
     PhSvcControlServiceApiNumber = 5,
+    PhSvcCreateServiceApiNumber = 6,
+    PhSvcChangeServiceConfigApiNumber = 7,
+    PhSvcChangeServiceConfig2ApiNumber = 8,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -78,6 +81,61 @@ typedef union _PHSVC_API_CONTROLSERVICE
     } i;
 } PHSVC_API_CONTROLSERVICE, *PPHSVC_API_CONTROLSERVICE;
 
+typedef union _PHSVC_API_CREATESERVICE
+{
+    struct
+    {
+        // ServiceName is the only required string.
+        PH_RELATIVE_STRINGREF ServiceName;
+        PH_RELATIVE_STRINGREF DisplayName;
+        ULONG ServiceType;
+        ULONG StartType;
+        ULONG ErrorControl;
+        PH_RELATIVE_STRINGREF BinaryPathName;
+        PH_RELATIVE_STRINGREF LoadOrderGroup;
+        PH_RELATIVE_STRINGREF Dependencies;
+        PH_RELATIVE_STRINGREF ServiceStartName;
+        PH_RELATIVE_STRINGREF Password;
+        BOOLEAN TagIdSpecified;
+    } i;
+    struct
+    {
+        ULONG TagId;
+    } o;
+} PHSVC_API_CREATESERVICE, *PPHSVC_API_CREATESERVICE;
+
+typedef union _PHSVC_API_CHANGESERVICECONFIG
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF ServiceName;
+        ULONG ServiceType;
+        ULONG StartType;
+        ULONG ErrorControl;
+        PH_RELATIVE_STRINGREF BinaryPathName;
+        PH_RELATIVE_STRINGREF LoadOrderGroup;
+        PH_RELATIVE_STRINGREF Dependencies;
+        PH_RELATIVE_STRINGREF ServiceStartName;
+        PH_RELATIVE_STRINGREF Password;
+        PH_RELATIVE_STRINGREF DisplayName;
+        BOOLEAN TagIdSpecified;
+    } i;
+    struct
+    {
+        ULONG TagId;
+    } o;
+} PHSVC_API_CHANGESERVICECONFIG, *PPHSVC_API_CHANGESERVICECONFIG;
+
+typedef union _PHSVC_API_CHANGESERVICECONFIG2
+{
+    struct
+    {
+        PH_RELATIVE_STRINGREF ServiceName;
+        ULONG InfoLevel;
+        PH_RELATIVE_STRINGREF Info;
+    } i;
+} PHSVC_API_CHANGESERVICECONFIG2, *PPHSVC_API_CHANGESERVICECONFIG2;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -96,6 +154,9 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_UNLOADDRIVER UnloadDriver;
                 PHSVC_API_CONTROLPROCESS ControlProcess;
                 PHSVC_API_CONTROLSERVICE ControlService;
+                PHSVC_API_CREATESERVICE CreateService;
+                PHSVC_API_CHANGESERVICECONFIG ChangeServiceConfig;
+                PHSVC_API_CHANGESERVICECONFIG2 ChangeServiceConfig2;
             } u;
         };
     };
