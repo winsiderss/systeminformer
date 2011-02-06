@@ -23,6 +23,7 @@
 #define PH_MAIN_PRIVATE
 #include <phapp.h>
 #include <kphuser.h>
+#include <phsvc.h>
 #include <settings.h>
 #include <hexedit.h>
 #include <shlobj.h>
@@ -165,20 +166,12 @@ INT WINAPI WinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-    // Set priority to High.
-    {
-        PROCESS_PRIORITY_CLASS priorityClass;
-
-        priorityClass.Foreground = FALSE;
-        priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
-        NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
-    }
-
     // Activate a previous instance if required.
     if (
         PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
         !PhStartupParameters.ShowOptions &&
-        !PhStartupParameters.CommandMode
+        !PhStartupParameters.CommandMode &&
+        !PhStartupParameters.PhSvc
         )
         PhActivatePreviousInstance();
 
@@ -192,6 +185,11 @@ INT WINAPI WinMain(
         )
     {
         RtlExitUserProcess(PhCommandModeStart());
+    }
+
+    if (PhStartupParameters.PhSvc)
+    {
+        RtlExitUserProcess(PhSvcMain());
     }
 
     // Create a mutant for the installer.
@@ -210,6 +208,15 @@ INT WINAPI WinMain(
             );
 
         NtCreateMutant(&mutantHandle, MUTANT_ALL_ACCESS, &oa, FALSE);
+    }
+
+    // Set priority to High.
+    {
+        PROCESS_PRIORITY_CLASS priorityClass;
+
+        priorityClass.Foreground = FALSE;
+        priorityClass.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+        NtSetInformationProcess(NtCurrentProcess(), ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
     }
 
 #ifdef DEBUG
@@ -522,6 +529,7 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_HWND 14
 #define PH_ARG_POINT 15
 #define PH_ARG_SHOWOPTIONS 16
+#define PH_ARG_PHSVC 17
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -607,6 +615,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_SHOWOPTIONS:
             PhStartupParameters.ShowOptions = TRUE;
             break;
+        case PH_ARG_PHSVC:
+            PhStartupParameters.PhSvc = TRUE;
+            break;
         }
     }
     else
@@ -648,7 +659,8 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_DEBUG, L"debug", NoArgumentType },
         { PH_ARG_HWND, L"hwnd", MandatoryArgumentType },
         { PH_ARG_POINT, L"point", MandatoryArgumentType },
-        { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType }
+        { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType },
+        { PH_ARG_PHSVC, L"phsvc", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -677,6 +689,7 @@ VOID PhpProcessStartupParameters()
             L"-installkph\n"
             L"-nokph\n"
             L"-nosettings\n"
+            L"-phsvc\n"
             L"-ras\n"
             L"-settings filename\n"
             L"-uninstallkph\n"

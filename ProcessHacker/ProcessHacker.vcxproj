@@ -296,6 +296,11 @@
     <ClCompile Include="ntobjprp.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="pagfiles.c" />
+    <ClCompile Include="phsvc\clapi.c" />
+    <ClCompile Include="phsvc\svcapi.c" />
+    <ClCompile Include="phsvc\svcapiport.c" />
+    <ClCompile Include="phsvc\svcclient.c" />
+    <ClCompile Include="phsvc\svcmain.c" />
     <ClCompile Include="plugin.c" />
     <ClCompile Include="plugman.c" />
     <ClCompile Include="procprp.c" />
@@ -350,6 +355,7 @@
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h" />
     <ClInclude Include="..\phlib\format_i.h" />
+    <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="include\hidnproc.h" />
@@ -357,6 +363,8 @@
     <ClInclude Include="mxml\mxml-private.h" />
     <ClInclude Include="mxml\mxml.h" />
     <ClInclude Include="include\phapp.h" />
+    <ClInclude Include="include\phsvc.h" />
+    <ClInclude Include="include\phsvcapi.h" />
     <ClInclude Include="sdk\phapppub.h" />
     <ClInclude Include="sdk\phdk.h" />
     <ClInclude Include="include\phplug.h" />

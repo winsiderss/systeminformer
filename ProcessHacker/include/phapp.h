@@ -65,6 +65,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandAction;
 
     BOOLEAN RunAsServiceMode;
+    BOOLEAN PhSvc;
 
     BOOLEAN InstallKph;
     BOOLEAN UninstallKph;
@@ -774,6 +775,12 @@ typedef enum _PH_ACTION_ELEVATION_LEVEL
     PromptElevateAction = 1,
     AlwaysElevateAction = 2
 } PH_ACTION_ELEVATION_LEVEL;
+
+BOOLEAN PhUiConnectToPhSvc(
+    __in HWND hWnd
+    );
+
+VOID PhUiDisconnectFromPhSvc();
 
 PHAPPAPI
 BOOLEAN PhUiLockComputer(

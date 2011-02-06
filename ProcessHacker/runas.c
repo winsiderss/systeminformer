@@ -21,6 +21,7 @@
  */
 
 #include <phapp.h>
+#include <phsvccl.h>
 #include <settings.h>
 #include <emenu.h>
 #include <shlwapi.h>
@@ -964,61 +965,15 @@ NTSTATUS PhExecuteRunAsCommand2(
     }
     else
     {
-        PH_STRING_BUILDER argumentsBuilder;
-        PPH_STRING string;
-        HANDLE processHandle;
-        LARGE_INTEGER timeout;
-
-        PhInitializeStringBuilder(&argumentsBuilder, 100);
-
-        PhAppendStringBuilder2(
-            &argumentsBuilder,
-            L"-c -ctype processhacker -caction runas -cobject \""
-            );
-
-        string = PhEscapeCommandLinePart(&commandLine->sr);
-        PhAppendStringBuilder(&argumentsBuilder, string);
-        PhDereferenceObject(string);
-
-        PhAppendFormatStringBuilder(
-            &argumentsBuilder,
-            L"\" -servicename %s",
-            serviceName
-            );
-
-        if (PhShellProcessHacker(
-            hWnd,
-            argumentsBuilder.String->Buffer,
-            SW_SHOW,
-            PH_SHELL_EXECUTE_ADMIN,
-            TRUE,
-            0,
-            &processHandle
-            ))
+        if (PhUiConnectToPhSvc(hWnd))
         {
-            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
-            status = NtWaitForSingleObject(processHandle, FALSE, &timeout);
-
-            if (status == STATUS_WAIT_0)
-            {
-                PROCESS_BASIC_INFORMATION basicInfo;
-
-                status = STATUS_SUCCESS;
-
-                if (NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)))
-                {
-                    status = basicInfo.ExitStatus;
-                }
-            }
-
-            NtClose(processHandle);
+            PhSvcCallExecuteRunAsCommand(commandLine->Buffer, serviceName);
+            PhUiDisconnectFromPhSvc();
         }
         else
         {
             status = STATUS_CANCELLED;
         }
-
-        PhDeleteStringBuilder(&argumentsBuilder);
     }
 
     PhDereferenceObject(commandLine);

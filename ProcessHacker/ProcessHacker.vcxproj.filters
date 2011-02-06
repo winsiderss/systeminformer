@@ -22,6 +22,9 @@
     <Filter Include="Mini-XML">
       <UniqueIdentifier>{eaabb14f-9091-4b18-8764-45c8350f4887}</UniqueIdentifier>
     </Filter>
+    <Filter Include="phsvc">
+      <UniqueIdentifier>{84a3be0b-42cf-42ae-bcd3-16f165caa0db}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\phlib\basesup.c">
@@ -414,6 +417,21 @@
     <ClCompile Include="modlist.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="phsvc\svcmain.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcclient.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcapiport.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\svcapi.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="phsvc\clapi.c">
+      <Filter>phsvc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -465,6 +483,15 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\uimodels.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvcapi.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvc.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phsvccl.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
