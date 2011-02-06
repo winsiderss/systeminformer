@@ -94,11 +94,13 @@ VOID PhSvcDispatchApiCall(
 
 NTSTATUS PhSvcCaptureBuffer(
     __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
     __out PVOID *CapturedBuffer
     );
 
 NTSTATUS PhSvcCaptureString(
     __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
     __out PPH_STRING *CapturedString
     );
 
@@ -108,6 +110,21 @@ NTSTATUS PhSvcApiClose(
     );
 
 NTSTATUS PhSvcApiExecuteRunAsCommand(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiUnloadDriver(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiControlProcess(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiControlService(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     );

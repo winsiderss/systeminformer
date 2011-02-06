@@ -26,7 +26,10 @@
 PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 {
     PhSvcApiClose,
-    PhSvcApiExecuteRunAsCommand
+    PhSvcApiExecuteRunAsCommand,
+    PhSvcApiUnloadDriver,
+    PhSvcApiControlProcess,
+    PhSvcApiControlService
 };
 
 NTSTATUS PhSvcApiInitialization()
@@ -63,6 +66,7 @@ VOID PhSvcDispatchApiCall(
 
 NTSTATUS PhSvcCaptureBuffer(
     __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
     __out PVOID *CapturedBuffer
     )
 {
@@ -70,58 +74,88 @@ NTSTATUS PhSvcCaptureBuffer(
     PVOID address;
     PVOID buffer;
 
-    address = (PCHAR)client->ClientViewBase + String->Offset;
-
-    if (
-        (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
-        (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-        (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
-        )
-    {
+    if (String->Offset == 0 && String->Length != 0)
         return STATUS_ACCESS_VIOLATION;
+
+    if (String->Offset != 0)
+    {
+        address = (PCHAR)client->ClientViewBase + String->Offset;
+
+        if (
+            (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
+            (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
+            (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
+            )
+        {
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        buffer = PhAllocateSafe(String->Length);
+
+        if (!buffer)
+            return STATUS_NO_MEMORY;
+
+        memcpy(buffer, address, String->Length);
+        *CapturedBuffer = buffer;
     }
+    else
+    {
+        if (!AllowNull)
+            return STATUS_ACCESS_VIOLATION;
 
-    buffer = PhAllocateSafe(String->Length);
-
-    if (!buffer)
-        return STATUS_NO_MEMORY;
-
-    memcpy(buffer, address, String->Length);
-    *CapturedBuffer = buffer;
+        *CapturedBuffer = NULL;
+    }
 
     return STATUS_SUCCESS;
 }
 
 NTSTATUS PhSvcCaptureString(
     __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
     __out PPH_STRING *CapturedString
     )
 {
     PPHSVC_CLIENT client = PhSvcGetCurrentClient();
     PVOID address;
 
+    if (String->Offset == 0 && String->Length != 0)
+        return STATUS_ACCESS_VIOLATION;
+
     if (String->Length & 1)
         return STATUS_INVALID_BUFFER_SIZE;
     if (String->Length > 0xfffe)
         return STATUS_INVALID_BUFFER_SIZE;
 
-    address = (PCHAR)client->ClientViewBase + String->Offset;
-
-    if ((ULONG_PTR)address & 1)
+    if (String->Offset != 0)
     {
-        return STATUS_DATATYPE_MISALIGNMENT;
-    }
+        address = (PCHAR)client->ClientViewBase + String->Offset;
 
-    if (
-        (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
-        (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-        (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
-        )
+        if ((ULONG_PTR)address & 1)
+        {
+            return STATUS_DATATYPE_MISALIGNMENT;
+        }
+
+        if (
+            (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
+            (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
+            (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
+            )
+        {
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        if (String->Length != 0)
+            *CapturedString = PhCreateStringEx(address, String->Length);
+        else
+            *CapturedString = PhReferenceEmptyString();
+    }
+    else
     {
-        return STATUS_ACCESS_VIOLATION;
-    }
+        if (!AllowNull)
+            return STATUS_ACCESS_VIOLATION;
 
-    *CapturedString = PhCreateStringEx(address, String->Length);
+        *CapturedString = NULL;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -131,7 +165,7 @@ NTSTATUS PhSvcApiClose(
     __inout PPHSVC_API_MSG Message
     )
 {
-    return PhSvcCloseHandle(Message->Close.i.Handle);
+    return PhSvcCloseHandle(Message->u.Close.i.Handle);
 }
 
 NTSTATUS PhSvcApiExecuteRunAsCommand(
@@ -143,15 +177,179 @@ NTSTATUS PhSvcApiExecuteRunAsCommand(
     PPH_STRING serviceCommandLine;
     PPH_STRING serviceName;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->ExecuteRunAsCommand.i.ServiceCommandLine, &serviceCommandLine)))
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceCommandLine, FALSE, &serviceCommandLine)))
     {
-        if (NT_SUCCESS(status = PhSvcCaptureString(&Message->ExecuteRunAsCommand.i.ServiceName, &serviceName)))
+        if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceName, FALSE, &serviceName)))
         {
             status = PhExecuteRunAsCommand(serviceCommandLine->Buffer, serviceName->Buffer);
             PhDereferenceObject(serviceName);
         }
 
         PhDereferenceObject(serviceCommandLine);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiUnloadDriver(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING name;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.UnloadDriver.i.Name, TRUE, &name)))
+    {
+        status = PhUnloadDriver(Message->u.UnloadDriver.i.BaseAddress, PhGetString(name));
+        PhSwapReference(&name, NULL);
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiControlProcess(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    HANDLE processId;
+    HANDLE processHandle;
+
+    processId = Message->u.ControlProcess.i.ProcessId;
+
+    switch (Message->u.ControlProcess.i.Command)
+    {
+    case PhSvcControlProcessTerminate:
+        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_TERMINATE, processId)))
+        {
+            status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+            NtClose(processHandle);
+        }
+        break;
+    case PhSvcControlProcessSuspend:
+        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+        {
+            status = PhSuspendProcess(processHandle);
+            NtClose(processHandle);
+        }
+        break;
+    case PhSvcControlProcessResume:
+        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SUSPEND_RESUME, processId)))
+        {
+            status = PhResumeProcess(processHandle);
+            NtClose(processHandle);
+        }
+        break;
+    default:
+        status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiControlService(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PPH_STRING serviceName;
+    SC_HANDLE serviceHandle;
+    SERVICE_STATUS serviceStatus;
+
+    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ControlService.i.ServiceName, FALSE, &serviceName)))
+    {
+        switch (Message->u.ControlService.i.Command)
+        {
+        case PhSvcControlServiceStart:
+            if (serviceHandle = PhOpenService(
+                serviceName->Buffer,
+                SERVICE_START
+                ))
+            {
+                if (!StartService(serviceHandle, 0, NULL))
+                    status = PhGetLastWin32ErrorAsNtStatus();
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        case PhSvcControlServiceContinue:
+            if (serviceHandle = PhOpenService(
+                serviceName->Buffer,
+                SERVICE_PAUSE_CONTINUE
+                ))
+            {
+                if (!ControlService(serviceHandle, SERVICE_CONTROL_CONTINUE, &serviceStatus))
+                    status = PhGetLastWin32ErrorAsNtStatus();
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        case PhSvcControlServicePause:
+            if (serviceHandle = PhOpenService(
+                serviceName->Buffer,
+                SERVICE_PAUSE_CONTINUE
+                ))
+            {
+                if (!ControlService(serviceHandle, SERVICE_CONTROL_PAUSE, &serviceStatus))
+                    status = PhGetLastWin32ErrorAsNtStatus();
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        case PhSvcControlServiceStop:
+            if (serviceHandle = PhOpenService(
+                serviceName->Buffer,
+                SERVICE_STOP
+                ))
+            {
+                if (!ControlService(serviceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+                    status = PhGetLastWin32ErrorAsNtStatus();
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        case PhSvcControlServiceDelete:
+            if (serviceHandle = PhOpenService(
+                serviceName->Buffer,
+                DELETE
+                ))
+            {
+                if (!DeleteService(serviceHandle))
+                    status = PhGetLastWin32ErrorAsNtStatus();
+
+                CloseServiceHandle(serviceHandle);
+            }
+            else
+            {
+                status = PhGetLastWin32ErrorAsNtStatus();
+            }
+            break;
+        default:
+            status = STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        PhDereferenceObject(serviceName);
     }
 
     return status;
