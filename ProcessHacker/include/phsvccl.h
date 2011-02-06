@@ -19,4 +19,19 @@ NTSTATUS PhSvcCallExecuteRunAsCommand(
     __in PWSTR ServiceName
     );
 
+NTSTATUS PhSvcCallUnloadDriver(
+    __in_opt PVOID BaseAddress,
+    __in_opt PWSTR Name
+    );
+
+NTSTATUS PhSvcCallControlProcess(
+    __in HANDLE ProcessId,
+    __in PHSVC_API_CONTROLPROCESS_COMMAND Command
+    );
+
+NTSTATUS PhSvcCallControlService(
+    __in PWSTR ServiceName,
+    __in PHSVC_API_CONTROLSERVICE_COMMAND Command
+    );
+
 #endif

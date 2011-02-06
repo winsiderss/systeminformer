@@ -23,14 +23,10 @@
 #include <phapp.h>
 
 static HWND CommandModeWindowHandle;
-static PPH_STRING OptionRunAsServiceName = NULL;
 static HANDLE OptionProcessId = NULL;
-static PVOID OptionBaseAddress = NULL;
 
 #define PH_COMMAND_OPTION_HWND 1
-#define PH_COMMAND_OPTION_RUNASSERVICENAME 2
-#define PH_COMMAND_OPTION_PROCESSID 3
-#define PH_COMMAND_OPTION_BASEADDRESS 4
+#define PH_COMMAND_OPTION_PROCESSID 2
 
 BOOLEAN NTAPI PhpCommandModeOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -48,16 +44,9 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
             if (PhStringToInteger64(&Value->sr, 10, &integer))
                 CommandModeWindowHandle = (HWND)integer;
             break;
-        case PH_COMMAND_OPTION_RUNASSERVICENAME:
-            PhSwapReference(&OptionRunAsServiceName, Value);
-            break;
         case PH_COMMAND_OPTION_PROCESSID:
             if (PhStringToInteger64(&Value->sr, 10, &integer))
                 OptionProcessId = (HANDLE)integer;
-            break;
-        case PH_COMMAND_OPTION_BASEADDRESS:
-            if (PhStringToInteger64(&Value->sr, 0, &integer))
-                OptionBaseAddress = (PVOID)integer;
             break;
         }
     }
@@ -70,9 +59,7 @@ NTSTATUS PhCommandModeStart()
     static PH_COMMAND_LINE_OPTION options[] =
     {
         { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType },
-        { PH_COMMAND_OPTION_RUNASSERVICENAME, L"servicename", MandatoryArgumentType },
-        { PH_COMMAND_OPTION_PROCESSID, L"processid", MandatoryArgumentType },
-        { PH_COMMAND_OPTION_BASEADDRESS, L"baseaddress", MandatoryArgumentType }
+        { PH_COMMAND_OPTION_PROCESSID, L"processid", MandatoryArgumentType }
     };
     NTSTATUS status = STATUS_SUCCESS;
     PH_STRINGREF commandLine;
@@ -88,27 +75,7 @@ NTSTATUS PhCommandModeStart()
         NULL
         );
 
-    if (PhEqualString2(PhStartupParameters.CommandType, L"processhacker", TRUE))
-    {
-        if (PhEqualString2(PhStartupParameters.CommandAction, L"runas", TRUE))
-        {
-            if (!OptionRunAsServiceName || !PhStartupParameters.CommandObject)
-                return STATUS_INVALID_PARAMETER;
-
-            status = PhExecuteRunAsCommand(
-                PhStartupParameters.CommandObject->Buffer,
-                OptionRunAsServiceName->Buffer
-                );
-        }
-        else if (PhEqualString2(PhStartupParameters.CommandAction, L"unloaddriver", TRUE))
-        {
-            if (!OptionBaseAddress || !PhStartupParameters.CommandObject)
-                return STATUS_INVALID_PARAMETER;
-
-            status = PhUnloadDriver(OptionBaseAddress, PhStartupParameters.CommandObject->Buffer);
-        }
-    }
-    else if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
+    if (PhEqualString2(PhStartupParameters.CommandType, L"process", TRUE))
     {
         ULONG64 processId64;
         HANDLE processId;
