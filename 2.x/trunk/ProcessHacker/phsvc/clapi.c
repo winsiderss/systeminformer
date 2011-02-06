@@ -164,13 +164,16 @@ PVOID PhSvcpCreateRelativeStringRef(
     )
 {
     PVOID memory;
-    ULONG length;
+    SIZE_T length;
     ULONG offset;
 
     if (Length != -1)
         length = Length;
     else
-        length = (ULONG)wcslen(String) * sizeof(WCHAR);
+        length = wcslen(String) * sizeof(WCHAR);
+
+    if (length > MAXULONG32)
+        return NULL;
 
     memory = PhSvcpAllocateHeap(length, &offset);
 
@@ -179,7 +182,7 @@ PVOID PhSvcpCreateRelativeStringRef(
 
     memcpy(memory, String, length);
 
-    StringRef->Length = length;
+    StringRef->Length = (ULONG)length;
     StringRef->Offset = offset;
 
     return memory;
