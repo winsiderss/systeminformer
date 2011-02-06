@@ -118,13 +118,19 @@ NTSTATUS PhSvcConnectToServer(
 
 VOID PhSvcDisconnectFromServer()
 {
+    if (PhSvcClPortHeap)
+    {
+        RtlDestroyHeap(PhSvcClPortHeap);
+        PhSvcClPortHeap = NULL;
+    }
+
     if (PhSvcClPortHandle)
     {
         NtClose(PhSvcClPortHandle);
         PhSvcClPortHandle = NULL;
-        PhSvcClPortHeap = NULL;
-        PhSvcClServerProcessId = NULL;
     }
+
+    PhSvcClServerProcessId = NULL;
 }
 
 PVOID PhSvcpAllocateHeap(
@@ -158,7 +164,7 @@ VOID PhSvcpFreeHeap(
 }
 
 PVOID PhSvcpCreateRelativeStringRef(
-    __in PWSTR String,
+    __in PVOID String,
     __in SIZE_T Length,
     __out PPH_RELATIVE_STRINGREF StringRef
     )
@@ -265,7 +271,7 @@ NTSTATUS PhSvcCallUnloadDriver(
     PHSVC_API_MSG m;
     PVOID name = NULL;
 
-    memset(&m, sizeof(PHSVC_API_MSG), 0);
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
 
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
@@ -331,6 +337,237 @@ NTSTATUS PhSvcCallControlService(
         status = STATUS_NO_MEMORY;
     }
 
+    if (serviceName)
+        PhSvcpFreeHeap(serviceName);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallCreateService(
+    __in PWSTR ServiceName,
+    __in_opt PWSTR DisplayName,
+    __in ULONG ServiceType,
+    __in ULONG StartType,
+    __in ULONG ErrorControl,
+    __in_opt PWSTR BinaryPathName,
+    __in_opt PWSTR LoadOrderGroup,
+    __out_opt PULONG TagId,
+    __in_opt PWSTR Dependencies,
+    __in_opt PWSTR ServiceStartName,
+    __in_opt PWSTR Password
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID serviceName = NULL;
+    PVOID displayName = NULL;
+    PVOID binaryPathName = NULL;
+    PVOID loadOrderGroup = NULL;
+    PVOID dependencies = NULL;
+    PVOID serviceStartName = NULL;
+    PVOID password = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcCreateServiceApiNumber;
+
+    m.u.CreateService.i.ServiceType = ServiceType;
+    m.u.CreateService.i.StartType = StartType;
+    m.u.CreateService.i.ErrorControl = ErrorControl;
+    m.u.CreateService.i.TagIdSpecified = TagId != NULL;
+
+    status = STATUS_NO_MEMORY;
+
+    if (!(serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.u.CreateService.i.ServiceName)))
+        goto CleanupExit;
+    if (DisplayName && !(displayName = PhSvcpCreateRelativeStringRef(DisplayName, -1, &m.u.CreateService.i.DisplayName)))
+        goto CleanupExit;
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateRelativeStringRef(BinaryPathName, -1, &m.u.CreateService.i.BinaryPathName)))
+        goto CleanupExit;
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateRelativeStringRef(LoadOrderGroup, -1, &m.u.CreateService.i.LoadOrderGroup)))
+        goto CleanupExit;
+
+    if (Dependencies)
+    {
+        SIZE_T dependenciesLength;
+        SIZE_T partCount;
+        PWSTR part;
+
+        dependenciesLength = sizeof(WCHAR);
+        part = Dependencies;
+
+        do
+        {
+            partCount = wcslen(part) + 1;
+            part += partCount;
+            dependenciesLength += partCount * sizeof(WCHAR);
+        } while (partCount != 1); // stop at empty dependency part
+
+        if (!(dependencies = PhSvcpCreateRelativeStringRef(Dependencies, dependenciesLength, &m.u.CreateService.i.Dependencies)))
+            goto CleanupExit;
+    }
+
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateRelativeStringRef(ServiceStartName, -1, &m.u.CreateService.i.ServiceStartName)))
+        goto CleanupExit;
+    if (Password && !(password = PhSvcpCreateRelativeStringRef(Password, -1, &m.u.CreateService.i.Password)))
+        goto CleanupExit;
+
+    status = PhSvcpCallServer(&m);
+
+    if (NT_SUCCESS(status))
+    {
+        if (TagId)
+            *TagId = m.u.CreateService.o.TagId;
+    }
+
+CleanupExit:
+    if (password) PhSvcpFreeHeap(password);
+    if (serviceStartName) PhSvcpFreeHeap(serviceStartName);
+    if (dependencies) PhSvcpFreeHeap(dependencies);
+    if (loadOrderGroup) PhSvcpFreeHeap(loadOrderGroup);
+    if (binaryPathName) PhSvcpFreeHeap(binaryPathName);
+    if (displayName) PhSvcpFreeHeap(displayName);
+    if (serviceName) PhSvcpFreeHeap(serviceName);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallChangeServiceConfig(
+    __in PWSTR ServiceName,
+    __in ULONG ServiceType,
+    __in ULONG StartType,
+    __in ULONG ErrorControl,
+    __in_opt PWSTR BinaryPathName,
+    __in_opt PWSTR LoadOrderGroup,
+    __out_opt PULONG TagId,
+    __in_opt PWSTR Dependencies,
+    __in_opt PWSTR ServiceStartName,
+    __in_opt PWSTR Password,
+    __in_opt PWSTR DisplayName
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID serviceName = NULL;
+    PVOID binaryPathName = NULL;
+    PVOID loadOrderGroup = NULL;
+    PVOID dependencies = NULL;
+    PVOID serviceStartName = NULL;
+    PVOID password = NULL;
+    PVOID displayName = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcChangeServiceConfigApiNumber;
+
+    m.u.ChangeServiceConfig.i.ServiceType = ServiceType;
+    m.u.ChangeServiceConfig.i.StartType = StartType;
+    m.u.ChangeServiceConfig.i.ErrorControl = ErrorControl;
+    m.u.ChangeServiceConfig.i.TagIdSpecified = TagId != NULL;
+
+    status = STATUS_NO_MEMORY;
+
+    if (!(serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.u.ChangeServiceConfig.i.ServiceName)))
+        goto CleanupExit;
+    if (BinaryPathName && !(binaryPathName = PhSvcpCreateRelativeStringRef(BinaryPathName, -1, &m.u.ChangeServiceConfig.i.BinaryPathName)))
+        goto CleanupExit;
+    if (LoadOrderGroup && !(loadOrderGroup = PhSvcpCreateRelativeStringRef(LoadOrderGroup, -1, &m.u.ChangeServiceConfig.i.LoadOrderGroup)))
+        goto CleanupExit;
+
+    if (Dependencies)
+    {
+        SIZE_T dependenciesLength;
+        SIZE_T partCount;
+        PWSTR part;
+
+        dependenciesLength = sizeof(WCHAR);
+        part = Dependencies;
+
+        do
+        {
+            partCount = wcslen(part) + 1;
+            part += partCount;
+            dependenciesLength += partCount * sizeof(WCHAR);
+        } while (partCount != 1); // stop at empty dependency part
+
+        if (!(dependencies = PhSvcpCreateRelativeStringRef(Dependencies, dependenciesLength, &m.u.ChangeServiceConfig.i.Dependencies)))
+            goto CleanupExit;
+    }
+
+    if (ServiceStartName && !(serviceStartName = PhSvcpCreateRelativeStringRef(ServiceStartName, -1, &m.u.ChangeServiceConfig.i.ServiceStartName)))
+        goto CleanupExit;
+    if (Password && !(password = PhSvcpCreateRelativeStringRef(Password, -1, &m.u.ChangeServiceConfig.i.Password)))
+        goto CleanupExit;
+    if (DisplayName && !(displayName = PhSvcpCreateRelativeStringRef(DisplayName, -1, &m.u.ChangeServiceConfig.i.DisplayName)))
+        goto CleanupExit;
+
+    status = PhSvcpCallServer(&m);
+
+    if (NT_SUCCESS(status))
+    {
+        if (TagId)
+            *TagId = m.u.ChangeServiceConfig.o.TagId;
+    }
+
+CleanupExit:
+    if (displayName) PhSvcpFreeHeap(displayName);
+    if (password) PhSvcpFreeHeap(password);
+    if (serviceStartName) PhSvcpFreeHeap(serviceStartName);
+    if (dependencies) PhSvcpFreeHeap(dependencies);
+    if (loadOrderGroup) PhSvcpFreeHeap(loadOrderGroup);
+    if (binaryPathName) PhSvcpFreeHeap(binaryPathName);
+    if (serviceName) PhSvcpFreeHeap(serviceName);
+
+    return status;
+}
+
+NTSTATUS PhSvcCallChangeServiceConfig2(
+    __in PWSTR ServiceName,
+    __in ULONG InfoLevel,
+    __in PVOID Info
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID serviceName = NULL;
+    PVOID info = NULL;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcChangeServiceConfig2ApiNumber;
+
+    m.u.ChangeServiceConfig2.i.InfoLevel = InfoLevel;
+
+    if (serviceName = PhSvcpCreateRelativeStringRef(ServiceName, -1, &m.u.ChangeServiceConfig2.i.ServiceName))
+    {
+        switch (InfoLevel)
+        {
+        case SERVICE_CONFIG_DELAYED_AUTO_START_INFO:
+            info = PhSvcpCreateRelativeStringRef(Info, sizeof(SERVICE_DELAYED_AUTO_START_INFO), &m.u.ChangeServiceConfig2.i.Info);
+            break;
+        default:
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    if (serviceName && info)
+    {
+        status = PhSvcpCallServer(&m);
+    }
+    else
+    {
+        status = STATUS_NO_MEMORY;
+    }
+
+    if (info)
+        PhSvcpFreeHeap(info);
     if (serviceName)
         PhSvcpFreeHeap(serviceName);
 

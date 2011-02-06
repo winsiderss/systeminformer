@@ -34,4 +34,38 @@ NTSTATUS PhSvcCallControlService(
     __in PHSVC_API_CONTROLSERVICE_COMMAND Command
     );
 
+NTSTATUS PhSvcCallCreateService(
+    __in PWSTR ServiceName,
+    __in_opt PWSTR DisplayName,
+    __in ULONG ServiceType,
+    __in ULONG StartType,
+    __in ULONG ErrorControl,
+    __in_opt PWSTR BinaryPathName,
+    __in_opt PWSTR LoadOrderGroup,
+    __out_opt PULONG TagId,
+    __in_opt PWSTR Dependencies,
+    __in_opt PWSTR ServiceStartName,
+    __in_opt PWSTR Password
+    );
+
+NTSTATUS PhSvcCallChangeServiceConfig(
+    __in PWSTR ServiceName,
+    __in ULONG ServiceType,
+    __in ULONG StartType,
+    __in ULONG ErrorControl,
+    __in_opt PWSTR BinaryPathName,
+    __in_opt PWSTR LoadOrderGroup,
+    __out_opt PULONG TagId,
+    __in_opt PWSTR Dependencies,
+    __in_opt PWSTR ServiceStartName,
+    __in_opt PWSTR Password,
+    __in_opt PWSTR DisplayName
+    );
+
+NTSTATUS PhSvcCallChangeServiceConfig2(
+    __in PWSTR ServiceName,
+    __in ULONG InfoLevel,
+    __in PVOID Info
+    );
+
 #endif
