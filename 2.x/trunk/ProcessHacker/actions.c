@@ -30,6 +30,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <kphuser.h>
+#include <phsvccl.h>
 #include <winsta.h>
 #include <iphlpapi.h>
 
@@ -44,6 +45,8 @@ static PWSTR DangerousProcesses[] =
 };
 static PPH_STRING DebuggerCommand = NULL;
 static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
+static ULONG PhSvcReferenceCount = 0;
+static PH_QUEUED_LOCK PhSvcStartLock = PH_QUEUED_LOCK_INIT;
 
 HRESULT CALLBACK PhpElevateActionCallbackProc(
     __in HWND hwnd,
@@ -176,6 +179,99 @@ BOOLEAN PhpShowErrorAndElevateAction(
     }
 
     return TRUE;
+}
+
+BOOLEAN PhUiConnectToPhSvc(
+    __in HWND hWnd
+    )
+{
+    NTSTATUS status;
+    BOOLEAN started;
+    UNICODE_STRING portName;
+
+    if (_InterlockedIncrementNoZero(&PhSvcReferenceCount))
+    {
+        started = TRUE;
+    }
+    else
+    {
+        PhAcquireQueuedLockExclusive(&PhSvcStartLock);
+
+        if (*(volatile ULONG *)&PhSvcReferenceCount == 0)
+        {
+            started = FALSE;
+            RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);
+
+            // Try to connect first, then start the server if we failed.
+            status = PhSvcConnectToServer(&portName, 0);
+
+            if (NT_SUCCESS(status))
+            {
+                started = TRUE;
+                _InterlockedIncrement(&PhSvcReferenceCount);
+            }
+            else
+            {
+                // Prompt for elevation, and then try to connect to the server.
+
+                if (PhShellProcessHacker(
+                    hWnd,
+                    L"-phsvc",
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_ADMIN,
+                    TRUE,
+                    0,
+                    NULL
+                    ))
+                {
+                    started = TRUE;
+                }
+
+                if (started)
+                {
+                    ULONG attempts = 10;
+
+                    // Try to connect several times because the server may take 
+                    // a while to initialize.
+                    do
+                    {
+                        status = PhSvcConnectToServer(&portName, 0);
+
+                        if (NT_SUCCESS(status))
+                            break;
+
+                        Sleep(50);
+                    } while (--attempts != 0);
+
+                    // Increment the reference count even if we failed. 
+                    // We don't want to prompt the user again.
+
+                    _InterlockedIncrement(&PhSvcReferenceCount);
+                }
+            }
+        }
+        else
+        {
+            started = TRUE;
+            _InterlockedIncrement(&PhSvcReferenceCount);
+        }
+
+        PhReleaseQueuedLockExclusive(&PhSvcStartLock);
+    }
+
+    return started;
+}
+
+VOID PhUiDisconnectFromPhSvc()
+{
+    PhAcquireQueuedLockExclusive(&PhSvcStartLock);
+
+    if (_InterlockedDecrement(&PhSvcReferenceCount) == 0)
+    {
+        PhSvcDisconnectFromServer();
+    }
+
+    PhReleaseQueuedLockExclusive(&PhSvcStartLock);
 }
 
 BOOLEAN PhUiLockComputer(

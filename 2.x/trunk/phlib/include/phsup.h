@@ -504,8 +504,9 @@ FORCEINLINE VOID PhProbeAddress(
             PhRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
 
         if (
-            (((ULONG_PTR)UserAddress + UserLength) < (ULONG_PTR)UserAddress) ||
-            (((ULONG_PTR)UserAddress + UserLength) > ((ULONG_PTR)BufferAddress + BufferLength))
+            ((ULONG_PTR)UserAddress + UserLength < (ULONG_PTR)UserAddress) ||
+            ((ULONG_PTR)UserAddress < (ULONG_PTR)BufferAddress) ||
+            ((ULONG_PTR)UserAddress + UserLength > (ULONG_PTR)BufferAddress + BufferLength)
             )
             PhRaiseStatus(STATUS_ACCESS_VIOLATION);
     }
