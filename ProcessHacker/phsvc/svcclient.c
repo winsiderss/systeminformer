@@ -76,6 +76,8 @@ PPHSVC_CLIENT PhSvcCreateClient(
         return NULL;
     }
 
+    memset(client, 0, sizeof(PHSVC_CLIENT));
+
     if (ClientId)
         client->ClientId = *ClientId;
 
@@ -100,6 +102,9 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
     PhReleaseQueuedLockExclusive(&PhSvcClientListLock);
 
     PhDestroyHandleTable(client->HandleTable);
+
+    if (client->PortHandle)
+        NtClose(client->PortHandle);
 }
 
 PPHSVC_CLIENT PhSvcReferenceClientByClientId(

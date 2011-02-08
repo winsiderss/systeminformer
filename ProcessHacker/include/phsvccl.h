@@ -68,4 +68,8 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
     __in PVOID Info
     );
 
+NTSTATUS PhSvcCallSetTcpEntry(
+    __in PVOID TcpRow
+    );
+
 #endif
