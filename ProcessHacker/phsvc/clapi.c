@@ -573,3 +573,31 @@ NTSTATUS PhSvcCallChangeServiceConfig2(
 
     return status;
 }
+
+NTSTATUS PhSvcCallSetTcpEntry(
+    __in PVOID TcpRow
+    )
+{
+    PHSVC_API_MSG m;
+    struct
+    {
+        DWORD dwState;
+        DWORD dwLocalAddr;
+        DWORD dwLocalPort;
+        DWORD dwRemoteAddr;
+        DWORD dwRemotePort;
+    } *tcpRow = TcpRow;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcSetTcpEntryApiNumber;
+
+    m.u.SetTcpEntry.i.State = tcpRow->dwState;
+    m.u.SetTcpEntry.i.LocalAddress = tcpRow->dwLocalAddr;
+    m.u.SetTcpEntry.i.LocalPort = tcpRow->dwLocalPort;
+    m.u.SetTcpEntry.i.RemoteAddress = tcpRow->dwRemoteAddr;
+    m.u.SetTcpEntry.i.RemotePort = tcpRow->dwRemotePort;
+
+    return PhSvcpCallServer(&m);
+}

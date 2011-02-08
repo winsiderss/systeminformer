@@ -144,4 +144,9 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     __inout PPHSVC_API_MSG Message
     );
 
+NTSTATUS PhSvcApiSetTcpEntry(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
 #endif

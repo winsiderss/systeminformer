@@ -268,7 +268,7 @@ static BOOLEAN EtpUpdateWsWatch(
     // Query WS watch information.
 
     if (!Context->Buffer)
-        return TRUE;
+        return FALSE;
 
     status = NtQueryInformationProcess(
         Context->ProcessHandle,
@@ -297,7 +297,7 @@ static BOOLEAN EtpUpdateWsWatch(
     }
 
     if (!NT_SUCCESS(status))
-        return TRUE;
+        return FALSE;
 
     // Update the hashtable and list view.
 
