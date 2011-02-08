@@ -2077,7 +2077,9 @@ BOOLEAN PhUiCloseConnections(
     __in ULONG NumberOfConnections
     )
 {
+
     BOOLEAN success = TRUE;
+    ULONG result;
     ULONG i;
     _SetTcpEntry SetTcpEntry_I;
     MIB_TCPROW tcpRow;
@@ -2107,19 +2109,46 @@ BOOLEAN PhUiCloseConnections(
         tcpRow.dwRemoteAddr = Connections[i]->RemoteEndpoint.Address.Ipv4;
         tcpRow.dwRemotePort = _byteswap_ushort((USHORT)Connections[i]->RemoteEndpoint.Port);
 
-        if (SetTcpEntry_I(&tcpRow) != 0)
+        if ((result = SetTcpEntry_I(&tcpRow)) != 0)
         {
+            NTSTATUS status;
+            BOOLEAN connected;
+
             success = FALSE;
 
-            if (PhShowMessage(
+            // SetTcpEntry returns ERROR_MR_MID_NOT_FOUND for access denied errors for some reason.
+            if (result == ERROR_MR_MID_NOT_FOUND)
+                result = ERROR_ACCESS_DENIED;
+
+            if (NumberOfConnections == 1 && PhpShowErrorAndConnectToPhSvc(
                 hWnd,
-                MB_ICONERROR | MB_OKCANCEL,
-                L"Unable to close the TCP connection (from %s:%u). "
-                L"Make sure Process Hacker is running with administrative privileges.",
-                Connections[i]->LocalAddressString,
-                Connections[i]->LocalEndpoint.Port
-                ) != IDOK)
-                break;
+                L"Unable to close the TCP connection",
+                NTSTATUS_FROM_WIN32(result),
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallSetTcpEntry(&tcpRow)))
+                        success = TRUE;
+                    else
+                        PhShowStatus(hWnd, L"Unable to close the TCP connection", status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                if (PhShowMessage(
+                    hWnd,
+                    MB_ICONERROR | MB_OKCANCEL,
+                    L"Unable to close the TCP connection (from %s:%u). "
+                    L"Make sure Process Hacker is running with administrative privileges.",
+                    Connections[i]->LocalAddressString,
+                    Connections[i]->LocalEndpoint.Port
+                    ) != IDOK)
+                    break;
+            }
         }
     }
 

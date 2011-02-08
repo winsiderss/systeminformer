@@ -13,6 +13,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcCreateServiceApiNumber = 6,
     PhSvcChangeServiceConfigApiNumber = 7,
     PhSvcChangeServiceConfig2ApiNumber = 8,
+    PhSvcSetTcpEntryApiNumber = 9,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -136,6 +137,18 @@ typedef union _PHSVC_API_CHANGESERVICECONFIG2
     } i;
 } PHSVC_API_CHANGESERVICECONFIG2, *PPHSVC_API_CHANGESERVICECONFIG2;
 
+typedef union _PHSVC_API_SETTCPENTRY
+{
+    struct
+    {
+        ULONG State;
+        ULONG LocalAddress;
+        ULONG LocalPort;
+        ULONG RemoteAddress;
+        ULONG RemotePort;
+    } i;
+} PHSVC_API_SETTCPENTRY, *PPHSVC_API_SETTCPENTRY;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -157,6 +170,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_CREATESERVICE CreateService;
                 PHSVC_API_CHANGESERVICECONFIG ChangeServiceConfig;
                 PHSVC_API_CHANGESERVICECONFIG2 ChangeServiceConfig2;
+                PHSVC_API_SETTCPENTRY SetTcpEntry;
             } u;
         };
     };

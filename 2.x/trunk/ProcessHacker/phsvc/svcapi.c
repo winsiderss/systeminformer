@@ -32,8 +32,10 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiControlService,
     PhSvcApiCreateService,
     PhSvcApiChangeServiceConfig,
-    PhSvcApiChangeServiceConfig2
+    PhSvcApiChangeServiceConfig2,
+    PhSvcApiSetTcpEntry
 };
+C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
 NTSTATUS PhSvcApiInitialization()
 {
@@ -549,4 +551,59 @@ NTSTATUS PhSvcApiChangeServiceConfig2(
     }
 
     return status;
+}
+
+NTSTATUS PhSvcApiSetTcpEntry(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    static PVOID setTcpEntry = NULL;
+
+    ULONG (__stdcall *localSetTcpEntry)(PVOID TcpRow);
+    struct
+    {
+        DWORD dwState;
+        DWORD dwLocalAddr;
+        DWORD dwLocalPort;
+        DWORD dwRemoteAddr;
+        DWORD dwRemotePort;
+    } tcpRow;
+    ULONG result;
+
+    localSetTcpEntry = setTcpEntry;
+
+    if (!localSetTcpEntry)
+    {
+        HMODULE iphlpapiModule;
+
+        iphlpapiModule = LoadLibrary(L"iphlpapi.dll");
+
+        if (iphlpapiModule)
+        {
+            localSetTcpEntry = (PVOID)GetProcAddress(iphlpapiModule, "SetTcpEntry");
+
+            if (localSetTcpEntry)
+            {
+                if (_InterlockedExchangePointer(&setTcpEntry, localSetTcpEntry) != NULL)
+                {
+                    // Another thread got the address of SetTcpEntry already. 
+                    // Decrement the reference count of iphlpapi.dll.
+                    FreeLibrary(iphlpapiModule);
+                }
+            }
+        }
+    }
+
+    if (!localSetTcpEntry)
+        return STATUS_NOT_SUPPORTED;
+
+    tcpRow.dwState = Message->u.SetTcpEntry.i.State;
+    tcpRow.dwLocalAddr = Message->u.SetTcpEntry.i.LocalAddress;
+    tcpRow.dwLocalPort = Message->u.SetTcpEntry.i.LocalPort;
+    tcpRow.dwRemoteAddr = Message->u.SetTcpEntry.i.RemoteAddress;
+    tcpRow.dwRemotePort = Message->u.SetTcpEntry.i.RemotePort;
+    result = localSetTcpEntry(&tcpRow);
+
+    return NTSTATUS_FROM_WIN32(result);
 }
