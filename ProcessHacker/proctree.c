@@ -81,6 +81,8 @@ VOID PhInitializeProcessTreeList(
 
     TreeList_SetCallback(hwnd, PhpProcessTreeListCallback);
 
+    TreeList_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
+
     // Default columns
     PhAddTreeListColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 1, DT_RIGHT);
