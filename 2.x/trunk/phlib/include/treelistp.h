@@ -17,7 +17,7 @@ typedef struct _PHP_TREELIST_CONTEXT
     PVOID Context;
 
     PPH_TREELIST_COLUMN *Columns; // columns, indexed by ID
-    ULONG MaxId;
+    ULONG NextId;
     ULONG AllocatedColumns;
     ULONG NumberOfColumns; // just a statistic; do not use for actual logic
 
@@ -150,6 +150,10 @@ VOID PhpDeleteColumn(
     );
 
 VOID PhpRefreshColumns(
+    __in PPHP_TREELIST_CONTEXT Context
+    );
+
+VOID PhpExpandAllocatedColumns(
     __in PPHP_TREELIST_CONTEXT Context
     );
 
