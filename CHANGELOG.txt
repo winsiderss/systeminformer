@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added elevation support for more actions
  * FIXED:
+   * Memory leaks
 
 2.11
  * NEW/IMPROVED:
