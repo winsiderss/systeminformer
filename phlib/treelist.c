@@ -121,7 +121,7 @@ VOID PhpCreateTreeListContext(
     context->Context = NULL;
 
     context->Columns = NULL;
-    context->MaxId = 0;
+    context->NextId = 0;
     context->AllocatedColumns = 0;
     context->NumberOfColumns = 0;
 
@@ -169,7 +169,7 @@ VOID PhpDereferenceTreeListContext(
     {
         ULONG i;
 
-        for (i = 0; i <= Context->MaxId; i++)
+        for (i = 0; i < Context->NextId; i++)
         {
             if (Context->Columns[i])
                 PhFree(Context->Columns[i]);
@@ -719,45 +719,15 @@ LRESULT CALLBACK PhpTreeListWndProc(
             if (column->Id < context->AllocatedColumns && context->Columns[column->Id])
                 return FALSE;
 
-            if (context->MaxId < column->Id)
-                context->MaxId = column->Id;
+            if (context->NextId < column->Id + 1)
+                context->NextId = column->Id + 1;
 
             realColumn = PhAllocateCopy(column, sizeof(PH_TREELIST_COLUMN));
 
             // Boring array management
-            if (context->AllocatedColumns < context->MaxId + 1)
+            if (context->AllocatedColumns < context->NextId)
             {
-                if (context->Columns)
-                {
-                    ULONG oldAllocatedColumns;
-
-                    oldAllocatedColumns = context->AllocatedColumns;
-                    context->AllocatedColumns *= 2;
-
-                    if (context->AllocatedColumns < context->MaxId + 1)
-                        context->AllocatedColumns = context->MaxId + 1;
-
-                    context->Columns = PhReAllocate(
-                        context->Columns,
-                        context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
-                        );
-
-                    // Zero the newly allocated portion.
-                    memset(
-                        &context->Columns[oldAllocatedColumns],
-                        0,
-                        (context->AllocatedColumns - oldAllocatedColumns) * sizeof(PPH_TREELIST_COLUMN)
-                        );
-                }
-                else
-                {
-                    context->AllocatedColumns = 64;
-
-                    context->Columns = PhAllocate(
-                        context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
-                        );
-                    memset(context->Columns, 0, context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN));
-                }
+                PhpExpandAllocatedColumns(context);
             }
 
             context->Columns[column->Id] = realColumn;
@@ -1006,7 +976,7 @@ LRESULT CALLBACK PhpTreeListWndProc(
         context->EnableExplorerStyle = TRUE;
         return TRUE;
     case TLM_GETMAXID:
-        return (LRESULT)context->MaxId;
+        return (LRESULT)((LONG_PTR)context->NextId - 1);
     case TLM_SETNODESTATE:
         {
             PPH_TREELIST_NODE node = (PPH_TREELIST_NODE)lParam;
@@ -1034,6 +1004,21 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 {
                     node->Expanded = expanded;
                     TreeList_NodesStructured(hwnd);
+                }
+            }
+        }
+        break;
+    case TLM_SETMAXID:
+        {
+            ULONG maxId = (ULONG)wParam;
+
+            if (context->NextId < maxId + 1)
+            {
+                context->NextId = maxId + 1;
+
+                if (context->AllocatedColumns < context->NextId)
+                {
+                    PhpExpandAllocatedColumns(context);
                 }
             }
         }
@@ -2142,6 +2127,46 @@ static VOID PhpRefreshColumns(
     }
 }
 
+static VOID PhpExpandAllocatedColumns(
+    __in PPHP_TREELIST_CONTEXT Context
+    )
+{
+    if (Context->Columns)
+    {
+        ULONG oldAllocatedColumns;
+
+        oldAllocatedColumns = Context->AllocatedColumns;
+        Context->AllocatedColumns *= 2;
+
+        if (Context->AllocatedColumns < Context->NextId)
+            Context->AllocatedColumns = Context->NextId;
+
+        Context->Columns = PhReAllocate(
+            Context->Columns,
+            Context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
+            );
+
+        // Zero the newly allocated portion.
+        memset(
+            &Context->Columns[oldAllocatedColumns],
+            0,
+            (Context->AllocatedColumns - oldAllocatedColumns) * sizeof(PPH_TREELIST_COLUMN)
+            );
+    }
+    else
+    {
+        Context->AllocatedColumns = 16;
+
+        if (Context->AllocatedColumns < Context->NextId)
+            Context->AllocatedColumns = Context->NextId;
+
+        Context->Columns = PhAllocate(
+            Context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN)
+            );
+        memset(Context->Columns, 0, Context->AllocatedColumns * sizeof(PPH_TREELIST_COLUMN));
+    }
+}
+
 static VOID PhpRefreshColumnsLookup(
     __in PPHP_TREELIST_CONTEXT Context
     )
@@ -2170,7 +2195,7 @@ static VOID PhpRefreshColumnsLookup(
     memset(Context->ColumnsForViewX, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForViewX);
     memset(Context->ColumnsForDraw, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForDraw);
 
-    for (i = 0; i <= Context->MaxId; i++)
+    for (i = 0; i < Context->NextId; i++)
     {
         if (!Context->Columns[i])
             continue;

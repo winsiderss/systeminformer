@@ -237,6 +237,7 @@ typedef struct _PH_TREELIST_NODE_EVENT
 #define TLM_GETMAXID (WM_APP + 1228)
 #define TLM_SETNODESTATE (WM_APP + 1229)
 #define TLM_SETNODEEXPANDED (WM_APP + 1230)
+#define TLM_SETMAXID (WM_APP + 1231)
 
 typedef struct _PH_TL_GETNODETEXT
 {
@@ -337,6 +338,9 @@ typedef struct _PH_TL_GETNODETEXT
 
 #define TreeList_SetNodeExpanded(hWnd, Node, Expanded) \
     SendMessage((hWnd), TLM_SETNODEEXPANDED, (WPARAM)(Expanded), (LPARAM)(Node))
+
+#define TreeList_SetMaxId(hWnd, MaxId) \
+    SendMessage((hWnd), TLM_SETMAXID, (WPARAM)(MaxId), 0)
 
 BOOLEAN PhTreeListInitialization();
 
