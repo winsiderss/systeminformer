@@ -167,6 +167,14 @@ VOID PhpDereferenceTreeListContext(
 {
     if (--Context->RefCount == 0)
     {
+        ULONG i;
+
+        for (i = 0; i <= Context->MaxId; i++)
+        {
+            if (Context->Columns[i])
+                PhFree(Context->Columns[i]);
+        }
+
         if (Context->Columns)
             PhFree(Context->Columns);
         if (Context->ColumnsForViewX)
@@ -779,8 +787,9 @@ LRESULT CALLBACK PhpTreeListWndProc(
                 return FALSE;
 
             PhpDeleteColumn(context, realColumn);
+            context->Columns[realColumn->Id] = NULL;
+            PhFree(realColumn);
             PhpRefreshColumnsLookup(context);
-            context->Columns[column->Id] = NULL;
 
             context->NumberOfColumns--;
         }
@@ -2161,7 +2170,7 @@ static VOID PhpRefreshColumnsLookup(
     memset(Context->ColumnsForViewX, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForViewX);
     memset(Context->ColumnsForDraw, 0, sizeof(PPH_TREELIST_COLUMN) * Context->AllocatedColumnsForDraw);
 
-    for (i = 0; i < Context->MaxId + 1; i++)
+    for (i = 0; i <= Context->MaxId; i++)
     {
         if (!Context->Columns[i])
             continue;
