@@ -274,7 +274,7 @@ BOOLEAN PhaGetProcessKnownCommandLine(
             // If the DLL name isn't an absolute path, assume it's in system32.
             // TODO: Use a proper search function.
 
-            if (PhFindCharInString(dllName, 0, ':') == -1)
+            if (RtlDetermineDosPathNameType_U(dllName->Buffer) == RtlPathTypeRelative)
             {
                 dllName = PhaConcatStrings(
                     3,
@@ -500,7 +500,7 @@ VOID PhShellExecuteUserString(
     PPH_STRING ntMessage;
 
     // Make sure the user executable string is absolute.
-    if (PhFindCharInString(executeString, 0, L':') == -1)
+    if (RtlDetermineDosPathNameType_U(executeString->Buffer) == RtlPathTypeRelative)
     {
         newString = PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr);
         PhDereferenceObject(executeString);

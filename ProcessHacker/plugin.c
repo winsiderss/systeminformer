@@ -133,7 +133,7 @@ VOID PhLoadPlugins()
 
     pluginsDirectory = PhGetStringSetting(L"PluginsDirectory");
 
-    if (PhFindCharInString(pluginsDirectory, 0, ':') == -1)
+    if (RtlDetermineDosPathNameType_U(pluginsDirectory->Buffer) == RtlPathTypeRelative)
     {
         // Not absolute. Make sure it is.
         PluginsDirectory = PhConcatStrings(4, PhApplicationDirectory->Buffer, L"\\", pluginsDirectory->Buffer, L"\\");
