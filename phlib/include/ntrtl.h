@@ -2569,15 +2569,6 @@ RtlDetermineDosPathNameType_U(
     __in PWSTR DosFileName
     );
 
-#if (PHNT_VERSION >= PHNT_WS03)
-NTSYSAPI
-RTL_PATH_TYPE
-NTAPI
-RtlDetermineDosPathNameType_Ustr(
-    __in PUNICODE_STRING String
-    );
-#endif
-
 NTSYSAPI
 ULONG
 NTAPI
