@@ -278,8 +278,9 @@ BOOLEAN PhLoadListViewColumnSettings(
     PH_STRINGREF stringRef;
     ULONG64 integer;
     LVCOLUMN lvColumn;
-    INT orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
-    INT maxOrder;
+    ULONG orderArray[ORDER_LIMIT]; // HACK, but reasonable limit
+    ULONG order;
+    ULONG maxOrder;
 
     if (Settings->Length == 0)
         return FALSE;
@@ -312,12 +313,14 @@ BOOLEAN PhLoadListViewColumnSettings(
         if (!PhStringToInteger64(&stringRef, 10, &integer))
             return FALSE;
 
-        if ((INT)integer >= 0 && (INT)integer < ORDER_LIMIT)
-        {
-            orderArray[(INT)integer] = columnIndex;
+        order = (ULONG)integer;
 
-            if (maxOrder < (INT)integer + 1)
-                maxOrder = (INT)integer + 1;
+        if (order < ORDER_LIMIT)
+        {
+            orderArray[order] = columnIndex;
+
+            if (maxOrder < order + 1)
+                maxOrder = order + 1;
         }
 
         // Width
