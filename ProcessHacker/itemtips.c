@@ -219,7 +219,7 @@ PPH_STRING PhGetProcessTooltipText(
         // Add the services.
         for (i = 0; i < serviceList->Count; i++)
         {
-            PPH_SERVICE_ITEM serviceItem = serviceList->Items[i];
+            serviceItem = serviceList->Items[i];
 
             PhAppendStringBuilder2(&stringBuilder, L"    ");
             PhAppendStringBuilder(&stringBuilder, serviceItem->Name);
