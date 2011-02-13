@@ -1,3 +1,6 @@
+1.5
+ * Added Find Window and Kill
+
 1.4
  * Added option to resolve ghost windows to the hung windows 
    they represent

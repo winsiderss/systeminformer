@@ -188,6 +188,7 @@
     <None Include="resources\arrow_refresh.bmp" />
     <None Include="resources\chart_line.bmp" />
     <None Include="resources\cog_edit.bmp" />
+    <None Include="resources\cross.bmp" />
     <None Include="resources\find.bmp" />
     <None Include="resources\lightbulb_off.bmp" />
     <None Include="CHANGELOG.txt" />
