@@ -26,6 +26,10 @@
 #include <phappresource.h>
 #include <windowsx.h>
 
+#define TARGETING_MODE_NORMAL 0 // select process
+#define TARGETING_MODE_THREAD 1 // select process and thread
+#define TARGETING_MODE_KILL 2 // Find Window and Kill
+
 INT_PTR CALLBACK OptionsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -53,7 +57,7 @@ ULONG ToolBarIdRangeEnd;
 BOOLEAN TargetingWindow = FALSE;
 HWND TargetingCurrentWindow = NULL;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
-BOOLEAN TargetingWithThread;
+ULONG TargetingMode;
 
 ULONG ProcessesUpdatedCount = 0;
 ULONG StatusBarMaxWidths[STATUS_COUNT] = { 0 };
@@ -155,7 +159,7 @@ VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Context
     )
 {
-    static TBBUTTON buttons[7];
+    static TBBUTTON buttons[8];
     ULONG buttonIndex;
     ULONG idIndex;
     ULONG imageIndex;
@@ -193,6 +197,7 @@ VOID NTAPI MainWindowShowingCallback(
     PhSetImageListBitmap(ToolBarImageList, 3, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CHART_LINE));
     PhSetImageListBitmap(ToolBarImageList, 4, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION));
     PhSetImageListBitmap(ToolBarImageList, 5, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_APPLICATION_GO));
+    PhSetImageListBitmap(ToolBarImageList, 6, PluginInstance->DllBase, MAKEINTRESOURCE(IDB_CROSS));
 
     SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
 
@@ -223,6 +228,7 @@ VOID NTAPI MainWindowShowingCallback(
     DEFINE_SEPARATOR();
     DEFINE_BUTTON(L"Find Window");
     DEFINE_BUTTON(L"Find Window and Thread");
+    DEFINE_BUTTON(L"Find Window and Kill");
 
     SendMessage(ToolBarHandle, TB_ADDBUTTONS, sizeof(buttons) / sizeof(TBBUTTON), (LPARAM)buttons);
     SendMessage(ToolBarHandle, WM_SIZE, 0, 0);
@@ -355,7 +361,7 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                         id = (ULONG)toolbar->iItem - ToolBarIdRangeBase;
 
-                        if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD)
+                        if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
                         {
                             // Direct all mouse events to this window.
                             SetCapture(hWnd);
@@ -365,7 +371,19 @@ LRESULT CALLBACK MainWndSubclassProc(
                             TargetingWindow = TRUE;
                             TargetingCurrentWindow = NULL;
                             TargetingCurrentWindowDraw = FALSE;
-                            TargetingWithThread = id == TIDC_FINDWINDOWTHREAD;
+
+                            switch (id)
+                            {
+                            case TIDC_FINDWINDOW:
+                                TargetingMode = TARGETING_MODE_NORMAL;
+                                break;
+                            case TIDC_FINDWINDOWTHREAD:
+                                TargetingMode = TARGETING_MODE_THREAD;
+                                break;
+                            case TIDC_FINDWINDOWKILL:
+                                TargetingMode = TARGETING_MODE_KILL;
+                                break;
+                            }
 
                             SendMessage(hWnd, WM_MOUSEMOVE, 0, 0);
                         }
@@ -495,22 +513,45 @@ LRESULT CALLBACK MainWndSubclassProc(
                             ProcessHacker_SelectProcessNode(hWnd, processNode);
                         }
 
-                        if (TargetingWithThread)
+                        switch (TargetingMode)
                         {
-                            PPH_PROCESS_PROPCONTEXT propContext;
-                            PPH_PROCESS_ITEM processItem;
-
-                            if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                        case TARGETING_MODE_THREAD:
                             {
-                                if (propContext = PhCreateProcessPropContext(hWnd, processItem))
-                                {
-                                    PhSetSelectThreadIdProcessPropContext(propContext, UlongToHandle(threadId));
-                                    PhShowProcessProperties(propContext);
-                                    PhDereferenceObject(propContext);
-                                }
+                                PPH_PROCESS_PROPCONTEXT propContext;
+                                PPH_PROCESS_ITEM processItem;
 
-                                PhDereferenceObject(processItem);
+                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                {
+                                    if (propContext = PhCreateProcessPropContext(hWnd, processItem))
+                                    {
+                                        PhSetSelectThreadIdProcessPropContext(propContext, UlongToHandle(threadId));
+                                        PhShowProcessProperties(propContext);
+                                        PhDereferenceObject(propContext);
+                                    }
+
+                                    PhDereferenceObject(processItem);
+                                }
+                                else
+                                {
+                                    PhShowError(hWnd, L"The process (PID %u) does not exist.", processId);
+                                }
                             }
+                            break;
+                        case TARGETING_MODE_KILL:
+                            {
+                                PPH_PROCESS_ITEM processItem;
+
+                                if (processItem = PhReferenceProcessItem(UlongToHandle(processId)))
+                                {
+                                    PhUiTerminateProcesses(hWnd, &processItem, 1);
+                                    PhDereferenceObject(processItem);
+                                }
+                                else
+                                {
+                                    PhShowError(hWnd, L"The process (PID %u) does not exist.", processId);
+                                }
+                            }
+                            break;
                         }
                     }
                 }
