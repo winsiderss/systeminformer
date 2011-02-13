@@ -50,6 +50,9 @@
       <Filter>Resource Files</Filter>
     </None>
     <None Include="CHANGELOG.txt" />
+    <None Include="resources\cross.bmp">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ToolStatus.rc">
