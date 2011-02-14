@@ -246,7 +246,7 @@ INT WINAPI WinMain(
 
     PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
 
-    if (PhPluginsEnabled)
+    if (PhPluginsEnabled && !PhStartupParameters.NoPlugins)
     {
         PhPluginsInitialization();
         PhLoadPlugins();
@@ -530,6 +530,7 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_POINT 15
 #define PH_ARG_SHOWOPTIONS 16
 #define PH_ARG_PHSVC 17
+#define PH_ARG_NOPLUGINS 18
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -618,6 +619,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_PHSVC:
             PhStartupParameters.PhSvc = TRUE;
             break;
+        case PH_ARG_NOPLUGINS:
+            PhStartupParameters.NoPlugins = TRUE;
+            break;
         }
     }
     else
@@ -660,7 +664,8 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_HWND, L"hwnd", MandatoryArgumentType },
         { PH_ARG_POINT, L"point", MandatoryArgumentType },
         { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType },
-        { PH_ARG_PHSVC, L"phsvc", NoArgumentType }
+        { PH_ARG_PHSVC, L"phsvc", NoArgumentType },
+        { PH_ARG_NOPLUGINS, L"noplugins", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -688,6 +693,7 @@ VOID PhpProcessStartupParameters()
             L"-hide\n"
             L"-installkph\n"
             L"-nokph\n"
+            L"-noplugins\n"
             L"-nosettings\n"
             L"-phsvc\n"
             L"-ras\n"
