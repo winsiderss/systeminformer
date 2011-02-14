@@ -52,6 +52,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     BOOLEAN NoKph;
     BOOLEAN NoSettings;
     PPH_STRING SettingsFileName;
+    BOOLEAN NoPlugins;
     BOOLEAN ShowHidden;
     BOOLEAN ShowVisible;
     BOOLEAN ShowOptions;
