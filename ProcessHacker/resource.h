@@ -421,6 +421,8 @@
 #define IDC_SAMPLECOUNT                 1280
 #define IDC_SAMPLECOUNT_L               1281
 #define IDC_SAMPLECOUNTLABEL            1281
+#define IDC_BUTTON3                     1282
+#define IDC_DISABLE                     1282
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -639,7 +641,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        193
 #define _APS_NEXT_COMMAND_VALUE         40237
-#define _APS_NEXT_CONTROL_VALUE         1282
+#define _APS_NEXT_CONTROL_VALUE         1283
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif

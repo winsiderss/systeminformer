@@ -49,12 +49,13 @@ INT NTAPI PhpPluginsCompareFunction(
     __in PPH_AVL_LINKS Links2
     );
 
-VOID PhLoadPlugin(
+BOOLEAN PhLoadPlugin(
     __in PPH_STRING FileName
     );
 
-VOID PhpLoadClrPlugin(
-    __in PPH_STRING FileName
+BOOLEAN PhpLoadClrPlugin(
+    __in PPH_STRING FileName,
+    __out_opt PPH_STRING *ErrorMessage
     );
 
 VOID PhpExecuteCallbackForAllPlugins(
@@ -98,6 +99,127 @@ INT NTAPI PhpPluginsCompareFunction(
     return wcscmp(plugin1->Name, plugin2->Name);
 }
 
+BOOLEAN PhpLocateDisabledPlugin(
+    __in PPH_STRING List,
+    __in PPH_STRINGREF BaseName,
+    __out_opt PULONG FoundIndex
+    )
+{
+    BOOLEAN found;
+    ULONG i;
+    ULONG length;
+    ULONG endOfPart;
+    PH_STRINGREF part;
+
+    found = FALSE;
+    i = 0;
+    length = List->Length / 2;
+
+    while (i < length)
+    {
+        endOfPart = PhFindCharInString(List, i, '|');
+
+        if (endOfPart == -1)
+            endOfPart = length;
+
+        part.Buffer = &List->Buffer[i];
+        part.Length = (USHORT)((endOfPart - i) * sizeof(WCHAR));
+
+        if (PhEqualStringRef(&part, BaseName, TRUE))
+        {
+            found = TRUE;
+
+            if (FoundIndex)
+                *FoundIndex = i;
+
+            break;
+        }
+
+        i = endOfPart + 1;
+    }
+
+    return found;
+}
+
+BOOLEAN PhIsPluginDisabled(
+    __in PPH_STRINGREF BaseName
+    )
+{
+    BOOLEAN found;
+    PPH_STRING disabled;
+
+    disabled = PhGetStringSetting(L"DisabledPlugins");
+    found = PhpLocateDisabledPlugin(disabled, BaseName, NULL);
+    PhDereferenceObject(disabled);
+
+    return found;
+}
+
+VOID PhSetPluginDisabled(
+    __in PPH_STRINGREF BaseName,
+    __in BOOLEAN Disable
+    )
+{
+    BOOLEAN found;
+    PPH_STRING disabled;
+    ULONG foundIndex;
+    PPH_STRING newDisabled;
+
+    disabled = PhGetStringSetting(L"DisabledPlugins");
+
+    found = PhpLocateDisabledPlugin(disabled, BaseName, &foundIndex);
+
+    if (Disable && !found)
+    {
+        // We need to add the plugin to the disabled list.
+
+        if (disabled->Length != 0)
+        {
+            // We have other disabled plugins. Append a pipe character followed by the plugin name.
+            newDisabled = PhCreateStringEx(NULL, disabled->Length + sizeof(WCHAR) + BaseName->Length);
+            memcpy(newDisabled->Buffer, disabled->Buffer, disabled->Length);
+            newDisabled->Buffer[disabled->Length / 2] = '|';
+            memcpy(&newDisabled->Buffer[disabled->Length / 2 + 1], BaseName->Buffer, BaseName->Length);
+            PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
+            PhDereferenceObject(newDisabled);
+        }
+        else
+        {
+            // This is the first disabled plugin.
+            PhSetStringSetting2(L"DisabledPlugins", BaseName);
+        }
+    }
+    else if (found)
+    {
+        ULONG removeCount;
+
+        // We need to remove the plugin from the disabled list.
+
+        removeCount = BaseName->Length / 2;
+
+        if (foundIndex + BaseName->Length / 2 < (ULONG)disabled->Length / 2)
+        {
+            // Remove the following pipe character as well.
+            removeCount++;
+        }
+        else if (foundIndex != 0)
+        {
+            // Remove the preceding pipe character as well.
+            foundIndex--;
+            removeCount++;
+        }
+
+        newDisabled = PhCreateStringEx(NULL, disabled->Length - removeCount * sizeof(WCHAR));
+        memcpy(newDisabled->Buffer, disabled->Buffer, foundIndex * sizeof(WCHAR));
+        memcpy(&newDisabled->Buffer[foundIndex], &disabled->Buffer[foundIndex + removeCount],
+            disabled->Length - removeCount * sizeof(WCHAR) - foundIndex * sizeof(WCHAR));
+        PhSetStringSetting2(L"DisabledPlugins", &newDisabled->sr);
+        PhDereferenceObject(newDisabled);
+    }
+
+    PhDereferenceObject(disabled);
+}
+
 static BOOLEAN EnumPluginsDirectoryCallback(
     __in PFILE_DIRECTORY_INFORMATION Information,
     __in_opt PVOID Context
@@ -111,13 +233,16 @@ static BOOLEAN EnumPluginsDirectoryCallback(
 
     if (PhEndsWithStringRef2(&baseName, L".dll", TRUE))
     {
-        fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
-        memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
-        memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
+        if (!PhIsPluginDisabled(&baseName))
+        {
+            fileName = PhCreateStringEx(NULL, PluginsDirectory->Length + Information->FileNameLength);
+            memcpy(fileName->Buffer, PluginsDirectory->Buffer, PluginsDirectory->Length);
+            memcpy(&fileName->Buffer[PluginsDirectory->Length / 2], Information->FileName, Information->FileNameLength);
 
-        PhLoadPlugin(fileName);
+            PhLoadPlugin(fileName);
 
-        PhDereferenceObject(fileName);
+            PhDereferenceObject(fileName);
+        }
     }
 
     return TRUE;
@@ -179,16 +304,41 @@ VOID PhUnloadPlugins()
     PhpExecuteCallbackForAllPlugins(PluginCallbackUnload);
 }
 
+VOID PhpHandlePluginLoadError(
+    __in PPH_STRING FileName,
+    __in_opt PPH_STRING ErrorMessage
+    )
+{
+    PPH_STRING baseName;
+
+    baseName = PhGetBaseName(FileName);
+
+    if (PhShowMessage(
+        NULL,
+        MB_ICONERROR | MB_YESNO,
+        L"Unable to load %s: %s\nDo you want to disable the plugin?",
+        baseName->Buffer,
+        PhGetStringOrDefault(ErrorMessage, L"An unknown error occurred.")
+        ) == IDYES)
+    {
+        PhSetPluginDisabled(&baseName->sr, TRUE);
+    }
+
+    PhDereferenceObject(baseName);
+}
+
 /**
  * Loads a plugin.
  *
  * \param FileName The full file name of the plugin.
  */
-VOID PhLoadPlugin(
+BOOLEAN PhLoadPlugin(
     __in PPH_STRING FileName
     )
 {
+    BOOLEAN success;
     PPH_STRING fileName;
+    PPH_STRING errorMessage;
 
     fileName = PhGetFullPath(FileName->Buffer, NULL);
 
@@ -200,17 +350,38 @@ VOID PhLoadPlugin(
 
     LoadingPluginFileName = fileName;
 
+    success = TRUE;
+
     if (!PhEndsWithString2(fileName, L".clr.dll", TRUE))
     {
-        LoadLibrary(fileName->Buffer);
+        if (!LoadLibrary(fileName->Buffer))
+        {
+            success = FALSE;
+            errorMessage = PhGetWin32Message(GetLastError());
+        }
     }
     else
     {
-        PhpLoadClrPlugin(fileName);
+        errorMessage = NULL;
+
+        if (!PhpLoadClrPlugin(fileName, &errorMessage))
+        {
+            success = FALSE;
+        }
+    }
+
+    if (!success)
+    {
+        PhpHandlePluginLoadError(fileName, errorMessage);
+
+        if (errorMessage)
+            PhDereferenceObject(errorMessage);
     }
 
     PhDereferenceObject(fileName);
     LoadingPluginFileName = NULL;
+
+    return success;
 }
 
 BOOLEAN PhpLoadV2ClrHost(
@@ -247,7 +418,8 @@ BOOLEAN PhpLoadV4ClrHost(
 }
 
 PVOID PhpGetClrHostForPlugin(
-    __in PPH_STRING FileName
+    __in PPH_STRING FileName,
+    __out_opt PPH_STRING *ErrorMessage
     )
 {
     if (PhPluginsMetaHost)
@@ -294,7 +466,7 @@ PVOID PhpGetClrHostForPlugin(
         }
         else
         {
-            PhShowError(NULL, L"Unable to get the runtime version of \"%x\": 0x%x", FileName->Buffer, result);
+            *ErrorMessage = PhFormatString(L"Unable to get the runtime version: Error 0x%x", result);
         }
 
         return NULL;
@@ -308,8 +480,9 @@ PVOID PhpGetClrHostForPlugin(
     }
 }
 
-VOID PhpLoadClrPlugin(
-    __in PPH_STRING FileName
+BOOLEAN PhpLoadClrPlugin(
+    __in PPH_STRING FileName,
+    __out_opt PPH_STRING *ErrorMessage
     )
 {
     ICLRRuntimeHost *clrHost;
@@ -338,7 +511,7 @@ VOID PhpLoadClrPlugin(
         PhPluginsClrHostInitialized = TRUE;
     }
 
-    clrHost = (ICLRRuntimeHost *)PhpGetClrHostForPlugin(FileName);
+    clrHost = (ICLRRuntimeHost *)PhpGetClrHostForPlugin(FileName, ErrorMessage);
 
     if (clrHost)
     {
@@ -359,9 +532,16 @@ VOID PhpLoadClrPlugin(
 
         if (!SUCCEEDED(result))
         {
-            PhShowError(NULL, L"Unable to load \"%s\": 0x%x", FileName->Buffer, result);
+            *ErrorMessage = PhFormatString(L"Error 0x%x", result);
+            return FALSE;
         }
     }
+    else
+    {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 VOID PhpExecuteCallbackForAllPlugins(
