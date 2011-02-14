@@ -28,6 +28,7 @@
 
 static HWND PluginsLv;
 static PPH_PLUGIN SelectedPlugin;
+static PPH_LIST DisabledPluginInstances; // fake PH_PLUGIN structures for disabled plugins
 
 INT_PTR CALLBACK PhpPluginsDlgProc(
     __in HWND hwndDlg,
@@ -56,6 +57,44 @@ VOID PhShowPluginsDialog(
     }
 }
 
+PWSTR PhpGetPluginBaseName(
+    __in PPH_PLUGIN Plugin
+    )
+{
+    PWSTR baseName;
+
+    if (Plugin->FileName)
+    {
+        baseName = wcsrchr(Plugin->FileName->Buffer, '\\');
+
+        if (baseName)
+            baseName++; // skip the backslash
+        else
+            baseName = Plugin->FileName->Buffer;
+    }
+    else
+    {
+        // Fake disabled plugin.
+        baseName = Plugin->Name;
+    }
+
+    return baseName;
+}
+
+PWSTR PhpGetPluginDisableButtonText(
+    __in PWSTR BaseName
+    )
+{
+    PH_STRINGREF baseName;
+
+    PhInitializeStringRef(&baseName, BaseName);
+
+    if (PhIsPluginDisabled(&baseName))
+        return L"Enable";
+    else
+        return L"Disable";
+}
+
 VOID PhpRefreshPluginDetails(
     __in HWND hwndDlg
     )
@@ -63,7 +102,7 @@ VOID PhpRefreshPluginDetails(
     PPH_STRING fileName;
     PH_IMAGE_VERSION_INFO versionInfo;
 
-    if (SelectedPlugin)
+    if (SelectedPlugin && SelectedPlugin->FileName) // if there's no FileName, then it's a fake disabled plugin instance
     {
         fileName = SelectedPlugin->FileName;
 
@@ -85,6 +124,8 @@ VOID PhpRefreshPluginDetails(
         }
 
         ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SelectedPlugin->Information.Url ? SW_SHOW : SW_HIDE);
+        EnableWindow(GetDlgItem(hwndDlg, IDC_DISABLE), TRUE);
+        SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(PhpGetPluginBaseName(SelectedPlugin)));
         EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), SelectedPlugin->Information.HasOptions);
     }
     else
@@ -98,8 +139,78 @@ VOID PhpRefreshPluginDetails(
         SetDlgItemText(hwndDlg, IDC_DESCRIPTION, L"N/A");
 
         ShowWindow(GetDlgItem(hwndDlg, IDC_OPENURL), SW_HIDE);
+
+        if (SelectedPlugin)
+        {
+            // This is a disabled plugin.
+            EnableWindow(GetDlgItem(hwndDlg, IDC_DISABLE), TRUE);
+            SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(SelectedPlugin->Name));
+        }
+        else
+        {
+            EnableWindow(GetDlgItem(hwndDlg, IDC_DISABLE), FALSE);
+            SetDlgItemText(hwndDlg, IDC_DISABLE, L"Disable");
+        }
+
         EnableWindow(GetDlgItem(hwndDlg, IDC_OPTIONS), FALSE);
     }
+}
+
+PPH_PLUGIN PhpCreateDisabledPlugin(
+    __in PPH_STRING BaseName
+    )
+{
+    PPH_PLUGIN plugin;
+
+    plugin = PhAllocate(sizeof(PH_PLUGIN));
+    memset(plugin, 0, sizeof(PH_PLUGIN));
+
+    plugin->Name = PhAllocateCopy(BaseName->Buffer, BaseName->Length + sizeof(WCHAR));
+
+    return plugin;
+}
+
+VOID PhpFreeDisabledPlugin(
+    __in PPH_PLUGIN Plugin
+    )
+{
+    PhFree(Plugin->Name);
+    PhFree(Plugin);
+}
+
+VOID PhpAddDisabledPlugins()
+{
+    PPH_STRING disabled;
+    ULONG i;
+    ULONG length;
+    ULONG endOfPart;
+    PPH_STRING part;
+    PPH_PLUGIN disabledPlugin;
+    INT lvItemIndex;
+
+    disabled = PhGetStringSetting(L"DisabledPlugins");
+    i = 0;
+    length = disabled->Length / 2;
+
+    while (i < length)
+    {
+        endOfPart = PhFindCharInString(disabled, i, '|');
+
+        if (endOfPart == -1)
+            endOfPart = length;
+
+        part = PhSubstring(disabled, i, endOfPart - i);
+
+        disabledPlugin = PhpCreateDisabledPlugin(part);
+        PhAddItemList(DisabledPluginInstances, disabledPlugin);
+        lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, part->Buffer, disabledPlugin);
+        PhDereferenceObject(part);
+        PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, L"(Disabled)");
+
+        i = endOfPart + 1;
+    }
+
+    PhDereferenceObject(disabled);
 }
 
 static COLORREF PhpPluginColorFunction(
@@ -112,6 +223,8 @@ static COLORREF PhpPluginColorFunction(
 
     if (plugin->Flags & PH_PLUGIN_FLAG_IS_CLR)
         return RGB(0xde, 0xff, 0x00);
+    if (!plugin->FileName)
+        return RGB(0x77, 0x77, 0x77); // fake disabled plugin
 
     return PhSysWindowColor;
 }
@@ -153,10 +266,23 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
                 links = PhSuccessorElementAvlTree(links);
             }
 
+            DisabledPluginInstances = PhCreateList(10);
+            PhpAddDisabledPlugins();
+
             ExtendedListView_SortItems(PluginsLv);
 
             SelectedPlugin = NULL;
             PhpRefreshPluginDetails(hwndDlg);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            ULONG i;
+
+            for (i = 0; i < DisabledPluginInstances->Count; i++)
+                PhpFreeDisabledPlugin(DisabledPluginInstances->Items[i]);
+
+            PhDereferenceObject(DisabledPluginInstances);
         }
         break;
     case WM_COMMAND:
@@ -166,6 +292,21 @@ INT_PTR CALLBACK PhpPluginsDlgProc(
             case IDCANCEL:
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
+                break;
+            case IDC_DISABLE:
+                {
+                    if (SelectedPlugin)
+                    {
+                        PWSTR baseName;
+                        PH_STRINGREF baseNameRef;
+
+                        baseName = PhpGetPluginBaseName(SelectedPlugin);
+                        PhInitializeStringRef(&baseNameRef, baseName);
+                        PhSetPluginDisabled(&baseNameRef, !PhIsPluginDisabled(&baseNameRef));
+
+                        SetDlgItemText(hwndDlg, IDC_DISABLE, PhpGetPluginDisableButtonText(baseName));
+                    }
+                }
                 break;
             case IDC_OPTIONS:
                 {

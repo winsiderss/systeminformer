@@ -489,6 +489,15 @@ extern PH_AVL_TREE PhPluginsByName;
 
 VOID PhPluginsInitialization();
 
+BOOLEAN PhIsPluginDisabled(
+    __in PPH_STRINGREF BaseName
+    );
+
+VOID PhSetPluginDisabled(
+    __in PPH_STRINGREF BaseName,
+    __in BOOLEAN Disable
+    );
+
 VOID PhLoadPlugins();
 
 VOID PhUnloadPlugins();

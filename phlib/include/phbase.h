@@ -1057,7 +1057,7 @@ FORCEINLINE ULONG PhFindCharInStringRef(
 {
     PWSTR location;
 
-    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR));
+    location = wmemchr(&String->Buffer[StartIndex], Char, String->Length / sizeof(WCHAR) - StartIndex);
 
     if (location)
         return (ULONG)(location - String->Buffer);
