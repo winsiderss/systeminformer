@@ -3,6 +3,7 @@ Process Hacker
 2.12
  * NEW/IMPROVED:
    * Added elevation support for more actions
+   * Added ability to disable plugins
    * Updated ToolStatus plugin
  * FIXED:
    * Memory leaks
