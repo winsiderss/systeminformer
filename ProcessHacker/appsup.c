@@ -917,6 +917,11 @@ BOOLEAN PhShellProcessHacker(
             PhAppendStringBuilder2(&sb, L" -nokph");
         }
 
+        if (PhStartupParameters.NoPlugins)
+        {
+            PhAppendStringBuilder2(&sb, L" -noplugins");
+        }
+
         parameters = sb.String->Buffer;
     }
     else
