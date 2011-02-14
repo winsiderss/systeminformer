@@ -244,9 +244,9 @@ INT WINAPI WinMain(
         RtlExitUserProcess(STATUS_SUCCESS);
     }
 
-    PhPluginsEnabled = !!PhGetIntegerSetting(L"EnablePlugins");
+    PhPluginsEnabled = PhGetIntegerSetting(L"EnablePlugins") && !PhStartupParameters.NoPlugins;
 
-    if (PhPluginsEnabled && !PhStartupParameters.NoPlugins)
+    if (PhPluginsEnabled)
     {
         PhPluginsInitialization();
         PhLoadPlugins();
