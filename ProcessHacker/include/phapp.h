@@ -56,6 +56,8 @@ typedef struct _PH_STARTUP_PARAMETERS
     BOOLEAN ShowHidden;
     BOOLEAN ShowVisible;
     BOOLEAN ShowOptions;
+    BOOLEAN NewInstance;
+    BOOLEAN Elevate;
 
     HWND WindowHandle;
     POINT Point;

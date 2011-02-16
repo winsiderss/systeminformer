@@ -169,6 +169,7 @@ INT WINAPI WinMain(
     // Activate a previous instance if required.
     if (
         PhGetIntegerSetting(L"AllowOnlyOneInstance") &&
+        !PhStartupParameters.NewInstance &&
         !PhStartupParameters.ShowOptions &&
         !PhStartupParameters.CommandMode &&
         !PhStartupParameters.PhSvc
@@ -531,6 +532,8 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_SHOWOPTIONS 16
 #define PH_ARG_PHSVC 17
 #define PH_ARG_NOPLUGINS 18
+#define PH_ARG_NEWINSTANCE 19
+#define PH_ARG_ELEVATE 20
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -622,6 +625,12 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_NOPLUGINS:
             PhStartupParameters.NoPlugins = TRUE;
             break;
+        case PH_ARG_NEWINSTANCE:
+            PhStartupParameters.NewInstance = TRUE;
+            break;
+        case PH_ARG_ELEVATE:
+            PhStartupParameters.Elevate = TRUE;
+            break;
         }
     }
     else
@@ -665,7 +674,9 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_POINT, L"point", MandatoryArgumentType },
         { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType },
         { PH_ARG_PHSVC, L"phsvc", NoArgumentType },
-        { PH_ARG_NOPLUGINS, L"noplugins", NoArgumentType }
+        { PH_ARG_NOPLUGINS, L"noplugins", NoArgumentType },
+        { PH_ARG_NEWINSTANCE, L"newinstance", NoArgumentType },
+        { PH_ARG_ELEVATE, L"elevate", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -690,8 +701,10 @@ VOID PhpProcessStartupParameters()
             L"-cobject command-object\n"
             L"-caction command-action\n"
             L"-debug\n"
+            L"-elevate\n"
             L"-hide\n"
             L"-installkph\n"
+            L"-newinstance\n"
             L"-nokph\n"
             L"-noplugins\n"
             L"-nosettings\n"
@@ -728,6 +741,20 @@ VOID PhpProcessStartupParameters()
             PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);
 
         RtlExitUserProcess(status);
+    }
+
+    if (PhStartupParameters.Elevate && !PhElevated)
+    {
+        PhShellProcessHacker(
+            NULL,
+            L"-v",
+            SW_SHOW,
+            PH_SHELL_EXECUTE_ADMIN,
+            TRUE,
+            0,
+            NULL
+            );
+        RtlExitUserProcess(STATUS_SUCCESS);
     }
 
     if (PhStartupParameters.Debug)
