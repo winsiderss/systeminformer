@@ -309,13 +309,14 @@
     <ClCompile Include="proctree.c" />
     <ClCompile Include="runas.c" />
     <ClCompile Include="sessprp.c" />
+    <ClCompile Include="sessshad.c" />
     <ClCompile Include="settings.c" />
     <ClCompile Include="srvcr.c" />
     <ClCompile Include="srvctl.c" />
     <ClCompile Include="srvlist.c" />
     <ClCompile Include="srvprp.c" />
     <ClCompile Include="srvprv.c" />
-    <ClCompile Include="ssndmsg.c" />
+    <ClCompile Include="sessmsg.c" />
     <ClCompile Include="sysinfo.c" />
     <ClCompile Include="termator.c" />
     <ClCompile Include="thrdprv.c" />

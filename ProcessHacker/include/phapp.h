@@ -1371,9 +1371,23 @@ NTSTATUS PhExecuteRunAsCommand2(
 
 VOID PhRunAsServiceStart();
 
+// sessmsg
+
+VOID PhShowSessionSendMessageDialog(
+    __in HWND ParentWindowHandle,
+    __in ULONG SessionId
+    );
+
 // sessprp
 
 VOID PhShowSessionProperties(
+    __in HWND ParentWindowHandle,
+    __in ULONG SessionId
+    );
+
+// sessshad
+
+VOID PhShowSessionShadowDialog(
     __in HWND ParentWindowHandle,
     __in ULONG SessionId
     );
@@ -1400,13 +1414,6 @@ HWND PhCreateServiceListControl(
 VOID PhShowServiceProperties(
     __in HWND ParentWindowHandle,
     __in PPH_SERVICE_ITEM ServiceItem
-    );
-
-// ssndmsg
-
-VOID PhShowSessionSendMessageDialog(
-    __in HWND ParentWindowHandle,
-    __in ULONG SessionId
     );
 
 // termator
