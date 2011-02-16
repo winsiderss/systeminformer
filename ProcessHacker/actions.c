@@ -43,6 +43,7 @@ static PWSTR DangerousProcesses[] =
     L"csrss.exe", L"dwm.exe", L"logonui.exe", L"lsass.exe", L"lsm.exe",
     L"services.exe", L"smss.exe", L"wininit.exe", L"winlogon.exe"
 };
+
 static PPH_STRING DebuggerCommand = NULL;
 static PH_INITONCE DebuggerCommandInitOnce = PH_INITONCE_INIT;
 static ULONG PhSvcReferenceCount = 0;

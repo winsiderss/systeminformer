@@ -300,9 +300,6 @@
     <ClCompile Include="srvprv.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="ssndmsg.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="sysinfo.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -431,6 +428,12 @@
     </ClCompile>
     <ClCompile Include="phsvc\clapi.c">
       <Filter>phsvc</Filter>
+    </ClCompile>
+    <ClCompile Include="sessmsg.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="sessshad.c">
+      <Filter>Process Hacker</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

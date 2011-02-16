@@ -105,6 +105,7 @@
 #define IDD_PROCSERVICES                191
 #define IDI_PHAPPLICATION               191
 #define IDI_COG                         192
+#define IDD_SHADOWSESSION               193
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -415,14 +416,18 @@
 #define IDC_ZPEAKHANDLES_V              1273
 #define IDC_CHECK1                      1274
 #define IDC_PROPAGATECPUUSAGE           1274
+#define IDC_SHIFT                       1274
 #define IDC_CUSTOM1                     1276
 #define IDC_SYSLINK1                    1279
 #define IDC_OPENURL                     1279
 #define IDC_SAMPLECOUNT                 1280
 #define IDC_SAMPLECOUNT_L               1281
 #define IDC_SAMPLECOUNTLABEL            1281
-#define IDC_BUTTON3                     1282
 #define IDC_DISABLE                     1282
+#define IDC_VIRTUALKEY                  1283
+#define IDC_CTRL                        1284
+#define IDC_CHECK3                      1285
+#define IDC_ALT                         1285
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -631,6 +636,7 @@
 #define ID_VIEW_HIDESIGNEDPROCESSES     40234
 #define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define ID_HACKER_RUNASLIMITEDUSER      40236
+#define ID_USER_REMOTECONTROL           40237
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -639,9 +645,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        193
-#define _APS_NEXT_COMMAND_VALUE         40237
-#define _APS_NEXT_CONTROL_VALUE         1283
+#define _APS_NEXT_RESOURCE_VALUE        194
+#define _APS_NEXT_COMMAND_VALUE         40238
+#define _APS_NEXT_CONTROL_VALUE         1286
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
