@@ -3202,7 +3202,9 @@ VOID PhMainWndOnCreate()
     PhAddListViewColumn(NetworkListViewHandle, 4, 4, 4, LVCFMT_RIGHT, 50, L"Remote Port");
     PhAddListViewColumn(NetworkListViewHandle, 5, 5, 5, LVCFMT_LEFT, 45, L"Protocol");
     PhAddListViewColumn(NetworkListViewHandle, 6, 6, 6, LVCFMT_LEFT, 70, L"State");
-    PhAddListViewColumn(NetworkListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Owner");
+
+    if (WINDOWS_HAS_SERVICE_TAGS)
+        PhAddListViewColumn(NetworkListViewHandle, 7, 7, 7, LVCFMT_LEFT, 80, L"Owner");
 
     PhProcessTreeListInitialization();
     PhInitializeProcessTreeList(ProcessTreeListHandle);
@@ -4599,7 +4601,9 @@ VOID PhMainWndOnNetworkItemAdded(
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 5, PhGetProtocolTypeName(NetworkItem->ProtocolType));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 6,
         (NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE) ? PhGetTcpStateName(NetworkItem->State) : NULL);
-    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
+
+    if (WINDOWS_HAS_SERVICE_TAGS)
+        PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
 
     if (!NetworkImageListWrapper.Handle)
     {
@@ -4638,7 +4642,9 @@ VOID PhMainWndOnNetworkItemModified(
         PhGetStringOrDefault(NetworkItem->RemoteHostString, NetworkItem->RemoteAddressString));
     PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 6,
         (NetworkItem->ProtocolType & PH_TCP_PROTOCOL_TYPE) ? PhGetTcpStateName(NetworkItem->State) : NULL);
-    PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
+
+    if (WINDOWS_HAS_SERVICE_TAGS)
+        PhSetListViewSubItem(NetworkListViewHandle, lvItemIndex, 7, PhGetString(NetworkItem->OwnerName));
 
     // Only set a new icon if we didn't have a proper one before.
     if (PhGetListViewItemImageIndex(
