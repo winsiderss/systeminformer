@@ -337,6 +337,7 @@ BEGIN
         MENUITEM "&Connect",                    ID_USER_CONNECT
         MENUITEM "&Disconnect",                 ID_USER_DISCONNECT
         MENUITEM "&Logoff",                     ID_USER_LOGOFF
+        MENUITEM "Rem&ote Control",             ID_USER_REMOTECONTROL
         MENUITEM "Send &Message...",            ID_USER_SENDMESSAGE
         MENUITEM "P&roperties",                 ID_USER_PROPERTIES
     END
@@ -1550,6 +1551,20 @@ BEGIN
     LTEXT           "Services",IDC_SERVICES_LAYOUT,7,7,246,247,NOT WS_VISIBLE | WS_BORDER
 END
 
+IDD_SHADOWSESSION DIALOGEX 0, 0, 228, 84
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Remote Control"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,117,63,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,171,63,50,14
+    LTEXT           "To end the remote control, press this key and the modifiers selected below:",IDC_STATIC,7,7,214,19
+    COMBOBOX        IDC_VIRTUALKEY,7,27,74,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Shift",IDC_SHIFT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,47,31,10
+    CONTROL         "Ctrl",IDC_CTRL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,49,47,27,10
+    CONTROL         "Alt",IDC_ALT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,89,47,25,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1997,6 +2012,14 @@ BEGIN
         RIGHTMARGIN, 253
         TOPMARGIN, 7
         BOTTOMMARGIN, 254
+    END
+
+    IDD_SHADOWSESSION, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 221
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 77
     END
 END
 #endif    // APSTUDIO_INVOKED

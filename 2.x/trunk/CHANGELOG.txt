@@ -5,6 +5,7 @@ Process Hacker
    * Added elevation support for more actions
    * Added ability to disable plugins
    * Updated ToolStatus plugin
+   * Added Remote Control for sessions
  * FIXED:
    * Memory leaks
 

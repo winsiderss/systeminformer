@@ -966,6 +966,11 @@ LRESULT CALLBACK PhMainWndProc(
                     PhUiLogoffSession(hWnd, SelectedUserSessionId);
                 }
                 break;
+            case ID_USER_REMOTECONTROL:
+                {
+                    PhShowSessionShadowDialog(hWnd, SelectedUserSessionId);
+                }
+                break;
             case ID_USER_SENDMESSAGE:
                 {
                     PhShowSessionSendMessageDialog(hWnd, SelectedUserSessionId);
