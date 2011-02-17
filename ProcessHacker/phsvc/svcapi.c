@@ -86,7 +86,7 @@ NTSTATUS PhSvcCaptureBuffer(
         if (
             (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
             (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
+            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit
             )
         {
             return STATUS_ACCESS_VIOLATION;
@@ -137,7 +137,7 @@ NTSTATUS PhSvcCaptureString(
         if (
             (ULONG_PTR)address + String->Length < (ULONG_PTR)address ||
             (ULONG_PTR)address < (ULONG_PTR)client->ClientViewBase ||
-            (ULONG_PTR)address + String->Length >= (ULONG_PTR)client->ClientViewLimit
+            (ULONG_PTR)address + String->Length > (ULONG_PTR)client->ClientViewLimit
             )
         {
             return STATUS_ACCESS_VIOLATION;
