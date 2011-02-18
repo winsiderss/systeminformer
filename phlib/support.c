@@ -3320,6 +3320,7 @@ VOID PhShellProperties(
     info.nShow = SW_SHOW;
     info.fMask = SEE_MASK_INVOKEIDLIST;
     info.lpVerb = L"properties";
+    info.hwnd = hWnd;
 
     if (!ShellExecuteEx(&info))
     {
