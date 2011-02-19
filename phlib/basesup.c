@@ -1267,7 +1267,7 @@ BOOLEAN PhSplitStringRefAtCharEx(
  * Splits a string.
  *
  * \param Input The input string.
- * \param SeparatorString The string to split at.
+ * \param Separator The string to split at.
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
  * FALSE.
  * \param FirstPart A variable which receives the part of \a Input 
@@ -1305,7 +1305,7 @@ BOOLEAN PhSplitStringRefAtStringRef(
 
     FirstPart->Buffer = input.Buffer;
     FirstPart->Length = (USHORT)(index * sizeof(WCHAR));
-    SecondPart->Buffer = &input.Buffer[index + 1];
+    SecondPart->Buffer = &input.Buffer[index + Separator->Length / 2];
     SecondPart->Length = input.Length - (USHORT)(index * sizeof(WCHAR)) - Separator->Length;
 
     return TRUE;

@@ -492,72 +492,67 @@ VOID PhShellExecuteUserString(
     __in_opt PWSTR ErrorMessage
     )
 {
-    PPH_STRING executeString = PhGetStringSetting(Setting);
-    ULONG indexOfReplacement;
-    PPH_STRING stringBefore;
-    PPH_STRING stringAfter;
+    static PH_STRINGREF replacementToken = PH_STRINGREF_INIT(L"%s");
+
+    PPH_STRING executeString;
+    PH_STRINGREF stringBefore;
+    PH_STRINGREF stringMiddle;
+    PH_STRINGREF stringAfter;
     PPH_STRING newString;
     PPH_STRING ntMessage;
 
+    executeString = PhGetStringSetting(Setting);
+
     // Make sure the user executable string is absolute.
-    if (RtlDetermineDosPathNameType_U(executeString->Buffer) == RtlPathTypeRelative)
+    // We can't use RtlDetermineDosPathNameType_U here because the string 
+    // may be a URL.
+    if (PhFindCharInString(executeString, 0, ':') == -1)
     {
         newString = PhConcatStringRef2(&PhApplicationDirectory->sr, &executeString->sr);
         PhDereferenceObject(executeString);
         executeString = newString;
     }
 
-    indexOfReplacement = PhFindStringInString(executeString, 0, L"%s");
-
-    if (indexOfReplacement != -1)
+    // Replace "%s" with the string, or use the original string if "%s" is not present.
+    if (PhSplitStringRefAtStringRef(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
-        // Replace "%s" with the string.
-
-        stringBefore = PhSubstring(executeString, 0, indexOfReplacement);
-        stringAfter = PhSubstring(
-            executeString,
-            indexOfReplacement + 2,
-            executeString->Length / 2 - indexOfReplacement - 2
-            );
-
-        newString = PhConcatStrings(
-            3,
-            stringBefore->Buffer,
-            String,
-            stringAfter->Buffer
-            );
-
-        if (UseShellExecute)
-        {
-            PhShellExecute(hWnd, newString->Buffer, NULL);
-        }
-        else
-        {
-            NTSTATUS status;
-
-            status = PhCreateProcessWin32(NULL, newString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
-
-            if (!NT_SUCCESS(status))
-            {
-                if (ErrorMessage)
-                {
-                    ntMessage = PhGetNtMessage(status);
-                    PhShowError(hWnd, L"Unable to execute the command: %s\n%s", PhGetStringOrDefault(ntMessage, L"An unknown error occurred."), ErrorMessage);
-                    PhDereferenceObject(ntMessage);
-                }
-                else
-                {
-                    PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
-                }
-            }
-        }
-
-        PhDereferenceObject(newString);
-        PhDereferenceObject(stringAfter);
-        PhDereferenceObject(stringBefore);
+        PhInitializeStringRef(&stringMiddle, String);
+        newString = PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter);
+    }
+    else
+    {
+        newString = executeString;
+        PhReferenceObject(newString);
     }
 
     PhDereferenceObject(executeString);
+
+    if (UseShellExecute)
+    {
+        PhShellExecute(hWnd, newString->Buffer, NULL);
+    }
+    else
+    {
+        NTSTATUS status;
+
+        status = PhCreateProcessWin32(NULL, newString->Buffer, NULL, NULL, 0, NULL, NULL, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            if (ErrorMessage)
+            {
+                ntMessage = PhGetNtMessage(status);
+                PhShowError(hWnd, L"Unable to execute the command: %s\n%s", PhGetStringOrDefault(ntMessage, L"An unknown error occurred."), ErrorMessage);
+                PhDereferenceObject(ntMessage);
+            }
+            else
+            {
+                PhShowStatus(hWnd, L"Unable to execute the command", status, 0);
+            }
+        }
+    }
+
+    PhDereferenceObject(newString);
 }
 
 VOID PhLoadSymbolProviderOptions(
