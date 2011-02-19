@@ -1098,7 +1098,7 @@ PhSplitStringRefAtCharEx(
 PHLIBAPI
 BOOLEAN
 NTAPI
-PhSplitStringRefAtStringRef(
+PhSplitStringRefAtString(
     __in PPH_STRINGREF Input,
     __in PPH_STRINGREF Separator,
     __in BOOLEAN IgnoreCase,
