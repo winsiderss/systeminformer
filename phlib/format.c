@@ -248,11 +248,7 @@ BOOLEAN PhFormatToBuffer(
 #define OK_BUFFER (!overrun)
 
 #define ADVANCE_BUFFER(Length) \
-    do { \
-        if (Buffer) \
-            buffer += (Length) / sizeof(WCHAR); \
-        usedLength += (Length); \
-    } while (0)
+    do { buffer += (Length) / sizeof(WCHAR); usedLength += (Length); } while (0)
 
 #include "format_i.h"
 
