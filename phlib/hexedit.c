@@ -986,11 +986,14 @@ VOID PhpHexEditOnPaint(
 
         if (Context->ShowAddress)
         {
-            WCHAR format[8] = L"%08x";
+            PH_FORMAT format;
             ULONG w;
             RECT rect;
 
-            format[2] = Context->AddressIsWide ? '8' : '4';
+            PhInitFormatX(&format, 0);
+            format.Type |= FormatPadZeros;
+            format.Width = Context->AddressIsWide ? 8 : 4;
+
             w = Context->AddressIsWide ? 8 : 4;
 
             rect = clientRect;
@@ -999,7 +1002,8 @@ VOID PhpHexEditOnPaint(
 
             for (i = Context->TopIndex; i < Context->Length && rect.top < height; i += Context->BytesPerRow)
             {
-                swprintf(buffer, sizeof(buffer) / sizeof(WCHAR), format, i);
+                format.u.Int32 = i;
+                PhFormatToBuffer(&format, 1, buffer, sizeof(buffer), NULL);
                 DrawText(bufferDc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                 rect.top += Context->LineHeight;
             }

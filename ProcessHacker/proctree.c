@@ -1215,8 +1215,16 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
 
                     if (cpuUsage >= 0.01)
                     {
-                        _snwprintf(node->CpuUsageText, PH_INT32_STR_LEN, L"%.2f", cpuUsage);
-                        PhInitializeStringRef(&getNodeText->Text, node->CpuUsageText);
+                        PH_FORMAT format;
+                        SIZE_T returnLength;
+
+                        PhInitFormatF(&format, cpuUsage, 2);
+
+                        if (PhFormatToBuffer(&format, 1, node->CpuUsageText, sizeof(node->CpuUsageText), &returnLength))
+                        {
+                            getNodeText->Text.Buffer = node->CpuUsageText;
+                            getNodeText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
+                        }
                     }
                     else
                     {
