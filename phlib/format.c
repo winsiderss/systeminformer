@@ -202,8 +202,8 @@ PPH_STRING PhFormat(
  * \param Format An array of format structures.
  * \param Count The number of structures supplied in \a Format.
  * \param Buffer A buffer. If NULL, no data is written.
- * \param BufferLength The number of bytes available in \a Buffer. 
- * Include space for the null terminator.
+ * \param BufferLength The number of bytes available in \a Buffer, 
+ * including space for the null terminator.
  * \param ReturnLength The number of bytes required to hold the 
  * string, including the null terminator.
  *

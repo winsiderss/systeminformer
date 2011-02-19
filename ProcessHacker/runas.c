@@ -939,10 +939,12 @@ NTSTATUS PhExecuteRunAsCommand2(
     NTSTATUS status = STATUS_SUCCESS;
     PPH_STRING commandLine;
     WCHAR randomString[9];
-    WCHAR serviceName[41];
+    WCHAR serviceName[24];
 
     PhGenerateRandomAlphaString(randomString, 9);
-    _snwprintf(serviceName, 40, L"ProcessHacker%s", randomString);
+    memcpy(serviceName, L"ProcessHacker", 13 * sizeof(WCHAR));
+    memcpy(&serviceName[13], randomString, 8 * sizeof(WCHAR));
+    serviceName[13 + 8] = 0;
 
     commandLine = PhpBuildRunAsServiceCommandLine(
         Program,
