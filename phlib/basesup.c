@@ -1164,6 +1164,154 @@ FoundUString:
 }
 
 /**
+ * Splits a string.
+ *
+ * \param Input The input string.
+ * \param Separator The character to split at.
+ * \param FirstPart A variable which receives the part of \a Input 
+ * before the separator. This may be the same variable as \a Input.
+ * \param SecondPart A variable which recieves the part of \a Input 
+ * after the separator. This may be the same variable as \a Input.
+ *
+ * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
+ */
+BOOLEAN PhSplitStringRefAtChar(
+    __in PPH_STRINGREF Input,
+    __in WCHAR Separator,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    )
+{
+    PH_STRINGREF input;
+    ULONG index;
+
+    input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
+    index = PhFindCharInStringRef(Input, 0, Separator);
+
+    if (index == -1)
+    {
+        // The separator was not found.
+
+        FirstPart->Buffer = Input->Buffer;
+        FirstPart->Length = Input->Length;
+        SecondPart->Buffer = NULL;
+        SecondPart->Length = 0;
+
+        return FALSE;
+    }
+
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = (USHORT)(index * sizeof(WCHAR));
+    SecondPart->Buffer = &input.Buffer[index + 1];
+    SecondPart->Length = input.Length - (USHORT)(index * sizeof(WCHAR)) - sizeof(WCHAR);
+
+    return TRUE;
+}
+
+/**
+ * Splits a string.
+ *
+ * \param Input The input string.
+ * \param SeparatorCharSet The characters to search for.
+ * \param Flags A combination of the following:
+ * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_START_AT_END
+ * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET
+ * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_CASE_INSENSITIVE
+ * \param FirstPart A variable which receives the part of \a Input 
+ * before the separator. This may be the same variable as \a Input.
+ * \param SecondPart A variable which recieves the part of \a Input 
+ * after the separator. This may be the same variable as \a Input.
+ *
+ * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
+ */
+BOOLEAN PhSplitStringRefAtCharEx(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF SeparatorCharSet,
+    __in ULONG Flags,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    )
+{
+    PH_STRINGREF input;
+    PH_STRINGREF separatorCharSet;
+    USHORT prefixLength;
+
+    input = *Input;
+    separatorCharSet = *SeparatorCharSet;
+
+    // RtlFindCharInUnicodeString expects a "valid" string.
+    input.us.MaximumLength = input.us.Length;
+    separatorCharSet.us.MaximumLength = separatorCharSet.us.Length;
+
+    if (!NT_SUCCESS(RtlFindCharInUnicodeString(Flags, &input.us, &separatorCharSet.us, &prefixLength)))
+    {
+        // The separator was not found or an error occurred.
+
+        FirstPart->Buffer = Input->Buffer;
+        FirstPart->Length = Input->Length;
+        SecondPart->Buffer = NULL;
+        SecondPart->Length = 0;
+
+        return FALSE;
+    }
+
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = prefixLength;
+    SecondPart->Buffer = &input.Buffer[prefixLength / sizeof(WCHAR) + 1];
+    SecondPart->Length = input.Length - prefixLength - sizeof(WCHAR);
+
+    return TRUE;
+}
+
+/**
+ * Splits a string.
+ *
+ * \param Input The input string.
+ * \param SeparatorString The string to split at.
+ * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
+ * FALSE.
+ * \param FirstPart A variable which receives the part of \a Input 
+ * before the separator. This may be the same variable as \a Input.
+ * \param SecondPart A variable which recieves the part of \a Input 
+ * after the separator. This may be the same variable as \a Input.
+ *
+ * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
+ */
+BOOLEAN PhSplitStringRefAtStringRef(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF Separator,
+    __in BOOLEAN IgnoreCase,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    )
+{
+    PH_STRINGREF input;
+    ULONG index;
+
+    input = *Input; // get a copy of the input because FirstPart/SecondPart may alias Input
+    index = PhFindStringInStringRef(Input, Separator, IgnoreCase);
+
+    if (index == -1)
+    {
+        // The separator was not found.
+
+        FirstPart->Buffer = Input->Buffer;
+        FirstPart->Length = Input->Length;
+        SecondPart->Buffer = NULL;
+        SecondPart->Length = 0;
+
+        return FALSE;
+    }
+
+    FirstPart->Buffer = input.Buffer;
+    FirstPart->Length = (USHORT)(index * sizeof(WCHAR));
+    SecondPart->Buffer = &input.Buffer[index + 1];
+    SecondPart->Length = input.Length - (USHORT)(index * sizeof(WCHAR)) - Separator->Length;
+
+    return TRUE;
+}
+
+/**
  * Creates a string object from an existing 
  * null-terminated string.
  *
@@ -1431,6 +1579,36 @@ PPH_STRING PhConcatStringRef2(
     string = PhCreateStringEx(NULL, String1->Length + String2->Length);
     memcpy(string->Buffer, String1->Buffer, String1->Length);
     memcpy(&string->Buffer[String1->Length / sizeof(WCHAR)], String2->Buffer, String2->Length);
+
+    return string;
+}
+
+/**
+ * Concatenates three strings.
+ *
+ * \param String1 The first string.
+ * \param String2 The second string.
+ * \param String3 The third string.
+ */
+PPH_STRING PhConcatStringRef3(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in PPH_STRINGREF String3
+    )
+{
+    PPH_STRING string;
+    PWSTR buffer;
+
+    string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length);
+
+    buffer = string->Buffer;
+    memcpy(buffer, String1->Buffer, String1->Length);
+
+    buffer += String1->Length / sizeof(WCHAR);
+    memcpy(buffer, String2->Buffer, String2->Length);
+
+    buffer += String2->Length / sizeof(WCHAR);
+    memcpy(buffer, String3->Buffer, String3->Length);
 
     return string;
 }
