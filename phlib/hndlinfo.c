@@ -521,6 +521,8 @@ NTSTATUS PhpGetBestObjectName(
 
             if (NT_SUCCESS(status))
             {
+                static PH_STRINGREF publishersKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\");
+
                 PPH_STRING guidString;
                 PPH_STRING keyName;
                 HANDLE keyHandle;
@@ -530,10 +532,7 @@ NTSTATUS PhpGetBestObjectName(
 
                 // We should perform a lookup on the GUID to get the publisher name.
 
-                keyName = PhConcatStrings2(
-                    L"Software\\Microsoft\\Windows\\CurrentVersion\\WINEVT\\Publishers\\",
-                    guidString->Buffer
-                    );
+                keyName = PhConcatStringRef2(&publishersKeyName, &guidString->sr);
 
                 if (NT_SUCCESS(PhOpenKey(
                     &keyHandle,
