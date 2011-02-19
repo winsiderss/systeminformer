@@ -150,6 +150,7 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                 // Split the saved choices using the delimiter.
                 while (i < (ULONG)savedChoices->Length / 2)
                 {
+                    // BUG BUG BUG - what if the user saves "\s"?
                     indexOfDelim = PhFindStringInString(savedChoices, i, L"\\s");
 
                     if (indexOfDelim == -1)
