@@ -1169,9 +1169,13 @@ FoundUString:
  * \param Input The input string.
  * \param Separator The character to split at.
  * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input.
+ * before the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * \a Input.
  * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input.
+ * after the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
@@ -1218,9 +1222,13 @@ BOOLEAN PhSplitStringRefAtChar(
  * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_COMPLEMENT_CHAR_SET
  * \li \c RTL_FIND_CHAR_IN_UNICODE_STRING_CASE_INSENSITIVE
  * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input.
+ * before the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * \a Input.
  * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input.
+ * after the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
@@ -1271,9 +1279,13 @@ BOOLEAN PhSplitStringRefAtCharEx(
  * \param IgnoreCase TRUE to perform a case-insensitive search, otherwise 
  * FALSE.
  * \param FirstPart A variable which receives the part of \a Input 
- * before the separator. This may be the same variable as \a Input.
+ * before the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * \a Input.
  * \param SecondPart A variable which recieves the part of \a Input 
- * after the separator. This may be the same variable as \a Input.
+ * after the separator. This may be the same variable as \a Input. If 
+ * the separator is not found in \a Input, this variable is set to 
+ * an empty string.
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */

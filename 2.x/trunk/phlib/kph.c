@@ -101,7 +101,8 @@ NTSTATUS KphConnect2Ex(
     )
 {
     NTSTATUS status;
-    WCHAR fullDeviceName[MAX_PATH + 1];
+    WCHAR fullDeviceName[256];
+    PH_FORMAT format[2];
     SC_HANDLE scmHandle;
     SC_HANDLE serviceHandle;
     BOOLEAN started = FALSE;
@@ -110,7 +111,11 @@ NTSTATUS KphConnect2Ex(
     if (!DeviceName)
         DeviceName = KPH_DEVICE_SHORT_NAME;
 
-    _snwprintf(fullDeviceName, MAX_PATH, L"\\Device\\%s", DeviceName);
+    PhInitFormatS(&format[0], L"\\Device\\");
+    PhInitFormatS(&format[1], DeviceName);
+
+    if (!PhFormatToBuffer(format, 2, fullDeviceName, sizeof(fullDeviceName), NULL))
+        return STATUS_NAME_TOO_LONG;
 
     // Try to open the device.
     status = KphConnect(KphHandle, fullDeviceName);
