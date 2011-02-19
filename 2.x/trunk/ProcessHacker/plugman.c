@@ -157,7 +157,7 @@ VOID PhpRefreshPluginDetails(
 }
 
 PPH_PLUGIN PhpCreateDisabledPlugin(
-    __in PPH_STRING BaseName
+    __in PPH_STRINGREF BaseName
     )
 {
     PPH_PLUGIN plugin;
@@ -165,7 +165,9 @@ PPH_PLUGIN PhpCreateDisabledPlugin(
     plugin = PhAllocate(sizeof(PH_PLUGIN));
     memset(plugin, 0, sizeof(PH_PLUGIN));
 
-    plugin->Name = PhAllocateCopy(BaseName->Buffer, BaseName->Length + sizeof(WCHAR));
+    plugin->Name = PhAllocate(BaseName->Length + sizeof(WCHAR));
+    memcpy(plugin->Name, BaseName->Buffer, BaseName->Length);
+    plugin->Name[BaseName->Length / 2] = 0;
 
     return plugin;
 }
@@ -180,37 +182,31 @@ VOID PhpFreeDisabledPlugin(
 
 VOID PhpAddDisabledPlugins()
 {
+    static PH_STRINGREF disabledString = PH_STRINGREF_INIT(L"(Disabled) ");
+
     PPH_STRING disabled;
-    ULONG i;
-    ULONG length;
-    ULONG endOfPart;
-    PPH_STRING part;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF part;
     PPH_PLUGIN disabledPlugin;
     PPH_STRING displayText;
     INT lvItemIndex;
 
     disabled = PhGetStringSetting(L"DisabledPlugins");
-    i = 0;
-    length = disabled->Length / 2;
+    remainingPart = disabled->sr;
 
-    while (i < length)
+    while (remainingPart.Length != 0)
     {
-        endOfPart = PhFindCharInString(disabled, i, '|');
+        PhSplitStringRefAtChar(&remainingPart, '|', &part, &remainingPart);
 
-        if (endOfPart == -1)
-            endOfPart = length;
+        if (part.Length != 0)
+        {
+            disabledPlugin = PhpCreateDisabledPlugin(&part);
+            PhAddItemList(DisabledPluginInstances, disabledPlugin);
 
-        part = PhSubstring(disabled, i, endOfPart - i);
-
-        disabledPlugin = PhpCreateDisabledPlugin(part);
-        PhAddItemList(DisabledPluginInstances, disabledPlugin);
-
-        displayText = PhConcatStrings2(L"(Disabled) ", part->Buffer);
-        lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
-        PhDereferenceObject(displayText);
-
-        PhDereferenceObject(part);
-        i = endOfPart + 1;
+            displayText = PhConcatStringRef2(&disabledString, &part);
+            lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
+            PhDereferenceObject(displayText);
+        }
     }
 
     PhDereferenceObject(disabled);

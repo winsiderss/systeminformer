@@ -1074,6 +1074,38 @@ PhFindStringInStringRef(
     __in BOOLEAN IgnoreCase
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSplitStringRefAtChar(
+    __in PPH_STRINGREF Input,
+    __in WCHAR Separator,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSplitStringRefAtCharEx(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF SeparatorCharSet,
+    __in ULONG Flags,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSplitStringRefAtStringRef(
+    __in PPH_STRINGREF Input,
+    __in PPH_STRINGREF Separator,
+    __in BOOLEAN IgnoreCase,
+    __out PPH_STRINGREF FirstPart,
+    __out PPH_STRINGREF SecondPart
+    );
+
 FORCEINLINE VOID PhReverseStringRef(
     __in PPH_STRINGREF String
     )
@@ -1190,6 +1222,14 @@ NTAPI
 PhConcatStringRef2(
     __in PPH_STRINGREF String1,
     __in PPH_STRINGREF String2
+    );
+
+PPH_STRING
+NTAPI
+PhConcatStringRef3(
+    __in PPH_STRINGREF String1,
+    __in PPH_STRINGREF String2,
+    __in PPH_STRINGREF String3
     );
 
 PHLIBAPI
