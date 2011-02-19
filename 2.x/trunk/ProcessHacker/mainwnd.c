@@ -2205,7 +2205,7 @@ static VOID PhpSymInitHandler(
     {
         PPH_STRING fullDbghelpPath;
         ULONG indexOfFileName;
-        PPH_STRING dbghelpFolder;
+        PH_STRINGREF dbghelpFolder;
         PPH_STRING symsrvPath;
 
         fullDbghelpPath = PhGetDllFileName(dbghelpModule, &indexOfFileName);
@@ -2216,12 +2216,12 @@ static VOID PhpSymInitHandler(
             {
                 static PH_STRINGREF symsrvString = PH_STRINGREF_INIT(L"\\symsrv.dll");
 
-                dbghelpFolder = PhSubstring(fullDbghelpPath, 0, indexOfFileName);
-                symsrvPath = PhConcatStringRef2(&dbghelpFolder->sr, &symsrvString);
-                LoadLibrary(symsrvPath->Buffer);
+                dbghelpFolder.Buffer = fullDbghelpPath->Buffer;
+                dbghelpFolder.Length = (USHORT)(indexOfFileName * sizeof(WCHAR));
 
+                symsrvPath = PhConcatStringRef2(&dbghelpFolder, &symsrvString);
+                LoadLibrary(symsrvPath->Buffer);
                 PhDereferenceObject(symsrvPath);
-                PhDereferenceObject(dbghelpFolder);
             }
 
             PhDereferenceObject(fullDbghelpPath);
