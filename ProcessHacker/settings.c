@@ -348,19 +348,11 @@ static BOOLEAN PhpSettingFromString(
         {
             LONG64 x;
             LONG64 y;
-            ULONG indexOfComma;
             PH_STRINGREF xString;
             PH_STRINGREF yString;
 
-            indexOfComma = PhFindCharInString(String, 0, ',');
-
-            if (indexOfComma == -1)
+            if (!PhSplitStringRefAtChar(&String->sr, ',', &xString, &yString))
                 return FALSE;
-
-            xString.Buffer = String->Buffer; // start
-            xString.Length = (USHORT)(indexOfComma * 2);
-            yString.Buffer = &String->Buffer[indexOfComma + 1]; // after the comma
-            yString.Length = (USHORT)(String->Length - xString.Length - 2);
 
             if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
             {

@@ -5165,11 +5165,14 @@ VOID PhInitializeDevicePrefixes()
 VOID PhRefreshMupDevicePrefixes()
 {
     static PH_STRINGREF orderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\NetworkProvider\\Order");
+    static PH_STRINGREF servicesStringPart = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    static PH_STRINGREF networkProviderStringPart = PH_STRINGREF_INIT(L"\\NetworkProvider");
 
     HANDLE orderKeyHandle;
     PPH_STRING providerOrder = NULL;
     ULONG i;
-    ULONG indexOfComma;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF part;
 
     // The provider names are stored in the ProviderOrder value in this key:
     // HKLM\System\CurrentControlSet\Control\NetworkProvider\Order
@@ -5212,9 +5215,10 @@ VOID PhRefreshMupDevicePrefixes()
     else
         PhDeviceMupPrefixes[PhDeviceMupPrefixesCount++] = PhCreateString(L"\\Device\\WinDfs");*/
 
-    while (i < providerOrder->Length / sizeof(WCHAR))
+    remainingPart = providerOrder->sr;
+
+    while (remainingPart.Length != 0)
     {
-        PPH_STRING serviceName;
         PPH_STRING serviceKeyName;
         HANDLE networkProviderKeyHandle;
         PPH_STRING deviceName;
@@ -5222,44 +5226,31 @@ VOID PhRefreshMupDevicePrefixes()
         if (PhDeviceMupPrefixesCount == PH_DEVICE_MUP_PREFIX_MAX_COUNT)
             break;
 
-        indexOfComma = PhFindCharInString(providerOrder, i, ',');
+        PhSplitStringRefAtChar(&remainingPart, ',', &part, &remainingPart);
 
-        if (indexOfComma == -1) // last provider name
-            indexOfComma = providerOrder->Length / sizeof(WCHAR);
-
-        serviceName = PhSubstring(
-            providerOrder,
-            i,
-            indexOfComma - i
-            );
-        serviceKeyName = PhConcatStrings(
-            3,
-            L"System\\CurrentControlSet\\Services\\",
-            serviceName->Buffer,
-            L"\\NetworkProvider"
-            );
-
-        if (NT_SUCCESS(PhOpenKey(
-            &networkProviderKeyHandle,
-            KEY_READ,
-            PH_KEY_LOCAL_MACHINE,
-            &serviceKeyName->sr,
-            0
-            )))
+        if (part.Length != 0)
         {
-            if (deviceName = PhQueryRegistryString(networkProviderKeyHandle, L"DeviceName"))
+            serviceKeyName = PhConcatStringRef3(&servicesStringPart, &part, &networkProviderStringPart);
+
+            if (NT_SUCCESS(PhOpenKey(
+                &networkProviderKeyHandle,
+                KEY_READ,
+                PH_KEY_LOCAL_MACHINE,
+                &serviceKeyName->sr,
+                0
+                )))
             {
-                PhDeviceMupPrefixes[PhDeviceMupPrefixesCount] = deviceName;
-                PhDeviceMupPrefixesCount++;
+                if (deviceName = PhQueryRegistryString(networkProviderKeyHandle, L"DeviceName"))
+                {
+                    PhDeviceMupPrefixes[PhDeviceMupPrefixesCount] = deviceName;
+                    PhDeviceMupPrefixesCount++;
+                }
+
+                NtClose(networkProviderKeyHandle);
             }
 
-            NtClose(networkProviderKeyHandle);
+            PhDereferenceObject(serviceKeyName);
         }
-
-        PhDereferenceObject(serviceKeyName);
-        PhDereferenceObject(serviceName);
-
-        i = indexOfComma + 1;
     }
 
     PhReleaseQueuedLockExclusive(&PhDeviceMupPrefixesLock);

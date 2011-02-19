@@ -592,21 +592,13 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             break;
         case PH_ARG_POINT:
             {
-                ULONG indexOfComma;
+                PH_STRINGREF xString;
+                PH_STRINGREF yString;
 
-                indexOfComma = PhFindCharInString(Value, 0, ',');
-
-                if (indexOfComma != -1)
+                if (PhSplitStringRefAtChar(&Value->sr, ',', &xString, &yString))
                 {
                     LONG64 x;
                     LONG64 y;
-                    PH_STRINGREF xString;
-                    PH_STRINGREF yString;
-
-                    xString.Buffer = Value->Buffer; // start
-                    xString.Length = (USHORT)(indexOfComma * 2);
-                    yString.Buffer = &Value->Buffer[indexOfComma + 1]; // after the comma
-                    yString.Length = (USHORT)(Value->Length - xString.Length - 2);
 
                     if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
                     {
