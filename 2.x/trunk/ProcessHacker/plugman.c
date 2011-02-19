@@ -186,6 +186,7 @@ VOID PhpAddDisabledPlugins()
     ULONG endOfPart;
     PPH_STRING part;
     PPH_PLUGIN disabledPlugin;
+    PPH_STRING displayText;
     INT lvItemIndex;
 
     disabled = PhGetStringSetting(L"DisabledPlugins");
@@ -203,10 +204,12 @@ VOID PhpAddDisabledPlugins()
 
         disabledPlugin = PhpCreateDisabledPlugin(part);
         PhAddItemList(DisabledPluginInstances, disabledPlugin);
-        lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, part->Buffer, disabledPlugin);
-        PhDereferenceObject(part);
-        PhSetListViewSubItem(PluginsLv, lvItemIndex, 1, L"(Disabled)");
 
+        displayText = PhConcatStrings2(L"(Disabled) ", part->Buffer);
+        lvItemIndex = PhAddListViewItem(PluginsLv, MAXINT, displayText->Buffer, disabledPlugin);
+        PhDereferenceObject(displayText);
+
+        PhDereferenceObject(part);
         i = endOfPart + 1;
     }
 
