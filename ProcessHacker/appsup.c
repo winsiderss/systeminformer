@@ -514,7 +514,7 @@ VOID PhShellExecuteUserString(
     }
 
     // Replace "%s" with the string, or use the original string if "%s" is not present.
-    if (PhSplitStringRefAtStringRef(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
+    if (PhSplitStringRefAtString(&executeString->sr, &replacementToken, FALSE, &stringBefore, &stringAfter))
     {
         PhInitializeStringRef(&stringMiddle, String);
         newString = PhConcatStringRef3(&stringBefore, &stringMiddle, &stringAfter);

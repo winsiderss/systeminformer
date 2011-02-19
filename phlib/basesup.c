@@ -1277,7 +1277,7 @@ BOOLEAN PhSplitStringRefAtCharEx(
  *
  * \return TRUE if \a Separator was found in \a Input, otherwise FALSE.
  */
-BOOLEAN PhSplitStringRefAtStringRef(
+BOOLEAN PhSplitStringRefAtString(
     __in PPH_STRINGREF Input,
     __in PPH_STRINGREF Separator,
     __in BOOLEAN IgnoreCase,
