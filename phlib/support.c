@@ -2654,10 +2654,7 @@ NTSTATUS PhCreateProcessAsUser(
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
 
-    // Whenever we can, try not to set the desktop name; it breaks a lot of things.
-    // Note that on XP we must set it, otherwise the program doesn't display correctly.
-    if (WindowsVersion < WINDOWS_VISTA || (Information->DesktopName && !WSTR_IEQUAL(Information->DesktopName, L"WinSta0\\Default")))
-        startupInfo.lpDesktop = Information->DesktopName;
+    startupInfo.lpDesktop = Information->DesktopName;
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile. 
     // This isn't compatible with some options.

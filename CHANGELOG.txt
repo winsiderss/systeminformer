@@ -9,6 +9,7 @@ Process Hacker
    * More command line options
  * FIXED:
    * Memory leaks
+   * Run As issues with different sessions
 
 2.11
  * NEW/IMPROVED:

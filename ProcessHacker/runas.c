@@ -395,7 +395,11 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             createInfo.UserName = userPart->Buffer;
                             createInfo.DomainName = domainPart->Buffer;
                             createInfo.Password = PhGetStringOrEmpty(password);
-                            createInfo.DesktopName = desktopName->Buffer;
+
+                            // Whenever we can, try not to set the desktop name; it breaks a lot of things.
+                            // Note that on XP we must set it, otherwise the program doesn't display correctly.
+                            if (WindowsVersion < WINDOWS_VISTA || (desktopName->Length != 0 && !PhEqualString2(desktopName, L"WinSta0\\Default", TRUE)))
+                                createInfo.DesktopName = desktopName->Buffer;
 
                             PhSetDesktopWinStaAccess();
 
