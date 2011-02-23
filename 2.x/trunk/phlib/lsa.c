@@ -214,51 +214,55 @@ NTSTATUS PhLookupSid(
 
     policyHandle = PhGetLookupPolicyHandle();
 
-    status = LsaLookupSids(
+    referencedDomains = NULL;
+    names = NULL;
+
+    if (NT_SUCCESS(status = LsaLookupSids(
         policyHandle,
         1,
         &Sid,
         &referencedDomains,
         &names
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    if (names[0].Use != SidTypeInvalid && names[0].Use != SidTypeUnknown)
+        )))
     {
-        if (Name)
+        if (names[0].Use != SidTypeInvalid && names[0].Use != SidTypeUnknown)
         {
-            *Name = PhCreateStringEx(names[0].Name.Buffer, names[0].Name.Length);
-        }
-
-        if (DomainName)
-        {
-            if (names[0].DomainIndex >= 0)
+            if (Name)
             {
-                PLSA_TRUST_INFORMATION trustInfo;
-
-                trustInfo = &referencedDomains->Domains[names[0].DomainIndex];
-                *DomainName = PhCreateStringEx(trustInfo->Name.Buffer, trustInfo->Name.Length);
+                *Name = PhCreateStringEx(names[0].Name.Buffer, names[0].Name.Length);
             }
-            else
+
+            if (DomainName)
             {
-                *DomainName = PhReferenceEmptyString();
+                if (names[0].DomainIndex >= 0)
+                {
+                    PLSA_TRUST_INFORMATION trustInfo;
+
+                    trustInfo = &referencedDomains->Domains[names[0].DomainIndex];
+                    *DomainName = PhCreateStringEx(trustInfo->Name.Buffer, trustInfo->Name.Length);
+                }
+                else
+                {
+                    *DomainName = PhReferenceEmptyString();
+                }
+            }
+
+            if (NameUse)
+            {
+                *NameUse = names[0].Use;
             }
         }
-
-        if (NameUse)
+        else
         {
-            *NameUse = names[0].Use;
+            status = STATUS_NONE_MAPPED;
         }
     }
-    else
-    {
-        status = STATUS_NONE_MAPPED;
-    }
 
-    LsaFreeMemory(referencedDomains);
-    LsaFreeMemory(names);
+    // LsaLookupSids allocates memory even if it returns STATUS_NONE_MAPPED.
+    if (referencedDomains)
+        LsaFreeMemory(referencedDomains);
+    if (names)
+        LsaFreeMemory(names);
 
     return status;
 }
@@ -295,59 +299,63 @@ NTSTATUS PhLookupName(
     name = Name->us;
     name.MaximumLength = name.Length;
 
-    status = LsaLookupNames2(
+    referencedDomains = NULL;
+    sids = NULL;
+
+    if (NT_SUCCESS(status = LsaLookupNames2(
         policyHandle,
         0,
         1,
         &name,
         &referencedDomains,
         &sids
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    if (sids[0].Use != SidTypeInvalid && sids[0].Use != SidTypeUnknown)
+        )))
     {
-        if (Sid)
+        if (sids[0].Use != SidTypeInvalid && sids[0].Use != SidTypeUnknown)
         {
-            PSID sid;
-            ULONG sidLength;
-
-            sidLength = RtlLengthSid(sids[0].Sid);
-            sid = PhAllocate(sidLength);
-            memcpy(sid, sids[0].Sid, sidLength);
-
-            *Sid = sid;
-        }
-
-        if (DomainName)
-        {
-            if (sids[0].DomainIndex >= 0)
+            if (Sid)
             {
-                PLSA_TRUST_INFORMATION trustInfo;
+                PSID sid;
+                ULONG sidLength;
 
-                trustInfo = &referencedDomains->Domains[sids[0].DomainIndex];
-                *DomainName = PhCreateStringEx(trustInfo->Name.Buffer, trustInfo->Name.Length);
+                sidLength = RtlLengthSid(sids[0].Sid);
+                sid = PhAllocate(sidLength);
+                memcpy(sid, sids[0].Sid, sidLength);
+
+                *Sid = sid;
             }
-            else
+
+            if (DomainName)
             {
-                *DomainName = PhReferenceEmptyString();
+                if (sids[0].DomainIndex >= 0)
+                {
+                    PLSA_TRUST_INFORMATION trustInfo;
+
+                    trustInfo = &referencedDomains->Domains[sids[0].DomainIndex];
+                    *DomainName = PhCreateStringEx(trustInfo->Name.Buffer, trustInfo->Name.Length);
+                }
+                else
+                {
+                    *DomainName = PhReferenceEmptyString();
+                }
+            }
+
+            if (NameUse)
+            {
+                *NameUse = sids[0].Use;
             }
         }
-
-        if (NameUse)
+        else
         {
-            *NameUse = sids[0].Use;
+            status = STATUS_NONE_MAPPED;
         }
     }
-    else
-    {
-        status = STATUS_NONE_MAPPED;
-    }
 
-    LsaFreeMemory(referencedDomains);
-    LsaFreeMemory(sids);
+    // LsaLookupNames2 allocates memory even if it returns STATUS_NONE_MAPPED.
+    if (referencedDomains)
+        LsaFreeMemory(referencedDomains);
+    if (sids)
+        LsaFreeMemory(sids);
 
     return status;
 }
@@ -382,60 +390,63 @@ PPH_STRING PhGetSidFullName(
 
     policyHandle = PhGetLookupPolicyHandle();
 
-    status = LsaLookupSids(
+    referencedDomains = NULL;
+    names = NULL;
+
+    if (NT_SUCCESS(status = LsaLookupSids(
         policyHandle,
         1,
         &Sid,
         &referencedDomains,
         &names
-        );
-
-    if (!NT_SUCCESS(status))
-        return NULL;
-
-    if (names[0].Use != SidTypeInvalid && names[0].Use != SidTypeUnknown)
+        )))
     {
-        PWSTR domainNameBuffer;
-        ULONG domainNameLength;
-
-        if (IncludeDomain && names[0].DomainIndex >= 0)
+        if (names[0].Use != SidTypeInvalid && names[0].Use != SidTypeUnknown)
         {
-            PLSA_TRUST_INFORMATION trustInfo;
+            PWSTR domainNameBuffer;
+            ULONG domainNameLength;
 
-            trustInfo = &referencedDomains->Domains[names[0].DomainIndex];
-            domainNameBuffer = trustInfo->Name.Buffer;
-            domainNameLength = trustInfo->Name.Length;
+            if (IncludeDomain && names[0].DomainIndex >= 0)
+            {
+                PLSA_TRUST_INFORMATION trustInfo;
+
+                trustInfo = &referencedDomains->Domains[names[0].DomainIndex];
+                domainNameBuffer = trustInfo->Name.Buffer;
+                domainNameLength = trustInfo->Name.Length;
+            }
+            else
+            {
+                domainNameBuffer = NULL;
+                domainNameLength = 0;
+            }
+
+            if (domainNameBuffer && domainNameLength != 0)
+            {
+                fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(WCHAR) + names[0].Name.Length);
+                memcpy(&fullName->Buffer[0], domainNameBuffer, domainNameLength);
+                fullName->Buffer[domainNameLength / sizeof(WCHAR)] = '\\';
+                memcpy(&fullName->Buffer[domainNameLength / sizeof(WCHAR) + 1], names[0].Name.Buffer, names[0].Name.Length);
+            }
+            else
+            {
+                fullName = PhCreateStringEx(names[0].Name.Buffer, names[0].Name.Length);
+            }
+
+            if (NameUse)
+            {
+                *NameUse = names[0].Use;
+            }
         }
         else
         {
-            domainNameBuffer = NULL;
-            domainNameLength = 0;
-        }
-
-        if (domainNameBuffer && domainNameLength != 0)
-        {
-            fullName = PhCreateStringEx(NULL, domainNameLength + sizeof(WCHAR) + names[0].Name.Length);
-            memcpy(&fullName->Buffer[0], domainNameBuffer, domainNameLength);
-            fullName->Buffer[domainNameLength / sizeof(WCHAR)] = '\\';
-            memcpy(&fullName->Buffer[domainNameLength / sizeof(WCHAR) + 1], names[0].Name.Buffer, names[0].Name.Length);
-        }
-        else
-        {
-            fullName = PhCreateStringEx(names[0].Name.Buffer, names[0].Name.Length);
-        }
-
-        if (NameUse)
-        {
-            *NameUse = names[0].Use;
+            fullName = NULL;
         }
     }
-    else
-    {
-        fullName = NULL;
-    }
 
-    LsaFreeMemory(referencedDomains);
-    LsaFreeMemory(names);
+    if (referencedDomains)
+        LsaFreeMemory(referencedDomains);
+    if (names)
+        LsaFreeMemory(names);
 
     return fullName;
 }
