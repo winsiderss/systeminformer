@@ -266,7 +266,10 @@ NTSTATUS KphTerminateThreadByPointerInternal(
     PspTerminateThreadByPointer_I = KphGetDynamicProcedureScan(&KphDynPspTerminateThreadByPointerScan);
 
     if (!PspTerminateThreadByPointer_I)
+    {
+        dprintf("Unable to find PspTerminateThreadByPointer\n");
         return STATUS_NOT_SUPPORTED;
+    }
 
     if (KphDynNtVersion == PHNT_WINXP)
     {
