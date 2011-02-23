@@ -396,7 +396,10 @@ NTSTATUS KphTerminateProcessInternal(
     PsTerminateProcess_I = KphGetDynamicProcedureScan(&KphDynPsTerminateProcessScan);
 
     if (!PsTerminateProcess_I)
+    {
+        dprintf("Unable to find PsTerminateProcess\n");
         return STATUS_NOT_SUPPORTED;
+    }
 
 #ifdef _X86_
 

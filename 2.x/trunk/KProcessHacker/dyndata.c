@@ -344,6 +344,9 @@ static NTSTATUS KphpX86DataInitialization(
         if (servicePack == 0)
         {
         }
+        else if (servicePack == 1)
+        {
+        }
         else
         {
             return STATUS_NOT_SUPPORTED;
@@ -492,6 +495,9 @@ static NTSTATUS KphpAmd64DataInitialization(
         KphDynNtVersion = PHNT_WIN7;
 
         if (servicePack == 0)
+        {
+        }
+        else if (servicePack == 1)
         {
         }
         else
