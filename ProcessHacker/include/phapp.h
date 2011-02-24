@@ -789,7 +789,8 @@ typedef enum _PH_ACTION_ELEVATION_LEVEL
 } PH_ACTION_ELEVATION_LEVEL;
 
 BOOLEAN PhUiConnectToPhSvc(
-    __in HWND hWnd
+    __in HWND hWnd,
+    __in BOOLEAN ConnectOnly
     );
 
 VOID PhUiDisconnectFromPhSvc();

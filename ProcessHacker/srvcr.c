@@ -151,7 +151,7 @@ INT_PTR CALLBACK PhpCreateServiceDlgProc(
                     }
                     else
                     {
-                        if (PhUiConnectToPhSvc(hwndDlg))
+                        if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                         {
                             status = PhSvcCallCreateService(
                                 serviceName->Buffer,
