@@ -454,7 +454,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         if (GetLastError() == ERROR_ACCESS_DENIED && !PhElevated)
                         {
                             // Elevate using phsvc.
-                            if (PhUiConnectToPhSvc(hwndDlg))
+                            if (PhUiConnectToPhSvc(hwndDlg, FALSE))
                             {
                                 if (NT_SUCCESS(status = PhSvcCallChangeServiceConfig(
                                     serviceItem->Name->Buffer,
