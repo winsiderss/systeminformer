@@ -254,6 +254,13 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
     if (elevationLevel == NeverElevateAction)
         return FALSE;
 
+    // Try to connect now so we can avoid prompting the user.
+    if (PhUiConnectToPhSvc(hWnd, TRUE))
+    {
+        *Connected = TRUE;
+        return TRUE;
+    }
+
     if (elevationLevel == PromptElevateAction && TaskDialogIndirect_I)
     {
         if (!PhpShowElevatePrompt(hWnd, Message, Status, &button))
@@ -262,14 +269,23 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     if (elevationLevel == AlwaysElevateAction || button == IDYES)
     {
-        *Connected = PhUiConnectToPhSvc(hWnd);
+        *Connected = PhUiConnectToPhSvc(hWnd, FALSE);
     }
 
     return TRUE;
 }
 
+/**
+ * Connects to phsvc.
+ *
+ * \param hWnd The window to display user interface components on.
+ * \param ConnectOnly TRUE to only try to connect to phsvc, otherwise 
+ * FALSE to try to elevate and start phsvc if the initial connection 
+ * attempt failed.
+ */
 BOOLEAN PhUiConnectToPhSvc(
-    __in HWND hWnd
+    __in_opt HWND hWnd,
+    __in BOOLEAN ConnectOnly
     )
 {
     NTSTATUS status;
@@ -297,7 +313,7 @@ BOOLEAN PhUiConnectToPhSvc(
                 started = TRUE;
                 _InterlockedIncrement(&PhSvcReferenceCount);
             }
-            else
+            else if (!ConnectOnly)
             {
                 // Prompt for elevation, and then try to connect to the server.
 
@@ -349,6 +365,9 @@ BOOLEAN PhUiConnectToPhSvc(
     return started;
 }
 
+/**
+ * Disconnects from phsvc.
+ */
 VOID PhUiDisconnectFromPhSvc()
 {
     PhAcquireQueuedLockExclusive(&PhSvcStartLock);
