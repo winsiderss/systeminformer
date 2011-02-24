@@ -442,6 +442,10 @@ PPH_STRING PhGetSidFullName(
             fullName = NULL;
         }
     }
+    else
+    {
+        fullName = NULL;
+    }
 
     if (referencedDomains)
         LsaFreeMemory(referencedDomains);
