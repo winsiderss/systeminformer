@@ -2,7 +2,7 @@
  * Process Hacker Window Explorer - 
  *   window tree dialog
  * 
- * Copyright (C) 2010 wj32
+ * Copyright (C) 2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
