@@ -1,5 +1,5 @@
 base=..\phlib\include
-in=ntbasic.h;ntcm.h;ntdbg.h;ntexapi.h;ntgdi.h;ntimport.h;ntioapi.h;ntkeapi.h;ntldr.h;ntlpcapi.h;ntlsa.h;ntmisc.h;ntmmapi.h;ntnls.h;ntobapi.h;ntpebteb.h;ntpnpapi.h;ntpoapi.h;ntpsapi.h;ntregapi.h;ntrtl.h;ntsam.h;ntseapi.h;nttmapi.h;nttp.h;ntwow64.h;ntxcapi.h
+in=ntbasic.h;ntcm.h;ntdbg.h;ntexapi.h;ntgdi.h;ntioapi.h;ntkeapi.h;ntldr.h;ntlpcapi.h;ntlsa.h;ntmisc.h;ntmmapi.h;ntnls.h;ntobapi.h;ntpebteb.h;ntpfapi.h;ntpnpapi.h;ntpoapi.h;ntpsapi.h;ntregapi.h;ntrtl.h;ntsam.h;ntseapi.h;nttmapi.h;nttp.h;ntwow64.h;ntxcapi.h
 out=ntzwapi.h
 header=#ifndef _NTZWAPI_H\r\n#define _NTZWAPI_H\r\n\r\n// This file was automatically generated. Do not edit.\r\n\r\n
 footer=#endif\r\n
