@@ -973,7 +973,7 @@ NTSTATUS PhExecuteRunAsCommand2(
     {
         if (PhUiConnectToPhSvc(hWnd, FALSE))
         {
-            PhSvcCallExecuteRunAsCommand(commandLine->Buffer, serviceName);
+            status = PhSvcCallExecuteRunAsCommand(commandLine->Buffer, serviceName);
             PhUiDisconnectFromPhSvc();
         }
         else
