@@ -115,7 +115,7 @@ Name: "plugins\networktools";          Description: "Network Tools";           T
 Name: "plugins\onlinechecks";          Description: "Online Checks";           Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\toolstatus";            Description: "Toolbar and Status Bar";  Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\windowexplorer";        Description: "Window Explorer plugin";  Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\windowexplorer";        Description: "Window Explorer";         Types: full custom;         Flags: disablenouninstallwarning
 
 
 [Tasks]
