@@ -212,6 +212,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                             PhaFormatString(L"%u hidden process(es), %u terminated process(es).",
                             NumberOfHiddenProcesses, NumberOfTerminatedProcesses)->Buffer
                             );
+                        InvalidateRect(GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, TRUE);
                     }
                     else
                     {
@@ -426,7 +427,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                 SetBkColor((HDC)wParam, GetSysColor(COLOR_3DFACE));
 
-                return (INT_PTR)GetStockObject(NULL_BRUSH);
+                return (INT_PTR)GetSysColorBrush(COLOR_3DFACE);
             }
         }
         break;
