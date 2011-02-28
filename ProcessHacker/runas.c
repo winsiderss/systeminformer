@@ -97,25 +97,46 @@ VOID PhShowRunAsDialog(
         );
 }
 
-static BOOLEAN NTAPI PhpRunAsEnumAccountsCallback(
-    __in PSID Sid,
-    __in_opt PVOID Context
+static VOID PhpAddAccountsToComboBox(
+    __in HWND ComboBoxHandle
     )
 {
+    LSA_HANDLE policyHandle;
+    LSA_ENUMERATION_HANDLE enumerationContext = 0;
+    PLSA_ENUMERATION_INFORMATION buffer;
+    ULONG count;
+    ULONG i;
     PPH_STRING name;
     SID_NAME_USE nameUse;
 
-    name = PhGetSidFullName(Sid, TRUE, &nameUse);
-
-    if (name)
+    if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
     {
-        if (nameUse == SidTypeUser)
-            ComboBox_AddString((HWND)Context, name->Buffer);
+        while (NT_SUCCESS(LsaEnumerateAccounts(
+            policyHandle,
+            &enumerationContext,
+            &buffer,
+            0x100,
+            &count
+            )))
+        {
+            for (i = 0; i < count; i++)
+            {
+                name = PhGetSidFullName(buffer[i].Sid, TRUE, &nameUse);
 
-        PhDereferenceObject(name);
+                if (name)
+                {
+                    if (nameUse == SidTypeUser)
+                        ComboBox_AddString(ComboBoxHandle, name->Buffer);
+
+                    PhDereferenceObject(name);
+                }
+            }
+
+            LsaFreeMemory(buffer);
+        }
+
+        LsaClose(policyHandle);
     }
-
-    return TRUE;
 }
 
 static BOOLEAN IsServiceAccount(
@@ -205,7 +226,6 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
         {
             HWND typeComboBoxHandle = GetDlgItem(hwndDlg, IDC_TYPE);
             HWND userNameComboBoxHandle = GetDlgItem(hwndDlg, IDC_USERNAME);
-            LSA_HANDLE policyHandle;
             ULONG sessionId;
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
@@ -229,11 +249,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
             ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\LOCAL SERVICE");
             ComboBox_AddString(userNameComboBoxHandle, L"NT AUTHORITY\\NETWORK SERVICE");
 
-            if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_VIEW_LOCAL_INFORMATION, NULL)))
-            {
-                PhEnumAccounts(policyHandle, PhpRunAsEnumAccountsCallback, (PVOID)GetDlgItem(hwndDlg, IDC_USERNAME));
-                LsaClose(policyHandle);
-            }
+            PhpAddAccountsToComboBox(userNameComboBoxHandle);
 
             if (NT_SUCCESS(PhGetProcessSessionId(NtCurrentProcess(), &sessionId)))
                 SetDlgItemInt(hwndDlg, IDC_SESSIONID, sessionId, FALSE);
