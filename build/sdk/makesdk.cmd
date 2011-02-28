@@ -19,6 +19,7 @@ rem Header files
 for %%a in (
     circbuf.h
     circbuf_h.h
+    cpysave.h
     dltmgr.h
     dspick.h
     emenu.h
