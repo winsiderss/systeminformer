@@ -222,6 +222,7 @@
     <ClCompile Include="..\phlib\circbuf.c" />
     <ClCompile Include="..\phlib\collect.c" />
     <ClCompile Include="..\phlib\colorbox.c" />
+    <ClCompile Include="..\phlib\cpysave.c" />
     <ClCompile Include="..\phlib\data.c" />
     <ClCompile Include="..\phlib\dspick.c" />
     <ClCompile Include="..\phlib\emenu.c" />
@@ -266,7 +267,6 @@
     <ClCompile Include="chdlg.c" />
     <ClCompile Include="chproc.c" />
     <ClCompile Include="cmdmode.c" />
-    <ClCompile Include="cpysave.c" />
     <ClCompile Include="dbgcon.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />

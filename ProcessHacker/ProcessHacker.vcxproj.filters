@@ -177,9 +177,6 @@
     <ClCompile Include="cmdmode.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
-    <ClCompile Include="cpysave.c">
-      <Filter>Process Hacker</Filter>
-    </ClCompile>
     <ClCompile Include="dbgcon.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
@@ -434,6 +431,9 @@
     </ClCompile>
     <ClCompile Include="sessshad.c">
       <Filter>Process Hacker</Filter>
+    </ClCompile>
+    <ClCompile Include="..\phlib\cpysave.c">
+      <Filter>phlib</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

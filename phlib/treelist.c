@@ -2277,6 +2277,17 @@ static VOID PhpReloadThemeData(
     }
 }
 
+__callback BOOLEAN NTAPI PhTreeListNullCallback(
+    __in HWND hwnd,
+    __in PH_TREELIST_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
+    )
+{
+    return FALSE;
+}
+
 VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
     )
@@ -2558,15 +2569,4 @@ PPH_STRING PhSaveTreeListColumnSettings(
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
 
     return PhFinalStringBuilderString(&stringBuilder);
-}
-
-__callback BOOLEAN NTAPI PhTreeListNullCallback(
-    __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
-    )
-{
-    return FALSE;
 }

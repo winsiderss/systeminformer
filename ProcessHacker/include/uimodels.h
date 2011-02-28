@@ -303,6 +303,13 @@ VOID PhRemoveProcessTreeFilter(
 PHAPPAPI
 VOID PhApplyProcessTreeFilters();
 
+PPH_LIST PhGetProcessTreeListLines(
+    __in HWND TreeListHandle,
+    __in ULONG NumberOfNodes,
+    __in PPH_LIST RootNodes,
+    __in ULONG Mode
+    );
+
 VOID PhCopyProcessTree();
 
 VOID PhWriteProcessTree(

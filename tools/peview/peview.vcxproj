@@ -182,6 +182,7 @@
   <ItemGroup>
     <ClCompile Include="libprp.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="misc.c" />
     <ClCompile Include="peprp.c" />
   </ItemGroup>
   <ItemGroup>

@@ -9,8 +9,23 @@
 extern PPH_STRING PvFileName;
 #endif
 
+// peprp
+
 VOID PvPeProperties();
 
+// libprp
+
 VOID PvLibProperties();
+
+// misc
+
+VOID PvCopyListView(
+    __in HWND ListViewHandle
+    );
+
+VOID PvHandleListViewNotifyForCopy(
+    __in LPARAM lParam,
+    __in HWND ListViewHandle
+    );
 
 #endif

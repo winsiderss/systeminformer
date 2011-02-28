@@ -14,6 +14,7 @@
 
 #include "treelist.h"
 #include "emenu.h"
+#include "cpysave.h"
 #include "phapppub.h"
 #include "phplug.h"
 

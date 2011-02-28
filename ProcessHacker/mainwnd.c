@@ -24,6 +24,7 @@
 #include <phapp.h>
 #include <treelist.h>
 #include <settings.h>
+#include <cpysave.h>
 #include <memsrch.h>
 #include <symprv.h>
 #include <emenu.h>

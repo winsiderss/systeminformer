@@ -1150,39 +1150,6 @@ BOOLEAN PhShowChooseProcessDialog(
     __out PHANDLE ProcessId
     );
 
-// cpysave
-
-#define PH_EXPORT_MODE_TABS 0
-#define PH_EXPORT_MODE_SPACES 1
-#define PH_EXPORT_MODE_CSV 2
-
-PHAPPAPI
-PPH_FULL_STRING PhGetTreeListText(
-    __in HWND TreeListHandle,
-    __in ULONG MaximumNumberOfColumns
-    );
-
-PPH_LIST PhGetProcessTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG NumberOfNodes,
-    __in PPH_LIST RootNodes,
-    __in ULONG Mode
-    );
-
-PPH_LIST PhGetGenericTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG Mode
-    );
-
-PPH_FULL_STRING PhGetListViewText(
-    __in HWND ListViewHandle
-    );
-
-PPH_LIST PhGetListViewLines(
-    __in HWND ListViewHandle,
-    __in ULONG Mode
-    );
-
 // findobj
 
 VOID PhShowFindObjectsDialog();

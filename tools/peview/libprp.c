@@ -164,6 +164,11 @@ INT_PTR CALLBACK PvpLibExportsDlgProc(
             ExtendedListView_SortItems(lvHandle);
         }
         break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
     }
 
     return FALSE;

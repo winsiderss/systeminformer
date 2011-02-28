@@ -201,6 +201,9 @@
     <ClCompile Include="workqueue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpysave.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\phsync.h">
@@ -423,6 +426,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\ntpfapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cpysave.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
