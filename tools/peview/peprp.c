@@ -21,6 +21,7 @@
  */
 
 #include <peview.h>
+#include <cpysave.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 
@@ -353,6 +354,11 @@ INT_PTR CALLBACK PvpPeGeneralDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
+        }
+        break;
     }
 
     return FALSE;
@@ -426,6 +432,11 @@ INT_PTR CALLBACK PvpPeImportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     }
@@ -502,6 +513,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
             }
 
             ExtendedListView_SortItems(lvHandle);
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            PvHandleListViewNotifyForCopy(lParam, GetDlgItem(hwndDlg, IDC_LIST));
         }
         break;
     }

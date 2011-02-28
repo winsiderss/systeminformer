@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
+#include <cpysave.h>
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
     __in PVOID Entry1,

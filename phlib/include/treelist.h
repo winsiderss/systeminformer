@@ -359,6 +359,14 @@ HWND PhCreateTreeListControlEx(
     __in ULONG Style
     );
 
+__callback BOOLEAN NTAPI PhTreeListNullCallback(
+    __in HWND hwnd,
+    __in PH_TREELIST_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
+    );
+
 PHLIBAPI
 VOID PhInitializeTreeListNode(
     __in PPH_TREELIST_NODE Node
@@ -408,14 +416,6 @@ BOOLEAN PhLoadTreeListColumnSettings(
 PHLIBAPI
 PPH_STRING PhSaveTreeListColumnSettings(
     __in HWND TreeListHandle
-    );
-
-__callback BOOLEAN NTAPI PhTreeListNullCallback(
-    __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
-    __in_opt PVOID Parameter1,
-    __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
     );
 
 #endif
