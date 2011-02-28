@@ -927,18 +927,6 @@ PPH_STRING PhSidToStringSid(
     __in PSID Sid
     );
 
-typedef BOOLEAN (NTAPI *PPH_ENUM_ACCOUNTS_CALLBACK)(
-    __in PSID Sid,
-    __in_opt PVOID Context
-    );
-
-PHLIBAPI
-NTSTATUS PhEnumAccounts(
-    __in LSA_HANDLE PolicyHandle,
-    __in PPH_ENUM_ACCOUNTS_CALLBACK Callback,
-    __in_opt PVOID Context
-    );
-
 // hndlinfo
 
 #define MAX_OBJECT_TYPE_NUMBER 257
