@@ -24,6 +24,9 @@
     <ClCompile Include="peprp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="misc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\peview.h">

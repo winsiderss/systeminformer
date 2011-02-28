@@ -22,6 +22,7 @@
 
 #include <phapp.h>
 #include <settings.h>
+#include <cpysave.h>
 #include "mxml/mxml.h"
 #include <winsta.h>
 #include <dbghelp.h>
