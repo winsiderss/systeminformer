@@ -23,10 +23,8 @@
 #include <phapp.h>
 
 static HWND CommandModeWindowHandle;
-static HANDLE OptionProcessId = NULL;
 
 #define PH_COMMAND_OPTION_HWND 1
-#define PH_COMMAND_OPTION_PROCESSID 2
 
 BOOLEAN NTAPI PhpCommandModeOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -44,10 +42,6 @@ BOOLEAN NTAPI PhpCommandModeOptionCallback(
             if (PhStringToInteger64(&Value->sr, 10, &integer))
                 CommandModeWindowHandle = (HWND)integer;
             break;
-        case PH_COMMAND_OPTION_PROCESSID:
-            if (PhStringToInteger64(&Value->sr, 10, &integer))
-                OptionProcessId = (HANDLE)integer;
-            break;
         }
     }
 
@@ -58,8 +52,7 @@ NTSTATUS PhCommandModeStart()
 {
     static PH_COMMAND_LINE_OPTION options[] =
     {
-        { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType },
-        { PH_COMMAND_OPTION_PROCESSID, L"processid", MandatoryArgumentType }
+        { PH_COMMAND_OPTION_HWND, L"hwnd", MandatoryArgumentType }
     };
     NTSTATUS status = STATUS_SUCCESS;
     PH_STRINGREF commandLine;
