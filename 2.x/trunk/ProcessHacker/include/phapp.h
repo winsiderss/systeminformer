@@ -469,6 +469,11 @@ LRESULT CALLBACK PhMainWndProc(
     __in LPARAM lParam
     );
 
+VOID PhMainSymInitHandler(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PHAPPAPI
 VOID PhShowIconNotification(
     __in PWSTR Title,
