@@ -896,12 +896,22 @@ LRESULT CALLBACK PhpTreeListWndProc(
         break;
     case TLM_SETSORT:
         {
-            context->SortColumn = (ULONG)wParam;
-            context->SortOrder = (PH_SORT_ORDER)lParam;
+            ULONG sortColumn = (ULONG)wParam;
+            PH_SORT_ORDER sortOrder = (PH_SORT_ORDER)lParam;
+            PPH_TREELIST_COLUMN column;
+
+            if (
+                sortColumn >= context->AllocatedColumns ||
+                !(column = context->Columns[sortColumn])
+                )
+                return FALSE;
+
+            context->SortColumn = sortColumn;
+            context->SortOrder = sortOrder;
 
             PhSetHeaderSortIcon(
                 ListView_GetHeader(context->ListViewHandle),
-                context->SortColumn,
+                column->s.ViewIndex,
                 context->SortOrder
                 );
 

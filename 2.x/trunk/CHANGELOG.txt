@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Added copy support to PE viewer
  * FIXED:
+   * Column sort arrows
 
 2.12
  * NEW/IMPROVED:
