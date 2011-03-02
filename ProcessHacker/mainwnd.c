@@ -86,7 +86,7 @@ VOID PhReloadSysParameters();
 
 VOID PhpInitialLoadSettings();
 
-VOID PhpSymInitHandler(
+VOID PhMainSymInitHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     );
@@ -320,7 +320,7 @@ BOOLEAN PhMainWndInitialization(
     }
 
     // This was added to be able to delay-load dbghelp.dll and symsrv.dll.
-    PhRegisterCallback(&PhSymInitCallback, PhpSymInitHandler, NULL, &SymInitRegistration);
+    PhRegisterCallback(&PhSymInitCallback, PhMainSymInitHandler, NULL, &SymInitRegistration);
 
     // Initialize the providers.
     {
@@ -2192,7 +2192,7 @@ VOID PhpInitialLoadSettings()
     PhLoadListViewColumnsFromSetting(L"NetworkListViewColumns", NetworkListViewHandle);
 }
 
-static VOID PhpSymInitHandler(
+VOID PhMainSymInitHandler(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
     )
