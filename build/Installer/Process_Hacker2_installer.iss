@@ -110,7 +110,7 @@ Name: "peview";                        Description: "PE Viewer";               T
 Name: "plugins";                       Description: "Plugins";                 Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendednotifications"; Description: "Extended Notifications";  Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendedservices";      Description: "Extended Services";       Types: full custom;         Flags: disablenouninstallwarning
-Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning;   MinVersion: 0,6.01
+Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning;   MinVersion: 0,6.00
 Name: "plugins\networktools";          Description: "Network Tools";           Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\onlinechecks";          Description: "Online Checks";           Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\sbiesupport";           Description: "Sandboxie Support";       Types: full custom;         Flags: disablenouninstallwarning
