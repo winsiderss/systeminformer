@@ -162,6 +162,7 @@ Disadvantages:
             if (!initialized)
             {
                 object = Create();
+                MemoryBarrier();
                 initialized = TRUE;
             }
             
