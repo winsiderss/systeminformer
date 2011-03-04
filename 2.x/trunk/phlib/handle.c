@@ -492,7 +492,7 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
 
             // Check again to see if we have free handles.
 
-            freeValue = *(volatile ULONG *)&HandleTable->FreeValue;
+            freeValue = HandleTable->FreeValue;
 
             if (freeValue != PH_HANDLE_VALUE_INVALID)
             {
@@ -548,7 +548,7 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
 
         PhpLockHandleTableShared(HandleTable, lockIndex);
 
-        if (*(volatile ULONG *)&HandleTable->FreeValue != freeValue)
+        if (HandleTable->FreeValue != freeValue)
         {
             PhpUnlockHandleTableShared(HandleTable, lockIndex);
             continue;
@@ -556,7 +556,7 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
 
         MemoryBarrier();
 
-        nextFreeValue = *(volatile ULONG *)&entry->NextFreeValue;
+        nextFreeValue = entry->NextFreeValue;
 
         // Possibilities/non-possibilities at this point:
         // 1. freeValue != A (our copy), but the other thread has freed 
