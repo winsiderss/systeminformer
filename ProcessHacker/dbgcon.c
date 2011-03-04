@@ -531,7 +531,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
             for (m = 0; m < RW_READ_SPIN_ITERS; m++)
                 YieldProcessor();
 
-            if (*(volatile LONG *)&RwWritersActive != 0)
+            if (RwWritersActive != 0)
             {
                 wprintf(L"[fail]: writers active in read zone!\n");
                 Sleep(INFINITE);
@@ -557,7 +557,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
                     for (m = 0; m < RW_WRITE_SPIN_ITERS; m++)
                         YieldProcessor();
 
-                    if (*(volatile LONG *)&RwReadersActive != 0)
+                    if (RwReadersActive != 0)
                     {
                         wprintf(L"[fail]: readers active in write zone!\n");
                         Sleep(INFINITE);

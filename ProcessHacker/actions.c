@@ -300,7 +300,7 @@ BOOLEAN PhUiConnectToPhSvc(
     {
         PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
-        if (*(volatile ULONG *)&PhSvcReferenceCount == 0)
+        if (PhSvcReferenceCount == 0)
         {
             started = FALSE;
             RtlInitUnicodeString(&portName, PHSVC_PORT_NAME);

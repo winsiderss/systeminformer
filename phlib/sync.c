@@ -107,8 +107,7 @@ VOID FASTCALL PhfSetEvent(
     // Only proceed if the event isn't set already.
     if (!_InterlockedBitTestAndSetPointer((PLONG_PTR)&Event->Value, PH_EVENT_SET_SHIFT))
     {
-        // Do an up-to-date read.
-        eventHandle = *(volatile HANDLE *)&Event->EventHandle;
+        eventHandle = Event->EventHandle;
 
         if (eventHandle)
         {
@@ -154,7 +153,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     // Prevent the event from being invalidated.
     PhpReferenceEvent(Event);
 
-    eventHandle = *(volatile HANDLE *)&Event->EventHandle;
+    eventHandle = Event->EventHandle;
 
     // Don't bother creating an event if we already have one.
     if (!eventHandle)
@@ -176,7 +175,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
 
     // Essential: check the event one last time to see if 
     // it is set.
-    if (!(*(volatile ULONG_PTR *)&Event->Value & PH_EVENT_SET))
+    if (!(Event->Value & PH_EVENT_SET))
     {
         result = NtWaitForSingleObject(Event->EventHandle, FALSE, Timeout) == STATUS_WAIT_0;
     }
