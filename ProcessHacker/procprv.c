@@ -1296,11 +1296,8 @@ VOID PhpUpdateCpuInformation(
         PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION cpuInfo =
             &PhCpuInformation[i];
 
-        // KernelTime includes kernel + idle + DPC + interrupt time.
-        cpuInfo->KernelTime.QuadPart -=
-            cpuInfo->IdleTime.QuadPart +
-            cpuInfo->DpcTime.QuadPart +
-            cpuInfo->InterruptTime.QuadPart;
+        // KernelTime includes idle time.
+        cpuInfo->KernelTime.QuadPart -= cpuInfo->IdleTime.QuadPart;
 
         PhCpuTotals.DpcTime.QuadPart += cpuInfo->DpcTime.QuadPart;
         PhCpuTotals.IdleTime.QuadPart += cpuInfo->IdleTime.QuadPart;
