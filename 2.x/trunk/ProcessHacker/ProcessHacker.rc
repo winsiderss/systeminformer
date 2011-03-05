@@ -1047,26 +1047,32 @@ BEGIN
     LTEXT           "Icon:",IDC_STATIC,7,107,18,8
 END
 
-IDD_SESSION DIALOGEX 0, 0, 201, 112
+IDD_SESSION DIALOGEX 0, 0, 201, 149
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Session Properties"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Close",IDOK,144,91,50,14
+    DEFPUSHBUTTON   "Close",IDOK,144,128,50,14
     LTEXT           "User name:",IDC_STATIC,7,7,38,8
     LTEXT           "Session ID:",IDC_STATIC,7,18,37,8
     LTEXT           "State:",IDC_STATIC,7,29,21,8
-    LTEXT           "Client name:",IDC_STATIC,7,51,41,8
-    LTEXT           "Client address:",IDC_STATIC,7,62,49,8
-    LTEXT           "Client display:",IDC_STATIC,7,73,46,8
+    LTEXT           "Client name:",IDC_STATIC,7,84,41,8
+    LTEXT           "Client address:",IDC_STATIC,7,95,49,8
+    LTEXT           "Client display:",IDC_STATIC,7,106,46,8
     LTEXT           "N/A",IDC_USERNAME,66,7,128,8
     LTEXT           "N/A",IDC_SESSIONID,66,18,128,8
     LTEXT           "N/A",IDC_STATE,66,29,128,8
-    LTEXT           "N/A",IDC_CLIENTNAME,66,51,128,8
-    LTEXT           "N/A",IDC_CLIENTADDRESS,66,62,128,8
-    LTEXT           "N/A",IDC_CLIENTDISPLAY,66,73,128,8
+    LTEXT           "N/A",IDC_CLIENTNAME,66,84,128,8
+    LTEXT           "N/A",IDC_CLIENTADDRESS,66,95,128,8
+    LTEXT           "N/A",IDC_CLIENTDISPLAY,66,106,128,8
     LTEXT           "Logon time:",IDC_STATIC,7,40,38,8
     LTEXT           "N/A",IDC_LOGONTIME,66,40,128,8
+    LTEXT           "Connect time:",IDC_STATIC,7,51,46,8
+    LTEXT           "Disconnect time:",IDC_STATIC,7,62,54,8
+    LTEXT           "Last input time:",IDC_STATIC,7,73,50,8
+    LTEXT           "N/A",IDC_CONNECTTIME,66,51,128,8
+    LTEXT           "N/A",IDC_DISCONNECTTIME,66,62,128,8
+    LTEXT           "N/A",IDC_LASTINPUTTIME,66,74,128,8
 END
 
 IDD_PROCMEMORY DIALOGEX 0, 0, 260, 260
@@ -1827,7 +1833,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 194
         TOPMARGIN, 7
-        BOTTOMMARGIN, 105
+        BOTTOMMARGIN, 142
     END
 
     IDD_PROCMEMORY, DIALOG
