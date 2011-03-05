@@ -428,6 +428,9 @@
 #define IDC_CTRL                        1284
 #define IDC_CHECK3                      1285
 #define IDC_ALT                         1285
+#define IDC_CONNECTTIME                 1286
+#define IDC_DISCONNECTTIME              1287
+#define IDC_LASTINPUTTIME               1288
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -647,7 +650,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        194
 #define _APS_NEXT_COMMAND_VALUE         40238
-#define _APS_NEXT_CONTROL_VALUE         1286
+#define _APS_NEXT_CONTROL_VALUE         1289
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif

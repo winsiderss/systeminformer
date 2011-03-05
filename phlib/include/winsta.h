@@ -556,6 +556,17 @@ WinStationQueryInformationW(
     __out PULONG pReturnLength
     );
 
+// rev
+BOOLEAN
+WINAPI
+WinStationSetInformationW(
+    __in_opt HANDLE hServer,
+    __in ULONG SessionId,
+    __in WINSTATIONINFOCLASS WinStationInformationClass,
+    __in_bcount(WinStationInformationLength) PVOID pWinStationInformation,
+    __in ULONG WinStationInformationLength
+    );
+
 BOOLEAN
 WINAPI
 WinStationNameFromLogonIdW(
