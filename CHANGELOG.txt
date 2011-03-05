@@ -5,6 +5,7 @@ Process Hacker
    * Added copy support to PE viewer
  * FIXED:
    * Column sort arrows
+   * CPU usage calculations
 
 2.12
  * NEW/IMPROVED:
