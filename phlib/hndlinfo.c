@@ -211,7 +211,7 @@ NTSTATUS PhpGetObjectTypeName(
         // Create a copy of the type name.
         typeName = PhCreateStringEx(buffer->TypeName.Buffer, buffer->TypeName.Length);
 
-        if (ObjectTypeNumber != -1)
+        if (ObjectTypeNumber != -1 && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
         {
             // Try to store the type name in the cache.
             oldTypeName = _InterlockedCompareExchangePointer(
