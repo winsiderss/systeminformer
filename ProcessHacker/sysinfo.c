@@ -338,7 +338,7 @@ static PPH_STRING PhapGetMaxIoString(
     return maxUsageString;
 }
 
-INT_PTR CALLBACK PhpSysInfoDlgProc(      
+INT_PTR CALLBACK PhpSysInfoDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -421,11 +421,13 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 );
 
             PhFree(CpusGraphHandle);
+            CpusGraphHandle = NULL;
 
             for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
                 PhDeleteGraphState(&CpusGraphState[i]);
 
             PhFree(CpusGraphState);
+            CpusGraphState = NULL;
 
             PhDeleteGraphState(&CpuGraphState);
             PhDeleteGraphState(&IoGraphState);
