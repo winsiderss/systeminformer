@@ -392,6 +392,11 @@ FORCEINLINE NTSTATUS KphCaptureUnicodeString(
         return GetExceptionCode();
     }
 
+    if (unicodeString.Length & 1)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
     if (unicodeString.Length != 0)
     {
         unicodeString.Buffer = ExAllocatePoolWithTag(
