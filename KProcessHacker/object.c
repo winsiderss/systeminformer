@@ -34,8 +34,9 @@
 typedef struct _KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT
 {
     PVOID Buffer;
-    ULONG BufferLength;
-    ULONG CurrentIndex;
+    PVOID BufferLimit;
+    PVOID CurrentEntry;
+    ULONG Count;
     NTSTATUS Status;
 } KPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT, *PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT;
 
@@ -160,12 +161,9 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
     PKPHP_ENUMERATE_PROCESS_HANDLES_CONTEXT context = Context;
     KPH_PROCESS_HANDLE handleInfo;
     POBJECT_TYPE objectType;
-    PKPH_PROCESS_HANDLE_INFORMATION buffer;
-    ULONG i;
+    PKPH_PROCESS_HANDLE entryInBuffer;
 
     PAGED_CODE();
-
-    buffer = context->Buffer;
 
     handleInfo.Handle = Handle;
     handleInfo.Object = &((POBJECT_HEADER)ObpDecodeObject(HandleTableEntry->Object))->Body;
@@ -188,16 +186,23 @@ BOOLEAN KphpEnumerateProcessHandlesEnumCallback(
         handleInfo.ObjectTypeIndex = -1;
     }
 
-    // Increment the index regardless of whether the information will be written;
+    // Advance the current entry pointer regardless of whether the information will be written;
     // this will allow the parent function to report the correct return length.
-    i = context->CurrentIndex++;
+    entryInBuffer = context->CurrentEntry;
+    context->CurrentEntry = (PVOID)((ULONG_PTR)context->CurrentEntry + sizeof(KPH_PROCESS_HANDLE));
+    context->Count++;
 
-    /* Only write if we have not exceeded the buffer length. */
-    if (sizeof(ULONG) + context->CurrentIndex * sizeof(KPH_PROCESS_HANDLE) <= context->BufferLength)
+    // Only write if we have not exceeded the buffer length.
+    // Also check for a potential overflow (if the process has an extremely large number of 
+    // handles, the buffer pointer may wrap).
+    if (
+        (ULONG_PTR)entryInBuffer >= (ULONG_PTR)context->Buffer &&
+        (ULONG_PTR)entryInBuffer + sizeof(KPH_PROCESS_HANDLE) <= (ULONG_PTR)context->BufferLimit
+        )
     {
         __try
         {
-            buffer->Handles[i] = handleInfo;
+            *entryInBuffer = handleInfo;
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -282,11 +287,12 @@ NTSTATUS KpiEnumerateProcessHandles(
 
     // Initialize the enumeration context.
     context.Buffer = Buffer;
-    context.BufferLength = BufferLength;
-    context.CurrentIndex = 0;
+    context.BufferLimit = (PVOID)((ULONG_PTR)Buffer + BufferLength);
+    context.CurrentEntry = ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->Handles;
+    context.Count = 0;
     context.Status = STATUS_SUCCESS;
 
-    /* Enumerate the handles. */
+    // Enumerate the handles.
     result = ExEnumHandleTable(
         handleTable,
         KphpEnumerateProcessHandlesEnumCallback,
@@ -303,7 +309,7 @@ NTSTATUS KpiEnumerateProcessHandles(
         {
             __try
             {
-                ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.CurrentIndex;
+                ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.Count;
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
@@ -312,7 +318,7 @@ NTSTATUS KpiEnumerateProcessHandles(
         }
         else
         {
-            ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.CurrentIndex;
+            ((PKPH_PROCESS_HANDLE_INFORMATION)Buffer)->HandleCount = context.Count;
         }
     }
 
@@ -321,9 +327,9 @@ NTSTATUS KpiEnumerateProcessHandles(
     {
         ULONG returnLength;
 
-        // CurrentIndex should contain the number of handles, so we simply multiply it
-        // by the size of each entry.
-        returnLength = sizeof(ULONG) + context.CurrentIndex * sizeof(KPH_PROCESS_HANDLE);
+        // Note: if the CurrentEntry pointer wrapped, this will give the wrong 
+        // return length.
+        returnLength = (ULONG)((ULONG_PTR)context.CurrentEntry - (ULONG_PTR)Buffer);
 
         if (AccessMode != KernelMode)
         {
