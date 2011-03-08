@@ -1370,8 +1370,7 @@ NTSTATUS PhGetProcessMappedFileName(
  * Gets working set information for a process.
  *
  * \param ProcessHandle A handle to a process. The handle 
- * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
- * access.
+ * must have PROCESS_QUERY_INFORMATION access.
  * \param WorkingSetInformation A variable which receives a
  * pointer to the information. You must free the buffer using
  * PhFree() when you no longer need it.
@@ -1423,8 +1422,7 @@ NTSTATUS PhGetProcessWorkingSetInformation(
  * Gets working set counters for a process.
  *
  * \param ProcessHandle A handle to a process. The handle 
- * must have PROCESS_QUERY_INFORMATION and PROCESS_VM_READ 
- * access.
+ * must have PROCESS_QUERY_INFORMATION access.
  * \param WsCounters A variable which receives the 
  * counters.
  */

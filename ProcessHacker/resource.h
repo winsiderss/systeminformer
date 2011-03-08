@@ -431,6 +431,9 @@
 #define IDC_CONNECTTIME                 1286
 #define IDC_DISCONNECTTIME              1287
 #define IDC_LASTINPUTTIME               1288
+#define IDC_ZPRIVATEWS_V                1289
+#define IDC_ZSHAREABLEWS_V              1290
+#define IDC_ZSHAREDWS_V                 1291
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -650,7 +653,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        194
 #define _APS_NEXT_COMMAND_VALUE         40238
-#define _APS_NEXT_CONTROL_VALUE         1289
+#define _APS_NEXT_CONTROL_VALUE         1292
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif

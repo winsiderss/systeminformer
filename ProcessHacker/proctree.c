@@ -528,7 +528,7 @@ static VOID PhpUpdateProcessNodeWsCounters(
 
         if (NT_SUCCESS(PhOpenProcess(
             &processHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+            PROCESS_QUERY_INFORMATION,
             ProcessNode->ProcessItem->ProcessId
             )))
         {
