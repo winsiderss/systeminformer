@@ -1103,7 +1103,8 @@ static VOID NTAPI StatisticsUpdateHandler(
 
 VOID PhpUpdateProcessStatistics(
     __in HWND hwndDlg,
-    __in PPH_PROCESS_ITEM ProcessItem
+    __in PPH_PROCESS_ITEM ProcessItem,
+    __in PPH_STATISTICS_CONTEXT Context
     )
 {
     WCHAR timeSpan[PH_TIMESPAN_STR_LEN_1];
@@ -1121,16 +1122,16 @@ VOID PhpUpdateProcessStatistics(
         PhaFormatSize(ProcessItem->VmCounters.PagefileUsage, -1)->Buffer); // private bytes (same as PrivateUsage)
     SetDlgItemText(hwndDlg, IDC_ZPEAKPRIVATEBYTES_V, 
         PhaFormatSize(ProcessItem->VmCounters.PeakPagefileUsage, -1)->Buffer); // peak private bytes
-    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, 
-        PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer); // working set
-    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, 
-        PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer); // peak working set
     SetDlgItemText(hwndDlg, IDC_ZVIRTUALSIZE_V, 
         PhaFormatSize(ProcessItem->VmCounters.VirtualSize, -1)->Buffer); // virtual size
     SetDlgItemText(hwndDlg, IDC_ZPEAKVIRTUALSIZE_V, 
         PhaFormatSize(ProcessItem->VmCounters.PeakVirtualSize, -1)->Buffer); // peak virtual size
     SetDlgItemText(hwndDlg, IDC_ZPAGEFAULTS_V, 
         PhaFormatUInt64(ProcessItem->VmCounters.PageFaultCount, TRUE)->Buffer); // page faults
+    SetDlgItemText(hwndDlg, IDC_ZWORKINGSET_V, 
+        PhaFormatSize(ProcessItem->VmCounters.WorkingSetSize, -1)->Buffer); // working set
+    SetDlgItemText(hwndDlg, IDC_ZPEAKWORKINGSET_V, 
+        PhaFormatSize(ProcessItem->VmCounters.PeakWorkingSetSize, -1)->Buffer); // peak working set
 
     SetDlgItemText(hwndDlg, IDC_ZIOREADS_V, 
         PhaFormatUInt64(ProcessItem->IoCounters.ReadOperationCount, TRUE)->Buffer); // reads
@@ -1157,6 +1158,9 @@ VOID PhpUpdateProcessStatistics(
         PPH_STRING cycles = NULL;
         ULONG pagePriority = -1;
         ULONG ioPriority = -1;
+        PPH_STRING privateWs = NULL;
+        PPH_STRING shareableWs = NULL;
+        PPH_STRING sharedWs = NULL;
 
         if (ProcessItem->QueryHandle)
         {
@@ -1194,6 +1198,18 @@ VOID PhpUpdateProcessStatistics(
             }
         }
 
+        if (Context->ProcessHandle)
+        {
+            PH_PROCESS_WS_COUNTERS wsCounters;
+
+            if (NT_SUCCESS(PhGetProcessWsCounters(Context->ProcessHandle, &wsCounters)))
+            {
+                privateWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfPrivatePages, PAGE_SIZE), -1);
+                shareableWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfShareablePages, PAGE_SIZE), -1);
+                sharedWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfSharedPages, PAGE_SIZE), -1);
+            }
+        }
+
         if (WindowsVersion >= WINDOWS_7)
             SetDlgItemText(hwndDlg, IDC_ZPEAKHANDLES_V, PhGetStringOrDefault(peakHandles, L"Unknown"));
         else
@@ -1221,6 +1237,10 @@ VOID PhpUpdateProcessStatistics(
             SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
             SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
         }
+
+        SetDlgItemText(hwndDlg, IDC_ZPRIVATEWS_V, PhGetStringOrDefault(privateWs, L"Unknown"));
+        SetDlgItemText(hwndDlg, IDC_ZSHAREABLEWS_V, PhGetStringOrDefault(shareableWs, L"Unknown"));
+        SetDlgItemText(hwndDlg, IDC_ZSHAREDWS_V, PhGetStringOrDefault(sharedWs, L"Unknown"));
     }
     else
     {
@@ -1230,6 +1250,9 @@ VOID PhpUpdateProcessStatistics(
         SetDlgItemText(hwndDlg, IDC_ZCYCLES_V, L"N/A");
         SetDlgItemText(hwndDlg, IDC_ZPAGEPRIORITY_V, L"N/A");
         SetDlgItemText(hwndDlg, IDC_ZIOPRIORITY_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZPRIVATEWS_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZSHAREABLEWS_V, L"N/A");
+        SetDlgItemText(hwndDlg, IDC_ZSHAREDWS_V, L"N/A");
     }
 }
 
@@ -1264,6 +1287,15 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             statisticsContext->WindowHandle = hwndDlg;
             statisticsContext->Enabled = TRUE;
+            statisticsContext->ProcessHandle = NULL;
+
+            // Try to open a process handle with PROCESS_QUERY_INFORMATION access for 
+            // WS information.
+            PhOpenProcess(
+                &statisticsContext->ProcessHandle,
+                PROCESS_QUERY_INFORMATION,
+                processItem->ProcessId
+                );
 
             PhRegisterCallback(
                 &PhProcessesUpdatedEvent,
@@ -1272,7 +1304,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
 
-            PhpUpdateProcessStatistics(hwndDlg, processItem);
+            PhpUpdateProcessStatistics(hwndDlg, processItem, statisticsContext);
         }
         break;
     case WM_DESTROY:
@@ -1281,6 +1313,10 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
                 &PhProcessesUpdatedEvent,
                 &statisticsContext->ProcessesUpdatedRegistration
                 );
+
+            if (statisticsContext->ProcessHandle)
+                NtClose(statisticsContext->ProcessHandle);
+
             PhFree(statisticsContext);
 
             PhpPropPageDlgProcDestroy(hwndDlg);
@@ -1330,7 +1366,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         break;
     case WM_PH_STATISTICS_UPDATE:
         {
-            PhpUpdateProcessStatistics(hwndDlg, processItem);
+            PhpUpdateProcessStatistics(hwndDlg, processItem, statisticsContext);
         }
         break;
     }
