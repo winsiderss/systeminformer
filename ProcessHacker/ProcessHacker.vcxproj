@@ -229,6 +229,7 @@
     <ClCompile Include="..\phlib\error.c" />
     <ClCompile Include="..\phlib\extlv.c" />
     <ClCompile Include="..\phlib\fastlock.c" />
+    <ClCompile Include="..\phlib\filepool.c" />
     <ClCompile Include="..\phlib\format.c" />
     <ClCompile Include="..\phlib\global.c" />
     <ClCompile Include="..\phlib\graph.c" />

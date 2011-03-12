@@ -1315,6 +1315,18 @@ NTSTATUS PhCreateFileWin32(
     );
 
 PHLIBAPI
+NTSTATUS PhCreateFileWin32Ex(
+    __out PHANDLE FileHandle,
+    __in PWSTR FileName,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt ULONG FileAttributes,
+    __in ULONG ShareAccess,
+    __in ULONG CreateDisposition,
+    __in ULONG CreateOptions,
+    __out_opt PULONG CreateStatus
+    );
+
+PHLIBAPI
 NTSTATUS PhDeleteFileWin32(
     __in PWSTR FileName
     );

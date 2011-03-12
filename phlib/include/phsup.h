@@ -115,8 +115,8 @@ typedef enum _PH_SORT_ORDER
     DescendingSortOrder
 } PH_SORT_ORDER, *PPH_SORT_ORDER;
 
-FORCEINLINE INT PhModifySort(
-    __in INT Result,
+FORCEINLINE LONG PhModifySort(
+    __in LONG Result,
     __in PH_SORT_ORDER Order
     )
 {

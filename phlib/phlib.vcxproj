@@ -173,6 +173,7 @@
     <ClCompile Include="error.c" />
     <ClCompile Include="extlv.c" />
     <ClCompile Include="fastlock.c" />
+    <ClCompile Include="filepool.c" />
     <ClCompile Include="format.c" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
@@ -226,6 +227,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\cpysave.h" />
+    <ClInclude Include="include\filepool.h" />
+    <ClInclude Include="include\filepoolp.h" />
     <ClInclude Include="include\kphapi.h" />
     <ClInclude Include="include\ntpfapi.h" />
     <ClInclude Include="include\ntzwapi.h" />

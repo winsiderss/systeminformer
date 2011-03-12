@@ -77,6 +77,64 @@ NTSTATUS PhCreateFileWin32(
     __in ULONG CreateOptions
     )
 {
+    return PhCreateFileWin32Ex(
+        FileHandle,
+        FileName,
+        DesiredAccess,
+        FileAttributes,
+        ShareAccess,
+        CreateDisposition,
+        CreateOptions,
+        NULL
+        );
+}
+
+/**
+ * Creates or opens a file.
+ *
+ * \param FileHandle A variable that receives the file handle.
+ * \param FileName The Win32 file name.
+ * \param DesiredAccess The desired access to the file.
+ * \param FileAttributes File attributes applied if the file is 
+ * created or overwritten.
+ * \param ShareAccess The file access granted to other threads.
+ * \li \c FILE_SHARE_READ Allows other threads to read from the file.
+ * \li \c FILE_SHARE_WRITE Allows other threads to write to the file.
+ * \li \c FILE_SHARE_DELETE Allows other threads to delete the file.
+ * \param CreateDisposition The action to perform if the file does 
+ * or does not exist.
+ * \li \c FILE_SUPERSEDE If the file exists, replace it. Otherwise, create the file.
+ * \li \c FILE_CREATE If the file exists, fail. Otherwise, create the file.
+ * \li \c FILE_OPEN If the file exists, open it. Otherwise, fail.
+ * \li \c FILE_OPEN_IF If the file exists, open it. Otherwise, create the file.
+ * \li \c FILE_OVERWRITE If the file exists, open and overwrite it. Otherwise, fail.
+ * \li \c FILE_OVERWRITE_IF If the file exists, open and overwrite it. Otherwise, create the file.
+ * \param CreateOptions The options to apply when the file is opened or created.
+ * \param CreateStatus A variable that receives creation information.
+ * \li \c FILE_SUPERSEDED The file was replaced because \c FILE_SUPERSEDE was specified in 
+ * \a CreateDisposition.
+ * \li \c FILE_OPENED The file was opened because \c FILE_OPEN or \c FILE_OPEN_IF was specified in 
+ * \a CreateDisposition.
+ * \li \c FILE_CREATED The file was created because \c FILE_CREATE or \c FILE_OPEN_IF was specified 
+ * in \a CreateDisposition.
+ * \li \c FILE_OVERWRITTEN The file was overwritten because \c FILE_OVERWRITE or \c FILE_OVERWRITE_IF 
+ * was specified in \a CreateDisposition.
+ * \li \c FILE_EXISTS The file was not opened because it already existed and \c FILE_CREATE was 
+ * specified in \a CreateDisposition.
+ * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or 
+ * \c FILE_OVERWRITE was specified in \a CreateDisposition.
+ */
+NTSTATUS PhCreateFileWin32Ex(
+    __out PHANDLE FileHandle,
+    __in PWSTR FileName,
+    __in ACCESS_MASK DesiredAccess,
+    __in_opt ULONG FileAttributes,
+    __in ULONG ShareAccess,
+    __in ULONG CreateDisposition,
+    __in ULONG CreateOptions,
+    __out_opt PULONG CreateStatus
+    )
+{
     NTSTATUS status;
     HANDLE fileHandle;
     UNICODE_STRING fileName;
@@ -119,7 +177,12 @@ NTSTATUS PhCreateFileWin32(
     RtlFreeHeap(RtlProcessHeap(), 0, fileName.Buffer);
 
     if (NT_SUCCESS(status))
+    {
         *FileHandle = fileHandle;
+    }
+
+    if (CreateStatus)
+        *CreateStatus = (ULONG)isb.Information;
 
     return status;
 }
