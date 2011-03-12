@@ -20,10 +20,76 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * File pool allows blocks of storage to be allocated from a file. Each 
+ * file looks like this:
+ *
+ * Segment 0 __________________________________________________________
+ * |              |                |              |                |
+ * | Block Header |  File Header   | Block Header | Segment Header |
+ * |______________|________________|______________|________________|
+ * |              |                |              |                |
+ * | Block Header |    User Data   | Block Header |    User Data   |
+ * |______________|________________|______________|________________|
+ * |              |                |              |                |
+ * |      ...     |       ...      |     ...      |      ...       |
+ * |______________|________________|______________|________________|
+ * Segment 1 __________________________________________________________
+ * |              |                |              |                |
+ * | Block Header | Segment Header | Block Header |    User Data   |
+ * |______________|________________|______________|________________|
+ * |              |                |              |                |
+ * |      ...     |       ...      |     ...      |      ...       |
+ * |______________|________________|______________|________________|
+ * Segment 2 __________________________________________________________
+ * |              |                |              |                |
+ * |      ...     |       ...      |     ...      |      ...       |
+ * |______________|________________|______________|________________|
+ *
+ * A file consists of a variable number of segments, with the segment 
+ * size specified as a power of two. Each segment contains a fixed 
+ * number of blocks, leading to a variable block size. Every 
+ * allocation made by the user is an allocation of a certain number 
+ * of blocks, with enough space for the block header. This is placed 
+ * at the beginning of each allocation and contains the number of 
+ * blocks in the allocation (a better name for it would be the 
+ * allocation header).
+ *
+ * Block management in each segment is handled by a bitmap which is 
+ * stored in the segment header at the beginning of each segment. 
+ * The first segment (segment 0) is special with the file header 
+ * being placed immediately after an initial block header. This is 
+ * because the segment size is stored in the file header, and without 
+ * it we cannot calculate the block size, which is used to locate 
+ * everything else in the file.
+ *
+ * To speed up allocations a number of free lists are maintained 
+ * which categorize each segment based on how many free blocks 
+ * they have. This means we can avoid trying to allocate from 
+ * every existing segment before finding out we have to allocate a 
+ * new segment, or trying to allocate from segments without the 
+ * required number of free blocks. The downside of this technique is 
+ * that it doesn't account for fragmentation within the allocation 
+ * bitmap.
+ *
+ * Each segment is mapped in separately, and each view is cached. 
+ * Even after a view becomes inactive (has a reference count of 0) 
+ * it remains mapped in until the maximum number of inactive views 
+ * is reached.
+ */
+
 #include <ph.h>
 #include <filepool.h>
 #include <filepoolp.h>
 
+/**
+ * Creates or opens a file pool.
+ *
+ * \param Pool A variable which receives the file pool instance.
+ * \param FileHandle A handle to the file.
+ * \param ReadOnly TRUE to disallow writes to the file.
+ * \param Parameters Parameters for on-disk and runtime structures.
+ */
 NTSTATUS PhCreateFilePool(
     __out PPH_FILE_POOL *Pool,
     __in HANDLE FileHandle,
@@ -185,6 +251,17 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Creates or opens a file pool.
+ *
+ * \param Pool A variable which receives the file pool instance.
+ * \param FileName The file name of the file pool.
+ * \param ReadOnly TRUE to disallow writes to the file.
+ * \param ShareAccess The file access granted to other threads.
+ * \param CreateDisposition The action to perform if the file does 
+ * or does not exist. See PhCreateFileWin32() for more information.
+ * \param Parameters Parameters for on-disk and runtime structures.
+ */
 NTSTATUS PhCreateFilePool2(
     __out PPH_FILE_POOL *Pool,
     __in PWSTR FileName,
@@ -236,6 +313,11 @@ NTSTATUS PhCreateFilePool2(
     return status;
 }
 
+/**
+ * Frees resources used by a file pool instance.
+ *
+ * \param Pool The file pool.
+ */
 VOID PhDestroyFilePool(
     __in __post_invalid PPH_FILE_POOL Pool
     )
@@ -275,8 +357,14 @@ VOID PhDestroyFilePool(
     PhFree(Pool);
 }
 
+/**
+ * Validates and corrects file pool parameters.
+ *
+ * \param Parameters The parameters structure which is validated 
+ * and modified if necessary.
+ */
 NTSTATUS PhpValidateFilePoolParameters(
-    __in PPH_FILE_POOL_PARAMETERS Parameters
+    __inout PPH_FILE_POOL_PARAMETERS Parameters
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -298,6 +386,12 @@ NTSTATUS PhpValidateFilePoolParameters(
     return status;
 }
 
+/**
+ * Creates default file pool parameters.
+ *
+ * \param Parameters The parameters structure which receives 
+ * the default parameter values.
+ */
 VOID PhpSetDefaultFilePoolParameters(
     __out PPH_FILE_POOL_PARAMETERS Parameters
     )
@@ -306,6 +400,22 @@ VOID PhpSetDefaultFilePoolParameters(
     Parameters->MaximumInactiveViews = 128;
 }
 
+/**
+ * Allocates a block from a file pool.
+ *
+ * \param Pool The file pool.
+ * \param Size The number of bytes to allocate.
+ * \param Rva A variable which receives the relative virtual 
+ * address of the allocated block.
+ *
+ * \return A pointer to the allocated block. You must call 
+ * PhDereferenceFilePool() or PhDereferenceFilePoolByRva() when 
+ * you no longer need a reference to the block.
+ *
+ * \remarks The returned pointer is not valid beyond the lifetime 
+ * of the file pool instance. Use the relative virtual address 
+ * if you need a permanent reference to the allocated block.
+ */
 PVOID PhAllocateFilePool(
     __inout PPH_FILE_POOL Pool,
     __in ULONG Size,
@@ -396,6 +506,14 @@ BlockAllocated:
     return &blockHeader->Body;
 }
 
+/**
+ * Frees a block.
+ *
+ * \param Pool The file pool.
+ * \param SegmentIndex The index of the segment containing the block.
+ * \param FirstBlock The first block of the segment containing the block.
+ * \param Block A pointer to the block.
+ */
 VOID PhpFreeFilePool(
     __inout PPH_FILE_POOL Pool,
     __in ULONG SegmentIndex,
@@ -420,6 +538,14 @@ VOID PhpFreeFilePool(
     }
 }
 
+/**
+ * Frees a block allocated by PhAllocateFilePool().
+ *
+ * \param Pool The file pool.
+ * \param Block A pointer to the block. The pointer is no longer valid after you 
+ * call this function. Do not use PhDereferenceFilePool() or 
+ * PhDereferenceFilePoolByRva().
+ */
 VOID PhFreeFilePool(
     __inout PPH_FILE_POOL Pool,
     __in PVOID Block
@@ -435,8 +561,15 @@ VOID PhFreeFilePool(
 
     firstBlock = view->Base;
     PhpFreeFilePool(Pool, view->SegmentIndex, firstBlock, Block);
+    PhFppDereferenceView(Pool, view);
 }
 
+/**
+ * Frees a block allocated by PhAllocateFilePool().
+ *
+ * \param Pool The file pool.
+ * \param Rva The relative virtual address of the block.
+ */
 BOOLEAN PhFreeFilePoolByRva(
     __inout PPH_FILE_POOL Pool,
     __in ULONG Rva
@@ -462,6 +595,12 @@ BOOLEAN PhFreeFilePoolByRva(
     return TRUE;
 }
 
+/**
+ * Increments the reference count for the specified address.
+ *
+ * \param Pool The file pool.
+ * \param Address An address.
+ */
 VOID PhReferenceFilePool(
     __inout PPH_FILE_POOL Pool,
     __in PVOID Address
@@ -470,6 +609,12 @@ VOID PhReferenceFilePool(
     PhFppReferenceSegmentByBase(Pool, Address);
 }
 
+/**
+ * Decrements the reference count for the specified address.
+ *
+ * \param Pool The file pool.
+ * \param Address An address.
+ */
 VOID PhDereferenceFilePool(
     __inout PPH_FILE_POOL Pool,
     __in PVOID Address
@@ -478,6 +623,13 @@ VOID PhDereferenceFilePool(
     PhFppDereferenceSegmentByBase(Pool, Address);
 }
 
+/**
+ * Obtains a pointer for a relative virtual address, incrementing the reference 
+ * count of the address.
+ *
+ * \param Pool The file pool.
+ * \param Rva A relative virtual address.
+ */
 PVOID PhReferenceFilePoolByRva(
     __inout PPH_FILE_POOL Pool,
     __in ULONG Rva
@@ -503,6 +655,12 @@ PVOID PhReferenceFilePoolByRva(
     return (PCHAR)firstBlock + offset;
 }
 
+/**
+ * Decrements the reference count for the specified relative virtual address.
+ *
+ * \param Pool The file pool.
+ * \param Rva A relative virtual address.
+ */
 BOOLEAN PhDereferenceFilePoolByRva(
     __inout PPH_FILE_POOL Pool,
     __in ULONG Rva
@@ -521,6 +679,16 @@ BOOLEAN PhDereferenceFilePoolByRva(
     return TRUE;
 }
 
+/**
+ * Obtains a relative virtual address for a pointer.
+ *
+ * \param Pool The file pool.
+ * \param Address A pointer.
+ *
+ * \return The relative virtual address.
+ *
+ * \remarks No reference counts are changed.
+ */
 ULONG PhEncodeRvaFilePool(
     __in PPH_FILE_POOL Pool,
     __in PVOID Address
@@ -539,6 +707,12 @@ ULONG PhEncodeRvaFilePool(
     return PhFppEncodeRva(Pool, view->SegmentIndex, view->Base, Address);
 }
 
+/**
+ * Retrieves user data.
+ *
+ * \param Pool The file pool.
+ * \param Context A variable which receives the user data.
+ */
 VOID PhGetUserContextFilePool(
     __in PPH_FILE_POOL Pool,
     __out PULONGLONG Context
@@ -547,6 +721,12 @@ VOID PhGetUserContextFilePool(
     *Context = Pool->Header->UserContext;
 }
 
+/**
+ * Stores user data.
+ *
+ * \param Pool The file pool.
+ * \param Context A variable which contains the user data.
+ */
 VOID PhSetUserContextFilePool(
     __inout PPH_FILE_POOL Pool,
     __in PULONGLONG Context
@@ -555,6 +735,12 @@ VOID PhSetUserContextFilePool(
     Pool->Header->UserContext = *Context;
 }
 
+/**
+ * Extends a file pool.
+ *
+ * \param Pool The file pool.
+ * \param NewSize The new size of the file, in bytes.
+ */
 NTSTATUS PhFppExtendRange(
     __inout PPH_FILE_POOL Pool,
     __in ULONG NewSize
@@ -567,6 +753,14 @@ NTSTATUS PhFppExtendRange(
     return NtExtendSection(Pool->SectionHandle, &newSectionSize);
 }
 
+/**
+ * Maps in a view of a file pool.
+ *
+ * \param Pool The file pool.
+ * \param Offset The offset of the view, in bytes.
+ * \param Size The size of the view, in bytes.
+ * \param Base A variable which receives the base address of the view.
+ */
 NTSTATUS PhFppMapRange(
     __inout PPH_FILE_POOL Pool,
     __in ULONG Offset,
@@ -602,6 +796,12 @@ NTSTATUS PhFppMapRange(
     return status;
 }
 
+/**
+ * Unmaps a view of a file pool.
+ *
+ * \param Pool The file pool.
+ * \param Base The base address of the view.
+ */
 NTSTATUS PhFppUnmapRange(
     __inout PPH_FILE_POOL Pool,
     __in PVOID Base
@@ -610,6 +810,15 @@ NTSTATUS PhFppUnmapRange(
     return NtUnmapViewOfSection(NtCurrentProcess(), Base);
 }
 
+/**
+ * Initializes a segment.
+ *
+ * \param Pool The file pool.
+ * \param BlockOfSegmentHeader The block header of the span containing 
+ * the segment header.
+ * \param AdditionalBlocksUsed The number of blocks already allocated 
+ * from the segment, excluding the blocks comprising the segment header.
+ */
 VOID PhFppInitializeSegment(
     __inout PPH_FILE_POOL Pool,
     __out PPH_FP_BLOCK_HEADER BlockOfSegmentHeader,
@@ -629,6 +838,15 @@ VOID PhFppInitializeSegment(
     segmentHeader->FreeBlink = -1;
 }
 
+/**
+ * Allocates a segment.
+ *
+ * \param Pool The file pool.
+ * \param NewSegmentIndex A variable which receives the index of the new 
+ * segment.
+ *
+ * \return A pointer to the first block of the segment.
+ */
 PPH_FP_BLOCK_HEADER PhFppAllocateSegment(
     __inout PPH_FILE_POOL Pool,
     __out PULONG NewSegmentIndex
@@ -656,6 +874,12 @@ PPH_FP_BLOCK_HEADER PhFppAllocateSegment(
     return firstBlock;
 }
 
+/**
+ * Retrieves the header of a segment.
+ *
+ * \param Pool The file pool.
+ * \param FirstBlock The first block of the segment.
+ */
 PPH_FP_SEGMENT_HEADER PhFppGetHeaderSegment(
     __inout PPH_FILE_POOL Pool,
     __in PPH_FP_BLOCK_HEADER FirstBlock
@@ -724,6 +948,15 @@ VOID PhFppRemoveViewByIndex(
     }
 }
 
+/**
+ * Finds a view for the specified segment.
+ *
+ * \param Pool The file pool.
+ * \param SegmentIndex The index of the segment.
+ *
+ * \return The view for the segment, or NULL if no view is 
+ * present for the segment.
+ */
 PPH_FILE_POOL_VIEW PhFppFindViewByIndex(
     __inout PPH_FILE_POOL Pool,
     __in ULONG SegmentIndex
@@ -782,6 +1015,15 @@ VOID PhFppRemoveViewByBase(
     PhRemoveElementAvlTree(&Pool->ByBaseSet, &View->ByBaseLinks);
 }
 
+/**
+ * Finds a view containing the specified address.
+ *
+ * \param Pool The file pool.
+ * \param Base The address.
+ *
+ * \return The view containing the address, or NULL if no view 
+ * is present for the address.
+ */
 PPH_FILE_POOL_VIEW PhFppFindViewByBase(
     __inout PPH_FILE_POOL Pool,
     __in PVOID Base
@@ -1006,6 +1248,17 @@ VOID PhFppDereferenceSegmentByBase(
     PhFppDereferenceView(Pool, view);
 }
 
+/**
+ * Allocates blocks from a segment.
+ *
+ * \param Pool The file pool.
+ * \param FirstBlock The first block of the segment.
+ * \param SegmentHeader The header of the segment.
+ * \param NumberOfBlocks The number of blocks to allocate.
+ *
+ * \return The header of the allocated span, or NULL if there is 
+ * an insufficient number of contiguous free blocks for the allocation.
+ */
 PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
     __inout PPH_FILE_POOL Pool,
     __in PPH_FP_BLOCK_HEADER FirstBlock,
@@ -1043,6 +1296,14 @@ PPH_FP_BLOCK_HEADER PhFppAllocateBlocks(
     return blockHeader;
 }
 
+/**
+ * Frees blocks in a segment.
+ *
+ * \param Pool The file pool.
+ * \param FirstBlock The first block of the segment.
+ * \param SegmentHeader The header of the segment.
+ * \param BlockHeader The header of the allocated span.
+ */
 VOID PhFppFreeBlocks(
     __inout PPH_FILE_POOL Pool,
     __in PPH_FP_BLOCK_HEADER FirstBlock,
@@ -1063,6 +1324,12 @@ VOID PhFppFreeBlocks(
     SegmentHeader->FreeBlocks += blockSpan;
 }
 
+/**
+ * Computes the free list index (category) for a specified number of blocks.
+ *
+ * \param Pool The file pool.
+ * \param NumberOfBlocks The number of free or required blocks.
+ */
 ULONG PhFppComputeFreeListIndex(
     __in PPH_FILE_POOL Pool,
     __in ULONG NumberOfBlocks
@@ -1106,6 +1373,14 @@ ULONG PhFppComputeFreeListIndex(
     }
 }
 
+/**
+ * Inserts a segment into a free list.
+ *
+ * \param Pool The file pool.
+ * \param FreeListIndex The index of a free list.
+ * \param SegmentIndex The index of the segment.
+ * \param SegmentHeader The header of the segment.
+ */
 BOOLEAN PhFppInsertFreeList(
     __inout PPH_FILE_POOL Pool,
     __in ULONG FreeListIndex,
@@ -1145,6 +1420,14 @@ BOOLEAN PhFppInsertFreeList(
     return TRUE;
 }
 
+/**
+ * Removes a segment from a free list.
+ *
+ * \param Pool The file pool.
+ * \param FreeListIndex The index of a free list.
+ * \param SegmentIndex The index of the segment.
+ * \param SegmentHeader The header of the segment.
+ */
 BOOLEAN PhFppRemoveFreeList(
     __inout PPH_FILE_POOL Pool,
     __in ULONG FreeListIndex,
@@ -1209,6 +1492,12 @@ BOOLEAN PhFppRemoveFreeList(
     return TRUE;
 }
 
+/**
+ * Retrieves the header of a block.
+ *
+ * \param Pool The file pool.
+ * \param Block A pointer to the body of the block.
+ */
 PPH_FP_BLOCK_HEADER PhFppGetHeaderBlock(
     __in PPH_FILE_POOL Pool,
     __in PVOID Block
@@ -1217,6 +1506,14 @@ PPH_FP_BLOCK_HEADER PhFppGetHeaderBlock(
     return CONTAINING_RECORD(Block, PH_FP_BLOCK_HEADER, Body);
 }
 
+/**
+ * Creates a relative virtual address.
+ *
+ * \param Pool The file pool.
+ * \param SegmentIndex The index of the segment containing \a Address.
+ * \param FirstBlock The first block of the segment containing \a Address.
+ * \param Address An address.
+ */
 ULONG PhFppEncodeRva(
     __in PPH_FILE_POOL Pool,
     __in ULONG SegmentIndex,
@@ -1227,6 +1524,16 @@ ULONG PhFppEncodeRva(
     return (SegmentIndex << Pool->SegmentShift) + (ULONG)((PCHAR)Address - (PCHAR)FirstBlock);
 }
 
+/**
+ * Decodes a relative virtual address.
+ *
+ * \param Pool The file pool.
+ * \param Rva The relative virtual address.
+ * \param SegmentIndex A variable which receives the segment index.
+ *
+ * \return An offset into the segment specified by \a SegmentIndex, or -1 
+ * if \a Rva is invalid.
+ */
 ULONG PhFppDecodeRva(
     __in PPH_FILE_POOL Pool,
     __in ULONG Rva,
