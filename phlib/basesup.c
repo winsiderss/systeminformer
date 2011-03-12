@@ -1654,7 +1654,7 @@ PPH_STRING PhFormatString_V(
     )
 {
     PPH_STRING string;
-    INT length;
+    int length;
 
     length = _vscwprintf(Format, ArgPtr);
 
@@ -2048,7 +2048,7 @@ VOID PhAppendFormatFullString_V(
     __in va_list ArgPtr
     )
 {
-    INT length;
+    int length;
     SIZE_T lengthInBytes;
 
     length = _vscwprintf(Format, ArgPtr);
@@ -2486,7 +2486,7 @@ VOID PhAppendFormatStringBuilder_V(
     __in va_list ArgPtr
     )
 {
-    INT length;
+    int length;
     ULONG lengthInBytes;
 
     length = _vscwprintf(Format, ArgPtr);

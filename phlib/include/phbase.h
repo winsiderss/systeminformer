@@ -2200,7 +2200,7 @@ PhRemoveItemsList(
  * \li A negative value if \a Item1 < \a Item2, and
  * \li 0 if \a Item1 = \a Item2.
  */
-typedef INT (NTAPI *PPH_COMPARE_FUNCTION)(
+typedef LONG (NTAPI *PPH_COMPARE_FUNCTION)(
     __in PVOID Item1,
     __in PVOID Item2,
     __in_opt PVOID Context
@@ -3426,7 +3426,7 @@ typedef struct _PH_AVL_LINKS
 
 struct _PH_AVL_TREE;
 
-typedef INT (NTAPI *PPH_AVL_TREE_COMPARE_FUNCTION)(
+typedef LONG (NTAPI *PPH_AVL_TREE_COMPARE_FUNCTION)(
     __in PPH_AVL_LINKS Links1,
     __in PPH_AVL_LINKS Links2
     );
@@ -3473,6 +3473,15 @@ NTAPI
 PhFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Element
+    );
+
+PHLIBAPI
+PPH_AVL_LINKS
+NTAPI
+PhFindElementAvlTree2(
+    __in PPH_AVL_TREE Tree,
+    __in PPH_AVL_LINKS Element,
+    __out PLONG Result
     );
 
 PHLIBAPI
