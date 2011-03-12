@@ -13,7 +13,7 @@ typedef struct _PH_FILE_POOL_VIEW
 } PH_FILE_POOL_VIEW, *PPH_FILE_POOL_VIEW;
 
 NTSTATUS PhpValidateFilePoolParameters(
-    __in PPH_FILE_POOL_PARAMETERS Parameters
+    __inout PPH_FILE_POOL_PARAMETERS Parameters
     );
 
 VOID PhpSetDefaultFilePoolParameters(
