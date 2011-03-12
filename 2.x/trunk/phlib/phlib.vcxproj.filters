@@ -204,6 +204,9 @@
     <ClCompile Include="cpysave.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="filepool.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\phsync.h">
@@ -429,6 +432,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\cpysave.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\filepool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\filepoolp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -52,11 +52,11 @@ VOID PhInitializeAvlTree(
 FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
     __in PPH_AVL_TREE Tree,
     __in PPH_AVL_LINKS Element,
-    __out PINT Result
+    __out PLONG Result
     )
 {
     PPH_AVL_LINKS links;
-    INT result;
+    LONG result;
 
     links = PhRootElementAvlTree(Tree);
 
@@ -104,8 +104,6 @@ FORCEINLINE PPH_AVL_LINKS PhpFindElementAvlTree(
             }
         }
     }
-
-    assert(FALSE);
 }
 
 FORCEINLINE VOID PhpRotateLeftAvlLinks(
@@ -496,7 +494,7 @@ PPH_AVL_LINKS PhAddElementAvlTree(
     __out PPH_AVL_LINKS Element
     )
 {
-    INT result;
+    LONG result;
     PPH_AVL_LINKS P;
     PPH_AVL_LINKS root;
     LONG balance;
@@ -711,7 +709,7 @@ PPH_AVL_LINKS PhFindElementAvlTree(
     )
 {
     PPH_AVL_LINKS links;
-    INT result;
+    LONG result;
 
     links = PhpFindElementAvlTree(Tree, Element, &result);
 
@@ -719,6 +717,34 @@ PPH_AVL_LINKS PhFindElementAvlTree(
         return links;
     else
         return NULL;
+}
+
+/**
+ * Finds an element in an AVL tree.
+ *
+ * \param Tree The tree.
+ * \param Element The element to find.
+ * \param Result The result of the search.
+ *
+ * \return The closest element, or NULL if the tree is empty.
+ */
+PPH_AVL_LINKS PhFindElementAvlTree2(
+    __in PPH_AVL_TREE Tree,
+    __in PPH_AVL_LINKS Element,
+    __out PLONG Result
+    )
+{
+    PPH_AVL_LINKS links;
+    LONG result;
+
+    links = PhpFindElementAvlTree(Tree, Element, &result);
+
+    if (links == &Tree->Root)
+        return NULL;
+
+    *Result = result;
+
+    return links;
 }
 
 /**
