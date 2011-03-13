@@ -22,6 +22,28 @@
 
 #define PH_SRVPRV_PRIVATE
 #include <phapp.h>
+#include <winevt.h>
+
+typedef DWORD (WINAPI *_NotifyServiceStatusChangeW)(
+    __in SC_HANDLE hService,
+    __in DWORD dwNotifyMask,
+    __in PSERVICE_NOTIFYW pNotifyBuffer
+    );
+
+typedef BOOL (WINAPI *_EvtClose)(
+    __in EVT_HANDLE Object
+    );
+
+typedef EVT_HANDLE (WINAPI *_EvtSubscribe)(
+    __in EVT_HANDLE Session,
+    __in HANDLE SignalEvent,
+    __in LPCWSTR ChannelPath,
+    __in LPCWSTR Query,
+    __in EVT_HANDLE Bookmark,
+    __in PVOID context,
+    __in EVT_SUBSCRIBE_CALLBACK Callback,
+    __in DWORD Flags
+    );
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
 {
@@ -54,6 +76,8 @@ VOID PhpRemoveProcessItemService(
     __in PPH_SERVICE_ITEM ServiceItem
     );
 
+VOID PhpInitializeServiceNonPoll();
+
 PPH_OBJECT_TYPE PhServiceItemType;
 
 PPH_HASHTABLE PhServiceHashtable;
@@ -63,6 +87,15 @@ PHAPPAPI PH_CALLBACK_DECLARE(PhServiceAddedEvent);
 PHAPPAPI PH_CALLBACK_DECLARE(PhServiceModifiedEvent);
 PHAPPAPI PH_CALLBACK_DECLARE(PhServiceRemovedEvent);
 PHAPPAPI PH_CALLBACK_DECLARE(PhServicesUpdatedEvent);
+
+BOOLEAN PhEnableServiceNonPoll = FALSE;
+static BOOLEAN PhpNonPollInitialized = FALSE;
+static BOOLEAN PhpNonPollActive = FALSE;
+static HANDLE PhpNonPollThreadHandle;
+static ULONG PhpNonPollGate;
+static _NotifyServiceStatusChangeW NotifyServiceStatusChangeW_I;
+static _EvtClose EvtClose_I;
+static _EvtSubscribe EvtSubscribe_I;
 
 BOOLEAN PhServiceProviderInitialization()
 {
@@ -402,6 +435,29 @@ VOID PhServiceProviderUpdate(
     ULONG i;
     PPH_HASH_ENTRY hashEntry;
 
+    // We always execute the first run, and we only initialize non-polling after the first run.
+    if (PhEnableServiceNonPoll && runCount != 0)
+    {
+        if (!PhpNonPollInitialized)
+        {
+            if (WindowsVersion >= WINDOWS_VISTA)
+            {
+                PhpInitializeServiceNonPoll();
+            }
+
+            PhpNonPollInitialized = TRUE;
+        }
+
+        if (PhpNonPollActive)
+        {
+            if (InterlockedExchange(&PhpNonPollGate, 0) == 0)
+            {
+                // Non-poll gate is closed; skip all processing.
+                goto UpdateEnd;
+            }
+        }
+    }
+
     if (!scManagerHandle)
     {
         scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_ENUMERATE_SERVICE);
@@ -687,6 +743,167 @@ VOID PhServiceProviderUpdate(
 
     PhFree(services);
 
+UpdateEnd:
     PhInvokeCallback(&PhServicesUpdatedEvent, NULL);
     runCount++;
+}
+
+DWORD WINAPI PhpServiceNonPollSubscribeCallback(
+    __in EVT_SUBSCRIBE_NOTIFY_ACTION Action,
+    __in PVOID UserContext,
+    __in EVT_HANDLE Event
+    )
+{
+    _InterlockedExchange(&PhpNonPollGate, 1);
+    return 0;
+}
+
+VOID CALLBACK PhpServiceNonPollScNotifyCallback(
+    __in PVOID pParameter 
+    )
+{
+    PSERVICE_NOTIFYW notifyBuffer = pParameter;
+
+    if (notifyBuffer->dwNotificationStatus == ERROR_SUCCESS)
+    {
+        if (notifyBuffer->dwNotificationTriggered & (SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED))
+        {
+            LocalFree(notifyBuffer->pszServiceNames);
+        }
+    }
+
+    _InterlockedExchange(&PhpNonPollGate, 1);
+
+    NtSetEvent((HANDLE)notifyBuffer->pContext, NULL);
+}
+
+NTSTATUS PhpServiceNonPollThreadStart(
+    __in PVOID Parameter
+    )
+{
+    EVT_HANDLE subscriptionHandle;
+    SC_HANDLE scManagerHandle;
+    HANDLE notifyEventHandle;
+    SERVICE_NOTIFYW notifyBuffer;
+    ULONG result;
+
+    // The non-polling method involves two functions:
+    // * NotifyServiceStatusChange provides us with service creation and deletion events.
+    // * EvtSubscribe provides us with service state change events (but not pending states).
+
+    subscriptionHandle = EvtSubscribe_I(
+        NULL,
+        NULL,
+        L"System",
+        L"*[System[Provider[@Name='Service Control Manager']]]",
+        NULL,
+        NULL,
+        PhpServiceNonPollSubscribeCallback,
+        EvtSubscribeToFutureEvents
+        );
+
+    if (!subscriptionHandle)
+    {
+        // Subscription unsuccessful; cancel non-polling.
+        PhpNonPollActive = FALSE;
+        PhpNonPollGate = 1;
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (!NT_SUCCESS(NtCreateEvent(&notifyEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, FALSE)))
+    {
+        EvtClose_I(subscriptionHandle);
+        PhpNonPollActive = FALSE;
+        PhpNonPollGate = 1;
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    while (TRUE)
+    {
+        scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_ENUMERATE_SERVICE);
+
+        if (!scManagerHandle)
+        {
+            PhpNonPollActive = FALSE;
+            PhpNonPollGate = 1;
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        while (TRUE)
+        {
+            memset(&notifyBuffer, 0, sizeof(SERVICE_NOTIFYW));
+            notifyBuffer.dwVersion = SERVICE_NOTIFY_STATUS_CHANGE;
+            notifyBuffer.pfnNotifyCallback = PhpServiceNonPollScNotifyCallback;
+            notifyBuffer.pContext = notifyEventHandle;
+
+            result = NotifyServiceStatusChangeW_I(scManagerHandle, SERVICE_NOTIFY_CREATED | SERVICE_NOTIFY_DELETED, &notifyBuffer);
+
+            if (result == ERROR_SUCCESS)
+            {
+                // Wait for the callback function to be called and complete.
+
+                while (NtWaitForSingleObject(notifyEventHandle, TRUE, NULL) != STATUS_WAIT_0)
+                    NOTHING;
+            }
+            else if (result == ERROR_SERVICE_NOTIFY_CLIENT_LAGGING)
+            {
+                // We are lagging behind. Re-open the handle to the SCM.
+                break;
+            }
+            else
+            {
+                LARGE_INTEGER interval;
+
+                // Sleep for a bit and try again.
+                interval.QuadPart = -100 * PH_TIMEOUT_MS;
+                NtDelayExecution(FALSE, &interval);
+            }
+        }
+
+        CloseServiceHandle(scManagerHandle);
+    }
+
+    NtClose(notifyEventHandle);
+
+    EvtClose_I(subscriptionHandle);
+
+    return STATUS_SUCCESS;
+}
+
+VOID PhpInitializeServiceNonPoll()
+{
+    HMODULE wevtapiHandle;
+
+    // Dynamically import the required functions.
+
+    NotifyServiceStatusChangeW_I = PhGetProcAddress(L"advapi32.dll", "NotifyServiceStatusChangeW");
+
+    if (!NotifyServiceStatusChangeW_I)
+        return;
+
+    wevtapiHandle = LoadLibrary(L"wevtapi.dll");
+
+    if (!wevtapiHandle)
+        return;
+
+    EvtClose_I = (PVOID)GetProcAddress(wevtapiHandle, "EvtClose");
+
+    if (!EvtClose_I)
+        return;
+
+    EvtSubscribe_I = (PVOID)GetProcAddress(wevtapiHandle, "EvtSubscribe");
+
+    if (!EvtSubscribe_I)
+        return;
+
+    PhpNonPollActive = TRUE;
+    PhpNonPollGate = 1; // initially the gate should be open since we only just initialized everything
+
+    PhpNonPollThreadHandle = PhCreateThread(0, PhpServiceNonPollThreadStart, NULL);
+
+    if (!PhpNonPollThreadHandle)
+    {
+        PhpNonPollActive = FALSE;
+        return;
+    }
 }
