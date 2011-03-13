@@ -329,6 +329,8 @@ PHAPPAPI extern PH_CALLBACK PhServiceAddedEvent;
 PHAPPAPI extern PH_CALLBACK PhServiceModifiedEvent;
 PHAPPAPI extern PH_CALLBACK PhServiceRemovedEvent;
 PHAPPAPI extern PH_CALLBACK PhServicesUpdatedEvent;
+
+extern BOOLEAN PhEnableServiceNonPoll;
 #endif
 
 typedef struct _PH_SERVICE_ITEM

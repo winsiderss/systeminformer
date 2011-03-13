@@ -534,7 +534,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
             if (RwWritersActive != 0)
             {
                 wprintf(L"[fail]: writers active in read zone!\n");
-                Sleep(INFINITE);
+                NtWaitForSingleObject(NtCurrentProcess(), FALSE, NULL);
             }
 
             _InterlockedDecrement(&RwReadersActive);
@@ -560,7 +560,7 @@ static NTSTATUS PhpRwLockTestThreadStart(
                     if (RwReadersActive != 0)
                     {
                         wprintf(L"[fail]: readers active in write zone!\n");
-                        Sleep(INFINITE);
+                        NtWaitForSingleObject(NtCurrentProcess(), FALSE, NULL);
                     }
 
                     _InterlockedDecrement(&RwWritersActive);

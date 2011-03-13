@@ -266,9 +266,12 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
 
                             if (NT_SUCCESS(status))
                             {
+                                LARGE_INTEGER interval;
+
                                 // Sleep for a bit before continuing. It seems to help avoid 
                                 // BSODs.
-                                Sleep(250);
+                                interval.QuadPart = -250 * PH_TIMEOUT_MS;
+                                NtDelayExecution(FALSE, &interval);
                                 SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
                             else
