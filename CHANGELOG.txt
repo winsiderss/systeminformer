@@ -6,7 +6,6 @@ Process Hacker
    * Added Connect Time, Disconnect Time and Last Input Time 
      to session properties
    * Added more working set counters to the Statistics tab
-   * Service monitoring no longer uses polling on Vista and above
  * FIXED:
    * Column sort arrows
    * CPU usage calculations
