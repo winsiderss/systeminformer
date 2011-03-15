@@ -1810,7 +1810,12 @@ LRESULT CALLBACK PhMainWndProc(
         break;
     case WM_PH_TOGGLE_VISIBLE:
         {
-            if (IsWindowVisible(PhMainWndHandle))
+            if (IsIconic(PhMainWndHandle))
+            {
+                ShowWindow(PhMainWndHandle, SW_RESTORE);
+                SetForegroundWindow(PhMainWndHandle);
+            }
+            else if (IsWindowVisible(PhMainWndHandle))
             {
                 ShowWindow(PhMainWndHandle, SW_HIDE);
             }
