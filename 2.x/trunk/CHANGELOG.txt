@@ -1,5 +1,10 @@
 Process Hacker
 
+2.14
+ * NEW/IMPROVED:
+ * FIXED:
+   * Icon should restore the main window if it is minimized
+
 2.13
  * NEW/IMPROVED:
    * Added copy support to PE viewer
