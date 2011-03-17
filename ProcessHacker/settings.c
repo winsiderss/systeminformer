@@ -279,10 +279,10 @@ __assumeLocked static VOID PhpAddSetting(
 
     setting.Type = Type;
     setting.Name = *Name;
-    setting.DefaultValue = PhCreateStringEx(DefaultValue->Buffer, DefaultValue->Length);
+    setting.DefaultValue = *DefaultValue;
     memset(&setting.u, 0, sizeof(setting.u));
 
-    PhpSettingFromString(Type, setting.DefaultValue, &setting);
+    PhpSettingFromString(Type, &setting.DefaultValue, NULL, &setting);
 
     PhAddEntryHashtable(PhSettingsHashtable, &setting);
 }
@@ -320,7 +320,8 @@ static PPH_STRING PhpSettingToString(
 
 static BOOLEAN PhpSettingFromString(
     __in PH_SETTING_TYPE Type,
-    __in PPH_STRING String,
+    __in PPH_STRINGREF StringRef,
+    __in_opt PPH_STRING String,
     __inout PPH_SETTING Setting
     )
 {
@@ -328,8 +329,15 @@ static BOOLEAN PhpSettingFromString(
     {
     case StringSettingType:
         {
-            PhReferenceObject(String);
-            Setting->u.Pointer = String;
+            if (String)
+            {
+                PhReferenceObject(String);
+                Setting->u.Pointer = String;
+            }
+            else
+            {
+                Setting->u.Pointer = PhCreateStringEx(StringRef->Buffer, StringRef->Length);
+            }
 
             return TRUE;
         }
@@ -337,7 +345,7 @@ static BOOLEAN PhpSettingFromString(
         {
             ULONG64 integer;
 
-            if (PhStringToInteger64(&String->sr, 16, &integer))
+            if (PhStringToInteger64(StringRef, 16, &integer))
             {
                 Setting->u.Integer = (ULONG)integer;
                 return TRUE;
@@ -354,7 +362,7 @@ static BOOLEAN PhpSettingFromString(
             PH_STRINGREF xString;
             PH_STRINGREF yString;
 
-            if (!PhSplitStringRefAtChar(&String->sr, ',', &xString, &yString))
+            if (!PhSplitStringRefAtChar(StringRef, ',', &xString, &yString))
                 return FALSE;
 
             if (PhStringToInteger64(&xString, 10, &x) && PhStringToInteger64(&yString, 10, &y))
@@ -661,13 +669,15 @@ VOID PhConvertIgnoredSettings()
 
             if (!PhpSettingFromString(
                 setting->Type,
+                &((PPH_STRING)ignoredSetting->u.Pointer)->sr,
                 ignoredSetting->u.Pointer,
                 setting
                 ))
             {
                 PhpSettingFromString(
                     setting->Type,
-                    setting->DefaultValue,
+                    &setting->DefaultValue,
+                    NULL,
                     setting
                     );
             }
@@ -759,13 +769,15 @@ NTSTATUS PhLoadSettings(
 
                     if (!PhpSettingFromString(
                         setting->Type,
+                        &settingValue->sr,
                         settingValue,
                         setting
                         ))
                     {
                         PhpSettingFromString(
                             setting->Type,
-                            setting->DefaultValue,
+                            &setting->DefaultValue,
+                            NULL,
                             setting
                             );
                     }

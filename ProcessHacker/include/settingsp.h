@@ -26,7 +26,8 @@ PPH_STRING PhpSettingToString(
 
 BOOLEAN PhpSettingFromString(
     __in PH_SETTING_TYPE Type,
-    __in PPH_STRING String,
+    __in PPH_STRINGREF StringRef,
+    __in_opt PPH_STRING String,
     __inout PPH_SETTING Setting
     );
 
