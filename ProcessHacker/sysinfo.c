@@ -352,6 +352,13 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             ULONG processors;
             ULONG i;
 
+            // Perform the allocations early or else in other message handlers we may 
+            // be doing null dereferences.
+            processors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
+            CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * processors);
+            CpusGraphHandle = PhAllocate(sizeof(HWND) * processors);
+            memset(CpusGraphHandle, 0, sizeof(HWND) * processors);
+
             // We have already set the group boxes to have WS_EX_TRANSPARENT to fix 
             // the drawing issue that arises when using WS_CLIPCHILDREN. However 
             // in removing the flicker from the graphs the group boxes will now flicker. 
@@ -369,8 +376,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             MinimumSize.right = 413;
             MinimumSize.bottom = 360;
             MapDialogRect(hwndDlg, &MinimumSize);
-
-            PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
 
             PhInitializeGraphState(&CpuGraphState);
             PhInitializeGraphState(&IoGraphState);
@@ -390,10 +395,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             ShowWindow(PhysicalGraphHandle, SW_SHOW);
             BringWindowToTop(PhysicalGraphHandle);
 
-            processors = (ULONG)PhSystemBasicInformation.NumberOfProcessors;
-            CpusGraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * processors);
-            CpusGraphHandle = PhAllocate(sizeof(HWND) * processors);
-
             for (i = 0; i < processors; i++)
             {
                 PhInitializeGraphState(&CpusGraphState[i]);
@@ -409,6 +410,8 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 NULL,
                 &ProcessesUpdatedRegistration
                 );
+
+            PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
         }
         break;
     case WM_DESTROY:
@@ -814,7 +817,7 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             PhysicalGraphState.Valid = TRUE;
                         }
                     }
-                    else if (CpusGraphHandle)
+                    else
                     {
                         for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
                         {
@@ -944,7 +947,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                         getTooltipText->Text = PhysicalGraphState.TooltipText->sr;
                     }
                     else if (
-                        CpusGraphHandle &&
                         getTooltipText->Index < getTooltipText->TotalCount
                         )
                     {
@@ -1001,7 +1003,6 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             record = PhpReferenceMaxIoRecord(mouseEvent->Index);
                         }
                         else if (
-                            CpusGraphHandle &&
                             mouseEvent->Index < mouseEvent->TotalCount
                             )
                         {
