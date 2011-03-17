@@ -2,6 +2,8 @@ Process Hacker
 
 2.14
  * NEW/IMPROVED:
+   * Hide Processes From Other Users and Hide Signed Processes 
+     settings are now saved
  * FIXED:
    * Icon should restore the main window if it is minimized
    * System Information window crashes

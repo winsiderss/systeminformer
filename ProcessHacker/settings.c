@@ -93,6 +93,8 @@ VOID PhSettingsInitialization()
     PhpAddIntegerPairSetting(L"HiddenProcessesWindowSize", L"520,400");
     PhpAddIntegerSetting(L"HideOnClose", L"0");
     PhpAddIntegerSetting(L"HideOnMinimize", L"0");
+    PhpAddIntegerSetting(L"HideOtherUserProcesses", L"0");
+    PhpAddIntegerSetting(L"HideSignedProcesses", L"0");
     PhpAddIntegerSetting(L"HideUnnamedHandles", L"1");
     PhpAddIntegerSetting(L"HighlightingDuration", L"3e8"); // 1000ms
     PhpAddIntegerSetting(L"IconMask", L"1"); // PH_ICON_CPU_HISTORY

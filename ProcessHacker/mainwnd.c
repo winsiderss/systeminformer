@@ -760,6 +760,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                     PhApplyProcessTreeFilters();
 
+                    PhSetIntegerSetting(L"HideOtherUserProcesses", !!CurrentUserFilterEntry);
                     CheckMenuItem(
                         PhMainWndMenuHandle,
                         ID_VIEW_HIDEPROCESSESFROMOTHERUSERS,
@@ -790,6 +791,7 @@ LRESULT CALLBACK PhMainWndProc(
 
                     PhApplyProcessTreeFilters();
 
+                    PhSetIntegerSetting(L"HideSignedProcesses", !!SignedFilterEntry);
                     CheckMenuItem(
                         PhMainWndMenuHandle,
                         ID_VIEW_HIDESIGNEDPROCESSES,
@@ -2185,6 +2187,18 @@ VOID PhpInitialLoadSettings()
     }
 
     NotifyIconNotifyMask = PhGetIntegerSetting(L"IconNotifyMask");
+
+    if (PhGetIntegerSetting(L"HideOtherUserProcesses"))
+    {
+        CurrentUserFilterEntry = PhAddProcessTreeFilter(PhpCurrentUserProcessTreeFilter, NULL);
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDEPROCESSESFROMOTHERUSERS, MF_CHECKED);
+    }
+
+    if (PhGetIntegerSetting(L"HideSignedProcesses"))
+    {
+        SignedFilterEntry = PhAddProcessTreeFilter(PhpSignedProcessTreeFilter, NULL);
+        CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
+    }
 
     customFont = PhGetStringSetting(L"Font");
 
