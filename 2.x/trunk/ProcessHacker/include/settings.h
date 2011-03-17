@@ -12,7 +12,7 @@ typedef struct _PH_SETTING
 {
     PH_SETTING_TYPE Type;
     PH_STRINGREF Name;
-    PPH_STRING DefaultValue;
+    PH_STRINGREF DefaultValue;
 
     union
     {
