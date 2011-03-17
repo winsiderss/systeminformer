@@ -247,6 +247,7 @@
 #ifdef _M_IX86
         case UIntPtrFormatType:
             int32 = format->u.UIntPtr;
+            goto CommonInt32Format;
 #endif
         case UInt32FormatType:
             int32 = format->u.UInt32;
@@ -270,6 +271,7 @@ CommonInt32Format:
 #ifndef _M_IX86
         case UIntPtrFormatType:
             int64 = format->u.UIntPtr;
+            goto CommonInt64Format;
 #endif
         case UInt64FormatType:
             int64 = format->u.UInt64;

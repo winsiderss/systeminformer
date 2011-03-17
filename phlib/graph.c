@@ -481,6 +481,8 @@ static VOID PhpDeleteBufferedContext(
         SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
         DeleteObject(Context->BufferedBitmap);
         DeleteDC(Context->BufferedContext);
+
+        Context->BufferedContext = NULL;
     }
 }
 
