@@ -54,6 +54,7 @@ static PH_EVENT InitializedEvent = PH_EVENT_INIT;
 static PH_LAYOUT_MANAGER WindowLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
+static BOOLEAN InInitDialog;
 
 static BOOLEAN OneGraphPerCpu;
 static BOOLEAN AlwaysOnTop;
@@ -203,8 +204,6 @@ static VOID PhpSetAlwaysOnTop()
 static VOID PhpSetOneGraphPerCpu()
 {
     ULONG i;
-
-    PhLayoutManagerLayout(&WindowLayoutManager);
 
     ShowWindow(CpuGraphHandle, !OneGraphPerCpu ? SW_SHOW : SW_HIDE);
 
@@ -411,7 +410,9 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                 &ProcessesUpdatedRegistration
                 );
 
+            InInitDialog = TRUE;
             PhLoadWindowPlacementFromSetting(L"SysInfoWindowPosition", L"SysInfoWindowSize", hwndDlg);
+            InInitDialog = FALSE;
         }
         break;
     case WM_DESTROY:
@@ -502,6 +503,11 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
             LONG between = 3;
             LONG width;
             LONG height;
+
+            // PhLoadWindowPlacementFromSetting in WM_INITDIALOG causes WM_SIZE to be sent, but this seems 
+            // to cause major lag. Ignore the message if it's from WM_INITDIALOG.
+            if (InInitDialog)
+                break;
 
             PhLayoutManagerLayout(&WindowLayoutManager);
 
