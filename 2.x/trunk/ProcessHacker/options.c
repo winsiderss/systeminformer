@@ -348,7 +348,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
                     chooseFont.lStructSize = sizeof(CHOOSEFONT);
                     chooseFont.hwndOwner = hwndDlg;
                     chooseFont.lpLogFont = &font;
-                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT;
+                    chooseFont.Flags = CF_FORCEFONTEXIST | CF_INITTOLOGFONTSTRUCT | CF_SCREENFONTS;
 
                     if (ChooseFont(&chooseFont))
                     {
