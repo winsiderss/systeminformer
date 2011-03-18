@@ -57,6 +57,7 @@ ULONG ToolBarIdRangeEnd;
 BOOLEAN TargetingWindow = FALSE;
 HWND TargetingCurrentWindow = NULL;
 BOOLEAN TargetingCurrentWindowDraw = FALSE;
+BOOLEAN TargetingCompleted = FALSE;
 ULONG TargetingMode;
 
 ULONG ProcessesUpdatedCount = 0;
@@ -344,6 +345,16 @@ LRESULT CALLBACK MainWndSubclassProc(
 
                 goto DefaultWndProc;
             }
+
+            // If we're targeting and the user presses the Esc key, cancel the targeting. 
+            // We also make sure the window doesn't get closed by filtering out the message.
+            if (LOWORD(wParam) == PHAPP_ID_ESC_EXIT && TargetingWindow)
+            {
+                TargetingWindow = FALSE;
+                ReleaseCapture();
+
+                goto DefaultWndProc;
+            }
         }
         break;
     case WM_NOTIFY:
@@ -371,6 +382,7 @@ LRESULT CALLBACK MainWndSubclassProc(
                             TargetingWindow = TRUE;
                             TargetingCurrentWindow = NULL;
                             TargetingCurrentWindowDraw = FALSE;
+                            TargetingCompleted = FALSE;
 
                             switch (id)
                             {
@@ -463,7 +475,12 @@ LRESULT CALLBACK MainWndSubclassProc(
                 ULONG processId;
                 ULONG threadId;
 
-                BringWindowToTop(hWnd);
+                TargetingCompleted = TRUE;
+
+                // Bring the window back to the top, and preserve the Always on Top setting.
+                SetWindowPos(PhMainWndHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
                 TargetingWindow = FALSE;
                 ReleaseCapture();
 
@@ -557,6 +574,29 @@ LRESULT CALLBACK MainWndSubclassProc(
                 }
 
                 goto DefaultWndProc;
+            }
+        }
+        break;
+    case WM_CAPTURECHANGED:
+        {
+            if (!TargetingCompleted)
+            {
+                // The user cancelled the targeting, probably by pressing the Esc key.
+
+                // Remove the border on the currently selected window.
+                if (TargetingCurrentWindow)
+                {
+                    if (TargetingCurrentWindowDraw)
+                    {
+                        // Remove the border on the window we found.
+                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
+                    }
+                }
+
+                SetWindowPos(PhMainWndHandle, PhGetIntegerSetting(L"MainWindowAlwaysOnTop") ? HWND_TOPMOST : HWND_TOP,
+                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+                TargetingCompleted = TRUE;
             }
         }
         break;

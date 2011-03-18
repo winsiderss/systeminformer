@@ -1,3 +1,7 @@
+1.6
+ * Fixed Always on Top being reset when using Find Window
+ * Fixed Esc key when using Find Window
+
 1.5
  * Added Find Window and Kill
 
