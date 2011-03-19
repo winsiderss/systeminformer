@@ -216,6 +216,10 @@ PhPluginReserveIds(
     __in ULONG Count
     );
 
+typedef VOID (NTAPI *PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION)(
+    __in struct _PH_PLUGIN_MENU_ITEM *MenuItem
+    );
+
 typedef struct _PH_PLUGIN_MENU_ITEM
 {
     PPH_PLUGIN Plugin;
@@ -226,6 +230,7 @@ typedef struct _PH_PLUGIN_MENU_ITEM
     HWND OwnerWindow; // valid only when the menu item is chosen
     HMENU ParentMenu; // valid only for main menu items
     HMENU SubMenu; // valid only for main menu items
+    PPH_PLUGIN_MENU_ITEM_DELETE_FUNCTION DeleteFunction; // valid only for EMENU-based menu items
 } PH_PLUGIN_MENU_ITEM, *PPH_PLUGIN_MENU_ITEM;
 
 // Location

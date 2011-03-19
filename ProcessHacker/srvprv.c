@@ -790,6 +790,10 @@ NTSTATUS PhpServiceNonPollThreadStart(
     // The non-polling method involves two functions:
     // * NotifyServiceStatusChange provides us with service creation and deletion events.
     // * EvtSubscribe provides us with service state change events (but not pending states).
+    // Currently there are two major problems with non-polling:
+    // * Pending state changes are not visible.
+    // * Driver events (start, stop, delete) are not visible. This is because the SCM must 
+    //   explicitly check if drivers are loaded - it doesn't get notifications for them either.
 
     subscriptionHandle = EvtSubscribe_I(
         NULL,

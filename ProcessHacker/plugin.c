@@ -805,7 +805,14 @@ static VOID NTAPI PhpPluginEMenuItemDeleteFunction(
     __in PPH_EMENU_ITEM Item
     )
 {
-    PhFree(Item->Context);
+    PPH_PLUGIN_MENU_ITEM pluginMenuItem;
+
+    pluginMenuItem = Item->Context;
+
+    if (pluginMenuItem->DeleteFunction)
+        pluginMenuItem->DeleteFunction(pluginMenuItem);
+
+    PhFree(pluginMenuItem);
 }
 
 /**
@@ -839,6 +846,7 @@ PPH_EMENU_ITEM PhPluginCreateEMenuItem(
     item = PhCreateEMenuItem(Flags, ID_PLUGIN_MENU_ITEM, Text, NULL, NULL);
 
     pluginMenuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    memset(pluginMenuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
     pluginMenuItem->Plugin = Plugin;
     pluginMenuItem->Id = Id;
     pluginMenuItem->RealId = 0;

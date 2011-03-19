@@ -2201,6 +2201,11 @@ BOOLEAN PhMatchWildcards(
     );
 
 PHLIBAPI
+PPH_STRING PhEscapeStringForMenuPrefix(
+    __in PPH_STRINGREF String
+    );
+
+PHLIBAPI
 LONG PhCompareUnicodeStringZIgnoreMenuPrefix(
     __in PWSTR A,
     __in PWSTR B,
