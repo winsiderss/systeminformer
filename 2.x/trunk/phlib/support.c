@@ -984,6 +984,64 @@ BOOLEAN PhMatchWildcards(
 }
 
 /**
+ * Escapes a string for prefix characters (ampersands).
+ *
+ * \param String The string to process.
+ *
+ * \return The escaped string, with each ampersand replaced by 
+ * 2 ampersands.
+ */
+PPH_STRING PhEscapeStringForMenuPrefix(
+    __in PPH_STRINGREF String
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    ULONG i;
+    ULONG length;
+    PWCHAR runStart;
+    ULONG runLength;
+
+    length = String->Length / sizeof(WCHAR);
+    runStart = NULL;
+
+    PhInitializeStringBuilder(&stringBuilder, String->Length);
+
+    for (i = 0; i < length; i++)
+    {
+        switch (String->Buffer[i])
+        {
+        case '&':
+            if (runStart)
+            {
+                PhAppendStringBuilderEx(&stringBuilder, runStart, runLength * sizeof(WCHAR));
+                runStart = NULL;
+            }
+
+            PhAppendStringBuilder2(&stringBuilder, L"&&");
+
+            break;
+        default:
+            if (runStart)
+            {
+                runLength++;
+            }
+            else
+            {
+                runStart = &String->Buffer[i];
+                runLength = 1;
+            }
+
+            break;
+        }
+    }
+
+    if (runStart)
+        PhAppendStringBuilderEx(&stringBuilder, runStart, runLength * sizeof(WCHAR));
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+/**
  * Compares two strings, ignoring prefix characters (ampersands).
  *
  * \param A The first string.

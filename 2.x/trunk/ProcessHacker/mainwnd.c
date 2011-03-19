@@ -2488,6 +2488,7 @@ VOID PhpRefreshUsersMenu()
         {
             HMENU userMenu;
             PPH_STRING menuText;
+            PPH_STRING escapedMenuText;
             WINSTATIONINFORMATION winStationInfo;
             ULONG returnLength;
             ULONG numberOfItems;
@@ -2511,20 +2512,24 @@ VOID PhpRefreshUsersMenu()
                 continue;
             }
 
-            menuText = PhaFormatString(
+            menuText = PhFormatString(
                 L"%u: %s\\%s",
                 sessions[i].SessionId,
                 winStationInfo.Domain,
                 winStationInfo.UserName
                 );
+            escapedMenuText = PhEscapeStringForMenuPrefix(&menuText->sr);
+            PhDereferenceObject(menuText);
 
             userMenu = GetSubMenu(LoadMenu(PhInstanceHandle, MAKEINTRESOURCE(IDR_USER)), 0);
             AppendMenu(
                 menu,
                 MF_STRING | MF_POPUP,
                 (UINT_PTR)userMenu,
-                menuText->Buffer
+                escapedMenuText->Buffer
                 );
+
+            PhDereferenceObject(escapedMenuText);
 
             menuItemInfo.fMask = MIIM_DATA;
             menuItemInfo.dwItemData = sessions[i].SessionId;
@@ -2631,6 +2636,8 @@ VOID PhpAddIconProcesses(
         PPH_EMENU_ITEM priorityMenu;
         HBITMAP iconBitmap;
         CLIENT_ID clientId;
+        PPH_STRING clientIdName;
+        PPH_STRING escapedName;
 
         processItem = processList->Items[i];
 
@@ -2652,10 +2659,15 @@ VOID PhpAddIconProcesses(
         clientId.UniqueProcess = processItem->ProcessId;
         clientId.UniqueThread = NULL;
 
+        clientIdName = PhGetClientIdName(&clientId);
+        escapedName = PhEscapeStringForMenuPrefix(&clientIdName->sr);
+        PhDereferenceObject(clientIdName);
+        PhaDereferenceObject(escapedName);
+
         subMenu = PhCreateEMenuItem(
             0,
             0,
-            ((PPH_STRING)PHA_DEREFERENCE(PhGetClientIdName(&clientId)))->Buffer,
+            escapedName->Buffer,
             NULL,
             processItem->ProcessId
             );
@@ -3353,6 +3365,7 @@ ULONG_PTR PhpMainWndAddMenuItem(
         return FALSE;
 
     menuItem = PhAllocate(sizeof(PH_PLUGIN_MENU_ITEM));
+    memset(menuItem, 0, sizeof(PH_PLUGIN_MENU_ITEM));
     menuItem->Plugin = Plugin;
     menuItem->Id = Id;
     menuItem->Context = Context;
