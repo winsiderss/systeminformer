@@ -185,7 +185,16 @@ INT WINAPI WinMain(
         PhStartupParameters.CommandAction
         )
     {
-        RtlExitUserProcess(PhCommandModeStart());
+        NTSTATUS status;
+
+        status = PhCommandModeStart();
+
+        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
+        {
+            PhShowStatus(NULL, L"Unable to execute the command", status, 0);
+        }
+
+        RtlExitUserProcess(status);
     }
 
     if (PhStartupParameters.PhSvc)
@@ -535,6 +544,7 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_NOPLUGINS 19
 #define PH_ARG_NEWINSTANCE 20
 #define PH_ARG_ELEVATE 21
+#define PH_ARG_SILENT 22
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -627,6 +637,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
         case PH_ARG_ELEVATE:
             PhStartupParameters.Elevate = TRUE;
             break;
+        case PH_ARG_SILENT:
+            PhStartupParameters.Silent = TRUE;
+            break;
         }
     }
     else
@@ -673,7 +686,8 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_PHSVC, L"phsvc", NoArgumentType },
         { PH_ARG_NOPLUGINS, L"noplugins", NoArgumentType },
         { PH_ARG_NEWINSTANCE, L"newinstance", NoArgumentType },
-        { PH_ARG_ELEVATE, L"elevate", NoArgumentType }
+        { PH_ARG_ELEVATE, L"elevate", NoArgumentType },
+        { PH_ARG_SILENT, L"s", NoArgumentType }
     };
     PH_STRINGREF commandLine;
 
@@ -697,6 +711,7 @@ VOID PhpProcessStartupParameters()
             L"-ctype command-type\n"
             L"-cobject command-object\n"
             L"-caction command-action\n"
+            L"-cvalue command-value\n"
             L"-debug\n"
             L"-elevate\n"
             L"-hide\n"
@@ -707,6 +722,7 @@ VOID PhpProcessStartupParameters()
             L"-nosettings\n"
             L"-phsvc\n"
             L"-ras\n"
+            L"-s\n"
             L"-settings filename\n"
             L"-uninstallkph\n"
             L"-v\n"
@@ -722,7 +738,7 @@ VOID PhpProcessStartupParameters()
 
         status = KphInstall(L"KProcessHacker2", kprocesshackerFileName->Buffer);
 
-        if (!NT_SUCCESS(status))
+        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to install KProcessHacker", status, 0);
 
         RtlExitUserProcess(status);
@@ -734,7 +750,7 @@ VOID PhpProcessStartupParameters()
 
         status = KphUninstall(L"KProcessHacker2");
 
-        if (!NT_SUCCESS(status))
+        if (!NT_SUCCESS(status) && !PhStartupParameters.Silent)
             PhShowStatus(NULL, L"Unable to uninstall KProcessHacker", status, 0);
 
         RtlExitUserProcess(status);
