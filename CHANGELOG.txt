@@ -2,6 +2,8 @@ Process Hacker
 
 2.14
  * NEW/IMPROVED:
+   * ExtendedServices plugin: Option to add a Services menu 
+     for processes
  * FIXED:
    * Icon should restore the main window if it is minimized
    * System Information window crashes
