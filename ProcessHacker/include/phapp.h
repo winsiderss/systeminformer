@@ -66,6 +66,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandType;
     PPH_STRING CommandObject;
     PPH_STRING CommandAction;
+    PPH_STRING CommandValue;
 
     BOOLEAN RunAsServiceMode;
     BOOLEAN PhSvc;

@@ -106,6 +106,55 @@ NTSTATUS PhCommandModeStart()
                 NtClose(processHandle);
             }
         }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"priority", TRUE))
+        {
+            UCHAR priority;
+
+            if (PhEqualString2(PhStartupParameters.CommandValue, L"idle", TRUE)) 
+                priority = PROCESS_PRIORITY_CLASS_IDLE;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
+                priority = PROCESS_PRIORITY_CLASS_NORMAL;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"high", TRUE))
+                priority = PROCESS_PRIORITY_CLASS_HIGH;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"realtime", TRUE))
+                priority = PROCESS_PRIORITY_CLASS_REALTIME;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"abovenormal", TRUE))
+                priority = PROCESS_PRIORITY_CLASS_ABOVE_NORMAL;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"belownormal", TRUE))
+                priority = PROCESS_PRIORITY_CLASS_BELOW_NORMAL;
+            else
+                return STATUS_INVALID_PARAMETER;
+
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            {
+                PROCESS_PRIORITY_CLASS priorityClass;
+                priorityClass.Foreground = FALSE;
+                priorityClass.PriorityClass = priority;
+                status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+                NtClose(processHandle);
+            }
+        }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"iopriority", TRUE))
+        {
+            ULONG ioPriority;
+
+            if (PhEqualString2(PhStartupParameters.CommandValue, L"verylow", TRUE)) 
+                ioPriority = 0;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"low", TRUE))
+                ioPriority = 1;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
+                ioPriority = 2;
+            else if (PhEqualString2(PhStartupParameters.CommandValue, L"high", TRUE))
+                ioPriority = 3;
+            else
+                return STATUS_INVALID_PARAMETER;
+
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            {
+                status = PhSetProcessIoPriority(processHandle, ioPriority);
+                NtClose(processHandle);
+            }
+        }
     }
     else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {

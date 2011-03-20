@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * ExtendedServices plugin: Option to add a Services menu 
      for processes
+   * Command line support for setting process priority and 
+     I/O priority
  * FIXED:
    * Icon should restore the main window if it is minimized
    * System Information window crashes

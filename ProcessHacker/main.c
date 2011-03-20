@@ -522,18 +522,19 @@ ATOM PhRegisterWindowClass()
 #define PH_ARG_COMMANDTYPE 6
 #define PH_ARG_COMMANDOBJECT 7
 #define PH_ARG_COMMANDACTION 8
-#define PH_ARG_RUNASSERVICEMODE 9
-#define PH_ARG_NOKPH 10
-#define PH_ARG_INSTALLKPH 11
-#define PH_ARG_UNINSTALLKPH 12
-#define PH_ARG_DEBUG 13
-#define PH_ARG_HWND 14
-#define PH_ARG_POINT 15
-#define PH_ARG_SHOWOPTIONS 16
-#define PH_ARG_PHSVC 17
-#define PH_ARG_NOPLUGINS 18
-#define PH_ARG_NEWINSTANCE 19
-#define PH_ARG_ELEVATE 20
+#define PH_ARG_COMMANDVALUE 9
+#define PH_ARG_RUNASSERVICEMODE 10
+#define PH_ARG_NOKPH 11
+#define PH_ARG_INSTALLKPH 12
+#define PH_ARG_UNINSTALLKPH 13
+#define PH_ARG_DEBUG 14
+#define PH_ARG_HWND 15
+#define PH_ARG_POINT 16
+#define PH_ARG_SHOWOPTIONS 17
+#define PH_ARG_PHSVC 18
+#define PH_ARG_NOPLUGINS 19
+#define PH_ARG_NEWINSTANCE 20
+#define PH_ARG_ELEVATE 21
 
 BOOLEAN NTAPI PhpCommandLineOptionCallback(
     __in_opt PPH_COMMAND_LINE_OPTION Option,
@@ -570,6 +571,9 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             break;
         case PH_ARG_COMMANDACTION:
             PhSwapReference(&PhStartupParameters.CommandAction, Value);
+            break;
+        case PH_ARG_COMMANDVALUE:
+            PhSwapReference(&PhStartupParameters.CommandValue, Value);
             break;
         case PH_ARG_RUNASSERVICEMODE:
             PhStartupParameters.RunAsServiceMode = TRUE;
@@ -657,6 +661,7 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_COMMANDTYPE, L"ctype", MandatoryArgumentType },
         { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
         { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType },
+        { PH_ARG_COMMANDVALUE, L"cvalue", MandatoryArgumentType },
         { PH_ARG_RUNASSERVICEMODE, L"ras", NoArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
         { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
