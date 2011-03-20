@@ -6,10 +6,16 @@
 #define IDD_SRVLIST                     101
 #define ID_SERVICE_RESTART              101
 #define IDD_SRVRECOVERY                 102
+#define ID_SERVICE_START                102
 #define IDD_RESTARTCOMP                 103
+#define ID_SERVICE_STOP                 103
 #define IDD_SRVRECOVERY2                104
+#define ID_SERVICE_GOTOSERVICE          104
 #define IDD_SRVPROGRESS                 105
+#define ID_SERVICE_CONTINUE             105
 #define IDD_SRVOTHER                    106
+#define ID_SERVICE_PAUSE                106
+#define IDD_OPTIONS                     107
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -35,14 +41,15 @@
 #define IDC_PRIVILEGES                  1025
 #define IDC_TRIGGERS                    1026
 #define IDC_TRIGGERS_LABEL              1027
+#define IDC_ENABLESERVICESMENU          1028
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        107
+#define _APS_NEXT_RESOURCE_VALUE        108
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1028
-#define _APS_NEXT_SYMED_VALUE           102
+#define _APS_NEXT_CONTROL_VALUE         1029
+#define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif

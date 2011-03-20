@@ -262,7 +262,7 @@ NTSTATUS EspLoadOtherInfo(
     return status;
 }
 
-INT_PTR CALLBACK EspServiceOtherDlgProc(      
+INT_PTR CALLBACK EspServiceOtherDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

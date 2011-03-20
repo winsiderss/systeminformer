@@ -30,6 +30,9 @@
     <ClCompile Include="other.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="options.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h">
