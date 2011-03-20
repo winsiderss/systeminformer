@@ -270,7 +270,7 @@ NTSTATUS EspLoadRecoveryInfo(
     return status;
 }
 
-INT_PTR CALLBACK EspServiceRecoveryDlgProc(      
+INT_PTR CALLBACK EspServiceRecoveryDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -542,7 +542,7 @@ ErrorCase:
     return FALSE;
 }
 
-INT_PTR CALLBACK EspServiceRecovery2DlgProc(      
+INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -552,7 +552,7 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     return FALSE;
 }
 
-static INT_PTR CALLBACK RestartComputerDlgProc(      
+static INT_PTR CALLBACK RestartComputerDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

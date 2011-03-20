@@ -106,7 +106,7 @@ static VOID EspLayoutServiceListControl(
         );
 }
 
-INT_PTR CALLBACK EspServiceDependenciesDlgProc(      
+INT_PTR CALLBACK EspServiceDependenciesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -235,7 +235,7 @@ ContinueLoop:
     return FALSE;
 }
 
-INT_PTR CALLBACK EspServiceDependentsDlgProc(      
+INT_PTR CALLBACK EspServiceDependentsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,

@@ -173,6 +173,17 @@ BEGIN
     CONTROL         "",IDC_TRIGGERS,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,106,268,70
 END
 
+IDD_OPTIONS DIALOGEX 0, 0, 215, 54
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,105,33,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,158,33,50,14
+    CONTROL         "Enable Services submenu for processes",IDC_ENABLESERVICESMENU,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,142,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -228,6 +239,14 @@ BEGIN
         RIGHTMARGIN, 275
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 208
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 47
     END
 END
 #endif    // APSTUDIO_INVOKED

@@ -7,6 +7,9 @@
 extern PPH_PLUGIN PluginInstance;
 #endif
 
+#define SETTING_PREFIX L"ProcessHacker.ExtendedServices."
+#define SETTING_NAME_ENABLE_SERVICES_MENU (SETTING_PREFIX L"EnableServicesMenu")
+
 // depend
 
 LPENUM_SERVICE_STATUS EsEnumDependentServices(
@@ -15,23 +18,29 @@ LPENUM_SERVICE_STATUS EsEnumDependentServices(
     __out PULONG Count
     );
 
-INT_PTR CALLBACK EspServiceDependenciesDlgProc(      
+INT_PTR CALLBACK EspServiceDependenciesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK EspServiceDependentsDlgProc(      
+INT_PTR CALLBACK EspServiceDependentsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+// options
+
+VOID EsShowOptionsDialog(
+    __in HWND ParentWindowHandle
     );
 
 // other
 
-INT_PTR CALLBACK EspServiceOtherDlgProc(      
+INT_PTR CALLBACK EspServiceOtherDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
@@ -40,14 +49,14 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
 
 // recovery
 
-INT_PTR CALLBACK EspServiceRecoveryDlgProc(      
+INT_PTR CALLBACK EspServiceRecoveryDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
     );
 
-INT_PTR CALLBACK EspServiceRecovery2DlgProc(      
+INT_PTR CALLBACK EspServiceRecovery2DlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
     __in WPARAM wParam,
