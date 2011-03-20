@@ -777,9 +777,11 @@ INT_PTR CALLBACK PhpSysInfoDlgProc(
                             HDC hdc;
 
                             PhSwapReference2(&PhysicalGraphState.TooltipText,
-                                PhConcatStrings2(
-                                L"Physical Memory: ",
-                                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer
+                                PhFormatString(
+                                L"%s / %s (%.2f%%)",
+                                PhaFormatSize(UInt32x32To64(usedPages, PAGE_SIZE), -1)->Buffer,
+                                PhaFormatSize(UInt32x32To64(totalPages, PAGE_SIZE), -1)->Buffer,
+                                (FLOAT)usedPages * 100 / totalPages
                                 ));
 
                             hdc = Graph_GetBufferedContext(PhysicalGraphHandle);
