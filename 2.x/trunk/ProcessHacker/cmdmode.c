@@ -110,6 +110,9 @@ NTSTATUS PhCommandModeStart()
         {
             UCHAR priority;
 
+            if (!PhStartupParameters.CommandValue)
+                return STATUS_INVALID_PARAMETER;
+
             if (PhEqualString2(PhStartupParameters.CommandValue, L"idle", TRUE)) 
                 priority = PROCESS_PRIORITY_CLASS_IDLE;
             else if (PhEqualString2(PhStartupParameters.CommandValue, L"normal", TRUE))
@@ -137,6 +140,9 @@ NTSTATUS PhCommandModeStart()
         else if (PhEqualString2(PhStartupParameters.CommandAction, L"iopriority", TRUE))
         {
             ULONG ioPriority;
+
+            if (!PhStartupParameters.CommandValue)
+                return STATUS_INVALID_PARAMETER;
 
             if (PhEqualString2(PhStartupParameters.CommandValue, L"verylow", TRUE)) 
                 ioPriority = 0;
