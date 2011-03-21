@@ -462,8 +462,12 @@ VOID PhpProcessItemDeleteProcedure(
 
     if (processItem->ServiceList)
     {
-        for (i = 0; i < processItem->ServiceList->Count; i++)
-            PhDereferenceObject(processItem->ServiceList->Items[i]);
+        PPH_SERVICE_ITEM serviceItem;
+
+        i = 0;
+
+        while (PhEnumPointerList(processItem->ServiceList, &i, &serviceItem))
+            PhDereferenceObject(serviceItem);
 
         PhDereferenceObject(processItem->ServiceList);
     }
