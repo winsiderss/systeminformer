@@ -14,6 +14,7 @@ Process Hacker
    * Font selection on Windows XP
    * ToolStatus plugin: Always on Top status being reset by 
      Find Window
+   * Service-related crashes
 
 2.13
  * NEW/IMPROVED:
