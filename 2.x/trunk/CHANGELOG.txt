@@ -15,6 +15,7 @@ Process Hacker
    * ToolStatus plugin: Always on Top status being reset by 
      Find Window
    * Service-related crashes
+   * WindowExplorer plugin: sorting in tree list
 
 2.13
  * NEW/IMPROVED:
