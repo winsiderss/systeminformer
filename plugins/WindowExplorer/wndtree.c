@@ -232,6 +232,15 @@ BEGIN_SORT_FUNCTION(Text)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Thread)
+{
+    sortResult = uintptrcmp((ULONG_PTR)node1->ClientId.UniqueProcess, (ULONG_PTR)node2->ClientId.UniqueProcess);
+
+    if (sortResult == 0)
+        sortResult = uintptrcmp((ULONG_PTR)node1->ClientId.UniqueThread, (ULONG_PTR)node2->ClientId.UniqueThread);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI WepWindowTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -274,7 +283,8 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
                     {
                         SORT_FUNCTION(Class),
                         SORT_FUNCTION(Handle),
-                        SORT_FUNCTION(Text)
+                        SORT_FUNCTION(Text),
+                        SORT_FUNCTION(Thread)
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
