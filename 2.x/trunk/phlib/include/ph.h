@@ -1674,15 +1674,15 @@ extern PPH_OBJECT_TYPE PhSymbolProviderType;
 
 typedef struct _PH_SYMBOL_PROVIDER
 {
-    PPH_LIST ModulesList;
+    LIST_ENTRY ModulesListHead;
     PH_QUEUED_LOCK ModulesListLock;
-    BOOLEAN ModulesListNeedsSort;
     HANDLE ProcessHandle;
     BOOLEAN IsRealHandle;
     BOOLEAN IsRegistered;
 #ifdef PH_SYMBOL_PROVIDER_DELAY_INIT
     PH_INITONCE InitOnce;
 #endif
+    PH_AVL_TREE ModulesSet;
 } PH_SYMBOL_PROVIDER, *PPH_SYMBOL_PROVIDER;
 
 typedef enum _PH_SYMBOL_RESOLVE_LEVEL
