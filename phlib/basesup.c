@@ -2912,6 +2912,8 @@ static int __cdecl PhpListQSortCompare(
  * compare two list items.
  * \param Context A user-defined value to pass to the 
  * comparison function.
+ *
+ * \remarks Do not use this function; use qsort instead.
  */
 VOID PhSortList(
     __in PPH_LIST List,

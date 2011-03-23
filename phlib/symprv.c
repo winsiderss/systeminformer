@@ -26,6 +26,8 @@
 
 typedef struct _PH_SYMBOL_MODULE
 {
+    LIST_ENTRY ListEntry;
+    PH_AVL_LINKS Links;
     ULONG64 BaseAddress;
     PPH_STRING FileName;
     ULONG BaseNameIndex;
@@ -44,8 +46,9 @@ VOID PhpFreeSymbolModule(
     __in PPH_SYMBOL_MODULE SymbolModule
     );
 
-VOID PhpEnsureModuleListSorted(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
+LONG NTAPI PhpSymbolModuleCompareFunction(
+    __in PPH_AVL_LINKS Links1,
+    __in PPH_AVL_LINKS Links2
     );
 
 PPH_OBJECT_TYPE PhSymbolProviderType;
@@ -154,9 +157,9 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
         )))
         return NULL;
 
-    symbolProvider->ModulesList = PhCreateList(10);
+    InitializeListHead(&symbolProvider->ModulesListHead);
     PhInitializeQueuedLock(&symbolProvider->ModulesListLock);
-    symbolProvider->ModulesListNeedsSort = FALSE;
+    PhInitializeAvlTree(&symbolProvider->ModulesSet, PhpSymbolModuleCompareFunction);
 
     if (ProcessId)
     {
@@ -221,7 +224,7 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     )
 {
     PPH_SYMBOL_PROVIDER symbolProvider = (PPH_SYMBOL_PROVIDER)Object;
-    ULONG i;
+    PLIST_ENTRY listEntry;
 
     if (SymCleanup_I)
     {
@@ -233,13 +236,18 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
         PH_UNLOCK_SYMBOLS();
     }
 
-    for (i = 0; i < symbolProvider->ModulesList->Count; i++)
+    listEntry = symbolProvider->ModulesListHead.Flink;
+
+    while (listEntry != &symbolProvider->ModulesListHead)
     {
-        PhpFreeSymbolModule(
-            (PPH_SYMBOL_MODULE)symbolProvider->ModulesList->Items[i]);
+        PPH_SYMBOL_MODULE module;
+
+        module = CONTAINING_RECORD(listEntry, PH_SYMBOL_MODULE, ListEntry);
+        listEntry = listEntry->Flink;
+
+        PhpFreeSymbolModule(module);
     }
 
-    PhDereferenceObject(symbolProvider->ModulesList);
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
@@ -284,21 +292,15 @@ VOID PhpFreeSymbolModule(
     PhFree(SymbolModule);
 }
 
-static INT PhpSymbolModuleCompareFunction(
-    __in PVOID Item1,
-    __in PVOID Item2,
-    __in_opt PVOID Context
+static LONG NTAPI PhpSymbolModuleCompareFunction(
+    __in PPH_AVL_LINKS Links1,
+    __in PPH_AVL_LINKS Links2
     )
 {
-    PPH_SYMBOL_MODULE symbolModule1 = (PPH_SYMBOL_MODULE)Item1;
-    PPH_SYMBOL_MODULE symbolModule2 = (PPH_SYMBOL_MODULE)Item2;
+    PPH_SYMBOL_MODULE symbolModule1 = CONTAINING_RECORD(Links1, PH_SYMBOL_MODULE, Links);
+    PPH_SYMBOL_MODULE symbolModule2 = CONTAINING_RECORD(Links2, PH_SYMBOL_MODULE, Links);
 
-    if (symbolModule1->BaseAddress > symbolModule2->BaseAddress)
-        return -1;
-    else if (symbolModule1->BaseAddress < symbolModule2->BaseAddress)
-        return 1;
-    else
-        return 0;
+    return uint64cmp(symbolModule1->BaseAddress, symbolModule2->BaseAddress);
 }
 
 BOOLEAN PhGetLineFromAddress(
@@ -383,37 +385,77 @@ ULONG64 PhGetModuleFromAddress(
     __out_opt PPH_STRING *FileName
     )
 {
-    ULONG i;
+    PH_SYMBOL_MODULE lookupModule;
+    PPH_AVL_LINKS links;
+    PPH_SYMBOL_MODULE module;
+    LONG result;
+    PPH_STRING foundFileName;
+    ULONG64 foundBaseAddress;
 
-    PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+    module = NULL;
+    foundFileName = NULL;
+    foundBaseAddress = 0;
 
-    PhpEnsureModuleListSorted(SymbolProvider);
+    // Do an approximate search on the modules set to locate the module with the largest 
+    // base address that is still smaller than the given address.
+    lookupModule.BaseAddress = Address;
 
-    for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
+    PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
+
+    links = PhFindElementAvlTree2(&SymbolProvider->ModulesSet, &lookupModule.Links, &result);
+
+    if (links)
     {
-        PPH_SYMBOL_MODULE module;
-
-        module = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
-
-        if (Address >= module->BaseAddress)
+        if (result == 0)
         {
-            ULONG64 baseAddress = module->BaseAddress;
+            // Exact match.
+        }
+        else if (result < 0)
+        {
+            // The base of the closest module is larger than our address. Assume the 
+            // preceding element (which is going to be smaller than our address) is the 
+            // one we're looking for.
 
-            if (FileName)
-            {
-                *FileName = module->FileName;
-                PhReferenceObject(module->FileName);
-            }
+            links = PhPredecessorElementAvlTree(links);
+        }
+        else
+        {
+            // The base of the closest module is smaller than our address. Assume this 
+            // is the element we're looking for.
+        }
 
-            PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+        if (links)
+        {
+            module = CONTAINING_RECORD(links, PH_SYMBOL_MODULE, Links);
+        }
+    }
+    else
+    {
+        // No modules loaded.
+    }
 
-            return baseAddress;
+    if (module)
+    {
+        foundFileName = module->FileName;
+        PhReferenceObject(foundFileName);
+        foundBaseAddress = module->BaseAddress;
+    }
+
+    PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
+
+    if (foundFileName)
+    {
+        if (FileName)
+        {
+            *FileName = foundFileName;
+        }
+        else
+        {
+            PhDereferenceObject(foundFileName);
         }
     }
 
-    PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
-
-    return 0;
+    return foundBaseAddress;
 }
 
 VOID PhpSymbolInfoAnsiToUnicode(
@@ -545,28 +587,24 @@ PPH_STRING PhGetSymbolFromAddress(
     }
     else
     {
-        ULONG i;
+        PH_SYMBOL_MODULE lookupSymbolModule;
+        PPH_AVL_LINKS existingLinks;
+        PPH_SYMBOL_MODULE symbolModule;
 
-        modBase = symbolInfo->ModBase;
+        lookupSymbolModule.BaseAddress = symbolInfo->ModBase;
 
-        PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+        PhAcquireQueuedLockShared(&SymbolProvider->ModulesListLock);
 
-        for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
+        existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
+
+        if (existingLinks)
         {
-            PPH_SYMBOL_MODULE module;
-
-            module = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
-
-            if (module->BaseAddress == modBase)
-            {
-                modFileName = module->FileName;
-                PhReferenceObject(modFileName);
-
-                break;
-            }
+            symbolModule = CONTAINING_RECORD(existingLinks, PH_SYMBOL_MODULE, Links);
+            modFileName = symbolModule->FileName;
+            PhReferenceObject(modFileName);
         }
 
-        PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
+        PhReleaseQueuedLockShared(&SymbolProvider->ModulesListLock);
     }
 
     // If we don't have a module name, return an address.
@@ -739,17 +777,6 @@ BOOLEAN PhGetSymbolFromName(
     return TRUE;
 }
 
-static VOID PhpEnsureModuleListSorted(
-    __in PPH_SYMBOL_PROVIDER SymbolProvider
-    )
-{
-    if (SymbolProvider->ModulesListNeedsSort)
-    {
-        PhSortList(SymbolProvider->ModulesList, PhpSymbolModuleCompareFunction, NULL);
-        SymbolProvider->ModulesListNeedsSort = FALSE;
-    }
-}
-
 BOOLEAN PhLoadModuleSymbolProvider(
     __in PPH_SYMBOL_PROVIDER SymbolProvider,
     __in PWSTR FileName,
@@ -785,35 +812,28 @@ BOOLEAN PhLoadModuleSymbolProvider(
     PhDereferenceObject(fileName);
 
     // Add the module to the list, even if we couldn't load 
-    // symbols for the module. 
+    // symbols for the module.
     {
-        ULONG i;
         PPH_SYMBOL_MODULE symbolModule = NULL;
+        PPH_AVL_LINKS existingLinks;
+        PH_SYMBOL_MODULE lookupSymbolModule;
+
+        lookupSymbolModule.BaseAddress = BaseAddress;
 
         PhAcquireQueuedLockExclusive(&SymbolProvider->ModulesListLock);
 
-        for (i = 0; i < SymbolProvider->ModulesList->Count; i++)
-        {
-            PPH_SYMBOL_MODULE item;
+        // Check for duplicates.
+        existingLinks = PhFindElementAvlTree(&SymbolProvider->ModulesSet, &lookupSymbolModule.Links);
 
-            item = (PPH_SYMBOL_MODULE)SymbolProvider->ModulesList->Items[i];
-
-            // Check for duplicates.
-            if (item->BaseAddress == BaseAddress)
-            {
-                symbolModule = item;
-                break;
-            }
-        }
-
-        if (!symbolModule)
+        if (!existingLinks)
         {
             symbolModule = PhAllocate(sizeof(PH_SYMBOL_MODULE));
             symbolModule->BaseAddress = BaseAddress;
             symbolModule->FileName = PhGetFullPath(FileName, &symbolModule->BaseNameIndex);
 
-            PhAddItemList(SymbolProvider->ModulesList, symbolModule);
-            SymbolProvider->ModulesListNeedsSort = TRUE;
+            existingLinks = PhAddElementAvlTree(&SymbolProvider->ModulesSet, &symbolModule->Links);
+            assert(!existingLinks);
+            InsertTailList(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
         }
 
         PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
