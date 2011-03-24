@@ -820,7 +820,11 @@ BOOLEAN PhUiTerminateProcesses(
             Processes[i]->ProcessId
             )))
         {
-            status = PhTerminateProcess(processHandle, STATUS_SUCCESS);
+            // An exit status of 1 is used here for compatibility reasons:
+            // 1. Both Task Manager and Process Explorer use 1.
+            // 2. winlogon tries to restart explorer.exe if the exit status is not 1.
+
+            status = PhTerminateProcess(processHandle, 1);
             NtClose(processHandle);
         }
 
