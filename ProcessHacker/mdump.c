@@ -232,12 +232,29 @@ NTSTATUS PhpProcessMiniDumpThreadStart(
     }
     else
     {
-        SendMessage(
-            context->WindowHandle,
-            WM_PH_MINIDUMP_STATUS_UPDATE,
-            PH_MINIDUMP_ERROR,
-            (LPARAM)GetLastError()
-            );
+        // We may have an old version of dbghelp - in that case, try 
+        // using minimal dump flags.
+        if (GetLastError() == HRESULT_FROM_WIN32(ERROR_INVALID_PARAMETER) && PhWriteMiniDumpProcess(
+            context->ProcessHandle,
+            context->ProcessId,
+            context->FileHandle,
+            MiniDumpWithFullMemory | MiniDumpWithHandleData,
+            NULL,
+            NULL,
+            &callbackInfo
+            ))
+        {
+            context->Succeeded = TRUE;
+        }
+        else
+        {
+            SendMessage(
+                context->WindowHandle,
+                WM_PH_MINIDUMP_STATUS_UPDATE,
+                PH_MINIDUMP_ERROR,
+                (LPARAM)GetLastError()
+                );
+        }
     }
 
     SendMessage(
