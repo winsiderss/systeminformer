@@ -6,6 +6,7 @@ Process Hacker
      for processes
    * Command line support for setting process priority and 
      I/O priority
+   * Improved termination of explorer.exe
  * FIXED:
    * Icon should restore the main window if it is minimized
    * System Information window crashes
