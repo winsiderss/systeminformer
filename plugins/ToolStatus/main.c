@@ -169,7 +169,7 @@ VOID LoadToolbarSettings()
 				// Get settings for first button.
 				SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
 
-				// Skip seperator buttons.
+				// Skip separator buttons.
 				if (button.fsStyle != BTNS_SEP)
 				{
 					// Apply BTNS_SHOWTEXT style.
@@ -194,7 +194,7 @@ VOID LoadToolbarSettings()
 				// Get settings for first button.
 				SendMessage(ToolBarHandle, TB_GETBUTTONINFO, i, (LPARAM)&button);
 
-				// Skip seperator buttons.
+				// Skip separator buttons.
 				if (button.fsStyle != BTNS_SEP)
 				{
 					// Apply BTNS_SHOWTEXT style.
