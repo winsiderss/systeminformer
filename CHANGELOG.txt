@@ -1,5 +1,11 @@
 Process Hacker
 
+2.15
+ * NEW/IMPROVED:
+   * Updated ToolStatus plugin
+   * Added DEP Status column
+ * FIXED:
+
 2.14
  * NEW/IMPROVED:
    * ExtendedServices plugin: Option to add a Services menu 
