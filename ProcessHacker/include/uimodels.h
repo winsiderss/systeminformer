@@ -146,13 +146,15 @@ FORCEINLINE VOID PhChangeShState(
 #define PHPRTLC_CPUHISTORY 46
 #define PHPRTLC_PRIVATEBYTESHISTORY 47
 #define PHPRTLC_IOHISTORY 48
+#define PHPRTLC_DEPSTATUS 49
 
-#define PHPRTLC_MAXIMUM 49
+#define PHPRTLC_MAXIMUM 50
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
 #define PHPN_IOPAGEPRIORITY 0x4
 #define PHPN_WINDOW 0x8
+#define PHPN_DEPSTATUS 0x10
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -186,6 +188,8 @@ typedef struct _PH_PROCESS_NODE
     HWND WindowHandle;
     PPH_STRING WindowText;
     BOOLEAN WindowHung;
+    // DEP status
+    ULONG DepStatus;
     // Cycles
     PH_UINT64_DELTA CyclesDelta;
 
