@@ -136,6 +136,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeListColumn(hwnd, PHPRTLC_CPUHISTORY, FALSE, L"CPU History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeListColumn(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeListColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
 
     PhpEnableColumnCustomDraw(hwnd, PHPRTLC_CPUHISTORY);
     PhpEnableColumnCustomDraw(hwnd, PHPRTLC_PRIVATEBYTESHISTORY);
@@ -642,6 +643,33 @@ static VOID PhpUpdateProcessNodeWindow(
     }
 }
 
+static VOID PhpUpdateProcessNodeDepStatus(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_DEPSTATUS))
+    {
+        HANDLE processHandle;
+        ULONG depStatus;
+
+        depStatus = 0;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION,
+            ProcessNode->ProcessItem->ProcessId
+            )))
+        {
+            PhGetProcessDepStatus(processHandle, &depStatus);
+            NtClose(processHandle);
+        }
+
+        ProcessNode->DepStatus = depStatus;
+
+        ProcessNode->ValidMask |= PHPN_DEPSTATUS;
+    }
+}
+
 static VOID PhpUpdateNeedCyclesInformation()
 {
     PH_TREELIST_COLUMN column;
@@ -1067,6 +1095,14 @@ BEGIN_SORT_FUNCTION(CyclesDelta)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(DepStatus)
+{
+    PhpUpdateProcessNodeDepStatus(node1);
+    PhpUpdateProcessNodeDepStatus(node2);
+    sortResult = uintcmp(node1->DepStatus, node2->DepStatus);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeListCallback(
     __in HWND hwnd,
     __in PH_TREELIST_MESSAGE Message,
@@ -1152,7 +1188,8 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                         SORT_FUNCTION(CyclesDelta),
                         SORT_FUNCTION(Cpu), // CPU History
                         SORT_FUNCTION(PrivateBytes), // Private Bytes History
-                        SORT_FUNCTION(IoTotal) // I/O History
+                        SORT_FUNCTION(IoTotal), // I/O History
+                        SORT_FUNCTION(DepStatus)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1555,6 +1592,22 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 break;
             case PHPRTLC_CYCLESDELTA:
                 getNodeText->Text = PhGetStringRef(node->CyclesDeltaText);
+                break;
+            case PHPRTLC_DEPSTATUS:
+                PhpUpdateProcessNodeDepStatus(node);
+
+                if (node->DepStatus & PH_PROCESS_DEP_ENABLED)
+                {
+                    if (node->DepStatus & PH_PROCESS_DEP_PERMANENT)
+                        PhInitializeStringRef(&getNodeText->Text, L"DEP (Permanent)");
+                    else
+                        PhInitializeStringRef(&getNodeText->Text, L"DEP");
+                }
+                else
+                {
+                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                }
+
                 break;
             default:
                 return FALSE;
