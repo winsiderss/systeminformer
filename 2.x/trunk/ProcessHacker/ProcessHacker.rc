@@ -2072,6 +2072,13 @@ IDB_FOLDER              BITMAP                  "resources\\folder.bmp"
 IDB_MAGNIFIER           BITMAP                  "resources\\magnifier.bmp"
 IDB_BRICKS              BITMAP                  "resources\\bricks.bmp"
 IDB_APPLICATION         BITMAP                  "resources\\application.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// RT_MANIFEST
+//
+
+IDR_RT_MANIFEST         RT_MANIFEST             "ProcessHacker.manifest"
 #endif    // English (Australia) resources
 /////////////////////////////////////////////////////////////////////////////
 
