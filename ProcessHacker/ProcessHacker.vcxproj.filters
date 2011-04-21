@@ -557,4 +557,9 @@
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="ProcessHacker.manifest">
+      <Filter>Resources</Filter>
+    </Manifest>
+  </ItemGroup>
 </Project>
