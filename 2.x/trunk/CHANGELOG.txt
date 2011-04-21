@@ -5,6 +5,7 @@ Process Hacker
    * Updated ToolStatus plugin
    * Added DEP Status column
  * FIXED:
+   * Image file versions
 
 2.14
  * NEW/IMPROVED:
