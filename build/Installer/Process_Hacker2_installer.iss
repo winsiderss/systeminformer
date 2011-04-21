@@ -21,7 +21,7 @@
 ;
 ;
 ; Requirements:
-; *Inno Setup QuickStart Pack v5.4.0(+): http://www.jrsoftware.org/isdl.php#qsp
+; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
 
 
 #define installer_build_number "07"
@@ -30,6 +30,10 @@
 #define VerMinor
 #define VerRevision
 #define VerBuild
+
+#if VER < 0x05040200
+  #error Update your Inno Setup version
+#endif
 
 #expr ParseVersion("..\..\bin\Release32\ProcessHacker.exe", VerMajor, VerMinor, VerRevision, VerBuild)
 #define app_version str(VerMajor) + "." + str(VerMinor) + "." + str(VerRevision) + "." + str(VerBuild)
@@ -42,23 +46,23 @@ AppID=Process_Hacker2
 AppCopyright=Copyright © 2010-2011, Process Hacker Team. Licensed under the GNU GPL, v3.
 AppContact=http://sourceforge.net/tracker/?group_id=242527
 AppName=Process Hacker
-AppVerName=Process Hacker {#= simple_app_version}
-AppVersion={#= simple_app_version}
+AppVerName=Process Hacker {#simple_app_version}
+AppVersion={#simple_app_version}
 AppPublisher=wj32
 AppPublisherURL=http://processhacker.sourceforge.net/
 AppSupportURL=http://sourceforge.net/tracker/?group_id=242527
 AppUpdatesURL=http://processhacker.sourceforge.net/
-UninstallDisplayName=Process Hacker {#= simple_app_version}
+UninstallDisplayName=Process Hacker {#simple_app_version}
 DefaultDirName={pf}\Process Hacker 2
 DefaultGroupName=Process Hacker 2
 VersionInfoCompany=wj32
 VersionInfoCopyright=Licensed under the GNU GPL, v3.
-VersionInfoDescription=Process Hacker {#= simple_app_version} Setup
-VersionInfoTextVersion={#= simple_app_version}
-VersionInfoVersion={#= simple_app_version}
+VersionInfoDescription=Process Hacker {#simple_app_version} Setup
+VersionInfoTextVersion={#simple_app_version}
+VersionInfoVersion={#simple_app_version}
 VersionInfoProductName=Process Hacker
-VersionInfoProductVersion={#= simple_app_version}
-VersionInfoProductTextVersion={#= simple_app_version}
+VersionInfoProductVersion={#simple_app_version}
+VersionInfoProductTextVersion={#simple_app_version}
 MinVersion=0,5.01.2600sp2
 AppReadmeFile={app}\Help.htm
 LicenseFile=..\..\LICENSE.txt
@@ -68,9 +72,10 @@ UninstallDisplayIcon={app}\ProcessHacker.exe
 WizardImageFile=Icons\ProcessHackerLarge.bmp
 WizardSmallImageFile=Icons\ProcessHackerSmall.bmp
 OutputDir=.
-OutputBaseFilename=processhacker-{#= simple_app_version}-setup
+OutputBaseFilename=processhacker-{#simple_app_version}-setup
 AllowNoIcons=yes
-Compression=lzma/ultra
+Compression=lzma2/ultra
+InternalCompressLevel=max
 SolidCompression=yes
 EnableDirDoesntExistWarning=no
 ShowTasksTreeLines=yes
@@ -95,7 +100,7 @@ Name: en; MessagesFile: compiler:Default.isl
 
 
 [Messages]
-BeveledLabel=Process Hacker v{#= simple_app_version}, Setup v{#= installer_build_number} built on {#= installer_build_date}
+BeveledLabel=Process Hacker v{#simple_app_version}, Setup v{#installer_build_number} built on {#installer_build_date}
 
 
 [Types]
@@ -173,16 +178,16 @@ Source: Icons\uninstall.ico;                                                    
 
 
 [Icons]
-Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: peview; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview;
-Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
+Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: peview; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
+Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile};  Filename: {app}\Help.htm;         WorkingDir: {app}; Comment: {cm:sm_HelpFile}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
 Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Filename: {uninstallexe}; WorkingDir: {app}; Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
-Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
-Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
-Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#= simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
+Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
+Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
+Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: quicklaunchicon
 
 
 [InstallDelete]
@@ -206,9 +211,9 @@ Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Tasks: startup_task
 Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Flags: deletevalue uninsdeletevalue; Tasks: remove_startup_task
+Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck(); Tasks: restore_taskmgr reset_settings
@@ -330,7 +335,7 @@ begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;
     end;
-    RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2\'));
+    RemoveDir(ExpandConstant('{userappdata}\Process Hacker 2'));
     RemoveDir(ExpandConstant('{app}\plugins'));
     RemoveDir(ExpandConstant('{app}'));
   end;
