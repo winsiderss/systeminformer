@@ -3223,6 +3223,7 @@ VOID PhMainWndOnCreate()
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
     PhSetListViewStyle(NetworkListViewHandle, TRUE, TRUE);
+    SendMessage(ListView_GetToolTips(NetworkListViewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
     BringWindowToTop(NetworkListViewHandle);
     PhpReloadListViewFont();
 
