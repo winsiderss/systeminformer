@@ -105,6 +105,7 @@
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>$(ProjectDir)$(TargetName).manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -139,6 +140,7 @@
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>$(ProjectDir)$(TargetName).manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -176,6 +178,7 @@
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>$(ProjectDir)$(TargetName).manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -213,6 +216,7 @@
     </Link>
     <Manifest>
       <EnableDPIAwareness>true</EnableDPIAwareness>
+      <AdditionalManifestFiles>$(ProjectDir)$(TargetName).manifest %(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
