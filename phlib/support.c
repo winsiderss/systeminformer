@@ -1745,6 +1745,9 @@ BOOLEAN PhInitializeImageVersionInfo(
 {
     PVOID versionInfo;
     ULONG langCodePage;
+    VS_FIXEDFILEINFO *rootBlock;
+    ULONG rootBlockLength;
+    PH_FORMAT fileVersionFormat[7];
 
     versionInfo = PhGetFileVersionInfo(FileName);
 
@@ -1755,8 +1758,25 @@ BOOLEAN PhInitializeImageVersionInfo(
 
     ImageVersionInfo->CompanyName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"CompanyName");
     ImageVersionInfo->FileDescription = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileDescription");
-    ImageVersionInfo->FileVersion = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"FileVersion");
     ImageVersionInfo->ProductName = PhGetFileVersionInfoString2(versionInfo, langCodePage, L"ProductName");
+
+    // The version information is language-independent and must be read from the root block.
+    if (VerQueryValue(versionInfo, L"\\", &rootBlock, &rootBlockLength) && rootBlockLength != 0)
+    {
+        PhInitFormatU(&fileVersionFormat[0], rootBlock->dwFileVersionMS >> 16);
+        PhInitFormatC(&fileVersionFormat[1], '.');
+        PhInitFormatU(&fileVersionFormat[2], rootBlock->dwFileVersionMS & 0xffff);
+        PhInitFormatC(&fileVersionFormat[3], '.');
+        PhInitFormatU(&fileVersionFormat[4], rootBlock->dwFileVersionLS >> 16);
+        PhInitFormatC(&fileVersionFormat[5], '.');
+        PhInitFormatU(&fileVersionFormat[6], rootBlock->dwFileVersionLS & 0xffff);
+
+        ImageVersionInfo->FileVersion = PhFormat(fileVersionFormat, 7, 30);
+    }
+    else
+    {
+        ImageVersionInfo->FileVersion = NULL;
+    }
 
     PhFree(versionInfo);
 
@@ -1824,7 +1844,7 @@ PPH_STRING PhFormatImageVersionInfo(
 
         if (LineLimit != MAXULONG32)
         {
-            limitForVersion = (LineLimit - 1) / 5; // 1/5 space for version (and space character)
+            limitForVersion = (LineLimit - 1) / 4; // 1/4 space for version (and space character)
             limitForDescription = LineLimit - limitForVersion;
         }
         else
