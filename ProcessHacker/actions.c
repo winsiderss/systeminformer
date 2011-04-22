@@ -663,6 +663,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
 {
     PWSTR object;
     ULONG i;
+    BOOLEAN critical = FALSE;
     BOOLEAN dangerous = FALSE;
     BOOLEAN cont = FALSE;
 
@@ -671,6 +672,24 @@ static BOOLEAN PhpShowContinueMessageProcesses(
 
     for (i = 0; i < NumberOfProcesses; i++)
     {
+        HANDLE processHandle;
+        ULONG breakOnTermination;
+
+        breakOnTermination = 0;
+
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, Processes[i]->ProcessId)))
+        {
+            NtQueryInformationProcess(processHandle, ProcessBreakOnTermination, &breakOnTermination, sizeof(ULONG), NULL);
+            NtClose(processHandle);
+        }
+
+        if (breakOnTermination != 0)
+        {
+            critical = TRUE;
+            dangerous = TRUE;
+            break;
+        }
+
         if (PhpIsDangerousProcess(Processes[i]->ProcessId))
         {
             dangerous = TRUE;
@@ -711,7 +730,7 @@ static BOOLEAN PhpShowContinueMessageProcesses(
                 FALSE
                 );
         }
-        else
+        else if (!critical)
         {
             cont = PhShowConfirmMessage(
                 hWnd,
@@ -723,6 +742,37 @@ static BOOLEAN PhpShowContinueMessageProcesses(
                 Verb,
                 L" one or more system processes."
                 )->Buffer,
+                TRUE
+                );
+        }
+        else
+        {
+            PPH_STRING message;
+
+            if (WSTR_EQUAL(Verb, L"terminate"))
+            {
+                message = PhaConcatStrings(
+                    3,
+                    L"You are about to ",
+                    Verb,
+                    L" one or more critical processes. This will shut down the operating system immediately."
+                    );
+            }
+            else
+            {
+                message = PhaConcatStrings(
+                    3,
+                    L"You are about to ",
+                    Verb,
+                    L" one or more critical processes."
+                    );
+            }
+
+            cont = PhShowConfirmMessage(
+                hWnd,
+                Verb,
+                object,
+                message->Buffer,
                 TRUE
                 );
         }

@@ -539,6 +539,7 @@ BOOLEAN PhShowConfirmMessage(
 
         config.hwndParent = hWnd;
         config.hInstance = PhLibImageBase;
+        config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION;
         config.pszWindowTitle = L"Process Hacker";
         config.pszMainIcon = Warning ? TD_WARNING_ICON : NULL;
         config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
