@@ -6,6 +6,7 @@ Process Hacker
    * Added DEP Status column
  * FIXED:
    * Image file versions
+   * Workaround for an IPv6-related bug in Windows XP
 
 2.14
  * NEW/IMPROVED:
