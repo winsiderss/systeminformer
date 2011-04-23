@@ -268,15 +268,29 @@ static PPH_STRING PhapGetMaxCpuString(
         // We found the process record, so now we construct the max. usage string.
 #ifdef PH_RECORD_MAX_USAGE
         maxCpuUsage = PhGetItemCircularBuffer_FLOAT(&PhMaxCpuUsageHistory, Index);
-        maxUsageString = PhaFormatString(
-            L"\n%s (%u): %.2f%%",
-            maxProcessRecord->ProcessName->Buffer,
-            (ULONG)maxProcessRecord->ProcessId,
-            maxCpuUsage * 100
-            );
+
+        // Make sure we don't try to display the PID of DPCs or Interrupts.
+        if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
+        {
+            maxUsageString = PhaFormatString(
+                L"\n%s (%u): %.2f%%",
+                maxProcessRecord->ProcessName->Buffer,
+                (ULONG)maxProcessRecord->ProcessId,
+                maxCpuUsage * 100
+                );
+        }
+        else
+        {
+            maxUsageString = PhaFormatString(
+                L"\n%s: %.2f%%",
+                maxProcessRecord->ProcessName->Buffer,
+                maxCpuUsage * 100
+                );
+        }
 #else
         maxUsageString = PhaConcatStrings2(L"\n", maxProcessRecord->ProcessName->Buffer);
 #endif
+
         PhDereferenceProcessRecord(maxProcessRecord);
     }
 
@@ -321,16 +335,30 @@ static PPH_STRING PhapGetMaxIoString(
 #ifdef PH_RECORD_MAX_USAGE
         maxIoReadOther = PhGetItemCircularBuffer_ULONG64(&PhMaxIoReadOtherHistory, Index);
         maxIoWrite = PhGetItemCircularBuffer_ULONG64(&PhMaxIoWriteHistory, Index);
-        maxUsageString = PhaFormatString(
-            L"\n%s (%u): R+O: %s, W: %s",
-            maxProcessRecord->ProcessName->Buffer,
-            (ULONG)maxProcessRecord->ProcessId,
-            PhaFormatSize(maxIoReadOther, -1)->Buffer,
-            PhaFormatSize(maxIoWrite, -1)->Buffer
-            );
+
+        if (!PH_IS_FAKE_PROCESS_ID(maxProcessRecord->ProcessId))
+        {
+            maxUsageString = PhaFormatString(
+                L"\n%s (%u): R+O: %s, W: %s",
+                maxProcessRecord->ProcessName->Buffer,
+                (ULONG)maxProcessRecord->ProcessId,
+                PhaFormatSize(maxIoReadOther, -1)->Buffer,
+                PhaFormatSize(maxIoWrite, -1)->Buffer
+                );
+        }
+        else
+        {
+            maxUsageString = PhaFormatString(
+                L"\n%s: R+O: %s, W: %s",
+                maxProcessRecord->ProcessName->Buffer,
+                PhaFormatSize(maxIoReadOther, -1)->Buffer,
+                PhaFormatSize(maxIoWrite, -1)->Buffer
+                );
+        }
 #else
         maxUsageString = PhaConcatStrings2(L"\n", maxProcessRecord->ProcessName->Buffer);
 #endif
+
         PhDereferenceProcessRecord(maxProcessRecord);
     }
 
