@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <cpysave.h>
+#include <phappres.h>
 #include "mxml/mxml.h"
 #include <winsta.h>
 #include <dbghelp.h>
@@ -819,17 +820,13 @@ VOID PhSaveTreeListColumnsToSetting(
 
 PPH_STRING PhGetPhVersion()
 {
-    PPH_STRING version = NULL;
-    PH_IMAGE_VERSION_INFO versionInfo;
+    PH_FORMAT format[3];
 
-    if (PhInitializeImageVersionInfo(&versionInfo, PhApplicationFileName->Buffer))
-    {
-        PhReferenceObject(versionInfo.FileVersion);
-        version = versionInfo.FileVersion;
-        PhDeleteImageVersionInfo(&versionInfo);
-    }
+    PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
+    PhInitFormatC(&format[1], '.');
+    PhInitFormatU(&format[2], PHAPP_VERSION_MINOR);
 
-    return version;
+    return PhFormat(format, 3, 16);
 }
 
 VOID PhWritePhTextHeader(
