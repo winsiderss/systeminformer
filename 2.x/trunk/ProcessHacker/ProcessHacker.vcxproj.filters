@@ -500,6 +500,9 @@
     <ClInclude Include="include\phsvccl.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="include\phappres.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources\application.bmp">
