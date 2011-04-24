@@ -92,6 +92,16 @@ ExEnumHandleTable(
     __out_opt PHANDLE Handle
     );
 
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwQuerySystemInformation(
+    __in SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    __out_bcount_opt(SystemInformationLength) PVOID SystemInformation,
+    __in ULONG SystemInformationLength,
+    __out_opt PULONG ReturnLength
+    );
+
 // OB
 
 #define OBJ_PROTECT_CLOSE 0x00000001

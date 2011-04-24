@@ -23,6 +23,7 @@
 typedef struct _KPH_PARAMETERS
 {
     KPH_SECURITY_LEVEL SecurityLevel;
+    LOGICAL DisableDynamicProcedureScan;
 } KPH_PARAMETERS, *PKPH_PARAMETERS;
 
 // main
@@ -33,6 +34,15 @@ extern KPH_PARAMETERS KphParameters;
 NTSTATUS KpiGetFeatures(
     __out PULONG Features,
     __in KPROCESSOR_MODE AccessMode
+    );
+
+NTSTATUS KphEnumerateSystemModules(
+    __out PRTL_PROCESS_MODULES *Modules
+    );
+
+NTSTATUS KphValidateAddressForSystemModules(
+    __in PVOID Address,
+    __in SIZE_T Length
     );
 
 // devctrl

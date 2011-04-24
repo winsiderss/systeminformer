@@ -393,6 +393,9 @@ NTSTATUS KphTerminateProcessInternal(
 
     PAGED_CODE();
 
+    if (KphParameters.DisableDynamicProcedureScan)
+        return STATUS_NOT_SUPPORTED;
+
     PsTerminateProcess_I = KphGetDynamicProcedureScan(&KphDynPsTerminateProcessScan);
 
     if (!PsTerminateProcess_I)

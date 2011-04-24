@@ -566,13 +566,21 @@ PVOID KphGetDynamicProcedureScan(
         length = ProcedureScan->Length;
         endAddress = ProcedureScan->StartAddress + ProcedureScan->ScanLength;
 
-        for (address = ProcedureScan->StartAddress; address < endAddress; address++)
+        // Make sure we're scanning inside valid memory.
+        if (NT_SUCCESS(KphValidateAddressForSystemModules((PVOID)ProcedureScan->StartAddress, ProcedureScan->ScanLength)))
         {
-            if (memcmp((PVOID)address, bytes, length) == 0)
+            for (address = ProcedureScan->StartAddress; address < endAddress; address++)
             {
-                ProcedureScan->ProcedureAddress = (PVOID)(address + ProcedureScan->Displacement);
-                break;
+                if (memcmp((PVOID)address, bytes, length) == 0)
+                {
+                    ProcedureScan->ProcedureAddress = (PVOID)(address + ProcedureScan->Displacement);
+                    break;
+                }
             }
+        }
+        else
+        {
+            ProcedureScan->ProcedureAddress = NULL;
         }
 
         ProcedureScan->Scanned = TRUE;

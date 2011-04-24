@@ -265,6 +265,9 @@ NTSTATUS KphpReadDriverParameters(
     RtlInitUnicodeString(&valueName, L"SecurityLevel");
     KphParameters.SecurityLevel = KphpReadIntegerParameter(parametersKeyHandle, &valueName, KphSecurityNone);
 
+    RtlInitUnicodeString(&valueName, L"DisableDynamicProcedureScan");
+    KphParameters.DisableDynamicProcedureScan = KphpReadIntegerParameter(parametersKeyHandle, &valueName, FALSE);
+
     if (parametersKeyHandle)
         ZwClose(parametersKeyHandle);
 
@@ -296,4 +299,106 @@ NTSTATUS KpiGetFeatures(
     }
 
     return STATUS_SUCCESS;
+}
+
+/**
+ * Enumerates the modules loaded by the kernel.
+ *
+ * \param Modules A variable which receives a pointer 
+ * to a structure containing information about 
+ * the kernel modules. The structure must be freed with 
+ * the tag 'ThpK'.
+ */
+NTSTATUS KphEnumerateSystemModules(
+    __out PRTL_PROCESS_MODULES *Modules
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+    ULONG attempts;
+
+    bufferSize = 2048;
+    attempts = 8;
+
+    do
+    {
+        buffer = ExAllocatePoolWithTag(PagedPool, bufferSize, 'ThpK');
+
+        if (!buffer)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            break;
+        }
+
+        status = ZwQuerySystemInformation(
+            SystemModuleInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            *Modules = buffer;
+
+            return status;
+        }
+
+        ExFreePoolWithTag(buffer, 'ThpK');
+
+        if (status != STATUS_INFO_LENGTH_MISMATCH)
+        {
+            break;
+        }
+    } while (--attempts);
+
+    return status;
+}
+
+/**
+ * Checks if an address range lies within a kernel module.
+ *
+ * \param Address The beginning of the address range.
+ * \param Length The number of bytes in the address range.
+ */
+NTSTATUS KphValidateAddressForSystemModules(
+    __in PVOID Address,
+    __in SIZE_T Length
+    )
+{
+    NTSTATUS status;
+    PRTL_PROCESS_MODULES modules;
+    ULONG i;
+    BOOLEAN valid;
+
+    status = KphEnumerateSystemModules(&modules);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    valid = FALSE;
+
+    for (i = 0; i < modules->NumberOfModules; i++)
+    {
+        if (
+            (ULONG_PTR)Address + Length >= (ULONG_PTR)Address &&
+            (ULONG_PTR)Address >= (ULONG_PTR)modules->Modules[i].ImageBase &&
+            (ULONG_PTR)Address + Length <= (ULONG_PTR)modules->Modules[i].ImageBase + modules->Modules[i].ImageSize
+            )
+        {
+            dprintf("Validated address 0x%Ix in %s\n", Address, modules->Modules[i].FullPathName);
+            valid = TRUE;
+            break;
+        }
+    }
+
+    ExFreePoolWithTag(modules, 'ThpK');
+
+    if (valid)
+        status = STATUS_SUCCESS;
+    else
+        status = STATUS_ACCESS_VIOLATION;
+
+    return status;
 }

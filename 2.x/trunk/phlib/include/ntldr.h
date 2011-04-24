@@ -73,6 +73,8 @@ typedef BOOLEAN (NTAPI *PDLL_INIT_ROUTINE)(
     __in_opt PCONTEXT Context
     );
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -326,6 +328,8 @@ LdrUnregisterDllNotification(
 #endif
 
 // end_msdn
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Module information
 
