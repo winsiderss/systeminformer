@@ -44,7 +44,7 @@ BOOLEAN NTAPI PhpHiddenProcessesCallback(
     __in_opt PVOID Context
     );
 
-PPH_PROCESS_ITEM PhpGetProcessItemForHiddenProcess(
+PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     __in PPH_HIDDEN_PROCESS_ENTRY Entry
     );
 
@@ -393,7 +393,7 @@ static INT_PTR CALLBACK PhpHiddenProcessesDlgProc(
                         {
                             PPH_PROCESS_ITEM processItem;
 
-                            if (processItem = PhpGetProcessItemForHiddenProcess(entry))
+                            if (processItem = PhpCreateProcessItemForHiddenProcess(entry))
                             {
                                 ProcessHacker_ShowProcessProperties(PhMainWndHandle, processItem);
                                 PhDereferenceObject(processItem);
@@ -490,7 +490,7 @@ static BOOLEAN NTAPI PhpHiddenProcessesCallback(
     return TRUE;
 }
 
-static PPH_PROCESS_ITEM PhpGetProcessItemForHiddenProcess(
+static PPH_PROCESS_ITEM PhpCreateProcessItemForHiddenProcess(
     __in PPH_HIDDEN_PROCESS_ENTRY Entry
     )
 {
@@ -513,6 +513,10 @@ static PPH_PROCESS_ITEM PhpGetProcessItemForHiddenProcess(
     }
 
     processItem = PhCreateProcessItem(Entry->ProcessId);
+
+    // Mark the process as terminated if necessary.
+    if (Entry->Type == TerminatedProcess)
+        processItem->State |= PH_PROCESS_ITEM_REMOVED;
 
     // We need a process record. Just use the record of System Idle Process.
     if (idleProcessItem = PhReferenceProcessItem(SYSTEM_IDLE_PROCESS_ID))
