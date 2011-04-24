@@ -48,20 +48,21 @@ extern "C" {
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 #include <ntbasic.h>
 #include <ntnls.h>
-#include <ntexapi.h>
 #include <ntkeapi.h>
-#include <ntmmapi.h>
+#endif
 
+#include <ntexapi.h>
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+#include <ntmmapi.h>
 #endif
 
 #include <ntobapi.h>
 #include <ntpsapi.h>
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
-
 #include <ntcm.h>
 #include <ntdbg.h>
 #include <ntioapi.h>
@@ -70,7 +71,12 @@ extern "C" {
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
+#endif
+
 #include <ntrtl.h>
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 #include <ntseapi.h>
 #include <nttmapi.h>
 #include <nttp.h>
