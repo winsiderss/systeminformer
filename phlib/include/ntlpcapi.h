@@ -867,6 +867,6 @@ AlpcGetCompletionListMessageAttributes(
 
 #endif
 
-// end_rev
+// end_private
 
 #endif
