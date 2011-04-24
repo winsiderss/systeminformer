@@ -375,6 +375,7 @@
     <ClInclude Include="include\phapp.h" />
     <ClInclude Include="include\phsvc.h" />
     <ClInclude Include="include\phsvcapi.h" />
+    <ClInclude Include="include\phappres.h" />
     <ClInclude Include="sdk\phapppub.h" />
     <ClInclude Include="sdk\phdk.h" />
     <ClInclude Include="include\phplug.h" />
