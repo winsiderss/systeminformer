@@ -3,6 +3,8 @@
 
 #include <ntkeapi.h>
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // Thread execution
 
 NTSYSCALLAPI
@@ -734,6 +736,8 @@ NtAllocateUuids(
     );
 
 // System Information
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // rev
 // private
@@ -1592,6 +1596,8 @@ typedef struct _SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
 
 // end_msdn
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2281,5 +2287,7 @@ NTAPI
 NtDisplayString(
     __in PUNICODE_STRING String
     );
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

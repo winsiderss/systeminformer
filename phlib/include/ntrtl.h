@@ -3,6 +3,8 @@
 
 #include <ntldr.h>
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // Linked lists
 
 FORCEINLINE VOID InitializeListHead(
@@ -5817,5 +5819,7 @@ RtlGetUnloadEventTraceEx(
 #endif
 
 // end_msdn
+
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 #endif

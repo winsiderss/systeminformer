@@ -1,10 +1,12 @@
 #ifndef _NTKEAPI_H
 #define _NTKEAPI_H
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 #define LOW_PRIORITY 0 // Lowest thread priority level
 #define LOW_REALTIME_PRIORITY 16 // Lowest realtime priority level
 #define HIGH_PRIORITY 31 // Highest thread priority level
 #define MAXIMUM_PRIORITY 32 // Number of thread priority levels
+#endif
 
 typedef enum _KTHREAD_STATE
 {
@@ -20,46 +22,48 @@ typedef enum _KTHREAD_STATE
     MaximumThreadState
 } KTHREAD_STATE, *PKTHREAD_STATE;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 typedef enum _KWAIT_REASON
 {
-    Executive = 0,
-    FreePage = 1,
-    PageIn = 2,
-    PoolAllocation = 3,
-    DelayExecution = 4,
-    Suspended = 5,
-    UserRequest = 6,
-    WrExecutive = 7,
-    WrFreePage = 8,
-    WrPageIn = 9,
-    WrPoolAllocation = 10,
-    WrDelayExecution = 11,
-    WrSuspended = 12,
-    WrUserRequest = 13,
-    WrEventPair = 14,
-    WrQueue = 15,
-    WrLpcReceive = 16,
-    WrLpcReply = 17,
-    WrVirtualMemory = 18,
-    WrPageOut = 19,
-    WrRendezvous = 20,
-    Spare2 = 21,
-    Spare3 = 22,
-    Spare4 = 23,
-    Spare5 = 24,
-    WrCalloutStack = 25,
-    WrKernel = 26,
-    WrResource = 27,
-    WrPushLock = 28,
-    WrMutex = 29,
-    WrQuantumEnd = 30,
-    WrDispatchInt = 31,
-    WrPreempted = 32,
-    WrYieldExecution = 33,
-    WrFastMutex = 34,
-    WrGuardedMutex = 35,
-    WrRundown = 36,
-    MaximumWaitReason = 37
+    Executive,
+    FreePage,
+    PageIn,
+    PoolAllocation,
+    DelayExecution,
+    Suspended,
+    UserRequest,
+    WrExecutive,
+    WrFreePage,
+    WrPageIn,
+    WrPoolAllocation,
+    WrDelayExecution,
+    WrSuspended,
+    WrUserRequest,
+    WrEventPair,
+    WrQueue,
+    WrLpcReceive,
+    WrLpcReply,
+    WrVirtualMemory,
+    WrPageOut,
+    WrRendezvous,
+    WrKeyedEvent,
+    WrTerminated,
+    WrProcessInSwap,
+    WrCpuRateControl,
+    WrCalloutStack,
+    WrKernel,
+    WrResource,
+    WrPushLock,
+    WrMutex,
+    WrQuantumEnd,
+    WrDispatchInt,
+    WrPreempted,
+    WrYieldExecution,
+    WrFastMutex,
+    WrGuardedMutex,
+    WrRundown,
+    MaximumWaitReason
 } KWAIT_REASON, *PKWAIT_REASON;
 
 typedef enum _KPROFILE_SOURCE 
@@ -90,6 +94,10 @@ typedef enum _KPROFILE_SOURCE
     ProfileLoadLinkedIssues,
     ProfileMaximum
 } KPROFILE_SOURCE;
+
+#endif
+
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 NTSYSCALLAPI
 NTSTATUS
@@ -132,6 +140,8 @@ NTAPI
 NtFlushProcessWriteBuffers(
     VOID
     );
+#endif
+
 #endif
 
 #endif

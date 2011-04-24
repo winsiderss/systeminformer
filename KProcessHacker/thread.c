@@ -263,6 +263,9 @@ NTSTATUS KphTerminateThreadByPointerInternal(
 
     PAGED_CODE();
 
+    if (KphParameters.DisableDynamicProcedureScan)
+        return STATUS_NOT_SUPPORTED;
+
     PspTerminateThreadByPointer_I = KphGetDynamicProcedureScan(&KphDynPspTerminateThreadByPointerScan);
 
     if (!PspTerminateThreadByPointer_I)
