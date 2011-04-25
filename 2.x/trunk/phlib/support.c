@@ -4177,6 +4177,7 @@ VOID PhSetFileDialogFileName(
     else
     {
         OPENFILENAME *ofn = (OPENFILENAME *)FileDialog;
+        SIZE_T length;
 
         if (wcschr(FileName, '/') || wcschr(FileName, '\"'))
         {
@@ -4185,8 +4186,11 @@ VOID PhSetFileDialogFileName(
         }
 
         PhFree(ofn->lpstrFile);
-        ofn->nMaxFile = max((ULONG)wcslen(FileName) + 1, 0x400);
-        ofn->lpstrFile = PhAllocateCopy(FileName, ofn->nMaxFile * 2);
+
+        length = wcslen(FileName);
+        ofn->nMaxFile = max(length + 1, 0x400);
+        ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
+        memcpy(ofn->lpstrFile, FileName, (length + 1) * 2);
     }
 }
 

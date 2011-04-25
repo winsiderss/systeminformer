@@ -8,6 +8,7 @@ Process Hacker
    * Image file versions
    * Workaround for an IPv6-related bug in Windows XP
    * DPCs and Interrupts in System Information tooltips
+   * File dialog crash on Windows XP
 
 2.14
  * NEW/IMPROVED:
