@@ -336,8 +336,8 @@ static NTSTATUS KphpX86DataInitialization(
     // Windows 7, Windows Server 2008 R2
     else if (majorVersion == 6 && minorVersion == 1)
     {
-        ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"PsSetCreateProcessNotifyRoutine");
-        ULONG scanLength = 0x200000;
+        ULONG_PTR searchOffset1 = (ULONG_PTR)KphGetSystemRoutineAddress(L"LsaFreeReturnBuffer");
+        ULONG_PTR searchOffset2 = (ULONG_PTR)KphGetSystemRoutineAddress(L"RtlMapGenericMask");
 
         KphDynNtVersion = PHNT_WIN7;
 
@@ -361,19 +361,23 @@ static NTSTATUS KphpX86DataInitialization(
         KphDynOtName = 0x8;
         KphDynOtIndex = 0x14; // now only a UCHAR, not a ULONG
 
-        if (searchOffset)
+        if (searchOffset1)
         {
             INIT_SCAN(
                 &KphDynPsTerminateProcessScan,
                 PsTerminateProcess61Bytes,
                 sizeof(PsTerminateProcess61Bytes),
-                searchOffset, scanLength, 0
+                searchOffset1, 0xa000, 0
                 );
+        }
+
+        if (searchOffset2)
+        {
             INIT_SCAN(
                 &KphDynPspTerminateThreadByPointerScan,
                 PspTerminateThreadByPointer61Bytes,
                 sizeof(PspTerminateThreadByPointer61Bytes),
-                searchOffset, scanLength, 0
+                searchOffset2, 0x1a000, 0
                 );
         }
 
@@ -490,7 +494,6 @@ static NTSTATUS KphpAmd64DataInitialization(
     else if (majorVersion == 6 && minorVersion == 1)
     {
         //ULONG_PTR searchOffset = (ULONG_PTR)KphGetSystemRoutineAddress(L"ObQueryNameString");
-        //ULONG scanLength = 0x100000;
 
         KphDynNtVersion = PHNT_WIN7;
 
@@ -521,13 +524,13 @@ static NTSTATUS KphpAmd64DataInitialization(
         //        &KphDynPsTerminateProcessScan,
         //        PsTerminateProcess61Bytes,
         //        sizeof(PsTerminateProcess61Bytes),
-        //        searchOffset, scanLength, 0
+        //        searchOffset, 0x100000, 0
         //        );
         //    INIT_SCAN(
         //        &KphDynPspTerminateThreadByPointerScan,
         //        PspTerminateThreadByPointer61Bytes,
         //        sizeof(PspTerminateThreadByPointer61Bytes),
-        //        searchOffset, scanLength, 0
+        //        searchOffset, 0x100000, 0
         //        );
         //}
 
@@ -559,6 +562,8 @@ PVOID KphGetDynamicProcedureScan(
 
     if (!ProcedureScan->Initialized)
         return NULL;
+
+    // This function is thread-safe.
 
     if (!ProcedureScan->Scanned)
     {
