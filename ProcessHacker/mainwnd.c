@@ -2606,7 +2606,7 @@ VOID PhpAddIconProcesses(
         if (
             processItem->CpuUsage == 0 ||
             !processItem->UserName ||
-            !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE)
+            (PhCurrentUserName && !PhEqualString(processItem->UserName, PhCurrentUserName, TRUE))
             )
         {
             PhRemoveItemList(processList, i);
