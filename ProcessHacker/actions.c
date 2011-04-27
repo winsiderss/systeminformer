@@ -157,7 +157,7 @@ BOOLEAN PhpShowErrorAndElevateAction(
     if (!WINDOWS_HAS_UAC || PhElevated)
         return FALSE;
 
-    elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
+    elevationLevel = (PH_ACTION_ELEVATION_LEVEL)PhGetIntegerSetting(L"ElevationLevel");
 
     if (elevationLevel == NeverElevateAction)
         return FALSE;
@@ -249,7 +249,7 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
     if (!WINDOWS_HAS_UAC || PhElevated)
         return FALSE;
 
-    elevationLevel = PhGetIntegerSetting(L"ElevationLevel");
+    elevationLevel = (PH_ACTION_ELEVATION_LEVEL)PhGetIntegerSetting(L"ElevationLevel");
 
     if (elevationLevel == NeverElevateAction)
         return FALSE;
