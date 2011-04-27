@@ -92,6 +92,10 @@ INT WINAPI WinMain(
 
     PhLocalSystemName = PhGetSidFullName(&PhSeLocalSystemSid, TRUE, NULL);
 
+    // There has been a report of the above call failing.
+    if (!PhLocalSystemName)
+        PhLocalSystemName = PhCreateString(L"NT AUTHORITY\\SYSTEM");
+
     PhApplicationFileName = PhGetApplicationFileName();
     PhApplicationDirectory = PhGetApplicationDirectory();
 
