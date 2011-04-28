@@ -4188,7 +4188,7 @@ VOID PhSetFileDialogFileName(
         PhFree(ofn->lpstrFile);
 
         length = wcslen(FileName);
-        ofn->nMaxFile = max(length + 1, 0x400);
+        ofn->nMaxFile = (ULONG)max(length + 1, 0x400);
         ofn->lpstrFile = PhAllocate(ofn->nMaxFile * 2);
         memcpy(ofn->lpstrFile, FileName, (length + 1) * 2);
     }
