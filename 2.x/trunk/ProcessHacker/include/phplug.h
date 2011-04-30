@@ -147,7 +147,7 @@ typedef enum _PH_PLUGIN_CALLBACK
     PluginCallbackLoad = 0, // [main thread]
     PluginCallbackUnload = 1, // [main thread]
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
-    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main thread]
+    PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
 
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;
