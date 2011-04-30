@@ -24,7 +24,7 @@
 ; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
 
 
-#define installer_build_number "07"
+#define installer_build_number "08"
 
 #define VerMajor
 #define VerMinor
@@ -178,7 +178,7 @@ Source: Icons\uninstall.ico;                                                    
 
 
 [Icons]
-Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: peview; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
+Name: {group}\PE Viewer;        Filename: {app}\peview.exe;        WorkingDir: {app}; Comment: PE Viewer; IconFilename: {app}\peview.exe; IconIndex: 0; Components: peview; Flags: excludefromshowinnewinstall
 Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile};  Filename: {app}\Help.htm;         WorkingDir: {app}; Comment: {cm:sm_HelpFile}
@@ -191,8 +191,9 @@ Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2;  
 
 
 [InstallDelete]
-Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Tasks: NOT desktopicon\user
-Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Tasks: NOT desktopicon\common
+Type: files;      Name: {userdesktop}\Process Hacker 2.lnk;          Check: NOT IsTaskSelected('desktopicon\user')   AND IsUpdate()
+Type: files;      Name: {commondesktop}\Process Hacker 2.lnk;        Check: NOT IsTaskSelected('desktopicon\common') AND IsUpdate()
+Type: files;      Name: {userappdata}\Microsoft\Internet Explorer\Quick Launch\Process Hacker 2.lnk; Check: NOT IsTaskSelected('quicklaunchicon') AND IsUpdate()
 
 Type: files;      Name: {userappdata}\Process Hacker 2\settings.xml; Tasks: reset_settings
 Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: reset_settings
