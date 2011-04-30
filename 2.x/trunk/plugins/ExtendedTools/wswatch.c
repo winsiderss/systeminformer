@@ -262,6 +262,7 @@ static BOOLEAN EtpUpdateWsWatch(
     )
 {
     NTSTATUS status;
+    BOOLEAN result;
     ULONG returnLength;
     PPROCESS_WS_WATCH_INFORMATION_EX wsWatchInfo;
 
@@ -279,7 +280,17 @@ static BOOLEAN EtpUpdateWsWatch(
         );
 
     if (status == STATUS_UNSUCCESSFUL)
-        return FALSE; // WS Watch is not enabled
+    {
+        // WS Watch is not enabled.
+        return FALSE;
+    }
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+    {
+        // There were no new faults, but we still need to process symbol lookup results.
+        result = TRUE;
+        goto SkipBuffer;
+    }
 
     if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
     {
@@ -297,9 +308,15 @@ static BOOLEAN EtpUpdateWsWatch(
     }
 
     if (!NT_SUCCESS(status))
-        return FALSE;
+    {
+        // Error related to the buffer size. Try again later.
+        result = FALSE;
+        goto SkipBuffer;
+    }
 
     // Update the hashtable and list view.
+
+    ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
 
     wsWatchInfo = Context->Buffer;
 
@@ -349,10 +366,14 @@ static BOOLEAN EtpUpdateWsWatch(
         wsWatchInfo++;
     }
 
+    ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+    result = TRUE;
+
+SkipBuffer:
     EtpProcessSymbolLookupResults(hwndDlg, Context);
     ExtendedListView_SortItems(Context->ListViewHandle);
 
-    return TRUE;
+    return result;
 }
 
 static BOOLEAN NTAPI EnumGenericModulesCallback(
