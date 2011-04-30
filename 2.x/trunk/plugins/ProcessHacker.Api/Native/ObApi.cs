@@ -6,35 +6,36 @@ namespace ProcessHacker.Api
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct ObjectBasicInformation
     {
-        public int Attributes;
+        public uint Attributes;
         public int GrantedAccess;
-        public int HandleCount;
-        public int PointerCount;
-        public int PagedPoolCharge;
-        public int NonPagedPoolCharge;
+        public uint HandleCount;
+        public uint PointerCount;
+        public uint PagedPoolCharge;
+        public uint NonPagedPoolCharge;
         public fixed int Reserved[3];
-        public int NameInfoSize;
-        public int TypeInfoSize;
-        public int SecurityDescriptorSize;
-        public long CreationTime;
+        public uint NameInfoSize;
+        public uint TypeInfoSize;
+        public uint SecurityDescriptorSize;
+        public ulong CreationTime;
     }
 
+    [System.Security.SuppressUnmanagedCodeSecurity]
     public unsafe static partial class NativeApi
     {
         [DllImport("ntdll.dll")]
         public static extern NtStatus NtWaitForSingleObject(
-            IntPtr Handle,
-            byte Alertable,
-            [Optional] long* Timeout
+            [In] IntPtr Handle,
+            [In] bool Alertable,
+            [In, Optional] ref long Timeout
             );
 
         [DllImport("ntdll.dll")]
         public static extern NtStatus NtWaitForMultipleObjects(
-            int Count,
-            IntPtr* Handles,
-            WaitType WaitType,
-            byte Alertable,
-            [Optional] long* Timeout
+            [In] uint Count,
+            [In] IntPtr[] Handles,
+            [In] WaitType WaitType,
+            [In, MarshalAs(UnmanagedType.I1)] bool Alertable,
+            [In, Out, Optional] ref long Timeout
             );
 
         [DllImport("ntdll.dll")]
