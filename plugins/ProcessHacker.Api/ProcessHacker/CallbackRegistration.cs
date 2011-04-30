@@ -8,7 +8,6 @@ namespace ProcessHacker.Api
         private PhCallback* _callback;
         private PhCallbackRegistration* _registration;
         private PhCallbackFunction _function;
-        private IntPtr _functionNative;
 
         public CallbackRegistration(PhCallback* callback, PhCallbackFunction function)
         {
@@ -17,9 +16,7 @@ namespace ProcessHacker.Api
 
             _registration = (PhCallbackRegistration*)Marshal.AllocHGlobal(Marshal.SizeOf(typeof(PhCallbackRegistration)));
 
-            _functionNative = Marshal.GetFunctionPointerForDelegate(function);
-
-            NativeApi.PhRegisterCallback(_callback, _functionNative, IntPtr.Zero, _registration);
+            NativeApi.PhRegisterCallback(_callback, function, IntPtr.Zero, _registration);
         }
 
         public void Dispose()
@@ -27,7 +24,9 @@ namespace ProcessHacker.Api
             if (_registration != null)
             {
                 NativeApi.PhUnregisterCallback(_callback, _registration);
+                
                 Marshal.FreeHGlobal((IntPtr)_registration);
+                
                 _registration = null;
             }
         }

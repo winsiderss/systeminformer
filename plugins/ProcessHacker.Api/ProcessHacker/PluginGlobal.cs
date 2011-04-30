@@ -50,7 +50,7 @@ namespace ProcessHacker.Api
             string newValue;
 
             value = NativeApi.PhGetStringSetting(name);
-            newValue = value->Read();
+            newValue = value->Text;
             NativeApi.PhDereferenceObject(value);
 
             return newValue;

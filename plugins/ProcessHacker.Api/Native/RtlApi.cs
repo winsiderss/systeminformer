@@ -22,6 +22,7 @@ namespace ProcessHacker.Api
         public ListEntry* Blink;
     }
 
+    [System.Security.SuppressUnmanagedCodeSecurity]
     public unsafe static partial class NativeApi
     {
         #region Doubly-linked lists
