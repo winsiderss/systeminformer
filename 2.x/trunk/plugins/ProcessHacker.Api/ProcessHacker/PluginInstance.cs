@@ -23,7 +23,7 @@ namespace ProcessHacker.Api
                 info->Author = (void*)Marshal.StringToHGlobalUni(author);
                 info->Description = (void*)Marshal.StringToHGlobalUni(description);
                 info->Url = (void*)Marshal.StringToHGlobalUni(url);
-                info->HasOptions = hasOptions ? (byte)1 : (byte)0;
+                info->HasOptions = hasOptions;
 
                 return new PluginInstance(plugin);
             }

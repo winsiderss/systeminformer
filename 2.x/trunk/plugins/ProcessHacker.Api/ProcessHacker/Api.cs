@@ -218,9 +218,11 @@ namespace ProcessHacker.Api
         public void* DisplayName;
         public void* Author;
         public void* Description;
-        public void* Url;
-        public byte HasOptions;
-        public fixed byte Reserved1[3];
+        public void* Url;     
+        [MarshalAs(UnmanagedType.I1)]
+        public bool HasOptions;
+        [MarshalAs(UnmanagedType.I1)]
+        public fixed bool Reserved1[3];
     }
 
     [StructLayout(LayoutKind.Sequential)]
