@@ -125,6 +125,23 @@ namespace ProcessHacker.Api
 
         #endregion
 
+        #region Memory
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlMoveMemory(
+            void* Destination,
+            void* Source,
+            IntPtr Length
+            );
+
+        [DllImport("ntdll.dll")]
+        public static extern void RtlZeroMemory(
+            void* Destination,
+            IntPtr Length
+            );
+
+        #endregion
+
         #region Strings
 
         [DllImport("ntdll.dll")]
