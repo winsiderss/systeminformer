@@ -226,6 +226,13 @@ namespace ProcessHacker.Api
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct PhPluginProcessPropContext
+    {
+        public void* PropContext;
+        public PhProcessItem* ProcessItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PhPointerList
     {
         public int Count;
@@ -578,6 +585,30 @@ namespace ProcessHacker.Api
         public const int PhInt64StrLen = 50;
         public const int PhIntegrityStrLen = 10;
         public const int PhPtrStrLen = 24;
+
+        #region Application
+
+        [DllImport("ProcessHacker.exe")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        public static extern bool PhAddProcessPropPage2(
+            void* PropContext,
+            IntPtr PropSheetPageHandle
+            );
+
+        [DllImport("ProcessHacker.exe")]
+        public static extern void* PhAddPropPageLayoutItem(
+            IntPtr hwnd,
+            IntPtr Handle,
+            void* ParentItem,
+            int Anchor
+            );
+
+        [DllImport("ProcessHacker.exe")]
+        public static extern void PhDoPropPageLayout(
+            IntPtr hwnd
+            );
+
+        #endregion
 
         #region Base Support (Processor-specific)
 

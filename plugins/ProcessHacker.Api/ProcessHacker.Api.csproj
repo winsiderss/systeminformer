@@ -40,19 +40,27 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Native\Win32Api.cs" />
     <Compile Include="Native\SeApi.cs" />
     <Compile Include="Native\NtBasic.cs" />
     <Compile Include="Native\ObApi.cs" />
     <Compile Include="Native\NtStatus.cs" />
     <Compile Include="Native\RtlApi.cs" />
+    <Compile Include="ProcessHacker\PropertySheetPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="ProcessHacker\Api.cs" />
     <Compile Include="ProcessHacker\CallbackRegistration.cs" />
     <Compile Include="ProcessHacker\PluginGlobal.cs" />
     <Compile Include="ProcessHacker\PluginInstance.cs" />
     <Compile Include="ProcessHacker\ProcessTreeFilter.cs" />
+    <Compile Include="ProcessHacker\ProcessPropertySheetPage.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
