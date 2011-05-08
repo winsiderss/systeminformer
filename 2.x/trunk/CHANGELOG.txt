@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ToolStatus plugin
    * Added DEP Status column
+   * Improved User Name column
  * FIXED:
    * Image file versions
    * Workaround for an IPv6-related bug in Windows XP
