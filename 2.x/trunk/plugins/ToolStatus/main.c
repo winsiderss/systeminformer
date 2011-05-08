@@ -991,9 +991,9 @@ switch (uMsg)
         {    
             HWND comboHandle = GetDlgItem(hwndDlg, IDC_DISPLAYSTYLECOMBO);
 
-            ComboBox_AddItemData(comboHandle, L"Images Only");
-            ComboBox_AddItemData(comboHandle, L"Selective Text");
-            ComboBox_AddItemData(comboHandle, L"All Text");
+            ComboBox_AddString(comboHandle, L"Images only");
+            ComboBox_AddString(comboHandle, L"Selective text");
+            ComboBox_AddString(comboHandle, L"All text");
             ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(L"ProcessHacker.ToolStatus.ToolbarDisplayStyle"));
 
             Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLETOOLBAR), EnableToolBar ? BST_CHECKED : BST_UNCHECKED);
