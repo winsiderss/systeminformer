@@ -1,4 +1,27 @@
-﻿using System;
+﻿/*
+ * Process Hacker - 
+ *   API definitions
+ * 
+ * Copyright (C) 2011 wj32
+ * Copyright (C) 2011 dmex
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+using System;
 using System.Runtime.InteropServices;
 using System.Drawing;
 
@@ -558,7 +581,7 @@ namespace ProcessHacker.Api
         public Anonymous_fd626461_7f3e_49a1_aabe_a2b90f0df936 Struct1;
     }
 
-    [StructLayoutAttribute(System.Runtime.InteropServices.LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct Anonymous_fd626461_7f3e_49a1_aabe_a2b90f0df936
     {
         /// SINGLE_LIST_ENTRY->_SINGLE_LIST_ENTRY
@@ -1134,7 +1157,7 @@ namespace ProcessHacker.Api
 
         [DllImport("ProcessHacker.exe")]
         public static extern void* PhAddProcessTreeFilter(
-            [In] IntPtr Filter,
+            [In, MarshalAs(UnmanagedType.FunctionPtr)] PhProcessTreeFilter Filter,
             [In, Optional] IntPtr Context
             );
 

@@ -1,15 +1,35 @@
-﻿using System;
+﻿/*
+ * Process Hacker - 
+ *   Property Sheet Control
+ * 
+ * Copyright (C) 2010 wj32
+ * Copyright (C) 2010 dmex
+ * 
+ * This file is part of Process Hacker.
+ * 
+ * Process Hacker is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Process Hacker is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Text;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
 
 namespace ProcessHacker.Api
 {
-    public partial class PropertySheetPage : UserControl
+    public class PropertySheetPage : UserControl
     {
         private static List<PropertySheetPage> _keepAliveList = new List<PropertySheetPage>();
 
@@ -51,7 +71,7 @@ namespace ProcessHacker.Api
             // Font name
             fixed (char* fontNamePtr = fontName)
                 NativeApi.RtlMoveMemory((byte*)template + offset, fontNamePtr, (IntPtr)((fontName.Length + 1) * 2));
-            offset += (fontName.Length + 1) * 2;
+            //offset += (fontName.Length + 1) * 2;
 
             return (IntPtr)template;
         }
@@ -59,14 +79,13 @@ namespace ProcessHacker.Api
         public event EventHandler PageGotFocus;
         public event EventHandler PageLostFocus;
 
-        private IContainer components = null;
-        private IntPtr _dialogWindowHandle;
+        private IContainer components;
         private IntPtr _dialogWindowParentHandle;
 
         public PropertySheetPage()
         {
-            components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            components = new Container();
+            this.AutoScaleMode = AutoScaleMode.Font;
         }
 
         /// <summary> 
@@ -88,13 +107,12 @@ namespace ProcessHacker.Api
             throw new NotImplementedException();
         }
 
-        protected unsafe virtual bool DialogProc(IntPtr hwndDlg, WindowMessage uMsg, IntPtr wParam, IntPtr lParam)
+        protected virtual bool DialogProc(IntPtr hwndDlg, WindowMessage uMsg, IntPtr wParam, IntPtr lParam)
         {
             switch (uMsg)
             {
                 case WindowMessage.InitDialog:
                     {
-                        _dialogWindowHandle = hwndDlg;
                         _dialogWindowParentHandle = NativeApi.GetParent(hwndDlg);
                         NativeApi.SetParent(this.Handle, hwndDlg);
                     }
@@ -128,7 +146,7 @@ namespace ProcessHacker.Api
             return false;
         }
 
-        protected unsafe int PropPageProc(IntPtr hwnd, PropSheetPageCallbackMessage uMsg, IntPtr ppsp)
+        protected int PropPageProc(IntPtr hwnd, PropSheetPageCallbackMessage uMsg, IntPtr ppsp)
         {
             switch (uMsg)
             {
