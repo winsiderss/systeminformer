@@ -254,7 +254,6 @@ VOID NTAPI ProcessMenuInitializingCallback(
         ULONG insertIndex;
 
         processItem = menuInfo->u.Process.Processes[0];
-        servicesMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Services", NULL);
 
         // Create a service list so we can sort it.
 
@@ -266,6 +265,7 @@ VOID NTAPI ProcessMenuInitializingCallback(
         while (PhEnumPointerList(processItem->ServiceList, &enumerationKey, &serviceItem))
         {
             PhReferenceObject(serviceItem);
+            // We need to use the service item when the user chooses a menu item.
             PhaDereferenceObject(serviceItem);
             PhAddItemList(serviceList, serviceItem);
         }
@@ -274,6 +274,14 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
         // Sort the service list.
         qsort(serviceList->Items, serviceList->Count, sizeof(PPH_SERVICE_ITEM), ServiceForServicesMenuCompare);
+
+        // If there is only one service:
+        // * We use the text "Service (Xxx)".
+        // * There are no extra submenus.
+        if (serviceList->Count != 1)
+        {
+            servicesMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Services", NULL);
+        }
 
         // Create and add a menu item for each service.
 
@@ -290,7 +298,20 @@ VOID NTAPI ProcessMenuInitializingCallback(
             escapedName = PhEscapeStringForMenuPrefix(&serviceItem->Name->sr);
             PhaDereferenceObject(escapedName);
 
+            if (serviceList->Count == 1)
+            {
+                // "Service (Xxx)"
+                escapedName = PhaFormatString(L"Service (%s)", escapedName->Buffer);
+            }
+
             serviceMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, 0, escapedName->Buffer, NULL);
+
+            if (serviceList->Count == 1)
+            {
+                // Make this the root submenu that we will insert.
+                servicesMenuItem = serviceMenuItem;
+            }
+
             PhInsertEMenuItem(serviceMenuItem, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_GOTOSERVICE, L"Go to Service", serviceItem), -1);
             PhInsertEMenuItem(serviceMenuItem, startMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_START, L"Start", serviceItem), -1);
             PhInsertEMenuItem(serviceMenuItem, continueMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_SERVICE_CONTINUE, L"Continue", serviceItem), -1);
@@ -352,7 +373,8 @@ VOID NTAPI ProcessMenuInitializingCallback(
 
             // == END ==
 
-            PhInsertEMenuItem(servicesMenuItem, serviceMenuItem, -1);
+            if (serviceList->Count != 1)
+                PhInsertEMenuItem(servicesMenuItem, serviceMenuItem, -1);
         }
 
         // Destroy the service list (the service items were placed in the auto pool).
