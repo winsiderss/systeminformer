@@ -2,6 +2,7 @@ Process Hacker
 
 2.15
  * NEW/IMPROVED:
+   * Updated ExtendedServices plugin
    * Updated ToolStatus plugin
    * Added DEP Status column
    * Improved User Name column
