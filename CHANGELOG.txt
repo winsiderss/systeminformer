@@ -1,5 +1,10 @@
 Process Hacker
 
+2.16
+ * NEW/IMPROVED:
+ * FIXED:
+   * Fixed the IPv6-related workaround causing crashes
+
 2.15
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin
