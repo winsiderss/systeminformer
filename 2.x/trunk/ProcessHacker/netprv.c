@@ -890,7 +890,7 @@ BOOLEAN PhGetNetworkConnections(
     // However, the function calculated it as:
     // = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) + sizeof(MIB_TCP6ROW_OWNER_PID) * (number of entries)
     // A workaround is implemented below.
-    if (WindowsVersion <= WINDOWS_XP)
+    if (WindowsVersion <= WINDOWS_XP && tableSize >= FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table)) // make sure we don't wrap around
     {
         tableSize = FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table) +
             (tableSize - FIELD_OFFSET(MIB_TCP6TABLE_OWNER_MODULE, table)) / sizeof(MIB_TCP6ROW_OWNER_PID) * sizeof(MIB_TCP6ROW_OWNER_MODULE);
