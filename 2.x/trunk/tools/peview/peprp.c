@@ -538,6 +538,8 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         {
             PH_STRING_BUILDER stringBuilder;
             PPH_STRING string;
+            PVOID metaData;
+            ULONG versionStringLength;
 
             string = PhFormatString(L"%u.%u", PvImageCor20Header->MajorRuntimeVersion,
                 PvImageCor20Header->MinorRuntimeVersion);
@@ -564,6 +566,45 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
 
             SetDlgItemText(hwndDlg, IDC_FLAGS, stringBuilder.String->Buffer);
             PhDeleteStringBuilder(&stringBuilder);
+
+            metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
+
+            if (metaData)
+            {
+                __try
+                {
+                    PhProbeAddress(metaData, PvImageCor20Header->MetaData.Size, PvMappedImage.ViewBase, PvMappedImage.Size, 4);
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    metaData = NULL;
+                }
+            }
+
+            versionStringLength = 0;
+
+            if (metaData)
+            {
+                // Skip 12 bytes.
+                // First 4 bytes contains the length of the version string.
+                // The version string follows.
+                versionStringLength = *(PULONG)((PCHAR)metaData + 12);
+
+                // Make sure the length is valid.
+                if (versionStringLength >= 0x100)
+                    versionStringLength = 0;
+            }
+
+            if (versionStringLength != 0)
+            {
+                string = PhCreateStringFromAnsiEx((PCHAR)metaData + 12 + 4, versionStringLength);
+                SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, string->Buffer);
+                PhDereferenceObject(string);
+            }
+            else
+            {
+                SetDlgItemText(hwndDlg, IDC_VERSIONSTRING, L"N/A");
+            }
         }
         break;
     }
