@@ -2,6 +2,7 @@ Process Hacker
 
 2.16
  * NEW/IMPROVED:
+   * Added version string to peview CLR tab
  * FIXED:
    * Fixed the IPv6-related workaround causing crashes
 
