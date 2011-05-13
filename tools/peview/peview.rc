@@ -16,10 +16,8 @@
 // English (Australia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENA)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_AUS
 #pragma code_page(1252)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -53,7 +51,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_PEGENERAL, DIALOG
     BEGIN
@@ -157,6 +155,8 @@ BEGIN
     LTEXT           "Static",IDC_RUNTIMEVERSION,78,7,189,8
     LTEXT           "Flags:",IDC_STATIC,7,19,20,8
     EDITTEXT        IDC_FLAGS,76,19,191,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_BORDER
+    LTEXT           "Version String:",IDC_STATIC,7,31,48,8
+    LTEXT           "Static",IDC_VERSIONSTRING,78,31,189,8
 END
 
 
