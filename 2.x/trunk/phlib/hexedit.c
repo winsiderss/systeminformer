@@ -260,7 +260,12 @@ LRESULT CALLBACK PhpHexEditWndProc(
 
             if (context->Data)
             {
-                context->TopIndex += context->BytesPerRow * -wheelDelta / WHEEL_DELTA;
+                ULONG wheelScrollLines;
+
+                if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
+                    wheelScrollLines = 3;
+
+                context->TopIndex += context->BytesPerRow * (LONG)wheelScrollLines * -wheelDelta / WHEEL_DELTA;
 
                 if (context->TopIndex < 0)
                     context->TopIndex = 0;
@@ -516,90 +521,110 @@ LRESULT CALLBACK PhpHexEditWndProc(
             switch (vk)
             {
             case VK_DOWN:
-                if (shift)
+                if (context->CurrentMode != EDIT_NONE)
                 {
-                    if (!PhpHexEditHasSelected(context))
-                        context->SelStart = context->CurrentAddress;
+                    if (shift)
+                    {
+                        if (!PhpHexEditHasSelected(context))
+                            context->SelStart = context->CurrentAddress;
+
+                        PhpHexEditMove(hwnd, context, 0, 1);
+                        context->SelEnd = context->CurrentAddress;
+
+                        if (context->CurrentMode == EDIT_HIGH || context->CurrentMode == EDIT_LOW)
+                            context->SelEnd++;
+
+                        REDRAW_WINDOW(hwnd);
+                        break;
+                    }
+                    else
+                    {
+                        PhpHexEditSetSel(hwnd, context, -1, -1);
+                    }
 
                     PhpHexEditMove(hwnd, context, 0, 1);
-                    context->SelEnd = context->CurrentAddress;
-
-                    if (context->CurrentMode == EDIT_HIGH || context->CurrentMode == EDIT_LOW)
-                        context->SelEnd++;
-
-                    REDRAW_WINDOW(hwnd);
-                    break;
+                    noScrollIntoView = TRUE;
                 }
                 else
                 {
-                    PhpHexEditSetSel(hwnd, context, -1, -1);
+                    PhpHexEditMove(hwnd, context, 0, 1);
                 }
-
-                PhpHexEditMove(hwnd, context, 0, 1);
-                noScrollIntoView = TRUE;
                 break;
             case VK_UP:
-                if (shift)
+                if (context->CurrentMode != EDIT_NONE)
                 {
-                    if (!PhpHexEditHasSelected(context))
-                        context->SelStart = context->CurrentAddress;
+                    if (shift)
+                    {
+                        if (!PhpHexEditHasSelected(context))
+                            context->SelStart = context->CurrentAddress;
+
+                        PhpHexEditMove(hwnd, context, 0, -1);
+                        context->SelEnd = context->CurrentAddress;
+
+                        REDRAW_WINDOW(hwnd);
+                        break;
+                    }
+                    else
+                    {
+                        PhpHexEditSetSel(hwnd, context, -1, -1);
+                    }
 
                     PhpHexEditMove(hwnd, context, 0, -1);
-                    context->SelEnd = context->CurrentAddress;
-
-                    REDRAW_WINDOW(hwnd);
-                    break;
+                    noScrollIntoView = TRUE;
                 }
                 else
                 {
-                    PhpHexEditSetSel(hwnd, context, -1, -1);
+                    PhpHexEditMove(hwnd, context, 0, -1);
                 }
-
-                PhpHexEditMove(hwnd, context, 0, -1);
-                noScrollIntoView = TRUE;
                 break;
             case VK_LEFT:
-                if (shift)
+                if (context->CurrentMode != EDIT_NONE)
                 {
-                    if (!PhpHexEditHasSelected(context))
-                        context->SelStart = context->CurrentAddress;
+                    if (shift)
+                    {
+                        if (!PhpHexEditHasSelected(context))
+                            context->SelStart = context->CurrentAddress;
+
+                        PhpHexEditMove(hwnd, context, -1, 0);
+                        context->SelEnd = context->CurrentAddress;
+
+                        REDRAW_WINDOW(hwnd);
+                        break;
+                    }
+                    else
+                    {
+                        PhpHexEditSetSel(hwnd, context, -1, -1);
+                    }
 
                     PhpHexEditMove(hwnd, context, -1, 0);
-                    context->SelEnd = context->CurrentAddress;
-
-                    REDRAW_WINDOW(hwnd);
-                    break;
+                    noScrollIntoView = TRUE;
                 }
-                else
-                {
-                    PhpHexEditSetSel(hwnd, context, -1, -1);
-                }
-
-                PhpHexEditMove(hwnd, context, -1, 0);
-                noScrollIntoView = TRUE;
                 break;
             case VK_RIGHT:
-                if (shift)
+                if (context->CurrentMode != EDIT_NONE)
                 {
-                    if (!PhpHexEditHasSelected(context))
-                        context->SelStart = context->CurrentAddress;
+                    if (shift)
+                    {
+                        if (!PhpHexEditHasSelected(context))
+                            context->SelStart = context->CurrentAddress;
+
+                        PhpHexEditMove(hwnd, context, 1, 0);
+                        context->SelEnd = context->CurrentAddress;
+
+                        if (context->CurrentMode == EDIT_HIGH || context->CurrentMode == EDIT_LOW)
+                            context->SelEnd++;
+
+                        REDRAW_WINDOW(hwnd);
+                        break;
+                    }
+                    else
+                    {
+                        PhpHexEditSetSel(hwnd, context, -1, -1);
+                    }
 
                     PhpHexEditMove(hwnd, context, 1, 0);
-                    context->SelEnd = context->CurrentAddress;
-
-                    if (context->CurrentMode == EDIT_HIGH || context->CurrentMode == EDIT_LOW)
-                        context->SelEnd++;
-
-                    REDRAW_WINDOW(hwnd);
-                    break;
+                    noScrollIntoView = TRUE;
                 }
-                else
-                {
-                    PhpHexEditSetSel(hwnd, context, -1, -1);
-                }
-
-                PhpHexEditMove(hwnd, context, 1, 0);
-                noScrollIntoView = TRUE;
                 break;
             case VK_PRIOR:
                 if (shift)
@@ -1378,7 +1403,8 @@ VOID PhpHexEditMove(
     switch (Context->CurrentMode)
     {
     case EDIT_NONE:
-        return;
+        Context->CurrentAddress += Y * Context->BytesPerRow;
+        break;
     case EDIT_HIGH:
         if (X != 0)
             Context->CurrentMode = EDIT_LOW;
