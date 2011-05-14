@@ -63,6 +63,7 @@ VOID NTAPI ThreadMenuInitializingCallback(
     __in_opt PVOID Context
     );
 
+BOOLEAN IsHookClient;
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -85,6 +86,15 @@ LOGICAL DllMain(
         {
             PPH_PLUGIN_INFORMATION info;
 
+            if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
+            {
+                // This DLL is being loaded not as a Process Hacker plugin, but as a hook.
+                IsHookClient = TRUE;
+                WeHookClientInitialization();
+
+                break;
+            }
+
             PluginInstance = PhRegisterPlugin(L"ProcessHacker.WindowExplorer", Instance, &info);
 
             if (!PluginInstance)
@@ -101,12 +111,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginLoadCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            //    UnloadCallback,
-            //    NULL,
-            //    &PluginUnloadCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
             //PhRegisterCallback(
             //    PhGetPluginCallback(PluginInstance, PluginCallbackShowOptions),
             //    ShowOptionsCallback,
@@ -157,6 +167,14 @@ LOGICAL DllMain(
             }
         }
         break;
+    case DLL_PROCESS_DETACH:
+        {
+            if (IsHookClient)
+            {
+                WeHookClientUninitialization();
+            }
+        }
+        break;
     }
 
     return TRUE;
@@ -175,7 +193,7 @@ VOID NTAPI UnloadCallback(
     __in_opt PVOID Context
     )
 {
-    NOTHING;
+    WeHookServerUninitialization();
 }
 
 VOID NTAPI ShowOptionsCallback(

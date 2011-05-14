@@ -4,12 +4,60 @@
 #include <phdk.h>
 #include "wndtree.h"
 
+extern BOOLEAN IsHookClient;
 extern PPH_PLUGIN PluginInstance;
 
 #define SETTING_PREFIX L"ProcessHacker.WindowExplorer."
 #define SETTING_NAME_WINDOW_TREE_LIST_COLUMNS (SETTING_PREFIX L"WindowTreeListColumns")
 #define SETTING_NAME_WINDOWS_WINDOW_POSITION (SETTING_PREFIX L"WindowsWindowPosition")
 #define SETTING_NAME_WINDOWS_WINDOW_SIZE (SETTING_PREFIX L"WindowsWindowSize")
+
+// hook
+
+#define WE_SERVER_MESSAGE_NAME L"WE_ServerMessage"
+
+#define WM_WE_RECEIVE_REQUEST (WM_APP + 100)
+#define WM_WE_SEND_REPLY (WM_APP + 101)
+
+#define WE_CLIENT_MESSAGE_TIMEOUT 5000
+#define WE_CLIENT_MESSAGE_MAGIC ('amEW')
+
+typedef enum _WE_HOOK_REQUEST_TYPE
+{
+    GetWindowLongHookRequest, // call GetWindowLongPtr, store result in Data
+    MaximumHookRequest
+} WE_HOOK_REQUEST_TYPE, *PWE_HOOK_REQUEST_TYPE;
+
+typedef struct _WE_HOOK_REQUEST
+{
+    WE_HOOK_REQUEST_TYPE Type;
+    ULONG_PTR Parameter1;
+    ULONG_PTR Parameter2;
+    ULONG_PTR Parameter3;
+    ULONG_PTR Parameter4;
+} WE_HOOK_REQUEST, *PWE_HOOK_REQUEST;
+
+typedef struct _WE_HOOK_REPLY
+{
+    union
+    {
+        LONG_PTR Data;
+    } u;
+} WE_HOOK_REPLY, *PWE_HOOK_REPLY;
+
+VOID WeHookServerInitialization();
+
+VOID WeHookServerUninitialization();
+
+BOOLEAN WeSendServerRequest(
+    __in HWND hWnd,
+    __in PWE_HOOK_REQUEST Request,
+    __out PWE_HOOK_REPLY Reply
+    );
+
+VOID WeHookClientInitialization();
+
+VOID WeHookClientUninitialization();
 
 // wnddlg
 

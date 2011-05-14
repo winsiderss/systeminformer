@@ -180,6 +180,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="hook.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="utils.c" />
     <ClCompile Include="wnddlg.c" />
