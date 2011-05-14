@@ -67,7 +67,7 @@ VOID WeShowWindowsDialog(
     memset(context, 0, sizeof(WINDOWS_CONTEXT));
     memcpy(&context->Selector, Selector, sizeof(WE_WINDOW_SELECTOR));
 
-    ProcessHacker_Invoke(PhMainWndHandle, WepShowWindowsDialogCallback, context);
+    ProcessHacker_Invoke(WE_PhMainWndHandle, WepShowWindowsDialogCallback, context);
 }
 
 VOID WepShowWindowsDialogCallback(
@@ -80,7 +80,7 @@ VOID WepShowWindowsDialogCallback(
     hwnd = CreateDialogParam(
         PluginInstance->DllBase,
         MAKEINTRESOURCE(IDD_WNDLIST),
-        PhMainWndHandle,
+        WE_PhMainWndHandle,
         WepWindowsDlgProc,
         (LPARAM)context
         );
@@ -608,7 +608,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     {
                         if (processItem = PhReferenceProcessItem(selectedNode->ClientId.UniqueProcess))
                         {
-                            if (propContext = PhCreateProcessPropContext(PhMainWndHandle, processItem))
+                            if (propContext = PhCreateProcessPropContext(WE_PhMainWndHandle, processItem))
                             {
                                 PhSetSelectThreadIdProcessPropContext(propContext, selectedNode->ClientId.UniqueThread);
                                 PhShowProcessProperties(propContext);
@@ -629,7 +629,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     PWE_WINDOW_NODE selectedNode;
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
-                        WeShowWindowProperties(PhMainWndHandle, selectedNode->WindowHandle);
+                        WeShowWindowProperties(WE_PhMainWndHandle, selectedNode->WindowHandle);
                 }
                 break;
             case ID_WINDOW_COPY:
