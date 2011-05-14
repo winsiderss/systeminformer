@@ -57,6 +57,12 @@ VOID WeShowWindowProperties(
 
 // utils
 
+#define WE_PhMainWndHandle (*(HWND *)WeGetProcedureAddress("PhMainWndHandle"))
+
+PVOID WeGetProcedureAddress(
+    __in PSTR Name
+    );
+
 VOID WeInvertWindowBorder(
     __in HWND hWnd
     );

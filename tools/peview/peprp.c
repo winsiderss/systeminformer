@@ -499,7 +499,11 @@ INT_PTR CALLBACK PvpPeExportsDlgProc(
 
                         if (!exportFunction.ForwardedName)
                         {
-                            PhPrintPointer(pointer, PTR_SUB_OFFSET(exportFunction.Function, PvMappedImage.ViewBase));
+                            if ((ULONG_PTR)exportFunction.Function >= (ULONG_PTR)PvMappedImage.ViewBase)
+                                PhPrintPointer(pointer, PTR_SUB_OFFSET(exportFunction.Function, PvMappedImage.ViewBase));
+                            else
+                                PhPrintPointer(pointer, exportFunction.Function);
+
                             PhSetListViewSubItem(lvHandle, lvItemIndex, 2, pointer);
                         }
                         else
