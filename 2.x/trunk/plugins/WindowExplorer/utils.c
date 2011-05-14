@@ -22,6 +22,18 @@
 
 #include "wndexp.h"
 
+PVOID WeGetProcedureAddress(
+    __in PSTR Name
+    )
+{
+    static PVOID imageBase = NULL;
+
+    if (!imageBase)
+        imageBase = GetModuleHandle(L"ProcessHacker.exe");
+
+    return (PVOID)GetProcAddress(imageBase, Name);
+}
+
 VOID WeInvertWindowBorder(
     __in HWND hWnd
     )
