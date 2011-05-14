@@ -477,7 +477,7 @@ BOOLEAN PhMainWndInitialization(
     return TRUE;
 }
 
-LRESULT CALLBACK PhMainWndProc(      
+LRESULT CALLBACK PhMainWndProc(
     __in HWND hWnd,
     __in UINT uMsg,
     __in WPARAM wParam,
