@@ -1,2 +1,5 @@
+1.1
+ * Added Always on Top and Opacity
+
 1.0
  * Initial release
