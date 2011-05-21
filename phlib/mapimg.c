@@ -29,6 +29,7 @@
  */
 
 #include <ph.h>
+#include <delayimp.h>
 
 VOID PhpMappedImageProbe(
     __in PPH_MAPPED_IMAGE MappedImage,
@@ -831,6 +832,7 @@ NTSTATUS PhGetMappedImageImports(
     ULONG i;
 
     Imports->MappedImage = MappedImage;
+    Imports->Flags = 0;
 
     status = PhGetMappedImageDataEntry(
         MappedImage,
@@ -891,32 +893,58 @@ NTSTATUS PhGetMappedImageImportDll(
         return STATUS_INVALID_PARAMETER_2;
 
     ImportDll->MappedImage = Imports->MappedImage;
-    ImportDll->Descriptor = &Imports->DescriptorTable[Index];
+    ImportDll->Flags = Imports->Flags;
 
-    ImportDll->Name = PhMappedImageRvaToVa(
-        ImportDll->MappedImage,
-        ImportDll->Descriptor->Name,
-        NULL
-        );
-
-    if (!ImportDll->Name)
-        return STATUS_INVALID_PARAMETER;
-
-    // TODO: Probe the name.
-
-    if (ImportDll->Descriptor->OriginalFirstThunk)
+    if (!(ImportDll->Flags & PH_MAPPED_IMAGE_DELAY_IMPORTS))
     {
-        ImportDll->LookupTable = PhMappedImageRvaToVa(
+        ImportDll->Descriptor = &Imports->DescriptorTable[Index];
+
+        ImportDll->Name = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ImportDll->Descriptor->OriginalFirstThunk,
+            ImportDll->Descriptor->Name,
             NULL
             );
+
+        if (!ImportDll->Name)
+            return STATUS_INVALID_PARAMETER;
+
+        // TODO: Probe the name.
+
+        if (ImportDll->Descriptor->OriginalFirstThunk)
+        {
+            ImportDll->LookupTable = PhMappedImageRvaToVa(
+                ImportDll->MappedImage,
+                ImportDll->Descriptor->OriginalFirstThunk,
+                NULL
+                );
+        }
+        else
+        {
+            ImportDll->LookupTable = PhMappedImageRvaToVa(
+                ImportDll->MappedImage,
+                ImportDll->Descriptor->FirstThunk,
+                NULL
+                );
+        }
     }
     else
     {
+        ImportDll->DelayDescriptor = &((PImgDelayDescr)Imports->DelayDescriptorTable)[Index];
+
+        ImportDll->Name = PhMappedImageRvaToVa(
+            ImportDll->MappedImage,
+            ((PImgDelayDescr)ImportDll->DelayDescriptor)->rvaDLLName,
+            NULL
+            );
+
+        if (!ImportDll->Name)
+            return STATUS_INVALID_PARAMETER;
+
+        // TODO: Probe the name.
+
         ImportDll->LookupTable = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
-            ImportDll->Descriptor->FirstThunk,
+            ((PImgDelayDescr)ImportDll->DelayDescriptor)->rvaINT,
             NULL
             );
     }
@@ -1076,6 +1104,66 @@ NTSTATUS PhGetMappedImageImportEntry(
     Entry->NameHint = importByName->Hint;
 
     // TODO: Probe the name.
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhGetMappedImageDelayImports(
+    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    NTSTATUS status;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PImgDelayDescr descriptor;
+    ULONG i;
+
+    Imports->MappedImage = MappedImage;
+    Imports->Flags = PH_MAPPED_IMAGE_DELAY_IMPORTS;
+
+    status = PhGetMappedImageDataEntry(
+        MappedImage,
+        IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT,
+        &dataDirectory
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    descriptor = PhMappedImageRvaToVa(
+        MappedImage,
+        dataDirectory->VirtualAddress,
+        NULL
+        );
+
+    if (!descriptor)
+        return STATUS_INVALID_PARAMETER;
+
+    Imports->DelayDescriptorTable = descriptor;
+
+    // Do a scan to determine how many import descriptors there are.
+
+    i = 0;
+
+    __try
+    {
+        while (TRUE)
+        {
+            PhpMappedImageProbe(MappedImage, descriptor, sizeof(ImgDelayDescr));
+
+            if (descriptor->rvaIAT == 0 && descriptor->rvaINT == 0)
+                break;
+
+            descriptor++;
+            i++;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    Imports->NumberOfDlls = i;
 
     return STATUS_SUCCESS;
 }

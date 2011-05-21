@@ -1153,21 +1153,33 @@ NTSTATUS PhGetMappedImageExportFunctionRemote(
     __out PPVOID Function
     );
 
+#define PH_MAPPED_IMAGE_DELAY_IMPORTS 0x1
+
 typedef struct _PH_MAPPED_IMAGE_IMPORTS
 {
     PPH_MAPPED_IMAGE MappedImage;
+    ULONG Flags;
     ULONG NumberOfDlls;
 
-    PIMAGE_IMPORT_DESCRIPTOR DescriptorTable;
+    union
+    {
+        PIMAGE_IMPORT_DESCRIPTOR DescriptorTable;
+        PVOID DelayDescriptorTable;
+    };
 } PH_MAPPED_IMAGE_IMPORTS, *PPH_MAPPED_IMAGE_IMPORTS;
 
 typedef struct _PH_MAPPED_IMAGE_IMPORT_DLL
 {
     PPH_MAPPED_IMAGE MappedImage;
+    ULONG Flags;
     PSTR Name;
     ULONG NumberOfEntries;
 
-    PIMAGE_IMPORT_DESCRIPTOR Descriptor;
+    union
+    {
+        PIMAGE_IMPORT_DESCRIPTOR Descriptor;
+        PVOID DelayDescriptor;
+    };
     PPVOID LookupTable;
 } PH_MAPPED_IMAGE_IMPORT_DLL, *PPH_MAPPED_IMAGE_IMPORT_DLL;
 
@@ -1199,6 +1211,12 @@ NTSTATUS PhGetMappedImageImportEntry(
     __in PPH_MAPPED_IMAGE_IMPORT_DLL ImportDll,
     __in ULONG Index,
     __out PPH_MAPPED_IMAGE_IMPORT_ENTRY Entry
+    );
+
+PHLIBAPI
+NTSTATUS PhGetMappedImageDelayImports(
+    __out PPH_MAPPED_IMAGE_IMPORTS Imports,
+    __in PPH_MAPPED_IMAGE MappedImage
     );
 
 PHLIBAPI
