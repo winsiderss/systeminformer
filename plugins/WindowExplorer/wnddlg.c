@@ -22,6 +22,7 @@
 
 #include "wndexp.h"
 #include "resource.h"
+#include <windowsx.h>
 
 typedef struct _WINDOWS_CONTEXT
 {
@@ -459,6 +460,12 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                         if (numberOfWindows == 1)
                         {
                             WINDOWPLACEMENT placement = { sizeof(placement) };
+                            BYTE alpha;
+                            ULONG flags;
+                            ULONG i;
+                            ULONG id;
+
+                            // State
 
                             GetWindowPlacement(windows[0]->WindowHandle, &placement);
 
@@ -468,6 +475,47 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                                 PhEnableMenuItem(subMenu, ID_WINDOW_MAXIMIZE, FALSE);
                             else if (placement.showCmd == SW_NORMAL)
                                 PhEnableMenuItem(subMenu, ID_WINDOW_RESTORE, FALSE);
+
+                            // Always on Top
+
+                            CheckMenuItem(subMenu, ID_WINDOW_ALWAYSONTOP,
+                                (GetWindowLong(windows[0]->WindowHandle, GWL_EXSTYLE) & WS_EX_TOPMOST) ? MF_CHECKED : MF_UNCHECKED);
+
+                            // Opacity
+
+                            if (GetLayeredWindowAttributes(windows[0]->WindowHandle, NULL, &alpha, &flags))
+                            {
+                                if (!(flags & LWA_ALPHA))
+                                    alpha = 255;
+                            }
+                            else
+                            {
+                                alpha = 255;
+                            }
+
+                            if (alpha == 255)
+                            {
+                                id = ID_OPACITY_OPAQUE;
+                            }
+                            else
+                            {
+                                id = 0;
+
+                                // Due to integer division, we cannot use simple arithmetic to calculate which menu item to check.
+                                for (i = 0; i < 10; i++)
+                                {
+                                    if (alpha == (BYTE)(255 * (i + 1) / 10))
+                                    {
+                                        id = ID_OPACITY_10 + i;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if (id != 0)
+                            {
+                                CheckMenuRadioItem(subMenu, ID_OPACITY_10, ID_OPACITY_OPAQUE, id, MF_BYCOMMAND);
+                            }
                         }
                         else
                         {
@@ -577,6 +625,54 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
                         EnableWindow(selectedNode->WindowHandle, !IsWindowEnabled(selectedNode->WindowHandle));
+                    }
+                }
+                break;
+            case ID_WINDOW_ALWAYSONTOP:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        LOGICAL topMost;
+
+                        topMost = GetWindowLong(selectedNode->WindowHandle, GWL_EXSTYLE) & WS_EX_TOPMOST;
+                        SetWindowPos(selectedNode->WindowHandle, topMost ? HWND_NOTOPMOST : HWND_TOPMOST,
+                            0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+                    }
+                }
+                break;
+            case ID_OPACITY_10:
+            case ID_OPACITY_20:
+            case ID_OPACITY_30:
+            case ID_OPACITY_40:
+            case ID_OPACITY_50:
+            case ID_OPACITY_60:
+            case ID_OPACITY_70:
+            case ID_OPACITY_80:
+            case ID_OPACITY_90:
+            case ID_OPACITY_OPAQUE:
+                {
+                    PWE_WINDOW_NODE selectedNode;
+
+                    if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
+                    {
+                        ULONG opacity;
+
+                        opacity = ((ULONG)LOWORD(wParam) - ID_OPACITY_10) + 1;
+
+                        if (opacity == 10)
+                        {
+                            // Remove the WS_EX_LAYERED bit since it is not needed.
+                            PhSetWindowExStyle(selectedNode->WindowHandle, WS_EX_LAYERED, 0);
+                            RedrawWindow(selectedNode->WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+                        }
+                        else
+                        {
+                            // Add the WS_EX_LAYERED bit so opacity will work.
+                            PhSetWindowExStyle(selectedNode->WindowHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+                            SetLayeredWindowAttributes(selectedNode->WindowHandle, 0, (BYTE)(255 * opacity / 10), LWA_ALPHA);
+                        }
                     }
                 }
                 break;

@@ -2331,10 +2331,15 @@ VOID PhpSetWindowOpacity(
     __in ULONG Opacity
     )
 {
-    if (!(GetWindowExStyle(PhMainWndHandle) & WS_EX_LAYERED))
+    if (Opacity == 0)
     {
-        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
+        // Make things a bit faster by removing the WS_EX_LAYERED bit.
+        PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, 0);
+        RedrawWindow(PhMainWndHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN);
+        return;
     }
+
+    PhSetWindowExStyle(PhMainWndHandle, WS_EX_LAYERED, WS_EX_LAYERED);
 
     // Disallow opacity values of less than 10%.
     if (Opacity > 90)

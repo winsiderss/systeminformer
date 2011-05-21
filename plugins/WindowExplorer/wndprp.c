@@ -483,6 +483,7 @@ static VOID WepRefreshWindowGeneralInfo(
     PPH_STRING clientIdName;
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
+    MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
 
     threadId = GetWindowThreadProcessId(Context->WindowHandle, &processId);
 
@@ -511,6 +512,15 @@ static VOID WepRefreshWindowGeneralInfo(
 
     if (GetWindowPlacement(Context->WindowHandle, &windowPlacement))
     {
+        // The rectangle is in workspace coordinates. Convert the values back to screen coordinates.
+        if (GetMonitorInfo(MonitorFromRect(&windowPlacement.rcNormalPosition, MONITOR_DEFAULTTOPRIMARY), &monitorInfo))
+        {
+            windowPlacement.rcNormalPosition.left += monitorInfo.rcWork.left;
+            windowPlacement.rcNormalPosition.top += monitorInfo.rcWork.top;
+            windowPlacement.rcNormalPosition.right += monitorInfo.rcWork.left;
+            windowPlacement.rcNormalPosition.bottom += monitorInfo.rcWork.top;
+        }
+
         SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, WepFormatRect(&windowPlacement.rcNormalPosition)->Buffer);
     }
     else
