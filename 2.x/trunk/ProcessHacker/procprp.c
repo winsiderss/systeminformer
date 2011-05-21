@@ -230,19 +230,13 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             RemoveProp(hwnd, L"LayoutManager");
 
             {
-                WINDOWPLACEMENT placement = { sizeof(placement) };
-                PH_RECTANGLE windowRectangle;
                 HWND tabControl;
                 TCITEM tabItem;
-                WCHAR text[32];
+                WCHAR text[128];
 
                 // Save the window position and size.
 
-                GetWindowPlacement(hwnd, &placement);
-                windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
-
-                PhSetIntegerPairSetting(L"ProcPropPosition", windowRectangle.Position);
-                PhSetIntegerPairSetting(L"ProcPropSize", windowRectangle.Size);
+                PhSaveWindowPlacementToSetting(L"ProcPropPosition", L"ProcPropSize", hwnd);
 
                 // Save the selected tab.
 

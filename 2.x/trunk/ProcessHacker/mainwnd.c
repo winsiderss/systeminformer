@@ -2296,9 +2296,6 @@ VOID PhpSaveWindowState()
 
 VOID PhpSaveAllSettings()
 {
-    WINDOWPLACEMENT placement = { sizeof(placement) };
-    PH_RECTANGLE windowRectangle;
-
     PhSaveSettingsProcessTreeList();
     if (ServiceTreeListLoaded)
         PhSaveSettingsServiceTreeList();
@@ -2307,11 +2304,7 @@ VOID PhpSaveAllSettings()
     PhSetIntegerSetting(L"IconMask", NotifyIconMask);
     PhSetIntegerSetting(L"IconNotifyMask", NotifyIconNotifyMask);
 
-    GetWindowPlacement(PhMainWndHandle, &placement);
-    windowRectangle = PhRectToRectangle(placement.rcNormalPosition);
-
-    PhSetIntegerPairSetting(L"MainWindowPosition", windowRectangle.Position);
-    PhSetIntegerPairSetting(L"MainWindowSize", windowRectangle.Size);
+    PhSaveWindowPlacementToSetting(L"MainWindowPosition", L"MainWindowSize", PhMainWndHandle);
 
     PhpSaveWindowState();
 
