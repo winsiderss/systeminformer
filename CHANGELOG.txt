@@ -5,6 +5,7 @@ Process Hacker
    * Added version string to peview CLR tab
  * FIXED:
    * Fixed the IPv6-related workaround causing crashes
+   * Incorrect handling of window positions
 
 2.15
  * NEW/IMPROVED:

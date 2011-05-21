@@ -139,7 +139,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
             PPH_STRING title;
             HWND lvHandle;
             PPH_LAYOUT_MANAGER layoutManager;
-            PH_INTEGER_PAIR size;
 
             threadStackContext = (PTHREAD_STACK_CONTEXT)lParam;
             SetProp(hwndDlg, PhMakeContextAtom(), (HANDLE)threadStackContext);
@@ -183,8 +182,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 MinimumSize.left = 0;
             }
 
-            size = PhGetIntegerPairSetting(L"ThreadStackWindowSize");
-            SetWindowPos(hwndDlg, NULL, 0, 0, size.X, size.Y, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+            PhLoadWindowPlacementFromSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhpRefreshThreadStack(threadStackContext);
@@ -194,8 +192,6 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
         {
             PPH_LAYOUT_MANAGER layoutManager;
             PTHREAD_STACK_CONTEXT threadStackContext;
-            WINDOWPLACEMENT windowPlacement = { sizeof(windowPlacement) };
-            PH_RECTANGLE windowRectangle;
             ULONG i;
 
             layoutManager = (PPH_LAYOUT_MANAGER)GetProp(hwndDlg, L"LayoutManager");
@@ -208,10 +204,7 @@ static INT_PTR CALLBACK PhpThreadStackDlgProc(
                 PhFree(threadStackContext->List->Items[i]);
 
             PhSaveListViewColumnsToSetting(L"ThreadStackListViewColumns", GetDlgItem(hwndDlg, IDC_LIST));
-
-            GetWindowPlacement(hwndDlg, &windowPlacement);
-            windowRectangle = PhRectToRectangle(windowPlacement.rcNormalPosition);
-            PhSetIntegerPairSetting(L"ThreadStackWindowSize", windowRectangle.Size);
+            PhSaveWindowPlacementToSetting(NULL, L"ThreadStackWindowSize", hwndDlg);
 
             RemoveProp(hwndDlg, PhMakeContextAtom());
             RemoveProp(hwndDlg, L"LayoutManager");
