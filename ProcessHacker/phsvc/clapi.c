@@ -278,6 +278,8 @@ NTSTATUS PhSvcCallUnloadDriver(
 
     m.ApiNumber = PhSvcUnloadDriverApiNumber;
 
+    m.u.UnloadDriver.i.BaseAddress = BaseAddress;
+
     if (Name)
     {
         name = PhSvcpCreateString(Name, -1, &m.u.UnloadDriver.i.Name);
