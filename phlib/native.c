@@ -3712,13 +3712,11 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
 
     if (Entry->DllBase == context->BaseAddress)
     {
-        Entry->LoadCount = context->LoadCount;
-
         context->Status = PhWriteVirtualMemory(
             ProcessHandle,
-            AddressOfEntry,
-            Entry,
-            LDR_DATA_TABLE_ENTRY_SIZE_WINXP,
+            PTR_ADD_OFFSET(AddressOfEntry, FIELD_OFFSET(LDR_DATA_TABLE_ENTRY, LoadCount)),
+            &context->LoadCount,
+            sizeof(USHORT),
             NULL
             );
 
@@ -3972,13 +3970,11 @@ BOOLEAN NTAPI PhpSetProcessModuleLoadCount32Callback(
 
     if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
     {
-        Entry->LoadCount = context->LoadCount;
-
         context->Status = PhWriteVirtualMemory(
             ProcessHandle,
-            UlongToPtr(AddressOfEntry),
-            Entry,
-            LDR_DATA_TABLE_ENTRY_SIZE_WINXP32,
+            UlongToPtr(AddressOfEntry + FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, LoadCount)),
+            &context->LoadCount,
+            sizeof(USHORT),
             NULL
             );
 
