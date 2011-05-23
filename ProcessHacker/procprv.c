@@ -23,7 +23,7 @@
 /*
  * This provider module handles the collection of process information and 
  * system-wide statistics. A list of all running processes is kept and 
- * periodically scanned to detected new and terminated processes.
+ * periodically scanned to detect new and terminated processes.
  *
  * The retrieval of certain information is delayed in order to improve 
  * performance. This includes things such as file icons, version information, 
