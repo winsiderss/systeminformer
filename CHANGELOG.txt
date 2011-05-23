@@ -2,7 +2,7 @@ Process Hacker
 
 2.16
  * NEW/IMPROVED:
-   * WindowExplorer plugin: Added Always on Top and Opacity
+   * Updated WindowExplorer plugin
    * PE viewer: Added version string to CLR tab
    * PE viewer: Added display of delay imports
  * FIXED:

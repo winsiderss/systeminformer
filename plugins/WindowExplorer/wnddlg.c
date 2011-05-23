@@ -476,6 +476,16 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             else if (placement.showCmd == SW_NORMAL)
                                 PhEnableMenuItem(subMenu, ID_WINDOW_RESTORE, FALSE);
 
+                            // Visible
+
+                            CheckMenuItem(subMenu, ID_WINDOW_VISIBLE,
+                                (GetWindowLong(windows[0]->WindowHandle, GWL_STYLE) & WS_VISIBLE) ? MF_CHECKED : MF_UNCHECKED);
+
+                            // Enabled
+
+                            CheckMenuItem(subMenu, ID_WINDOW_ENABLED,
+                                !(GetWindowLong(windows[0]->WindowHandle, GWL_STYLE) & WS_DISABLED) ? MF_CHECKED : MF_UNCHECKED);
+
                             // Always on Top
 
                             CheckMenuItem(subMenu, ID_WINDOW_ALWAYSONTOP,
@@ -596,7 +606,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     }
                 }
                 break;
-            case ID_WINDOW_SHOWHIDE:
+            case ID_WINDOW_VISIBLE:
                 {
                     PWE_WINDOW_NODE selectedNode;
 
@@ -618,7 +628,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                     }
                 }
                 break;
-            case ID_WINDOW_ENABLEDISABLE:
+            case ID_WINDOW_ENABLED:
                 {
                     PWE_WINDOW_NODE selectedNode;
 
