@@ -1463,6 +1463,18 @@ NTSTATUS PhGetProcessWsCounters(
     return status;
 }
 
+/**
+ * Enumerates all handles in a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param Handles A variable which receives a pointer 
+ * to a buffer containing information about the 
+ * opened handles. You must free the structure using 
+ * PhFree() when you no longer need it.
+ *
+ * \remarks This function requires a valid KProcessHacker 
+ * handle.
+ */
 NTSTATUS PhEnumProcessHandles(
     __in HANDLE ProcessHandle,
     __out PKPH_PROCESS_HANDLE_INFORMATION *Handles
@@ -4051,6 +4063,22 @@ static BOOLEAN PhpGetProcedureAddressRemoteCallback(
     return TRUE;
 }
 
+/**
+ * Gets the address of a procedure in a process.
+ *
+ * \param ProcessHandle A handle to a process. The 
+ * handle must have PROCESS_QUERY_LIMITED_INFORMATION 
+ * and PROCESS_VM_READ access.
+ * \param FileName The file name of the DLL containing 
+ * the procedure.
+ * \param ProcedureName The name of the procedure.
+ * \param ProcedureNumber The ordinal of the procedure.
+ * \param ProcedureAddress A variable which receives the 
+ * address of the procedure in the address space of the 
+ * process.
+ * \param DllBase A variable which receives the base 
+ * address of the DLL containing the procedure.
+ */
 NTSTATUS PhGetProcedureAddressRemote(
     __in HANDLE ProcessHandle,
     __in PWSTR FileName,
@@ -4549,6 +4577,18 @@ NTSTATUS PhEnumHandlesEx(
     return status;
 }
 
+/**
+ * Enumerates all pagefiles.
+ *
+ * \param Pagefiles A variable which receives a pointer 
+ * to a buffer containing information about all 
+ * active pagefiles. You must free the structure using 
+ * PhFree() when you no longer need it.
+ *
+ * \retval STATUS_INSUFFICIENT_RESOURCES The 
+ * handle information returned by the kernel is too 
+ * large.
+ */
 NTSTATUS PhEnumPagefiles(
     __out PPVOID Pagefiles
     )
@@ -4680,6 +4720,13 @@ BOOLEAN NTAPI PhpGetProcessIsDotNetCallback(
     return TRUE;
 }
 
+/**
+ * Determines if a process is managed.
+ *
+ * \param ProcessId The ID of the process.
+ * \param IsDotNet A variable which receives a boolean indicating 
+ * whether the process is managed.
+ */
 NTSTATUS PhGetProcessIsDotNet(
     __in HANDLE ProcessId,
     __out PBOOLEAN IsDotNet
