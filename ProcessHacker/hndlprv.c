@@ -278,6 +278,16 @@ __assumeLocked VOID PhpRemoveHandleItem(
     PhDereferenceObject(HandleItem);
 }
 
+/**
+ * Enumerates all handles in a process.
+ *
+ * \param ProcessId The ID of the process.
+ * \param ProcessHandle A handle to the process.
+ * \param Handles A variable which receives a pointer to a buffer containing 
+ * information about the handles.
+ * \param FilterNeeded A variable which receives a boolean indicating 
+ * whether the handle information needs to be filtered by process ID.
+ */
 NTSTATUS PhEnumHandlesGeneric(
     __in HANDLE ProcessId,
     __in HANDLE ProcessHandle,

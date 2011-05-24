@@ -72,6 +72,13 @@ VOID PhpEscapeStringForCsv(
         PhAppendStringBuilderEx(StringBuilder, runStart, runLength * sizeof(WCHAR));
 }
 
+/**
+ * Allocates a text table.
+ *
+ * \param Table A variable which receives a pointer to the text table.
+ * \param Rows The number of rows in the table.
+ * \param Columns The number of columns in the table.
+ */
 VOID PhaCreateTextTable(
     __out PPH_STRING ***Table,
     __in ULONG Rows,
@@ -88,11 +95,23 @@ VOID PhaCreateTextTable(
     {
         PhCreateAlloc((PVOID *)&table[i], sizeof(PPH_STRING) * Columns);
         PhaDereferenceObject(table[i]);
+        memset(table[i], 0, sizeof(PPH_STRING) * Columns);
     }
 
     *Table = table;
 }
 
+/**
+ * Formats a text table to a list of lines.
+ *
+ * \param Table A pointer to the text table.
+ * \param Rows The number of rows in the table.
+ * \param Columns The number of columns in the table.
+ * \param Mode The export formatting mode.
+ *
+ * \return A list of strings for each line in the output. The list object and 
+ * string objects are not auto-dereferenced.
+ */
 PPH_LIST PhaFormatTextTable(
     __in PPH_STRING **Table,
     __in ULONG Rows,
@@ -121,7 +140,10 @@ PPH_LIST PhaFormatTextTable(
             {
                 ULONG newCount;
 
-                newCount = Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                if (Table[i][j])
+                    newCount = Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                else
+                    newCount = 0;
 
                 // Replace the existing count if this tab count is bigger.
                 if (tabCount[j] < newCount)
@@ -150,10 +172,18 @@ PPH_LIST PhaFormatTextTable(
                 {
                     ULONG k;
 
-                    // Calculate the number of tabs needed.
-                    k = tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
+                    if (Table[i][j])
+                    {
+                        // Calculate the number of tabs needed.
+                        k = tabCount[j] + 1 - Table[i][j]->Length / sizeof(WCHAR) / TAB_SIZE;
 
-                    PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                        PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                    }
+                    else
+                    {
+                        k = tabCount[j] + 1;
+                    }
+
                     PhAppendCharStringBuilder2(&stringBuilder, '\t', k);
                 }
             }
@@ -164,10 +194,18 @@ PPH_LIST PhaFormatTextTable(
                 {
                     ULONG k;
 
-                    // Calculate the number of spaces needed.
-                    k = (tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR);
+                    if (Table[i][j])
+                    {
+                        // Calculate the number of spaces needed.
+                        k = (tabCount[j] + 1) * TAB_SIZE - Table[i][j]->Length / sizeof(WCHAR);
 
-                    PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                        PhAppendStringBuilder(&stringBuilder, Table[i][j]);
+                    }
+                    else
+                    {
+                        k = (tabCount[j] + 1) * TAB_SIZE;
+                    }
+
                     PhAppendCharStringBuilder2(&stringBuilder, ' ', k);
                 }
             }
@@ -177,7 +215,12 @@ PPH_LIST PhaFormatTextTable(
                 for (j = 0; j < Columns; j++)
                 {
                     PhAppendCharStringBuilder(&stringBuilder, '\"');
-                    PhpEscapeStringForCsv(&stringBuilder, Table[i][j]);
+
+                    if (Table[i][j])
+                    {
+                        PhpEscapeStringForCsv(&stringBuilder, Table[i][j]);
+                    }
+
                     PhAppendCharStringBuilder(&stringBuilder, '\"');
 
                     if (j != Columns - 1)
