@@ -569,7 +569,23 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     }
     else
     {
+        PPH_STRING receiverString;
+
         context->Found = FALSE;
+
+        // NtUserMessageCall didn't match, but this may still apply due to another 
+        // win32k system call (e.g. from EnableWindow).
+        if (receiverString = PhapGetSendMessageReceiver(context->ThreadId))
+        {
+            PhAppendStringBuilder2(
+                &context->StringBuilder,
+                L"Thread is sending a USER message:\r\n"
+                );
+            PhAppendStringBuilder(&context->StringBuilder, receiverString);
+            PhAppendStringBuilder2(&context->StringBuilder, L"\r\n");
+
+            context->Found = TRUE;
+        }
     }
 
     PhDereferenceObject(name);
@@ -875,6 +891,8 @@ static PPH_STRING PhapGetSendMessageReceiver(
     ULONG processId;
     CLIENT_ID clientId;
     PPH_STRING clientIdName;
+    WCHAR windowClass[64];
+    PPH_STRING windowText;
 
     // GetSendMessageReceiver is an undocumented function exported by 
     // user32.dll. It retrieves the handle of the window which a thread 
@@ -897,7 +915,12 @@ static PPH_STRING PhapGetSendMessageReceiver(
     clientId.UniqueThread = UlongToHandle(threadId);
     clientIdName = PHA_DEREFERENCE(PhGetClientIdName(&clientId));
 
-    return PhaFormatString(L"Window 0x%Ix (%s)", windowHandle, clientIdName->Buffer);
+    if (!GetClassName(windowHandle, windowClass, sizeof(windowClass) / sizeof(WCHAR)))
+        windowClass[0] = 0;
+
+    windowText = PHA_DEREFERENCE(PhGetWindowText(windowHandle));
+
+    return PhaFormatString(L"Window 0x%Ix (%s): %s \"%s\"", windowHandle, clientIdName->Buffer, windowClass, PhGetStringOrEmpty(windowText));
 }
 
 static PPH_STRING PhapGetAlpcInformation(
