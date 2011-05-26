@@ -71,6 +71,10 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     __in_opt PVOID Context
     );
 
+VOID PhpAnalyzeWaitFallbacks(
+    __in PANALYZE_WAIT_CONTEXT Context
+    );
+
 VOID PhpInitializeServiceNumbers();
 
 PPH_STRING PhapGetHandleString(
@@ -158,6 +162,8 @@ VOID PhUiAnalyzeWaitThread(
         &context
         );
     NtClose(threadHandle);
+
+    PhpAnalyzeWaitFallbacks(&context);
 
     if (context.Found)
     {
@@ -407,15 +413,28 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         )
     {
         HANDLE handle = StackFrame->Params[0];
+        PPH_STRING alpcInfo;
 
         PhAppendStringBuilder2(
             &context->StringBuilder,
-            L"Thread is waiting for a LPC port:\r\n"
+            WindowsVersion >= WINDOWS_VISTA ? L"Thread is waiting for an ALPC port:\r\n" : L"Thread is waiting for a LPC port:\r\n"
             );
         PhAppendStringBuilder(
             &context->StringBuilder,
             PhapGetHandleString(context->ProcessHandle, handle)
             );
+
+        if (alpcInfo = PhapGetAlpcInformation(context->ThreadId))
+        {
+            PhAppendStringBuilder2(
+                &context->StringBuilder,
+                L"\r\n"
+                );
+            PhAppendStringBuilder(
+                &context->StringBuilder,
+                alpcInfo
+                );
+        }
     }
     else if (
         NT_FUNC_MATCH("SetHighWaitLowEventPair") ||
@@ -569,29 +588,47 @@ static BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
     }
     else
     {
-        PPH_STRING receiverString;
-
         context->Found = FALSE;
-
-        // NtUserMessageCall didn't match, but this may still apply due to another 
-        // win32k system call (e.g. from EnableWindow).
-        if (receiverString = PhapGetSendMessageReceiver(context->ThreadId))
-        {
-            PhAppendStringBuilder2(
-                &context->StringBuilder,
-                L"Thread is sending a USER message:\r\n"
-                );
-            PhAppendStringBuilder(&context->StringBuilder, receiverString);
-            PhAppendStringBuilder2(&context->StringBuilder, L"\r\n");
-
-            context->Found = TRUE;
-        }
     }
 
     PhDereferenceObject(name);
     memcpy(&context->PrevParams, StackFrame->Params, sizeof(StackFrame->Params));
 
     return !context->Found;
+}
+
+static VOID PhpAnalyzeWaitFallbacks(
+    __in PANALYZE_WAIT_CONTEXT Context
+    )
+{
+    PPH_STRING info;
+
+    // We didn't detect NtUserMessageCall, but this may still apply due to another 
+    // win32k system call (e.g. from EnableWindow).
+    if (!Context->Found && (info = PhapGetSendMessageReceiver(Context->ThreadId)))
+    {
+        PhAppendStringBuilder2(
+            &Context->StringBuilder,
+            L"Thread is sending a USER message:\r\n"
+            );
+        PhAppendStringBuilder(&Context->StringBuilder, info);
+        PhAppendStringBuilder2(&Context->StringBuilder, L"\r\n");
+
+        Context->Found = TRUE;
+    }
+
+    // Nt(Alpc)ConnectPort doesn't get detected anywhere else.
+    if (!Context->Found && (info = PhapGetAlpcInformation(Context->ThreadId)))
+    {
+        PhAppendStringBuilder2(
+            &Context->StringBuilder,
+            L"Thread is waiting for an ALPC port:\r\n"
+            );
+        PhAppendStringBuilder(&Context->StringBuilder, info);
+        PhAppendStringBuilder2(&Context->StringBuilder, L"\r\n");
+
+        Context->Found = TRUE;
+    }
 }
 
 static BOOLEAN PhpWaitUntilThreadIsWaiting(
