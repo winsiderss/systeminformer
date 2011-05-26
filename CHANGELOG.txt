@@ -5,6 +5,7 @@ Process Hacker
    * Updated WindowExplorer plugin
    * PE viewer: Added version string to CLR tab
    * PE viewer: Added display of delay imports
+   * Improved wait analysis for USER messages
  * FIXED:
    * Fixed the IPv6-related workaround causing crashes
    * Incorrect handling of window positions
