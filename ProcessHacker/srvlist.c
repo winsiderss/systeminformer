@@ -54,7 +54,9 @@ static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
 
 static HICON ServiceApplicationIcon;
+static HICON ServiceApplicationGoIcon;
 static HICON ServiceCogIcon;
+static HICON ServiceCogGoIcon;
 
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ServiceNodeStateList = NULL; // list of nodes which need to be processed
@@ -68,9 +70,6 @@ VOID PhServiceTreeListInitialization()
         100
         );
     ServiceNodeList = PhCreateList(100);
-
-    ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
-    ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
 }
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
@@ -99,6 +98,11 @@ VOID PhInitializeServiceTreeList(
     __in HWND hwnd
     )
 {
+    ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
+    ServiceApplicationGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO), IMAGE_ICON);
+    ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
+    ServiceCogGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COGGO), IMAGE_ICON);
+
     ServiceTreeListHandle = hwnd;
     SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
     TreeList_EnableExplorerStyle(hwnd);
@@ -481,9 +485,19 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
 
             if (node->ServiceItem->Type == SERVICE_KERNEL_DRIVER || node->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
-                getNodeIcon->Icon = ServiceCogIcon;
+            {
+                if (node->ServiceItem->State == SERVICE_RUNNING)
+                    getNodeIcon->Icon = ServiceCogGoIcon;
+                else
+                    getNodeIcon->Icon = ServiceCogIcon;
+            }
             else
-                getNodeIcon->Icon = ServiceApplicationIcon;
+            {
+                if (node->ServiceItem->State == SERVICE_RUNNING)
+                    getNodeIcon->Icon = ServiceApplicationGoIcon;
+                else
+                    getNodeIcon->Icon = ServiceApplicationIcon;
+            }
 
             getNodeIcon->Flags = TLC_CACHE;
         }
