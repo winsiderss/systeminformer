@@ -107,6 +107,8 @@
 #define IDI_PHAPPLICATION               191
 #define IDI_COG                         192
 #define IDD_SHADOWSESSION               193
+#define IDI_PHAPPLICATIONGO             194
+#define IDI_COGGO                       195
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_FILE                        1006
@@ -652,7 +654,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        194
+#define _APS_NEXT_RESOURCE_VALUE        196
 #define _APS_NEXT_COMMAND_VALUE         40238
 #define _APS_NEXT_CONTROL_VALUE         1292
 #define _APS_NEXT_SYMED_VALUE           133

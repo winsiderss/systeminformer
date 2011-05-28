@@ -6,6 +6,8 @@ Process Hacker
    * PE viewer: Added version string to CLR tab
    * PE viewer: Added display of delay imports
    * Improved wait analysis
+   * Added arrows to the service list to indicate whether a 
+     service is running
  * FIXED:
    * Fixed the IPv6-related workaround causing crashes
    * Incorrect handling of window positions
