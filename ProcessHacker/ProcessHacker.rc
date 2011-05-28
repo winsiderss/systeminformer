@@ -58,6 +58,8 @@ IDI_PROCESSHACKER       ICON                    "ProcessHacker.ico"
 IDI_BLACK               ICON                    "resources\\black.ico"
 IDI_PHAPPLICATION       ICON                    "resources\\application.ico"
 IDI_COG                 ICON                    "resources\\cog.ico"
+IDI_PHAPPLICATIONGO     ICON                    "resources\\application_go.ico"
+IDI_COGGO               ICON                    "resources\\cog_go.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -453,8 +455,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,PHAPP_VERSION_REVISION
- PRODUCTVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,PHAPP_VERSION_REVISION
+ FILEVERSION 2,16,0,0
+ PRODUCTVERSION 2,16,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -471,12 +473,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Process Hacker"
-            VALUE "FileVersion", PHAPP_VERSION_STRING
+            VALUE "FileVersion", "2.16"
             VALUE "InternalName", "Process Hacker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "ProductVersion", "2.16"
         END
     END
     BLOCK "VarFileInfo"
