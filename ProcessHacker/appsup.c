@@ -671,21 +671,36 @@ BOOLEAN PhGetListViewContextMenuPoint(
 {
     INT selectedIndex;
     RECT bounds;
+    RECT clientRect;
 
     // The user pressed a key to display the context menu. 
     // Suggest where the context menu should display.
 
-    if (selectedIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED))
+    if ((selectedIndex = ListView_GetNextItem(ListViewHandle, -1, LVNI_SELECTED)) != -1)
     {
         if (ListView_GetItemRect(ListViewHandle, selectedIndex, &bounds, LVIR_BOUNDS))
         {
             Point->x = bounds.left + PhSmallIconSize.X / 2;
             Point->y = bounds.top + PhSmallIconSize.Y / 2;
+
+            GetClientRect(ListViewHandle, &clientRect);
+
+            if (Point->x < 0 || Point->y < 0 || Point->x >= clientRect.right || Point->y >= clientRect.bottom)
+            {
+                // The menu is going to be outside of the control. Just put it at the top-left.
+                Point->x = 0;
+                Point->y = 0;
+            }
+
             ClientToScreen(ListViewHandle, Point);
 
             return TRUE;
         }
     }
+
+    Point->x = 0;
+    Point->y = 0;
+    ClientToScreen(ListViewHandle, Point);
 
     return FALSE;
 }
