@@ -1402,11 +1402,12 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                 {
                     INT selectedIndex;
                     RECT bounds;
+                    RECT clientRect;
 
                     // The user pressed a key to display the context menu. 
                     // Suggest where the context menu should display.
 
-                    if (selectedIndex = ListView_GetNextItem(hwnd, -1, LVNI_SELECTED))
+                    if ((selectedIndex = ListView_GetNextItem(hwnd, -1, LVNI_SELECTED)) != -1)
                     {
                         mouseEvent.Index = selectedIndex;
 
@@ -1417,6 +1418,15 @@ LRESULT CALLBACK PhpTreeListLvHookWndProc(
                         {
                             point.x = bounds.left + SmallIconWidth / 2;
                             point.y = bounds.top + SmallIconHeight / 2;
+
+                            GetClientRect(hwnd, &clientRect);
+
+                            if (point.x < 0 || point.y < 0 || point.x >= clientRect.right || point.y >= clientRect.bottom)
+                            {
+                                // The menu is going to be outside of the control. Just put it at the top-left.
+                                point.x = 0;
+                                point.y = 0;
+                            }
                         }
                     }
 
