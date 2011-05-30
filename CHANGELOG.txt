@@ -5,6 +5,7 @@ Process Hacker
    * Updated WindowExplorer plugin
    * PE viewer: Added version string to CLR tab
    * PE viewer: Added display of delay imports
+   * PE viewer: Added Load Config tab
    * Improved wait analysis
    * Added arrows to the service list to indicate whether a 
      service is running
