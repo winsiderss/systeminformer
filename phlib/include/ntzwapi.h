@@ -150,6 +150,15 @@ ZwAccessCheckByTypeResultListAndAuditAlarmByHandle(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAcquireCMFViewOwnership(
+    __out PULONGLONG TimeStamp,
+    __out PBOOLEAN tokenTaken,
+    __in BOOLEAN replaceExisting
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwAddAtom(
     __in_bcount_opt(Length) PWSTR AtomName,
     __in ULONG Length,
@@ -1287,6 +1296,14 @@ ZwFlushBuffersFile(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwFlushInstallUILanguage(
+    __in LANGID InstallUILanguage,
+    __in ULONG SetComittedFlag
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwFlushInstructionCache(
     __in HANDLE ProcessHandle,
     __in_opt PVOID BaseAddress,
@@ -1390,6 +1407,15 @@ ZwGetDevicePowerState(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwGetMUIRegistryInfo(
+    __in ULONG Flags,
+    __inout PULONG DataSize,
+    __out PVOID Data
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwGetNextProcess(
     __in HANDLE ProcessHandle,
     __in ACCESS_MASK DesiredAccess,
@@ -1408,6 +1434,17 @@ ZwGetNextThread(
     __in ULONG HandleAttributes,
     __in ULONG Flags,
     __out PHANDLE NewThreadHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwGetNlsSectionPtr(
+    __in ULONG SectionType,
+    __in ULONG SectionData,
+    __in PVOID ContextData,
+    __out PVOID *SectionPointer,
+    __out PULONG SectionSize
     );
 
 NTSYSCALLAPI
@@ -1473,6 +1510,16 @@ ZwImpersonateThread(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwInitializeNlsFiles(
+    __out PVOID *BaseAddress,
+    __out PLCID DefaultLocaleId,
+    __out PLARGE_INTEGER DefaultCasingTableSize,
+    __out_opt PULONG CurrentNLSVersion
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwInitializeRegistry(
     __in USHORT BootCondition
     );
@@ -1499,6 +1546,13 @@ NTSYSCALLAPI
 BOOLEAN
 NTAPI
 ZwIsSystemResumeAutomatic(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwIsUILanguageComitted(
     VOID
     );
 
@@ -1590,6 +1644,18 @@ NTSTATUS
 NTAPI
 ZwMakeTemporaryObject(
     __in HANDLE Handle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwMapCMFModule(
+    __in ULONG What,
+    __in ULONG Index,
+    __out_opt PULONG CacheIndexOut,
+    __out_opt PULONG CacheFlagsOut,
+    __out_opt PULONG ViewSizeOut,
+    __out_opt PVOID *BaseAddress
     );
 
 NTSYSCALLAPI
@@ -2732,6 +2798,13 @@ ZwRegisterThreadTerminatePort(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwReleaseCMFViewOwnership(
+    VOID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwReleaseKeyedEvent(
     __in HANDLE KeyedEventHandle,
     __in PVOID KeyValue,
@@ -2880,6 +2953,13 @@ ZwRequestWaitReplyPort(
     __in HANDLE PortHandle,
     __in PPORT_MESSAGE RequestMessage,
     __out PPORT_MESSAGE ReplyMessage
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwRequestWakeupLatency(
+    __in LATENCY_TIME latency
     );
 
 NTSYSCALLAPI
