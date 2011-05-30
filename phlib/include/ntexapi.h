@@ -2107,6 +2107,17 @@ NtQueryInstallUILanguage(
     __out LANGID *InstallUILanguageId
     );
 
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtFlushInstallUILanguage(
+    __in LANGID InstallUILanguage,
+    __in ULONG SetComittedFlag
+    );
+#endif
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2120,6 +2131,16 @@ NTAPI
 NtSetDefaultUILanguage(
     __in LANGID DefaultUILanguageId
     );
+
+#if (PHNT_VERSION >= PHNT_VISTA)
+// private
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtIsUILanguageComitted(
+    VOID
+    );
+#endif
 
 // Global atoms
 

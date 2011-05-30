@@ -123,6 +123,13 @@ NtSetThreadExecutionState(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+NtRequestWakeupLatency(
+    __in LATENCY_TIME latency
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 NtInitiatePowerAction(
     __in POWER_ACTION SystemAction,
     __in SYSTEM_POWER_STATE LightestSystemState,
