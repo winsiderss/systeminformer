@@ -410,7 +410,7 @@ NtFreeUserPhysicalPages(
 // Sessions
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-// rev
+// private
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
