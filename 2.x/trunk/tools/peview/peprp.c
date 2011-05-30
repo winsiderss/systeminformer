@@ -110,15 +110,15 @@ VOID PvPeProperties()
     propSheetPage.pfnDlgProc = PvpPeExportsDlgProc;
     pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
 
-	// Load Config page
-	if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
-	{
-		memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
-		propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
-		propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PELOADCONFIG);
-		propSheetPage.pfnDlgProc = PvpPeLoadConfigDlgProc;
-		pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
-	}
+    // Load Config page
+    if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG, &entry)) && entry->VirtualAddress)
+    {
+        memset(&propSheetPage, 0, sizeof(PROPSHEETPAGE));
+        propSheetPage.dwSize = sizeof(PROPSHEETPAGE);
+        propSheetPage.pszTemplate = MAKEINTRESOURCE(IDD_PELOADCONFIG);
+        propSheetPage.pfnDlgProc = PvpPeLoadConfigDlgProc;
+        pages[propSheetHeader.nPages++] = CreatePropertySheetPage(&propSheetPage);
+    }
 
     // CLR page
     if (NT_SUCCESS(PhGetMappedImageDataEntry(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
@@ -576,11 +576,11 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
     {
     case WM_INITDIALOG:
         {
-			PH_AUTO_POOL autoPool;
+            PH_AUTO_POOL autoPool;
             HWND lvHandle;
-			PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
-			PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
-			PPH_STRING string;
+            PIMAGE_LOAD_CONFIG_DIRECTORY32 config32;
+            PIMAGE_LOAD_CONFIG_DIRECTORY64 config64;
+            PPH_STRING string;
 
             lvHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(lvHandle, FALSE, TRUE);
@@ -589,63 +589,63 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 170, L"Value");
 
 #define ADD_VALUE(Name, Value) \
-	do { \
-		INT lvItemIndex; \
-		\
-		lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, Name, NULL); \
-		PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Value); \
-	} while (0)
+    do { \
+        INT lvItemIndex; \
+        \
+        lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, Name, NULL); \
+        PhSetListViewSubItem(lvHandle, lvItemIndex, 1, Value); \
+    } while (0)
 
 #define ADD_VALUES(Config) \
-	do { \
-		{ \
-			LARGE_INTEGER time; \
-			SYSTEMTIME systemTime; \
-			\
-			RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
-			PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
-			\
-			string = PhFormatDateTime(&systemTime); \
-			ADD_VALUE(L"Time stamp", string->Buffer); \
-			PhDereferenceObject(string); \
-		} \
-		\
-		ADD_VALUE(L"Version", PhaFormatString(L"%u.%u", (Config)->MajorVersion, (Config)->MinorVersion)->Buffer); \
-		ADD_VALUE(L"Global flags to clear", PhaFormatString(L"0x%x", (Config)->GlobalFlagsClear)->Buffer); \
-		ADD_VALUE(L"Global flags to set", PhaFormatString(L"0x%x", (Config)->GlobalFlagsSet)->Buffer); \
-		ADD_VALUE(L"Critical section default timeout", PhaFormatUInt64((Config)->CriticalSectionDefaultTimeout, TRUE)->Buffer); \
-		ADD_VALUE(L"De-commit free block threshold", PhaFormatUInt64((Config)->DeCommitFreeBlockThreshold, TRUE)->Buffer); \
-		ADD_VALUE(L"De-commit total free threshold", PhaFormatUInt64((Config)->DeCommitTotalFreeThreshold, TRUE)->Buffer); \
-		ADD_VALUE(L"LOCK prefix table", PhaFormatString(L"0x%Ix", (Config)->LockPrefixTable)->Buffer); \
-		ADD_VALUE(L"Maximum allocation size", PhaFormatString(L"0x%Ix", (Config)->MaximumAllocationSize)->Buffer); \
-		ADD_VALUE(L"Virtual memory threshold", PhaFormatString(L"0x%Ix", (Config)->VirtualMemoryThreshold)->Buffer); \
-		ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
-		ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
-		ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
-		ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
-		ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
-		ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
-		ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
-	} while (0)
+    do { \
+        { \
+            LARGE_INTEGER time; \
+            SYSTEMTIME systemTime; \
+            \
+            RtlSecondsSince1970ToTime((Config)->TimeDateStamp, &time); \
+            PhLargeIntegerToLocalSystemTime(&systemTime, &time); \
+            \
+            string = PhFormatDateTime(&systemTime); \
+            ADD_VALUE(L"Time stamp", string->Buffer); \
+            PhDereferenceObject(string); \
+        } \
+        \
+        ADD_VALUE(L"Version", PhaFormatString(L"%u.%u", (Config)->MajorVersion, (Config)->MinorVersion)->Buffer); \
+        ADD_VALUE(L"Global flags to clear", PhaFormatString(L"0x%x", (Config)->GlobalFlagsClear)->Buffer); \
+        ADD_VALUE(L"Global flags to set", PhaFormatString(L"0x%x", (Config)->GlobalFlagsSet)->Buffer); \
+        ADD_VALUE(L"Critical section default timeout", PhaFormatUInt64((Config)->CriticalSectionDefaultTimeout, TRUE)->Buffer); \
+        ADD_VALUE(L"De-commit free block threshold", PhaFormatUInt64((Config)->DeCommitFreeBlockThreshold, TRUE)->Buffer); \
+        ADD_VALUE(L"De-commit total free threshold", PhaFormatUInt64((Config)->DeCommitTotalFreeThreshold, TRUE)->Buffer); \
+        ADD_VALUE(L"LOCK prefix table", PhaFormatString(L"0x%Ix", (Config)->LockPrefixTable)->Buffer); \
+        ADD_VALUE(L"Maximum allocation size", PhaFormatString(L"0x%Ix", (Config)->MaximumAllocationSize)->Buffer); \
+        ADD_VALUE(L"Virtual memory threshold", PhaFormatString(L"0x%Ix", (Config)->VirtualMemoryThreshold)->Buffer); \
+        ADD_VALUE(L"Process affinity mask", PhaFormatString(L"0x%Ix", (Config)->ProcessAffinityMask)->Buffer); \
+        ADD_VALUE(L"Process heap flags", PhaFormatString(L"0x%Ix", (Config)->ProcessHeapFlags)->Buffer); \
+        ADD_VALUE(L"CSD version", PhaFormatString(L"%u", (Config)->CSDVersion)->Buffer); \
+        ADD_VALUE(L"Edit list", PhaFormatString(L"0x%Ix", (Config)->EditList)->Buffer); \
+        ADD_VALUE(L"Security cookie", PhaFormatString(L"0x%Ix", (Config)->SecurityCookie)->Buffer); \
+        ADD_VALUE(L"SEH handler table", PhaFormatString(L"0x%Ix", (Config)->SEHandlerTable)->Buffer); \
+        ADD_VALUE(L"SEH handler count", PhaFormatUInt64((Config)->SEHandlerCount, TRUE)->Buffer); \
+    } while (0)
 
-			PhInitializeAutoPool(&autoPool);
+            PhInitializeAutoPool(&autoPool);
 
-			if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-			{
-				if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)))
-				{
-					ADD_VALUES(config32);
-				}
-			}
-			else
-			{
-				if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
-				{
-					ADD_VALUES(config64);
-				}
-			}
+            if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig32(&PvMappedImage, &config32)))
+                {
+                    ADD_VALUES(config32);
+                }
+            }
+            else
+            {
+                if (NT_SUCCESS(PhGetMappedImageLoadConfig64(&PvMappedImage, &config64)))
+                {
+                    ADD_VALUES(config64);
+                }
+            }
 
-			PhDeleteAutoPool(&autoPool);
+            PhDeleteAutoPool(&autoPool);
         }
         break;
     case WM_NOTIFY:
@@ -655,7 +655,7 @@ INT_PTR CALLBACK PvpPeLoadConfigDlgProc(
         break;
     }
 
-	return FALSE;
+    return FALSE;
 }
 
 INT_PTR CALLBACK PvpPeClrDlgProc(
