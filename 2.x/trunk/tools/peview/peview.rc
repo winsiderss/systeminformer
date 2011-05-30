@@ -94,6 +94,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 273
     END
+
+    IDD_PELOADCONFIG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 293
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 273
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -161,6 +169,14 @@ BEGIN
     LTEXT           "Static",IDC_VERSIONSTRING,78,31,215,8
 END
 
+IDD_PELOADCONFIG DIALOGEX 0, 0, 300, 280
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Load Config"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,7,286,266
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -168,8 +184,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,PHAPP_VERSION_REVISION
- PRODUCTVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,PHAPP_VERSION_REVISION
+ FILEVERSION 2,16,0,0
+ PRODUCTVERSION 2,16,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -186,12 +202,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "PE Viewer"
-            VALUE "FileVersion", PHAPP_VERSION_STRING
+            VALUE "FileVersion", "2.16"
             VALUE "InternalName", "peview"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "peview.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", PHAPP_VERSION_STRING
+            VALUE "ProductVersion", "2.16"
         END
     END
     BLOCK "VarFileInfo"

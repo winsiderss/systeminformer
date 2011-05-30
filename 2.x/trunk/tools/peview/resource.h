@@ -7,6 +7,8 @@
 #define IDD_PEEXPORTS                   104
 #define IDD_LIBEXPORTS                  105
 #define IDD_PECLR                       106
+#define IDD_PEEXPORTS1                  107
+#define IDD_PELOADCONFIG                107
 #define IDC_TARGETMACHINE               1003
 #define IDC_CHECKSUM                    1004
 #define IDC_SUBSYSTEM                   1005
