@@ -455,8 +455,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,16,0,0
- PRODUCTVERSION 2,16,0,0
+ FILEVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,0
+ PRODUCTVERSION PHAPP_VERSION_MAJOR,PHAPP_VERSION_MINOR,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -473,12 +473,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "wj32"
             VALUE "FileDescription", "Process Hacker"
-            VALUE "FileVersion", "2.16"
+            VALUE "FileVersion", PHAPP_VERSION_STRING
             VALUE "InternalName", "Process Hacker"
             VALUE "LegalCopyright", "Licensed under the GNU GPL, v3."
             VALUE "OriginalFilename", "ProcessHacker.exe"
             VALUE "ProductName", "Process Hacker"
-            VALUE "ProductVersion", "2.16"
+            VALUE "ProductVersion", PHAPP_VERSION_STRING
         END
     END
     BLOCK "VarFileInfo"
