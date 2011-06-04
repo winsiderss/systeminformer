@@ -50,9 +50,6 @@
  */
 #define PhpAddObjectHeaderSize(Size) ((Size) + FIELD_OFFSET(PH_OBJECT_HEADER, Body))
 
-#define PhpGetObjectSecurityDescriptor(Object, ObjectType) \
-    ((PSECURITY_DESCRIPTOR *)PTR_ADD_OFFSET((Object), (ObjectType)->OffsetOfSecurityDescriptor))
-
 typedef struct _PH_OBJECT_HEADER *PPH_OBJECT_HEADER;
 typedef struct _PH_OBJECT_TYPE *PPH_OBJECT_TYPE;
 
@@ -121,12 +118,10 @@ typedef struct _PH_OBJECT_TYPE
 {
     /** The flags that were used to create the object type. */
     ULONG Flags;
-    /** The number of bytes at which the pointer to the 
-     * object's security descriptor is stored. */
-    UCHAR OffsetOfSecurityDescriptor;
     UCHAR Reserved1;
     UCHAR Reserved2;
     UCHAR Reserved3;
+    UCHAR Reserved4;
     /** An optional procedure called when objects of this type are freed. */
     PPH_TYPE_DELETE_PROCEDURE DeleteProcedure;
     /** The name of the type. */
@@ -135,8 +130,6 @@ typedef struct _PH_OBJECT_TYPE
     ULONG NumberOfObjects;
     /** A free list to use when allocating for this type. */
     PH_FREE_LIST FreeList;
-
-    GENERIC_MAPPING GenericMapping;
 } PH_OBJECT_TYPE, *PPH_OBJECT_TYPE;
 
 /**

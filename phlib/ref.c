@@ -2,7 +2,7 @@
  * Process Hacker - 
  *   object manager
  * 
- * Copyright (C) 2009-2010 wj32
+ * Copyright (C) 2009-2011 wj32
  * 
  * This file is part of Process Hacker.
  * 
@@ -399,39 +399,6 @@ PPH_OBJECT_TYPE PhGetObjectType(
     return PhObjectToObjectHeader(Object)->Type;
 }
 
-NTSTATUS PhQuerySecurityObject(
-    __in PVOID Object,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
-    )
-{
-    PPH_OBJECT_TYPE objectType;
-    PSECURITY_DESCRIPTOR *securityDescriptor;
-
-    objectType = PhObjectToObjectHeader(Object)->Type;
-    securityDescriptor = PhpGetObjectSecurityDescriptor(Object, objectType);
-
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS PhSetSecurityObject(
-    __in PVOID Object,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt HANDLE TokenHandle
-    )
-{
-    PPH_OBJECT_TYPE objectType;
-    PSECURITY_DESCRIPTOR *securityDescriptor;
-
-    objectType = PhObjectToObjectHeader(Object)->Type;
-    securityDescriptor = PhpGetObjectSecurityDescriptor(Object, objectType);
-
-    return STATUS_NOT_IMPLEMENTED;
-}
-
 /**
  * Creates an object type.
  *
@@ -494,7 +461,7 @@ NTSTATUS PhCreateObjectTypeEx(
     /* Check the flags. */
     if ((Flags & PHOBJTYPE_VALID_FLAGS) != Flags) /* Valid flag mask */
         return STATUS_INVALID_PARAMETER_3;
-    if ((Flags & (PHOBJTYPE_USE_FREE_LIST | PHOBJTYPE_SECURED)) && !Parameters)
+    if ((Flags & PHOBJTYPE_USE_FREE_LIST) && !Parameters)
         return STATUS_INVALID_PARAMETER_MIX;
 
     /* Create the type object. */
@@ -523,12 +490,6 @@ NTSTATUS PhCreateObjectTypeEx(
                 PhpAddObjectHeaderSize(Parameters->FreeListSize),
                 Parameters->FreeListCount
                 );
-        }
-
-        if (Flags & PHOBJTYPE_SECURED)
-        {
-            objectType->OffsetOfSecurityDescriptor = Parameters->OffsetOfSecurityDescriptor;
-            objectType->GenericMapping = Parameters->GenericMapping;
         }
     }
 
