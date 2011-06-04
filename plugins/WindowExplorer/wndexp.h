@@ -15,44 +15,34 @@ extern PPH_PLUGIN PluginInstance;
 // hook
 
 #define WE_SERVER_MESSAGE_NAME L"WE_ServerMessage"
-
-#define WM_WE_RECEIVE_REQUEST (WM_APP + 100)
-#define WM_WE_SEND_REPLY (WM_APP + 101)
-
+#define WE_SERVER_SHARED_SECTION_NAME L"\\BaseNamedObjects\\WeSharedSection"
+#define WE_SERVER_SHARED_SECTION_LOCK_NAME L"\\BaseNamedObjects\\WeSharedSectionLock"
+#define WE_SERVER_SHARED_SECTION_EVENT_NAME L"\\BaseNamedObjects\\WeSharedSectionEvent"
 #define WE_CLIENT_MESSAGE_TIMEOUT 5000
-#define WE_CLIENT_MESSAGE_MAGIC ('amEW')
 
-typedef enum _WE_HOOK_REQUEST_TYPE
+typedef struct _WE_HOOK_SHARED_DATA
 {
-    GetWindowLongHookRequest, // call GetWindowLongPtr, store result in Data
-    MaximumHookRequest
-} WE_HOOK_REQUEST_TYPE, *PWE_HOOK_REQUEST_TYPE;
+    ULONG MessageId;
 
-typedef struct _WE_HOOK_REQUEST
-{
-    WE_HOOK_REQUEST_TYPE Type;
-    ULONG_PTR Parameter1;
-    ULONG_PTR Parameter2;
-    ULONG_PTR Parameter3;
-    ULONG_PTR Parameter4;
-} WE_HOOK_REQUEST, *PWE_HOOK_REQUEST;
-
-typedef struct _WE_HOOK_REPLY
-{
-    union
+    struct
     {
-        LONG_PTR Data;
-    } u;
-} WE_HOOK_REPLY, *PWE_HOOK_REPLY;
+        ULONG_PTR WndProc;
+        WNDCLASSEX ClassInfo;
+    } c;
+} WE_HOOK_SHARED_DATA, *PWE_HOOK_SHARED_DATA;
 
 VOID WeHookServerInitialization();
 
 VOID WeHookServerUninitialization();
 
+VOID WeLockServerSharedData(
+    __out PWE_HOOK_SHARED_DATA *Data
+    );
+
+VOID WeUnlockServerSharedData();
+
 BOOLEAN WeSendServerRequest(
-    __in HWND hWnd,
-    __in PWE_HOOK_REQUEST Request,
-    __out PWE_HOOK_REPLY Reply
+    __in HWND hWnd
     );
 
 VOID WeHookClientInitialization();
@@ -109,6 +99,12 @@ VOID WeShowWindowProperties(
 
 PVOID WeGetProcedureAddress(
     __in PSTR Name
+    );
+
+VOID WeFormatLocalObjectName(
+    __in PWSTR OriginalName,
+    __inout_ecount(256) PWCHAR Buffer,
+    __out PUNICODE_STRING ObjectName
     );
 
 VOID WeInvertWindowBorder(

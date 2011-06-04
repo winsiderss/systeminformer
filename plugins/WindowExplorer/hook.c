@@ -22,13 +22,14 @@
 
 #include "wndexp.h"
 
-VOID WepCreateServerWindow();
+BOOLEAN WepCreateServerObjects();
 
-LRESULT CALLBACK WepServerWndProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+BOOLEAN WepOpenServerObjects();
+
+VOID WepCloseServerObjects();
+
+VOID WepWriteClientData(
+    __in HWND hwnd
     );
 
 LRESULT CALLBACK WepCallWndProc(
@@ -39,18 +40,16 @@ LRESULT CALLBACK WepCallWndProc(
 
 // Shared
 ULONG WeServerMessage;
+HANDLE WeServerSharedSection;
+PWE_HOOK_SHARED_DATA WeServerSharedData;
+HANDLE WeServerSharedSectionLock;
+HANDLE WeServerSharedSectionEvent;
 // Server
 HHOOK WeHookHandle = NULL;
-HWND WeServerWindowHandle;
 // The current message ID is used to detect out-of-sync clients. If a client processes a 
 // message after our timeout has expired and sends us late messages, we can identify and 
 // reject them by looking at the message ID.
 ULONG WeCurrentMessageId = 0;
-HANDLE WeCurrentProcessId;
-HANDLE WeCurrentProcessHandle;
-WE_HOOK_REQUEST WeCurrentRequest;
-WE_HOOK_REPLY WeCurrentReply;
-HANDLE WeCurrentRequestEndEvent = NULL;
 PH_QUEUED_LOCK WeRequestLock = PH_QUEUED_LOCK_INIT;
 
 // Server
@@ -62,8 +61,8 @@ VOID WeHookServerInitialization()
 
     WeServerMessage = RegisterWindowMessage(WE_SERVER_MESSAGE_NAME);
 
-    if (!WeServerWindowHandle)
-        WepCreateServerWindow();
+    if (!WepCreateServerObjects())
+        return;
 
     WeHookHandle = SetWindowsHookEx(WH_CALLWNDPROC, WepCallWndProc, PluginInstance->DllBase, 0);
 }
@@ -77,157 +76,264 @@ VOID WeHookServerUninitialization()
     }
 }
 
-VOID WepCreateServerWindow()
+BOOLEAN WepCreateServerObjects()
 {
-    WNDCLASSEX wcex;
+    OBJECT_ATTRIBUTES objectAttributes;
+    WCHAR buffer[256];
+    UNICODE_STRING objectName;
 
-    memset(&wcex, 0, sizeof(WNDCLASSEX));
-    wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.lpfnWndProc = WepServerWndProc;
-    wcex.hInstance = PluginInstance->DllBase;
-    wcex.lpszClassName = L"WeServerWindow";
-
-    RegisterClassEx(&wcex);
-
-    WeServerWindowHandle = CreateWindow(
-        L"WeServerWindow",
-        L"",
-        0,
-        0,
-        0,
-        0,
-        0,
-        HWND_MESSAGE,
-        NULL,
-        PluginInstance->DllBase,
-        NULL
-        );
-
-    // Allow client messages through UIPI.
-    if (*(PULONG)WeGetProcedureAddress("WindowsVersion") >= WINDOWS_VISTA)
+    if (!WeServerSharedSection)
     {
-        _ChangeWindowMessageFilter changeWindowMessageFilter;
+        LARGE_INTEGER maximumSize;
 
-        if (changeWindowMessageFilter = PhGetProcAddress(L"user32.dll", "ChangeWindowMessageFilter"))
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+        maximumSize.QuadPart = sizeof(WE_HOOK_SHARED_DATA);
+
+        if (!NT_SUCCESS(NtCreateSection(
+            &WeServerSharedSection,
+            SECTION_ALL_ACCESS,
+            &objectAttributes,
+            &maximumSize,
+            PAGE_READWRITE,
+            SEC_COMMIT,
+            NULL
+            )))
         {
-            changeWindowMessageFilter(WM_WE_RECEIVE_REQUEST, MSGFLT_ADD);
-            changeWindowMessageFilter(WM_WE_SEND_REPLY, MSGFLT_ADD);
+            return FALSE;
         }
+    }
+
+    if (!WeServerSharedData)
+    {
+        PVOID viewBase;
+        SIZE_T viewSize;
+
+        viewBase = NULL;
+        viewSize = sizeof(WE_HOOK_SHARED_DATA);
+
+        if (!NT_SUCCESS(NtMapViewOfSection(
+            WeServerSharedSection,
+            NtCurrentProcess(),
+            &viewBase,
+            0,
+            0,
+            NULL,
+            &viewSize,
+            ViewShare,
+            0,
+            PAGE_READWRITE
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+
+        WeServerSharedData = viewBase;
+    }
+
+    if (!WeServerSharedSectionLock)
+    {
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_LOCK_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        if (!NT_SUCCESS(NtCreateMutant(
+            &WeServerSharedSectionLock,
+            MUTANT_ALL_ACCESS,
+            &objectAttributes,
+            FALSE
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+    }
+
+    if (!WeServerSharedSectionEvent)
+    {
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_EVENT_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        if (!NT_SUCCESS(NtCreateEvent(
+            &WeServerSharedSectionEvent,
+            EVENT_ALL_ACCESS,
+            &objectAttributes,
+            NotificationEvent,
+            FALSE
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+BOOLEAN WepOpenServerObjects()
+{
+    OBJECT_ATTRIBUTES objectAttributes;
+    WCHAR buffer[256];
+    UNICODE_STRING objectName;
+
+    if (!WeServerSharedSection)
+    {
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        if (!NT_SUCCESS(NtOpenSection(
+            &WeServerSharedSection,
+            SECTION_ALL_ACCESS,
+            &objectAttributes
+            )))
+        {
+            return FALSE;
+        }
+    }
+
+    if (!WeServerSharedData)
+    {
+        PVOID viewBase;
+        SIZE_T viewSize;
+
+        viewBase = NULL;
+        viewSize = sizeof(WE_HOOK_SHARED_DATA);
+
+        if (!NT_SUCCESS(NtMapViewOfSection(
+            WeServerSharedSection,
+            NtCurrentProcess(),
+            &viewBase,
+            0,
+            0,
+            NULL,
+            &viewSize,
+            ViewShare,
+            0,
+            PAGE_READWRITE
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+
+        WeServerSharedData = viewBase;
+    }
+
+    if (!WeServerSharedSectionLock)
+    {
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_LOCK_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        if (!NT_SUCCESS(NtOpenMutant(
+            &WeServerSharedSectionLock,
+            MUTANT_ALL_ACCESS,
+            &objectAttributes
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+    }
+
+    if (!WeServerSharedSectionEvent)
+    {
+        WeFormatLocalObjectName(WE_SERVER_SHARED_SECTION_EVENT_NAME, buffer, &objectName);
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        if (!NT_SUCCESS(NtOpenEvent(
+            &WeServerSharedSectionEvent,
+            EVENT_ALL_ACCESS,
+            &objectAttributes
+            )))
+        {
+            WepCloseServerObjects();
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+VOID WepCloseServerObjects()
+{
+    if (WeServerSharedSection)
+    {
+        NtClose(WeServerSharedSection);
+        WeServerSharedSection = NULL;
+    }
+
+    if (WeServerSharedData)
+    {
+        NtUnmapViewOfSection(NtCurrentProcess(), WeServerSharedData);
+        WeServerSharedData = NULL;
+    }
+
+    if (WeServerSharedSectionLock)
+    {
+        NtClose(WeServerSharedSectionLock);
+        WeServerSharedSectionLock = NULL;
+    }
+
+    if (WeServerSharedSectionEvent)
+    {
+        NtClose(WeServerSharedSectionEvent);
+        WeServerSharedSectionEvent = NULL;
     }
 }
 
-LRESULT CALLBACK WepServerWndProc(
-    __in HWND hWnd,
-    __in UINT uMsg,
-    __in WPARAM wParam,
-    __in LPARAM lParam
+VOID WeLockServerSharedData(
+    __out PWE_HOOK_SHARED_DATA *Data
     )
 {
-    LRESULT result;
+    PhAcquireQueuedLockExclusive(&WeRequestLock);
+    *Data = WeServerSharedData;
+}
 
-    result = 0;
-
-    switch (uMsg)
-    {
-    case WM_CREATE:
-        return 0;
-    case WM_NCCREATE:
-        return TRUE;
-    case WM_WE_RECEIVE_REQUEST:
-    case WM_WE_SEND_REPLY:
-        {
-            ULONG messageId;
-            ULONG_PTR parameter;
-
-            messageId = (ULONG)wParam;
-            parameter = lParam;
-
-            if (messageId != WeCurrentMessageId)
-                return 0;
-
-            switch (uMsg)
-            {
-            case WM_WE_RECEIVE_REQUEST:
-                {
-                    if (NT_SUCCESS(PhWriteVirtualMemory(WeCurrentProcessHandle, (PVOID)parameter, &WeCurrentRequest, sizeof(WE_HOOK_REQUEST), NULL)))
-                        result = WE_CLIENT_MESSAGE_MAGIC;
-                }
-                break;
-            case WM_WE_SEND_REPLY:
-                {
-                    if (NT_SUCCESS(PhReadVirtualMemory(WeCurrentProcessHandle, (PVOID)parameter, &WeCurrentReply, sizeof(WE_HOOK_REPLY), NULL)))
-                        result = WE_CLIENT_MESSAGE_MAGIC;
-
-                    NtSetEvent(WeCurrentRequestEndEvent, NULL);
-                }
-                break;
-            }
-        }
-        break;
-    }
-
-    return result;
+VOID WeUnlockServerSharedData()
+{
+    PhReleaseQueuedLockExclusive(&WeRequestLock);
 }
 
 BOOLEAN WeSendServerRequest(
-    __in HWND hWnd,
-    __in PWE_HOOK_REQUEST Request,
-    __out PWE_HOOK_REPLY Reply
+    __in HWND hWnd
     )
 {
     BOOLEAN result;
     ULONG threadId;
     ULONG processId;
-    HANDLE processHandle;
+    LARGE_INTEGER timeout;
 
-    threadId = GetWindowThreadProcessId(hWnd, &processId);
-
-    if (threadId == 0)
-        return FALSE;
-
-    if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_VM_READ | PROCESS_VM_WRITE, UlongToHandle(processId))))
+    if (!WeServerSharedData || !WeServerSharedSectionLock || !WeServerSharedSectionEvent)
         return FALSE;
 
     result = TRUE;
 
-    PhAcquireQueuedLockExclusive(&WeRequestLock);
+    threadId = GetWindowThreadProcessId(hWnd, &processId);
 
-    if (WeCurrentRequestEndEvent)
+    if (UlongToHandle(processId) == NtCurrentProcessId())
     {
-        NtResetEvent(WeCurrentRequestEndEvent, NULL);
+        // We are trying to get information about the server. Call the procedure directly.
+        WepWriteClientData(hWnd);
+        return TRUE;
     }
-    else
-    {
-        if (!NT_SUCCESS(NtCreateEvent(&WeCurrentRequestEndEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
-        {
-            PhReleaseQueuedLockExclusive(&WeRequestLock);
-            NtClose(processHandle);
-            return FALSE;
-        }
-    }
+
+    // Call the client and wait for the client to finish.
 
     WeCurrentMessageId++;
-    WeCurrentProcessId = UlongToHandle(processId);
-    WeCurrentProcessHandle = processHandle;
-    memcpy(&WeCurrentRequest, Request, sizeof(WE_HOOK_REQUEST));
-    memset(&WeCurrentReply, 0, sizeof(WE_HOOK_REPLY));
+    NtResetEvent(WeServerSharedSectionEvent, NULL);
+    SendNotifyMessage(hWnd, WeServerMessage, (WPARAM)NtCurrentProcessId(), WeCurrentMessageId);
 
-    // Call the client and begin processing client messages.
+    timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
 
-    SendNotifyMessage(hWnd, WeServerMessage, (WPARAM)WeServerWindowHandle, WeCurrentMessageId);
-
-    if (PhWaitForMultipleObjectsAndPump(WeServerWindowHandle, 1, &WeCurrentRequestEndEvent, WE_CLIENT_MESSAGE_TIMEOUT) == STATUS_WAIT_0)
-    {
-        memcpy(Reply, &WeCurrentReply, sizeof(WE_HOOK_REPLY));
-    }
-    else
+    if (NtWaitForSingleObject(WeServerSharedSectionEvent, FALSE, &timeout) != STATUS_WAIT_0)
     {
         result = FALSE;
     }
 
-    PhReleaseQueuedLockExclusive(&WeRequestLock);
-
-    NtClose(processHandle);
+    if (WeServerSharedData->MessageId != WeCurrentMessageId)
+    {
+        result = FALSE;
+    }
 
     return result;
 }
@@ -244,22 +350,25 @@ VOID WeHookClientUninitialization()
     NOTHING;
 }
 
-BOOLEAN WepSendClientMessage(
-    __in HWND hWnd,
-    __in UINT Msg,
-    __in ULONG MessageId,
-    __in LPARAM lParam
+VOID WepWriteClientData(
+    __in HWND hwnd
     )
 {
-    ULONG_PTR result;
+    WCHAR className[256];
 
-    if (!SendMessageTimeout(hWnd, Msg, MessageId, lParam, SMTO_BLOCK, WE_CLIENT_MESSAGE_TIMEOUT, &result))
-        return FALSE;
+    memset(&WeServerSharedData->c, 0, sizeof(WeServerSharedData->c));
 
-    if (result != WE_CLIENT_MESSAGE_MAGIC)
-        return FALSE;
+    if (IsWindowUnicode(hwnd))
+        WeServerSharedData->c.WndProc = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
+    else
+        WeServerSharedData->c.WndProc = GetWindowLongPtrA(hwnd, GWLP_WNDPROC);
 
-    return TRUE;
+    WeServerSharedData->c.ClassInfo.cbSize = sizeof(WNDCLASSEX);
+                
+    if (!GetClassName(hwnd, className, sizeof(className) / sizeof(WCHAR)))
+        className[0] = 0;
+
+    GetClassInfoEx(NULL, className, &WeServerSharedData->c.ClassInfo);
 }
 
 LRESULT CALLBACK WepCallWndProc(
@@ -277,33 +386,33 @@ LRESULT CALLBACK WepCallWndProc(
 
     if (info->message == WeServerMessage)
     {
-        HWND serverWindow;
+        HANDLE serverProcessId;
         ULONG messageId;
-        WE_HOOK_REQUEST request;
-        WE_HOOK_REPLY reply;
 
-        serverWindow = (HWND)info->wParam;
+        serverProcessId = (HANDLE)info->wParam;
         messageId = (ULONG)info->lParam;
 
-        // Read the server's request.
-        if (!WepSendClientMessage(serverWindow, WM_WE_RECEIVE_REQUEST, messageId, (LPARAM)&request))
-            goto ExitProc;
-
-        memset(&reply, 0, sizeof(WE_HOOK_REPLY));
-
-        switch (request.Type)
+        if (serverProcessId != NtCurrentProcessId())
         {
-        case GetWindowLongHookRequest:
+            if (WepOpenServerObjects())
             {
-                reply.u.Data = GetWindowLongPtr(info->hwnd, (LONG)request.Parameter1);
-            }
-            break;
-        }
+                LARGE_INTEGER timeout;
 
-        // Send our data back to the server.
-        WepSendClientMessage(serverWindow, WM_WE_SEND_REPLY, messageId, (LPARAM)&reply);
+                timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
+
+                if (NtWaitForSingleObject(WeServerSharedSectionLock, FALSE, &timeout) == WAIT_OBJECT_0)
+                {
+                    WeServerSharedData->MessageId = messageId;
+                    WepWriteClientData(info->hwnd);
+
+                    NtReleaseMutant(WeServerSharedSectionLock, NULL);
+                    NtSetEvent(WeServerSharedSectionEvent, NULL);
+                }
+
+                WepCloseServerObjects();
+            }
+        }
     }
 
-ExitProc:
     return result;
 }
