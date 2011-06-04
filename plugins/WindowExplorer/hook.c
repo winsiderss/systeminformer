@@ -298,15 +298,12 @@ BOOLEAN WeSendServerRequest(
     __in HWND hWnd
     )
 {
-    BOOLEAN result;
     ULONG threadId;
     ULONG processId;
     LARGE_INTEGER timeout;
 
     if (!WeServerSharedData || !WeServerSharedSectionLock || !WeServerSharedSectionEvent)
         return FALSE;
-
-    result = TRUE;
 
     threadId = GetWindowThreadProcessId(hWnd, &processId);
 
@@ -321,21 +318,19 @@ BOOLEAN WeSendServerRequest(
 
     WeCurrentMessageId++;
     NtResetEvent(WeServerSharedSectionEvent, NULL);
-    SendNotifyMessage(hWnd, WeServerMessage, (WPARAM)NtCurrentProcessId(), WeCurrentMessageId);
+
+    if (!SendNotifyMessage(hWnd, WeServerMessage, (WPARAM)NtCurrentProcessId(), WeCurrentMessageId))
+        return FALSE;
 
     timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
 
     if (NtWaitForSingleObject(WeServerSharedSectionEvent, FALSE, &timeout) != STATUS_WAIT_0)
-    {
-        result = FALSE;
-    }
+        return FALSE;
 
     if (WeServerSharedData->MessageId != WeCurrentMessageId)
-    {
-        result = FALSE;
-    }
+        return FALSE;
 
-    return result;
+    return TRUE;
 }
 
 // Client
