@@ -33,6 +33,10 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
 {
     HWND ParentWindowHandle;
     HWND WindowHandle;
+
+    BOOLEAN HookDataValid;
+    ULONG_PTR WndProc;
+    WNDCLASSEX ClassInfo;
 } WINDOW_PROPERTIES_CONTEXT, *PWINDOW_PROPERTIES_CONTEXT;
 
 typedef struct _STRING_INTEGER_PAIR
@@ -462,6 +466,30 @@ FORCEINLINE BOOLEAN WepPropPageDlgProcHeader(
     return TRUE;
 }
 
+static VOID WepEnsureHookDataValid(
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    if (!Context->HookDataValid)
+    {   
+        PWE_HOOK_SHARED_DATA data;
+
+        WeHookServerInitialization();
+
+        WeLockServerSharedData(&data);
+
+        if (WeSendServerRequest(Context->WindowHandle))
+        {
+            Context->WndProc = data->c.WndProc;
+            memcpy(&Context->ClassInfo, &data->c.ClassInfo, sizeof(WNDCLASSEX));
+        }
+
+        WeUnlockServerSharedData();
+
+        Context->HookDataValid = TRUE;
+    }
+}
+
 static PPH_STRING WepFormatRect(
     __in PRECT Rect
     )
@@ -527,6 +555,13 @@ static VOID WepRefreshWindowGeneralInfo(
     {
         SetDlgItemText(hwndDlg, IDC_NORMALRECTANGLE, L"N/A");
     }
+
+    SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
+
+    WepEnsureHookDataValid(Context);
+
+    SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
 }
 
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
@@ -553,6 +588,7 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             switch (LOWORD(wParam))
             {
             case IDC_REFRESH:
+                context->HookDataValid = FALSE;
                 WepRefreshWindowGeneralInfo(hwndDlg, context);
                 break;
             }

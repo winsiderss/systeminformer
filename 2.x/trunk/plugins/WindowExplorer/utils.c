@@ -34,6 +34,26 @@ PVOID WeGetProcedureAddress(
     return (PVOID)GetProcAddress(imageBase, Name);
 }
 
+VOID WeFormatLocalObjectName(
+    __in PWSTR OriginalName,
+    __inout_ecount(256) PWCHAR Buffer,
+    __out PUNICODE_STRING ObjectName
+    )
+{
+    SIZE_T length;
+    SIZE_T originalNameLength;
+
+    memcpy(Buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
+    _ultow(NtCurrentPeb()->SessionId, Buffer + 10, 10);
+    length = wcslen(Buffer);
+    originalNameLength = wcslen(OriginalName);
+    memcpy(Buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
+    length += originalNameLength;
+
+    ObjectName->Buffer = Buffer;
+    ObjectName->MaximumLength = ObjectName->Length = (USHORT)(length * sizeof(WCHAR));
+}
+
 VOID WeInvertWindowBorder(
     __in HWND hWnd
     )
