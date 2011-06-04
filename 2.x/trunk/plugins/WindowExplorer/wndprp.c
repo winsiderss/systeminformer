@@ -212,6 +212,7 @@ VOID WeShowWindowProperties(
     context->ParentWindowHandle = ParentWindowHandle;
     context->WindowHandle = WindowHandle;
 
+    processId = 0;
     threadId = GetWindowThreadProcessId(WindowHandle, &processId);
     context->ClientId.UniqueProcess = UlongToHandle(processId);
     context->ClientId.UniqueThread = UlongToHandle(threadId);
@@ -665,8 +666,10 @@ static VOID WepRefreshWindowGeneralInfoSymbols(
         SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->WndProc)->Buffer);
     else if (Context->WndProcSymbol)
         SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->WndProc, Context->WndProcSymbol->Buffer)->Buffer);
-    else
+    else if (Context->WndProc != 0)
         SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
+    else
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
 }
 
 static VOID WepRefreshWindowGeneralInfo(
@@ -718,6 +721,7 @@ static VOID WepRefreshWindowGeneralInfo(
 
     SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
     SetDlgItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
 
     WepEnsureHookDataValid(Context);
 
