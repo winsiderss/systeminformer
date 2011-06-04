@@ -41,8 +41,7 @@ extern "C" {
 
 /* Object type flags */
 #define PHOBJTYPE_USE_FREE_LIST 0x00000001
-#define PHOBJTYPE_SECURED 0x00000002
-#define PHOBJTYPE_VALID_FLAGS 0x00000003
+#define PHOBJTYPE_VALID_FLAGS 0x00000001
 
 /* Object type callbacks */
 
@@ -89,8 +88,11 @@ typedef struct _PH_OBJECT_TYPE_PARAMETERS
     SIZE_T FreeListSize;
     ULONG FreeListCount;
 
-    UCHAR OffsetOfSecurityDescriptor;
-    GENERIC_MAPPING GenericMapping;
+    UCHAR Reserved1;
+    UCHAR Reserved2;
+    UCHAR Reserved3;
+    UCHAR Reserved4;
+    ULONG Reserved5[4];
 } PH_OBJECT_TYPE_PARAMETERS, *PPH_OBJECT_TYPE_PARAMETERS;
 
 typedef struct _PH_OBJECT_TYPE_INFORMATION
@@ -164,27 +166,6 @@ PPH_OBJECT_TYPE
 NTAPI
 PhGetObjectType(
     __in PVOID Object
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhQuerySecurityObject(
-    __in PVOID Object,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __out_opt PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in ULONG BufferLength,
-    __out PULONG ReturnLength
-    );
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhSetSecurityObject(
-    __in PVOID Object,
-    __in SECURITY_INFORMATION SecurityInformation,
-    __in PSECURITY_DESCRIPTOR SecurityDescriptor,
-    __in_opt HANDLE TokenHandle
     );
 
 PHLIBAPI
