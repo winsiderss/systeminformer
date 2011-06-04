@@ -28,22 +28,54 @@
 #include <windowsx.h>
 
 #define NUMBER_OF_PAGES 3
+#define WEM_RESOLVE_DONE (WM_APP + 1234)
 
 typedef struct _WINDOW_PROPERTIES_CONTEXT
 {
+    LONG RefCount;
+
     HWND ParentWindowHandle;
+
     HWND WindowHandle;
+    CLIENT_ID ClientId;
+    PH_INITONCE SymbolProviderInitOnce;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+    LIST_ENTRY ResolveListHead;
+    PH_QUEUED_LOCK ResolveListLock;
+
+    PPH_STRING WndProcSymbol;
+    ULONG WndProcResolving;
+    PPH_STRING ClassWndProcSymbol;
+    ULONG ClassWndProcResolving;
 
     BOOLEAN HookDataValid;
     ULONG_PTR WndProc;
     WNDCLASSEX ClassInfo;
 } WINDOW_PROPERTIES_CONTEXT, *PWINDOW_PROPERTIES_CONTEXT;
 
+typedef struct _SYMBOL_RESOLVE_CONTEXT
+{
+    LIST_ENTRY ListEntry;
+    ULONG64 Address;
+    PPH_STRING Symbol;
+    PH_SYMBOL_RESOLVE_LEVEL ResolveLevel;
+    HWND NotifyWindow;
+    PWINDOW_PROPERTIES_CONTEXT Context;
+} SYMBOL_RESOLVE_CONTEXT, *PSYMBOL_RESOLVE_CONTEXT;
+
 typedef struct _STRING_INTEGER_PAIR
 {
     PWSTR String;
     ULONG Integer;
 } STRING_INTEGER_PAIR, *PSTRING_INTEGER_PAIR;
+
+VOID WepReferenceWindowPropertiesContext(
+    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    );
+
+VOID WepDereferenceWindowPropertiesContext(
+    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    );
 
 HWND WepCreateWindowProperties(
     __in PWINDOW_PROPERTIES_CONTEXT Context
@@ -160,6 +192,8 @@ VOID WeShowWindowProperties(
     )
 {
     PWINDOW_PROPERTIES_CONTEXT context;
+    ULONG threadId;
+    ULONG processId;
 
     if (!WePropertiesCreateList)
         WePropertiesCreateList = PhCreateList(4);
@@ -172,15 +206,60 @@ VOID WeShowWindowProperties(
         PhWaitForEvent(&WePropertiesThreadReadyEvent, NULL);
     }
 
-    if (NT_SUCCESS(PhCreateAlloc(&context, sizeof(WINDOW_PROPERTIES_CONTEXT))))
-    {
-        memset(context, 0, sizeof(WINDOW_PROPERTIES_CONTEXT));
-        context->ParentWindowHandle = ParentWindowHandle;
-        context->WindowHandle = WindowHandle;
+    context = PhAllocate(sizeof(WINDOW_PROPERTIES_CONTEXT));
+    memset(context, 0, sizeof(WINDOW_PROPERTIES_CONTEXT));
+    context->RefCount = 1;
+    context->ParentWindowHandle = ParentWindowHandle;
+    context->WindowHandle = WindowHandle;
 
-        // Queue the window for creation and wake up the host thread.
-        PhAddItemList(WePropertiesCreateList, context);
-        PostThreadMessage((ULONG)WePropertiesThreadClientId.UniqueThread, WM_NULL, 0, 0);
+    threadId = GetWindowThreadProcessId(WindowHandle, &processId);
+    context->ClientId.UniqueProcess = UlongToHandle(processId);
+    context->ClientId.UniqueThread = UlongToHandle(threadId);
+    PhInitializeInitOnce(&context->SymbolProviderInitOnce);
+    InitializeListHead(&context->ResolveListHead);
+    PhInitializeQueuedLock(&context->ResolveListLock);
+
+    // Queue the window for creation and wake up the host thread.
+    PhAddItemList(WePropertiesCreateList, context);
+    PostThreadMessage((ULONG)WePropertiesThreadClientId.UniqueThread, WM_NULL, 0, 0);
+}
+
+VOID WepReferenceWindowPropertiesContext(
+    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    _InterlockedIncrement(&Context->RefCount);
+}
+
+VOID WepDereferenceWindowPropertiesContext(
+    __inout PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    if (_InterlockedDecrement(&Context->RefCount) == 0)
+    {
+        PLIST_ENTRY listEntry;
+
+        PhSwapReference(&Context->SymbolProvider, NULL);
+
+        // Destroy results that have not been processed by any property pages.
+
+        listEntry = Context->ResolveListHead.Flink;
+
+        while (listEntry != &Context->ResolveListHead)
+        {
+            PSYMBOL_RESOLVE_CONTEXT resolveContext;
+
+            resolveContext = CONTAINING_RECORD(listEntry, SYMBOL_RESOLVE_CONTEXT, ListEntry);
+            listEntry = listEntry->Flink;
+
+            PhSwapReference(&resolveContext->Symbol, NULL);
+            PhFree(resolveContext);
+        }
+
+        PhSwapReference(&Context->WndProcSymbol, NULL);
+        PhSwapReference(&Context->ClassWndProcSymbol, NULL);
+
+        PhFree(Context);
     }
 }
 
@@ -349,9 +428,9 @@ static INT CALLBACK WepCommonPropPageProc(
     context = (PWINDOW_PROPERTIES_CONTEXT)ppsp->lParam;
 
     if (uMsg == PSPCB_ADDREF)
-        PhReferenceObject(context);
+        WepReferenceWindowPropertiesContext(context);
     else if (uMsg == PSPCB_RELEASE)
-        PhDereferenceObject(context);
+        WepDereferenceWindowPropertiesContext(context);
 
     return 1;
 }
@@ -388,7 +467,7 @@ NTSTATUS WepPropertiesThreadStart(
 
                 context = WePropertiesCreateList->Items[i];
                 hwnd = WepCreateWindowProperties(context);
-                PhDereferenceObject(context);
+                WepDereferenceWindowPropertiesContext(context);
                 PhAddItemList(WePropertiesWindowList, hwnd);
             }
 
@@ -490,6 +569,84 @@ static VOID WepEnsureHookDataValid(
     }
 }
 
+static BOOLEAN NTAPI EnumGenericModulesCallback(
+    __in PPH_MODULE_INFO Module,
+    __in_opt PVOID Context
+    )
+{
+    PWINDOW_PROPERTIES_CONTEXT context = Context;
+
+    PhLoadModuleSymbolProvider(context->SymbolProvider, Module->FileName->Buffer,
+        (ULONG64)Module->BaseAddress, Module->Size);
+
+    return TRUE;
+}
+
+static NTSTATUS WepResolveSymbolFunction(
+    __in PVOID Parameter
+    )
+{
+    PSYMBOL_RESOLVE_CONTEXT context = Parameter;
+
+    if (PhBeginInitOnce(&context->Context->SymbolProviderInitOnce))
+    {
+        PhEnumGenericModules(context->Context->ClientId.UniqueProcess, NULL, 0, EnumGenericModulesCallback, context->Context);
+        PhEndInitOnce(&context->Context->SymbolProviderInitOnce);
+    }
+
+    context->Symbol = PhGetSymbolFromAddress(
+        context->Context->SymbolProvider,
+        (ULONG64)context->Address,
+        &context->ResolveLevel,
+        NULL,
+        NULL,
+        NULL
+        );
+
+    // Fail if we don't have a symbol.
+    if (!context->Symbol)
+    {
+        WepDereferenceWindowPropertiesContext(context->Context);
+        PhFree(context);
+        return STATUS_SUCCESS;
+    }
+
+    PhAcquireQueuedLockExclusive(&context->Context->ResolveListLock);
+    InsertHeadList(&context->Context->ResolveListHead, &context->ListEntry);
+    PhReleaseQueuedLockExclusive(&context->Context->ResolveListLock);
+
+    PostMessage(context->NotifyWindow, WEM_RESOLVE_DONE, 0, (LPARAM)context);
+
+    WepDereferenceWindowPropertiesContext(context->Context);
+
+    return STATUS_SUCCESS;
+}
+
+static VOID WepQueueResolveSymbol(
+    __in PWINDOW_PROPERTIES_CONTEXT Context,
+    __in HWND NotifyWindow,
+    __in ULONG64 Address
+    )
+{
+    PSYMBOL_RESOLVE_CONTEXT resolveContext;
+
+    if (!Context->SymbolProvider)
+    {
+        Context->SymbolProvider = PhCreateSymbolProvider(Context->ClientId.UniqueProcess);
+        PhLoadSymbolProviderOptions(Context->SymbolProvider);
+    }
+
+    resolveContext = PhAllocate(sizeof(SYMBOL_RESOLVE_CONTEXT));
+    resolveContext->Address = Address;
+    resolveContext->Symbol = NULL;
+    resolveContext->ResolveLevel = PhsrlInvalid;
+    resolveContext->NotifyWindow = NotifyWindow;
+    resolveContext->Context = Context;
+    WepReferenceWindowPropertiesContext(Context);
+
+    PhQueueItemGlobalWorkQueue(WepResolveSymbolFunction, resolveContext);
+}
+
 static PPH_STRING WepFormatRect(
     __in PRECT Rect
     )
@@ -499,30 +656,33 @@ static PPH_STRING WepFormatRect(
         Rect->right - Rect->left, Rect->bottom - Rect->top);
 }
 
+static VOID WepRefreshWindowGeneralInfoSymbols(
+    __in HWND hwndDlg,
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    if (Context->WndProcResolving != 0)
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->WndProc)->Buffer);
+    else if (Context->WndProcSymbol)
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->WndProc, Context->WndProcSymbol->Buffer)->Buffer);
+    else
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
+}
+
 static VOID WepRefreshWindowGeneralInfo(
     __in HWND hwndDlg,
     __in PWINDOW_PROPERTIES_CONTEXT Context
     )
 {
     PPH_STRING windowText;
-    ULONG threadId;
-    ULONG processId;
-    CLIENT_ID clientId;
     PPH_STRING clientIdName;
     WINDOWINFO windowInfo = { sizeof(WINDOWINFO) };
     WINDOWPLACEMENT windowPlacement = { sizeof(WINDOWPLACEMENT) };
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
 
-    threadId = GetWindowThreadProcessId(Context->WindowHandle, &processId);
-
-    if (threadId)
-    {
-        clientId.UniqueProcess = UlongToHandle(processId);
-        clientId.UniqueThread = UlongToHandle(threadId);
-        clientIdName = PhGetClientIdName(&clientId);
-        SetDlgItemText(hwndDlg, IDC_THREAD, clientIdName->Buffer);
-        PhDereferenceObject(clientIdName);
-    }
+    clientIdName = PhGetClientIdName(&Context->ClientId);
+    SetDlgItemText(hwndDlg, IDC_THREAD, clientIdName->Buffer);
+    PhDereferenceObject(clientIdName);
 
     windowText = PHA_DEREFERENCE(PhGetWindowText(Context->WindowHandle));
     SetDlgItemText(hwndDlg, IDC_TEXT, PhGetStringOrEmpty(windowText));
@@ -561,7 +721,13 @@ static VOID WepRefreshWindowGeneralInfo(
 
     WepEnsureHookDataValid(Context);
 
-    SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
+    if (Context->WndProc != 0)
+    {
+        Context->WndProcResolving++;
+        WepQueueResolveSymbol(Context, hwndDlg, Context->WndProc);
+    }
+
+    WepRefreshWindowGeneralInfoSymbols(hwndDlg, Context);
 }
 
 INT_PTR CALLBACK WepWindowGeneralDlgProc(
@@ -589,9 +755,28 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
             {
             case IDC_REFRESH:
                 context->HookDataValid = FALSE;
+                PhSwapReference(&context->WndProcSymbol, NULL);
                 WepRefreshWindowGeneralInfo(hwndDlg, context);
                 break;
             }
+        }
+        break;
+    case WEM_RESOLVE_DONE:
+        {
+            PSYMBOL_RESOLVE_CONTEXT resolveContext = (PSYMBOL_RESOLVE_CONTEXT)lParam;
+
+            PhAcquireQueuedLockExclusive(&context->ResolveListLock);
+            RemoveEntryList(&resolveContext->ListEntry);
+            PhReleaseQueuedLockExclusive(&context->ResolveListLock);
+
+            if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
+                PhSwapReference(&resolveContext->Symbol, NULL);
+
+            PhSwapReference2(&context->WndProcSymbol, resolveContext->Symbol);
+            PhFree(resolveContext);
+
+            context->WndProcResolving--;
+            WepRefreshWindowGeneralInfoSymbols(hwndDlg, context);
         }
         break;
     }
