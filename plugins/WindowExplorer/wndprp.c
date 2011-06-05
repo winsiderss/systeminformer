@@ -214,6 +214,7 @@ CLIENT_ID WePropertiesThreadClientId;
 PH_EVENT WePropertiesThreadReadyEvent = PH_EVENT_INIT;
 PPH_LIST WePropertiesCreateList;
 PPH_LIST WePropertiesWindowList;
+PH_QUEUED_LOCK WePropertiesCreateLock = PH_QUEUED_LOCK_INIT;
 
 VOID WeShowWindowProperties(
     __in HWND ParentWindowHandle,
@@ -250,7 +251,9 @@ VOID WeShowWindowProperties(
     PhInitializeQueuedLock(&context->ResolveListLock);
 
     // Queue the window for creation and wake up the host thread.
+    PhAcquireQueuedLockExclusive(&WePropertiesCreateLock);
     PhAddItemList(WePropertiesCreateList, context);
+    PhReleaseQueuedLockExclusive(&WePropertiesCreateLock);
     PostThreadMessage((ULONG)WePropertiesThreadClientId.UniqueThread, WM_NULL, 0, 0);
 }
 
@@ -497,6 +500,8 @@ NTSTATUS WepPropertiesThreadStart(
 
         if (WePropertiesCreateList->Count != 0)
         {
+            PhAcquireQueuedLockExclusive(&WePropertiesCreateLock);
+
             for (i = 0; i < WePropertiesCreateList->Count; i++)
             {
                 PWINDOW_PROPERTIES_CONTEXT context;
@@ -509,6 +514,7 @@ NTSTATUS WepPropertiesThreadStart(
             }
 
             PhClearList(WePropertiesCreateList);
+            PhReleaseQueuedLockExclusive(&WePropertiesCreateLock);
         }
 
         processed = FALSE;
