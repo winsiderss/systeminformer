@@ -350,20 +350,32 @@ VOID WepWriteClientData(
     )
 {
     WCHAR className[256];
+    LOGICAL isUnicode;
 
     memset(&WeServerSharedData->c, 0, sizeof(WeServerSharedData->c));
+    isUnicode = IsWindowUnicode(hwnd);
 
-    if (IsWindowUnicode(hwnd))
+    if (isUnicode)
+    {
         WeServerSharedData->c.WndProc = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
+        WeServerSharedData->c.DlgProc = GetWindowLongPtrW(hwnd, DWLP_DLGPROC);
+    }
     else
+    {
         WeServerSharedData->c.WndProc = GetWindowLongPtrA(hwnd, GWLP_WNDPROC);
+        WeServerSharedData->c.DlgProc = GetWindowLongPtrA(hwnd, DWLP_DLGPROC);
+    }
 
-    WeServerSharedData->c.ClassInfo.cbSize = sizeof(WNDCLASSEX);
-                
     if (!GetClassName(hwnd, className, sizeof(className) / sizeof(WCHAR)))
         className[0] = 0;
 
+    WeServerSharedData->c.ClassInfo.cbSize = sizeof(WNDCLASSEX);
     GetClassInfoEx(NULL, className, &WeServerSharedData->c.ClassInfo);
+
+    if (isUnicode)
+        WeServerSharedData->c.ClassInfo.lpfnWndProc = (PVOID)GetClassLongPtrW(hwnd, GCLP_WNDPROC);
+    else
+        WeServerSharedData->c.ClassInfo.lpfnWndProc = (PVOID)GetClassLongPtrA(hwnd, GCLP_WNDPROC);
 }
 
 LRESULT CALLBACK WepCallWndProc(
