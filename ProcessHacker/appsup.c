@@ -938,6 +938,11 @@ BOOLEAN PhShellProcessHacker(
             PhAppendStringBuilder2(&sb, L" -noplugins");
         }
 
+        if (PhStartupParameters.NewInstance)
+        {
+            PhAppendStringBuilder2(&sb, L" -newinstance");
+        }
+
         parameters = sb.String->Buffer;
     }
     else
