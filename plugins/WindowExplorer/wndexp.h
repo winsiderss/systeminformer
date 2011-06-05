@@ -18,7 +18,7 @@ extern PPH_PLUGIN PluginInstance;
 #define WE_SERVER_SHARED_SECTION_NAME L"\\BaseNamedObjects\\WeSharedSection"
 #define WE_SERVER_SHARED_SECTION_LOCK_NAME L"\\BaseNamedObjects\\WeSharedSectionLock"
 #define WE_SERVER_SHARED_SECTION_EVENT_NAME L"\\BaseNamedObjects\\WeSharedSectionEvent"
-#define WE_CLIENT_MESSAGE_TIMEOUT 5000
+#define WE_CLIENT_MESSAGE_TIMEOUT 2000
 
 typedef struct _WE_HOOK_SHARED_DATA
 {
@@ -27,6 +27,7 @@ typedef struct _WE_HOOK_SHARED_DATA
     struct
     {
         ULONG_PTR WndProc;
+        ULONG_PTR DlgProc;
         WNDCLASSEX ClassInfo;
     } c;
 } WE_HOOK_SHARED_DATA, *PWE_HOOK_SHARED_DATA;
