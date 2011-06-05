@@ -43,15 +43,23 @@ VOID WeFormatLocalObjectName(
     SIZE_T length;
     SIZE_T originalNameLength;
 
-    memcpy(Buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
-    _ultow(NtCurrentPeb()->SessionId, Buffer + 10, 10);
-    length = wcslen(Buffer);
-    originalNameLength = wcslen(OriginalName);
-    memcpy(Buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
-    length += originalNameLength;
+    // Sessions other than session 0 require SeCreateGlobalPrivilege.
+    if (NtCurrentPeb()->SessionId != 0)
+    {
+        memcpy(Buffer, L"\\Sessions\\", 10 * sizeof(WCHAR));
+        _ultow(NtCurrentPeb()->SessionId, Buffer + 10, 10);
+        length = wcslen(Buffer);
+        originalNameLength = wcslen(OriginalName);
+        memcpy(Buffer + length, OriginalName, (originalNameLength + 1) * sizeof(WCHAR));
+        length += originalNameLength;
 
-    ObjectName->Buffer = Buffer;
-    ObjectName->MaximumLength = ObjectName->Length = (USHORT)(length * sizeof(WCHAR));
+        ObjectName->Buffer = Buffer;
+        ObjectName->MaximumLength = ObjectName->Length = (USHORT)(length * sizeof(WCHAR));
+    }
+    else
+    {
+        RtlInitUnicodeString(ObjectName, OriginalName);
+    }
 }
 
 VOID WeInvertWindowBorder(
