@@ -587,8 +587,12 @@ static VOID WepEnsureHookDataValid(
     )
 {
     if (!Context->HookDataValid)
-    {   
+    {
         PWE_HOOK_SHARED_DATA data;
+#ifdef _M_X64
+        HANDLE processHandle;
+        BOOLEAN isWow64 = FALSE;
+#endif
 
         // The desktop window is owned by CSR. The hook will never work on the desktop window.
         if (Context->WindowHandle == GetDesktopWindow())
@@ -596,6 +600,18 @@ static VOID WepEnsureHookDataValid(
             Context->HookDataValid = TRUE;
             return;
         }
+
+#ifdef _M_X64
+        // We can't use the hook on WOW64 processes.
+        if (NT_SUCCESS(PhOpenProcess(&processHandle, *(PULONG)WeGetProcedureAddress("ProcessQueryAccess"), Context->ClientId.UniqueProcess)))
+        {
+            PhGetProcessIsWow64(processHandle, &isWow64);
+            NtClose(processHandle);
+        }
+
+        if (isWow64)
+            return;
+#endif
 
         WeHookServerInitialization();
 
