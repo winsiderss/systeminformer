@@ -45,11 +45,15 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
 
     PPH_STRING WndProcSymbol;
     ULONG WndProcResolving;
+    PPH_STRING DlgProcSymbol;
+    ULONG DlgProcResolving;
     PPH_STRING ClassWndProcSymbol;
     ULONG ClassWndProcResolving;
 
     BOOLEAN HookDataValid;
+    BOOLEAN HookDataSuccess;
     ULONG_PTR WndProc;
+    ULONG_PTR DlgProc;
     WNDCLASSEX ClassInfo;
 } WINDOW_PROPERTIES_CONTEXT, *PWINDOW_PROPERTIES_CONTEXT;
 
@@ -61,6 +65,7 @@ typedef struct _SYMBOL_RESOLVE_CONTEXT
     PH_SYMBOL_RESOLVE_LEVEL ResolveLevel;
     HWND NotifyWindow;
     PWINDOW_PROPERTIES_CONTEXT Context;
+    ULONG Id;
 } SYMBOL_RESOLVE_CONTEXT, *PSYMBOL_RESOLVE_CONTEXT;
 
 typedef struct _STRING_INTEGER_PAIR
@@ -124,6 +129,13 @@ INT_PTR CALLBACK WepWindowStylesDlgProc(
     __in LPARAM lParam
     );
 
+INT_PTR CALLBACK WepWindowClassDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 INT_PTR CALLBACK WepWindowPropertiesDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -178,6 +190,23 @@ static STRING_INTEGER_PAIR WepExtendedStylePairs[] =
     DEFINE_PAIR(WS_EX_LAYOUTRTL),
     DEFINE_PAIR(WS_EX_COMPOSITED),
     DEFINE_PAIR(WS_EX_NOACTIVATE)
+};
+
+static STRING_INTEGER_PAIR WepClassStylePairs[] =
+{
+    DEFINE_PAIR(CS_VREDRAW),
+    DEFINE_PAIR(CS_HREDRAW),
+    DEFINE_PAIR(CS_DBLCLKS),
+    DEFINE_PAIR(CS_OWNDC),
+    DEFINE_PAIR(CS_CLASSDC),
+    DEFINE_PAIR(CS_PARENTDC),
+    DEFINE_PAIR(CS_NOCLOSE),
+    DEFINE_PAIR(CS_SAVEBITS),
+    DEFINE_PAIR(CS_BYTEALIGNCLIENT),
+    DEFINE_PAIR(CS_BYTEALIGNWINDOW),
+    DEFINE_PAIR(CS_GLOBALCLASS),
+    DEFINE_PAIR(CS_IME),
+    DEFINE_PAIR(CS_DROPSHADOW)
 };
 
 HANDLE WePropertiesThreadHandle = NULL;
@@ -258,6 +287,7 @@ VOID WepDereferenceWindowPropertiesContext(
         }
 
         PhSwapReference(&Context->WndProcSymbol, NULL);
+        PhSwapReference(&Context->DlgProcSymbol, NULL);
         PhSwapReference(&Context->ClassWndProcSymbol, NULL);
 
         PhFree(Context);
@@ -295,6 +325,12 @@ static HWND WepCreateWindowProperties(
         Context,
         MAKEINTRESOURCE(IDD_WNDSTYLES),
         WepWindowStylesDlgProc
+        );
+    // Class
+    pages[propSheetHeader.nPages++] = WepCommonCreatePage(
+        Context,
+        MAKEINTRESOURCE(IDD_WNDCLASS),
+        WepWindowClassDlgProc
         );
     // Properties
     pages[propSheetHeader.nPages++] = WepCommonCreatePage(
@@ -554,6 +590,13 @@ static VOID WepEnsureHookDataValid(
     {   
         PWE_HOOK_SHARED_DATA data;
 
+        // The desktop window is owned by CSR. The hook will never work on the desktop window.
+        if (Context->WindowHandle == GetDesktopWindow())
+        {
+            Context->HookDataValid = TRUE;
+            return;
+        }
+
         WeHookServerInitialization();
 
         WeLockServerSharedData(&data);
@@ -561,7 +604,13 @@ static VOID WepEnsureHookDataValid(
         if (WeSendServerRequest(Context->WindowHandle))
         {
             Context->WndProc = data->c.WndProc;
+            Context->DlgProc = data->c.DlgProc;
             memcpy(&Context->ClassInfo, &data->c.ClassInfo, sizeof(WNDCLASSEX));
+            Context->HookDataSuccess = TRUE;
+        }
+        else
+        {
+            Context->HookDataSuccess = FALSE;
         }
 
         WeUnlockServerSharedData();
@@ -626,7 +675,8 @@ static NTSTATUS WepResolveSymbolFunction(
 static VOID WepQueueResolveSymbol(
     __in PWINDOW_PROPERTIES_CONTEXT Context,
     __in HWND NotifyWindow,
-    __in ULONG64 Address
+    __in ULONG64 Address,
+    __in ULONG Id
     )
 {
     PSYMBOL_RESOLVE_CONTEXT resolveContext;
@@ -644,6 +694,7 @@ static VOID WepQueueResolveSymbol(
     resolveContext->NotifyWindow = NotifyWindow;
     resolveContext->Context = Context;
     WepReferenceWindowPropertiesContext(Context);
+    resolveContext->Id = Id;
 
     PhQueueItemGlobalWorkQueue(WepResolveSymbolFunction, resolveContext);
 }
@@ -670,6 +721,17 @@ static VOID WepRefreshWindowGeneralInfoSymbols(
         SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->WndProc)->Buffer);
     else
         SetDlgItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
+
+    if (Context->DlgProcResolving != 0)
+        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->DlgProc)->Buffer);
+    else if (Context->DlgProcSymbol)
+        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix (%s)", Context->DlgProc, Context->DlgProcSymbol->Buffer)->Buffer);
+    else if (Context->DlgProc != 0)
+        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, PhaFormatString(L"0x%Ix", Context->DlgProc)->Buffer);
+    else if (Context->WndProc != 0)
+        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, L"N/A");
+    else
+        SetDlgItemText(hwndDlg, IDC_DIALOGPROC, L"Unknown");
 }
 
 static VOID WepRefreshWindowGeneralInfo(
@@ -722,13 +784,20 @@ static VOID WepRefreshWindowGeneralInfo(
     SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_HINSTANCE))->Buffer);
     SetDlgItemText(hwndDlg, IDC_MENUHANDLE, PhaFormatString(L"0x%Ix", GetMenu(Context->WindowHandle))->Buffer);
     SetDlgItemText(hwndDlg, IDC_USERDATA, PhaFormatString(L"0x%Ix", GetWindowLongPtr(Context->WindowHandle, GWLP_USERDATA))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_UNICODE, IsWindowUnicode(Context->WindowHandle) ? L"Yes" : L"No");
 
     WepEnsureHookDataValid(Context);
 
     if (Context->WndProc != 0)
     {
         Context->WndProcResolving++;
-        WepQueueResolveSymbol(Context, hwndDlg, Context->WndProc);
+        WepQueueResolveSymbol(Context, hwndDlg, Context->WndProc, 1);
+    }
+
+    if (Context->DlgProc != 0)
+    {
+        Context->DlgProcResolving++;
+        WepQueueResolveSymbol(Context, hwndDlg, Context->DlgProc, 2);
     }
 
     WepRefreshWindowGeneralInfoSymbols(hwndDlg, Context);
@@ -769,17 +838,35 @@ INT_PTR CALLBACK WepWindowGeneralDlgProc(
         {
             PSYMBOL_RESOLVE_CONTEXT resolveContext = (PSYMBOL_RESOLVE_CONTEXT)lParam;
 
-            PhAcquireQueuedLockExclusive(&context->ResolveListLock);
-            RemoveEntryList(&resolveContext->ListEntry);
-            PhReleaseQueuedLockExclusive(&context->ResolveListLock);
+            if (resolveContext->Id == 1)
+            {
+                PhAcquireQueuedLockExclusive(&context->ResolveListLock);
+                RemoveEntryList(&resolveContext->ListEntry);
+                PhReleaseQueuedLockExclusive(&context->ResolveListLock);
 
-            if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
-                PhSwapReference(&resolveContext->Symbol, NULL);
+                if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
+                    PhSwapReference(&resolveContext->Symbol, NULL);
 
-            PhSwapReference2(&context->WndProcSymbol, resolveContext->Symbol);
-            PhFree(resolveContext);
+                PhSwapReference2(&context->WndProcSymbol, resolveContext->Symbol);
+                PhFree(resolveContext);
 
-            context->WndProcResolving--;
+                context->WndProcResolving--;
+            }
+            else if (resolveContext->Id == 2)
+            {
+                PhAcquireQueuedLockExclusive(&context->ResolveListLock);
+                RemoveEntryList(&resolveContext->ListEntry);
+                PhReleaseQueuedLockExclusive(&context->ResolveListLock);
+
+                if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
+                    PhSwapReference(&resolveContext->Symbol, NULL);
+
+                PhSwapReference2(&context->DlgProcSymbol, resolveContext->Symbol);
+                PhFree(resolveContext);
+
+                context->DlgProcResolving--;
+            }
+
             WepRefreshWindowGeneralInfoSymbols(hwndDlg, context);
         }
         break;
@@ -882,6 +969,141 @@ INT_PTR CALLBACK WepWindowStylesDlgProc(
     return FALSE;
 }
 
+static VOID WepRefreshWindowClassInfoSymbols(
+    __in HWND hwndDlg,
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    if (Context->ClassWndProcResolving != 0)
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (resolving...)", Context->ClassInfo.lpfnWndProc)->Buffer);
+    else if (Context->ClassWndProcSymbol)
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix (%s)", Context->ClassInfo.lpfnWndProc, Context->ClassWndProcSymbol->Buffer)->Buffer);
+    else if (Context->ClassInfo.lpfnWndProc)
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpfnWndProc)->Buffer);
+    else
+        SetDlgItemText(hwndDlg, IDC_WINDOWPROC, L"Unknown");
+}
+
+static VOID WepRefreshWindowClassInfo(
+    __in HWND hwndDlg,
+    __in PWINDOW_PROPERTIES_CONTEXT Context
+    )
+{
+    WCHAR className[256];
+    PH_STRING_BUILDER stringBuilder;
+    ULONG i;
+
+    if (!GetClassName(Context->WindowHandle, className, sizeof(className) / sizeof(WCHAR)))
+        className[0] = 0;
+
+    WepEnsureHookDataValid(Context);
+
+    if (!Context->HookDataSuccess)
+    {
+        Context->ClassInfo.cbSize = sizeof(WNDCLASSEX);
+        GetClassInfoEx(NULL, className, &Context->ClassInfo);
+    }
+
+    SetDlgItemText(hwndDlg, IDC_NAME, className);
+    SetDlgItemText(hwndDlg, IDC_ATOM, PhaFormatString(L"0x%x", GetClassWord(Context->WindowHandle, GCW_ATOM))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_INSTANCEHANDLE, PhaFormatString(L"0x%Ix", GetClassLongPtr(Context->WindowHandle, GCLP_HMODULE))->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIcon)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_SMALLICONHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hIconSm)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_MENUNAME, PhaFormatString(L"0x%Ix", Context->ClassInfo.lpszMenuName)->Buffer);
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+    PhAppendFormatStringBuilder(&stringBuilder, L"0x%x (", Context->ClassInfo.style);
+
+    for (i = 0; i < sizeof(WepClassStylePairs) / sizeof(STRING_INTEGER_PAIR); i++)
+    {
+        if (Context->ClassInfo.style & WepClassStylePairs[i].Integer)
+        {
+            PhAppendStringBuilder2(&stringBuilder, WepClassStylePairs[i].String);
+            PhAppendStringBuilder2(&stringBuilder, L" | ");
+        }
+    }
+
+    if (PhEndsWithString2(stringBuilder.String, L" | ", FALSE))
+    {
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 3, 3);
+        PhAppendCharStringBuilder(&stringBuilder, ')');
+    }
+    else
+    {
+        // No styles. Remove the brackets.
+        PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+    }
+
+    SetDlgItemText(hwndDlg, IDC_STYLES, stringBuilder.String->Buffer);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    // TODO: Add symbols for these values.
+    SetDlgItemText(hwndDlg, IDC_CURSORHANDLE, PhaFormatString(L"0x%Ix", Context->ClassInfo.hCursor)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_BACKGROUNDBRUSH, PhaFormatString(L"0x%Ix", Context->ClassInfo.hbrBackground)->Buffer);
+
+    if (Context->ClassInfo.lpfnWndProc)
+    {
+        Context->ClassWndProcResolving++;
+        WepQueueResolveSymbol(Context, hwndDlg, (ULONG_PTR)Context->ClassInfo.lpfnWndProc, 0);
+    }
+
+    WepRefreshWindowClassInfoSymbols(hwndDlg, Context);
+}
+
+INT_PTR CALLBACK WepWindowClassDlgProc(
+    __in HWND hwndDlg,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PWINDOW_PROPERTIES_CONTEXT context;
+
+    if (!WepPropPageDlgProcHeader(hwndDlg, uMsg, lParam, NULL, &context))
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            WepRefreshWindowClassInfo(hwndDlg, context);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (LOWORD(wParam))
+            {
+            case IDC_REFRESH:
+                context->HookDataValid = FALSE;
+                PhSwapReference(&context->ClassWndProcSymbol, NULL);
+                WepRefreshWindowClassInfo(hwndDlg, context);
+                break;
+            }
+        }
+        break;
+    case WEM_RESOLVE_DONE:
+        {
+            PSYMBOL_RESOLVE_CONTEXT resolveContext = (PSYMBOL_RESOLVE_CONTEXT)lParam;
+
+            PhAcquireQueuedLockExclusive(&context->ResolveListLock);
+            RemoveEntryList(&resolveContext->ListEntry);
+            PhReleaseQueuedLockExclusive(&context->ResolveListLock);
+
+            if (resolveContext->ResolveLevel != PhsrlModule && resolveContext->ResolveLevel != PhsrlFunction)
+                PhSwapReference(&resolveContext->Symbol, NULL);
+
+            PhSwapReference2(&context->ClassWndProcSymbol, resolveContext->Symbol);
+            PhFree(resolveContext);
+
+            context->ClassWndProcResolving--;
+            WepRefreshWindowClassInfoSymbols(hwndDlg, context);
+        }
+        break;
+    }
+
+    return FALSE;
+}
+
 static BOOL CALLBACK EnumPropsExCallback(
     __in HWND hwnd,
     __in LPTSTR lpszString,
@@ -897,8 +1119,8 @@ static BOOL CALLBACK EnumPropsExCallback(
 
     if ((ULONG_PTR)lpszString < 0x10000)
     {
-        // The property has an atom name.
-        propName = PhaFormatString(L"(Atom %u)", (ULONG)lpszString)->Buffer;
+        // This is an integer atom.
+        propName = PhaFormatString(L"#%u", (ULONG)lpszString)->Buffer;
     }
 
     lvItemIndex = PhAddListViewItem((HWND)dwData, MAXINT, propName, NULL);
