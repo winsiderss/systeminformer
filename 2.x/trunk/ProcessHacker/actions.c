@@ -2329,10 +2329,32 @@ BOOLEAN PhUiTerminateThreads(
 
         if (!NT_SUCCESS(status))
         {
+            BOOLEAN connected;
+
             success = FALSE;
 
-            if (!PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0))
-                break;
+            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+                hWnd,
+                PhaFormatString(L"Unable to terminate thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                status,
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadTerminate)))
+                        success = TRUE;
+                    else
+                        PhpShowErrorThread(hWnd, L"terminate", Threads[0], status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                if (!PhpShowErrorThread(hWnd, L"terminate", Threads[i], status, 0))
+                    break;
+            }
         }
     }
 
@@ -2433,10 +2455,32 @@ BOOLEAN PhUiSuspendThreads(
 
         if (!NT_SUCCESS(status))
         {
+            BOOLEAN connected;
+
             success = FALSE;
 
-            if (!PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0))
-                break;
+            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+                hWnd,
+                PhaFormatString(L"Unable to suspend thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                status,
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadSuspend)))
+                        success = TRUE;
+                    else
+                        PhpShowErrorThread(hWnd, L"suspend", Threads[0], status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                if (!PhpShowErrorThread(hWnd, L"suspend", Threads[i], status, 0))
+                    break;
+            }
         }
     }
 
@@ -2469,10 +2513,32 @@ BOOLEAN PhUiResumeThreads(
 
         if (!NT_SUCCESS(status))
         {
+            BOOLEAN connected;
+
             success = FALSE;
 
-            if (!PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0))
-                break;
+            if (NumberOfThreads == 1 && PhpShowErrorAndConnectToPhSvc(
+                hWnd,
+                PhaFormatString(L"Unable to resume thread %u", (ULONG)Threads[i]->ThreadId)->Buffer,
+                status,
+                &connected
+                ))
+            {
+                if (connected)
+                {
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadResume)))
+                        success = TRUE;
+                    else
+                        PhpShowErrorThread(hWnd, L"resume", Threads[0], status, 0);
+
+                    PhUiDisconnectFromPhSvc();
+                }
+            }
+            else
+            {
+                if (!PhpShowErrorThread(hWnd, L"resume", Threads[i], status, 0))
+                    break;
+            }
         }
     }
 

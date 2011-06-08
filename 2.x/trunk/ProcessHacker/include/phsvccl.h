@@ -72,4 +72,9 @@ NTSTATUS PhSvcCallSetTcpEntry(
     __in PVOID TcpRow
     );
 
+NTSTATUS PhSvcCallControlThread(
+    __in HANDLE ThreadId,
+    __in PHSVC_API_CONTROLTHREAD_COMMAND Command
+    );
+
 #endif
