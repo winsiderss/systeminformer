@@ -603,3 +603,20 @@ NTSTATUS PhSvcCallSetTcpEntry(
 
     return PhSvcpCallServer(&m);
 }
+
+NTSTATUS PhSvcCallControlThread(
+    __in HANDLE ThreadId,
+    __in PHSVC_API_CONTROLTHREAD_COMMAND Command
+    )
+{
+    PHSVC_API_MSG m;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcControlThreadApiNumber;
+    m.u.ControlThread.i.ThreadId = ThreadId;
+    m.u.ControlThread.i.Command = Command;
+
+    return PhSvcpCallServer(&m);
+}

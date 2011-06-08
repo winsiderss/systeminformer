@@ -14,6 +14,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcChangeServiceConfigApiNumber = 7,
     PhSvcChangeServiceConfig2ApiNumber = 8,
     PhSvcSetTcpEntryApiNumber = 9,
+    PhSvcControlThreadApiNumber = 10,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -149,6 +150,22 @@ typedef union _PHSVC_API_SETTCPENTRY
     } i;
 } PHSVC_API_SETTCPENTRY, *PPHSVC_API_SETTCPENTRY;
 
+typedef enum _PHSVC_API_CONTROLTHREAD_COMMAND
+{
+    PhSvcControlThreadTerminate = 1,
+    PhSvcControlThreadSuspend,
+    PhSvcControlThreadResume
+} PHSVC_API_CONTROLTHREAD_COMMAND;
+
+typedef union _PHSVC_API_CONTROLTHREAD
+{
+    struct
+    {
+        HANDLE ThreadId;
+        PHSVC_API_CONTROLTHREAD_COMMAND Command;
+    } i;
+} PHSVC_API_CONTROLTHREAD, *PPHSVC_API_CONTROLTHREAD;
+
 typedef struct _PHSVC_API_MSG
 {
     PORT_MESSAGE h;
@@ -171,6 +188,7 @@ typedef struct _PHSVC_API_MSG
                 PHSVC_API_CHANGESERVICECONFIG ChangeServiceConfig;
                 PHSVC_API_CHANGESERVICECONFIG2 ChangeServiceConfig2;
                 PHSVC_API_SETTCPENTRY SetTcpEntry;
+                PHSVC_API_CONTROLTHREAD ControlThread;
             } u;
         };
     };

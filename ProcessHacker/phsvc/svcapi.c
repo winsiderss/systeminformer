@@ -33,7 +33,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiCreateService,
     PhSvcApiChangeServiceConfig,
     PhSvcApiChangeServiceConfig2,
-    PhSvcApiSetTcpEntry
+    PhSvcApiSetTcpEntry,
+    PhSvcApiControlThread
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -606,4 +607,46 @@ NTSTATUS PhSvcApiSetTcpEntry(
     result = localSetTcpEntry(&tcpRow);
 
     return NTSTATUS_FROM_WIN32(result);
+}
+
+NTSTATUS PhSvcApiControlThread(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    HANDLE threadId;
+    HANDLE threadHandle;
+
+    threadId = Message->u.ControlThread.i.ThreadId;
+
+    switch (Message->u.ControlThread.i.Command)
+    {
+    case PhSvcControlThreadTerminate:
+        if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_TERMINATE, threadId)))
+        {
+            status = PhTerminateThread(threadHandle, STATUS_SUCCESS);
+            NtClose(threadHandle);
+        }
+        break;
+    case PhSvcControlThreadSuspend:
+        if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+        {
+            status = PhSuspendThread(threadHandle, NULL);
+            NtClose(threadHandle);
+        }
+        break;
+    case PhSvcControlThreadResume:
+        if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
+        {
+            status = PhResumeThread(threadHandle, NULL);
+            NtClose(threadHandle);
+        }
+        break;
+    default:
+        status = STATUS_INVALID_PARAMETER;
+        break;
+    }
+
+    return status;
 }
