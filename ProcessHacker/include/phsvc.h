@@ -149,4 +149,9 @@ NTSTATUS PhSvcApiSetTcpEntry(
     __inout PPHSVC_API_MSG Message
     );
 
+NTSTATUS PhSvcApiControlThread(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
 #endif
