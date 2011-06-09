@@ -125,7 +125,20 @@ NTSTATUS EspLoadOtherInfo(
             switch (trigger->dwTriggerType)
             {
             case SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL:
-                triggerString = L"Device interface arrival";
+                {
+                    PPH_STRING guidString;
+
+                    if (!trigger->pTriggerSubtype)
+                    {
+                        triggerString = L"Device interface arrival";
+                    }
+                    else
+                    {
+                        guidString = PhFormatGuid(trigger->pTriggerSubtype);
+                        stringUsed = PhConcatStrings2(L"Device interface arrival: ", guidString->Buffer);
+                        triggerString = stringUsed->Buffer;
+                    }
+                }
                 break;
             case SERVICE_TRIGGER_TYPE_IP_ADDRESS_AVAILABILITY:
                 if (!trigger->pTriggerSubtype)
