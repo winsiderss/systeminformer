@@ -1,5 +1,6 @@
 1.5
  * Added support for editing triggers
+ * Added elevation support for restarting services
 
 1.4
  * Improved Services submenu when there is only one service
