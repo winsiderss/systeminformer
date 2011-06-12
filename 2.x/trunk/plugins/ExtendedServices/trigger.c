@@ -289,6 +289,8 @@ VOID EspDestroyTriggerInfo(
         {
             EspDestroyTriggerData(Info->DataList->Items[i]);
         }
+
+        PhDereferenceObject(Info->DataList);
     }
 
     PhFree(Info);
@@ -1006,6 +1008,7 @@ static VOID EspFixServiceTriggerControls(
                     for (i = 0; i < numberOfEntries; i++)
                     {
                         ComboBox_AddString(subTypeComboBox, entries[i].PublisherName->Buffer);
+                        PhDereferenceObject(entries[i].PublisherName);
                     }
 
                     PhFree(entries);
