@@ -182,6 +182,7 @@
     <ClCompile Include="other.c" />
     <ClCompile Include="srvprgrs.c" />
     <ClCompile Include="recovery.c" />
+    <ClCompile Include="trigger.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h" />

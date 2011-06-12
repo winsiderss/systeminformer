@@ -33,6 +33,9 @@
     <ClCompile Include="options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="trigger.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extsrv.h">
