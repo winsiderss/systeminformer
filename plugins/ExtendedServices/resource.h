@@ -16,6 +16,8 @@
 #define IDD_SRVOTHER                    106
 #define ID_SERVICE_PAUSE                106
 #define IDD_OPTIONS                     107
+#define IDD_SRVTRIGGER                  108
+#define IDD_VALUE                       109
 #define IDC_SERVICES_LAYOUT             1001
 #define IDC_MESSAGE                     1002
 #define IDC_FIRSTFAILURE                1003
@@ -42,14 +44,24 @@
 #define IDC_TRIGGERS                    1026
 #define IDC_TRIGGERS_LABEL              1027
 #define IDC_ENABLESERVICESMENU          1028
+#define IDC_TYPE                        1029
+#define IDC_SUBTYPE                     1030
+#define IDC_SUBTYPECUSTOM               1031
+#define IDC_ACTION                      1032
+#define IDC_LIST1                       1033
+#define IDC_LIST                        1033
+#define IDC_NEW                         1034
+#define IDC_EDIT                        1035
+#define IDC_DELETE                      1037
+#define IDC_VALUES                      1038
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        108
+#define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1029
+#define _APS_NEXT_CONTROL_VALUE         1042
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
