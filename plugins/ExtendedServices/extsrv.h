@@ -71,4 +71,38 @@ VOID EsRestartServiceWithProgress(
     __in SC_HANDLE ServiceHandle
     );
 
+// trigger
+
+struct _ES_TRIGGER_CONTEXT;
+
+struct _ES_TRIGGER_CONTEXT *EsCreateServiceTriggerContext(
+    __in PPH_SERVICE_ITEM ServiceItem,
+    __in HWND WindowHandle,
+    __in HWND TriggersLv
+    );
+
+VOID EsDestroyServiceTriggerContext(
+    __in struct _ES_TRIGGER_CONTEXT *Context
+    );
+
+VOID EsLoadServiceTriggerInfo(
+    __in struct _ES_TRIGGER_CONTEXT *Context,
+    __in SC_HANDLE ServiceHandle
+    );
+
+BOOLEAN EsSaveServiceTriggerInfo(
+    __in struct _ES_TRIGGER_CONTEXT *Context,
+    __out PULONG Win32Result
+    );
+
+#define ES_TRIGGER_EVENT_NEW 1
+#define ES_TRIGGER_EVENT_EDIT 2
+#define ES_TRIGGER_EVENT_DELETE 3
+#define ES_TRIGGER_EVENT_SELECTIONCHANGED 4
+
+VOID EsHandleEventServiceTrigger(
+    __in struct _ES_TRIGGER_CONTEXT *Context,
+    __in ULONG Event
+    );
+
 #endif
