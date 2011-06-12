@@ -67,7 +67,7 @@ INT_PTR CALLBACK EspServiceRecovery2DlgProc(
 
 VOID EsRestartServiceWithProgress(
     __in HWND hWnd,
-    __in PWSTR ServiceName,
+    __in PPH_SERVICE_ITEM ServiceItem,
     __in SC_HANDLE ServiceHandle
     );
 
