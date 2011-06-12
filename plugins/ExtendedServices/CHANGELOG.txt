@@ -1,5 +1,7 @@
 1.5
  * Added support for editing triggers
+ * Added support for editing preshutdown time-out
+ * Added support for editing required privileges
  * Added elevation support for restarting services
 
 1.4
