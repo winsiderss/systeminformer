@@ -195,9 +195,9 @@ VOID NTAPI MenuItemCallback(
             SC_HANDLE serviceHandle;
             ULONG win32Result = 0;
 
-            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS | SERVICE_START | SERVICE_STOP))
+            if (serviceHandle = PhOpenService(serviceItem->Name->Buffer, SERVICE_QUERY_STATUS))
             {
-                EsRestartServiceWithProgress(PhMainWndHandle, serviceItem->Name->Buffer, serviceHandle);
+                EsRestartServiceWithProgress(PhMainWndHandle, serviceItem, serviceHandle);
                 CloseServiceHandle(serviceHandle);
             }
             else

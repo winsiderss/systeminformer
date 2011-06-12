@@ -27,7 +27,7 @@
 
 typedef struct _RESTART_SERVICE_CONTEXT
 {
-    PWSTR ServiceName;
+    PPH_SERVICE_ITEM ServiceItem;
     SC_HANDLE ServiceHandle;
     BOOLEAN Starting;
 } RESTART_SERVICE_CONTEXT, *PRESTART_SERVICE_CONTEXT;
@@ -41,13 +41,13 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
 
 VOID EsRestartServiceWithProgress(
     __in HWND hWnd,
-    __in PWSTR ServiceName,
+    __in PPH_SERVICE_ITEM ServiceItem,
     __in SC_HANDLE ServiceHandle
     )
 {
     RESTART_SERVICE_CONTEXT context;
 
-    context.ServiceName = ServiceName;
+    context.ServiceItem = ServiceItem;
     context.ServiceHandle = ServiceHandle;
     context.Starting = FALSE;
 
@@ -89,28 +89,20 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
     {
     case WM_INITDIALOG:
         {
-            SERVICE_STATUS serviceStatus;
-
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             // TODO: Use the progress information.
             PhSetWindowStyle(GetDlgItem(hwndDlg, IDC_PROGRESS), PBS_MARQUEE, PBS_MARQUEE);
             SendMessage(GetDlgItem(hwndDlg, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 75);
 
-            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceName)->Buffer);
+            SetDlgItemText(hwndDlg, IDC_MESSAGE, PhaFormatString(L"Attempting to stop %s...", context->ServiceItem->Name->Buffer)->Buffer);
 
-            if (ControlService(context->ServiceHandle, SERVICE_CONTROL_STOP, &serviceStatus))
+            if (PhUiStopService(hwndDlg, context->ServiceItem))
             {
                 SetTimer(hwndDlg, 1, 250, NULL);
             }
             else
             {
-                PhShowStatus(
-                    hwndDlg,
-                    PhaFormatString(L"Unable to stop %s", context->ServiceName)->Buffer,
-                    0,
-                    GetLastError()
-                    );
                 EndDialog(hwndDlg, IDCANCEL);
             }
         }
@@ -140,20 +132,14 @@ INT_PTR CALLBACK EspRestartServiceDlgProc(
                         // The service is stopped, so start the service now.
 
                         SetDlgItemText(hwndDlg, IDC_MESSAGE,
-                            PhaFormatString(L"Attempting to start %s...", context->ServiceName)->Buffer);
+                            PhaFormatString(L"Attempting to start %s...", context->ServiceItem->Name->Buffer)->Buffer);
 
-                        if (StartService(context->ServiceHandle, 0, NULL))
+                        if (PhUiStartService(hwndDlg, context->ServiceItem))
                         {
                             context->Starting = TRUE;
                         }
                         else
                         {
-                            PhShowStatus(
-                                hwndDlg,
-                                PhaFormatString(L"Unable to start %s", context->ServiceName)->Buffer,
-                                0,
-                                GetLastError()
-                                );
                             EndDialog(hwndDlg, IDCANCEL);
                         }
                     }
