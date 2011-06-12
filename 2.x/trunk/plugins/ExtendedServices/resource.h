@@ -48,12 +48,13 @@
 #define IDC_SUBTYPE                     1030
 #define IDC_SUBTYPECUSTOM               1031
 #define IDC_ACTION                      1032
-#define IDC_LIST1                       1033
 #define IDC_LIST                        1033
 #define IDC_NEW                         1034
 #define IDC_EDIT                        1035
 #define IDC_DELETE                      1037
 #define IDC_VALUES                      1038
+#define IDC_REMOVE                      1042
+#define IDC_ADD                         1043
 
 // Next default values for new objects
 // 
@@ -61,7 +62,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1042
+#define _APS_NEXT_CONTROL_VALUE         1044
 #define _APS_NEXT_SYMED_VALUE           107
 #endif
 #endif
