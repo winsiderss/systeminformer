@@ -1133,6 +1133,34 @@ PPH_STRING EspConvertNullsToSpaces(
     return text;
 }
 
+VOID EspFormatTriggerData(
+    __in PES_TRIGGER_DATA Data,
+    __out PPH_STRING *Text
+    )
+{
+    if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
+    {
+        // This check works for both normal strings and multistrings.
+        if (Data->String->Length != 0)
+        {
+            // Prepare the text for display by replacing null characters with spaces.
+            *Text = EspConvertNullsToSpaces(Data->String);
+        }
+        else
+        {
+            *Text = PhCreateString(L"(empty string)");
+        }
+    }
+    else if (Data->Type == SERVICE_TRIGGER_DATA_TYPE_BINARY)
+    {
+        *Text = PhCreateString(L"(binary data)");
+    }
+    else
+    {
+        *Text = PhCreateString(L"(unknown type)");
+    }
+}
+
 INT_PTR CALLBACK EspServiceTriggerDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -1240,16 +1268,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                     data = context->EditingInfo->DataList->Items[i];
 
-                    if (data->Type == SERVICE_TRIGGER_DATA_TYPE_STRING)
-                    {
-                        // Prepare the text for display by replacing null characters with spaces.
-                        text = EspConvertNullsToSpaces(data->String);
-                    }
-                    else
-                    {
-                        text = PhCreateString(L"(binary data)");
-                    }
-
+                    EspFormatTriggerData(data, &text);
                     lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, text->Buffer, data);
                     PhDereferenceObject(text);
                 }
@@ -1308,7 +1327,7 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                         PhAddItemList(context->EditingInfo->DataList, data);
 
-                        text = EspConvertNullsToSpaces(data->String);
+                        EspFormatTriggerData(data, &text);
                         lvItemIndex = PhAddListViewItem(lvHandle, MAXINT, text->Buffer, data);
                         PhDereferenceObject(text);
                     }
@@ -1349,8 +1368,9 @@ INT_PTR CALLBACK EspServiceTriggerDlgProc(
 
                                 PhSwapReference2(&data->String, EspConvertNewLinesToNulls(context->EditingValue));
 
-                                text = EspConvertNullsToSpaces(data->String);
+                                EspFormatTriggerData(data, &text);
                                 PhSetListViewSubItem(lvHandle, lvItemIndex, 0, text->Buffer);
+                                PhDereferenceObject(text);
                             }
 
                             PhSwapReference(&context->EditingValue, NULL);
