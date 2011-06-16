@@ -20,6 +20,15 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * These are functions which communicate with LSA or are support functions.
+ * They replace certain Win32 security-related functions such as 
+ * LookupAccountName, LookupAccountSid and LookupPrivilege*, which are 
+ * badly designed. (LSA already allocates the return values for the caller, 
+ * yet the Win32 functions insist on their callers providing their own 
+ * buffers.)
+ */
+
 #include <ph.h>
 
 static LSA_HANDLE PhLookupPolicyHandle = NULL;

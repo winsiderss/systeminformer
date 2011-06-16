@@ -29,7 +29,8 @@
  * to retrieve the first argument to the system call the thread is blocking on. 
  * This is obviously only useful for NtWaitForSingleObject.
  *
- * There are other methods for specific scenarios, like USER messages.
+ * There are other methods for specific scenarios, like USER messages and ALPC 
+ * calls.
  */
 
 #include <phapp.h>
