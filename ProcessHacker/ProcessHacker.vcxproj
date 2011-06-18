@@ -408,6 +408,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ProcessHacker.rc" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="ProcessHacker.manifest" />
