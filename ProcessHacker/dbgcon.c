@@ -642,6 +642,13 @@ VOID FASTCALL PhfReleaseCriticalSection(
     RtlLeaveCriticalSection(CriticalSection);
 }
 
+VOID FASTCALL PhfReleaseQueuedLockExclusiveUsingInline(
+    __in PPH_QUEUED_LOCK QueuedLock
+    )
+{
+    PhReleaseQueuedLockExclusive(QueuedLock);
+}
+
 NTSTATUS PhpDebugConsoleThreadStart(
     __in PVOID Parameter
     )
