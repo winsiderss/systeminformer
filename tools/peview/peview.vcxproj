@@ -191,6 +191,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="peview.rc" />
+    <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\phlib\phlib.vcxproj">
