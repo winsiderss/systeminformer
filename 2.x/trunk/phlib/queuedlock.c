@@ -802,7 +802,7 @@ VOID FASTCALL PhfReleaseQueuedLockExclusive(
         assert(value & PH_QUEUED_LOCK_OWNED);
         assert((value & PH_QUEUED_LOCK_WAITERS) || (PhGetQueuedLockSharedOwners(value) == 0));
 
-        if (!(value & PH_QUEUED_LOCK_WAITERS) || (value & PH_QUEUED_LOCK_TRAVERSING))
+        if ((value & (PH_QUEUED_LOCK_WAITERS | PH_QUEUED_LOCK_TRAVERSING)) != PH_QUEUED_LOCK_WAITERS)
         {
             // There are no waiters or someone is traversing the list.
             //
@@ -927,6 +927,8 @@ VOID FASTCALL PhfReleaseQueuedLockShared(
  * about the state of the lock.
  *
  * \param QueuedLock A queued lock.
+ *
+ * \remarks This function exists only for compatibility reasons.
  */
 VOID FASTCALL PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
@@ -951,6 +953,36 @@ VOID FASTCALL PhfTryWakeQueuedLock(
         (PVOID)newValue,
         (PVOID)value
         ) == value)
+    {
+        PhpfWakeQueuedLock(QueuedLock, newValue);
+    }
+}
+
+/**
+ * Wakes waiters in a queued lock for releasing it in exclusive mode.
+ *
+ * \param QueuedLock A queued lock.
+ * \param Value The current value of the queued lock.
+ *
+ * \remarks The function assumes the following flags are set:
+ * \ref PH_QUEUED_LOCK_WAITERS.
+ * The function assumes the following flags are not set:
+ * \ref PH_QUEUED_LOCK_MULTIPLE_SHARED, \ref PH_QUEUED_LOCK_TRAVERSING.
+ */
+VOID FASTCALL PhfWakeForReleaseQueuedLock(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value
+    )
+{
+    ULONG_PTR newValue;
+
+    newValue = Value + PH_QUEUED_LOCK_TRAVERSING;
+
+    if ((ULONG_PTR)_InterlockedCompareExchangePointer(
+        (PPVOID)&QueuedLock->Value,
+        (PVOID)newValue,
+        (PVOID)Value
+        ) == Value)
     {
         PhpfWakeQueuedLock(QueuedLock, newValue);
     }
