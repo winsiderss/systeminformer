@@ -100,6 +100,14 @@ PhfTryWakeQueuedLock(
     __inout PPH_QUEUED_LOCK QueuedLock
     );
 
+PHLIBAPI
+VOID
+FASTCALL
+PhfWakeForReleaseQueuedLock(
+    __inout PPH_QUEUED_LOCK QueuedLock,
+    __in ULONG_PTR Value
+    );
+
 #define PhPulseCondition PhfPulseCondition
 PHLIBAPI
 VOID
@@ -222,11 +230,9 @@ FORCEINLINE VOID PhReleaseQueuedLockExclusive(
 
     value = (ULONG_PTR)_InterlockedExchangeAddPointer((PLONG_PTR)&QueuedLock->Value, -(LONG_PTR)PH_QUEUED_LOCK_OWNED);
 
-    // Only check for waiters here, not the traversing bit, since 
-    // that isn't common.
-    if (value & PH_QUEUED_LOCK_WAITERS)
+    if ((value & (PH_QUEUED_LOCK_WAITERS | PH_QUEUED_LOCK_TRAVERSING)) == PH_QUEUED_LOCK_WAITERS)
     {
-        PhfTryWakeQueuedLock(QueuedLock);
+        PhfWakeForReleaseQueuedLock(QueuedLock, value - PH_QUEUED_LOCK_OWNED);
     }
 }
 
