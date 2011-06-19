@@ -15,8 +15,7 @@ NTSTATUS PhSvcCallClose(
     );
 
 NTSTATUS PhSvcCallExecuteRunAsCommand(
-    __in PWSTR ServiceCommandLine,
-    __in PWSTR ServiceName
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
 NTSTATUS PhSvcCallUnloadDriver(
@@ -80,6 +79,10 @@ NTSTATUS PhSvcCallControlThread(
 NTSTATUS PhSvcCallAddAccountRight(
     __in PSID AccountSid,
     __in PUNICODE_STRING UserRight
+    );
+
+NTSTATUS PhSvcCallInvokeRunAsService(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
 #endif

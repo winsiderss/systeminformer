@@ -69,7 +69,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING CommandAction;
     PPH_STRING CommandValue;
 
-    BOOLEAN RunAsServiceMode;
+    PPH_STRING RunAsServiceMode;
     BOOLEAN PhSvc;
 
     BOOLEAN InstallKph;
@@ -1324,14 +1324,28 @@ VOID PhShowProcessRecordDialog(
 
 // runas
 
+typedef struct _PH_RUNAS_SERVICE_PARAMETERS
+{
+    ULONG ProcessId;
+    PWSTR UserName;
+    PWSTR Password;
+    ULONG LogonType;
+    ULONG SessionId;
+    PWSTR CurrentDirectory;
+    PWSTR CommandLine;
+    PWSTR FileName;
+    PWSTR DesktopName;
+    BOOLEAN UseLinkedToken;
+    PWSTR ServiceName;
+} PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
+
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
     __in_opt HANDLE ProcessId
     );
 
 NTSTATUS PhExecuteRunAsCommand(
-    __in PWSTR ServiceCommandLine,
-    __in PWSTR ServiceName
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     );
 
 NTSTATUS PhExecuteRunAsCommand2(
@@ -1346,7 +1360,13 @@ NTSTATUS PhExecuteRunAsCommand2(
     __in BOOLEAN UseLinkedToken
     );
 
-VOID PhRunAsServiceStart();
+NTSTATUS PhRunAsServiceStart(
+    __in PPH_STRING ServiceName
+    );
+
+NTSTATUS PhInvokeRunAsService(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    );
 
 // sessmsg
 

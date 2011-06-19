@@ -7,7 +7,18 @@
 
 // svcmain
 
-NTSTATUS PhSvcMain();
+typedef struct _PHSVC_STOP
+{
+    BOOLEAN Stop;
+    HANDLE Event1;
+    HANDLE Event2;
+} PHSVC_STOP, *PPHSVC_STOP;
+
+NTSTATUS PhSvcMain(
+    __in_opt PPH_STRINGREF PortName,
+    __in_opt PLARGE_INTEGER Timeout,
+    __inout_opt PPHSVC_STOP Stop
+    );
 
 // svcclient
 
@@ -68,7 +79,9 @@ typedef struct _PHSVC_THREAD_CONTEXT
     PPHSVC_CLIENT OldClient;
 } PHSVC_THREAD_CONTEXT, *PPHSVC_THREAD_CONTEXT;
 
-NTSTATUS PhSvcApiPortInitialization();
+NTSTATUS PhSvcApiPortInitialization(
+    __in PPH_STRINGREF PortName
+    );
 
 PPHSVC_THREAD_CONTEXT PhSvcGetCurrentThreadContext();
 
@@ -161,6 +174,11 @@ NTSTATUS PhSvcApiControlThread(
     );
 
 NTSTATUS PhSvcApiAddAccountRight(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiInvokeRunAsService(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     );

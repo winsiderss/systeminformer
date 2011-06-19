@@ -20,7 +20,46 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
+ * The run-as mechanism has three stages:
+ * 1. The user enters the information into the dialog box. Here it is decided 
+ *    whether the run-as service is needed. If it is not, PhCreateProcessAsUser 
+ *    is called directly. Otherwise, PhExecuteRunAsCommand2 is called for 
+ *    stage 2.
+ * 2. PhExecuteRunAsCommand2 creates a random service name and tries to create 
+ *    the service and execute it (using PhExecuteRunAsCommand). If the process 
+ *    has insufficient permissions, an elevated instance of phsvc is started 
+ *    and PhSvcCallExecuteRunAsCommand is called.
+ * 3. The service is started, and sets up an instance of phsvc with the same 
+ *    random service name as its port name. Either the original or elevated 
+ *    Process Hacker instance then calls PhSvcCallInvokeRunAsService to complete 
+ *    the operation.
+ *
+ * ProcessHacker.exe (user, limited privileges)
+ *   *                       | ^
+ *   |                       | | phsvc API (LPC)
+ *   |                       | |
+ *   |                       v |
+ *   ProcessHacker.exe (user, full privileges)
+ *         | ^                    | ^
+ *         | | SCM API (RPC)      | |
+ *         | |                    | |
+ *         v |                    | | phsvc API (LPC)
+ * services.exe                   | |
+ *   *                            | |
+ *   |                            | |
+ *   |                            | |
+ *   |                            v |
+ *   ProcessHacker.exe (NT AUTHORITY\SYSTEM)
+ *     *
+ *     |
+ *     |
+ *     |
+ *     program.exe
+ */
+
 #include <phapp.h>
+#include <phsvc.h>
 #include <phsvccl.h>
 #include <settings.h>
 #include <emenu.h>
@@ -35,21 +74,6 @@ typedef struct _RUNAS_DIALOG_CONTEXT
     PPH_STRING CurrentWinStaName;
 } RUNAS_DIALOG_CONTEXT, *PRUNAS_DIALOG_CONTEXT;
 
-typedef struct _RUNAS_SERVICE_PARAMETERS
-{
-    ULONG ProcessId;
-    PPH_STRING UserName;
-    PPH_STRING Password;
-    ULONG LogonType;
-    ULONG SessionId;
-    PPH_STRING CurrentDirectory;
-    PPH_STRING CommandLine;
-    PPH_STRING FileName;
-    PPH_STRING DesktopName;
-    BOOLEAN UseLinkedToken;
-    PPH_STRING ErrorMailslot;
-} RUNAS_SERVICE_PARAMETERS, *PRUNAS_SERVICE_PARAMETERS;
-
 INT_PTR CALLBACK PhpRunAsDlgProc(
     __in HWND hwndDlg,
     __in UINT uMsg,
@@ -60,9 +84,9 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
 VOID PhSetDesktopWinStaAccess();
 
 VOID PhpSplitUserName(
-    __in PPH_STRING UserName,
-    __out PPH_STRING *UserPart,
-    __out PPH_STRING *DomainPart
+    __in PWSTR UserName,
+    __out PPH_STRING *DomainPart,
+    __out PPH_STRING *UserPart
     );
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
@@ -76,7 +100,12 @@ static PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
     SIP(L"Service", LOGON32_LOGON_SERVICE)
 };
 
-static RUNAS_SERVICE_PARAMETERS RunAsServiceParameters;
+static WCHAR RunAsOldServiceName[32] = L"";
+static PH_QUEUED_LOCK RunAsOldServiceLock = PH_QUEUED_LOCK_INIT;
+
+static PPH_STRING RunAsServiceName;
+static SERVICE_STATUS_HANDLE RunAsServiceStatusHandle;
+static PHSVC_STOP RunAsServiceStop;
 
 VOID PhShowRunAsDialog(
     __in HWND ParentWindowHandle,
@@ -370,7 +399,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     }
 
                     if (!IsServiceAccount(userName))
-                        password = PHA_GET_DLGITEM_TEXT(hwndDlg, IDC_PASSWORD);
+                        password = PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD));
                     else
                         password = NULL;
 
@@ -404,7 +433,7 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                             PPH_STRING domainPart;
                             PPH_STRING userPart;
 
-                            PhpSplitUserName(userName, &domainPart, &userPart);
+                            PhpSplitUserName(userName->Buffer, &domainPart, &userPart);
 
                             memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
                             createInfo.CommandLine = program->Buffer;
@@ -448,6 +477,12 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
                     else
                     {
                         status = STATUS_INVALID_PARAMETER;
+                    }
+
+                    if (password)
+                    {
+                        RtlSecureZeroMemory(password->Buffer, password->Length);
+                        PhDereferenceObject(password);
                     }
 
                     if (!NT_SUCCESS(status))
@@ -729,122 +764,40 @@ VOID PhSetDesktopWinStaAccess()
     }
 }
 
-PPH_STRING PhpBuildRunAsServiceCommandLine(
-    __in PWSTR Program,
-    __in_opt PWSTR UserName,
-    __in_opt PWSTR Password,
-    __in_opt ULONG LogonType,
-    __in_opt HANDLE ProcessIdWithToken,
-    __in ULONG SessionId,
-    __in PWSTR DesktopName,
-    __in BOOLEAN UseLinkedToken,
-    __in PWSTR ErrorMailslot
-    )
-{
-    PH_STRINGREF stringRef;
-    PPH_STRING string;
-    PH_STRING_BUILDER commandLineBuilder;
-
-    if ((!UserName || !Password) && !ProcessIdWithToken)
-        return NULL;
-
-    PhInitializeStringBuilder(&commandLineBuilder, PhApplicationFileName->Length + 70);
-
-    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
-    PhAppendStringBuilder(&commandLineBuilder, PhApplicationFileName);
-    PhAppendStringBuilder2(&commandLineBuilder, L"\" -ras");
-
-    PhInitializeStringRef(&stringRef, Program);
-    string = PhEscapeCommandLinePart(&stringRef);
-    PhAppendStringBuilder2(&commandLineBuilder, L" -c \"");
-    PhAppendStringBuilder(&commandLineBuilder, string);
-    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
-    PhDereferenceObject(string);
-
-    PhInitializeStringRef(&stringRef, DesktopName);
-    string = PhEscapeCommandLinePart(&stringRef);
-    PhAppendStringBuilder2(&commandLineBuilder, L" -D \"");
-    PhAppendStringBuilder(&commandLineBuilder, string);
-    PhAppendCharStringBuilder(&commandLineBuilder, '\"');
-    PhDereferenceObject(string);
-
-    if (!ProcessIdWithToken)
-    {
-        PhInitializeStringRef(&stringRef, UserName);
-        string = PhEscapeCommandLinePart(&stringRef);
-        PhAppendStringBuilder2(&commandLineBuilder, L" -u \"");
-        PhAppendStringBuilder(&commandLineBuilder, string);
-        PhAppendCharStringBuilder(&commandLineBuilder, '\"');
-        PhDereferenceObject(string);
-
-        PhInitializeStringRef(&stringRef, Password);
-        string = PhEscapeCommandLinePart(&stringRef);
-        PhAppendStringBuilder2(&commandLineBuilder, L" -p \"");
-        PhAppendStringBuilder(&commandLineBuilder, string);
-        PhAppendCharStringBuilder(&commandLineBuilder, '\"');
-        PhDereferenceObject(string);
-
-        PhAppendFormatStringBuilder(
-            &commandLineBuilder, 
-            L" -t %u",
-            LogonType
-            );
-    }
-    else
-    {
-        PhAppendFormatStringBuilder(
-            &commandLineBuilder, 
-            L" -P %u",
-            (ULONG)ProcessIdWithToken
-            );
-    }
-
-    if (UseLinkedToken)
-    {
-        PhAppendStringBuilder2(&commandLineBuilder, L" -L");
-    }
-
-    PhAppendFormatStringBuilder(
-        &commandLineBuilder,
-        L" -s %u -E %s",
-        SessionId,
-        ErrorMailslot
-        );
-
-    return PhFinalStringBuilderString(&commandLineBuilder);
-}
-
 /**
  * Executes the run-as service.
  *
- * \param ServiceCommandLine The full command line of the 
- * service, including file name and parameters.
- * \param ServiceName The name of the service. This will 
- * also be used as the name of the error mailslot.
+ * \param Parameters The run-as parameters.
+ *
+ * \remarks This function requires administrator-level access.
  */
 NTSTATUS PhExecuteRunAsCommand(
-    __in PWSTR ServiceCommandLine,
-    __in PWSTR ServiceName
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
     ULONG win32Result;
-    SC_HANDLE scManagerHandle = NULL;
-    SC_HANDLE serviceHandle = NULL;
-    HANDLE mailslotFileHandle = NULL;
+    PPH_STRING commandLine;
+    SC_HANDLE scManagerHandle;
+    SC_HANDLE serviceHandle;
+    PPH_STRING portName;
+    ULONG attempts;
+    LARGE_INTEGER interval;
 
     if (!(scManagerHandle = OpenSCManager(NULL, NULL, SC_MANAGER_CREATE_SERVICE)))
         return PhGetLastWin32ErrorAsNtStatus();
 
+    commandLine = PhFormatString(L"\"%s\" -ras \"%s\"", PhApplicationFileName->Buffer, Parameters->ServiceName);
+
     serviceHandle = CreateService(
         scManagerHandle,
-        ServiceName,
-        ServiceName,
+        Parameters->ServiceName,
+        Parameters->ServiceName,
         SERVICE_ALL_ACCESS,
         SERVICE_WIN32_OWN_PROCESS,
         SERVICE_DEMAND_START,
         SERVICE_ERROR_IGNORE,
-        ServiceCommandLine,
+        commandLine->Buffer,
         NULL,
         NULL,
         NULL,
@@ -853,65 +806,46 @@ NTSTATUS PhExecuteRunAsCommand(
         );
     win32Result = GetLastError();
 
+    PhDereferenceObject(commandLine);
+
     CloseServiceHandle(scManagerHandle);
 
     if (!serviceHandle)
     {
-        status = NTSTATUS_FROM_WIN32(win32Result);
-        goto CleanupExit;
+        return NTSTATUS_FROM_WIN32(win32Result);
     }
 
+    PhSetDesktopWinStaAccess();
+
+    StartService(serviceHandle, 0, NULL);
+    DeleteService(serviceHandle);
+
+    portName = PhConcatStrings2(L"\\BaseNamedObjects\\", Parameters->ServiceName);
+    attempts = 10;
+
+    // Try to connect several times because the server may take 
+    // a while to initialize.
+    do
     {
-        OBJECT_ATTRIBUTES oa;
-        IO_STATUS_BLOCK isb;
-        LARGE_INTEGER timeout;
-        PPH_STRING mailslotFileName;
-        NTSTATUS exitStatus;
+        status = PhSvcConnectToServer(&portName->us, 0);
 
-        mailslotFileName = PhConcatStrings2(L"\\Device\\Mailslot\\", ServiceName);
-        timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+        if (NT_SUCCESS(status))
+            break;
 
-        InitializeObjectAttributes(
-            &oa,
-            &mailslotFileName->us,
-            OBJ_CASE_INSENSITIVE,
-            NULL,
-            NULL
-            );
+        interval.QuadPart = -50 * PH_TIMEOUT_MS;
+        NtDelayExecution(FALSE, &interval);
+    } while (--attempts != 0);
 
-        status = NtCreateMailslotFile(
-            &mailslotFileHandle,
-            FILE_GENERIC_READ,
-            &oa,
-            &isb,
-            FILE_SYNCHRONOUS_IO_NONALERT,
-            0,
-            MAILSLOT_SIZE_AUTO,
-            &timeout
-            );
-        PhDereferenceObject(mailslotFileName);
+    PhDereferenceObject(portName);
 
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        PhSetDesktopWinStaAccess();
-
-        StartService(serviceHandle, 0, NULL);
-        DeleteService(serviceHandle);
-
-        status = NtReadFile(mailslotFileHandle, NULL, NULL, NULL, &isb, &exitStatus, sizeof(NTSTATUS), NULL, NULL);
-
-        if (!NT_SUCCESS(status))
-            goto CleanupExit;
-
-        status = exitStatus;
+    if (NT_SUCCESS(status))
+    {
+        status = PhSvcCallInvokeRunAsService(Parameters);
+        PhSvcDisconnectFromServer();
     }
 
-CleanupExit:
     if (serviceHandle)
         CloseServiceHandle(serviceHandle);
-    if (mailslotFileHandle)
-        NtClose(mailslotFileHandle);
 
     return status;
 }
@@ -957,39 +891,62 @@ NTSTATUS PhExecuteRunAsCommand2(
     )
 {
     NTSTATUS status = STATUS_SUCCESS;
-    PPH_STRING commandLine;
-    WCHAR randomString[9];
-    WCHAR serviceName[24];
+    PH_RUNAS_SERVICE_PARAMETERS parameters;
+    WCHAR serviceName[32];
+    PPH_STRING portName;
 
-    PhGenerateRandomAlphaString(randomString, 9);
+    memset(&parameters, 0, sizeof(PH_RUNAS_SERVICE_PARAMETERS));
+    parameters.ProcessId = (ULONG)ProcessIdWithToken;
+    parameters.UserName = UserName;
+    parameters.Password = Password;
+    parameters.LogonType = LogonType;
+    parameters.SessionId = SessionId;
+    parameters.CommandLine = Program;
+    parameters.DesktopName = DesktopName;
+    parameters.UseLinkedToken = UseLinkedToken;
+
+    // Try to use an existing instance of the service if possible.
+    if (RunAsOldServiceName[0] != 0)
+    {
+        PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
+
+        portName = PhConcatStrings2(L"\\BaseNamedObjects\\", RunAsOldServiceName);
+
+        if (NT_SUCCESS(PhSvcConnectToServer(&portName->us, 0)))
+        {
+            parameters.ServiceName = RunAsOldServiceName;
+            status = PhSvcCallInvokeRunAsService(&parameters);
+            PhSvcDisconnectFromServer();
+
+            PhDereferenceObject(portName);
+            PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
+
+            return status;
+        }
+
+        PhDereferenceObject(portName);
+        PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
+    }
+
+    // An existing instance was not available. Proceed normally.
+
     memcpy(serviceName, L"ProcessHacker", 13 * sizeof(WCHAR));
-    memcpy(&serviceName[13], randomString, 8 * sizeof(WCHAR));
-    serviceName[13 + 8] = 0;
+    PhGenerateRandomAlphaString(&serviceName[13], 16);
+    PhAcquireQueuedLockExclusive(&RunAsOldServiceLock);
+    memcpy(RunAsOldServiceName, serviceName, sizeof(serviceName));
+    PhReleaseQueuedLockExclusive(&RunAsOldServiceLock);
 
-    commandLine = PhpBuildRunAsServiceCommandLine(
-        Program,
-        UserName,
-        Password,
-        LogonType,
-        ProcessIdWithToken,
-        SessionId,
-        DesktopName,
-        UseLinkedToken,
-        serviceName
-        );
-
-    if (!commandLine)
-        return STATUS_INVALID_PARAMETER_MIX;
+    parameters.ServiceName = serviceName;
 
     if (PhElevated)
     {
-        status = PhExecuteRunAsCommand(commandLine->Buffer, serviceName);
+        status = PhExecuteRunAsCommand(&parameters);
     }
     else
     {
         if (PhUiConnectToPhSvc(hWnd, FALSE))
         {
-            status = PhSvcCallExecuteRunAsCommand(commandLine->Buffer, serviceName);
+            status = PhSvcCallExecuteRunAsCommand(&parameters);
             PhUiDisconnectFromPhSvc();
         }
         else
@@ -998,169 +955,97 @@ NTSTATUS PhExecuteRunAsCommand2(
         }
     }
 
-    PhDereferenceObject(commandLine);
-
     return status;
 }
 
-VOID PhpRunAsServiceExit(
-    __in NTSTATUS ExitStatus
-    )
-{
-    if (RunAsServiceParameters.ErrorMailslot)
-    {
-        static PH_STRINGREF mailslotDeviceName = PH_STRINGREF_INIT(L"\\Device\\Mailslot\\");
-
-        HANDLE fileHandle;
-        OBJECT_ATTRIBUTES oa;
-        IO_STATUS_BLOCK isb;
-        PPH_STRING fileName;
-
-        fileName = PhConcatStringRef2(&mailslotDeviceName, &RunAsServiceParameters.ErrorMailslot->sr);
-
-        InitializeObjectAttributes(
-            &oa,
-            &fileName->us,
-            OBJ_CASE_INSENSITIVE,
-            NULL,
-            NULL
-            );
-
-        if (NT_SUCCESS(NtOpenFile(
-            &fileHandle,
-            FILE_GENERIC_WRITE,
-            &oa,
-            &isb,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
-            FILE_SYNCHRONOUS_IO_NONALERT
-            )))
-        {
-            NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, &ExitStatus, sizeof(NTSTATUS), NULL, NULL); 
-            NtClose(fileHandle);
-        }
-
-        PhDereferenceObject(fileName);
-    }
-
-    RtlExitUserProcess(ExitStatus);
-}
-
-#define PH_RUNAS_OPTION_USERNAME 1
-#define PH_RUNAS_OPTION_PASSWORD 2
-#define PH_RUNAS_OPTION_COMMANDLINE 3
-#define PH_RUNAS_OPTION_FILENAME 4
-#define PH_RUNAS_OPTION_LOGONTYPE 5
-#define PH_RUNAS_OPTION_SESSIONID 6
-#define PH_RUNAS_OPTION_PROCESSID 7
-#define PH_RUNAS_OPTION_ERRORMAILSLOT 8
-#define PH_RUNAS_OPTION_CURRENTDIRECTORY 9
-#define PH_RUNAS_OPTION_DESKTOPNAME 10
-#define PH_RUNAS_OPTION_USELINKEDTOKEN 11
-
-BOOLEAN NTAPI PhpRunAsServiceOptionCallback(
-    __in_opt PPH_COMMAND_LINE_OPTION Option,
-    __in_opt PPH_STRING Value,
-    __in_opt PVOID Context
-    )
-{
-    ULONG64 integer;
-
-    if (Option)
-    {
-        switch (Option->Id)
-        {
-        case PH_RUNAS_OPTION_USERNAME:
-            PhSwapReference(&RunAsServiceParameters.UserName, Value);
-            break;
-        case PH_RUNAS_OPTION_PASSWORD:
-            PhSwapReference(&RunAsServiceParameters.Password, Value);
-            break;
-        case PH_RUNAS_OPTION_COMMANDLINE:
-            PhSwapReference(&RunAsServiceParameters.CommandLine, Value);
-            break;
-        case PH_RUNAS_OPTION_FILENAME:
-            PhSwapReference(&RunAsServiceParameters.FileName, Value);
-            break;
-        case PH_RUNAS_OPTION_LOGONTYPE:
-            if (PhStringToInteger64(&Value->sr, 10, &integer))
-                RunAsServiceParameters.LogonType = (ULONG)integer;
-            break;
-        case PH_RUNAS_OPTION_SESSIONID:
-            if (PhStringToInteger64(&Value->sr, 10, &integer))
-                RunAsServiceParameters.SessionId = (ULONG)integer;
-            break;
-        case PH_RUNAS_OPTION_PROCESSID:
-            if (PhStringToInteger64(&Value->sr, 10, &integer))
-                RunAsServiceParameters.ProcessId = (ULONG)integer;
-            break;
-        case PH_RUNAS_OPTION_ERRORMAILSLOT:
-            PhSwapReference(&RunAsServiceParameters.ErrorMailslot, Value);
-            break;
-        case PH_RUNAS_OPTION_CURRENTDIRECTORY:
-            PhSwapReference(&RunAsServiceParameters.CurrentDirectory, Value);
-            break;
-        case PH_RUNAS_OPTION_DESKTOPNAME:
-            PhSwapReference(&RunAsServiceParameters.DesktopName, Value);
-            break;
-        case PH_RUNAS_OPTION_USELINKEDTOKEN:
-            RunAsServiceParameters.UseLinkedToken = TRUE;
-            break;
-        }
-    }
-
-    return TRUE;
-}
-
 static VOID PhpSplitUserName(
-    __in PPH_STRING UserName,
+    __in PWSTR UserName,
     __out PPH_STRING *DomainPart,
     __out PPH_STRING *UserPart
     )
 {
+    PH_STRINGREF userName;
     ULONG indexOfBackslash;
 
-    indexOfBackslash = PhFindCharInString(UserName, 0, '\\');
+    PhInitializeStringRef(&userName, UserName);
+    indexOfBackslash = PhFindCharInStringRef(&userName, 0, '\\');
 
     if (indexOfBackslash != -1)
     {
-        *DomainPart = PhSubstring(UserName, 0, indexOfBackslash);
-        *UserPart = PhSubstring(
-            UserName,
-            indexOfBackslash + 1,
-            UserName->Length / 2 - indexOfBackslash - 1
-            );
+        *DomainPart = PhCreateStringEx(UserName, indexOfBackslash * 2);
+        *UserPart = PhCreateStringEx(UserName + indexOfBackslash + 1, userName.Length - indexOfBackslash * 2 - 2);
     }
     else
     {
         *DomainPart = NULL;
-        *UserPart = UserName;
-        PhReferenceObject(UserName);
+        *UserPart = PhCreateStringEx(userName.Buffer, userName.Length);
     }
 }
 
-VOID PhRunAsServiceStart()
+static VOID SetRunAsServiceStatus(
+    __in ULONG State
+    )
 {
-    static PH_COMMAND_LINE_OPTION options[] =
+    SERVICE_STATUS status;
+
+    memset(&status, 0, sizeof(SERVICE_STATUS));
+    status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    status.dwCurrentState = State;
+    status.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+
+    SetServiceStatus(RunAsServiceStatusHandle, &status);
+}
+
+static DWORD WINAPI RunAsServiceHandlerEx(
+    __in DWORD dwControl,
+    __in DWORD dwEventType,
+    __in LPVOID lpEventData,
+    __in LPVOID lpContext
+    )
+{
+    switch (dwControl)
     {
-        { PH_RUNAS_OPTION_USERNAME, L"u", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_PASSWORD, L"p", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_COMMANDLINE, L"c", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_FILENAME, L"f", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_LOGONTYPE, L"t", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_SESSIONID, L"s", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_PROCESSID, L"P", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_ERRORMAILSLOT, L"E", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_CURRENTDIRECTORY, L"d", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_DESKTOPNAME, L"D", MandatoryArgumentType },
-        { PH_RUNAS_OPTION_USELINKEDTOKEN, L"L", NoArgumentType }
-    };
-    NTSTATUS status;
-    PH_STRINGREF commandLine;
+    case SERVICE_CONTROL_STOP:
+        RunAsServiceStop.Stop = TRUE;
+        if (RunAsServiceStop.Event1)
+            NtSetEvent(RunAsServiceStop.Event1, NULL);
+        if (RunAsServiceStop.Event2)
+            NtSetEvent(RunAsServiceStop.Event2, NULL);
+        return NO_ERROR;
+    case SERVICE_CONTROL_INTERROGATE:
+        return NO_ERROR;
+    }
+
+    return ERROR_CALL_NOT_IMPLEMENTED;
+}
+
+static VOID WINAPI RunAsServiceMain(
+    __in DWORD dwArgc,
+    __in LPTSTR *lpszArgv
+    )
+{
+    PPH_STRING portName;
+    LARGE_INTEGER timeout;
+
+    memset(&RunAsServiceStop, 0, sizeof(PHSVC_STOP));
+    RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(RunAsServiceName->Buffer, RunAsServiceHandlerEx, NULL);
+    SetRunAsServiceStatus(SERVICE_RUNNING);
+
+    portName = PhConcatStrings2(L"\\BaseNamedObjects\\", RunAsServiceName->Buffer);
+    // Use a shorter timeout value to reduce the time spent running as SYSTEM.
+    timeout.QuadPart = -5 * PH_TIMEOUT_SEC;
+
+    PhSvcMain(&portName->sr, &timeout, &RunAsServiceStop);
+
+    SetRunAsServiceStatus(SERVICE_STOPPED);
+}
+
+NTSTATUS PhRunAsServiceStart(
+    __in PPH_STRING ServiceName
+    )
+{
     HANDLE tokenHandle;
-    PPH_STRING domainName;
-    PPH_STRING userName;
-    PH_CREATE_PROCESS_AS_USER_INFO createInfo;
-    ULONG flags;
+    SERVICE_TABLE_ENTRY entry;
 
     // Enable some required privileges.
 
@@ -1178,27 +1063,29 @@ VOID PhRunAsServiceStart()
         NtClose(tokenHandle);
     }
 
-    // Process command line options.
+    RunAsServiceName = ServiceName;
 
-    commandLine.us = NtCurrentPeb()->ProcessParameters->CommandLine;
+    entry.lpServiceName = ServiceName->Buffer;
+    entry.lpServiceProc = RunAsServiceMain;
 
-    memset(&RunAsServiceParameters, 0, sizeof(RUNAS_SERVICE_PARAMETERS));
+    StartServiceCtrlDispatcher(&entry);
 
-    if (!PhParseCommandLine(
-        &commandLine,
-        options,
-        sizeof(options) / sizeof(PH_COMMAND_LINE_OPTION),
-        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS,
-        PhpRunAsServiceOptionCallback,
-        NULL
-        ))
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhInvokeRunAsService(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    )
+{
+    NTSTATUS status;
+    PPH_STRING domainName;
+    PPH_STRING userName;
+    PH_CREATE_PROCESS_AS_USER_INFO createInfo;
+    ULONG flags;
+
+    if (Parameters->UserName)
     {
-        PhpRunAsServiceExit(STATUS_INVALID_PARAMETER);
-    }
-
-    if (RunAsServiceParameters.UserName)
-    {
-        PhpSplitUserName(RunAsServiceParameters.UserName, &domainName, &userName);
+        PhpSplitUserName(Parameters->UserName, &domainName, &userName);
     }
     else
     {
@@ -1207,25 +1094,25 @@ VOID PhRunAsServiceStart()
     }
 
     memset(&createInfo, 0, sizeof(PH_CREATE_PROCESS_AS_USER_INFO));
-    createInfo.ApplicationName = PhGetString(RunAsServiceParameters.FileName);
-    createInfo.CommandLine = PhGetString(RunAsServiceParameters.CommandLine);
-    createInfo.CurrentDirectory = PhGetString(RunAsServiceParameters.CurrentDirectory);
+    createInfo.ApplicationName = Parameters->FileName;
+    createInfo.CommandLine = Parameters->CommandLine;
+    createInfo.CurrentDirectory = Parameters->CurrentDirectory;
     createInfo.DomainName = PhGetString(domainName);
     createInfo.UserName = PhGetString(userName);
-    createInfo.Password = PhGetString(RunAsServiceParameters.Password);
-    createInfo.LogonType = RunAsServiceParameters.LogonType;
-    createInfo.SessionId = RunAsServiceParameters.SessionId;
-    createInfo.DesktopName = PhGetString(RunAsServiceParameters.DesktopName);
+    createInfo.Password = Parameters->Password;
+    createInfo.LogonType = Parameters->LogonType;
+    createInfo.SessionId = Parameters->SessionId;
+    createInfo.DesktopName = Parameters->DesktopName;
 
     flags = PH_CREATE_PROCESS_SET_SESSION_ID;
 
-    if (RunAsServiceParameters.ProcessId)
+    if (Parameters->ProcessId)
     {
-        createInfo.ProcessIdWithToken = UlongToHandle(RunAsServiceParameters.ProcessId);
+        createInfo.ProcessIdWithToken = UlongToHandle(Parameters->ProcessId);
         flags |= PH_CREATE_PROCESS_USE_PROCESS_TOKEN;
     }
 
-    if (RunAsServiceParameters.UseLinkedToken)
+    if (Parameters->UseLinkedToken)
         flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
 
     status = PhCreateProcessAsUser(
@@ -1239,5 +1126,5 @@ VOID PhRunAsServiceStart()
     if (domainName) PhDereferenceObject(domainName);
     if (userName) PhDereferenceObject(userName);
 
-    PhpRunAsServiceExit(status);
+    return status;
 }

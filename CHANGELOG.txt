@@ -4,7 +4,9 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin
    * Updated WindowExplorer plugin
+   * Improved Run As mechanism
  * FIXED:
+   * Handle leak
 
 2.16
  * NEW/IMPROVED:
