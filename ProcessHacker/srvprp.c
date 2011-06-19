@@ -402,7 +402,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                     if (Button_GetCheck(GetDlgItem(hwndDlg, IDC_PASSWORDCHECK)) == BST_CHECKED)
                     {
-                        newServicePassword = PHA_DEREFERENCE(PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD)));
+                        newServicePassword = PhGetWindowText(GetDlgItem(hwndDlg, IDC_PASSWORD));
                     }
                     else
                     {
@@ -517,7 +517,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         }
                     }
 
-                    return TRUE;
+                    goto Cleanup;
 ErrorCase:
                     if (PhShowMessage(
                         hwndDlg,
@@ -527,6 +527,13 @@ ErrorCase:
                         ) == IDRETRY)
                     {
                         SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                    }
+
+Cleanup:
+                    if (newServicePassword)
+                    {
+                        RtlSecureZeroMemory(newServicePassword->Buffer, newServicePassword->Length);
+                        PhDereferenceObject(newServicePassword);
                     }
                 }
                 return TRUE;

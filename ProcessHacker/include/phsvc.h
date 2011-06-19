@@ -104,6 +104,12 @@ NTSTATUS PhSvcCaptureString(
     __out PPH_STRING *CapturedString
     );
 
+NTSTATUS PhSvcCaptureSid(
+    __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
+    __out PSID *CapturedSid
+    );
+
 NTSTATUS PhSvcApiClose(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
@@ -150,6 +156,11 @@ NTSTATUS PhSvcApiSetTcpEntry(
     );
 
 NTSTATUS PhSvcApiControlThread(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    );
+
+NTSTATUS PhSvcApiAddAccountRight(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     );

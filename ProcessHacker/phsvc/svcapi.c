@@ -34,7 +34,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiChangeServiceConfig,
     PhSvcApiChangeServiceConfig2,
     PhSvcApiSetTcpEntry,
-    PhSvcApiControlThread
+    PhSvcApiControlThread,
+    PhSvcApiAddAccountRight
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -155,6 +156,40 @@ NTSTATUS PhSvcCaptureString(
             return STATUS_ACCESS_VIOLATION;
 
         *CapturedString = NULL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS PhSvcCaptureSid(
+    __in PPH_RELATIVE_STRINGREF String,
+    __in BOOLEAN AllowNull,
+    __out PSID *CapturedSid
+    )
+{
+    NTSTATUS status;
+    PSID sid;
+
+    if (!NT_SUCCESS(status = PhSvcCaptureBuffer(String, AllowNull, &sid)))
+        return status;
+
+    if (sid)
+    {
+        if (
+            String->Length < FIELD_OFFSET(struct _SID, IdentifierAuthority) ||
+            String->Length < RtlLengthRequiredSid(((struct _SID *)sid)->SubAuthorityCount) ||
+            !RtlValidSid(sid)
+            )
+        {
+            PhFree(sid);
+            return STATUS_INVALID_SID;
+        }
+
+        *CapturedSid = sid;
+    }
+    else
+    {
+        *CapturedSid = NULL;
     }
 
     return STATUS_SUCCESS;
@@ -421,7 +456,12 @@ NTSTATUS PhSvcApiCreateService(
     }
 
 CleanupExit:
-    PhSwapReference(&password, NULL);
+    if (password)
+    {
+        RtlSecureZeroMemory(password->Buffer, password->Length);
+        PhDereferenceObject(password);
+    }
+
     PhSwapReference(&serviceStartName, NULL);
     PhSwapReference(&dependencies, NULL);
     PhSwapReference(&loadOrderGroup, NULL);
@@ -495,7 +535,13 @@ NTSTATUS PhSvcApiChangeServiceConfig(
 
 CleanupExit:
     PhSwapReference(&displayName, NULL);
-    PhSwapReference(&password, NULL);
+
+    if (password)
+    {
+        RtlSecureZeroMemory(password->Buffer, password->Length);
+        PhDereferenceObject(password);
+    }
+
     PhSwapReference(&serviceStartName, NULL);
     PhSwapReference(&dependencies, NULL);
     PhSwapReference(&loadOrderGroup, NULL);
@@ -646,6 +692,38 @@ NTSTATUS PhSvcApiControlThread(
     default:
         status = STATUS_INVALID_PARAMETER;
         break;
+    }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiAddAccountRight(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PSID accountSid;
+    PPH_STRING userRight;
+    LSA_HANDLE policyHandle;
+    UNICODE_STRING userRightUs;
+
+    if (NT_SUCCESS(PhSvcCaptureSid(&Message->u.AddAccountRight.i.AccountSid, FALSE, &accountSid)))
+    {
+        if (NT_SUCCESS(PhSvcCaptureString(&Message->u.AddAccountRight.i.UserRight, FALSE, &userRight)))
+        {
+            if (NT_SUCCESS(PhOpenLsaPolicy(&policyHandle, POLICY_LOOKUP_NAMES | POLICY_CREATE_ACCOUNT, NULL)))
+            {
+                userRightUs = userRight->us;
+                userRightUs.MaximumLength = userRightUs.Length;
+                status = LsaAddAccountRights(policyHandle, accountSid, &userRightUs, 1);
+                LsaClose(policyHandle);
+            }
+
+            PhDereferenceObject(userRight);
+        }
+
+        PhFree(accountSid);
     }
 
     return status;
