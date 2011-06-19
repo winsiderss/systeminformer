@@ -512,7 +512,9 @@ BOOLEAN PhUiConnectSession(
     __in ULONG SessionId
     )
 {
+    BOOLEAN success = FALSE;
     PPH_STRING selectedChoice = NULL;
+    PPH_STRING oldSelectedChoice = NULL;
 
     // Try once with no password.
     if (WinStationConnectW(NULL, SessionId, -1, L"", TRUE))
@@ -531,9 +533,18 @@ BOOLEAN PhUiConnectSession(
         NULL
         ))
     {
+        if (oldSelectedChoice)
+        {
+            RtlSecureZeroMemory(oldSelectedChoice->Buffer, oldSelectedChoice->Length);
+            PhDereferenceObject(oldSelectedChoice);
+        }
+
+        oldSelectedChoice = selectedChoice;
+
         if (WinStationConnectW(NULL, SessionId, -1, selectedChoice->Buffer, TRUE))
         {
-            return TRUE;
+            success = TRUE;
+            break;
         }
         else
         {
@@ -542,7 +553,13 @@ BOOLEAN PhUiConnectSession(
         }
     }
 
-    return FALSE;
+    if (oldSelectedChoice)
+    {
+        RtlSecureZeroMemory(oldSelectedChoice->Buffer, oldSelectedChoice->Length);
+        PhDereferenceObject(oldSelectedChoice);
+    }
+
+    return success;
 }
 
 BOOLEAN PhUiDisconnectSession(

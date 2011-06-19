@@ -77,4 +77,9 @@ NTSTATUS PhSvcCallControlThread(
     __in PHSVC_API_CONTROLTHREAD_COMMAND Command
     );
 
+NTSTATUS PhSvcCallAddAccountRight(
+    __in PSID AccountSid,
+    __in PUNICODE_STRING UserRight
+    );
+
 #endif

@@ -46,6 +46,12 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
     __in LPARAM lParam
     );
 
+/**
+ * Prompts the user for input.
+ *
+ * \remarks If \c PH_CHOICE_DIALOG_PASSWORD is specified, the string 
+ * returned in \a SelectedChoice is NOT auto-dereferenced.
+ */
 BOOLEAN PhaChoiceDialog(
     __in HWND ParentWindowHandle,
     __in PWSTR Title,
@@ -276,8 +282,17 @@ INT_PTR CALLBACK PhpChoiceDlgProc(
                     PCHOICE_DIALOG_CONTEXT context = (PCHOICE_DIALOG_CONTEXT)GetProp(hwndDlg, PhMakeContextAtom());
                     PPH_STRING selectedChoice;
 
-                    selectedChoice = PHA_DEREFERENCE(PhGetWindowText(context->ComboBoxHandle));
-                    *context->SelectedChoice = selectedChoice;
+                    if ((context->Flags & PH_CHOICE_DIALOG_TYPE_MASK) != PH_CHOICE_DIALOG_PASSWORD)
+                    {
+                        selectedChoice = PHA_DEREFERENCE(PhGetWindowText(context->ComboBoxHandle));
+                        *context->SelectedChoice = selectedChoice;
+                    }
+                    else
+                    {
+                        // Password values are never auto-dereferenced.
+                        selectedChoice = PhGetWindowText(context->ComboBoxHandle);
+                        *context->SelectedChoice = selectedChoice;
+                    }
 
                     if (context->Option && context->SelectedOption)
                         *context->SelectedOption = Button_GetCheck(GetDlgItem(hwndDlg, IDC_OPTION)) == BST_CHECKED;
