@@ -754,7 +754,7 @@ DWORD WINAPI PhpServiceNonPollSubscribeCallback(
     __in EVT_HANDLE Event
     )
 {
-    _InterlockedExchange(&PhpNonPollGate, 1);
+    PhpNonPollGate = 1;
     return 0;
 }
 
@@ -772,7 +772,7 @@ VOID CALLBACK PhpServiceNonPollScNotifyCallback(
         }
     }
 
-    _InterlockedExchange(&PhpNonPollGate, 1);
+    PhpNonPollGate = 1;
 
     NtSetEvent((HANDLE)notifyBuffer->pContext, NULL);
 }
