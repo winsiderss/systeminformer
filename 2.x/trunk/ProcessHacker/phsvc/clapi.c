@@ -368,6 +368,7 @@ NTSTATUS PhSvcCallCreateService(
     PVOID dependencies = NULL;
     PVOID serviceStartName = NULL;
     PVOID password = NULL;
+    ULONG passwordLength;
 
     memset(&m, 0, sizeof(PHSVC_API_MSG));
 
@@ -414,8 +415,14 @@ NTSTATUS PhSvcCallCreateService(
 
     if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.u.CreateService.i.ServiceStartName)))
         goto CleanupExit;
-    if (Password && !(password = PhSvcpCreateString(Password, -1, &m.u.CreateService.i.Password)))
-        goto CleanupExit;
+
+    if (Password)
+    {
+        if (!(password = PhSvcpCreateString(Password, -1, &m.u.CreateService.i.Password)))
+            goto CleanupExit;
+
+        passwordLength = m.u.CreateService.i.Password.Length;
+    }
 
     status = PhSvcpCallServer(&m);
 
@@ -426,7 +433,12 @@ NTSTATUS PhSvcCallCreateService(
     }
 
 CleanupExit:
-    if (password) PhSvcpFreeHeap(password);
+    if (password)
+    {
+        RtlSecureZeroMemory(password, passwordLength);
+        PhSvcpFreeHeap(password);
+    }
+
     if (serviceStartName) PhSvcpFreeHeap(serviceStartName);
     if (dependencies) PhSvcpFreeHeap(dependencies);
     if (loadOrderGroup) PhSvcpFreeHeap(loadOrderGroup);
@@ -459,6 +471,7 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     PVOID dependencies = NULL;
     PVOID serviceStartName = NULL;
     PVOID password = NULL;
+    ULONG passwordLength;
     PVOID displayName = NULL;
 
     memset(&m, 0, sizeof(PHSVC_API_MSG));
@@ -504,8 +517,15 @@ NTSTATUS PhSvcCallChangeServiceConfig(
 
     if (ServiceStartName && !(serviceStartName = PhSvcpCreateString(ServiceStartName, -1, &m.u.ChangeServiceConfig.i.ServiceStartName)))
         goto CleanupExit;
-    if (Password && !(password = PhSvcpCreateString(Password, -1, &m.u.ChangeServiceConfig.i.Password)))
-        goto CleanupExit;
+
+    if (Password)
+    {
+        if (!(password = PhSvcpCreateString(Password, -1, &m.u.ChangeServiceConfig.i.Password)))
+            goto CleanupExit;
+
+        passwordLength = m.u.ChangeServiceConfig.i.Password.Length;
+    }
+
     if (DisplayName && !(displayName = PhSvcpCreateString(DisplayName, -1, &m.u.ChangeServiceConfig.i.DisplayName)))
         goto CleanupExit;
 
@@ -519,7 +539,13 @@ NTSTATUS PhSvcCallChangeServiceConfig(
 
 CleanupExit:
     if (displayName) PhSvcpFreeHeap(displayName);
-    if (password) PhSvcpFreeHeap(password);
+
+    if (password)
+    {
+        RtlSecureZeroMemory(password, passwordLength);
+        PhSvcpFreeHeap(password);
+    }
+
     if (serviceStartName) PhSvcpFreeHeap(serviceStartName);
     if (dependencies) PhSvcpFreeHeap(dependencies);
     if (loadOrderGroup) PhSvcpFreeHeap(loadOrderGroup);
@@ -619,4 +645,35 @@ NTSTATUS PhSvcCallControlThread(
     m.u.ControlThread.i.Command = Command;
 
     return PhSvcpCallServer(&m);
+}
+
+NTSTATUS PhSvcCallAddAccountRight(
+    __in PSID AccountSid,
+    __in PUNICODE_STRING UserRight
+    )
+{
+    NTSTATUS status;
+    PHSVC_API_MSG m;
+    PVOID accountSid = NULL;
+    PVOID userRight = NULL;
+
+    if (!PhSvcClPortHandle)
+        return STATUS_PORT_DISCONNECTED;
+
+    m.ApiNumber = PhSvcAddAccountRightApiNumber;
+
+    status = STATUS_NO_MEMORY;
+
+    if (!(accountSid = PhSvcpCreateString(AccountSid, RtlLengthSid(AccountSid), &m.u.AddAccountRight.i.AccountSid)))
+        goto CleanupExit;
+    if (!(userRight = PhSvcpCreateString(UserRight->Buffer, UserRight->Length, &m.u.AddAccountRight.i.UserRight)))
+        goto CleanupExit;
+
+    status = PhSvcpCallServer(&m);
+
+CleanupExit:
+    if (userRight) PhSvcpFreeHeap(userRight);
+    if (accountSid) PhSvcpFreeHeap(accountSid);
+
+    return status;
 }
