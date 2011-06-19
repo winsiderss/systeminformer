@@ -16,6 +16,7 @@ typedef enum _PHSVC_API_NUMBER
     PhSvcSetTcpEntryApiNumber = 9,
     PhSvcControlThreadApiNumber = 10,
     PhSvcAddAccountRightApiNumber = 11,
+    PhSvcInvokeRunAsServiceApiNumber = 12,
     PhSvcMaximumApiNumber
 } PHSVC_API_NUMBER, *PPHSVC_API_NUMBER;
 
@@ -36,7 +37,16 @@ typedef union _PHSVC_API_EXECUTERUNASCOMMAND
 {
     struct
     {
-        PH_RELATIVE_STRINGREF ServiceCommandLine;
+        ULONG ProcessId;
+        PH_RELATIVE_STRINGREF UserName;
+        PH_RELATIVE_STRINGREF Password;
+        ULONG LogonType;
+        ULONG SessionId;
+        PH_RELATIVE_STRINGREF CurrentDirectory;
+        PH_RELATIVE_STRINGREF CommandLine;
+        PH_RELATIVE_STRINGREF FileName;
+        PH_RELATIVE_STRINGREF DesktopName;
+        BOOLEAN UseLinkedToken;
         PH_RELATIVE_STRINGREF ServiceName;
     } i;
 } PHSVC_API_EXECUTERUNASCOMMAND, *PPHSVC_API_EXECUTERUNASCOMMAND;

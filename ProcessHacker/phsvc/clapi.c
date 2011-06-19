@@ -42,6 +42,9 @@ NTSTATUS PhSvcConnectToServer(
     PHSVC_API_CONNECTINFO connectInfo;
     ULONG connectInfoLength;
 
+    if (PhSvcClPortHandle)
+        return STATUS_ADDRESS_ALREADY_EXISTS;
+
     if (PortSectionSize == 0)
         PortSectionSize = 512 * 1024;
 
@@ -227,39 +230,83 @@ NTSTATUS PhSvcCallClose(
     return PhSvcpCallServer(&m);
 }
 
-NTSTATUS PhSvcCallExecuteRunAsCommand(
-    __in PWSTR ServiceCommandLine,
-    __in PWSTR ServiceName
+NTSTATUS PhSvcpCallExecuteRunAsCommand(
+    __in PHSVC_API_NUMBER ApiNumber,
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
     )
 {
     NTSTATUS status;
     PHSVC_API_MSG m;
-    PVOID serviceCommandLine;
-    PVOID serviceName;
+    PVOID userName = NULL;
+    PVOID password = NULL;
+    ULONG passwordLength;
+    PVOID currentDirectory = NULL;
+    PVOID commandLine = NULL;
+    PVOID fileName = NULL;
+    PVOID desktopName = NULL;
+    PVOID serviceName = NULL;
+
+    memset(&m, 0, sizeof(PHSVC_API_MSG));
 
     if (!PhSvcClPortHandle)
         return STATUS_PORT_DISCONNECTED;
 
-    m.ApiNumber = PhSvcExecuteRunAsCommandApiNumber;
+    m.ApiNumber = ApiNumber;
 
-    serviceCommandLine = PhSvcpCreateString(ServiceCommandLine, -1, &m.u.ExecuteRunAsCommand.i.ServiceCommandLine);
-    serviceName = PhSvcpCreateString(ServiceName, -1, &m.u.ExecuteRunAsCommand.i.ServiceName);
+    m.u.ExecuteRunAsCommand.i.ProcessId = Parameters->ProcessId;
+    m.u.ExecuteRunAsCommand.i.LogonType = Parameters->LogonType;
+    m.u.ExecuteRunAsCommand.i.SessionId = Parameters->SessionId;
+    m.u.ExecuteRunAsCommand.i.UseLinkedToken = Parameters->UseLinkedToken;
 
-    if (serviceCommandLine && serviceName)
+    status = STATUS_NO_MEMORY;
+
+    if (Parameters->UserName && !(userName = PhSvcpCreateString(Parameters->UserName, -1, &m.u.ExecuteRunAsCommand.i.UserName)))
+        goto CleanupExit;
+
+    if (Parameters->Password)
     {
-        status = PhSvcpCallServer(&m);
-    }
-    else
-    {
-        status = STATUS_NO_MEMORY;
+        if (!(password = PhSvcpCreateString(Parameters->Password, -1, &m.u.ExecuteRunAsCommand.i.Password)))
+            goto CleanupExit;
+
+        passwordLength = m.u.ExecuteRunAsCommand.i.Password.Length;
     }
 
-    if (serviceCommandLine)
-        PhSvcpFreeHeap(serviceCommandLine);
-    if (serviceName)
-        PhSvcpFreeHeap(serviceName);
+    if (Parameters->CurrentDirectory && !(currentDirectory = PhSvcpCreateString(Parameters->CurrentDirectory, -1, &m.u.ExecuteRunAsCommand.i.CurrentDirectory)))
+        goto CleanupExit;
+    if (Parameters->CommandLine && !(commandLine = PhSvcpCreateString(Parameters->CommandLine, -1, &m.u.ExecuteRunAsCommand.i.CommandLine)))
+        goto CleanupExit;
+    if (Parameters->FileName && !(fileName = PhSvcpCreateString(Parameters->FileName, -1, &m.u.ExecuteRunAsCommand.i.FileName)))
+        goto CleanupExit;
+    if (Parameters->DesktopName && !(desktopName = PhSvcpCreateString(Parameters->DesktopName, -1, &m.u.ExecuteRunAsCommand.i.DesktopName)))
+        goto CleanupExit;
+    if (Parameters->ServiceName && !(serviceName = PhSvcpCreateString(Parameters->ServiceName, -1, &m.u.ExecuteRunAsCommand.i.ServiceName)))
+        goto CleanupExit;
+
+    status = PhSvcpCallServer(&m);
+
+CleanupExit:
+    if (serviceName) PhSvcpFreeHeap(serviceName);
+    if (desktopName) PhSvcpFreeHeap(desktopName);
+    if (fileName) PhSvcpFreeHeap(fileName);
+    if (commandLine) PhSvcpFreeHeap(commandLine);
+    if (currentDirectory) PhSvcpFreeHeap(currentDirectory);
+
+    if (password)
+    {
+        RtlSecureZeroMemory(password, passwordLength);
+        PhSvcpFreeHeap(password);
+    }
+
+    if (userName) PhSvcpFreeHeap(userName);
 
     return status;
+}
+
+NTSTATUS PhSvcCallExecuteRunAsCommand(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    )
+{
+    return PhSvcpCallExecuteRunAsCommand(PhSvcExecuteRunAsCommandApiNumber, Parameters);
 }
 
 NTSTATUS PhSvcCallUnloadDriver(
@@ -676,4 +723,11 @@ CleanupExit:
     if (accountSid) PhSvcpFreeHeap(accountSid);
 
     return status;
+}
+
+NTSTATUS PhSvcCallInvokeRunAsService(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    )
+{
+    return PhSvcpCallExecuteRunAsCommand(PhSvcInvokeRunAsServiceApiNumber, Parameters);
 }
