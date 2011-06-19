@@ -63,28 +63,37 @@ VOID FASTCALL PhfInitializeEvent(
     Event->EventHandle = NULL;
 }
 
+/**
+ * Dereferences the event object used by an event.
+ *
+ * \param Event A pointer to an event object.
+ * \param EventHandle The current value of the event object.
+ */
 FORCEINLINE VOID PhpDereferenceEvent(
-    __inout PPH_EVENT Event
+    __inout PPH_EVENT Event,
+    __in_opt HANDLE EventHandle
     )
 {
     ULONG_PTR value;
-    HANDLE eventHandle;
 
     value = _InterlockedExchangeAddPointer((PLONG_PTR)&Event->Value, -PH_EVENT_REFCOUNT_INC);
 
     // See if the reference count has become 0.
     if ((value >> PH_EVENT_REFCOUNT_SHIFT) - 1 == 0)
     {
-        if (Event->EventHandle)
+        if (EventHandle)
         {
-            eventHandle = _InterlockedExchangePointer(&Event->EventHandle, NULL);
-
-            if (eventHandle)
-                NtClose(eventHandle);
+            NtClose(EventHandle);
+            Event->EventHandle = NULL;
         }
     }
 }
 
+/**
+ * References the event object used by an event.
+ *
+ * \param Event A pointer to an event object.
+ */
 FORCEINLINE VOID PhpReferenceEvent(
     __inout PPH_EVENT Event
     )
@@ -114,7 +123,7 @@ VOID FASTCALL PhfSetEvent(
             NtSetEvent(eventHandle, NULL);
         }
 
-        PhpDereferenceEvent(Event);
+        PhpDereferenceEvent(Event, eventHandle);
     }
 }
 
@@ -155,7 +164,6 @@ BOOLEAN FASTCALL PhfWaitForEvent(
 
     eventHandle = Event->EventHandle;
 
-    // Don't bother creating an event if we already have one.
     if (!eventHandle)
     {
         NtCreateEvent(&eventHandle, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
@@ -170,6 +178,7 @@ BOOLEAN FASTCALL PhfWaitForEvent(
         {
             // Someone else set the event before we did.
             NtClose(eventHandle);
+            eventHandle = Event->EventHandle;
         }
     }
 
@@ -177,14 +186,14 @@ BOOLEAN FASTCALL PhfWaitForEvent(
     // it is set.
     if (!(Event->Value & PH_EVENT_SET))
     {
-        result = NtWaitForSingleObject(Event->EventHandle, FALSE, Timeout) == STATUS_WAIT_0;
+        result = NtWaitForSingleObject(eventHandle, FALSE, Timeout) == STATUS_WAIT_0;
     }
     else
     {
         result = TRUE;
     }
 
-    PhpDereferenceEvent(Event);
+    PhpDereferenceEvent(Event, eventHandle);
 
     return result;
 }
@@ -492,13 +501,6 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
 {
     LONG oldState;
 
-    // Quick check first.
-
-    if (InitOnce->State == PH_INITONCE_INITIALIZED)
-        return FALSE;
-
-    // Initializing path.
-
     oldState = _InterlockedCompareExchange(
         &InitOnce->State,
         PH_INITONCE_INITIALIZING,
@@ -524,6 +526,6 @@ VOID FASTCALL PhfEndInitOnce(
     __inout PPH_INITONCE InitOnce
     )
 {
-    _InterlockedExchange(&InitOnce->State, PH_INITONCE_INITIALIZED);
+    InitOnce->State = PH_INITONCE_INITIALIZED;
     PhSetEvent(&InitOnce->WakeEvent);
 }
