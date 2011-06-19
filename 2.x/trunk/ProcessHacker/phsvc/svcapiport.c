@@ -34,7 +34,9 @@ ULONG PhSvcApiThreadContextTlsIndex;
 HANDLE PhSvcApiPortHandle;
 ULONG PhSvcApiNumberOfClients = 0;
 
-NTSTATUS PhSvcApiPortInitialization()
+NTSTATUS PhSvcApiPortInitialization(
+    __in PPH_STRINGREF PortName
+    )
 {
     static SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
 
@@ -51,7 +53,7 @@ NTSTATUS PhSvcApiPortInitialization()
 
     // Create the API port.
 
-    RtlInitUnicodeString(&objectName, PHSVC_PORT_NAME);
+    objectName = PortName->us;
 
     administratorsSid = (PSID)administratorsSidBuffer;
     RtlInitializeSid(administratorsSid, &ntAuthority, 2);

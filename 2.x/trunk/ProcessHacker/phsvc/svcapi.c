@@ -23,6 +23,17 @@
 #include <phapp.h>
 #include <phsvc.h>
 
+typedef struct _PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS
+{
+    PPH_STRING UserName;
+    PPH_STRING Password;
+    PPH_STRING CurrentDirectory;
+    PPH_STRING CommandLine;
+    PPH_STRING FileName;
+    PPH_STRING DesktopName;
+    PPH_STRING ServiceName;
+} PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS, *PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS;
+
 PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
 {
     PhSvcApiClose,
@@ -35,7 +46,8 @@ PPHSVC_API_PROCEDURE PhSvcApiCallTable[] =
     PhSvcApiChangeServiceConfig2,
     PhSvcApiSetTcpEntry,
     PhSvcApiControlThread,
-    PhSvcApiAddAccountRight
+    PhSvcApiAddAccountRight,
+    PhSvcApiInvokeRunAsService
 };
 C_ASSERT(sizeof(PhSvcApiCallTable) / sizeof(PPHSVC_API_PROCEDURE) == PhSvcMaximumApiNumber - 1);
 
@@ -203,25 +215,106 @@ NTSTATUS PhSvcApiClose(
     return PhSvcCloseHandle(Message->u.Close.i.Handle);
 }
 
+NTSTATUS PhSvcpCaptureRunAsServiceParameters(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message,
+    __out PPH_RUNAS_SERVICE_PARAMETERS Parameters,
+    __out PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
+    )
+{
+    NTSTATUS status;
+
+    memset(CapturedParameters, 0, sizeof(PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS));
+
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.UserName, TRUE, &CapturedParameters->UserName)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.Password, TRUE, &CapturedParameters->Password)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.CurrentDirectory, TRUE, &CapturedParameters->CurrentDirectory)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.CommandLine, TRUE, &CapturedParameters->CommandLine)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.FileName, TRUE, &CapturedParameters->FileName)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.DesktopName, TRUE, &CapturedParameters->DesktopName)))
+        return status;
+    if (!NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceName, TRUE, &CapturedParameters->ServiceName)))
+        return status;
+
+    Parameters->ProcessId = Message->u.ExecuteRunAsCommand.i.ProcessId;
+    Parameters->UserName = PhGetString(CapturedParameters->UserName);
+    Parameters->Password = PhGetString(CapturedParameters->Password);
+    Parameters->LogonType = Message->u.ExecuteRunAsCommand.i.LogonType;
+    Parameters->SessionId = Message->u.ExecuteRunAsCommand.i.SessionId;
+    Parameters->CurrentDirectory = PhGetString(CapturedParameters->CurrentDirectory);
+    Parameters->CommandLine = PhGetString(CapturedParameters->CommandLine);
+    Parameters->FileName = PhGetString(CapturedParameters->FileName);
+    Parameters->DesktopName = PhGetString(CapturedParameters->DesktopName);
+    Parameters->UseLinkedToken = Message->u.ExecuteRunAsCommand.i.UseLinkedToken;
+    Parameters->ServiceName = PhGetString(CapturedParameters->ServiceName);
+
+    return status;
+}
+
+VOID PhSvcpReleaseRunAsServiceParameters(
+    __in PPHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS CapturedParameters
+    )
+{
+    if (CapturedParameters->UserName)
+        PhDereferenceObject(CapturedParameters->UserName);
+
+    if (CapturedParameters->Password)
+    {
+        RtlSecureZeroMemory(CapturedParameters->Password->Buffer, CapturedParameters->Password->Length);
+        PhDereferenceObject(CapturedParameters->Password);
+    }
+
+    if (CapturedParameters->CurrentDirectory)
+        PhDereferenceObject(CapturedParameters->CurrentDirectory);
+    if (CapturedParameters->CommandLine)
+        PhDereferenceObject(CapturedParameters->CommandLine);
+    if (CapturedParameters->FileName)
+        PhDereferenceObject(CapturedParameters->FileName);
+    if (CapturedParameters->DesktopName)
+        PhDereferenceObject(CapturedParameters->DesktopName);
+    if (CapturedParameters->ServiceName)
+        PhDereferenceObject(CapturedParameters->ServiceName);
+}
+
+NTSTATUS PhSvcpValidateRunAsServiceParameters(
+    __in PPH_RUNAS_SERVICE_PARAMETERS Parameters
+    )
+{
+    if ((!Parameters->UserName || !Parameters->Password) && !Parameters->ProcessId)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if (Parameters->UserName && Parameters->Password && Parameters->ProcessId)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if (!Parameters->FileName && !Parameters->CommandLine)
+        return STATUS_INVALID_PARAMETER_MIX;
+    if (!Parameters->ServiceName)
+        return STATUS_INVALID_PARAMETER;
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS PhSvcApiExecuteRunAsCommand(
     __in PPHSVC_CLIENT Client,
     __inout PPHSVC_API_MSG Message
     )
 {
     NTSTATUS status;
-    PPH_STRING serviceCommandLine;
-    PPH_STRING serviceName;
+    PH_RUNAS_SERVICE_PARAMETERS parameters;
+    PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS capturedParameters;
 
-    if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceCommandLine, FALSE, &serviceCommandLine)))
+    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Message, &parameters, &capturedParameters)))
     {
-        if (NT_SUCCESS(status = PhSvcCaptureString(&Message->u.ExecuteRunAsCommand.i.ServiceName, FALSE, &serviceName)))
+        if (NT_SUCCESS(status = PhSvcpValidateRunAsServiceParameters(&parameters)))
         {
-            status = PhExecuteRunAsCommand(serviceCommandLine->Buffer, serviceName->Buffer);
-            PhDereferenceObject(serviceName);
+            status = PhExecuteRunAsCommand(&parameters);
         }
-
-        PhDereferenceObject(serviceCommandLine);
     }
+
+    PhSvcpReleaseRunAsServiceParameters(&capturedParameters);
 
     return status;
 }
@@ -725,6 +818,28 @@ NTSTATUS PhSvcApiAddAccountRight(
 
         PhFree(accountSid);
     }
+
+    return status;
+}
+
+NTSTATUS PhSvcApiInvokeRunAsService(
+    __in PPHSVC_CLIENT Client,
+    __inout PPHSVC_API_MSG Message
+    )
+{
+    NTSTATUS status;
+    PH_RUNAS_SERVICE_PARAMETERS parameters;
+    PHSVCP_CAPTURED_RUNAS_SERVICE_PARAMETERS capturedParameters;
+
+    if (NT_SUCCESS(status = PhSvcpCaptureRunAsServiceParameters(Client, Message, &parameters, &capturedParameters)))
+    {
+        if (NT_SUCCESS(status = PhSvcpValidateRunAsServiceParameters(&parameters)))
+        {
+            status = PhInvokeRunAsService(&parameters);
+        }
+    }
+
+    PhSvcpReleaseRunAsServiceParameters(&capturedParameters);
 
     return status;
 }

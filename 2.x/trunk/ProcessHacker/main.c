@@ -166,8 +166,7 @@ INT WINAPI WinMain(
 
     if (PhStartupParameters.RunAsServiceMode)
     {
-        PhRunAsServiceStart();
-        RtlExitUserProcess(STATUS_SUCCESS);
+        RtlExitUserProcess(PhRunAsServiceStart(PhStartupParameters.RunAsServiceMode));
     }
 
     // Activate a previous instance if required.
@@ -203,7 +202,7 @@ INT WINAPI WinMain(
 
     if (PhStartupParameters.PhSvc)
     {
-        RtlExitUserProcess(PhSvcMain());
+        RtlExitUserProcess(PhSvcMain(NULL, NULL, NULL));
     }
 
     // Create a mutant for the installer.
@@ -590,7 +589,7 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhSwapReference(&PhStartupParameters.CommandValue, Value);
             break;
         case PH_ARG_RUNASSERVICEMODE:
-            PhStartupParameters.RunAsServiceMode = TRUE;
+            PhSwapReference(&PhStartupParameters.RunAsServiceMode, Value);
             break;
         case PH_ARG_NOKPH:
             PhStartupParameters.NoKph = TRUE;
@@ -679,7 +678,7 @@ VOID PhpProcessStartupParameters()
         { PH_ARG_COMMANDOBJECT, L"cobject", MandatoryArgumentType },
         { PH_ARG_COMMANDACTION, L"caction", MandatoryArgumentType },
         { PH_ARG_COMMANDVALUE, L"cvalue", MandatoryArgumentType },
-        { PH_ARG_RUNASSERVICEMODE, L"ras", NoArgumentType },
+        { PH_ARG_RUNASSERVICEMODE, L"ras", MandatoryArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
         { PH_ARG_INSTALLKPH, L"installkph", NoArgumentType },
         { PH_ARG_UNINSTALLKPH, L"uninstallkph", NoArgumentType },
@@ -725,7 +724,7 @@ VOID PhpProcessStartupParameters()
             L"-noplugins\n"
             L"-nosettings\n"
             L"-phsvc\n"
-            L"-ras\n"
+            L"-ras servicename\n"
             L"-s\n"
             L"-settings filename\n"
             L"-uninstallkph\n"

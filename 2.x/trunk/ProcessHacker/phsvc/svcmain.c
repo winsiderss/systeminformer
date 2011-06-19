@@ -26,16 +26,33 @@
 HANDLE PhSvcTimeoutStandbyEventHandle;
 HANDLE PhSvcTimeoutCancelEventHandle;
 
-NTSTATUS PhSvcMain()
+NTSTATUS PhSvcMain(
+    __in_opt PPH_STRINGREF PortName,
+    __in_opt PLARGE_INTEGER Timeout,
+    __inout_opt PPHSVC_STOP Stop
+    )
 {
     NTSTATUS status;
+    PH_STRINGREF portName;
     LARGE_INTEGER timeout;
+
+    if (!PortName)
+    {
+        PhInitializeStringRef(&portName, PHSVC_PORT_NAME);
+        PortName = &portName;
+    }
+
+    if (!Timeout)
+    {
+        timeout.QuadPart = -15 * PH_TIMEOUT_SEC;
+        Timeout = &timeout;
+    }
 
     if (!NT_SUCCESS(status = PhSvcClientInitialization()))
         return status;
     if (!NT_SUCCESS(status = PhSvcApiInitialization()))
         return status;
-    if (!NT_SUCCESS(status = PhSvcApiPortInitialization()))
+    if (!NT_SUCCESS(status = PhSvcApiPortInitialization(PortName)))
         return status;
 
     if (!NT_SUCCESS(status = NtCreateEvent(&PhSvcTimeoutStandbyEventHandle, EVENT_ALL_ACCESS, NULL, SynchronizationEvent, TRUE)))
@@ -47,13 +64,27 @@ NTSTATUS PhSvcMain()
         return status;
     }
 
-    timeout.QuadPart = -15 * PH_TIMEOUT_SEC;
+    if (Stop)
+    {
+        Stop->Event1 = PhSvcTimeoutStandbyEventHandle;
+        Stop->Event2 = PhSvcTimeoutCancelEventHandle;
+        MemoryBarrier();
+
+        if (Stop->Stop)
+            return STATUS_SUCCESS;
+    }
 
     while (TRUE)
     {
         NtWaitForSingleObject(PhSvcTimeoutStandbyEventHandle, FALSE, NULL);
-        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, &timeout);
 
+        if (Stop && Stop->Stop)
+            break;
+
+        status = NtWaitForSingleObject(PhSvcTimeoutCancelEventHandle, FALSE, Timeout);
+
+        if (Stop && Stop->Stop)
+            break;
         if (status == STATUS_TIMEOUT)
             break;
 
