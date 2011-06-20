@@ -729,7 +729,7 @@ NTSTATUS PhLoadSettings(
     if (!topNode)
         return STATUS_FILE_CORRUPT_ERROR;
 
-    if (!topNode->child)
+    if (topNode->type != MXML_ELEMENT)
     {
         mxmlDelete(topNode);
         return STATUS_FILE_CORRUPT_ERROR;

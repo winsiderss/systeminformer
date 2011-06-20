@@ -1533,7 +1533,7 @@ PPH_STRING PhConcatStrings_V(
             stringLength = wcslen(arg) * sizeof(WCHAR);
 
         memcpy(
-            &string->Buffer[totalLength / sizeof(WCHAR)],
+            (PCHAR)string->Buffer + totalLength,
             arg,
             stringLength
             );
@@ -1567,7 +1567,7 @@ PPH_STRING PhConcatStrings2(
         length1
         );
     memcpy(
-        &string->Buffer[length1 / sizeof(WCHAR)],
+        (PCHAR)string->Buffer + length1,
         String2,
         length2
         );
@@ -1588,9 +1588,12 @@ PPH_STRING PhConcatStringRef2(
 {
     PPH_STRING string;
 
+    assert(!(String1->Length & 1));
+    assert(!(String2->Length & 1));
+
     string = PhCreateStringEx(NULL, String1->Length + String2->Length);
     memcpy(string->Buffer, String1->Buffer, String1->Length);
-    memcpy(&string->Buffer[String1->Length / sizeof(WCHAR)], String2->Buffer, String2->Length);
+    memcpy((PCHAR)string->Buffer + String1->Length, String2->Buffer, String2->Length);
 
     return string;
 }
@@ -1609,17 +1612,21 @@ PPH_STRING PhConcatStringRef3(
     )
 {
     PPH_STRING string;
-    PWSTR buffer;
+    PCHAR buffer;
+
+    assert(!(String1->Length & 1));
+    assert(!(String2->Length & 1));
+    assert(!(String3->Length & 1));
 
     string = PhCreateStringEx(NULL, String1->Length + String2->Length + String3->Length);
 
-    buffer = string->Buffer;
+    buffer = (PCHAR)string->Buffer;
     memcpy(buffer, String1->Buffer, String1->Length);
 
-    buffer += String1->Length / sizeof(WCHAR);
+    buffer += String1->Length;
     memcpy(buffer, String2->Buffer, String2->Length);
 
-    buffer += String2->Length / sizeof(WCHAR);
+    buffer += String2->Length;
     memcpy(buffer, String3->Buffer, String3->Length);
 
     return string;
