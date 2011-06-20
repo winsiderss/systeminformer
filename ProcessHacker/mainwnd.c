@@ -3872,6 +3872,9 @@ VOID PhpInitializeProcessMenu(
         // Remove I/O priority.
         if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"I/O Priority", 0))
             PhDestroyEMenuItem(item);
+        // Remove page priority.
+        if (item = PhFindEMenuItem(Menu, PH_EMENU_FIND_DESCEND, L"Page Priority", 0))
+            PhDestroyEMenuItem(item);
     }
 
     // Virtualization

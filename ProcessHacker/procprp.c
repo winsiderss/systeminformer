@@ -1943,6 +1943,9 @@ VOID PhpInitializeThreadMenu(
         // Remove I/O priority.
         if (item = PhFindEMenuItem(Menu, 0, L"I/O Priority", 0))
             PhDestroyEMenuItem(item);
+        // Remove page priority.
+        if (item = PhFindEMenuItem(Menu, 0, L"Page Priority", 0))
+            PhDestroyEMenuItem(item);
     }
 
 #ifndef _M_X64
