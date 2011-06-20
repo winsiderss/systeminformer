@@ -4,7 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin
    * Updated WindowExplorer plugin
-   * Added support for setting Page Priority
+   * Added support for setting page priority
+   * Added elevation support for setting priority
    * Improved Run As mechanism
  * FIXED:
    * Handle leak

@@ -64,7 +64,9 @@ typedef enum _PHSVC_API_CONTROLPROCESS_COMMAND
 {
     PhSvcControlProcessTerminate = 1,
     PhSvcControlProcessSuspend,
-    PhSvcControlProcessResume
+    PhSvcControlProcessResume,
+    PhSvcControlProcessPriority,
+    PhSvcControlProcessIoPriority
 } PHSVC_API_CONTROLPROCESS_COMMAND;
 
 typedef union _PHSVC_API_CONTROLPROCESS
@@ -73,6 +75,7 @@ typedef union _PHSVC_API_CONTROLPROCESS
     {
         HANDLE ProcessId;
         PHSVC_API_CONTROLPROCESS_COMMAND Command;
+        ULONG Argument;
     } i;
 } PHSVC_API_CONTROLPROCESS, *PPHSVC_API_CONTROLPROCESS;
 
@@ -165,7 +168,8 @@ typedef enum _PHSVC_API_CONTROLTHREAD_COMMAND
 {
     PhSvcControlThreadTerminate = 1,
     PhSvcControlThreadSuspend,
-    PhSvcControlThreadResume
+    PhSvcControlThreadResume,
+    PhSvcControlThreadIoPriority
 } PHSVC_API_CONTROLTHREAD_COMMAND;
 
 typedef union _PHSVC_API_CONTROLTHREAD
@@ -174,6 +178,7 @@ typedef union _PHSVC_API_CONTROLTHREAD
     {
         HANDLE ThreadId;
         PHSVC_API_CONTROLTHREAD_COMMAND Command;
+        ULONG Argument;
     } i;
 } PHSVC_API_CONTROLTHREAD, *PPHSVC_API_CONTROLTHREAD;
 

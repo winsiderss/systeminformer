@@ -148,10 +148,11 @@ BOOLEAN PhpShowErrorAndElevateAction(
     PH_ACTION_ELEVATION_LEVEL elevationLevel;
     INT button = IDNO;
 
-    if (
-        !(Status == STATUS_ACCESS_DENIED ||
-        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED))
-        )
+    if (!(
+        Status == STATUS_ACCESS_DENIED ||
+        Status == STATUS_PRIVILEGE_NOT_HELD ||
+        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED)
+        ))
         return FALSE;
 
     if (!WINDOWS_HAS_UAC || PhElevated)
@@ -240,10 +241,11 @@ BOOLEAN PhpShowErrorAndConnectToPhSvc(
 
     *Connected = FALSE;
 
-    if (
-        !(Status == STATUS_ACCESS_DENIED ||
-        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED))
-        )
+    if (!(
+        Status == STATUS_ACCESS_DENIED ||
+        Status == STATUS_PRIVILEGE_NOT_HELD ||
+        (NT_NTWIN32(Status) && WIN32_FROM_NTSTATUS(Status) == ERROR_ACCESS_DENIED)
+        ))
         return FALSE;
 
     if (!WINDOWS_HAS_UAC || PhElevated)
@@ -910,7 +912,7 @@ BOOLEAN PhUiTerminateProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessTerminate)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessTerminate, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorProcess(hWnd, L"terminate", Processes[0], status, 0);
@@ -1086,7 +1088,7 @@ BOOLEAN PhUiSuspendProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessSuspend)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessSuspend, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorProcess(hWnd, L"suspend", Processes[0], status, 0);
@@ -1154,7 +1156,7 @@ BOOLEAN PhUiResumeProcesses(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessResume)))
+                    if (NT_SUCCESS(status = PhSvcCallControlProcess(Processes[0]->ProcessId, PhSvcControlProcessResume, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorProcess(hWnd, L"resume", Processes[0], status, 0);
@@ -1618,6 +1620,7 @@ BOOLEAN PhUiSetIoPriorityProcess(
     )
 {
     NTSTATUS status;
+    BOOLEAN success = TRUE;
     HANDLE processHandle;
 
     if (NT_SUCCESS(status = PhOpenProcess(
@@ -1633,11 +1636,35 @@ BOOLEAN PhUiSetIoPriorityProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"set the I/O priority of", Process, status, 0);
-        return FALSE;
+        BOOLEAN connected;
+
+        success = FALSE;
+
+        // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
+        if (PhpShowErrorAndConnectToPhSvc(
+            hWnd,
+            PhaConcatStrings2(L"Unable to set the I/O priority of ", Process->ProcessName->Buffer)->Buffer,
+            status,
+            &connected
+            ))
+        {
+            if (connected)
+            {
+                if (NT_SUCCESS(status = PhSvcCallControlProcess(Process->ProcessId, PhSvcControlProcessIoPriority, IoPriority)))
+                    success = TRUE;
+                else
+                    PhpShowErrorProcess(hWnd, L"set the I/O priority of", Process, status, 0);
+
+                PhUiDisconnectFromPhSvc();
+            }
+        }
+        else
+        {
+            PhpShowErrorProcess(hWnd, L"set the I/O priority of", Process, status, 0);
+        }
     }
 
-    return TRUE;
+    return success;
 }
 
 BOOLEAN PhUiSetPagePriorityProcess(
@@ -1681,6 +1708,7 @@ BOOLEAN PhUiSetPriorityProcess(
     )
 {
     NTSTATUS status;
+    BOOLEAN success = TRUE;
     HANDLE processHandle;
     PROCESS_PRIORITY_CLASS priorityClass;
 
@@ -1699,11 +1727,35 @@ BOOLEAN PhUiSetPriorityProcess(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
-        return FALSE;
+        BOOLEAN connected;
+
+        success = FALSE;
+
+        // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
+        if (PhpShowErrorAndConnectToPhSvc(
+            hWnd,
+            PhaConcatStrings2(L"Unable to set the priority of ", Process->ProcessName->Buffer)->Buffer,
+            status,
+            &connected
+            ))
+        {
+            if (connected)
+            {
+                if (NT_SUCCESS(status = PhSvcCallControlProcess(Process->ProcessId, PhSvcControlProcessPriority, PriorityClass)))
+                    success = TRUE;
+                else
+                    PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
+
+                PhUiDisconnectFromPhSvc();
+            }
+        }
+        else
+        {
+            PhpShowErrorProcess(hWnd, L"set the priority of", Process, status, 0);
+        }
     }
 
-    return TRUE;
+    return success;
 }
 
 BOOLEAN PhUiSetDepStatusProcess(
@@ -2393,7 +2445,7 @@ BOOLEAN PhUiTerminateThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadTerminate)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadTerminate, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorThread(hWnd, L"terminate", Threads[0], status, 0);
@@ -2519,7 +2571,7 @@ BOOLEAN PhUiSuspendThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadSuspend)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadSuspend, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorThread(hWnd, L"suspend", Threads[0], status, 0);
@@ -2577,7 +2629,7 @@ BOOLEAN PhUiResumeThreads(
             {
                 if (connected)
                 {
-                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadResume)))
+                    if (NT_SUCCESS(status = PhSvcCallControlThread(Threads[0]->ThreadId, PhSvcControlThreadResume, 0)))
                         success = TRUE;
                     else
                         PhpShowErrorThread(hWnd, L"resume", Threads[0], status, 0);
@@ -2634,6 +2686,7 @@ BOOLEAN PhUiSetIoPriorityThread(
     )
 {
     NTSTATUS status;
+    BOOLEAN success = TRUE;
     HANDLE threadHandle;
 
     if (NT_SUCCESS(status = PhOpenThread(
@@ -2649,11 +2702,35 @@ BOOLEAN PhUiSetIoPriorityThread(
 
     if (!NT_SUCCESS(status))
     {
-        PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
-        return FALSE;
+        BOOLEAN connected;
+
+        success = FALSE;
+
+        // The operation may have failed due to the lack of SeIncreaseBasePriorityPrivilege.
+        if (PhpShowErrorAndConnectToPhSvc(
+            hWnd,
+            PhaFormatString(L"Unable to set the I/O priority of thread %u", (ULONG)Thread->ThreadId)->Buffer,
+            status,
+            &connected
+            ))
+        {
+            if (connected)
+            {
+                if (NT_SUCCESS(status = PhSvcCallControlThread(Thread->ThreadId, PhSvcControlThreadIoPriority, IoPriority)))
+                    success = TRUE;
+                else
+                    PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
+
+                PhUiDisconnectFromPhSvc();
+            }
+        }
+        else
+        {
+            PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
+        }
     }
 
-    return TRUE;
+    return success;
 }
 
 BOOLEAN PhUiSetPagePriorityThread(

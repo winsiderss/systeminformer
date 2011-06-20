@@ -25,7 +25,8 @@ NTSTATUS PhSvcCallUnloadDriver(
 
 NTSTATUS PhSvcCallControlProcess(
     __in HANDLE ProcessId,
-    __in PHSVC_API_CONTROLPROCESS_COMMAND Command
+    __in PHSVC_API_CONTROLPROCESS_COMMAND Command,
+    __in ULONG Argument
     );
 
 NTSTATUS PhSvcCallControlService(
@@ -73,7 +74,8 @@ NTSTATUS PhSvcCallSetTcpEntry(
 
 NTSTATUS PhSvcCallControlThread(
     __in HANDLE ThreadId,
-    __in PHSVC_API_CONTROLTHREAD_COMMAND Command
+    __in PHSVC_API_CONTROLTHREAD_COMMAND Command,
+    __in ULONG Argument
     );
 
 NTSTATUS PhSvcCallAddAccountRight(
