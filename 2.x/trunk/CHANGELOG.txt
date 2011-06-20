@@ -6,6 +6,8 @@ Process Hacker
    * Updated WindowExplorer plugin
    * Added support for setting page priority
    * Added elevation support for setting priority
+   * Added support for automatically using a settings file in 
+     the program directory (e.g. ProcessHacker.exe.settings.xml)
    * Improved Run As mechanism
  * FIXED:
    * Handle leak

@@ -28,7 +28,20 @@
 #include <hexedit.h>
 #include <shlobj.h>
 
+VOID PhActivatePreviousInstance();
+
+VOID PhInitializeCommonControls();
+
+VOID PhInitializeKph();
+
+BOOLEAN PhInitializeAppSystem();
+
+ATOM PhRegisterWindowClass();
+
+VOID PhpInitializeSettings();
+
 VOID PhpProcessStartupParameters();
+
 VOID PhpEnablePrivileges();
 
 PPH_STRING PhApplicationDirectory;
@@ -107,60 +120,7 @@ INT WINAPI WinMain(
 
     PhpProcessStartupParameters();
 
-    // Load settings.
-    {
-        PhSettingsInitialization();
-
-        if (!PhStartupParameters.NoSettings)
-        {
-            // Use the settings file name given in the command line, 
-            // otherwise use the default location.
-
-            if (PhStartupParameters.SettingsFileName)
-            {
-                // Get an absolute path now.
-                PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
-            }
-
-            if (!PhSettingsFileName)
-            {
-                PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
-            }
-
-            if (PhSettingsFileName)
-            {
-                NTSTATUS status;
-
-                status = PhLoadSettings(PhSettingsFileName->Buffer);
-
-                // If we didn't find the file, it will be created. Otherwise, 
-                // there was probably a parsing error and we don't want to 
-                // change anything.
-                if (status == STATUS_FILE_CORRUPT_ERROR)
-                {
-                    if (PhShowMessage(
-                        NULL,
-                        MB_ICONWARNING | MB_YESNO,
-                        L"Process Hacker's settings file is corrupt. Do you want to reset it?\n"
-                        L"If you select No, the settings system will not function properly."
-                        ) == IDYES)
-                    {
-                        PhDeleteFileWin32(PhSettingsFileName->Buffer);
-                    }
-                    else
-                    {
-                        // Pretend we don't have a settings store so bad things 
-                        // don't happen.
-                        PhDereferenceObject(PhSettingsFileName);
-                        PhSettingsFileName = NULL;
-                    }
-                }
-            }
-        }
-
-        // Apply the settings.
-        PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
-    }
+    PhpInitializeSettings();
 
     PhpEnablePrivileges();
 
@@ -524,6 +484,102 @@ ATOM PhRegisterWindowClass()
     wcex.hIconSm = (HICON)LoadImage(PhInstanceHandle, MAKEINTRESOURCE(IDI_PROCESSHACKER), IMAGE_ICON, 16, 16, 0);
 
     return RegisterClassEx(&wcex);
+}
+
+VOID PhpInitializeSettings()
+{
+    NTSTATUS status;
+
+    PhSettingsInitialization();
+
+    if (!PhStartupParameters.NoSettings)
+    {
+        static PH_STRINGREF settingsSuffix = PH_STRINGREF_INIT(L".settings.xml");
+        PPH_STRING settingsFileName;
+
+        // There are three possible locations for the settings file:
+        // 1. The file name given in the command line.
+        // 2. A file named ProcessHacker.exe.settings.xml in the program directory. (This changes 
+        //    based on the executable file name.)
+        // 3. The default location.
+
+        // 1. File specified in command line
+        if (PhStartupParameters.SettingsFileName)
+        {
+            // Get an absolute path now.
+            PhSettingsFileName = PhGetFullPath(PhStartupParameters.SettingsFileName->Buffer, NULL);
+        }
+
+        // 2. File in program directory
+        if (!PhSettingsFileName)
+        {
+            settingsFileName = PhConcatStringRef2(&PhApplicationFileName->sr, &settingsSuffix);
+
+            if (RtlDoesFileExists_U(settingsFileName->Buffer))
+            {
+                PhSettingsFileName = settingsFileName;
+            }
+            else
+            {
+                PhDereferenceObject(settingsFileName);
+            }
+        }
+
+        // 3. Default location
+        if (!PhSettingsFileName)
+        {
+            PhSettingsFileName = PhGetKnownLocation(CSIDL_APPDATA, L"\\Process Hacker 2\\settings.xml");
+        }
+
+        if (PhSettingsFileName)
+        {
+            status = PhLoadSettings(PhSettingsFileName->Buffer);
+
+            // If we didn't find the file, it will be created. Otherwise, 
+            // there was probably a parsing error and we don't want to 
+            // change anything.
+            if (status == STATUS_FILE_CORRUPT_ERROR)
+            {
+                if (PhShowMessage(
+                    NULL,
+                    MB_ICONWARNING | MB_YESNO,
+                    L"Process Hacker's settings file is corrupt. Do you want to reset it?\n"
+                    L"If you select No, the settings system will not function properly."
+                    ) == IDYES)
+                {
+                    HANDLE fileHandle;
+                    IO_STATUS_BLOCK isb;
+                    CHAR data[] = "<settings></settings>";
+
+                    // This used to delete the file. But it's better to keep the file there 
+                    // and overwrite it with some valid XML, especially with case (2) above.
+                    if (NT_SUCCESS(PhCreateFileWin32(
+                        &fileHandle,
+                        PhSettingsFileName->Buffer,
+                        FILE_GENERIC_WRITE,
+                        0,
+                        FILE_SHARE_READ | FILE_SHARE_DELETE,
+                        FILE_OVERWRITE,
+                        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                        )))
+                    {
+                        NtWriteFile(fileHandle, NULL, NULL, NULL, &isb, data, sizeof(data) - 1, NULL, NULL);
+                        NtClose(fileHandle);
+                    }
+                }
+                else
+                {
+                    // Pretend we don't have a settings store so bad things 
+                    // don't happen.
+                    PhDereferenceObject(PhSettingsFileName);
+                    PhSettingsFileName = NULL;
+                }
+            }
+        }
+    }
+
+    // Apply basic global settings.
+    PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
 }
 
 #define PH_ARG_SETTINGS 1

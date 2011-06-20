@@ -94,19 +94,9 @@ VOID PhApplyUpdateInterval(
     __in ULONG Interval
     );
 
-VOID PhActivatePreviousInstance();
-
-VOID PhInitializeCommonControls();
-
 VOID PhInitializeFont(
     __in HWND hWnd
     );
-
-VOID PhInitializeKph();
-
-BOOLEAN PhInitializeAppSystem();
-
-ATOM PhRegisterWindowClass();
 
 // appsup
 
