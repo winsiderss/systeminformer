@@ -705,6 +705,7 @@ NTSTATUS PhLoadSettings(
 {
     NTSTATUS status;
     HANDLE fileHandle;
+    LARGE_INTEGER fileSize;
     mxml_node_t *topNode;
     mxml_node_t *currentNode;
 
@@ -722,6 +723,13 @@ NTSTATUS PhLoadSettings(
 
     if (!NT_SUCCESS(status))
         return status;
+
+    if (NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) && fileSize.QuadPart == 0)
+    {
+        // A blank file is OK. There are no settings to load.
+        NtClose(fileHandle);
+        return status;
+    }
 
     topNode = mxmlLoadFd(NULL, fileHandle, PhpSettingsLoadCallback);
     NtClose(fileHandle);
