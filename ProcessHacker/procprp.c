@@ -1973,6 +1973,7 @@ VOID PhpInitializeThreadMenu(
     {
         HANDLE threadHandle;
         ULONG ioPriority = -1;
+        ULONG pagePriority = -1;
         ULONG threadPriority = THREAD_PRIORITY_ERROR_RETURN;
         ULONG id = 0;
 
@@ -1992,6 +1993,14 @@ VOID PhpInitializeThreadMenu(
                     )))
                 {
                     ioPriority = -1;
+                }
+
+                if (!NT_SUCCESS(PhGetThreadPagePriority(
+                    threadHandle,
+                    &pagePriority
+                    )))
+                {
+                    pagePriority = -1;
                 }
             }
 
@@ -2063,6 +2072,37 @@ VOID PhpInitializeThreadMenu(
                 break;
             case 3:
                 id = ID_I_3;
+                break;
+            }
+
+            if (id != 0)
+            {
+                PhSetFlagsEMenuItem(Menu, id,
+                    PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                    PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+            }
+        }
+
+        if (pagePriority != -1)
+        {
+            id = 0;
+
+            switch (pagePriority)
+            {
+            case 1:
+                id = ID_PAGEPRIORITY_1;
+                break;
+            case 2:
+                id = ID_PAGEPRIORITY_2;
+                break;
+            case 3:
+                id = ID_PAGEPRIORITY_3;
+                break;
+            case 4:
+                id = ID_PAGEPRIORITY_4;
+                break;
+            case 5:
+                id = ID_PAGEPRIORITY_5;
                 break;
             }
 
@@ -2727,6 +2767,43 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
 
                         PhReferenceObject(threadItem);
                         PhUiSetIoPriorityThread(hwndDlg, threadItem, ioPriority);
+                        PhDereferenceObject(threadItem);
+                    }
+                }
+                break;
+            case ID_PAGEPRIORITY_1:
+            case ID_PAGEPRIORITY_2:
+            case ID_PAGEPRIORITY_3:
+            case ID_PAGEPRIORITY_4:
+            case ID_PAGEPRIORITY_5:
+                {
+                    PPH_THREAD_ITEM threadItem = PhGetSelectedListViewItemParam(lvHandle);
+
+                    if (threadItem)
+                    {
+                        ULONG pagePriority;
+
+                        switch (id)
+                        {
+                            case ID_PAGEPRIORITY_1:
+                                pagePriority = 1;
+                                break;
+                            case ID_PAGEPRIORITY_2:
+                                pagePriority = 2;
+                                break;
+                            case ID_PAGEPRIORITY_3:
+                                pagePriority = 3;
+                                break;
+                            case ID_PAGEPRIORITY_4:
+                                pagePriority = 4;
+                                break;
+                            case ID_PAGEPRIORITY_5:
+                                pagePriority = 5;
+                                break;
+                        }
+
+                        PhReferenceObject(threadItem);
+                        PhUiSetPagePriorityThread(hwndDlg, threadItem, pagePriority);
                         PhDereferenceObject(threadItem);
                     }
                 }
