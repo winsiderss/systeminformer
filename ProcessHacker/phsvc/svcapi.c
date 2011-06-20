@@ -370,6 +370,25 @@ NTSTATUS PhSvcApiControlProcess(
             NtClose(processHandle);
         }
         break;
+    case PhSvcControlProcessPriority:
+        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+        {
+            PROCESS_PRIORITY_CLASS priorityClass;
+
+            priorityClass.Foreground = FALSE;
+            priorityClass.PriorityClass = (UCHAR)Message->u.ControlProcess.i.Argument;
+            status = NtSetInformationProcess(processHandle, ProcessPriorityClass, &priorityClass, sizeof(PROCESS_PRIORITY_CLASS));
+
+            NtClose(processHandle);
+        }
+        break;
+    case PhSvcControlProcessIoPriority:
+        if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+        {
+            status = PhSetProcessIoPriority(processHandle, Message->u.ControlProcess.i.Argument);
+            NtClose(processHandle);
+        }
+        break;
     default:
         status = STATUS_INVALID_PARAMETER;
         break;
@@ -779,6 +798,13 @@ NTSTATUS PhSvcApiControlThread(
         if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SUSPEND_RESUME, threadId)))
         {
             status = PhResumeThread(threadHandle, NULL);
+            NtClose(threadHandle);
+        }
+        break;
+    case PhSvcControlThreadIoPriority:
+        if (NT_SUCCESS(status = PhOpenThread(&threadHandle, THREAD_SET_INFORMATION, threadId)))
+        {
+            status = PhSetThreadIoPriority(threadHandle, Message->u.ControlThread.i.Argument);
             NtClose(threadHandle);
         }
         break;
