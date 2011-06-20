@@ -129,16 +129,17 @@ Name: desktopicon\user;    Description: {cm:tsk_CurrentUser};       GroupDescrip
 Name: desktopicon\common;  Description: {cm:tsk_AllUsers};          GroupDescription: {cm:AdditionalIcons};                                    Flags: unchecked exclusive
 Name: quicklaunchicon;     Description: {cm:CreateQuickLaunchIcon}; GroupDescription: {cm:AdditionalIcons}; OnlyBelowVersion: 0,6.01;          Flags: unchecked
 
-Name: startup_task;        Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup};     Check: StartupCheck();             Flags: unchecked
-Name: remove_startup_task; Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup};     Check: NOT StartupCheck();         Flags: unchecked
+Name: startup;             Description: {cm:tsk_StartupDescr};      GroupDescription: {cm:tsk_Startup};     Check: NOT StartupCheck();         Flags: unchecked checkablealone
+Name: startup\minimized;   Description: {cm:tsk_StartupDescrMin};   GroupDescription: {cm:tsk_Startup};     Check: NOT StartupCheck();         Flags: unchecked
+Name: remove_startup;      Description: {cm:tsk_RemoveStartup};     GroupDescription: {cm:tsk_Startup};     Check: StartupCheck();             Flags: unchecked
 
 Name: create_KPH_service;  Description: {cm:tsk_CreateKPHService};  GroupDescription: {cm:tsk_Other};       Check: NOT KPHServiceCheck();      Flags: unchecked
 Name: delete_KPH_service;  Description: {cm:tsk_DeleteKPHService};  GroupDescription: {cm:tsk_Other};       Check: KPHServiceCheck();          Flags: unchecked
 
 Name: reset_settings;      Description: {cm:tsk_ResetSettings};     GroupDescription: {cm:tsk_Other};       Check: SettingsExistCheck();       Flags: checkedonce unchecked
 
-Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};       Check: PHDefaulTaskmgrCheck();     Flags: checkedonce unchecked
-Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};       Check: NOT PHDefaulTaskmgrCheck(); Flags: checkedonce unchecked
+Name: set_default_taskmgr; Description: {cm:tsk_SetDefaultTaskmgr}; GroupDescription: {cm:tsk_Other};       Check: NOT PHDefaulTaskmgrCheck(); Flags: checkedonce unchecked
+Name: restore_taskmgr;     Description: {cm:tsk_RestoreTaskmgr};    GroupDescription: {cm:tsk_Other};       Check: PHDefaulTaskmgrCheck();     Flags: checkedonce unchecked
 
 
 [Files]
@@ -212,12 +213,13 @@ Type: dirifempty; Name: {app}\plugins
 
 
 [Registry]
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Tasks: startup_task
-Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Flags: deletevalue uninsdeletevalue; Tasks: remove_startup_task
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe""";       Flags: uninsdeletevalue; Tasks: startup
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueType: string; ValueName: Process Hacker 2; ValueData: """{app}\ProcessHacker.exe"" -hide"; Flags: uninsdeletevalue; Tasks: startup\minimized
+Root: HKCU; SubKey: Software\Microsoft\Windows\CurrentVersion\Run; ValueName: Process Hacker 2; Flags: deletevalue uninsdeletevalue; Tasks: remove_startup
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; Flags: uninsdeletekeyifempty dontcreatekey
 Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Tasks: set_default_taskmgr
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck()
-Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Check: NOT PHDefaulTaskmgrCheck(); Tasks: restore_taskmgr reset_settings
+Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueType: string; ValueName: Debugger; ValueData: """{app}\ProcessHacker.exe"""; Flags: uninsdeletevalue; Check: PHDefaulTaskmgrCheck()
+Root: HKLM; Subkey: SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe; ValueName: Debugger; Flags: deletevalue uninsdeletevalue; Check: PHDefaulTaskmgrCheck(); Tasks: restore_taskmgr reset_settings
 
 
 [Run]
@@ -251,14 +253,30 @@ begin
 end;
 
 
-// Check if Process Hacker is configured to run on startup in order to control
-// startup choice from within the installer
-function StartupCheck(): Boolean;
+// Check if KProcessHacker is installed as a service
+function KPHServiceCheck(): Boolean;
+var
+  dvalue: DWORD;
 begin
-  if RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Process Hacker 2') then begin
-    Result := False;
+  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dvalue) then begin
+    if dvalue = 1 then begin
+      Result := True;
+    end else
+      Result := False;
+  end;
+end;
+
+
+// Check if Process Hacker is set as the default Task Manager for Windows
+function PHDefaulTaskmgrCheck(): Boolean;
+var
+  svalue: String;
+begin
+  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe', 'Debugger', svalue) then begin
+    if svalue = (ExpandConstant('"{app}\ProcessHacker.exe"')) then
+      Result := True;
   end else
-    Result := True;
+    Result := False;
 end;
 
 
@@ -272,30 +290,17 @@ begin
 end;
 
 
-// Check if Process Hacker is set as the default Task Manager for Windows
-function PHDefaulTaskmgrCheck(): Boolean;
+// Check if Process Hacker is configured to run on startup in order to control
+// startup choice from within the installer
+function StartupCheck(): Boolean;
 var
   svalue: String;
 begin
-  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\taskmgr.exe', 'Debugger', svalue) then begin
-    if svalue = (ExpandConstant('"{app}\ProcessHacker.exe"')) then
-      Result := False;
-  end else
-    Result := True;
-end;
-
-
-// Check if KProcessHacker is installed as a service
-function KPHServiceCheck(): Boolean;
-var
-  dvalue: DWORD;
-begin
-  if RegQueryDWordValue(HKLM, 'SYSTEM\CurrentControlSet\Services\KProcessHacker2', 'Start', dvalue) then begin
-    if dvalue = 1 then begin
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Process Hacker 2', svalue) then begin
+    if (svalue = (ExpandConstant('"{app}\ProcessHacker.exe"'))) OR (svalue = (ExpandConstant('"{app}\ProcessHacker.exe" -hide'))) then
       Result := True;
-    end else
-      Result := False;
-  end;
+  end else
+    Result := False;
 end;
 
 
