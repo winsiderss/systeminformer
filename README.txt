@@ -12,6 +12,19 @@ type". You cannot run the 32-bit version of Process Hacker on a
 
 Windows XP SP2 or higher, 32-bit or 64-bit.
 
+== Settings ==
+
+If you are running Process Hacker from a USB drive, you may want to 
+save Process Hacker's settings there as well. To do this, create a 
+blank file named "ProcessHacker.exe.settings.xml" in the same 
+directory as ProcessHacker.exe. You can do this using Windows Explorer:
+
+1. Make sure "Hide extensions for known file types" is unticked in 
+   Tools > Folder options > View.
+2. Right-click in the folder and choose New > Text Document.
+3. Rename the file to ProcessHacker.exe.settings.xml (delete the ".txt" 
+   extension).
+
 == Plugins ==
 
 To use plugins, follow these steps:
