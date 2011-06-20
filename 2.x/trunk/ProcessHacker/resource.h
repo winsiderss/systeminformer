@@ -646,6 +646,12 @@
 #define ID_VIEW_UPDATEAUTOMATICALLY     40235
 #define ID_HACKER_RUNASLIMITEDUSER      40236
 #define ID_USER_REMOTECONTROL           40237
+#define ID_MISCELLANEOUS_PAGEPRIORITY   40238
+#define ID_PAGEPRIORITY_5               40239
+#define ID_PAGEPRIORITY_4               40240
+#define ID_PAGEPRIORITY_3               40241
+#define ID_PAGEPRIORITY_2               40242
+#define ID_PAGEPRIORITY_1               40243
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -655,7 +661,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40238
+#define _APS_NEXT_COMMAND_VALUE         40244
 #define _APS_NEXT_CONTROL_VALUE         1292
 #define _APS_NEXT_SYMED_VALUE           133
 #endif

@@ -189,6 +189,14 @@ BEGIN
             MENUITEM "Low",                         ID_I_1
             MENUITEM "Very Low",                    ID_I_0
         END
+        POPUP "Page Priority"
+        BEGIN
+            MENUITEM "5",                           ID_PAGEPRIORITY_5
+            MENUITEM "4",                           ID_PAGEPRIORITY_4
+            MENUITEM "3",                           ID_PAGEPRIORITY_3
+            MENUITEM "2",                           ID_PAGEPRIORITY_2
+            MENUITEM "1",                           ID_PAGEPRIORITY_1
+        END
         MENUITEM SEPARATOR
         MENUITEM "&Copy\aCtrl+C",               ID_THREAD_COPY
     END
@@ -265,6 +273,14 @@ BEGIN
                 MENUITEM "Normal",                      ID_I_2
                 MENUITEM "Low",                         ID_I_1
                 MENUITEM "Very Low",                    ID_I_0
+            END
+            POPUP "Page Priority"
+            BEGIN
+                MENUITEM "5",                           ID_PAGEPRIORITY_5
+                MENUITEM "4",                           ID_PAGEPRIORITY_4
+                MENUITEM "3",                           ID_PAGEPRIORITY_3
+                MENUITEM "2",                           ID_PAGEPRIORITY_2
+                MENUITEM "1",                           ID_PAGEPRIORITY_1
             END
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER

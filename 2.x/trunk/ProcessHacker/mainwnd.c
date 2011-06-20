@@ -177,7 +177,8 @@ VOID PhpSetProcessMenuPriorityChecks(
     __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN SetPriority,
-    __in BOOLEAN SetIoPriority
+    __in BOOLEAN SetIoPriority,
+    __in BOOLEAN SetPagePriority
     );
 
 VOID PhMainWndOnProcessAdded(
@@ -1228,6 +1229,43 @@ LRESULT CALLBACK PhMainWndProc(
 
                         PhReferenceObject(processItem);
                         PhUiSetIoPriorityProcess(hWnd, processItem, ioPriority);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
+            case ID_PAGEPRIORITY_1:
+            case ID_PAGEPRIORITY_2:
+            case ID_PAGEPRIORITY_3:
+            case ID_PAGEPRIORITY_4:
+            case ID_PAGEPRIORITY_5:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        ULONG pagePriority;
+
+                        switch (id)
+                        {
+                            case ID_PAGEPRIORITY_1:
+                                pagePriority = 1;
+                                break;
+                            case ID_PAGEPRIORITY_2:
+                                pagePriority = 2;
+                                break;
+                            case ID_PAGEPRIORITY_3:
+                                pagePriority = 3;
+                                break;
+                            case ID_PAGEPRIORITY_4:
+                                pagePriority = 4;
+                                break;
+                            case ID_PAGEPRIORITY_5:
+                                pagePriority = 5;
+                                break;
+                        }
+
+                        PhReferenceObject(processItem);
+                        PhUiSetPagePriorityProcess(hWnd, processItem, pagePriority);
                         PhDereferenceObject(processItem);
                     }
                 }
@@ -2650,7 +2688,7 @@ VOID PhpAddIconProcesses(
         PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_BELOWNORMAL, L"Below Normal", NULL, NULL), -1);
         PhInsertEMenuItem(priorityMenu, PhCreateEMenuItem(0, ID_PRIORITY_IDLE, L"Idle", NULL, NULL), -1);
 
-        PhpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE);
+        PhpSetProcessMenuPriorityChecks(priorityMenu, processItem, TRUE, FALSE, FALSE);
 
         // Process
 
@@ -3642,12 +3680,14 @@ VOID PhpSetProcessMenuPriorityChecks(
     __in PPH_EMENU Menu,
     __in PPH_PROCESS_ITEM Process,
     __in BOOLEAN SetPriority,
-    __in BOOLEAN SetIoPriority
+    __in BOOLEAN SetIoPriority,
+    __in BOOLEAN SetPagePriority
     )
 {
     HANDLE processHandle;
     PROCESS_PRIORITY_CLASS priorityClass = { 0 };
     ULONG ioPriority = -1;
+    ULONG pagePriority = -1;
     ULONG id = 0;
 
     if (NT_SUCCESS(PhOpenProcess(
@@ -3669,6 +3709,17 @@ VOID PhpSetProcessMenuPriorityChecks(
                 )))
             {
                 ioPriority = -1;
+            }
+        }
+
+        if (SetPagePriority && WindowsVersion >= WINDOWS_VISTA)
+        {
+            if (!NT_SUCCESS(PhGetProcessPagePriority(
+                processHandle,
+                &pagePriority
+                )))
+            {
+                pagePriority = -1;
             }
         }
 
@@ -3724,6 +3775,37 @@ VOID PhpSetProcessMenuPriorityChecks(
             break;
         case 3:
             id = ID_I_3;
+            break;
+        }
+
+        if (id != 0)
+        {
+            PhSetFlagsEMenuItem(Menu, id,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK,
+                PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
+        }
+    }
+
+    if (SetPagePriority && pagePriority != -1)
+    {
+        id = 0;
+
+        switch (pagePriority)
+        {
+        case 1:
+            id = ID_PAGEPRIORITY_1;
+            break;
+        case 2:
+            id = ID_PAGEPRIORITY_2;
+            break;
+        case 3:
+            id = ID_PAGEPRIORITY_3;
+            break;
+        case 4:
+            id = ID_PAGEPRIORITY_4;
+            break;
+        case 5:
+            id = ID_PAGEPRIORITY_5;
             break;
         }
 
@@ -3831,7 +3913,7 @@ VOID PhpInitializeProcessMenu(
     // Priority
     if (NumberOfProcesses == 1)
     {
-        PhpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE);
+        PhpSetProcessMenuPriorityChecks(Menu, Processes[0], TRUE, TRUE, TRUE);
     }
 
     item = PhFindEMenuItem(Menu, 0, L"Window", 0);

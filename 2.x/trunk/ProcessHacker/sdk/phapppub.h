@@ -779,6 +779,15 @@ PhUiSetIoPriorityProcess(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiSetPagePriorityProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in ULONG PagePriority
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
@@ -903,6 +912,15 @@ PhUiSetIoPriorityThread(
     __in HWND hWnd,
     __in PPH_THREAD_ITEM Thread,
     __in ULONG IoPriority
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiSetPagePriorityThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread,
+    __in ULONG PagePriority
     );
 
 PHAPPAPI

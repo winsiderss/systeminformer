@@ -1640,6 +1640,40 @@ BOOLEAN PhUiSetIoPriorityProcess(
     return TRUE;
 }
 
+BOOLEAN PhUiSetPagePriorityProcess(
+    __in HWND hWnd,
+    __in PPH_PROCESS_ITEM Process,
+    __in ULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    HANDLE processHandle;
+
+    if (NT_SUCCESS(status = PhOpenProcess(
+        &processHandle,
+        PROCESS_SET_INFORMATION,
+        Process->ProcessId
+        )))
+    {
+        status = NtSetInformationProcess(
+            processHandle,
+            ProcessPagePriority,
+            &PagePriority,
+            sizeof(ULONG)
+            );
+
+        NtClose(processHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorProcess(hWnd, L"set the page priority of", Process, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 BOOLEAN PhUiSetPriorityProcess(
     __in HWND hWnd,
     __in PPH_PROCESS_ITEM Process,
@@ -2616,6 +2650,40 @@ BOOLEAN PhUiSetIoPriorityThread(
     if (!NT_SUCCESS(status))
     {
         PhpShowErrorThread(hWnd, L"set the I/O priority of", Thread, status, 0);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhUiSetPagePriorityThread(
+    __in HWND hWnd,
+    __in PPH_THREAD_ITEM Thread,
+    __in ULONG PagePriority
+    )
+{
+    NTSTATUS status;
+    HANDLE threadHandle;
+
+    if (NT_SUCCESS(status = PhOpenThread(
+        &threadHandle,
+        THREAD_SET_INFORMATION,
+        Thread->ThreadId
+        )))
+    {
+        status = NtSetInformationThread(
+            threadHandle,
+            ThreadPagePriority,
+            &PagePriority,
+            sizeof(ULONG)
+            );
+
+        NtClose(threadHandle);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpShowErrorThread(hWnd, L"set the page priority of", Thread, status, 0);
         return FALSE;
     }
 

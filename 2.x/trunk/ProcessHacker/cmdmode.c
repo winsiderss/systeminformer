@@ -161,6 +161,28 @@ NTSTATUS PhCommandModeStart()
                 NtClose(processHandle);
             }
         }
+        else if (PhEqualString2(PhStartupParameters.CommandAction, L"pagepriority", TRUE))
+        {
+            ULONG64 pagePriority64;
+            ULONG pagePriority;
+
+            if (!PhStartupParameters.CommandValue)
+                return STATUS_INVALID_PARAMETER;
+
+            PhStringToInteger64(&PhStartupParameters.CommandValue->sr, 10, &pagePriority64);
+            pagePriority = (ULONG)pagePriority64;
+
+            if (NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_SET_INFORMATION, processId)))
+            {
+                status = NtSetInformationProcess(
+                    processHandle,
+                    ProcessPagePriority,
+                    &pagePriority,
+                    sizeof(ULONG)
+                    );
+                NtClose(processHandle);
+            }
+        }
     }
     else if (PhEqualString2(PhStartupParameters.CommandType, L"service", TRUE))
     {
