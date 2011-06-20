@@ -345,7 +345,8 @@ NTSTATUS PhSvcCallUnloadDriver(
 
 NTSTATUS PhSvcCallControlProcess(
     __in HANDLE ProcessId,
-    __in PHSVC_API_CONTROLPROCESS_COMMAND Command
+    __in PHSVC_API_CONTROLPROCESS_COMMAND Command,
+    __in ULONG Argument
     )
 {
     PHSVC_API_MSG m;
@@ -356,6 +357,7 @@ NTSTATUS PhSvcCallControlProcess(
     m.ApiNumber = PhSvcControlProcessApiNumber;
     m.u.ControlProcess.i.ProcessId = ProcessId;
     m.u.ControlProcess.i.Command = Command;
+    m.u.ControlProcess.i.Argument = Argument;
 
     return PhSvcpCallServer(&m);
 }
@@ -679,7 +681,8 @@ NTSTATUS PhSvcCallSetTcpEntry(
 
 NTSTATUS PhSvcCallControlThread(
     __in HANDLE ThreadId,
-    __in PHSVC_API_CONTROLTHREAD_COMMAND Command
+    __in PHSVC_API_CONTROLTHREAD_COMMAND Command,
+    __in ULONG Argument
     )
 {
     PHSVC_API_MSG m;
@@ -690,6 +693,7 @@ NTSTATUS PhSvcCallControlThread(
     m.ApiNumber = PhSvcControlThreadApiNumber;
     m.u.ControlThread.i.ThreadId = ThreadId;
     m.u.ControlThread.i.Command = Command;
+    m.u.ControlThread.i.Argument = Argument;
 
     return PhSvcpCallServer(&m);
 }
