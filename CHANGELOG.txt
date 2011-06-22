@@ -4,6 +4,8 @@ Process Hacker
  * NEW/IMPROVED:
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
+   * Updated OnlineChecks plugin:
+     * Added Comodo Instant Malware Analysis
  * FIXED:
 
 2.17

@@ -150,6 +150,10 @@ VOID NTAPI MenuItemCallback(
         fileName = menuItem->Context;
         UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_JOTTI);
         break;
+    case ID_SENDTO_SERVICE3:
+        fileName = menuItem->Context;
+        UploadToOnlineService(menuItem->OwnerWindow, fileName, UPLOAD_SERVICE_CIMA);
+        break;
     }
 }
 
@@ -167,6 +171,7 @@ PPH_EMENU_ITEM CreateSendToMenu(
     sendToMenu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Send To", NULL);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE1, L"virustotal.com", FileName), -1);
     PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE2, L"virusscan.jotti.org", FileName), -1);
+    PhInsertEMenuItem(sendToMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SENDTO_SERVICE3, L"camas.comodo.com", FileName), -1);
 
     menuItem = PhFindEMenuItem(Parent, PH_EMENU_FIND_STARTSWITH, InsertAfter, 0);
 
