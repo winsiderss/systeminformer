@@ -11,6 +11,7 @@ extern PPH_PLUGIN PluginInstance;
 
 #define UPLOAD_SERVICE_VIRUSTOTAL 1
 #define UPLOAD_SERVICE_JOTTI 2
+#define UPLOAD_SERVICE_CIMA 3
 
 VOID UploadToOnlineService(
     __in HWND hWnd,
