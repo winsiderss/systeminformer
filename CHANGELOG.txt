@@ -7,6 +7,7 @@ Process Hacker
    * Updated OnlineChecks plugin:
      * Added Comodo Instant Malware Analysis
  * FIXED:
+   * Fixed Run As This User
 
 2.17
  * NEW/IMPROVED:

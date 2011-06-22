@@ -287,8 +287,6 @@ NTSTATUS PhSvcpValidateRunAsServiceParameters(
 {
     if ((!Parameters->UserName || !Parameters->Password) && !Parameters->ProcessId)
         return STATUS_INVALID_PARAMETER_MIX;
-    if (Parameters->UserName && Parameters->Password && Parameters->ProcessId)
-        return STATUS_INVALID_PARAMETER_MIX;
     if (!Parameters->FileName && !Parameters->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
     if (!Parameters->ServiceName)
