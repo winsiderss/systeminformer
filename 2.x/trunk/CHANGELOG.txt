@@ -1,5 +1,11 @@
 Process Hacker
 
+2.18
+ * NEW/IMPROVED:
+   * Updated ExtendedServices plugin:
+     * Disabled editing of required privileges for services
+ * FIXED:
+
 2.17
  * NEW/IMPROVED:
    * Added support for setting page priority
