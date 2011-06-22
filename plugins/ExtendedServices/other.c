@@ -181,6 +181,13 @@ INT_PTR CALLBACK EspServiceOtherDlgProc(
             PhSetExtendedListView(privilegesLv);
 
             context->PrivilegeList = PhCreateList(32);
+
+            if (context->ServiceItem->Type == SERVICE_KERNEL_DRIVER || context->ServiceItem->Type == SERVICE_FILE_SYSTEM_DRIVER)
+            {
+                // Drivers don't support required privileges.
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ADD), FALSE);
+            }
+
             EnableWindow(GetDlgItem(hwndDlg, IDC_REMOVE), FALSE);
 
             context->TriggersLv = triggersLv = GetDlgItem(hwndDlg, IDC_TRIGGERS);
