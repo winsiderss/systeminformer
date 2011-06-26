@@ -308,6 +308,9 @@ VOID PhTickModuleNodes(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
+    if (sortResult == 0) \
+        sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress); \
+    \
     return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeListSortOrder); \
 }
 
@@ -324,9 +327,6 @@ BEGIN_SORT_FUNCTION(TriState)
     else
     {
         sortResult = PhCompareString(moduleItem1->Name, moduleItem2->Name, TRUE); // fall back to sorting by name
-
-        if (sortResult == 0)
-            sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress); // last resort: sort by base address
     }
 }
 END_SORT_FUNCTION
@@ -387,7 +387,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerificationStatus)
 {
-    sortResult = intcmp(moduleItem1->VerifyResult == VrTrusted, moduleItem2->VerifyResult == VrTrusted);
+    sortResult = intcmp(moduleItem1->VerifyResult, moduleItem2->VerifyResult);
 }
 END_SORT_FUNCTION
 
@@ -685,7 +685,7 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     TreeList_GetColumn(hwnd, &column);
 
                     if (!column.Visible)
-                        TreeList_SetSort(hwnd, 0, AscendingSortOrder);
+                        TreeList_SetSort(hwnd, 0, NoSortOrder);
                 }
             }
 
