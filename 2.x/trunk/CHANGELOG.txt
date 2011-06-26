@@ -8,6 +8,7 @@ Process Hacker
      * Added Comodo Instant Malware Analysis
  * FIXED:
    * Fixed Run As This User
+   * Verification Status sorting
 
 2.17
  * NEW/IMPROVED:

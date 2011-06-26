@@ -564,7 +564,7 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                 PhShowChooseColumnsDialog(hwnd, hwnd);
 
                 // Make sure the column we're sorting by is actually visible, 
-                // and if not, don't sort any more.
+                // and if not, sort by the default column.
                 if (ServiceTreeListSortOrder != NoSortOrder)
                 {
                     PH_TREELIST_COLUMN column;

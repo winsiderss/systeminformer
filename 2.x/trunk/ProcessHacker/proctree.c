@@ -1030,7 +1030,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(VerificationStatus)
 {
-    sortResult = intcmp(processItem1->VerifyResult == VrTrusted, processItem2->VerifyResult == VrTrusted);
+    sortResult = intcmp(processItem1->VerifyResult, processItem2->VerifyResult);
 }
 END_SORT_FUNCTION
 
