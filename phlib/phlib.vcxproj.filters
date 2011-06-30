@@ -207,6 +207,9 @@
     <ClCompile Include="filepool.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="treenew.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\phsync.h">
@@ -438,6 +441,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\filepoolp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\treenew.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\treenewp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
