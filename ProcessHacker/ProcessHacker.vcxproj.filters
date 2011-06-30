@@ -438,6 +438,9 @@
     <ClCompile Include="..\phlib\filepool.c">
       <Filter>phlib</Filter>
     </ClCompile>
+    <ClCompile Include="..\phlib\treenew.c">
+      <Filter>phlib</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">

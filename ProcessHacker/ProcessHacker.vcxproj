@@ -231,6 +231,7 @@
     <ClCompile Include="..\phlib\symprv.c" />
     <ClCompile Include="..\phlib\sync.c" />
     <ClCompile Include="..\phlib\treelist.c" />
+    <ClCompile Include="..\phlib\treenew.c" />
     <ClCompile Include="..\phlib\verify.c" />
     <ClCompile Include="..\phlib\workqueue.c" />
     <ClCompile Include="about.c" />
