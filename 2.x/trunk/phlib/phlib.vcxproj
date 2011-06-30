@@ -211,6 +211,7 @@
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
     <ClCompile Include="treelist.c" />
+    <ClCompile Include="treenew.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="workqueue.c" />
   </ItemGroup>
@@ -228,6 +229,8 @@
     <ClInclude Include="include\circbuf_h.h" />
     <ClInclude Include="circbuf_i.h" />
     <ClInclude Include="include\colorbox.h" />
+    <ClInclude Include="include\treenew.h" />
+    <ClInclude Include="include\treenewp.h" />
     <ClInclude Include="pcre\config.h" />
     <ClInclude Include="include\dltmgr.h" />
     <ClInclude Include="include\dspick.h" />

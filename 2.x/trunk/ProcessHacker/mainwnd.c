@@ -23,6 +23,7 @@
 #define PH_MAINWND_PRIVATE
 #include <phapp.h>
 #include <treelist.h>
+#include <treenew.h>
 #include <settings.h>
 #include <cpysave.h>
 #include <memsrch.h>
@@ -3251,7 +3252,20 @@ VOID PhMainWndOnCreate()
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
     MaxTabIndex = NetworkTabIndex;
 
-    ProcessTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_PROCESSTL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
+    //ProcessTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_PROCESSTL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
+    ProcessTreeListHandle = CreateWindow(
+        PH_TREENEW_CLASSNAME,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER,
+        0,
+        0,
+        3,
+        3,
+        PhMainWndHandle,
+        (HMENU)ID_MAINWND_PROCESSTL,
+        PhLibImageBase,
+        NULL
+        );
     BringWindowToTop(ProcessTreeListHandle);
 
     ServiceTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_SERVICETL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
