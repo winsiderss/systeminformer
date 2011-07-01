@@ -42,9 +42,10 @@ typedef struct _PH_TREENEW_NODE
             ULONG Visible : 1;
             ULONG Selected : 1;
             ULONG Expanded : 1;
+            ULONG Hot : 1;
             ULONG UseAutoForeColor : 1;
             ULONG UseTempBackColor : 1;
-            ULONG SpareFlags : 27;
+            ULONG SpareFlags : 26;
         };
     };
 
@@ -71,7 +72,8 @@ typedef struct _PH_TREENEW_NODE
                 ULONG CachedColorValid : 1;
                 ULONG CachedFontValid : 1;
                 ULONG CachedIconValid : 1;
-                ULONG SpareFlags2 : 28;
+                ULONG PlusMinusHot : 1;
+                ULONG SpareFlags2 : 27;
             };
         };
 
@@ -80,6 +82,66 @@ typedef struct _PH_TREENEW_NODE
         COLORREF DrawForeColor;
     } s;
 } PH_TREENEW_NODE, *PPH_TREENEW_NODE;
+
+// Callback flags
+#define TN_CACHE 0x1
+#define TN_AUTO_FORECOLOR 0x1000
+
+// Column change flags
+#define TN_COLUMN_CONTEXT 0x1
+#define TN_COLUMN_TEXT 0x2
+#define TN_COLUMN_WIDTH 0x4
+#define TN_COLUMN_ALIGNMENT 0x8
+#define TN_COLUMN_DISPLAYINDEX 0x10
+#define TN_COLUMN_TEXTFLAGS 0x20
+#define TN_COLUMN_FLAG_VISIBLE 0x100000
+#define TN_COLUMN_FLAG_CUSTOMDRAW 0x200000
+#define TN_COLUMN_FLAG_FIXED 0x400000
+#define TN_COLUMN_FLAGS 0xfff00000
+
+// Cache flags
+#define TN_CACHE_COLOR 0x1
+#define TN_CACHE_FONT 0x2
+#define TN_CACHE_ICON 0x4
+
+// Cell part flags
+#define TN_PART_PLUSMINUS 0x1
+#define TN_PART_ICON 0x2
+#define TN_PART_CONTENT 0x4
+
+// Hit test input flags
+#define TN_TEST_COLUMN 0x1
+#define TN_TEST_SUBITEM 0x2 // requires TN_TEST_COLUMN
+
+// Hit test flags
+#define TN_HIT_LEFT 0x1
+#define TN_HIT_RIGHT 0x2
+#define TN_HIT_ABOVE 0x4
+#define TN_HIT_BELOW 0x8
+#define TN_HIT_ITEM 0x10
+#define TN_HIT_ITEM_PLUSMINUS 0x20 // requires TN_TEST_SUBITEM
+#define TN_HIT_ITEM_ICON 0x40 // requires TN_TEST_SUBITEM
+#define TN_HIT_ITEM_CONTENT 0x80 // requires TN_TEST_SUBITEM
+#define TN_HIT_DIVIDER 0x100
+
+typedef struct _PH_TREENEW_CELL_PARTS
+{
+    ULONG Flags;
+    RECT RowRect;
+    RECT PlusMinusRect;
+    RECT IconRect;
+    RECT ContentRect;
+} PH_TREENEW_CELL_PARTS, *PPH_TREENEW_CELL_PARTS;
+
+typedef struct _PH_TREENEW_HIT_TEST
+{
+    POINT Point;
+    ULONG InFlags;
+
+    ULONG Flags;
+    PPH_TREENEW_NODE Node;
+    PPH_TREENEW_COLUMN Column; // requires TN_TEST_COLUMN
+} PH_TREENEW_HIT_TEST, *PPH_TREENEW_HIT_TEST;
 
 typedef enum _PH_TREENEW_MESSAGE
 {
@@ -117,27 +179,6 @@ typedef BOOLEAN (NTAPI *PPH_TREENEW_CALLBACK)(
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
     );
-
-// Callback flags
-#define TN_CACHE 0x1
-#define TN_AUTO_FORECOLOR 0x1000
-
-// Column change flags
-#define TN_COLUMN_CONTEXT 0x1
-#define TN_COLUMN_TEXT 0x2
-#define TN_COLUMN_WIDTH 0x4
-#define TN_COLUMN_ALIGNMENT 0x8
-#define TN_COLUMN_DISPLAYINDEX 0x10
-#define TN_COLUMN_TEXTFLAGS 0x20
-#define TN_COLUMN_FLAG_VISIBLE 0x100000
-#define TN_COLUMN_FLAG_CUSTOMDRAW 0x200000
-#define TN_COLUMN_FLAG_FIXED 0x400000
-#define TN_COLUMN_FLAGS 0xfff00000
-
-// Cache flags
-#define TN_CACHE_COLOR 0x1
-#define TN_CACHE_FONT 0x2
-#define TN_CACHE_ICON 0x4
 
 typedef struct _PH_TREENEW_GET_CHILDREN
 {

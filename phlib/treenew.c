@@ -22,6 +22,7 @@
 
 #include <phgui.h>
 #include <windowsx.h>
+#include <vsstyle.h>
 #include <treenew.h>
 #include <treenewp.h>
 
@@ -138,7 +139,7 @@ LRESULT CALLBACK PhTnpWndProc(
             context->HasFocus = TRUE;
             InvalidateRect(context->Handle, NULL, FALSE);
         }
-        break;
+        return 0;
     case WM_KILLFOCUS:
         {
             context->HasFocus = FALSE;
@@ -154,6 +155,11 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_MOUSEMOVE:
         {
             PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
+        break;
+    case WM_MOUSELEAVE:
+        {
+            PhTnpOnMouseLeave(hwnd, context);
         }
         break;
     case WM_LBUTTONDOWN:
@@ -261,6 +267,9 @@ VOID PhTnpDestroyTreeNewContext(
         PhFree(Context->ColumnsByDisplay);
 
     PhDereferenceObject(Context->FlatList);
+
+    if (Context->ThemeData)
+        CloseThemeData_I(Context->ThemeData);
 
     PhFree(Context);
 }
@@ -375,6 +384,7 @@ VOID PhTnpOnSize(
     __in PPH_TREENEW_CONTEXT Context
     )
 {
+    GetClientRect(hwnd, &Context->ClientRect);
     PhTnpLayout(Context);
 }
 
@@ -423,7 +433,7 @@ VOID PhTnpOnThemeChanged(
     __in PPH_TREENEW_CONTEXT Context
     )
 {
-    NOTHING;
+    PhTnpUpdateThemeData(Context);
 }
 
 BOOLEAN PhTnpOnSetCursor(
@@ -458,6 +468,12 @@ VOID PhTnpOnPaint(
     __in HDC hdc
     )
 {
+    if (!Context->ThemeInitialized)
+    {
+        PhTnpUpdateThemeData(Context);
+        Context->ThemeInitialized = TRUE;
+    }
+
     PhTnpPaint(hwnd, Context, PaintStruct, hdc);
 }
 
@@ -469,6 +485,19 @@ VOID PhTnpOnMouseMove(
     __in LONG CursorY
     )
 {
+    TRACKMOUSEEVENT trackMouseEvent;
+    PH_TREENEW_HIT_TEST hitTest;
+    PPH_TREENEW_NODE hotNode;
+    PH_TREENEW_CELL_PARTS parts;
+    BOOLEAN newPlusMinusHot;
+    BOOLEAN needsInvalidate;
+
+    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+    trackMouseEvent.dwFlags = TME_LEAVE;
+    trackMouseEvent.hwndTrack = hwnd;
+    trackMouseEvent.dwHoverTime = 0;
+    TrackMouseEvent(&trackMouseEvent);
+
     if (Context->Tracking)
     {
         ULONG newFixedWidth;
@@ -476,6 +505,78 @@ VOID PhTnpOnMouseMove(
         newFixedWidth = Context->TrackOldFixedWidth + (CursorX - Context->TrackStartX);
         PhTnpSetFixedWidth(Context, newFixedWidth);
     }
+
+    hitTest.Point.x = CursorX;
+    hitTest.Point.y = CursorY;
+    hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
+    PhTnpHitTest(Context, &hitTest);
+
+    if (hitTest.Flags & TN_HIT_ITEM)
+    {
+        hotNode = hitTest.Node;
+    }
+    else
+    {
+        hotNode = NULL;
+    }
+
+    needsInvalidate = FALSE;
+
+    if (Context->HotNode != hotNode)
+    {
+        if (Context->HotNode && Context->ThemeData)
+        {
+            // Update the old hot node because it may have a different non-hot background and plus minus part.
+            if (PhTnpGetCellParts(Context, Context->HotNode->Index, NULL, &parts))
+            {
+                InvalidateRect(Context->Handle, &parts.RowRect, FALSE);
+            }
+        }
+
+        PhTnpClearHotNode(Context);
+        Context->HotNode = hotNode;
+
+        if (Context->HotNode)
+        {
+            Context->HotNode->Hot = TRUE;
+            needsInvalidate = TRUE;
+        }
+    }
+
+    if (Context->HotNode)
+    {
+        newPlusMinusHot = !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS);
+
+        if (Context->HotNode->s.PlusMinusHot != newPlusMinusHot)
+        {
+            Context->HotNode->s.PlusMinusHot = newPlusMinusHot;
+            needsInvalidate = TRUE;
+        }
+
+        if (needsInvalidate && Context->ThemeData && PhTnpGetCellParts(Context, Context->HotNode->Index, NULL, &parts))
+        {
+            InvalidateRect(Context->Handle, &parts.RowRect, FALSE);
+        }
+    }
+}
+
+VOID PhTnpOnMouseLeave(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    PH_TREENEW_CELL_PARTS parts;
+
+    if (Context->HotNode && Context->ThemeData)
+    {
+        // Update the old hot node because it may have a different non-hot background and plus minus part.
+        if (PhTnpGetCellParts(Context, Context->HotNode->Index, NULL, &parts))
+        {
+            InvalidateRect(Context->Handle, &parts.RowRect, FALSE);
+        }
+    }
+
+    PhTnpClearHotNode(Context);
 }
 
 VOID PhTnpOnXxxButtonXxx(
@@ -487,6 +588,8 @@ VOID PhTnpOnXxxButtonXxx(
     __in LONG CursorY
     )
 {
+    SetFocus(hwnd);
+
     switch (Message)
     {
     case WM_LBUTTONDOWN:
@@ -577,6 +680,7 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             // TODO
+            Context->VScrollPosition = scrollInfo.nPos;
             InvalidateRect(hwnd, NULL, FALSE);
         }
     }
@@ -594,6 +698,7 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             // TODO
+            Context->HScrollPosition = scrollInfo.nPos;
             PhTnpLayout(Context);
             InvalidateRect(hwnd, NULL, FALSE);
         }
@@ -646,6 +751,7 @@ VOID PhTnpOnVScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         // TODO
+        Context->VScrollPosition = scrollInfo.nPos;
         InvalidateRect(hwnd, NULL, FALSE);
     }
 }
@@ -696,6 +802,7 @@ VOID PhTnpOnHScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         // TODO
+        Context->HScrollPosition = scrollInfo.nPos;
         PhTnpLayout(Context);
         InvalidateRect(hwnd, NULL, FALSE);
     }
@@ -942,6 +1049,41 @@ VOID PhTnpUpdateTextMetrics(
     }
 }
 
+VOID PhTnpUpdateThemeData(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (
+        IsThemeActive_I &&
+        OpenThemeData_I &&
+        CloseThemeData_I &&
+        IsThemePartDefined_I &&
+        DrawThemeBackground_I
+        )
+    {
+        Context->ThemeActive = !!IsThemeActive_I();
+
+        if (Context->ThemeData)
+        {
+            CloseThemeData_I(Context->ThemeData);
+            Context->ThemeData = NULL;
+        }
+
+        Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
+        Context->ThemeHasItemBackground = !!IsThemePartDefined_I(Context->ThemeData, TVP_TREEITEM, 0);
+        Context->ThemeHasGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_GLYPH, 0);
+        Context->ThemeHasHotGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_HOTGLYPH, 0);
+    }
+    else
+    {
+        Context->ThemeData = NULL;
+        Context->ThemeActive = FALSE;
+        Context->ThemeHasItemBackground = FALSE;
+        Context->ThemeHasGlyph = FALSE;
+        Context->ThemeHasHotGlyph = FALSE;
+    }
+}
+
 VOID PhTnpCancelTrack(
     __in PPH_TREENEW_CONTEXT Context
     )
@@ -958,9 +1100,8 @@ VOID PhTnpLayout(
     RECT rect;
     HDLAYOUT hdl;
     WINDOWPOS windowPos;
-    LONG hScrollPosition;
 
-    GetClientRect(Context->Handle, &clientRect);
+    clientRect = Context->ClientRect;
 
     PhTnpUpdateScrollBars(Context);
 
@@ -980,8 +1121,6 @@ VOID PhTnpLayout(
     // Horizontal scroll bar
     if (Context->HScrollVisible)
     {
-        SCROLLINFO scrollInfo;
-
         MoveWindow(
             Context->HScrollHandle,
             Context->FixedWidth + 1,
@@ -990,15 +1129,6 @@ VOID PhTnpLayout(
             Context->HScrollHeight,
             TRUE
             );
-
-        scrollInfo.cbSize = sizeof(SCROLLINFO);
-        scrollInfo.fMask = SIF_POS;
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        hScrollPosition = scrollInfo.nPos;
-    }
-    else
-    {
-        hScrollPosition = 0;
     }
 
     // Filler box
@@ -1027,7 +1157,7 @@ VOID PhTnpLayout(
     Context->HeaderHeight = windowPos.cy;
 
     // Normal portion header control
-    rect.left = Context->FixedWidth + 1 - hScrollPosition;
+    rect.left = Context->FixedWidth + 1 - Context->HScrollPosition;
     rect.top = 0;
     rect.right = clientRect.right - 1 - (Context->VScrollVisible ? Context->VScrollWidth : 0);
     rect.bottom = clientRect.bottom;
@@ -1050,6 +1180,220 @@ VOID PhTnpSetFixedWidth(
     item.mask = HDI_WIDTH;
     item.cxy = Context->FixedWidth + 1;
     Header_SetItem(Context->FixedHeaderHandle, 0, &item);
+}
+
+BOOLEAN PhTnpGetCellParts(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index,
+    __in_opt PPH_TREENEW_COLUMN Column,
+    __out PPH_TREENEW_CELL_PARTS Parts
+    )
+{
+    PPH_TREENEW_NODE node;
+    LONG viewWidth;
+    LONG nodeY;
+    BOOLEAN isFirstColumn;
+    LONG currentX;
+
+    node = Context->FlatList->Items[Index];
+    nodeY = Context->HeaderHeight + ((LONG)Index - Context->VScrollPosition) * Context->RowHeight;
+
+    Parts->Flags = 0;
+    Parts->RowRect.left = 0;
+    Parts->RowRect.right = Context->FixedWidth + 1 + Context->TotalViewX - Context->HScrollPosition;
+    Parts->RowRect.top = nodeY;
+    Parts->RowRect.bottom = nodeY + Context->RowHeight;
+
+    viewWidth = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+
+    if (Parts->RowRect.right > viewWidth)
+        Parts->RowRect.right = viewWidth;
+
+    if (!Column)
+        return TRUE;
+
+    if (Index >= Context->FlatList->Count)
+        return FALSE;
+    if (!Column->Visible)
+        return FALSE;
+
+    isFirstColumn = Column == Context->FirstColumn;
+    currentX = Column->s.ViewX;
+
+    if (!Column->Fixed)
+    {
+        currentX += Context->FixedWidth + 1 - Context->HScrollPosition;
+    }
+
+    if (isFirstColumn)
+    {
+        currentX += (LONG)node->Level * SmallIconWidth;
+
+        if (!node->s.IsLeaf)
+        {
+            Parts->Flags |= TN_PART_PLUSMINUS;
+            Parts->PlusMinusRect.left = currentX;
+            Parts->PlusMinusRect.right = currentX + SmallIconWidth;
+            Parts->PlusMinusRect.top = nodeY;
+            Parts->PlusMinusRect.bottom = nodeY + Context->RowHeight;
+
+            currentX += SmallIconWidth;
+        }
+
+        if (node->Icon)
+        {
+            Parts->Flags |= TN_PART_ICON;
+            Parts->IconRect.left = currentX;
+            Parts->IconRect.right = currentX + SmallIconWidth;
+            Parts->IconRect.top = nodeY;
+            Parts->IconRect.bottom = nodeY + Context->RowHeight;
+
+            currentX += SmallIconWidth + 4;
+        }
+    }
+
+    Parts->Flags |= TN_PART_CONTENT;
+    Parts->ContentRect.left = currentX;
+    Parts->ContentRect.right = Column->Width;
+    Parts->ContentRect.top = nodeY;
+    Parts->ContentRect.bottom = nodeY + Context->RowHeight;
+
+    return TRUE;
+}
+
+VOID PhTnpHitTest(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_HIT_TEST HitTest
+    )
+{
+    RECT clientRect;
+    LONG x;
+    LONG y;
+    ULONG index;
+    PPH_TREENEW_NODE node;
+
+    HitTest->Flags = 0;
+    HitTest->Node = NULL;
+    HitTest->Column = NULL;
+
+    clientRect = Context->ClientRect;
+    x = HitTest->Point.x;
+    y = HitTest->Point.y;
+
+    if (x < 0)
+        HitTest->Flags |= TN_HIT_LEFT;
+    if (x >= clientRect.right)
+        HitTest->Flags |= TN_HIT_RIGHT;
+    if (y < 0)
+        HitTest->Flags |= TN_HIT_ABOVE;
+    if (y >= clientRect.bottom)
+        HitTest->Flags |= TN_HIT_BELOW;
+
+    if (HitTest->Flags == 0)
+    {
+        if (TNP_HIT_TEST_FIXED_DIVIDER(x, Context))
+        {
+            HitTest->Flags |= TN_HIT_DIVIDER;
+        }
+
+        if (y >= Context->HeaderHeight && x < Context->FixedWidth + Context->TotalViewX)
+        {
+            index = (y - Context->HeaderHeight) / Context->RowHeight + Context->VScrollPosition;
+
+            if (index < Context->FlatList->Count)
+            {
+                HitTest->Flags |= TN_HIT_ITEM;
+                node = Context->FlatList->Items[index];
+                HitTest->Node = node;
+
+                if (HitTest->InFlags & TN_TEST_COLUMN)
+                {
+                    PPH_TREENEW_COLUMN column;
+                    LONG columnX;
+
+                    column = NULL;
+
+                    if (x < Context->FixedWidth && Context->FixedColumn)
+                    {
+                        column = Context->FixedColumn;
+                        columnX = 0;
+                    }
+                    else
+                    {
+                        LONG currentX;
+                        ULONG i;
+                        PPH_TREENEW_COLUMN currentColumn;
+
+                        currentX = Context->FixedWidth + 1 - Context->HScrollPosition;
+
+                        for (i = 0; i < Context->NumberOfColumnsByDisplay; i++)
+                        {
+                            currentColumn = Context->ColumnsByDisplay[i];
+
+                            if (x >= currentX && x < currentX + currentColumn->Width)
+                            {
+                                column = currentColumn;
+                                columnX = currentX;
+                                break;
+                            }
+
+                            currentX += currentColumn->Width;
+                        }
+                    }
+
+                    HitTest->Column = column;
+
+                    if (column && (HitTest->InFlags & TN_TEST_SUBITEM))
+                    {
+                        BOOLEAN isFirstColumn;
+                        LONG currentX;
+
+                        isFirstColumn = HitTest->Column == Context->FirstColumn;
+
+                        currentX = columnX;
+
+                        if (isFirstColumn)
+                        {
+                            currentX += (LONG)node->Level * SmallIconWidth;
+
+                            if (!node->s.IsLeaf)
+                            {
+                                if (x >= currentX && x < currentX + SmallIconWidth + 5)
+                                    HitTest->Flags |= TN_HIT_ITEM_PLUSMINUS;
+
+                                currentX += SmallIconWidth;
+                            }
+
+                            if (node->Icon)
+                            {
+                                if (x >= currentX && x < currentX + SmallIconWidth)
+                                    HitTest->Flags |= TN_HIT_ITEM_ICON;
+
+                                currentX += SmallIconWidth + 4;
+                            }
+                        }
+
+                        if (x >= currentX)
+                        {
+                            HitTest->Flags |= TN_HIT_ITEM_CONTENT;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+VOID PhTnpClearHotNode(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (Context->HotNode)
+    {
+        Context->HotNode->Hot = FALSE;
+        Context->HotNode->s.PlusMinusHot = FALSE;
+        Context->HotNode = NULL;
+    }
 }
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
@@ -1327,6 +1671,19 @@ VOID PhTnpUpdateColumnMaps(
 
     Context->NumberOfColumnsByDisplay = i;
     Context->TotalViewX = x;
+
+    if (Context->FixedColumn)
+    {
+        Context->FirstColumn = Context->FixedColumn;
+    }
+    else if (Context->NumberOfColumnsByDisplay != 0)
+    {
+        Context->FirstColumn = Context->ColumnsByDisplay[0];
+    }
+    else
+    {
+        Context->FirstColumn = NULL;
+    }
 }
 
 LONG PhTnpInsertColumnHeader(
@@ -1643,6 +2000,8 @@ VOID PhTnpRestructureNodes(
     if (!PhTnpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
         return;
 
+    PhTnpClearHotNode(Context);
+
     PhClearList(Context->FlatList);
     Context->CanAnyExpand = FALSE;
 
@@ -1712,7 +2071,7 @@ VOID PhTnpUpdateScrollBars(
     SCROLLINFO scrollInfo;
     LONG oldPosition;
 
-    GetClientRect(Context->Handle, &clientRect);
+    clientRect = Context->ClientRect;
     width = clientRect.right - Context->FixedWidth;
     height = clientRect.bottom - Context->HeaderHeight;
 
@@ -1750,6 +2109,7 @@ VOID PhTnpUpdateScrollBars(
 
         if (scrollInfo.nPos != oldPosition)
         {
+            Context->VScrollPosition = scrollInfo.nPos;
             InvalidateRect(Context->Handle, NULL, FALSE);
         }
 
@@ -1759,6 +2119,7 @@ VOID PhTnpUpdateScrollBars(
     else
     {
         ShowWindow(Context->VScrollHandle, SW_HIDE);
+        Context->VScrollPosition = 0;
         Context->VScrollVisible = FALSE;
     }
 
@@ -1781,6 +2142,7 @@ VOID PhTnpUpdateScrollBars(
 
         if (scrollInfo.nPos != oldPosition)
         {
+            Context->HScrollPosition = scrollInfo.nPos;
             InvalidateRect(Context->Handle, NULL, FALSE);
         }
 
@@ -1790,6 +2152,7 @@ VOID PhTnpUpdateScrollBars(
     else
     {
         ShowWindow(Context->HScrollHandle, SW_HIDE);
+        Context->HScrollPosition = 0;
         Context->HScrollVisible = FALSE;
     }
 
@@ -1804,7 +2167,6 @@ VOID PhTnpPaint(
     )
 {
     RECT viewRect;
-    SCROLLINFO scrollInfo;
     LONG vScrollPosition;
     LONG hScrollPosition;
     LONG firstRowToUpdate;
@@ -1824,39 +2186,13 @@ VOID PhTnpPaint(
     HBRUSH backBrush;
     HRGN oldClipRegion;
 
-    GetClientRect(hwnd, &viewRect);
+    viewRect = Context->ClientRect;
 
     if (Context->VScrollVisible)
         viewRect.right -= Context->VScrollWidth;
 
-    scrollInfo.cbSize = sizeof(SCROLLINFO);
-    scrollInfo.fMask = SIF_POS;
-
-    if (Context->VScrollVisible)
-    {
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-        vScrollPosition = scrollInfo.nPos;
-
-        if (vScrollPosition < 0) // just in case
-            vScrollPosition = 0;
-    }
-    else
-    {
-        vScrollPosition = 0;
-    }
-
-    if (Context->HScrollVisible)
-    {
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        hScrollPosition = scrollInfo.nPos;
-
-        if (hScrollPosition < 0)
-            hScrollPosition = 0;
-    }
-    else
-    {
-        hScrollPosition = 0;
-    }
+    vScrollPosition = Context->VScrollPosition;
+    hScrollPosition = Context->HScrollPosition;
 
     // Calculate the indicies of the first and last rows that need painting. These indicies are relative to the top of the view area.
 
@@ -1868,7 +2204,7 @@ VOID PhTnpPaint(
 
     rowRect.left = 0;
     rowRect.top = Context->HeaderHeight + firstRowToUpdate * Context->RowHeight;
-    rowRect.right = viewRect.right;
+    rowRect.right = Context->FixedWidth + 1 + Context->TotalViewX - Context->HScrollPosition;
     rowRect.bottom = rowRect.top + Context->RowHeight;
 
     // Change the indicies to absolute row indicies.
@@ -1920,6 +2256,7 @@ VOID PhTnpPaint(
     // Paint the rows.
 
     SelectObject(hdc, Context->Font);
+    SetBkMode(hdc, TRANSPARENT);
 
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
     {
@@ -1929,31 +2266,61 @@ VOID PhTnpPaint(
 
         PhTnpPrepareRowForDraw(Context, hdc, node);
 
-        if (
-            node->Selected //&&
-            //// Don't draw if the explorer style is active.
-            //(!Context->EnableExplorerStyle || !(Context->ThemeActive && WindowsVersion >= WINDOWS_VISTA))
-            )
+        if (node->Selected && !Context->ThemeHasItemBackground)
         {
+            // Non-themed background
             if (Context->HasFocus)
             {
                 SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                SetBkColor(hdc, GetSysColor(COLOR_HIGHLIGHT));
                 backBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
             }
             else
             {
                 SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
-                SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
                 backBrush = GetSysColorBrush(COLOR_BTNFACE);
             }
         }
         else
         {
             SetTextColor(hdc, node->s.DrawForeColor);
-            SetBkColor(hdc, node->s.DrawBackColor);
             SetDCBrushColor(hdc, node->s.DrawBackColor);
             backBrush = GetStockObject(DC_BRUSH);
+        }
+
+        FillRect(hdc, &rowRect, backBrush);
+
+        if (Context->ThemeHasItemBackground)
+        {
+            INT stateId;
+
+            // Themed background
+
+            if (node->Selected)
+            {
+                if (node->Hot)
+                    stateId = TREIS_HOTSELECTED;
+                else
+                    stateId = TREIS_SELECTED;
+            }
+            else
+            {
+                if (node->Hot)
+                    stateId = TREIS_HOT;
+                else
+                    stateId = -1;
+            }
+
+            if (stateId != -1)
+            {
+                DrawThemeBackground_I(
+                    Context->ThemeData,
+                    hdc,
+                    TVP_TREEITEM,
+                    stateId,
+                    &rowRect,
+                    &PaintStruct->rcPaint
+                    );
+            }
         }
 
         // Paint the fixed column.
@@ -1965,7 +2332,6 @@ VOID PhTnpPaint(
         {
             cellRect.left = 0;
             cellRect.right = Context->FixedWidth;
-            FillRect(hdc, &cellRect, backBrush);
             PhTnpDrawCell(Context, hdc, &cellRect, node, Context->FixedColumn, i, -1);
         }
 
@@ -1974,8 +2340,7 @@ VOID PhTnpPaint(
         if (normalUpdateLeftX < normalUpdateRightX)
         {
             cellRect.left = normalUpdateLeftX;
-            cellRect.right = normalUpdateRightX;
-            FillRect(hdc, &cellRect, backBrush);
+            cellRect.right = cellRect.left;
 
             oldClipRegion = CreateRectRgn(0, 0, 0, 0);
 
@@ -1986,8 +2351,6 @@ VOID PhTnpPaint(
             }
 
             IntersectClipRect(hdc, Context->FixedWidth + 1, cellRect.top, viewRect.right, cellRect.bottom);
-
-            cellRect.right = cellRect.left;
 
             for (j = normalUpdateLeftIndex; j <= normalUpdateRightIndex; j++)
             {
@@ -2172,7 +2535,7 @@ VOID PhTnpDrawCell(
     textRect.top += iconVertMargin;
     textRect.bottom -= iconVertMargin;
 
-    if (ColumnIndex == -1)
+    if (Column == Context->FirstColumn)
     {
         BOOLEAN needsClip;
         HRGN oldClipRegion;
@@ -2198,71 +2561,54 @@ VOID PhTnpDrawCell(
 
         if (Context->CanAnyExpand) // flag is used so we can avoid indenting when it's a flat list
         {
-            //BOOLEAN drewUsingTheme = FALSE;
-            //RECT themeRect;
+            BOOLEAN drewUsingTheme = FALSE;
+            RECT themeRect;
 
-            //if (!Node->s.IsLeaf)
-            //{
-            //    // Draw the plus/minus glyph.
+            if (!Node->s.IsLeaf)
+            {
+                // Draw the plus/minus glyph.
 
-            //    themeRect.left = textRect.left;
-            //    themeRect.right = themeRect.left + SmallIconWidth;
-            //    themeRect.top = textRect.top;
-            //    themeRect.bottom = themeRect.top + SmallIconHeight;
+                themeRect.left = textRect.left;
+                themeRect.right = themeRect.left + SmallIconWidth;
+                themeRect.top = textRect.top;
+                themeRect.bottom = themeRect.top + SmallIconHeight;
 
-            //    if (Context->ThemeData)
-            //    {
-            //        INT partId;
-            //        INT stateId;
+                if (Context->ThemeHasGlyph)
+                {
+                    INT partId;
+                    INT stateId;
 
-            //        if (Context->EnableExplorerGlyphs && (CustomDraw->nmcd.uItemState & CDIS_HOT))
-            //        {
-            //            // Determine if the mouse is actually over the glyph, not just some part of the item.
-            //            if (IS_X_IN_GLYPH(Context->LastMouseLocation.x, node->Level) &&
-            //                Context->LastMouseLocation.x < (LONG)column->Width)
-            //            {
-            //                partId = TVP_HOTGLYPH;
-            //            }
-            //            else
-            //            {
-            //                partId = TVP_GLYPH;
-            //            }
-            //        }
-            //        else
-            //        {
-            //            partId = TVP_GLYPH;
-            //        }
+                    partId = (Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
+                    stateId = Node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
 
-            //        stateId = node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
+                    if (SUCCEEDED(DrawThemeBackground_I(
+                        Context->ThemeData,
+                        hdc,
+                        partId,
+                        stateId,
+                        &themeRect,
+                        NULL
+                        )))
+                        drewUsingTheme = TRUE;
+                }
 
-            //        if (SUCCEEDED(DrawThemeBackground_I(
-            //            Context->ThemeData,
-            //            hdc,
-            //            partId,
-            //            stateId,
-            //            &themeRect,
-            //            NULL
-            //            )))
-            //            drewUsingTheme = TRUE;
-            //    }
+                if (!drewUsingTheme)
+                {
+                    ULONG glyphWidth;
+                    ULONG glyphHeight;
+                    RECT glyphRect;
 
-            //    if (!drewUsingTheme)
-            //    {
-            //        ULONG glyphWidth;
-            //        ULONG glyphHeight;
-            //        RECT glyphRect;
+                    glyphWidth = SmallIconWidth / 2;
+                    glyphHeight = SmallIconHeight / 2;
 
-            //        glyphWidth = SmallIconWidth / 2;
-            //        glyphHeight = SmallIconHeight / 2;
+                    glyphRect.left = textRect.left + (SmallIconWidth - glyphWidth) / 2;
+                    glyphRect.right = glyphRect.left + glyphWidth;
+                    glyphRect.top = textRect.top + (SmallIconHeight - glyphHeight) / 2;
+                    glyphRect.bottom = glyphRect.top + glyphHeight;
 
-            //        glyphRect.left = textRect.left + (SmallIconWidth - glyphWidth) / 2;
-            //        glyphRect.right = glyphRect.left + glyphWidth;
-            //        glyphRect.top = textRect.top + (SmallIconHeight - glyphHeight) / 2;
-            //        glyphRect.bottom = glyphRect.top + glyphHeight;
-
-            //        PhpDrawPlusMinusGlyph(hdc, &glyphRect, !node->Expanded);
-            //    }
-            //}
+                    PhTnpDrawPlusMinusGlyph(hdc, &glyphRect, !Node->Expanded);
+                }
+            }
 
             textRect.left += SmallIconWidth;
         }

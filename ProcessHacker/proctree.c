@@ -78,7 +78,7 @@ VOID PhInitializeProcessTreeList(
 {
     ProcessTreeListHandle = hwnd;
     SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
-    //PhSetControlTheme(ProcessTreeListHandle, L"explorer");
+    PhSetControlTheme(ProcessTreeListHandle, L"explorer");
     //SendMessage(ListView_GetToolTips(TreeList_GetListView(ProcessTreeListHandle)), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
 
     TreeNew_SetCallback(hwnd, PhpProcessTreeListCallback, NULL);

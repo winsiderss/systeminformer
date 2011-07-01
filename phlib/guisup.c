@@ -31,6 +31,7 @@ _SetWindowTheme SetWindowTheme_I;
 _IsThemeActive IsThemeActive_I;
 _OpenThemeData OpenThemeData_I;
 _CloseThemeData CloseThemeData_I;
+_IsThemePartDefined IsThemePartDefined_I;
 _DrawThemeBackground DrawThemeBackground_I;
 _DrawThemeText DrawThemeText_I;
 _SHAutoComplete SHAutoComplete_I;
@@ -56,6 +57,7 @@ VOID PhGuiSupportInitialization()
     IsThemeActive_I = (PVOID)GetProcAddress(uxthemeHandle, "IsThemeActive");
     OpenThemeData_I = (PVOID)GetProcAddress(uxthemeHandle, "OpenThemeData");
     CloseThemeData_I = (PVOID)GetProcAddress(uxthemeHandle, "CloseThemeData");
+    IsThemePartDefined_I = (PVOID)GetProcAddress(uxthemeHandle, "IsThemePartDefined");
     DrawThemeBackground_I = (PVOID)GetProcAddress(uxthemeHandle, "DrawThemeBackground");
     DrawThemeText_I = (PVOID)GetProcAddress(uxthemeHandle, "DrawThemeText");
     SHAutoComplete_I = (PVOID)GetProcAddress(shlwapiHandle, "SHAutoComplete");
