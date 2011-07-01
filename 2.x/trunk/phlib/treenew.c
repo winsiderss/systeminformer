@@ -133,15 +133,22 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnThemeChanged(hwnd, context);
         }
         break;
+    case WM_SETFOCUS:
+        {
+            context->HasFocus = TRUE;
+            InvalidateRect(context->Handle, NULL, FALSE);
+        }
+        break;
+    case WM_KILLFOCUS:
+        {
+            context->HasFocus = FALSE;
+            InvalidateRect(context->Handle, NULL, FALSE);
+        }
+        break;
     case WM_SETCURSOR:
         {
             if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam))
                 return TRUE;
-        }
-        break;
-    case WM_SETFOCUS:
-        {
-            // TODO
         }
         break;
     case WM_MOUSEMOVE:
@@ -226,6 +233,7 @@ VOID PhTnpCreateTreeNewContext(
     memset(context, 0, sizeof(PH_TREENEW_CONTEXT));
 
     context->FixedWidthMinimum = 20;
+    context->RowHeight = 1; // must never be 0
     context->Callback = PhTnpNullCallback;
     context->FlatList = PhCreateList(64);
 
@@ -269,7 +277,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS,
         0,
         0,
         0,
@@ -286,7 +294,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->HeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP,
         0,
         0,
         0,
@@ -450,21 +458,7 @@ VOID PhTnpOnPaint(
     __in HDC hdc
     )
 {
-    RECT clientRect;
-    POINT points[2];
-
-    GetClientRect(hwnd, &clientRect);
-
-    SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
-    FillRect(hdc, &PaintStruct->rcPaint, GetStockObject(DC_BRUSH));
-
-    points[0].x = Context->FixedWidth;
-    points[0].y = 0;
-    points[1].x = Context->FixedWidth;
-    points[1].y = clientRect.bottom;
-    SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
-    SelectObject(hdc, GetStockObject(DC_PEN));
-    Polyline(hdc, points, 2);
+    PhTnpPaint(hwnd, Context, PaintStruct, hdc);
 }
 
 VOID PhTnpOnMouseMove(
@@ -583,6 +577,7 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             // TODO
+            InvalidateRect(hwnd, NULL, FALSE);
         }
     }
     else if (Context->HScrollVisible)
@@ -599,6 +594,8 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             // TODO
+            PhTnpLayout(Context);
+            InvalidateRect(hwnd, NULL, FALSE);
         }
     }
 }
@@ -634,6 +631,12 @@ VOID PhTnpOnVScroll(
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;
+    case SB_TOP:
+        scrollInfo.nPos = 0;
+        break;
+    case SB_BOTTOM:
+        scrollInfo.nPos = MAXINT;
+        break;
     }
 
     scrollInfo.fMask = SIF_POS;
@@ -643,6 +646,7 @@ VOID PhTnpOnVScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         // TODO
+        InvalidateRect(hwnd, NULL, FALSE);
     }
 }
 
@@ -663,10 +667,10 @@ VOID PhTnpOnHScroll(
     switch (Request)
     {
     case SB_LINELEFT:
-        scrollInfo.nPos--;
+        scrollInfo.nPos -= Context->TextMetrics.tmAveCharWidth;
         break;
     case SB_LINERIGHT:
-        scrollInfo.nPos++;
+        scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth;
         break;
     case SB_PAGELEFT:
         scrollInfo.nPos -= scrollInfo.nPage;
@@ -677,6 +681,12 @@ VOID PhTnpOnHScroll(
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
         break;
+    case SB_LEFT:
+        scrollInfo.nPos = 0;
+        break;
+    case SB_RIGHT:
+        scrollInfo.nPos = MAXINT;
+        break;
     }
 
     scrollInfo.fMask = SIF_POS;
@@ -686,6 +696,8 @@ VOID PhTnpOnHScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         // TODO
+        PhTnpLayout(Context);
+        InvalidateRect(hwnd, NULL, FALSE);
     }
 }
 
@@ -946,30 +958,11 @@ VOID PhTnpLayout(
     RECT rect;
     HDLAYOUT hdl;
     WINDOWPOS windowPos;
+    LONG hScrollPosition;
 
     GetClientRect(Context->Handle, &clientRect);
 
     PhTnpUpdateScrollBars(Context);
-
-    hdl.prc = &rect;
-    hdl.pwpos = &windowPos;
-
-    // Fixed portion header control
-    rect.left = 0;
-    rect.top = 0;
-    rect.right = Context->FixedWidth + 1;
-    rect.bottom = clientRect.bottom;
-    Header_Layout(Context->FixedHeaderHandle, &hdl);
-    SetWindowPos(Context->FixedHeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
-    Context->HeaderHeight = windowPos.cy;
-
-    // Normal portion header control
-    rect.left = Context->FixedWidth + 1;
-    rect.top = 0;
-    rect.right = clientRect.right - 1 - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    rect.bottom = clientRect.bottom;
-    Header_Layout(Context->HeaderHandle, &hdl);
-    SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
 
     // Vertical scroll bar
     if (Context->VScrollVisible)
@@ -987,6 +980,8 @@ VOID PhTnpLayout(
     // Horizontal scroll bar
     if (Context->HScrollVisible)
     {
+        SCROLLINFO scrollInfo;
+
         MoveWindow(
             Context->HScrollHandle,
             Context->FixedWidth + 1,
@@ -995,6 +990,15 @@ VOID PhTnpLayout(
             Context->HScrollHeight,
             TRUE
             );
+
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        hScrollPosition = scrollInfo.nPos;
+    }
+    else
+    {
+        hScrollPosition = 0;
     }
 
     // Filler box
@@ -1009,6 +1013,26 @@ VOID PhTnpLayout(
             TRUE
             );
     }
+
+    hdl.prc = &rect;
+    hdl.pwpos = &windowPos;
+
+    // Fixed portion header control
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = Context->FixedWidth + 1;
+    rect.bottom = clientRect.bottom;
+    Header_Layout(Context->FixedHeaderHandle, &hdl);
+    SetWindowPos(Context->FixedHeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
+    Context->HeaderHeight = windowPos.cy;
+
+    // Normal portion header control
+    rect.left = Context->FixedWidth + 1 - hScrollPosition;
+    rect.top = 0;
+    rect.right = clientRect.right - 1 - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    rect.bottom = clientRect.bottom;
+    Header_Layout(Context->HeaderHandle, &hdl);
+    SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
 }
 
 VOID PhTnpSetFixedWidth(
@@ -1301,6 +1325,7 @@ VOID PhTnpUpdateColumnMaps(
         x += Context->ColumnsByDisplay[i]->Width;
     }
 
+    Context->NumberOfColumnsByDisplay = i;
     Context->TotalViewX = x;
 }
 
@@ -1626,7 +1651,7 @@ VOID PhTnpRestructureNodes(
         PhTnpInsertNodeChildren(Context, children[i], 0);
     }
 
-    PhTnpUpdateScrollBars(Context);
+    PhTnpLayout(Context);
     InvalidateRect(Context->Handle, NULL, FALSE);
 }
 
@@ -1685,6 +1710,7 @@ VOID PhTnpUpdateScrollBars(
     LONG contentWidth;
     LONG contentHeight;
     SCROLLINFO scrollInfo;
+    LONG oldPosition;
 
     GetClientRect(Context->Handle, &clientRect);
     width = clientRect.right - Context->FixedWidth;
@@ -1708,11 +1734,25 @@ VOID PhTnpUpdateScrollBars(
     if (contentHeight > height && contentHeight != 0)
     {
         scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
         scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
         scrollInfo.nMin = 0;
         scrollInfo.nMax = Context->FlatList->Count - 1;
         scrollInfo.nPage = height / Context->RowHeight;
         SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+        // The scroll position may have changed due to the modified scroll range.
+        scrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            InvalidateRect(Context->Handle, NULL, FALSE);
+        }
+
         ShowWindow(Context->VScrollHandle, SW_SHOW);
         Context->VScrollVisible = TRUE;
     }
@@ -1726,11 +1766,24 @@ VOID PhTnpUpdateScrollBars(
     if (contentWidth > width && contentWidth != 0)
     {
         scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
         scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
         scrollInfo.nMin = 0;
         scrollInfo.nMax = contentWidth - 1;
         scrollInfo.nPage = width;
         SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+        scrollInfo.fMask = SIF_POS;
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            InvalidateRect(Context->Handle, NULL, FALSE);
+        }
+
         ShowWindow(Context->HScrollHandle, SW_SHOW);
         Context->HScrollVisible = TRUE;
     }
@@ -1741,6 +1794,587 @@ VOID PhTnpUpdateScrollBars(
     }
 
     ShowWindow(Context->FillerBoxHandle, (Context->VScrollVisible && Context->HScrollVisible) ? SW_SHOW : SW_HIDE);
+}
+
+VOID PhTnpPaint(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PAINTSTRUCT *PaintStruct,
+    __in HDC hdc
+    )
+{
+    RECT viewRect;
+    SCROLLINFO scrollInfo;
+    LONG vScrollPosition;
+    LONG hScrollPosition;
+    LONG firstRowToUpdate;
+    LONG lastRowToUpdate;
+    LONG i;
+    LONG j;
+    PPH_TREENEW_NODE node;
+    PPH_TREENEW_COLUMN column;
+    RECT rowRect;
+    LONG x;
+    BOOLEAN fixedUpdate;
+    LONG normalUpdateLeftX;
+    LONG normalUpdateRightX;
+    LONG normalUpdateLeftIndex;
+    LONG normalUpdateRightIndex;
+    RECT cellRect;
+    HBRUSH backBrush;
+    HRGN oldClipRegion;
+
+    GetClientRect(hwnd, &viewRect);
+
+    if (Context->VScrollVisible)
+        viewRect.right -= Context->VScrollWidth;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_POS;
+
+    if (Context->VScrollVisible)
+    {
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        vScrollPosition = scrollInfo.nPos;
+
+        if (vScrollPosition < 0) // just in case
+            vScrollPosition = 0;
+    }
+    else
+    {
+        vScrollPosition = 0;
+    }
+
+    if (Context->HScrollVisible)
+    {
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        hScrollPosition = scrollInfo.nPos;
+
+        if (hScrollPosition < 0)
+            hScrollPosition = 0;
+    }
+    else
+    {
+        hScrollPosition = 0;
+    }
+
+    // Calculate the indicies of the first and last rows that need painting. These indicies are relative to the top of the view area.
+
+    firstRowToUpdate = (PaintStruct->rcPaint.top - Context->HeaderHeight) / Context->RowHeight;
+    lastRowToUpdate = (PaintStruct->rcPaint.bottom - Context->HeaderHeight - 1) / Context->RowHeight; // minus one since bottom is exclusive
+
+    if (firstRowToUpdate < 0)
+        firstRowToUpdate = 0;
+
+    rowRect.left = 0;
+    rowRect.top = Context->HeaderHeight + firstRowToUpdate * Context->RowHeight;
+    rowRect.right = viewRect.right;
+    rowRect.bottom = rowRect.top + Context->RowHeight;
+
+    // Change the indicies to absolute row indicies.
+
+    firstRowToUpdate += vScrollPosition;
+    lastRowToUpdate += vScrollPosition;
+
+    if (lastRowToUpdate >= (LONG)Context->FlatList->Count)
+        lastRowToUpdate = Context->FlatList->Count - 1;
+
+    // Determine whether the fixed column needs painting, and which normal columns need painting.
+
+    fixedUpdate = FALSE;
+
+    if (Context->FixedColumn && PaintStruct->rcPaint.left < Context->FixedWidth)
+        fixedUpdate = TRUE;
+
+    x = Context->FixedWidth + 1 - hScrollPosition;
+    normalUpdateLeftX = viewRect.right;
+    normalUpdateLeftIndex = 0;
+    normalUpdateRightX = 0;
+    normalUpdateRightIndex = -1;
+
+    for (j = 0; j < (LONG)Context->NumberOfColumnsByDisplay; j++)
+    {
+        column = Context->ColumnsByDisplay[j];
+
+        if (x + column->Width >= Context->FixedWidth + 1 && x >= PaintStruct->rcPaint.left && x <= PaintStruct->rcPaint.right)
+        {
+            if (normalUpdateLeftX > x)
+            {
+                normalUpdateLeftX = x;
+                normalUpdateLeftIndex = j;
+            }
+
+            if (normalUpdateRightX < x + column->Width)
+            {
+                normalUpdateRightX = x + column->Width;
+                normalUpdateRightIndex = j;
+            }
+        }
+
+        x += column->Width;
+    }
+
+    if (normalUpdateRightIndex >= (LONG)Context->NumberOfColumnsByDisplay)
+        normalUpdateRightIndex = Context->NumberOfColumnsByDisplay - 1;
+
+    // Paint the rows.
+
+    SelectObject(hdc, Context->Font);
+
+    for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
+    {
+        node = Context->FlatList->Items[i];
+
+        // Prepare the row for drawing.
+
+        PhTnpPrepareRowForDraw(Context, hdc, node);
+
+        if (
+            node->Selected //&&
+            //// Don't draw if the explorer style is active.
+            //(!Context->EnableExplorerStyle || !(Context->ThemeActive && WindowsVersion >= WINDOWS_VISTA))
+            )
+        {
+            if (Context->HasFocus)
+            {
+                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                SetBkColor(hdc, GetSysColor(COLOR_HIGHLIGHT));
+                backBrush = GetSysColorBrush(COLOR_HIGHLIGHT);
+            }
+            else
+            {
+                SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
+                SetBkColor(hdc, GetSysColor(COLOR_BTNFACE));
+                backBrush = GetSysColorBrush(COLOR_BTNFACE);
+            }
+        }
+        else
+        {
+            SetTextColor(hdc, node->s.DrawForeColor);
+            SetBkColor(hdc, node->s.DrawBackColor);
+            SetDCBrushColor(hdc, node->s.DrawBackColor);
+            backBrush = GetStockObject(DC_BRUSH);
+        }
+
+        // Paint the fixed column.
+
+        cellRect.top = rowRect.top;
+        cellRect.bottom = rowRect.bottom;
+
+        if (fixedUpdate)
+        {
+            cellRect.left = 0;
+            cellRect.right = Context->FixedWidth;
+            FillRect(hdc, &cellRect, backBrush);
+            PhTnpDrawCell(Context, hdc, &cellRect, node, Context->FixedColumn, i, -1);
+        }
+
+        // Paint the normal columns.
+
+        if (normalUpdateLeftX < normalUpdateRightX)
+        {
+            cellRect.left = normalUpdateLeftX;
+            cellRect.right = normalUpdateRightX;
+            FillRect(hdc, &cellRect, backBrush);
+
+            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
+
+            if (GetClipRgn(hdc, oldClipRegion) != 1)
+            {
+                DeleteObject(oldClipRegion);
+                oldClipRegion = NULL;
+            }
+
+            IntersectClipRect(hdc, Context->FixedWidth + 1, cellRect.top, viewRect.right, cellRect.bottom);
+
+            cellRect.right = cellRect.left;
+
+            for (j = normalUpdateLeftIndex; j <= normalUpdateRightIndex; j++)
+            {
+                column = Context->ColumnsByDisplay[j];
+
+                cellRect.left = cellRect.right;
+                cellRect.right = cellRect.left + column->Width;
+                PhTnpDrawCell(Context, hdc, &cellRect, node, column, i, j);
+            }
+
+            SelectClipRgn(hdc, oldClipRegion);
+
+            if (oldClipRegion)
+            {
+                DeleteObject(oldClipRegion);
+            }
+        }
+
+        rowRect.top += Context->RowHeight;
+        rowRect.bottom += Context->RowHeight;
+    }
+
+    if (i == Context->FlatList->Count)
+    {
+        // Fill the rest of the space on the bottom with the window color.
+        rowRect.bottom = viewRect.bottom;
+        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+    }
+
+    if (normalUpdateLeftX < normalUpdateRightX && normalUpdateRightX < viewRect.right)
+    {
+        // Fill the rest of the space on the right with the window color.
+        rowRect.left = normalUpdateRightX;
+        rowRect.top = Context->HeaderHeight;
+        rowRect.right = viewRect.right;
+        rowRect.bottom = viewRect.bottom;
+        FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
+    }
+
+    PhTnpDrawDivider(Context, hdc, &viewRect);
+}
+
+VOID PhTnpPrepareRowForDraw(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __inout PPH_TREENEW_NODE Node
+    )
+{
+    if (!Node->s.CachedColorValid)
+    {
+        PH_TREENEW_GET_NODE_COLOR getNodeColor;
+
+        getNodeColor.Flags = 0;
+        getNodeColor.Node = Node;
+        getNodeColor.BackColor = RGB(0xff, 0xff, 0xff);
+        getNodeColor.ForeColor = RGB(0x00, 0x00, 0x00);
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeNewGetNodeColor,
+            &getNodeColor,
+            NULL,
+            Context->CallbackContext
+            ))
+        {
+            Node->BackColor = getNodeColor.BackColor;
+            Node->ForeColor = getNodeColor.ForeColor;
+            Node->UseAutoForeColor = !!(getNodeColor.Flags & TN_AUTO_FORECOLOR);
+
+            if (getNodeColor.Flags & TN_CACHE)
+                Node->s.CachedColorValid = TRUE;
+        }
+        else
+        {
+            Node->BackColor = getNodeColor.BackColor;
+            Node->ForeColor = getNodeColor.ForeColor;
+        }
+    }
+
+    Node->s.DrawForeColor = Node->ForeColor;
+
+    if (Node->UseTempBackColor)
+        Node->s.DrawBackColor = Node->TempBackColor;
+    else
+        Node->s.DrawBackColor = Node->BackColor;
+
+    if (!Node->s.CachedFontValid)
+    {
+        PH_TREENEW_GET_NODE_FONT getNodeFont;
+
+        getNodeFont.Flags = 0;
+        getNodeFont.Node = Node;
+        getNodeFont.Font = NULL;
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeNewGetNodeFont,
+            &getNodeFont,
+            NULL,
+            Context->CallbackContext
+            ))
+        {
+            Node->Font = getNodeFont.Font;
+
+            if (getNodeFont.Flags & TN_CACHE)
+                Node->s.CachedFontValid = TRUE;
+        }
+        else
+        {
+            Node->Font = NULL;
+        }
+    }
+
+    if (!Node->s.CachedIconValid)
+    {
+        PH_TREENEW_GET_NODE_ICON getNodeIcon;
+
+        getNodeIcon.Flags = 0;
+        getNodeIcon.Node = Node;
+        getNodeIcon.Icon = NULL;
+
+        if (Context->Callback(
+            Context->Handle,
+            TreeNewGetNodeIcon,
+            &getNodeIcon,
+            NULL,
+            Context->CallbackContext
+            ))
+        {
+            Node->Icon = getNodeIcon.Icon;
+
+            if (getNodeIcon.Flags & TN_CACHE)
+                Node->s.CachedIconValid = TRUE;
+        }
+        else
+        {
+            Node->Icon = NULL;
+        }
+    }
+
+    if (Node->UseAutoForeColor || Node->UseTempBackColor)
+    {
+        if (PhGetColorBrightness(Node->s.DrawBackColor) > 100) // slightly less than half
+            Node->s.DrawForeColor = RGB(0x00, 0x00, 0x00);
+        else
+            Node->s.DrawForeColor = RGB(0xff, 0xff, 0xff);
+    }
+}
+
+VOID PhTnpDrawCell(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT CellRect,
+    __in PPH_TREENEW_NODE Node,
+    __in PPH_TREENEW_COLUMN Column,
+    __in LONG RowIndex,
+    __in LONG ColumnIndex
+    )
+{
+    HFONT font; // font to use
+    HFONT oldFont;
+    PH_STRINGREF text; // text to draw
+    RECT textRect; // working rectangle, modified as needed
+    ULONG textFlags; // DT_* flags
+    ULONG textVertMargin; // top/bottom margin for text (determined using height of font)
+    ULONG iconVertMargin; // top/bottom margin for icons (determined using height of small icon)
+
+    font = Node->Font;
+    textFlags = Column->TextFlags;
+
+    textRect = *CellRect;
+
+    // Initial margins used by default list view
+    textRect.left += 2;
+    textRect.right -= 2;
+
+    // text margin = (height of row - height of font) / 2
+    // icon margin = (height of row - height of small icon) / 2
+    textVertMargin = ((textRect.bottom - textRect.top) - Context->TextMetrics.tmHeight) / 2;
+    iconVertMargin = ((textRect.bottom - textRect.top) - SmallIconHeight) / 2;
+
+    textRect.top += iconVertMargin;
+    textRect.bottom -= iconVertMargin;
+
+    if (ColumnIndex == -1)
+    {
+        BOOLEAN needsClip;
+        HRGN oldClipRegion;
+
+        textRect.left += Node->Level * SmallIconWidth;
+
+        // The icon may need to be clipped if the column is too small.
+        needsClip = Column->Width < textRect.left + (Context->CanAnyExpand ? SmallIconWidth : 0) + (Node->Icon ? SmallIconWidth : 0);
+
+        if (needsClip)
+        {
+            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
+
+            if (GetClipRgn(hdc, oldClipRegion) != 1)
+            {
+                DeleteObject(oldClipRegion);
+                oldClipRegion = NULL;
+            }
+
+            // Clip contents to the column.
+            IntersectClipRect(hdc, CellRect->left, textRect.top, CellRect->right, textRect.bottom);
+        }
+
+        if (Context->CanAnyExpand) // flag is used so we can avoid indenting when it's a flat list
+        {
+            //BOOLEAN drewUsingTheme = FALSE;
+            //RECT themeRect;
+
+            //if (!Node->s.IsLeaf)
+            //{
+            //    // Draw the plus/minus glyph.
+
+            //    themeRect.left = textRect.left;
+            //    themeRect.right = themeRect.left + SmallIconWidth;
+            //    themeRect.top = textRect.top;
+            //    themeRect.bottom = themeRect.top + SmallIconHeight;
+
+            //    if (Context->ThemeData)
+            //    {
+            //        INT partId;
+            //        INT stateId;
+
+            //        if (Context->EnableExplorerGlyphs && (CustomDraw->nmcd.uItemState & CDIS_HOT))
+            //        {
+            //            // Determine if the mouse is actually over the glyph, not just some part of the item.
+            //            if (IS_X_IN_GLYPH(Context->LastMouseLocation.x, node->Level) &&
+            //                Context->LastMouseLocation.x < (LONG)column->Width)
+            //            {
+            //                partId = TVP_HOTGLYPH;
+            //            }
+            //            else
+            //            {
+            //                partId = TVP_GLYPH;
+            //            }
+            //        }
+            //        else
+            //        {
+            //            partId = TVP_GLYPH;
+            //        }
+
+            //        stateId = node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
+
+            //        if (SUCCEEDED(DrawThemeBackground_I(
+            //            Context->ThemeData,
+            //            hdc,
+            //            partId,
+            //            stateId,
+            //            &themeRect,
+            //            NULL
+            //            )))
+            //            drewUsingTheme = TRUE;
+            //    }
+
+            //    if (!drewUsingTheme)
+            //    {
+            //        ULONG glyphWidth;
+            //        ULONG glyphHeight;
+            //        RECT glyphRect;
+
+            //        glyphWidth = SmallIconWidth / 2;
+            //        glyphHeight = SmallIconHeight / 2;
+
+            //        glyphRect.left = textRect.left + (SmallIconWidth - glyphWidth) / 2;
+            //        glyphRect.right = glyphRect.left + glyphWidth;
+            //        glyphRect.top = textRect.top + (SmallIconHeight - glyphHeight) / 2;
+            //        glyphRect.bottom = glyphRect.top + glyphHeight;
+
+            //        PhpDrawPlusMinusGlyph(hdc, &glyphRect, !node->Expanded);
+            //    }
+            //}
+
+            textRect.left += SmallIconWidth;
+        }
+
+        // Draw the icon.
+        if (Node->Icon)
+        {
+            DrawIconEx(
+                hdc,
+                textRect.left,
+                textRect.top,
+                Node->Icon,
+                SmallIconWidth,
+                SmallIconHeight,
+                0,
+                NULL,
+                DI_NORMAL
+                );
+
+            textRect.left += SmallIconWidth + 4; // 4px margin
+        }
+
+        if (needsClip && oldClipRegion)
+        {
+            SelectClipRgn(hdc, oldClipRegion);
+            DeleteObject(oldClipRegion);
+        }
+
+        if (textRect.left > textRect.right)
+            textRect.left = textRect.right;
+    }
+    else
+    {
+        // Margins used by default list view
+        textRect.left += 4;
+        textRect.right -= 4;
+    }
+
+    //if (column->CustomDraw)
+    //{
+    //    BOOLEAN result;
+    //    PH_TREELIST_CUSTOM_DRAW tlCustomDraw;
+    //    INT savedDc;
+
+    //    tlCustomDraw.Node = node;
+    //    tlCustomDraw.Column = column;
+    //    tlCustomDraw.Dc = hdc;
+    //    tlCustomDraw.CellRect = cellRect;
+    //    tlCustomDraw.TextRect = textRect;
+
+    //    // Fix up the rectangles so the caller doesn't get confused.
+    //    // Some of the x values may be larger than the y values, for example.
+    //    if (tlCustomDraw.CellRect.right < tlCustomDraw.CellRect.left)
+    //        tlCustomDraw.CellRect.right = tlCustomDraw.CellRect.left;
+    //    if (tlCustomDraw.TextRect.right < tlCustomDraw.TextRect.left)
+    //        tlCustomDraw.TextRect.right = tlCustomDraw.TextRect.left;
+
+    //    savedDc = SaveDC(hdc);
+    //    result = Context->Callback(Context->Handle, TreeListCustomDraw, &tlCustomDraw, NULL, Context->Context);
+    //    RestoreDC(hdc, savedDc);
+
+    //    if (result)
+    //        return;
+    //}
+
+    if (PhTnpGetCellText(Context, Node, Column->Id, &text))
+    {
+        if (!(textFlags & (DT_PATH_ELLIPSIS | DT_WORD_ELLIPSIS)))
+            textFlags |= DT_END_ELLIPSIS;
+
+        textFlags |= DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE;
+
+        textRect.top = CellRect->top + textVertMargin;
+        textRect.bottom = CellRect->bottom - textVertMargin;
+
+        if (font)
+        {
+            // Remove the margins we calculated, because they don't actually apply here 
+            // since we're using a custom font...
+            textRect.top = CellRect->top;
+            textRect.bottom = CellRect->bottom;
+            oldFont = SelectObject(hdc, font);
+        }
+
+        DrawText(
+            hdc,
+            text.Buffer,
+            text.Length / 2,
+            &textRect,
+            textFlags
+            );
+
+        if (font)
+            SelectObject(hdc, oldFont);
+    }
+}
+
+VOID PhTnpDrawDivider(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT ClientRect
+    )
+{
+    POINT points[2];
+
+    points[0].x = Context->FixedWidth;
+    points[0].y = 0;
+    points[1].x = Context->FixedWidth;
+    points[1].y = ClientRect->bottom;
+    SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
+    SelectObject(hdc, GetStockObject(DC_PEN));
+    Polyline(hdc, points, 2);
 }
 
 VOID PhTnpDrawPlusMinusGlyph(
