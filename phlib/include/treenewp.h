@@ -22,7 +22,12 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG CanAnyExpand : 1;
             ULONG TriState : 1;
             ULONG HasFocus : 1;
-            ULONG Spare : 25;
+            ULONG ThemeInitialized : 1; // delay load theme data
+            ULONG ThemeActive : 1;
+            ULONG ThemeHasItemBackground : 1;
+            ULONG ThemeHasGlyph : 1;
+            ULONG ThemeHasHotGlyph : 1;
+            ULONG Spare : 20;
         };
         ULONG Flags;
     };
@@ -34,11 +39,15 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG FixedWidthMinimum;
     LONG TrackStartX;
     LONG TrackOldFixedWidth;
+    PPH_TREENEW_NODE HotNode;
 
+    RECT ClientRect;
     LONG HeaderHeight;
     LONG RowHeight;
     ULONG VScrollWidth;
     ULONG HScrollHeight;
+    LONG VScrollPosition;
+    LONG HScrollPosition;
 
     PPH_TREENEW_CALLBACK Callback;
     PVOID CallbackContext;
@@ -51,8 +60,9 @@ typedef struct _PH_TREENEW_CONTEXT
     PPH_TREENEW_COLUMN *ColumnsByDisplay; // columns, indexed by display order (excluding the fixed column)
     ULONG AllocatedColumnsByDisplay;
     ULONG NumberOfColumnsByDisplay; // the number of visible columns (excluding the fixed column)
-    ULONG TotalViewX; // total width of normal columns
+    LONG TotalViewX; // total width of normal columns
     PPH_TREENEW_COLUMN FixedColumn;
+    PPH_TREENEW_COLUMN FirstColumn;
 
     PPH_LIST FlatList;
 
@@ -60,6 +70,7 @@ typedef struct _PH_TREENEW_CONTEXT
     PH_SORT_ORDER SortOrder;
 
     TEXTMETRIC TextMetrics;
+    HTHEME ThemeData;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -136,6 +147,11 @@ VOID PhTnpOnMouseMove(
     __in LONG CursorY
     );
 
+VOID PhTnpOnMouseLeave(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
 VOID PhTnpOnXxxButtonXxx(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
@@ -199,6 +215,10 @@ VOID PhTnpUpdateTextMetrics(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpUpdateThemeData(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
 VOID PhTnpCancelTrack(
     __in PPH_TREENEW_CONTEXT Context
     );
@@ -210,6 +230,22 @@ VOID PhTnpLayout(
 VOID PhTnpSetFixedWidth(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG FixedWidth
+    );
+
+BOOLEAN PhTnpGetCellParts(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index,
+    __in_opt PPH_TREENEW_COLUMN Column,
+    __out PPH_TREENEW_CELL_PARTS Parts
+    );
+
+VOID PhTnpHitTest(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_HIT_TEST HitTest
+    );
+
+VOID PhTnpClearHotNode(
+    __in PPH_TREENEW_CONTEXT Context
     );
 
 // Columns
@@ -361,5 +397,6 @@ VOID PhTnpGetMessagePos(
 // Macros
 
 #define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) ((X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
+#define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) (((X) >= ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth + 5))
 
 #endif
