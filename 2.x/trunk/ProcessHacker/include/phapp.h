@@ -9,6 +9,7 @@
 
 #include <phgui.h>
 #include <treelist.h>
+#include <treenew.h>
 #include <graph.h>
 #include <circbuf.h>
 #include <phnet.h>

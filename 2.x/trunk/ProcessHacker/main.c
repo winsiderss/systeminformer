@@ -25,7 +25,6 @@
 #include <kphuser.h>
 #include <phsvc.h>
 #include <settings.h>
-#include <treenew.h>
 #include <hexedit.h>
 #include <shlobj.h>
 
