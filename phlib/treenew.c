@@ -25,8 +25,9 @@
 #include <treenew.h>
 #include <treenewp.h>
 
-static ULONG SmallIconWidth;
-static ULONG SmallIconHeight;
+static PVOID ComCtl32Handle;
+static LONG SmallIconWidth;
+static LONG SmallIconHeight;
 
 BOOLEAN PhTreeNewInitialization()
 {
@@ -47,6 +48,7 @@ BOOLEAN PhTreeNewInitialization()
     if (!RegisterClassEx(&c))
         return FALSE;
 
+    ComCtl32Handle = GetModuleHandle(L"comctl32.dll");
     SmallIconWidth = GetSystemMetrics(SM_CXSMICON);
     SmallIconHeight = GetSystemMetrics(SM_CYSMICON);
 
@@ -73,11 +75,17 @@ LRESULT CALLBACK PhTnpWndProc(
     if (!context)
         return DefWindowProc(hwnd, uMsg, wParam, lParam);
 
+    if (context->Tracking && (GetAsyncKeyState(VK_ESCAPE) & 0x1))
+    {
+        PhTnpCancelTrack(context);
+    }
+
     switch (uMsg)
     {
     case WM_CREATE:
         {
-            PhTnpOnCreate(hwnd, context, (CREATESTRUCT *)lParam);
+            if (!PhTnpOnCreate(hwnd, context, (CREATESTRUCT *)lParam))
+                return -1;
         }
         return 0;
     case WM_DESTROY:
@@ -115,14 +123,14 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnSetFont(hwnd, context, (HFONT)wParam, LOWORD(lParam));
         }
         break;
-    case WM_THEMECHANGED:
-        {
-            // TODO
-        }
-        break;
     case WM_SETTINGCHANGE:
         {
-            // TODO
+            PhTnpOnSettingChange(hwnd, context);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PhTnpOnThemeChanged(hwnd, context);
         }
         break;
     case WM_SETCURSOR:
@@ -164,6 +172,21 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnKeyDown(hwnd, context, (ULONG)wParam, (ULONG)lParam);
         }
         break;
+    case WM_MOUSEWHEEL:
+        {
+            PhTnpOnMouseWheel(hwnd, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        }
+        break;
+    case WM_VSCROLL:
+        {
+            PhTnpOnVScroll(hwnd, context, LOWORD(wParam));
+        }
+        break;
+    case WM_HSCROLL:
+        {
+            PhTnpOnHScroll(hwnd, context, LOWORD(wParam));
+        }
+        break;
     case WM_NOTIFY:
         {
             LRESULT result;
@@ -174,12 +197,23 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     }
 
-    if (context->Tracking && (GetAsyncKeyState(VK_ESCAPE) & 0x1))
+    if (uMsg >= TNM_FIRST && uMsg <= TNM_LAST)
     {
-        PhTnpCancelTrack(context);
+        return PhTnpOnUserMessage(hwnd, context, uMsg, wParam, lParam);
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
+BOOLEAN NTAPI PhTnpNullCallback(
+    __in HWND hwnd,
+    __in PH_TREENEW_MESSAGE Message,
+    __in_opt PVOID Parameter1,
+    __in_opt PVOID Parameter2,
+    __in_opt PVOID Context
+    )
+{
+    return FALSE;
 }
 
 VOID PhTnpCreateTreeNewContext(
@@ -192,6 +226,8 @@ VOID PhTnpCreateTreeNewContext(
     memset(context, 0, sizeof(PH_TREENEW_CONTEXT));
 
     context->FixedWidthMinimum = 20;
+    context->Callback = PhTnpNullCallback;
+    context->FlatList = PhCreateList(64);
 
     *Context = context;
 }
@@ -200,10 +236,28 @@ VOID PhTnpDestroyTreeNewContext(
     __in PPH_TREENEW_CONTEXT Context
     )
 {
+    ULONG i;
+
+    if (Context->Columns)
+    {
+        for (i = 0; i < Context->NextId; i++)
+        {
+            if (Context->Columns[i])
+                PhFree(Context->Columns[i]);
+        }
+
+        PhFree(Context->Columns);
+    }
+
+    if (Context->ColumnsByDisplay)
+        PhFree(Context->ColumnsByDisplay);
+
+    PhDereferenceObject(Context->FlatList);
+
     PhFree(Context);
 }
 
-VOID PhTnpOnCreate(
+BOOLEAN PhTnpOnCreate(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
     __in CREATESTRUCT *CreateStruct
@@ -211,7 +265,8 @@ VOID PhTnpOnCreate(
 {
     Context->Handle = hwnd;
     Context->InstanceHandle = CreateStruct->hInstance;
-    Context->FixedHeaderHandle = CreateWindow(
+
+    if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
         WS_CHILD | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS,
@@ -223,8 +278,12 @@ VOID PhTnpOnCreate(
         NULL,
         CreateStruct->hInstance,
         NULL
-        );
-    Context->HeaderHandle = CreateWindow(
+        )))
+    {
+        return FALSE;
+    }
+
+    if (!(Context->HeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
         WS_CHILD | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP,
@@ -236,12 +295,15 @@ VOID PhTnpOnCreate(
         NULL,
         CreateStruct->hInstance,
         NULL
-        );
+        )))
+    {
+        return FALSE;
+    }
 
     Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
     Context->HScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
 
-    Context->VScrollHandle = CreateWindow(
+    if (!(Context->VScrollHandle = CreateWindow(
         L"SCROLLBAR",
         NULL,
         WS_CHILD | WS_VISIBLE | SBS_VERT,
@@ -253,8 +315,12 @@ VOID PhTnpOnCreate(
         NULL,
         CreateStruct->hInstance,
         NULL
-        );
-    Context->HScrollHandle = CreateWindow(
+        )))
+    {
+        return FALSE;
+    }
+
+    if (!(Context->HScrollHandle = CreateWindow(
         L"SCROLLBAR",
         NULL,
         WS_CHILD | WS_VISIBLE | SBS_HORZ,
@@ -266,8 +332,12 @@ VOID PhTnpOnCreate(
         NULL,
         CreateStruct->hInstance,
         NULL
-        );
-    Context->FillerBoxHandle = CreateWindow(
+        )))
+    {
+        return FALSE;
+    }
+
+    if (!(Context->FillerBoxHandle = CreateWindow(
         L"STATIC",
         NULL,
         WS_CHILD | WS_VISIBLE,
@@ -279,27 +349,17 @@ VOID PhTnpOnCreate(
         NULL,
         CreateStruct->hInstance,
         NULL
-        );
+        )))
+    {
+        return FALSE;
+    }
 
     Context->VScrollVisible = TRUE;
     Context->HScrollVisible = TRUE;
 
-    {
-        HDITEM item = { 0 };
-
-        item.mask = HDI_TEXT | HDI_FORMAT | HDI_WIDTH;
-        item.cxy = 101;
-        item.pszText = L"Test Column";
-        item.cchTextMax = sizeof(L"Test Column") / sizeof(WCHAR);
-        item.fmt = HDF_LEFT | HDF_STRING | HDF_SORTUP;
-
-        Header_InsertItem(Context->FixedHeaderHandle, 0, &item);
-
-        item.pszText = L"Others Test";
-        Header_InsertItem(Context->HeaderHandle, 0, &item);
-    }
-
     Context->FixedWidth = 100;
+
+    return TRUE;
 }
 
 VOID PhTnpOnSize(
@@ -338,6 +398,24 @@ VOID PhTnpOnSetFont(
 
     SendMessage(Context->FixedHeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
     SendMessage(Context->HeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
+
+    PhTnpUpdateTextMetrics(Context);
+}
+
+VOID PhTnpOnSettingChange(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    PhTnpUpdateTextMetrics(Context);
+}
+
+VOID PhTnpOnThemeChanged(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    NOTHING;
 }
 
 BOOLEAN PhTnpOnSetCursor(
@@ -352,7 +430,7 @@ BOOLEAN PhTnpOnSetCursor(
 
     if (TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context))
     {
-        SetCursor(LoadCursor(NULL, IDC_UPARROW)); // TODO: Use real divider cursor
+        SetCursor(LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106))); // HACK (the divider icon resource has been 106 for quite a while...)
         return TRUE;
     }
 
@@ -469,6 +547,148 @@ VOID PhTnpOnKeyDown(
     NOTHING;
 }
 
+VOID PhTnpOnMouseWheel(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG Distance,
+    __in ULONG VirtualKeys,
+    __in LONG CursorX,
+    __in LONG CursorY
+    )
+{
+    LONG wheelScrollLines;
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    if (!SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &wheelScrollLines, 0))
+        wheelScrollLines = 3;
+
+    // The mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar, 
+    // but the vertical scrollbar takes precedence.
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_ALL;
+
+    if (Context->VScrollVisible)
+    {
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        scrollInfo.nPos += wheelScrollLines * -Distance / WHEEL_DELTA;
+
+        scrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            // TODO
+        }
+    }
+    else if (Context->HScrollVisible)
+    {
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        scrollInfo.nPos += Context->TextMetrics.tmAveCharWidth * wheelScrollLines * -Distance / WHEEL_DELTA;
+
+        scrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            // TODO
+        }
+    }
+}
+
+VOID PhTnpOnVScroll(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Request
+    )
+{
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_ALL;
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    switch (Request)
+    {
+    case SB_LINEUP:
+        scrollInfo.nPos--;
+        break;
+    case SB_LINEDOWN:
+        scrollInfo.nPos++;
+        break;
+    case SB_PAGEUP:
+        scrollInfo.nPos -= scrollInfo.nPage;
+        break;
+    case SB_PAGEDOWN:
+        scrollInfo.nPos += scrollInfo.nPage;
+        break;
+    case SB_THUMBTRACK:
+        scrollInfo.nPos = scrollInfo.nTrackPos;
+        break;
+    }
+
+    scrollInfo.fMask = SIF_POS;
+    SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+    if (scrollInfo.nPos != oldPosition)
+    {
+        // TODO
+    }
+}
+
+VOID PhTnpOnHScroll(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Request
+    )
+{
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_ALL;
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    switch (Request)
+    {
+    case SB_LINELEFT:
+        scrollInfo.nPos--;
+        break;
+    case SB_LINERIGHT:
+        scrollInfo.nPos++;
+        break;
+    case SB_PAGELEFT:
+        scrollInfo.nPos -= scrollInfo.nPage;
+        break;
+    case SB_PAGERIGHT:
+        scrollInfo.nPos += scrollInfo.nPage;
+        break;
+    case SB_THUMBTRACK:
+        scrollInfo.nPos = scrollInfo.nTrackPos;
+        break;
+    }
+
+    scrollInfo.fMask = SIF_POS;
+    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+    if (scrollInfo.nPos != oldPosition)
+    {
+        // TODO
+    }
+}
+
 BOOLEAN PhTnpOnNotify(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
@@ -479,30 +699,235 @@ BOOLEAN PhTnpOnNotify(
     switch (Header->code)
     {
     case HDN_ITEMCHANGING:
+    case HDN_ITEMCHANGED:
         {
+            NMHEADER *nmHeader = (NMHEADER *)Header;
+
             if (Header->hwndFrom == Context->FixedHeaderHandle)
             {
-                NMHEADER *nmHeader = (NMHEADER *)Header;
+                if (nmHeader->pitem->mask & HDI_WIDTH)
+                {
+                    Context->FixedWidth = nmHeader->pitem->cxy - 1;
 
-                Context->FixedWidth = nmHeader->pitem->cxy - 1;
+                    if (Context->FixedWidth < Context->FixedWidthMinimum)
+                        Context->FixedWidth = Context->FixedWidthMinimum;
 
-                if (Context->FixedWidth < Context->FixedWidthMinimum)
-                    Context->FixedWidth = Context->FixedWidthMinimum;
+                    nmHeader->pitem->cxy = Context->FixedWidth + 1;
 
-                nmHeader->pitem->cxy = Context->FixedWidth + 1;
-
-                PhTnpLayout(Context);
-                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
+                    PhTnpLayout(Context);
+                }
             }
-            else if (Header->hwndFrom == Context->HeaderHandle)
+
+            if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
             {
+                if (nmHeader->pitem->mask & (HDI_WIDTH | HDI_ORDER))
+                {
+                    // A column has been re-ordered or resized. Update our stored information.
+                    PhTnpUpdateColumnHeaders(Context);
+                    PhTnpUpdateColumnMaps(Context);
+                }
+
                 RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
             }
+        }
+        break;
+    case HDN_ITEMCLICK:
+        {
+            if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
+            {
+                NMHEADER *nmHeader = (NMHEADER *)Header;
+                HDITEM item;
+                PPH_TREENEW_COLUMN column;
+
+                // A column has been clicked, so update the sort state.
+
+                item.mask = HDI_LPARAM;
+
+                if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item))
+                {
+                    column = (PPH_TREENEW_COLUMN)item.lParam;
+
+                    if (column->Id == Context->SortColumn)
+                    {
+                        if (Context->TriState)
+                        {
+                            if (Context->SortOrder == AscendingSortOrder)
+                                Context->SortOrder = DescendingSortOrder;
+                            else if (Context->SortOrder == DescendingSortOrder)
+                                Context->SortOrder = NoSortOrder;
+                            else
+                                Context->SortOrder = AscendingSortOrder;
+                        }
+                        else
+                        {
+                            if (Context->SortOrder == AscendingSortOrder)
+                                Context->SortOrder = DescendingSortOrder;
+                            else
+                                Context->SortOrder = AscendingSortOrder;
+                        }
+                    }
+                    else
+                    {
+                        Context->SortColumn = column->Id;
+                        Context->SortOrder = AscendingSortOrder;
+                    }
+
+                    PhTnpSetColumnHeaderSortIcon(Context, column);
+
+                    Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
+                }
+            }
+        }
+        break;
+    case HDN_ENDDRAG:
+    case NM_RELEASEDCAPTURE:
+        {
+            if (Header->hwndFrom == Context->HeaderHandle)
+            {
+                // Columns have been re-ordered, so refresh our information.
+                // Note: The fixed column cannot be re-ordered.
+                PhTnpUpdateColumnHeaders(Context);
+                PhTnpUpdateColumnMaps(Context);
+            }
+        }
+        break;
+    case NM_RCLICK:
+        {
+            Context->Callback(Context->Handle, TreeNewHeaderRightClick, NULL, NULL, Context->CallbackContext);
         }
         break;
     }
 
     return FALSE;
+}
+
+ULONG_PTR PhTnpOnUserMessage(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Message,
+    __in ULONG_PTR WParam,
+    __in ULONG_PTR LParam
+    )
+{
+    switch (Message)
+    {
+    case TNM_SETCALLBACK:
+        {
+            Context->Callback = (PPH_TREENEW_CALLBACK)LParam;
+            Context->CallbackContext = (PVOID)WParam;
+
+            if (!Context->Callback)
+                Context->Callback = PhTnpNullCallback;
+        }
+        return TRUE;
+    case TNM_NODESSTRUCTURED:
+        {
+            PhTnpRestructureNodes(Context);
+        }
+        return TRUE;
+    case TNM_ADDCOLUMN:
+        return PhTnpAddColumn(Context, (PPH_TREENEW_COLUMN)LParam);
+    case TNM_REMOVECOLUMN:
+        return PhTnpRemoveColumn(Context, (ULONG)WParam);
+    case TNM_GETCOLUMN:
+        return PhTnpCopyColumn(Context, (ULONG)WParam, (PPH_TREENEW_COLUMN)LParam);
+    case TNM_SETCOLUMN:
+        {
+            PPH_TREENEW_COLUMN column = (PPH_TREENEW_COLUMN)LParam;
+
+            return PhTnpChangeColumn(Context, (ULONG)WParam, column->Id, column);
+        }
+        break;
+    case TNM_GETCOLUMNORDERARRAY:
+        {
+            // TODO
+        }
+        break;
+    case TNM_SETCOLUMNORDERARRAY:
+        {
+            // TODO
+        }
+        break;
+    case TNM_SETCURSOR:
+        {
+            Context->Cursor = (HCURSOR)LParam;
+        }
+        return TRUE;
+    case TNM_GETSORT:
+        {
+            PULONG sortColumn = (PULONG)WParam;
+            PPH_SORT_ORDER sortOrder = (PPH_SORT_ORDER)LParam;
+
+            if (sortColumn)
+                *sortColumn = Context->SortColumn;
+            if (sortOrder)
+                *sortOrder = Context->SortOrder;
+        }
+        return TRUE;
+    case TNM_SETSORT:
+        {
+            ULONG sortColumn = (ULONG)WParam;
+            PH_SORT_ORDER sortOrder = (PH_SORT_ORDER)LParam;
+            PPH_TREENEW_COLUMN column;
+
+            if (sortOrder != NoSortOrder)
+            {
+                if (!(column = PhTnpLookupColumnById(Context, sortColumn)))
+                    return FALSE;
+            }
+            else
+            {
+                column = NULL;
+            }
+
+            Context->SortColumn = sortColumn;
+            Context->SortOrder = sortOrder;
+
+            PhTnpSetColumnHeaderSortIcon(Context, column);
+
+            Context->Callback(Context->Handle, TreeNewSortChanged, NULL, NULL, Context->CallbackContext);
+        }
+        return TRUE;
+    case TNM_SETTRISTATE:
+        {
+            Context->TriState = !!WParam;
+        }
+        return TRUE;
+    case TNM_SETMAXID:
+        {
+            ULONG maxId = (ULONG)WParam;
+
+            if (Context->NextId < maxId + 1)
+            {
+                Context->NextId = maxId + 1;
+
+                if (Context->AllocatedColumns < Context->NextId)
+                {
+                    PhTnpExpandAllocatedColumns(Context);
+                }
+            }
+        }
+        return TRUE;
+    }
+
+    return 0;
+}
+
+VOID PhTnpUpdateTextMetrics(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    HDC hdc;
+
+    if (hdc = GetDC(HWND_DESKTOP))
+    {
+        GetTextMetrics(hdc, &Context->TextMetrics);
+
+        Context->RowHeight = max(Context->TextMetrics.tmHeight, SmallIconHeight);
+        Context->RowHeight += 3; // TODO: Fix value
+
+        ReleaseDC(HWND_DESKTOP, hdc);
+    }
 }
 
 VOID PhTnpCancelTrack(
@@ -524,6 +949,8 @@ VOID PhTnpLayout(
 
     GetClientRect(Context->Handle, &clientRect);
 
+    PhTnpUpdateScrollBars(Context);
+
     hdl.prc = &rect;
     hdl.pwpos = &windowPos;
 
@@ -537,9 +964,9 @@ VOID PhTnpLayout(
     Context->HeaderHeight = windowPos.cy;
 
     // Normal portion header control
-    rect.left = Context->FixedWidth;
+    rect.left = Context->FixedWidth + 1;
     rect.top = 0;
-    rect.right = clientRect.right - Context->VScrollWidth;
+    rect.right = clientRect.right - 1 - (Context->VScrollVisible ? Context->VScrollWidth : 0);
     rect.bottom = clientRect.bottom;
     Header_Layout(Context->HeaderHandle, &hdl);
     SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
@@ -599,6 +1026,767 @@ VOID PhTnpSetFixedWidth(
     item.mask = HDI_WIDTH;
     item.cxy = Context->FixedWidth + 1;
     Header_SetItem(Context->FixedHeaderHandle, 0, &item);
+}
+
+PPH_TREENEW_COLUMN PhTnpLookupColumnById(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Id
+    )
+{
+    if (Id >= Context->AllocatedColumns)
+        return NULL;
+
+    return Context->Columns[Id];
+}
+
+BOOLEAN PhTnpAddColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    PPH_TREENEW_COLUMN realColumn;
+
+    // Check if a column with the same ID already exists.
+    if (Column->Id < Context->AllocatedColumns && Context->Columns[Column->Id])
+        return FALSE;
+
+    if (Context->NextId < Column->Id + 1)
+        Context->NextId = Column->Id + 1;
+
+    realColumn = PhAllocateCopy(Column, sizeof(PH_TREENEW_COLUMN));
+
+    if (Context->AllocatedColumns < Context->NextId)
+    {
+        PhTnpExpandAllocatedColumns(Context);
+    }
+
+    Context->Columns[Column->Id] = realColumn;
+    Context->NumberOfColumns++;
+
+    if (realColumn->Fixed)
+    {
+        if (Context->FixedColumn)
+        {
+            // We already have a fixed column, and we can't have two. Make this new column un-fixed.
+            realColumn->Fixed = FALSE;
+        }
+        else
+        {
+            Context->FixedColumn = realColumn;
+        }
+    }
+
+    if (realColumn->Visible)
+    {
+        realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
+
+        if (realColumn->Fixed)
+        {
+            Context->FixedWidth = realColumn->Width;
+
+            if (Context->FixedWidth < Context->FixedWidthMinimum)
+                Context->FixedWidth = Context->FixedWidthMinimum;
+
+            PhTnpLayout(Context);
+        }
+    }
+    else
+    {
+        realColumn->s.ViewIndex = -1;
+    }
+
+    PhTnpUpdateColumnMaps(Context);
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpRemoveColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Id
+    )
+{
+    PPH_TREENEW_COLUMN realColumn;
+
+    if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
+        return FALSE;
+
+    if (realColumn->Fixed)
+    {
+        Context->FixedColumn = NULL;
+    }
+
+    PhTnpDeleteColumnHeader(Context, realColumn);
+    Context->Columns[realColumn->Id] = NULL;
+    PhFree(realColumn);
+    PhTnpUpdateColumnMaps(Context);
+
+    Context->NumberOfColumns--;
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpCopyColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Id,
+    __out PPH_TREENEW_COLUMN Column
+    )
+{
+    PPH_TREENEW_COLUMN realColumn;
+
+    if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
+        return FALSE;
+
+    memcpy(Column, realColumn, sizeof(PH_TREENEW_COLUMN));
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpChangeColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Mask,
+    __in ULONG Id,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    PPH_TREENEW_COLUMN realColumn;
+
+    if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
+        return FALSE;
+
+    if (Mask & TN_COLUMN_FLAG_VISIBLE)
+    {
+        if (realColumn->Visible != Column->Visible)
+        {
+            if (Column->Visible)
+            {
+                if (realColumn->Fixed)
+                    realColumn->DisplayIndex = 0;
+                else
+                    realColumn->DisplayIndex = Header_GetItemCount(Context->HeaderHandle);
+
+                realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
+            }
+            else
+            {
+                PhTnpDeleteColumnHeader(Context, realColumn);
+                PhTnpUpdateColumnMaps(Context);
+            }
+        }
+    }
+
+    if (Mask & TN_COLUMN_FLAG_CUSTOMDRAW)
+    {
+        realColumn->CustomDraw = Column->CustomDraw;
+    }
+
+    if (Mask & (TN_COLUMN_TEXT | TN_COLUMN_WIDTH | TN_COLUMN_ALIGNMENT | TN_COLUMN_DISPLAYINDEX))
+    {
+        if (Mask & TN_COLUMN_TEXT)
+        {
+            realColumn->Text = Column->Text;
+        }
+
+        if (Mask & TN_COLUMN_WIDTH)
+        {
+            realColumn->Width = Column->Width;
+        }
+
+        if (Mask & TN_COLUMN_ALIGNMENT)
+        {
+            realColumn->Alignment = Column->Alignment;
+        }
+
+        if (Mask & TN_COLUMN_DISPLAYINDEX)
+        {
+            realColumn->DisplayIndex = Column->DisplayIndex;
+        }
+
+        PhTnpChangeColumnHeader(Context, Mask, realColumn);
+        PhTnpUpdateColumnMaps(Context); // display indicies and widths have changed
+    }
+
+    if (Mask & TN_COLUMN_CONTEXT)
+    {
+        realColumn->Context = Column->Context;
+    }
+
+    if (Mask & TN_COLUMN_TEXTFLAGS)
+    {
+        realColumn->TextFlags = Column->TextFlags;
+    }
+
+    return TRUE;
+}
+
+VOID PhTnpExpandAllocatedColumns(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    if (Context->Columns)
+    {
+        ULONG oldAllocatedColumns;
+
+        oldAllocatedColumns = Context->AllocatedColumns;
+        Context->AllocatedColumns *= 2;
+
+        if (Context->AllocatedColumns < Context->NextId)
+            Context->AllocatedColumns = Context->NextId;
+
+        Context->Columns = PhReAllocate(
+            Context->Columns,
+            Context->AllocatedColumns * sizeof(PPH_TREENEW_COLUMN)
+            );
+
+        // Zero the newly allocated portion.
+        memset(
+            &Context->Columns[oldAllocatedColumns],
+            0,
+            (Context->AllocatedColumns - oldAllocatedColumns) * sizeof(PPH_TREENEW_COLUMN)
+            );
+    }
+    else
+    {
+        Context->AllocatedColumns = 16;
+
+        if (Context->AllocatedColumns < Context->NextId)
+            Context->AllocatedColumns = Context->NextId;
+
+        Context->Columns = PhAllocate(
+            Context->AllocatedColumns * sizeof(PPH_TREENEW_COLUMN)
+            );
+        memset(Context->Columns, 0, Context->AllocatedColumns * sizeof(PPH_TREENEW_COLUMN));
+    }
+}
+
+VOID PhTnpUpdateColumnMaps(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    ULONG i;
+    LONG x;
+
+    if (Context->AllocatedColumnsByDisplay < Context->NumberOfColumns)
+    {
+        if (Context->ColumnsByDisplay)
+            PhFree(Context->ColumnsByDisplay);
+
+        Context->ColumnsByDisplay = PhAllocate(sizeof(PPH_TREENEW_COLUMN) * Context->NumberOfColumns);
+        Context->AllocatedColumnsByDisplay = Context->NumberOfColumns;
+    }
+
+    memset(Context->ColumnsByDisplay, 0, sizeof(PPH_TREENEW_COLUMN) * Context->AllocatedColumnsByDisplay);
+
+    for (i = 0; i < Context->NextId; i++)
+    {
+        if (!Context->Columns[i])
+            continue;
+
+        if (Context->Columns[i]->Visible && !Context->Columns[i]->Fixed && Context->Columns[i]->DisplayIndex != -1)
+        {
+            if (Context->Columns[i]->DisplayIndex >= Context->NumberOfColumns)
+                PhRaiseStatus(STATUS_INTERNAL_ERROR);
+
+            Context->ColumnsByDisplay[Context->Columns[i]->DisplayIndex] = Context->Columns[i];
+        }
+    }
+
+    x = 0;
+
+    for (i = 0; i < Context->AllocatedColumnsByDisplay; i++)
+    {
+        if (!Context->ColumnsByDisplay[i])
+            break;
+
+        Context->ColumnsByDisplay[i]->s.ViewX = x;
+        x += Context->ColumnsByDisplay[i]->Width;
+    }
+
+    Context->TotalViewX = x;
+}
+
+LONG PhTnpInsertColumnHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    HDITEM item;
+
+    memset(&item, 0, sizeof(HDITEM));
+    item.mask = HDI_WIDTH | HDI_TEXT | HDI_FORMAT | HDI_LPARAM | HDI_ORDER;
+    item.cxy = Column->Width;
+    item.pszText = Column->Text;
+    item.fmt = 0;
+    item.lParam = (LPARAM)Column;
+
+    if (Column->Fixed)
+        item.cxy++;
+
+    if (Column->Fixed)
+        item.iOrder = 0;
+    else
+        item.iOrder = Column->DisplayIndex;
+
+    if (Column->Alignment & PH_ALIGN_LEFT)
+        item.fmt |= HDF_LEFT;
+    else if (Column->Alignment & PH_ALIGN_RIGHT)
+        item.fmt |= HDF_RIGHT;
+    else
+        item.fmt |= HDF_CENTER;
+
+    if (Column->Id == Context->SortColumn)
+    {
+        if (Context->SortOrder == AscendingSortOrder)
+            item.fmt |= HDF_SORTUP;
+        else if (Context->SortOrder == DescendingSortOrder)
+            item.fmt |= HDF_SORTDOWN;
+    }
+
+    Column->Visible = TRUE;
+
+    if (Column->Fixed)
+        return Header_InsertItem(Context->FixedHeaderHandle, 0, &item);
+    else
+        return Header_InsertItem(Context->HeaderHandle, MAXINT, &item);
+}
+
+VOID PhTnpChangeColumnHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Mask,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    HDITEM item;
+
+    memset(&item, 0, sizeof(HDITEM));
+    item.mask = 0;
+
+    if (Mask & TN_COLUMN_TEXT)
+    {
+        item.mask |= HDI_TEXT;
+        item.pszText = Column->Text;
+    }
+
+    if (Mask & TN_COLUMN_WIDTH)
+    {
+        item.mask |= HDI_WIDTH;
+        item.cxy = Column->Width;
+
+        if (Column->Fixed)
+            item.cxy++;
+    }
+
+    if (Mask & TN_COLUMN_ALIGNMENT)
+    {
+        item.mask |= HDI_FORMAT;
+        item.fmt = 0;
+
+        if (Column->Alignment & PH_ALIGN_LEFT)
+            item.fmt |= HDF_LEFT;
+        else if (Column->Alignment & PH_ALIGN_RIGHT)
+            item.fmt |= HDF_RIGHT;
+        else
+            item.fmt |= HDF_CENTER;
+
+        if (Column->Id == Context->SortColumn)
+        {
+            if (Context->SortOrder == AscendingSortOrder)
+                item.fmt |= HDF_SORTUP;
+            else if (Context->SortOrder == DescendingSortOrder)
+                item.fmt |= HDF_SORTDOWN;
+        }
+    }
+
+    if (Mask & TN_COLUMN_DISPLAYINDEX)
+    {
+        item.mask |= HDI_ORDER;
+
+        if (Column->Fixed)
+            item.iOrder = 0;
+        else
+            item.iOrder = Column->DisplayIndex;
+    }
+
+    if (Column->Fixed)
+        Header_SetItem(Context->FixedHeaderHandle, 0, &item);
+    else
+        Header_SetItem(Context->FixedHeaderHandle, Column->s.ViewIndex, &item);
+}
+
+VOID PhTnpDeleteColumnHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_COLUMN Column
+    )
+{
+    if (Column->Fixed)
+        Header_DeleteItem(Context->FixedHeaderHandle, Column->s.ViewIndex);
+    else
+        Header_DeleteItem(Context->HeaderHandle, Column->s.ViewIndex);
+
+    Column->Visible = FALSE;
+    Column->s.ViewIndex = -1;
+    PhTnpUpdateColumnHeaders(Context);
+}
+
+VOID PhTnpUpdateColumnHeaders(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    ULONG count;
+    ULONG i;
+    HDITEM item;
+    PPH_TREENEW_COLUMN column;
+
+    count = Header_GetItemCount(Context->HeaderHandle);
+
+    if (count != -1)
+    {
+        for (i = 0; i < count; i++)
+        {
+            item.mask = HDI_LPARAM | HDI_ORDER;
+
+            if (Header_GetItem(Context->HeaderHandle, i, &item))
+            {
+                column = (PPH_TREENEW_COLUMN)item.lParam;
+                column->s.ViewIndex = i;
+                column->DisplayIndex = item.iOrder;
+            }
+        }
+    }
+}
+
+BOOLEAN PhTnpSetColumnHeaderSortIcon(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt PPH_TREENEW_COLUMN SortColumnPointer
+    )
+{
+    if (Context->SortOrder == NoSortOrder)
+    {
+        PhSetHeaderSortIcon(
+            Context->FixedHeaderHandle,
+            -1,
+            NoSortOrder
+            );
+        PhSetHeaderSortIcon(
+            Context->HeaderHandle,
+            -1,
+            NoSortOrder
+            );
+
+        return TRUE;
+    }
+
+    if (!SortColumnPointer)
+    {
+        if (!(SortColumnPointer = PhTnpLookupColumnById(Context, Context->SortColumn)))
+            return FALSE;
+    }
+
+    if (SortColumnPointer->Fixed)
+    {
+        PhSetHeaderSortIcon(
+            Context->FixedHeaderHandle,
+            0,
+            Context->SortOrder
+            );
+        PhSetHeaderSortIcon(
+            Context->HeaderHandle,
+            -1,
+            NoSortOrder
+            );
+    }
+    else
+    {
+        PhSetHeaderSortIcon(
+            Context->FixedHeaderHandle,
+            -1,
+            NoSortOrder
+            );
+        PhSetHeaderSortIcon(
+            Context->HeaderHandle,
+            SortColumnPointer->s.ViewIndex,
+            Context->SortOrder
+            );
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpGetNodeChildren(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt PPH_TREENEW_NODE Node,
+    __out PPH_TREENEW_NODE **Children,
+    __out PULONG NumberOfChildren
+    )
+{
+    PH_TREENEW_GET_CHILDREN getChildren;
+
+    getChildren.Flags = 0;
+    getChildren.Node = Node;
+    getChildren.Children = NULL;
+    getChildren.NumberOfChildren = 0;
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeNewGetChildren,
+        &getChildren,
+        NULL,
+        Context->CallbackContext
+        ))
+    {
+        *Children = getChildren.Children;
+        *NumberOfChildren = getChildren.NumberOfChildren;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PhTnpIsNodeLeaf(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node
+    )
+{
+    PH_TREENEW_IS_LEAF isLeaf;
+
+    isLeaf.Flags = 0;
+    isLeaf.Node = Node;
+    isLeaf.IsLeaf = TRUE;
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeNewIsLeaf,
+        &isLeaf,
+        NULL,
+        Context->CallbackContext
+        ))
+    {
+        return isLeaf.IsLeaf;
+    }
+
+    // Doesn't matter, decide when we do the get-children callback.
+    return FALSE;
+}
+
+BOOLEAN PhTnpGetCellText(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in ULONG Id,
+    __out PPH_STRINGREF Text
+    )
+{
+    PH_TREENEW_GET_CELL_TEXT getCellText;
+
+    if (Id < Node->TextCacheSize && Node->TextCache[Id].Buffer)
+    {
+        *Text = Node->TextCache[Id];
+        return TRUE;
+    }
+
+    getCellText.Flags = 0;
+    getCellText.Node = Node;
+    getCellText.Id = Id;
+    PhInitializeEmptyStringRef(&getCellText.Text);
+
+    if (Context->Callback(
+        Context->Handle,
+        TreeNewGetCellText,
+        &getCellText,
+        NULL,
+        Context->CallbackContext
+        ) && getCellText.Text.Buffer)
+    {
+        *Text = getCellText.Text;
+
+        if ((getCellText.Flags & TN_CACHE) && Id < Node->TextCacheSize)
+            Node->TextCache[Id] = getCellText.Text;
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhTnpRestructureNodes(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    PPH_TREENEW_NODE *children;
+    ULONG numberOfChildren;
+    ULONG i;
+
+    if (!PhTnpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
+        return;
+
+    PhClearList(Context->FlatList);
+    Context->CanAnyExpand = FALSE;
+
+    for (i = 0; i < numberOfChildren; i++)
+    {
+        PhTnpInsertNodeChildren(Context, children[i], 0);
+    }
+
+    PhTnpUpdateScrollBars(Context);
+    InvalidateRect(Context->Handle, NULL, FALSE);
+}
+
+VOID PhTnpInsertNodeChildren(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in ULONG Level
+    )
+{
+    PPH_TREENEW_NODE *children;
+    ULONG numberOfChildren;
+    ULONG i;
+    ULONG nextLevel;
+
+    if (Node->Visible)
+    {
+        Node->Level = Level;
+
+        Node->Index = Context->FlatList->Count;
+        PhAddItemList(Context->FlatList, Node);
+
+        nextLevel = Level + 1;
+    }
+    else
+    {
+        nextLevel = 0; // children of this node should be level 0
+    }
+
+    if (!(Node->s.IsLeaf = PhTnpIsNodeLeaf(Context, Node)))
+    {
+        Context->CanAnyExpand = TRUE;
+
+        if (Node->Expanded)
+        {
+            if (PhTnpGetNodeChildren(Context, Node, &children, &numberOfChildren))
+            {
+                for (i = 0; i < numberOfChildren; i++)
+                {
+                    PhTnpInsertNodeChildren(Context, children[i], nextLevel);
+                }
+
+                if (numberOfChildren == 0)
+                    Node->s.IsLeaf = TRUE;
+            }
+        }
+    }
+}
+
+VOID PhTnpUpdateScrollBars(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    RECT clientRect;
+    LONG width;
+    LONG height;
+    LONG contentWidth;
+    LONG contentHeight;
+    SCROLLINFO scrollInfo;
+
+    GetClientRect(Context->Handle, &clientRect);
+    width = clientRect.right - Context->FixedWidth;
+    height = clientRect.bottom - Context->HeaderHeight;
+
+    contentWidth = Context->TotalViewX;
+    contentHeight = (LONG)Context->FlatList->Count * Context->RowHeight;
+
+    if (contentHeight > height)
+    {
+        // We need a vertical scrollbar, so we can't use that area of the screen for content.
+        width -= Context->VScrollWidth;
+    }
+
+    if (contentWidth > width)
+    {
+        height -= Context->HScrollHeight;
+    }
+
+    // Vertical scroll bar
+    if (contentHeight > height && contentHeight != 0)
+    {
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+        scrollInfo.nMin = 0;
+        scrollInfo.nMax = Context->FlatList->Count - 1;
+        scrollInfo.nPage = height / Context->RowHeight;
+        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        ShowWindow(Context->VScrollHandle, SW_SHOW);
+        Context->VScrollVisible = TRUE;
+    }
+    else
+    {
+        ShowWindow(Context->VScrollHandle, SW_HIDE);
+        Context->VScrollVisible = FALSE;
+    }
+
+    // Horizontal scroll bar
+    if (contentWidth > width && contentWidth != 0)
+    {
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+        scrollInfo.nMin = 0;
+        scrollInfo.nMax = contentWidth - 1;
+        scrollInfo.nPage = width;
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        ShowWindow(Context->HScrollHandle, SW_SHOW);
+        Context->HScrollVisible = TRUE;
+    }
+    else
+    {
+        ShowWindow(Context->HScrollHandle, SW_HIDE);
+        Context->HScrollVisible = FALSE;
+    }
+
+    ShowWindow(Context->FillerBoxHandle, (Context->VScrollVisible && Context->HScrollVisible) ? SW_SHOW : SW_HIDE);
+}
+
+VOID PhTnpDrawPlusMinusGlyph(
+    __in HDC hdc,
+    __in PRECT Rect,
+    __in BOOLEAN Plus
+    )
+{
+    INT savedDc;
+    ULONG width;
+    ULONG height;
+    POINT points[2];
+
+    savedDc = SaveDC(hdc);
+
+    SelectObject(hdc, GetStockObject(DC_PEN));
+    SetDCPenColor(hdc, RGB(0x55, 0x55, 0x55));
+    SelectObject(hdc, GetStockObject(DC_BRUSH));
+    SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+
+    width = Rect->right - Rect->left;
+    height = Rect->bottom - Rect->top;
+
+    // Draw the rectangle.
+    Rectangle(hdc, Rect->left, Rect->top, Rect->right + 1, Rect->bottom + 1);
+
+    SetDCPenColor(hdc, RGB(0x00, 0x00, 0x00));
+
+    // Draw the horizontal line.
+    points[0].x = Rect->left + 2;
+    points[0].y = Rect->top + height / 2;
+    points[1].x = Rect->right - 2 + 1;
+    points[1].y = points[0].y;
+    Polyline(hdc, points, 2);
+
+    if (Plus)
+    {
+        // Draw the vertical line.
+        points[0].x = Rect->left + width / 2;
+        points[0].y = Rect->top + 2;
+        points[1].x = points[0].x;
+        points[1].y = Rect->bottom - 2 + 1;
+        Polyline(hdc, points, 2);
+    }
+
+    RestoreDC(hdc, savedDc);
 }
 
 VOID PhTnpGetMessagePos(

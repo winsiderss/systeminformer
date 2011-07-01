@@ -22,8 +22,6 @@
 
 #define PH_MAINWND_PRIVATE
 #include <phapp.h>
-#include <treelist.h>
-#include <treenew.h>
 #include <settings.h>
 #include <cpysave.h>
 #include <memsrch.h>
