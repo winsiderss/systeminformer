@@ -21,7 +21,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HScrollVisible : 1;
             ULONG CanAnyExpand : 1;
             ULONG TriState : 1;
-            ULONG Spare : 26;
+            ULONG HasFocus : 1;
+            ULONG Spare : 25;
         };
         ULONG Flags;
     };
@@ -49,6 +50,7 @@ typedef struct _PH_TREENEW_CONTEXT
 
     PPH_TREENEW_COLUMN *ColumnsByDisplay; // columns, indexed by display order (excluding the fixed column)
     ULONG AllocatedColumnsByDisplay;
+    ULONG NumberOfColumnsByDisplay; // the number of visible columns (excluding the fixed column)
     ULONG TotalViewX; // total width of normal columns
     PPH_TREENEW_COLUMN FixedColumn;
 
@@ -313,6 +315,35 @@ VOID PhTnpUpdateScrollBars(
     );
 
 // Drawing
+
+VOID PhTnpPaint(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PAINTSTRUCT *PaintStruct,
+    __in HDC hdc
+    );
+
+VOID PhTnpPrepareRowForDraw(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __inout PPH_TREENEW_NODE Node
+    );
+
+VOID PhTnpDrawCell(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT CellRect,
+    __in PPH_TREENEW_NODE Node,
+    __in PPH_TREENEW_COLUMN Column,
+    __in LONG RowIndex,
+    __in LONG ColumnIndex
+    );
+
+VOID PhTnpDrawDivider(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT ClientRect
+    );
 
 VOID PhTnpDrawPlusMinusGlyph(
     __in HDC hdc,
