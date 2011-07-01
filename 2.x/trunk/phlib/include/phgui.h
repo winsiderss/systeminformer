@@ -63,6 +63,12 @@ typedef HRESULT (WINAPI *_CloseThemeData)(
     __in HTHEME hTheme
     );
 
+typedef BOOL (WINAPI *_IsThemePartDefined)(
+    __in HTHEME hTheme,
+    __in int iPartId,
+    __in int iStateId
+    );
+
 typedef HRESULT (WINAPI *_DrawThemeBackground)(
     __in HTHEME hTheme,
     __in HDC hdc,
@@ -102,6 +108,7 @@ extern _RunFileDlg RunFileDlg;
 extern _IsThemeActive IsThemeActive_I;
 extern _OpenThemeData OpenThemeData_I;
 extern _CloseThemeData CloseThemeData_I;
+extern _IsThemePartDefined IsThemePartDefined_I;
 extern _DrawThemeBackground DrawThemeBackground_I;
 extern _DrawThemeText DrawThemeText_I;
 extern _SHAutoComplete SHAutoComplete_I;
