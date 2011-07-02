@@ -4003,8 +4003,6 @@ VOID PhShowProcessContextMenu(
             PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessMenuInitializing), &menuInfo);
         }
 
-        ClientToScreen(ProcessTreeListHandle, &Location);
-
         item = PhShowEMenu(
             menu,
             PhMainWndHandle,

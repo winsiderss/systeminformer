@@ -10,6 +10,7 @@ typedef struct _PH_TREENEW_CONTEXT
     HWND VScrollHandle;
     HWND HScrollHandle;
     HWND FillerBoxHandle;
+    HWND TooltipsHandle;
 
     union
     {
@@ -28,7 +29,10 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG ThemeHasGlyph : 1;
             ULONG ThemeHasHotGlyph : 1;
             ULONG FocusNodeFound : 1; // used to preserve the focused node across restructuring
-            ULONG Spare : 19;
+            ULONG SearchFailed : 1; // used to prevent multiple beeps
+            ULONG SearchSingleCharMode : 1; // LV style single-character search
+            ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
+            ULONG Spare : 16;
         };
         ULONG Flags;
     };
@@ -43,11 +47,12 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG HScrollHeight;
     LONG VScrollPosition;
     LONG HScrollPosition;
-
     LONG FixedWidth; // width of the fixed part of the tree list
     LONG FixedWidthMinimum;
+    LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
     LONG TrackStartX;
     LONG TrackOldFixedWidth;
+
     PPH_TREENEW_NODE HotNode;
     PPH_TREENEW_NODE FocusNode;
     PPH_TREENEW_NODE MarkNode; // selection mark
@@ -74,6 +79,16 @@ typedef struct _PH_TREENEW_CONTEXT
 
     ULONG SortColumn; // ID of the column to sort by
     PH_SORT_ORDER SortOrder;
+
+    LONG SearchMessageTime;
+    PWSTR SearchString;
+    ULONG SearchStringCount;
+    ULONG AllocatedSearchString;
+
+    ULONG TooltipIndex;
+    ULONG TooltipId;
+    PPH_STRING TooltipText;
+    RECT TooltipRect; // text rectangle of an unfolding tooltip
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
@@ -184,6 +199,13 @@ VOID PhTnpOnKeyDown(
     __in ULONG Data
     );
 
+VOID PhTnpOnChar(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Character,
+    __in ULONG Data
+    );
+
 VOID PhTnpOnMouseWheel(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
@@ -191,6 +213,13 @@ VOID PhTnpOnMouseWheel(
     __in ULONG VirtualKeys,
     __in LONG CursorX,
     __in LONG CursorY
+    );
+
+VOID PhTnpOnContextMenu(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorScreenX,
+    __in LONG CursorScreenY
     );
 
 VOID PhTnpOnVScroll(
@@ -349,6 +378,7 @@ BOOLEAN PhTnpGetCellParts(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG Index,
     __in_opt PPH_TREENEW_COLUMN Column,
+    __in ULONG Flags,
     __out PPH_TREENEW_CELL_PARTS Parts
     );
 
@@ -369,8 +399,7 @@ VOID PhTnpSelectRange(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG Start,
     __in ULONG End,
-    __in BOOLEAN Toggle,
-    __in BOOLEAN Reset,
+    __in ULONG Flags,
     __out_opt PULONG ChangedStart,
     __out_opt PULONG ChangedEnd
     );
@@ -396,6 +425,18 @@ BOOLEAN PhTnpProcessFocusKey(
 BOOLEAN PhTnpProcessNodeKey(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG VirtualKey
+    );
+
+VOID PhTnpProcessSearchKey(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Character
+    );
+
+BOOLEAN PhTnpDefaultIncrementalSearch(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_SEARCH_EVENT SearchEvent,
+    __in BOOLEAN Partial,
+    __in BOOLEAN Wrap
     );
 
 // Scrolling
@@ -447,6 +488,30 @@ VOID PhTnpDrawPlusMinusGlyph(
     __in BOOLEAN Plus
     );
 
+// Tooltips
+
+VOID PhTnpInitializeTooltips(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpGetTooltipText(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPOINT Point,
+    __out PWSTR *Text
+    );
+
+BOOLEAN PhTnpPrepareTooltipShow(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpPrepareTooltipPop(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpPopTooltip(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
 // Support functions
 
 VOID PhTnpGetMessagePos(
@@ -456,7 +521,7 @@ VOID PhTnpGetMessagePos(
 
 // Macros
 
-#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) ((X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
-#define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) (((X) >= ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth + 5))
+#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) (Context->FixedColumn && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
+#define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) (((X) >= 6 + ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < 6 + ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth))
 
 #endif

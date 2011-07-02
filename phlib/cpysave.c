@@ -22,6 +22,7 @@
 
 #include <phgui.h>
 #include <treelist.h>
+#include <treenew.h>
 #include <cpysave.h>
 
 #define TAB_SIZE 8
@@ -255,6 +256,42 @@ VOID PhMapDisplayIndexTreeList(
         column.Id = i;
 
         if (TreeList_GetColumn(TreeListHandle, &column))
+        {
+            if (column.Visible)
+            {
+                if (column.DisplayIndex < MaximumNumberOfColumns)
+                {
+                    DisplayToId[column.DisplayIndex] = i;
+
+                    if (DisplayToText)
+                        DisplayToText[column.DisplayIndex] = column.Text;
+
+                    count++;
+                }
+            }
+        }
+    }
+
+    *NumberOfColumns = count;
+}
+
+VOID PhMapDisplayIndexTreeNew(
+    __in HWND TreeNewHandle,
+    __in ULONG MaximumNumberOfColumns,
+    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
+    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
+    __out PULONG NumberOfColumns
+    )
+{
+    PH_TREELIST_COLUMN column;
+    ULONG i;
+    ULONG count;
+
+    count = 0;
+
+    for (i = 0; i < MaximumNumberOfColumns; i++)
+    {
+        if (TreeNew_GetColumn(TreeNewHandle, i, &column))
         {
             if (column.Visible)
             {

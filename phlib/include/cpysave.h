@@ -26,6 +26,14 @@ VOID PhMapDisplayIndexTreeList(
     __out PULONG NumberOfColumns
     );
 
+VOID PhMapDisplayIndexTreeNew(
+    __in HWND TreeNewHandle,
+    __in ULONG MaximumNumberOfColumns,
+    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
+    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
+    __out PULONG NumberOfColumns
+    );
+
 PHLIBAPI
 PPH_FULL_STRING PhGetTreeListText(
     __in HWND TreeListHandle,
