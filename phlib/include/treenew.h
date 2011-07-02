@@ -329,7 +329,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_SETREDRAW (WM_USER + 28)
 #define TNM_SELECTRANGE (WM_USER + 29)
 #define TNM_DESELECTRANGE (WM_USER + 30)
-#define TNM_LAST (WM_USER + 30)
+#define TNM_GETCOLUMNCOUNT (WM_USER + 31)
+#define TNM_LAST (WM_USER + 31)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -414,6 +415,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_DeselectRange(hWnd, Start, End) \
     SendMessage((hWnd), TNM_DESELECTRANGE, (WPARAM)(Start), (LPARAM)(End))
+
+#define TreeNew_GetColumnCount(hWnd) \
+    ((ULONG)SendMessage((hWnd), TNM_GETCOLUMNCOUNT, 0, 0))
 
 BOOLEAN PhTreeNewInitialization();
 
