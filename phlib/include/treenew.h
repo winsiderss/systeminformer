@@ -42,10 +42,9 @@ typedef struct _PH_TREENEW_NODE
             ULONG Visible : 1;
             ULONG Selected : 1;
             ULONG Expanded : 1;
-            ULONG Hot : 1;
             ULONG UseAutoForeColor : 1;
             ULONG UseTempBackColor : 1;
-            ULONG SpareFlags : 26;
+            ULONG SpareFlags : 27;
         };
     };
 
@@ -156,16 +155,17 @@ typedef enum _PH_TREENEW_MESSAGE
 
     // Notifications
     TreeNewNodeExpanding, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_NODE_EVENT Parameter2
+    TreeNewNodeSelecting, // PPH_TREENEW_NODE Parameter1
 
     TreeNewSortChanged,
     TreeNewSelectionChanged,
 
-    TreeNewKeyDown, // SHORT Parameter1 (Virtual key code)
-    TreeNewLeftClick, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_MOUSE_EVENT Parameter2
-    TreeNewRightClick, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_MOUSE_EVENT Parameter2
-    TreeNewLeftDoubleClick, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_MOUSE_EVENT Parameter2
-    TreeNewRightDoubleClick, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_MOUSE_EVENT Parameter2
-    TreeNewContextMenu, // PPH_TREENEW_NODE Parameter1, PPH_TREENEW_MOUSE_EVENT Parameter2
+    TreeNewKeyDown, // PPH_TREENEW_KEY_EVENT Parameter1
+    TreeNewLeftClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
+    TreeNewRightClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
+    TreeNewLeftDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
+    TreeNewRightDoubleClick, // PPH_TREENEW_MOUSE_EVENT Parameter1
+    TreeNewContextMenu, // PPH_TREENEW_MOUSE_EVENT Parameter1
 
     TreeNewHeaderRightClick,
 
@@ -251,11 +251,18 @@ typedef struct _PH_TREENEW_CUSTOM_DRAW
 
 typedef struct _PH_TREENEW_MOUSE_EVENT
 {
-    ULONG Index;
-    ULONG Id;
     POINT Location;
+    PPH_TREENEW_NODE Node;
+    PPH_TREENEW_COLUMN Column;
     ULONG KeyFlags;
 } PH_TREENEW_MOUSE_EVENT, *PPH_TREENEW_MOUSE_EVENT;
+
+typedef struct _PH_TREENEW_KEY_EVENT
+{
+    BOOLEAN Handled;
+    ULONG VirtualKey;
+    ULONG Data;
+} PH_TREENEW_KEY_EVENT, *PPH_TREENEW_KEY_EVENT;
 
 typedef struct _PH_TREENEW_NODE_EVENT
 {
