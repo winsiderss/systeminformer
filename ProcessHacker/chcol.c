@@ -26,7 +26,8 @@
 
 typedef struct _COLUMNS_DIALOG_CONTEXT
 {
-    HWND TreeListHandle;
+    HWND ControlHandle;
+    ULONG Type;
     PPH_LIST Columns;
 
     HWND InactiveList;
@@ -42,13 +43,21 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
 
 VOID PhShowChooseColumnsDialog(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle
+    __in HWND ControlHandle,
+    __in ULONG Type
     )
 {
     COLUMNS_DIALOG_CONTEXT context;
 
-    context.TreeListHandle = TreeListHandle;
-    context.Columns = PhCreateList(TreeList_GetColumnCount(TreeListHandle));
+    context.ControlHandle = ControlHandle;
+    context.Type = Type;
+
+    if (Type == PH_CONTROL_TYPE_TREE_LIST)
+        context.Columns = PhCreateList(TreeList_GetColumnCount(ControlHandle));
+    else if (Type == PH_CONTROL_TYPE_TREE_NEW)
+        context.Columns = PhCreateList(TreeNew_GetColumnCount(ControlHandle));
+    else
+        return;
 
     DialogBoxParam(
         PhInstanceHandle,
@@ -61,13 +70,24 @@ VOID PhShowChooseColumnsDialog(
     PhDereferenceObject(context.Columns);
 }
 
-static int __cdecl PhpColumnsCompareDisplayIndex(
+static int __cdecl PhpColumnsCompareDisplayIndexTl(
     __in const void *elem1,
     __in const void *elem2
     )
 {
     PPH_TREELIST_COLUMN column1 = *(PPH_TREELIST_COLUMN *)elem1;
     PPH_TREELIST_COLUMN column2 = *(PPH_TREELIST_COLUMN *)elem2;
+
+    return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
+}
+
+static int __cdecl PhpColumnsCompareDisplayIndexTn(
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_TREENEW_COLUMN column1 = *(PPH_TREENEW_COLUMN *)elem1;
+    PPH_TREENEW_COLUMN column2 = *(PPH_TREENEW_COLUMN *)elem2;
 
     return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
 }
@@ -118,50 +138,105 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             ULONG count;
             ULONG total;
             ULONG i;
-            PH_TREELIST_COLUMN column;
             PPH_LIST displayOrderList;
 
             context->InactiveList = GetDlgItem(hwndDlg, IDC_INACTIVE);
             context->ActiveList = GetDlgItem(hwndDlg, IDC_ACTIVE);
 
-            count = 0;
-            total = TreeList_GetColumnCount(context->TreeListHandle);
-            i = 0;
-
-            displayOrderList = PhCreateList(total);
-
-            while (count < total)
+            if (context->Type == PH_CONTROL_TYPE_TREE_LIST)
             {
-                column.Id = i;
+                PH_TREELIST_COLUMN column;
 
-                if (TreeList_GetColumn(context->TreeListHandle, &column))
+                count = 0;
+                total = TreeList_GetColumnCount(context->ControlHandle);
+                i = 0;
+
+                displayOrderList = PhCreateList(total);
+
+                while (count < total)
                 {
-                    PPH_TREELIST_COLUMN copy;
+                    column.Id = i;
 
-                    copy = PhAllocateCopy(&column, sizeof(PH_TREELIST_COLUMN));
-                    PhAddItemList(context->Columns, copy);
-                    count++;
+                    if (TreeList_GetColumn(context->ControlHandle, &column))
+                    {
+                        PPH_TREELIST_COLUMN copy;
 
-                    if (column.Visible)
-                    {
-                        PhAddItemList(displayOrderList, copy);
+                        copy = PhAllocateCopy(&column, sizeof(PH_TREELIST_COLUMN));
+                        PhAddItemList(context->Columns, copy);
+                        count++;
+
+                        if (column.Visible)
+                        {
+                            PhAddItemList(displayOrderList, copy);
+                        }
+                        else
+                        {
+                            ListBox_AddString(context->InactiveList, column.Text);
+                        }
                     }
-                    else
-                    {
-                        ListBox_AddString(context->InactiveList, column.Text);
-                    }
+
+                    i++;
                 }
 
-                i++;
+                qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTl);
             }
+            else if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
+            {
+                PH_TREENEW_COLUMN column;
 
-            qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndex);
+                count = 0;
+                total = TreeNew_GetColumnCount(context->ControlHandle);
+                i = 0;
+
+                displayOrderList = PhCreateList(total);
+
+                while (count < total)
+                {
+                    if (TreeNew_GetColumn(context->ControlHandle, i, &column))
+                    {
+                        PPH_TREENEW_COLUMN copy;
+
+                        if (column.Fixed)
+                        {
+                            i++;
+                            total--;
+                            continue;
+                        }
+
+                        copy = PhAllocateCopy(&column, sizeof(PH_TREENEW_COLUMN));
+                        PhAddItemList(context->Columns, copy);
+                        count++;
+
+                        if (column.Visible)
+                        {
+                            PhAddItemList(displayOrderList, copy);
+                        }
+                        else
+                        {
+                            ListBox_AddString(context->InactiveList, column.Text);
+                        }
+                    }
+
+                    i++;
+                }
+
+                qsort(displayOrderList->Items, displayOrderList->Count, sizeof(PVOID), PhpColumnsCompareDisplayIndexTn);
+            }
 
             for (i = 0; i < displayOrderList->Count; i++)
             {
-                PPH_TREELIST_COLUMN copy = displayOrderList->Items[i];
+                if (context->Type == PH_CONTROL_TYPE_TREE_LIST)
+                {
+                    PPH_TREELIST_COLUMN copy = displayOrderList->Items[i];
 
-                ListBox_AddString(context->ActiveList, copy->Text);
+                    ListBox_AddString(context->ActiveList, copy->Text);
+                }
+                else if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
+                {
+                    PPH_TREENEW_COLUMN copy = displayOrderList->Items[i];
+
+                    ListBox_AddString(context->ActiveList, copy->Text);
+                }
             }
 
             PhDereferenceObject(displayOrderList);
@@ -205,56 +280,109 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                     for (i = 0; i < activeCount; i++)
                         PhAddItemList(activeList, PhGetListBoxString(context->ActiveList, i));
 
-                    // Apply visiblity settings.
-
-                    TreeList_SetRedraw(context->TreeListHandle, FALSE);
-
-                    for (i = 0; i < context->Columns->Count; i++)
+                    if (context->Type == PH_CONTROL_TYPE_TREE_LIST)
                     {
-                        PPH_TREELIST_COLUMN column = context->Columns->Items[i];
-                        PH_TREELIST_COLUMN tempColumn;
-                        ULONG index;
+                        // Apply visiblity settings.
 
-                        index = IndexOfStringInList(activeList, column->Text);
-                        column->Visible = index != -1;
-                        column->DisplayIndex = index; // the active list box order is the actual display order
+                        TreeList_SetRedraw(context->ControlHandle, FALSE);
 
-                        TreeList_SetColumn(context->TreeListHandle, column, TLCM_FLAGS);
-
-                        // Get the ViewIndex for use in the second pass.
-                        tempColumn.Id = column->Id;
-                        TreeList_GetColumn(context->TreeListHandle, &tempColumn);
-                        column->s.ViewIndex = tempColumn.s.ViewIndex;
-                    }
-
-                    // Do a second pass to create the order array. This is because the ViewIndex of each column 
-                    // were unstable in the previous pass since we were both adding and removing columns.
-                    for (i = 0; i < context->Columns->Count; i++)
-                    {
-                        PPH_TREELIST_COLUMN column = context->Columns->Items[i];
-
-                        if (column->Visible)
+                        for (i = 0; i < context->Columns->Count; i++)
                         {
-                            if (column->DisplayIndex < ORDER_LIMIT)
-                            {
-                                orderArray[column->DisplayIndex] = column->s.ViewIndex;
+                            PPH_TREELIST_COLUMN column = context->Columns->Items[i];
+                            PH_TREELIST_COLUMN tempColumn;
+                            ULONG index;
 
-                                if ((ULONG)maxOrder < column->DisplayIndex + 1)
-                                    maxOrder = column->DisplayIndex + 1;
+                            index = IndexOfStringInList(activeList, column->Text);
+                            column->Visible = index != -1;
+                            column->DisplayIndex = index; // the active list box order is the actual display order
+
+                            TreeList_SetColumn(context->ControlHandle, column, TLCM_FLAGS);
+
+                            // Get the ViewIndex for use in the second pass.
+                            tempColumn.Id = column->Id;
+                            TreeList_GetColumn(context->ControlHandle, &tempColumn);
+                            column->s.ViewIndex = tempColumn.s.ViewIndex;
+                        }
+
+                        // Do a second pass to create the order array. This is because the ViewIndex of each column 
+                        // were unstable in the previous pass since we were both adding and removing columns.
+                        for (i = 0; i < context->Columns->Count; i++)
+                        {
+                            PPH_TREELIST_COLUMN column = context->Columns->Items[i];
+
+                            if (column->Visible)
+                            {
+                                if (column->DisplayIndex < ORDER_LIMIT)
+                                {
+                                    orderArray[column->DisplayIndex] = column->s.ViewIndex;
+
+                                    if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                                        maxOrder = column->DisplayIndex + 1;
+                                }
                             }
                         }
+
+                        // Apply display order.
+                        TreeList_SetColumnOrderArray(context->ControlHandle, maxOrder, orderArray);
+
+                        TreeList_SetRedraw(context->ControlHandle, TRUE);
+
+                        PhDereferenceObject(activeList);
+
+                        // Force a refresh of the scrollbars.
+                        TreeList_Scroll(context->ControlHandle, 0, 0);
+                        InvalidateRect(context->ControlHandle, NULL, TRUE);
                     }
+                    else if (context->Type == PH_CONTROL_TYPE_TREE_NEW)
+                    {
+                        // Apply visiblity settings.
 
-                    // Apply display order.
-                    TreeList_SetColumnOrderArray(context->TreeListHandle, maxOrder, orderArray);
+                        TreeNew_SetRedraw(context->ControlHandle, FALSE);
 
-                    TreeList_SetRedraw(context->TreeListHandle, TRUE);
+                        for (i = 0; i < context->Columns->Count; i++)
+                        {
+                            PPH_TREENEW_COLUMN column = context->Columns->Items[i];
+                            PH_TREENEW_COLUMN tempColumn;
+                            ULONG index;
 
-                    PhDereferenceObject(activeList);
+                            index = IndexOfStringInList(activeList, column->Text);
+                            column->Visible = index != -1;
+                            column->DisplayIndex = index; // the active list box order is the actual display order
 
-                    // Force a refresh of the scrollbars.
-                    TreeList_Scroll(context->TreeListHandle, 0, 0);
-                    InvalidateRect(context->TreeListHandle, NULL, TRUE);
+                            TreeNew_SetColumn(context->ControlHandle, TN_COLUMN_FLAG_VISIBLE, column);
+
+                            // Get the ViewIndex for use in the second pass.
+                            TreeNew_GetColumn(context->ControlHandle, column->Id, &tempColumn);
+                            column->s.ViewIndex = tempColumn.s.ViewIndex;
+                        }
+
+                        // Do a second pass to create the order array. This is because the ViewIndex of each column 
+                        // were unstable in the previous pass since we were both adding and removing columns.
+                        for (i = 0; i < context->Columns->Count; i++)
+                        {
+                            PPH_TREENEW_COLUMN column = context->Columns->Items[i];
+
+                            if (column->Visible)
+                            {
+                                if (column->DisplayIndex < ORDER_LIMIT)
+                                {
+                                    orderArray[column->DisplayIndex] = column->s.ViewIndex;
+
+                                    if ((ULONG)maxOrder < column->DisplayIndex + 1)
+                                        maxOrder = column->DisplayIndex + 1;
+                                }
+                            }
+                        }
+
+                        // Apply display order.
+                        TreeNew_SetColumnOrderArray(context->ControlHandle, maxOrder, orderArray);
+
+                        TreeNew_SetRedraw(context->ControlHandle, TRUE);
+
+                        PhDereferenceObject(activeList);
+
+                        InvalidateRect(context->ControlHandle, NULL, FALSE);
+                    }
 
                     EndDialog(hwndDlg, IDOK);
                 }

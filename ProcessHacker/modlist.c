@@ -673,7 +673,7 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 NULL
                 ) == ID_HEADER_CHOOSECOLUMNS)
             {
-                PhShowChooseColumnsDialog(hwnd, hwnd);
+                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_LIST);
 
                 // Make sure the column we're sorting by is actually visible, 
                 // and if not, don't sort any more.

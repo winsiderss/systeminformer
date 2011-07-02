@@ -1954,7 +1954,7 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
                 NULL
                 ) == ID_HEADER_CHOOSECOLUMNS)
             {
-                PhShowChooseColumnsDialog(hwnd, hwnd);
+                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
                 PhpUpdateNeedCyclesInformation();
 
                 // Make sure the column we're sorting by is actually visible, 
