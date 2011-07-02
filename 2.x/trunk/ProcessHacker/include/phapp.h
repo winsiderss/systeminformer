@@ -1125,9 +1125,13 @@ BOOLEAN PhShowProcessAffinityDialog2(
 
 // chcol
 
+#define PH_CONTROL_TYPE_TREE_LIST 1
+#define PH_CONTROL_TYPE_TREE_NEW 2
+
 VOID PhShowChooseColumnsDialog(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle
+    __in HWND ControlHandle,
+    __in ULONG Type
     );
 
 // chdlg

@@ -1156,8 +1156,6 @@ BOOLEAN PhTnpOnNotify(
                         Context->FixedWidth = 0;
                         Context->NormalLeft = 0;
                     }
-
-                    PhTnpLayout(Context);
                 }
             }
 
@@ -1168,6 +1166,7 @@ BOOLEAN PhTnpOnNotify(
                     // A column has been re-ordered or resized. Update our stored information.
                     PhTnpUpdateColumnHeaders(Context);
                     PhTnpUpdateColumnMaps(Context);
+                    PhTnpLayout(Context);
                 }
 
                 RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
@@ -1313,11 +1312,17 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_GETCOLUMNORDERARRAY:
         {
             // TODO
+            return Header_GetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam);
         }
         break;
     case TNM_SETCOLUMNORDERARRAY:
         {
             // TODO
+            if (!Header_SetOrderArray(Context->HeaderHandle, (ULONG)WParam, (PLONG)LParam))
+                return FALSE;
+
+            PhTnpUpdateColumnHeaders(Context);
+            PhTnpUpdateColumnMaps(Context);
         }
         break;
     case TNM_SETCURSOR:
@@ -1461,6 +1466,9 @@ ULONG_PTR PhTnpOnUserMessage(
                 InvalidateRect(hwnd, &rect, FALSE);
             }
         }
+        return TRUE;
+    case TNM_GETCOLUMNCOUNT:
+        return (LRESULT)Context->NumberOfColumns;
     }
 
     return 0;
@@ -1687,8 +1695,6 @@ BOOLEAN PhTnpAddColumn(
                 Context->FixedWidth = Context->FixedWidthMinimum;
 
             Context->NormalLeft = Context->FixedWidth + 1;
-
-            PhTnpLayout(Context);
         }
     }
     else
@@ -1697,6 +1703,9 @@ BOOLEAN PhTnpAddColumn(
     }
 
     PhTnpUpdateColumnMaps(Context);
+
+    if (realColumn->Visible)
+        PhTnpLayout(Context);
 
     return TRUE;
 }
@@ -1707,9 +1716,12 @@ BOOLEAN PhTnpRemoveColumn(
     )
 {
     PPH_TREENEW_COLUMN realColumn;
+    BOOLEAN updateLayout;
 
     if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
         return FALSE;
+
+    updateLayout = FALSE;
 
     if (realColumn->Fixed)
     {
@@ -1718,10 +1730,16 @@ BOOLEAN PhTnpRemoveColumn(
         Context->NormalLeft = 0;
     }
 
+    if (realColumn->Visible)
+        updateLayout = TRUE;
+
     PhTnpDeleteColumnHeader(Context, realColumn);
     Context->Columns[realColumn->Id] = NULL;
     PhFree(realColumn);
     PhTnpUpdateColumnMaps(Context);
+
+    if (updateLayout)
+        PhTnpLayout(Context);
 
     Context->NumberOfColumns--;
 
@@ -1752,9 +1770,12 @@ BOOLEAN PhTnpChangeColumn(
     )
 {
     PPH_TREENEW_COLUMN realColumn;
+    BOOLEAN addedOrRemoved;
 
     if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
         return FALSE;
+
+    addedOrRemoved = FALSE;
 
     if (Mask & TN_COLUMN_FLAG_VISIBLE)
     {
@@ -1772,8 +1793,11 @@ BOOLEAN PhTnpChangeColumn(
             else
             {
                 PhTnpDeleteColumnHeader(Context, realColumn);
-                PhTnpUpdateColumnMaps(Context);
             }
+
+            addedOrRemoved = TRUE;
+            PhTnpUpdateColumnMaps(Context);
+            PhTnpLayout(Context);
         }
     }
 
@@ -1784,6 +1808,14 @@ BOOLEAN PhTnpChangeColumn(
 
     if (Mask & (TN_COLUMN_TEXT | TN_COLUMN_WIDTH | TN_COLUMN_ALIGNMENT | TN_COLUMN_DISPLAYINDEX))
     {
+        BOOLEAN updateHeaders;
+        BOOLEAN updateMaps;
+        BOOLEAN updateLayout;
+
+        updateHeaders = FALSE;
+        updateMaps = FALSE;
+        updateLayout = FALSE;
+
         if (Mask & TN_COLUMN_TEXT)
         {
             realColumn->Text = Column->Text;
@@ -1792,6 +1824,7 @@ BOOLEAN PhTnpChangeColumn(
         if (Mask & TN_COLUMN_WIDTH)
         {
             realColumn->Width = Column->Width;
+            updateMaps = TRUE;
         }
 
         if (Mask & TN_COLUMN_ALIGNMENT)
@@ -1802,10 +1835,22 @@ BOOLEAN PhTnpChangeColumn(
         if (Mask & TN_COLUMN_DISPLAYINDEX)
         {
             realColumn->DisplayIndex = Column->DisplayIndex;
+            updateHeaders = TRUE;
+            updateMaps = TRUE;
+            updateLayout = TRUE;
         }
 
-        PhTnpChangeColumnHeader(Context, Mask, realColumn);
-        PhTnpUpdateColumnMaps(Context); // display indicies and widths have changed
+        if (!addedOrRemoved)
+        {
+            PhTnpChangeColumnHeader(Context, Mask, realColumn);
+
+            if (updateHeaders)
+                PhTnpUpdateColumnHeaders(Context);
+            if (updateMaps)
+                PhTnpUpdateColumnMaps(Context);
+            if (updateLayout)
+                PhTnpLayout(Context);
+        }
     }
 
     if (Mask & TN_COLUMN_CONTEXT)
