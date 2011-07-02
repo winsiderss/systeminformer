@@ -1910,7 +1910,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
         return TRUE;
     case TreeNewKeyDown:
         {
-            switch ((SHORT)Parameter1)
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
