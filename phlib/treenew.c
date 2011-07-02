@@ -34,7 +34,7 @@ BOOLEAN PhTreeNewInitialization()
 {
     WNDCLASSEX c = { sizeof(c) };
 
-    c.style = CS_GLOBALCLASS;
+    c.style = CS_DBLCLKS | CS_GLOBALCLASS;
     c.lpfnWndProc = PhTnpWndProc;
     c.cbClsExtra = 0;
     c.cbWndExtra = sizeof(PVOID);
@@ -103,15 +103,13 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_ERASEBKGND:
         return TRUE;
     case WM_PAINT:
-        { 
-            PAINTSTRUCT paintStruct;
-            HDC hdc;
-
-            if (hdc = BeginPaint(hwnd, &paintStruct))
-            {
-                PhTnpOnPaint(hwnd, context, &paintStruct, hdc);
-                EndPaint(hwnd, &paintStruct);
-            }
+        {
+            PhTnpOnPaint(hwnd, context);
+        }
+        break;
+    case WM_PRINTCLIENT:
+        {
+            PhTnpOnPrintClient(hwnd, context, (HDC)wParam, (ULONG)lParam);
         }
         break;
     case WM_GETFONT:
@@ -463,18 +461,31 @@ BOOLEAN PhTnpOnSetCursor(
 
 VOID PhTnpOnPaint(
     __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in PAINTSTRUCT *PaintStruct,
-    __in HDC hdc
+    __in PPH_TREENEW_CONTEXT Context
     )
 {
-    if (!Context->ThemeInitialized)
-    {
-        PhTnpUpdateThemeData(Context);
-        Context->ThemeInitialized = TRUE;
-    }
+    RECT updateRect;
+    HDC hdc;
+    PAINTSTRUCT paintStruct;
 
-    PhTnpPaint(hwnd, Context, PaintStruct, hdc);
+    if (GetUpdateRect(hwnd, &updateRect, FALSE))
+    {
+        if (hdc = BeginPaint(hwnd, &paintStruct))
+        {
+            PhTnpPaint(hwnd, Context, hdc, &paintStruct.rcPaint);
+            EndPaint(hwnd, &paintStruct);
+        }
+    }
+}
+
+VOID PhTnpOnPrintClient(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in ULONG Flags
+    )
+{
+    PhTnpPaint(hwnd, Context, hdc, &Context->ClientRect);
 }
 
 VOID PhTnpOnMouseMove(
@@ -488,9 +499,6 @@ VOID PhTnpOnMouseMove(
     TRACKMOUSEEVENT trackMouseEvent;
     PH_TREENEW_HIT_TEST hitTest;
     PPH_TREENEW_NODE hotNode;
-    PH_TREENEW_CELL_PARTS parts;
-    BOOLEAN newPlusMinusHot;
-    BOOLEAN needsInvalidate;
 
     trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
     trackMouseEvent.dwFlags = TME_LEAVE;
@@ -520,44 +528,7 @@ VOID PhTnpOnMouseMove(
         hotNode = NULL;
     }
 
-    needsInvalidate = FALSE;
-
-    if (Context->HotNode != hotNode)
-    {
-        if (Context->HotNode && Context->ThemeData)
-        {
-            // Update the old hot node because it may have a different non-hot background and plus minus part.
-            if (PhTnpGetCellParts(Context, Context->HotNode->Index, NULL, &parts))
-            {
-                InvalidateRect(Context->Handle, &parts.RowRect, FALSE);
-            }
-        }
-
-        PhTnpClearHotNode(Context);
-        Context->HotNode = hotNode;
-
-        if (Context->HotNode)
-        {
-            Context->HotNode->Hot = TRUE;
-            needsInvalidate = TRUE;
-        }
-    }
-
-    if (Context->HotNode)
-    {
-        newPlusMinusHot = !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS);
-
-        if (Context->HotNode->s.PlusMinusHot != newPlusMinusHot)
-        {
-            Context->HotNode->s.PlusMinusHot = newPlusMinusHot;
-            needsInvalidate = TRUE;
-        }
-
-        if (needsInvalidate && Context->ThemeData && PhTnpGetCellParts(Context, Context->HotNode->Index, NULL, &parts))
-        {
-            InvalidateRect(Context->Handle, &parts.RowRect, FALSE);
-        }
-    }
+    PhTnpSetHotNode(Context, hotNode, !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS));
 }
 
 VOID PhTnpOnMouseLeave(
@@ -576,7 +547,7 @@ VOID PhTnpOnMouseLeave(
         }
     }
 
-    PhTnpClearHotNode(Context);
+    Context->HotNode = NULL;
 }
 
 VOID PhTnpOnXxxButtonXxx(
@@ -588,7 +559,24 @@ VOID PhTnpOnXxxButtonXxx(
     __in LONG CursorY
     )
 {
-    SetFocus(hwnd);
+    BOOLEAN startingTracking;
+    PH_TREENEW_HIT_TEST hitTest;
+    BOOLEAN plusMinusProcessed;
+    LOGICAL controlKey;
+    LOGICAL shiftKey;
+    RECT rect;
+    ULONG changedStart;
+    ULONG changedEnd;
+    PH_TREENEW_MESSAGE clickMessage;
+
+    // Focus
+
+    if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN)
+        SetFocus(hwnd);
+
+    // Divider tracking
+
+    startingTracking = FALSE;
 
     switch (Message)
     {
@@ -596,6 +584,7 @@ VOID PhTnpOnXxxButtonXxx(
         {
             if (TNP_HIT_TEST_FIXED_DIVIDER(CursorX, Context))
             {
+                startingTracking = TRUE;
                 Context->Tracking = TRUE;
                 Context->TrackStartX = CursorX;
                 Context->TrackOldFixedWidth = Context->FixedWidth;
@@ -623,6 +612,155 @@ VOID PhTnpOnXxxButtonXxx(
         }
         break;
     }
+
+    if (!startingTracking && Context->Tracking) // still OK to process further if the user is only starting to drag the divider
+        return;
+
+    hitTest.Point.x = CursorX;
+    hitTest.Point.y = CursorY;
+    hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
+    PhTnpHitTest(Context, &hitTest);
+
+    controlKey = VirtualKeys & MK_CONTROL;
+    shiftKey = VirtualKeys & MK_SHIFT;
+
+    // Plus minus glyph
+
+    plusMinusProcessed = FALSE;
+
+    if ((hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && Message == WM_LBUTTONDOWN)
+    {
+        PhTnpSetExpandedNode(Context, hitTest.Node, !hitTest.Node->Expanded);
+        plusMinusProcessed = TRUE;
+    }
+
+    // Selection
+
+    if (!plusMinusProcessed && (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN))
+    {
+        if (hitTest.Flags & TN_HIT_ITEM)
+        {
+            Context->FocusNode = hitTest.Node;
+
+            if (shiftKey && Context->MarkNode)
+            {
+                ULONG start;
+                ULONG end;
+
+                // Shift key: select a range from the selection mark node to the current node.
+
+                if (hitTest.Node->Index > Context->MarkNode->Index)
+                {
+                    start = Context->MarkNode->Index;
+                    end = hitTest.Node->Index;
+                }
+                else
+                {
+                    start = hitTest.Node->Index;
+                    end = Context->MarkNode->Index;
+                }
+
+                PhTnpSelectRange(Context, start, end, FALSE, TRUE, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(hwnd, &rect, FALSE);
+                }
+            }
+            else if (controlKey)
+            {
+                // Control key: toggle the selection on the current node, and also make it the selection mark.
+
+                PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TRUE, FALSE, NULL, NULL);
+                Context->MarkNode = hitTest.Node;
+
+                if (PhTnpGetRowRects(Context, hitTest.Node->Index, hitTest.Node->Index, TRUE, &rect))
+                {
+                    InvalidateRect(hwnd, &rect, FALSE);
+                }
+            }
+            else
+            {
+                // Normal: select the current node, and also make it the selection mark.
+
+                PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, FALSE, TRUE, &changedStart, &changedEnd);
+                Context->MarkNode = hitTest.Node;
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(hwnd, &rect, FALSE);
+                }
+            }
+        }
+        else if (!controlKey && !shiftKey)
+        {
+            // Nothing: deselect everything.
+
+            PhTnpSelectRange(Context, -1, -1, FALSE, TRUE, &changedStart, &changedEnd);
+
+            if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+            {
+                InvalidateRect(hwnd, &rect, FALSE);
+            }
+        }
+    }
+
+    // Click, double-click
+
+    clickMessage = -1;
+
+    if (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN)
+    {
+        if (Context->MouseDownLast != 0 && Context->MouseDownLast != Message)
+        {
+            // User pressed one button and pressed the other without letting go of the first one.
+            // This counts as a click.
+
+            if (Context->MouseDownLast == WM_LBUTTONDOWN)
+                clickMessage = TreeNewLeftClick;
+            else
+                clickMessage = TreeNewRightClick;
+        }
+
+        Context->MouseDownLast = Message;
+        Context->MouseDownLocation.x = CursorX;
+        Context->MouseDownLocation.y = CursorY;
+    }
+    else if (Message == WM_LBUTTONUP || Message == WM_RBUTTONUP)
+    {
+        if (Context->MouseDownLast != 0 &&
+            Context->MouseDownLocation.x == CursorX && Context->MouseDownLocation.y == CursorY)
+        {
+            if (Context->MouseDownLast == WM_LBUTTONDOWN)
+                clickMessage = TreeNewLeftClick;
+            else
+                clickMessage = TreeNewRightClick;
+        }
+
+        Context->MouseDownLast = 0;
+    }
+    else if (Message == WM_LBUTTONDBLCLK)
+    {
+        clickMessage = TreeNewLeftDoubleClick;
+    }
+    else if (Message == WM_RBUTTONDBLCLK)
+    {
+        clickMessage = TreeNewRightDoubleClick;
+    }
+
+    if (!plusMinusProcessed && clickMessage != -1)
+    {
+        PH_TREENEW_MOUSE_EVENT mouseEvent;
+
+        mouseEvent.Location.x = CursorX;
+        mouseEvent.Location.y = CursorY;
+        mouseEvent.Node = hitTest.Node;
+        mouseEvent.Column = hitTest.Column;
+        mouseEvent.KeyFlags = VirtualKeys;
+        Context->Callback(Context->Handle, clickMessage, &mouseEvent, NULL, Context->CallbackContext);
+    }
+
+    // TODO: Drag selection
 }
 
 VOID PhTnpOnCaptureChanged(
@@ -641,7 +779,20 @@ VOID PhTnpOnKeyDown(
     __in ULONG Data
     )
 {
-    NOTHING;
+    PH_TREENEW_KEY_EVENT keyEvent;
+
+    keyEvent.Handled = FALSE;
+    keyEvent.VirtualKey = VirtualKey;
+    keyEvent.Data = Data;
+    Context->Callback(Context->Handle, TreeNewKeyDown, &keyEvent, NULL, Context->CallbackContext);
+
+    if (keyEvent.Handled)
+        return;
+
+    if (PhTnpProcessFocusKey(Context, VirtualKey))
+        return;
+    if (PhTnpProcessNodeKey(Context, VirtualKey))
+        return;
 }
 
 VOID PhTnpOnMouseWheel(
@@ -1159,10 +1310,11 @@ VOID PhTnpLayout(
     // Normal portion header control
     rect.left = Context->FixedWidth + 1 - Context->HScrollPosition;
     rect.top = 0;
-    rect.right = clientRect.right - 1 - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    rect.right = clientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
     rect.bottom = clientRect.bottom;
     Header_Layout(Context->HeaderHandle, &hdl);
     SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
+    UpdateWindow(Context->HeaderHandle);
 }
 
 VOID PhTnpSetFixedWidth(
@@ -1180,220 +1332,6 @@ VOID PhTnpSetFixedWidth(
     item.mask = HDI_WIDTH;
     item.cxy = Context->FixedWidth + 1;
     Header_SetItem(Context->FixedHeaderHandle, 0, &item);
-}
-
-BOOLEAN PhTnpGetCellParts(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index,
-    __in_opt PPH_TREENEW_COLUMN Column,
-    __out PPH_TREENEW_CELL_PARTS Parts
-    )
-{
-    PPH_TREENEW_NODE node;
-    LONG viewWidth;
-    LONG nodeY;
-    BOOLEAN isFirstColumn;
-    LONG currentX;
-
-    node = Context->FlatList->Items[Index];
-    nodeY = Context->HeaderHeight + ((LONG)Index - Context->VScrollPosition) * Context->RowHeight;
-
-    Parts->Flags = 0;
-    Parts->RowRect.left = 0;
-    Parts->RowRect.right = Context->FixedWidth + 1 + Context->TotalViewX - Context->HScrollPosition;
-    Parts->RowRect.top = nodeY;
-    Parts->RowRect.bottom = nodeY + Context->RowHeight;
-
-    viewWidth = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-
-    if (Parts->RowRect.right > viewWidth)
-        Parts->RowRect.right = viewWidth;
-
-    if (!Column)
-        return TRUE;
-
-    if (Index >= Context->FlatList->Count)
-        return FALSE;
-    if (!Column->Visible)
-        return FALSE;
-
-    isFirstColumn = Column == Context->FirstColumn;
-    currentX = Column->s.ViewX;
-
-    if (!Column->Fixed)
-    {
-        currentX += Context->FixedWidth + 1 - Context->HScrollPosition;
-    }
-
-    if (isFirstColumn)
-    {
-        currentX += (LONG)node->Level * SmallIconWidth;
-
-        if (!node->s.IsLeaf)
-        {
-            Parts->Flags |= TN_PART_PLUSMINUS;
-            Parts->PlusMinusRect.left = currentX;
-            Parts->PlusMinusRect.right = currentX + SmallIconWidth;
-            Parts->PlusMinusRect.top = nodeY;
-            Parts->PlusMinusRect.bottom = nodeY + Context->RowHeight;
-
-            currentX += SmallIconWidth;
-        }
-
-        if (node->Icon)
-        {
-            Parts->Flags |= TN_PART_ICON;
-            Parts->IconRect.left = currentX;
-            Parts->IconRect.right = currentX + SmallIconWidth;
-            Parts->IconRect.top = nodeY;
-            Parts->IconRect.bottom = nodeY + Context->RowHeight;
-
-            currentX += SmallIconWidth + 4;
-        }
-    }
-
-    Parts->Flags |= TN_PART_CONTENT;
-    Parts->ContentRect.left = currentX;
-    Parts->ContentRect.right = Column->Width;
-    Parts->ContentRect.top = nodeY;
-    Parts->ContentRect.bottom = nodeY + Context->RowHeight;
-
-    return TRUE;
-}
-
-VOID PhTnpHitTest(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_HIT_TEST HitTest
-    )
-{
-    RECT clientRect;
-    LONG x;
-    LONG y;
-    ULONG index;
-    PPH_TREENEW_NODE node;
-
-    HitTest->Flags = 0;
-    HitTest->Node = NULL;
-    HitTest->Column = NULL;
-
-    clientRect = Context->ClientRect;
-    x = HitTest->Point.x;
-    y = HitTest->Point.y;
-
-    if (x < 0)
-        HitTest->Flags |= TN_HIT_LEFT;
-    if (x >= clientRect.right)
-        HitTest->Flags |= TN_HIT_RIGHT;
-    if (y < 0)
-        HitTest->Flags |= TN_HIT_ABOVE;
-    if (y >= clientRect.bottom)
-        HitTest->Flags |= TN_HIT_BELOW;
-
-    if (HitTest->Flags == 0)
-    {
-        if (TNP_HIT_TEST_FIXED_DIVIDER(x, Context))
-        {
-            HitTest->Flags |= TN_HIT_DIVIDER;
-        }
-
-        if (y >= Context->HeaderHeight && x < Context->FixedWidth + Context->TotalViewX)
-        {
-            index = (y - Context->HeaderHeight) / Context->RowHeight + Context->VScrollPosition;
-
-            if (index < Context->FlatList->Count)
-            {
-                HitTest->Flags |= TN_HIT_ITEM;
-                node = Context->FlatList->Items[index];
-                HitTest->Node = node;
-
-                if (HitTest->InFlags & TN_TEST_COLUMN)
-                {
-                    PPH_TREENEW_COLUMN column;
-                    LONG columnX;
-
-                    column = NULL;
-
-                    if (x < Context->FixedWidth && Context->FixedColumn)
-                    {
-                        column = Context->FixedColumn;
-                        columnX = 0;
-                    }
-                    else
-                    {
-                        LONG currentX;
-                        ULONG i;
-                        PPH_TREENEW_COLUMN currentColumn;
-
-                        currentX = Context->FixedWidth + 1 - Context->HScrollPosition;
-
-                        for (i = 0; i < Context->NumberOfColumnsByDisplay; i++)
-                        {
-                            currentColumn = Context->ColumnsByDisplay[i];
-
-                            if (x >= currentX && x < currentX + currentColumn->Width)
-                            {
-                                column = currentColumn;
-                                columnX = currentX;
-                                break;
-                            }
-
-                            currentX += currentColumn->Width;
-                        }
-                    }
-
-                    HitTest->Column = column;
-
-                    if (column && (HitTest->InFlags & TN_TEST_SUBITEM))
-                    {
-                        BOOLEAN isFirstColumn;
-                        LONG currentX;
-
-                        isFirstColumn = HitTest->Column == Context->FirstColumn;
-
-                        currentX = columnX;
-
-                        if (isFirstColumn)
-                        {
-                            currentX += (LONG)node->Level * SmallIconWidth;
-
-                            if (!node->s.IsLeaf)
-                            {
-                                if (x >= currentX && x < currentX + SmallIconWidth + 5)
-                                    HitTest->Flags |= TN_HIT_ITEM_PLUSMINUS;
-
-                                currentX += SmallIconWidth;
-                            }
-
-                            if (node->Icon)
-                            {
-                                if (x >= currentX && x < currentX + SmallIconWidth)
-                                    HitTest->Flags |= TN_HIT_ITEM_ICON;
-
-                                currentX += SmallIconWidth + 4;
-                            }
-                        }
-
-                        if (x >= currentX)
-                        {
-                            HitTest->Flags |= TN_HIT_ITEM_CONTENT;
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-VOID PhTnpClearHotNode(
-    __in PPH_TREENEW_CONTEXT Context
-    )
-{
-    if (Context->HotNode)
-    {
-        Context->HotNode->Hot = FALSE;
-        Context->HotNode->s.PlusMinusHot = FALSE;
-        Context->HotNode = NULL;
-    }
 }
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
@@ -1996,11 +1934,25 @@ VOID PhTnpRestructureNodes(
     PPH_TREENEW_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
+    ULONG hotIndex;
+    ULONG markIndex;
 
     if (!PhTnpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
         return;
 
-    PhTnpClearHotNode(Context);
+    // We try to preserve the hot node, the focused node and the selection mark node.
+
+    if (Context->HotNode)
+        hotIndex = Context->HotNode->Index;
+    else
+        hotIndex = -1;
+
+    Context->FocusNodeFound = FALSE;
+
+    if (Context->MarkNode)
+        markIndex = Context->MarkNode->Index;
+    else
+        markIndex = -1;
 
     PhClearList(Context->FlatList);
     Context->CanAnyExpand = FALSE;
@@ -2009,6 +1961,19 @@ VOID PhTnpRestructureNodes(
     {
         PhTnpInsertNodeChildren(Context, children[i], 0);
     }
+
+    if (hotIndex < Context->FlatList->Count)
+        Context->HotNode = Context->FlatList->Items[hotIndex];
+    else
+        Context->HotNode = NULL;
+
+    if (!Context->FocusNodeFound)
+        Context->FocusNode = NULL; // focused node is no longer present
+
+    if (markIndex < Context->FlatList->Count)
+        Context->MarkNode = Context->FlatList->Items[markIndex];
+    else
+        Context->MarkNode = NULL;
 
     PhTnpLayout(Context);
     InvalidateRect(Context->Handle, NULL, FALSE);
@@ -2031,6 +1996,9 @@ VOID PhTnpInsertNodeChildren(
 
         Node->Index = Context->FlatList->Count;
         PhAddItemList(Context->FlatList, Node);
+
+        if (Context->FocusNode == Node)
+            Context->FocusNodeFound = TRUE;
 
         nextLevel = Level + 1;
     }
@@ -2057,6 +2025,770 @@ VOID PhTnpInsertNodeChildren(
             }
         }
     }
+}
+
+VOID PhTnpSetExpandedNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in BOOLEAN Expanded
+    )
+{
+    if (Node->Expanded != Expanded)
+    {
+        PH_TREENEW_NODE_EVENT nodeEvent;
+
+        memset(&nodeEvent, 0, sizeof(PH_TREENEW_NODE_EVENT));
+        Context->Callback(Context->Handle, TreeNewNodeExpanding, Node, &nodeEvent, Context->CallbackContext);
+
+        if (!nodeEvent.Handled)
+        {
+            Node->Expanded = Expanded;
+            PhTnpRestructureNodes(Context);
+        }
+    }
+}
+
+BOOLEAN PhTnpGetCellParts(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index,
+    __in_opt PPH_TREENEW_COLUMN Column,
+    __out PPH_TREENEW_CELL_PARTS Parts
+    )
+{
+    PPH_TREENEW_NODE node;
+    LONG viewWidth;
+    LONG nodeY;
+    BOOLEAN isFirstColumn;
+    LONG currentX;
+
+    if (Index >= Context->FlatList->Count)
+        return FALSE;
+
+    node = Context->FlatList->Items[Index];
+    nodeY = Context->HeaderHeight + ((LONG)Index - Context->VScrollPosition) * Context->RowHeight;
+
+    Parts->Flags = 0;
+    Parts->RowRect.left = 0;
+    Parts->RowRect.right = Context->FixedWidth + 1 + Context->TotalViewX - Context->HScrollPosition;
+    Parts->RowRect.top = nodeY;
+    Parts->RowRect.bottom = nodeY + Context->RowHeight;
+
+    viewWidth = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+
+    if (Parts->RowRect.right > viewWidth)
+        Parts->RowRect.right = viewWidth;
+
+    if (!Column)
+        return TRUE;
+    if (!Column->Visible)
+        return FALSE;
+
+    isFirstColumn = Column == Context->FirstColumn;
+    currentX = Column->s.ViewX;
+
+    if (!Column->Fixed)
+    {
+        currentX += Context->FixedWidth + 1 - Context->HScrollPosition;
+    }
+
+    if (isFirstColumn)
+    {
+        currentX += (LONG)node->Level * SmallIconWidth;
+
+        if (!node->s.IsLeaf)
+        {
+            Parts->Flags |= TN_PART_PLUSMINUS;
+            Parts->PlusMinusRect.left = currentX;
+            Parts->PlusMinusRect.right = currentX + SmallIconWidth;
+            Parts->PlusMinusRect.top = nodeY;
+            Parts->PlusMinusRect.bottom = nodeY + Context->RowHeight;
+
+            currentX += SmallIconWidth;
+        }
+
+        if (node->Icon)
+        {
+            Parts->Flags |= TN_PART_ICON;
+            Parts->IconRect.left = currentX;
+            Parts->IconRect.right = currentX + SmallIconWidth;
+            Parts->IconRect.top = nodeY;
+            Parts->IconRect.bottom = nodeY + Context->RowHeight;
+
+            currentX += SmallIconWidth + 4;
+        }
+    }
+
+    Parts->Flags |= TN_PART_CONTENT;
+    Parts->ContentRect.left = currentX;
+    Parts->ContentRect.right = Column->Width;
+    Parts->ContentRect.top = nodeY;
+    Parts->ContentRect.bottom = nodeY + Context->RowHeight;
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpGetRowRects(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Start,
+    __in ULONG End,
+    __in BOOLEAN Clip,
+    __out PRECT Rect
+    )
+{
+    LONG startY;
+    LONG endY;
+    LONG viewWidth;
+
+    if (End >= Context->FlatList->Count)
+        return FALSE;
+    if (Start > End)
+        return FALSE;
+
+    startY = Context->HeaderHeight + ((LONG)Start - Context->VScrollPosition) * Context->RowHeight;
+    endY = Context->HeaderHeight + ((LONG)End - Context->VScrollPosition) * Context->RowHeight;
+
+    Rect->left = 0;
+    Rect->right = Context->FixedWidth + 1 + Context->TotalViewX - Context->HScrollPosition;
+    Rect->top = startY;
+    Rect->bottom = endY + Context->RowHeight;
+
+    viewWidth = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+
+    if (Rect->right > viewWidth)
+        Rect->right = viewWidth;
+
+    if (Clip)
+    {
+        if (Rect->top < Context->HeaderHeight)
+            Rect->top = Context->HeaderHeight;
+        if (Rect->bottom > Context->ClientRect.bottom)
+            Rect->bottom = Context->ClientRect.bottom;
+    }
+
+    return TRUE;
+}
+
+VOID PhTnpHitTest(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_HIT_TEST HitTest
+    )
+{
+    RECT clientRect;
+    LONG x;
+    LONG y;
+    ULONG index;
+    PPH_TREENEW_NODE node;
+
+    HitTest->Flags = 0;
+    HitTest->Node = NULL;
+    HitTest->Column = NULL;
+
+    clientRect = Context->ClientRect;
+    x = HitTest->Point.x;
+    y = HitTest->Point.y;
+
+    if (x < 0)
+        HitTest->Flags |= TN_HIT_LEFT;
+    if (x >= clientRect.right)
+        HitTest->Flags |= TN_HIT_RIGHT;
+    if (y < 0)
+        HitTest->Flags |= TN_HIT_ABOVE;
+    if (y >= clientRect.bottom)
+        HitTest->Flags |= TN_HIT_BELOW;
+
+    if (HitTest->Flags == 0)
+    {
+        if (TNP_HIT_TEST_FIXED_DIVIDER(x, Context))
+        {
+            HitTest->Flags |= TN_HIT_DIVIDER;
+        }
+
+        if (y >= Context->HeaderHeight && x < Context->FixedWidth + Context->TotalViewX)
+        {
+            index = (y - Context->HeaderHeight) / Context->RowHeight + Context->VScrollPosition;
+
+            if (index < Context->FlatList->Count)
+            {
+                HitTest->Flags |= TN_HIT_ITEM;
+                node = Context->FlatList->Items[index];
+                HitTest->Node = node;
+
+                if (HitTest->InFlags & TN_TEST_COLUMN)
+                {
+                    PPH_TREENEW_COLUMN column;
+                    LONG columnX;
+
+                    column = NULL;
+
+                    if (x < Context->FixedWidth && Context->FixedColumn)
+                    {
+                        column = Context->FixedColumn;
+                        columnX = 0;
+                    }
+                    else
+                    {
+                        LONG currentX;
+                        ULONG i;
+                        PPH_TREENEW_COLUMN currentColumn;
+
+                        currentX = Context->FixedWidth + 1 - Context->HScrollPosition;
+
+                        for (i = 0; i < Context->NumberOfColumnsByDisplay; i++)
+                        {
+                            currentColumn = Context->ColumnsByDisplay[i];
+
+                            if (x >= currentX && x < currentX + currentColumn->Width)
+                            {
+                                column = currentColumn;
+                                columnX = currentX;
+                                break;
+                            }
+
+                            currentX += currentColumn->Width;
+                        }
+                    }
+
+                    HitTest->Column = column;
+
+                    if (column && (HitTest->InFlags & TN_TEST_SUBITEM))
+                    {
+                        BOOLEAN isFirstColumn;
+                        LONG currentX;
+
+                        isFirstColumn = HitTest->Column == Context->FirstColumn;
+
+                        currentX = columnX;
+
+                        if (isFirstColumn)
+                        {
+                            currentX += (LONG)node->Level * SmallIconWidth;
+
+                            if (!node->s.IsLeaf)
+                            {
+                                if (x >= currentX && x < currentX + SmallIconWidth + 5)
+                                    HitTest->Flags |= TN_HIT_ITEM_PLUSMINUS;
+
+                                currentX += SmallIconWidth;
+                            }
+
+                            if (node->Icon)
+                            {
+                                if (x >= currentX && x < currentX + SmallIconWidth)
+                                    HitTest->Flags |= TN_HIT_ITEM_ICON;
+
+                                currentX += SmallIconWidth + 4;
+                            }
+                        }
+
+                        if (x >= currentX)
+                        {
+                            HitTest->Flags |= TN_HIT_ITEM_CONTENT;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+VOID PhTnpSelectRange(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Start,
+    __in ULONG End,
+    __in BOOLEAN Toggle,
+    __in BOOLEAN Reset,
+    __out_opt PULONG ChangedStart,
+    __out_opt PULONG ChangedEnd
+    )
+{
+    ULONG maximum;
+    ULONG i;
+    PPH_TREENEW_NODE node;
+    ULONG changedStart;
+    ULONG changedEnd;
+
+    if (Context->FlatList->Count == 0)
+        return;
+
+    maximum = Context->FlatList->Count - 1;
+
+    if (End > maximum)
+    {
+        End = maximum;
+    }
+
+    if (Start > End)
+    {
+        // Start is too big, so the selection range becomes empty.
+        // Set it to max + 1 so Reset still works.
+        Start = maximum + 1;
+        End = 0;
+    }
+
+    changedStart = maximum;
+    changedEnd = 0;
+
+    if (Reset)
+    {
+        for (i = 0; i < Start; i++)
+        {
+            node = Context->FlatList->Items[i];
+
+            if (node->Selected)
+            {
+                node->Selected = FALSE;
+
+                if (changedStart > i)
+                    changedStart = i;
+                if (changedEnd < i)
+                    changedEnd = i;
+            }
+        }
+    }
+
+    for (i = Start; i <= End; i++)
+    {
+        node = Context->FlatList->Items[i];
+
+        if (Toggle || !node->Selected)
+        {
+            node->Selected = !node->Selected;
+
+            if (changedStart > i)
+                changedStart = i;
+            if (changedEnd < i)
+                changedEnd = i;
+        }
+    }
+
+    if (Reset)
+    {
+        for (i = End + 1; i <= maximum; i++)
+        {
+            node = Context->FlatList->Items[i];
+
+            if (node->Selected)
+            {
+                node->Selected = FALSE;
+
+                if (changedStart > i)
+                    changedStart = i;
+                if (changedEnd < i)
+                    changedEnd = i;
+            }
+        }
+    }
+
+    Context->Callback(Context->Handle, TreeNewSelectionChanged, NULL, NULL, Context->CallbackContext);
+
+    if (ChangedStart)
+        *ChangedStart = changedStart;
+    if (ChangedEnd)
+        *ChangedEnd = changedEnd;
+}
+
+VOID PhTnpSetHotNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE NewHotNode,
+    __in BOOLEAN NewPlusMinusHot
+    )
+{
+    RECT rowRect;
+    BOOLEAN needsInvalidate;
+
+    needsInvalidate = FALSE;
+
+    if (Context->HotNode != NewHotNode)
+    {
+        if (Context->HotNode)
+        {
+            if (Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNode->Index, Context->HotNode->Index, TRUE, &rowRect))
+            {
+                // Update the old hot node because it may have a different non-hot background and plus minus part.
+                InvalidateRect(Context->Handle, &rowRect, FALSE);
+            }
+
+            needsInvalidate = TRUE;
+        }
+
+        Context->HotNode = NewHotNode;
+    }
+
+    if (Context->HotNode)
+    {
+        if (Context->HotNode->s.PlusMinusHot != NewPlusMinusHot)
+        {
+            Context->HotNode->s.PlusMinusHot = NewPlusMinusHot;
+            needsInvalidate = TRUE;
+        }
+
+        if (needsInvalidate && Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNode->Index, Context->HotNode->Index, TRUE, &rowRect))
+        {
+            InvalidateRect(Context->Handle, &rowRect, FALSE);
+        }
+    }
+}
+
+BOOLEAN PhTnpEnsureVisibleNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index
+    )
+{
+    LONG viewTop;
+    LONG viewBottom;
+    LONG rowTop;
+    LONG rowBottom;
+    LONG deltaY;
+    LONG deltaRows;
+
+    if (Index >= Context->FlatList->Count)
+        return FALSE;
+
+    viewTop = Context->HeaderHeight;
+    viewBottom = Context->ClientRect.bottom;
+    rowTop = Context->HeaderHeight + ((LONG)Index - Context->VScrollPosition) * Context->RowHeight;
+    rowBottom = rowTop + Context->RowHeight;
+
+    // Check if the row is fully visible.
+    if (rowTop >= viewTop && rowBottom <= viewBottom)
+        return TRUE;
+
+    deltaY = rowTop - viewTop;
+
+    if (deltaY > 0)
+    {
+        // The row is below the view area. We want to scroll the row into view at the bottom of the screen.
+        // We need to round up when dividing to make sure the node becomes fully visible.
+        deltaY = rowBottom - viewBottom;
+        deltaRows = (deltaY + Context->RowHeight + 1) / Context->RowHeight; // divide, round up
+    }
+    else
+    {
+        deltaRows = deltaY / Context->RowHeight;
+    }
+
+    PhTnpScroll(Context, deltaRows, 0);
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpProcessFocusKey(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey
+    )
+{
+    ULONG count;
+    ULONG index;
+    BOOLEAN controlKey;
+    BOOLEAN shiftKey;
+    ULONG start;
+    ULONG end;
+    ULONG changedStart;
+    ULONG changedEnd;
+    RECT rect;
+
+    if (VirtualKey != VK_UP && VirtualKey != VK_DOWN &&
+        VirtualKey != VK_HOME && VirtualKey != VK_END &&
+        VirtualKey != VK_PRIOR && VirtualKey != VK_NEXT)
+    {
+        return FALSE;
+    }
+
+    count = Context->FlatList->Count;
+
+    if (count == 0)
+        return TRUE;
+
+    // Find the new node to focus.
+
+    switch (VirtualKey)
+    {
+    case VK_UP:
+        {
+            if (Context->FocusNode && Context->FocusNode->Index > 0)
+            {
+                index = Context->FocusNode->Index - 1;
+            }
+            else
+            {
+                index = 0;
+            }
+        }
+        break;
+    case VK_DOWN:
+        {
+            if (Context->FocusNode)
+            {
+                index = Context->FocusNode->Index + 1;
+
+                if (index >= count)
+                    index = count - 1;
+            }
+            else
+            {
+                index = 0;
+            }
+        }
+        break;
+    case VK_HOME:
+        index = 0;
+        break;
+    case VK_END:
+        index = count - 1;
+        break;
+    case VK_PRIOR:
+    case VK_NEXT:
+        {
+            LONG rowsPerPage;
+
+            if (Context->FocusNode)
+                index = Context->FocusNode->Index;
+            else
+                index = 0;
+
+            rowsPerPage = Context->ClientRect.bottom - Context->HeaderHeight;
+
+            if (rowsPerPage < 0)
+                return TRUE;
+
+            rowsPerPage = rowsPerPage / Context->RowHeight - 1;
+
+            if (rowsPerPage < 0)
+                return TRUE;
+
+            if (VirtualKey == VK_PRIOR)
+            {
+                ULONG startOfPageIndex;
+
+                startOfPageIndex = Context->VScrollPosition;
+
+                if (index > startOfPageIndex)
+                {
+                    index = startOfPageIndex;
+                }
+                else
+                {
+                    // Already at or before the start of the page. Go back a page.
+                    if (index >= (ULONG)rowsPerPage)
+                        index -= rowsPerPage;
+                    else
+                        index = 0;
+                }
+            }
+            else
+            {
+                ULONG endOfPageIndex;
+
+                endOfPageIndex = Context->VScrollPosition + rowsPerPage;
+
+                if (endOfPageIndex >= count)
+                    endOfPageIndex = count - 1;
+
+                if (index < endOfPageIndex)
+                {
+                    index = endOfPageIndex;
+                }
+                else
+                {
+                    // Already at or after the end of the page. Go forward a page.
+                    index += rowsPerPage;
+
+                    if (index >= count)
+                        index = count - 1;
+                }
+            }
+        }
+        break;
+    }
+
+    // Select the relevant nodes.
+
+    controlKey = GetKeyState(VK_CONTROL) < 0;
+    shiftKey = GetKeyState(VK_SHIFT) < 0;
+
+    Context->FocusNode = Context->FlatList->Items[index];
+    PhTnpEnsureVisibleNode(Context, index);
+    PhTnpSetHotNode(Context, Context->FocusNode, FALSE);
+
+    if (shiftKey && Context->MarkNode)
+    {
+        if (index > Context->MarkNode->Index)
+        {
+            start = Context->MarkNode->Index;
+            end = index;
+        }
+        else
+        {
+            start = index;
+            end = Context->MarkNode->Index;
+        }
+
+        PhTnpSelectRange(Context, start, end, FALSE, TRUE, &changedStart, &changedEnd);
+
+        if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+        {
+            InvalidateRect(Context->Handle, &rect, FALSE);
+        }
+    }
+    else if (!controlKey)
+    {
+        Context->MarkNode = Context->FocusNode;
+        PhTnpSelectRange(Context, index, index, FALSE, TRUE, &changedStart, &changedEnd);
+
+        if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+        {
+            InvalidateRect(Context->Handle, &rect, FALSE);
+        }
+    }
+
+    return TRUE;
+}
+
+BOOLEAN PhTnpProcessNodeKey(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey
+    )
+{
+    BOOLEAN controlKey;
+    BOOLEAN shiftKey;
+    ULONG changedStart;
+    ULONG changedEnd;
+    RECT rect;
+
+    if (VirtualKey != VK_SPACE && VirtualKey != VK_LEFT && VirtualKey != VK_RIGHT)
+    {
+        return FALSE;
+    }
+
+    if (!Context->FocusNode)
+        return TRUE;
+
+    controlKey = GetKeyState(VK_CONTROL) < 0;
+    shiftKey = GetKeyState(VK_SHIFT) < 0;
+
+    switch (VirtualKey)
+    {
+    case VK_SPACE:
+        {
+            if (controlKey)
+            {
+                // Control key: toggle the selection on the focused node.
+
+                Context->MarkNode = Context->FocusNode;
+                PhTnpSelectRange(Context, Context->FocusNode->Index, Context->FocusNode->Index, TRUE, FALSE, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(Context->Handle, &rect, FALSE);
+                }
+            }
+            else if (shiftKey)
+            {
+                ULONG start;
+                ULONG end;
+
+                // Shift key: select a range from the selection mark node to the focused node.
+
+                if (Context->FocusNode->Index > Context->MarkNode->Index)
+                {
+                    start = Context->MarkNode->Index;
+                    end = Context->FocusNode->Index;
+                }
+                else
+                {
+                    start = Context->FocusNode->Index;
+                    end = Context->MarkNode->Index;
+                }
+
+                PhTnpSelectRange(Context, start, end, FALSE, TRUE, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(Context->Handle, &rect, FALSE);
+                }
+            }
+        }
+        break;
+    case VK_LEFT:
+        {
+            ULONG i;
+            ULONG targetLevel;
+            PPH_TREENEW_NODE newNode;
+
+            // If the node is expanded, collapse it. Otherwise, select the node's 
+            // parent.
+            if (!Context->FocusNode->s.IsLeaf && Context->FocusNode->Expanded)
+            {
+                PhTnpSetExpandedNode(Context, Context->FocusNode, FALSE);
+            }
+            else if (Context->FocusNode->Level != 0)
+            {
+                i = Context->FocusNode->Index;
+                targetLevel = Context->FocusNode->Level - 1;
+
+                while (i != 0)
+                {
+                    i--;
+                    newNode = Context->FlatList->Items[i];
+
+                    if (newNode->Level == targetLevel)
+                    {
+                        Context->FocusNode = newNode;
+                        Context->MarkNode = newNode;
+                        PhTnpEnsureVisibleNode(Context, i);
+                        PhTnpSetHotNode(Context, newNode, FALSE);
+                        PhTnpSelectRange(Context, i, i, FALSE, TRUE, &changedStart, &changedEnd);
+
+                        if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                        {
+                            InvalidateRect(Context->Handle, &rect, FALSE);
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+        break;
+    case VK_RIGHT:
+        {
+            PPH_TREENEW_NODE newNode;
+
+            if (!Context->FocusNode->s.IsLeaf)
+            {
+                // If the node is collapsed, expand it. Otherwise, select the node's 
+                // first child.
+                if (!Context->FocusNode->Expanded)
+                {
+                    PhTnpSetExpandedNode(Context, Context->FocusNode, TRUE);
+                }
+                else
+                {
+                    if (Context->FocusNode->Index + 1 < Context->FlatList->Count)
+                    {
+                        newNode = Context->FlatList->Items[Context->FocusNode->Index + 1];
+
+                        if (newNode->Level == Context->FocusNode->Level + 1)
+                        {
+                            Context->FocusNode = newNode;
+                            Context->MarkNode = newNode;
+                            PhTnpEnsureVisibleNode(Context, Context->FocusNode->Index + 1);
+                            PhTnpSetHotNode(Context, newNode, FALSE);
+                            PhTnpSelectRange(Context, Context->FocusNode->Index, Context->FocusNode->Index, FALSE, TRUE, &changedStart, &changedEnd);
+
+                            if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                            {
+                                InvalidateRect(Context->Handle, &rect, FALSE);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        break;
+    }
+
+    return TRUE;
 }
 
 VOID PhTnpUpdateScrollBars(
@@ -2110,7 +2842,7 @@ VOID PhTnpUpdateScrollBars(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->VScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE);
+            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
         }
 
         ShowWindow(Context->VScrollHandle, SW_SHOW);
@@ -2143,7 +2875,7 @@ VOID PhTnpUpdateScrollBars(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->HScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE);
+            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
         }
 
         ShowWindow(Context->HScrollHandle, SW_SHOW);
@@ -2159,11 +2891,68 @@ VOID PhTnpUpdateScrollBars(
     ShowWindow(Context->FillerBoxHandle, (Context->VScrollVisible && Context->HScrollVisible) ? SW_SHOW : SW_HIDE);
 }
 
+VOID PhTnpScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows,
+    __in LONG DeltaX
+    )
+{
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_POS;
+
+    if (DeltaRows != 0 && Context->VScrollVisible)
+    {
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        if (DeltaRows == MINLONG)
+            scrollInfo.nPos = 0;
+        else if (DeltaRows == MAXLONG)
+            scrollInfo.nPos = Context->FlatList->Count - 1;
+        else
+            scrollInfo.nPos += DeltaRows;
+
+        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            Context->VScrollPosition = scrollInfo.nPos;
+            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+        }
+    }
+
+    if (DeltaX != 0 && Context->HScrollVisible)
+    {
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        if (DeltaX == MINLONG)
+            scrollInfo.nPos = 0;
+        else if (DeltaX == MAXLONG)
+            scrollInfo.nPos = Context->TotalViewX;
+        else
+            scrollInfo.nPos += DeltaX;
+
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            Context->HScrollPosition = scrollInfo.nPos;
+            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+        }
+    }
+}
+
 VOID PhTnpPaint(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
-    __in PAINTSTRUCT *PaintStruct,
-    __in HDC hdc
+    __in HDC hdc,
+    __in PRECT PaintRect
     )
 {
     RECT viewRect;
@@ -2182,9 +2971,16 @@ VOID PhTnpPaint(
     LONG normalUpdateRightX;
     LONG normalUpdateLeftIndex;
     LONG normalUpdateRightIndex;
+    LONG normalTotalX;
     RECT cellRect;
     HBRUSH backBrush;
     HRGN oldClipRegion;
+
+    if (!Context->ThemeInitialized)
+    {
+        PhTnpUpdateThemeData(Context);
+        Context->ThemeInitialized = TRUE;
+    }
 
     viewRect = Context->ClientRect;
 
@@ -2196,8 +2992,8 @@ VOID PhTnpPaint(
 
     // Calculate the indicies of the first and last rows that need painting. These indicies are relative to the top of the view area.
 
-    firstRowToUpdate = (PaintStruct->rcPaint.top - Context->HeaderHeight) / Context->RowHeight;
-    lastRowToUpdate = (PaintStruct->rcPaint.bottom - Context->HeaderHeight - 1) / Context->RowHeight; // minus one since bottom is exclusive
+    firstRowToUpdate = (PaintRect->top - Context->HeaderHeight) / Context->RowHeight;
+    lastRowToUpdate = (PaintRect->bottom - Context->HeaderHeight - 1) / Context->RowHeight; // minus one since bottom is exclusive
 
     if (firstRowToUpdate < 0)
         firstRowToUpdate = 0;
@@ -2219,7 +3015,7 @@ VOID PhTnpPaint(
 
     fixedUpdate = FALSE;
 
-    if (Context->FixedColumn && PaintStruct->rcPaint.left < Context->FixedWidth)
+    if (Context->FixedColumn && PaintRect->left < Context->FixedWidth)
         fixedUpdate = TRUE;
 
     x = Context->FixedWidth + 1 - hScrollPosition;
@@ -2232,7 +3028,7 @@ VOID PhTnpPaint(
     {
         column = Context->ColumnsByDisplay[j];
 
-        if (x + column->Width >= Context->FixedWidth + 1 && x >= PaintStruct->rcPaint.left && x <= PaintStruct->rcPaint.right)
+        if (x + column->Width >= Context->FixedWidth + 1 && x + column->Width >= PaintRect->left && x < PaintRect->right)
         {
             if (normalUpdateLeftX > x)
             {
@@ -2249,6 +3045,8 @@ VOID PhTnpPaint(
 
         x += column->Width;
     }
+
+    normalTotalX = x;
 
     if (normalUpdateRightIndex >= (LONG)Context->NumberOfColumnsByDisplay)
         normalUpdateRightIndex = Context->NumberOfColumnsByDisplay - 1;
@@ -2297,14 +3095,16 @@ VOID PhTnpPaint(
 
             if (node->Selected)
             {
-                if (node->Hot)
+                if (node == Context->HotNode)
                     stateId = TREIS_HOTSELECTED;
+                else if (!Context->HasFocus)
+                    stateId = TREIS_SELECTEDNOTFOCUS;
                 else
                     stateId = TREIS_SELECTED;
             }
             else
             {
-                if (node->Hot)
+                if (node == Context->HotNode)
                     stateId = TREIS_HOT;
                 else
                     stateId = -1;
@@ -2318,7 +3118,7 @@ VOID PhTnpPaint(
                     TVP_TREEITEM,
                     stateId,
                     &rowRect,
-                    &PaintStruct->rcPaint
+                    PaintRect
                     );
             }
         }
@@ -2380,10 +3180,10 @@ VOID PhTnpPaint(
         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
-    if (normalUpdateLeftX < normalUpdateRightX && normalUpdateRightX < viewRect.right)
+    if (normalTotalX < viewRect.right && viewRect.right >= PaintRect->left && normalTotalX < PaintRect->right)
     {
         // Fill the rest of the space on the right with the window color.
-        rowRect.left = normalUpdateRightX;
+        rowRect.left = normalTotalX;
         rowRect.top = Context->HeaderHeight;
         rowRect.right = viewRect.right;
         rowRect.bottom = viewRect.bottom;
@@ -2578,7 +3378,7 @@ VOID PhTnpDrawCell(
                     INT partId;
                     INT stateId;
 
-                    partId = (Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
+                    partId = (Node == Context->HotNode && Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
                     stateId = Node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
 
                     if (SUCCEEDED(DrawThemeBackground_I(

@@ -27,19 +27,14 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG ThemeHasItemBackground : 1;
             ULONG ThemeHasGlyph : 1;
             ULONG ThemeHasHotGlyph : 1;
-            ULONG Spare : 20;
+            ULONG FocusNodeFound : 1; // used to preserve the focused node across restructuring
+            ULONG Spare : 19;
         };
         ULONG Flags;
     };
 
     HFONT Font;
     HCURSOR Cursor;
-
-    LONG FixedWidth; // width of the fixed part of the tree list
-    LONG FixedWidthMinimum;
-    LONG TrackStartX;
-    LONG TrackOldFixedWidth;
-    PPH_TREENEW_NODE HotNode;
 
     RECT ClientRect;
     LONG HeaderHeight;
@@ -48,6 +43,17 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG HScrollHeight;
     LONG VScrollPosition;
     LONG HScrollPosition;
+
+    LONG FixedWidth; // width of the fixed part of the tree list
+    LONG FixedWidthMinimum;
+    LONG TrackStartX;
+    LONG TrackOldFixedWidth;
+    PPH_TREENEW_NODE HotNode;
+    PPH_TREENEW_NODE FocusNode;
+    PPH_TREENEW_NODE MarkNode; // selection mark
+
+    ULONG MouseDownLast;
+    POINT MouseDownLocation;
 
     PPH_TREENEW_CALLBACK Callback;
     PVOID CallbackContext;
@@ -134,9 +140,14 @@ BOOLEAN PhTnpOnSetCursor(
 
 VOID PhTnpOnPaint(
     __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpOnPrintClient(
+    __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
-    __in PAINTSTRUCT *PaintStruct,
-    __in HDC hdc
+    __in HDC hdc,
+    __in ULONG Flags
     );
 
 VOID PhTnpOnMouseMove(
@@ -230,22 +241,6 @@ VOID PhTnpLayout(
 VOID PhTnpSetFixedWidth(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG FixedWidth
-    );
-
-BOOLEAN PhTnpGetCellParts(
-    __in PPH_TREENEW_CONTEXT Context,
-    __in ULONG Index,
-    __in_opt PPH_TREENEW_COLUMN Column,
-    __out PPH_TREENEW_CELL_PARTS Parts
-    );
-
-VOID PhTnpHitTest(
-    __in PPH_TREENEW_CONTEXT Context,
-    __inout PPH_TREENEW_HIT_TEST HitTest
-    );
-
-VOID PhTnpClearHotNode(
-    __in PPH_TREENEW_CONTEXT Context
     );
 
 // Columns
@@ -344,10 +339,75 @@ VOID PhTnpInsertNodeChildren(
     __in ULONG Level
     );
 
+VOID PhTnpSetExpandedNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in BOOLEAN Expanded
+    );
+
+BOOLEAN PhTnpGetCellParts(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index,
+    __in_opt PPH_TREENEW_COLUMN Column,
+    __out PPH_TREENEW_CELL_PARTS Parts
+    );
+
+BOOLEAN PhTnpGetRowRects(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Start,
+    __in ULONG End,
+    __in BOOLEAN Clip,
+    __out PRECT Rect
+    );
+
+VOID PhTnpHitTest(
+    __in PPH_TREENEW_CONTEXT Context,
+    __inout PPH_TREENEW_HIT_TEST HitTest
+    );
+
+VOID PhTnpSelectRange(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Start,
+    __in ULONG End,
+    __in BOOLEAN Toggle,
+    __in BOOLEAN Reset,
+    __out_opt PULONG ChangedStart,
+    __out_opt PULONG ChangedEnd
+    );
+
+VOID PhTnpSetHotNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE NewHotNode,
+    __in BOOLEAN NewPlusMinusHot
+    );
+
+BOOLEAN PhTnpEnsureVisibleNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Index
+    );
+
+// Keyboard
+
+BOOLEAN PhTnpProcessFocusKey(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey
+    );
+
+BOOLEAN PhTnpProcessNodeKey(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKey
+    );
+
 // Scrolling
 
 VOID PhTnpUpdateScrollBars(
     __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows,
+    __in LONG DeltaX
     );
 
 // Drawing
@@ -355,8 +415,8 @@ VOID PhTnpUpdateScrollBars(
 VOID PhTnpPaint(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
-    __in PAINTSTRUCT *PaintStruct,
-    __in HDC hdc
+    __in HDC hdc,
+    __in PRECT PaintRect
     );
 
 VOID PhTnpPrepareRowForDraw(
