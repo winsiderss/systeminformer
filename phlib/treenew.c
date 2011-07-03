@@ -1775,15 +1775,9 @@ VOID PhTnpSetRedraw(
             Context->SuspendUpdateRegion = NULL;
         }
 
-        if (Context->SuspendUpdateColumnHeaders)
-            PhTnpUpdateColumnHeaders(Context);
-        if (Context->SuspendUpdateColumnMaps)
-            PhTnpUpdateColumnMaps(Context);
         if (Context->SuspendUpdateLayout)
             PhTnpLayout(Context);
 
-        Context->SuspendUpdateColumnHeaders = FALSE;
-        Context->SuspendUpdateColumnMaps = FALSE;
         Context->SuspendUpdateLayout = FALSE;
     }
 }
@@ -2049,12 +2043,6 @@ VOID PhTnpUpdateColumnMaps(
     ULONG i;
     LONG x;
 
-    if (Context->EnableRedraw <= 0)
-    {
-        Context->SuspendUpdateColumnMaps = TRUE;
-        return;
-    }
-
     if (Context->AllocatedColumnsByDisplay < Context->NumberOfColumns)
     {
         if (Context->ColumnsByDisplay)
@@ -2257,12 +2245,6 @@ VOID PhTnpUpdateColumnHeaders(
     ULONG i;
     HDITEM item;
     PPH_TREENEW_COLUMN column;
-
-    if (Context->EnableRedraw <= 0)
-    {
-        Context->SuspendUpdateColumnHeaders = TRUE;
-        return;
-    }
 
     item.mask = HDI_WIDTH | HDI_LPARAM | HDI_ORDER;
 
