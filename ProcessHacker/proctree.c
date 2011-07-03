@@ -479,6 +479,7 @@ VOID PhTickProcessNodes()
 {
     ULONG i;
     PH_TREENEW_VIEW_PARTS viewParts;
+    BOOLEAN fullyInvalidated;
     RECT rect;
 
     // Text invalidation, node updates
@@ -501,24 +502,30 @@ VOID PhTickProcessNodes()
             PhpUpdateProcessNodeCycles(node);
     }
 
+    fullyInvalidated = FALSE;
+
     if (ProcessTreeListSortOrder != NoSortOrder)
     {
         // Force a rebuild to sort the items.
         TreeNew_NodesStructured(ProcessTreeListHandle);
+        fullyInvalidated = TRUE;
     }
 
     // State highlighting
-    PH_TICK_SH_STATE_TN(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, FALSE);
+    PH_TICK_SH_STATE_TN(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, TRUE, &fullyInvalidated);
 
-    // The first column doesn't need to be invalidated because the process name never changes, and 
-    // icon changes are handled by the modified event. This small optimization can save more than 
-    // 10 million cycles per update (on my machine).
-    TreeNew_GetViewParts(ProcessTreeListHandle, &viewParts);
-    rect.left = viewParts.NormalLeft;
-    rect.top = viewParts.HeaderHeight;
-    rect.right = viewParts.ClientRect.right - viewParts.VScrollWidth;
-    rect.bottom = viewParts.ClientRect.bottom;
-    InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
+    if (!fullyInvalidated)
+    {
+        // The first column doesn't need to be invalidated because the process name never changes, and 
+        // icon changes are handled by the modified event. This small optimization can save more than 
+        // 10 million cycles per update (on my machine).
+        TreeNew_GetViewParts(ProcessTreeListHandle, &viewParts);
+        rect.left = viewParts.NormalLeft;
+        rect.top = viewParts.HeaderHeight;
+        rect.right = viewParts.ClientRect.right - viewParts.VScrollWidth;
+        rect.bottom = viewParts.ClientRect.bottom;
+        InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
+    }
 }
 
 static FLOAT PhpCalculateInclusiveCpuUsage(
