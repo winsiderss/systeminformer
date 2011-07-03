@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
-#include <colmgr.h>
 #include <cpysave.h>
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
@@ -317,9 +316,9 @@ static VOID PhpUpdateServiceNodeConfig(
     }
 }
 
-#define SORT_FUNCTION(Column) PhpServiceTreeListCompare##Column
+#define SORT_FUNCTION(Column) PhpServiceTreeNewCompare##Column
 
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpServiceTreeListCompare##Column( \
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpServiceTreeNewCompare##Column( \
     __in const void *_elem1, \
     __in const void *_elem2 \
     ) \

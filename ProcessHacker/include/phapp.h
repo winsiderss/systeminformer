@@ -14,6 +14,7 @@
 #include <circbuf.h>
 #include <phnet.h>
 #include <providers.h>
+#include <colmgr.h>
 #include <uimodels.h>
 #include "../resource.h"
 
