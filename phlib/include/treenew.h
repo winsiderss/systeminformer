@@ -85,6 +85,9 @@ typedef struct _PH_TREENEW_NODE
     } s;
 } PH_TREENEW_NODE, *PPH_TREENEW_NODE;
 
+// Styles
+#define TN_STYLE_ICONS 0x1
+
 // Callback flags
 #define TN_CACHE 0x1
 #define TN_AUTO_FORECOLOR 0x1000
@@ -146,6 +149,7 @@ typedef struct _PH_TREENEW_CELL_PARTS
     RECT ContentRect; // TN_PART_CONTENT
     RECT TextRect; // TN_PART_TEXT
     PH_STRINGREF Text; // TN_PART_TEXT
+    HFONT Font; // TN_PART_TEXT
 } PH_TREENEW_CELL_PARTS, *PPH_TREENEW_CELL_PARTS;
 
 typedef struct _PH_TREENEW_HIT_TEST
@@ -256,6 +260,7 @@ typedef struct _PH_TREENEW_GET_CELL_TOOLTIP
     BOOLEAN Unfolding;
 
     PH_STRINGREF Text;
+    HFONT Font;
 } PH_TREENEW_GET_CELL_TOOLTIP, *PPH_TREENEW_GET_CELL_TOOLTIP;
 
 typedef struct _PH_TREENEW_CUSTOM_DRAW
