@@ -322,6 +322,8 @@ BOOLEAN PhTnpOnCreate(
 {
     Context->Handle = hwnd;
     Context->InstanceHandle = CreateStruct->hInstance;
+    Context->Style = CreateStruct->style;
+    Context->ExtendedStyle = CreateStruct->dwExStyle;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
@@ -1495,8 +1497,15 @@ VOID PhTnpUpdateTextMetrics(
     {
         GetTextMetrics(hdc, &Context->TextMetrics);
 
-        Context->RowHeight = max(Context->TextMetrics.tmHeight, SmallIconHeight);
-        Context->RowHeight += 3; // TODO: Fix value
+        Context->RowHeight = Context->TextMetrics.tmHeight;
+
+        if (Context->Style & TN_STYLE_ICONS)
+        {
+            if (Context->RowHeight < SmallIconHeight)
+                Context->RowHeight = SmallIconHeight;
+
+            Context->RowHeight += 3; // TODO: Fix value
+        }
 
         ReleaseDC(HWND_DESKTOP, hdc);
     }
@@ -2507,39 +2516,32 @@ BOOLEAN PhTnpGetCellParts(
     {
         HDC hdc;
         PH_STRINGREF text;
+        HFONT font;
         SIZE textSize;
 
         if (hdc = GetDC(Context->Handle))
         {
             PhTnpPrepareRowForDraw(Context, hdc, node);
 
-            if (node->Font)
-                SelectObject(hdc, node->Font);
-            else
-                SelectObject(hdc, Context->Font);
-
             if (PhTnpGetCellText(Context, node, Column->Id, &text))
             {
+                if (node->Font)
+                    font = node->Font;
+                else
+                    font = Context->Font;
+
+                SelectObject(hdc, font);
+
                 if (GetTextExtentPoint32(hdc, text.Buffer, text.Length / sizeof(WCHAR), &textSize))
                 {
                     Parts->Flags |= TN_PART_TEXT;
                     Parts->TextRect.left = currentX;
                     Parts->TextRect.right = currentX + textSize.cx;
-
-                    if (!node->Font)
-                    {
-                        Parts->TextRect.top = Parts->RowRect.top + (Context->RowHeight - textSize.cy) / 2;
-                        Parts->TextRect.bottom = Parts->RowRect.bottom - (Context->RowHeight - textSize.cy) / 2;
-                    }
-                    else
-                    {
-                        // We ignore the fact that the font (and therefore the text height) may be different, 
-                        // because that's what the drawing code does.
-                        Parts->TextRect.top = Parts->RowRect.top;
-                        Parts->TextRect.bottom = Parts->RowRect.bottom;
-                    }
+                    Parts->TextRect.top = Parts->RowRect.top + (Context->RowHeight - textSize.cy) / 2;
+                    Parts->TextRect.bottom = Parts->RowRect.bottom - (Context->RowHeight - textSize.cy) / 2;
 
                     Parts->Text = text;
+                    Parts->Font = font;
                 }
             }
 
@@ -4223,6 +4225,7 @@ VOID PhTnpInitializeTooltips(
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
+    Context->TooltipFont = Context->Font;
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 }
 
@@ -4258,6 +4261,7 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Column = hitTest.Column;
         getCellTooltip.Unfolding = FALSE;
         PhInitializeEmptyStringRef(&getCellTooltip.Text);
+        getCellTooltip.Font = Context->Font;
 
         if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
             (parts.Flags & TN_PART_TEXT))
@@ -4266,6 +4270,7 @@ VOID PhTnpGetTooltipText(
             {
                 getCellTooltip.Unfolding = TRUE;
                 getCellTooltip.Text = parts.Text;
+                getCellTooltip.Font = parts.Font; // try to use the same font as the cell
 
                 Context->TooltipUnfolding = TRUE;
                 Context->TooltipRect = parts.TextRect;
@@ -4278,6 +4283,8 @@ VOID PhTnpGetTooltipText(
             PhSwapReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
         else
             PhSwapReference(&Context->TooltipText, NULL);
+
+        Context->NewTooltipFont = getCellTooltip.Font;
     }
 
     if (Context->TooltipText)
@@ -4289,6 +4296,12 @@ BOOLEAN PhTnpPrepareTooltipShow(
     )
 {
     RECT rect;
+
+    if (Context->TooltipFont != Context->NewTooltipFont)
+    {
+        Context->TooltipFont = Context->NewTooltipFont;
+        SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->TooltipFont, FALSE);
+    }
 
     if (!Context->TooltipUnfolding)
         return FALSE;
