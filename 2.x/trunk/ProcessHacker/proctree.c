@@ -161,18 +161,23 @@ static VOID PhpEnableColumnCustomDraw(
 
 VOID PhLoadSettingsProcessTreeList()
 {
-    //ULONG sortColumn;
-    //PH_SORT_ORDER sortOrder;
+    ULONG sortColumn;
+    PH_SORT_ORDER sortOrder;
 
     //PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
 
-    //sortOrder = PhGetIntegerSetting(L"ProcessTreeListSortOrder");
+    sortOrder = PhGetIntegerSetting(L"ProcessTreeListSortOrder");
 
-    //if (sortOrder != NoSortOrder)
-    //{
-    //    sortColumn = PhGetIntegerSetting(L"ProcessTreeListSortColumn");
-    //    TreeList_SetSort(ProcessTreeListHandle, sortColumn, sortOrder);
-    //}
+    if (sortOrder != NoSortOrder)
+    {
+        sortColumn = PhGetIntegerSetting(L"ProcessTreeListSortColumn");
+        TreeNew_SetSort(ProcessTreeListHandle, sortColumn, sortOrder);
+    }
+
+    if (PhGetIntegerSetting(L"EnableInstantTooltips"))
+    {
+        SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+    }
 
     PhpUpdateNeedCyclesInformation();
 }
@@ -187,6 +192,12 @@ VOID PhSaveSettingsProcessTreeList()
     TreeNew_GetSort(ProcessTreeListHandle, &sortColumn, &sortOrder);
     PhSetIntegerSetting(L"ProcessTreeListSortColumn", sortColumn);
     PhSetIntegerSetting(L"ProcessTreeListSortOrder", sortOrder);
+}
+
+VOID PhReloadSettingsProcessTreeList()
+{
+    SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_INITIAL,
+        PhGetIntegerSetting(L"EnableInstantTooltips") ? 0 : -1);
 }
 
 FORCEINLINE BOOLEAN PhCompareProcessNode(

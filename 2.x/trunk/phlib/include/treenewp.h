@@ -20,6 +20,7 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG Tracking : 1; // tracking for fixed divider
             ULONG VScrollVisible : 1;
             ULONG HScrollVisible : 1;
+            ULONG FixedColumnVisible : 1;
             ULONG CanAnyExpand : 1;
             ULONG TriState : 1;
             ULONG HasFocus : 1;
@@ -32,7 +33,7 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SearchFailed : 1; // used to prevent multiple beeps
             ULONG SearchSingleCharMode : 1; // LV style single-character search
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
-            ULONG Spare : 16;
+            ULONG Spare : 15;
         };
         ULONG Flags;
     };
