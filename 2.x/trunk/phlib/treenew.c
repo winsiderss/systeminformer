@@ -709,7 +709,6 @@ VOID PhTnpOnXxxButtonXxx(
 {
     BOOLEAN startingTracking;
     PH_TREENEW_HIT_TEST hitTest;
-    BOOLEAN plusMinusProcessed;
     LOGICAL controlKey;
     LOGICAL shiftKey;
     RECT rect;
@@ -774,17 +773,14 @@ VOID PhTnpOnXxxButtonXxx(
 
     // Plus minus glyph
 
-    plusMinusProcessed = FALSE;
-
     if ((hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && Message == WM_LBUTTONDOWN)
     {
         PhTnpSetExpandedNode(Context, hitTest.Node, !hitTest.Node->Expanded);
-        plusMinusProcessed = TRUE;
     }
 
     // Selection
 
-    if (!plusMinusProcessed && (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN))
+    if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN))
     {
         if (hitTest.Flags & TN_HIT_ITEM)
         {
@@ -916,7 +912,7 @@ VOID PhTnpOnXxxButtonXxx(
         clickMessage = TreeNewRightDoubleClick;
     }
 
-    if (!plusMinusProcessed && clickMessage != -1)
+    if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && clickMessage != -1)
     {
         PH_TREENEW_MOUSE_EVENT mouseEvent;
 
