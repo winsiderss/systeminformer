@@ -2,8 +2,11 @@ Process Hacker
 
 2.18
  * NEW/IMPROVED:
+   * Completely rewritten tree list control
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
+   * Updated ExtendedTools plugin:
+     * Added ETW columns
    * Updated OnlineChecks plugin:
      * Added Comodo Instant Malware Analysis
  * FIXED:
