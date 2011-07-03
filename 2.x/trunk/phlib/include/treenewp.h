@@ -33,7 +33,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SearchFailed : 1; // used to prevent multiple beeps
             ULONG SearchSingleCharMode : 1; // LV style single-character search
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
-            ULONG Spare : 15;
+            ULONG DoubleBuffered : 1;
+            ULONG Spare : 14;
         };
         ULONG Flags;
     };
@@ -97,6 +98,11 @@ typedef struct _PH_TREENEW_CONTEXT
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
+
+    HDC BufferedContext;
+    HBITMAP BufferedOldBitmap;
+    HBITMAP BufferedBitmap;
+    RECT BufferedContextRect;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -514,6 +520,16 @@ VOID PhTnpPrepareTooltipPop(
     );
 
 VOID PhTnpPopTooltip(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+// Double buffering
+
+VOID PhTnpCreateBufferedContext(
+    __in PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpDestroyBufferedContext(
     __in PPH_TREENEW_CONTEXT Context
     );
 

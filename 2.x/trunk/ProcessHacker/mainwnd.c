@@ -3253,7 +3253,7 @@ VOID PhMainWndOnCreate()
     ProcessTreeListHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         L"",
-        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS,
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED,
         0,
         0,
         3,
