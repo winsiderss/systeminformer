@@ -72,10 +72,12 @@ for %%a in (
     symprv.h
     templ.h
     treelist.h
+    treenew.h
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
 
 for %%a in (
+    colmgr.h
     hidnproc.h
     phplug.h
     providers.h

@@ -243,6 +243,7 @@
     <ClCompile Include="chdlg.c" />
     <ClCompile Include="chproc.c" />
     <ClCompile Include="cmdmode.c" />
+    <ClCompile Include="colmgr.c" />
     <ClCompile Include="dbgcon.c" />
     <ClCompile Include="findobj.c" />
     <ClCompile Include="gdihndl.c" />
@@ -332,6 +333,7 @@
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h" />
     <ClInclude Include="..\phlib\format_i.h" />
+    <ClInclude Include="include\colmgr.h" />
     <ClInclude Include="include\phsvccl.h" />
     <ClInclude Include="include\uimodels.h" />
     <ClInclude Include="mxml\config.h" />
