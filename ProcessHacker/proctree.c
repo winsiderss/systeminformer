@@ -23,7 +23,6 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
-#include <colmgr.h>
 #include <cpysave.h>
 
 VOID PhpEnableColumnCustomDraw(
@@ -797,9 +796,9 @@ static VOID PhpUpdateProcessNodeCycles(
         PhSwapReference2(&ProcessNode->CyclesDeltaText, NULL);
 }
 
-#define SORT_FUNCTION(Column) PhpProcessTreeListCompare##Column
+#define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeListCompare##Column( \
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     __in const void *_elem1, \
     __in const void *_elem2 \
     ) \

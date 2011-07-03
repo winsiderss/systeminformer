@@ -3255,8 +3255,6 @@ VOID PhShowModuleContextMenu(
             PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleMenuInitializing), &menuInfo);
         }
 
-        ClientToScreen(Context->ListContext.TreeListHandle, &Location);
-
         item = PhShowEMenu(
             menu,
             hwndDlg,
@@ -3294,7 +3292,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
     PPH_PROCESS_PROPPAGECONTEXT propPageContext;
     PPH_PROCESS_ITEM processItem;
     PPH_MODULES_CONTEXT modulesContext;
-    HWND tlHandle;
+    HWND tnHandle;
 
     if (PhpPropPageDlgProcHeader(hwndDlg, uMsg, lParam,
         &propSheetPage, &propPageContext, &processItem))
@@ -3302,7 +3300,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
         modulesContext = (PPH_MODULES_CONTEXT)propPageContext->Context;
 
         if (modulesContext)
-            tlHandle = modulesContext->ListContext.TreeListHandle;
+            tnHandle = modulesContext->ListContext.TreeNewHandle;
     }
     else
     {
@@ -3354,13 +3352,13 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->WindowHandle = hwndDlg;
 
             // Initialize the list.
-            modulesContext->ListContext.TreeListHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            tlHandle = modulesContext->ListContext.TreeListHandle;
-            BringWindowToTop(tlHandle);
-            PhInitializeModuleList(hwndDlg, tlHandle, &modulesContext->ListContext);
+            modulesContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            tnHandle = modulesContext->ListContext.TreeNewHandle;
+            BringWindowToTop(tnHandle);
+            PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
             modulesContext->NeedsRedraw = FALSE;
 
-            PhLoadSettingsModuleTreeList(&modulesContext->ListContext);
+            PhLoadSettingsModuleList(&modulesContext->ListContext);
 
             PhSetEnabledProvider(&modulesContext->ProviderRegistration, TRUE);
             PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
@@ -3387,7 +3385,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             PhUnregisterProvider(&modulesContext->ProviderRegistration);
             PhDereferenceObject(modulesContext->Provider);
 
-            PhSaveSettingsModuleTreeList(&modulesContext->ListContext);
+            PhSaveSettingsModuleList(&modulesContext->ListContext);
             PhDeleteModuleList(&modulesContext->ListContext);
 
             PhFree(modulesContext);
@@ -3403,7 +3401,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
                 dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
                     PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeListHandle,
+                PhAddPropPageLayoutItem(hwndDlg, modulesContext->ListContext.TreeNewHandle,
                     dialogItem, PH_ANCHOR_ALL);
 
                 PhDoPropPageLayout(hwndDlg);
@@ -3420,8 +3418,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 {
                     POINT location;
 
-                    location.x = (SHORT)LOWORD(lParam); // sign-extend
-                    location.y = (SHORT)HIWORD(lParam);
+                    location.x = GET_X_LPARAM(lParam); // sign-extend
+                    location.y = GET_Y_LPARAM(lParam);
                     PhShowModuleContextMenu(hwndDlg, processItem, modulesContext, location);
                 }
                 break;
@@ -3490,8 +3488,8 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeListText(tlHandle, PHMOTLC_MAXIMUM);
-                    PhSetClipboardStringEx(tlHandle, text->Buffer, text->Length);
+                    text = PhGetTreeNewText(tnHandle, PHMOTLC_MAXIMUM);
+                    PhSetClipboardStringEx(tnHandle, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -3520,7 +3518,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (!modulesContext->NeedsRedraw)
             {
-                TreeList_SetRedraw(tlHandle, FALSE);
+                TreeNew_SetRedraw(tnHandle, FALSE);
                 modulesContext->NeedsRedraw = TRUE;
             }
 
@@ -3534,7 +3532,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (!modulesContext->NeedsRedraw)
             {
-                TreeList_SetRedraw(tlHandle, FALSE);
+                TreeNew_SetRedraw(tnHandle, FALSE);
                 modulesContext->NeedsRedraw = TRUE;
             }
 
@@ -3547,7 +3545,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (!modulesContext->NeedsRedraw)
             {
-                TreeList_SetRedraw(tlHandle, FALSE);
+                TreeNew_SetRedraw(tnHandle, FALSE);
                 modulesContext->NeedsRedraw = TRUE;
             }
 
@@ -3560,7 +3558,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
 
             if (modulesContext->NeedsRedraw)
             {
-                TreeList_SetRedraw(tlHandle, TRUE);
+                TreeNew_SetRedraw(tnHandle, TRUE);
                 modulesContext->NeedsRedraw = FALSE;
             }
         }

@@ -42,9 +42,9 @@ VOID PhpRemoveModuleNode(
     __in PPH_MODULE_LIST_CONTEXT Context
     );
 
-BOOLEAN NTAPI PhpModuleTreeListCallback(
+BOOLEAN NTAPI PhpModuleTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -52,11 +52,12 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
 
 VOID PhInitializeModuleList(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle,
+    __in HWND TreeNewHandle,
     __out PPH_MODULE_LIST_CONTEXT Context
     )
 {
     HWND hwnd;
+    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
     memset(Context, 0, sizeof(PH_MODULE_LIST_CONTEXT));
     Context->EnableStateHighlighting = TRUE;
@@ -70,30 +71,39 @@ VOID PhInitializeModuleList(
     Context->NodeList = PhCreateList(100);
 
     Context->ParentWindowHandle = ParentWindowHandle;
-    Context->TreeListHandle = TreeListHandle;
-    hwnd = TreeListHandle;
-    TreeList_EnableExplorerStyle(hwnd);
+    Context->TreeNewHandle = TreeNewHandle;
+    hwnd = TreeNewHandle;
+    PhSetControlTheme(hwnd, L"explorer");
+    PhSetWindowStyle(hwnd, WS_BORDER, WS_BORDER);
 
-    TreeList_SetCallback(hwnd, PhpModuleTreeListCallback);
-    TreeList_SetContext(hwnd, Context);
+    TreeNew_SetCallback(hwnd, PhpModuleTreeNewCallback, Context);
 
     // Default columns
-    PhAddTreeListColumn(hwnd, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base Address", 80, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 2, DT_RIGHT);
-    PhAddTreeListColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, -2, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_BASEADDRESS, TRUE, L"Base Address", 80, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_SIZE, TRUE, L"Size", 60, PH_ALIGN_RIGHT, 1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_DESCRIPTION, TRUE, L"Description", 160, PH_ALIGN_LEFT, 2, 0);
 
-    PhAddTreeListColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
 
-    PhAddTreeListColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
-    PhAddTreeListColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_TYPE, FALSE, L"Type", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_LOADCOUNT, FALSE, L"Load Count", 40, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFICATIONSTATUS, FALSE, L"Verification Status", 70, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHMOTLC_VERIFIEDSIGNER, FALSE, L"Verified Signer", 100, PH_ALIGN_LEFT, -1, 0);
 
-    TreeList_SetTriState(hwnd, TRUE);
-    TreeList_SetSort(hwnd, 0, NoSortOrder);
+    TreeNew_SetTriState(hwnd, TRUE);
+    TreeNew_SetSort(hwnd, 0, NoSortOrder);
+
+    PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM);
+
+    if (PhPluginsEnabled)
+    {
+        treeNewInfo.TreeNewHandle = hwnd;
+        treeNewInfo.CmData = &Context->Cm;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewInitializing), &treeNewInfo);
+    }
 }
 
 VOID PhDeleteModuleList(
@@ -134,27 +144,33 @@ ULONG PhpModuleNodeHashtableHashFunction(
 #endif
 }
 
-VOID PhLoadSettingsModuleTreeList(
+VOID PhLoadSettingsModuleList(
     __inout PPH_MODULE_LIST_CONTEXT Context
     )
 {
+    PPH_STRING settings;
     PH_INTEGER_PAIR pair;
 
-    PhLoadTreeListColumnsFromSetting(L"ModuleTreeListColumns", Context->TreeListHandle);
+    settings = PhGetStringSetting(L"ModuleTreeListColumns");
+    PhCmLoadSettings(&Context->Cm, &settings->sr);
+    PhDereferenceObject(settings);
 
     pair = PhGetIntegerPairSetting(L"ModuleTreeListSort");
-    TreeList_SetSort(Context->TreeListHandle, pair.X, pair.Y);
+    TreeNew_SetSort(Context->TreeNewHandle, pair.X, pair.Y);
 }
 
-VOID PhSaveSettingsModuleTreeList(
+VOID PhSaveSettingsModuleList(
     __inout PPH_MODULE_LIST_CONTEXT Context
     )
 {
+    PPH_STRING settings;
     PH_INTEGER_PAIR pair;
 
-    PhSaveTreeListColumnsToSetting(L"ModuleTreeListColumns", Context->TreeListHandle);
+    settings = PhCmSaveSettings(&Context->Cm);
+    PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
+    PhDereferenceObject(settings);
 
-    TreeList_GetSort(Context->TreeListHandle, &pair.X, &pair.Y);
+    TreeNew_GetSort(Context->TreeNewHandle, &pair.X, &pair.Y);
     PhSetIntegerPairSetting(L"ModuleTreeListSort", pair);
 }
 
@@ -168,11 +184,11 @@ PPH_MODULE_NODE PhAddModuleNode(
 
     moduleNode = PhAllocate(sizeof(PH_MODULE_NODE));
     memset(moduleNode, 0, sizeof(PH_MODULE_NODE));
-    PhInitializeTreeListNode(&moduleNode->Node);
+    PhInitializeTreeNewNode(&moduleNode->Node);
 
     if (Context->EnableStateHighlighting && RunId != 1)
     {
-        PhChangeShState(
+        PhChangeShStateTn(
             &moduleNode->Node,
             &moduleNode->ShState,
             &Context->NodeStateList,
@@ -192,7 +208,7 @@ PPH_MODULE_NODE PhAddModuleNode(
     PhAddEntryHashtable(Context->NodeHashtable, &moduleNode);
     PhAddItemList(Context->NodeList, moduleNode);
 
-    TreeList_NodesStructured(Context->TreeListHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return moduleNode;
 }
@@ -226,13 +242,13 @@ VOID PhRemoveModuleNode(
 {
     if (Context->EnableStateHighlighting)
     {
-        PhChangeShState(
+        PhChangeShStateTn(
             &ModuleNode->Node,
             &ModuleNode->ShState,
             &Context->NodeStateList,
             RemovingItemState,
             PhCsColorRemoved,
-            Context->TreeListHandle
+            Context->TreeNewHandle
             );
     }
     else
@@ -270,7 +286,7 @@ VOID PhpRemoveModuleNode(
 
     PhpDestroyModuleNode(ModuleNode);
 
-    TreeList_NodesStructured(Context->TreeListHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhUpdateModuleNode(
@@ -282,20 +298,20 @@ VOID PhUpdateModuleNode(
     PhSwapReference(&ModuleNode->TooltipText, NULL);
 
     ModuleNode->ValidMask = 0;
-    PhInvalidateTreeListNode(&ModuleNode->Node, TLIN_COLOR);
-    TreeList_NodesStructured(Context->TreeListHandle);
+    PhInvalidateTreeNewNode(&ModuleNode->Node, TN_CACHE_COLOR);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID PhTickModuleNodes(
     __in PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    PH_TICK_SH_STATE(PH_MODULE_NODE, ShState, Context->NodeStateList, PhpRemoveModuleNode, PhCsHighlightingDuration, Context->TreeListHandle, TRUE, Context);
+    PH_TICK_SH_STATE_TN(PH_MODULE_NODE, ShState, Context->NodeStateList, PhpRemoveModuleNode, PhCsHighlightingDuration, Context->TreeNewHandle, TRUE, NULL, Context);
 }
 
-#define SORT_FUNCTION(Column) PhpModuleTreeListCompare##Column
+#define SORT_FUNCTION(Column) PhpModuleTreeNewCompare##Column
 
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpModuleTreeListCompare##Column( \
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpModuleTreeNewCompare##Column( \
     __in void *_context, \
     __in const void *_elem1, \
     __in const void *_elem2 \
@@ -311,7 +327,7 @@ VOID PhTickModuleNodes(
     if (sortResult == 0) \
         sortResult = uintptrcmp((ULONG_PTR)moduleItem1->BaseAddress, (ULONG_PTR)moduleItem2->BaseAddress); \
     \
-    return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeListSortOrder); \
+    return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(TriState)
@@ -401,9 +417,9 @@ BEGIN_SORT_FUNCTION(VerifiedSigner)
 }
 END_SORT_FUNCTION
 
-BOOLEAN NTAPI PhpModuleTreeListCallback(
+BOOLEAN NTAPI PhpModuleTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -416,9 +432,9 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
 
     switch (Message)
     {
-    case TreeListGetChildren:
+    case TreeNewGetChildren:
         {
-            PPH_TREELIST_GET_CHILDREN getChildren = Parameter1;
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
             if (!getChildren->Node)
             {
@@ -438,10 +454,10 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 };
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
-                if (context->TreeListSortOrder == NoSortOrder)
+                if (context->TreeNewSortOrder == NoSortOrder)
                     sortFunction = SORT_FUNCTION(TriState);
-                else if (context->TreeListSortColumn < PHMOTLC_MAXIMUM)
-                    sortFunction = sortFunctions[context->TreeListSortColumn];
+                else if (context->TreeNewSortColumn < PHMOTLC_MAXIMUM)
+                    sortFunction = sortFunctions[context->TreeNewSortColumn];
                 else
                     sortFunction = NULL;
 
@@ -450,50 +466,50 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
                 }
 
-                getChildren->Children = (PPH_TREELIST_NODE *)context->NodeList->Items;
+                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
                 getChildren->NumberOfChildren = context->NodeList->Count;
             }
         }
         return TRUE;
-    case TreeListIsLeaf:
+    case TreeNewIsLeaf:
         {
-            PPH_TREELIST_IS_LEAF isLeaf = Parameter1;
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
-    case TreeListGetNodeText:
+    case TreeNewGetCellText:
         {
-            PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_MODULE_ITEM moduleItem;
 
-            node = (PPH_MODULE_NODE)getNodeText->Node;
+            node = (PPH_MODULE_NODE)getCellText->Node;
             moduleItem = node->ModuleItem;
 
-            switch (getNodeText->Id)
+            switch (getCellText->Id)
             {
             case PHMOTLC_NAME:
-                getNodeText->Text = moduleItem->Name->sr;
+                getCellText->Text = moduleItem->Name->sr;
                 break;
             case PHMOTLC_BASEADDRESS:
-                PhInitializeStringRef(&getNodeText->Text, moduleItem->BaseAddressString);
+                PhInitializeStringRef(&getCellText->Text, moduleItem->BaseAddressString);
                 break;
             case PHMOTLC_SIZE:
                 if (!node->SizeText)
                     node->SizeText = PhFormatSize(moduleItem->Size, -1);
-                getNodeText->Text = PhGetStringRef(node->SizeText);
+                getCellText->Text = PhGetStringRef(node->SizeText);
                 break;
             case PHMOTLC_DESCRIPTION:
-                getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.FileDescription);
+                getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileDescription);
                 break;
             case PHMOTLC_COMPANYNAME:
-                getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.CompanyName);
+                getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.CompanyName);
                 break;
             case PHMOTLC_VERSION:
-                getNodeText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
+                getCellText->Text = PhGetStringRef(moduleItem->VersionInfo.FileVersion);
                 break;
             case PHMOTLC_FILENAME:
-                getNodeText->Text = PhGetStringRef(moduleItem->FileName);
+                getCellText->Text = PhGetStringRef(moduleItem->FileName);
                 break;
             case PHMOTLC_TYPE:
                 {
@@ -521,7 +537,7 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                         break;
                     }
 
-                    PhInitializeStringRef(&getNodeText->Text, typeString);
+                    PhInitializeStringRef(&getCellText->Text, typeString);
                 }
                 break;
             case PHMOTLC_LOADCOUNT:
@@ -531,43 +547,43 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                     if (moduleItem->LoadCount != (USHORT)-1)
                     {
                         PhPrintInt32(node->LoadCountString, moduleItem->LoadCount);
-                        PhInitializeStringRef(&getNodeText->Text, node->LoadCountString);
+                        PhInitializeStringRef(&getCellText->Text, node->LoadCountString);
                     }
                     else
                     {
-                        PhInitializeStringRef(&getNodeText->Text, L"Static");
+                        PhInitializeStringRef(&getCellText->Text, L"Static");
                     }
                 }
                 else
                 {
-                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                    PhInitializeEmptyStringRef(&getCellText->Text);
                 }
                 break;
             case PHMOTLC_VERIFICATIONSTATUS:
                 if (moduleItem->Type == PH_MODULE_TYPE_MODULE || moduleItem->Type == PH_MODULE_TYPE_KERNEL_MODULE ||
                     moduleItem->Type == PH_MODULE_TYPE_WOW64_MODULE)
                 {
-                    PhInitializeStringRef(&getNodeText->Text,
+                    PhInitializeStringRef(&getCellText->Text,
                         moduleItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
                 }
                 else
                 {
-                    PhInitializeEmptyStringRef(&getNodeText->Text);
+                    PhInitializeEmptyStringRef(&getCellText->Text);
                 }
                 break;
             case PHMOTLC_VERIFIEDSIGNER:
-                getNodeText->Text = PhGetStringRefOrEmpty(moduleItem->VerifySignerName);
+                getCellText->Text = PhGetStringRefOrEmpty(moduleItem->VerifySignerName);
                 break;
             default:
                 return FALSE;
             }
 
-            getNodeText->Flags = TLC_CACHE;
+            getCellText->Flags = TN_CACHE;
         }
         return TRUE;
-    case TreeListGetNodeColor:
+    case TreeNewGetNodeColor:
         {
-            PPH_TREELIST_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
             PPH_MODULE_ITEM moduleItem;
 
             node = (PPH_MODULE_NODE)getNodeColor->Node;
@@ -580,12 +596,12 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             else if (PhCsUseColorRelocatedModules && (moduleItem->Flags & LDRP_IMAGE_NOT_AT_BASE))
                 getNodeColor->BackColor = PhCsColorRelocatedModules;
 
-            getNodeColor->Flags = TLC_CACHE | TLGNC_AUTO_FORECOLOR;
+            getNodeColor->Flags = TN_CACHE | TN_AUTO_FORECOLOR;
         }
         return TRUE;
-    case TreeListGetNodeFont:
+    case TreeNewGetNodeFont:
         {
-            PPH_TREELIST_GET_NODE_FONT getNodeFont = Parameter1;
+            PPH_TREENEW_GET_NODE_FONT getNodeFont = Parameter1;
 
             node = (PPH_MODULE_NODE)getNodeFont->Node;
 
@@ -604,16 +620,19 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 }
 
                 getNodeFont->Font = context->BoldFont ? context->BoldFont : PhBoldListViewFont;
-                getNodeFont->Flags = TLC_CACHE;
+                getNodeFont->Flags = TN_CACHE;
                 return TRUE;
             }
         }
         break;
-    case TreeListGetNodeTooltip:
+    case TreeNewGetCellTooltip:
         {
-            PPH_TREELIST_GET_NODE_TOOLTIP getNodeTooltip = Parameter1;
+            PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
 
-            node = (PPH_MODULE_NODE)getNodeTooltip->Node;
+            node = (PPH_MODULE_NODE)getCellTooltip->Node;
+
+            if (getCellTooltip->Column->Id != 0)
+                return FALSE;
 
             if (!node->TooltipText)
             {
@@ -630,21 +649,28 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             }
 
             if (!PhIsNullOrEmptyString(node->TooltipText))
-                getNodeTooltip->Text = node->TooltipText->sr;
+            {
+                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+            }
             else
+            {
                 return FALSE;
+            }
         }
         return TRUE;
-    case TreeListSortChanged:
+    case TreeNewSortChanged:
         {
-            TreeList_GetSort(hwnd, &context->TreeListSortColumn, &context->TreeListSortOrder);
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
             // Force a rebuild to sort the items.
-            TreeList_NodesStructured(hwnd);
+            TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
-    case TreeListKeyDown:
+    case TreeNewKeyDown:
         {
-            switch ((SHORT)Parameter1)
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
@@ -653,7 +679,7 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
             }
         }
         return TRUE;
-    case TreeListHeaderRightClick:
+    case TreeNewHeaderRightClick:
         {
             HMENU menu;
             HMENU subMenu;
@@ -673,33 +699,32 @@ BOOLEAN NTAPI PhpModuleTreeListCallback(
                 NULL
                 ) == ID_HEADER_CHOOSECOLUMNS)
             {
-                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_LIST);
+                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
 
                 // Make sure the column we're sorting by is actually visible, 
                 // and if not, don't sort any more.
-                if (context->TreeListSortOrder != NoSortOrder)
+                if (context->TreeNewSortOrder != NoSortOrder)
                 {
-                    PH_TREELIST_COLUMN column;
+                    PH_TREENEW_COLUMN column;
 
-                    column.Id = context->TreeListSortColumn;
-                    TreeList_GetColumn(hwnd, &column);
+                    TreeNew_GetColumn(hwnd, context->TreeNewSortColumn, &column);
 
                     if (!column.Visible)
-                        TreeList_SetSort(hwnd, 0, NoSortOrder);
+                        TreeNew_SetSort(hwnd, 0, NoSortOrder);
                 }
             }
 
             DestroyMenu(menu);
         }
         return TRUE;
-    //case TreeListLeftDoubleClick:
+    //case TreeNewLeftDoubleClick:
     //    {
     //        SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_MODULE_PROPERTIES, 0);
     //    }
     //    return TRUE;
-    case TreeListContextMenu:
+    case TreeNewContextMenu:
         {
-            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }
@@ -761,6 +786,5 @@ VOID PhDeselectAllModuleNodes(
     __in PPH_MODULE_LIST_CONTEXT Context
     )
 {
-    TreeList_SetStateAll(Context->TreeListHandle, 0, LVIS_SELECTED);
-    InvalidateRect(Context->TreeListHandle, NULL, TRUE);
+    TreeNew_DeselectRange(Context->TreeNewHandle, 0, -1);
 }

@@ -132,6 +132,8 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnThemeChanged(hwnd, context);
         }
         break;
+    case WM_GETDLGCODE:
+        return DLGC_WANTARROWS | DLGC_WANTCHARS;
     case WM_SETFOCUS:
         {
             context->HasFocus = TRUE;
@@ -1697,8 +1699,10 @@ VOID PhTnpUpdateTextMetrics(
             if (Context->RowHeight < SmallIconHeight)
                 Context->RowHeight = SmallIconHeight;
 
-            Context->RowHeight += 3; // TODO: Fix value
+            Context->RowHeight += 2; // TODO: Magic value?
         }
+
+        Context->RowHeight += 1; // TODO: Magic value?
 
         ReleaseDC(HWND_DESKTOP, hdc);
     }

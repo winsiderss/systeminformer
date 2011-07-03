@@ -533,7 +533,7 @@ VOID PhWriteServiceList(
 
 typedef struct _PH_MODULE_NODE
 {
-    PH_TREELIST_NODE Node;
+    PH_TREENEW_NODE Node;
 
     PH_SH_STATE ShState;
 
@@ -552,9 +552,10 @@ typedef struct _PH_MODULE_NODE
 typedef struct _PH_MODULE_LIST_CONTEXT
 {
     HWND ParentWindowHandle;
-    HWND TreeListHandle;
-    ULONG TreeListSortColumn;
-    PH_SORT_ORDER TreeListSortOrder;
+    HWND TreeNewHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
+    PH_CM_MANAGER Cm;
 
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
@@ -567,7 +568,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 
 VOID PhInitializeModuleList(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle,
+    __in HWND TreeNewHandle,
     __out PPH_MODULE_LIST_CONTEXT Context
     );
 
@@ -575,11 +576,11 @@ VOID PhDeleteModuleList(
     __in PPH_MODULE_LIST_CONTEXT Context
     );
 
-VOID PhLoadSettingsModuleTreeList(
+VOID PhLoadSettingsModuleList(
     __inout PPH_MODULE_LIST_CONTEXT Context
     );
 
-VOID PhSaveSettingsModuleTreeList(
+VOID PhSaveSettingsModuleList(
     __inout PPH_MODULE_LIST_CONTEXT Context
     );
 
