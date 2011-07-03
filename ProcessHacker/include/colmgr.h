@@ -48,7 +48,7 @@ BOOLEAN PhCmForwardMessage(
     __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
-    __in_opt PVOID Context
+    __in PPH_CM_MANAGER Manager
     );
 
 PHAPPAPI

@@ -260,8 +260,8 @@ typedef struct _PH_TREENEW_GET_CELL_TOOLTIP
     ULONG Flags;
     PPH_TREENEW_NODE Node;
     PPH_TREENEW_COLUMN Column;
-    BOOLEAN Unfolding;
 
+    BOOLEAN Unfolding;
     PH_STRINGREF Text;
     HFONT Font;
 } PH_TREENEW_GET_CELL_TOOLTIP, *PPH_TREENEW_GET_CELL_TOOLTIP;
@@ -339,7 +339,12 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_GETCOLUMNCOUNT (WM_USER + 30)
 #define TNM_SETREDRAW (WM_USER + 31)
 #define TNM_GETVIEWPARTS (WM_USER + 32)
-#define TNM_LAST (WM_USER + 32)
+#define TNM_GETFIXEDCOLUMN (WM_USER + 33)
+#define TNM_GETFIRSTCOLUMN (WM_USER + 34)
+#define TNM_SETFOCUSNODE (WM_USER + 35)
+#define TNM_SETMARKNODE (WM_USER + 36)
+#define TNM_SETHOTNODE (WM_USER + 37)
+#define TNM_LAST (WM_USER + 37)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -387,7 +392,7 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
     ((ULONG)SendMessage((hWnd), TNM_GETFLATNODECOUNT, 0, 0))
 
 #define TreeNew_GetFlatNode(hWnd, Index) \
-    SendMessage((hWnd), TNM_GETFLATNODE, (WPARAM)(Index), 0)
+    ((PPH_TREENEW_NODE)SendMessage((hWnd), TNM_GETFLATNODE, (WPARAM)(Index), 0))
 
 #define TreeNew_GetCellText(hWnd, GetCellText) \
     SendMessage((hWnd), TNM_GETCELLTEXT, 0, (LPARAM)(GetCellText))
@@ -430,6 +435,21 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_GetViewParts(hWnd, Parts) \
     SendMessage((hWnd), TNM_GETVIEWPARTS, 0, (LPARAM)(Parts))
+
+#define TreeNew_GetFixedColumn(hWnd) \
+    ((PPH_TREENEW_COLUMN)SendMessage((hWnd), TNM_GETFIXEDCOLUMN, 0, 0))
+
+#define TreeNew_GetFirstColumn(hWnd) \
+    ((PPH_TREENEW_COLUMN)SendMessage((hWnd), TNM_GETFIRSTCOLUMN, 0, 0))
+
+#define TreeNew_SetFocusNode(hWnd, Node) \
+    SendMessage((hWnd), TNM_SETFOCUSNODE, 0, (LPARAM)(Node))
+
+#define TreeNew_SetMarkNode(hWnd, Node) \
+    SendMessage((hWnd), TNM_SETMARKNODE, 0, (LPARAM)(Node))
+
+#define TreeNew_SetHotNode(hWnd, Node) \
+    SendMessage((hWnd), TNM_SETHOTNODE, 0, (LPARAM)(Node))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {

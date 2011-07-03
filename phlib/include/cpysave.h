@@ -40,8 +40,19 @@ PPH_FULL_STRING PhGetTreeListText(
     __in ULONG MaximumNumberOfColumns
     );
 
+PHLIBAPI
+PPH_FULL_STRING PhGetTreeNewText(
+    __in HWND TreeNewHandle,
+    __in ULONG MaximumNumberOfColumns
+    );
+
 PPH_LIST PhGetGenericTreeListLines(
     __in HWND TreeListHandle,
+    __in ULONG Mode
+    );
+
+PPH_LIST PhGetGenericTreeNewLines(
+    __in HWND TreeNewHandle,
     __in ULONG Mode
     );
 
