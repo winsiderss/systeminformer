@@ -2615,6 +2615,38 @@ VOID PhTnpSetExpandedNode(
 
         if (!nodeEvent.Handled)
         {
+            if (!Expanded)
+            {
+                ULONG i;
+                PPH_TREENEW_NODE node;
+                BOOLEAN changed;
+
+                // Make sure no children are selected - we don't want invisible selected nodes.
+                // Note that this does not cause any UI changes by itself, since we are hiding 
+                // the nodes.
+
+                changed = FALSE;
+
+                for (i = Node->Index + 1; i < Context->FlatList->Count; i++)
+                {
+                    node = Context->FlatList->Items[i];
+
+                    if (node->Level <= Node->Level)
+                        break; // no more children
+
+                    if (node->Selected)
+                    {
+                        node->Selected = FALSE;
+                        changed = TRUE;
+                    }
+                }
+
+                if (changed)
+                {
+                    Context->Callback(Context->Handle, TreeNewSelectionChanged, NULL, NULL, Context->CallbackContext);
+                }
+            }
+
             Node->Expanded = Expanded;
             PhTnpRestructureNodes(Context);
             // We need to update the window before the scrollbars get updated in order for the scroll processing 

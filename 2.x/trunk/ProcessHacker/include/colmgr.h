@@ -71,18 +71,29 @@ BOOLEAN PhCmForwardSort(
     __in PPH_CM_MANAGER Manager
     );
 
+BOOLEAN PhCmLoadSettings(
+    __in PPH_CM_MANAGER Manager,
+    __in PPH_STRINGREF Settings
+    );
+
 PHAPPAPI
 BOOLEAN
 NTAPI
-PhCmLoadSettings(
+PhCmLoadSettingsEx(
+    __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
     __in PPH_STRINGREF Settings
+    );
+
+PPH_STRING PhCmSaveSettings(
+    __in PPH_CM_MANAGER Manager
     );
 
 PHAPPAPI
 PPH_STRING
 NTAPI
-PhCmSaveSettings(
+PhCmSaveSettingsEx(
+    __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager
     );
 

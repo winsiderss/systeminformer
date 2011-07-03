@@ -235,6 +235,15 @@ BOOLEAN PhCmForwardSort(
 }
 
 BOOLEAN PhCmLoadSettings(
+    __in PPH_CM_MANAGER Manager,
+    __in PPH_STRINGREF Settings
+    )
+{
+    return PhCmLoadSettingsEx(Manager->Handle, Manager, Settings);
+}
+
+BOOLEAN PhCmLoadSettingsEx(
+    __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
     __in PPH_STRINGREF Settings
     )
@@ -346,14 +355,14 @@ BOOLEAN PhCmLoadSettings(
 
     i = 0;
     count = 0;
-    total = TreeNew_GetColumnCount(Manager->Handle);
+    total = TreeNew_GetColumnCount(TreeNewHandle);
 
     while (count < total)
     {
         PH_TREENEW_COLUMN setColumn;
         PPH_TREENEW_COLUMN *columnPtr;
 
-        if (TreeNew_GetColumn(Manager->Handle, i, &setColumn))
+        if (TreeNew_GetColumn(TreeNewHandle, i, &setColumn))
         {
             columnPtr = (PPH_TREENEW_COLUMN *)PhFindItemSimpleHashtable(columnHashtable, (PVOID)i);
 
@@ -361,16 +370,16 @@ BOOLEAN PhCmLoadSettings(
             {
                 setColumn.Width = (*columnPtr)->Width;
                 setColumn.Visible = TRUE;
-                TreeNew_SetColumn(Manager->Handle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
+                TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE | TN_COLUMN_WIDTH, &setColumn);
 
-                TreeNew_GetColumn(Manager->Handle, i, &setColumn); // get the Fixed and ViewIndex for use in the second pass
+                TreeNew_GetColumn(TreeNewHandle, i, &setColumn); // get the Fixed and ViewIndex for use in the second pass
                 (*columnPtr)->Fixed = setColumn.Fixed;
                 (*columnPtr)->s.ViewIndex = setColumn.s.ViewIndex;
             }
             else if (!setColumn.Fixed) // never hide the fixed column
             {
                 setColumn.Visible = FALSE;
-                TreeNew_SetColumn(Manager->Handle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
+                TreeNew_SetColumn(TreeNewHandle, TN_COLUMN_FLAG_VISIBLE, &setColumn);
             }
 
             count++;
@@ -405,7 +414,7 @@ BOOLEAN PhCmLoadSettings(
 
     // Set the order array.
 
-    TreeNew_SetColumnOrderArray(Manager->Handle, maxOrder, orderArray);
+    TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
 
     result = TRUE;
 
@@ -422,6 +431,14 @@ CleanupExit:
 }
 
 PPH_STRING PhCmSaveSettings(
+    __in PPH_CM_MANAGER Manager
+    )
+{
+    return PhCmSaveSettingsEx(Manager->Handle, Manager);
+}
+
+PPH_STRING PhCmSaveSettingsEx(
+    __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager
     )
 {
@@ -431,13 +448,13 @@ PPH_STRING PhCmSaveSettings(
     ULONG total;
     PH_TREENEW_COLUMN column;
 
-    total = TreeNew_GetColumnCount(Manager->Handle);
+    total = TreeNew_GetColumnCount(TreeNewHandle);
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
     while (count < total)
     {
-        if (TreeNew_GetColumn(Manager->Handle, i, &column))
+        if (TreeNew_GetColumn(TreeNewHandle, i, &column))
         {
             if (column.Visible)
             {
