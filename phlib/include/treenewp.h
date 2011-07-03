@@ -37,6 +37,8 @@ typedef struct _PH_TREENEW_CONTEXT
         };
         ULONG Flags;
     };
+    ULONG Style;
+    ULONG ExtendedStyle;
 
     HFONT Font;
     HCURSOR Cursor;
@@ -90,6 +92,8 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG TooltipId;
     PPH_STRING TooltipText;
     RECT TooltipRect; // text rectangle of an unfolding tooltip
+    HFONT TooltipFont;
+    HFONT NewTooltipFont;
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
