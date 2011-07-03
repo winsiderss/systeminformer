@@ -41,7 +41,7 @@ VOID PhpUpdateProcessNodeCycles(
     __inout PPH_PROCESS_NODE ProcessNode
     );
 
-BOOLEAN NTAPI PhpProcessTreeListCallback(
+BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
@@ -83,9 +83,10 @@ VOID PhInitializeProcessTreeList(
     ProcessTreeListHandle = hwnd;
     SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
     PhSetControlTheme(ProcessTreeListHandle, L"explorer");
+    SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
 
-    TreeNew_SetCallback(hwnd, PhpProcessTreeListCallback, NULL);
+    TreeNew_SetCallback(hwnd, PhpProcessTreeNewCallback, NULL);
 
     TreeNew_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
 
@@ -1147,7 +1148,7 @@ BEGIN_SORT_FUNCTION(DepStatus)
 }
 END_SORT_FUNCTION
 
-BOOLEAN NTAPI PhpProcessTreeListCallback(
+BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
@@ -1156,6 +1157,9 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
     )
 {
     PPH_PROCESS_NODE node;
+
+    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &ProcessTreeListCm))
+        return TRUE;
 
     switch (Message)
     {
@@ -1765,15 +1769,20 @@ BOOLEAN NTAPI PhpProcessTreeListCallback(
             if (!node->TooltipText)
                 node->TooltipText = PhGetProcessTooltipText(node->ProcessItem);
 
-            if (node->TooltipText)
+            if (!PhIsNullOrEmptyString(node->TooltipText))
+            {
                 getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+            }
             else
+            {
                 return FALSE;
+            }
         }
         return TRUE;
-    case TreeListCustomDraw:
+    case TreeNewCustomDraw:
         {
-            PPH_TREELIST_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             PPH_PROCESS_ITEM processItem;
             RECT rect;
             PH_GRAPH_DRAW_INFO drawInfo;
@@ -2141,6 +2150,8 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     if (needsRestructure)
         TreeNew_NodesStructured(ProcessTreeListHandle);
 
+    TreeNew_SetFocusNode(ProcessTreeListHandle, &ProcessNode->Node);
+    TreeNew_SetMarkNode(ProcessTreeListHandle, &ProcessNode->Node);
     TreeNew_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
@@ -2352,7 +2363,7 @@ VOID PhCopyProcessTree()
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeListText(ProcessTreeListHandle, PHPRTLC_MAXIMUM);
+    text = PhGetTreeNewText(ProcessTreeListHandle, PHPRTLC_MAXIMUM);
     PhSetClipboardStringEx(ProcessTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
