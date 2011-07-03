@@ -24,14 +24,26 @@
 #include <phplug.h>
 #include <colmgr.h>
 
+typedef struct _PH_CM_SORT_CONTEXT
+{
+    PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction;
+    ULONG SubId;
+    PVOID Context;
+    PPH_CM_POST_SORT_FUNCTION PostSortFunction;
+    PH_SORT_ORDER SortOrder;
+} PH_CM_SORT_CONTEXT, *PPH_CM_SORT_CONTEXT;
+
 VOID PhCmInitializeManager(
     __out PPH_CM_MANAGER Manager,
     __in HWND Handle,
-    __in ULONG MinId
+    __in ULONG MinId,
+    __in PPH_CM_POST_SORT_FUNCTION PostSortFunction
     )
 {
     Manager->Handle = Handle;
     Manager->MinId = MinId;
+    Manager->NextId = MinId;
+    Manager->PostSortFunction = PostSortFunction;
     InitializeListHead(&Manager->ColumnListHead);
 }
 
@@ -58,7 +70,8 @@ PPH_CM_COLUMN PhCmCreateColumn(
     __in PPH_TREENEW_COLUMN Column,
     __in struct _PH_PLUGIN *Plugin,
     __in ULONG SubId,
-    __in PVOID Context
+    __in_opt PVOID Context,
+    __in PVOID SortFunction
     )
 {
     PPH_CM_COLUMN column;
@@ -66,21 +79,21 @@ PPH_CM_COLUMN PhCmCreateColumn(
 
     column = PhAllocate(sizeof(PH_CM_COLUMN));
     memset(column, 0, sizeof(PH_CM_COLUMN));
-    column->Id = Manager->MinId++;
+    column->Id = Manager->NextId++;
     column->Plugin = Plugin;
     column->SubId = SubId;
     column->Context = Context;
+    column->SortFunction = SortFunction;
     InsertTailList(&Manager->ColumnListHead, &column->ListEntry);
 
     memset(&tnColumn, 0, sizeof(PH_TREENEW_COLUMN));
-    tnColumn.Id = Column->Id;
+    tnColumn.Id = column->Id;
     tnColumn.Context = column;
-    tnColumn.Visible = Column->Visible;
+    tnColumn.Visible = FALSE;
     tnColumn.CustomDraw = Column->CustomDraw;
     tnColumn.Text = Column->Text;
     tnColumn.Width = Column->Width;
     tnColumn.Alignment = Column->Alignment;
-    tnColumn.DisplayIndex = Column->DisplayIndex;
     tnColumn.TextFlags = Column->TextFlags;
     TreeNew_AddColumn(Manager->Handle, &tnColumn);
 
@@ -172,6 +185,55 @@ BOOLEAN PhCmForwardMessage(
     return FALSE;
 }
 
+static int __cdecl PhCmpSortFunction(
+    __in void *context,
+    __in const void *elem1,
+    __in const void *elem2
+    )
+{
+    PPH_CM_SORT_CONTEXT sortContext = context;
+    PVOID node1 = *(PVOID *)elem1;
+    PVOID node2 = *(PVOID *)elem2;
+    LONG result;
+
+    result = sortContext->SortFunction(node1, node2, sortContext->SubId, sortContext->Context);
+
+    return sortContext->PostSortFunction(result, node1, node2, sortContext->SortOrder);
+}
+
+BOOLEAN PhCmForwardSort(
+    __in PPH_TREENEW_NODE *Nodes,
+    __in ULONG NumberOfNodes,
+    __in ULONG SortColumn,
+    __in PH_SORT_ORDER SortOrder,
+    __in PPH_CM_MANAGER Manager
+    )
+{
+    PH_TREENEW_COLUMN tnColumn;
+    PPH_CM_COLUMN column;
+    PH_CM_SORT_CONTEXT sortContext;
+
+    if (SortColumn < Manager->MinId)
+        return FALSE;
+
+    if (!TreeNew_GetColumn(Manager->Handle, SortColumn, &tnColumn))
+        return TRUE;
+
+    column = tnColumn.Context;
+
+    if (!column->SortFunction)
+        return TRUE;
+
+    sortContext.SortFunction = column->SortFunction;
+    sortContext.SubId = column->SubId;
+    sortContext.Context = column->Context;
+    sortContext.PostSortFunction = Manager->PostSortFunction;
+    sortContext.SortOrder = SortOrder;
+    qsort_s(Nodes, NumberOfNodes, sizeof(PVOID), PhCmpSortFunction, &sortContext);
+
+    return TRUE;
+}
+
 BOOLEAN PhCmLoadSettings(
     __in_opt PPH_CM_MANAGER Manager,
     __in PPH_STRINGREF Settings
@@ -250,9 +312,9 @@ BOOLEAN PhCmLoadSettings(
             {
                 if (!PhStringToInteger64(&valuePart, 10, &integer))
                     goto CleanupExit;
-            }
 
-            id = (ULONG)integer;
+                id = (ULONG)integer;
+            }
 
             // Display Index
 

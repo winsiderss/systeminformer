@@ -43,6 +43,11 @@ VOID NTAPI MenuItemCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI TreeNewMessageCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 VOID NTAPI MainWindowShowingCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -73,17 +78,24 @@ VOID NTAPI ModuleMenuInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI ProcessTreeNewInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginTreeNewMessageCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION HandlePropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 
 static HANDLE ModuleProcessId;
 
@@ -133,6 +145,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginMenuItemCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackTreeNewMessage),
+                TreeNewMessageCallback,
+                NULL,
+                &PluginTreeNewMessageCallbackRegistration
+                );
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
@@ -169,6 +187,12 @@ LOGICAL DllMain(
                 ModuleMenuInitializingCallback,
                 NULL,
                 &ModuleMenuInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing),
+                ProcessTreeNewInitializingCallback,
+                NULL,
+                &ProcessTreeNewInitializingCallbackRegistration
                 );
 
             {
@@ -258,6 +282,14 @@ VOID NTAPI MenuItemCallback(
         }
         break;
     }
+}
+
+VOID NTAPI TreeNewMessageCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    EtEtwProcessTreeNewMessage(Parameter);
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -380,4 +412,12 @@ VOID NTAPI ModuleMenuInitializingCallback(
         L"Services", moduleItem), insertIndex);
 
     if (!moduleItem) menuItem->Flags |= PH_EMENU_DISABLED;
+}
+
+VOID NTAPI ProcessTreeNewInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    EtEtwProcessTreeNewInitializing(Parameter);
 }

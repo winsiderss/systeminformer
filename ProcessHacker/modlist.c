@@ -42,6 +42,13 @@ VOID PhpRemoveModuleNode(
     __in PPH_MODULE_LIST_CONTEXT Context
     );
 
+LONG PhpModuleTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    );
+
 BOOLEAN NTAPI PhpModuleTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -53,6 +60,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
 VOID PhInitializeModuleList(
     __in HWND ParentWindowHandle,
     __in HWND TreeNewHandle,
+    __in PPH_PROCESS_ITEM ProcessItem,
     __out PPH_MODULE_LIST_CONTEXT Context
     )
 {
@@ -96,12 +104,13 @@ VOID PhInitializeModuleList(
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
-    PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM);
+    PhCmInitializeManager(&Context->Cm, hwnd, PHMOTLC_MAXIMUM, PhpModuleTreeNewPostSortFunction);
 
     if (PhPluginsEnabled)
     {
         treeNewInfo.TreeNewHandle = hwnd;
         treeNewInfo.CmData = &Context->Cm;
+        treeNewInfo.u.Module.ProcessItem = ProcessItem;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewInitializing), &treeNewInfo);
     }
 }
@@ -330,6 +339,19 @@ VOID PhTickModuleNodes(
     return PhModifySort(sortResult, ((PPH_MODULE_LIST_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
+LONG PhpModuleTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    )
+{
+    if (Result == 0)
+        Result = uintptrcmp((ULONG_PTR)((PPH_MODULE_NODE)Node1)->ModuleItem->BaseAddress, (ULONG_PTR)((PPH_MODULE_NODE)Node2)->ModuleItem->BaseAddress);
+
+    return PhModifySort(Result, SortOrder);
+}
+
 BEGIN_SORT_FUNCTION(TriState)
 {
     if (moduleItem1->IsFirst)
@@ -455,11 +477,29 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 int (__cdecl *sortFunction)(void *, const void *, const void *);
 
                 if (context->TreeNewSortOrder == NoSortOrder)
+                {
                     sortFunction = SORT_FUNCTION(TriState);
-                else if (context->TreeNewSortColumn < PHMOTLC_MAXIMUM)
-                    sortFunction = sortFunctions[context->TreeNewSortColumn];
+                }
                 else
-                    sortFunction = NULL;
+                {
+                    if (!PhCmForwardSort(
+                        (PPH_TREENEW_NODE *)context->NodeList->Items,
+                        context->NodeList->Count,
+                        context->TreeNewSortColumn,
+                        context->TreeNewSortOrder,
+                        &context->Cm
+                        ))
+                    {
+                        if (context->TreeNewSortColumn < PHMOTLC_MAXIMUM)
+                            sortFunction = sortFunctions[context->TreeNewSortColumn];
+                        else
+                            sortFunction = NULL;
+                    }
+                    else
+                    {
+                        sortFunction = NULL;
+                    }
+                }
 
                 if (sortFunction)
                 {

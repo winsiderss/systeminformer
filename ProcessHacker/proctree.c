@@ -40,6 +40,13 @@ VOID PhpUpdateProcessNodeCycles(
     __inout PPH_PROCESS_NODE ProcessNode
     );
 
+LONG PhpProcessTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    );
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -150,7 +157,7 @@ VOID PhInitializeProcessTreeList(
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
-    PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM);
+    PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
 
     if (PhPluginsEnabled)
     {
@@ -816,6 +823,19 @@ static VOID PhpUpdateProcessNodeCycles(
     return PhModifySort(sortResult, ProcessTreeListSortOrder); \
 }
 
+LONG PhpProcessTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    )
+{
+    if (Result == 0)
+        Result = intptrcmp((LONG_PTR)((PPH_PROCESS_NODE)Node1)->ProcessItem->ProcessId, (LONG_PTR)((PPH_PROCESS_NODE)Node2)->ProcessItem->ProcessId);
+
+    return PhModifySort(Result, SortOrder);
+}
+
 BEGIN_SORT_FUNCTION(Name)
 {
     sortResult = PhCompareString(processItem1->ProcessName, processItem2->ProcessName, TRUE);
@@ -1240,15 +1260,24 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
-                    if (ProcessTreeListSortColumn < PHPRTLC_MAXIMUM)
-                        sortFunction = sortFunctions[ProcessTreeListSortColumn];
-                    else
-                        sortFunction = NULL;
-
-                    if (sortFunction)
+                    if (!PhCmForwardSort(
+                        (PPH_TREENEW_NODE *)ProcessNodeList->Items,
+                        ProcessNodeList->Count,
+                        ProcessTreeListSortColumn,
+                        ProcessTreeListSortOrder,
+                        &ProcessTreeListCm
+                        ))
                     {
-                        // Don't use PhSortList to avoid overhead.
-                        qsort(ProcessNodeList->Items, ProcessNodeList->Count, sizeof(PVOID), sortFunction);
+                        if (ProcessTreeListSortColumn < PHPRTLC_MAXIMUM)
+                            sortFunction = sortFunctions[ProcessTreeListSortColumn];
+                        else
+                            sortFunction = NULL;
+
+                        if (sortFunction)
+                        {
+                            // Don't use PhSortList to avoid overhead.
+                            qsort(ProcessNodeList->Items, ProcessNodeList->Count, sizeof(PVOID), sortFunction);
+                        }
                     }
 
                     getChildren->Children = (PPH_TREENEW_NODE *)ProcessNodeList->Items;

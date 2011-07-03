@@ -3355,7 +3355,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ListContext.TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             tnHandle = modulesContext->ListContext.TreeNewHandle;
             BringWindowToTop(tnHandle);
-            PhInitializeModuleList(hwndDlg, tnHandle, &modulesContext->ListContext);
+            PhInitializeModuleList(hwndDlg, tnHandle, processItem, &modulesContext->ListContext);
             modulesContext->NeedsRedraw = FALSE;
 
             PhLoadSettingsModuleList(&modulesContext->ListContext);

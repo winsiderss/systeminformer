@@ -149,6 +149,14 @@ typedef struct _PH_PLUGIN_TREENEW_INFORMATION
 {
     HWND TreeNewHandle;
     PVOID CmData;
+
+    union
+    {
+        struct
+        {
+            PPH_PROCESS_ITEM ProcessItem;
+        } Module;
+    } u;
 } PH_PLUGIN_TREENEW_INFORMATION, *PPH_PLUGIN_TREENEW_INFORMATION;
 
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
@@ -159,6 +167,13 @@ typedef struct _PH_PLUGIN_TREENEW_MESSAGE
     ULONG SubId;
     PVOID Context;
 } PH_PLUGIN_TREENEW_MESSAGE, *PPH_PLUGIN_TREENEW_MESSAGE;
+
+typedef LONG (NTAPI *PPH_PLUGIN_TREENEW_SORT_FUNCTION)(
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in ULONG SubId,
+    __in PVOID Context
+    );
 
 typedef enum _PH_PLUGIN_CALLBACK
 {
@@ -319,6 +334,18 @@ NTAPI
 PhPluginTriggerEMenuItem(
     __in HWND OwnerWindow,
     __in PPH_EMENU_ITEM Item
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhPluginAddTreeNewColumn(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID CmData,
+    __in PPH_TREENEW_COLUMN Column,
+    __in ULONG SubId,
+    __in_opt PVOID Context,
+    __in_opt PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
     );
 
 #ifdef __cplusplus

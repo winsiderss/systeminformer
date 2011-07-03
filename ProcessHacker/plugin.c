@@ -910,3 +910,34 @@ BOOLEAN PhPluginTriggerEMenuItem(
 
     return TRUE;
 }
+
+/**
+ * Adds a column to a tree new control.
+ *
+ * \param Plugin A plugin instance structure.
+ * \param CmData The CmData value from the \ref PH_PLUGIN_TREENEW_INFORMATION 
+ * structure.
+ * \param Column The column properties.
+ * \param SubId An identifier for the column. This should be unique within the 
+ * plugin.
+ * \param Context A user-defined value.
+ * \param SortFunction The sort function for the column.
+ */
+BOOLEAN PhPluginAddTreeNewColumn(
+    __in PPH_PLUGIN Plugin,
+    __in PVOID CmData,
+    __in PPH_TREENEW_COLUMN Column,
+    __in ULONG SubId,
+    __in_opt PVOID Context,
+    __in_opt PPH_PLUGIN_TREENEW_SORT_FUNCTION SortFunction
+    )
+{
+    return !!PhCmCreateColumn(
+        CmData,
+        Column,
+        Plugin,
+        SubId,
+        Context,
+        SortFunction
+        );
+}
