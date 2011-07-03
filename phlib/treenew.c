@@ -1010,6 +1010,20 @@ VOID PhTnpOnContextMenu(
             CursorScreenY += rect.top + Context->RowHeight / 2;
         }
     }
+    else
+    {
+        POINT clientPoint;
+
+        clientPoint.x = CursorScreenX;
+        clientPoint.y = CursorScreenY;
+        ScreenToClient(hwnd, &clientPoint);
+
+        if (clientPoint.y < Context->HeaderHeight)
+        {
+            // Already handled by TreeNewHeaderRightClick.
+            return;
+        }
+    }
 
     location.x = CursorScreenX;
     location.y = CursorScreenY;
