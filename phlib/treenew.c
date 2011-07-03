@@ -276,6 +276,7 @@ VOID PhTnpCreateTreeNewContext(
     context->FlatList = PhCreateList(64);
     context->TooltipIndex = -1;
     context->TooltipId = -1;
+    context->EnableRedraw = 1;
 
     *Context = context;
 }
@@ -313,6 +314,9 @@ VOID PhTnpDestroyTreeNewContext(
 
     if (Context->BufferedContext)
         PhTnpDestroyBufferedContext(Context);
+
+    if (Context->SuspendUpdateRegion)
+        DeleteObject(Context->SuspendUpdateRegion);
 
     PhFree(Context);
 }
@@ -540,6 +544,26 @@ VOID PhTnpOnPaint(
     RECT updateRect;
     HDC hdc;
     PAINTSTRUCT paintStruct;
+
+    if (Context->EnableRedraw <= 0)
+    {
+        HRGN updateRegion;
+
+        updateRegion = CreateRectRgn(0, 0, 0, 0);
+        GetUpdateRgn(hwnd, updateRegion, FALSE);
+
+        if (!Context->SuspendUpdateRegion)
+        {
+            Context->SuspendUpdateRegion = updateRegion;
+        }
+        else
+        {
+            CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, updateRegion, RGN_OR);
+            DeleteObject(updateRegion);
+        }
+
+        return;
+    }
 
     if (GetUpdateRect(hwnd, &updateRect, FALSE))
     {
@@ -970,9 +994,8 @@ VOID PhTnpOnMouseWheel(
 
         if (scrollInfo.nPos != oldPosition)
         {
-            // TODO
             Context->VScrollPosition = scrollInfo.nPos;
-            InvalidateRect(hwnd, NULL, FALSE);
+            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
 
             if (Context->TooltipsHandle)
             {
@@ -1007,10 +1030,9 @@ VOID PhTnpOnMouseWheel(
 
         if (scrollInfo.nPos != oldPosition)
         {
-            // TODO
             Context->HScrollPosition = scrollInfo.nPos;
             PhTnpLayout(Context);
-            InvalidateRect(hwnd, NULL, FALSE);
+            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
         }
     }
 }
@@ -1122,9 +1144,8 @@ VOID PhTnpOnVScroll(
 
     if (scrollInfo.nPos != oldPosition)
     {
-        // TODO
         Context->VScrollPosition = scrollInfo.nPos;
-        InvalidateRect(hwnd, NULL, FALSE);
+        PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
     }
 }
 
@@ -1173,10 +1194,9 @@ VOID PhTnpOnHScroll(
 
     if (scrollInfo.nPos != oldPosition)
     {
-        // TODO
         Context->HScrollPosition = scrollInfo.nPos;
         PhTnpLayout(Context);
-        InvalidateRect(hwnd, NULL, FALSE);
+        PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
     }
 }
 
@@ -1226,7 +1246,7 @@ BOOLEAN PhTnpOnNotify(
                     PhTnpLayout(Context);
                 }
 
-                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
+                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE); // TODO: Optimize
             }
         }
         break;
@@ -1501,8 +1521,6 @@ ULONG_PTR PhTnpOnUserMessage(
         return (LRESULT)Context->HeaderHandle;
     case TNM_GETTOOLTIPS:
         return (LRESULT)Context->TooltipsHandle;
-    case TNM_SETREDRAW:
-        return FALSE; // TODO
     case TNM_SELECTRANGE:
     case TNM_DESELECTRANGE:
         {
@@ -1526,6 +1544,9 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_GETCOLUMNCOUNT:
         return (LRESULT)Context->NumberOfColumns;
+    case TNM_SETREDRAW:
+        PhTnpSetRedraw(Context, !!WParam);
+        return (LRESULT)Context->EnableRedraw;
     }
 
     return 0;
@@ -1606,6 +1627,12 @@ VOID PhTnpLayout(
     RECT rect;
     HDLAYOUT hdl;
     WINDOWPOS windowPos;
+
+    if (Context->EnableRedraw <= 0)
+    {
+        Context->SuspendUpdateLayout = TRUE;
+        return;
+    }
 
     clientRect = Context->ClientRect;
 
@@ -1696,6 +1723,38 @@ VOID PhTnpSetFixedWidth(
     {
         Context->FixedWidth = 0;
         Context->NormalLeft = 0;
+    }
+}
+
+VOID PhTnpSetRedraw(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Redraw
+    )
+{
+    if (Redraw)
+        Context->EnableRedraw++;
+    else
+        Context->EnableRedraw--;
+
+    if (Context->EnableRedraw == 1)
+    {
+        if (Context->SuspendUpdateRegion)
+        {
+            InvalidateRgn(Context->Handle, Context->SuspendUpdateRegion, FALSE);
+            DeleteObject(Context->SuspendUpdateRegion);
+            Context->SuspendUpdateRegion = NULL;
+        }
+
+        if (Context->SuspendUpdateColumnHeaders)
+            PhTnpUpdateColumnHeaders(Context);
+        if (Context->SuspendUpdateColumnMaps)
+            PhTnpUpdateColumnMaps(Context);
+        if (Context->SuspendUpdateLayout)
+            PhTnpLayout(Context);
+
+        Context->SuspendUpdateColumnHeaders = FALSE;
+        Context->SuspendUpdateColumnMaps = FALSE;
+        Context->SuspendUpdateLayout = FALSE;
     }
 }
 
@@ -1960,6 +2019,12 @@ VOID PhTnpUpdateColumnMaps(
     ULONG i;
     LONG x;
 
+    if (Context->EnableRedraw <= 0)
+    {
+        Context->SuspendUpdateColumnMaps = TRUE;
+        return;
+    }
+
     if (Context->AllocatedColumnsByDisplay < Context->NumberOfColumns)
     {
         if (Context->ColumnsByDisplay)
@@ -2162,6 +2227,12 @@ VOID PhTnpUpdateColumnHeaders(
     ULONG i;
     HDITEM item;
     PPH_TREENEW_COLUMN column;
+
+    if (Context->EnableRedraw <= 0)
+    {
+        Context->SuspendUpdateColumnHeaders = TRUE;
+        return;
+    }
 
     item.mask = HDI_WIDTH | HDI_LPARAM | HDI_ORDER;
 
@@ -3526,7 +3597,7 @@ VOID PhTnpUpdateScrollBars(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->VScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
         }
 
         ShowWindow(Context->VScrollHandle, SW_SHOW);
@@ -3559,7 +3630,7 @@ VOID PhTnpUpdateScrollBars(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->HScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
         }
 
         ShowWindow(Context->HScrollHandle, SW_SHOW);
@@ -3605,7 +3676,7 @@ VOID PhTnpScroll(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->VScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
         }
     }
 
@@ -3627,9 +3698,57 @@ VOID PhTnpScroll(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->HScrollPosition = scrollInfo.nPos;
-            InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
         }
     }
+}
+
+VOID PhTnpProcessVerticalScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows
+    )
+{
+    RECT scrollRect;
+
+    scrollRect.left = 0;
+    scrollRect.top = Context->HeaderHeight;
+    scrollRect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    scrollRect.bottom = Context->ClientRect.bottom;
+
+    ScrollWindowEx(
+        Context->Handle,
+        0,
+        -DeltaRows * Context->RowHeight,
+        &scrollRect,
+        NULL,
+        NULL,
+        NULL,
+        SW_INVALIDATE
+        );
+}
+
+VOID PhTnpProcessHorizontalScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaX
+    )
+{
+    RECT scrollRect;
+
+    scrollRect.left = Context->NormalLeft;
+    scrollRect.top = Context->HeaderHeight;
+    scrollRect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    scrollRect.bottom = Context->ClientRect.bottom;
+
+    ScrollWindowEx(
+        Context->Handle,
+        -DeltaX,
+        0,
+        &scrollRect,
+        &scrollRect,
+        NULL,
+        NULL,
+        SW_INVALIDATE
+        );
 }
 
 VOID PhTnpPaint(

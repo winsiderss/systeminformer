@@ -4362,7 +4362,7 @@ VOID PhMainWndOnProcessAdded(
 
     if (!ProcessesNeedsRedraw)
     {
-        TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
+        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
         ProcessesNeedsRedraw = TRUE;
     }
 
@@ -4430,7 +4430,7 @@ VOID PhMainWndOnProcessRemoved(
 {
     if (!ProcessesNeedsRedraw)
     {
-        TreeList_SetRedraw(ProcessTreeListHandle, FALSE);
+        TreeNew_SetRedraw(ProcessTreeListHandle, FALSE);
         ProcessesNeedsRedraw = TRUE;
     }
 
@@ -4464,7 +4464,7 @@ VOID PhMainWndOnProcessesUpdated()
 
     if (ProcessesNeedsRedraw)
     {
-        TreeList_SetRedraw(ProcessTreeListHandle, TRUE);
+        TreeNew_SetRedraw(ProcessTreeListHandle, TRUE);
         ProcessesNeedsRedraw = FALSE;
     }
 }

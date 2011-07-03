@@ -34,7 +34,10 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SearchSingleCharMode : 1; // LV style single-character search
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
             ULONG DoubleBuffered : 1;
-            ULONG Spare : 14;
+            ULONG SuspendUpdateColumnHeaders : 1;
+            ULONG SuspendUpdateColumnMaps : 1;
+            ULONG SuspendUpdateLayout : 1;
+            ULONG Spare : 11;
         };
         ULONG Flags;
     };
@@ -103,6 +106,9 @@ typedef struct _PH_TREENEW_CONTEXT
     HBITMAP BufferedOldBitmap;
     HBITMAP BufferedBitmap;
     RECT BufferedContextRect;
+
+    LONG EnableRedraw;
+    HRGN SuspendUpdateRegion;
 } PH_TREENEW_CONTEXT, *PPH_TREENEW_CONTEXT;
 
 LRESULT CALLBACK PhTnpWndProc(
@@ -283,6 +289,11 @@ VOID PhTnpSetFixedWidth(
     __in ULONG FixedWidth
     );
 
+VOID PhTnpSetRedraw(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Redraw
+    );
+
 // Columns
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
@@ -459,6 +470,16 @@ VOID PhTnpUpdateScrollBars(
 VOID PhTnpScroll(
     __in PPH_TREENEW_CONTEXT Context,
     __in LONG DeltaRows,
+    __in LONG DeltaX
+    );
+
+VOID PhTnpProcessVerticalScroll(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows
+    );
+
+VOID PhTnpProcessHorizontalScroll(
+    __in PPH_TREENEW_CONTEXT Context,
     __in LONG DeltaX
     );
 
