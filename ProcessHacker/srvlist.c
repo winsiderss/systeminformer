@@ -38,6 +38,13 @@ VOID PhpRemoveServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     );
 
+LONG PhpServiceTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    );
+
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -126,7 +133,7 @@ VOID PhInitializeServiceTreeList(
 
     TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
-    PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM);
+    PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
 
     if (PhPluginsEnabled)
     {
@@ -336,6 +343,16 @@ static VOID PhpUpdateServiceNodeConfig(
     return PhModifySort(sortResult, ServiceTreeListSortOrder); \
 }
 
+LONG PhpServiceTreeNewPostSortFunction(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    )
+{
+    return PhModifySort(Result, SortOrder);
+}
+
 BEGIN_SORT_FUNCTION(Name)
 {
     sortResult = PhCompareString(serviceItem1->Name, serviceItem2->Name, TRUE);
@@ -429,15 +446,24 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 
-                if (ServiceTreeListSortColumn < PHSVTLC_MAXIMUM)
-                    sortFunction = sortFunctions[ServiceTreeListSortColumn];
-                else
-                    sortFunction = NULL;
-
-                if (sortFunction)
+                if (!PhCmForwardSort(
+                    (PPH_TREENEW_NODE *)ServiceNodeList->Items,
+                    ServiceNodeList->Count,
+                    ServiceTreeListSortColumn,
+                    ServiceTreeListSortOrder,
+                    &ServiceTreeListCm
+                    ))
                 {
-                    // Don't use PhSortList to avoid overhead.
-                    qsort(ServiceNodeList->Items, ServiceNodeList->Count, sizeof(PVOID), sortFunction);
+                    if (ServiceTreeListSortColumn < PHSVTLC_MAXIMUM)
+                        sortFunction = sortFunctions[ServiceTreeListSortColumn];
+                    else
+                        sortFunction = NULL;
+
+                    if (sortFunction)
+                    {
+                        // Don't use PhSortList to avoid overhead.
+                        qsort(ServiceNodeList->Items, ServiceNodeList->Count, sizeof(PVOID), sortFunction);
+                    }
                 }
 
                 getChildren->Children = (PPH_TREENEW_NODE *)ServiceNodeList->Items;

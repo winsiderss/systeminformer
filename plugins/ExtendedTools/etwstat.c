@@ -121,6 +121,7 @@ PET_PROCESS_ETW_BLOCK EtCreateProcessEtwBlock(
     memset(block, 0, sizeof(ET_PROCESS_ETW_BLOCK));
     block->RefCount = 1;
     block->ProcessItem = ProcessItem;
+    PhInitializeQueuedLock(&block->TextCacheLock);
 
     return block;
 }
@@ -138,6 +139,13 @@ VOID EtDereferenceProcessEtwBlock(
 {
     if (_InterlockedDecrement(&Block->RefCount) == 0)
     {
+        ULONG i;
+
+        for (i = 1; i <= ETETWTNC_MAXIMUM; i++)
+        {
+            PhSwapReference(&Block->TextCache[i], NULL);
+        }
+
         PhFree(Block);
     }
 }
@@ -334,22 +342,32 @@ static VOID NTAPI ProcessesUpdatedCallback(
 
         block = pair->Value;
 
-        PhUpdateDelta(&block->DiskReadDelta, block->DiskReadRaw);
-        PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteRaw);
-        PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveRaw);
-        PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendRaw);
+        PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
+        PhUpdateDelta(&block->DiskReadRawDelta, block->DiskReadRaw);
+        PhUpdateDelta(&block->DiskWriteDelta, block->DiskWriteCount);
+        PhUpdateDelta(&block->DiskWriteRawDelta, block->DiskWriteRaw);
+        PhUpdateDelta(&block->NetworkReceiveDelta, block->NetworkReceiveCount);
+        PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
+        PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
+        PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
 
-        if (maxDiskValue < block->DiskReadDelta.Delta + block->DiskWriteDelta.Delta)
+        if (maxDiskValue < block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta)
         {
-            maxDiskValue = block->DiskReadDelta.Delta + block->DiskWriteDelta.Delta;
+            maxDiskValue = block->DiskReadRawDelta.Delta + block->DiskWriteRawDelta.Delta;
             maxDiskBlock = block;
         }
 
-        if (maxNetworkValue < block->NetworkReceiveDelta.Delta + block->NetworkSendDelta.Delta)
+        if (maxNetworkValue < block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta)
         {
-            maxNetworkValue = block->NetworkReceiveDelta.Delta + block->NetworkSendDelta.Delta;
+            maxNetworkValue = block->NetworkReceiveRawDelta.Delta + block->NetworkSendRawDelta.Delta;
             maxNetworkBlock = block;
         }
+
+        // Invalidate all text.
+
+        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
     }
 
     // Update history buffers.

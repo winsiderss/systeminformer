@@ -34,11 +34,11 @@ typedef struct _PH_SH_STATE
     ULONG Private2;
 } PH_SH_STATE, *PPH_SH_STATE;
 
-// proctree
+// uimodels
 
 typedef struct _PH_PROCESS_NODE
 {
-    PH_TREELIST_NODE Node;
+    PH_TREENEW_NODE Node;
 
     PH_HASH_ENTRY HashEntry;
 
@@ -49,6 +49,30 @@ typedef struct _PH_PROCESS_NODE
 
     // Other members are not exposed.
 } PH_PROCESS_NODE, *PPH_PROCESS_NODE;
+
+typedef struct _PH_SERVICE_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    PPH_SERVICE_ITEM ServiceItem;
+
+    // Other members are not exposed.
+} PH_SERVICE_NODE, *PPH_SERVICE_NODE;
+
+typedef struct _PH_MODULE_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    PPH_MODULE_ITEM ModuleItem;
+
+    // Other members are not exposed.
+} PH_MODULE_NODE, *PPH_MODULE_NODE;
+
+// proctree
 
 PHAPPAPI
 PPH_PROCESS_NODE
@@ -122,17 +146,6 @@ NTAPI
 PhApplyProcessTreeFilters();
 
 // srvlist
-
-typedef struct _PH_SERVICE_NODE
-{
-    PH_TREELIST_NODE Node;
-
-    PH_SH_STATE ShState;
-
-    PPH_SERVICE_ITEM ServiceItem;
-
-    // Other members are not exposed.
-} PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 
 PHAPPAPI
 PPH_SERVICE_NODE

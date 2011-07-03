@@ -79,18 +79,18 @@ VOID EtpUpdateDiskNetworkInfo(
     PET_PROCESS_ETW_BLOCK block = Context->Block;
 
     SetDlgItemText(hwndDlg, IDC_ZREADS_V, PhaFormatUInt64(block->DiskReadCount, TRUE)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhaFormatSize(block->DiskReadDelta.Value, -1)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZREADBYTESDELTA_V, PhaFormatSize(block->DiskReadDelta.Delta, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZREADBYTES_V, PhaFormatSize(block->DiskReadRawDelta.Value, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZREADBYTESDELTA_V, PhaFormatSize(block->DiskReadRawDelta.Delta, -1)->Buffer);
     SetDlgItemText(hwndDlg, IDC_ZWRITES_V, PhaFormatUInt64(block->DiskWriteCount, TRUE)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, PhaFormatSize(block->DiskWriteDelta.Value, -1)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(block->DiskWriteDelta.Delta, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTES_V, PhaFormatSize(block->DiskWriteRawDelta.Value, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZWRITEBYTESDELTA_V, PhaFormatSize(block->DiskWriteRawDelta.Delta, -1)->Buffer);
 
     SetDlgItemText(hwndDlg, IDC_ZRECEIVES_V, PhaFormatUInt64(block->NetworkReceiveCount, TRUE)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhaFormatSize(block->NetworkReceiveDelta.Value, -1)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(block->NetworkReceiveDelta.Delta, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTES_V, PhaFormatSize(block->NetworkReceiveRawDelta.Value, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZRECEIVEBYTESDELTA_V, PhaFormatSize(block->NetworkReceiveRawDelta.Delta, -1)->Buffer);
     SetDlgItemText(hwndDlg, IDC_ZSENDS_V, PhaFormatUInt64(block->NetworkSendCount, TRUE)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZSENDBYTES_V, PhaFormatSize(block->NetworkSendDelta.Value, -1)->Buffer);
-    SetDlgItemText(hwndDlg, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendDelta.Delta, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZSENDBYTES_V, PhaFormatSize(block->NetworkSendRawDelta.Value, -1)->Buffer);
+    SetDlgItemText(hwndDlg, IDC_ZSENDBYTESDELTA_V, PhaFormatSize(block->NetworkSendRawDelta.Delta, -1)->Buffer);
 }
 
 INT_PTR CALLBACK EtpDiskNetworkPageDlgProc(

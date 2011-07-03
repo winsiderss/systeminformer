@@ -569,6 +569,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
 VOID PhInitializeModuleList(
     __in HWND ParentWindowHandle,
     __in HWND TreeNewHandle,
+    __in PPH_PROCESS_ITEM ProcessItem,
     __out PPH_MODULE_LIST_CONTEXT Context
     );
 

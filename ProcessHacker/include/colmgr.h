@@ -3,10 +3,19 @@
 
 #define PH_CM_ORDER_LIMIT 160
 
+typedef LONG (NTAPI *PPH_CM_POST_SORT_FUNCTION)(
+    __in LONG Result,
+    __in PVOID Node1,
+    __in PVOID Node2,
+    __in PH_SORT_ORDER SortOrder
+    );
+
 typedef struct _PH_CM_MANAGER
 {
     HWND Handle;
     ULONG MinId;
+    ULONG NextId;
+    PPH_CM_POST_SORT_FUNCTION PostSortFunction;
     LIST_ENTRY ColumnListHead;
 } PH_CM_MANAGER, *PPH_CM_MANAGER;
 
@@ -17,12 +26,14 @@ typedef struct _PH_CM_COLUMN
     struct _PH_PLUGIN *Plugin;
     ULONG SubId;
     PVOID Context;
+    PVOID SortFunction;
 } PH_CM_COLUMN, *PPH_CM_COLUMN;
 
 VOID PhCmInitializeManager(
     __out PPH_CM_MANAGER Manager,
     __in HWND Handle,
-    __in ULONG MinId
+    __in ULONG MinId,
+    __in PPH_CM_POST_SORT_FUNCTION PostSortFunction
     );
 
 VOID PhCmDeleteManager(
@@ -34,7 +45,8 @@ PPH_CM_COLUMN PhCmCreateColumn(
     __in PPH_TREENEW_COLUMN Column,
     __in struct _PH_PLUGIN *Plugin,
     __in ULONG SubId,
-    __in PVOID Context
+    __in_opt PVOID Context,
+    __in PVOID SortFunction
     );
 
 PPH_CM_COLUMN PhCmFindColumn(
@@ -48,6 +60,14 @@ BOOLEAN PhCmForwardMessage(
     __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
+    __in PPH_CM_MANAGER Manager
+    );
+
+BOOLEAN PhCmForwardSort(
+    __in PPH_TREENEW_NODE *Nodes,
+    __in ULONG NumberOfNodes,
+    __in ULONG SortColumn,
+    __in PH_SORT_ORDER SortOrder,
     __in PPH_CM_MANAGER Manager
     );
 
