@@ -81,6 +81,9 @@ LRESULT CALLBACK PhTnpWndProc(
         PhTnpCancelTrack(context);
     }
 
+    // Note: if we have suspended restructuring, we *cannot* access any nodes, because 
+    // all node pointers are now invalid. Below, we disable all input.
+
     switch (uMsg)
     {
     case WM_CREATE:
@@ -159,12 +162,16 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_MOUSEMOVE:
         {
-            PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            else
+                context->SuspendUpdateMoveMouse = TRUE;
         }
         break;
     case WM_MOUSELEAVE:
         {
-            PhTnpOnMouseLeave(hwnd, context);
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnMouseLeave(hwnd, context);
         }
         break;
     case WM_LBUTTONDOWN:
@@ -177,7 +184,8 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_MBUTTONUP:
     case WM_MBUTTONDBLCLK:
         {
-            PhTnpOnXxxButtonXxx(hwnd, context, uMsg, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnXxxButtonXxx(hwnd, context, uMsg, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
     case WM_CAPTURECHANGED:
@@ -187,12 +195,14 @@ LRESULT CALLBACK PhTnpWndProc(
         break;
     case WM_KEYDOWN:
         {
-            PhTnpOnKeyDown(hwnd, context, (ULONG)wParam, (ULONG)lParam);
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnKeyDown(hwnd, context, (ULONG)wParam, (ULONG)lParam);
         }
         break;
     case WM_CHAR:
         {
-            PhTnpOnChar(hwnd, context, (ULONG)wParam, (ULONG)lParam);
+            if (!context->SuspendUpdateStructure)
+                PhTnpOnChar(hwnd, context, (ULONG)wParam, (ULONG)lParam);
         }
         return 0;
     case WM_MOUSEWHEEL:
@@ -678,8 +688,6 @@ VOID PhTnpOnMouseMove(
     )
 {
     TRACKMOUSEEVENT trackMouseEvent;
-    PH_TREENEW_HIT_TEST hitTest;
-    PPH_TREENEW_NODE hotNode;
 
     trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
     trackMouseEvent.dwFlags = TME_LEAVE;
@@ -695,66 +703,7 @@ VOID PhTnpOnMouseMove(
         PhTnpSetFixedWidth(Context, newFixedWidth);
     }
 
-    hitTest.Point.x = CursorX;
-    hitTest.Point.y = CursorY;
-    hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
-    PhTnpHitTest(Context, &hitTest);
-
-    if (hitTest.Flags & TN_HIT_ITEM)
-        hotNode = hitTest.Node;
-    else
-        hotNode = NULL;
-
-    PhTnpSetHotNode(Context, hotNode, !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS));
-
-    if (Context->AnimateDivider && Context->FixedDividerVisible)
-    {
-        if (hitTest.Flags & TN_HIT_DIVIDER)
-        {
-            if (Context->DividerHot < 100 && !Context->AnimateDividerFadingIn)
-            {
-                // Begin fading in the divider.
-                Context->AnimateDividerFadingIn = TRUE;
-                Context->AnimateDividerFadingOut = FALSE;
-                SetTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
-            }
-        }
-        else
-        {
-            if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
-            {
-                Context->AnimateDividerFadingOut = TRUE;
-                Context->AnimateDividerFadingIn = FALSE;
-                SetTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
-            }
-        }
-    }
-
-    if (Context->TooltipsHandle)
-    {
-        ULONG index;
-        ULONG id;
-
-        if (!(hitTest.Flags & TN_HIT_DIVIDER))
-        {
-            index = hitTest.Node ? hitTest.Node->Index : -1;
-            id = hitTest.Column ? hitTest.Column->Id : -1;
-        }
-        else
-        {
-            index = -1;
-            id = -1;
-        }
-
-        // This pops unnecessarily - when the cell has no tooltip text, and the user is 
-        // moving the mouse over it. However these unnecessary calls seem to fix a 
-        // certain tooltip bug (move the mouse around very quickly over the last column and 
-        // the blank space to the right, and no more tooltips will appear).
-        if (Context->TooltipIndex != index || Context->TooltipId != id)
-        {
-            PhTnpPopTooltip(Context);
-        }
-    }
+    PhTnpProcessMoveMouse(Context, CursorX, CursorY);
 }
 
 VOID PhTnpOnMouseLeave(
@@ -764,16 +713,16 @@ VOID PhTnpOnMouseLeave(
 {
     RECT rect;
 
-    if (Context->HotNode && Context->ThemeData)
+    if (Context->HotNodeIndex != -1 && Context->ThemeData)
     {
         // Update the old hot node because it may have a different non-hot background and plus minus part.
-        if (PhTnpGetRowRects(Context, Context->HotNode->Index, Context->HotNode->Index, TRUE, &rect))
+        if (PhTnpGetRowRects(Context, Context->HotNodeIndex, Context->HotNodeIndex, TRUE, &rect))
         {
             InvalidateRect(Context->Handle, &rect, FALSE);
         }
     }
 
-    Context->HotNode = NULL;
+    Context->HotNodeIndex = -1;
 }
 
 VOID PhTnpOnXxxButtonXxx(
@@ -874,7 +823,7 @@ VOID PhTnpOnXxxButtonXxx(
                 if (!controlKey && !shiftKey && !hitTest.Node->Selected)
                 {
                     PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
-                    Context->MarkNode = hitTest.Node;
+                    Context->MarkNodeIndex = hitTest.Node->Index;
 
                     if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                     {
@@ -882,22 +831,22 @@ VOID PhTnpOnXxxButtonXxx(
                     }
                 }
             }
-            else if (shiftKey && Context->MarkNode)
+            else if (shiftKey && Context->MarkNodeIndex != -1)
             {
                 ULONG start;
                 ULONG end;
 
                 // Shift key: select a range from the selection mark node to the current node.
 
-                if (hitTest.Node->Index > Context->MarkNode->Index)
+                if (hitTest.Node->Index > Context->MarkNodeIndex)
                 {
-                    start = Context->MarkNode->Index;
+                    start = Context->MarkNodeIndex;
                     end = hitTest.Node->Index;
                 }
                 else
                 {
                     start = hitTest.Node->Index;
-                    end = Context->MarkNode->Index;
+                    end = Context->MarkNodeIndex;
                 }
 
                 PhTnpSelectRange(Context, start, end, TN_SELECT_RESET, &changedStart, &changedEnd);
@@ -912,7 +861,7 @@ VOID PhTnpOnXxxButtonXxx(
                 // Control key: toggle the selection on the current node, and also make it the selection mark.
 
                 PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_TOGGLE, NULL, NULL);
-                Context->MarkNode = hitTest.Node;
+                Context->MarkNodeIndex = hitTest.Node->Index;
 
                 if (PhTnpGetRowRects(Context, hitTest.Node->Index, hitTest.Node->Index, TRUE, &rect))
                 {
@@ -924,7 +873,7 @@ VOID PhTnpOnXxxButtonXxx(
                 // Normal: select the current node, and also make it the selection mark.
 
                 PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
-                Context->MarkNode = hitTest.Node;
+                Context->MarkNodeIndex = hitTest.Node->Index;
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
@@ -1463,6 +1412,8 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_NODESSTRUCTURED:
         {
+            POINT point;
+
             if (Context->EnableRedraw <= 0)
             {
                 Context->SuspendUpdateStructure = TRUE;
@@ -1474,6 +1425,10 @@ ULONG_PTR PhTnpOnUserMessage(
             PhTnpRestructureNodes(Context);
             PhTnpLayout(Context);
             InvalidateRect(Context->Handle, NULL, FALSE);
+
+            // Nodes have changed - do another hit test.
+            PhTnpGetMessagePos(hwnd, &point);
+            PhTnpProcessMoveMouse(Context, point.x, point.y);
         }
         return TRUE;
     case TNM_ADDCOLUMN:
@@ -1674,7 +1629,7 @@ ULONG_PTR PhTnpOnUserMessage(
         Context->FocusNode = (PPH_TREENEW_NODE)LParam;
         return TRUE;
     case TNM_SETMARKNODE:
-        Context->MarkNode = (PPH_TREENEW_NODE)LParam;
+        Context->MarkNodeIndex = ((PPH_TREENEW_NODE)LParam)->Index;
         return TRUE;
     case TNM_SETHOTNODE:
         PhTnpSetHotNode(Context, (PPH_TREENEW_NODE)LParam, FALSE);
@@ -1882,12 +1837,26 @@ VOID PhTnpSetRedraw(
     if (Context->EnableRedraw == 1)
     {
         if (Context->SuspendUpdateStructure)
+        {
             PhTnpRestructureNodes(Context);
+        }
+
         if (Context->SuspendUpdateLayout)
+        {
             PhTnpLayout(Context);
+        }
+
+        if (Context->SuspendUpdateMoveMouse)
+        {
+            POINT point;
+
+            PhTnpGetMessagePos(Context->Handle, &point);
+            PhTnpProcessMoveMouse(Context, point.x, point.y);
+        }
 
         Context->SuspendUpdateStructure = FALSE;
         Context->SuspendUpdateLayout = FALSE;
+        Context->SuspendUpdateMoveMouse = FALSE;
 
         if (Context->SuspendUpdateRegion)
         {
@@ -2555,25 +2524,15 @@ VOID PhTnpRestructureNodes(
     PPH_TREENEW_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
-    ULONG hotIndex;
-    ULONG markIndex;
 
     if (!PhTnpGetNodeChildren(Context, NULL, &children, &numberOfChildren))
         return;
 
     // We try to preserve the hot node, the focused node and the selection mark node.
-
-    if (Context->HotNode)
-        hotIndex = Context->HotNode->Index;
-    else
-        hotIndex = -1;
+    // At this point all node pointers must be regarded as invalid, so we must not 
+    // follow any pointers.
 
     Context->FocusNodeFound = FALSE;
-
-    if (Context->MarkNode)
-        markIndex = Context->MarkNode->Index;
-    else
-        markIndex = -1;
 
     PhClearList(Context->FlatList);
     Context->CanAnyExpand = FALSE;
@@ -2583,18 +2542,14 @@ VOID PhTnpRestructureNodes(
         PhTnpInsertNodeChildren(Context, children[i], 0);
     }
 
-    if (hotIndex < Context->FlatList->Count)
-        Context->HotNode = Context->FlatList->Items[hotIndex];
-    else
-        Context->HotNode = NULL;
-
     if (!Context->FocusNodeFound)
         Context->FocusNode = NULL; // focused node is no longer present
 
-    if (markIndex < Context->FlatList->Count)
-        Context->MarkNode = Context->FlatList->Items[markIndex];
-    else
-        Context->MarkNode = NULL;
+    if (Context->HotNodeIndex >= Context->FlatList->Count) // covers -1 case as well
+        Context->HotNodeIndex = -1;
+
+    if (Context->MarkNodeIndex >= Context->FlatList->Count)
+        Context->MarkNodeIndex = -1;
 }
 
 VOID PhTnpInsertNodeChildren(
@@ -3066,43 +3021,49 @@ VOID PhTnpSelectRange(
 
 VOID PhTnpSetHotNode(
     __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE NewHotNode,
+    __in_opt PPH_TREENEW_NODE NewHotNode,
     __in BOOLEAN NewPlusMinusHot
     )
 {
+    ULONG newHotNodeIndex;
     RECT rowRect;
     BOOLEAN needsInvalidate;
 
+    if (NewHotNode)
+        newHotNodeIndex = NewHotNode->Index;
+    else
+        newHotNodeIndex = -1;
+
     needsInvalidate = FALSE;
 
-    if (Context->HotNode != NewHotNode)
+    if (Context->HotNodeIndex != newHotNodeIndex)
     {
-        if (Context->HotNode)
+        if (Context->HotNodeIndex != -1)
         {
-            if (Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNode->Index, Context->HotNode->Index, TRUE, &rowRect))
+            if (Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNodeIndex, Context->HotNodeIndex, TRUE, &rowRect))
             {
                 // Update the old hot node because it may have a different non-hot background and plus minus part.
                 InvalidateRect(Context->Handle, &rowRect, FALSE);
             }
         }
 
-        Context->HotNode = NewHotNode;
+        Context->HotNodeIndex = newHotNodeIndex;
 
-        if (Context->HotNode)
+        if (NewHotNode)
         {
             needsInvalidate = TRUE;
         }
     }
 
-    if (Context->HotNode)
+    if (NewHotNode)
     {
-        if (Context->HotNode->s.PlusMinusHot != NewPlusMinusHot)
+        if (NewHotNode->s.PlusMinusHot != NewPlusMinusHot)
         {
-            Context->HotNode->s.PlusMinusHot = NewPlusMinusHot;
+            NewHotNode->s.PlusMinusHot = NewPlusMinusHot;
             needsInvalidate = TRUE;
         }
 
-        if (needsInvalidate && Context->ThemeData && PhTnpGetRowRects(Context, Context->HotNode->Index, Context->HotNode->Index, TRUE, &rowRect))
+        if (needsInvalidate && Context->ThemeData && PhTnpGetRowRects(Context, newHotNodeIndex, newHotNodeIndex, TRUE, &rowRect))
         {
             InvalidateRect(Context->Handle, &rowRect, FALSE);
         }
@@ -3150,6 +3111,77 @@ BOOLEAN PhTnpEnsureVisibleNode(
     PhTnpScroll(Context, deltaRows, 0);
 
     return TRUE;
+}
+
+VOID PhTnpProcessMoveMouse(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY
+    )
+{
+    PH_TREENEW_HIT_TEST hitTest;
+    PPH_TREENEW_NODE hotNode;
+
+    hitTest.Point.x = CursorX;
+    hitTest.Point.y = CursorY;
+    hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
+    PhTnpHitTest(Context, &hitTest);
+
+    if (hitTest.Flags & TN_HIT_ITEM)
+        hotNode = hitTest.Node;
+    else
+        hotNode = NULL;
+
+    PhTnpSetHotNode(Context, hotNode, !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS));
+
+    if (Context->AnimateDivider && Context->FixedDividerVisible)
+    {
+        if (hitTest.Flags & TN_HIT_DIVIDER)
+        {
+            if (Context->DividerHot < 100 && !Context->AnimateDividerFadingIn)
+            {
+                // Begin fading in the divider.
+                Context->AnimateDividerFadingIn = TRUE;
+                Context->AnimateDividerFadingOut = FALSE;
+                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            }
+        }
+        else
+        {
+            if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
+            {
+                Context->AnimateDividerFadingOut = TRUE;
+                Context->AnimateDividerFadingIn = FALSE;
+                SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            }
+        }
+    }
+
+    if (Context->TooltipsHandle)
+    {
+        ULONG index;
+        ULONG id;
+
+        if (!(hitTest.Flags & TN_HIT_DIVIDER))
+        {
+            index = hitTest.Node ? hitTest.Node->Index : -1;
+            id = hitTest.Column ? hitTest.Column->Id : -1;
+        }
+        else
+        {
+            index = -1;
+            id = -1;
+        }
+
+        // This pops unnecessarily - when the cell has no tooltip text, and the user is 
+        // moving the mouse over it. However these unnecessary calls seem to fix a 
+        // certain tooltip bug (move the mouse around very quickly over the last column and 
+        // the blank space to the right, and no more tooltips will appear).
+        if (Context->TooltipIndex != index || Context->TooltipId != id)
+        {
+            PhTnpPopTooltip(Context);
+        }
+    }
 }
 
 BOOLEAN PhTnpProcessFocusKey(
@@ -3290,17 +3322,17 @@ BOOLEAN PhTnpProcessFocusKey(
     PhTnpEnsureVisibleNode(Context, index);
     PhTnpSetHotNode(Context, Context->FocusNode, FALSE);
 
-    if (shiftKey && Context->MarkNode)
+    if (shiftKey && Context->MarkNodeIndex != -1)
     {
-        if (index > Context->MarkNode->Index)
+        if (index > Context->MarkNodeIndex)
         {
-            start = Context->MarkNode->Index;
+            start = Context->MarkNodeIndex;
             end = index;
         }
         else
         {
             start = index;
-            end = Context->MarkNode->Index;
+            end = Context->MarkNodeIndex;
         }
 
         PhTnpSelectRange(Context, start, end, TN_SELECT_RESET, &changedStart, &changedEnd);
@@ -3312,7 +3344,7 @@ BOOLEAN PhTnpProcessFocusKey(
     }
     else if (!controlKey)
     {
-        Context->MarkNode = Context->FocusNode;
+        Context->MarkNodeIndex = Context->FocusNode->Index;
         PhTnpSelectRange(Context, index, index, TN_SELECT_RESET, &changedStart, &changedEnd);
 
         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
@@ -3356,7 +3388,7 @@ BOOLEAN PhTnpProcessNodeKey(
             {
                 // Control key: toggle the selection on the focused node.
 
-                Context->MarkNode = Context->FocusNode;
+                Context->MarkNodeIndex = Context->FocusNode->Index;
                 PhTnpSelectRange(Context, Context->FocusNode->Index, Context->FocusNode->Index, TN_SELECT_TOGGLE, &changedStart, &changedEnd);
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
@@ -3371,15 +3403,15 @@ BOOLEAN PhTnpProcessNodeKey(
 
                 // Shift key: select a range from the selection mark node to the focused node.
 
-                if (Context->FocusNode->Index > Context->MarkNode->Index)
+                if (Context->FocusNode->Index > Context->MarkNodeIndex)
                 {
-                    start = Context->MarkNode->Index;
+                    start = Context->MarkNodeIndex;
                     end = Context->FocusNode->Index;
                 }
                 else
                 {
                     start = Context->FocusNode->Index;
-                    end = Context->MarkNode->Index;
+                    end = Context->MarkNodeIndex;
                 }
 
                 PhTnpSelectRange(Context, start, end, TN_SELECT_RESET, &changedStart, &changedEnd);
@@ -3416,7 +3448,7 @@ BOOLEAN PhTnpProcessNodeKey(
                     if (newNode->Level == targetLevel)
                     {
                         Context->FocusNode = newNode;
-                        Context->MarkNode = newNode;
+                        Context->MarkNodeIndex = newNode->Index;
                         PhTnpEnsureVisibleNode(Context, i);
                         PhTnpSetHotNode(Context, newNode, FALSE);
                         PhTnpSelectRange(Context, i, i, TN_SELECT_RESET, &changedStart, &changedEnd);
@@ -3455,7 +3487,7 @@ BOOLEAN PhTnpProcessNodeKey(
                         if (newNode->Level == Context->FocusNode->Level + 1)
                         {
                             Context->FocusNode = newNode;
-                            Context->MarkNode = newNode;
+                            Context->MarkNodeIndex = newNode->Index;
                             PhTnpEnsureVisibleNode(Context, Context->FocusNode->Index + 1);
                             PhTnpSetHotNode(Context, newNode, FALSE);
                             PhTnpSelectRange(Context, Context->FocusNode->Index, Context->FocusNode->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
@@ -3977,7 +4009,7 @@ VOID PhTnpPaint(
     lastRowToUpdate += vScrollPosition;
 
     if (lastRowToUpdate >= (LONG)Context->FlatList->Count)
-        lastRowToUpdate = Context->FlatList->Count - 1;
+        lastRowToUpdate = Context->FlatList->Count - 1; // becomes -1 when there are no items, handled correctly by loop below
 
     // Determine whether the fixed column needs painting, and which normal columns need painting.
 
@@ -4063,7 +4095,7 @@ VOID PhTnpPaint(
 
             if (node->Selected)
             {
-                if (node == Context->HotNode)
+                if (i == Context->HotNodeIndex)
                     stateId = TREIS_HOTSELECTED;
                 else if (!Context->HasFocus)
                     stateId = TREIS_SELECTEDNOTFOCUS;
@@ -4072,7 +4104,7 @@ VOID PhTnpPaint(
             }
             else
             {
-                if (node == Context->HotNode)
+                if (i == Context->HotNodeIndex)
                     stateId = TREIS_HOT;
                 else
                     stateId = -1;
@@ -4346,7 +4378,7 @@ VOID PhTnpDrawCell(
                     INT partId;
                     INT stateId;
 
-                    partId = (Node == Context->HotNode && Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
+                    partId = (RowIndex == Context->HotNodeIndex && Node->s.PlusMinusHot && Context->ThemeHasHotGlyph) ? TVP_HOTGLYPH : TVP_GLYPH;
                     stateId = Node->Expanded ? GLPS_OPENED : GLPS_CLOSED;
 
                     if (SUCCEEDED(DrawThemeBackground_I(
