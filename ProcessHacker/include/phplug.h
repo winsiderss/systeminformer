@@ -26,6 +26,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackModuleMenuInitializing = 14, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
     GeneralCallbackMemoryMenuInitializing = 15, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
     GeneralCallbackHandleMenuInitializing = 16, // PPH_PLUGIN_MENU_INFORMATION Data [properties thread]
+    GeneralCallbackProcessTreeNewInitializing = 17, // PPH_PLUGIN_TREENEW_INFORMATION Data [main thread]
 
     GeneralCallbackMaximum
 } PH_GENERAL_CALLBACK, *PPH_GENERAL_CALLBACK;
@@ -142,12 +143,28 @@ typedef struct _PH_PLUGIN_MENU_INFORMATION
     } u;
 } PH_PLUGIN_MENU_INFORMATION, *PPH_PLUGIN_MENU_INFORMATION;
 
+typedef struct _PH_PLUGIN_TREENEW_INFORMATION
+{
+    HWND TreeNewHandle;
+    PVOID CmData;
+} PH_PLUGIN_TREENEW_INFORMATION, *PPH_PLUGIN_TREENEW_INFORMATION;
+
+typedef struct _PH_PLUGIN_TREENEW_MESSAGE
+{
+    PH_TREENEW_MESSAGE Message;
+    PVOID Parameter1;
+    PVOID Parameter2;
+    ULONG SubId;
+    PVOID Context;
+} PH_PLUGIN_TREENEW_MESSAGE, *PPH_PLUGIN_TREENEW_MESSAGE;
+
 typedef enum _PH_PLUGIN_CALLBACK
 {
     PluginCallbackLoad = 0, // [main thread]
     PluginCallbackUnload = 1, // [main thread]
     PluginCallbackShowOptions = 2, // HWND ParentWindowHandle [main thread]
     PluginCallbackMenuItem = 3, // PPH_PLUGIN_MENU_ITEM MenuItem [main/properties thread]
+    PluginCallbackTreeNewMessage = 4, // PPH_PLUGIN_TREENEW_MESSAGE Message [main/properties thread]
 
     PluginCallbackMaximum
 } PH_PLUGIN_CALLBACK, *PPH_PLUGIN_CALLBACK;

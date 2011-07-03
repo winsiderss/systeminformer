@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   tree list
+ *   tree new (tree list)
  * 
  * Copyright (C) 2011 wj32
  * 
@@ -150,6 +150,11 @@ LRESULT CALLBACK PhTnpWndProc(
                 return TRUE;
         }
         break;
+    case WM_TIMER:
+        {
+            PhTnpOnTimer(hwnd, context, (ULONG)wParam);
+        }
+        return 0;
     case WM_MOUSEMOVE:
         {
             PhTnpOnMouseMove(hwnd, context, (ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -334,6 +339,8 @@ BOOLEAN PhTnpOnCreate(
 
     if (Context->Style & TN_STYLE_DOUBLE_BUFFERED)
         Context->DoubleBuffered = TRUE;
+    if ((Context->Style & TN_STYLE_ANIMATE_DIVIDER) && Context->DoubleBuffered)
+        Context->AnimateDivider = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
@@ -368,9 +375,6 @@ BOOLEAN PhTnpOnCreate(
     {
         return FALSE;
     }
-
-    Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
-    Context->HScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
 
     if (!(Context->VScrollHandle = CreateWindow(
         L"SCROLLBAR",
@@ -423,6 +427,7 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
+    PhTnpUpdateSystemMetrics(Context);
     PhTnpInitializeTooltips(Context);
 
     return TRUE;
@@ -500,7 +505,9 @@ VOID PhTnpOnSettingChange(
     __in PPH_TREENEW_CONTEXT Context
     )
 {
+    PhTnpUpdateSystemMetrics(Context);
     PhTnpUpdateTextMetrics(Context);
+    PhTnpLayout(Context);
 }
 
 VOID PhTnpOnThemeChanged(
@@ -509,31 +516,6 @@ VOID PhTnpOnThemeChanged(
     )
 {
     PhTnpUpdateThemeData(Context);
-}
-
-BOOLEAN PhTnpOnSetCursor(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND CursorWindowHandle
-    )
-{
-    POINT point;
-
-    PhTnpGetMessagePos(hwnd, &point);
-
-    if (TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context))
-    {
-        SetCursor(LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106))); // HACK (the divider icon resource has been 106 for quite a while...)
-        return TRUE;
-    }
-
-    if (Context->Cursor)
-    {
-        SetCursor(Context->Cursor);
-        return TRUE;
-    }
-
-    return FALSE;
 }
 
 VOID PhTnpOnPaint(
@@ -614,6 +596,77 @@ VOID PhTnpOnPrintClient(
     PhTnpPaint(hwnd, Context, hdc, &Context->ClientRect);
 }
 
+BOOLEAN PhTnpOnSetCursor(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HWND CursorWindowHandle
+    )
+{
+    POINT point;
+
+    PhTnpGetMessagePos(hwnd, &point);
+
+    if (TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context))
+    {
+        SetCursor(LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106))); // HACK (the divider icon resource has been 106 for quite a while...)
+        return TRUE;
+    }
+
+    if (Context->Cursor)
+    {
+        SetCursor(Context->Cursor);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhTnpOnTimer(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Id
+    )
+{
+    if (Id == TNP_TIMER_ANIMATE_DIVIDER)
+    {
+        RECT dividerRect;
+
+        dividerRect.left = Context->FixedWidth;
+        dividerRect.top = Context->HeaderHeight;
+        dividerRect.right = Context->FixedWidth + 1;
+        dividerRect.bottom = Context->ClientRect.bottom;
+
+        if (Context->AnimateDividerFadingIn)
+        {
+            Context->DividerHot += TNP_ANIMATE_DIVIDER_INCREMENT;
+
+            if (Context->DividerHot >= 100)
+            {
+                Context->DividerHot = 100;
+                Context->AnimateDividerFadingIn = FALSE;
+                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+            }
+
+            InvalidateRect(hwnd, &dividerRect, FALSE);
+        }
+        else if (Context->AnimateDividerFadingOut)
+        {
+            if (Context->DividerHot <= TNP_ANIMATE_DIVIDER_DECREMENT)
+            {
+                Context->DividerHot = 0;
+                Context->AnimateDividerFadingOut = FALSE;
+                KillTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER);
+            }
+            else
+            {
+                Context->DividerHot -= TNP_ANIMATE_DIVIDER_DECREMENT;
+            }
+
+            InvalidateRect(hwnd, &dividerRect, FALSE);
+        }
+    }
+}
+
 VOID PhTnpOnMouseMove(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
@@ -651,6 +704,29 @@ VOID PhTnpOnMouseMove(
         hotNode = NULL;
 
     PhTnpSetHotNode(Context, hotNode, !!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS));
+
+    if (Context->AnimateDivider && Context->FixedDividerVisible)
+    {
+        if (hitTest.Flags & TN_HIT_DIVIDER)
+        {
+            if (Context->DividerHot < 100 && !Context->AnimateDividerFadingIn)
+            {
+                // Begin fading in the divider.
+                Context->AnimateDividerFadingIn = TRUE;
+                Context->AnimateDividerFadingOut = FALSE;
+                SetTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            }
+        }
+        else
+        {
+            if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
+            {
+                Context->AnimateDividerFadingOut = TRUE;
+                Context->AnimateDividerFadingIn = FALSE;
+                SetTimer(hwnd, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+            }
+        }
+    }
 
     if (Context->TooltipsHandle)
     {
@@ -737,7 +813,7 @@ VOID PhTnpOnXxxButtonXxx(
                 Context->TrackOldFixedWidth = Context->FixedWidth;
                 SetCapture(hwnd);
 
-                SetTimer(hwnd, 1, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
+                SetTimer(hwnd, TNP_TIMER_NULL, 100, NULL); // make sure we get messages once in a while so we can detect the escape key
                 GetAsyncKeyState(VK_ESCAPE);
             }
         }
@@ -933,7 +1009,7 @@ VOID PhTnpOnCaptureChanged(
     )
 {
     Context->Tracking = FALSE;
-    KillTimer(hwnd, 1);
+    KillTimer(hwnd, TNP_TIMER_NULL);
 }
 
 VOID PhTnpOnKeyDown(
@@ -1260,7 +1336,7 @@ BOOLEAN PhTnpOnNotify(
                     PhTnpLayout(Context);
                 }
 
-                RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ERASE); // TODO: Optimize
+                InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
             }
         }
         break;
@@ -1321,6 +1397,7 @@ BOOLEAN PhTnpOnNotify(
                 // Note: The fixed column cannot be re-ordered.
                 PhTnpUpdateColumnHeaders(Context);
                 PhTnpUpdateColumnMaps(Context);
+                InvalidateRect(Context->Handle, NULL, FALSE);
             }
         }
         break;
@@ -1582,6 +1659,14 @@ ULONG_PTR PhTnpOnUserMessage(
     return 0;
 }
 
+VOID PhTnpUpdateSystemMetrics(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
+    Context->HScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
+}
+
 VOID PhTnpUpdateTextMetrics(
     __in PPH_TREENEW_CONTEXT Context
     )
@@ -1692,6 +1777,7 @@ VOID PhTnpLayout(
             Context->HScrollHeight,
             TRUE
             );
+        UpdateWindow(Context->HScrollHandle);
     }
 
     // Filler box
@@ -2111,6 +2197,9 @@ LONG PhTnpInsertColumnHeader(
         Context->FixedWidth = Column->Width;
         Context->NormalLeft = Context->FixedWidth + 1;
         Context->FixedColumnVisible = TRUE;
+
+        if (!(Context->Style & TN_STYLE_NO_DIVIDER))
+            Context->FixedDividerVisible = TRUE;
     }
 
     memset(&item, 0, sizeof(HDITEM));
@@ -2211,7 +2300,7 @@ VOID PhTnpChangeColumnHeader(
     if (Column->Fixed)
         Header_SetItem(Context->FixedHeaderHandle, 0, &item);
     else
-        Header_SetItem(Context->FixedHeaderHandle, Column->s.ViewIndex, &item);
+        Header_SetItem(Context->HeaderHandle, Column->s.ViewIndex, &item);
 }
 
 VOID PhTnpDeleteColumnHeader(
@@ -2225,6 +2314,7 @@ VOID PhTnpDeleteColumnHeader(
         Context->FixedWidth = 0;
         Context->NormalLeft = 0;
         Context->FixedColumnVisible = FALSE;
+        Context->FixedDividerVisible = FALSE;
     }
 
     if (Column->Fixed)
@@ -2253,7 +2343,7 @@ VOID PhTnpUpdateColumnHeaders(
     if (Context->FixedColumnVisible && Header_GetItem(Context->FixedHeaderHandle, 0, &item))
     {
         column = Context->FixedColumn;
-        column->Width = item.cxy;
+        column->Width = item.cxy - 1;
     }
 
     // Normal columns
@@ -4005,9 +4095,9 @@ VOID PhTnpPaint(
         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
-    if (Context->FixedColumnVisible && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)
+    if (Context->FixedDividerVisible && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)
     {
-        PhTnpDrawDivider(Context, hdc, &viewRect);
+        PhTnpDrawDivider(Context, hdc);
     }
 }
 
@@ -4306,16 +4396,65 @@ VOID PhTnpDrawCell(
 
 VOID PhTnpDrawDivider(
     __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT ClientRect
+    __in HDC hdc
     )
 {
     POINT points[2];
 
+    if (Context->AnimateDivider)
+    {
+        if (Context->DividerHot == 0 && !Context->HScrollVisible)
+            return; // divider is invisible
+
+        if (Context->DividerHot < 100)
+        {
+            BLENDFUNCTION blendFunction;
+
+            // We need to draw and alpha blend the divider.
+            // We can use the extra column allocated in the buffered context 
+            // to initially draw the divider.
+
+            points[0].x = Context->ClientRect.right;
+            points[0].y = Context->HeaderHeight;
+            points[1].x = Context->ClientRect.right;
+            points[1].y = Context->ClientRect.bottom;
+            SetDCPenColor(Context->BufferedContext, RGB(0x77, 0x77, 0x77));
+            SelectObject(Context->BufferedContext, GetStockObject(DC_PEN));
+            Polyline(Context->BufferedContext, points, 2);
+
+            blendFunction.BlendOp = AC_SRC_OVER;
+            blendFunction.BlendFlags = 0;
+            blendFunction.AlphaFormat = 0;
+
+            // If the horizontal scroll bar is visible, we need to display a line even if 
+            // the divider is not hot. In this case we increase the base alpha value.
+            if (!Context->HScrollVisible)
+                blendFunction.SourceConstantAlpha = (UCHAR)(Context->DividerHot * 255 / 100);
+            else
+                blendFunction.SourceConstantAlpha = 55 + (UCHAR)(Context->DividerHot * 2);
+
+            GdiAlphaBlend(
+                hdc,
+                Context->FixedWidth,
+                Context->HeaderHeight,
+                1,
+                Context->ClientRect.bottom - Context->HeaderHeight,
+                Context->BufferedContext,
+                Context->ClientRect.right,
+                Context->HeaderHeight,
+                1,
+                Context->ClientRect.bottom - Context->HeaderHeight,
+                blendFunction
+                );
+
+            return;
+        }
+    }
+
     points[0].x = Context->FixedWidth;
-    points[0].y = 0;
+    points[0].y = Context->HeaderHeight;
     points[1].x = Context->FixedWidth;
-    points[1].y = ClientRect->bottom;
+    points[1].y = Context->ClientRect.bottom;
     SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
     SelectObject(hdc, GetStockObject(DC_PEN));
     Polyline(hdc, points, 2);
@@ -4533,7 +4672,7 @@ VOID PhTnpCreateBufferedContext(
         Context->BufferedContextRect = Context->ClientRect;
         Context->BufferedBitmap = CreateCompatibleBitmap(
             hdc,
-            Context->BufferedContextRect.right,
+            Context->BufferedContextRect.right + 1, // leave one extra pixel for divider animation
             Context->BufferedContextRect.bottom
             );
 
