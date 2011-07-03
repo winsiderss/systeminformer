@@ -311,6 +311,9 @@ VOID PhTnpDestroyTreeNewContext(
     if (Context->TooltipText)
         PhDereferenceObject(Context->TooltipText);
 
+    if (Context->BufferedContext)
+        PhTnpDestroyBufferedContext(Context);
+
     PhFree(Context);
 }
 
@@ -324,6 +327,9 @@ BOOLEAN PhTnpOnCreate(
     Context->InstanceHandle = CreateStruct->hInstance;
     Context->Style = CreateStruct->style;
     Context->ExtendedStyle = CreateStruct->dwExStyle;
+
+    if (Context->Style & TN_STYLE_DOUBLE_BUFFERED)
+        Context->DoubleBuffered = TRUE;
 
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
@@ -424,6 +430,15 @@ VOID PhTnpOnSize(
     )
 {
     GetClientRect(hwnd, &Context->ClientRect);
+
+    if (Context->BufferedContext && (
+        Context->BufferedContextRect.right < Context->ClientRect.right ||
+        Context->BufferedContextRect.bottom < Context->ClientRect.bottom))
+    {
+        // Invalidate the buffered context because the client size has increased.
+        PhTnpDestroyBufferedContext(Context);
+    }
+
     PhTnpLayout(Context);
 
     if (Context->TooltipsHandle)
@@ -528,9 +543,38 @@ VOID PhTnpOnPaint(
 
     if (GetUpdateRect(hwnd, &updateRect, FALSE))
     {
+        if (Context->DoubleBuffered)
+        {
+            if (!Context->BufferedContext)
+            {
+                PhTnpCreateBufferedContext(Context);
+            }
+        }
+
         if (hdc = BeginPaint(hwnd, &paintStruct))
         {
-            PhTnpPaint(hwnd, Context, hdc, &paintStruct.rcPaint);
+            updateRect = paintStruct.rcPaint;
+
+            if (Context->BufferedContext)
+            {
+                PhTnpPaint(hwnd, Context, Context->BufferedContext, &updateRect);
+                BitBlt(
+                    hdc,
+                    updateRect.left,
+                    updateRect.top,
+                    updateRect.right - updateRect.left,
+                    updateRect.bottom - updateRect.top,
+                    Context->BufferedContext,
+                    updateRect.left,
+                    updateRect.top,
+                    SRCCOPY
+                    );
+            }
+            else
+            {
+                PhTnpPaint(hwnd, Context, hdc, &updateRect);
+            }
+
             EndPaint(hwnd, &paintStruct);
         }
     }
@@ -4340,6 +4384,52 @@ VOID PhTnpPopTooltip(
         Context->TooltipIndex = -1;
         Context->TooltipId = -1;
     }
+}
+
+VOID PhTnpCreateBufferedContext(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    HDC hdc;
+
+    if (hdc = GetDC(Context->Handle))
+    {
+        Context->BufferedContext = CreateCompatibleDC(hdc);
+
+        if (!Context->BufferedContext)
+            return;
+
+        Context->BufferedContextRect = Context->ClientRect;
+        Context->BufferedBitmap = CreateCompatibleBitmap(
+            hdc,
+            Context->BufferedContextRect.right,
+            Context->BufferedContextRect.bottom
+            );
+
+        if (!Context->BufferedBitmap)
+        {
+            DeleteDC(Context->BufferedContext);
+            Context->BufferedContext = NULL;
+            return;
+        }
+
+        ReleaseDC(Context->Handle, hdc);
+        Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
+    }
+}
+
+VOID PhTnpDestroyBufferedContext(
+    __in PPH_TREENEW_CONTEXT Context
+    )
+{
+    // The original bitmap must be selected back into the context, otherwise 
+    // the bitmap can't be deleted.
+    SelectObject(Context->BufferedContext, Context->BufferedOldBitmap);
+    DeleteObject(Context->BufferedBitmap);
+    DeleteDC(Context->BufferedContext);
+
+    Context->BufferedContext = NULL;
+    Context->BufferedBitmap = NULL;
 }
 
 VOID PhTnpGetMessagePos(
