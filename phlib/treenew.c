@@ -94,7 +94,7 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpDestroyTreeNewContext(context);
             SetWindowLongPtr(hwnd, 0, (LONG_PTR)NULL);
         }
-        break;
+        return 0;
     case WM_SIZE:
         {
             PhTnpOnSize(hwnd, context);
@@ -106,12 +106,12 @@ LRESULT CALLBACK PhTnpWndProc(
         {
             PhTnpOnPaint(hwnd, context);
         }
-        break;
+        return 0;
     case WM_PRINTCLIENT:
         {
             PhTnpOnPrintClient(hwnd, context, (HDC)wParam, (ULONG)lParam);
         }
-        break;
+        return 0;
     case WM_GETFONT:
         {
             return (LRESULT)context->Font;
@@ -143,7 +143,7 @@ LRESULT CALLBACK PhTnpWndProc(
             context->HasFocus = FALSE;
             InvalidateRect(context->Handle, NULL, FALSE);
         }
-        break;
+        return 0;
     case WM_SETCURSOR:
         {
             if (PhTnpOnSetCursor(hwnd, context, (HWND)wParam))
@@ -187,7 +187,7 @@ LRESULT CALLBACK PhTnpWndProc(
         {
             PhTnpOnChar(hwnd, context, (ULONG)wParam, (ULONG)lParam);
         }
-        break;
+        return 0;
     case WM_MOUSEWHEEL:
         {
             PhTnpOnMouseWheel(hwnd, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
@@ -202,12 +202,12 @@ LRESULT CALLBACK PhTnpWndProc(
         {
             PhTnpOnVScroll(hwnd, context, LOWORD(wParam));
         }
-        break;
+        return 0;
     case WM_HSCROLL:
         {
             PhTnpOnHScroll(hwnd, context, LOWORD(wParam));
         }
-        break;
+        return 0;
     case WM_NOTIFY:
         {
             LRESULT result;
@@ -216,6 +216,11 @@ LRESULT CALLBACK PhTnpWndProc(
                 return result;
         }
         break;
+    }
+
+    if (uMsg >= TNM_FIRST && uMsg <= TNM_LAST)
+    {
+        return PhTnpOnUserMessage(hwnd, context, uMsg, wParam, lParam);
     }
 
     switch (uMsg)
@@ -240,11 +245,6 @@ LRESULT CALLBACK PhTnpWndProc(
             }
         }
         break;
-    }
-
-    if (uMsg >= TNM_FIRST && uMsg <= TNM_LAST)
-    {
-        return PhTnpOnUserMessage(hwnd, context, uMsg, wParam, lParam);
     }
 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
@@ -410,9 +410,6 @@ BOOLEAN PhTnpOnCreate(
     {
         return FALSE;
     }
-
-    Context->VScrollVisible = TRUE;
-    Context->HScrollVisible = TRUE;
 
     PhTnpInitializeTooltips(Context);
 
@@ -1141,7 +1138,7 @@ BOOLEAN PhTnpOnNotify(
             {
                 if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
-                    if (Context->FixedColumn)
+                    if (Context->FixedColumnVisible)
                     {
                         Context->FixedWidth = nmHeader->pitem->cxy - 1;
 
@@ -1615,7 +1612,7 @@ VOID PhTnpSetFixedWidth(
 {
     HDITEM item;
 
-    if (Context->FixedColumn)
+    if (Context->FixedColumnVisible)
     {
         Context->FixedWidth = FixedWidth;
 
@@ -1686,16 +1683,6 @@ BOOLEAN PhTnpAddColumn(
     if (realColumn->Visible)
     {
         realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
-
-        if (realColumn->Fixed)
-        {
-            Context->FixedWidth = realColumn->Width;
-
-            if (Context->FixedWidth < Context->FixedWidthMinimum)
-                Context->FixedWidth = Context->FixedWidthMinimum;
-
-            Context->NormalLeft = Context->FixedWidth + 1;
-        }
     }
     else
     {
@@ -1722,13 +1709,6 @@ BOOLEAN PhTnpRemoveColumn(
         return FALSE;
 
     updateLayout = FALSE;
-
-    if (realColumn->Fixed)
-    {
-        Context->FixedColumn = NULL;
-        Context->FixedWidth = 0;
-        Context->NormalLeft = 0;
-    }
 
     if (realColumn->Visible)
         updateLayout = TRUE;
@@ -1952,7 +1932,7 @@ VOID PhTnpUpdateColumnMaps(
     Context->NumberOfColumnsByDisplay = i;
     Context->TotalViewX = x;
 
-    if (Context->FixedColumn)
+    if (Context->FixedColumnVisible)
     {
         Context->FirstColumn = Context->FixedColumn;
     }
@@ -1972,6 +1952,16 @@ LONG PhTnpInsertColumnHeader(
     )
 {
     HDITEM item;
+
+    if (Column->Fixed)
+    {
+        if (Column->Width < Context->FixedWidthMinimum)
+            Column->Width = Context->FixedWidthMinimum;
+
+        Context->FixedWidth = Column->Width;
+        Context->NormalLeft = Context->FixedWidth + 1;
+        Context->FixedColumnVisible = TRUE;
+    }
 
     memset(&item, 0, sizeof(HDITEM));
     item.mask = HDI_WIDTH | HDI_TEXT | HDI_FORMAT | HDI_LPARAM | HDI_ORDER;
@@ -2080,6 +2070,14 @@ VOID PhTnpDeleteColumnHeader(
     )
 {
     if (Column->Fixed)
+    {
+        Context->FixedColumn = NULL;
+        Context->FixedWidth = 0;
+        Context->NormalLeft = 0;
+        Context->FixedColumnVisible = FALSE;
+    }
+
+    if (Column->Fixed)
         Header_DeleteItem(Context->FixedHeaderHandle, Column->s.ViewIndex);
     else
         Header_DeleteItem(Context->HeaderHandle, Column->s.ViewIndex);
@@ -2102,7 +2100,7 @@ VOID PhTnpUpdateColumnHeaders(
 
     // Fixed column
 
-    if (Context->FixedColumn && Header_GetItem(Context->FixedHeaderHandle, 0, &item))
+    if (Context->FixedColumnVisible && Header_GetItem(Context->FixedHeaderHandle, 0, &item))
     {
         column = Context->FixedColumn;
         column->Width = item.cxy;
@@ -2631,7 +2629,7 @@ VOID PhTnpHitTest(
 
                     column = NULL;
 
-                    if (x < Context->FixedWidth && Context->FixedColumn)
+                    if (x < Context->FixedWidth && Context->FixedColumnVisible)
                     {
                         column = Context->FixedColumn;
                         columnX = 0;
@@ -3641,7 +3639,7 @@ VOID PhTnpPaint(
 
     fixedUpdate = FALSE;
 
-    if (Context->FixedColumn && PaintRect->left < Context->FixedWidth)
+    if (Context->FixedColumnVisible && PaintRect->left < Context->FixedWidth)
         fixedUpdate = TRUE;
 
     x = Context->NormalLeft - hScrollPosition;
@@ -3816,7 +3814,7 @@ VOID PhTnpPaint(
         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
-    if (Context->FixedColumn && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)
+    if (Context->FixedColumnVisible && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)
     {
         PhTnpDrawDivider(Context, hdc, &viewRect);
     }
@@ -4184,7 +4182,8 @@ VOID PhTnpInitializeTooltips(
 {
     TOOLINFO toolInfo;
 
-    Context->TooltipsHandle = CreateWindow(
+    Context->TooltipsHandle = CreateWindowEx(
+        WS_EX_TRANSPARENT, // solves double-click problem
         TOOLTIPS_CLASS,
         NULL,
         WS_POPUP | TTS_NOPREFIX,
