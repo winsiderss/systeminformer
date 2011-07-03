@@ -1463,7 +1463,17 @@ ULONG_PTR PhTnpOnUserMessage(
         return TRUE;
     case TNM_NODESSTRUCTURED:
         {
+            if (Context->EnableRedraw <= 0)
+            {
+                Context->SuspendUpdateStructure = TRUE;
+                Context->SuspendUpdateLayout = TRUE;
+                InvalidateRect(Context->Handle, NULL, FALSE);
+                return TRUE;
+            }
+
             PhTnpRestructureNodes(Context);
+            PhTnpLayout(Context);
+            InvalidateRect(Context->Handle, NULL, FALSE);
         }
         return TRUE;
     case TNM_ADDCOLUMN:
@@ -1871,17 +1881,20 @@ VOID PhTnpSetRedraw(
 
     if (Context->EnableRedraw == 1)
     {
+        if (Context->SuspendUpdateStructure)
+            PhTnpRestructureNodes(Context);
+        if (Context->SuspendUpdateLayout)
+            PhTnpLayout(Context);
+
+        Context->SuspendUpdateStructure = FALSE;
+        Context->SuspendUpdateLayout = FALSE;
+
         if (Context->SuspendUpdateRegion)
         {
             InvalidateRgn(Context->Handle, Context->SuspendUpdateRegion, FALSE);
             DeleteObject(Context->SuspendUpdateRegion);
             Context->SuspendUpdateRegion = NULL;
         }
-
-        if (Context->SuspendUpdateLayout)
-            PhTnpLayout(Context);
-
-        Context->SuspendUpdateLayout = FALSE;
     }
 }
 
@@ -2582,9 +2595,6 @@ VOID PhTnpRestructureNodes(
         Context->MarkNode = Context->FlatList->Items[markIndex];
     else
         Context->MarkNode = NULL;
-
-    PhTnpLayout(Context);
-    InvalidateRect(Context->Handle, NULL, FALSE);
 }
 
 VOID PhTnpInsertNodeChildren(
@@ -2652,6 +2662,11 @@ VOID PhTnpSetExpandedNode(
         {
             Node->Expanded = Expanded;
             PhTnpRestructureNodes(Context);
+            // We need to update the window before the scrollbars get updated in order for the scroll processing 
+            // to work properly.
+            InvalidateRect(Context->Handle, NULL, FALSE);
+            UpdateWindow(Context->Handle);
+            PhTnpLayout(Context);
         }
     }
 }
