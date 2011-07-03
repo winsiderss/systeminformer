@@ -486,13 +486,9 @@ VOID PhTnpScroll(
     __in LONG DeltaX
     );
 
-VOID PhTnpProcessVerticalScroll(
+VOID PhTnpProcessScroll(
     __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows
-    );
-
-VOID PhTnpProcessHorizontalScroll(
-    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows,
     __in LONG DeltaX
     );
 
