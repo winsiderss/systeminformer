@@ -336,7 +336,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_DESELECTRANGE (WM_USER + 29)
 #define TNM_GETCOLUMNCOUNT (WM_USER + 30)
 #define TNM_SETREDRAW (WM_USER + 31)
-#define TNM_LAST (WM_USER + 31)
+#define TNM_GETVIEWPARTS (WM_USER + 32)
+#define TNM_LAST (WM_USER + 32)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -424,6 +425,23 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_SetRedraw(hWnd, Redraw) \
     ((LONG)SendMessage((hWnd), TNM_SETREDRAW, (WPARAM)(Redraw), 0))
+
+#define TreeNew_GetViewParts(hWnd, Parts) \
+    SendMessage((hWnd), TNM_GETVIEWPARTS, 0, (LPARAM)(Parts))
+
+typedef struct _PH_TREENEW_VIEW_PARTS
+{
+    RECT ClientRect;
+    LONG HeaderHeight;
+    LONG RowHeight;
+    ULONG VScrollWidth;
+    ULONG HScrollHeight;
+    LONG VScrollPosition;
+    LONG HScrollPosition;
+    LONG FixedWidth;
+    LONG NormalLeft;
+    LONG NormalWidth;
+} PH_TREENEW_VIEW_PARTS, *PPH_TREENEW_VIEW_PARTS;
 
 BOOLEAN PhTreeNewInitialization();
 
