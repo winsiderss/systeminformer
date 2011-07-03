@@ -181,6 +181,7 @@ VOID PhShowOptionsDialog(
             PhUpdateCachedSettings();
             ProcessHacker_SaveAllSettings(PhMainWndHandle);
             PhInvalidateAllProcessNodes();
+            PhReloadSettingsProcessTreeList();
         }
         else
         {
@@ -445,6 +446,7 @@ VOID PhpAdvancedPageLoad(
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
     SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetDlgItemCheckForSetting(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
+    SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
     SetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, PhGetIntegerSetting(L"SampleCount"), FALSE);
 
     // Replace Task Manager
@@ -517,6 +519,7 @@ VOID PhpAdvancedPageSave(
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLESTAGE2, L"EnableStage2");
     SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLENETWORKRESOLVE, L"EnableNetworkResolve");
     SetSettingForDlgItemCheck(hwndDlg, IDC_PROPAGATECPUUSAGE, L"PropagateCpuUsage");
+    SetSettingForDlgItemCheck(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS, L"EnableInstantTooltips");
     PhSetIntegerSetting(L"SampleCount", GetDlgItemInt(hwndDlg, IDC_SAMPLECOUNT, NULL, FALSE));
 
     // Replace Task Manager
@@ -611,6 +614,7 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLESTAGE2), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLENETWORKRESOLVE), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_PROPAGATECPUUSAGE), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLEINSTANTTOOLTIPS), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNTLABEL), FALSE);
                 EnableWindow(GetDlgItem(hwndDlg, IDC_SAMPLECOUNT), FALSE);
             }

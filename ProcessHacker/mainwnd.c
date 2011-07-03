@@ -3250,7 +3250,6 @@ VOID PhMainWndOnCreate()
     NetworkTabIndex = PhAddTabControlTab(TabControlHandle, 2, L"Network");
     MaxTabIndex = NetworkTabIndex;
 
-    //ProcessTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_PROCESSTL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
     ProcessTreeListHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
         L"",

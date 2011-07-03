@@ -437,6 +437,8 @@
 #define IDC_ZPRIVATEWS_V                1289
 #define IDC_ZSHAREABLEWS_V              1290
 #define IDC_ZSHAREDWS_V                 1291
+#define IDC_CHECK2                      1292
+#define IDC_ENABLEINSTANTTOOLTIPS       1292
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKLV            2003
@@ -662,7 +664,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
 #define _APS_NEXT_COMMAND_VALUE         40244
-#define _APS_NEXT_CONTROL_VALUE         1292
+#define _APS_NEXT_CONTROL_VALUE         1293
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
