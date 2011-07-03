@@ -1,6 +1,21 @@
 #ifndef _PH_TREENEWP_H
 #define _PH_TREENEWP_H
 
+// Important notes about pointers:
+//
+// All memory allocation for nodes and strings is handled by the user. 
+// This usually means there is a very limited time during which they 
+// can be safely accessed.
+//
+// Node pointers are valid through the duration of message processing, 
+// and also up to the next restructure operation, either user- or control-
+// initiated. This means that state such as the focused node, hot node and 
+// mark node must be carefully preserved through restructuring. If 
+// restructuring is suspended by a set-redraw call, all nodes must be 
+// considered invalid and no user input can be handled.
+//
+// Strings are valid only through the duration of message processing.
+
 typedef struct _PH_TREENEW_CONTEXT
 {
     HWND Handle;
@@ -40,7 +55,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG DoubleBuffered : 1;
             ULONG SuspendUpdateStructure : 1;
             ULONG SuspendUpdateLayout : 1;
-            ULONG Spare : 8;
+            ULONG SuspendUpdateMoveMouse : 1;
+            ULONG Spare : 7;
         };
         ULONG Flags;
     };
@@ -64,9 +80,9 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG TrackOldFixedWidth;
     ULONG DividerHot; // 0 for un-hot, 100 for completely hot
 
-    PPH_TREENEW_NODE HotNode;
     PPH_TREENEW_NODE FocusNode;
-    PPH_TREENEW_NODE MarkNode; // selection mark
+    ULONG HotNodeIndex;
+    ULONG MarkNodeIndex; // selection mark
 
     ULONG MouseDownLast;
     POINT MouseDownLocation;
@@ -442,13 +458,21 @@ VOID PhTnpSelectRange(
 
 VOID PhTnpSetHotNode(
     __in PPH_TREENEW_CONTEXT Context,
-    __in PPH_TREENEW_NODE NewHotNode,
+    __in_opt PPH_TREENEW_NODE NewHotNode,
     __in BOOLEAN NewPlusMinusHot
     );
 
 BOOLEAN PhTnpEnsureVisibleNode(
     __in PPH_TREENEW_CONTEXT Context,
     __in ULONG Index
+    );
+
+// Mouse
+
+VOID PhTnpProcessMoveMouse(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY
     );
 
 // Keyboard
