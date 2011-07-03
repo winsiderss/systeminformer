@@ -1087,7 +1087,7 @@ VOID PhTnpOnMouseWheel(
         if (scrollInfo.nPos != oldPosition)
         {
             Context->VScrollPosition = scrollInfo.nPos;
-            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
+            PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
 
             if (Context->TooltipsHandle)
             {
@@ -1124,7 +1124,7 @@ VOID PhTnpOnMouseWheel(
         {
             Context->HScrollPosition = scrollInfo.nPos;
             PhTnpLayout(Context);
-            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
+            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
         }
     }
 }
@@ -1237,7 +1237,7 @@ VOID PhTnpOnVScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         Context->VScrollPosition = scrollInfo.nPos;
-        PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
+        PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
     }
 }
 
@@ -1288,7 +1288,7 @@ VOID PhTnpOnHScroll(
     {
         Context->HScrollPosition = scrollInfo.nPos;
         PhTnpLayout(Context);
-        PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
+        PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
     }
 }
 
@@ -3677,6 +3677,10 @@ VOID PhTnpUpdateScrollBars(
     LONG contentHeight;
     SCROLLINFO scrollInfo;
     LONG oldPosition;
+    LONG deltaRows;
+    LONG deltaX;
+    LOGICAL oldHScrollVisible;
+    RECT rect;
 
     clientRect = Context->ClientRect;
     width = clientRect.right - Context->FixedWidth;
@@ -3696,72 +3700,81 @@ VOID PhTnpUpdateScrollBars(
         height -= Context->HScrollHeight;
     }
 
+    deltaRows = 0;
+    deltaX = 0;
+
     // Vertical scroll bar
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+    scrollInfo.nMin = 0;
+    scrollInfo.nMax = Context->FlatList->Count != 0 ? Context->FlatList->Count - 1 : 0;
+    scrollInfo.nPage = height / Context->RowHeight;
+    SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+    // The scroll position may have changed due to the modified scroll range.
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    deltaRows = scrollInfo.nPos - oldPosition;
+    Context->VScrollPosition = scrollInfo.nPos;
+
     if (contentHeight > height && contentHeight != 0)
     {
-        scrollInfo.cbSize = sizeof(SCROLLINFO);
-        scrollInfo.fMask = SIF_POS;
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
-        scrollInfo.nMin = 0;
-        scrollInfo.nMax = Context->FlatList->Count - 1;
-        scrollInfo.nPage = height / Context->RowHeight;
-        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
-
-        // The scroll position may have changed due to the modified scroll range.
-        scrollInfo.fMask = SIF_POS;
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->VScrollPosition = scrollInfo.nPos;
-            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
-        }
-
         ShowWindow(Context->VScrollHandle, SW_SHOW);
         Context->VScrollVisible = TRUE;
     }
     else
     {
         ShowWindow(Context->VScrollHandle, SW_HIDE);
-        Context->VScrollPosition = 0;
         Context->VScrollVisible = FALSE;
     }
 
     // Horizontal scroll bar
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    oldPosition = scrollInfo.nPos;
+
+    scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
+    scrollInfo.nMin = 0;
+    scrollInfo.nMax = contentWidth != 0 ? contentWidth - 1 : 0;
+    scrollInfo.nPage = width;
+    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+    scrollInfo.fMask = SIF_POS;
+    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    deltaX = scrollInfo.nPos - oldPosition;
+    Context->HScrollPosition = scrollInfo.nPos;
+
+    oldHScrollVisible = Context->HScrollVisible;
+
     if (contentWidth > width && contentWidth != 0)
     {
-        scrollInfo.cbSize = sizeof(SCROLLINFO);
-        scrollInfo.fMask = SIF_POS;
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.fMask = SIF_RANGE | SIF_PAGE;
-        scrollInfo.nMin = 0;
-        scrollInfo.nMax = contentWidth - 1;
-        scrollInfo.nPage = width;
-        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-
-        scrollInfo.fMask = SIF_POS;
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
-        }
-
         ShowWindow(Context->HScrollHandle, SW_SHOW);
         Context->HScrollVisible = TRUE;
     }
     else
     {
         ShowWindow(Context->HScrollHandle, SW_HIDE);
-        Context->HScrollPosition = 0;
         Context->HScrollVisible = FALSE;
     }
+
+    if ((Context->HScrollVisible != oldHScrollVisible) && Context->FixedDividerVisible && Context->AnimateDivider)
+    {
+        rect.left = Context->FixedWidth;
+        rect.top = Context->HeaderHeight;
+        rect.right = Context->FixedWidth + 1;
+        rect.bottom = Context->ClientRect.bottom;
+        InvalidateRect(Context->Handle, &rect, FALSE);
+    }
+
+    if (deltaRows != 0 || deltaX != 0)
+        PhTnpProcessScroll(Context, deltaRows, deltaX);
 
     ShowWindow(Context->FillerBoxHandle, (Context->VScrollVisible && Context->HScrollVisible) ? SW_SHOW : SW_HIDE);
 }
@@ -3774,6 +3787,11 @@ VOID PhTnpScroll(
 {
     SCROLLINFO scrollInfo;
     LONG oldPosition;
+    LONG deltaRows;
+    LONG deltaX;
+
+    deltaRows = 0;
+    deltaX = 0;
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
     scrollInfo.fMask = SIF_POS;
@@ -3792,12 +3810,8 @@ VOID PhTnpScroll(
 
         SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
         GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->VScrollPosition = scrollInfo.nPos;
-            PhTnpProcessVerticalScroll(Context, scrollInfo.nPos - oldPosition);
-        }
+        Context->VScrollPosition = scrollInfo.nPos;
+        deltaRows = scrollInfo.nPos - oldPosition;
     }
 
     if (DeltaX != 0 && Context->HScrollVisible)
@@ -3814,61 +3828,77 @@ VOID PhTnpScroll(
 
         SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
         GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpProcessHorizontalScroll(Context, scrollInfo.nPos - oldPosition);
-        }
+        Context->HScrollPosition = scrollInfo.nPos;
+        deltaX = scrollInfo.nPos - oldPosition;
     }
+
+    if (deltaRows != 0 || deltaX != 0)
+        PhTnpProcessScroll(Context, deltaRows, deltaX);
 }
 
-VOID PhTnpProcessVerticalScroll(
+VOID PhTnpProcessScroll(
     __in PPH_TREENEW_CONTEXT Context,
-    __in LONG DeltaRows
-    )
-{
-    RECT scrollRect;
-
-    scrollRect.left = 0;
-    scrollRect.top = Context->HeaderHeight;
-    scrollRect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    scrollRect.bottom = Context->ClientRect.bottom;
-
-    ScrollWindowEx(
-        Context->Handle,
-        0,
-        -DeltaRows * Context->RowHeight,
-        &scrollRect,
-        NULL,
-        NULL,
-        NULL,
-        SW_INVALIDATE
-        );
-}
-
-VOID PhTnpProcessHorizontalScroll(
-    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG DeltaRows,
     __in LONG DeltaX
     )
 {
-    RECT scrollRect;
+    RECT rect;
+    LONG deltaY;
 
-    scrollRect.left = Context->NormalLeft;
-    scrollRect.top = Context->HeaderHeight;
-    scrollRect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
-    scrollRect.bottom = Context->ClientRect.bottom;
+    rect.top = Context->HeaderHeight;
+    rect.bottom = Context->ClientRect.bottom;
 
-    ScrollWindowEx(
-        Context->Handle,
-        -DeltaX,
-        0,
-        &scrollRect,
-        &scrollRect,
-        NULL,
-        NULL,
-        SW_INVALIDATE
-        );
+    if (DeltaX == 0)
+    {
+        rect.left = 0;
+        rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+        ScrollWindowEx(
+            Context->Handle,
+            0,
+            -DeltaRows * Context->RowHeight,
+            &rect,
+            NULL,
+            NULL,
+            NULL,
+            SW_INVALIDATE
+            );
+    }
+    else
+    {
+        deltaY = DeltaRows * Context->RowHeight;
+
+        // If we're scrolling vertically as well, we need to scroll the fixed part and the normal part 
+        // separately.
+
+        if (DeltaRows != 0)
+        {
+            rect.left = 0;
+            rect.right = Context->NormalLeft;
+            ScrollWindowEx(
+                Context->Handle,
+                0,
+                -deltaY,
+                &rect,
+                &rect,
+                NULL,
+                NULL,
+                SW_INVALIDATE
+                );
+        }
+
+        rect.left = Context->NormalLeft;
+        rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+        ScrollWindowEx(
+            Context->Handle,
+            -DeltaX,
+            -deltaY,
+            &rect,
+            &rect,
+            NULL,
+            NULL,
+            SW_INVALIDATE
+            );
+    }
 }
 
 VOID PhTnpPaint(
@@ -4096,7 +4126,7 @@ VOID PhTnpPaint(
         rowRect.bottom += Context->RowHeight;
     }
 
-    if (i == Context->FlatList->Count)
+    if (lastRowToUpdate == Context->FlatList->Count - 1) // works even if there are no items
     {
         // Fill the rest of the space on the bottom with the window color.
         rowRect.bottom = viewRect.bottom;
