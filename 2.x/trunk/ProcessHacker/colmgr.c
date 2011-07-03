@@ -56,7 +56,7 @@ VOID PhCmDeleteManager(
 PPH_CM_COLUMN PhCmCreateColumn(
     __inout PPH_CM_MANAGER Manager,
     __in PPH_TREENEW_COLUMN Column,
-    __in PPH_PLUGIN Plugin,
+    __in struct _PH_PLUGIN *Plugin,
     __in ULONG SubId,
     __in PVOID Context
     )
