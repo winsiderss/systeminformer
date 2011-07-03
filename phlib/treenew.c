@@ -1547,6 +1547,22 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_SETREDRAW:
         PhTnpSetRedraw(Context, !!WParam);
         return (LRESULT)Context->EnableRedraw;
+    case TNM_GETVIEWPARTS:
+        {
+            PPH_TREENEW_VIEW_PARTS parts = (PPH_TREENEW_VIEW_PARTS)LParam;
+
+            parts->ClientRect = Context->ClientRect;
+            parts->HeaderHeight = Context->HeaderHeight;
+            parts->RowHeight = Context->RowHeight;
+            parts->VScrollWidth = Context->VScrollVisible ? Context->VScrollWidth : 0;
+            parts->HScrollHeight = Context->HScrollHeight ? Context->HScrollHeight : 0;
+            parts->VScrollPosition = Context->VScrollPosition;
+            parts->HScrollPosition = Context->HScrollPosition;
+            parts->FixedWidth = Context->FixedWidth;
+            parts->NormalLeft = Context->NormalLeft;
+            parts->NormalWidth = Context->TotalViewX;
+        }
+        return TRUE;
     }
 
     return 0;

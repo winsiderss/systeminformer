@@ -472,43 +472,53 @@ VOID PhUpdateProcessNode(
     }
 
     PhInvalidateTreeNewNode(&ProcessNode->Node, TN_CACHE_COLOR | TN_CACHE_ICON);
+    TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
 VOID PhTickProcessNodes()
 {
+    ULONG i;
+    PH_TREENEW_VIEW_PARTS viewParts;
+    RECT rect;
+
     // Text invalidation, node updates
+
+    for (i = 0; i < ProcessNodeList->Count; i++)
     {
-        ULONG i;
+        PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
 
-        for (i = 0; i < ProcessNodeList->Count; i++)
-        {
-            PPH_PROCESS_NODE node = ProcessNodeList->Items[i];
+        // The name and PID never change, so we don't invalidate that.
+        memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
+        node->ValidMask = 0;
 
-            // The name and PID never change, so we don't invalidate that.
-            memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-            node->ValidMask = 0;
+        // Invalidate graph buffers.
+        node->CpuGraphBuffers.Valid = FALSE;
+        node->PrivateGraphBuffers.Valid = FALSE;
+        node->IoGraphBuffers.Valid = FALSE;
 
-            // Invalidate graph buffers.
-            node->CpuGraphBuffers.Valid = FALSE;
-            node->PrivateGraphBuffers.Valid = FALSE;
-            node->IoGraphBuffers.Valid = FALSE;
+        // Updates cycles if necessary.
+        if (NeedCyclesInformation)
+            PhpUpdateProcessNodeCycles(node);
+    }
 
-            // Updates cycles if necessary.
-            if (NeedCyclesInformation)
-                PhpUpdateProcessNodeCycles(node);
-        }
-
-        if (ProcessTreeListSortOrder != NoSortOrder)
-        {
-            // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(ProcessTreeListHandle);
-        }
+    if (ProcessTreeListSortOrder != NoSortOrder)
+    {
+        // Force a rebuild to sort the items.
+        TreeNew_NodesStructured(ProcessTreeListHandle);
     }
 
     // State highlighting
     PH_TICK_SH_STATE_TN(PH_PROCESS_NODE, ShState, ProcessNodeStateList, PhpRemoveProcessNode, PhCsHighlightingDuration, ProcessTreeListHandle, FALSE);
 
-    InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
+    // The first column doesn't need to be invalidated because the process name never changes, and 
+    // icon changes are handled by the modified event. This small optimization can save more than 
+    // 10 million cycles per update (on my machine).
+    TreeNew_GetViewParts(ProcessTreeListHandle, &viewParts);
+    rect.left = viewParts.NormalLeft;
+    rect.top = viewParts.HeaderHeight;
+    rect.right = viewParts.ClientRect.right - viewParts.VScrollWidth;
+    rect.bottom = viewParts.ClientRect.bottom;
+    InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
 }
 
 static FLOAT PhpCalculateInclusiveCpuUsage(
