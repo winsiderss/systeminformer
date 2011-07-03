@@ -21,6 +21,7 @@
  */
 
 #include "wndexp.h"
+#include <colmgr.h>
 #include "resource.h"
 
 BOOLEAN WepWindowNodeHashtableCompareFunction(
@@ -36,9 +37,9 @@ VOID WepDestroyWindowNode(
     __in PWE_WINDOW_NODE WindowNode
     );
 
-BOOLEAN NTAPI WepWindowTreeListCallback(
+BOOLEAN NTAPI WepWindowTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -46,11 +47,12 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
 
 VOID WeInitializeWindowTree(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle,
+    __in HWND TreeNewHandle,
     __out PWE_WINDOW_TREE_CONTEXT Context
     )
 {
     HWND hwnd;
+    PPH_STRING settings;
 
     memset(Context, 0, sizeof(WE_WINDOW_TREE_CONTEXT));
 
@@ -64,31 +66,36 @@ VOID WeInitializeWindowTree(
     Context->NodeRootList = PhCreateList(30);
 
     Context->ParentWindowHandle = ParentWindowHandle;
-    Context->TreeListHandle = TreeListHandle;
-    hwnd = TreeListHandle;
-    TreeList_EnableExplorerStyle(hwnd);
+    Context->TreeNewHandle = TreeNewHandle;
+    hwnd = TreeNewHandle;
+    PhSetControlTheme(hwnd, L"explorer");
+    PhSetWindowStyle(hwnd, WS_BORDER, WS_BORDER);
 
-    TreeList_SetCallback(hwnd, WepWindowTreeListCallback);
-    TreeList_SetContext(hwnd, Context);
+    TreeNew_SetCallback(hwnd, WepWindowTreeNewCallback, Context);
 
-    PhAddTreeListColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeListColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeListColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeListColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, WEWNTLC_CLASS, TRUE, L"Class", 180, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(hwnd, WEWNTLC_HANDLE, TRUE, L"Handle", 70, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, WEWNTLC_TEXT, TRUE, L"Text", 220, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, WEWNTLC_THREAD, TRUE, L"Thread", 150, PH_ALIGN_LEFT, 3, 0);
 
-    TreeList_SetTriState(hwnd, TRUE);
-    TreeList_SetSort(hwnd, 0, NoSortOrder);
+    TreeNew_SetTriState(hwnd, TRUE);
+    TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
-    PhLoadTreeListColumnsFromSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, hwnd);
+    settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
+    PhCmLoadSettingsEx(hwnd, NULL, &settings->sr);
+    PhDereferenceObject(settings);
 }
 
 VOID WeDeleteWindowTree(
     __in PWE_WINDOW_TREE_CONTEXT Context
     )
 {
+    PPH_STRING settings;
     ULONG i;
 
-    PhSaveTreeListColumnsToSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, Context->TreeListHandle);
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, NULL);
+    PhSetStringSetting2(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, &settings->sr);
+    PhDereferenceObject(settings);
 
     for (i = 0; i < Context->NodeList->Count; i++)
         WepDestroyWindowNode(Context->NodeList->Items[i]);
@@ -128,7 +135,7 @@ PWE_WINDOW_NODE WeAddWindowNode(
 
     windowNode = PhAllocate(sizeof(WE_WINDOW_NODE));
     memset(windowNode, 0, sizeof(WE_WINDOW_NODE));
-    PhInitializeTreeListNode(&windowNode->Node);
+    PhInitializeTreeNewNode(&windowNode->Node);
 
     memset(windowNode->TextCache, 0, sizeof(PH_STRINGREF) * WEWNTLC_MAXIMUM);
     windowNode->Node.TextCache = windowNode->TextCache;
@@ -139,7 +146,7 @@ PWE_WINDOW_NODE WeAddWindowNode(
     PhAddEntryHashtable(Context->NodeHashtable, &windowNode);
     PhAddItemList(Context->NodeList, windowNode);
 
-    TreeList_NodesStructured(Context->TreeListHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     return windowNode;
 }
@@ -182,7 +189,7 @@ VOID WeRemoveWindowNode(
 
     WepDestroyWindowNode(WindowNode);
 
-    TreeList_NodesStructured(Context->TreeListHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 }
 
 VOID WepDestroyWindowNode(
@@ -198,9 +205,9 @@ VOID WepDestroyWindowNode(
     PhFree(WindowNode);
 }
 
-#define SORT_FUNCTION(Column) WepWindowTreeListCompare##Column
+#define SORT_FUNCTION(Column) WepWindowTreeNewCompare##Column
 
-#define BEGIN_SORT_FUNCTION(Column) static int __cdecl WepWindowTreeListCompare##Column( \
+#define BEGIN_SORT_FUNCTION(Column) static int __cdecl WepWindowTreeNewCompare##Column( \
     __in void *_context, \
     __in const void *_elem1, \
     __in const void *_elem2 \
@@ -211,7 +218,7 @@ VOID WepDestroyWindowNode(
     int sortResult = 0;
 
 #define END_SORT_FUNCTION \
-    return PhModifySort(sortResult, ((PWE_WINDOW_TREE_CONTEXT)_context)->TreeListSortOrder); \
+    return PhModifySort(sortResult, ((PWE_WINDOW_TREE_CONTEXT)_context)->TreeNewSortOrder); \
 }
 
 BEGIN_SORT_FUNCTION(Class)
@@ -241,9 +248,9 @@ BEGIN_SORT_FUNCTION(Thread)
 }
 END_SORT_FUNCTION
 
-BOOLEAN NTAPI WepWindowTreeListCallback(
+BOOLEAN NTAPI WepWindowTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -256,22 +263,22 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
 
     switch (Message)
     {
-    case TreeListGetChildren:
+    case TreeNewGetChildren:
         {
-            PPH_TREELIST_GET_CHILDREN getChildren = Parameter1;
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
             node = (PWE_WINDOW_NODE)getChildren->Node;
 
-            if (context->TreeListSortOrder == NoSortOrder)
+            if (context->TreeNewSortOrder == NoSortOrder)
             {
                 if (!node)
                 {
-                    getChildren->Children = (PPH_TREELIST_NODE *)context->NodeRootList->Items;
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeRootList->Items;
                     getChildren->NumberOfChildren = context->NodeRootList->Count;
                 }
                 else
                 {
-                    getChildren->Children = (PPH_TREELIST_NODE *)node->Children->Items;
+                    getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
                     getChildren->NumberOfChildren = node->Children->Count;
                 }
             }
@@ -288,8 +295,8 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
                     };
                     int (__cdecl *sortFunction)(void *, const void *, const void *);
 
-                    if (context->TreeListSortColumn < WEWNTLC_MAXIMUM)
-                        sortFunction = sortFunctions[context->TreeListSortColumn];
+                    if (context->TreeNewSortColumn < WEWNTLC_MAXIMUM)
+                        sortFunction = sortFunctions[context->TreeNewSortColumn];
                     else
                         sortFunction = NULL;
 
@@ -298,76 +305,78 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
                         qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
                     }
 
-                    getChildren->Children = (PPH_TREELIST_NODE *)context->NodeList->Items;
+                    getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
                     getChildren->NumberOfChildren = context->NodeList->Count;
                 }
             }
         }
         return TRUE;
-    case TreeListIsLeaf:
+    case TreeNewIsLeaf:
         {
-            PPH_TREELIST_IS_LEAF isLeaf = Parameter1;
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
             node = (PWE_WINDOW_NODE)isLeaf->Node;
 
-            if (context->TreeListSortOrder == NoSortOrder)
+            if (context->TreeNewSortOrder == NoSortOrder)
                 isLeaf->IsLeaf = !node->HasChildren;
             else
                 isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
-    case TreeListGetNodeText:
+    case TreeNewGetCellText:
         {
-            PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
 
-            node = (PWE_WINDOW_NODE)getNodeText->Node;
+            node = (PWE_WINDOW_NODE)getCellText->Node;
 
-            switch (getNodeText->Id)
+            switch (getCellText->Id)
             {
             case WEWNTLC_CLASS:
-                PhInitializeStringRef(&getNodeText->Text, node->WindowClass);
+                PhInitializeStringRef(&getCellText->Text, node->WindowClass);
                 break;
             case WEWNTLC_HANDLE:
                 PhPrintPointer(node->WindowHandleString, node->WindowHandle);
-                PhInitializeStringRef(&getNodeText->Text, node->WindowHandleString);
+                PhInitializeStringRef(&getCellText->Text, node->WindowHandleString);
                 break;
             case WEWNTLC_TEXT:
-                getNodeText->Text = PhGetStringRef(node->WindowText);
+                getCellText->Text = PhGetStringRef(node->WindowText);
                 break;
             case WEWNTLC_THREAD:
                 if (!node->ThreadString)
                     node->ThreadString = PhGetClientIdName(&node->ClientId);
-                getNodeText->Text = PhGetStringRef(node->ThreadString);
+                getCellText->Text = PhGetStringRef(node->ThreadString);
                 break;
             default:
                 return FALSE;
             }
 
-            getNodeText->Flags = TLC_CACHE;
+            getCellText->Flags = TN_CACHE;
         }
         return TRUE;
-    case TreeListGetNodeColor:
+    case TreeNewGetNodeColor:
         {
-            PPH_TREELIST_GET_NODE_COLOR getNodeColor = Parameter1;
+            PPH_TREENEW_GET_NODE_COLOR getNodeColor = Parameter1;
 
             node = (PWE_WINDOW_NODE)getNodeColor->Node;
 
             if (!node->WindowVisible)
                 getNodeColor->ForeColor = RGB(0x55, 0x55, 0x55);
 
-            getNodeColor->Flags = TLC_CACHE;
+            getNodeColor->Flags = TN_CACHE;
         }
         return TRUE;
-    case TreeListSortChanged:
+    case TreeNewSortChanged:
         {
-            TreeList_GetSort(hwnd, &context->TreeListSortColumn, &context->TreeListSortOrder);
+            TreeNew_GetSort(hwnd, &context->TreeNewSortColumn, &context->TreeNewSortOrder);
             // Force a rebuild to sort the items.
-            TreeList_NodesStructured(hwnd);
+            TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
-    case TreeListKeyDown:
+    case TreeNewKeyDown:
         {
-            switch ((SHORT)Parameter1)
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
@@ -376,19 +385,19 @@ BOOLEAN NTAPI WepWindowTreeListCallback(
             }
         }
         return TRUE;
-    case TreeListLeftDoubleClick:
+    case TreeNewLeftDoubleClick:
         {
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_WINDOW_PROPERTIES, 0);
         }
         return TRUE;
-    case TreeListNodePlusMinusChanged:
+    case TreeNewNodeExpanding:
         {
             SendMessage(context->ParentWindowHandle, WM_WE_PLUSMINUS, 0, (LPARAM)Parameter1);
         }
         return FALSE;
-    case TreeListContextMenu:
+    case TreeNewContextMenu:
         {
-            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
 
             SendMessage(context->ParentWindowHandle, WM_COMMAND, ID_SHOWCONTEXTMENU, MAKELONG(mouseEvent->Location.x, mouseEvent->Location.y));
         }

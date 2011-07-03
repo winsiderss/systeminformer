@@ -9,7 +9,7 @@
 
 typedef struct _WE_WINDOW_NODE
 {
-    PH_TREELIST_NODE Node;
+    PH_TREENEW_NODE Node;
 
     struct _WE_WINDOW_NODE *Parent;
     PPH_LIST Children;
@@ -31,9 +31,9 @@ typedef struct _WE_WINDOW_NODE
 typedef struct _WE_WINDOW_TREE_CONTEXT
 {
     HWND ParentWindowHandle;
-    HWND TreeListHandle;
-    ULONG TreeListSortColumn;
-    PH_SORT_ORDER TreeListSortOrder;
+    HWND TreeNewHandle;
+    ULONG TreeNewSortColumn;
+    PH_SORT_ORDER TreeNewSortOrder;
 
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
@@ -42,7 +42,7 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
 
 VOID WeInitializeWindowTree(
     __in HWND ParentWindowHandle,
-    __in HWND TreeListHandle,
+    __in HWND TreeNewHandle,
     __out PWE_WINDOW_TREE_CONTEXT Context
     );
 

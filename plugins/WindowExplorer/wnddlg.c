@@ -26,7 +26,7 @@
 
 typedef struct _WINDOWS_CONTEXT
 {
-    HWND TreeListHandle;
+    HWND TreeNewHandle;
     WE_WINDOW_TREE_CONTEXT TreeContext;
     WE_WINDOW_SELECTOR Selector;
 
@@ -253,9 +253,9 @@ VOID WepRefreshWindows(
     __in PWINDOWS_CONTEXT Context
     )
 {
-    TreeList_SetRedraw(Context->TreeListHandle, FALSE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);
     WeClearWindowTree(&Context->TreeContext);
-    TreeList_NodesStructured(Context->TreeListHandle);
+    TreeNew_NodesStructured(Context->TreeNewHandle);
 
     switch (Context->Selector.Type)
     {
@@ -292,7 +292,7 @@ VOID WepRefreshWindows(
         break;
     }
 
-    TreeList_SetRedraw(Context->TreeListHandle, TRUE);
+    TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
 PPH_STRING WepGetWindowTitleForSelector(
@@ -369,8 +369,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             PPH_STRING windowTitle;
             PH_RECTANGLE windowRectangle;
 
-            context->TreeListHandle = GetDlgItem(hwndDlg, IDC_LIST);
-            WeInitializeWindowTree(hwndDlg, context->TreeListHandle, &context->TreeContext);
+            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            WeInitializeWindowTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
 
             PhRegisterDialog(hwndDlg);
 
@@ -533,8 +533,6 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             PhEnableMenuItem(subMenu, ID_WINDOW_COPY, TRUE);
                         }
 
-                        ClientToScreen(context->TreeListHandle, &point);
-
                         TrackPopupMenu(
                             subMenu,
                             TPM_LEFTALIGN | TPM_TOPALIGN | TPM_RIGHTBUTTON,
@@ -623,8 +621,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                             ShowWindowAsync(selectedNode->WindowHandle, SW_SHOW);
                         }
 
-                        PhInvalidateTreeListNode(&selectedNode->Node, TLIN_COLOR);
-                        InvalidateRect(context->TreeListHandle, NULL, TRUE);
+                        PhInvalidateTreeNewNode(&selectedNode->Node, TN_CACHE_COLOR);
+                        TreeNew_InvalidateNode(context->TreeNewHandle, &selectedNode->Node);
                     }
                 }
                 break;
@@ -742,7 +740,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 {
                     PPH_FULL_STRING text;
 
-                    text = PhGetTreeListText(context->TreeListHandle, WEWNTLC_MAXIMUM);
+                    text = PhGetTreeNewText(context->TreeNewHandle, WEWNTLC_MAXIMUM);
                     PhSetClipboardStringEx(hwndDlg, text->Buffer, text->Length);
                     PhDereferenceObject(text);
                 }
@@ -781,10 +779,10 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
             if (!node->Opened)
             {
-                TreeList_SetRedraw(context->TreeListHandle, FALSE);
+                TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
                 WepAddChildWindows(context, node);
                 node->Opened = TRUE;
-                TreeList_SetRedraw(context->TreeListHandle, TRUE);
+                TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
             }
         }
         break;
