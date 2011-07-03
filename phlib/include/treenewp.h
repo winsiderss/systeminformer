@@ -34,10 +34,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SearchSingleCharMode : 1; // LV style single-character search
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
             ULONG DoubleBuffered : 1;
-            ULONG SuspendUpdateColumnHeaders : 1;
-            ULONG SuspendUpdateColumnMaps : 1;
             ULONG SuspendUpdateLayout : 1;
-            ULONG Spare : 11;
+            ULONG Spare : 13;
         };
         ULONG Flags;
     };
