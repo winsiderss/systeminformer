@@ -114,19 +114,21 @@ FORCEINLINE VOID PhChangeShStateTn(
         } \
     } while (0)
 
-#define PH_TICK_SH_STATE_TN(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeNewHandleForUpdate, Invalidate, ...) \
+#define PH_TICK_SH_STATE_TN(NodeType, ShStateFieldName, StateList, RemoveFunction, HighlightingDuration, TreeNewHandleForUpdate, Invalidate, FullyInvalidated, ...) \
     do { \
         NodeType *node; \
         ULONG enumerationKey = 0; \
         ULONG tickCount; \
+        BOOLEAN preferFullInvalidate; \
         HANDLE stateListHandle; \
         BOOLEAN redrawDisabled = FALSE; \
-        BOOLEAN changed = FALSE; \
+        BOOLEAN needsFullInvalidate = FALSE; \
 \
         if (!StateList || StateList->Count == 0) \
             break; \
 \
         tickCount = GetTickCount(); \
+        preferFullInvalidate = StateList->Count > 8; \
 \
         while (PhEnumPointerList(StateList, &enumerationKey, &node)) \
         { \
@@ -139,7 +141,17 @@ FORCEINLINE VOID PhChangeShStateTn(
             { \
                 node->ShStateFieldName.State = NormalItemState; \
                 ((PPH_TREELIST_NODE)node)->UseTempBackColor = FALSE; \
-                changed = TRUE; \
+                if (Invalidate) \
+                { \
+                    if (preferFullInvalidate) \
+                    { \
+                        needsFullInvalidate = TRUE; \
+                    } \
+                    else \
+                    { \
+                        TreeNew_InvalidateNode(TreeNewHandleForUpdate, node); \
+                    } \
+                } \
             } \
             else if (node->ShStateFieldName.State == RemovingItemState) \
             { \
@@ -153,7 +165,7 @@ FORCEINLINE VOID PhChangeShStateTn(
                 } \
 \
                 RemoveFunction(node, __VA_ARGS__); \
-                changed = TRUE; \
+                needsFullInvalidate = TRUE; \
             } \
 \
             PhRemoveItemPointerList(StateList, stateListHandle); \
@@ -163,8 +175,11 @@ FORCEINLINE VOID PhChangeShStateTn(
         { \
             if (redrawDisabled) \
                 TreeNew_SetRedraw((TreeNewHandleForUpdate), TRUE); \
-            if ((Invalidate) && changed) \
+            if (needsFullInvalidate) \
+            { \
                 InvalidateRect((TreeNewHandleForUpdate), NULL, FALSE); \
+                *FullyInvalidated = TRUE; \
+            } \
         } \
     } while (0)
 
