@@ -87,6 +87,7 @@ typedef struct _PH_TREENEW_NODE
 
 // Styles
 #define TN_STYLE_ICONS 0x1
+#define TN_STYLE_DOUBLE_BUFFERED 0x2
 
 // Callback flags
 #define TN_CACHE 0x1
