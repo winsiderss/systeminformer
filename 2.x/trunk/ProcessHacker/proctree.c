@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
+#include <colmgr.h>
 #include <cpysave.h>
 
 VOID PhpEnableColumnCustomDraw(
@@ -55,6 +56,7 @@ BOOLEAN PhpApplyProcessTreeFiltersToNode(
 static HWND ProcessTreeListHandle;
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
+static PH_CM_MANAGER ProcessTreeListCm;
 
 static PPH_HASH_ENTRY ProcessNodeHashSet[256] = PH_HASH_SET_INIT; // hashtable of all nodes
 static PPH_LIST ProcessNodeList; // list of all nodes, used when sorting is enabled
@@ -76,6 +78,8 @@ VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     )
 {
+    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
     ProcessTreeListHandle = hwnd;
     SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
     PhSetControlTheme(ProcessTreeListHandle, L"explorer");
@@ -145,6 +149,15 @@ VOID PhInitializeProcessTreeList(
 
     TreeNew_SetTriState(hwnd, TRUE);
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
+
+    PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM);
+
+    if (PhPluginsEnabled)
+    {
+        treeNewInfo.TreeNewHandle = hwnd;
+        treeNewInfo.CmData = &ProcessTreeListCm;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing), &treeNewInfo);
+    }
 }
 
 static VOID PhpEnableColumnCustomDraw(
@@ -161,10 +174,13 @@ static VOID PhpEnableColumnCustomDraw(
 
 VOID PhLoadSettingsProcessTreeList()
 {
+    PPH_STRING settings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    //PhLoadTreeListColumnsFromSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+    settings = PhGetStringSetting(L"ProcessTreeListColumns");
+    PhCmLoadSettings(&ProcessTreeListCm, &settings->sr);
+    PhDereferenceObject(settings);
 
     sortOrder = PhGetIntegerSetting(L"ProcessTreeListSortOrder");
 
@@ -184,10 +200,13 @@ VOID PhLoadSettingsProcessTreeList()
 
 VOID PhSaveSettingsProcessTreeList()
 {
+    PPH_STRING settings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    PhSaveTreeListColumnsToSetting(L"ProcessTreeListColumns", ProcessTreeListHandle);
+    settings = PhCmSaveSettings(&ProcessTreeListCm);
+    PhSetStringSetting2(L"ProcessTreeListColumns", &settings->sr);
+    PhDereferenceObject(settings);
 
     TreeNew_GetSort(ProcessTreeListHandle, &sortColumn, &sortOrder);
     PhSetIntegerSetting(L"ProcessTreeListSortColumn", sortColumn);

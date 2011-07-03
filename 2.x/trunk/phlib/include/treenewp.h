@@ -21,6 +21,10 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG VScrollVisible : 1;
             ULONG HScrollVisible : 1;
             ULONG FixedColumnVisible : 1;
+            ULONG FixedDividerVisible : 1;
+            ULONG AnimateDivider : 1;
+            ULONG AnimateDividerFadingIn : 1;
+            ULONG AnimateDividerFadingOut : 1;
             ULONG CanAnyExpand : 1;
             ULONG TriState : 1;
             ULONG HasFocus : 1;
@@ -35,7 +39,7 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
             ULONG DoubleBuffered : 1;
             ULONG SuspendUpdateLayout : 1;
-            ULONG Spare : 13;
+            ULONG Spare : 9;
         };
         ULONG Flags;
     };
@@ -57,6 +61,7 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
     LONG TrackStartX;
     LONG TrackOldFixedWidth;
+    ULONG DividerHot; // 0 for un-hot, 100 for completely hot
 
     PPH_TREENEW_NODE HotNode;
     PPH_TREENEW_NODE FocusNode;
@@ -162,12 +167,6 @@ VOID PhTnpOnThemeChanged(
     __in PPH_TREENEW_CONTEXT Context
     );
 
-BOOLEAN PhTnpOnSetCursor(
-    __in HWND hwnd,
-    __in PPH_TREENEW_CONTEXT Context,
-    __in HWND CursorWindowHandle
-    );
-
 VOID PhTnpOnPaint(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context
@@ -178,6 +177,18 @@ VOID PhTnpOnPrintClient(
     __in PPH_TREENEW_CONTEXT Context,
     __in HDC hdc,
     __in ULONG Flags
+    );
+
+BOOLEAN PhTnpOnSetCursor(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HWND CursorWindowHandle
+    );
+
+VOID PhTnpOnTimer(
+    __in HWND hwnd,
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG Id
     );
 
 VOID PhTnpOnMouseMove(
@@ -265,6 +276,10 @@ ULONG_PTR PhTnpOnUserMessage(
     );
 
 // Misc.
+
+VOID PhTnpUpdateSystemMetrics(
+    __in PPH_TREENEW_CONTEXT Context
+    );
 
 VOID PhTnpUpdateTextMetrics(
     __in PPH_TREENEW_CONTEXT Context
@@ -508,8 +523,7 @@ VOID PhTnpDrawCell(
 
 VOID PhTnpDrawDivider(
     __in PPH_TREENEW_CONTEXT Context,
-    __in HDC hdc,
-    __in PRECT ClientRect
+    __in HDC hdc
     );
 
 VOID PhTnpDrawPlusMinusGlyph(
@@ -561,7 +575,14 @@ VOID PhTnpGetMessagePos(
 
 // Macros
 
-#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) (Context->FixedColumn && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
+#define TNP_TIMER_NULL 1
+#define TNP_TIMER_ANIMATE_DIVIDER 2
+
+#define TNP_ANIMATE_DIVIDER_INTERVAL 10
+#define TNP_ANIMATE_DIVIDER_INCREMENT 17
+#define TNP_ANIMATE_DIVIDER_DECREMENT 2
+
+#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) (Context->FixedDividerVisible && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
 #define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) (((X) >= 6 + ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < 6 + ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth))
 
 #endif

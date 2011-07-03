@@ -441,6 +441,9 @@
     <ClCompile Include="..\phlib\treenew.c">
       <Filter>phlib</Filter>
     </ClCompile>
+    <ClCompile Include="colmgr.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">
@@ -504,6 +507,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phappres.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\colmgr.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

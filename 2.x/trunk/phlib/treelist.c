@@ -20,6 +20,8 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/* This control is now obsolete. Use the TreeNew control (treenew.c) instead. */
+
 /*
  * The tree list is a wrapper around the list view control, in effect 
  * providing a tree view with columns. The sole reason I created this 

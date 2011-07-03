@@ -562,11 +562,34 @@ VOID PhpExecuteCallbackForAllPlugins(
     }
 }
 
+BOOLEAN PhpValidatePluginName(
+    __in PWSTR Name
+    )
+{
+    SIZE_T i;
+    SIZE_T count;
+
+    count = wcslen(Name);
+
+    for (i = 0; i < count; i++)
+    {
+        if (!iswalnum(Name[i]) && Name[i] != ' ' && Name[i] != '.' &&
+            Name[i] != '_')
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
 /**
  * Registers a plugin with the host.
  *
  * \param Name A unique identifier for the plugin. The function fails 
- * if another plugin has already been registered with the same name.
+ * if another plugin has already been registered with the same name. The 
+ * name must only contain alphanumeric characters, spaces, dots and 
+ * underscores.
  * \param DllBase The base address of the plugin DLL. This is passed 
  * to the DllMain function.
  * \param Information A variable which receives a pointer to the 
@@ -586,6 +609,9 @@ PPH_PLUGIN PhRegisterPlugin(
     PPH_AVL_LINKS existingLinks;
     ULONG i;
     PPH_STRING fileName;
+
+    if (!PhpValidatePluginName(Name))
+        return NULL;
 
     if (DllBase)
     {
