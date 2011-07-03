@@ -23,6 +23,7 @@
 #include <phapp.h>
 #include <settings.h>
 #include <phplug.h>
+#include <colmgr.h>
 #include <cpysave.h>
 
 BOOLEAN PhpServiceNodeHashtableCompareFunction(
@@ -38,9 +39,9 @@ VOID PhpRemoveServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     );
 
-BOOLEAN NTAPI PhpServiceTreeListCallback(
+BOOLEAN NTAPI PhpServiceTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -49,6 +50,7 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
 static HWND ServiceTreeListHandle;
 static ULONG ServiceTreeListSortColumn;
 static PH_SORT_ORDER ServiceTreeListSortOrder;
+static PH_CM_MANAGER ServiceTreeListCm;
 
 static PPH_HASHTABLE ServiceNodeHashtable; // hashtable of all nodes
 static PPH_LIST ServiceNodeList; // list of all nodes
@@ -98,53 +100,69 @@ VOID PhInitializeServiceTreeList(
     __in HWND hwnd
     )
 {
+    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
     ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
     ServiceApplicationGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO), IMAGE_ICON);
     ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
     ServiceCogGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COGGO), IMAGE_ICON);
 
     ServiceTreeListHandle = hwnd;
-    SendMessage(ServiceTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
-    TreeList_EnableExplorerStyle(hwnd);
-    SendMessage(ListView_GetToolTips(TreeList_GetListView(ServiceTreeListHandle)), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
+    PhSetControlTheme(ServiceTreeListHandle, L"explorer");
+    SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
 
-    TreeList_SetCallback(hwnd, PhpServiceTreeListCallback);
+    TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
 
     // Default columns
-    PhAddTreeListColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 180, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 110, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 100, PH_ALIGN_LEFT, 4, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 180, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_TYPE, TRUE, L"Type", 110, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STATUS, TRUE, L"Status", 70, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_STARTTYPE, TRUE, L"Start Type", 100, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 5, DT_RIGHT);
 
-    PhAddTreeListColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
-    PhAddTreeListColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeListColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, 7, 0);
 
-    TreeList_SetSort(hwnd, 0, AscendingSortOrder);
+    TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
+
+    PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM);
+
+    if (PhPluginsEnabled)
+    {
+        treeNewInfo.TreeNewHandle = hwnd;
+        treeNewInfo.CmData = &ServiceTreeListCm;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing), &treeNewInfo);
+    }
 }
 
 VOID PhLoadSettingsServiceTreeList()
 {
+    PPH_STRING settings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    PhLoadTreeListColumnsFromSetting(L"ServiceTreeListColumns", ServiceTreeListHandle);
+    settings = PhGetStringSetting(L"ServiceTreeListColumns");
+    PhCmLoadSettings(&ServiceTreeListCm, &settings->sr);
+    PhDereferenceObject(settings);
 
     sortColumn = PhGetIntegerSetting(L"ServiceTreeListSortColumn");
     sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
-    TreeList_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
+    TreeNew_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
 }
 
 VOID PhSaveSettingsServiceTreeList()
 {
+    PPH_STRING settings;
     ULONG sortColumn;
     PH_SORT_ORDER sortOrder;
 
-    PhSaveTreeListColumnsToSetting(L"ServiceTreeListColumns", ServiceTreeListHandle);
+    settings = PhCmSaveSettings(&ServiceTreeListCm);
+    PhSetStringSetting2(L"ServiceTreeListColumns", &settings->sr);
+    PhDereferenceObject(settings);
 
-    TreeList_GetSort(ServiceTreeListHandle, &sortColumn, &sortOrder);
+    TreeNew_GetSort(ServiceTreeListHandle, &sortColumn, &sortOrder);
     PhSetIntegerSetting(L"ServiceTreeListSortColumn", sortColumn);
     PhSetIntegerSetting(L"ServiceTreeListSortOrder", sortOrder);
 }
@@ -158,11 +176,11 @@ PPH_SERVICE_NODE PhAddServiceNode(
 
     serviceNode = PhAllocate(sizeof(PH_SERVICE_NODE));
     memset(serviceNode, 0, sizeof(PH_SERVICE_NODE));
-    PhInitializeTreeListNode(&serviceNode->Node);
+    PhInitializeTreeNewNode(&serviceNode->Node);
 
     if (PhServiceTreeListStateHighlighting && RunId != 1)
     {
-        PhChangeShState(
+        PhChangeShStateTn(
             &serviceNode->Node,
             &serviceNode->ShState,
             &ServiceNodeStateList,
@@ -182,7 +200,7 @@ PPH_SERVICE_NODE PhAddServiceNode(
     PhAddEntryHashtable(ServiceNodeHashtable, &serviceNode);
     PhAddItemList(ServiceNodeList, serviceNode);
 
-    TreeList_NodesStructured(ServiceTreeListHandle);
+    TreeNew_NodesStructured(ServiceTreeListHandle);
 
     return serviceNode;
 }
@@ -214,7 +232,7 @@ VOID PhRemoveServiceNode(
 {
     if (PhServiceTreeListStateHighlighting)
     {
-        PhChangeShState(
+        PhChangeShStateTn(
             &ServiceNode->Node,
             &ServiceNode->ShState,
             &ServiceNodeStateList,
@@ -251,7 +269,7 @@ VOID PhpRemoveServiceNode(
 
     PhFree(ServiceNode);
 
-    TreeList_NodesStructured(ServiceTreeListHandle);
+    TreeNew_NodesStructured(ServiceTreeListHandle);
 }
 
 VOID PhUpdateServiceNode(
@@ -262,13 +280,13 @@ VOID PhUpdateServiceNode(
     PhSwapReference(&ServiceNode->TooltipText, NULL);
 
     ServiceNode->ValidMask = 0;
-    PhInvalidateTreeListNode(&ServiceNode->Node, TLIN_COLOR | TLIN_ICON);
-    TreeList_NodesStructured(ServiceTreeListHandle);
+    PhInvalidateTreeNewNode(&ServiceNode->Node, TN_CACHE_COLOR | TN_CACHE_ICON);
+    TreeNew_NodesStructured(ServiceTreeListHandle);
 }
 
 VOID PhTickServiceNodes()
 {
-    PH_TICK_SH_STATE(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE);
+    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL);
 }
 
 static VOID PhpUpdateServiceNodeConfig(
@@ -377,9 +395,9 @@ BEGIN_SORT_FUNCTION(Group)
 }
 END_SORT_FUNCTION
 
-BOOLEAN NTAPI PhpServiceTreeListCallback(
+BOOLEAN NTAPI PhpServiceTreeNewCallback(
     __in HWND hwnd,
-    __in PH_TREELIST_MESSAGE Message,
+    __in PH_TREENEW_MESSAGE Message,
     __in_opt PVOID Parameter1,
     __in_opt PVOID Parameter2,
     __in_opt PVOID Context
@@ -387,11 +405,14 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
 {
     PPH_SERVICE_NODE node;
 
+    if (PhCmForwardMessage(hwnd, Message, Parameter1, Parameter2, &ServiceTreeListCm))
+        return TRUE;
+
     switch (Message)
     {
-    case TreeListGetChildren:
+    case TreeNewGetChildren:
         {
-            PPH_TREELIST_GET_CHILDREN getChildren = Parameter1;
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
 
             if (!getChildren->Node)
             {
@@ -420,67 +441,67 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                     qsort(ServiceNodeList->Items, ServiceNodeList->Count, sizeof(PVOID), sortFunction);
                 }
 
-                getChildren->Children = (PPH_TREELIST_NODE *)ServiceNodeList->Items;
+                getChildren->Children = (PPH_TREENEW_NODE *)ServiceNodeList->Items;
                 getChildren->NumberOfChildren = ServiceNodeList->Count;
             }
         }
         return TRUE;
-    case TreeListIsLeaf:
+    case TreeNewIsLeaf:
         {
-            PPH_TREELIST_IS_LEAF isLeaf = Parameter1;
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
 
             isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
-    case TreeListGetNodeText:
+    case TreeNewGetCellText:
         {
-            PPH_TREELIST_GET_NODE_TEXT getNodeText = Parameter1;
+            PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PPH_SERVICE_ITEM serviceItem;
 
-            node = (PPH_SERVICE_NODE)getNodeText->Node;
+            node = (PPH_SERVICE_NODE)getCellText->Node;
             serviceItem = node->ServiceItem;
 
-            switch (getNodeText->Id)
+            switch (getCellText->Id)
             {
             case PHSVTLC_NAME:
-                getNodeText->Text = serviceItem->Name->sr;
+                getCellText->Text = serviceItem->Name->sr;
                 break;
             case PHSVTLC_DISPLAYNAME:
-                getNodeText->Text = serviceItem->DisplayName->sr;
+                getCellText->Text = serviceItem->DisplayName->sr;
                 break;
             case PHSVTLC_TYPE:
-                PhInitializeStringRef(&getNodeText->Text, PhGetServiceTypeString(serviceItem->Type));
+                PhInitializeStringRef(&getCellText->Text, PhGetServiceTypeString(serviceItem->Type));
                 break;
             case PHSVTLC_STATUS:
-                PhInitializeStringRef(&getNodeText->Text, PhGetServiceStateString(serviceItem->State));
+                PhInitializeStringRef(&getCellText->Text, PhGetServiceStateString(serviceItem->State));
                 break;
             case PHSVTLC_STARTTYPE:
-                PhInitializeStringRef(&getNodeText->Text, PhGetServiceStartTypeString(serviceItem->StartType));
+                PhInitializeStringRef(&getCellText->Text, PhGetServiceStartTypeString(serviceItem->StartType));
                 break;
             case PHSVTLC_PID:
-                PhInitializeStringRef(&getNodeText->Text, serviceItem->ProcessIdString);
+                PhInitializeStringRef(&getCellText->Text, serviceItem->ProcessIdString);
                 break;
             case PHSVTLC_BINARYPATH:
                 PhpUpdateServiceNodeConfig(node);
-                getNodeText->Text = PhGetStringRef(node->BinaryPath);
+                getCellText->Text = PhGetStringRef(node->BinaryPath);
                 break;
             case PHSVTLC_ERRORCONTROL:
-                PhInitializeStringRef(&getNodeText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
+                PhInitializeStringRef(&getCellText->Text, PhGetServiceErrorControlString(serviceItem->ErrorControl));
                 break;
             case PHSVTLC_GROUP:
                 PhpUpdateServiceNodeConfig(node);
-                getNodeText->Text = PhGetStringRef(node->LoadOrderGroup);
+                getCellText->Text = PhGetStringRef(node->LoadOrderGroup);
                 break;
             default:
                 return FALSE;
             }
 
-            getNodeText->Flags = TLC_CACHE;
+            getCellText->Flags = TN_CACHE;
         }
         return TRUE;
-    case TreeListGetNodeIcon:
+    case TreeNewGetNodeIcon:
         {
-            PPH_TREELIST_GET_NODE_ICON getNodeIcon = Parameter1;
+            PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
 
             node = (PPH_SERVICE_NODE)getNodeIcon->Node;
 
@@ -499,34 +520,44 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                     getNodeIcon->Icon = ServiceApplicationIcon;
             }
 
-            getNodeIcon->Flags = TLC_CACHE;
+            getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
-    case TreeListGetNodeTooltip:
+    case TreeNewGetCellTooltip:
         {
-            PPH_TREELIST_GET_NODE_TOOLTIP getNodeTooltip = Parameter1;
+            PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
 
-            node = (PPH_SERVICE_NODE)getNodeTooltip->Node;
+            node = (PPH_SERVICE_NODE)getCellTooltip->Node;
+
+            if (getCellTooltip->Column->Id != 0)
+                return FALSE;
 
             if (!node->TooltipText)
                 node->TooltipText = PhGetServiceTooltipText(node->ServiceItem);
 
-            if (node->TooltipText)
-                getNodeTooltip->Text = node->TooltipText->sr;
+            if (!PhIsNullOrEmptyString(node->TooltipText))
+            {
+                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+            }
             else
+            {
                 return FALSE;
+            }
         }
         return TRUE;
-    case TreeListSortChanged:
+    case TreeNewSortChanged:
         {
-            TreeList_GetSort(hwnd, &ServiceTreeListSortColumn, &ServiceTreeListSortOrder);
+            TreeNew_GetSort(hwnd, &ServiceTreeListSortColumn, &ServiceTreeListSortOrder);
             // Force a rebuild to sort the items.
-            TreeList_NodesStructured(hwnd);
+            TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
-    case TreeListKeyDown:
+    case TreeNewKeyDown:
         {
-            switch ((SHORT)Parameter1)
+            PPH_TREENEW_KEY_EVENT keyEvent = Parameter1;
+
+            switch (keyEvent->VirtualKey)
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
@@ -541,7 +572,7 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
             }
         }
         return TRUE;
-    case TreeListHeaderRightClick:
+    case TreeNewHeaderRightClick:
         {
             HMENU menu;
             HMENU subMenu;
@@ -561,33 +592,32 @@ BOOLEAN NTAPI PhpServiceTreeListCallback(
                 NULL
                 ) == ID_HEADER_CHOOSECOLUMNS)
             {
-                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_LIST);
+                PhShowChooseColumnsDialog(hwnd, hwnd, PH_CONTROL_TYPE_TREE_NEW);
 
                 // Make sure the column we're sorting by is actually visible, 
                 // and if not, sort by the default column.
                 if (ServiceTreeListSortOrder != NoSortOrder)
                 {
-                    PH_TREELIST_COLUMN column;
+                    PH_TREENEW_COLUMN column;
 
-                    column.Id = ServiceTreeListSortColumn;
-                    TreeList_GetColumn(ServiceTreeListHandle, &column);
+                    TreeNew_GetColumn(ServiceTreeListHandle, ServiceTreeListSortColumn, &column);
 
                     if (!column.Visible)
-                        TreeList_SetSort(ServiceTreeListHandle, 0, AscendingSortOrder);
+                        TreeNew_SetSort(ServiceTreeListHandle, 0, AscendingSortOrder);
                 }
             }
 
             DestroyMenu(menu);
         }
         return TRUE;
-    case TreeListLeftDoubleClick:
+    case TreeNewLeftDoubleClick:
         {
             SendMessage(PhMainWndHandle, WM_COMMAND, ID_SERVICE_PROPERTIES, 0);
         }
         return TRUE;
-    case TreeListContextMenu:
+    case TreeNewContextMenu:
         {
-            PPH_TREELIST_MOUSE_EVENT mouseEvent = Parameter2;
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
 
             PhShowServiceContextMenu(mouseEvent->Location);
         }
@@ -644,8 +674,7 @@ VOID PhGetSelectedServiceItems(
 
 VOID PhDeselectAllServiceNodes()
 {
-    TreeList_SetStateAll(ServiceTreeListHandle, 0, LVIS_SELECTED);
-    InvalidateRect(ServiceTreeListHandle, NULL, TRUE);
+    TreeNew_DeselectRange(ServiceTreeListHandle, 0, -1);
 }
 
 VOID PhSelectAndEnsureVisibleServiceNode(
@@ -657,17 +686,16 @@ VOID PhSelectAndEnsureVisibleServiceNode(
     if (!ServiceNode->Node.Visible)
         return;
 
-    ServiceNode->Node.Selected = TRUE;
-    ServiceNode->Node.Focused = TRUE;
-    PhInvalidateStateTreeListNode(ServiceTreeListHandle, &ServiceNode->Node);
-    TreeList_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node, FALSE);
+    TreeNew_SetFocusNode(ServiceTreeListHandle, &ServiceNode->Node);
+    TreeNew_SetMarkNode(ServiceTreeListHandle, &ServiceNode->Node);
+    TreeNew_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node);
 }
 
 VOID PhCopyServiceList()
 {
     PPH_FULL_STRING text;
 
-    text = PhGetTreeListText(ServiceTreeListHandle, PHSVTLC_MAXIMUM);
+    text = PhGetTreeNewText(ServiceTreeListHandle, PHSVTLC_MAXIMUM);
     PhSetClipboardStringEx(ServiceTreeListHandle, text->Buffer, text->Length);
     PhDereferenceObject(text);
 }
@@ -680,7 +708,7 @@ VOID PhWriteServiceList(
     PPH_LIST lines;
     ULONG i;
 
-    lines = PhGetGenericTreeListLines(ServiceTreeListHandle, Mode);
+    lines = PhGetGenericTreeNewLines(ServiceTreeListHandle, Mode);
 
     for (i = 0; i < lines->Count; i++)
     {

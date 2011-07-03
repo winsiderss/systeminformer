@@ -283,11 +283,17 @@ VOID PhMapDisplayIndexTreeNew(
     __out PULONG NumberOfColumns
     )
 {
-    PH_TREELIST_COLUMN column;
+    PH_TREENEW_COLUMN column;
     ULONG i;
     ULONG count;
+    ULONG increment;
 
     count = 0;
+
+    if (TreeNew_GetFixedColumn(TreeNewHandle))
+        increment = 1;
+    else
+        increment = 0;
 
     for (i = 0; i < MaximumNumberOfColumns; i++)
     {
@@ -295,14 +301,26 @@ VOID PhMapDisplayIndexTreeNew(
         {
             if (column.Visible)
             {
-                if (column.DisplayIndex < MaximumNumberOfColumns)
+                if (column.Fixed)
                 {
-                    DisplayToId[column.DisplayIndex] = i;
+                    DisplayToId[0] = i;
 
                     if (DisplayToText)
-                        DisplayToText[column.DisplayIndex] = column.Text;
+                        DisplayToText[0] = column.Text;
 
                     count++;
+                }
+                else
+                {
+                    if (column.DisplayIndex < MaximumNumberOfColumns)
+                    {
+                        DisplayToId[column.DisplayIndex + increment] = i;
+
+                        if (DisplayToText)
+                            DisplayToText[column.DisplayIndex + increment] = column.Text;
+
+                        count++;
+                    }
                 }
             }
         }
@@ -347,6 +365,57 @@ PPH_FULL_STRING PhGetTreeListText(
             TreeList_GetNodeText(TreeListHandle, &getNodeText);
 
             PhAppendFullStringEx(string, getNodeText.Text.Buffer, getNodeText.Text.Length);
+            PhAppendFullString2(string, L", ");
+        }
+
+        // Remove the trailing comma and space.
+        if (string->Length != 0)
+            PhRemoveFullString(string, string->Length / 2 - 2, 2);
+
+        PhAppendFullString2(string, L"\r\n");
+    }
+
+    PhFree(displayToId);
+
+    return string;
+}
+
+PPH_FULL_STRING PhGetTreeNewText(
+    __in HWND TreeNewHandle,
+    __in ULONG MaximumNumberOfColumns
+    )
+{
+    PPH_FULL_STRING string;
+    PULONG displayToId;
+    ULONG rows;
+    ULONG columns;
+    ULONG i;
+    ULONG j;
+
+    displayToId = PhAllocate(MaximumNumberOfColumns * sizeof(ULONG));
+
+    PhMapDisplayIndexTreeNew(TreeNewHandle, MaximumNumberOfColumns, displayToId, NULL, &columns);
+    rows = TreeNew_GetFlatNodeCount(TreeNewHandle);
+
+    string = PhCreateFullString2(0x100);
+
+    for (i = 0; i < rows; i++)
+    {
+        PH_TREENEW_GET_CELL_TEXT getCellText;
+
+        getCellText.Node = TreeNew_GetFlatNode(TreeNewHandle, i);
+        assert(getCellText.Node);
+
+        if (!getCellText.Node->Selected)
+            continue;
+
+        for (j = 0; j < columns; j++)
+        {
+            getCellText.Id = displayToId[j];
+            PhInitializeEmptyStringRef(&getCellText.Text);
+            TreeNew_GetCellText(TreeNewHandle, &getCellText);
+
+            PhAppendFullStringEx(string, getCellText.Text.Buffer, getCellText.Text.Length);
             PhAppendFullString2(string, L", ");
         }
 
@@ -412,6 +481,77 @@ PPH_LIST PhGetGenericTreeListLines(
                 TreeList_GetNodeText(TreeListHandle, &getNodeText);
 
                 table[i + 1][j] = PhaCreateStringEx(getNodeText.Text.Buffer, getNodeText.Text.Length);
+            }
+        }
+        else
+        {
+            for (j = 0; j < columns; j++)
+            {
+                table[i + 1][j] = PHA_DEREFERENCE(PhReferenceEmptyString());
+            }
+        }
+    }
+
+    PhFree(displayToText);
+    PhFree(displayToId);
+
+    lines = PhaFormatTextTable(table, rows, columns, Mode);
+
+    PhDeleteAutoPool(&autoPool);
+
+    return lines;
+}
+
+PPH_LIST PhGetGenericTreeNewLines(
+    __in HWND TreeNewHandle,
+    __in ULONG Mode
+    )
+{
+    PH_AUTO_POOL autoPool;
+    PPH_LIST lines;
+    ULONG rows;
+    ULONG columns;
+    ULONG numberOfNodes;
+    ULONG maxId;
+    PULONG displayToId;
+    PWSTR *displayToText;
+    PPH_STRING **table;
+    ULONG i;
+    ULONG j;
+
+    PhInitializeAutoPool(&autoPool);
+
+    numberOfNodes = TreeNew_GetFlatNodeCount(TreeNewHandle);
+    maxId = TreeNew_GetMaxId(TreeNewHandle) + 1;
+    displayToId = PhAllocate(sizeof(ULONG) * maxId);
+    displayToText = PhAllocate(sizeof(PWSTR) * maxId);
+
+    rows = numberOfNodes + 1;
+    PhMapDisplayIndexTreeNew(TreeNewHandle, maxId, displayToId, displayToText, &columns);
+
+    PhaCreateTextTable(&table, rows, columns);
+
+    for (i = 0; i < columns; i++)
+        table[0][i] = PhaCreateString(displayToText[i]);
+
+    for (i = 0; i < numberOfNodes; i++)
+    {
+        PPH_TREENEW_NODE node;
+
+        node = TreeNew_GetFlatNode(TreeNewHandle, i);
+
+        if (node)
+        {
+            for (j = 0; j < columns; j++)
+            {
+                PH_TREENEW_GET_CELL_TEXT getCellText;
+
+                getCellText.Node = node;
+                getCellText.Id = displayToId[j];
+                PhInitializeEmptyStringRef(&getCellText.Text);
+                TreeNew_GetCellText(TreeNewHandle, &getCellText);
+
+                table[i + 1][j] = PhaCreateStringEx(getCellText.Text.Buffer, getCellText.Text.Length);
             }
         }
         else

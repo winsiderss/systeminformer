@@ -3265,7 +3265,19 @@ VOID PhMainWndOnCreate()
         );
     BringWindowToTop(ProcessTreeListHandle);
 
-    ServiceTreeListHandle = PhCreateTreeListControlEx(PhMainWndHandle, ID_MAINWND_SERVICETL, WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TLSTYLE_BORDER | TLSTYLE_ICONS);
+    ServiceTreeListHandle = CreateWindow(
+        PH_TREENEW_CLASSNAME,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED,
+        0,
+        0,
+        3,
+        3,
+        PhMainWndHandle,
+        (HMENU)ID_MAINWND_SERVICETL,
+        PhLibImageBase,
+        NULL
+        );
     BringWindowToTop(ServiceTreeListHandle);
 
     NetworkListViewHandle = PhCreateListViewControl(PhMainWndHandle, ID_MAINWND_NETWORKLV);
@@ -4137,8 +4149,6 @@ VOID PhShowServiceContextMenu(
             PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceMenuInitializing), &menuInfo);
         }
 
-        ClientToScreen(ServiceTreeListHandle, &Location);
-
         item = PhShowEMenu(
             menu,
             PhMainWndHandle,
@@ -4480,7 +4490,7 @@ VOID PhMainWndOnServiceAdded(
     {
         if (!ServicesNeedsRedraw)
         {
-            TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
             ServicesNeedsRedraw = TRUE;
         }
 
@@ -4527,7 +4537,7 @@ VOID PhMainWndOnServiceModified(
     {
         //if (!ServicesNeedsRedraw)
         //{
-        //    TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+        //    TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
         //    ServicesNeedsRedraw = TRUE;
         //}
 
@@ -4597,7 +4607,7 @@ VOID PhMainWndOnServiceRemoved(
     {
         if (!ServicesNeedsRedraw)
         {
-            TreeList_SetRedraw(ServiceTreeListHandle, FALSE);
+            TreeNew_SetRedraw(ServiceTreeListHandle, FALSE);
             ServicesNeedsRedraw = TRUE;
         }
     }
@@ -4645,7 +4655,7 @@ VOID PhMainWndOnServicesUpdated()
 
         if (ServicesNeedsRedraw)
         {
-            TreeList_SetRedraw(ServiceTreeListHandle, TRUE);
+            TreeNew_SetRedraw(ServiceTreeListHandle, TRUE);
             ServicesNeedsRedraw = FALSE;
         }
     }

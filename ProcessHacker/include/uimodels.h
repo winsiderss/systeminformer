@@ -178,7 +178,8 @@ FORCEINLINE VOID PhChangeShStateTn(
             if (needsFullInvalidate) \
             { \
                 InvalidateRect((TreeNewHandleForUpdate), NULL, FALSE); \
-                *FullyInvalidated = TRUE; \
+                if (FullyInvalidated) \
+                    *((PBOOLEAN)FullyInvalidated) = TRUE; \
             } \
         } \
     } while (0)
@@ -438,7 +439,7 @@ VOID PhWriteProcessTree(
 
 typedef struct _PH_SERVICE_NODE
 {
-    PH_TREELIST_NODE Node;
+    PH_TREENEW_NODE Node;
 
     PH_SH_STATE ShState;
 

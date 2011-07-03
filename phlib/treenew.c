@@ -1654,6 +1654,19 @@ ULONG_PTR PhTnpOnUserMessage(
             parts->NormalWidth = Context->TotalViewX;
         }
         return TRUE;
+    case TNM_GETFIXEDCOLUMN:
+        return (LRESULT)Context->FixedColumn;
+    case TNM_GETFIRSTCOLUMN:
+        return (LRESULT)Context->FirstColumn;
+    case TNM_SETFOCUSNODE:
+        Context->FocusNode = (PPH_TREENEW_NODE)LParam;
+        return TRUE;
+    case TNM_SETMARKNODE:
+        Context->MarkNode = (PPH_TREENEW_NODE)LParam;
+        return TRUE;
+    case TNM_SETHOTNODE:
+        PhTnpSetHotNode(Context, (PPH_TREENEW_NODE)LParam, FALSE);
+        return TRUE;
     }
 
     return 0;
@@ -2651,7 +2664,6 @@ BOOLEAN PhTnpGetCellParts(
     LONG viewWidth;
     LONG nodeY;
     LONG iconVerticalMargin;
-    BOOLEAN isFirstColumn;
     LONG currentX;
 
     // This function must be kept in sync with PhTnpDrawCell.
@@ -2680,7 +2692,6 @@ BOOLEAN PhTnpGetCellParts(
 
     iconVerticalMargin = (Context->RowHeight - SmallIconHeight) / 2;
 
-    isFirstColumn = Column == Context->FirstColumn;
     currentX = Column->s.ViewX;
 
     if (!Column->Fixed)
@@ -2696,17 +2707,20 @@ BOOLEAN PhTnpGetCellParts(
 
     currentX += 6;
 
-    if (isFirstColumn)
+    if (Column == Context->FirstColumn)
     {
         currentX += (LONG)node->Level * SmallIconWidth;
 
-        if (!node->s.IsLeaf)
+        if (Context->CanAnyExpand)
         {
-            Parts->Flags |= TN_PART_PLUSMINUS;
-            Parts->PlusMinusRect.left = currentX;
-            Parts->PlusMinusRect.right = currentX + SmallIconWidth;
-            Parts->PlusMinusRect.top = Parts->RowRect.top + iconVerticalMargin;
-            Parts->PlusMinusRect.bottom = Parts->RowRect.bottom - iconVerticalMargin;
+            if (!node->s.IsLeaf)
+            {
+                Parts->Flags |= TN_PART_PLUSMINUS;
+                Parts->PlusMinusRect.left = currentX;
+                Parts->PlusMinusRect.right = currentX + SmallIconWidth;
+                Parts->PlusMinusRect.top = Parts->RowRect.top + iconVerticalMargin;
+                Parts->PlusMinusRect.bottom = Parts->RowRect.bottom - iconVerticalMargin;
+            }
 
             currentX += SmallIconWidth;
         }
@@ -4538,9 +4552,9 @@ VOID PhTnpInitializeTooltips(
     toolInfo.lpszText = LPSTR_TEXTCALLBACK;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
 
+    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, 400);
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
     Context->TooltipFont = Context->Font;
-    SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
 }
 
 VOID PhTnpGetTooltipText(
@@ -4568,7 +4582,6 @@ VOID PhTnpGetTooltipText(
     {
         Context->TooltipIndex = hitTest.Node->Index;
         Context->TooltipId = hitTest.Column->Id;
-        Context->TooltipUnfolding = FALSE;
 
         getCellTooltip.Flags = 0;
         getCellTooltip.Node = hitTest.Node;
@@ -4586,12 +4599,13 @@ VOID PhTnpGetTooltipText(
                 getCellTooltip.Text = parts.Text;
                 getCellTooltip.Font = parts.Font; // try to use the same font as the cell
 
-                Context->TooltipUnfolding = TRUE;
                 Context->TooltipRect = parts.TextRect;
             }
         }
 
         Context->Callback(Context->Handle, TreeNewGetCellTooltip, &getCellTooltip, NULL, Context->CallbackContext);
+
+        Context->TooltipUnfolding = getCellTooltip.Unfolding;
 
         if (getCellTooltip.Text.Buffer && getCellTooltip.Text.Length != 0)
             PhSwapReference(&Context->TooltipText, PhCreateStringEx(getCellTooltip.Text.Buffer, getCellTooltip.Text.Length));
