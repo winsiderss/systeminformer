@@ -790,7 +790,25 @@ VOID PhTnpOnXxxButtonXxx(
         {
             Context->FocusNode = hitTest.Node;
 
-            if (shiftKey && Context->MarkNode)
+            if (Message == WM_RBUTTONDOWN)
+            {
+                // Right button:
+                // If the current node is selected, then do nothing. This is to allow context 
+                // menus to operate on multiple items.
+                // If the current node is not selected, select only that node.
+
+                if (!controlKey && !shiftKey && !hitTest.Node->Selected)
+                {
+                    PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
+                    Context->MarkNode = hitTest.Node;
+
+                    if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                    {
+                        InvalidateRect(hwnd, &rect, FALSE);
+                    }
+                }
+            }
+            else if (shiftKey && Context->MarkNode)
             {
                 ULONG start;
                 ULONG end;
