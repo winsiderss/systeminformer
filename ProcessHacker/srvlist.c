@@ -150,31 +150,25 @@ VOID PhInitializeServiceTreeList(
 VOID PhLoadSettingsServiceTreeList()
 {
     PPH_STRING settings;
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    PPH_STRING sortSettings;
 
     settings = PhGetStringSetting(L"ServiceTreeListColumns");
-    PhCmLoadSettings(&ServiceTreeListCm, &settings->sr);
+    sortSettings = PhGetStringSetting(L"ServiceTreeListSort");
+    PhCmLoadSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    sortColumn = PhGetIntegerSetting(L"ServiceTreeListSortColumn");
-    sortOrder = PhGetIntegerSetting(L"ServiceTreeListSortOrder");
-    TreeNew_SetSort(ServiceTreeListHandle, sortColumn, sortOrder);
+    PhDereferenceObject(sortSettings);
 }
 
 VOID PhSaveSettingsServiceTreeList()
 {
     PPH_STRING settings;
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettings(&ServiceTreeListCm);
+    settings = PhCmSaveSettingsEx(ServiceTreeListHandle, &ServiceTreeListCm, &sortSettings);
     PhSetStringSetting2(L"ServiceTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ServiceTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    TreeNew_GetSort(ServiceTreeListHandle, &sortColumn, &sortOrder);
-    PhSetIntegerSetting(L"ServiceTreeListSortColumn", sortColumn);
-    PhSetIntegerSetting(L"ServiceTreeListSortOrder", sortOrder);
+    PhDereferenceObject(sortSettings);
 }
 
 PPH_SERVICE_NODE PhAddServiceNode(
