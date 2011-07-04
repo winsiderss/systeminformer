@@ -299,6 +299,7 @@ VOID PhTnpCreateTreeNewContext(
     context->FlatList = PhCreateList(64);
     context->TooltipIndex = -1;
     context->TooltipId = -1;
+    context->TooltipColumnId = -1;
     context->EnableRedraw = 1;
 
     *Context = context;
@@ -476,7 +477,7 @@ VOID PhTnpOnSize(
         memset(&toolInfo, 0, sizeof(TOOLINFO));
         toolInfo.cbSize = sizeof(TOOLINFO);
         toolInfo.hwnd = hwnd;
-        toolInfo.uId = 0;
+        toolInfo.uId = TNP_TOOLTIPS_ITEM;
         toolInfo.rect = Context->ClientRect;
         SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
     }
@@ -1884,6 +1885,23 @@ VOID PhTnpLayout(
     Header_Layout(Context->HeaderHandle, &hdl);
     SetWindowPos(Context->HeaderHandle, NULL, windowPos.x, windowPos.y, windowPos.cx, windowPos.cy, windowPos.flags);
     UpdateWindow(Context->HeaderHandle);
+
+    if (Context->TooltipsHandle)
+    {
+        TOOLINFO toolInfo;
+
+        memset(&toolInfo, 0, sizeof(TOOLINFO));
+        toolInfo.cbSize = sizeof(TOOLINFO);
+        toolInfo.hwnd = Context->FixedHeaderHandle;
+        toolInfo.uId = TNP_TOOLTIPS_FIXED_HEADER;
+        GetClientRect(Context->FixedHeaderHandle, &toolInfo.rect);
+        SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+
+        toolInfo.hwnd = Context->HeaderHandle;
+        toolInfo.uId = TNP_TOOLTIPS_HEADER;
+        GetClientRect(Context->HeaderHandle, &toolInfo.rect);
+        SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+    }
 }
 
 VOID PhTnpSetFixedWidth(
@@ -4863,13 +4881,40 @@ VOID PhTnpInitializeTooltips(
     if (!Context->TooltipsHandle)
         return;
 
+    // Item tooltips
     memset(&toolInfo, 0, sizeof(TOOLINFO));
     toolInfo.cbSize = sizeof(TOOLINFO);
     toolInfo.uFlags = TTF_TRANSPARENT;
     toolInfo.hwnd = Context->Handle;
-    toolInfo.uId = 0;
+    toolInfo.uId = TNP_TOOLTIPS_ITEM;
     toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+    toolInfo.lParam = TNP_TOOLTIPS_ITEM;
     SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+    // Fixed column tooltips
+    toolInfo.uFlags = 0;
+    toolInfo.hwnd = Context->FixedHeaderHandle;
+    toolInfo.uId = TNP_TOOLTIPS_FIXED_HEADER;
+    toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+    toolInfo.lParam = TNP_TOOLTIPS_FIXED_HEADER;
+    SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+    // Normal column tooltips
+    toolInfo.uFlags = 0;
+    toolInfo.hwnd = Context->HeaderHandle;
+    toolInfo.uId = TNP_TOOLTIPS_HEADER;
+    toolInfo.lpszText = LPSTR_TEXTCALLBACK;
+    toolInfo.lParam = TNP_TOOLTIPS_HEADER;
+    SendMessage(Context->TooltipsHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+
+    // Hook the header control window procedures so we can forward mouse messages 
+    // to the tooltip control.
+    Context->FixedHeaderOldWndProc = (WNDPROC)GetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC);
+    SetProp(Context->FixedHeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
+    SetWindowLongPtr(Context->FixedHeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
+    Context->HeaderOldWndProc = (WNDPROC)GetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC);
+    SetProp(Context->HeaderHandle, PhTnpMakeContextAtom(), (HANDLE)Context);
+    SetWindowLongPtr(Context->HeaderHandle, GWLP_WNDPROC, (LONG_PTR)PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, 400);
     SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
@@ -4980,6 +5025,7 @@ VOID PhTnpPrepareTooltipPop(
 {
     Context->TooltipIndex = -1;
     Context->TooltipId = -1;
+    Context->TooltipColumnId = -1;
 }
 
 VOID PhTnpPopTooltip(
@@ -4989,9 +5035,232 @@ VOID PhTnpPopTooltip(
     if (Context->TooltipsHandle)
     {
         SendMessage(Context->TooltipsHandle, TTM_POP, 0, 0);
-        Context->TooltipIndex = -1;
-        Context->TooltipId = -1;
+        PhTnpPrepareTooltipPop(Context);
     }
+}
+
+PPH_TREENEW_COLUMN PhTnpHitTestHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Fixed,
+    __in PPOINT Point,
+    __out_opt PRECT ItemRect
+    )
+{
+    PPH_TREENEW_COLUMN column;
+    RECT itemRect;
+
+    if (Fixed)
+    {
+        if (!Context->FixedColumn)
+            return NULL;
+
+        column = Context->FixedColumn;
+
+        if (!Header_GetItemRect(Context->FixedHeaderHandle, 0, &itemRect))
+            return NULL;
+    }
+    else
+    {
+        HDHITTESTINFO hitTestInfo;
+
+        hitTestInfo.pt = *Point;
+        hitTestInfo.flags = 0;
+        hitTestInfo.iItem = -1;
+
+        if (SendMessage(Context->HeaderHandle, HDM_HITTEST, 0, (LPARAM)&hitTestInfo) != -1 && hitTestInfo.iItem != -1)
+        {
+            HDITEM item;
+
+            item.mask = HDI_LPARAM;
+
+            if (!Header_GetItem(Context->HeaderHandle, hitTestInfo.iItem, &item))
+                return NULL;
+
+            column = (PPH_TREENEW_COLUMN)item.lParam;
+
+            if (!Header_GetItemRect(Context->HeaderHandle, hitTestInfo.iItem, &itemRect))
+                return NULL;
+        }
+        else
+        {
+            return NULL;
+        }
+    }
+
+    if (ItemRect)
+        *ItemRect = itemRect;
+
+    return column;
+}
+
+VOID PhTnpGetHeaderTooltipText(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Fixed,
+    __in PPOINT Point,
+    __out PWSTR *Text
+    )
+{
+    LOGICAL result;
+    PPH_TREENEW_COLUMN column;
+    RECT itemRect;
+    PWSTR text;
+    SIZE_T textCount;
+    HDC hdc;
+    SIZE textSize;
+
+    column = PhTnpHitTestHeader(Context, Fixed, Point, &itemRect);
+
+    if (!column)
+        return;
+
+    if (Context->TooltipColumnId != column->Id)
+    {
+        // Determine if the tooltip needs to be shown.
+
+        text = column->Text;
+        textCount = wcslen(text);
+
+        if (!(hdc = GetDC(Context->Handle)))
+            return;
+
+        SelectObject(hdc, Context->Font);
+
+        result = GetTextExtentPoint32(hdc, text, (ULONG)textCount, &textSize);
+        ReleaseDC(Context->Handle, hdc);
+
+        if (!result)
+            return;
+
+        if (textSize.cx + 6 + 6 <= itemRect.right - itemRect.left) // HACK: Magic values (same as our cell margins?)
+            return;
+
+        Context->TooltipColumnId = column->Id;
+        PhSwapReference2(&Context->TooltipText, PhCreateStringEx(text, textCount * sizeof(WCHAR)));
+    }
+
+    *Text = Context->TooltipText->Buffer;
+
+    // Always use the default font for column header tooltips.
+    Context->NewTooltipFont = Context->Font;
+    Context->TooltipUnfolding = FALSE;
+}
+
+PWSTR PhTnpMakeContextAtom()
+{
+    PH_DEFINE_MAKE_ATOM(L"PhLib_TreeNewContext");
+}
+
+LRESULT CALLBACK PhTnpHeaderHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    )
+{
+    PPH_TREENEW_CONTEXT context;
+    WNDPROC oldWndProc;
+
+    context = (PPH_TREENEW_CONTEXT)GetProp(hwnd, PhTnpMakeContextAtom());
+
+    if (hwnd == context->FixedHeaderHandle)
+        oldWndProc = context->FixedHeaderOldWndProc;
+    else
+        oldWndProc = context->HeaderOldWndProc;
+
+    switch (uMsg)
+    {
+    case WM_DESTROY:
+        {
+            SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+
+            RemoveProp(hwnd, PhTnpMakeContextAtom());
+        }
+        break;
+    case WM_MOUSEMOVE:
+        {
+            POINT point;
+            PPH_TREENEW_COLUMN column;
+            ULONG id;
+
+            point.x = GET_X_LPARAM(lParam);
+            point.y = GET_Y_LPARAM(lParam);
+            column = PhTnpHitTestHeader(context, hwnd == context->FixedHeaderHandle, &point, NULL);
+
+            if (column)
+                id = column->Id;
+            else
+                id = -1;
+
+            if (context->TooltipColumnId != id)
+            {
+                PhTnpPopTooltip(context);
+            }
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            NMHDR *header = (NMHDR *)lParam;
+
+            switch (header->code)
+            {
+            case TTN_GETDISPINFO:
+                {
+                    if (header->hwndFrom == context->TooltipsHandle)
+                    {
+                        NMTTDISPINFO *info = (NMTTDISPINFO *)header;
+                        POINT point;
+
+                        PhTnpGetMessagePos(hwnd, &point);
+                        PhTnpGetHeaderTooltipText(context, info->lParam == TNP_TOOLTIPS_FIXED_HEADER, &point, &info->lpszText);
+                    }
+                }
+                break;
+            case TTN_SHOW:
+                {
+                    if (header->hwndFrom == context->TooltipsHandle)
+                    {
+                        return PhTnpPrepareTooltipShow(context);
+                    }
+                }
+                break;
+            case TTN_POP:
+                {
+                    if (header->hwndFrom == context->TooltipsHandle)
+                    {
+                        PhTnpPrepareTooltipPop(context);
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    }
+
+    switch (uMsg)
+    {
+    case WM_MOUSEMOVE:
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MBUTTONDOWN:
+    case WM_MBUTTONUP:
+        {
+            if (context->TooltipsHandle)
+            {
+                MSG message;
+
+                message.hwnd = hwnd;
+                message.message = uMsg;
+                message.wParam = wParam;
+                message.lParam = lParam;
+                SendMessage(context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
+            }
+        }
+        break;
+    }
+
+    return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
 VOID PhTnpCreateBufferedContext(

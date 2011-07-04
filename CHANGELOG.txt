@@ -4,6 +4,7 @@ Process Hacker
  * NEW/IMPROVED:
    * Completely rewritten tree list control:
      * Process Name column is now fixed to the left
+     * Tooltips for column headers
      * Improved performance
      * Bug fixes
    * Updated ExtendedServices plugin:
