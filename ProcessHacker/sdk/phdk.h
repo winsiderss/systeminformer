@@ -12,7 +12,6 @@
 #include "phnet.h"
 #include "providers.h"
 
-#include "treelist.h"
 #include "treenew.h"
 #include "emenu.h"
 #include "cpysave.h"

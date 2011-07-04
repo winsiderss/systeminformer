@@ -192,9 +192,6 @@
     <ClCompile Include="sync.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="treelist.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="verify.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -399,12 +396,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\templ.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\treelist.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\treelistp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="pcre\ucp.h">

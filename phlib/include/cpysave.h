@@ -18,14 +18,6 @@ PPH_LIST PhaFormatTextTable(
     __in ULONG Mode
     );
 
-VOID PhMapDisplayIndexTreeList(
-    __in HWND TreeListHandle,
-    __in ULONG MaximumNumberOfColumns,
-    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
-    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
-    __out PULONG NumberOfColumns
-    );
-
 VOID PhMapDisplayIndexTreeNew(
     __in HWND TreeNewHandle,
     __in ULONG MaximumNumberOfColumns,
@@ -35,20 +27,9 @@ VOID PhMapDisplayIndexTreeNew(
     );
 
 PHLIBAPI
-PPH_FULL_STRING PhGetTreeListText(
-    __in HWND TreeListHandle,
-    __in ULONG MaximumNumberOfColumns
-    );
-
-PHLIBAPI
 PPH_FULL_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
     __in ULONG MaximumNumberOfColumns
-    );
-
-PPH_LIST PhGetGenericTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG Mode
     );
 
 PPH_LIST PhGetGenericTreeNewLines(
