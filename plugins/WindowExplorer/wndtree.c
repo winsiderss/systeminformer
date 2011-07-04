@@ -82,7 +82,7 @@ VOID WeInitializeWindowTree(
     TreeNew_SetSort(hwnd, 0, NoSortOrder);
 
     settings = PhGetStringSetting(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS);
-    PhCmLoadSettingsEx(hwnd, NULL, &settings->sr);
+    PhCmLoadSettings(hwnd, &settings->sr);
     PhDereferenceObject(settings);
 }
 
@@ -93,7 +93,7 @@ VOID WeDeleteWindowTree(
     PPH_STRING settings;
     ULONG i;
 
-    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, NULL);
+    settings = PhCmSaveSettings(Context->TreeNewHandle);
     PhSetStringSetting2(SETTING_NAME_WINDOW_TREE_LIST_COLUMNS, &settings->sr);
     PhDereferenceObject(settings);
 
