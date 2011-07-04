@@ -21,7 +21,6 @@
  */
 
 #include <phgui.h>
-#include <treelist.h>
 #include <treenew.h>
 #include <cpysave.h>
 
@@ -237,44 +236,6 @@ PPH_LIST PhaFormatTextTable(
     return lines;
 }
 
-VOID PhMapDisplayIndexTreeList(
-    __in HWND TreeListHandle,
-    __in ULONG MaximumNumberOfColumns,
-    __out_ecount(MaximumNumberOfColumns) PULONG DisplayToId,
-    __out_ecount_opt(MaximumNumberOfColumns) PWSTR *DisplayToText,
-    __out PULONG NumberOfColumns
-    )
-{
-    PH_TREELIST_COLUMN column;
-    ULONG i;
-    ULONG count;
-
-    count = 0;
-
-    for (i = 0; i < MaximumNumberOfColumns; i++)
-    {
-        column.Id = i;
-
-        if (TreeList_GetColumn(TreeListHandle, &column))
-        {
-            if (column.Visible)
-            {
-                if (column.DisplayIndex < MaximumNumberOfColumns)
-                {
-                    DisplayToId[column.DisplayIndex] = i;
-
-                    if (DisplayToText)
-                        DisplayToText[column.DisplayIndex] = column.Text;
-
-                    count++;
-                }
-            }
-        }
-    }
-
-    *NumberOfColumns = count;
-}
-
 VOID PhMapDisplayIndexTreeNew(
     __in HWND TreeNewHandle,
     __in ULONG MaximumNumberOfColumns,
@@ -329,57 +290,6 @@ VOID PhMapDisplayIndexTreeNew(
     *NumberOfColumns = count;
 }
 
-PPH_FULL_STRING PhGetTreeListText(
-    __in HWND TreeListHandle,
-    __in ULONG MaximumNumberOfColumns
-    )
-{
-    PPH_FULL_STRING string;
-    PULONG displayToId;
-    ULONG rows;
-    ULONG columns;
-    ULONG i;
-    ULONG j;
-
-    displayToId = PhAllocate(MaximumNumberOfColumns * sizeof(ULONG));
-
-    PhMapDisplayIndexTreeList(TreeListHandle, MaximumNumberOfColumns, displayToId, NULL, &columns);
-    rows = TreeList_GetVisibleNodeCount(TreeListHandle);
-
-    string = PhCreateFullString2(0x100);
-
-    for (i = 0; i < rows; i++)
-    {
-        PH_TL_GETNODETEXT getNodeText;
-
-        getNodeText.Node = TreeList_GetVisibleNode(TreeListHandle, i);
-        assert(getNodeText.Node);
-
-        if (!getNodeText.Node->Selected)
-            continue;
-
-        for (j = 0; j < columns; j++)
-        {
-            getNodeText.Id = displayToId[j];
-            PhInitializeEmptyStringRef(&getNodeText.Text);
-            TreeList_GetNodeText(TreeListHandle, &getNodeText);
-
-            PhAppendFullStringEx(string, getNodeText.Text.Buffer, getNodeText.Text.Length);
-            PhAppendFullString2(string, L", ");
-        }
-
-        // Remove the trailing comma and space.
-        if (string->Length != 0)
-            PhRemoveFullString(string, string->Length / 2 - 2, 2);
-
-        PhAppendFullString2(string, L"\r\n");
-    }
-
-    PhFree(displayToId);
-
-    return string;
-}
-
 PPH_FULL_STRING PhGetTreeNewText(
     __in HWND TreeNewHandle,
     __in ULONG MaximumNumberOfColumns
@@ -429,77 +339,6 @@ PPH_FULL_STRING PhGetTreeNewText(
     PhFree(displayToId);
 
     return string;
-}
-
-PPH_LIST PhGetGenericTreeListLines(
-    __in HWND TreeListHandle,
-    __in ULONG Mode
-    )
-{
-    PH_AUTO_POOL autoPool;
-    PPH_LIST lines;
-    ULONG rows;
-    ULONG columns;
-    ULONG numberOfNodes;
-    ULONG maxId;
-    PULONG displayToId;
-    PWSTR *displayToText;
-    PPH_STRING **table;
-    ULONG i;
-    ULONG j;
-
-    PhInitializeAutoPool(&autoPool);
-
-    numberOfNodes = TreeList_GetVisibleNodeCount(TreeListHandle);
-    maxId = TreeList_GetMaxId(TreeListHandle) + 1;
-    displayToId = PhAllocate(sizeof(ULONG) * maxId);
-    displayToText = PhAllocate(sizeof(PWSTR) * maxId);
-
-    rows = numberOfNodes + 1;
-    PhMapDisplayIndexTreeList(TreeListHandle, maxId, displayToId, displayToText, &columns);
-
-    PhaCreateTextTable(&table, rows, columns);
-
-    for (i = 0; i < columns; i++)
-        table[0][i] = PhaCreateString(displayToText[i]);
-
-    for (i = 0; i < numberOfNodes; i++)
-    {
-        PPH_TREELIST_NODE node;
-
-        node = TreeList_GetVisibleNode(TreeListHandle, i);
-
-        if (node)
-        {
-            for (j = 0; j < columns; j++)
-            {
-                PH_TL_GETNODETEXT getNodeText;
-
-                getNodeText.Node = node;
-                getNodeText.Id = displayToId[j];
-                PhInitializeEmptyStringRef(&getNodeText.Text);
-                TreeList_GetNodeText(TreeListHandle, &getNodeText);
-
-                table[i + 1][j] = PhaCreateStringEx(getNodeText.Text.Buffer, getNodeText.Text.Length);
-            }
-        }
-        else
-        {
-            for (j = 0; j < columns; j++)
-            {
-                table[i + 1][j] = PHA_DEREFERENCE(PhReferenceEmptyString());
-            }
-        }
-    }
-
-    PhFree(displayToText);
-    PhFree(displayToId);
-
-    lines = PhaFormatTextTable(table, rows, columns, Mode);
-
-    PhDeleteAutoPool(&autoPool);
-
-    return lines;
 }
 
 PPH_LIST PhGetGenericTreeNewLines(

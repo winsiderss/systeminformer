@@ -210,7 +210,6 @@
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
-    <ClCompile Include="treelist.c" />
     <ClCompile Include="treenew.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="workqueue.c" />
@@ -290,8 +289,6 @@
     <ClInclude Include="include\sha.h" />
     <ClInclude Include="include\symprv.h" />
     <ClInclude Include="include\templ.h" />
-    <ClInclude Include="include\treelist.h" />
-    <ClInclude Include="include\treelistp.h" />
     <ClInclude Include="pcre\ucp.h" />
     <ClInclude Include="include\verifyp.h" />
     <ClInclude Include="include\winsta.h" />

@@ -8,7 +8,6 @@
 #endif
 
 #include <phgui.h>
-#include <treelist.h>
 #include <treenew.h>
 #include <graph.h>
 #include <circbuf.h>
@@ -251,18 +250,6 @@ PHAPPAPI
 VOID PhSaveListViewColumnsToSetting(
     __in PWSTR Name,
     __in HWND ListViewHandle
-    );
-
-PHAPPAPI
-VOID PhLoadTreeListColumnsFromSetting(
-    __in PWSTR Name,
-    __in HWND TreeListHandle
-    );
-
-PHAPPAPI
-VOID PhSaveTreeListColumnsToSetting(
-    __in PWSTR Name,
-    __in HWND TreeListHandle
     );
 
 PHAPPAPI
@@ -1126,8 +1113,7 @@ BOOLEAN PhShowProcessAffinityDialog2(
 
 // chcol
 
-#define PH_CONTROL_TYPE_TREE_LIST 1
-#define PH_CONTROL_TYPE_TREE_NEW 2
+#define PH_CONTROL_TYPE_TREE_NEW 1
 
 VOID PhShowChooseColumnsDialog(
     __in HWND ParentWindowHandle,

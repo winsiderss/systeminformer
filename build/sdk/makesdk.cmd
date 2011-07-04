@@ -71,7 +71,6 @@ for %%a in (
     rev.h
     symprv.h
     templ.h
-    treelist.h
     treenew.h
     winsta.h
     ) do copy ..\..\phlib\include\%%a ..\..\sdk\include\%%a
