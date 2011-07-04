@@ -170,7 +170,7 @@ VOID PhTnpOnSize(
 VOID PhTnpOnSetFont(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
-    __in HFONT Font,
+    __in_opt HFONT Font,
     __in LOGICAL Redraw
     );
 
@@ -293,6 +293,12 @@ ULONG_PTR PhTnpOnUserMessage(
     );
 
 // Misc.
+
+VOID PhTnpSetFont(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt HFONT Font,
+    __in BOOLEAN Redraw
+    );
 
 VOID PhTnpUpdateSystemMetrics(
     __in PPH_TREENEW_CONTEXT Context

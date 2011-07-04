@@ -439,6 +439,7 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
+    PhTnpSetFont(Context, NULL, FALSE); // use default font
     PhTnpUpdateSystemMetrics(Context);
     PhTnpInitializeTooltips(Context);
 
@@ -478,38 +479,12 @@ VOID PhTnpOnSize(
 VOID PhTnpOnSetFont(
     __in HWND hwnd,
     __in PPH_TREENEW_CONTEXT Context,
-    __in HFONT Font,
+    __in_opt HFONT Font,
     __in LOGICAL Redraw
     )
 {
-    if (Context->FontOwned)
-    {
-        DeleteObject(Context->Font);
-        Context->FontOwned = FALSE;
-    }
-
-    Context->Font = Font;
-
-    if (!Context->Font)
-    {
-        LOGFONT logFont;
-
-        if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
-        {
-            Context->Font = CreateFontIndirect(&logFont);
-            Context->FontOwned = TRUE;
-        }
-    }
-
-    SendMessage(Context->FixedHeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
-    SendMessage(Context->HeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
-
-    if (Context->TooltipsHandle)
-    {
-        SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
-    }
-
-    PhTnpUpdateTextMetrics(Context);
+    PhTnpSetFont(Context, Font, !!Redraw);
+    PhTnpLayout(Context);
 }
 
 VOID PhTnpOnSettingChange(
@@ -1639,6 +1614,43 @@ ULONG_PTR PhTnpOnUserMessage(
     return 0;
 }
 
+VOID PhTnpSetFont(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in_opt HFONT Font,
+    __in BOOLEAN Redraw
+    )
+{
+    if (Context->FontOwned)
+    {
+        DeleteObject(Context->Font);
+        Context->FontOwned = FALSE;
+    }
+
+    Context->Font = Font;
+
+    if (!Context->Font)
+    {
+        LOGFONT logFont;
+
+        if (SystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, 0))
+        {
+            Context->Font = CreateFontIndirect(&logFont);
+            Context->FontOwned = TRUE;
+        }
+    }
+
+    SendMessage(Context->FixedHeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
+    SendMessage(Context->HeaderHandle, WM_SETFONT, (WPARAM)Context->Font, Redraw);
+
+    if (Context->TooltipsHandle)
+    {
+        SendMessage(Context->TooltipsHandle, WM_SETFONT, (WPARAM)Context->Font, FALSE);
+        Context->TooltipFont = Context->Font;
+    }
+
+    PhTnpUpdateTextMetrics(Context);
+}
+
 VOID PhTnpUpdateSystemMetrics(
     __in PPH_TREENEW_CONTEXT Context
     )
@@ -1653,8 +1665,9 @@ VOID PhTnpUpdateTextMetrics(
 {
     HDC hdc;
 
-    if (hdc = GetDC(HWND_DESKTOP))
+    if (hdc = GetDC(Context->Handle))
     {
+        SelectObject(hdc, Context->Font);
         GetTextMetrics(hdc, &Context->TextMetrics);
 
         Context->RowHeight = Context->TextMetrics.tmHeight;
@@ -1663,13 +1676,15 @@ VOID PhTnpUpdateTextMetrics(
         {
             if (Context->RowHeight < SmallIconHeight)
                 Context->RowHeight = SmallIconHeight;
-
-            Context->RowHeight += 2; // TODO: Magic value?
+        }
+        else
+        {
+            Context->RowHeight += 1; // TODO: Magic value?
         }
 
-        Context->RowHeight += 1; // TODO: Magic value?
+        Context->RowHeight += 3; // TODO: Magic value?
 
-        ReleaseDC(HWND_DESKTOP, hdc);
+        ReleaseDC(Context->Handle, hdc);
     }
 }
 
