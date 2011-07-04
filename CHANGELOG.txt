@@ -2,7 +2,10 @@ Process Hacker
 
 2.18
  * NEW/IMPROVED:
-   * Completely rewritten tree list control
+   * Completely rewritten tree list control:
+     * Process Name column is now fixed to the left
+     * Improved performance
+     * Bug fixes
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
    * Updated ExtendedTools plugin:
