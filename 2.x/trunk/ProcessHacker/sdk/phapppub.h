@@ -352,22 +352,6 @@ PhSaveListViewColumnsToSetting(
     );
 
 PHAPPAPI
-VOID
-NTAPI
-PhLoadTreeListColumnsFromSetting(
-    __in PWSTR Name,
-    __in HWND TreeListHandle
-    );
-
-PHAPPAPI
-VOID
-NTAPI
-PhSaveTreeListColumnsToSetting(
-    __in PWSTR Name,
-    __in HWND TreeListHandle
-    );
-
-PHAPPAPI
 PPH_STRING
 NTAPI
 PhGetPhVersion();

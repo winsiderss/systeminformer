@@ -141,9 +141,6 @@
     <ClCompile Include="..\phlib\sync.c">
       <Filter>phlib</Filter>
     </ClCompile>
-    <ClCompile Include="..\phlib\treelist.c">
-      <Filter>phlib</Filter>
-    </ClCompile>
     <ClCompile Include="..\phlib\verify.c">
       <Filter>phlib</Filter>
     </ClCompile>

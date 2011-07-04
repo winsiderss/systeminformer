@@ -1,6 +1,6 @@
 /*
  * Process Hacker - 
- *   tree new (tree list)
+ *   tree new (tree list control)
  * 
  * Copyright (C) 2011 wj32
  * 
@@ -18,6 +18,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * The tree new is a tree view with columns. Unlike the old tree list control, 
+ * which was a wrapper around the list view control, this control was written 
+ * from scratch.
  */
 
 #include <phgui.h>

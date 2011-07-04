@@ -203,7 +203,6 @@ INT WINAPI WinMain(
     PhInitializeAutoPool(&BaseAutoPool);
 
     PhGuiSupportInitialization();
-    PhTreeListInitialization();
     PhTreeNewInitialization();
     PhGraphControlInitialization();
     PhHexEditInitialization();

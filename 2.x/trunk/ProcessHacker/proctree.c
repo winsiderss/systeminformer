@@ -1781,7 +1781,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhGetStockApplicationIcon(&getNodeIcon->Icon, NULL);
             }
 
-            getNodeIcon->Flags = TLC_CACHE;
+            getNodeIcon->Flags = TN_CACHE;
         }
         return TRUE;
     case TreeNewGetCellTooltip:
