@@ -397,7 +397,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->VScrollHandle = CreateWindow(
         L"SCROLLBAR",
         NULL,
-        WS_CHILD | WS_VISIBLE | SBS_VERT,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_VERT,
         0,
         0,
         0,
@@ -414,7 +414,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->HScrollHandle = CreateWindow(
         L"SCROLLBAR",
         NULL,
-        WS_CHILD | WS_VISIBLE | SBS_HORZ,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_HORZ,
         0,
         0,
         0,
@@ -431,7 +431,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->FillerBoxHandle = CreateWindow(
         L"STATIC",
         NULL,
-        WS_CHILD | WS_VISIBLE,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
         0,
         0,
         0,
@@ -601,7 +601,10 @@ BOOLEAN PhTnpOnSetCursor(
 
     if (TNP_HIT_TEST_FIXED_DIVIDER(point.x, Context))
     {
-        SetCursor(LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106))); // HACK (the divider icon resource has been 106 for quite a while...)
+        if (!Context->DividerCursor)
+            Context->DividerCursor = LoadCursor(ComCtl32Handle, MAKEINTRESOURCE(106)); // HACK (the divider icon resource has been 106 for quite a while...)
+
+        SetCursor(Context->DividerCursor);
         return TRUE;
     }
 
@@ -1236,7 +1239,7 @@ BOOLEAN PhTnpOnNotify(
         {
             NMHEADER *nmHeader = (NMHEADER *)Header;
 
-            if (Header->hwndFrom == Context->FixedHeaderHandle)
+            if (Header->code == HDN_ITEMCHANGING && Header->hwndFrom == Context->FixedHeaderHandle)
             {
                 if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
@@ -1260,15 +1263,49 @@ BOOLEAN PhTnpOnNotify(
 
             if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
             {
-                if (nmHeader->pitem->mask & (HDI_WIDTH | HDI_ORDER))
+                if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
-                    // A column has been re-ordered or resized. Update our stored information.
+                    // A column has been resized. Update our stored information.
                     PhTnpUpdateColumnHeaders(Context);
                     PhTnpUpdateColumnMaps(Context);
-                    PhTnpLayout(Context);
-                }
 
-                InvalidateRect(Context->Handle, NULL, FALSE); // TODO: Optimize
+                    if (Header->code == HDN_ITEMCHANGING)
+                    {
+                        HDITEM item;
+
+                        item.mask = HDI_WIDTH | HDI_LPARAM;
+
+                        if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item))
+                        {
+                            Context->ResizingColumn = (PPH_TREENEW_COLUMN)item.lParam;
+                            Context->OldColumnWidth = item.cxy;
+                        }
+                        else
+                        {
+                            Context->ResizingColumn = NULL;
+                            Context->OldColumnWidth = -1;
+                        }
+                    }
+                    else if (Header->code == HDN_ITEMCHANGED)
+                    {
+                        if (Context->ResizingColumn)
+                        {
+                            LONG delta;
+
+                            delta = nmHeader->pitem->cxy - Context->OldColumnWidth;
+
+                            if (delta != 0)
+                                PhTnpProcessResizeColumn(Context, Context->ResizingColumn, delta);
+
+                            Context->ResizingColumn = NULL;
+                        }
+                        else
+                        {
+                            // An error occurred during HDN_ITEMCHANGED, so redraw the entire window.
+                            InvalidateRect(Context->Handle, NULL, FALSE);
+                        }
+                    }
+                }
             }
         }
         break;
@@ -1330,6 +1367,29 @@ BOOLEAN PhTnpOnNotify(
                 PhTnpUpdateColumnHeaders(Context);
                 PhTnpUpdateColumnMaps(Context);
                 InvalidateRect(Context->Handle, NULL, FALSE);
+            }
+        }
+        break;
+    case HDN_DIVIDERDBLCLICK:
+        {
+            if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
+            {
+                NMHEADER *nmHeader = (NMHEADER *)Header;
+                HDITEM item;
+
+                if (Context->SuspendUpdateStructure)
+                    break;
+
+                item.mask = HDI_LPARAM;
+
+                if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item))
+                {
+                    PhTnpAutoSizeColumnHeader(
+                        Context,
+                        Header->hwndFrom,
+                        (PPH_TREENEW_COLUMN)item.lParam
+                        );
+                }
             }
         }
         break;
@@ -1944,6 +2004,7 @@ BOOLEAN PhTnpAddColumn(
         }
 
         realColumn->DisplayIndex = 0;
+        realColumn->s.ViewX = 0;
     }
 
     if (realColumn->Visible)
@@ -2399,6 +2460,68 @@ VOID PhTnpUpdateColumnHeaders(
     }
 }
 
+VOID PhTnpProcessResizeColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN Column,
+    __in LONG Delta
+    )
+{
+    RECT rect;
+    LONG columnLeft;
+
+    if (Column->Fixed)
+    {
+        columnLeft = 0;
+    }
+    else
+    {
+        columnLeft = Context->NormalLeft + Column->s.ViewX - Context->HScrollPosition;
+    }
+
+    // Scroll the content to the right of the column.
+    // Clip the scroll area to the new width, or the old width if that is further to the left.
+    // We may have the WS_CLIPCHILDREN style set, so we need to remove the horizontal scrollbar 
+    // from the rectangle, otherwise ScrollWindowEx will want to invalidate the entire region! (The 
+    // horizontal scrollbar is an overlapping child control.)
+    rect.left = columnLeft + Column->Width;
+    rect.top = Context->HeaderHeight;
+    rect.right = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    rect.bottom = Context->ClientRect.bottom - (Context->HScrollVisible ? Context->HScrollHeight : 0);
+
+    if (Delta > 0)
+        rect.left -= Delta; // old width
+
+    // Scroll the window.
+    ScrollWindowEx(
+        Context->Handle,
+        Delta,
+        0,
+        &rect,
+        &rect,
+        NULL,
+        NULL,
+        SW_INVALIDATE
+        );
+
+    UpdateWindow(Context->Handle); // required
+
+    if (Context->HScrollVisible)
+    {
+        // We excluded the bottom region - invalidate it now.
+        rect.top = rect.bottom;
+        rect.bottom = Context->ClientRect.bottom;
+        InvalidateRect(Context->Handle, &rect, FALSE);
+    }
+
+    PhTnpLayout(Context);
+
+    // Redraw the whole column because the content may depend on the width (e.g. text ellipsis).
+    rect.left = columnLeft;
+    rect.top = Context->HeaderHeight;
+    rect.right = columnLeft + Column->Width;
+    RedrawWindow(Context->Handle, &rect, NULL, RDW_INVALIDATE | RDW_UPDATENOW); // must be RedrawWindow
+}
+
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
     __in PPH_TREENEW_CONTEXT Context,
     __in_opt PPH_TREENEW_COLUMN SortColumnPointer
@@ -2454,6 +2577,46 @@ BOOLEAN PhTnpSetColumnHeaderSortIcon(
     }
 
     return TRUE;
+}
+
+VOID PhTnpAutoSizeColumnHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HWND HeaderHandle,
+    __in PPH_TREENEW_COLUMN Column
+    )
+{
+    ULONG i;
+    LONG maximumWidth;
+    PH_TREENEW_CELL_PARTS parts;
+    LONG width;
+    HDITEM item;
+
+    if (Context->FlatList->Count == 0)
+        return;
+    if (Column->CustomDraw)
+        return;
+
+    maximumWidth = 0;
+
+    for (i = 0; i < Context->FlatList->Count; i++)
+    {
+        if (PhTnpGetCellParts(Context, i, Column, TN_MEASURE_TEXT, &parts) &&
+            (parts.Flags & TN_PART_CELL) && (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
+        {
+            width = parts.TextRect.right - parts.CellRect.left;
+
+            if (maximumWidth < width)
+                maximumWidth = width;
+        }
+    }
+
+    item.mask = HDI_WIDTH;
+    item.cxy = maximumWidth + TNP_CELL_RIGHT_MARGIN; // right padding
+
+    if (Column->Fixed)
+        item.cxy++;
+
+    Header_SetItem(HeaderHandle, Column->s.ViewIndex, &item);
 }
 
 BOOLEAN PhTnpGetNodeChildren(
@@ -2733,11 +2896,13 @@ BOOLEAN PhTnpGetCellParts(
 
     iconVerticalMargin = (Context->RowHeight - SmallIconHeight) / 2;
 
-    currentX = Column->s.ViewX;
-
-    if (!Column->Fixed)
+    if (Column->Fixed)
     {
-        currentX += Context->NormalLeft - Context->HScrollPosition;
+        currentX = 0;
+    }
+    else
+    {
+        currentX = Context->NormalLeft + Column->s.ViewX - Context->HScrollPosition;
     }
 
     Parts->Flags |= TN_PART_CELL;
@@ -2746,7 +2911,7 @@ BOOLEAN PhTnpGetCellParts(
     Parts->CellRect.top = Parts->RowRect.top;
     Parts->CellRect.bottom = Parts->RowRect.bottom;
 
-    currentX += 6;
+    currentX += TNP_CELL_LEFT_MARGIN;
 
     if (Column == Context->FirstColumn)
     {
@@ -2774,13 +2939,13 @@ BOOLEAN PhTnpGetCellParts(
             Parts->IconRect.top = Parts->RowRect.top + iconVerticalMargin;
             Parts->IconRect.bottom = Parts->RowRect.bottom - iconVerticalMargin;
 
-            currentX += SmallIconWidth + 4;
+            currentX += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
         }
     }
 
     Parts->Flags |= TN_PART_CONTENT;
     Parts->ContentRect.left = currentX;
-    Parts->ContentRect.right = Parts->CellRect.right - 6;
+    Parts->ContentRect.right = Parts->CellRect.right - TNP_CELL_RIGHT_MARGIN;
     Parts->ContentRect.top = Parts->RowRect.top;
     Parts->ContentRect.bottom = Parts->RowRect.bottom;
 
@@ -2955,7 +3120,7 @@ VOID PhTnpHitTest(
                         isFirstColumn = HitTest->Column == Context->FirstColumn;
 
                         currentX = columnX;
-                        currentX += 6;
+                        currentX += TNP_CELL_LEFT_MARGIN;
 
                         if (isFirstColumn)
                         {
@@ -2974,7 +3139,7 @@ VOID PhTnpHitTest(
                                 if (x >= currentX && x < currentX + SmallIconWidth)
                                     HitTest->Flags |= TN_HIT_ITEM_ICON;
 
-                                currentX += SmallIconWidth + 4;
+                                currentX += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
                             }
                         }
 
@@ -4095,7 +4260,7 @@ VOID PhTnpPaint(
     {
         column = Context->ColumnsByDisplay[j];
 
-        if (x + column->Width >= Context->NormalLeft && x + column->Width >= PaintRect->left && x < PaintRect->right)
+        if (x + column->Width >= Context->NormalLeft && x + column->Width > PaintRect->left && x < PaintRect->right)
         {
             if (normalUpdateLeftX > x)
             {
@@ -4393,8 +4558,8 @@ VOID PhTnpDrawCell(
     textRect = *CellRect;
 
     // Initial margins used by default list view
-    textRect.left += 6;
-    textRect.right -= 6;
+    textRect.left += TNP_CELL_LEFT_MARGIN;
+    textRect.right -= TNP_CELL_RIGHT_MARGIN;
 
     // icon margin = (height of row - height of small icon) / 2
     iconVerticalMargin = ((textRect.bottom - textRect.top) - SmallIconHeight) / 2;
@@ -4495,7 +4660,7 @@ VOID PhTnpDrawCell(
                 DI_NORMAL
                 );
 
-            textRect.left += SmallIconWidth + 4; // 4px margin
+            textRect.left += SmallIconWidth + TNP_ICON_RIGHT_PADDING;
         }
 
         if (needsClip)
@@ -4521,6 +4686,12 @@ VOID PhTnpDrawCell(
         customDraw.Dc = hdc;
         customDraw.CellRect = *CellRect;
         customDraw.TextRect = textRect;
+
+        // Fix up the rectangles before giving them to the user.
+        if (customDraw.CellRect.left > customDraw.CellRect.right)
+            customDraw.CellRect.left = customDraw.CellRect.right;
+        if (customDraw.TextRect.left > customDraw.TextRect.right)
+            customDraw.TextRect.left = customDraw.TextRect.right;
 
         savedDc = SaveDC(hdc);
         result = Context->Callback(Context->Handle, TreeNewCustomDraw, &customDraw, NULL, Context->CallbackContext);
@@ -4713,6 +4884,7 @@ VOID PhTnpGetTooltipText(
 {
     PH_TREENEW_HIT_TEST hitTest;
     PH_TREENEW_CELL_PARTS parts;
+    LONG viewRight;
     PH_TREENEW_GET_CELL_TOOLTIP getCellTooltip;
 
     hitTest.Point = *Point;
@@ -4739,9 +4911,13 @@ VOID PhTnpGetTooltipText(
         getCellTooltip.Font = Context->Font;
 
         if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts) &&
-            (parts.Flags & TN_PART_TEXT))
+            (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
         {
-            if (parts.TextRect.right > parts.ContentRect.right)
+            viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+
+            // Use an unfolding tooltip if the text was truncated within the column, or the text 
+            // extends beyond the view area.
+            if (parts.TextRect.right > parts.ContentRect.right || parts.TextRect.right > viewRight)
             {
                 getCellTooltip.Unfolding = TRUE;
                 getCellTooltip.Text = parts.Text;
