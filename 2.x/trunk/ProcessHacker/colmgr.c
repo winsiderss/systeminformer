@@ -255,6 +255,7 @@ BOOLEAN PhCmLoadSettingsEx(
     PH_STRINGREF subPart;
     ULONG64 integer;
     ULONG total;
+    BOOLEAN hasFixedColumn;
     ULONG count;
     ULONG i;
     PPH_HASHTABLE columnHashtable;
@@ -356,6 +357,7 @@ BOOLEAN PhCmLoadSettingsEx(
     i = 0;
     count = 0;
     total = TreeNew_GetColumnCount(TreeNewHandle);
+    hasFixedColumn = !!TreeNew_GetFixedColumn(TreeNewHandle);
 
     while (count < total)
     {
@@ -375,6 +377,11 @@ BOOLEAN PhCmLoadSettingsEx(
                 TreeNew_GetColumn(TreeNewHandle, i, &setColumn); // get the Fixed and ViewIndex for use in the second pass
                 (*columnPtr)->Fixed = setColumn.Fixed;
                 (*columnPtr)->s.ViewIndex = setColumn.s.ViewIndex;
+
+                // For compatibility reasons, normal columns have their display indicies stored 
+                // one higher than usual (so they start from 1, not 0). Fix that here.
+                if (hasFixedColumn && !(*columnPtr)->Fixed && (*columnPtr)->DisplayIndex != 0)
+                    (*columnPtr)->DisplayIndex--;
             }
             else if (!setColumn.Fixed) // never hide the fixed column
             {
@@ -446,9 +453,15 @@ PPH_STRING PhCmSaveSettingsEx(
     ULONG i = 0;
     ULONG count = 0;
     ULONG total;
+    ULONG increment;
     PH_TREENEW_COLUMN column;
 
     total = TreeNew_GetColumnCount(TreeNewHandle);
+
+    if (TreeNew_GetFixedColumn(TreeNewHandle))
+        increment = 1; // the first normal column should have a display index that starts with 1, for compatibility
+    else
+        increment = 0;
 
     PhInitializeStringBuilder(&stringBuilder, 100);
 
@@ -464,7 +477,7 @@ PPH_STRING PhCmSaveSettingsEx(
                         &stringBuilder,
                         L"%u,%u,%u|",
                         i,
-                        column.Fixed ? 0 : column.DisplayIndex,
+                        column.Fixed ? 0 : column.DisplayIndex + increment,
                         column.Width
                         );
                 }
@@ -478,7 +491,7 @@ PPH_STRING PhCmSaveSettingsEx(
                         L"+%s+%u,%u,%u|",
                         cmColumn->Plugin->Name,
                         cmColumn->SubId,
-                        column.DisplayIndex,
+                        column.DisplayIndex + increment,
                         column.Width
                         );
                 }

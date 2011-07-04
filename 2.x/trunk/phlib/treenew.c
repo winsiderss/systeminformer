@@ -1670,6 +1670,10 @@ VOID PhTnpUpdateTextMetrics(
         SelectObject(hdc, Context->Font);
         GetTextMetrics(hdc, &Context->TextMetrics);
 
+        // Below we try to match the row height as calculated by 
+        // the list view, even if it involves magic numbers.
+        // On Vista and above there seems to be extra padding.
+
         Context->RowHeight = Context->TextMetrics.tmHeight;
 
         if (Context->Style & TN_STYLE_ICONS)
@@ -1679,10 +1683,14 @@ VOID PhTnpUpdateTextMetrics(
         }
         else
         {
-            Context->RowHeight += 1; // TODO: Magic value?
+            if (WindowsVersion >= WINDOWS_VISTA)
+                Context->RowHeight += 1; // HACK
         }
 
-        Context->RowHeight += 3; // TODO: Magic value?
+        Context->RowHeight += 1; // HACK
+
+        if (WindowsVersion >= WINDOWS_VISTA)
+            Context->RowHeight += 2; // HACK
 
         ReleaseDC(Context->Handle, hdc);
     }
@@ -1928,6 +1936,8 @@ BOOLEAN PhTnpAddColumn(
         {
             Context->FixedColumn = realColumn;
         }
+
+        realColumn->DisplayIndex = 0;
     }
 
     if (realColumn->Visible)
@@ -2000,34 +2010,18 @@ BOOLEAN PhTnpChangeColumn(
     )
 {
     PPH_TREENEW_COLUMN realColumn;
-    BOOLEAN addedOrRemoved;
+    BOOLEAN addingOrRemoving;
 
     if (!(realColumn = PhTnpLookupColumnById(Context, Id)))
         return FALSE;
 
-    addedOrRemoved = FALSE;
+    addingOrRemoving = FALSE;
 
     if (Mask & TN_COLUMN_FLAG_VISIBLE)
     {
         if (realColumn->Visible != Column->Visible)
         {
-            if (Column->Visible)
-            {
-                if (realColumn->Fixed)
-                    realColumn->DisplayIndex = 0;
-                else
-                    realColumn->DisplayIndex = Header_GetItemCount(Context->HeaderHandle);
-
-                realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
-            }
-            else
-            {
-                PhTnpDeleteColumnHeader(Context, realColumn);
-            }
-
-            addedOrRemoved = TRUE;
-            PhTnpUpdateColumnMaps(Context);
-            PhTnpLayout(Context);
+            addingOrRemoving = TRUE;
         }
     }
 
@@ -2070,7 +2064,7 @@ BOOLEAN PhTnpChangeColumn(
             updateLayout = TRUE;
         }
 
-        if (!addedOrRemoved)
+        if (!addingOrRemoving)
         {
             PhTnpChangeColumnHeader(Context, Mask, realColumn);
 
@@ -2091,6 +2085,26 @@ BOOLEAN PhTnpChangeColumn(
     if (Mask & TN_COLUMN_TEXTFLAGS)
     {
         realColumn->TextFlags = Column->TextFlags;
+    }
+
+    if (addingOrRemoving)
+    {
+        if (Column->Visible)
+        {
+            if (realColumn->Fixed)
+                realColumn->DisplayIndex = 0;
+            else
+                realColumn->DisplayIndex = Header_GetItemCount(Context->HeaderHandle);
+
+            realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
+        }
+        else
+        {
+            PhTnpDeleteColumnHeader(Context, realColumn);
+        }
+
+        PhTnpUpdateColumnMaps(Context);
+        PhTnpLayout(Context);
     }
 
     return TRUE;
