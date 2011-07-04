@@ -1531,6 +1531,7 @@ ULONG_PTR PhTnpOnUserMessage(
             }
             else
             {
+                sortColumn = 0;
                 column = NULL;
             }
 
@@ -4982,6 +4983,9 @@ VOID PhTnpGetTooltipText(
             PhSwapReference(&Context->TooltipText, NULL);
 
         Context->NewTooltipFont = getCellTooltip.Font;
+
+        if (!Context->NewTooltipFont)
+            Context->NewTooltipFont = Context->Font;
     }
 
     if (Context->TooltipText)

@@ -185,20 +185,13 @@ static VOID PhpEnableColumnCustomDraw(
 VOID PhLoadSettingsProcessTreeList()
 {
     PPH_STRING settings;
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    PPH_STRING sortSettings;
 
     settings = PhGetStringSetting(L"ProcessTreeListColumns");
-    PhCmLoadSettings(&ProcessTreeListCm, &settings->sr);
+    sortSettings = PhGetStringSetting(L"ProcessTreeListSort");
+    PhCmLoadSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    sortOrder = PhGetIntegerSetting(L"ProcessTreeListSortOrder");
-
-    if (sortOrder != NoSortOrder)
-    {
-        sortColumn = PhGetIntegerSetting(L"ProcessTreeListSortColumn");
-        TreeNew_SetSort(ProcessTreeListHandle, sortColumn, sortOrder);
-    }
+    PhDereferenceObject(sortSettings);
 
     if (PhGetIntegerSetting(L"EnableInstantTooltips"))
     {
@@ -211,16 +204,13 @@ VOID PhLoadSettingsProcessTreeList()
 VOID PhSaveSettingsProcessTreeList()
 {
     PPH_STRING settings;
-    ULONG sortColumn;
-    PH_SORT_ORDER sortOrder;
+    PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettings(&ProcessTreeListCm);
+    settings = PhCmSaveSettingsEx(ProcessTreeListHandle, &ProcessTreeListCm, &sortSettings);
     PhSetStringSetting2(L"ProcessTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ProcessTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    TreeNew_GetSort(ProcessTreeListHandle, &sortColumn, &sortOrder);
-    PhSetIntegerSetting(L"ProcessTreeListSortColumn", sortColumn);
-    PhSetIntegerSetting(L"ProcessTreeListSortOrder", sortOrder);
+    PhDereferenceObject(sortSettings);
 }
 
 VOID PhReloadSettingsProcessTreeList()

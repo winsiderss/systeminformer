@@ -162,14 +162,13 @@ VOID PhLoadSettingsModuleList(
     )
 {
     PPH_STRING settings;
-    PH_INTEGER_PAIR pair;
+    PPH_STRING sortSettings;
 
     settings = PhGetStringSetting(L"ModuleTreeListColumns");
-    PhCmLoadSettings(&Context->Cm, &settings->sr);
+    sortSettings = PhGetStringSetting(L"ModuleTreeListSort");
+    PhCmLoadSettingsEx(Context->TreeNewHandle, &Context->Cm, &settings->sr, &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    pair = PhGetIntegerPairSetting(L"ModuleTreeListSort");
-    TreeNew_SetSort(Context->TreeNewHandle, pair.X, pair.Y);
+    PhDereferenceObject(sortSettings);
 }
 
 VOID PhSaveSettingsModuleList(
@@ -177,14 +176,13 @@ VOID PhSaveSettingsModuleList(
     )
 {
     PPH_STRING settings;
-    PH_INTEGER_PAIR pair;
+    PPH_STRING sortSettings;
 
-    settings = PhCmSaveSettings(&Context->Cm);
+    settings = PhCmSaveSettingsEx(Context->TreeNewHandle, &Context->Cm, &sortSettings);
     PhSetStringSetting2(L"ModuleTreeListColumns", &settings->sr);
+    PhSetStringSetting2(L"ModuleTreeListSort", &sortSettings->sr);
     PhDereferenceObject(settings);
-
-    TreeNew_GetSort(Context->TreeNewHandle, &pair.X, &pair.Y);
-    PhSetIntegerPairSetting(L"ModuleTreeListSort", pair);
+    PhDereferenceObject(sortSettings);
 }
 
 PPH_MODULE_NODE PhAddModuleNode(
@@ -696,6 +694,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
             {
                 getCellTooltip->Text = node->TooltipText->sr;
                 getCellTooltip->Unfolding = FALSE;
+                getCellTooltip->Font = NULL; // use default font
             }
             else
             {
