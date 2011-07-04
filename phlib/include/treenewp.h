@@ -65,6 +65,7 @@ typedef struct _PH_TREENEW_CONTEXT
 
     HFONT Font;
     HCURSOR Cursor;
+    HCURSOR DividerCursor;
 
     RECT ClientRect;
     LONG HeaderHeight;
@@ -76,9 +77,6 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG FixedWidth; // width of the fixed part of the tree list
     LONG FixedWidthMinimum;
     LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
-    LONG TrackStartX;
-    LONG TrackOldFixedWidth;
-    ULONG DividerHot; // 0 for un-hot, 100 for completely hot
 
     PPH_TREENEW_NODE FocusNode;
     ULONG HotNodeIndex;
@@ -101,6 +99,12 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG TotalViewX; // total width of normal columns
     PPH_TREENEW_COLUMN FixedColumn;
     PPH_TREENEW_COLUMN FirstColumn;
+
+    PPH_TREENEW_COLUMN ResizingColumn;
+    LONG OldColumnWidth;
+    LONG TrackStartX;
+    LONG TrackOldFixedWidth;
+    ULONG DividerHot; // 0 for un-hot, 100 for completely hot
 
     PPH_LIST FlatList;
 
@@ -390,9 +394,21 @@ VOID PhTnpUpdateColumnHeaders(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpProcessResizeColumn(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_COLUMN Column,
+    __in LONG Delta
+    );
+
 BOOLEAN PhTnpSetColumnHeaderSortIcon(
     __in PPH_TREENEW_CONTEXT Context,
     __in_opt PPH_TREENEW_COLUMN SortColumnPointer
+    );
+
+VOID PhTnpAutoSizeColumnHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HWND HeaderHandle,
+    __in PPH_TREENEW_COLUMN Column
     );
 
 // Nodes
@@ -602,6 +618,10 @@ VOID PhTnpGetMessagePos(
 
 // Macros
 
+#define TNP_CELL_LEFT_MARGIN 6
+#define TNP_CELL_RIGHT_MARGIN 6
+#define TNP_ICON_RIGHT_PADDING 4
+
 #define TNP_TIMER_NULL 1
 #define TNP_TIMER_ANIMATE_DIVIDER 2
 
@@ -609,7 +629,9 @@ VOID PhTnpGetMessagePos(
 #define TNP_ANIMATE_DIVIDER_INCREMENT 17
 #define TNP_ANIMATE_DIVIDER_DECREMENT 2
 
-#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) (Context->FixedDividerVisible && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
-#define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) (((X) >= 6 + ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < 6 + ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth))
+#define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) \
+    (Context->FixedDividerVisible && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
+#define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) \
+    (((X) >= TNP_CELL_LEFT_MARGIN + ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < TNP_CELL_LEFT_MARGIN + ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth))
 
 #endif
