@@ -87,7 +87,6 @@ VOID PhInitializeProcessTreeList(
     PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
     ProcessTreeListHandle = hwnd;
-    SendMessage(ProcessTreeListHandle, WM_SETFONT, (WPARAM)PhIconTitleFont, FALSE);
     PhSetControlTheme(ProcessTreeListHandle, L"explorer");
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
     SendMessage(TreeNew_GetTooltips(ProcessTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, 0x7fff);
