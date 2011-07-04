@@ -1819,9 +1819,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             processItem = node->ProcessItem;
             rect = customDraw->CellRect;
 
-            // Fix for the first column.
-            if (customDraw->Column->DisplayIndex == 0)
-                rect.left = customDraw->TextRect.left;
+            if (rect.right - rect.left <= 1)
+                break; // nothing to draw
 
             // Generic graph pre-processing
             switch (customDraw->Column->Id)
@@ -1830,7 +1829,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_PRIVATEBYTESHISTORY:
             case PHPRTLC_IOHISTORY:
                 memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
-                drawInfo.Width = rect.right - rect.left;
+                drawInfo.Width = rect.right - rect.left - 1; // leave a small gap
                 drawInfo.Height = rect.bottom - rect.top - 1; // leave a small gap
                 drawInfo.Step = 2;
                 drawInfo.BackColor = RGB(0x00, 0x00, 0x00);
