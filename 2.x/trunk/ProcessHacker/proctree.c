@@ -95,6 +95,8 @@ VOID PhInitializeProcessTreeList(
 
     TreeNew_SetMaxId(hwnd, PHPRTLC_MAXIMUM - 1);
 
+    TreeNew_SetRedraw(hwnd, FALSE);
+
     // Default columns
     PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
@@ -148,6 +150,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
+
+    TreeNew_SetRedraw(hwnd, TRUE);
 
     PhpEnableColumnCustomDraw(hwnd, PHPRTLC_CPUHISTORY);
     PhpEnableColumnCustomDraw(hwnd, PHPRTLC_PRIVATEBYTESHISTORY);

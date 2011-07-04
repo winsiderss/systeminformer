@@ -119,6 +119,8 @@ VOID PhInitializeServiceTreeList(
 
     TreeNew_SetCallback(hwnd, PhpServiceTreeNewCallback, NULL);
 
+    TreeNew_SetRedraw(hwnd, FALSE);
+
     // Default columns
     PhAddTreeNewColumn(hwnd, PHSVTLC_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 0, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_DISPLAYNAME, TRUE, L"Display Name", 180, PH_ALIGN_LEFT, 1, 0);
@@ -130,6 +132,8 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_BINARYPATH, FALSE, L"Binary Path", 180, PH_ALIGN_LEFT, 6, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHSVTLC_ERRORCONTROL, FALSE, L"Error Control", 70, PH_ALIGN_LEFT, 7, 0);
     PhAddTreeNewColumn(hwnd, PHSVTLC_GROUP, FALSE, L"Group", 100, PH_ALIGN_LEFT, 7, 0);
+
+    TreeNew_SetRedraw(hwnd, TRUE);
 
     TreeNew_SetSort(hwnd, 0, AscendingSortOrder);
 
