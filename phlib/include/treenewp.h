@@ -122,6 +122,9 @@ typedef struct _PH_TREENEW_CONTEXT
     RECT TooltipRect; // text rectangle of an unfolding tooltip
     HFONT TooltipFont;
     HFONT NewTooltipFont;
+    ULONG TooltipColumnId;
+    WNDPROC FixedHeaderOldWndProc;
+    WNDPROC HeaderOldWndProc;
 
     TEXTMETRIC TextMetrics;
     HTHEME ThemeData;
@@ -599,6 +602,29 @@ VOID PhTnpPopTooltip(
     __in PPH_TREENEW_CONTEXT Context
     );
 
+PPH_TREENEW_COLUMN PhTnpHitTestHeader(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Fixed,
+    __in PPOINT Point,
+    __out_opt PRECT ItemRect
+    );
+
+VOID PhTnpGetHeaderTooltipText(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in BOOLEAN Fixed,
+    __in PPOINT Point,
+    __out PWSTR *Text
+    );
+
+PWSTR PhTnpMakeContextAtom();
+
+LRESULT CALLBACK PhTnpHeaderHookWndProc(
+    __in HWND hwnd,
+    __in UINT uMsg,
+    __in WPARAM wParam,
+    __in LPARAM lParam
+    );
+
 // Double buffering
 
 VOID PhTnpCreateBufferedContext(
@@ -624,6 +650,10 @@ VOID PhTnpGetMessagePos(
 
 #define TNP_TIMER_NULL 1
 #define TNP_TIMER_ANIMATE_DIVIDER 2
+
+#define TNP_TOOLTIPS_ITEM 0
+#define TNP_TOOLTIPS_FIXED_HEADER 1
+#define TNP_TOOLTIPS_HEADER 2
 
 #define TNP_ANIMATE_DIVIDER_INTERVAL 10
 #define TNP_ANIMATE_DIVIDER_INCREMENT 17

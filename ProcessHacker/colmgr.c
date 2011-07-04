@@ -352,6 +352,8 @@ BOOLEAN PhCmLoadSettingsEx(
         }
     }
 
+    TreeNew_SetRedraw(TreeNewHandle, FALSE);
+
     // Set visibility and width.
 
     i = 0;
@@ -422,6 +424,8 @@ BOOLEAN PhCmLoadSettingsEx(
     // Set the order array.
 
     TreeNew_SetColumnOrderArray(TreeNewHandle, maxOrder, orderArray);
+
+    TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
     result = TRUE;
 
