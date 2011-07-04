@@ -234,18 +234,53 @@ BOOLEAN PhCmForwardSort(
     return TRUE;
 }
 
+BOOLEAN PhCmpParseCompoundId(
+    __in PPH_STRINGREF CompoundId,
+    __out PPH_STRINGREF PluginName,
+    __out PULONG SubId
+    )
+{
+    PH_STRINGREF firstPart;
+    PH_STRINGREF secondPart;
+    ULONG64 integer;
+
+    firstPart = *CompoundId;
+
+    if (firstPart.Length == 0)
+        return FALSE;
+    if (firstPart.Buffer[0] != '+')
+        return FALSE;
+
+    firstPart.Buffer++;
+    firstPart.Length -= sizeof(WCHAR);
+
+    PhSplitStringRefAtChar(&firstPart, '+', &firstPart, &secondPart);
+
+    if (firstPart.Length == 0 || secondPart.Length == 0)
+        return FALSE;
+
+    if (!PhStringToInteger64(&secondPart, 10, &integer))
+        return FALSE;
+
+    *PluginName = firstPart;
+    *SubId = (ULONG)integer;
+
+    return TRUE;
+}
+
 BOOLEAN PhCmLoadSettings(
-    __in PPH_CM_MANAGER Manager,
+    __in HWND TreeNewHandle,
     __in PPH_STRINGREF Settings
     )
 {
-    return PhCmLoadSettingsEx(Manager->Handle, Manager, Settings);
+    return PhCmLoadSettingsEx(TreeNewHandle, NULL, Settings, NULL);
 }
 
 BOOLEAN PhCmLoadSettingsEx(
     __in HWND TreeNewHandle,
     __in_opt PPH_CM_MANAGER Manager,
-    __in PPH_STRINGREF Settings
+    __in PPH_STRINGREF Settings,
+    __in_opt PPH_STRINGREF SortSettings
     )
 {
     BOOLEAN result = FALSE;
@@ -293,25 +328,18 @@ BOOLEAN PhCmLoadSettingsEx(
 
             if (valuePart.Buffer[0] == '+')
             {
+                PH_STRINGREF pluginName;
+                ULONG subId;
                 PPH_CM_COLUMN cmColumn;
 
                 // This is a plugin-owned column.
 
                 if (!Manager)
                     continue;
+                if (!PhCmpParseCompoundId(&valuePart, &pluginName, &subId))
+                    continue;
 
-                valuePart.Buffer++;
-                valuePart.Length -= sizeof(WCHAR);
-
-                PhSplitStringRefAtChar(&valuePart, '+', &valuePart, &subPart);
-
-                if (valuePart.Length == 0 || subPart.Length == 0)
-                    goto CleanupExit;
-
-                if (!PhStringToInteger64(&subPart, 10, &integer))
-                    goto CleanupExit;
-
-                cmColumn = PhCmFindColumn(Manager, &valuePart, (ULONG)integer);
+                cmColumn = PhCmFindColumn(Manager, &pluginName, subId);
 
                 if (!cmColumn)
                     continue; // can't find the column, skip this part
@@ -337,9 +365,7 @@ BOOLEAN PhCmLoadSettingsEx(
 
             // Width
 
-            PhSplitStringRefAtChar(&columnPart, ',', &valuePart, &columnPart);
-
-            if (valuePart.Length == 0 || !PhStringToInteger64(&valuePart, 10, &integer))
+            if (columnPart.Length == 0 || !PhStringToInteger64(&columnPart, 10, &integer))
                 goto CleanupExit;
 
             width = (ULONG)integer;
@@ -427,6 +453,50 @@ BOOLEAN PhCmLoadSettingsEx(
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
 
+    // Load sort settings.
+
+    if (SortSettings && SortSettings->Length != 0)
+    {
+        PhSplitStringRefAtChar(SortSettings, ',', &valuePart, &subPart);
+
+        if (valuePart.Length != 0 && subPart.Length != 0)
+        {
+            ULONG sortColumn;
+            PH_SORT_ORDER sortOrder;
+
+            sortColumn = -1;
+
+            if (valuePart.Buffer[0] == '+')
+            {
+                PH_STRINGREF pluginName;
+                ULONG subId;
+                PPH_CM_COLUMN cmColumn;
+
+                if (
+                    Manager &&
+                    PhCmpParseCompoundId(&valuePart, &pluginName, &subId) &&
+                    (cmColumn = PhCmFindColumn(Manager, &pluginName, subId))
+                    )
+                {
+                    sortColumn = cmColumn->Id;
+                }
+            }
+            else
+            {
+                PhStringToInteger64(&valuePart, 10, &integer);
+                sortColumn = (ULONG)integer;
+            }
+
+            PhStringToInteger64(&subPart, 10, &integer);
+            sortOrder = (PH_SORT_ORDER)integer;
+
+            if (sortColumn != -1 && sortOrder <= DescendingSortOrder)
+            {
+                TreeNew_SetSort(TreeNewHandle, sortColumn, sortOrder);
+            }
+        }
+    }
+
     result = TRUE;
 
 CleanupExit:
@@ -442,15 +512,16 @@ CleanupExit:
 }
 
 PPH_STRING PhCmSaveSettings(
-    __in PPH_CM_MANAGER Manager
+    __in HWND TreeNewHandle
     )
 {
-    return PhCmSaveSettingsEx(Manager->Handle, Manager);
+    return PhCmSaveSettingsEx(TreeNewHandle, NULL, NULL);
 }
 
 PPH_STRING PhCmSaveSettingsEx(
     __in HWND TreeNewHandle,
-    __in_opt PPH_CM_MANAGER Manager
+    __in_opt PPH_CM_MANAGER Manager,
+    __out_opt PPH_STRING *SortSettings
     )
 {
     PH_STRING_BUILDER stringBuilder;
@@ -509,6 +580,46 @@ PPH_STRING PhCmSaveSettingsEx(
 
     if (stringBuilder.String->Length != 0)
         PhRemoveStringBuilder(&stringBuilder, stringBuilder.String->Length / 2 - 1, 1);
+
+    if (SortSettings)
+    {
+        ULONG sortColumn;
+        PH_SORT_ORDER sortOrder;
+
+        if (TreeNew_GetSort(TreeNewHandle, &sortColumn, &sortOrder))
+        {
+            if (sortOrder != NoSortOrder)
+            {
+                if (!Manager || sortColumn < Manager->MinId)
+                {
+                    *SortSettings = PhFormatString(L"%u,%u", sortColumn, sortOrder);
+                }
+                else
+                {
+                    PH_TREENEW_COLUMN column;
+                    PPH_CM_COLUMN cmColumn;
+
+                    if (TreeNew_GetColumn(TreeNewHandle, sortColumn, &column))
+                    {
+                        cmColumn = column.Context;
+                        *SortSettings = PhFormatString(L"+%s+%u,%u", cmColumn->Plugin->Name, cmColumn->SubId, sortOrder);
+                    }
+                    else
+                    {
+                        *SortSettings = PhReferenceEmptyString();
+                    }
+                }
+            }
+            else
+            {
+                *SortSettings = PhCreateString(L"0,0");
+            }
+        }
+        else
+        {
+            *SortSettings = PhReferenceEmptyString();
+        }
+    }
 
     return PhFinalStringBuilderString(&stringBuilder);
 }

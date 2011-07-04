@@ -122,14 +122,13 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"MemoryListViewColumns", L"");
     PhpAddStringSetting(L"MemoryReadWriteAddressChoices", L"");
     PhpAddStringSetting(L"ModuleTreeListColumns", L"");
-    PhpAddIntegerPairSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
+    PhpAddStringSetting(L"ModuleTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"NetworkListViewColumns", L"");
     PhpAddIntegerSetting(L"NoPurgeProcessRecords", L"0");
     PhpAddStringSetting(L"PluginsDirectory", L"plugins");
     PhpAddStringSetting(L"ProcessServiceListViewColumns", L"");
     PhpAddStringSetting(L"ProcessTreeListColumns", L"");
-    PhpAddIntegerSetting(L"ProcessTreeListSortColumn", L"0");
-    PhpAddIntegerSetting(L"ProcessTreeListSortOrder", L"0");
+    PhpAddStringSetting(L"ProcessTreeListSort", L"0,0"); // 0, NoSortOrder
     PhpAddStringSetting(L"ProcPropPage", L"General");
     PhpAddIntegerPairSetting(L"ProcPropPosition", L"200,200");
     PhpAddIntegerPairSetting(L"ProcPropSize", L"460,580");
@@ -141,8 +140,7 @@ VOID PhSettingsInitialization()
     PhpAddStringSetting(L"SearchEngine", L"http://www.google.com/search?q=\"%s\"");
     PhpAddStringSetting(L"ServiceListViewColumns", L"");
     PhpAddStringSetting(L"ServiceTreeListColumns", L"");
-    PhpAddIntegerSetting(L"ServiceTreeListSortColumn", L"0");
-    PhpAddIntegerSetting(L"ServiceTreeListSortOrder", L"1"); // AscendingSortOrder
+    PhpAddStringSetting(L"ServiceTreeListSort", L"0,1"); // 0, AscendingSortOrder
     PhpAddIntegerPairSetting(L"SessionShadowHotkey", L"106,2"); // VK_MULTIPLY,KBDCTRL
     PhpAddIntegerSetting(L"StartHidden", L"0");
     PhpAddIntegerSetting(L"SysInfoWindowAlwaysOnTop", L"0");
