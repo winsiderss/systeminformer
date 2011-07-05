@@ -47,7 +47,6 @@ VOID PhpEnablePrivileges();
 PPH_STRING PhApplicationDirectory;
 PPH_STRING PhApplicationFileName;
 PHAPPAPI HFONT PhApplicationFont;
-HFONT PhBoldListViewFont;
 HFONT PhBoldMessageFont;
 PPH_STRING PhCurrentUserName = NULL;
 HFONT PhIconTitleFont;

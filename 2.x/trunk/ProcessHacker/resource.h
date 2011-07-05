@@ -437,11 +437,10 @@
 #define IDC_ZPRIVATEWS_V                1289
 #define IDC_ZSHAREABLEWS_V              1290
 #define IDC_ZSHAREDWS_V                 1291
-#define IDC_CHECK2                      1292
 #define IDC_ENABLEINSTANTTOOLTIPS       1292
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
-#define ID_MAINWND_NETWORKLV            2003
+#define ID_MAINWND_NETWORKTL            2003
 #define ID_MAINWND_PROCESSLV            2004
 #define ID_HACKER_EXIT                  40001
 #define ID_USERS                        40002
