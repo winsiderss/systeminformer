@@ -794,100 +794,155 @@ VOID PhTnpOnXxxButtonXxx(
 
     if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && (Message == WM_LBUTTONDOWN || Message == WM_RBUTTONDOWN))
     {
+        LOGICAL realHitItem;
+        PH_TREENEW_CELL_PARTS parts;
+
+        PhTnpPopTooltip(Context);
+
         if (hitTest.Flags & TN_HIT_ITEM)
         {
             Context->FocusNode = hitTest.Node;
+        }
 
-            if (Message == WM_RBUTTONDOWN)
+        realHitItem = hitTest.Flags & TN_HIT_ITEM;
+
+        if (realHitItem && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
+        {
+            // To allow drag selection to begin even if the cursor is on an item,
+            // we check if the cursor is on the item icon or text. If it isn't, then 
+            // don't count that as a hit. The exception is when the item is already 
+            // selected - we always count that as a hit. Also, we always count it as 
+            // a hit if user is beginning to drag the divider.
+
+            if (!hitTest.Node->Selected && !startingTracking)
             {
-                // Right button:
-                // If the current node is selected, then do nothing. This is to allow context 
-                // menus to operate on multiple items.
-                // If the current node is not selected, select only that node.
-
-                if (!controlKey && !shiftKey && !hitTest.Node->Selected)
+                if (PhTnpGetCellParts(Context, hitTest.Node->Index, hitTest.Column, TN_MEASURE_TEXT, &parts))
                 {
-                    PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
-                    Context->MarkNodeIndex = hitTest.Node->Index;
+                    realHitItem = FALSE;
 
-                    if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                    if ((parts.Flags & TN_PART_ICON) && CursorX >= parts.IconRect.left && CursorX < parts.IconRect.right)
+                        realHitItem = TRUE;
+
+                    if (parts.Flags & TN_PART_TEXT)
                     {
-                        InvalidateRect(hwnd, &rect, FALSE);
+                        if (!(hitTest.Column->TextFlags & (DT_CENTER | DT_RIGHT)))
+                        {
+                            if (CursorX >= parts.TextRect.left && CursorX < parts.TextRect.right)
+                                realHitItem = TRUE;
+                        }
+                        else if (parts.Flags & TN_PART_CONTENT)
+                        {
+                            // PhTnpGetCellParts doesn't take into account text alignment. If there's text and 
+                            // the cursor is in the content part, it's a hit.
+                            if (parts.Text.Length != 0 && CursorX >= parts.ContentRect.left && CursorX < parts.ContentRect.right)
+                                realHitItem = TRUE;
+                        }
                     }
                 }
             }
-            else if (shiftKey && Context->MarkNodeIndex != -1)
-            {
-                ULONG start;
-                ULONG end;
+        }
 
-                // Shift key: select a range from the selection mark node to the current node.
-
-                if (hitTest.Node->Index > Context->MarkNodeIndex)
-                {
-                    start = Context->MarkNodeIndex;
-                    end = hitTest.Node->Index;
-                }
-                else
-                {
-                    start = hitTest.Node->Index;
-                    end = Context->MarkNodeIndex;
-                }
-
-                PhTnpSelectRange(Context, start, end, TN_SELECT_RESET, &changedStart, &changedEnd);
-
-                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
-                {
-                    InvalidateRect(hwnd, &rect, FALSE);
-                }
-            }
-            else if (controlKey)
-            {
-                // Control key: toggle the selection on the current node, and also make it the selection mark.
-
-                PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_TOGGLE, NULL, NULL);
-                Context->MarkNodeIndex = hitTest.Node->Index;
-
-                if (PhTnpGetRowRects(Context, hitTest.Node->Index, hitTest.Node->Index, TRUE, &rect))
-                {
-                    InvalidateRect(hwnd, &rect, FALSE);
-                }
-            }
-            else
-            {
-                // Normal: select the current node, and also make it the selection mark.
-
-                PhTnpSelectRange(Context, hitTest.Node->Index, hitTest.Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
-                Context->MarkNodeIndex = hitTest.Node->Index;
-
-                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
-                {
-                    InvalidateRect(hwnd, &rect, FALSE);
-                }
-            }
-
-            PhTnpPopTooltip(Context);
+        if (realHitItem)
+        {
+            PhTnpProcessSelectNode(Context, hitTest.Node, controlKey, shiftKey, Message == WM_RBUTTONDOWN);
         }
         else
         {
             BOOLEAN dragSelect;
+            ULONG indexToSelect;
+            BOOLEAN selectionProcessed;
 
             dragSelect = FALSE;
+            indexToSelect = -1;
+            selectionProcessed = FALSE;
 
             if (!(hitTest.Flags & (TN_HIT_LEFT | TN_HIT_RIGHT | TN_HIT_ABOVE | TN_HIT_BELOW)))
             {
-                // Check for drag selection.
-                if (PhTnpDetectDrag(Context, CursorX, CursorY, TRUE))
+                BOOLEAN result;
+                ULONG saveIndex;
+                ULONG saveId;
+                ULONG cancelledByMessage;
+
+                // Check for drag selection. PhTnpDetectDrag has its own message loop, so we need to 
+                // clear our pointers before we continue or we will have some access violations when 
+                // items get deleted.
+
+                if (hitTest.Node)
+                    saveIndex = hitTest.Node->Index;
+                else
+                    saveIndex = -1;
+
+                if (hitTest.Column)
+                    saveId = hitTest.Column->Id;
+                else
+                    saveId = -1;
+
+                result = PhTnpDetectDrag(Context, CursorX, CursorY, TRUE, &cancelledByMessage);
+
+                // Restore the pointers.
+
+                if (saveIndex == -1)
+                    hitTest.Node = NULL;
+                else if (saveIndex < Context->FlatList->Count)
+                    hitTest.Node = Context->FlatList->Items[saveIndex];
+                else
+                    return;
+
+                if (saveId != -1 && !(hitTest.Column = PhTnpLookupColumnById(Context, saveId)))
+                    return;
+
+                if (result)
                 {
                     dragSelect = TRUE;
+
+                    if ((hitTest.Flags & TN_HIT_ITEM) && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
+                    {
+                        // Include the current node before starting the drag selection, otherwise the user 
+                        // will never be able to select the current node.
+                        indexToSelect = hitTest.Node->Index;
+                    }
+                }
+                else
+                {
+                    if ((Message == WM_LBUTTONDOWN && cancelledByMessage == WM_LBUTTONUP) ||
+                        (Message == WM_RBUTTONDOWN && cancelledByMessage == WM_RBUTTONUP))
+                    {
+                        POINT point;
+
+                        if ((hitTest.Flags & TN_HIT_ITEM) && (Context->ExtendedFlags & TN_FLAG_ITEM_DRAG_SELECT))
+                        {
+                            // The user isn't performing a drag selection, but we didn't count this as a hit earlier.
+                            // It's a hit now.
+                            PhTnpProcessSelectNode(Context, hitTest.Node, controlKey, shiftKey, Message == WM_RBUTTONDOWN);
+                            selectionProcessed = TRUE;
+                        }
+
+                        // The button up message gets consumed by PhTnpDetectDrag, so send the mouse event here.
+                        // Check if the cursor stayed in the same place.
+
+                        PhTnpGetMessagePos(Context->Handle, &point);
+
+                        if (point.x == CursorX && point.y == CursorY)
+                        {
+                            PhTnpSendMouseEvent(
+                                Context,
+                                Message == WM_LBUTTONDOWN ? TreeNewLeftClick : TreeNewRightClick,
+                                CursorX,
+                                CursorY,
+                                hitTest.Node,
+                                hitTest.Column,
+                                VirtualKeys
+                                );
+                        }
+                    }
                 }
             }
 
-            if (!controlKey && !shiftKey)
+            if (!selectionProcessed && !controlKey && !shiftKey)
             {
                 // Nothing: deselect everything.
 
-                PhTnpSelectRange(Context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+                PhTnpSelectRange(Context, indexToSelect, indexToSelect, TN_SELECT_RESET, &changedStart, &changedEnd);
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
@@ -899,10 +954,15 @@ VOID PhTnpOnXxxButtonXxx(
             {
                 PhTnpDragSelect(Context, CursorX, CursorY);
             }
+
+            return;
         }
     }
 
     // Click, double-click
+    // Note: If TN_FLAG_ITEM_DRAG_SELECT is enabled, the code below that processes WM_xBUTTONDOWN 
+    // and WM_xBUTTONUP messages only takes effect when the user clicks directly on an item's icon 
+    // or text.
 
     clickMessage = -1;
 
@@ -947,17 +1007,8 @@ VOID PhTnpOnXxxButtonXxx(
 
     if (!(hitTest.Flags & TN_HIT_ITEM_PLUSMINUS) && clickMessage != -1)
     {
-        PH_TREENEW_MOUSE_EVENT mouseEvent;
-
-        mouseEvent.Location.x = CursorX;
-        mouseEvent.Location.y = CursorY;
-        mouseEvent.Node = hitTest.Node;
-        mouseEvent.Column = hitTest.Column;
-        mouseEvent.KeyFlags = VirtualKeys;
-        Context->Callback(Context->Handle, clickMessage, &mouseEvent, NULL, Context->CallbackContext);
+        PhTnpSendMouseEvent(Context, clickMessage, CursorX, CursorY, hitTest.Node, hitTest.Column, VirtualKeys);
     }
-
-    // TODO: Drag selection
 }
 
 VOID PhTnpOnCaptureChanged(
@@ -1698,6 +1749,10 @@ ULONG_PTR PhTnpOnUserMessage(
     case TNM_SETHOTNODE:
         PhTnpSetHotNode(Context, (PPH_TREENEW_NODE)LParam, FALSE);
         return TRUE;
+    case TNM_SETEXTENDEDFLAGS:
+        Context->ExtendedFlags &= ~(ULONG)WParam;
+        Context->ExtendedFlags |= (ULONG)LParam;
+        return TRUE;
     }
 
     return 0;
@@ -2001,6 +2056,26 @@ VOID PhTnpSetRedraw(
             Context->SuspendUpdateRegion = NULL;
         }
     }
+}
+
+VOID PhTnpSendMouseEvent(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PH_TREENEW_MESSAGE Message,
+    __in LONG CursorX,
+    __in LONG CursorY,
+    __in PPH_TREENEW_NODE Node,
+    __in PPH_TREENEW_COLUMN Column,
+    __in ULONG VirtualKeys
+    )
+{
+    PH_TREENEW_MOUSE_EVENT mouseEvent;
+
+    mouseEvent.Location.x = CursorX;
+    mouseEvent.Location.y = CursorY;
+    mouseEvent.Node = Node;
+    mouseEvent.Column = Column;
+    mouseEvent.KeyFlags = VirtualKeys;
+    Context->Callback(Context->Handle, Message, &mouseEvent, NULL, Context->CallbackContext);
 }
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
@@ -3343,6 +3418,87 @@ VOID PhTnpSetHotNode(
         if (needsInvalidate && Context->ThemeData && PhTnpGetRowRects(Context, newHotNodeIndex, newHotNodeIndex, TRUE, &rowRect))
         {
             InvalidateRect(Context->Handle, &rowRect, FALSE);
+        }
+    }
+}
+
+VOID PhTnpProcessSelectNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in LOGICAL ControlKey,
+    __in LOGICAL ShiftKey,
+    __in LOGICAL RightButton
+    )
+{
+    ULONG changedStart;
+    ULONG changedEnd;
+    RECT rect;
+
+    if (RightButton)
+    {
+        // Right button:
+        // If the current node is selected, then do nothing. This is to allow context 
+        // menus to operate on multiple items.
+        // If the current node is not selected, select only that node.
+
+        if (!ControlKey && !ShiftKey && !Node->Selected)
+        {
+            PhTnpSelectRange(Context, Node->Index, Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
+            Context->MarkNodeIndex = Node->Index;
+
+            if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+            {
+                InvalidateRect(Context->Handle, &rect, FALSE);
+            }
+        }
+    }
+    else if (ShiftKey && Context->MarkNodeIndex != -1)
+    {
+        ULONG start;
+        ULONG end;
+
+        // Shift key: select a range from the selection mark node to the current node.
+
+        if (Node->Index > Context->MarkNodeIndex)
+        {
+            start = Context->MarkNodeIndex;
+            end = Node->Index;
+        }
+        else
+        {
+            start = Node->Index;
+            end = Context->MarkNodeIndex;
+        }
+
+        PhTnpSelectRange(Context, start, end, TN_SELECT_RESET, &changedStart, &changedEnd);
+
+        if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+        {
+            InvalidateRect(Context->Handle, &rect, FALSE);
+        }
+    }
+    else if (ControlKey)
+    {
+        // Control key: toggle the selection on the current node, and also make it the selection mark.
+
+        PhTnpSelectRange(Context, Node->Index, Node->Index, TN_SELECT_TOGGLE, NULL, NULL);
+        Context->MarkNodeIndex = Node->Index;
+
+        if (PhTnpGetRowRects(Context, Node->Index, Node->Index, TRUE, &rect))
+        {
+            InvalidateRect(Context->Handle, &rect, FALSE);
+        }
+    }
+    else
+    {
+        // Normal: select the current node, and also make it the selection mark.
+
+        PhTnpSelectRange(Context, Node->Index, Node->Index, TN_SELECT_RESET, &changedStart, &changedEnd);
+        Context->MarkNodeIndex = Node->Index;
+
+        if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+        {
+            InvalidateRect(Context->Handle, &rect, FALSE);
         }
     }
 }
@@ -5316,7 +5472,8 @@ BOOLEAN PhTnpDetectDrag(
     __in PPH_TREENEW_CONTEXT Context,
     __in LONG CursorX,
     __in LONG CursorY,
-    __in BOOLEAN DispatchMessages
+    __in BOOLEAN DispatchMessages,
+    __out_opt PULONG CancelledByMessage
     )
 {
     RECT dragRect;
@@ -5331,6 +5488,9 @@ BOOLEAN PhTnpDetectDrag(
     MapWindowPoints(Context->Handle, NULL, (POINT *)&dragRect, 2);
 
     SetCapture(Context->Handle);
+
+    if (CancelledByMessage)
+        *CancelledByMessage = 0;
 
     do
     {
@@ -5348,7 +5508,11 @@ BOOLEAN PhTnpDetectDrag(
         case WM_RBUTTONDOWN:
         case WM_RBUTTONUP:
             ReleaseCapture();
-            return FALSE;
+
+            if (CancelledByMessage)
+                *CancelledByMessage = msg.message;
+
+            break;
         case WM_MOUSEMOVE:
             if (msg.pt.x < dragRect.left || msg.pt.x >= dragRect.right ||
                 msg.pt.y < dragRect.top || msg.pt.y >= dragRect.bottom)
@@ -5575,7 +5739,7 @@ VOID PhTnpDragSelect(
                 ULONG changedEnd;
                 RECT rect;
 
-                PhTnpSelectRange(Context, -1, 0, TN_SELECT_RESET, &changedStart, &changedEnd);
+                PhTnpSelectRange(Context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
