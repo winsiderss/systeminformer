@@ -868,15 +868,36 @@ VOID PhTnpOnXxxButtonXxx(
 
             PhTnpPopTooltip(Context);
         }
-        else if (!controlKey && !shiftKey)
+        else
         {
-            // Nothing: deselect everything.
+            BOOLEAN dragSelect;
 
-            PhTnpSelectRange(Context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+            dragSelect = FALSE;
 
-            if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+            if (!(hitTest.Flags & (TN_HIT_LEFT | TN_HIT_RIGHT | TN_HIT_ABOVE | TN_HIT_BELOW)))
             {
-                InvalidateRect(hwnd, &rect, FALSE);
+                // Check for drag selection.
+                if (PhTnpDetectDrag(Context, CursorX, CursorY, TRUE))
+                {
+                    dragSelect = TRUE;
+                }
+            }
+
+            if (!controlKey && !shiftKey)
+            {
+                // Nothing: deselect everything.
+
+                PhTnpSelectRange(Context, -1, -1, TN_SELECT_RESET, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(hwnd, &rect, FALSE);
+                }
+            }
+
+            if (dragSelect)
+            {
+                PhTnpDragSelect(Context, CursorX, CursorY);
             }
         }
     }
@@ -1725,6 +1746,13 @@ VOID PhTnpUpdateSystemMetrics(
 {
     Context->VScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
     Context->HScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
+    Context->SystemDragX = GetSystemMetrics(SM_CXDRAG);
+    Context->SystemDragY = GetSystemMetrics(SM_CYDRAG);
+
+    if (Context->SystemDragX < 2)
+        Context->SystemDragX = 2;
+    if (Context->SystemDragY < 2)
+        Context->SystemDragY = 2;
 }
 
 VOID PhTnpUpdateTextMetrics(
@@ -2889,8 +2917,6 @@ BOOLEAN PhTnpGetCellParts(
     LONG iconVerticalMargin;
     LONG currentX;
 
-    // This function must be kept in sync with PhTnpDrawCell.
-
     if (Index >= Context->FlatList->Count)
         return FALSE;
 
@@ -3352,7 +3378,7 @@ BOOLEAN PhTnpEnsureVisibleNode(
         // The row is below the view area. We want to scroll the row into view at the bottom of the screen.
         // We need to round up when dividing to make sure the node becomes fully visible.
         deltaY = rowBottom - viewBottom;
-        deltaRows = (deltaY + Context->RowHeight + 1) / Context->RowHeight; // divide, round up
+        deltaRows = (deltaY + Context->RowHeight - 1) / Context->RowHeight; // divide, round up
     }
     else
     {
@@ -3570,7 +3596,6 @@ BOOLEAN PhTnpProcessFocusKey(
     shiftKey = GetKeyState(VK_SHIFT) < 0;
 
     Context->FocusNode = Context->FlatList->Items[index];
-    PhTnpEnsureVisibleNode(Context, index);
     PhTnpSetHotNode(Context, Context->FocusNode, FALSE);
 
     if (shiftKey && Context->MarkNodeIndex != -1)
@@ -3604,6 +3629,7 @@ BOOLEAN PhTnpProcessFocusKey(
         }
     }
 
+    PhTnpEnsureVisibleNode(Context, index);
     PhTnpPopTooltip(Context);
 
     return TRUE;
@@ -4244,7 +4270,7 @@ VOID PhTnpPaint(
     // Calculate the indicies of the first and last rows that need painting. These indicies are relative to the top of the view area.
 
     firstRowToUpdate = (PaintRect->top - Context->HeaderHeight) / Context->RowHeight;
-    lastRowToUpdate = (PaintRect->bottom - Context->HeaderHeight - 1) / Context->RowHeight; // minus one since bottom is exclusive
+    lastRowToUpdate = (PaintRect->bottom - 1 - Context->HeaderHeight) / Context->RowHeight; // minus one since bottom is exclusive
 
     if (firstRowToUpdate < 0)
         firstRowToUpdate = 0;
@@ -4431,7 +4457,7 @@ VOID PhTnpPaint(
         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
     }
 
-    if (normalTotalX < viewRect.right && viewRect.right >= PaintRect->left && normalTotalX < PaintRect->right)
+    if (normalTotalX < viewRect.right && viewRect.right > PaintRect->left && normalTotalX < PaintRect->right)
     {
         // Fill the rest of the space on the right with the window color.
         rowRect.left = normalTotalX;
@@ -4444,6 +4470,11 @@ VOID PhTnpPaint(
     if (Context->FixedDividerVisible && Context->FixedWidth >= PaintRect->left && Context->FixedWidth < PaintRect->right)
     {
         PhTnpDrawDivider(Context, hdc);
+    }
+
+    if (Context->DragSelectionActive)
+    {
+        PhTnpDrawSelectionRectangle(Context, hdc, &Context->DragRect);
     }
 }
 
@@ -4858,6 +4889,20 @@ VOID PhTnpDrawPlusMinusGlyph(
     RestoreDC(hdc, savedDc);
 }
 
+VOID PhTnpDrawSelectionRectangle(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT Rect
+    )
+{
+    // MSDN says FrameRect doesn't draw anything if bottom <= top or right <= left.
+    // That's complete rubbish. (And thanks for making me waste a whole hour on this redraw problem.)
+    if (Rect->right - Rect->left == 0 || Rect->bottom - Rect->top == 0)
+        return;
+
+    DrawFocusRect(hdc, Rect);
+}
+
 VOID PhTnpInitializeTooltips(
     __in PPH_TREENEW_CONTEXT Context
     )
@@ -5265,6 +5310,370 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
+BOOLEAN PhTnpDetectDrag(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY,
+    __in BOOLEAN DispatchMessages
+    )
+{
+    RECT dragRect;
+    MSG msg;
+
+    // Capture mouse input and see if the user moves the mouse beyond the drag rectangle.
+
+    dragRect.left = CursorX - Context->SystemDragX;
+    dragRect.top = CursorY - Context->SystemDragY;
+    dragRect.right = CursorX + Context->SystemDragX;
+    dragRect.bottom = CursorY + Context->SystemDragY;
+    MapWindowPoints(Context->Handle, NULL, (POINT *)&dragRect, 2);
+
+    SetCapture(Context->Handle);
+
+    do
+    {
+        // It seems that GetMessage dispatches nonqueued messages directly from kernel-mode, so 
+        // we have to use PeekMessage and WaitMessage in order to process WM_CAPTURECHANGED messages.
+        if (!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            WaitMessage();
+        }
+
+        switch (msg.message)
+        {
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:
+            ReleaseCapture();
+            return FALSE;
+        case WM_MOUSEMOVE:
+            if (msg.pt.x < dragRect.left || msg.pt.x >= dragRect.right ||
+                msg.pt.y < dragRect.top || msg.pt.y >= dragRect.bottom)
+            {
+                if (IsWindow(Context->Handle))
+                    return TRUE;
+                else
+                    return FALSE;
+            }
+            break;
+        default:
+            if (DispatchMessages)
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+            break;
+        }
+    } while (IsWindow(Context->Handle) && GetCapture() == Context->Handle);
+
+    return FALSE;
+}
+
+VOID PhTnpDragSelect(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY
+    )
+{
+    MSG msg;
+    LONG cursorX;
+    LONG cursorY;
+    RECT dragRect;
+    RECT oldDragRect;
+    RECT windowRect;
+    POINT cursorPoint;
+    BOOLEAN showContextMenu;
+
+    cursorX = CursorX;
+    cursorY = CursorY;
+
+    dragRect.left = cursorX;
+    dragRect.top = cursorY;
+    dragRect.right = cursorX;
+    dragRect.bottom = cursorY;
+    oldDragRect = dragRect;
+    Context->DragRect = dragRect;
+    Context->DragSelectionActive = TRUE;
+
+    GetWindowRect(Context->Handle, &windowRect);
+
+    cursorPoint.x = windowRect.left + cursorX;
+    cursorPoint.y = windowRect.top + cursorY;
+
+    showContextMenu = FALSE;
+
+    SetCapture(Context->Handle);
+
+    while (TRUE)
+    {
+        if (!PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            BOOLEAN leftOrRight;
+            BOOLEAN aboveOrBelow;
+
+            // If the cursor is outside of the window, generate some messages 
+            // so the window keeps scrolling.
+
+            leftOrRight = cursorPoint.x < windowRect.left || cursorPoint.x >= windowRect.right;
+            aboveOrBelow = cursorPoint.y < windowRect.top || cursorPoint.y >= windowRect.bottom;
+
+            if ((Context->VScrollVisible && aboveOrBelow) || (Context->HScrollVisible && leftOrRight))
+            {
+                SetCursorPos(cursorPoint.x, cursorPoint.y);
+            }
+            else
+            {
+                WaitMessage();
+            }
+
+            goto EndOfLoop;
+        }
+
+        cursorPoint = msg.pt;
+
+        switch (msg.message)
+        {
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONDOWN:
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:
+            ReleaseCapture();
+            goto EndOfLoop;
+        case WM_RBUTTONUP:
+            ReleaseCapture();
+            showContextMenu = TRUE;
+            goto EndOfLoop;
+        case WM_MOUSEMOVE:
+            {
+                LONG newCursorX;
+                LONG newCursorY;
+                LONG deltaRows;
+                LONG deltaX;
+                LONG oldVScrollPosition;
+                LONG oldHScrollPosition;
+                LONG newDeltaX;
+                LONG newDeltaY;
+                LONG viewTop;
+                LONG viewRight;
+                RECT totalRect;
+
+                newCursorX = GET_X_LPARAM(msg.lParam);
+                newCursorY = GET_Y_LPARAM(msg.lParam);
+
+                // Scroll the window if the cursor is outside of it.
+
+                deltaRows = 0;
+                deltaX = 0;
+
+                if (Context->VScrollVisible)
+                {
+                    if (cursorPoint.y < windowRect.top)
+                        deltaRows = -(windowRect.top - cursorPoint.y + Context->RowHeight - 1) / Context->RowHeight; // scroll up
+                    else if (cursorPoint.y >= windowRect.bottom)
+                        deltaRows = (cursorPoint.y - windowRect.bottom + Context->RowHeight - 1) / Context->RowHeight; // scroll down
+                }
+
+                if (Context->HScrollVisible)
+                {
+                    if (cursorPoint.x < windowRect.left)
+                        deltaX = -(windowRect.left - cursorPoint.x); // scroll left
+                    else if (cursorPoint.x >= windowRect.right)
+                        deltaX = cursorPoint.x - windowRect.right; // scroll right
+                }
+
+                oldVScrollPosition = Context->VScrollPosition;
+                oldHScrollPosition = Context->HScrollPosition;
+
+                if (deltaRows != 0 || deltaX != 0)
+                    PhTnpScroll(Context, deltaRows, deltaX);
+
+                newDeltaX = oldHScrollPosition - Context->HScrollPosition;
+                newDeltaY = (oldVScrollPosition - Context->VScrollPosition) * Context->RowHeight;
+
+                // Adjust our original drag point for the scrolling.
+                cursorX += newDeltaX;
+                cursorY += newDeltaY;
+
+                // Adjust the old drag rectangle for the scrolling.
+                oldDragRect.left += newDeltaX;
+                oldDragRect.top += newDeltaY;
+                oldDragRect.right += newDeltaX;
+                oldDragRect.bottom += newDeltaY;
+
+                // Ensure that the new cursor position is within the view area.
+
+                viewTop = Context->HeaderHeight;
+                viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+
+                if (newCursorX < 0)
+                    newCursorX = 0;
+                if (newCursorX > viewRight)
+                    newCursorX = viewRight;
+                if (newCursorY < viewTop)
+                    newCursorY = viewTop;
+                if (newCursorY > Context->ClientRect.bottom)
+                    newCursorY = Context->ClientRect.bottom;
+
+                // Create the new drag rectangle.
+
+                if (cursorX < newCursorX)
+                {
+                    dragRect.left = cursorX;
+                    dragRect.right = newCursorX;
+                }
+                else
+                {
+                    dragRect.left = newCursorX;
+                    dragRect.right = cursorX;
+                }
+
+                if (cursorY < newCursorY)
+                {
+                    dragRect.top = cursorY;
+                    dragRect.bottom = newCursorY;
+                }
+                else
+                {
+                    dragRect.top = newCursorY;
+                    dragRect.bottom = cursorY;
+                }
+
+                // Has anything changed from before?
+                if (dragRect.left == oldDragRect.left && dragRect.top == oldDragRect.top &&
+                    dragRect.right == oldDragRect.right && dragRect.bottom == oldDragRect.bottom)
+                {
+                    break;
+                }
+
+                Context->DragRect = dragRect;
+
+                // Process the selection.
+                totalRect.left = min(dragRect.left, oldDragRect.left);
+                totalRect.top = min(dragRect.top, oldDragRect.top);
+                totalRect.right = max(dragRect.right, oldDragRect.right);
+                totalRect.bottom = max(dragRect.bottom, oldDragRect.bottom);
+                PhTnpProcessDragSelect(Context, (ULONG)msg.wParam, &oldDragRect, &dragRect, &totalRect);
+
+                // Redraw the drag rectangle.
+                RedrawWindow(Context->Handle, &totalRect, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+
+                oldDragRect = dragRect;
+            }
+            break;
+        case WM_MOUSELEAVE:
+            break; // don't process
+        case WM_MOUSEWHEEL:
+            break; // don't process
+        case WM_KEYDOWN:
+            if (msg.wParam == VK_ESCAPE)
+            {
+                ULONG changedStart;
+                ULONG changedEnd;
+                RECT rect;
+
+                PhTnpSelectRange(Context, -1, 0, TN_SELECT_RESET, &changedStart, &changedEnd);
+
+                if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+                {
+                    InvalidateRect(Context->Handle, &rect, FALSE);
+                }
+
+                ReleaseCapture();
+            }
+            break; // don't process
+        case WM_CHAR:
+            break; // don't process
+        default:
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+            break;
+        }
+
+EndOfLoop:
+        if (GetCapture() != Context->Handle)
+            break;
+    }
+
+    Context->DragSelectionActive = FALSE;
+    RedrawWindow(Context->Handle, &dragRect, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+
+    if (showContextMenu)
+    {
+        // Display a context menu at the original drag point.
+        SendMessage(Context->Handle, WM_CONTEXTMENU, (WPARAM)Context->Handle, MAKELPARAM(windowRect.left + CursorX, windowRect.top + CursorY));
+    }
+}
+
+VOID PhTnpProcessDragSelect(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKeys,
+    __in PRECT OldRect,
+    __in PRECT NewRect,
+    __in PRECT TotalRect
+    )
+{
+    LONG firstRow;
+    LONG lastRow;
+    RECT rowRect;
+    LONG i;
+    PPH_TREENEW_NODE node;
+    LONG changedStart;
+    LONG changedEnd;
+    RECT rect;
+
+    // Determine which rows we need to test. The divisions below must be done on positive integers to ensure correct rounding.
+
+    firstRow = (TotalRect->top - Context->HeaderHeight + Context->VScrollPosition * Context->RowHeight) / Context->RowHeight;
+    lastRow = (TotalRect->bottom - 1 - Context->HeaderHeight + Context->VScrollPosition * Context->RowHeight) / Context->RowHeight;
+
+    if (firstRow < 0)
+        firstRow = 0;
+    if (lastRow >= (LONG)Context->FlatList->Count)
+        lastRow = Context->FlatList->Count - 1;
+
+    rowRect.left = 0;
+    rowRect.top = Context->HeaderHeight + (firstRow - Context->VScrollPosition) * Context->RowHeight;
+    rowRect.right = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
+    rowRect.bottom = rowRect.top + Context->RowHeight;
+
+    changedStart = lastRow;
+    changedEnd = firstRow;
+
+    // Process the rows.
+    for (i = firstRow; i <= lastRow; i++)
+    {
+        BOOLEAN inOldRect;
+        BOOLEAN inNewRect;
+
+        node = Context->FlatList->Items[i];
+
+        inOldRect = rowRect.top < OldRect->bottom && rowRect.bottom > OldRect->top &&
+            rowRect.left < OldRect->right && rowRect.right > OldRect->left;
+        inNewRect = rowRect.top < NewRect->bottom && rowRect.bottom > NewRect->top &&
+            rowRect.left < NewRect->right && rowRect.right > NewRect->left;
+
+        if (inOldRect != inNewRect)
+        {
+            node->Selected = !node->Selected;
+
+            if (changedStart > i)
+                changedStart = i;
+            if (changedEnd < i)
+                changedEnd = i;
+        }
+
+        rowRect.top = rowRect.bottom;
+        rowRect.bottom += Context->RowHeight;
+    }
+
+    if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
+    {
+        InvalidateRect(Context->Handle, &rect, FALSE);
+    }
 }
 
 VOID PhTnpCreateBufferedContext(
