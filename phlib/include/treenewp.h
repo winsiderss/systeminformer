@@ -715,7 +715,7 @@ VOID PhTnpGetMessagePos(
 #define TNP_ANIMATE_DIVIDER_DECREMENT 2
 
 #define TNP_HIT_TEST_FIXED_DIVIDER(X, Context) \
-    (Context->FixedDividerVisible && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
+    ((Context)->FixedDividerVisible && (X) >= (Context)->FixedWidth - 8 && (X) < (Context)->FixedWidth + 8)
 #define TNP_HIT_TEST_PLUS_MINUS_GLYPH(X, NodeLevel) \
     (((X) >= TNP_CELL_LEFT_MARGIN + ((LONG)(NodeLevel) * SmallIconWidth)) && ((X) < TNP_CELL_LEFT_MARGIN + ((LONG)(NodeLevel) * SmallIconWidth) + SmallIconWidth))
 
