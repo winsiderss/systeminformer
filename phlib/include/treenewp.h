@@ -56,7 +56,9 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SuspendUpdateStructure : 1;
             ULONG SuspendUpdateLayout : 1;
             ULONG SuspendUpdateMoveMouse : 1;
-            ULONG Spare : 7;
+            ULONG DragSelectionActive : 1;
+            ULONG SelectionRectangleAlpha : 1; // use alpha blending for the selection rectangle
+            ULONG Spare : 5;
         };
         ULONG Flags;
     };
@@ -133,6 +135,10 @@ typedef struct _PH_TREENEW_CONTEXT
     HBITMAP BufferedOldBitmap;
     HBITMAP BufferedBitmap;
     RECT BufferedContextRect;
+
+    LONG SystemDragX;
+    LONG SystemDragY;
+    RECT DragRect;
 
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
@@ -578,6 +584,12 @@ VOID PhTnpDrawPlusMinusGlyph(
     __in BOOLEAN Plus
     );
 
+VOID PhTnpDrawSelectionRectangle(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in HDC hdc,
+    __in PRECT Rect
+    );
+
 // Tooltips
 
 VOID PhTnpInitializeTooltips(
@@ -623,6 +635,29 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
     __in UINT uMsg,
     __in WPARAM wParam,
     __in LPARAM lParam
+    );
+
+// Drag selection
+
+BOOLEAN PhTnpDetectDrag(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY,
+    __in BOOLEAN DispatchMessages
+    );
+
+VOID PhTnpDragSelect(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in LONG CursorX,
+    __in LONG CursorY
+    );
+
+VOID PhTnpProcessDragSelect(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in ULONG VirtualKeys,
+    __in PRECT OldRect,
+    __in PRECT NewRect,
+    __in PRECT TotalRect
     );
 
 // Double buffering
