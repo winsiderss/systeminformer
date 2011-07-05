@@ -710,6 +710,7 @@ VOID PhSelectAndEnsureVisibleServiceNode(
 
     TreeNew_SetFocusNode(ServiceTreeListHandle, &ServiceNode->Node);
     TreeNew_SetMarkNode(ServiceTreeListHandle, &ServiceNode->Node);
+    TreeNew_SelectRange(ServiceTreeListHandle, ServiceNode->Node.Index, ServiceNode->Node.Index);
     TreeNew_EnsureVisible(ServiceTreeListHandle, &ServiceNode->Node);
 }
 

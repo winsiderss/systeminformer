@@ -708,6 +708,17 @@ VOID PhTnpOnMouseLeave(
     }
 
     Context->HotNodeIndex = -1;
+
+    if (Context->AnimateDivider && Context->FixedDividerVisible)
+    {
+        if (Context->DividerHot != 0 && !Context->AnimateDividerFadingOut)
+        {
+            // Fade out the divider.
+            Context->AnimateDividerFadingOut = TRUE;
+            Context->AnimateDividerFadingIn = FALSE;
+            SetTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER, TNP_ANIMATE_DIVIDER_INTERVAL, NULL);
+        }
+    }
 }
 
 VOID PhTnpOnXxxButtonXxx(
@@ -856,7 +867,7 @@ VOID PhTnpOnXxxButtonXxx(
             indexToSelect = -1;
             selectionProcessed = FALSE;
 
-            if (!(hitTest.Flags & (TN_HIT_LEFT | TN_HIT_RIGHT | TN_HIT_ABOVE | TN_HIT_BELOW)))
+            if (!(hitTest.Flags & (TN_HIT_LEFT | TN_HIT_RIGHT | TN_HIT_ABOVE | TN_HIT_BELOW)) && !startingTracking) // don't interfere with divider
             {
                 BOOLEAN result;
                 ULONG saveIndex;
