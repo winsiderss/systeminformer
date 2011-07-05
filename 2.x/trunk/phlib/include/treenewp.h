@@ -64,6 +64,7 @@ typedef struct _PH_TREENEW_CONTEXT
     };
     ULONG Style;
     ULONG ExtendedStyle;
+    ULONG ExtendedFlags;
 
     HFONT Font;
     HCURSOR Cursor;
@@ -343,6 +344,16 @@ VOID PhTnpSetRedraw(
     __in BOOLEAN Redraw
     );
 
+VOID PhTnpSendMouseEvent(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PH_TREENEW_MESSAGE Message,
+    __in LONG CursorX,
+    __in LONG CursorY,
+    __in PPH_TREENEW_NODE Node,
+    __in PPH_TREENEW_COLUMN Column,
+    __in ULONG VirtualKeys
+    );
+
 // Columns
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
@@ -491,6 +502,14 @@ VOID PhTnpSetHotNode(
     __in PPH_TREENEW_CONTEXT Context,
     __in_opt PPH_TREENEW_NODE NewHotNode,
     __in BOOLEAN NewPlusMinusHot
+    );
+
+VOID PhTnpProcessSelectNode(
+    __in PPH_TREENEW_CONTEXT Context,
+    __in PPH_TREENEW_NODE Node,
+    __in LOGICAL ControlKey,
+    __in LOGICAL ShiftKey,
+    __in LOGICAL RightButton
     );
 
 BOOLEAN PhTnpEnsureVisibleNode(
@@ -643,7 +662,8 @@ BOOLEAN PhTnpDetectDrag(
     __in PPH_TREENEW_CONTEXT Context,
     __in LONG CursorX,
     __in LONG CursorY,
-    __in BOOLEAN DispatchMessages
+    __in BOOLEAN DispatchMessages,
+    __out_opt PULONG CancelledByMessage
     );
 
 VOID PhTnpDragSelect(
