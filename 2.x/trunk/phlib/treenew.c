@@ -5656,14 +5656,29 @@ VOID PhTnpProcessDragSelect(
         inNewRect = rowRect.top < NewRect->bottom && rowRect.bottom > NewRect->top &&
             rowRect.left < NewRect->right && rowRect.right > NewRect->left;
 
-        if (inOldRect != inNewRect)
+        if (VirtualKeys & MK_CONTROL)
         {
-            node->Selected = !node->Selected;
+            if (inOldRect != inNewRect)
+            {
+                node->Selected = !node->Selected;
 
-            if (changedStart > i)
-                changedStart = i;
-            if (changedEnd < i)
-                changedEnd = i;
+                if (changedStart > i)
+                    changedStart = i;
+                if (changedEnd < i)
+                    changedEnd = i;
+            }
+        }
+        else
+        {
+            if (inOldRect != inNewRect)
+            {
+                node->Selected = inNewRect;
+
+                if (changedStart > i)
+                    changedStart = i;
+                if (changedEnd < i)
+                    changedEnd = i;
+            }
         }
 
         rowRect.top = rowRect.bottom;
