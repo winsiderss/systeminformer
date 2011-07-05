@@ -61,6 +61,17 @@ typedef struct _PH_SERVICE_NODE
     // Other members are not exposed.
 } PH_SERVICE_NODE, *PPH_SERVICE_NODE;
 
+typedef struct _PH_NETWORK_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    PPH_NETWORK_ITEM NetworkItem;
+
+    // Other members are not exposed.
+} PH_NETWORK_NODE, *PPH_NETWORK_NODE;
+
 typedef struct _PH_MODULE_NODE
 {
     PH_TREENEW_NODE Node;

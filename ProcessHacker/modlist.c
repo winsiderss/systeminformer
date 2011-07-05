@@ -661,7 +661,7 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     }
                 }
 
-                getNodeFont->Font = context->BoldFont ? context->BoldFont : PhBoldListViewFont;
+                getNodeFont->Font = context->BoldFont ? context->BoldFont : NULL;
                 getNodeFont->Flags = TN_CACHE;
                 return TRUE;
             }

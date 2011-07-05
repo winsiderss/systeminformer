@@ -284,7 +284,7 @@ VOID PhUpdateServiceNode(
     PhSwapReference(&ServiceNode->TooltipText, NULL);
 
     ServiceNode->ValidMask = 0;
-    PhInvalidateTreeNewNode(&ServiceNode->Node, TN_CACHE_COLOR | TN_CACHE_ICON);
+    PhInvalidateTreeNewNode(&ServiceNode->Node, TN_CACHE_ICON);
     TreeNew_NodesStructured(ServiceTreeListHandle);
 }
 
@@ -459,7 +459,6 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
                     if (sortFunction)
                     {
-                        // Don't use PhSortList to avoid overhead.
                         qsort(ServiceNodeList->Items, ServiceNodeList->Count, sizeof(PVOID), sortFunction);
                     }
                 }

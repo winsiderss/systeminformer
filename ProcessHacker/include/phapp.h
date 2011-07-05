@@ -26,7 +26,6 @@
 extern PPH_STRING PhApplicationDirectory;
 extern PPH_STRING PhApplicationFileName;
 extern HFONT PhApplicationFont;
-extern HFONT PhBoldListViewFont;
 extern HFONT PhBoldMessageFont;
 extern PPH_STRING PhCurrentUserName;
 extern HFONT PhIconTitleFont;
@@ -467,6 +466,10 @@ VOID PhShowProcessContextMenu(
     );
 
 VOID PhShowServiceContextMenu(
+    __in POINT Location
+    );
+
+VOID PhShowNetworkContextMenu(
     __in POINT Location
     );
 
