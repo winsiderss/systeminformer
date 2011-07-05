@@ -432,6 +432,86 @@ VOID PhWriteServiceList(
     __in ULONG Mode
     );
 
+// netlist
+
+// Columns
+
+#define PHNETLC_PROCESS 0
+#define PHNETLC_LOCALADDRESS 1
+#define PHNETLC_LOCALPORT 2
+#define PHNETLC_REMOTEADDRESS 3
+#define PHNETLC_REMOTEPORT 4
+#define PHNETLC_PROTOCOL 5
+#define PHNETLC_STATE 6
+#define PHNETLC_OWNER 7
+#define PHNETLC_MAXIMUM 8
+
+typedef struct _PH_NETWORK_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
+
+    PPH_NETWORK_ITEM NetworkItem;
+
+    PH_STRINGREF TextCache[PHNETLC_MAXIMUM];
+
+    PPH_STRING ProcessNameText;
+    PH_STRINGREF LocalAddressText;
+    PH_STRINGREF RemoteAddressText;
+
+    PPH_STRING TooltipText;
+} PH_NETWORK_NODE, *PPH_NETWORK_NODE;
+
+VOID PhNetworkTreeListInitialization();
+
+VOID PhInitializeNetworkTreeList(
+    __in HWND hwnd
+    );
+
+VOID PhLoadSettingsNetworkTreeList();
+
+VOID PhSaveSettingsNetworkTreeList();
+
+PPH_NETWORK_NODE PhAddNetworkNode(
+    __in PPH_NETWORK_ITEM NetworkItem,
+    __in ULONG RunId
+    );
+
+PPH_NETWORK_NODE PhFindNetworkNode(
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
+VOID PhRemoveNetworkNode(
+    __in PPH_NETWORK_NODE NetworkNode
+    );
+
+VOID PhUpdateNetworkNode(
+    __in PPH_NETWORK_NODE NetworkNode
+    );
+
+VOID PhTickNetworkNodes();
+
+PPH_NETWORK_ITEM PhGetSelectedNetworkItem();
+
+VOID PhGetSelectedNetworkItems(
+    __out PPH_NETWORK_ITEM **NetworkItems,
+    __out PULONG NumberOfNetworkItems
+    );
+
+VOID PhDeselectAllNetworkNodes();
+
+VOID PhSelectAndEnsureVisibleNetworkNode(
+    __in PPH_NETWORK_NODE NetworkNode
+    );
+
+VOID PhCopyNetworkList();
+
+VOID PhWriteNetworkList(
+    __inout PPH_FILE_STREAM FileStream,
+    __in ULONG Mode
+    );
+
 // modlist
 
 // Columns

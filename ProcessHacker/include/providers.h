@@ -402,10 +402,10 @@ VOID PhServiceProviderUpdate(
 
 #ifndef PH_NETPRV_PRIVATE
 extern PPH_OBJECT_TYPE PhNetworkItemType;
-extern PH_CALLBACK PhNetworkItemAddedEvent;
-extern PH_CALLBACK PhNetworkItemModifiedEvent;
-extern PH_CALLBACK PhNetworkItemRemovedEvent;
-extern PH_CALLBACK PhNetworkItemsUpdatedEvent;
+PHAPPAPI extern PH_CALLBACK PhNetworkItemAddedEvent;
+PHAPPAPI extern PH_CALLBACK PhNetworkItemModifiedEvent;
+PHAPPAPI extern PH_CALLBACK PhNetworkItemRemovedEvent;
+PHAPPAPI extern PH_CALLBACK PhNetworkItemsUpdatedEvent;
 
 extern BOOLEAN PhEnableNetworkProviderResolve;
 #endif

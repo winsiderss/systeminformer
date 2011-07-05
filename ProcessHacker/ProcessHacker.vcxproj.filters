@@ -441,6 +441,9 @@
     <ClCompile Include="colmgr.c">
       <Filter>Process Hacker</Filter>
     </ClCompile>
+    <ClCompile Include="netlist.c">
+      <Filter>Process Hacker</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\phlib\circbuf_i.h">

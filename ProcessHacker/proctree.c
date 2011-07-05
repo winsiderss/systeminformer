@@ -1269,7 +1269,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         if (sortFunction)
                         {
-                            // Don't use PhSortList to avoid overhead.
                             qsort(ProcessNodeList->Items, ProcessNodeList->Count, sizeof(PVOID), sortFunction);
                         }
                     }
