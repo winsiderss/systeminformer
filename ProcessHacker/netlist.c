@@ -706,6 +706,7 @@ VOID PhSelectAndEnsureVisibleNetworkNode(
 
     TreeNew_SetFocusNode(NetworkTreeListHandle, &NetworkNode->Node);
     TreeNew_SetMarkNode(NetworkTreeListHandle, &NetworkNode->Node);
+    TreeNew_SelectRange(NetworkTreeListHandle, NetworkNode->Node.Index, NetworkNode->Node.Index);
     TreeNew_EnsureVisible(NetworkTreeListHandle, &NetworkNode->Node);
 }
 
