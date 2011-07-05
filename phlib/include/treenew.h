@@ -91,6 +91,9 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_NO_DIVIDER 0x4
 #define TN_STYLE_ANIMATE_DIVIDER 0x8
 
+// Extended flags
+#define TN_FLAG_ITEM_DRAG_SELECT 0x1
+
 // Callback flags
 #define TN_CACHE 0x1
 #define TN_AUTO_FORECOLOR 0x1000
@@ -344,7 +347,8 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 #define TNM_SETFOCUSNODE (WM_USER + 35)
 #define TNM_SETMARKNODE (WM_USER + 36)
 #define TNM_SETHOTNODE (WM_USER + 37)
-#define TNM_LAST (WM_USER + 37)
+#define TNM_SETEXTENDEDFLAGS (WM_USER + 38)
+#define TNM_LAST (WM_USER + 38)
 
 #define TreeNew_SetCallback(hWnd, Callback, Context) \
     SendMessage((hWnd), TNM_SETCALLBACK, (WPARAM)(Context), (LPARAM)(Callback))
@@ -450,6 +454,9 @@ typedef struct _PH_TREENEW_SEARCH_EVENT
 
 #define TreeNew_SetHotNode(hWnd, Node) \
     SendMessage((hWnd), TNM_SETHOTNODE, 0, (LPARAM)(Node))
+
+#define TreeNew_SetExtendedFlags(hWnd, Mask, Value) \
+    SendMessage((hWnd), TNM_SETEXTENDEDFLAGS, (WPARAM)(Mask), (LPARAM)(Value))
 
 typedef struct _PH_TREENEW_VIEW_PARTS
 {
