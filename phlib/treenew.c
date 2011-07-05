@@ -5051,12 +5051,91 @@ VOID PhTnpDrawSelectionRectangle(
     __in PRECT Rect
     )
 {
-    // MSDN says FrameRect doesn't draw anything if bottom <= top or right <= left.
+    RECT rect;
+    LONG viewRight;
+    BOOLEAN drewWithAlpha;
+
+    viewRight = Context->ClientRect.right - (Context->VScrollVisible ? Context->VScrollWidth : 0);
+    rect.left = max(Rect->left, 0);
+    rect.top = max(Rect->top, Context->HeaderHeight);
+    rect.right = min(Rect->right, viewRight);
+    rect.bottom = min(Rect->bottom, Context->ClientRect.bottom);
+
+    // MSDN says FrameRect/DrawFocusRect doesn't draw anything if bottom <= top or right <= left.
     // That's complete rubbish. (And thanks for making me waste a whole hour on this redraw problem.)
-    if (Rect->right - Rect->left == 0 || Rect->bottom - Rect->top == 0)
+    if (rect.right - rect.left == 0 || rect.bottom - rect.top == 0)
         return;
 
-    DrawFocusRect(hdc, Rect);
+    drewWithAlpha = FALSE;
+
+    if (Context->SelectionRectangleAlpha)
+    {
+        HDC tempDc;
+        BITMAPINFOHEADER header;
+        HBITMAP bitmap;
+        HBITMAP oldBitmap;
+        PVOID bits;
+        RECT tempRect;
+        BLENDFUNCTION blendFunction;
+
+        tempDc = CreateCompatibleDC(hdc);
+
+        if (tempDc)
+        {
+            memset(&header, 0, sizeof(BITMAPINFOHEADER));
+            header.biSize = sizeof(BITMAPINFOHEADER);
+            header.biWidth = 1;
+            header.biHeight = 1;
+            header.biPlanes = 1;
+            header.biBitCount = 24;
+            bitmap = CreateDIBSection(tempDc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+
+            if (bitmap)
+            {
+                // Draw the outline of the selection rectangle.
+                FrameRect(hdc, &rect, GetSysColorBrush(COLOR_HIGHLIGHT));
+
+                // Fill in the selection rectangle.
+
+                oldBitmap = SelectObject(tempDc, bitmap);
+                tempRect.left = 0;
+                tempRect.top = 0;
+                tempRect.right = 1;
+                tempRect.bottom = 1;
+                FillRect(tempDc, &tempRect, GetSysColorBrush(COLOR_HOTLIGHT));
+
+                blendFunction.BlendOp = AC_SRC_OVER;
+                blendFunction.BlendFlags = 0;
+                blendFunction.SourceConstantAlpha = 70;
+                blendFunction.AlphaFormat = 0;
+
+                GdiAlphaBlend(
+                    hdc,
+                    rect.left,
+                    rect.top,
+                    rect.right - rect.left,
+                    rect.bottom - rect.top,
+                    tempDc,
+                    0,
+                    0,
+                    1,
+                    1,
+                    blendFunction
+                    );
+
+                drewWithAlpha = TRUE;
+
+                SelectObject(tempDc, oldBitmap);
+            }
+
+            DeleteDC(tempDc);
+        }
+    }
+
+    if (!drewWithAlpha)
+    {
+        DrawFocusRect(hdc, &rect);
+    }
 }
 
 VOID PhTnpInitializeTooltips(
@@ -5138,6 +5217,8 @@ VOID PhTnpGetTooltipText(
     hitTest.InFlags = TN_TEST_COLUMN | TN_TEST_SUBITEM;
     PhTnpHitTest(Context, &hitTest);
 
+    if (Context->DragSelectionActive)
+        return;
     if (!(hitTest.Flags & TN_HIT_ITEM))
         return;
     if (hitTest.Flags & TN_HIT_DIVIDER)
@@ -5545,6 +5626,7 @@ VOID PhTnpDragSelect(
     MSG msg;
     LONG cursorX;
     LONG cursorY;
+    BOOLEAN originFixed;
     RECT dragRect;
     RECT oldDragRect;
     RECT windowRect;
@@ -5553,6 +5635,7 @@ VOID PhTnpDragSelect(
 
     cursorX = CursorX;
     cursorY = CursorY;
+    originFixed = cursorX < Context->FixedWidth;
 
     dragRect.left = cursorX;
     dragRect.top = cursorY;
@@ -5561,6 +5644,10 @@ VOID PhTnpDragSelect(
     oldDragRect = dragRect;
     Context->DragRect = dragRect;
     Context->DragSelectionActive = TRUE;
+
+    if (Context->DoubleBuffered)
+        Context->SelectionRectangleAlpha = TRUE;
+    // TODO: Make sure the monitor's color depth is sufficient for alpha-blended selection rectangles.
 
     GetWindowRect(Context->Handle, &windowRect);
 
@@ -5659,13 +5746,16 @@ VOID PhTnpDragSelect(
                 newDeltaY = (oldVScrollPosition - Context->VScrollPosition) * Context->RowHeight;
 
                 // Adjust our original drag point for the scrolling.
-                cursorX += newDeltaX;
+                if (!originFixed)
+                    cursorX += newDeltaX;
                 cursorY += newDeltaY;
 
                 // Adjust the old drag rectangle for the scrolling.
-                oldDragRect.left += newDeltaX;
+                if (!originFixed)
+                    oldDragRect.left += newDeltaX;
                 oldDragRect.top += newDeltaY;
-                oldDragRect.right += newDeltaX;
+                if (!originFixed)
+                    oldDragRect.right += newDeltaX;
                 oldDragRect.bottom += newDeltaY;
 
                 // Ensure that the new cursor position is within the view area.
