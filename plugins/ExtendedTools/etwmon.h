@@ -4,6 +4,9 @@
 #include <evntcons.h>
 
 typedef ULONG wmi_uint32;
+typedef ULONG wmi_IPAddrV4;
+typedef IN6_ADDR wmi_IPAddrV6;
+typedef USHORT wmi_Port;
 
 typedef struct
 {
@@ -25,7 +28,21 @@ typedef struct
 {
     wmi_uint32 PID;
     wmi_uint32 size;
-} TcpIpOrUdpIp_Header;
+    wmi_IPAddrV4 daddr;
+    wmi_IPAddrV4 saddr;
+    wmi_Port dport;
+    wmi_Port sport;
+} TcpIpOrUdpIp_IPV4_Header;
+
+typedef struct
+{
+    wmi_uint32 PID;
+    wmi_uint32 size;
+    wmi_IPAddrV6 daddr;
+    wmi_IPAddrV6 saddr;
+    wmi_Port dport;
+    wmi_Port sport;
+} TcpIpOrUdpIp_IPV6_Header;
 
 // etwmon
 
@@ -62,6 +79,8 @@ typedef struct _ET_ETW_NETWORK_EVENT
     CLIENT_ID ClientId;
     ULONG ProtocolType;
     ULONG TransferSize;
+    PH_IP_ENDPOINT LocalEndpoint;
+    PH_IP_ENDPOINT RemoteEndpoint;
 } ET_ETW_NETWORK_EVENT, *PET_ETW_NETWORK_EVENT;
 
 VOID EtProcessDiskEvent(

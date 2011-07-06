@@ -4556,6 +4556,11 @@ VOID PhTnpPaint(
 
             if (stateId != -1)
             {
+                if (!Context->FixedColumn)
+                {
+                    rowRect.left = Context->NormalLeft - hScrollPosition;
+                }
+
                 DrawThemeBackground_I(
                     Context->ThemeData,
                     hdc,

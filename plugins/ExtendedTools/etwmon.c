@@ -231,10 +231,42 @@ VOID NTAPI EtpEtwEventCallback(
 
         if (networkEvent.Type != 0)
         {
-            TcpIpOrUdpIp_Header *data = EventTrace->MofData;
+            PH_IP_ENDPOINT source;
+            PH_IP_ENDPOINT destination;
 
-            networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
-            networkEvent.TransferSize = data->size;
+            if (networkEvent.ProtocolType & PH_IPV4_NETWORK_TYPE)
+            {
+                TcpIpOrUdpIp_IPV4_Header *data = EventTrace->MofData;
+
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.TransferSize = data->size;
+
+                source.Address.Type = PH_IPV4_NETWORK_TYPE;
+                source.Address.Ipv4 = data->saddr;
+                source.Port = _byteswap_ushort(data->sport);
+                destination.Address.Type = PH_IPV4_NETWORK_TYPE;
+                destination.Address.Ipv4 = data->daddr;
+                destination.Port = _byteswap_ushort(data->dport);
+            }
+            else if (networkEvent.ProtocolType & PH_IPV6_NETWORK_TYPE)
+            {
+                TcpIpOrUdpIp_IPV6_Header *data = EventTrace->MofData;
+
+                networkEvent.ClientId.UniqueProcess = UlongToHandle(data->PID);
+                networkEvent.TransferSize = data->size;
+
+                source.Address.Type = PH_IPV6_NETWORK_TYPE;
+                source.Address.In6Addr = data->saddr;
+                source.Port = _byteswap_ushort(data->sport);
+                destination.Address.Type = PH_IPV6_NETWORK_TYPE;
+                destination.Address.In6Addr = data->daddr;
+                destination.Port = _byteswap_ushort(data->dport);
+            }
+
+            networkEvent.LocalEndpoint = source;
+
+            if (networkEvent.ProtocolType & PH_TCP_PROTOCOL_TYPE)
+                networkEvent.RemoteEndpoint = destination;
 
             EtProcessNetworkEvent(&networkEvent);
         }
