@@ -83,6 +83,11 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI NetworkTreeNewInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
@@ -96,8 +101,11 @@ PH_CALLBACK_REGISTRATION ProcessMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ModuleMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
+PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
 static HANDLE ModuleProcessId;
+static HWND ProcessTreeNewHandle;
+static HWND NetworkTreeNewHandle;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
@@ -118,7 +126,7 @@ LOGICAL DllMain(
 
             info->DisplayName = L"Extended Tools";
             info->Author = L"wj32";
-            info->Description = L"Extended functionality for Windows Vista and above.";
+            info->Description = L"Extended functionality for Windows Vista and above, including ETW monitoring.";
             info->HasOptions = TRUE;
 
             PhRegisterCallback(
@@ -193,6 +201,12 @@ LOGICAL DllMain(
                 ProcessTreeNewInitializingCallback,
                 NULL,
                 &ProcessTreeNewInitializingCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing),
+                NetworkTreeNewInitializingCallback,
+                NULL,
+                &NetworkTreeNewInitializingCallbackRegistration
                 );
 
             {
@@ -289,7 +303,12 @@ VOID NTAPI TreeNewMessageCallback(
     __in_opt PVOID Context
     )
 {
-    EtEtwProcessTreeNewMessage(Parameter);
+    PPH_PLUGIN_TREENEW_MESSAGE message = Parameter;
+
+    if (message->TreeNewHandle == ProcessTreeNewHandle)
+        EtEtwProcessTreeNewMessage(Parameter);
+    else if (message->TreeNewHandle == NetworkTreeNewHandle)
+        EtEtwNetworkTreeNewMessage(Parameter);
 }
 
 VOID NTAPI MainWindowShowingCallback(
@@ -419,5 +438,19 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     __in_opt PVOID Context
     )
 {
+    PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
+
+    ProcessTreeNewHandle = treeNewInfo->TreeNewHandle;
     EtEtwProcessTreeNewInitializing(Parameter);
+}
+
+VOID NTAPI NetworkTreeNewInitializingCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
+
+    NetworkTreeNewHandle = treeNewInfo->TreeNewHandle;
+    EtEtwNetworkTreeNewInitializing(Parameter);
 }

@@ -127,10 +127,10 @@ PPH_OBJECT_TYPE PhNetworkItemType;
 PPH_HASHTABLE PhNetworkHashtable;
 PH_QUEUED_LOCK PhNetworkHashtableLock = PH_QUEUED_LOCK_INIT;
 
-PH_CALLBACK_DECLARE(PhNetworkItemAddedEvent);
-PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
-PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
-PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemAddedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemModifiedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemRemovedEvent);
+PHAPPAPI PH_CALLBACK_DECLARE(PhNetworkItemsUpdatedEvent);
 
 BOOLEAN PhEnableNetworkProviderResolve = TRUE;
 
