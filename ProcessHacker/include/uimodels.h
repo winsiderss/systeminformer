@@ -478,7 +478,10 @@ PPH_NETWORK_NODE PhAddNetworkNode(
     __in ULONG RunId
     );
 
-PPH_NETWORK_NODE PhFindNetworkNode(
+PHAPPAPI
+PPH_NETWORK_NODE
+NTAPI
+PhFindNetworkNode(
     __in PPH_NETWORK_ITEM NetworkItem
     );
 
