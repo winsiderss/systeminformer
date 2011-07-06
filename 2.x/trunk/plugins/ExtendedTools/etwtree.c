@@ -1,6 +1,6 @@
 /*
  * Process Hacker Extended Tools - 
- *   ETW process tree support
+ *   ETW process and network tree support
  * 
  * Copyright (C) 2011 wj32
  * 
