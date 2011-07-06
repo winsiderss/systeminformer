@@ -5,6 +5,8 @@
 #include <phdk.h>
 
 extern PPH_PLUGIN PluginInstance;
+extern HWND ProcessTreeNewHandle;
+extern HWND NetworkTreeNewHandle;
 
 #define SETTING_PREFIX L"ProcessHacker.ExtendedTools."
 #define SETTING_NAME_ENABLE_ETW_MONITOR (SETTING_PREFIX L"EnableEtwMonitor")
@@ -132,10 +134,18 @@ typedef struct _ET_NETWORK_ETW_BLOCK
     ULONG SendCount;
     ULONG ReceiveRaw;
     ULONG SendRaw;
-    PH_UINT32_DELTA ReceiveDelta;
-    PH_UINT32_DELTA ReceiveRawDelta;
-    PH_UINT32_DELTA SendDelta;
-    PH_UINT32_DELTA SendRawDelta;
+
+    union
+    {
+        struct
+        {
+            PH_UINT32_DELTA ReceiveDelta;
+            PH_UINT32_DELTA ReceiveRawDelta;
+            PH_UINT32_DELTA SendDelta;
+            PH_UINT32_DELTA SendRawDelta;
+        };
+        PH_UINT32_DELTA Deltas[4];
+    };
 
     PH_QUEUED_LOCK TextCacheLock;
     PPH_STRING TextCache[ETNETNC_MAXIMUM + 1];

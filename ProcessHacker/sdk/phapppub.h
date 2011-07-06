@@ -197,6 +197,15 @@ PhSelectAndEnsureVisibleServiceNode(
     __in PPH_SERVICE_NODE ServiceNode
     );
 
+// netlist
+
+PHAPPAPI
+PPH_NETWORK_NODE
+NTAPI
+PhFindNetworkNode(
+    __in PPH_NETWORK_ITEM NetworkItem
+    );
+
 // appsup
 
 PHAPPAPI

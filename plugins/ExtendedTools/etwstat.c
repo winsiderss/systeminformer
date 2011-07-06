@@ -588,6 +588,19 @@ static VOID NTAPI NetworkItemRemovedCallback(
     }
 }
 
+static VOID NTAPI EtpInvalidateNetworkNode(
+    __in PVOID Parameter
+    )
+{
+    PPH_NETWORK_ITEM networkItem = Parameter;
+    PPH_NETWORK_NODE networkNode;
+
+    if (networkNode = PhFindNetworkNode(networkItem))
+        TreeNew_InvalidateNode(NetworkTreeNewHandle, &networkNode->Node);
+
+    PhDereferenceObject(networkItem);
+}
+
 static VOID NTAPI NetworkItemsUpdatedCallback(
     __in_opt PVOID Parameter,
     __in_opt PVOID Context
@@ -607,13 +620,23 @@ static VOID NTAPI NetworkItemsUpdatedCallback(
     while (pair = PhNextEnumHashtable(&enumContext))
     {
         PET_NETWORK_ETW_BLOCK block;
+        PH_UINT32_DELTA oldDeltas[4];
 
         block = pair->Value;
+
+        memcpy(oldDeltas, block->Deltas, sizeof(block->Deltas));
 
         PhUpdateDelta(&block->ReceiveDelta, block->ReceiveCount);
         PhUpdateDelta(&block->ReceiveRawDelta, block->ReceiveRaw);
         PhUpdateDelta(&block->SendDelta, block->SendCount);
         PhUpdateDelta(&block->SendRawDelta, block->SendRaw);
+
+        if (memcmp(oldDeltas, block->Deltas, sizeof(block->Deltas)))
+        {
+            // Values have changed. Invalidate the network node.
+            PhReferenceObject(block->NetworkItem);
+            ProcessHacker_Invoke(PhMainWndHandle, EtpInvalidateNetworkNode, block->NetworkItem);
+        }
 
         // Invalidate all text.
 
