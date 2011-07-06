@@ -290,6 +290,13 @@ VOID PhUpdateServiceNode(
 
 VOID PhTickServiceNodes()
 {
+    if (ServiceTreeListSortOrder != NoSortOrder && ServiceTreeListSortColumn >= PHSVTLC_MAXIMUM)
+    {
+        // Sorting is on, but it's not one of our columns. Force a rebuild. (If it was one of our 
+        // columns, the restructure would have been handled in PhUpdateServiceNode.)
+        TreeNew_NodesStructured(ServiceTreeListHandle);
+    }
+
     PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, NULL);
 }
 
