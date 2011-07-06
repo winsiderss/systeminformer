@@ -148,6 +148,7 @@ BOOLEAN PhCmForwardMessage(
                 return FALSE;
 
             column = tnColumn.Context;
+            pluginMessage.TreeNewHandle = hwnd;
             pluginMessage.Message = Message;
             pluginMessage.Parameter1 = Parameter1;
             pluginMessage.Parameter2 = Parameter2;
@@ -169,6 +170,7 @@ BOOLEAN PhCmForwardMessage(
                 return FALSE;
 
             column = customDraw->Column->Context;
+            pluginMessage.TreeNewHandle = hwnd;
             pluginMessage.Message = Message;
             pluginMessage.Parameter1 = Parameter1;
             pluginMessage.Parameter2 = Parameter2;

@@ -38,12 +38,32 @@ VOID NTAPI ProcessesUpdatedCallback(
     __in_opt PVOID Context
     );
 
+VOID NTAPI NetworkItemAddedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID NTAPI NetworkItemRemovedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
+VOID NTAPI NetworkItemsUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    );
+
 PPH_HASHTABLE EtEtwBlockHashtable;
 PH_QUEUED_LOCK EtEtwBlockHashtableLock = PH_QUEUED_LOCK_INIT;
+PPH_HASHTABLE EtEtwNetworkBlockHashtable;
+PH_QUEUED_LOCK EtEtwNetworkBlockHashtableLock = PH_QUEUED_LOCK_INIT;
 
 static PH_CALLBACK_REGISTRATION EtpProcessAddedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpProcessRemovedCallbackRegistration;
 static PH_CALLBACK_REGISTRATION EtpProcessesUpdatedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION EtpNetworkItemAddedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION EtpNetworkItemRemovedCallbackRegistration;
+static PH_CALLBACK_REGISTRATION EtpNetworkItemsUpdatedCallbackRegistration;
 
 ULONG EtpDiskReadRaw;
 ULONG EtpDiskWriteRaw;
@@ -76,6 +96,7 @@ VOID EtEtwStatisticsInitialization()
         ULONG sampleCount;
 
         EtEtwBlockHashtable = PhCreateSimpleHashtable(64);
+        EtEtwNetworkBlockHashtable = PhCreateSimpleHashtable(64);
 
         sampleCount = PhGetIntegerSetting(L"SampleCount");
         PhInitializeCircularBuffer_ULONG(&EtDiskReadHistory, sampleCount);
@@ -102,6 +123,24 @@ VOID EtEtwStatisticsInitialization()
             ProcessesUpdatedCallback,
             NULL,
             &EtpProcessesUpdatedCallbackRegistration
+            );
+        PhRegisterCallback(
+            &PhNetworkItemAddedEvent,
+            NetworkItemAddedCallback,
+            NULL,
+            &EtpNetworkItemAddedCallbackRegistration
+            );
+        PhRegisterCallback(
+            &PhNetworkItemRemovedEvent,
+            NetworkItemRemovedCallback,
+            NULL,
+            &EtpNetworkItemRemovedCallbackRegistration
+            );
+        PhRegisterCallback(
+            &PhNetworkItemsUpdatedEvent,
+            NetworkItemsUpdatedCallback,
+            NULL,
+            &EtpNetworkItemsUpdatedCallbackRegistration
             );
     }
 }
@@ -141,7 +180,7 @@ VOID EtDereferenceProcessEtwBlock(
     {
         ULONG i;
 
-        for (i = 1; i <= ETETWTNC_MAXIMUM; i++)
+        for (i = 1; i <= ETPRTNC_MAXIMUM; i++)
         {
             PhSwapReference(&Block->TextCache[i], NULL);
         }
@@ -198,6 +237,93 @@ PET_PROCESS_ETW_BLOCK EtFindProcessEtwBlock(
     return block;
 }
 
+PET_NETWORK_ETW_BLOCK EtCreateNetworkEtwBlock(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PET_NETWORK_ETW_BLOCK block;
+
+    block = PhAllocate(sizeof(ET_NETWORK_ETW_BLOCK));
+    memset(block, 0, sizeof(ET_NETWORK_ETW_BLOCK));
+    block->RefCount = 1;
+    block->NetworkItem = NetworkItem;
+    PhInitializeQueuedLock(&block->TextCacheLock);
+
+    return block;
+}
+
+VOID EtReferenceNetworkEtwBlock(
+    __inout PET_NETWORK_ETW_BLOCK Block
+    )
+{
+    _InterlockedIncrement(&Block->RefCount);
+}
+
+VOID EtDereferenceNetworkEtwBlock(
+    __inout PET_NETWORK_ETW_BLOCK Block
+    )
+{
+    if (_InterlockedDecrement(&Block->RefCount) == 0)
+    {
+        ULONG i;
+
+        for (i = 1; i <= ETNETNC_MAXIMUM; i++)
+        {
+            PhSwapReference(&Block->TextCache[i], NULL);
+        }
+
+        PhFree(Block);
+    }
+}
+
+VOID EtpAddNetworkEtwBlock(
+    __in PET_NETWORK_ETW_BLOCK Block
+    )
+{
+    PhAcquireQueuedLockExclusive(&EtEtwNetworkBlockHashtableLock);
+    PhAddItemSimpleHashtable(EtEtwNetworkBlockHashtable, Block->NetworkItem, Block);
+    PhReleaseQueuedLockExclusive(&EtEtwNetworkBlockHashtableLock);
+
+    EtReferenceNetworkEtwBlock(Block);
+}
+
+VOID EtpRemoveNetworkEtwBlock(
+    __in PET_NETWORK_ETW_BLOCK Block
+    )
+{
+    PhAcquireQueuedLockExclusive(&EtEtwNetworkBlockHashtableLock);
+    PhRemoveItemSimpleHashtable(EtEtwNetworkBlockHashtable, Block->NetworkItem);
+    PhReleaseQueuedLockExclusive(&EtEtwNetworkBlockHashtableLock);
+
+    EtDereferenceNetworkEtwBlock(Block);
+}
+
+PET_NETWORK_ETW_BLOCK EtFindNetworkEtwBlock(
+    __in PPH_NETWORK_ITEM NetworkItem
+    )
+{
+    PET_NETWORK_ETW_BLOCK block;
+    PPVOID entry;
+
+    PhAcquireQueuedLockShared(&EtEtwNetworkBlockHashtableLock);
+
+    entry = PhFindItemSimpleHashtable(EtEtwNetworkBlockHashtable, NetworkItem);
+
+    if (entry)
+    {
+        block = *entry;
+        EtReferenceNetworkEtwBlock(block);
+    }
+    else
+    {
+        block = NULL;
+    }
+
+    PhReleaseQueuedLockShared(&EtEtwNetworkBlockHashtableLock);
+
+    return block;
+}
+
 VOID EtProcessDiskEvent(
     __in PET_ETW_DISK_EVENT Event
     )
@@ -244,6 +370,8 @@ VOID EtProcessNetworkEvent(
 {
     PPH_PROCESS_ITEM processItem;
     PET_PROCESS_ETW_BLOCK block;
+    PPH_NETWORK_ITEM networkItem;
+    PET_NETWORK_ETW_BLOCK networkBlock;
 
     if (Event->Type == EtEtwNetworkReceiveType)
     {
@@ -255,6 +383,9 @@ VOID EtProcessNetworkEvent(
         EtpNetworkSendRaw += Event->TransferSize;
         EtNetworkSendCount++;
     }
+
+    // Note: there is always the possibility of us receiving the event too early, 
+    // before the process item or network item is created. So events may be lost.
 
     if (processItem = PhReferenceProcessItem(Event->ClientId.UniqueProcess))
     {
@@ -275,6 +406,32 @@ VOID EtProcessNetworkEvent(
         }
 
         PhDereferenceObject(processItem);
+    }
+
+    if (networkItem = PhReferenceNetworkItem(
+        Event->ProtocolType,
+        &Event->LocalEndpoint,
+        &Event->RemoteEndpoint,
+        Event->ClientId.UniqueProcess
+        ))
+    {
+        if (networkBlock = EtFindNetworkEtwBlock(networkItem))
+        {
+            if (Event->Type == EtEtwNetworkReceiveType)
+            {
+                networkBlock->ReceiveRaw += Event->TransferSize;
+                networkBlock->ReceiveCount++;
+            }
+            else
+            {
+                networkBlock->SendRaw += Event->TransferSize;
+                networkBlock->SendCount++;
+            }
+
+            EtDereferenceNetworkEtwBlock(networkBlock);
+        }
+
+        PhDereferenceObject(networkItem);
     }
 }
 
@@ -401,4 +558,67 @@ static VOID NTAPI ProcessesUpdatedCallback(
     }
 
     runCount++;
+}
+
+static VOID NTAPI NetworkItemAddedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PET_NETWORK_ETW_BLOCK block;
+    PPH_NETWORK_ITEM networkItem = Parameter;
+
+    block = EtCreateNetworkEtwBlock(networkItem);
+    EtpAddNetworkEtwBlock(block);
+    EtDereferenceNetworkEtwBlock(block);
+}
+
+static VOID NTAPI NetworkItemRemovedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PET_NETWORK_ETW_BLOCK block;
+    PPH_NETWORK_ITEM networkItem = Parameter;
+
+    if (block = EtFindNetworkEtwBlock(networkItem))
+    {
+        EtpRemoveNetworkEtwBlock(block);
+        EtDereferenceNetworkEtwBlock(block);
+    }
+}
+
+static VOID NTAPI NetworkItemsUpdatedCallback(
+    __in_opt PVOID Parameter,
+    __in_opt PVOID Context
+    )
+{
+    PPH_KEY_VALUE_PAIR pair;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+
+    // ETW is flushed in the processes-updated callback above. This may cause us the network 
+    // blocks to all fall one update interval behind, however.
+
+    // Update per-connection statistics.
+    // Note: no lock is needed because we only ever modify the hashtable on this same thread.
+
+    PhBeginEnumHashtable(EtEtwNetworkBlockHashtable, &enumContext);
+
+    while (pair = PhNextEnumHashtable(&enumContext))
+    {
+        PET_NETWORK_ETW_BLOCK block;
+
+        block = pair->Value;
+
+        PhUpdateDelta(&block->ReceiveDelta, block->ReceiveCount);
+        PhUpdateDelta(&block->ReceiveRawDelta, block->ReceiveRaw);
+        PhUpdateDelta(&block->SendDelta, block->SendCount);
+        PhUpdateDelta(&block->SendRawDelta, block->SendRaw);
+
+        // Invalidate all text.
+
+        PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+        memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+        PhReleaseQueuedLockExclusive(&block->TextCacheLock);
+    }
 }

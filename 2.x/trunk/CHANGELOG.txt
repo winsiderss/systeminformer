@@ -10,7 +10,7 @@ Process Hacker
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
    * Updated ExtendedTools plugin:
-     * Added ETW columns
+     * Added ETW columns for processes and network connections
    * Updated OnlineChecks plugin:
      * Added Comodo Instant Malware Analysis
  * FIXED:

@@ -162,6 +162,7 @@ typedef struct _PH_PLUGIN_TREENEW_INFORMATION
 
 typedef struct _PH_PLUGIN_TREENEW_MESSAGE
 {
+    HWND TreeNewHandle;
     PH_TREENEW_MESSAGE Message;
     PVOID Parameter1;
     PVOID Parameter2;
