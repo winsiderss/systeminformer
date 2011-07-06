@@ -89,6 +89,8 @@ VOID NTAPI NetworkTreeNewInitializingCallback(
     );
 
 PPH_PLUGIN PluginInstance;
+HWND ProcessTreeNewHandle;
+HWND NetworkTreeNewHandle;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
@@ -104,8 +106,6 @@ PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
 static HANDLE ModuleProcessId;
-static HWND ProcessTreeNewHandle;
-static HWND NetworkTreeNewHandle;
 
 LOGICAL DllMain(
     __in HINSTANCE Instance,
