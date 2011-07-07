@@ -34,6 +34,7 @@ typedef struct _PH_NETWORK_CONNECTION
     PH_IP_ENDPOINT RemoteEndpoint;
     ULONG State;
     HANDLE ProcessId;
+    LARGE_INTEGER CreateTime;
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
 } PH_NETWORK_CONNECTION, *PPH_NETWORK_CONNECTION;
 
@@ -644,6 +645,7 @@ VOID PhNetworkProviderUpdate(
             networkItem->RemoteEndpoint = connections[i].RemoteEndpoint;
             networkItem->State = connections[i].State;
             networkItem->ProcessId = connections[i].ProcessId;
+            networkItem->CreateTime = connections[i].CreateTime;
             memcpy(networkItem->OwnerInfo, connections[i].OwnerInfo, sizeof(ULONGLONG) * PH_NETWORK_OWNER_INFO_SIZE);
 
             // Format various strings.
@@ -962,6 +964,7 @@ BOOLEAN PhGetNetworkConnections(
 
             connections[index].State = tcp4Table->table[i].dwState;
             connections[index].ProcessId = (HANDLE)tcp4Table->table[i].dwOwningPid;
+            connections[index].CreateTime = tcp4Table->table[i].liCreateTimestamp;
             memcpy(
                 connections[index].OwnerInfo,
                 tcp4Table->table[i].OwningModuleInfo,
@@ -990,6 +993,7 @@ BOOLEAN PhGetNetworkConnections(
 
             connections[index].State = tcp6Table->table[i].dwState;
             connections[index].ProcessId = (HANDLE)tcp6Table->table[i].dwOwningPid;
+            connections[index].CreateTime = tcp6Table->table[i].liCreateTimestamp;
             memcpy(
                 connections[index].OwnerInfo,
                 tcp6Table->table[i].OwningModuleInfo,
@@ -1016,6 +1020,7 @@ BOOLEAN PhGetNetworkConnections(
 
             connections[index].State = 0;
             connections[index].ProcessId = (HANDLE)udp4Table->table[i].dwOwningPid;
+            connections[index].CreateTime = udp4Table->table[i].liCreateTimestamp;
             memcpy(
                 connections[index].OwnerInfo,
                 udp4Table->table[i].OwningModuleInfo,
@@ -1042,6 +1047,7 @@ BOOLEAN PhGetNetworkConnections(
 
             connections[index].State = 0;
             connections[index].ProcessId = (HANDLE)udp6Table->table[i].dwOwningPid;
+            connections[index].CreateTime = udp6Table->table[i].liCreateTimestamp;
             memcpy(
                 connections[index].OwnerInfo,
                 udp6Table->table[i].OwningModuleInfo,

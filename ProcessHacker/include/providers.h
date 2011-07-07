@@ -434,6 +434,7 @@ typedef struct _PH_NETWORK_ITEM
     PPH_STRING LocalHostString;
     PPH_STRING RemoteHostString;
 
+    LARGE_INTEGER CreateTime;
     ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 
