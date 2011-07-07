@@ -55,7 +55,7 @@ HWND PhCreateHexEditControl(
 {
     return CreateWindow(
         PH_HEXEDIT_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_VSCROLL,
         0,
         0,

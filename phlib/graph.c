@@ -405,7 +405,7 @@ HWND PhCreateGraphControl(
 {
     return CreateWindow(
         PH_GRAPH_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_CLIPSIBLINGS,
         0,
         0,
@@ -834,7 +834,7 @@ LRESULT CALLBACK PhpGraphWndProc(
 
                 context->TooltipHandle = CreateWindow(
                     TOOLTIPS_CLASS,
-                    L"",
+                    NULL,
                     WS_POPUP | TTS_NOPREFIX,
                     CW_USEDEFAULT,
                     CW_USEDEFAULT,
