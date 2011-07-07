@@ -129,6 +129,7 @@ VOID PhInitializeNetworkTreeList(
     PhAddTreeNewColumn(hwnd, PHNETLC_PROTOCOL, TRUE, L"Protocol", 45, PH_ALIGN_LEFT, 5, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_STATE, TRUE, L"State", 70, PH_ALIGN_LEFT, 6, 0);
     PhAddTreeNewColumn(hwnd, PHNETLC_OWNER, WINDOWS_HAS_SERVICE_TAGS, L"Owner", 80, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(hwnd, PHNETLC_TIMESTAMP, FALSE, L"Time stamp", 100, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -265,6 +266,7 @@ VOID PhpRemoveNetworkNode(
         PhRemoveItemList(NetworkNodeList, index);
 
     if (NetworkNode->ProcessNameText) PhDereferenceObject(NetworkNode->ProcessNameText);
+    if (NetworkNode->TimestampText) PhDereferenceObject(NetworkNode->TimestampText);
     if (NetworkNode->TooltipText) PhDereferenceObject(NetworkNode->TooltipText);
 
     PhDereferenceObject(NetworkNode->NetworkItem);
@@ -480,6 +482,22 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     getCellText->Text = PhGetStringRef(networkItem->OwnerName);
                 else
                     PhInitializeStringRef(&getCellText->Text, L"N/A"); // make sure the user knows this column doesn't work on XP
+                break;
+            case PHNETLC_TIMESTAMP:
+                {
+                    SYSTEMTIME systemTime;
+
+                    if (networkItem->CreateTime.QuadPart != 0)
+                    {
+                        PhLargeIntegerToLocalSystemTime(&systemTime, &networkItem->CreateTime);
+                        PhSwapReference2(&node->TimestampText, PhFormatDateTime(&systemTime));
+                        getCellText->Text = node->TimestampText->sr;
+                    }
+                    else
+                    {
+                        PhInitializeEmptyStringRef(&getCellText->Text);
+                    }
+                }
                 break;
             default:
                 return FALSE;

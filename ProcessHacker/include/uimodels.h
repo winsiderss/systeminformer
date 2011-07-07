@@ -444,7 +444,8 @@ VOID PhWriteServiceList(
 #define PHNETLC_PROTOCOL 5
 #define PHNETLC_STATE 6
 #define PHNETLC_OWNER 7
-#define PHNETLC_MAXIMUM 8
+#define PHNETLC_TIMESTAMP 8
+#define PHNETLC_MAXIMUM 9
 
 typedef struct _PH_NETWORK_NODE
 {
@@ -459,6 +460,7 @@ typedef struct _PH_NETWORK_NODE
     PPH_STRING ProcessNameText;
     PH_STRINGREF LocalAddressText;
     PH_STRINGREF RemoteAddressText;
+    PPH_STRING TimestampText;
 
     PPH_STRING TooltipText;
 } PH_NETWORK_NODE, *PPH_NETWORK_NODE;
