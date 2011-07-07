@@ -5313,14 +5313,26 @@ BOOLEAN PhTnpPrepareTooltipShow(
     }
 
     if (!Context->TooltipUnfolding)
+    {
+        SetWindowPos(
+            Context->TooltipsHandle,
+            HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE | SWP_HIDEWINDOW
+            );
+
         return FALSE;
+    }
 
     rect = Context->TooltipRect;
     SendMessage(Context->TooltipsHandle, TTM_ADJUSTRECT, TRUE, (LPARAM)&rect);
     MapWindowPoints(Context->Handle, NULL, (POINT *)&rect, 2);
     SetWindowPos(
         Context->TooltipsHandle,
-        HWND_TOP,
+        HWND_TOPMOST,
         rect.left,
         rect.top,
         0,
