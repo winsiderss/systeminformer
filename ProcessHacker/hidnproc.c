@@ -79,6 +79,15 @@ static ULONG NumberOfTerminatedProcesses;
 
 VOID PhShowHiddenProcessesDialog()
 {
+    if (!PhKphHandle)
+    {
+        PhShowWarning(
+            PhMainWndHandle,
+            L"Hidden process detection cannot function properly without KProcessHacker. "
+            L"Make sure Process Hacker is running with administrative privileges."
+            );
+    }
+
     if (!PhHiddenProcessesWindowHandle)
     {
         PhHiddenProcessesWindowHandle = CreateDialog(
