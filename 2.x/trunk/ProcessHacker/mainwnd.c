@@ -3149,7 +3149,7 @@ VOID PhMainWndOnCreate()
 {
     TabControlHandle = CreateWindow(
         WC_TABCONTROL,
-        L"",
+        NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_MULTILINE,
         0,
         0,
@@ -3169,7 +3169,7 @@ VOID PhMainWndOnCreate()
 
     ProcessTreeListHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER,
         0,
         0,
@@ -3184,7 +3184,7 @@ VOID PhMainWndOnCreate()
 
     ServiceTreeListHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED,
         0,
         0,
@@ -3199,7 +3199,7 @@ VOID PhMainWndOnCreate()
 
     NetworkTreeListHandle = CreateWindow(
         PH_TREENEW_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_BORDER | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED,
         0,
         0,

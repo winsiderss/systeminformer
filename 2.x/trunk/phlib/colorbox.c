@@ -65,7 +65,7 @@ HWND PhCreateColorBoxControl(
 {
     return CreateWindow(
         PH_COLORBOX_CLASSNAME,
-        L"",
+        NULL,
         WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
