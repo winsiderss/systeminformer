@@ -7,6 +7,9 @@ Process Hacker
      * Tooltips for column headers
      * Improved performance
      * Bug fixes
+   * Added Time stamp column to network list
+   * Date/time display is now swapped (so time is shown before 
+     date)
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
    * Updated ExtendedTools plugin:

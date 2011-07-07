@@ -1183,23 +1183,23 @@ PPH_STRING PhFormatTime(
  *
  * \param DateTime The time structure. If NULL, the current time is used.
  *
- * \return A string containing the date, a space character, then the time.
+ * \return A string containing the time, a space character, then the date.
  */
 PPH_STRING PhFormatDateTime(
     __in_opt PSYSTEMTIME DateTime
     )
 {
     PPH_STRING string;
-    ULONG dateBufferSize;
     ULONG timeBufferSize;
+    ULONG dateBufferSize;
     ULONG count;
 
-    dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
     timeBufferSize = GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
+    dateBufferSize = GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, NULL, 0);
 
-    string = PhCreateStringEx(NULL, (dateBufferSize + 1 + timeBufferSize) * 2);
+    string = PhCreateStringEx(NULL, (timeBufferSize + 1 + dateBufferSize) * 2);
 
-    if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], dateBufferSize))
+    if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[0], timeBufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
@@ -1208,7 +1208,7 @@ PPH_STRING PhFormatDateTime(
     count = (ULONG)wcslen(string->Buffer);
     string->Buffer[count] = ' ';
 
-    if (!GetTimeFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], timeBufferSize))
+    if (!GetDateFormat(LOCALE_USER_DEFAULT, 0, DateTime, NULL, &string->Buffer[count + 1], dateBufferSize))
     {
         PhDereferenceObject(string);
         return NULL;
