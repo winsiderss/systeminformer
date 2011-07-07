@@ -182,14 +182,19 @@ typedef struct _PH_PROCESS_ITEM
     FLOAT CpuUserUsage;
     FLOAT CpuUsage; // from 0 to 1
 
-    PH_UINT64_DELTA CpuKernelDelta; // volatile
-    PH_UINT64_DELTA CpuUserDelta; // volatile
-    PH_UINT64_DELTA IoReadDelta; // volatile
-    PH_UINT64_DELTA IoWriteDelta; // volatile
-    PH_UINT64_DELTA IoOtherDelta; // volatile
+    PH_UINT64_DELTA CpuKernelDelta;
+    PH_UINT64_DELTA CpuUserDelta;
+    PH_UINT64_DELTA IoReadDelta;
+    PH_UINT64_DELTA IoWriteDelta;
+    PH_UINT64_DELTA IoOtherDelta;
+    PH_UINT64_DELTA IoReadCountDelta;
+    PH_UINT64_DELTA IoWriteCountDelta;
+    PH_UINT64_DELTA IoOtherCountDelta;
+    PH_UINT32_DELTA ContextSwitchesDelta;
+    PH_UINT32_DELTA PageFaultsDelta;
 
-    VM_COUNTERS_EX VmCounters; // volatile
-    IO_COUNTERS IoCounters; // volatile
+    VM_COUNTERS_EX VmCounters;
+    IO_COUNTERS IoCounters;
 
     ULONG SequenceNumber;
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;

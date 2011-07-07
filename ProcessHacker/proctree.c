@@ -107,11 +107,11 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 4, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, 5, 0);
 
+    // Customizable columns (1)
     PhAddTreeNewColumn(hwnd, PHPRTLC_COMPANYNAME, FALSE, L"Company Name", 180, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_VERSION, FALSE, L"Version", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_FILENAME, FALSE, L"File Name", 180, PH_ALIGN_LEFT, -1, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHPRTLC_COMMANDLINE, FALSE, L"Command Line", 180, PH_ALIGN_LEFT, -1, 0);
-
     PhAddTreeNewColumn(hwnd, PHPRTLC_PEAKPRIVATEBYTES, FALSE, L"Peak Private Bytes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_WORKINGSET, FALSE, L"Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PEAKWORKINGSET, FALSE, L"Peak Working Set", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
@@ -125,12 +125,13 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PRIORITYCLASS, FALSE, L"Priority Class", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_BASEPRIORITY, FALSE, L"Base Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
 
+    // Customizable columns (2)
     PhAddTreeNewColumn(hwnd, PHPRTLC_THREADS, FALSE, L"Threads", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_HANDLES, FALSE, L"Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_GDIHANDLES, FALSE, L"GDI Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_USERHANDLES, FALSE, L"USER Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_IORORATE, FALSE, L"I/O R+O Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRATE, FALSE, L"I/O W Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IORORATE, FALSE, L"I/O Read+Other Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRATE, FALSE, L"I/O Write Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_INTEGRITY, FALSE, L"Integrity", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOPRIORITY, FALSE, L"I/O Priority", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PAGEPRIORITY, FALSE, L"Page Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
@@ -152,6 +153,20 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_CONTEXTSWITCHES, FALSE, L"Context Switches", 100, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_CONTEXTSWITCHESDELTA, FALSE, L"Context Switches Delta", 80, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_PAGEFAULTSDELTA, FALSE, L"Page Faults Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+
+    // I/O group columns
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOREADS, FALSE, L"I/O Reads", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRITES, FALSE, L"I/O Writes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOOTHER, FALSE, L"I/O Other", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOREADBYTES, FALSE, L"I/O Read Bytes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRITEBYTES, FALSE, L"I/O Write Bytes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOOTHERBYTES, FALSE, L"I/O Other Bytes", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOREADSDELTA, FALSE, L"I/O Reads Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRITESDELTA, FALSE, L"I/O Writes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOOTHERDELTA, FALSE, L"I/O Other Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -468,6 +483,12 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
     if (ProcessNode->CyclesText) PhDereferenceObject(ProcessNode->CyclesText);
     if (ProcessNode->CyclesDeltaText) PhDereferenceObject(ProcessNode->CyclesDeltaText);
+    if (ProcessNode->ContextSwitchesText) PhDereferenceObject(ProcessNode->ContextSwitchesText);
+    if (ProcessNode->ContextSwitchesDeltaText) PhDereferenceObject(ProcessNode->ContextSwitchesDeltaText);
+    if (ProcessNode->PageFaultsDeltaText) PhDereferenceObject(ProcessNode->PageFaultsDeltaText);
+
+    for (i = 0; i < PHPRTLC_IOGROUP_COUNT; i++)
+        if (ProcessNode->IoGroupText[i]) PhDereferenceObject(ProcessNode->IoGroupText[i]);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -886,7 +907,7 @@ BEGIN_SORT_FUNCTION(Cpu)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(IoTotal)
+BEGIN_SORT_FUNCTION(IoTotalRate)
 {
     sortResult = uint64cmp(
         processItem1->IoReadDelta.Delta + processItem1->IoWriteDelta.Delta + processItem1->IoOtherDelta.Delta,
@@ -1053,7 +1074,7 @@ BEGIN_SORT_FUNCTION(UserHandles)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(IoRo)
+BEGIN_SORT_FUNCTION(IoRoRate)
 {
     sortResult = uint64cmp(
         processItem1->IoReadDelta.Delta + processItem1->IoOtherDelta.Delta,
@@ -1062,7 +1083,7 @@ BEGIN_SORT_FUNCTION(IoRo)
 }
 END_SORT_FUNCTION
 
-BEGIN_SORT_FUNCTION(IoW)
+BEGIN_SORT_FUNCTION(IoWRate)
 {
     sortResult = uint64cmp(
         processItem1->IoWriteDelta.Delta,
@@ -1206,6 +1227,78 @@ BEGIN_SORT_FUNCTION(Virtualized)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ContextSwitches)
+{
+    sortResult = uintcmp(processItem1->ContextSwitchesDelta.Value, processItem2->ContextSwitchesDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(ContextSwitchesDelta)
+{
+    sortResult = intcmp((LONG)processItem1->ContextSwitchesDelta.Delta, (LONG)processItem2->ContextSwitchesDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(PageFaultsDelta)
+{
+    sortResult = uintcmp(processItem1->PageFaultsDelta.Delta, processItem2->PageFaultsDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReads)
+{
+    sortResult = uint64cmp(processItem1->IoReadCountDelta.Value, processItem2->IoReadCountDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWrites)
+{
+    sortResult = uint64cmp(processItem1->IoWriteCountDelta.Value, processItem2->IoWriteCountDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOther)
+{
+    sortResult = uint64cmp(processItem1->IoOtherCountDelta.Value, processItem2->IoOtherCountDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReadBytes)
+{
+    sortResult = uint64cmp(processItem1->IoReadDelta.Value, processItem2->IoReadDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWriteBytes)
+{
+    sortResult = uint64cmp(processItem1->IoWriteDelta.Value, processItem2->IoWriteDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOtherBytes)
+{
+    sortResult = uint64cmp(processItem1->IoOtherDelta.Value, processItem2->IoOtherDelta.Value);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoReadsDelta)
+{
+    sortResult = uint64cmp(processItem1->IoReadCountDelta.Delta, processItem2->IoReadCountDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoWritesDelta)
+{
+    sortResult = uint64cmp(processItem1->IoWriteCountDelta.Delta, processItem2->IoWriteCountDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(IoOtherDelta)
+{
+    sortResult = uint64cmp(processItem1->IoOtherCountDelta.Delta, processItem2->IoOtherCountDelta.Delta);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1249,7 +1342,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Name),
                         SORT_FUNCTION(Pid),
                         SORT_FUNCTION(Cpu),
-                        SORT_FUNCTION(IoTotal),
+                        SORT_FUNCTION(IoTotalRate),
                         SORT_FUNCTION(PrivateBytes),
                         SORT_FUNCTION(UserName),
                         SORT_FUNCTION(Description),
@@ -1273,8 +1366,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Handles),
                         SORT_FUNCTION(GdiHandles),
                         SORT_FUNCTION(UserHandles),
-                        SORT_FUNCTION(IoRo),
-                        SORT_FUNCTION(IoW),
+                        SORT_FUNCTION(IoRoRate),
+                        SORT_FUNCTION(IoWRate),
                         SORT_FUNCTION(Integrity),
                         SORT_FUNCTION(IoPriority),
                         SORT_FUNCTION(PagePriority),
@@ -1294,9 +1387,21 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(CyclesDelta),
                         SORT_FUNCTION(Cpu), // CPU History
                         SORT_FUNCTION(PrivateBytes), // Private Bytes History
-                        SORT_FUNCTION(IoTotal), // I/O History
+                        SORT_FUNCTION(IoTotalRate), // I/O History
                         SORT_FUNCTION(DepStatus),
-                        SORT_FUNCTION(Virtualized)
+                        SORT_FUNCTION(Virtualized),
+                        SORT_FUNCTION(ContextSwitches),
+                        SORT_FUNCTION(ContextSwitchesDelta),
+                        SORT_FUNCTION(PageFaultsDelta),
+                        SORT_FUNCTION(IoReads),
+                        SORT_FUNCTION(IoWrites),
+                        SORT_FUNCTION(IoOther),
+                        SORT_FUNCTION(IoReadBytes),
+                        SORT_FUNCTION(IoWriteBytes),
+                        SORT_FUNCTION(IoOtherBytes),
+                        SORT_FUNCTION(IoReadsDelta),
+                        SORT_FUNCTION(IoWritesDelta),
+                        SORT_FUNCTION(IoOtherDelta)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1379,10 +1484,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
                         }
                     }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
                 }
                 break;
             case PHPRTLC_IOTOTALRATE:
@@ -1408,10 +1509,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhInitFormatS(&format[1], L"/s");
                         PhSwapReference2(&node->IoTotalRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoTotalRateText->sr;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
@@ -1528,10 +1625,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhSwapReference2(&node->IoRoRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoRoRateText->sr;
                     }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
                 }
                 break;
             case PHPRTLC_IOWRATE:
@@ -1558,17 +1651,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhSwapReference2(&node->IoWRateText, PhFormat(format, 2, 0));
                         getCellText->Text = node->IoWRateText->sr;
                     }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
-                    }
                 }
                 break;
             case PHPRTLC_INTEGRITY:
                 if (processItem->IntegrityString)
                     PhInitializeStringRef(&getCellText->Text, processItem->IntegrityString);
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
                 break;
             case PHPRTLC_IOPRIORITY:
                 PhpUpdateProcessNodeIoPagePriority(node);
@@ -1577,10 +1664,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     if (node->IoPriority < MaxIoPriorityTypes)
                         PhInitializeStringRef(&getCellText->Text, PhIoPriorityHintNames[node->IoPriority]);
-                }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
                 }
 
                 break;
@@ -1591,10 +1674,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhPrintUInt32(node->PagePriorityText, node->PagePriority);
                     PhInitializeStringRef(&getCellText->Text, node->PagePriorityText);
-                }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
                 }
 
                 break;
@@ -1607,10 +1686,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhLargeIntegerToLocalSystemTime(&systemTime, &processItem->CreateTime);
                         PhSwapReference2(&node->StartTimeText, PhFormatDateTime(&systemTime));
                         getCellText->Text = node->StartTimeText->sr;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
@@ -1645,10 +1720,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         PhSwapReference2(&node->RelativeStartTimeText,
                             PhFormatTimeSpanRelative(currentTime.QuadPart - processItem->CreateTime.QuadPart));
                         getCellText->Text = node->RelativeStartTimeText->sr;
-                    }
-                    else
-                    {
-                        PhInitializeEmptyStringRef(&getCellText->Text);
                     }
                 }
                 break;
@@ -1699,8 +1770,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 if (node->WindowHandle)
                     PhInitializeStringRef(&getCellText->Text, node->WindowHung ? L"Not responding" : L"Running");
-                else
-                    PhInitializeEmptyStringRef(&getCellText->Text);
+
                 break;
             case PHPRTLC_CYCLES:
                 getCellText->Text = PhGetStringRef(node->CyclesText);
@@ -1718,10 +1788,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     else
                         PhInitializeStringRef(&getCellText->Text, L"DEP");
                 }
-                else
-                {
-                    PhInitializeEmptyStringRef(&getCellText->Text);
-                }
 
                 break;
             case PHPRTLC_VIRTUALIZED:
@@ -1730,6 +1796,90 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 if (node->VirtualizationEnabled)
                     PhInitializeStringRef(&getCellText->Text, L"Virtualized");
 
+                break;
+            case PHPRTLC_CONTEXTSWITCHES:
+                if (processItem->ContextSwitchesDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->ContextSwitchesText, PhFormatUInt64(processItem->ContextSwitchesDelta.Value, TRUE));
+                    getCellText->Text = node->ContextSwitchesText->sr;
+                }
+                break;
+            case PHPRTLC_CONTEXTSWITCHESDELTA:
+                if ((LONG)processItem->ContextSwitchesDelta.Delta > 0) // the delta may be negative if a thread exits - just don't show anything
+                {
+                    PhSwapReference2(&node->ContextSwitchesDeltaText, PhFormatUInt64(processItem->ContextSwitchesDelta.Delta, TRUE));
+                    getCellText->Text = node->ContextSwitchesDeltaText->sr;
+                }
+                break;
+            case PHPRTLC_PAGEFAULTSDELTA:
+                if (processItem->PageFaultsDelta.Delta != 0)
+                {
+                    PhSwapReference2(&node->PageFaultsDeltaText, PhFormatUInt64(processItem->PageFaultsDelta.Delta, TRUE));
+                    getCellText->Text = node->PageFaultsDeltaText->sr;
+                }
+                break;
+            case PHPRTLC_IOREADS:
+                if (processItem->IoReadCountDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[0], PhFormatUInt64(processItem->IoReadCountDelta.Value, TRUE));
+                    getCellText->Text = node->IoGroupText[0]->sr;
+                }
+                break;
+            case PHPRTLC_IOWRITES:
+                if (processItem->IoWriteCountDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[1], PhFormatUInt64(processItem->IoWriteCountDelta.Value, TRUE));
+                    getCellText->Text = node->IoGroupText[1]->sr;
+                }
+                break;
+            case PHPRTLC_IOOTHER:
+                if (processItem->IoOtherCountDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[2], PhFormatUInt64(processItem->IoOtherCountDelta.Value, TRUE));
+                    getCellText->Text = node->IoGroupText[2]->sr;
+                }
+                break;
+            case PHPRTLC_IOREADBYTES:
+                if (processItem->IoReadDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[3], PhFormatSize(processItem->IoReadDelta.Value, -1));
+                    getCellText->Text = node->IoGroupText[3]->sr;
+                }
+                break;
+            case PHPRTLC_IOWRITEBYTES:
+                if (processItem->IoWriteDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[4], PhFormatSize(processItem->IoWriteDelta.Value, -1));
+                    getCellText->Text = node->IoGroupText[4]->sr;
+                }
+                break;
+            case PHPRTLC_IOOTHERBYTES:
+                if (processItem->IoOtherDelta.Value != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[5], PhFormatSize(processItem->IoOtherDelta.Value, -1));
+                    getCellText->Text = node->IoGroupText[5]->sr;
+                }
+                break;
+            case PHPRTLC_IOREADSDELTA:
+                if (processItem->IoReadCountDelta.Delta != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[6], PhFormatUInt64(processItem->IoReadCountDelta.Delta, TRUE));
+                    getCellText->Text = node->IoGroupText[6]->sr;
+                }
+                break;
+            case PHPRTLC_IOWRITESDELTA:
+                if (processItem->IoWriteCountDelta.Delta != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[7], PhFormatUInt64(processItem->IoWriteCountDelta.Delta, TRUE));
+                    getCellText->Text = node->IoGroupText[7]->sr;
+                }
+                break;
+            case PHPRTLC_IOOTHERDELTA:
+                if (processItem->IoOtherCountDelta.Delta != 0)
+                {
+                    PhSwapReference2(&node->IoGroupText[8], PhFormatUInt64(processItem->IoOtherCountDelta.Delta, TRUE));
+                    getCellText->Text = node->IoGroupText[8]->sr;
+                }
                 break;
             default:
                 return FALSE;
