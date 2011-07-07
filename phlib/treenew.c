@@ -821,9 +821,9 @@ VOID PhTnpOnXxxButtonXxx(
         {
             // To allow drag selection to begin even if the cursor is on an item,
             // we check if the cursor is on the item icon or text. If it isn't, then 
-            // don't count that as a hit. The exception is when the item is already 
-            // selected - we always count that as a hit. Also, we always count it as 
-            // a hit if user is beginning to drag the divider.
+            // don't count that as a hit. Exceptions are:
+            // * When the item is already selected
+            // * When user is beginning to drag the divider
 
             if (!hitTest.Node->Selected && !startingTracking)
             {
@@ -862,10 +862,12 @@ VOID PhTnpOnXxxButtonXxx(
             BOOLEAN dragSelect;
             ULONG indexToSelect;
             BOOLEAN selectionProcessed;
+            BOOLEAN showContextMenu;
 
             dragSelect = FALSE;
             indexToSelect = -1;
             selectionProcessed = FALSE;
+            showContextMenu = FALSE;
 
             if (!(hitTest.Flags & (TN_HIT_LEFT | TN_HIT_RIGHT | TN_HIT_ABOVE | TN_HIT_BELOW)) && !startingTracking) // don't interfere with divider
             {
@@ -945,6 +947,9 @@ VOID PhTnpOnXxxButtonXxx(
                                 VirtualKeys
                                 );
                         }
+
+                        if (Message == WM_RBUTTONDOWN)
+                            showContextMenu = TRUE;
                     }
                 }
             }
@@ -964,6 +969,11 @@ VOID PhTnpOnXxxButtonXxx(
             if (dragSelect)
             {
                 PhTnpDragSelect(Context, CursorX, CursorY);
+            }
+
+            if (showContextMenu)
+            {
+                SendMessage(Context->Handle, WM_CONTEXTMENU, (WPARAM)Context->Handle, GetMessagePos());
             }
 
             return;

@@ -113,7 +113,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_NAME 0
 #define PHPRTLC_PID 1
 #define PHPRTLC_CPU 2
-#define PHPRTLC_IOTOTAL 3
+#define PHPRTLC_IOTOTALRATE 3
 #define PHPRTLC_PRIVATEBYTES 4
 #define PHPRTLC_USERNAME 5
 #define PHPRTLC_DESCRIPTION 6
@@ -140,8 +140,8 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_HANDLES 24
 #define PHPRTLC_GDIHANDLES 25
 #define PHPRTLC_USERHANDLES 26
-#define PHPRTLC_IORO 27
-#define PHPRTLC_IOW 28
+#define PHPRTLC_IORORATE 27
+#define PHPRTLC_IOWRATE 28
 #define PHPRTLC_INTEGRITY 29
 #define PHPRTLC_IOPRIORITY 30
 #define PHPRTLC_PAGEPRIORITY 31
@@ -163,14 +163,16 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_PRIVATEBYTESHISTORY 47
 #define PHPRTLC_IOHISTORY 48
 #define PHPRTLC_DEPSTATUS 49
+#define PHPRTLC_VIRTUALIZED 50
 
-#define PHPRTLC_MAXIMUM 50
+#define PHPRTLC_MAXIMUM 51
 
 #define PHPN_WSCOUNTERS 0x1
 #define PHPN_GDIUSERHANDLES 0x2
 #define PHPN_IOPAGEPRIORITY 0x4
 #define PHPN_WINDOW 0x8
 #define PHPN_DEPSTATUS 0x10
+#define PHPN_TOKEN 0x20
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -206,6 +208,9 @@ typedef struct _PH_PROCESS_NODE
     BOOLEAN WindowHung;
     // DEP status
     ULONG DepStatus;
+    // Token
+    BOOLEAN VirtualizationAllowed;
+    BOOLEAN VirtualizationEnabled;
     // Cycles
     PH_UINT64_DELTA CyclesDelta;
 
@@ -213,7 +218,7 @@ typedef struct _PH_PROCESS_NODE
 
     // Text buffers
     WCHAR CpuUsageText[PH_INT32_STR_LEN_1];
-    PPH_STRING IoTotalText;
+    PPH_STRING IoTotalRateText;
     PPH_STRING PrivateBytesText;
     PPH_STRING PeakPrivateBytesText;
     PPH_STRING WorkingSetText;
@@ -229,8 +234,8 @@ typedef struct _PH_PROCESS_NODE
     WCHAR HandlesText[PH_INT32_STR_LEN_1];
     WCHAR GdiHandlesText[PH_INT32_STR_LEN_1];
     WCHAR UserHandlesText[PH_INT32_STR_LEN_1];
-    PPH_STRING IoRoText;
-    PPH_STRING IoWText;
+    PPH_STRING IoRoRateText;
+    PPH_STRING IoWRateText;
     WCHAR PagePriorityText[PH_INT32_STR_LEN_1];
     PPH_STRING StartTimeText;
     WCHAR TotalCpuTimeText[PH_TIMESPAN_STR_LEN_1];

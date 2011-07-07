@@ -102,7 +102,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_NAME, TRUE, L"Name", 200, PH_ALIGN_LEFT, -2, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PID, TRUE, L"PID", 50, PH_ALIGN_RIGHT, 0, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_CPU, TRUE, L"CPU", 45, PH_ALIGN_RIGHT, 1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_IOTOTAL, TRUE, L"I/O Total", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOTOTALRATE, TRUE, L"I/O Total Rate", 70, PH_ALIGN_RIGHT, 2, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PRIVATEBYTES, TRUE, L"Private Bytes", 70, PH_ALIGN_RIGHT, 3, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_USERNAME, TRUE, L"User Name", 140, PH_ALIGN_LEFT, 4, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, 5, 0);
@@ -129,8 +129,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_HANDLES, FALSE, L"Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_GDIHANDLES, FALSE, L"GDI Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_USERHANDLES, FALSE, L"USER Handles", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_IORO, FALSE, L"I/O R+O", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
-    PhAddTreeNewColumn(hwnd, PHPRTLC_IOW, FALSE, L"I/O W", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IORORATE, FALSE, L"I/O R+O Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRATE, FALSE, L"I/O W Rate", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_INTEGRITY, FALSE, L"Integrity", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOPRIORITY, FALSE, L"I/O Priority", 70, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_PAGEPRIORITY, FALSE, L"Page Priority", 45, PH_ALIGN_RIGHT, -1, DT_RIGHT);
@@ -151,6 +151,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_PRIVATEBYTESHISTORY, FALSE, L"Private Bytes History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOHISTORY, FALSE, L"I/O History", 100, PH_ALIGN_LEFT, -1, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_DEPSTATUS, FALSE, L"DEP Status", 100, PH_ALIGN_LEFT, -1, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_VIRTUALIZED, FALSE, L"Virtualized", 80, PH_ALIGN_LEFT, -1, 0);
 
     TreeNew_SetRedraw(hwnd, TRUE);
 
@@ -449,7 +450,7 @@ VOID PhpRemoveProcessNode(
 
     if (ProcessNode->TooltipText) PhDereferenceObject(ProcessNode->TooltipText);
 
-    if (ProcessNode->IoTotalText) PhDereferenceObject(ProcessNode->IoTotalText);
+    if (ProcessNode->IoTotalRateText) PhDereferenceObject(ProcessNode->IoTotalRateText);
     if (ProcessNode->PrivateBytesText) PhDereferenceObject(ProcessNode->PrivateBytesText);
     if (ProcessNode->PeakPrivateBytesText) PhDereferenceObject(ProcessNode->PeakPrivateBytesText);
     if (ProcessNode->WorkingSetText) PhDereferenceObject(ProcessNode->WorkingSetText);
@@ -460,8 +461,8 @@ VOID PhpRemoveProcessNode(
     if (ProcessNode->VirtualSizeText) PhDereferenceObject(ProcessNode->VirtualSizeText);
     if (ProcessNode->PeakVirtualSizeText) PhDereferenceObject(ProcessNode->PeakVirtualSizeText);
     if (ProcessNode->PageFaultsText) PhDereferenceObject(ProcessNode->PageFaultsText);
-    if (ProcessNode->IoRoText) PhDereferenceObject(ProcessNode->IoRoText);
-    if (ProcessNode->IoWText) PhDereferenceObject(ProcessNode->IoWText);
+    if (ProcessNode->IoRoRateText) PhDereferenceObject(ProcessNode->IoRoRateText);
+    if (ProcessNode->IoWRateText) PhDereferenceObject(ProcessNode->IoWRateText);
     if (ProcessNode->StartTimeText) PhDereferenceObject(ProcessNode->StartTimeText);
     if (ProcessNode->RelativeStartTimeText) PhDereferenceObject(ProcessNode->RelativeStartTimeText);
     if (ProcessNode->WindowTitleText) PhDereferenceObject(ProcessNode->WindowTitleText);
@@ -714,6 +715,42 @@ static VOID PhpUpdateProcessNodeDepStatus(
         ProcessNode->DepStatus = depStatus;
 
         ProcessNode->ValidMask |= PHPN_DEPSTATUS;
+    }
+}
+
+static VOID PhpUpdateProcessNodeToken(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_TOKEN))
+    {
+        HANDLE tokenHandle;
+
+        ProcessNode->VirtualizationAllowed = FALSE;
+        ProcessNode->VirtualizationEnabled = FALSE;
+
+        if (WINDOWS_HAS_UAC && ProcessNode->ProcessItem->QueryHandle)
+        {
+            if (NT_SUCCESS(PhOpenProcessToken(
+                &tokenHandle,
+                TOKEN_QUERY,
+                ProcessNode->ProcessItem->QueryHandle
+                )))
+            {
+                if (NT_SUCCESS(PhGetTokenIsVirtualizationAllowed(tokenHandle, &ProcessNode->VirtualizationAllowed)) &&
+                    ProcessNode->VirtualizationAllowed)
+                {
+                    if (!NT_SUCCESS(PhGetTokenIsVirtualizationEnabled(tokenHandle, &ProcessNode->VirtualizationEnabled)))
+                    {
+                        ProcessNode->VirtualizationAllowed = FALSE; // display N/A on error
+                    }
+                }
+
+                NtClose(tokenHandle);
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_TOKEN;
     }
 }
 
@@ -1161,6 +1198,14 @@ BEGIN_SORT_FUNCTION(DepStatus)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(Virtualized)
+{
+    PhpUpdateProcessNodeToken(node1);
+    PhpUpdateProcessNodeToken(node2);
+    sortResult = intcmp(node1->VirtualizationEnabled, node2->VirtualizationEnabled);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1250,7 +1295,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(Cpu), // CPU History
                         SORT_FUNCTION(PrivateBytes), // Private Bytes History
                         SORT_FUNCTION(IoTotal), // I/O History
-                        SORT_FUNCTION(DepStatus)
+                        SORT_FUNCTION(DepStatus),
+                        SORT_FUNCTION(Virtualized)
                     };
                     int (__cdecl *sortFunction)(const void *, const void *);
 
@@ -1339,7 +1385,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                 }
                 break;
-            case PHPRTLC_IOTOTAL:
+            case PHPRTLC_IOTOTALRATE:
                 {
                     ULONG64 number;
 
@@ -1360,8 +1406,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoTotalText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->IoTotalText->sr;
+                        PhSwapReference2(&node->IoTotalRateText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->IoTotalRateText->sr;
                     }
                     else
                     {
@@ -1458,7 +1504,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhPrintUInt32(node->UserHandlesText, node->UserHandles);
                 PhInitializeStringRef(&getCellText->Text, node->UserHandlesText);
                 break;
-            case PHPRTLC_IORO:
+            case PHPRTLC_IORORATE:
                 {
                     ULONG64 number;
 
@@ -1479,8 +1525,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoRoText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->IoRoText->sr;
+                        PhSwapReference2(&node->IoRoRateText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->IoRoRateText->sr;
                     }
                     else
                     {
@@ -1488,7 +1534,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     }
                 }
                 break;
-            case PHPRTLC_IOW:
+            case PHPRTLC_IOWRATE:
                 {
                     ULONG64 number;
 
@@ -1509,8 +1555,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                         PhInitFormatSize(&format[0], number);
                         PhInitFormatS(&format[1], L"/s");
-                        PhSwapReference2(&node->IoWText, PhFormat(format, 2, 0));
-                        getCellText->Text = node->IoWText->sr;
+                        PhSwapReference2(&node->IoWRateText, PhFormat(format, 2, 0));
+                        getCellText->Text = node->IoWRateText->sr;
                     }
                     else
                     {
@@ -1583,8 +1629,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 PhInitializeStringRef(&getCellText->Text, node->UserCpuTimeText);
                 break;
             case PHPRTLC_VERIFICATIONSTATUS:
-                PhInitializeStringRef(&getCellText->Text,
-                    processItem->VerifyResult == VrTrusted ? L"Trusted" : L"Not Trusted");
+                if (processItem->VerifyResult == VrTrusted)
+                    PhInitializeStringRef(&getCellText->Text, L"Trusted");
                 break;
             case PHPRTLC_VERIFIEDSIGNER:
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->VerifySignerName);
@@ -1608,9 +1654,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_BITS:
 #ifdef _M_X64
-                PhInitializeStringRef(&getCellText->Text, processItem->IsWow64 ? L"32-bit" : L"64-bit");
+                PhInitializeStringRef(&getCellText->Text, processItem->IsWow64 ? L"32" : L"64");
 #else
-                PhInitializeStringRef(&getCellText->Text, L"32-bit");
+                PhInitializeStringRef(&getCellText->Text, L"32");
 #endif
                 break;
             case PHPRTLC_ELEVATION:
@@ -1676,6 +1722,13 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhInitializeEmptyStringRef(&getCellText->Text);
                 }
+
+                break;
+            case PHPRTLC_VIRTUALIZED:
+                PhpUpdateProcessNodeToken(node);
+
+                if (node->VirtualizationEnabled)
+                    PhInitializeStringRef(&getCellText->Text, L"Virtualized");
 
                 break;
             default:
