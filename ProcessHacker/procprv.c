@@ -1486,6 +1486,38 @@ PPH_STRING PhGetStatisticsTimeString(
     }
 }
 
+VOID PhpGetProcessThreadInformation(
+    __in PSYSTEM_PROCESS_INFORMATION Process,
+    __out_opt PBOOLEAN IsSuspended,
+    __out_opt PULONG ContextSwitches
+    )
+{
+    ULONG i;
+    BOOLEAN isSuspended;
+    ULONG contextSwitches;
+
+    isSuspended = Process->NumberOfThreads != 0;
+    contextSwitches = 0;
+
+    for (i = 0; i < Process->NumberOfThreads; i++)
+    {
+        if (
+            Process->Threads[i].ThreadState != Waiting ||
+            Process->Threads[i].WaitReason != Suspended
+            )
+        {
+            isSuspended = FALSE;
+        }
+
+        contextSwitches += Process->Threads[i].ContextSwitches;
+    }
+
+    if (IsSuspended)
+        *IsSuspended = isSuspended;
+    if (ContextSwitches)
+        *ContextSwitches = contextSwitches;
+}
+
 VOID PhProcessProviderUpdate(
     __in PVOID Object
     )
@@ -1712,6 +1744,8 @@ VOID PhProcessProviderUpdate(
         if (!processItem)
         {
             PPH_PROCESS_RECORD processRecord;
+            BOOLEAN isSuspended;
+            ULONG contextSwitches;
 
             // Create the process item and fill in basic information.
             processItem = PhCreateProcessItem(process->UniqueProcessId);
@@ -1725,6 +1759,7 @@ VOID PhProcessProviderUpdate(
             // Open a handle to the process for later usage.
             PhOpenProcess(&processItem->QueryHandle, PROCESS_QUERY_INFORMATION, processItem->ProcessId);
 
+            PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
             PhpUpdateDynamicInfoProcessItem(processItem, process);
 
             // Initialize the deltas.
@@ -1733,10 +1768,17 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoReadCountDelta, process->ReadOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->IoWriteCountDelta, process->WriteOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
+            PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
 
             // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
             processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
+
+            processItem->IsSuspended = isSuspended;
 
             // If this is the first run of the provider, queue the 
             // process query tasks. Otherwise, perform stage 1 
@@ -1776,9 +1818,13 @@ VOID PhProcessProviderUpdate(
         else
         {
             BOOLEAN modified = FALSE;
+            BOOLEAN isSuspended;
+            ULONG contextSwitches;
             FLOAT kernelCpuUsage;
             FLOAT userCpuUsage;
             FLOAT newCpuUsage;
+
+            PhpGetProcessThreadInformation(process, &isSuspended, &contextSwitches);
 
             // Update the deltas.
             PhUpdateDelta(&processItem->CpuKernelDelta, process->KernelTime.QuadPart);
@@ -1786,6 +1832,11 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoReadDelta, process->ReadTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoWriteDelta, process->WriteTransferCount.QuadPart);
             PhUpdateDelta(&processItem->IoOtherDelta, process->OtherTransferCount.QuadPart);
+            PhUpdateDelta(&processItem->IoReadCountDelta, process->ReadOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->IoWriteCountDelta, process->WriteOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
+            PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
+            PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
 
             processItem->SequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
@@ -1860,16 +1911,10 @@ VOID PhProcessProviderUpdate(
             }
 
             // Suspended
+            if (processItem->IsSuspended != isSuspended)
             {
-                BOOLEAN isSuspended;
-
-                isSuspended = PhGetProcessIsSuspended(process);
-
-                if (processItem->IsSuspended != isSuspended)
-                {
-                    processItem->IsSuspended = isSuspended;
-                    modified = TRUE;
-                }
+                processItem->IsSuspended = isSuspended;
+                modified = TRUE;
             }
 
             // .NET
