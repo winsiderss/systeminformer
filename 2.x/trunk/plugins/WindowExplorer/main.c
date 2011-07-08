@@ -85,8 +85,25 @@ LOGICAL DllMain(
     case DLL_PROCESS_ATTACH:
         {
             PPH_PLUGIN_INFORMATION info;
+            BOOLEAN isClient;
+
+            isClient = FALSE;
 
             if (!GetModuleHandle(L"ProcessHacker.exe") || !WeGetProcedureAddress("PhLibImageBase"))
+            {
+                isClient = TRUE;
+            }
+            else
+            {
+                // WindowExplorer appears to be loading within Process Hacker. However, if there is 
+                // already a server instance, the the hook will be active, and our DllMain routine 
+                // will most likely be called before the plugin system is even initialized. Attempting 
+                // to register a plugin would result in an access violation, so load as a client for now.
+                if (WeIsServerActive())
+                    isClient = TRUE;
+            }
+
+            if (isClient)
             {
                 // This DLL is being loaded not as a Process Hacker plugin, but as a hook.
                 IsHookClient = TRUE;
