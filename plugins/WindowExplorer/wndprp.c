@@ -621,21 +621,20 @@ static VOID WepEnsureHookDataValid(
 
         WeHookServerInitialization();
 
-        WeLockServerSharedData(&data);
+        Context->HookDataSuccess = FALSE;
 
-        if (WeSendServerRequest(Context->WindowHandle))
+        if (WeLockServerSharedData(&data))
         {
-            Context->WndProc = data->c.WndProc;
-            Context->DlgProc = data->c.DlgProc;
-            memcpy(&Context->ClassInfo, &data->c.ClassInfo, sizeof(WNDCLASSEX));
-            Context->HookDataSuccess = TRUE;
-        }
-        else
-        {
-            Context->HookDataSuccess = FALSE;
-        }
+            if (WeSendServerRequest(Context->WindowHandle))
+            {
+                Context->WndProc = data->c.WndProc;
+                Context->DlgProc = data->c.DlgProc;
+                memcpy(&Context->ClassInfo, &data->c.ClassInfo, sizeof(WNDCLASSEX));
+                Context->HookDataSuccess = TRUE;
+            }
 
-        WeUnlockServerSharedData();
+            WeUnlockServerSharedData();
+        }
 
         Context->HookDataValid = TRUE;
     }

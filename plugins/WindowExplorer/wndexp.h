@@ -36,7 +36,9 @@ VOID WeHookServerInitialization();
 
 VOID WeHookServerUninitialization();
 
-VOID WeLockServerSharedData(
+BOOLEAN WeIsServerActive();
+
+BOOLEAN WeLockServerSharedData(
     __out PWE_HOOK_SHARED_DATA *Data
     );
 
