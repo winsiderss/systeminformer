@@ -435,6 +435,31 @@ static NTSTATUS NTAPI TerminatorW2(
     return STATUS_SUCCESS;
 }
 
+static BOOL CALLBACK CloseProcessWindowsProc(
+    __in HWND hwnd,
+    __in LPARAM lParam
+    )
+{
+    ULONG processId;
+
+    GetWindowThreadProcessId(hwnd, &processId);
+
+    if (processId == (ULONG)lParam)
+    {
+        PostMessage(hwnd, WM_CLOSE, 0, 0);
+    }
+
+    return TRUE;
+}
+
+static NTSTATUS NTAPI TerminatorW3(
+    __in HANDLE ProcessId
+    )
+{
+    EnumWindows(CloseProcessWindowsProc, (LPARAM)ProcessId);
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS NTAPI TerminatorTJ1(
     __in HANDLE ProcessId
     )
@@ -688,6 +713,7 @@ TEST_ITEM PhTerminatorTests[] =
     { L"CH1", L"Closes the process' handles", TerminatorCH1 },
     { L"W1", L"Sends the WM_DESTROY message to the process' windows", TerminatorW1 },
     { L"W2", L"Sends the WM_QUIT message to the process' windows", TerminatorW2 },
+    { L"W3", L"Sends the WM_CLOSE message to the process' windows", TerminatorW3 },
     { L"TJ1", L"Assigns the process to a job object and terminates the job", TerminatorTJ1 },
     { L"TD1", L"Debugs the process and closes the debug object", TerminatorTD1 },
     { L"TP3", L"Terminates the process in kernel-mode", TerminatorTP3 },
