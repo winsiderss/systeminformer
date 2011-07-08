@@ -46,11 +46,8 @@ HANDLE WeServerSharedSectionLock;
 HANDLE WeServerSharedSectionEvent;
 // Server
 HHOOK WeHookHandle = NULL;
-// The current message ID is used to detect out-of-sync clients. If a client processes a 
-// message after our timeout has expired and sends us late messages, we can identify and 
-// reject them by looking at the message ID.
+// The current message ID is used to detect out-of-sync clients.
 ULONG WeCurrentMessageId = 0;
-PH_QUEUED_LOCK WeRequestLock = PH_QUEUED_LOCK_INIT;
 
 // Server
 
@@ -281,17 +278,42 @@ VOID WepCloseServerObjects()
     }
 }
 
-VOID WeLockServerSharedData(
+BOOLEAN WeIsServerActive()
+{
+    if (WepOpenServerObjects())
+    {
+        WepCloseServerObjects();
+
+        return TRUE;
+    }
+    else
+    {
+        return FALSE;
+    }
+}
+
+BOOLEAN WeLockServerSharedData(
     __out PWE_HOOK_SHARED_DATA *Data
     )
 {
-    PhAcquireQueuedLockExclusive(&WeRequestLock);
+    LARGE_INTEGER timeout;
+
+    if (!WeServerSharedSectionLock)
+        return FALSE;
+
+    timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
+
+    if (NtWaitForSingleObject(WeServerSharedSectionLock, FALSE, &timeout) != WAIT_OBJECT_0)
+        return FALSE;
+
     *Data = WeServerSharedData;
+
+    return TRUE;
 }
 
 VOID WeUnlockServerSharedData()
 {
-    PhReleaseQueuedLockExclusive(&WeRequestLock);
+    NtReleaseMutant(WeServerSharedSectionLock, NULL);
 }
 
 BOOLEAN WeSendServerRequest(
@@ -302,7 +324,7 @@ BOOLEAN WeSendServerRequest(
     ULONG processId;
     LARGE_INTEGER timeout;
 
-    if (!WeServerSharedData || !WeServerSharedSectionLock || !WeServerSharedSectionEvent)
+    if (!WeServerSharedData || !WeServerSharedSectionEvent)
         return FALSE;
 
     threadId = GetWindowThreadProcessId(hWnd, &processId);
@@ -317,6 +339,7 @@ BOOLEAN WeSendServerRequest(
     // Call the client and wait for the client to finish.
 
     WeCurrentMessageId++;
+    WeServerSharedData->MessageId = WeCurrentMessageId;
     NtResetEvent(WeServerSharedSectionEvent, NULL);
 
     if (!SendNotifyMessage(hWnd, WeServerMessage, (WPARAM)NtCurrentProcessId(), WeCurrentMessageId))
@@ -325,9 +348,6 @@ BOOLEAN WeSendServerRequest(
     timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
 
     if (NtWaitForSingleObject(WeServerSharedSectionEvent, FALSE, &timeout) != STATUS_WAIT_0)
-        return FALSE;
-
-    if (WeServerSharedData->MessageId != WeCurrentMessageId)
         return FALSE;
 
     return TRUE;
@@ -403,16 +423,9 @@ LRESULT CALLBACK WepCallWndProc(
         {
             if (WepOpenServerObjects())
             {
-                LARGE_INTEGER timeout;
-
-                timeout.QuadPart = -WE_CLIENT_MESSAGE_TIMEOUT * PH_TIMEOUT_MS;
-
-                if (NtWaitForSingleObject(WeServerSharedSectionLock, FALSE, &timeout) == WAIT_OBJECT_0)
+                if (WeServerSharedData->MessageId == messageId)
                 {
-                    WeServerSharedData->MessageId = messageId;
                     WepWriteClientData(info->hwnd);
-
-                    NtReleaseMutant(WeServerSharedSectionLock, NULL);
                     NtSetEvent(WeServerSharedSectionEvent, NULL);
                 }
 
