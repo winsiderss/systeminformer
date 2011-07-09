@@ -12,6 +12,7 @@ Process Hacker
    * Date/time display is now swapped (so time is shown before 
      date)
    * Added W3 terminator test
+   * Added DotNetTools plugin
    * Updated ExtendedServices plugin:
      * Disabled editing of required privileges for services
    * Updated ExtendedTools plugin:

@@ -18,6 +18,12 @@
     <ClCompile Include="main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="perfpage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="counters.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dn.h">

@@ -113,6 +113,7 @@ Name: "custom";                        Description: "Custom installation";      
 Name: "main";                          Description: "Main application";        Types: full minimal custom; Flags: fixed
 Name: "peview";                        Description: "PE Viewer";               Types: full minimal custom; Flags: disablenouninstallwarning
 Name: "plugins";                       Description: "Plugins";                 Types: full custom;         Flags: disablenouninstallwarning
+Name: "plugins\dotnettools";           Description: ".NET Tools";              Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendednotifications"; Description: "Extended Notifications";  Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendedservices";      Description: "Extended Services";       Types: full custom;         Flags: disablenouninstallwarning
 Name: "plugins\extendedtools";         Description: "Extended Tools";          Types: full custom;         Flags: disablenouninstallwarning;   MinVersion: 0,6.00
@@ -158,6 +159,8 @@ Source: ..\..\KProcessHacker\bin-signed\amd64\kprocesshacker.sys;               
 Source: ..\..\tools\peview\bin\Release32\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\tools\peview\bin\Release64\peview.exe;                                 DestDir: {app};         Components: peview;                        Flags: ignoreversion; Check: Is64BitInstallMode()
 
+Source: ..\..\plugins\DotNetTools\bin\Release32\DotNetTools.dll;                     DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: NOT Is64BitInstallMode()
+Source: ..\..\plugins\DotNetTools\bin\Release64\DotNetTools.dll;                     DestDir: {app}\plugins; Components: plugins\dotnettools;           Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedNotifications\bin\Release32\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: NOT Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedNotifications\bin\Release64\ExtendedNotifications.dll; DestDir: {app}\plugins; Components: plugins\extendednotifications; Flags: ignoreversion; Check: Is64BitInstallMode()
 Source: ..\..\plugins\ExtendedServices\bin\Release32\ExtendedServices.dll;           DestDir: {app}\plugins; Components: plugins\extendedservices;      Flags: ignoreversion; Check: NOT Is64BitInstallMode()
@@ -201,6 +204,7 @@ Type: dirifempty; Name: {userappdata}\Process Hacker;                Tasks: rese
 
 Type: files;      Name: {app}\peview.exe;                            Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
 Type: files;      Name: {group}\PE Viewer.lnk;                       Check: NOT IsComponentSelected('peview')                        AND IsUpdate()
+Type: files;      Name: {app}\plugins\DotNetTools.dll;               Check: NOT IsComponentSelected('plugins\dotnettools')           AND IsUpdate()
 Type: files;      Name: {app}\plugins\ExtendedNotifications.dll;     Check: NOT IsComponentSelected('plugins\extendednotifications') AND IsUpdate()
 Type: files;      Name: {app}\plugins\ExtendedServices.dll;          Check: NOT IsComponentSelected('plugins\extendedservices')      AND IsUpdate()
 Type: files;      Name: {app}\plugins\ExtendedTools.dll;             Check: NOT IsComponentSelected('plugins\extendedtools')         AND IsUpdate()

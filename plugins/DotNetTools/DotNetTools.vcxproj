@@ -168,7 +168,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="counters.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="perfpage.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dn.h" />
