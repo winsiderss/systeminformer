@@ -43,6 +43,7 @@ copy %1\tools\peview\bin\Release64\peview.exe %2\bin\x64\
 
 mkdir %2\bin\plugins\x86
 for %%a in (
+    DotNetTools
     ExtendedNotifications
     ExtendedServices
     ExtendedTools
@@ -55,6 +56,7 @@ for %%a in (
 
 mkdir %2\bin\plugins\x64
 for %%a in (
+    DotNetTools
     ExtendedNotifications
     ExtendedServices
     ExtendedTools
