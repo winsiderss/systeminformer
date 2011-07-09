@@ -249,7 +249,7 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     __in_opt PVOID Context
     )
 {
-    NOTHING;
+    PerfPageProcessPropertiesInitializing(Parameter);
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(
