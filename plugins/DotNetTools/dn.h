@@ -45,10 +45,16 @@ BOOLEAN GetPerfObjectTypeInfo2(
     __out_opt PVOID *TextData
     );
 
+// asmpage
+
+VOID AddAsmPageToPropContext(
+    __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
+    );
+
 // perfpage
 
-VOID PerfPageProcessPropertiesInitializing(
-    __in PVOID Parameter
+VOID AddPerfPageToPropContext(
+    __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     );
 
 #endif

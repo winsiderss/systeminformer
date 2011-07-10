@@ -90,6 +90,7 @@ typedef struct _PH_TREENEW_NODE
 #define TN_STYLE_DOUBLE_BUFFERED 0x2
 #define TN_STYLE_NO_DIVIDER 0x4
 #define TN_STYLE_ANIMATE_DIVIDER 0x8
+#define TN_STYLE_NO_COLUMN_SORT 0x10
 
 // Extended flags
 #define TN_FLAG_ITEM_DRAG_SELECT 0x1

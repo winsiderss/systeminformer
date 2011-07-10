@@ -50,20 +50,14 @@ static PPERF_OBJECT_TYPE_INFO DotNetObjectTypeInfo = NULL;
 static ULONG DotNetObjectTypeInfoCount = 0;
 static PVOID PerfInfoTextData = NULL;
 
-VOID PerfPageProcessPropertiesInitializing(
-    __in PVOID Parameter
+VOID AddPerfPageToPropContext(
+    __in PPH_PLUGIN_PROCESS_PROPCONTEXT PropContext
     )
 {
-    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
-    BOOLEAN isDotNet;
-
-    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)) && isDotNet)
-    {
-        PhAddProcessPropPage(
-            propContext->PropContext,
-            PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
-            );
-    }
+    PhAddProcessPropPage(
+        PropContext->PropContext,
+        PhCreateProcessPropPageContextEx(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_PROCDOTNETPERF), DotNetPerfPageDlgProc, NULL)
+        );
 }
 
 HRESULT GetCorPublishProcess(
