@@ -14,6 +14,11 @@
 #define AppDomainDCStart_V1 157
 #define RuntimeInformationDCStart 187
 
+// Opcodes
+
+#define CLR_METHODDC_DCSTARTCOMPLETE_OPCODE 14
+#define CLR_MODULEDCSTART_OPCODE 35
+
 // Bit maps
 
 // AppDomainFlags

@@ -26,6 +26,11 @@
 #include <evntcons.h>
 #include "clretw.h"
 
+#define CLR_VERSION_1_0 0x1
+#define CLR_VERSION_1_1 0x2
+#define CLR_VERSION_2_0 0x4
+#define CLR_VERSION_4_ABOVE 0x8
+
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1
 #define DNATNC_FLAGS 2
@@ -47,6 +52,7 @@ typedef struct _DNA_NODE
     PH_STRINGREF TextCache[DNATNC_MAXIMUM];
 
     ULONG Type;
+    BOOLEAN IsFakeClr;
 
     union
     {
@@ -78,6 +84,8 @@ typedef struct _ASMPAGE_CONTEXT
 {
     HWND WindowHandle;
     PPH_PROCESS_ITEM ProcessItem;
+    ULONG ClrVersions;
+    PDNA_NODE ClrV2Node;
     TRACEHANDLE TraceHandle;
     HWND TnHandle;
     PPH_LIST NodeList;
@@ -248,6 +256,25 @@ VOID DestroyNode(
     PhFree(Node);
 }
 
+PDNA_NODE AddFakeClrNode(
+    __in PASMPAGE_CONTEXT Context,
+    __in PWSTR DisplayName
+    )
+{
+    PDNA_NODE node;
+
+    node = AddNode(Context);
+    node->Type = DNA_TYPE_CLR;
+    node->IsFakeClr = TRUE;
+    node->u.Clr.ClrInstanceID = 0;
+    node->u.Clr.DisplayName = NULL;
+    PhInitializeStringRef(&node->StructureText, DisplayName);
+
+    PhAddItemList(Context->NodeRootList, node);
+
+    return node;
+}
+
 PDNA_NODE FindClrNode(
     __in PASMPAGE_CONTEXT Context,
     __in USHORT ClrInstanceID
@@ -259,7 +286,7 @@ PDNA_NODE FindClrNode(
     {
         PDNA_NODE node = Context->NodeRootList->Items[i];
 
-        if (node->u.Clr.ClrInstanceID == ClrInstanceID)
+        if (!node->IsFakeClr && node->u.Clr.ClrInstanceID == ClrInstanceID)
             return node;
     }
 
@@ -347,7 +374,7 @@ BOOLEAN NTAPI DotNetAsmTreeNewCallback(
             }
             else
             {
-                if (node->Type == DNA_TYPE_APPDOMAIN)
+                if (node->Type == DNA_TYPE_APPDOMAIN || node == context->ClrV2Node)
                 {
                     // Sort the assemblies.
                     qsort(node->Children->Items, node->Children->Count, sizeof(PVOID), AssemblyNodeNameCompareFunction);
@@ -506,9 +533,10 @@ VOID NTAPI DotNetEventCallback(
     PEVENT_HEADER eventHeader = &EventRecord->EventHeader;
     PEVENT_DESCRIPTOR eventDescriptor = &eventHeader->EventDescriptor;
 
-    if (memcmp(&eventHeader->ProviderId, &ClrRundownProviderGuid, sizeof(GUID)) == 0 &&
-        UlongToHandle(eventHeader->ProcessId) == context->ProcessItem->ProcessId)
+    if (UlongToHandle(eventHeader->ProcessId) == context->ProcessItem->ProcessId || eventDescriptor->Id == DCStartComplete_V1)
     {
+        // .NET 4.0+
+
         switch (eventDescriptor->Id)
         {
         case RuntimeInformationDCStart:
@@ -659,6 +687,75 @@ VOID NTAPI DotNetEventCallback(
             }
             break;
         }
+
+        // .NET 2.0
+
+        if (eventDescriptor->Id == 0)
+        {
+            switch (eventDescriptor->Opcode)
+            {
+            case CLR_MODULEDCSTART_OPCODE:
+                {
+                    PModuleLoadUnloadRundown_V1 data = EventRecord->UserData;
+                    PWSTR moduleILPath;
+                    SIZE_T moduleILPathLength;
+                    PWSTR moduleNativePath;
+                    SIZE_T moduleNativePathLength;
+                    PDNA_NODE node;
+                    ULONG indexOfBackslash;
+                    ULONG indexOfLastDot;
+
+                    moduleILPath = data->ModuleILPath;
+                    moduleILPathLength = wcslen(moduleILPath) * sizeof(WCHAR);
+                    moduleNativePath = (PWSTR)((PCHAR)moduleILPath + moduleILPathLength + sizeof(WCHAR));
+                    moduleNativePathLength = wcslen(moduleNativePath) * sizeof(WCHAR);
+
+                    if (context->ClrV2Node)
+                    {
+                        node = AddNode(context);
+                        node->Type = DNA_TYPE_ASSEMBLY;
+                        node->FlagsText = FlagsToString(data->ModuleFlags, ModuleFlagsMap, sizeof(ModuleFlagsMap));
+                        node->PathText = PhCreateStringEx(moduleILPath, moduleILPathLength);
+
+                        if (moduleNativePathLength != 0)
+                            node->NativePathText = PhCreateStringEx(moduleNativePath, moduleNativePathLength);
+
+                        // Use the name between the last backslash and the last dot for the structure column text.
+                        // (E.g. C:\...\AcmeSoft.BigLib.dll -> AcmeSoft.BigLib)
+
+                        indexOfBackslash = PhFindLastCharInString(node->PathText, 0, '\\');
+                        indexOfLastDot = PhFindLastCharInString(node->PathText, 0, '.');
+
+                        if (indexOfBackslash != -1)
+                        {
+                            node->StructureText.Buffer = node->PathText->Buffer + indexOfBackslash + 1;
+
+                            if (indexOfLastDot != -1 && indexOfLastDot > indexOfBackslash && FALSE)
+                            {
+                                node->StructureText.Length = (USHORT)((indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR));
+                            }
+                            else
+                            {
+                                node->StructureText.Length = node->PathText->Length - (USHORT)(indexOfBackslash * sizeof(WCHAR)) - sizeof(WCHAR);
+                            }
+                        }
+                        else
+                        {
+                            node->StructureText = node->PathText->sr;
+                        }
+
+                        PhAddItemList(context->ClrV2Node->Children, node);
+                    }
+                }
+                break;
+            case CLR_METHODDC_DCSTARTCOMPLETE_OPCODE:
+                {
+                    CloseTrace(context->TraceHandle);
+                    context->TraceHandle = 0;
+                }
+                break;
+            }
+        }
     }
 }
 
@@ -692,7 +789,8 @@ ULONG ProcessDotNetTrace(
 }
 
 ULONG UpdateDotNetTraceInfo(
-    __in PASMPAGE_CONTEXT Context
+    __in PASMPAGE_CONTEXT Context,
+    __in BOOLEAN ClrV2
     )
 {
     static _EnableTraceEx EnableTraceEx_I = NULL;
@@ -700,6 +798,7 @@ ULONG UpdateDotNetTraceInfo(
     ULONG result;
     TRACEHANDLE sessionHandle;
     PEVENT_TRACE_PROPERTIES properties;
+    PGUID guidToEnable;
 
     if (!EnableTraceEx_I)
         EnableTraceEx_I = (_EnableTraceEx)PhGetProcAddress(L"advapi32.dll", "EnableTraceEx");
@@ -711,8 +810,13 @@ ULONG UpdateDotNetTraceInfo(
     if (result != 0)
         return result;
 
+    if (!ClrV2)
+        guidToEnable = &ClrRundownProviderGuid;
+    else
+        guidToEnable = &ClrRuntimeProviderGuid;
+
     EnableTraceEx_I(
-        &ClrRundownProviderGuid,
+        guidToEnable,
         NULL,
         sessionHandle,
         1,
@@ -729,6 +833,59 @@ ULONG UpdateDotNetTraceInfo(
     PhFree(properties);
 
     return result;
+}
+
+BOOLEAN NTAPI DotNetVersionsEnumModulesCallback(
+    __in PPH_MODULE_INFO Module,
+    __in_opt PVOID Context
+    )
+{
+    if (
+        PhEqualString2(Module->Name, L"clr.dll", TRUE) ||
+        PhEqualString2(Module->Name, L"mscorwks.dll", TRUE) ||
+        PhEqualString2(Module->Name, L"mscorsvr.dll", TRUE)
+        )
+    {
+        static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework\\");
+        PH_STRINGREF firstPart;
+        PH_STRINGREF secondPart;
+
+        if (PhSplitStringRefAtString(&Module->FileName->sr, &frameworkString, TRUE, &firstPart, &secondPart))
+        {
+            if (secondPart.Length >= 4 * sizeof(WCHAR)) // vx.x
+            {
+                if (secondPart.Buffer[1] == '1')
+                {
+                    if (secondPart.Buffer[3] == '0')
+                        *(PULONG)Context |= CLR_VERSION_1_0;
+                    else if (secondPart.Buffer[3] == '1')
+                        *(PULONG)Context |= CLR_VERSION_1_1;
+                }
+                else if (secondPart.Buffer[1] == '2')
+                {
+                    *(PULONG)Context |= CLR_VERSION_2_0;
+                }
+                else if (secondPart.Buffer[1] >= '4' && secondPart.Buffer[1] <= '9')
+                {
+                    *(PULONG)Context |= CLR_VERSION_4_ABOVE;
+                }
+            }
+        }
+    }
+
+    return TRUE;
+}
+
+ULONG GetProcessDotNetVersions(
+    __in HANDLE ProcessId
+    )
+{
+    ULONG versions;
+
+    versions = 0;
+    PhEnumGenericModules(ProcessId, NULL, 0, DotNetVersionsEnumModulesCallback, &versions);
+
+    return versions;
 }
 
 INT_PTR CALLBACK DotNetAsmPageDlgProc(
@@ -756,7 +913,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            ULONG result;
+            ULONG result = 0;
             HWND tnHandle;
 
             context = PhAllocate(sizeof(ASMPAGE_CONTEXT));
@@ -764,6 +921,8 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             propPageContext->Context = context;
             context->WindowHandle = hwndDlg;
             context->ProcessItem = processItem;
+
+            context->ClrVersions = GetProcessDotNetVersions(processItem->ProcessId);
 
             context->NodeList = PhCreateList(64);
             context->NodeRootList = PhCreateList(2);
@@ -785,7 +944,28 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhAddTreeNewColumn(tnHandle, DNATNC_NATIVEPATH, TRUE, L"Native Image Path", 600, PH_ALIGN_LEFT, 3, 0);
 
             SetCursor(LoadCursor(NULL, IDC_WAIT));
-            result = UpdateDotNetTraceInfo(context);
+
+            if (context->ClrVersions & CLR_VERSION_1_0)
+            {
+                AddFakeClrNode(context, L"CLR v1.0.3705"); // what PE displays
+            }
+
+            if (context->ClrVersions & CLR_VERSION_1_1)
+            {
+                AddFakeClrNode(context, L"CLR v1.1.4322");
+            }
+
+            if (context->ClrVersions & CLR_VERSION_2_0)
+            {
+                context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
+                result = UpdateDotNetTraceInfo(context, TRUE);
+            }
+
+            if (context->ClrVersions & CLR_VERSION_4_ABOVE)
+            {
+                result = UpdateDotNetTraceInfo(context, FALSE);
+            }
+
             TreeNew_NodesStructured(tnHandle);
 
             TreeNew_SetRedraw(tnHandle, TRUE);
