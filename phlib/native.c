@@ -4823,7 +4823,7 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
         ULONG entryIndex;
         ULONG index;
 
-        flags = 0;
+        flags = PH_IS_DOT_NET_VERSION_PRE_4;
 
         name = Name->sr;
         name.Buffer += prefix.Length / sizeof(WCHAR);
@@ -4831,13 +4831,16 @@ BOOLEAN NTAPI PhpCreateIsDotNetContextCallback(
 
         if (PhStartsWithStringRef(&name, &prefixAddV4, TRUE))
         {
-            flags |= PH_IS_DOT_NET_VERSION_4;
+            flags = PH_IS_DOT_NET_VERSION_4;
             name.Buffer += prefixAddV4.Length / sizeof(WCHAR);
             name.Length -= prefixAddV4.Length;
         }
 
         if (PhStringToInteger64(&name, 10, &processId))
         {
+            // Note that if a process is using both .NET v4 and an older version, there will 
+            // be two entries for the process.
+
             if (context->NumberOfEntries == context->NumberOfAllocatedEntries)
             {
                 context->NumberOfAllocatedEntries *= 2;
@@ -4933,9 +4936,14 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
     __out_opt PULONG Flags
     )
 {
+    BOOLEAN result;
+    ULONG flags;
     PPH_IS_DOT_NET_ENTRY entry;
     ULONG index;
     ULONG i;
+
+    result = FALSE;
+    flags = 0;
 
     index = ((ULONG)ProcessId / 4) & (sizeof(IsDotNetContext->Buckets) / sizeof(ULONG) - 1);
 
@@ -4945,14 +4953,15 @@ BOOLEAN PhGetProcessIsDotNetFromContext(
 
         if (entry->ProcessId == ProcessId)
         {
-            if (Flags)
-                *Flags = entry->Flags;
-
-            return TRUE;
+            result = TRUE;
+            flags |= entry->Flags;
         }
     }
 
-    return FALSE;
+    if (Flags)
+        *Flags = flags;
+
+    return result;
 }
 
 /**
