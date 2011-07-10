@@ -698,7 +698,8 @@ NTSTATUS PhGetProcessIsDotNet(
     __out PBOOLEAN IsDotNet
     );
 
-#define PH_IS_DOT_NET_VERSION_4 0x1
+#define PH_IS_DOT_NET_VERSION_PRE_4 0x1
+#define PH_IS_DOT_NET_VERSION_4 0x2
 
 typedef struct _PH_IS_DOT_NET_CONTEXT *PPH_IS_DOT_NET_CONTEXT;
 
