@@ -307,12 +307,16 @@ VOID UpdateCounterData(
                             PH_FORMAT format;
                             WCHAR formatBuffer[10];
 
-                            if (denomValue != 0)
+                            if (*denomValue != 0)
                             {
                                 PhInitFormatF(&format, (FLOAT)*value * 100 / (FLOAT)*denomValue, 2);
 
                                 if (PhFormatToBuffer(&format, 1, formatBuffer, sizeof(formatBuffer), NULL))
                                     PhSetListViewSubItem(countersLv, lvItemIndex, 1, formatBuffer);
+                            }
+                            else
+                            {
+                                PhSetListViewSubItem(countersLv, lvItemIndex, 1, L"0.00");
                             }
                         }
                         break;
