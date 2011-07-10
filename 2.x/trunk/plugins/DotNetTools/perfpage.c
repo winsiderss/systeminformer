@@ -20,11 +20,11 @@
  * along with Process Hacker.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define CINTERFACE
+#define COBJMACROS
 #include "dn.h"
 #include "resource.h"
 #include <windowsx.h>
-#define CINTERFACE
-#define COBJMACROS
 #include <corpub.h>
 
 typedef struct _PERFPAGE_CONTEXT
@@ -60,6 +60,83 @@ VOID AddPerfPageToPropContext(
         );
 }
 
+HRESULT CreateCorpubPublish(
+    __in HANDLE ProcessId,
+    __out ICorPublish **Publish
+    )
+{
+    HRESULT result;
+    PPH_IS_DOT_NET_CONTEXT isDotNetContext;
+    ULONG flags;
+    BOOLEAN clrV4;
+
+    clrV4 = FALSE;
+
+    if (NT_SUCCESS(PhCreateIsDotNetContext(&isDotNetContext, NULL, 0)))
+    {
+        if (PhGetProcessIsDotNetFromContext(isDotNetContext, ProcessId, &flags))
+        {
+            if (flags & PH_IS_DOT_NET_VERSION_4)
+                clrV4 = TRUE;
+        }
+
+        PhFreeIsDotNetContext(isDotNetContext);
+    }
+
+    // Using CoCreateInstance always seems to create a v2-compatible class, but not a v4-compatible one.
+    // For v4 we have to manually load the correct version of mscordbi.dll.
+
+    if (clrV4)
+    {
+        static PH_INITONCE initOnce = PH_INITONCE_INIT;
+        static HMODULE mscordbiDllBase;
+
+        if (PhBeginInitOnce(&initOnce))
+        {
+            PH_STRINGREF systemRootString;
+            PH_STRINGREF mscordbiPathString;
+            PPH_STRING mscordbiFileName;
+
+            LoadLibrary(L"mscoree.dll");
+
+            PhInitializeStringRef(&systemRootString, USER_SHARED_DATA->NtSystemRoot);
+            PhInitializeStringRef(&mscordbiPathString, L"\\Microsoft.NET\\Framework\\v4.0.30319\\mscordbi.dll");
+
+            // Make sure the system root string doesn't end with a backslash.
+            if (systemRootString.Buffer[systemRootString.Length / 2 - 1] == '\\')
+                systemRootString.Length -= 2;
+
+            mscordbiFileName = PhConcatStringRef2(&systemRootString, &mscordbiPathString);
+            mscordbiDllBase = LoadLibrary(mscordbiFileName->Buffer);
+            PhDereferenceObject(mscordbiFileName);
+
+            PhEndInitOnce(&initOnce);
+        }
+
+        if (mscordbiDllBase)
+        {
+            HRESULT (__stdcall *dllGetClassObject)(REFCLSID, REFIID, LPVOID *);
+
+            dllGetClassObject = (PVOID)GetProcAddress(mscordbiDllBase, "DllGetClassObjectInternal");
+
+            if (dllGetClassObject)
+            {
+                IClassFactory *factory;
+
+                if (SUCCEEDED(dllGetClassObject(&CLSID_CorpubPublish_I, &IID_IClassFactory, &factory)))
+                {
+                    result = IClassFactory_CreateInstance(factory, NULL, &IID_ICorPublish_I, Publish);
+                    IClassFactory_Release(factory);
+
+                    return result;
+                }
+            }
+        }
+    }
+
+    return CoCreateInstance(&CLSID_CorpubPublish_I, NULL, CLSCTX_INPROC_SERVER, &IID_ICorPublish_I, Publish);
+}
+
 HRESULT GetCorPublishProcess(
     __in HANDLE ProcessId,
     __out ICorPublishProcess **PublishProcess
@@ -68,7 +145,7 @@ HRESULT GetCorPublishProcess(
     HRESULT result;
     ICorPublish *publish;
 
-    if (SUCCEEDED(result = CoCreateInstance(&CLSID_CorpubPublish_I, NULL, CLSCTX_INPROC_SERVER, &IID_ICorPublish_I, &publish)))
+    if (SUCCEEDED(CreateCorpubPublish(ProcessId, &publish)))
     {
         result = ICorPublish_GetProcess(publish, (ULONG)ProcessId, PublishProcess);
         ICorPublish_Release(publish);
