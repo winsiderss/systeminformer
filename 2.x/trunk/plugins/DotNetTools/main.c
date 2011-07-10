@@ -249,7 +249,15 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     __in_opt PVOID Context
     )
 {
-    PerfPageProcessPropertiesInitializing(Parameter);
+    PPH_PLUGIN_PROCESS_PROPCONTEXT propContext = Parameter;
+    BOOLEAN isDotNet;
+
+    if (NT_SUCCESS(PhGetProcessIsDotNet(propContext->ProcessItem->ProcessId, &isDotNet)) && isDotNet)
+    {
+        if (WindowsVersion >= WINDOWS_VISTA)
+            AddAsmPageToPropContext(propContext);
+        AddPerfPageToPropContext(propContext);
+    }
 }
 
 VOID NTAPI ProcessMenuInitializingCallback(

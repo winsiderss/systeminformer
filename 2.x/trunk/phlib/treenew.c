@@ -351,6 +351,8 @@ BOOLEAN PhTnpOnCreate(
     __in CREATESTRUCT *CreateStruct
     )
 {
+    ULONG headerStyle;
+
     Context->Handle = hwnd;
     Context->InstanceHandle = CreateStruct->hInstance;
     Context->Style = CreateStruct->style;
@@ -361,10 +363,15 @@ BOOLEAN PhTnpOnCreate(
     if ((Context->Style & TN_STYLE_ANIMATE_DIVIDER) && Context->DoubleBuffered)
         Context->AnimateDivider = TRUE;
 
+    headerStyle = HDS_HORZ | HDS_FULLDRAG;
+
+    if (!(Context->Style & TN_STYLE_NO_COLUMN_SORT))
+        headerStyle |= HDS_BUTTONS;
+
     if (!(Context->FixedHeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle,
         0,
         0,
         0,
@@ -381,7 +388,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->HeaderHandle = CreateWindow(
         WC_HEADER,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | HDS_HORZ | HDS_FULLDRAG | HDS_BUTTONS | HDS_DRAGDROP,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | headerStyle | HDS_DRAGDROP,
         0,
         0,
         0,
@@ -1405,7 +1412,8 @@ BOOLEAN PhTnpOnNotify(
         break;
     case HDN_ITEMCLICK:
         {
-            if (Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle)
+            if ((Header->hwndFrom == Context->FixedHeaderHandle || Header->hwndFrom == Context->HeaderHandle) &&
+                !(Context->Style & TN_STYLE_NO_COLUMN_SORT))
             {
                 NMHEADER *nmHeader = (NMHEADER *)Header;
                 HDITEM item;
