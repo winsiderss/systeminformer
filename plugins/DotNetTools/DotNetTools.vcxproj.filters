@@ -24,12 +24,18 @@
     <ClCompile Include="counters.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="asmpage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="clretw.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
