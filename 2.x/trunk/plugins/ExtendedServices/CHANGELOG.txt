@@ -1,5 +1,5 @@
 1.6
- * Disabled editing of required privileges for services
+ * Disabled editing of required privileges for drivers
 
 1.5
  * Added support for editing triggers

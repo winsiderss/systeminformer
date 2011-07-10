@@ -14,7 +14,7 @@ Process Hacker
    * Added W3 terminator test
    * Added DotNetTools plugin
    * Updated ExtendedServices plugin:
-     * Disabled editing of required privileges for services
+     * Disabled editing of required privileges for drivers
    * Updated ExtendedTools plugin:
      * Added ETW columns for processes and network connections
    * Updated OnlineChecks plugin:
