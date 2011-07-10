@@ -730,7 +730,7 @@ VOID NTAPI DotNetEventCallback(
                         {
                             node->StructureText.Buffer = node->PathText->Buffer + indexOfBackslash + 1;
 
-                            if (indexOfLastDot != -1 && indexOfLastDot > indexOfBackslash && FALSE)
+                            if (indexOfLastDot != -1 && indexOfLastDot > indexOfBackslash)
                             {
                                 node->StructureText.Length = (USHORT)((indexOfLastDot - indexOfBackslash - 1) * sizeof(WCHAR));
                             }
