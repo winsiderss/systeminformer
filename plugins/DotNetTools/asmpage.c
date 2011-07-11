@@ -30,6 +30,7 @@
 #define CLR_VERSION_1_1 0x2
 #define CLR_VERSION_2_0 0x4
 #define CLR_VERSION_4_ABOVE 0x8
+#define CLR_PROCESS_IS_WOW64 0x100000
 
 #define DNATNC_STRUCTURE 0
 #define DNATNC_ID 1
@@ -86,7 +87,12 @@ typedef struct _ASMPAGE_CONTEXT
     PPH_PROCESS_ITEM ProcessItem;
     ULONG ClrVersions;
     PDNA_NODE ClrV2Node;
+
+    BOOLEAN TraceClrV2;
+    ULONG TraceResult;
+    LONG TraceHandleActive;
     TRACEHANDLE TraceHandle;
+
     HWND TnHandle;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
@@ -533,7 +539,7 @@ VOID NTAPI DotNetEventCallback(
     PEVENT_HEADER eventHeader = &EventRecord->EventHeader;
     PEVENT_DESCRIPTOR eventDescriptor = &eventHeader->EventDescriptor;
 
-    if (UlongToHandle(eventHeader->ProcessId) == context->ProcessItem->ProcessId || eventDescriptor->Id == DCStartComplete_V1)
+    if (UlongToHandle(eventHeader->ProcessId) == context->ProcessItem->ProcessId)
     {
         // .NET 4.0+
 
@@ -682,8 +688,10 @@ VOID NTAPI DotNetEventCallback(
             break;
         case DCStartComplete_V1:
             {
-                CloseTrace(context->TraceHandle);
-                context->TraceHandle = 0;
+                if (_InterlockedExchange(&context->TraceHandleActive, 0) == 1)
+                {
+                    CloseTrace(context->TraceHandle);
+                }
             }
             break;
         }
@@ -750,8 +758,10 @@ VOID NTAPI DotNetEventCallback(
                 break;
             case CLR_METHODDC_DCSTARTCOMPLETE_OPCODE:
                 {
-                    CloseTrace(context->TraceHandle);
-                    context->TraceHandle = 0;
+                    if (_InterlockedExchange(&context->TraceHandleActive, 0) == 1)
+                    {
+                        CloseTrace(context->TraceHandle);
+                    }
                 }
                 break;
             }
@@ -779,11 +789,14 @@ ULONG ProcessDotNetTrace(
     if (traceHandle == INVALID_PROCESSTRACE_HANDLE)
         return GetLastError();
 
+    Context->TraceHandleActive = 1;
     Context->TraceHandle = traceHandle;
     result = ProcessTrace(&traceHandle, 1, NULL, NULL);
 
-    if (Context->TraceHandle != 0)
+    if (_InterlockedExchange(&Context->TraceHandleActive, 0) == 1)
+    {
         CloseTrace(traceHandle);
+    }
 
     return result;
 }
@@ -835,6 +848,51 @@ ULONG UpdateDotNetTraceInfo(
     return result;
 }
 
+NTSTATUS UpdateDotNetTraceInfoThreadStart(
+    __in PVOID Parameter
+    )
+{
+    PASMPAGE_CONTEXT context = Parameter;
+
+    context->TraceResult = UpdateDotNetTraceInfo(context, context->TraceClrV2);
+
+    return STATUS_SUCCESS;
+}
+
+ULONG UpdateDotNetTraceInfoWithTimeout(
+    __in PASMPAGE_CONTEXT Context,
+    __in BOOLEAN ClrV2,
+    __in_opt PLARGE_INTEGER Timeout
+    )
+{
+    HANDLE threadHandle;
+
+    // ProcessDotNetTrace is not guaranteed to complete within any period of time, because 
+    // the target process might terminate before it writes the DCStartComplete_V1 event.
+    // If the timeout is reached, the trace handle is closed, forcing ProcessTrace to stop 
+    // processing.
+
+    Context->TraceClrV2 = ClrV2;
+    Context->TraceResult = 0;
+
+    threadHandle = PhCreateThread(0, UpdateDotNetTraceInfoThreadStart, Context);
+
+    if (NtWaitForSingleObject(threadHandle, FALSE, Timeout) != STATUS_WAIT_0)
+    {
+        // Timeout has expired. Stop the trace processing if it's still active.
+        if (_InterlockedExchange(&Context->TraceHandleActive, 0) == 1)
+        {
+            CloseTrace(Context->TraceHandle);
+        }
+
+        NtWaitForSingleObject(threadHandle, FALSE, NULL);
+    }
+
+    NtClose(threadHandle);
+
+    return Context->TraceResult;
+}
+
 BOOLEAN NTAPI DotNetVersionsEnumModulesCallback(
     __in PPH_MODULE_INFO Module,
     __in_opt PVOID Context
@@ -847,10 +905,25 @@ BOOLEAN NTAPI DotNetVersionsEnumModulesCallback(
         )
     {
         static PH_STRINGREF frameworkString = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework\\");
+        static PH_STRINGREF framework64String = PH_STRINGREF_INIT(L"Microsoft.NET\\Framework64\\");
+        PPH_STRINGREF splitAt;
         PH_STRINGREF firstPart;
         PH_STRINGREF secondPart;
 
-        if (PhSplitStringRefAtString(&Module->FileName->sr, &frameworkString, TRUE, &firstPart, &secondPart))
+#ifdef _M_X64
+        if (*(PULONG)Context & CLR_PROCESS_IS_WOW64)
+        {
+#endif
+            splitAt = &frameworkString;
+#ifdef _M_X64
+        }
+        else
+        {
+            splitAt = &framework64String;
+        }
+#endif
+
+        if (PhSplitStringRefAtString(&Module->FileName->sr, splitAt, TRUE, &firstPart, &secondPart))
         {
             if (secondPart.Length >= 4 * sizeof(WCHAR)) // vx.x
             {
@@ -880,10 +953,27 @@ ULONG GetProcessDotNetVersions(
     __in HANDLE ProcessId
     )
 {
+    HANDLE processHandle;
     ULONG versions;
+#ifdef _M_X64
+    BOOLEAN isWow64;
+#endif
 
     versions = 0;
-    PhEnumGenericModules(ProcessId, NULL, 0, DotNetVersionsEnumModulesCallback, &versions);
+
+    if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessId)))
+    {
+#ifdef _M_X64
+        isWow64 = FALSE;
+        PhGetProcessIsWow64(processHandle, &isWow64);
+
+        if (isWow64)
+            versions |= CLR_PROCESS_IS_WOW64;
+#endif
+
+        PhEnumGenericModules(ProcessId, processHandle, 0, DotNetVersionsEnumModulesCallback, &versions);
+        NtClose(processHandle);
+    }
 
     return versions;
 }
@@ -914,6 +1004,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     case WM_INITDIALOG:
         {
             ULONG result = 0;
+            LARGE_INTEGER timeout;
             HWND tnHandle;
 
             context = PhAllocate(sizeof(ASMPAGE_CONTEXT));
@@ -955,15 +1046,17 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
                 AddFakeClrNode(context, L"CLR v1.1.4322");
             }
 
+            timeout.QuadPart = -10 * PH_TIMEOUT_SEC;
+
             if (context->ClrVersions & CLR_VERSION_2_0)
             {
                 context->ClrV2Node = AddFakeClrNode(context, L"CLR v2.0.50727");
-                result = UpdateDotNetTraceInfo(context, TRUE);
+                result = UpdateDotNetTraceInfoWithTimeout(context, TRUE, &timeout);
             }
 
             if (context->ClrVersions & CLR_VERSION_4_ABOVE)
             {
-                result = UpdateDotNetTraceInfo(context, FALSE);
+                result = UpdateDotNetTraceInfoWithTimeout(context, FALSE, &timeout);
             }
 
             TreeNew_NodesStructured(tnHandle);
