@@ -6,6 +6,9 @@
 
 extern PPH_PLUGIN PluginInstance;
 
+#define SETTING_PREFIX L"ProcessHacker.DotNetTools."
+#define SETTING_NAME_ASM_TREE_LIST_COLUMNS (SETTING_PREFIX L"AsmTreeListColumns")
+
 // counters
 
 typedef struct _PERF_OBJECT_TYPE_INFO

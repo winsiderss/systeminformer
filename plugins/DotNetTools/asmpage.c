@@ -25,6 +25,7 @@
 #include <windowsx.h>
 #include <evntcons.h>
 #include "clretw.h"
+#include <colmgr.h>
 
 #define CLR_VERSION_1_0 0x1
 #define CLR_VERSION_1_1 0x2
@@ -318,6 +319,24 @@ PDNA_NODE FindAppDomainNode(
 }
 
 PDNA_NODE FindAssemblyNode(
+    __in PDNA_NODE AppDomainNode,
+    __in ULONG64 AssemblyID
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AppDomainNode->Children->Count; i++)
+    {
+        PDNA_NODE node = AppDomainNode->Children->Items[i];
+
+        if (node->u.Assembly.AssemblyID == AssemblyID)
+            return node;
+    }
+
+    return NULL;
+}
+
+PDNA_NODE FindAssemblyNode2(
     __in PDNA_NODE ClrNode,
     __in ULONG64 AssemblyID
     )
@@ -605,6 +624,10 @@ VOID NTAPI DotNetEventCallback(
 
                 if (parentNode)
                 {
+                    // Check for duplicates.
+                    if (FindAppDomainNode(parentNode, data->AppDomainID))
+                        break;
+
                     node = AddNode(context);
                     node->Type = DNA_TYPE_APPDOMAIN;
                     node->u.AppDomain.AppDomainID = data->AppDomainID;
@@ -638,6 +661,10 @@ VOID NTAPI DotNetEventCallback(
 
                 if (parentNode)
                 {
+                    // Check for duplicates.
+                    if (FindAssemblyNode(parentNode, data->AssemblyID))
+                        break;
+
                     node = AddNode(context);
                     node->Type = DNA_TYPE_ASSEMBLY;
                     node->u.Assembly.AssemblyID = data->AssemblyID;
@@ -675,14 +702,14 @@ VOID NTAPI DotNetEventCallback(
                 node = FindClrNode(context, clrInstanceID);
 
                 if (node)
-                    node = FindAssemblyNode(node, data->AssemblyID);
+                    node = FindAssemblyNode2(node, data->AssemblyID);
 
                 if (node)
                 {
-                    node->PathText = PhCreateStringEx(moduleILPath, moduleILPathLength);
+                    PhSwapReference2(&node->PathText, PhCreateStringEx(moduleILPath, moduleILPathLength));
 
                     if (moduleNativePathLength != 0)
-                        node->NativePathText = PhCreateStringEx(moduleNativePath, moduleNativePathLength);
+                        PhSwapReference2(&node->NativePathText, PhCreateStringEx(moduleNativePath, moduleNativePathLength));
                 }
             }
             break;
@@ -1008,6 +1035,7 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
     case WM_INITDIALOG:
         {
             ULONG result = 0;
+            PPH_STRING settings;
             LARGE_INTEGER timeout;
             HWND tnHandle;
 
@@ -1037,6 +1065,10 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
             PhAddTreeNewColumn(tnHandle, DNATNC_FLAGS, TRUE, L"Flags", 120, PH_ALIGN_LEFT, 1, 0);
             PhAddTreeNewColumn(tnHandle, DNATNC_PATH, TRUE, L"Path", 600, PH_ALIGN_LEFT, 2, 0); // don't use path ellipsis - the user already has the base file name
             PhAddTreeNewColumn(tnHandle, DNATNC_NATIVEPATH, TRUE, L"Native Image Path", 600, PH_ALIGN_LEFT, 3, 0);
+
+            settings = PhGetStringSetting(SETTING_NAME_ASM_TREE_LIST_COLUMNS);
+            PhCmLoadSettings(tnHandle, &settings->sr);
+            PhDereferenceObject(settings);
 
             SetCursor(LoadCursor(NULL, IDC_WAIT));
 
@@ -1087,7 +1119,12 @@ INT_PTR CALLBACK DotNetAsmPageDlgProc(
         break;
     case WM_DESTROY:
         {
+            PPH_STRING settings;
             ULONG i;
+
+            settings = PhCmSaveSettings(context->TnHandle);
+            PhSetStringSetting2(SETTING_NAME_ASM_TREE_LIST_COLUMNS, &settings->sr);
+            PhDereferenceObject(settings);
 
             for (i = 0; i < context->NodeList->Count; i++)
                 DestroyNode(context->NodeList->Items[i]);
