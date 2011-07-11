@@ -1897,9 +1897,19 @@ VOID PhTnpUpdateThemeData(
         }
 
         Context->ThemeData = OpenThemeData_I(Context->Handle, L"TREEVIEW");
-        Context->ThemeHasItemBackground = !!IsThemePartDefined_I(Context->ThemeData, TVP_TREEITEM, 0);
-        Context->ThemeHasGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_GLYPH, 0);
-        Context->ThemeHasHotGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_HOTGLYPH, 0);
+
+        if (Context->ThemeData)
+        {
+            Context->ThemeHasItemBackground = !!IsThemePartDefined_I(Context->ThemeData, TVP_TREEITEM, 0);
+            Context->ThemeHasGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_GLYPH, 0);
+            Context->ThemeHasHotGlyph = !!IsThemePartDefined_I(Context->ThemeData, TVP_HOTGLYPH, 0);
+        }
+        else
+        {
+            Context->ThemeHasItemBackground = FALSE;
+            Context->ThemeHasGlyph = FALSE;
+            Context->ThemeHasHotGlyph = FALSE;
+        }
     }
     else
     {
