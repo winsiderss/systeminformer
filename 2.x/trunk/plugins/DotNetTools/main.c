@@ -180,6 +180,15 @@ LOGICAL DllMain(
                 NULL,
                 &ProcessTreeNewInitializingCallbackRegistration
                 );
+
+            {
+                static PH_SETTING_CREATE settings[] =
+                {
+                    { StringSettingType, SETTING_NAME_ASM_TREE_LIST_COLUMNS, L"" }
+                };
+
+                PhAddSettings(settings, sizeof(settings) / sizeof(PH_SETTING_CREATE));
+            }
         }
         break;
     }
