@@ -2376,6 +2376,7 @@ VOID PhSelectAndEnsureVisibleProcessNode(
     TreeNew_SetFocusNode(ProcessTreeListHandle, &ProcessNode->Node);
     TreeNew_SetMarkNode(ProcessTreeListHandle, &ProcessNode->Node);
     TreeNew_EnsureVisible(ProcessTreeListHandle, &ProcessNode->Node);
+    TreeNew_InvalidateNode(ProcessTreeListHandle, &ProcessNode->Node);
 }
 
 PPH_PROCESS_TREE_FILTER_ENTRY PhAddProcessTreeFilter(
