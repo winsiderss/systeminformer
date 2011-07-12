@@ -1,5 +1,9 @@
 Process Hacker
 
+2.19
+ * NEW/IMPROVED:
+ * FIXED:
+
 2.18
  * NEW/IMPROVED:
    * Completely rewritten tree list control:
