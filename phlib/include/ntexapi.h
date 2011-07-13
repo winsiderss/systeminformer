@@ -851,7 +851,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorMicrocodeUpdateInformation, // s
     SystemProcessorBrandString, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVirtualAddressInformation, // q; s // MmQuerySystemVaInformation
-    SystemLogicalProcessorInformationEx, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // KeQueryLogicalProcessorRelationship
+    SystemLogicalProcessorInformationEx, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[]
     SystemStoreInformation, // q; s // SmQueryStoreInformation
     SystemRegistryAppendStringInformation, // 110, s
@@ -868,7 +868,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemNumaDistanceInformation, // q
     SystemSlicAuditResultsInformation, // q // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
-    SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION
+    SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
     MaxSystemInfoClass
 } SYSTEM_INFORMATION_CLASS;
 
@@ -1019,9 +1019,10 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
 {
     ULONG NextEntryOffset;
     ULONG NumberOfThreads;
-    LARGE_INTEGER SpareLi1;
-    LARGE_INTEGER SpareLi2;
-    LARGE_INTEGER SpareLi3;
+    LARGE_INTEGER WorkingSetPrivateSize; // since VISTA
+    ULONG HardFaultCount; // since WIN7
+    ULONG ActiveThreadsHighWatermark; // since WIN7
+    LARGE_INTEGER CycleTime; // since WIN7
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
@@ -1031,7 +1032,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     HANDLE InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG_PTR PageDirectoryBase;
+    ULONG_PTR UniqueProcessKey; // name since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;
     SIZE_T VirtualSize;
     ULONG PageFaultCount;
