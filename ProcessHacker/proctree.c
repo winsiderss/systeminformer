@@ -1518,6 +1518,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                             getCellText->Text.Length = (USHORT)(returnLength - sizeof(WCHAR)); // minus null terminator
                         }
                     }
+                    else if (cpuUsage != 0 && PhCsShowCpuBelow001)
+                    {
+                        PhInitializeStringRef(&getCellText->Text, L"< 0.01");
+                    }
                 }
                 break;
             case PHPRTLC_IOTOTALRATE:
@@ -1554,7 +1558,10 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->UserName);
                 break;
             case PHPRTLC_DESCRIPTION:
-                getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileDescription);
+                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage && processItem->ProcessId == INTERRUPTS_PROCESS_ID)
+                    PhInitializeStringRef(&getCellText->Text, L"Interrupts and DPCs");
+                else
+                    getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.FileDescription);
                 break;
             case PHPRTLC_COMPANYNAME:
                 getCellText->Text = PhGetStringRefOrEmpty(processItem->VersionInfo.CompanyName);
@@ -2403,7 +2410,7 @@ VOID PhInvalidateAllProcessNodes()
         node->ValidMask = 0;
     }
 
-    InvalidateRect(ProcessTreeListHandle, NULL, TRUE);
+    InvalidateRect(ProcessTreeListHandle, NULL, FALSE);
 }
 
 VOID PhSelectAndEnsureVisibleProcessNode(

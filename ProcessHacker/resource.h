@@ -438,6 +438,7 @@
 #define IDC_ZSHAREABLEWS_V              1290
 #define IDC_ZSHAREDWS_V                 1291
 #define IDC_ENABLEINSTANTTOOLTIPS       1292
+#define IDC_ENABLECYCLECPUUSAGE         1293
 #define ID_MAINWND_PROCESSTL            2001
 #define ID_MAINWND_SERVICETL            2002
 #define ID_MAINWND_NETWORKTL            2003
@@ -653,6 +654,9 @@
 #define ID_PAGEPRIORITY_3               40241
 #define ID_PAGEPRIORITY_2               40242
 #define ID_PAGEPRIORITY_1               40243
+#define ID_VIEW_SHOWCPUBELOW0           40244
+#define ID_VIEW_SHOWCPUBELOW            40245
+#define ID_VIEW_SHOWCPUBELOW001         40246
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -662,8 +666,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40244
-#define _APS_NEXT_CONTROL_VALUE         1293
+#define _APS_NEXT_COMMAND_VALUE         40247
+#define _APS_NEXT_CONTROL_VALUE         1294
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
 #endif
