@@ -1773,10 +1773,14 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime.QuadPart);
 
             // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
             processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
+            processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
+            processItem->PeakNumberOfThreads = process->ActiveThreadsHighWatermark;
+            processItem->HardFaultCount = process->HardFaultCount;
 
             processItem->IsSuspended = isSuspended;
 
@@ -1837,6 +1841,7 @@ VOID PhProcessProviderUpdate(
             PhUpdateDelta(&processItem->IoOtherCountDelta, process->OtherOperationCount.QuadPart);
             PhUpdateDelta(&processItem->ContextSwitchesDelta, contextSwitches);
             PhUpdateDelta(&processItem->PageFaultsDelta, process->PageFaultCount);
+            PhUpdateDelta(&processItem->CycleTimeDelta, process->CycleTime.QuadPart);
 
             processItem->SequenceNumber++;
             PhAddItemCircularBuffer_ULONG64(&processItem->IoReadHistory, processItem->IoReadDelta.Delta);
@@ -1851,6 +1856,9 @@ VOID PhProcessProviderUpdate(
             // Update VM and I/O statistics.
             processItem->VmCounters = *(PVM_COUNTERS_EX)&process->PeakVirtualSize;
             processItem->IoCounters = *(PIO_COUNTERS)&process->ReadOperationCount;
+            processItem->WorkingSetPrivateSize = (SIZE_T)process->WorkingSetPrivateSize.QuadPart;
+            processItem->PeakNumberOfThreads = process->ActiveThreadsHighWatermark;
+            processItem->HardFaultCount = process->HardFaultCount;
 
             if (processItem->JustProcessed)
             {

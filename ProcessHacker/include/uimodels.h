@@ -224,7 +224,7 @@ typedef struct _PH_PROCESS_NODE
     // Token
     BOOLEAN VirtualizationAllowed;
     BOOLEAN VirtualizationEnabled;
-    // Cycles
+    // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
 
     PPH_STRING TooltipText;

@@ -781,7 +781,10 @@ static VOID PhpUpdateNeedCyclesInformation()
 
     NeedCyclesInformation = FALSE;
 
-    if (!WINDOWS_HAS_CYCLE_TIME)
+    // Before Windows Vista, there is no cycle time measurement.
+    // On Windows 7 and above, cycle time information is available directly from the process item.
+    // We only need to query cycle time separately for Windows Vista.
+    if (WindowsVersion != WINDOWS_VISTA)
         return;
 
     TreeNew_GetColumn(ProcessTreeListHandle, PHPRTLC_CYCLES, &column);
@@ -1004,6 +1007,12 @@ BEGIN_SORT_FUNCTION(PrivateWs)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(PrivateWsWin7)
+{
+    sortResult = uintcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(SharedWs)
 {
     PhpUpdateProcessNodeWsCounters(node1);
@@ -1205,9 +1214,21 @@ BEGIN_SORT_FUNCTION(Cycles)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(CyclesWin7)
+{
+    sortResult = uint64cmp(processItem1->CycleTimeDelta.Value, processItem2->CycleTimeDelta.Value);
+}
+END_SORT_FUNCTION
+
 BEGIN_SORT_FUNCTION(CyclesDelta)
 {
     sortResult = uint64cmp(node1->CyclesDelta.Delta, node2->CyclesDelta.Delta);
+}
+END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(CyclesDeltaWin7)
+{
+    sortResult = uint64cmp(processItem1->CycleTimeDelta.Delta, processItem2->CycleTimeDelta.Delta);
 }
 END_SORT_FUNCTION
 
@@ -1403,7 +1424,20 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(IoWritesDelta),
                         SORT_FUNCTION(IoOtherDelta)
                     };
+                    static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
+
+                    if (PhBeginInitOnce(&initOnce))
+                    {
+                        if (WindowsVersion >= WINDOWS_7)
+                        {
+                            sortFunctions[PHPRTLC_PRIVATEWS] = SORT_FUNCTION(PrivateWsWin7);
+                            sortFunctions[PHPRTLC_CYCLES] = SORT_FUNCTION(CyclesWin7);
+                            sortFunctions[PHPRTLC_CYCLESDELTA] = SORT_FUNCTION(CyclesDeltaWin7);
+                        }
+
+                        PhEndInitOnce(&initOnce);
+                    }
 
                     if (!PhCmForwardSort(
                         (PPH_TREENEW_NODE *)ProcessNodeList->Items,
@@ -1547,8 +1581,15 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 getCellText->Text = node->PeakWorkingSetText->sr;
                 break;
             case PHPRTLC_PRIVATEWS:
-                PhpUpdateProcessNodeWsCounters(node);
-                PhSwapReference2(&node->PrivateWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfPrivatePages, PAGE_SIZE), -1));
+                if (WindowsVersion >= WINDOWS_7)
+                {
+                    PhSwapReference2(&node->PrivateWsText, PhFormatSize(processItem->WorkingSetPrivateSize, -1));
+                }
+                else
+                {
+                    PhpUpdateProcessNodeWsCounters(node);
+                    PhSwapReference2(&node->PrivateWsText, PhFormatSize(UInt32x32To64(node->WsCounters.NumberOfPrivatePages, PAGE_SIZE), -1));
+                }
                 getCellText->Text = node->PrivateWsText->sr;
                 break;
             case PHPRTLC_SHAREDWS:
@@ -1773,10 +1814,32 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
 
                 break;
             case PHPRTLC_CYCLES:
-                getCellText->Text = PhGetStringRef(node->CyclesText);
+                if (WindowsVersion >= WINDOWS_7)
+                {
+                    if (processItem->CycleTimeDelta.Value != 0)
+                    {
+                        PhSwapReference2(&node->CyclesText, PhFormatUInt64(processItem->CycleTimeDelta.Value, TRUE));
+                        getCellText->Text = node->CyclesText->sr;
+                    }
+                }
+                else
+                {
+                    getCellText->Text = PhGetStringRef(node->CyclesText);
+                }
                 break;
             case PHPRTLC_CYCLESDELTA:
-                getCellText->Text = PhGetStringRef(node->CyclesDeltaText);
+                if (WindowsVersion >= WINDOWS_7)
+                {
+                    if (processItem->CycleTimeDelta.Delta != 0)
+                    {
+                        PhSwapReference2(&node->CyclesDeltaText, PhFormatUInt64(processItem->CycleTimeDelta.Delta, TRUE));
+                        getCellText->Text = node->CyclesDeltaText->sr;
+                    }
+                }
+                else
+                {
+                    getCellText->Text = PhGetStringRef(node->CyclesDeltaText);
+                }
                 break;
             case PHPRTLC_DEPSTATUS:
                 PhpUpdateProcessNodeDepStatus(node);

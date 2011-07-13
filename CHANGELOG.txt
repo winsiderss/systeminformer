@@ -2,6 +2,8 @@ Process Hacker
 
 2.19
  * NEW/IMPROVED:
+   * Optimized retrieval of cycle time and private working set 
+     information for Windows 7
  * FIXED:
 
 2.18
