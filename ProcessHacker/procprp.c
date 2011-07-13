@@ -1503,7 +1503,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
                             PhSwapReference2(&performanceContext->CpuGraphState.TooltipText,
                                 PhFormatString(L"%.2f%% (K: %.2f%%, U: %.2f%%)",
-                                processItem->CpuUsage * 100,
+                                (processItem->CpuKernelUsage + processItem->CpuUserUsage) * 100,
                                 processItem->CpuKernelUsage * 100,
                                 processItem->CpuUserUsage * 100
                                 ));
