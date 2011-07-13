@@ -192,9 +192,13 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINT64_DELTA IoOtherCountDelta;
     PH_UINT32_DELTA ContextSwitchesDelta;
     PH_UINT32_DELTA PageFaultsDelta;
+    PH_UINT64_DELTA CycleTimeDelta; // since WIN7
 
     VM_COUNTERS_EX VmCounters;
     IO_COUNTERS IoCounters;
+    SIZE_T WorkingSetPrivateSize; // since VISTA
+    ULONG PeakNumberOfThreads; // since WIN7
+    ULONG HardFaultCount; // since WIN7
 
     ULONG SequenceNumber;
     PH_CIRCULAR_BUFFER_FLOAT CpuKernelHistory;

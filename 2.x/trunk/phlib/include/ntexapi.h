@@ -1032,7 +1032,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     HANDLE InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG_PTR UniqueProcessKey; // name since VISTA (requires SystemExtendedProcessInformation)
+    ULONG_PTR UniqueProcessKey; // since VISTA (requires SystemExtendedProcessInformation)
     SIZE_T PeakVirtualSize;
     SIZE_T VirtualSize;
     ULONG PageFaultCount;
