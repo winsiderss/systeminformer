@@ -1009,7 +1009,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(PrivateWsWin7)
 {
-    sortResult = uintcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
+    sortResult = uintptrcmp(processItem1->WorkingSetPrivateSize, processItem2->WorkingSetPrivateSize);
 }
 END_SORT_FUNCTION
 

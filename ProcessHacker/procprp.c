@@ -1155,6 +1155,8 @@ VOID PhpUpdateProcessStatistics(
         PPH_STRING privateWs = NULL;
         PPH_STRING shareableWs = NULL;
         PPH_STRING sharedWs = NULL;
+        BOOLEAN gotCycles = FALSE;
+        BOOLEAN gotWsCounters = FALSE;
 
         if (ProcessItem->QueryHandle)
         {
@@ -1183,6 +1185,7 @@ VOID PhpUpdateProcessStatistics(
                 NT_SUCCESS(PhGetProcessCycleTime(ProcessItem->QueryHandle, &cycleTime)))
             {
                 cycles = PhaFormatUInt64(cycleTime, TRUE);
+                gotCycles = TRUE;
             }
 
             if (WindowsVersion >= WINDOWS_VISTA)
@@ -1201,7 +1204,16 @@ VOID PhpUpdateProcessStatistics(
                 privateWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfPrivatePages, PAGE_SIZE), -1);
                 shareableWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfShareablePages, PAGE_SIZE), -1);
                 sharedWs = PhaFormatSize(UInt32x32To64(wsCounters.NumberOfSharedPages, PAGE_SIZE), -1);
+                gotWsCounters = TRUE;
             }
+        }
+
+        if (WindowsVersion >= WINDOWS_7)
+        {
+            if (!gotCycles)
+                cycles = PhaFormatUInt64(ProcessItem->CycleTimeDelta.Value, TRUE);
+            if (!gotWsCounters)
+                privateWs = PhaFormatSize(ProcessItem->WorkingSetPrivateSize, -1);
         }
 
         if (WindowsVersion >= WINDOWS_7)
