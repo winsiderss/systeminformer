@@ -20,6 +20,7 @@ extern PH_QUEUED_LOCK PhProcessRecordListLock;
 extern ULONG PhStatisticsSampleCount;
 extern BOOLEAN PhEnableProcessQueryStage2;
 extern BOOLEAN PhEnablePurgeProcessRecords;
+extern BOOLEAN PhEnableCycleCpuUsage;
 
 extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 extern PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -178,9 +179,9 @@ typedef struct _PH_PROCESS_ITEM
     ULONG NumberOfHandles;
     ULONG NumberOfThreads;
 
-    FLOAT CpuKernelUsage;
-    FLOAT CpuUserUsage;
-    FLOAT CpuUsage; // from 0 to 1
+    FLOAT CpuKernelUsage; // from 0 to 1
+    FLOAT CpuUserUsage; // from 0 to 1
+    FLOAT CpuUsage; // Below Windows 7, sum of kernel and user CPU usage; above Windows 7, cycle-based CPU usage.
 
     PH_UINT64_DELTA CpuKernelDelta;
     PH_UINT64_DELTA CpuUserDelta;

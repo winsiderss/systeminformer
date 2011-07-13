@@ -109,6 +109,8 @@ BEGIN
         MENUITEM "Hide Processes From Other Users", ID_VIEW_HIDEPROCESSESFROMOTHERUSERS
         MENUITEM "Hide Signed Processes",       ID_VIEW_HIDESIGNEDPROCESSES
         MENUITEM SEPARATOR
+        MENUITEM "Show CPU Below 0.01",         ID_VIEW_SHOWCPUBELOW001
+        MENUITEM SEPARATOR
         MENUITEM "&Always on Top",              ID_VIEW_ALWAYSONTOP
         POPUP "&Opacity"
         BEGIN
@@ -1246,7 +1248,7 @@ BEGIN
     RTEXT           "Static",IDC_ZSHAREDWS_V,78,167,42,8,SS_ENDELLIPSIS
 END
 
-IDD_OPTADVANCED DIALOGEX 0, 0, 250, 138
+IDD_OPTADVANCED DIALOGEX 0, 0, 250, 150
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Advanced"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -1256,18 +1258,20 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,19,99,10
     CONTROL         "Hide unnamed handles",IDC_HIDEUNNAMEDHANDLES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,88,10
     CONTROL         "Replace Task Manager with Process Hacker",IDC_REPLACETASKMANAGER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,92,154,10
-    PUSHBUTTON      "Change...",IDC_CHANGE,161,90,62,14
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,105,154,10
+    PUSHBUTTON      "Change...",IDC_CHANGE,161,103,62,14
     CONTROL         "Check images for digital signatures and packing",IDC_ENABLESTAGE2,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,43,167,10
     CONTROL         "Resolve addresses for network connections",IDC_ENABLENETWORKRESOLVE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,55,155,10
     CONTROL         "Include CPU usage of children in collapsed processes",IDC_PROPAGATECPUUSAGE,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,67,184,10
-    LTEXT           "History sample count:",IDC_SAMPLECOUNTLABEL,7,108,70,8
-    EDITTEXT        IDC_SAMPLECOUNT,82,106,39,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "History sample count:",IDC_SAMPLECOUNTLABEL,7,121,70,8
+    EDITTEXT        IDC_SAMPLECOUNT,82,120,39,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "Show tooltips instantly",IDC_ENABLEINSTANTTOOLTIPS,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,79,88,10
+    CONTROL         "Enable cycle-based CPU usage",IDC_ENABLECYCLECPUUSAGE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,91,114,10
 END
 
 IDD_SYSINFO_PANEL DIALOGEX 0, 0, 387, 148
@@ -1902,7 +1906,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 243
         TOPMARGIN, 7
-        BOTTOMMARGIN, 131
+        BOTTOMMARGIN, 143
     END
 
     IDD_GDIHANDLES, DIALOG

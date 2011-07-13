@@ -165,6 +165,7 @@ PH_QUEUED_LOCK PhProcessRecordListLock = PH_QUEUED_LOCK_INIT;
 ULONG PhStatisticsSampleCount = 512;
 BOOLEAN PhEnableProcessQueryStage2 = FALSE;
 BOOLEAN PhEnablePurgeProcessRecords = TRUE;
+BOOLEAN PhEnableCycleCpuUsage = TRUE;
 
 SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
 PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION PhCpuInformation;
@@ -175,6 +176,9 @@ ULONG PhTotalHandles;
 
 SYSTEM_PROCESS_INFORMATION PhDpcsProcessInformation;
 SYSTEM_PROCESS_INFORMATION PhInterruptsProcessInformation;
+PLARGE_INTEGER PhCpuSystemCycleTime; // cycle time for DPCs and Interrupts
+LARGE_INTEGER PhCpuTotalSystemCycleTime;
+PH_UINT64_DELTA PhCpuSystemCycleDelta;
 
 FLOAT PhCpuKernelUsage;
 FLOAT PhCpuUserUsage;
@@ -184,6 +188,7 @@ PFLOAT PhCpusUserUsage;
 PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
 PH_UINT64_DELTA PhCpuOtherDelta;
+PH_UINT64_DELTA PhCpuCycleDelta;
 
 PPH_UINT64_DELTA PhCpusKernelDelta;
 PPH_UINT64_DELTA PhCpusUserDelta;
@@ -267,6 +272,15 @@ BOOLEAN PhProcessProviderInitialization()
         sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
         (ULONG)PhSystemBasicInformation.NumberOfProcessors
         );
+
+    if (WindowsVersion >= WINDOWS_7)
+    {
+        PhCpuSystemCycleTime = PhAllocate(
+            sizeof(LARGE_INTEGER) *
+            (ULONG)PhSystemBasicInformation.NumberOfProcessors
+            );
+    }
+
     usageBuffer = PhAllocate(
         sizeof(FLOAT) *
         (ULONG)PhSystemBasicInformation.NumberOfProcessors *
@@ -293,9 +307,11 @@ BOOLEAN PhProcessProviderInitialization()
     PhCpusKernelHistory = historyBuffer;
     PhCpusUserHistory = PhCpusKernelHistory + (ULONG)PhSystemBasicInformation.NumberOfProcessors;
 
+    PhInitializeDelta(&PhCpuSystemCycleDelta);
     PhInitializeDelta(&PhCpuKernelDelta);
     PhInitializeDelta(&PhCpuUserDelta);
     PhInitializeDelta(&PhCpuOtherDelta);
+    PhInitializeDelta(&PhCpuCycleDelta);
 
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
@@ -1287,8 +1303,7 @@ VOID PhpUpdateCpuInformation(
     NtQuerySystemInformation(
         SystemProcessorPerformanceInformation,
         PhCpuInformation,
-        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) *
-        (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+        sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
         NULL
         );
 
@@ -1354,6 +1369,50 @@ VOID PhpUpdateCpuInformation(
     }
 
     *TotalTime = totalTime;
+}
+
+VOID PhpUpdateSystemCpuCycleInformation()
+{
+    ULONG i;
+
+    NtQuerySystemInformation(
+        SystemProcessorCycleTimeInformation,
+        PhCpuSystemCycleTime,
+        sizeof(LARGE_INTEGER) * (ULONG)PhSystemBasicInformation.NumberOfProcessors,
+        NULL
+        );
+
+    PhCpuTotalSystemCycleTime.QuadPart = 0;
+
+    for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
+    {
+        PhCpuTotalSystemCycleTime.QuadPart += PhCpuSystemCycleTime[i].QuadPart;
+    }
+
+    PhUpdateDelta(&PhCpuSystemCycleDelta, PhCpuTotalSystemCycleTime.QuadPart);
+}
+
+VOID PhpUpdateCpuCycleInformation(
+    __in PSYSTEM_PROCESS_INFORMATION Processes,
+    __out PULONG64 TotalCycleTime
+    )
+{
+    ULONG64 totalCycleTime;
+    PSYSTEM_PROCESS_INFORMATION process;
+
+    totalCycleTime = 0;
+    process = PH_FIRST_PROCESS(Processes);
+
+    do
+    {
+        totalCycleTime += process->CycleTime.QuadPart;
+    } while (process = PH_NEXT_PROCESS(process));
+
+    totalCycleTime += PhCpuTotalSystemCycleTime.QuadPart;
+
+    PhUpdateDelta(&PhCpuCycleDelta, totalCycleTime);
+
+    *TotalCycleTime = PhCpuCycleDelta.Delta;
 }
 
 VOID PhpInitializeProcessStatistics()
@@ -1537,6 +1596,7 @@ VOID PhProcessProviderUpdate(
     BOOLEAN isDotNetContextUpdated = FALSE;
 
     ULONG64 sysTotalTime;
+    ULONG64 sysTotalCycleTime;
     FLOAT maxCpuValue = 0;
     PPH_PROCESS_ITEM maxCpuProcessItem = NULL;
     ULONG64 maxIoValue = 0;
@@ -1608,6 +1668,16 @@ VOID PhProcessProviderUpdate(
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
 
+    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+    {
+        PhpUpdateSystemCpuCycleInformation();
+        PhpUpdateCpuCycleInformation(processes, &sysTotalCycleTime);
+    }
+    else
+    {
+        sysTotalCycleTime = 0;
+    }
+
     // Create a PID list.
 
     if (!pids)
@@ -1630,11 +1700,23 @@ VOID PhProcessProviderUpdate(
     } while (process = PH_NEXT_PROCESS(process));
 
     // Add the fake processes to the PID list.
-    PhAddItemList(pids, DPCS_PROCESS_ID);
-    PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
+    // On Windows 7 the two fake processes are merged into "Interrupts" since we can only get 
+    // cycle time information both DPCs and Interrupts combined.
 
-    PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
-    PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
+    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+    {
+        PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
+        PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
+        PhInterruptsProcessInformation.CycleTime = PhCpuTotalSystemCycleTime;
+    }
+    else
+    {
+        PhAddItemList(pids, DPCS_PROCESS_ID);
+        PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
+
+        PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
+        PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
+    }
 
     // Look for dead processes.
     {
@@ -1882,8 +1964,16 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
-            newCpuUsage = kernelCpuUsage + userCpuUsage;
-            processItem->CpuUsage = newCpuUsage;
+            if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+            {
+                newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
+                processItem->CpuUsage = newCpuUsage;
+            }
+            else
+            {
+                newCpuUsage = kernelCpuUsage + userCpuUsage;
+                processItem->CpuUsage = newCpuUsage;
+            }
 
             // Max. values
 
@@ -1943,7 +2033,7 @@ VOID PhProcessProviderUpdate(
             // No reference added by PhpLookupProcessItem.
         }
 
-        // Trick ourselves into thinking that DPCs and Interrupts 
+        // Trick ourselves into thinking that the fake processes 
         // are on the list.
         if (process == &PhInterruptsProcessInformation)
         {
@@ -1958,7 +2048,12 @@ VOID PhProcessProviderUpdate(
             process = PH_NEXT_PROCESS(process);
 
             if (process == NULL)
-                process = &PhDpcsProcessInformation;
+            {
+                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+                    process = &PhInterruptsProcessInformation;
+                else
+                    process = &PhDpcsProcessInformation;
+            }
         }
     }
 

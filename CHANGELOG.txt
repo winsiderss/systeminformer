@@ -2,6 +2,8 @@ Process Hacker
 
 2.19
  * NEW/IMPROVED:
+   * Added cycle-based CPU usage for Windows 7
+   * Added Show CPU Below 0.01
    * Optimized retrieval of cycle time and private working set 
      information for Windows 7
  * FIXED:
