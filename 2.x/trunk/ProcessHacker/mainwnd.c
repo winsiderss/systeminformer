@@ -776,6 +776,17 @@ LRESULT CALLBACK PhMainWndProc(
                         );
                 }
                 break;
+            case ID_VIEW_SHOWCPUBELOW001:
+                {
+                    PH_SET_INTEGER_CACHED_SETTING(ShowCpuBelow001, !PhCsShowCpuBelow001);
+                    CheckMenuItem(
+                        PhMainWndMenuHandle,
+                        ID_VIEW_SHOWCPUBELOW001,
+                        PhCsShowCpuBelow001 ? MF_CHECKED : MF_UNCHECKED
+                        );
+                    PhInvalidateAllProcessNodes();
+                }
+                break;
             case ID_VIEW_ALWAYSONTOP:
                 {
                     BOOLEAN topMost;
@@ -2130,6 +2141,7 @@ VOID PhpInitialLoadSettings()
     PhStatisticsSampleCount = PhGetIntegerSetting(L"SampleCount");
     PhEnableProcessQueryStage2 = !!PhGetIntegerSetting(L"EnableStage2");
     PhEnablePurgeProcessRecords = !PhGetIntegerSetting(L"NoPurgeProcessRecords");
+    PhEnableCycleCpuUsage = !!PhGetIntegerSetting(L"EnableCycleCpuUsage");
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(L"EnableServiceNonPoll");
     PhEnableNetworkProviderResolve = !!PhGetIntegerSetting(L"EnableNetworkResolve");
 
@@ -2174,6 +2186,18 @@ VOID PhpInitialLoadSettings()
     {
         SignedFilterEntry = PhAddProcessTreeFilter(PhpSignedProcessTreeFilter, NULL);
         CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_HIDESIGNEDPROCESSES, MF_CHECKED);
+    }
+
+    if (PhEnableCycleCpuUsage)
+    {
+        if (PhCsShowCpuBelow001)
+        {
+            CheckMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_CHECKED);
+        }
+    }
+    else
+    {
+        EnableMenuItem(PhMainWndMenuHandle, ID_VIEW_SHOWCPUBELOW001, MF_GRAYED | MF_DISABLED);
     }
 
     customFont = PhGetStringSetting(L"Font");

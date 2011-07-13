@@ -107,6 +107,7 @@ VOID PhAddSettings(
 EXT ULONG PhCsCollapseServicesOnStart;
 EXT ULONG PhCsHighlightingDuration;
 EXT ULONG PhCsPropagateCpuUsage;
+EXT ULONG PhCsShowCpuBelow001;
 EXT ULONG PhCsUpdateInterval;
 
 EXT ULONG PhCsColorNew;
