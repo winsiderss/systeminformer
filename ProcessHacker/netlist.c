@@ -378,6 +378,12 @@ BEGIN_SORT_FUNCTION(Owner)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(TimeStamp)
+{
+    sortResult = uint64cmp(networkItem1->CreateTime.QuadPart, networkItem2->CreateTime.QuadPart);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpNetworkTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -408,7 +414,8 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     SORT_FUNCTION(RemotePort),
                     SORT_FUNCTION(Protocol),
                     SORT_FUNCTION(State),
-                    SORT_FUNCTION(Owner)
+                    SORT_FUNCTION(Owner),
+                    SORT_FUNCTION(TimeStamp)
                 };
                 int (__cdecl *sortFunction)(const void *, const void *);
 

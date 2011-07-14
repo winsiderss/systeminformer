@@ -8,6 +8,7 @@ Process Hacker
    * Optimized retrieval of cycle time and private working set 
      information for Windows 7
  * FIXED:
+   * Crash when sorting by Time Stamp
 
 2.18
  * NEW/IMPROVED:
