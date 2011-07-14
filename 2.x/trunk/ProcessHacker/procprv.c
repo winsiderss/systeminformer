@@ -49,6 +49,12 @@
  * time in which the process was running. In this case a binary search is used 
  * and then the list is traversed backwards until the process is found. Binary 
  * search is similarly used for insertion and removal.
+ *
+ * On Windows 7 and above, CPU usage can be calculated from cycle time. However, 
+ * cycle time cannot be split into kernel/user components, and cycle time is not 
+ * available for DPCs and Interrupts separately (only a "system" cycle time). 
+ * Currently, cycle-based CPU usage is only used for the CpuUsage field of the 
+ * process item, not for overall system CPU usage.
  */
 
 #define PH_PROCPRV_PRIVATE
