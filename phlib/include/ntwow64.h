@@ -231,7 +231,40 @@ typedef struct _PEB32
 
     ULONG SessionId;
 
-    // Rest of structure not included.
+    ULARGE_INTEGER AppCompatFlags;
+    ULARGE_INTEGER AppCompatFlagsUser;
+    WOW64_POINTER(PVOID) pShimData;
+    WOW64_POINTER(PVOID) AppCompatInfo;
+
+    UNICODE_STRING32 CSDVersion;
+
+    WOW64_POINTER(PVOID) ActivationContextData;
+    WOW64_POINTER(PVOID) ProcessAssemblyStorageMap;
+    WOW64_POINTER(PVOID) SystemDefaultActivationContextData;
+    WOW64_POINTER(PVOID) SystemAssemblyStorageMap;
+
+    WOW64_POINTER(SIZE_T) MinimumStackCommit;
+
+    WOW64_POINTER(PPVOID) FlsCallback;
+    LIST_ENTRY32 FlsListHead;
+    WOW64_POINTER(PVOID) FlsBitmap;
+    ULONG FlsBitmapBits[FLS_MAXIMUM_AVAILABLE / (sizeof(ULONG) * 8)];
+    ULONG FlsHighIndex;
+
+    WOW64_POINTER(PVOID) WerRegistrationData;
+    WOW64_POINTER(PVOID) WerShipAssertPtr;
+    WOW64_POINTER(PVOID) pContextData;
+    WOW64_POINTER(PVOID) pImageHeaderHash;
+    union
+    {
+        ULONG TracingFlags;
+        struct
+        {
+            ULONG HeapTracingEnabled : 1;
+            ULONG CritSecTracingEnabled : 1;
+            ULONG SpareTracingBits : 30;
+        };
+    };
 } PEB32, *PPEB32;
 
 #define GDI_BATCH_BUFFER_SIZE 310

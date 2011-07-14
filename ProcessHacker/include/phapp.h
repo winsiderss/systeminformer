@@ -100,9 +100,18 @@ VOID PhInitializeFont(
 
 // appsup
 
+extern GUID XP_CONTEXT_GUID;
+extern GUID VISTA_CONTEXT_GUID;
+extern GUID WIN7_CONTEXT_GUID;
+
 PHAPPAPI
 BOOLEAN PhGetProcessIsSuspended(
     __in PSYSTEM_PROCESS_INFORMATION Process
+    );
+
+NTSTATUS PhGetProcessSwitchContext(
+    __in HANDLE ProcessHandle,
+    __out PGUID Guid
     );
 
 typedef enum _PH_KNOWN_PROCESS_TYPE
