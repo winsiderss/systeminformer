@@ -63,6 +63,9 @@
 #include <phplug.h>
 #include <winsta.h>
 
+#define PROCESS_ID_BUCKETS 64
+#define PROCESS_ID_TO_BUCKET_INDEX(ProcessId) (((ULONG)(ProcessId) / 4) & (PROCESS_ID_BUCKETS - 1))
+
 typedef struct _PH_PROCESS_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
@@ -194,7 +197,6 @@ PFLOAT PhCpusUserUsage;
 PH_UINT64_DELTA PhCpuKernelDelta;
 PH_UINT64_DELTA PhCpuUserDelta;
 PH_UINT64_DELTA PhCpuOtherDelta;
-PH_UINT64_DELTA PhCpuCycleDelta;
 
 PPH_UINT64_DELTA PhCpusKernelDelta;
 PPH_UINT64_DELTA PhCpusUserDelta;
@@ -317,7 +319,6 @@ BOOLEAN PhProcessProviderInitialization()
     PhInitializeDelta(&PhCpuKernelDelta);
     PhInitializeDelta(&PhCpuUserDelta);
     PhInitializeDelta(&PhCpuOtherDelta);
-    PhInitializeDelta(&PhCpuCycleDelta);
 
     for (i = 0; i < (ULONG)PhSystemBasicInformation.NumberOfProcessors; i++)
     {
@@ -1398,29 +1399,6 @@ VOID PhpUpdateSystemCpuCycleInformation()
     PhUpdateDelta(&PhCpuSystemCycleDelta, PhCpuTotalSystemCycleTime.QuadPart);
 }
 
-VOID PhpUpdateCpuCycleInformation(
-    __in PSYSTEM_PROCESS_INFORMATION Processes,
-    __out PULONG64 TotalCycleTime
-    )
-{
-    ULONG64 totalCycleTime;
-    PSYSTEM_PROCESS_INFORMATION process;
-
-    totalCycleTime = 0;
-    process = PH_FIRST_PROCESS(Processes);
-
-    do
-    {
-        totalCycleTime += process->CycleTime.QuadPart;
-    } while (process = PH_NEXT_PROCESS(process));
-
-    totalCycleTime += PhCpuTotalSystemCycleTime.QuadPart;
-
-    PhUpdateDelta(&PhCpuCycleDelta, totalCycleTime);
-
-    *TotalCycleTime = PhCpuCycleDelta.Delta;
-}
-
 VOID PhpInitializeProcessStatistics()
 {
     ULONG i;
@@ -1588,7 +1566,7 @@ VOID PhProcessProviderUpdate(
     )
 {
     static ULONG runCount = 0;
-    static PPH_LIST pids = NULL;
+    static PSYSTEM_PROCESS_INFORMATION pidBuckets[PROCESS_ID_BUCKETS];
 
     // Note about locking:
     // Since this is the only function that is allowed to 
@@ -1598,11 +1576,13 @@ VOID PhProcessProviderUpdate(
 
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
+    ULONG bucketIndex;
 
     BOOLEAN isDotNetContextUpdated = FALSE;
+    BOOLEAN isCycleCpuUsageEnabled = FALSE;
 
-    ULONG64 sysTotalTime;
-    ULONG64 sysTotalCycleTime;
+    ULONG64 sysTotalTime; // total time for this update period
+    ULONG64 sysTotalCycleTime = 0; // total cycle time for this update period
     FLOAT maxCpuValue = 0;
     PPH_PROCESS_ITEM maxCpuProcessItem = NULL;
     ULONG64 maxIoValue = 0;
@@ -1648,6 +1628,8 @@ VOID PhProcessProviderUpdate(
             PhPurgeProcessRecords();
     }
 
+    isCycleCpuUsageEnabled = WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage;
+
     if (!PhProcessStatisticsInitialized)
     {
         PhpInitializeProcessStatistics();
@@ -1674,20 +1656,33 @@ VOID PhProcessProviderUpdate(
     if (!NT_SUCCESS(PhEnumProcesses(&processes)))
         return;
 
-    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
-    {
-        PhpUpdateSystemCpuCycleInformation();
-        PhpUpdateCpuCycleInformation(processes, &sysTotalCycleTime);
-    }
-    else
-    {
-        sysTotalCycleTime = 0;
-    }
+    // Notes on cycle-based CPU usage:
+    //
+    // Cycle-based CPU usage is a bit tricky to calculate because we cannot get 
+    // the total number of cycles consumed by all processes since system startup - we 
+    // can only get total number of cycles per process. This means there are two ways 
+    // to calculate the system-wide cycle time delta:
+    //
+    // 1. Each update, sum the cycle times of all processes, and calculate the system-wide 
+    //    delta from this. Process Explorer seems to do this.
+    // 2. Each update, calculate the cycle time delta for each individual process, and 
+    //    sum these deltas to create the system-wide delta. We use this here.
+    //
+    // The first method is simpler but has a problem when a process exits and its cycle time 
+    // is no longer counted in the system-wide total. This may cause the delta to be 
+    // negative and all other calculations to become invalid. Process Explorer simply ignores 
+    // this fact and treats the system-wide delta as unsigned (and therefore huge when negative), 
+    // leading to all CPU usages being displayed as "< 0.01".
+    //
+    // The second method is used here, but the adjustments must be done before the main new/modified 
+    // pass. We need take into account new, existing and terminated processes.
 
-    // Create a PID list.
+    // Create the PID hash set. This contains the process information structures returned by 
+    // PhEnumProcesses, distinct from the process item hash set.
+    // Note that we use the UniqueProcessKey field as the next node pointer to avoid having to 
+    // allocate extra memory.
 
-    if (!pids)
-        pids = PhCreateList(40);
+    memset(pidBuckets, 0, sizeof(pidBuckets));
 
     process = PH_FIRST_PROCESS(processes);
 
@@ -1702,24 +1697,34 @@ VOID PhProcessProviderUpdate(
             process->KernelTime = PhCpuTotals.IdleTime;
         }
 
-        PhAddItemList(pids, process->UniqueProcessId);
+        bucketIndex = PROCESS_ID_TO_BUCKET_INDEX(process->UniqueProcessId);
+        process->UniqueProcessKey = (ULONG_PTR)pidBuckets[bucketIndex];
+        pidBuckets[bucketIndex] = process;
+
+        if (isCycleCpuUsageEnabled)
+        {
+            PPH_PROCESS_ITEM processItem;
+
+            if ((processItem = PhpLookupProcessItem(process->UniqueProcessId)) && processItem->CreateTime.QuadPart == process->CreateTime.QuadPart)
+                sysTotalCycleTime += process->CycleTime.QuadPart - processItem->CycleTimeDelta.Value; // existing process
+            else
+                sysTotalCycleTime += process->CycleTime.QuadPart; // new process
+        }
     } while (process = PH_NEXT_PROCESS(process));
 
     // Add the fake processes to the PID list.
     // On Windows 7 the two fake processes are merged into "Interrupts" since we can only get 
     // cycle time information both DPCs and Interrupts combined.
 
-    if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+    if (isCycleCpuUsageEnabled)
     {
-        PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
+        PhpUpdateSystemCpuCycleInformation();
         PhInterruptsProcessInformation.KernelTime.QuadPart = PhCpuTotals.DpcTime.QuadPart + PhCpuTotals.InterruptTime.QuadPart;
         PhInterruptsProcessInformation.CycleTime = PhCpuTotalSystemCycleTime;
+        sysTotalCycleTime += PhCpuSystemCycleDelta.Delta;
     }
     else
     {
-        PhAddItemList(pids, DPCS_PROCESS_ID);
-        PhAddItemList(pids, INTERRUPTS_PROCESS_ID);
-
         PhDpcsProcessInformation.KernelTime = PhCpuTotals.DpcTime;
         PhInterruptsProcessInformation.KernelTime = PhCpuTotals.InterruptTime;
     }
@@ -1730,6 +1735,7 @@ VOID PhProcessProviderUpdate(
         ULONG i;
         PPH_HASH_ENTRY entry;
         PPH_PROCESS_ITEM processItem;
+        PSYSTEM_PROCESS_INFORMATION processEntry;
 
         for (i = 0; i < PH_HASH_SET_SIZE(PhProcessHashSet); i++)
         {
@@ -1737,10 +1743,26 @@ VOID PhProcessProviderUpdate(
             {
                 processItem = CONTAINING_RECORD(entry, PH_PROCESS_ITEM, HashEntry);
 
-                // Check if the process still exists.
-                // TODO: Check CreateTime as well; between updates a process may terminate and 
-                // get replaced by another one with the same PID.
-                if (PhFindItemList(pids, processItem->ProcessId) == -1)
+                // Check if the process still exists. Note that we take into account PID re-use by 
+                // checking CreateTime as well.
+
+                if (processItem->ProcessId == DPCS_PROCESS_ID)
+                {
+                    processEntry = &PhDpcsProcessInformation;
+                }
+                else if (processItem->ProcessId == INTERRUPTS_PROCESS_ID)
+                {
+                    processEntry = &PhInterruptsProcessInformation;
+                }
+                else
+                {
+                    processEntry = pidBuckets[PROCESS_ID_TO_BUCKET_INDEX(processItem->ProcessId)];
+
+                    while (processEntry && processEntry->UniqueProcessId != processItem->ProcessId)
+                        processEntry = (PSYSTEM_PROCESS_INFORMATION)processEntry->UniqueProcessKey;
+                }
+
+                if (!processEntry || processEntry->CreateTime.QuadPart != processItem->CreateTime.QuadPart)
                 {
                     LARGE_INTEGER exitTime;
 
@@ -1750,10 +1772,26 @@ VOID PhProcessProviderUpdate(
                     if (processItem->QueryHandle)
                     {
                         KERNEL_USER_TIMES times;
+                        ULONG64 finalCycleTime;
 
                         if (NT_SUCCESS(PhGetProcessTimes(processItem->QueryHandle, &times)))
                         {
                             exitTime = times.ExitTime;
+                        }
+
+                        if (isCycleCpuUsageEnabled)
+                        {
+                            if (NT_SUCCESS(PhGetProcessCycleTime(processItem->QueryHandle, &finalCycleTime)))
+                            {
+                                // Adjust deltas for the terminated process because this doesn't get 
+                                // picked up anywhere else.
+                                //
+                                // Note that if we don't have sufficient access to the process, the worst 
+                                // that will happen is that the CPU usages of other processes will get 
+                                // inflated. (See above; if we were using the first technique, we could 
+                                // get negative deltas, which is much worse.)
+                                sysTotalCycleTime += finalCycleTime - processItem->CycleTimeDelta.Value;
+                            }
                         }
                     }
 
@@ -1970,7 +2008,7 @@ VOID PhProcessProviderUpdate(
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, kernelCpuUsage);
             PhAddItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, userCpuUsage);
 
-            if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+            if (isCycleCpuUsageEnabled)
             {
                 newCpuUsage = (FLOAT)processItem->CycleTimeDelta.Delta / sysTotalCycleTime;
                 processItem->CpuUsage = newCpuUsage;
@@ -2055,7 +2093,7 @@ VOID PhProcessProviderUpdate(
 
             if (process == NULL)
             {
-                if (WindowsVersion >= WINDOWS_7 && PhEnableCycleCpuUsage)
+                if (isCycleCpuUsageEnabled)
                     process = &PhInterruptsProcessInformation;
                 else
                     process = &PhDpcsProcessInformation;
@@ -2063,7 +2101,6 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhClearList(pids);
     PhFree(processes);
 
     if (PhpTsProcesses)
