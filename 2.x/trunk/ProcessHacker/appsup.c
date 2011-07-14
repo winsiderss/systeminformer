@@ -28,6 +28,10 @@
 #include <winsta.h>
 #include <dbghelp.h>
 
+GUID XP_CONTEXT_GUID = { 0xbeb1b341, 0x6837, 0x4c83, { 0x83, 0x66, 0x2b, 0x45, 0x1e, 0x7c, 0xe6, 0x9b } };
+GUID VISTA_CONTEXT_GUID = { 0xe2011457, 0x1546, 0x43c5, { 0xa5, 0xfe, 0x00, 0x8d, 0xee, 0xe3, 0xd3, 0xf0 } };
+GUID WIN7_CONTEXT_GUID = { 0x35138b9a, 0x5d96, 0x4fbd, { 0x8e, 0x2d, 0xa2, 0x44, 0x02, 0x25, 0xf9, 0x3a } };
+
 /**
  * Determines whether a process is suspended.
  *
@@ -50,6 +54,75 @@ BOOLEAN PhGetProcessIsSuspended(
     }
 
     return Process->NumberOfThreads != 0;
+}
+
+/**
+ * Determines the OS compatibility context of a process.
+ *
+ * \param ProcessHandle A handle to a process.
+ * \param Guid A variable which receives a GUID identifying an 
+ * operating system version.
+ */
+NTSTATUS PhGetProcessSwitchContext(
+    __in HANDLE ProcessHandle,
+    __out PGUID Guid
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+#ifdef _M_X64
+    PVOID peb32;
+    ULONG contextData32;
+#endif
+    PVOID contextData;
+
+    // Reverse-engineered from WdcGetProcessSwitchContext (wdc.dll).
+
+#ifdef _M_X64
+    if (NT_SUCCESS(PhGetProcessPeb32(ProcessHandle, &peb32)) && peb32)
+    {
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(peb32, FIELD_OFFSET(PEB32, pContextData)),
+            &contextData32,
+            sizeof(ULONG),
+            NULL
+            )))
+            return status;
+
+        contextData = UlongToPtr(contextData32);
+    }
+    else
+    {
+#endif
+        if (!NT_SUCCESS(status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo)))
+            return status;
+
+        if (!NT_SUCCESS(status = PhReadVirtualMemory(
+            ProcessHandle,
+            PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, pContextData)),
+            &contextData,
+            sizeof(PVOID),
+            NULL
+            )))
+            return status;
+#ifdef _M_X64
+    }
+#endif
+
+    if (!contextData)
+        return STATUS_UNSUCCESSFUL; // no compatibility context data
+
+    if (!NT_SUCCESS(status = PhReadVirtualMemory(
+        ProcessHandle,
+        PTR_ADD_OFFSET(contextData, 32), // Magic value from WdcGetProcessSwitchContext
+        Guid,
+        sizeof(GUID),
+        NULL
+        )))
+        return status;
+
+    return STATUS_SUCCESS;
 }
 
 /**

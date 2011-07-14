@@ -168,6 +168,8 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOWRITESDELTA, FALSE, L"I/O Writes Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
     PhAddTreeNewColumn(hwnd, PHPRTLC_IOOTHERDELTA, FALSE, L"I/O Other Delta", 70, PH_ALIGN_RIGHT, -1, DT_RIGHT);
 
+    PhAddTreeNewColumn(hwnd, PHPRTLC_OSCONTEXT, FALSE, L"OS Context", 100, PH_ALIGN_LEFT, -1, 0);
+
     TreeNew_SetRedraw(hwnd, TRUE);
 
     PhpEnableColumnCustomDraw(hwnd, PHPRTLC_CPUHISTORY);
@@ -532,7 +534,7 @@ VOID PhTickProcessNodes()
 
         // The name and PID never change, so we don't invalidate that.
         memset(&node->TextCache[2], 0, sizeof(PH_STRINGREF) * (PHPRTLC_MAXIMUM - 2));
-        node->ValidMask = 0;
+        node->ValidMask &= PHPN_OSCONTEXT; // OS Context always remains valid
 
         // Invalidate graph buffers.
         node->CpuGraphBuffers.Valid = FALSE;
@@ -772,6 +774,36 @@ static VOID PhpUpdateProcessNodeToken(
         }
 
         ProcessNode->ValidMask |= PHPN_TOKEN;
+    }
+}
+
+static VOID PhpUpdateProcessOsContext(
+    __inout PPH_PROCESS_NODE ProcessNode
+    )
+{
+    if (!(ProcessNode->ValidMask & PHPN_OSCONTEXT))
+    {
+        HANDLE processHandle;
+
+        if (WindowsVersion >= WINDOWS_7)
+        {
+            if (NT_SUCCESS(PhOpenProcess(&processHandle, ProcessQueryAccess | PROCESS_VM_READ, ProcessNode->ProcessId)))
+            {
+                if (NT_SUCCESS(PhGetProcessSwitchContext(processHandle, &ProcessNode->OsContextGuid)))
+                {
+                    if (memcmp(&ProcessNode->OsContextGuid, &WIN7_CONTEXT_GUID, sizeof(GUID)) == 0)
+                        ProcessNode->OsContextVersion = WINDOWS_7;
+                    else if (memcmp(&ProcessNode->OsContextGuid, &VISTA_CONTEXT_GUID, sizeof(GUID)) == 0)
+                        ProcessNode->OsContextVersion = WINDOWS_VISTA;
+                    else if (memcmp(&ProcessNode->OsContextGuid, &XP_CONTEXT_GUID, sizeof(GUID)) == 0)
+                        ProcessNode->OsContextVersion = WINDOWS_XP;
+                }
+
+                NtClose(processHandle);
+            }
+        }
+
+        ProcessNode->ValidMask |= PHPN_OSCONTEXT;
     }
 }
 
@@ -1320,6 +1352,14 @@ BEGIN_SORT_FUNCTION(IoOtherDelta)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(OsContext)
+{
+    PhpUpdateProcessOsContext(node1);
+    PhpUpdateProcessOsContext(node2);
+    sortResult = uintcmp(node1->OsContextVersion, node2->OsContextVersion);
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     __in HWND hwnd,
     __in PH_TREENEW_MESSAGE Message,
@@ -1422,7 +1462,8 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                         SORT_FUNCTION(IoOtherBytes),
                         SORT_FUNCTION(IoReadsDelta),
                         SORT_FUNCTION(IoWritesDelta),
-                        SORT_FUNCTION(IoOtherDelta)
+                        SORT_FUNCTION(IoOtherDelta),
+                        SORT_FUNCTION(OsContext)
                     };
                     static PH_INITONCE initOnce = PH_INITONCE_INIT;
                     int (__cdecl *sortFunction)(const void *, const void *);
@@ -1949,6 +1990,29 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 {
                     PhSwapReference2(&node->IoGroupText[8], PhFormatUInt64(processItem->IoOtherCountDelta.Delta, TRUE));
                     getCellText->Text = node->IoGroupText[8]->sr;
+                }
+                break;
+            case PHPRTLC_OSCONTEXT:
+                PhpUpdateProcessOsContext(node);
+
+                if (WindowsVersion >= WINDOWS_7)
+                {
+                    switch (node->OsContextVersion)
+                    {
+                    case WINDOWS_7:
+                        PhInitializeStringRef(&getCellText->Text, L"Windows 7");
+                        break;
+                    case WINDOWS_VISTA:
+                        PhInitializeStringRef(&getCellText->Text, L"Windows Vista");
+                        break;
+                    case WINDOWS_XP:
+                        PhInitializeStringRef(&getCellText->Text, L"Windows XP");
+                        break;
+                    }
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"N/A");
                 }
                 break;
             default:

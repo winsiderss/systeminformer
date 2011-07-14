@@ -177,7 +177,9 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPRTLC_IOWRITESDELTA 61
 #define PHPRTLC_IOOTHERDELTA 62
 
-#define PHPRTLC_MAXIMUM 63
+#define PHPRTLC_OSCONTEXT 63
+
+#define PHPRTLC_MAXIMUM 64
 #define PHPRTLC_IOGROUP_COUNT 9
 
 #define PHPN_WSCOUNTERS 0x1
@@ -186,6 +188,7 @@ FORCEINLINE VOID PhChangeShStateTn(
 #define PHPN_WINDOW 0x8
 #define PHPN_DEPSTATUS 0x10
 #define PHPN_TOKEN 0x20
+#define PHPN_OSCONTEXT 0x40
 
 typedef struct _PH_PROCESS_NODE
 {
@@ -224,6 +227,9 @@ typedef struct _PH_PROCESS_NODE
     // Token
     BOOLEAN VirtualizationAllowed;
     BOOLEAN VirtualizationEnabled;
+    // OS Context
+    GUID OsContextGuid;
+    ULONG OsContextVersion;
     // Cycles (Vista only)
     PH_UINT64_DELTA CyclesDelta;
 
