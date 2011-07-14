@@ -1144,7 +1144,7 @@ VOID PhpUpdateProcessStatistics(
         PhaFormatUInt64(ProcessItem->NumberOfHandles, TRUE)->Buffer); // handles
 
     // Optional information
-    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    if (!PH_IS_FAKE_PROCESS_ID(ProcessItem->ProcessId))
     {
         PPH_STRING peakHandles = NULL;
         PPH_STRING gdiHandles = NULL;
