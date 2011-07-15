@@ -5170,6 +5170,7 @@ VOID PhTnpDrawSelectionRectangle(
                 drewWithAlpha = TRUE;
 
                 SelectObject(tempDc, oldBitmap);
+                DeleteObject(bitmap);
             }
 
             DeleteDC(tempDc);
