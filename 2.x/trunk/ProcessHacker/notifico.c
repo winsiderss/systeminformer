@@ -121,13 +121,16 @@ static VOID PhpBeginBitmap(
     __in ULONG Width,
     __in ULONG Height,
     __out HBITMAP *Bitmap,
+    __out_opt PVOID *Bits,
     __out HDC *Hdc,
     __out HBITMAP *OldBitmap
     )
 {
     static BOOLEAN initialized = FALSE;
     static HDC hdc;
+    static BITMAPINFOHEADER header;
     static HBITMAP bitmap;
+    static PVOID bits;
 
     if (!initialized)
     {
@@ -135,13 +138,22 @@ static VOID PhpBeginBitmap(
 
         screenHdc = GetDC(NULL);
         hdc = CreateCompatibleDC(screenHdc);
-        bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
+
+        memset(&header, 0, sizeof(BITMAPINFOHEADER));
+        header.biSize = sizeof(BITMAPINFOHEADER);
+        header.biWidth = Width;
+        header.biHeight = Height;
+        header.biPlanes = 1;
+        header.biBitCount = 32;
+        bitmap = CreateDIBSection(screenHdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &bits, NULL, 0);
+
         ReleaseDC(NULL, screenHdc);
 
         initialized = TRUE;
     }
 
     *Bitmap = bitmap;
+    if (Bits) *Bits = bits;
     *Hdc = hdc;
     *OldBitmap = SelectObject(hdc, bitmap);
 }
@@ -168,6 +180,7 @@ VOID PhUpdateIconCpuHistory()
     FLOAT lineData1[9];
     FLOAT lineData2[9];
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
@@ -190,8 +203,10 @@ VOID PhUpdateIconCpuHistory()
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorCpuKernel);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorCpuUser);
 
-    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
-    PhDrawGraph(hdc, &drawInfo);
+    PhpBeginBitmap(16, 16, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (bits)
+        PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -251,6 +266,7 @@ VOID PhUpdateIconIoHistory()
     FLOAT max;
     ULONG i;
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
@@ -287,8 +303,10 @@ VOID PhUpdateIconIoHistory()
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorIoReadOther);
     drawInfo.LineBackColor2 = PhHalveColorBrightness(PhCsColorIoWrite);
 
-    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
-    PhDrawGraph(hdc, &drawInfo);
+    PhpBeginBitmap(16, 16, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (bits)
+        PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -346,6 +364,7 @@ VOID PhUpdateIconCommitHistory()
     FLOAT lineData1[9];
     ULONG i;
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
@@ -367,8 +386,10 @@ VOID PhUpdateIconCommitHistory()
     drawInfo.LineColor1 = PhCsColorPrivate;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPrivate);
 
-    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
-    PhDrawGraph(hdc, &drawInfo);
+    PhpBeginBitmap(16, 16, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (bits)
+        PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -413,6 +434,7 @@ VOID PhUpdateIconPhysicalHistory()
     FLOAT lineData1[9];
     ULONG i;
     HBITMAP bitmap;
+    PVOID bits;
     HDC hdc;
     HBITMAP oldBitmap;
     HICON icon;
@@ -435,8 +457,10 @@ VOID PhUpdateIconPhysicalHistory()
     drawInfo.LineColor1 = PhCsColorPhysical;
     drawInfo.LineBackColor1 = PhHalveColorBrightness(PhCsColorPhysical);
 
-    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
-    PhDrawGraph(hdc, &drawInfo);
+    PhpBeginBitmap(16, 16, &bitmap, &bits, &hdc, &oldBitmap);
+
+    if (bits)
+        PhDrawGraphDirect(hdc, bits, &drawInfo);
 
     SelectObject(hdc, oldBitmap);
     icon = PhBitmapToIcon(bitmap);
@@ -473,7 +497,7 @@ VOID PhUpdateIconCpuUsage()
 
     // Icon
 
-    PhpBeginBitmap(16, 16, &bitmap, &hdc, &oldBitmap);
+    PhpBeginBitmap(16, 16, &bitmap, NULL, &hdc, &oldBitmap);
 
     // This stuff is copied from CpuUsageIcon.cs (PH 1.x).
     {

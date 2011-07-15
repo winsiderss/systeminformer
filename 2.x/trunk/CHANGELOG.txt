@@ -5,6 +5,7 @@ Process Hacker
    * Added cycle-based CPU usage for Windows 7
    * Added Show CPU Below 0.01
    * Added OS Context column
+   * Rewrote graph drawing code for improved performance
    * Optimized retrieval of cycle time and private working set 
      information for Windows 7
  * FIXED:

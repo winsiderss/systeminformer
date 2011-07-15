@@ -24,6 +24,8 @@
 #include <phgui.h>
 #include <graph.h>
 
+#define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
+
 typedef struct _PHP_GRAPH_CONTEXT
 {
     HWND Handle;
@@ -32,6 +34,7 @@ typedef struct _PHP_GRAPH_CONTEXT
     HDC BufferedContext;
     HBITMAP BufferedOldBitmap;
     HBITMAP BufferedBitmap;
+    PVOID BufferedBits;
     RECT BufferedContextRect;
 
     HWND TooltipHandle;
@@ -78,6 +81,9 @@ BOOLEAN PhGraphControlInitialization()
  *
  * \param hdc The DC to draw to.
  * \param DrawInfo A structure which contains graphing information.
+ *
+ * \remarks This function is extremely slow. Use PhDrawGraphDirect() 
+ * whenever possible.
  */
 VOID PhDrawGraph(
     __in HDC hdc,
@@ -339,6 +345,332 @@ VOID PhDrawGraph(
     }
 }
 
+FORCEINLINE VOID PhpGetGraphPoint(
+    __in PPH_GRAPH_DRAW_INFO DrawInfo,
+    __in ULONG Index,
+    __out PULONG H1,
+    __out PULONG H2
+    )
+{
+    if (Index < DrawInfo->LineDataCount)
+    {
+        FLOAT f1;
+        FLOAT f2;
+
+        f1 = DrawInfo->LineData1[Index];
+
+        if (f1 < 0)
+            f1 = 0;
+        if (f1 > 1)
+            f1 = 1;
+
+        *H1 = (ULONG)(f1 * (DrawInfo->Height - 1));
+
+        if (DrawInfo->Flags & PH_GRAPH_USE_LINE_2)
+        {
+            f2 = f1 + DrawInfo->LineData2[Index];
+
+            if (f2 < 0)
+                f2 = 0;
+            if (f2 > 1)
+                f2 = 1;
+
+            *H2 = (ULONG)(f2 * (DrawInfo->Height - 1));
+        }
+    }
+    else
+    {
+        *H1 = 0;
+        *H2 = 0;
+    }
+}
+
+/**
+ * Draws a graph directly to memory.
+ *
+ * \param hdc The DC to draw to. This is only used when drawing text.
+ * \param Bits The bits in a bitmap.
+ * \param DrawInfo A structure which contains graphing information.
+ *
+ * \remarks The following information is fixed:
+ * \li The graph is fixed to the origin (0, 0).
+ * \li The total size of the bitmap is assumed to be \a Width and \a Height in \a DrawInfo.
+ * \li \a Step is fixed at 2.
+ * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \a PH_GRAPH_OVERLAY_LINE_2 
+ * is never used.
+ * \li \a BackColor is fixed at RGB(0, 0, 0).
+ */
+VOID PhDrawGraphDirect(
+    __in HDC hdc,
+    __in PVOID Bits,
+    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    )
+{
+    PULONG bits;
+    LONG width;
+    LONG height;
+    LONG numberOfPixels;
+    ULONG flags;
+    LONG i;
+    LONG x;
+
+    BOOLEAN intermediate; // whether we are currently between two data positions
+    ULONG dataIndex; // the data index of the current position
+    ULONG h1_i; // the line 1 height value to the left of the current position
+    ULONG h1_o; // the line 1 height value at the current position
+    ULONG h2_i; // the line 1 + line 2 height value to the left of the current position
+    ULONG h2_o; // the line 1 + line 2 height value at the current position
+    ULONG h1; // current pixel
+    ULONG h1_left; // current pixel
+    ULONG h2; // current pixel
+    ULONG h2_left; // current pixel
+
+    LONG mid;
+    LONG h1_low1;
+    LONG h1_high1;
+    LONG h1_low2;
+    LONG h1_high2;
+    LONG h2_low1;
+    LONG h2_high1;
+    LONG h2_low2;
+    LONG h2_high2;
+    LONG old_low2;
+    LONG old_high2;
+
+    ULONG lineColor1;
+    ULONG lineBackColor1;
+    ULONG lineColor2;
+    ULONG lineBackColor2;
+    ULONG gridYCounter;
+    ULONG gridXIncrement;
+    ULONG gridColor;
+
+    bits = Bits;
+    width = DrawInfo->Width;
+    height = DrawInfo->Height;
+    numberOfPixels = width * height;
+    flags = DrawInfo->Flags;
+    lineColor1 = COLORREF_TO_BITS(DrawInfo->LineColor1);
+    lineBackColor1 = COLORREF_TO_BITS(DrawInfo->LineBackColor1);
+    lineColor2 = COLORREF_TO_BITS(DrawInfo->LineColor2);
+    lineBackColor2 = COLORREF_TO_BITS(DrawInfo->LineBackColor2);
+
+    memset(bits, 0, numberOfPixels * 4);
+
+    x = width - 1;
+    intermediate = FALSE;
+    dataIndex = 0;
+    h1_low2 = MAXLONG;
+    h1_high2 = 0;
+    h2_low2 = MAXLONG;
+    h2_high2 = 0;
+
+    PhpGetGraphPoint(DrawInfo, 0, &h1_i, &h2_i);
+
+    if (flags & PH_GRAPH_USE_GRID)
+    {
+        gridYCounter = DrawInfo->GridWidth - (DrawInfo->GridStart * DrawInfo->Step) % DrawInfo->GridWidth - 1;
+        gridXIncrement = width * DrawInfo->GridHeight;
+        gridColor = COLORREF_TO_BITS(DrawInfo->GridColor);
+    }
+
+    while (x >= 0)
+    {
+        // Calculate the height of the graph at this point.
+
+        if (!intermediate)
+        {
+            h1_o = h1_i;
+            h2_o = h2_i;
+
+            // Pull in new data.
+            dataIndex++;
+            PhpGetGraphPoint(DrawInfo, dataIndex, &h1_i, &h2_i);
+
+            h1 = h1_o;
+            h1_left = (h1_i + h1_o) / 2;
+            h2 = h2_o;
+            h2_left = (h2_i + h2_o) / 2;
+        }
+        else
+        {
+            h1 = h1_left;
+            h1_left = h1_i;
+            h2 = h2_left;
+            h2_left = h2_i;
+        }
+
+        // The graph is drawn right-to-left. There is one iteration of the loop per horizontal pixel.
+        // There is a fixed step value of 2, so every other iteration is a mid-point (intermediate) 
+        // iteration with a height value of (left + right) / 2. In order to rasterize the outline, 
+        // effectively in each iteration half of the line is drawn at the current column and the other 
+        // half is drawn in the column to the left.
+
+        // Rasterize the data outline.
+        // h?_low2 to h?_high2 is the vertical line to the left of the current pixel.
+        // h?_low1 to h?_high1 is the vertical line at the current pixel.
+        // We merge (union) the old h?_low2 to h?_high2 line with the current line in each iteration.
+        //
+        // For example:
+        //
+        // X represents a data point. M represents the mid-point between two data points ("intermediate").
+        // X, M and x are all part of the outline. # represents the background filled in during 
+        // the current loop iteration.
+        //
+        // slope > 0:                                     slope < 0:
+        //
+        //     X  < high1                                   X    < high2 (of next loop iteration)
+        //     x                                            x
+        //     x  < low1                                    x    < low2 (of next loop iteration)
+        //    x#  < high2                                    x   < high1 (of next loop iteration)
+        //    M#  < low2                                     M   < low1 (of next loop iteration)
+        //    x#  < high1 (of next loop iteration)           x   < high2
+        //    x#  < low1 (of next loop iteration)            x   < low2
+        //   x #  < high2 (of next loop iteration)            x  < high1
+        //   x #                                              x
+        //   X #  < low2 (of next loop iteration)             X  < low1
+        //     #                                              #
+        //     ^                                              ^
+        //    ^| current pixel                               ^| current pixel
+        //    |                                              |
+        //    | left of current pixel                        | left of current pixel
+        //
+        // In both examples above, the line low2-high2 will be merged with the line low1-high1 of the next 
+        // iteration.
+
+        mid = ((h1_left + h1) / 2) * width;
+        old_low2 = h1_low2;
+        old_high2 = h1_high2;
+
+        if (h1_left < h1) // slope > 0
+        {
+            h1_low2 = h1_left * width;
+            h1_high2 = mid;
+            h1_low1 = mid + width;
+            h1_high1 = h1 * width;
+        }
+        else // slope < 0
+        {
+            h1_high2 = h1_left * width;
+            h1_low2 = mid + width;
+            h1_high1 = mid;
+            h1_low1 = h1 * width;
+        }
+
+        // Merge the lines.
+        if (h1_low1 > old_low2)
+            h1_low1 = old_low2;
+        if (h1_high1 < old_high2)
+            h1_high1 = old_high2;
+
+        // Fix up values for the current horizontal offset.
+        h1_low1 += x;
+        h1_high1 += x;
+
+        if (flags & PH_GRAPH_USE_LINE_2)
+        {
+            mid = ((h2_left + h2) / 2) * width;
+            old_low2 = h2_low2;
+            old_high2 = h2_high2;
+
+            if (h2_left < h2) // slope > 0
+            {
+                h2_low2 = h2_left * width;
+                h2_high2 = mid;
+                h2_low1 = mid + width;
+                h2_high1 = h2 * width;
+            }
+            else // slope < 0
+            {
+                h2_high2 = h2_left * width;
+                h2_low2 = mid + width;
+                h2_high1 = mid;
+                h2_low1 = h2 * width;
+            }
+
+            // Merge the lines.
+            if (h2_low1 > old_low2)
+                h2_low1 = old_low2;
+            if (h2_high1 < old_high2)
+                h2_high1 = old_high2;
+
+            // Fix up values for the current horizontal offset.
+            h2_low1 += x;
+            h2_high1 += x;
+        }
+
+        // Fill in the background.
+
+        if (flags & PH_GRAPH_USE_LINE_2)
+        {
+            for (i = h1_high1 + width; i < h2_low1; i += width)
+            {
+                bits[i] = lineBackColor2;
+            }
+        }
+
+        for (i = x; i < h1_low1; i += width)
+        {
+            bits[i] = lineBackColor1;
+        }
+
+        // Draw the grid.
+
+        if (flags & PH_GRAPH_USE_GRID)
+        {
+            // Draw the vertical grid line.
+            if (gridYCounter == 0)
+            {
+                for (i = x; i < numberOfPixels; i += width)
+                {
+                    bits[i] = gridColor;
+                }
+            }
+
+            gridYCounter++;
+
+            if (gridYCounter == DrawInfo->GridWidth)
+                gridYCounter = 0;
+
+            // Draw the horizontal grid line.
+            for (i = x; i < numberOfPixels; i += gridXIncrement)
+            {
+                bits[i] = gridColor;
+            }
+        }
+
+        // Draw the outline (line 1 is allowed to paint over line 2).
+
+        if (flags & PH_GRAPH_USE_LINE_2)
+        {
+            for (i = h2_low1; i <= h2_high1; i += width) // exclude pixel in the middle
+            {
+                bits[i] = lineColor2;
+            }
+        }
+
+        for (i = h1_low1; i <= h1_high1; i += width)
+        {
+            bits[i] = lineColor1;
+        }
+
+        intermediate = !intermediate;
+        x--;
+    }
+
+    if (DrawInfo->Text.Buffer)
+    {
+        // Fill in the text box.
+        SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
+        FillRect(hdc, &DrawInfo->TextBoxRect, GetStockObject(DC_BRUSH));
+
+        // Draw the text.
+        SetTextColor(hdc, DrawInfo->TextColor);
+        SetBkMode(hdc, TRANSPARENT);
+        DrawText(hdc, DrawInfo->Text.Buffer, DrawInfo->Text.Length / 2, &DrawInfo->TextRect, DT_NOCLIP);
+    }
+}
+
 /**
  * Sets the text in a graphing information structure.
  *
@@ -483,6 +815,8 @@ static VOID PhpDeleteBufferedContext(
         DeleteDC(Context->BufferedContext);
 
         Context->BufferedContext = NULL;
+        Context->BufferedBitmap = NULL;
+        Context->BufferedBits = NULL;
     }
 }
 
@@ -491,6 +825,7 @@ static VOID PhpCreateBufferedContext(
     )
 {
     HDC hdc;
+    BITMAPINFOHEADER header;
 
     PhpDeleteBufferedContext(Context);
 
@@ -498,11 +833,15 @@ static VOID PhpCreateBufferedContext(
 
     hdc = GetDC(Context->Handle);
     Context->BufferedContext = CreateCompatibleDC(hdc);
-    Context->BufferedBitmap = CreateCompatibleBitmap(
-        hdc,
-        Context->BufferedContextRect.right,
-        Context->BufferedContextRect.bottom
-        );
+
+    memset(&header, 0, sizeof(BITMAPINFOHEADER));
+    header.biSize = sizeof(BITMAPINFOHEADER);
+    header.biWidth = Context->BufferedContextRect.right;
+    header.biHeight = Context->BufferedContextRect.bottom;
+    header.biPlanes = 1;
+    header.biBitCount = 32;
+    Context->BufferedBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &Context->BufferedBits, NULL, 0);
+
     ReleaseDC(Context->Handle, hdc);
     Context->BufferedOldBitmap = SelectObject(Context->BufferedContext, Context->BufferedBitmap);
 }
@@ -814,7 +1153,8 @@ LRESULT CALLBACK PhpGraphWndProc(
                 SendMessage(GetParent(hwnd), WM_NOTIFY, 0, (LPARAM)&getDrawInfo);
             }
 
-            PhDrawGraph(context->BufferedContext, &context->DrawInfo);
+            if (context->BufferedBits)
+                PhDrawGraphDirect(context->BufferedContext, context->BufferedBits, &context->DrawInfo);
         }
         return TRUE;
     case GCM_MOVEGRID:
