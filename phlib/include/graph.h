@@ -57,6 +57,13 @@ VOID PhDrawGraph(
     );
 
 PHLIBAPI
+VOID PhDrawGraphDirect(
+    __in HDC hdc,
+    __in PVOID Bits,
+    __in PPH_GRAPH_DRAW_INFO DrawInfo
+    );
+
+PHLIBAPI
 VOID PhSetGraphText(
     __in HDC hdc,
     __inout PPH_GRAPH_DRAW_INFO DrawInfo,

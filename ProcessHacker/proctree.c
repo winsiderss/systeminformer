@@ -74,6 +74,13 @@ static PPH_POINTER_LIST ProcessNodeStateList = NULL; // list of nodes which need
 static PPH_LIST ProcessTreeFilterList = NULL;
 static BOOLEAN NeedCyclesInformation = FALSE;
 
+static HDC GraphContext = NULL;
+static ULONG GraphContextWidth = 0;
+static ULONG GraphContextHeight = 0;
+static HBITMAP GraphOldBitmap;
+static HBITMAP GraphBitmap = NULL;
+static PVOID GraphBits = NULL;
+
 VOID PhProcessTreeListInitialization()
 {
     ProcessNodeList = PhCreateList(40);
@@ -570,6 +577,43 @@ VOID PhTickProcessNodes()
         rect.bottom = viewParts.ClientRect.bottom;
         InvalidateRect(ProcessTreeListHandle, &rect, FALSE);
     }
+}
+
+static VOID PhpNeedGraphContext(
+    __in HDC hdc,
+    __in ULONG Width,
+    __in ULONG Height
+    )
+{
+    BITMAPINFOHEADER header;
+
+    // If we already have a graph context and it's the right size, then return immediately.
+    if (GraphContextWidth == Width && GraphContextHeight == Height)
+        return;
+
+    if (GraphContext)
+    {
+        // The original bitmap must be selected back into the context, otherwise 
+        // the bitmap can't be deleted.
+        SelectObject(GraphContext, GraphBitmap);
+        DeleteObject(GraphBitmap);
+        DeleteDC(GraphContext);
+
+        GraphContext = NULL;
+        GraphBitmap = NULL;
+        GraphBits = NULL;
+    }
+
+    GraphContext = CreateCompatibleDC(hdc);
+
+    memset(&header, 0, sizeof(BITMAPINFOHEADER));
+    header.biSize = sizeof(BITMAPINFOHEADER);
+    header.biWidth = Width;
+    header.biHeight = Height;
+    header.biPlanes = 1;
+    header.biBitCount = 32;
+    GraphBitmap = CreateDIBSection(hdc, (BITMAPINFO *)&header, DIB_RGB_COLORS, &GraphBits, NULL, 0);
+    GraphOldBitmap = SelectObject(GraphContext, GraphBitmap);
 }
 
 static FLOAT PhpCalculateInclusiveCpuUsage(
@@ -2144,7 +2188,6 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             PPH_PROCESS_ITEM processItem;
             RECT rect;
             PH_GRAPH_DRAW_INFO drawInfo;
-            POINT origPoint;
 
             node = (PPH_PROCESS_NODE)customDraw->Node;
             processItem = node->ProcessItem;
@@ -2310,9 +2353,24 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             case PHPRTLC_CPUHISTORY:
             case PHPRTLC_PRIVATEBYTESHISTORY:
             case PHPRTLC_IOHISTORY:
-                SetViewportOrgEx(customDraw->Dc, rect.left, rect.top + 1, &origPoint); // + 1 for small gap
-                PhDrawGraph(customDraw->Dc, &drawInfo);
-                SetViewportOrgEx(customDraw->Dc, origPoint.x, origPoint.y, NULL);
+                PhpNeedGraphContext(customDraw->Dc, drawInfo.Width, drawInfo.Height);
+
+                if (GraphBits)
+                {
+                    PhDrawGraphDirect(GraphContext, GraphBits, &drawInfo);
+                    BitBlt(
+                        customDraw->Dc,
+                        rect.left,
+                        rect.top + 1, // + 1 for small gap
+                        drawInfo.Width,
+                        drawInfo.Height,
+                        GraphContext,
+                        0,
+                        0,
+                        SRCCOPY
+                        );
+                }
+
                 break;
             }
         }
