@@ -2375,6 +2375,27 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
         }
         return TRUE;
+    case TreeNewColumnResized:
+        {
+            PPH_TREENEW_COLUMN column = Parameter1;
+            ULONG i;
+
+            if (column->Id == PHPRTLC_CPUHISTORY || column->Id == PHPRTLC_IOHISTORY || column->Id == PHPRTLC_PRIVATEBYTESHISTORY)
+            {
+                for (i = 0; i < ProcessNodeList->Count; i++)
+                {
+                    node = ProcessNodeList->Items[i];
+
+                    if (column->Id == PHPRTLC_CPUHISTORY)
+                        node->CpuGraphBuffers.Valid = FALSE;
+                    if (column->Id == PHPRTLC_IOHISTORY)
+                        node->IoGraphBuffers.Valid = FALSE;
+                    if (column->Id == PHPRTLC_PRIVATEBYTESHISTORY)
+                        node->PrivateGraphBuffers.Valid = FALSE;
+                }
+            }
+        }
+        return TRUE;
     case TreeNewSortChanged:
         {
             TreeNew_GetSort(hwnd, &ProcessTreeListSortColumn, &ProcessTreeListSortOrder);
@@ -2530,6 +2551,11 @@ VOID PhInvalidateAllProcessNodes()
         memset(node->TextCache, 0, sizeof(PH_STRINGREF) * PHPRTLC_MAXIMUM);
         PhInvalidateTreeNewNode(&node->Node, TN_CACHE_COLOR);
         node->ValidMask = 0;
+
+        // Invalidate graph buffers.
+        node->CpuGraphBuffers.Valid = FALSE;
+        node->PrivateGraphBuffers.Valid = FALSE;
+        node->IoGraphBuffers.Valid = FALSE;
     }
 
     InvalidateRect(ProcessTreeListHandle, NULL, FALSE);

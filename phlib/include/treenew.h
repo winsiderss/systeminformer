@@ -197,6 +197,9 @@ typedef enum _PH_TREENEW_MESSAGE
     TreeNewHeaderRightClick,
     TreeNewIncrementalSearch, // PPH_TREENEW_SEARCH_EVENT Parameter1
 
+    TreeNewColumnResized, // PPH_TREENEW_COLUMN Parameter1
+    TreeNewColumnReordered,
+
     MaxTreeNewMessage
 } PH_TREENEW_MESSAGE;
 

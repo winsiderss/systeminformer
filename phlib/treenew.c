@@ -1396,7 +1396,10 @@ BOOLEAN PhTnpOnNotify(
                             delta = nmHeader->pitem->cxy - Context->OldColumnWidth;
 
                             if (delta != 0)
+                            {
                                 PhTnpProcessResizeColumn(Context, Context->ResizingColumn, delta);
+                                Context->Callback(Context->Handle, TreeNewColumnResized, Context->ResizingColumn, NULL, Context->CallbackContext);
+                            }
 
                             Context->ResizingColumn = NULL;
                         }
@@ -1468,6 +1471,7 @@ BOOLEAN PhTnpOnNotify(
                 // Note: The fixed column cannot be re-ordered.
                 PhTnpUpdateColumnHeaders(Context);
                 PhTnpUpdateColumnMaps(Context);
+                Context->Callback(Context->Handle, TreeNewColumnReordered, NULL, NULL, Context->CallbackContext);
                 InvalidateRect(Context->Handle, NULL, FALSE);
             }
         }

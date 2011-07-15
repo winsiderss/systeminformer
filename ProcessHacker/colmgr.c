@@ -132,6 +132,9 @@ BOOLEAN PhCmForwardMessage(
     __in PPH_CM_MANAGER Manager
     )
 {
+    PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
+    PPH_PLUGIN plugin;
+
     switch (Message)
     {
     case TreeNewGetCellText:
@@ -139,7 +142,6 @@ BOOLEAN PhCmForwardMessage(
             PPH_TREENEW_GET_CELL_TEXT getCellText = Parameter1;
             PH_TREENEW_COLUMN tnColumn;
             PPH_CM_COLUMN column;
-            PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
 
             if (getCellText->Id < Manager->MinId)
                 return FALSE;
@@ -148,43 +150,51 @@ BOOLEAN PhCmForwardMessage(
                 return FALSE;
 
             column = tnColumn.Context;
-            pluginMessage.TreeNewHandle = hwnd;
-            pluginMessage.Message = Message;
-            pluginMessage.Parameter1 = Parameter1;
-            pluginMessage.Parameter2 = Parameter2;
             pluginMessage.SubId = column->SubId;
             pluginMessage.Context = column->Context;
-
-            PhInvokeCallback(PhGetPluginCallback(column->Plugin, PluginCallbackTreeNewMessage), &pluginMessage);
-
-            return TRUE;
+            plugin = column->Plugin;
         }
         break;
     case TreeNewCustomDraw:
         {
             PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
             PPH_CM_COLUMN column;
-            PH_PLUGIN_TREENEW_MESSAGE pluginMessage;
 
             if (customDraw->Column->Id < Manager->MinId)
                 return FALSE;
 
             column = customDraw->Column->Context;
-            pluginMessage.TreeNewHandle = hwnd;
-            pluginMessage.Message = Message;
-            pluginMessage.Parameter1 = Parameter1;
-            pluginMessage.Parameter2 = Parameter2;
             pluginMessage.SubId = column->SubId;
             pluginMessage.Context = column->Context;
-
-            PhInvokeCallback(PhGetPluginCallback(column->Plugin, PluginCallbackTreeNewMessage), &pluginMessage);
-
-            return TRUE;
+            plugin = column->Plugin;
         }
         break;
+    case TreeNewColumnResized:
+        {
+            PPH_TREENEW_COLUMN tlColumn = Parameter1;
+            PPH_CM_COLUMN column;
+
+            if (tlColumn->Id < Manager->MinId)
+                return FALSE;
+
+            column = tlColumn->Context;
+            pluginMessage.SubId = column->SubId;
+            pluginMessage.Context = column->Context;
+            plugin = column->Plugin;
+        }
+        break;
+    default:
+        return FALSE;
     }
 
-    return FALSE;
+    pluginMessage.TreeNewHandle = hwnd;
+    pluginMessage.Message = Message;
+    pluginMessage.Parameter1 = Parameter1;
+    pluginMessage.Parameter2 = Parameter2;
+
+    PhInvokeCallback(PhGetPluginCallback(plugin, PluginCallbackTreeNewMessage), &pluginMessage);
+
+    return TRUE;
 }
 
 static int __cdecl PhCmpSortFunction(
