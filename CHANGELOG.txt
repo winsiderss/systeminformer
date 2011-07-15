@@ -9,6 +9,7 @@ Process Hacker
      information for Windows 7
  * FIXED:
    * Crash when sorting by Time Stamp
+   * GDI handle leak in drag selection
 
 2.18
  * NEW/IMPROVED:
