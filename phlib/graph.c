@@ -396,7 +396,7 @@ FORCEINLINE VOID PhpGetGraphPoint(
  * \li The graph is fixed to the origin (0, 0).
  * \li The total size of the bitmap is assumed to be \a Width and \a Height in \a DrawInfo.
  * \li \a Step is fixed at 2.
- * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \a PH_GRAPH_OVERLAY_LINE_2 
+ * \li If \ref PH_GRAPH_USE_LINE_2 is specified in \a Flags, \ref PH_GRAPH_OVERLAY_LINE_2 
  * is never used.
  * \li \a BackColor is fixed at RGB(0, 0, 0).
  */
