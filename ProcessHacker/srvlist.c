@@ -106,8 +106,6 @@ VOID PhInitializeServiceTreeList(
     __in HWND hwnd
     )
 {
-    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
     ServiceApplicationIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATION), IMAGE_ICON);
     ServiceApplicationGoIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_PHAPPLICATIONGO), IMAGE_ICON);
     ServiceCogIcon = PH_LOAD_SHARED_IMAGE(MAKEINTRESOURCE(IDI_COG), IMAGE_ICON);
@@ -141,6 +139,8 @@ VOID PhInitializeServiceTreeList(
 
     if (PhPluginsEnabled)
     {
+        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
         treeNewInfo.TreeNewHandle = hwnd;
         treeNewInfo.CmData = &ServiceTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceTreeNewInitializing), &treeNewInfo);

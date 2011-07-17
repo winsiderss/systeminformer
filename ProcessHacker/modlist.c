@@ -65,7 +65,6 @@ VOID PhInitializeModuleList(
     )
 {
     HWND hwnd;
-    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
 
     memset(Context, 0, sizeof(PH_MODULE_LIST_CONTEXT));
     Context->EnableStateHighlighting = TRUE;
@@ -112,6 +111,8 @@ VOID PhInitializeModuleList(
 
     if (PhPluginsEnabled)
     {
+        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
         treeNewInfo.TreeNewHandle = hwnd;
         treeNewInfo.CmData = &Context->Cm;
         treeNewInfo.u.Module.ProcessItem = ProcessItem;
@@ -127,6 +128,17 @@ VOID PhDeleteModuleList(
 
     if (Context->BoldFont)
         DeleteObject(Context->BoldFont);
+
+    if (PhPluginsEnabled)
+    {
+        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
+        treeNewInfo.TreeNewHandle = Context->TreeNewHandle;
+        treeNewInfo.CmData = &Context->Cm;
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackModuleTreeNewUninitializing), &treeNewInfo);
+    }
+
+    PhCmDeleteManager(&Context->Cm);
 
     for (i = 0; i < Context->NodeList->Count; i++)
         PhpDestroyModuleNode(Context->NodeList->Items[i]);

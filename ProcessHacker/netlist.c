@@ -109,8 +109,6 @@ VOID PhInitializeNetworkTreeList(
     __in HWND hwnd
     )
 {
-    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
     NetworkTreeListHandle = hwnd;
     PhSetControlTheme(NetworkTreeListHandle, L"explorer");
     SendMessage(TreeNew_GetTooltips(NetworkTreeListHandle), TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
@@ -139,6 +137,8 @@ VOID PhInitializeNetworkTreeList(
 
     if (PhPluginsEnabled)
     {
+        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
         treeNewInfo.TreeNewHandle = hwnd;
         treeNewInfo.CmData = &NetworkTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkTreeNewInitializing), &treeNewInfo);
