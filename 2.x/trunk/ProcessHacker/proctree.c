@@ -91,8 +91,6 @@ VOID PhInitializeProcessTreeList(
     __in HWND hwnd
     )
 {
-    PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
-
     ProcessTreeListHandle = hwnd;
     PhSetControlTheme(ProcessTreeListHandle, L"explorer");
     TreeNew_SetExtendedFlags(hwnd, TN_FLAG_ITEM_DRAG_SELECT, TN_FLAG_ITEM_DRAG_SELECT);
@@ -190,6 +188,8 @@ VOID PhInitializeProcessTreeList(
 
     if (PhPluginsEnabled)
     {
+        PH_PLUGIN_TREENEW_INFORMATION treeNewInfo;
+
         treeNewInfo.TreeNewHandle = hwnd;
         treeNewInfo.CmData = &ProcessTreeListCm;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessTreeNewInitializing), &treeNewInfo);
