@@ -825,7 +825,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             lvHandle = GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST);
             PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"ID");
             PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Description");
-            PhSetListViewStyle(lvHandle, FALSE, TRUE);
+            ListView_SetExtendedListViewStyleEx(lvHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_INFOTIP | LVS_EX_LABELTIP | LVS_EX_CHECKBOXES, -1);
             PhSetControlTheme(lvHandle, L"explorer");
 
             imageList = ImageList_Create(16, 16, ILC_COLOR32, 0, 0);
@@ -836,6 +836,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             for (i = 0; i < sizeof(PhTerminatorTests) / sizeof(TEST_ITEM); i++)
             {
                 INT itemIndex;
+                BOOLEAN check;
 
                 itemIndex = PhAddListViewItem(
                     lvHandle,
@@ -845,6 +846,13 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
                     );
                 PhSetListViewSubItem(lvHandle, itemIndex, 1, PhTerminatorTests[i].Description);
                 PhSetListViewItemImageIndex(lvHandle, itemIndex, -1);
+
+                check = TRUE;
+
+                if (WSTR_EQUAL(PhTerminatorTests[i].Id, L"TT4") || WSTR_EQUAL(PhTerminatorTests[i].Id, L"M1"))
+                    check = FALSE;
+
+                ListView_SetCheckState(lvHandle, itemIndex, check);
             }
 
             ListView_SetImageList(lvHandle, imageList, LVSIL_SMALL);
@@ -852,7 +860,7 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             SetDlgItemText(
                 hwndDlg,
                 IDC_TERMINATOR_TEXT,
-                L"Double-click a termination method or click Run All."
+                L"Double-click a termination method or click Run Selected."
                 );
         }
         break;
@@ -871,19 +879,25 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             case IDOK:
                 EndDialog(hwndDlg, IDOK);
                 break;
-            case IDC_RUN_ALL:
+            case IDC_RUNSELECTED:
                 {
-                    if (PhShowConfirmMessage(hwndDlg, L"run", L"the terminator tests", NULL, FALSE))
+                    if (PhShowConfirmMessage(hwndDlg, L"run", L"the selected terminator tests", NULL, FALSE))
                     {
+                        HWND lvHandle;
                         ULONG i;
+
+                        lvHandle = GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST);
 
                         for (i = 0; i < sizeof(PhTerminatorTests) / sizeof(TEST_ITEM); i++)
                         {
-                            if (PhpRunTerminatorTest(
-                                hwndDlg,
-                                i
-                                ))
-                                break;
+                            if (ListView_GetCheckState(lvHandle, i))
+                            {
+                                if (PhpRunTerminatorTest(
+                                    hwndDlg,
+                                    i
+                                    ))
+                                    break;
+                            }
                         }
                     }
                 }
@@ -895,22 +909,40 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            if (
-                header->hwndFrom == GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST) &&
-                header->code == NM_DBLCLK
-                )
+            if (header->hwndFrom == GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST))
             {
-                LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
-
-                if (itemActivate->iItem != -1)
+                if (header->code == NM_DBLCLK)
                 {
-                    if (PhShowConfirmMessage(hwndDlg, L"run", L"the selected test", NULL, FALSE))
+                    LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)header;
+
+                    if (itemActivate->iItem != -1)
                     {
-                        PhpRunTerminatorTest(
-                            hwndDlg,
-                            itemActivate->iItem
-                            );
+                        if (PhShowConfirmMessage(hwndDlg, L"run", L"the selected test", NULL, FALSE))
+                        {
+                            PhpRunTerminatorTest(
+                                hwndDlg,
+                                itemActivate->iItem
+                                );
+                        }
                     }
+                }
+                else if (header->code == LVN_ITEMCHANGED)
+                {
+                    ULONG i;
+                    BOOLEAN oneSelected;
+
+                    oneSelected = FALSE;
+
+                    for (i = 0; i < sizeof(PhTerminatorTests) / sizeof(TEST_ITEM); i++)
+                    {
+                        if (ListView_GetCheckState(header->hwndFrom, i))
+                        {
+                            oneSelected = TRUE;
+                            break;
+                        }
+                    }
+
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_RUNSELECTED), oneSelected);
                 }
             }
         }
