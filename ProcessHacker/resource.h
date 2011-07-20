@@ -122,6 +122,7 @@
 #define IDC_RUN_ALL                     1021
 #define IDC_CMDLINE                     1021
 #define IDC_URL                         1021
+#define IDC_RUNSELECTED                 1021
 #define IDC_TERMINATOR_LIST             1022
 #define IDC_CURDIR                      1022
 #define IDC_TERMINATOR_TEXT             1023
