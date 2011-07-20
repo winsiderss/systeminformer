@@ -823,8 +823,8 @@ static INT_PTR CALLBACK PhpProcessTerminatorDlgProc(
             SetProp(hwndDlg, L"ProcessItem", (HANDLE)processItem);
 
             lvHandle = GetDlgItem(hwndDlg, IDC_TERMINATOR_LIST);
-            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"ID");
-            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Description");
+            PhAddListViewColumn(lvHandle, 0, 0, 0, LVCFMT_LEFT, 70, L"ID");
+            PhAddListViewColumn(lvHandle, 1, 1, 1, LVCFMT_LEFT, 280, L"Description");
             ListView_SetExtendedListViewStyleEx(lvHandle, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_INFOTIP | LVS_EX_LABELTIP | LVS_EX_CHECKBOXES, -1);
             PhSetControlTheme(lvHandle, L"explorer");
 
