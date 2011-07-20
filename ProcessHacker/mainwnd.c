@@ -1061,6 +1061,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_PROCESS_CREATEDUMPFILE:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem)
+                    {
+                        PhReferenceObject(processItem);
+                        PhUiCreateDumpFileProcess(hWnd, processItem);
+                        PhDereferenceObject(processItem);
+                    }
+                }
+                break;
             case ID_PROCESS_DEBUG:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
@@ -1071,18 +1083,6 @@ LRESULT CALLBACK PhMainWndProc(
                         PhUiDebugProcess(hWnd, processItem);
                         PhDereferenceObject(processItem);
                     }
-                }
-                break;
-            case ID_PROCESS_REDUCEWORKINGSET:
-                {
-                    PPH_PROCESS_ITEM *processes;
-                    ULONG numberOfProcesses;
-
-                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
-                    PhReferenceObjects(processes, numberOfProcesses);
-                    PhUiReduceWorkingSetProcesses(hWnd, processes, numberOfProcesses);
-                    PhDereferenceObjects(processes, numberOfProcesses);
-                    PhFree(processes);
                 }
                 break;
             case ID_PROCESS_VIRTUALIZATION:
@@ -1109,18 +1109,6 @@ LRESULT CALLBACK PhMainWndProc(
                     {
                         PhReferenceObject(processItem);
                         PhShowProcessAffinityDialog(hWnd, processItem, NULL);
-                        PhDereferenceObject(processItem);
-                    }
-                }
-                break;
-            case ID_PROCESS_CREATEDUMPFILE:
-                {
-                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
-
-                    if (processItem)
-                    {
-                        PhReferenceObject(processItem);
-                        PhUiCreateDumpFileProcess(hWnd, processItem);
                         PhDereferenceObject(processItem);
                     }
                 }
@@ -1257,6 +1245,18 @@ LRESULT CALLBACK PhMainWndProc(
                     }
                 }
                 break;
+            case ID_MISCELLANEOUS_REDUCEWORKINGSET:
+                {
+                    PPH_PROCESS_ITEM *processes;
+                    ULONG numberOfProcesses;
+
+                    PhpGetSelectedProcesses(&processes, &numberOfProcesses);
+                    PhReferenceObjects(processes, numberOfProcesses);
+                    PhUiReduceWorkingSetProcesses(hWnd, processes, numberOfProcesses);
+                    PhDereferenceObjects(processes, numberOfProcesses);
+                    PhFree(processes);
+                }
+                break;
             case ID_MISCELLANEOUS_RUNAS:
                 {
                     PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
@@ -1350,6 +1350,18 @@ LRESULT CALLBACK PhMainWndProc(
                     {
                         // No reference needed; no messages pumped.
                         PhpShowProcessProperties(processItem);
+                    }
+                }
+                break;
+            case ID_PROCESS_OPENFILELOCATION:
+                {
+                    PPH_PROCESS_ITEM processItem = PhpGetSelectedProcess();
+
+                    if (processItem && processItem->FileName)
+                    {
+                        PhReferenceObject(processItem);
+                        PhShellExploreFile(hWnd, processItem->FileName->Buffer);
+                        PhDereferenceObject(processItem);
                     }
                 }
                 break;
@@ -3812,12 +3824,19 @@ VOID PhpInitializeProcessMenu(
             ID_PROCESS_TERMINATE,
             ID_PROCESS_SUSPEND,
             ID_PROCESS_RESUME,
-            ID_PROCESS_REDUCEWORKINGSET,
+            ID_MISCELLANEOUS_REDUCEWORKINGSET,
             ID_PROCESS_COPY
         };
         ULONG i;
 
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+
+        // Enable the Miscellaneous menu item but disable its children.
+        if (item = PhFindEMenuItem(Menu, 0, L"Miscellaneous", 0))
+        {
+            item->Flags &= ~PH_EMENU_DISABLED;
+            PhSetFlagsAllEMenuItems(item, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        }
 
         // These menu items are capable of manipulating 
         // multiple processes.
