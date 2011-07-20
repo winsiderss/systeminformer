@@ -8,6 +8,8 @@ Process Hacker
    * Rewrote graph drawing code for improved performance
    * Optimized retrieval of cycle time and private working set 
      information for Windows 7
+   * Added Open File Location to process context menu and 
+     reorganized some items
  * FIXED:
    * Crash when sorting by Time Stamp
    * GDI handle leak in drag selection
