@@ -10,6 +10,7 @@ Process Hacker
      information for Windows 7
    * Added Open File Location to process context menu and 
      reorganized some items
+   * Added checkboxes to Terminator
  * FIXED:
    * Crash when sorting by Time Stamp
    * GDI handle leak in drag selection
