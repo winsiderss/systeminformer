@@ -225,7 +225,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Inspect",                    ID_MODULE_INSPECT
         MENUITEM "&Search Online",              ID_MODULE_SEARCHONLINE
-        MENUITEM "Open Containing &Folder",     ID_MODULE_OPENCONTAININGFOLDER
+        MENUITEM "Open &File Location",         ID_MODULE_OPENFILELOCATION
         MENUITEM "&Copy\aCtrl+C",               ID_MODULE_COPY
         MENUITEM "P&roperties",                 ID_MODULE_PROPERTIES
     END
@@ -256,12 +256,12 @@ BEGIN
         MENUITEM "&Suspend",                    ID_PROCESS_SUSPEND
         MENUITEM "Res&ume",                     ID_PROCESS_RESUME
         MENUITEM "Res&tart",                    ID_PROCESS_RESTART
+        MENUITEM SEPARATOR
+        MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
         MENUITEM "Debug",                       ID_PROCESS_DEBUG
-        MENUITEM "Reduce Working Set",          ID_PROCESS_REDUCEWORKINGSET
         MENUITEM "Virtualization",              ID_PROCESS_VIRTUALIZATION
         MENUITEM SEPARATOR
         MENUITEM "&Affinity",                   ID_PROCESS_AFFINITY
-        MENUITEM "Create Dump File...",         ID_PROCESS_CREATEDUMPFILE
         MENUITEM "Terminator",                  ID_PROCESS_TERMINATOR
         POPUP "&Miscellaneous"
         BEGIN
@@ -284,6 +284,7 @@ BEGIN
                 MENUITEM "2",                           ID_PAGEPRIORITY_2
                 MENUITEM "1",                           ID_PAGEPRIORITY_1
             END
+            MENUITEM "Reduce Working Set",          ID_MISCELLANEOUS_REDUCEWORKINGSET
             MENUITEM "Run As...",                   ID_MISCELLANEOUS_RUNAS
             MENUITEM "Run As This User...",         ID_MISCELLANEOUS_RUNASTHISUSER
         END
@@ -307,6 +308,7 @@ BEGIN
         END
         MENUITEM "P&roperties\aEnter",          ID_PROCESS_PROPERTIES
         MENUITEM SEPARATOR
+        MENUITEM "Open &File Location\aCtrl+Enter", ID_PROCESS_OPENFILELOCATION
         MENUITEM "Search Online\aCtrl+M",       ID_PROCESS_SEARCHONLINE
         MENUITEM "&Copy\aCtrl+C",               ID_PROCESS_COPY
     END
@@ -2040,9 +2042,9 @@ BEGIN
     "M",            ID_PROCESS_SEARCHONLINE, VIRTKEY, CONTROL, NOINVERT
     VK_TAB,         ID_TAB_NEXT,            VIRTKEY, CONTROL, NOINVERT
     VK_TAB,         ID_TAB_PREV,            VIRTKEY, SHIFT, CONTROL, NOINVERT
-    VK_PAUSE,       ID_VIEW_UPDATEAUTOMATICALLY, VIRTKEY, NOINVERT
     VK_F5,          ID_VIEW_REFRESH,        VIRTKEY, NOINVERT
     "I",            ID_VIEW_SYSTEMINFORMATION, VIRTKEY, CONTROL, NOINVERT
+    VK_PAUSE,       ID_VIEW_UPDATEAUTOMATICALLY, VIRTKEY, NOINVERT
 END
 
 

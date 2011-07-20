@@ -2418,10 +2418,12 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATE, 0);
                 else
                     SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_TERMINATETREE, 0);
-
                 break;
             case VK_RETURN:
-                SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+                if (GetKeyState(VK_CONTROL) >= 0)
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_PROPERTIES, 0);
+                else
+                    SendMessage(PhMainWndHandle, WM_COMMAND, ID_PROCESS_OPENFILELOCATION, 0);
                 break;
             }
         }

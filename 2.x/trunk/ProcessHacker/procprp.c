@@ -3476,7 +3476,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     }
                 }
                 break;
-            case ID_MODULE_OPENCONTAININGFOLDER:
+            case ID_MODULE_OPENFILELOCATION:
                 {
                     PPH_MODULE_ITEM moduleItem = PhGetSelectedModuleItem(&modulesContext->ListContext);
 

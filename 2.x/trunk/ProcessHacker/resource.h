@@ -657,6 +657,9 @@
 #define ID_VIEW_SHOWCPUBELOW0           40244
 #define ID_VIEW_SHOWCPUBELOW            40245
 #define ID_VIEW_SHOWCPUBELOW001         40246
+#define ID_MODULE_OPENFILELOCATION      40247
+#define ID_PROCESS_OPENFILELOCATION     40248
+#define ID_MISCELLANEOUS_REDUCEWORKINGSET 40249
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
 #define IDPLUGINS_END                   56000
@@ -666,7 +669,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        196
-#define _APS_NEXT_COMMAND_VALUE         40247
+#define _APS_NEXT_COMMAND_VALUE         40252
 #define _APS_NEXT_CONTROL_VALUE         1294
 #define _APS_NEXT_SYMED_VALUE           133
 #endif
