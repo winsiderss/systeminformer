@@ -844,13 +844,13 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierFaultsInformation, // s (requires SeDebugPrivilege)
     SystemSystemPartitionInformation, // q: SYSTEM_SYSTEM_PARTITION_INFORMATION
     SystemSystemDiskInformation, // q: SYSTEM_SYSTEM_DISK_INFORMATION
-    SystemProcessorPerformanceDistribution, // 100, q
+    SystemProcessorPerformanceDistribution, // 100, q: SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION
     SystemNumaProximityNodeInformation, // q
     SystemDynamicTimeZoneInformation, // q; s (requires SeTimeZonePrivilege)
     SystemCodeIntegrityInformation, // q // SeCodeIntegrityQueryInformation
     SystemProcessorMicrocodeUpdateInformation, // s
     SystemProcessorBrandString, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
-    SystemVirtualAddressInformation, // q; s // MmQuerySystemVaInformation
+    SystemVirtualAddressInformation, // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
     SystemLogicalProcessorInformationEx, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[]
     SystemStoreInformation, // q; s // SmQueryStoreInformation
@@ -1516,6 +1516,49 @@ typedef struct _SYSTEM_SYSTEM_DISK_INFORMATION
 {
     UNICODE_STRING SystemDisk;
 } SYSTEM_SYSTEM_DISK_INFORMATION, *PSYSTEM_SYSTEM_DISK_INFORMATION;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT
+{
+    ULONG Hits;
+    CHAR PercentFrequency;
+} SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT, *PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION
+{
+    ULONG ProcessorNumber;
+    ULONG StateCount;
+    SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT States[1];
+} SYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION, *PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION;
+
+// private
+typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION
+{
+    ULONG ProcessorCount;
+    ULONG Offsets[1];
+} SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION, *PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION;
+
+// private
+typedef enum _SYSTEM_VA_TYPE
+{
+    SystemVaTypeAll,
+    SystemVaTypeNonPagedPool,
+    SystemVaTypePagedPool,
+    SystemVaTypeSystemCache,
+    SystemVaTypeSystemPtes,
+    SystemVaTypeSessionSpace,
+    SystemVaTypeMax
+} SYSTEM_VA_TYPE, *PSYSTEM_VA_TYPE;
+
+// private
+typedef struct _SYSTEM_VA_LIST_INFORMATION
+{
+    ULONG VirtualSize;
+    ULONG VirtualPeak;
+    ULONG VirtualLimit;
+    ULONG AllocationFailures;
+} SYSTEM_VA_LIST_INFORMATION, *PSYSTEM_VA_LIST_INFORMATION;
 
 // msdn
 typedef struct _SYSTEM_VHD_BOOT_INFORMATION
