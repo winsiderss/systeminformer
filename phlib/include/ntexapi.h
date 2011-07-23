@@ -554,7 +554,7 @@ typedef enum _WORKERFACTORYINFOCLASS
     WorkerFactoryPaused,
     WorkerFactoryBasicInformation, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryBasicInformation
     WorkerFactoryAdjustThreadGoal,
-    WorkerFactoryThreadCount, // rev
+    WorkerFactoryCallbackType,
     WorkerFactoryStackInformation, // name:wow64:whNtQueryInformationWorkerFactory_WorkerFactoryStackInformation
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
@@ -795,7 +795,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSessionDetach, // not implemented
     SystemSessionInformation, // not implemented
     SystemRangeStartInformation, // 50, q
-    SystemVerifierInformation, // q; s (requires SeDebugPrivilege)
+    SystemVerifierInformation, // q: SYSTEM_VERIFIER_INFORMATION; s (requires SeDebugPrivilege)
     SystemVerifierThunkExtend, // s (kernel-mode only)
     SystemSessionProcessInformation, // q: SYSTEM_SESSION_PROCESS_INFORMATION
     SystemLoadGdiDriverInSystemSpace, // s (kernel-mode only) (same as SystemLoadGdiDriverInformation)
@@ -851,22 +851,22 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemProcessorMicrocodeUpdateInformation, // s
     SystemProcessorBrandString, // q // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVirtualAddressInformation, // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
-    SystemLogicalProcessorInformationEx, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
+    SystemLogicalProcessorAndGroupInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // since WIN7 // KeQueryLogicalProcessorRelationship
     SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[]
     SystemStoreInformation, // q; s // SmQueryStoreInformation
-    SystemRegistryAppendStringInformation, // 110, s
+    SystemRegistryAppendString, // 110, s: SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
     SystemVhdBootInformation, // q: SYSTEM_VHD_BOOT_INFORMATION
     SystemCpuQuotaInformation, // q; s // PsQueryCpuQuotaInformation
-    SystemNotImplemented114, // not implemented
-    SystemNotImplemented115, // not implemented
+    SystemNativeBasicInformation, // not implemented
+    SystemSpare1, // not implemented
     SystemLowPriorityIoInformation, // q: SYSTEM_LOW_PRIORITY_IO_INFORMATION
-    SystemTpmBootEntropyInformation, // q: SYSTEM_TPM_BOOT_ENTROPY_INFORMATION // ExQueryTpmBootEntropyInformation
-    SystemVerifierInformation2, // q
-    SystemPagedPoolWorkingSetInformation, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
-    SystemSystemPtesWorkingSetInformation, // 120, q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes)
-    SystemNumaDistanceInformation, // q
-    SystemSlicAuditResultsInformation, // q // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
+    SystemTpmBootEntropyInformation, // q: TPM_BOOT_ENTROPY_NT_RESULT // ExQueryTpmBootEntropyInformation
+    SystemVerifierCountersInformation, // q: SYSTEM_VERIFIER_COUNTERS_INFORMATION
+    SystemPagedPoolInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
+    SystemSystemPtesInformationEx, // 120, q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes)
+    SystemNodeDistanceInformation, // q
+    SystemAcpiAuditInformation, // q: SYSTEM_ACPI_AUDIT_INFORMATION // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
     MaxSystemInfoClass
@@ -1021,8 +1021,8 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     ULONG NumberOfThreads;
     LARGE_INTEGER WorkingSetPrivateSize; // since VISTA
     ULONG HardFaultCount; // since WIN7
-    ULONG ActiveThreadsHighWatermark; // since WIN7
-    LARGE_INTEGER CycleTime; // since WIN7
+    ULONG NumberOfThreadsHighWatermark; // since WIN7
+    ULONGLONG CycleTime; // since WIN7
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
@@ -1474,6 +1474,15 @@ typedef struct _SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION
 } SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION, *PSYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION;
 
 // private
+typedef struct _SYSTEM_REF_TRACE_INFORMATION
+{
+    BOOLEAN TraceEnable;
+    BOOLEAN TracePermanent;
+    UNICODE_STRING TraceProcessName;
+    UNICODE_STRING TracePoolTags;
+} SYSTEM_REF_TRACE_INFORMATION, *PSYSTEM_REF_TRACE_INFORMATION;
+
+// private
 typedef struct _SYSTEM_PROCESS_ID_INFORMATION
 {
     HANDLE ProcessId;
@@ -1554,11 +1563,26 @@ typedef enum _SYSTEM_VA_TYPE
 // private
 typedef struct _SYSTEM_VA_LIST_INFORMATION
 {
-    ULONG VirtualSize;
-    ULONG VirtualPeak;
-    ULONG VirtualLimit;
-    ULONG AllocationFailures;
+    SIZE_T VirtualSize;
+    SIZE_T VirtualPeak;
+    SIZE_T VirtualLimit;
+    SIZE_T AllocationFailures;
 } SYSTEM_VA_LIST_INFORMATION, *PSYSTEM_VA_LIST_INFORMATION;
+
+// private
+typedef struct _SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
+{
+    HANDLE KeyHandle;
+    PUNICODE_STRING ValueNamePointer;
+    PULONG RequiredLengthPointer;
+    PUCHAR Buffer;
+    ULONG BufferLength;
+    ULONG Type;
+    PUCHAR AppendBuffer;
+    ULONG AppendBufferLength;
+    BOOLEAN CreateIfDoesntExist;
+    BOOLEAN TruncateExistingValue;
+} SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS, *PSYSTEM_REGISTRY_APPEND_STRING_PARAMETERS;
 
 // msdn
 typedef struct _SYSTEM_VHD_BOOT_INFORMATION
@@ -1568,19 +1592,19 @@ typedef struct _SYSTEM_VHD_BOOT_INFORMATION
     WCHAR OsVhdParentVolume[ANYSIZE_ARRAY];
 } SYSTEM_VHD_BOOT_INFORMATION, *PSYSTEM_VHD_BOOT_INFORMATION;
 
-// rev:http://www.msuiche.net/2009/04/01/low-priority-io-count-information-systemlowpriorityinformation/
+// private
 typedef struct _SYSTEM_LOW_PRIORITY_IO_INFORMATION
 {
-    ULONG IoLowPriorityReadOperationCount;
-    ULONG IoLowPriorityWriteOperationCount;
-    ULONG IoKernelIssuedIoBoostedCount;
-    ULONG IoPagingReadLowPriorityCount;
-    ULONG IoPagingReadLowPriorityBumpedCount;
-    ULONG IoPagingWriteLowPriorityCount;
-    ULONG IoPagingWriteLowPriorityBumpedCount;
-    ULONG IoBoostedThreadedIrpCount;
-    ULONG IoBoostedPagingIrpCount;
-    ULONG IoBlanketBoostCount;
+    ULONG LowPriReadOperations;
+    ULONG LowPriWriteOperations;
+    ULONG KernelBumpedToNormalOperations;
+    ULONG LowPriPagingReadOperations;
+    ULONG KernelPagingReadsBumpedToNormal;
+    ULONG LowPriPagingWriteOperations;
+    ULONG KernelPagingWritesBumpedToNormal;
+    ULONG BoostedIrpCount;
+    ULONG BoostedPagingIrpCount;
+    ULONG BlanketBoostCount;
 } SYSTEM_LOW_PRIORITY_IO_INFORMATION, *PSYSTEM_LOW_PRIORITY_IO_INFORMATION;
 
 // symbols
@@ -1596,8 +1620,8 @@ typedef enum _TPM_BOOT_ENTROPY_RESULT_CODE
 // Contents of KeLoaderBlock->Extension->TpmBootEntropyResult (TPM_BOOT_ENTROPY_LDR_RESULT).
 // EntropyData is truncated to 40 bytes.
 
-// symbols
-typedef struct _SYSTEM_TPM_BOOT_ENTROPY_INFORMATION
+// private
+typedef struct _TPM_BOOT_ENTROPY_NT_RESULT
 {
     ULONGLONG Policy;
     TPM_BOOT_ENTROPY_RESULT_CODE ResultCode;
@@ -1605,15 +1629,46 @@ typedef struct _SYSTEM_TPM_BOOT_ENTROPY_INFORMATION
     ULONGLONG Time;
     ULONG EntropyLength;
     UCHAR EntropyData[40];
-} SYSTEM_TPM_BOOT_ENTROPY_INFORMATION, *PSYSTEM_TPM_BOOT_ENTROPY_INFORMATION;
+} TPM_BOOT_ENTROPY_NT_RESULT, *PTPM_BOOT_ENTROPY_NT_RESULT;
 
-// rev
+// private
+typedef struct _SYSTEM_VERIFIER_COUNTERS_INFORMATION
+{
+    SYSTEM_VERIFIER_INFORMATION Legacy;
+    ULONG RaiseIrqls;
+    ULONG AcquireSpinLocks;
+    ULONG SynchronizeExecutions;
+    ULONG AllocationsWithNoTag;
+    ULONG AllocationsFailed;
+    ULONG AllocationsFailedDeliberately;
+    SIZE_T LockedBytes;
+    SIZE_T PeakLockedBytes;
+    SIZE_T MappedLockedBytes;
+    SIZE_T PeakMappedLockedBytes;
+    SIZE_T MappedIoSpaceBytes;
+    SIZE_T PeakMappedIoSpaceBytes;
+    SIZE_T PagesForMdlBytes;
+    SIZE_T PeakPagesForMdlBytes;
+    SIZE_T ContiguousMemoryBytes;
+    SIZE_T PeakContiguousMemoryBytes;
+} SYSTEM_VERIFIER_COUNTERS_INFORMATION, *PSYSTEM_VERIFIER_COUNTERS_INFORMATION;
+
+// private
+typedef struct _SYSTEM_ACPI_AUDIT_INFORMATION
+{
+    ULONG RsdpCount;
+    ULONG SameRsdt : 1;
+    ULONG SlicPresent : 1;
+    ULONG SlicDifferent : 1;
+} SYSTEM_ACPI_AUDIT_INFORMATION, *PSYSTEM_ACPI_AUDIT_INFORMATION;
+
+// private
 typedef struct _SYSTEM_BASIC_PERFORMANCE_INFORMATION
 {
-    ULONG AvailablePages;
-    ULONG CommittedPages;
-    ULONG CommitLimit;
-    ULONG PeakCommitment;
+    SIZE_T AvailablePages;
+    SIZE_T CommittedPages;
+    SIZE_T CommitLimit;
+    SIZE_T PeakCommitment;
 } SYSTEM_BASIC_PERFORMANCE_INFORMATION, *PSYSTEM_BASIC_PERFORMANCE_INFORMATION;
 
 // begin_msdn

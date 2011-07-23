@@ -383,9 +383,6 @@
     <ClInclude Include="include\refp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\rev.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\seceditp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -438,6 +435,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\treenewp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\winmisc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

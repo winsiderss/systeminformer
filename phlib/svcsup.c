@@ -22,6 +22,7 @@
 
 #define _PH_SVCSUP_PRIVATE
 #include <ph.h>
+#include <winmisc.h>
 
 #define SIP(String, Integer) { (String), (PVOID)(Integer) }
 
@@ -406,9 +407,9 @@ PPH_STRING PhGetServiceNameFromTag(
     __in PVOID ServiceTag
     )
 {
-    static _I_QueryTagInformation I_QueryTagInformation = NULL;
+    static PQUERY_TAG_INFORMATION I_QueryTagInformation = NULL;
     PPH_STRING serviceName = NULL;
-    SC_SERVICE_NAME_FROM_TAG_QUERY query;
+    TAG_INFO_NAME_FROM_TAG nameFromTag;
 
     if (!I_QueryTagInformation)
     {
@@ -418,17 +419,16 @@ PPH_STRING PhGetServiceNameFromTag(
             return NULL;
     }
 
-    query.ProcessId = (ULONG)ProcessId;
-    query.ServiceTag = (ULONG)ServiceTag;
-    query.Unknown = 0;
-    query.Buffer = NULL;
+    memset(&nameFromTag, 0, sizeof(TAG_INFO_NAME_FROM_TAG));
+    nameFromTag.InParams.dwPid = (ULONG)ProcessId;
+    nameFromTag.InParams.dwTag = (ULONG)ServiceTag;
 
-    I_QueryTagInformation(NULL, ServiceNameFromTagInformation, &query);
+    I_QueryTagInformation(NULL, eTagInfoLevelNameFromTag, &nameFromTag);
 
-    if (query.Buffer)
+    if (nameFromTag.OutParams.pszName)
     {
-        serviceName = PhCreateString((PWSTR)query.Buffer);
-        LocalFree(query.Buffer);
+        serviceName = PhCreateString(nameFromTag.OutParams.pszName);
+        LocalFree(nameFromTag.OutParams.pszName);
     }
 
     return serviceName;
