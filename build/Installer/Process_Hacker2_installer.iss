@@ -24,7 +24,7 @@
 ; *Inno Setup v5.4.2(+): http://www.jrsoftware.org/isdl.php
 
 
-#define installer_build_number "08"
+#define installer_build_number "09"
 
 #define VerMajor
 #define VerMinor
@@ -57,12 +57,12 @@ DefaultDirName={pf}\Process Hacker 2
 DefaultGroupName=Process Hacker 2
 VersionInfoCompany=wj32
 VersionInfoCopyright=Licensed under the GNU GPL, v3.
-VersionInfoDescription=Process Hacker {#simple_app_version} Setup
+VersionInfoDescription=Process Hacker Setup
+VersionInfoProductName=Process Hacker
+VersionInfoProductTextVersion={#simple_app_version}
+VersionInfoProductVersion={#simple_app_version}
 VersionInfoTextVersion={#simple_app_version}
 VersionInfoVersion={#simple_app_version}
-VersionInfoProductName=Process Hacker
-VersionInfoProductVersion={#simple_app_version}
-VersionInfoProductTextVersion={#simple_app_version}
 MinVersion=0,5.01.2600sp2
 AppReadmeFile={app}\Help.htm
 LicenseFile=..\..\LICENSE.txt
@@ -187,7 +187,7 @@ Name: {group}\Process Hacker 2; Filename: {app}\ProcessHacker.exe; WorkingDir: {
 Name: {group}\{cm:sm_Help}\{cm:sm_Changelog}; Filename: {app}\CHANGELOG.txt;    WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
 Name: {group}\{cm:sm_Help}\{cm:sm_HelpFile};  Filename: {app}\Help.htm;         WorkingDir: {app}; Comment: {cm:sm_HelpFile}
 Name: {group}\{cm:sm_Help}\{cm:ProgramOnTheWeb,Process Hacker 2}; Filename: http://processhacker.sourceforge.net/; Comment: {cm:ProgramOnTheWeb,Process Hacker 2}
-Name: {group}\{cm:UninstallProgram,Process Hacker 2}; Filename: {uninstallexe}; WorkingDir: {app}; Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
+Name: {group}\{cm:UninstallProgram,Process Hacker 2};             Filename: {uninstallexe}; WorkingDir: {app};     Comment: {cm:UninstallProgram,Process Hacker 2}; IconFilename: {app}\uninstall.ico
 
 Name: {commondesktop}\Process Hacker 2; Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\common
 Name: {userdesktop}\Process Hacker 2;   Filename: {app}\ProcessHacker.exe;      WorkingDir: {app}; Comment: Process Hacker {#simple_app_version}; IconFilename: {app}\ProcessHacker.exe; IconIndex: 0; Tasks: desktopicon\user
@@ -341,7 +341,7 @@ begin
     StopService('KProcessHacker2');
     RemoveService('KProcessHacker2');
     if SettingsExistCheck then begin
-      if MsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO OR MB_DEFBUTTON2) = IDYES then begin
+      if SuppressibleMsgBox(ExpandConstant('{cm:msg_DeleteLogSettings}'), mbConfirmation, MB_YESNO OR MB_DEFBUTTON2, IDNO) = IDYES then begin
         DeleteFile(ExpandConstant('{userappdata}\Process Hacker 2\settings.xml'));
       end;
     end;
@@ -357,7 +357,7 @@ begin
   // Create a mutex for the installer and if it's already running then expose a message and stop installation
   if CheckForMutexes(installer_mutex_name) then begin
     if NOT WizardSilent() then begin
-      MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
+       SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
       Result := False;
     end;
   end
@@ -374,7 +374,7 @@ end;
 function InitializeUninstall(): Boolean;
 begin
   if CheckForMutexes(installer_mutex_name) then begin
-    MsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK);
+    SuppressibleMsgBox(ExpandConstant('{cm:msg_SetupIsRunningWarning}'), mbError, MB_OK, MB_OK);
     Result := False;
   end
   else begin
